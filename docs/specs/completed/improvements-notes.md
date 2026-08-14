@@ -1,3 +1,7 @@
+> Archived raw feature notes from early development — everything actionable here shipped
+> (drag-drop, config persistence, callback column, ExportFunctionAuditEvent short names).
+> Kept for history; also contains an early sample assistant prompt.
+
 support drag and drop for logfiles
 make sure all paths for source roots etc are saved to the config file
 support drag and for source roots etc

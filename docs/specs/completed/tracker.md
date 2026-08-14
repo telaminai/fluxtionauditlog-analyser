@@ -514,3 +514,52 @@ note. JBang catalog alias points at `releases/latest/download/` so it never need
 - [R16.5] ☑ **`jbang-catalog.json`** (alias → `releases/latest/download/…`) + README run-it-now
   (JBang + curl) snippets.
 
+
+## M17 · Documentation site — ☑ DONE (live at https://telaminai.github.io/fluxtionauditlog-analyser/)
+_Shipped on **MkDocs Material** (migrated mid-build from the original Jekyll/Just-the-Docs design — the
+`github-pages` gem pins 2018-era Jekyll 3.9 and cannot run on Ruby ≥ 4; Material matches
+mongoose-plugins, so the org has one docs toolchain and one look). Design: **[../../admin/docs-site.md](../../admin/docs-site.md)**._
+- [D17.1] ☑ **Skeleton + deploy** — root `mkdocs.yml` (org theme block), `docs-requirements.txt`,
+  `pages.yml` (`mkdocs build --strict` + `deploy-pages` via OIDC); Pages enabled (Source = GitHub
+  Actions); repo made **public** on a fresh single-commit history (tree *and* history anonymised —
+  DEMO/acme placeholders across site, specs, fixtures, javadoc; 186 tests green).
+- [D17.2] ☑ **User guide** — index (hub), records-and-filtering, graphs, assistant (round-trip
+  fault-finding workflow), source-navigation, sharing-setups; getting-started quick start; 9
+  anonymised screenshots (light + dark).
+- [D17.3] ☑ **Log format + producing + FAQ** — annotated real record, field reference, downloadable
+  22-record sample; producing-a-log page; FAQ with action-socket security answer, troubleshooting
+  table, keyboard shortcuts. `CHANGELOG.md` injected as the release-notes page at build; the release
+  workflow now **dispatches the docs deploy** (a `GITHUB_TOKEN` push never fires `on:push`).
+- [D17.4] ☑ **Landing page** — hero value sentence + "Why it matters" section; theme-aware inline-SVG
+  **audit-loop diagram** (no blank lines — python-markdown ends raw HTML blocks at one); nav
+  consolidated to 6 tabs (Getting started and The-audit-log groups); Run-it-now links the sample log.
+- [D17.5] ☑ **Distribution proven** — v1.0.0 released; JBang catalog + trust prompt + `--fresh`
+  documented; catalog passes `--enable-native-access=ALL-UNNAMED` (warning-free launch, verified).
+
+## Refinements (round 13) — ☑ DONE (UI polish backlog, gathered live)
+- [R13.1] ☑ Chart gridlines — more contrast in both themes. · [R13.2] ☑ Search box vertical padding.
+- [R13.3] ☑ Source view Wrap checkbox, default no-wrap (shared `WrapTextPane`).
+- [R13.4] ☑ Record detail **Copy** button. · [R13.5] ☑ Clicking event/`eventToString` navigates the
+  Source view to the dispatch method (`showDispatchFor`).
+- [R13.6] ☑ **Add to graph** offered anywhere on a node line (not only on a key token).
+- [R13.7] ☑ Summary rows: right-click → Filter to / Add / Remove (left-click no longer filters).
+- [R13.8] ☑ Event-types panel: Select all/none; split Event types + Callbacks; right-click Only
+  this / Add / Remove; filtering unchanged (single-grouping OR).
+- [R13.9] ☑ Records ▸ Copy selected as YAML. · [R13.10] ☑ Search row: Clear history; field fills width.
+- [R13.11] ☑ "LLM" tab renamed **Analyser assistant**.
+- [R13.12] ☑ Diff viewer export — CSV / JSON / PDF (`DiffExport` + dependency-free `TextPdf`; 4 tests).
+- [R13.13] ☑ Correctness pass — Select-none clears the view (`FilterState`: empty = none, null = all);
+  PDF diff lines clipped to page; review sweep fixed filter-echo all-vs-none and a before-heavy `read`
+  anchor drop.
+- [R13.14] ☑ Toolbar icons — `ToolIcons` 16px vector glyphs, theme/enabled-aware, no image assets.
+
+## Assistant vocabulary — follow-ups (external review) — ☑ DONE
+- [AV.1] ☑ **`read` verb** — N records around an offset/index over the socket (rate-limited;
+  `ReadService`, 6 tests; snapshot carries byte offsets + `rowForOffset`); sandboxed/remote agents can
+  seek the log without filesystem access.
+- [AV.2] ☑ **Graph provenance** — `graph` takes optional `rationale`, stored on `GraphSpec.note`,
+  persisted, shared, shown as an italic caption under the plot.
+- [AV.3] ☑ **Per-verb JSON schemas in `/manifest`** (`VerbSchemas`, draft-07-style; single source of
+  truth, also feeds the MCP bridge).
+- [AV.4] ☑ **`goto {reveal:true}`** — minimally relaxes the filter to show a hidden record; without it
+  the echo names the hiding constraint.
