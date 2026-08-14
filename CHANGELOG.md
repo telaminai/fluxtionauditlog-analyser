@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-14
+
 ### Added
 - Assistant: **`read` verb** — fetch the raw text of N records around a record/byte anchor over the
   localhost socket, so an agent can seek the log without filesystem access (rate-limited).
