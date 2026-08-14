@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- JBang launches no longer print JVM native-access warnings — the catalog alias now passes
+  `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
+
+### Fixed
+- A release now refreshes the **docs site's release-notes page** automatically — the release workflow
+  dispatches the docs deploy (the changelog-stamp push alone never triggered it).
+
+### Docs
+- Install guide: documented the JBang **first-run trust prompt** and that a **new release** needs
+  `jbang --fresh` (or `jbang cache clear`) — JBang otherwise keeps serving its cached jar.
+
 ## [1.0.0] - 2026-08-14
 
 ### Added
