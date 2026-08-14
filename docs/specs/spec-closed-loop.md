@@ -168,6 +168,29 @@ human and journaled.
    verbosity if the verdict needs more detail.
 5. The record that used to be wrong is now right — the loop's dashed arc, executed.
 
+## Client integration matrix
+
+Two distinct roles: **analysis companion** (queries the analyser: read / aggregate / graph / flag) and
+**fix executor** (edits source, runs builds, opens PRs). Some clients do one, some both:
+
+| Client | Analysis companion | Fix executor | Connects via |
+|---|---|---|---|
+| **In-app assistant** | ✅ (in-process actions) | ✖ — hands off | built in |
+| **Claude Code** | ✅ M13 MCP bridge (`.mcp.json` pointing at `analyser.jar --mcp`) or REST from the seeded prompt | ✅ **primary target** — M12.4 launch preset | MCP · REST · CLI launch |
+| **Claude Desktop** | ✅ M13 MCP bridge (entry in `claude_desktop_config.json`) — chat-first forensics over the live analyser | ✖ not a repo/build environment; can *author* the fix plan, then the user launches Claude Code | MCP |
+| **Codex CLI** | ✅ MCP (Codex is an MCP client — same bridge) or REST | ✅ M12.4 launch preset | MCP · REST · CLI launch |
+| **Any other agent** | ✅ REST `/action` + `/manifest` schemas (the universal zero-config door) | ✅ via the copy-command template (agent-agnostic) | REST |
+
+Notes:
+- **One bridge serves every MCP client** — Claude Code, Claude Desktop, Codex, and future clients all
+  consume the same `--mcp` stdio bridge (M13); per-client work is one config snippet each, delivered
+  as docs (M13.4 grows a per-client section: Code / Desktop / Codex).
+- **Claude Desktop's niche** is the standing forensic companion: the analyser running all day, Desktop
+  configured once, and "why did X happen?" answerable from chat with the results rendered into the
+  analyser. It hands *fix* work to Claude Code (its Code integration makes that handoff natural).
+- The **copy-prompt** remains the floor for everything else — any model with a chat window gets the
+  evidence; any agent with a shell gets the REST protocol block.
+
 ## Delivery order
 
 **M18.1 → M18.2 → M18.3** (small, independent, immediately useful with Follow) · **M12.4** (brief file
