@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write   # push the changelog commit + tag and create the release, via GITHUB_TOKEN
+  actions: write    # dispatch the docs-site deploy at the end (GITHUB_TOKEN pushes never fire on:push)
 
 jobs:
   release:
@@ -72,3 +73,10 @@ jobs:
             target/fluxtion-auditlog-analyser-${{ inputs.version }}.jar
             fluxtion-auditlog-analyser.jar
             SHA256SUMS.sha256
+
+      # The changelog-stamp push above uses GITHUB_TOKEN, which never triggers on:push workflows —
+      # so kick the docs deploy explicitly, or the site's release-notes page misses the release.
+      - name: Refresh the docs site (release-notes page)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
