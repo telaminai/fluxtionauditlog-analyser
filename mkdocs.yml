@@ -1,0 +1,106 @@
+site_name: Fluxtion Audit Log Analyser
+site_description: Browse, filter, graph and explain Fluxtion event-audit logs — a fast desktop tool for Mongoose/Fluxtion EventProcessor histories.
+site_url: https://telaminai.github.io/fluxtionauditlog-analyser/
+repo_url: https://github.com/telaminai/fluxtionauditlog-analyser
+repo_name: telaminai/fluxtionauditlog-analyser
+edit_uri: edit/main/docs/site/
+
+# Site sources live under docs/site so docs/specs and docs/admin stay plain contributor
+# markdown, browsed on GitHub and untouched by the site build.
+docs_dir: docs/site
+site_dir: target/docs-site
+
+# assets/README.md is a contributor note about the screenshots, not a site page.
+exclude_docs: |
+  assets/README.md
+
+# Theme matches the org look (telaminai/mongoose-plugins mkdocs.yml).
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - toc.follow
+  # single light theme — the slate/dark scheme rendered poorly (black text on dark grey), so we pin light
+  palette:
+    scheme: default
+    primary: indigo
+    accent: deep orange
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/chart-timeline-variant
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: [docs/site]
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/telaminai/fluxtionauditlog-analyser
+    - icon: fontawesome/solid/download
+      link: https://github.com/telaminai/fluxtionauditlog-analyser/releases/latest
+  generator: false
+
+copyright: Copyright &copy; 2026 Telamin Limited
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Quick start: getting-started.md
+      - Install & run: install.md
+  - User guide:
+      - user-guide/index.md
+      - Records, detail & filtering: user-guide/records-and-filtering.md
+      - Graphs: user-guide/graphs.md
+      - Analyser assistant: user-guide/assistant.md
+      - Source navigation: user-guide/source-navigation.md
+      - Sharing setups: user-guide/sharing-setups.md
+  - The audit log:
+      - Log format: log-format.md
+      - Producing an audit log: producing-a-log.md
+  - FAQ: faq.md
+  - Release notes: release-notes.md

@@ -1,0 +1,309 @@
+---
+#10:57:37.407 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: 1786355857407
+  logTime: 1786355857407
+  groupingId: null
+  event: LifecycleEvent
+  eventToString: StartComplete
+  nodeLogs:
+    - positionNode: { positionCache: startComplete}
+  endTime: 1786355857407
+---
+#10:57:37.431 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355857430
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderVenueConnected(com.fluxtion.server.plugin.trading.service.order.OrderVenueConnectedEvent)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - hedgeConnectionMonitor: { orderVenueConnected: OrderVenueConnectedEvent[name=demoRfqOrders], mockOrders: disconnected, connectedVenues: [demoRfqOrders], status: CLOSED, hedgeQuantity: NaN}
+    - hedgePositionMonitor: { hedgePositionBreach: false, hedgeStatus: CLOSED}
+    - venueMonitor_3: { venueStatus: connected=true requiredOrderVenues=[demoRfqOrders] missingOrderVenues=[] requiredMarketVenues=[] missingMarketVenues=[]}
+    - venueMonitorQuoteCalculator_2: { connected: true}
+    - quotePublisherNode_0: { publishMMQuote: QuoteLadder(quoteId=-1, bidPrice=NaN, bidQuantity=NaN, askPrice=NaN, askQuantity=NaN)}
+    - bidMakerOrder: { ignoreCancelOrder: noLiveOrder, orderStatus: noLiveOrder, isOrderClosed: true}
+    - askMakerOrder: { ignoreCancelOrder: noLiveOrder, orderStatus: noLiveOrder, isOrderClosed: true, connected: true}
+    - bidMakerOrder: { connected: true}
+  endTime: 1786355857431
+---
+#10:57:37.431 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355857431
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderVenueConnected(com.fluxtion.server.plugin.trading.service.order.OrderVenueConnectedEvent)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - hedgeConnectionMonitor: { orderVenueConnected: OrderVenueConnectedEvent[name=mockOrders], mockOrders: connected, status: CLOSED, hedgeQuantity: NaN}
+    - hedgePositionMonitor: { hedgePositionBreach: false, hedgeStatus: CLOSED}
+    - buyTakerOrder: { connected: true}
+    - sellTakerOrder: { connected: true}
+    - venueMonitor_3: { venueStatus: connected=true requiredOrderVenues=[demoRfqOrders] missingOrderVenues=[] requiredMarketVenues=[] missingMarketVenues=[]}
+  endTime: 1786355857431
+---
+#10:57:47.407 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355867406
+  groupingId: null
+  event: ScheduledTriggerNode
+  eventToString: com.fluxtion.server.service.scheduler.ScheduledTriggerNode@327120c8
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - hedgeToOrdersNode: { hedgeAction: cancelOrder, status: CLOSED}
+    - buyTakerOrder: { hedgeAction: cancelOrder}
+    - sellTakerOrder: { hedgeAction: cancelOrder}
+    - hedgeToOrdersNode: { hedgeQuantity: 0.0}
+    - bidMakerOrder: { ignoreCancelOrder: noLiveOrder, orderStatus: noLiveOrder, isOrderClosed: true}
+    - askMakerOrder: { ignoreCancelOrder: noLiveOrder, orderStatus: noLiveOrder, isOrderClosed: true}
+  endTime: 1786355867407
+---
+#10:57:57.411 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355877407
+  groupingId: null
+  event: ScheduledTriggerNode
+  eventToString: com.fluxtion.server.service.scheduler.ScheduledTriggerNode@327120c8
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - hedgeToOrdersNode: { hedgeAction: cancelOrder, status: CLOSED}
+    - buyTakerOrder: { hedgeAction: cancelOrder}
+    - sellTakerOrder: { hedgeAction: cancelOrder}
+    - hedgeToOrdersNode: { hedgeQuantity: 0.0}
+    - bidMakerOrder: { ignoreCancelOrder: noLiveOrder, orderStatus: noLiveOrder, isOrderClosed: true}
+    - askMakerOrder: { ignoreCancelOrder: noLiveOrder, orderStatus: noLiveOrder, isOrderClosed: true}
+  endTime: 1786355877410
+---
+#10:58:07.376 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887375
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.marketdata.MarketDataBookNode.marketDataVenueConnected(com.fluxtion.server.plugin.trading.service.marketdata.MarketConnected)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - hedgeRateSource: { marketConnected: simulatedMarketData, subscribe: success, marketDataFeedName: simulatedMarketData, venue: simulatedMarketData, subscribeSymbol: USD-MXN}
+    - priceCache: { marketConnected: simulatedMarketData}
+    - quotePriceSource: { marketConnected: simulatedMarketData, subscribe: success, marketDataFeedName: simulatedMarketData, venue: simulatedMarketData, subscribeSymbol: USD-MXN}
+    - quoteTobTrackerMktData: { marketConnected: simulatedMarketData, subscribe: success, marketDataFeedName: simulatedMarketData, venue: simulatedMarketData, subscribeSymbol: USD-MXN}
+    - venueMonitor_3: { venueStatus: connected=true requiredOrderVenues=[demoRfqOrders] missingOrderVenues=[] requiredMarketVenues=[] missingMarketVenues=[]}
+  endTime: 1786355887376
+---
+#10:58:07.382 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887376
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.marketdata.MarketDataBookNode.onMultilevelMarketData(com.fluxtion.server.plugin.trading.service.marketdata.MultilevelMarketDataBook)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - contraPositionToHedgeQuantityCalculator: { rate: 19.9045, bidPrice: 19.903, askPrice: 19.906}
+    - quoteSpreadCalculator: { calculateSpread: QuoteLadder(quoteId=1786355855001, bidPrice=19.903, bidQuantity=274.3601, askPrice=19.906, askQuantity=274.3601), status: OPEN}
+    - quotePublisherNode_0: { publishGeneratedQuote: QuoteLadder(quoteId=1786355855001, bidPrice=19.903, bidQuantity=0.01, askPrice=19.906, askQuantity=0.01)}
+    - contraPositionToHedgeQuantityCalculator: { hedgeSide: none, hedgeStatus: CLOSED, hedgeQuantity: NaN, netContraPosition: 0.0, rate: 19.9045}
+    - venueMonitorQuoteCalculator_2: { connected: true}
+    - quotePublisherNode_0: { publishMMQuote: QuoteLadder(quoteId=1786355855001, bidPrice=19.903, bidQuantity=0.01, askPrice=19.906, askQuantity=0.01)}
+    - bidMakerOrder: { quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.903, transformedTargetPrice: 19.903, pendingAckBefore: false, modifyAction: createNewOrder, clOrdId: 7492519643849023488, pendingAckAfter: false}
+    - askMakerOrder: { quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.906, transformedTargetPrice: 19.906, pendingAckBefore: false, modifyAction: createNewOrder, clOrdId: 7492519643869995008, pendingAckAfter: false}
+  endTime: 1786355887382
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887382
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.marketdata.MarketDataBookNode.onMultilevelMarketData(com.fluxtion.server.plugin.trading.service.marketdata.MultilevelMarketDataBook)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - contraPositionToHedgeQuantityCalculator: { rate: 19.979, bidPrice: 19.977, askPrice: 19.981}
+    - quoteSpreadCalculator: { calculateSpread: QuoteLadder(quoteId=1786355855002, bidPrice=19.977, bidQuantity=145.9642, askPrice=19.981, askQuantity=145.9642), status: OPEN}
+    - quotePublisherNode_0: { publishGeneratedQuote: QuoteLadder(quoteId=1786355855002, bidPrice=19.977, bidQuantity=0.01, askPrice=19.981, askQuantity=0.01)}
+    - contraPositionToHedgeQuantityCalculator: { hedgeSide: none, hedgeStatus: CLOSED, hedgeQuantity: NaN, netContraPosition: 0.0, rate: 19.979}
+    - venueMonitorQuoteCalculator_2: { connected: true}
+    - quotePublisherNode_0: { publishMMQuote: QuoteLadder(quoteId=1786355855002, bidPrice=19.977, bidQuantity=0.01, askPrice=19.981, askQuantity=0.01)}
+    - bidMakerOrder: { quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.977, transformedTargetPrice: 19.977, pendingAckBefore: false, modifyAction: modifyExistingOrder, clOrdId: 7492519643849023488, liverOrder.leavesQuantity: 0.01, targetQuantity: 0.01, targetQuantityDiff: false, liverOrder.price: 19.903, targetPrice: 19.977, targetPriceDiff: true, pendingAckAfter: false}
+    - askMakerOrder: { quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.981, transformedTargetPrice: 19.981, pendingAckBefore: false, modifyAction: modifyExistingOrder, clOrdId: 7492519643869995008, liverOrder.leavesQuantity: 0.01, targetQuantity: 0.01, targetQuantityDiff: false, liverOrder.price: 19.906, targetPrice: 19.981, targetPriceDiff: true, pendingAckAfter: false}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { ignoreOrderUpdate: 7492519643849023488, myClOrdId: 7492519643869995008, ignoredSymbol: USD-MXN_INTERNAL}
+    - bidMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.977, transformedTargetPrice: 19.977, pendingAckBefore: false, modifyAction: modifyExistingOrder, clOrdId: 7492519643849023488, liverOrder.leavesQuantity: 0.01, targetQuantity: 0.01, targetQuantityDiff: false, liverOrder.price: 19.903, targetPrice: 19.977, targetPriceDiff: true, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643849023488, currentClOrdId=7492519643849023488, venue=demoRfqOrders, symbol=USD-MXN_INTERNAL, account=null, bookName=demo_book, orderType=null, direction=BUY, expiryTimeType=null, quantity=0.01, price=19.903, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0, routingTarget=demoRfqOrders)}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { ignoreOrderUpdate: 7492519643849023488, myClOrdId: 7492519643869995008, ignoredSymbol: USD-MXN_INTERNAL}
+    - bidMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.977, transformedTargetPrice: 19.977, pendingAckBefore: false, modifyAction: modifyExistingOrder, clOrdId: 7492519643849023488, liverOrder.leavesQuantity: 0.01, targetQuantity: 0.01, targetQuantityDiff: false, liverOrder.price: 19.903, targetPrice: 19.977, targetPriceDiff: true, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643849023488, currentClOrdId=7492519643849023488, venue=demoRfqOrders, symbol=USD-MXN_INTERNAL, account=null, bookName=demo_book, orderType=null, direction=BUY, expiryTimeType=null, quantity=0.01, price=19.903, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.981, transformedTargetPrice: 19.981, pendingAckBefore: false, modifyAction: modifyExistingOrder, clOrdId: 7492519643869995008, liverOrder.leavesQuantity: 0.01, targetQuantity: 0.01, targetQuantityDiff: false, liverOrder.price: 19.906, targetPrice: 19.981, targetPriceDiff: true, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643869995008, currentClOrdId=7492519643869995008, venue=demoRfqOrders, symbol=USD-MXN_INTERNAL, account=null, bookName=demo_book, orderType=null, direction=SELL, expiryTimeType=null, quantity=0.01, price=19.906, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0, routingTarget=demoRfqOrders)}
+    - bidMakerOrder: { ignoreOrderUpdate: 7492519643869995008, myClOrdId: 7492519643849023488, ignoredSymbol: USD-MXN_INTERNAL}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.981, transformedTargetPrice: 19.981, pendingAckBefore: false, modifyAction: modifyExistingOrder, clOrdId: 7492519643869995008, liverOrder.leavesQuantity: 0.01, targetQuantity: 0.01, targetQuantityDiff: false, liverOrder.price: 19.906, targetPrice: 19.981, targetPriceDiff: true, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643869995008, currentClOrdId=7492519643869995008, venue=demoRfqOrders, symbol=USD-MXN_INTERNAL, account=null, bookName=demo_book, orderType=null, direction=SELL, expiryTimeType=null, quantity=0.01, price=19.906, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+    - bidMakerOrder: { ignoreOrderUpdate: 7492519643869995008, myClOrdId: 7492519643849023488, ignoredSymbol: USD-MXN_INTERNAL}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { ignoreOrderUpdate: 7492519643849023488, myClOrdId: 7492519643869995008, ignoredSymbol: null}
+    - bidMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.977, transformedTargetPrice: 19.977, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643849023488, currentClOrdId=-1, venue=null, symbol=null, account=null, bookName=null, orderType=null, direction=null, expiryTimeType=null, quantity=0.01, price=19.977, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.981, transformedTargetPrice: 19.981, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643869995008, currentClOrdId=-1, venue=null, symbol=null, account=null, bookName=null, orderType=null, direction=null, expiryTimeType=null, quantity=0.01, price=19.981, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+    - bidMakerOrder: { ignoreOrderUpdate: 7492519643869995008, myClOrdId: 7492519643849023488, ignoredSymbol: null}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { ignoreOrderUpdate: 7492519643849023488, myClOrdId: 7492519643869995008, ignoredSymbol: null}
+    - bidMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.977, transformedTargetPrice: 19.977, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643849023488, currentClOrdId=-1, venue=null, symbol=null, account=null, bookName=null, orderType=null, direction=null, expiryTimeType=null, quantity=0.01, price=19.977, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { ignoreOrderUpdate: 7492519643849023488, myClOrdId: 7492519643869995008, ignoredSymbol: null}
+    - bidMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.977, transformedTargetPrice: 19.977, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643849023488, currentClOrdId=-1, venue=null, symbol=null, account=null, bookName=null, orderType=null, direction=null, expiryTimeType=null, quantity=0.01, price=19.977, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+  endTime: 1786355887383
+---
+#10:57:37.401 [marketMaker-DEMO] INFO  eventAudit
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355857401
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public void com.fluxtion.runtime.service.ServiceRegistryNode.registerService(com.fluxtion.runtime.service.Service<?>)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - priceCache: { unknown cache:{}: priceBucketCache}
+  endTime: 1786355857401
+---
+#10:57:37.401 [marketMaker-DEMO] INFO  eventAudit
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355857401
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public void com.fluxtion.runtime.service.ServiceRegistryNode.registerService(com.fluxtion.runtime.service.Service<?>)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - buyTakerOrder: { orderExecutorTracked: demoHedgeOrders, active: false, feedName: mockOrders, hedgeVenue: mockOrders}
+    - sellTakerOrder: { orderExecutorTracked: demoHedgeOrders, active: false, feedName: mockOrders, hedgeVenue: mockOrders}
+    - askMakerOrder: { orderExecutorIgnored: com.acme.venue.demo.lib.orders.DemoQuickFixOrderVenue@78b236a0, feedName: demoRfqOrders, makerVenue: demoRfqOrders}
+    - bidMakerOrder: { orderExecutorIgnored: com.acme.venue.demo.lib.orders.DemoQuickFixOrderVenue@78b236a0, feedName: demoRfqOrders, makerVenue: demoRfqOrders}
+  endTime: 1786355857401
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.981, transformedTargetPrice: 19.981, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643869995008, currentClOrdId=-1, venue=null, symbol=null, account=null, bookName=null, orderType=null, direction=null, expiryTimeType=null, quantity=0.01, price=19.981, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+    - bidMakerOrder: { ignoreOrderUpdate: 7492519643869995008, myClOrdId: 7492519643849023488, ignoredSymbol: null}
+  endTime: 1786355887383
+---
+#10:58:07.383 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887383
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderUpdate(com.fluxtion.server.plugin.trading.service.order.Order)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - askMakerOrder: { pendingAckBeforeUpdate: false, orderStatus: NEW, pendingAckAfterUpdate: false, quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.981, transformedTargetPrice: 19.981, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false, pendingAckAfterModify: false, orderUpdate: MutableOrder(clOrdId=7492519643869995008, currentClOrdId=-1, venue=null, symbol=null, account=null, bookName=null, orderType=null, direction=null, expiryTimeType=null, quantity=0.01, price=19.981, exchangeOrderId=null, orderStatus=NEW, leavesQuantity=0.01, filledQuantity=0.0, cancelledQuantity=0.0)}
+    - bidMakerOrder: { ignoreOrderUpdate: 7492519643869995008, myClOrdId: 7492519643849023488, ignoredSymbol: null}
+  endTime: 1786355887383
+---
+#10:58:07.408 [marketMaker-DEMO] INFO  MAKER_USDMXN_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355887408
+  groupingId: null
+  event: ScheduledTriggerNode
+  eventToString: com.fluxtion.server.service.scheduler.ScheduledTriggerNode@327120c8
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - hedgeToOrdersNode: { hedgeAction: cancelOrder, status: CLOSED}
+    - buyTakerOrder: { hedgeAction: cancelOrder}
+    - sellTakerOrder: { hedgeAction: cancelOrder}
+    - hedgeToOrdersNode: { hedgeQuantity: 0.0}
+    - bidMakerOrder: { quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.977, transformedTargetPrice: 19.977, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false}
+    - askMakerOrder: { quantity: 0.01, transformedTargetQuantity: 0.01, price: 19.981, transformedTargetPrice: 19.981, pendingAckBefore: false, modifyAction: none, pendingAckAfter: false}
+  endTime: 1786355887408
+---

@@ -1,0 +1,195 @@
+<html>
+<head>
+<style>
+  body { font-family: sans-serif; font-size: 12px; color: #1f2328; margin: 12px 16px; }
+  h1 { font-size: 18px; }
+  h2 { font-size: 14px; margin-top: 18px; border-bottom: 1px solid #d0d7de; padding-bottom: 2px; }
+  code, .k { font-family: monospace; color: #0550ae; }
+  .muted { color: #57606a; }
+  table { border-collapse: collapse; margin: 6px 0; }
+  td, th { border: 1px solid #d0d7de; padding: 3px 8px; text-align: left; vertical-align: top; }
+  th { background: #f6f8fa; }
+  .tag { font-family: monospace; background:#f6f8fa; padding:0 3px; }
+</style>
+</head>
+<body>
+
+<h1>Fluxtion Audit Log Analyser — Help</h1>
+<p>This tool reads <b>Fluxtion event-audit logs</b>: machine-readable records emitted by a
+Mongoose/Fluxtion <code>EventProcessor</code>. It lets you browse, filter, summarise, graph, view the
+source behind a node, and ask an LLM to explain records.</p>
+<p>Full documentation online:
+<a href="https://telaminai.github.io/fluxtionauditlog-analyser/">telaminai.github.io/fluxtionauditlog-analyser</a>.</p>
+<p>The <b>toolbar</b> across the top gives one-click access to the common actions: Open, Open S3,
+Flag, Flagged-only, <b>Explain</b> (send the selection to the LLM), and Export CSV. The event-type
+checklist is the <b>left rail</b>; the right-hand tabs are the outputs (Summary / Source / Graph /
+Analyser&nbsp;assistant).</p>
+
+<h2>What a Fluxtion audit log is</h2>
+<p>A Fluxtion <code>EventProcessor</code> is a compiled graph of nodes. When an event (or a timer, or
+an exported service call) enters the processor it propagates through the graph, and each node that
+runs appends its state to that cycle's audit record. <b>One record = one propagation cycle.</b>
+Records are separated by a <code>---</code> line and aim to be YAML, but node values are raw Java
+<code>toString()</code>s (e.g. <span class="tag">NaN</span>,
+<span class="tag">MutableOrder(clOrdId=1, price=19.9)</span>), so the parser is deliberately lenient.</p>
+
+<h2>Reading the table</h2>
+<table>
+<tr><th>Column</th><th>Meaning</th></tr>
+<tr><td>eventTime</td><td>Epoch millis of the triggering event, shown in <b>UTC</b>. Blank when
+    <code>-1</code> (not event-driven — a scheduled trigger or exported call).</td></tr>
+<tr><td>logTime / endTime</td><td>When the record was logged / finished (UTC). <span class="muted">Records
+    are not strictly ordered by logTime.</span></td></tr>
+<tr><td>groupingId</td><td>Optional grouping id (usually blank).</td></tr>
+<tr><td>event</td><td>The event/trigger type. <b>Blank</b> for <code>ExportFunctionAuditEvent</code>
+    (the callback carries the meaning).</td></tr>
+<tr><td>callback</td><td>For an exported method, the callback name (e.g. <code>orderVenueConnected</code>).</td></tr>
+<tr><td>eventToString</td><td>For an exported callback, the short <code>DeclaringClass.callback</code>;
+    otherwise the event's string (may be empty).</td></tr>
+<tr><td>thread</td><td>The agent thread that ran the cycle.</td></tr>
+<tr><td>nodeLogs</td><td>How many nodes logged in this cycle. Full content shows in the detail viewer.</td></tr>
+</table>
+<p>Rows are tinted for anomalies: <span style="background:#ffe0e0">parse error</span>,
+<span style="background:#ffe9cc">breach</span>, <span style="background:#fff7cc">NaN</span> (tints adapt to the theme).
+Jump between them with <b>⚠ Next / ⚠ Prev</b> on the toolbar, or <b>F3</b> / <b>Shift+F3</b> — the
+search wraps around and respects the current filter/sort. The
+<b>nodeLogs</b> cell shows a bar sized by node count (relative to the busiest cycle) so heavy fan-out
+stands out. Use the <b>Columns</b> menu to show/hide columns — your choice is remembered (eventTime,
+groupingId, eventToString and endTime are hidden by default).</p>
+
+<h2>Record detail &amp; nodeLogs</h2>
+<p>Select a row to see the full record (colourised) in the detail panel. Each <code>nodeLogs</code>
+entry is <code>instanceId: { key: value, ... }</code>, where <b>instanceId is a node's field name in
+the EventProcessor graph</b>. The same instanceId may appear more than once in a cycle. A graph key is
+therefore <code>instanceId.key</code> (e.g. <code>hedgeToOrdersNode.hedgeQuantity</code>).</p>
+<p><b>Navigation:</b> <b>click a node-log line</b> to open that node's class scrolled to the method it
+ran (the line's first key, e.g. <code>orderVenueConnected</code>); <b>right-click</b> for a menu of the
+record's nodes. Selecting a record also scrolls the <b>Source</b> tab's EventProcessor to the
+<b>dispatch method</b> for that record's callback. In the Source view, <b>Ctrl-click</b> (⌘-click on
+macOS) a <code>receiver.method()</code> to jump to that node's method, a field to open its type, or a
+type name to open its source. Use <b>Back</b> (Alt+Left, or Cmd/Ctrl+[) to return to the previous
+source file. The node-log viewer has a <b>Wrap</b> toggle (off → horizontal scroll for long lines).
+Select <b>two</b> records and use <b>Records → Diff selected two records</b> — or <b>right-click</b>
+the records table (Diff / Explain / Flag) — for a side-by-side that highlights what changed between
+the two cycles (changed / only-A / only-B). The diff can be <b>exported as CSV, JSON or PDF</b>.</p>
+
+<h2>Filtering &amp; search</h2>
+<ul>
+<li><b>Event types</b> (left rail): tick the dimensions to include (an OR). The list is split into
+    <b>Event types</b> and <b>Callbacks</b>; use <b>Select all / Select none</b>, or right-click an
+    entry for <i>Only this / Add / Remove</i>.</li>
+<li><b>Time range</b> (top slider): drag the two thumbs to bound <code>logTime</code>; drag the
+    <b>middle</b> of the selection to move it, keeping its width; double-click to reset. When the log
+    spans hours but the moment of interest is minutes, shrink the visible window with the
+    <b>Window</b> control (All / week / day / hours / minutes) and <b>pan</b> it across the whole log
+    with the bar beneath the slider — the selection thumbs then work at that finer resolution.</li>
+<li><b>Search</b> (top box): case-insensitive; matches <code>eventToString</code>, <code>thread</code>
+    <b>and nodeLogs</b>. It combines with the other filters and stays applied as you change them.</li>
+</ul>
+<p>All views (table, summary, graph) share one filter, so they always agree.</p>
+
+<h2>Summary</h2>
+<p>The <b>Summary</b> tab groups the filtered records by event dimension with count, first/last time,
+span and rate. Click a row to cross-filter the whole app to that dimension.</p>
+
+<h2>Graphing</h2>
+<p>The <b>Graph</b> tab plots a numeric <code>instanceId.key</code> over time. Pick a key, click
+<i>Add</i> for one or more series. The default style is <b>Stairs</b> (values hold until the next
+update — the right reading for event-log state); <b>Line</b> and <b>Points</b> are also available.
+Booleans plot as <code>+1</code> (true) / <code>-1</code> (false) so flips are obvious;
+non-numeric points are skipped, and <code>NaN</code> means "no data point" (omitted, not a gap). Zoom
+with the mouse wheel (<b>Shift</b> = X-only, <b>Ctrl</b> = Y-only), drag to pan, double-click to fit —
+or use the <b>+ / − / Fit</b> buttons (handy on a trackpad / Magic Mouse). Remove one series by
+clicking its legend entry, or open several graphs (<b>New graph</b>) for side-by-side comparisons.
+<b>Name a graph</b> with the <b>Rename…</b> button or by double-clicking its tab — names persist in your
+profile. <b>Click anywhere on the plot</b> to select the record nearest that time and scroll the table to
+it. By default a graph follows the shared filter's time window; the <b>📌</b> button <b>pins</b> it to a
+fixed window (the tab shows 📌) so an evidence chart keeps its picture even after you move the filter on —
+click 📌 again to unpin. Add <b>derived (formula) series</b> in the <b>f(x)</b> field — a formula over node-log keys, e.g. a quoted
+spread <code>askMakerOrder.price − bidMakerOrder.price</code> (operators <code>+ − × ÷</code>, parentheses,
+<code>abs/min/max</code>; <i>locf</i> carries each key's last value so cross-node formulas plot). The
+assistant can add these too. The <b>f(x)</b> field <b>autocompletes</b> from the discovered keys and your
+existing formula labels — and a formula can <b>reference another formula by its label</b> (backtick labels
+containing spaces: <code>`quoted spread` / 2</code>). The <b>formulas</b> combo next to the field lists the
+graph's derived series with <b>Edit</b> (loads it back into the fields; Add applies the change) and
+<b>Remove</b>. Derived series appear in the legend under their label; click a legend entry to
+remove any series. You can also <b>right-click an attribute</b> in the record-detail viewer and choose
+<i>Add instanceId.key to graph</i> — to the current graph, any named graph, or a new one. The graph
+exports to CSV/PNG.</p>
+
+<h2>Source navigation</h2>
+<p>Set your <b>source roots</b> in <i>File &rarr; Settings</i> (drag folders in, or Add…). The tool
+resolves a node's instanceId to its declaring class through the selected <b>EventProcessor</b>. On
+load it <b>infers</b> the processor by matching the log's instanceIds to each candidate's fields; you
+can override the FQN in Settings. When a class isn't under any source root, the local <b>Maven repos</b>
+from Settings (default <code>~/.m2/repository</code>) are searched for its <code>*-sources.jar</code> —
+disable with the "don't search" checkbox. The <b>Source</b> tab shows the code read-only with Java
+colouring.</p>
+
+<h2>LLM assistant</h2>
+<p>The <b>LLM</b> tab explains records. In <i>Settings</i> choose a provider (Anthropic / OpenAI), a
+model and an API key. Select record(s), type a question, and <i>Send</i>. The context sent is: the
+selected record(s), the EventProcessor FQN, and source snippets for the referenced node classes, plus
+a system prompt describing the audit format. <i>Reset</i> clears the conversation.</p>
+<p><b>Whole-log access (agentic).</b> The prompt is also <b>seeded</b> with the audit log's file path,
+its shape (size, record count, UTC time span) and framing, and each selected record's <b>byte offset</b>.
+A model that can read files then treats the selection as a <i>starting point</i>, not the whole story: it
+can grep/seek the file to read <b>behind</b> an anchor (what led up to a record) or <b>ahead</b> of it,
+and to count how often something occurs — so follow-ups like "how often does the validator fire?" or
+"show me the fill that caused this position" become searches it runs itself. For S3 logs the path points
+at the fetched local temp file. For a model that can't read files the block is simply inert text.</p>
+<p><b>Two-way actions (beta).</b> The assistant can also drive the app: <b>compute over the index</b>
+(e.g. "how often does <code>failedValidation</code> fire per hour?" — the app runs the aggregation and
+feeds the numbers back), and <b>build curation</b> — narrow the <b>filter</b>, open/refine a named
+<b>graph</b>, <b>jump</b> to a cited record, or <b>flag</b> records (with a note, shown on hover) so its
+findings become reviewable, reversible artifacts in the table. It runs in a short bounded loop (a few
+rounds, with a <b>Cancel</b> button); you see each computed result in the transcript. On by default, no
+network required.</p>
+<p><b>No API key?</b> Use <i>Copy prompt</i> (or Send) to copy the full prompt to the clipboard and
+paste it into any LLM.</p>
+
+ <h2>Sharing your setup</h2>
+<ul>
+<li><b>File → Export settings…</b> writes a shareable <code>.fluxtion-settings</code> file (or
+    <b>Copy to clipboard</b> / <b>Email…</b>). Tick what to include: source roots, Maven repos, event
+    processors, <b>named graphs</b> (formulas and pinned windows included), hidden columns and assistant
+    preferences. The LLM provider/model/base-URL is opt-in and off by default.</li>
+<li><b>Never shared</b>: your API key, AWS profile/region, recent files, search history and
+    window/theme — the whitelist is enforced on the way out <i>and</i> the way in, so an imported file
+    can never plant or overwrite a secret.</li>
+<li>Paths under your home are written <code>~</code>-relative so they survive a move to another machine;
+    a root that doesn't exist on import simply shows red in Settings.</li>
+<li><b>File → Import settings…</b> shows a per-category <b>summary</b> (what's new, what would be
+    replaced) before anything changes; deselect any category you don't want. Lists <b>merge</b> (nothing
+    local is deleted); a graph whose name matches an incoming one is <b>replaced</b>, new names are added.</li>
+<li>To share into Slack/WhatsApp, <b>Copy to clipboard</b> and paste, or <b>Save file…</b> then drag the
+    file into the chat.</li>
+</ul>
+
+<h2>Config &amp; performance</h2>
+<ul>
+<li>Settings persist to <code>~/.fluxtion-analyser/config</code> (cleartext; local single-user tool).</li>
+<li>All date/times are shown in <b>UTC</b>.</li>
+<li><b>Follow (tail)</b>: File → "Follow (tail)" or the toolbar <b>Follow</b> toggle polls the open
+    <b>local</b> file (~1&nbsp;s) and appends newly-<i>completed</i> records live, auto-scrolling to the
+    newest; flags, filters and selection are preserved. A record still being written isn't shown until its
+    closing <code>---</code> arrives; a shrunk/rotated file triggers a reload. Available for heap-loaded
+    files (at/below the <b>memory threshold</b>); not for S3.</li>
+<li><b>Memory threshold</b> (Settings → <i>Performance &amp; S3</i>): files at/below it load into heap,
+    larger ones are memory-mapped (<code>0</code> = always mapped). Applies to the next file opened.</li>
+<li><b>Drag &amp; drop</b> a log file onto the window to open it; drag folders into Settings to add roots.</li>
+<li>Open logs straight from <b>S3</b> via <b>File → Open from S3…</b> (<code>s3://bucket/key</code>) —
+    uses your local <code>aws</code> CLI credentials (profile/region in Settings); no AWS SDK required.</li>
+<li><b>Theme</b> menu: Light / Dark / IntelliJ / Darcula (FlatLaf) — text, code and chart colouring
+    adapt automatically. Persisted.</li>
+<li><b>Export</b>: File → Export records (CSV / YAML) writes the filtered set (YAML re-loads here);
+    graphs export to CSV and PNG.</li>
+<li><b>Bookmarks</b>: press <b>F</b> to flag selected rows; Records → "Show flagged only" to focus on
+    them. <b>Search</b> remembers terms (dropdown + inline autocomplete). Settings → History clears
+    search history / saved graphs / recent files.</li>
+<li>Browsing/filtering/summarising run off a compact in-memory <b>index</b> — node-logs are parsed only
+    for the detail view and graphing, so it stays fast. Very large files switch to a memory-mapped mode.</li>
+</ul>
+
+</body>
+</html>

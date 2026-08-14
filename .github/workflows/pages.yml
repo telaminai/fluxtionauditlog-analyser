@@ -1,0 +1,56 @@
+name: Deploy docs site
+
+# Rebuilds on any site or changelog change on main, so releases refresh the release-notes page (M17 §4).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/site/**'
+      - 'mkdocs.yml'
+      - 'docs-requirements.txt'
+      - 'CHANGELOG.md'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# only one deploy at a time; a newer push cancels an in-flight build
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject changelog as the release-notes page body
+        run: |
+          printf -- '---\ntitle: Release notes\n---\n\n# Release notes\n\n' > docs/site/release-notes.md
+          cat CHANGELOG.md >> docs/site/release-notes.md
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs-requirements.txt
+      - name: Install MkDocs toolchain
+        run: pip install -r docs-requirements.txt
+      - name: Build site
+        run: mkdocs build --strict
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/docs-site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,6 @@
+# Docs-site toolchain (MkDocs Material) — same stack as telaminai/mongoose-plugins.
+# Used by .github/workflows/pages.yml and for local preview: pip install -r docs-requirements.txt
+mkdocs==1.6.1
+mkdocs-material==9.5.49
+pymdown-extensions==10.14.3
+Pygments==2.18.0

@@ -1,0 +1,76 @@
+Telamin Source-Available License, Version 1.0
+
+Copyright (c) 2026 Telamin Limited. All rights reserved.
+
+The software, including its source code, documentation, and associated files
+(the "Software"), is made available by Telamin Limited ("Telamin") on a
+SOURCE-AVAILABLE basis. This is NOT an open-source license and does not grant
+the freedoms of an Open Source Initiative (OSI) approved license.
+
+1. DEFINITIONS
+
+   "Development Use" means using, compiling, running, testing, evaluating,
+   debugging, and modifying the Software for the purposes of software
+   development, internal evaluation, experimentation, research, and
+   non-production analysis.
+
+   "Production Use" means any use of the Software in a live, operational, or
+   commercial capacity, including without limitation: use to process real
+   business, operational, or customer data in the ordinary course of
+   operations; deployment in a production or customer-facing environment;
+   provision of the Software, or of any service or product derived from or
+   incorporating the Software, to any third party; or any use in support of
+   revenue-generating activities.
+
+2. GRANT
+
+   Subject to your compliance with this License, Telamin grants you a
+   worldwide, royalty-free, non-exclusive, non-transferable, revocable license
+   to view, compile, run, and modify the Software solely for Development Use.
+
+3. RESTRICTIONS
+
+   (a) Production Use is NOT permitted under this License. A separate
+       commercial license from Telamin is required for any Production Use.
+
+   (b) You may not distribute the Software or any derivative work, in source or
+       binary form, to any party except to a recipient who has agreed to this
+       License and solely for that recipient's Development Use.
+
+   (c) You may not remove, obscure, or alter any copyright, license, or
+       attribution notices contained in the Software.
+
+   (d) You may not use the name "Telamin", the Telamin logo, or any Telamin
+       trademark except as reasonably required to provide attribution.
+
+4. CONTRIBUTIONS
+
+   Any contribution you intentionally submit for inclusion in the Software is
+   provided under the terms of this License, and you grant Telamin a perpetual,
+   worldwide, irrevocable, royalty-free license to use, modify, and distribute
+   that contribution as part of the Software.
+
+5. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+6. LIMITATION OF LIABILITY
+
+   IN NO EVENT SHALL TELAMIN BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+   FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+7. TERMINATION
+
+   This License terminates automatically if you breach any of its terms. Upon
+   termination you must cease all use of the Software and destroy all copies in
+   your possession or control.
+
+8. COMMERCIAL LICENSING
+
+   For Production Use, redistribution rights, or any rights not expressly
+   granted above, you must obtain a commercial license from Telamin Limited.
+   Contact Telamin Limited to arrange a commercial license.
