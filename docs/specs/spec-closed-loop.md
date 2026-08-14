@@ -47,14 +47,23 @@ M12.4 is the **delivery mechanism**: get that brief into an agent with one actio
 - Dialog shows: the assembled brief (read-only preview), the **target source root** (from Settings,
   editable), and the **launch method** (below). Confirm → brief is written to
   `<sourceRoot>/.analyser/fix-brief-<timestamp>.md` and the launch fires.
+- **The analyser guarantees its own cleanliness**: on first brief-write it also writes
+  `<sourceRoot>/.analyser/.gitignore` containing `*` — deterministic, no race, and briefs can never be
+  committed. (Not delegated to the agent; this is the only place the analyser touches the source tree,
+  and it arrives pre-ignored.)
 
 ### A.3 Launch methods (Settings ▸ Assistant ▸ Fix handoff)
 
 | Method | Behaviour | Default |
 |---|---|---|
 | **Copy command** | brief written to file; a ready-to-paste shell command is copied to the clipboard (and shown) | ✅ v1 default — zero assumptions about the user's terminal |
-| **Command template** | run a user-configured template with placeholders: `{brief}` `{sourceRoot}` `{logPath}` `{restUrl}` `{restToken}` — e.g. `claude --add-dir {sourceRoot} "$(cat {brief})"` | opt-in |
+| **Command template** | run a user-configured template with placeholders: `{brief}` `{sourceRoot}` `{logPath}` — e.g. `claude --add-dir {sourceRoot} "$(cat {brief})"` | opt-in |
 | Presets | shipped templates for **Claude Code** and **Codex CLI**; agent-agnostic by construction (same stance as the LLM provider setting) | — |
+
+**No `{restToken}` placeholder** — inlining the per-run token in a shell command leaks it into shell
+history and the clipboard. Instead the brief tells the agent to read the live endpoint + token from
+**M13.1's `~/.fluxtion-analyser/rest-endpoint`** file (fresh, rotating, pid-checked) — composing with
+M13.1 rather than duplicating it.
 
 Launching an interactive CLI from Swing is platform-awkward (needs a terminal); v1 keeps the human in
 the loop deliberately: the user pastes one command into their own terminal. A "launch in Terminal"
@@ -72,7 +81,9 @@ The brief's task section instructs the agent, verbatim requirements:
    describes the expected record-level change and requires existing tests green).
 
 This is what makes agent-authored fixes reviewable by exactly the change-management processes our
-regulated users run.
+regulated users run. **To be clear about enforcement**: the brief *instructs*; enforcement lives in the
+user's repo controls (branch protection, required PR review). The analyser neither enforces nor could —
+stating this plainly so no reader infers a guarantee the tool doesn't make.
 
 ### A.5 Acceptance (Part A)
 
@@ -99,7 +110,14 @@ loaded log") stays true for agents.
 
 Mongoose ships `serverplugin-rest` and `serverplugin-admintelnet`; nodes register commands via
 `AdminCommandRegistry` (e.g. `mkDataBook.<name>.currentBook`). The analyser talks to the **REST admin
-endpoint** only. Required capabilities, to verify against the plugin (and add server-side if missing):
+endpoint** only.
+
+> **O1 is load-bearing, not a footnote** — it gates M18.2–M18.4, and any missing endpoint is a
+> cross-repo PR into `fluxtion-server-plugins`. **M18.0 (spike)** therefore precedes everything else in
+> Part B: verify the four capabilities below against a running server *before* committing the M18
+> delivery order; the "small, immediately useful" framing of M18.1–3 holds only if the surface exists.
+
+Required capabilities, to verify in the spike (and add server-side if missing):
 
 | Need | Admin call (expected shape) |
 |---|---|
@@ -125,12 +143,17 @@ endpoint** only. Required capabilities, to verify against the plugin (and add se
    opens it (with Follow offered). Kills the last onboarding friction — *point the analyser at your
    running system* becomes one click. Read-only.
 3. **M18.3 — Audit level control.** Raise to DEBUG/TRACE while tailing, watch richer `nodeLogs`
-   stream in, drop back to INFO after. Diagnosis-grade telemetry on demand, no restart. First
-   *mutating* verb → confirm dialog + ops journal (B.6). This is the weekly-use feature; ship before
-   any lifecycle control.
-4. **M18.4 — Dev restart.** Stop/start/restart the linked local server. Confirm dialog carries **live
-   context from the log** the analyser is already reading: *"This processor published quotes 2s ago.
-   Restart it?"* — consequence-awareness, not just confirmation.
+   stream in. **Capture-and-restore, never "drop back to INFO"**: the analyser records the level it
+   found (which may not be INFO) and **auto-restores it** on disconnect/exit, so a server is never
+   stranded at TRACE; the confirm dialog names the cost (volume / latency / disk on a live processor).
+   First *mutating* verb → confirm dialog + ops journal (B.6). The weekly-use feature; ships before any
+   lifecycle control.
+4. **M18.4 — Dev restart.** Stop/start/restart the linked server — but **localhost ≠ disposable**: a
+   loopback server can still be shared or stateful. Restart is gated behind an explicit **per-link
+   opt-in** ("this is a development server I may restart") set in the server-link settings; the menu
+   item doesn't exist otherwise. Confirm dialog carries **live context from the log** the analyser is
+   already reading: *"This processor published quotes 2s ago. Restart it?"* — consequence-awareness,
+   not just confirmation.
 5. **M18.5 — deferred.** Deploy-jar-and-restart; any non-loopback (production) posture — the latter
    only alongside the regulated-tier attestation/approvals story, never as a free desktop feature.
 
@@ -148,6 +171,9 @@ true.
 Every mutating server action (level change, restart) appends a line to
 `~/.fluxtion-analyser/ops-log`: timestamp · server · action · initiator (always "user" in v1) ·
 outcome. Cheap now; load-bearing later for the regulated story ("every control action is logged").
+**Known limit, stated to avoid over-selling**: a plain file in `$HOME` is tamper-trivial — the
+regulated-grade version needs tamper-evidence (signed/append-only, or shipped to the server side),
+specced with M18.5's production posture, not before.
 
 ### B.7 Acceptance (Part B)
 
@@ -193,17 +219,20 @@ Notes:
 
 ## Delivery order
 
-**M18.1 → M18.2 → M18.3** (small, independent, immediately useful with Follow) · **M12.4** (brief file
-+ copy-command; presets) · **M18.4** (dev restart) · then M12.2 (replay fixture) upgrades the brief's
+**M13 and M18 are independent tracks and may proceed in parallel** — M13 (MCP) is the tracker's NEXT
+for reach; within this spec: **M18.0 (spike, gates the rest) → M18.1 → M18.2 → M18.3** (small,
+immediately useful with Follow) · **M12.4** (brief file + copy-command; its floor is the
+already-shipped REST + brief file — MCP query-back is an enhancement, not a dependency) · **M18.4**
+(dev restart, behind the per-link opt-in) · then M12.2 (replay fixture) upgrades the brief's
 acceptance from prose to a red test. M18.5 stays deferred.
 
 ## Open questions
 
 - **O1** — exact `serverplugin-rest` endpoints for status / sink config / `EventLogControlEvent` /
-  lifecycle: verify against `fluxtion-server-plugins`; anything missing is a small server-side PR
-  (tracked there, not here).
+  lifecycle: **resolved by the M18.0 spike** (§B.2) before any other Part B work; anything missing is a
+  small server-side PR (tracked in `fluxtion-server-plugins`, not here).
 - **O2** — multi-processor servers: the link is per-server, the log per-processor; the discovery UI
   must list processors and their sinks.
 - **O3** — auth for the admin endpoint beyond localhost trust (defer with M18.5).
-- **O4** — brief file lifecycle: `.analyser/` in the source root needs a `.gitignore` entry in the
-  brief's instructions (the agent should add it) so briefs never get committed.
+- ~~**O4** — brief-file gitignore~~ **resolved**: the analyser writes `.analyser/.gitignore` (`*`)
+  itself at brief-write time (§A.2) — deterministic, no agent delegation, no race.

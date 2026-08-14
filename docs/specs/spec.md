@@ -35,6 +35,10 @@ explainable event history.
 **Non‑goals:** editing logs; live agent control; a web/native build; database persistence;
 authenticated multi‑user features.
 
+> _"Live agent control" stands._ M18 (spec-closed-loop §B) adds **human-driven** server control —
+> localhost-only, confirm-per-action, and **fenced from agents** (§B.5: server verbs are never
+> assistant actions). The non-goal here is agents controlling live systems, and that remains excluded.
+
 ---
 
 ## 2. Background — the Fluxtion audit log format

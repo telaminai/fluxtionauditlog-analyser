@@ -47,11 +47,13 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
   the targeted records change). Built on `PromptBuilder`. **Precondition:** journal ↔ audit-log pairing
   (the analyser loads the output log, not the input journal).
 - [M12.4] ☐ **"Fix with agent…" handoff launcher** _(spec-closed-loop §A)_ — writes the brief to
-  `<sourceRoot>/.analyser/fix-brief-<ts>.md`; v1 copies a ready-to-paste launch command (presets for
-  Claude Code / Codex; user-configurable template with `{brief}` `{sourceRoot}` `{logPath}` `{restUrl}`
-  `{restToken}`). Every brief embeds the **git-hygiene contract**: branch, evidence-linked PR, never
-  merge autonomously, prove by replay test. _Accept: paste one command → agent opens holding the brief,
-  works on a branch, PRs with evidence cited._
+  `<sourceRoot>/.analyser/fix-brief-<ts>.md` **plus `.analyser/.gitignore` (`*`) so briefs can never be
+  committed**; v1 copies a ready-to-paste launch command (presets for Claude Code / Codex; template
+  placeholders `{brief}` `{sourceRoot}` `{logPath}` — **no token in the command**: the agent reads the
+  rotating endpoint+token from M13.1's `~/.fluxtion-analyser/rest-endpoint`). Every brief embeds the
+  **git-hygiene contract** (branch, evidence-linked PR, never merge autonomously, prove by replay
+  test) — the brief *instructs*; enforcement is the user's branch protection + PR review. _Accept:
+  paste one command → agent opens holding the brief, works on a branch, PRs with evidence cited._
 - [M12.2] ☐ **`export_test_fixture`** — record range → regression test oracle: a journaled slice driven
   through the processor / one node asserting its `nodeLogs`. Production incidents → real-sequence
   **red tests** the fixing agent turns green.
@@ -68,22 +70,27 @@ running** Mongoose server's admin REST (`serverplugin-rest`; nodes already regis
 restart to pick up a fix. Capabilities tiered by risk; **server verbs are never assistant actions**
 (the FAQ's "nothing outside the loaded log" guarantee stays true for agents); every mutation is
 human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only in v1._
-- [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced);
-  status-bar chip (connected/name/uptime); Server menu scaffold.
+- [M18.0] ☐ **Spike — verify the admin surface (gates all of Part B)** — confirm against a running
+  server that `serverplugin-rest` exposes status, audit-sink path, `EventLogControlEvent`, and
+  lifecycle; any gap becomes a `fluxtion-server-plugins` PR **before** M18.1+ is scheduled.
+- [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced;
+  per-link **"development server — restarts allowed"** opt-in flag); status-bar chip
+  (connected/name/uptime); Server menu scaffold.
 - [M18.2] ☐ **Log discovery** — "Open server's audit log": resolve the audit sink path from server
   config, open it, offer Follow. _One-click "point the analyser at your running system"._
 - [M18.3] ☐ **Audit level control** — raise/lower the processor's audit level
-  (`EventLogControlEvent`) from the Server menu while tailing; first mutating verb → confirm dialog +
-  ops-journal entry. _Diagnosis-grade telemetry on demand, no restart._
-- [M18.4] ☐ **Dev restart** — stop/start/restart the linked local server; confirm dialog carries live
-  context from the log ("published quotes 2s ago — restart?"). Composes with M12: fix lands → restart
-  → Follow verifies on the fresh log.
+  (`EventLogControlEvent`) while tailing, with **capture-and-restore** (record the found level,
+  auto-restore on disconnect/exit — never strand a server at TRACE); confirm dialog names the
+  volume/latency/disk cost; ops-journal entry. _Diagnosis-grade telemetry on demand, no restart._
+- [M18.4] ☐ **Dev restart** — stop/start/restart the linked server, **only where the per-link dev
+  opt-in is set** (localhost ≠ disposable); confirm dialog carries live context from the log
+  ("published quotes 2s ago — restart?"). Composes with M12: fix lands → restart → Follow verifies on
+  the fresh log.
 - [M18.5] ☐ _(deferred)_ deploy-jar-and-restart; non-loopback/production posture (only alongside the
   regulated-tier approvals/attestation story); agent-initiated server actions behind per-action human
   approval.
-- Open questions: **O1** exact `serverplugin-rest` endpoints (verify in `fluxtion-server-plugins`;
-  gaps are small server-side PRs) · **O2** multi-processor servers · **O3** admin auth beyond
-  localhost · **O4** `.analyser/` brief-file gitignore (spec §Open questions).
+- Open questions: **O1** admin endpoint surface — resolved by **M18.0** · **O2** multi-processor
+  servers · **O3** admin auth beyond localhost. _(O4 gitignore: resolved — the analyser writes it.)_
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
@@ -106,10 +113,12 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order (post-1.0.0)
 
+_M13 and M18 are **independent tracks** (spec-closed-loop §Delivery order) — M12.4's floor is the
+already-shipped REST + brief file, so neither blocks the other; run them in parallel or in this order:_
 1. **M13.1–13.4** (MCP bridge) — smallest step, biggest reach: every MCP-native agent can drive the
    analyser with zero prompting; AV.3 already built the schemas.
-2. **M18.1 → M18.2 → M18.3** (server link, read-only → log discovery → audit level) — small,
-   independent slices, each immediately useful with Follow.
+2. **M18.0 spike, then M18.1 → M18.2 → M18.3** (verify admin surface; server link, read-only → log
+   discovery → audit level) — small slices, each immediately useful with Follow.
 3. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent can
    query back while it works.
 4. **M18.4** (dev restart) — completes the local diagnose → fix → redeploy → verify demo
