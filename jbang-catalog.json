@@ -3,7 +3,8 @@
     "analyser": {
       "script-ref": "https://github.com/telaminai/fluxtionauditlog-analyser/releases/latest/download/fluxtion-auditlog-analyser.jar",
       "description": "Fluxtion Audit Log Analyser — browse, graph and explain Fluxtion event-audit logs",
-      "java": "21+"
+      "java": "21+",
+      "java-options": ["--enable-native-access=ALL-UNNAMED"]
     }
   }
 }

@@ -17,6 +17,11 @@ jbang app install analyser@telaminai/fluxtionauditlog-analyser
 
 The JBang alias points at the latest release's stable-name asset, so it always fetches the newest build.
 
+!!! note "First run: JBang asks you to trust the download"
+    JBang prompts before running a jar from a new source — answer **2** (trust this project's releases)
+    or **3** (trust the org) and it won't ask again. To pick up a **newer release** later, run with
+    `--fresh` (or `jbang cache clear`) — JBang otherwise keeps using its cached jar.
+
 ## Plain download
 
 ```bash
