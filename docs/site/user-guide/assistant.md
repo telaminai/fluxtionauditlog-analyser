@@ -155,14 +155,34 @@ Use an **absolute path** to the jar in all three. Desktop apps don't inherit you
     Codex caps each tool call at 60s by default; raise `tool_timeout_sec` if you aggregate over a very
     large log.
 
-### What a session looks like
+### Your first session
 
-With the analyser open on a log and the bridge registered, you just ask. Here's a real exchange in a CLI
-client — you type the question, the agent picks the tools:
+Start your CLI client anywhere — the analyser tools aren't tied to a project directory. First check the
+server actually connected, then say what you want:
 
 ```text
-> the hedge stopped quoting somewhere in this log. what happened?
+$ claude
 
+> /mcp
+  ⎿ fluxtion-analyser   ✔ connected · 6 tools
+       analyser_aggregate · analyser_read · analyser_filter
+       analyser_graph · analyser_goto · analyser_flag
+
+> I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
+  tools to work out why the hedge stopped quoting.
+```
+
+That first message is the whole handshake on your side. You mention the server by name once so the agent
+reaches for these tools rather than, say, grepping your filesystem; after that it just uses them. There's
+no path to give it and no token to paste — it's already pointed at whatever log you have open.
+
+If `/mcp` shows nothing, the client never started the bridge: re-check the config paths in the tab above.
+If it shows *connected* but a call comes back **"analyser not running"**, the bridge is fine and the
+**app** is the missing half — open it and turn on the REST transport.
+
+From there the agent works, and you watch it work:
+
+```text
 ⏺ analyser_aggregate(metric: "count", groupBy: "dimension")
   ⎿ total 21 records
      orderUpdate 10 · ScheduledTriggerNode 3 · orderVenueConnected 2
@@ -194,6 +214,36 @@ trip: you verify the claim against the same data it was made from.
 
 Note what the agent *didn't* need: no file path, no token, no pasted records. It read the log through
 `analyser_read` over the socket.
+
+### Let your agent set it up
+
+Every step above is an ordinary shell command, so you can hand the whole setup to the agent you're
+already talking to — *"install the Fluxtion analyser with jbang and register it as an MCP server"* — and
+approve the commands as they come. The recipe, if you'd rather run it yourself:
+
+```bash
+jbang app install analyser@telaminai/fluxtionauditlog-analyser    # 1. install → ~/.jbang/bin/analyser
+printf 'assistant.rest=true\n' >> ~/.fluxtion-analyser/config     # 2. enable REST (analyser CLOSED)
+claude mcp add fluxtion-analyser -- ~/.jbang/bin/analyser --mcp   # 3. register with your client
+~/.jbang/bin/analyser my-log.yaml                                 # 4. open the app on a log
+```
+
+Order matters, and step 2 in particular has a trap:
+
+- **Edit the config only while the analyser is closed.** The running app holds settings in memory and
+  writes the file on exit, so an edit made while it's open is overwritten. Toggling it in
+  Settings ▸ Assistant is always safe.
+- **jbang caches jars.** If `--mcp` isn't recognised you're on an older cached build — `jbang cache clear`,
+  or run once with `--fresh`.
+- **Launching needs a desktop session**; the app is a GUI, so step 4 won't work over a headless SSH shell.
+
+!!! note "Setup is shell work, not an MCP tool"
+
+    Installing, configuring and launching are deliberately **not** exposed as MCP tools. Partly because
+    it would be circular — a tool that installs the bridge needs the bridge already installed — and
+    partly because the analyser's tool surface is kept to the six log verbs on purpose. Shell commands
+    are yours to approve; tools are the model's to invoke, and that difference is the whole security
+    story below.
 
 ### How it finds your running analyser
 

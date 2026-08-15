@@ -21,6 +21,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   them each launch; a file left by a crash is detectable via its pid.
 
 ### Changed
+- The launcher now **rejects an unknown `--option`** with a usage message and exit code 2, and adds
+  `--help`. Previously any unrecognised argument was treated as a log file to open, so running an older
+  build with `--mcp` silently launched the desktop app trying to load a file called `--mcp`.
 - JBang launches no longer print JVM native-access warnings — the catalog alias now passes
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
 
