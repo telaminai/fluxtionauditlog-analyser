@@ -29,6 +29,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   dispatches the docs deploy (the changelog-stamp push alone never triggered it).
 
 ### Docs
+- Assistant guide: **"Connect an MCP client"** — copy-paste config for Claude Code, Claude Desktop and
+  Codex, how the bridge finds your running analyser, troubleshooting, and exactly what an MCP agent can
+  and cannot reach.
 - Install guide: documented the JBang **first-run trust prompt** and that a **new release** needs
   `jbang --fresh` (or `jbang cache clear`) — JBang otherwise keeps serving its cached jar.
 

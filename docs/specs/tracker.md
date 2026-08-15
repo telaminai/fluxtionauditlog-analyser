@@ -43,7 +43,11 @@ replacement: in-process drives the app's own chat; REST stays the universal zero
   + token) without being restarted itself. Tool vs transport failure kept distinct: a dispatcher rejection
   or a `429` is `isError:true` (retryable, actionable); only an absent/dead endpoint is a JSON-RPC error,
   carrying the "enable it in Settings ▸ Assistant" hint. 12 tests, incl. a live `ActionServer` round-trip.
-- [M13.4] ☐ **Docs** — "connect an MCP client" (site assistant page + README) + client config snippet.
+- [M13.4] ☑ **Docs** — "Connect an MCP client" on the site's assistant page (tabbed config snippets for
+  **Claude Code** `.mcp.json` / **Claude Desktop** `claude_desktop_config.json` / **Codex**
+  `~/.codex/config.toml`, all three verified against current vendor docs, not written from memory), plus
+  how the per-run endpoint is discovered, a troubleshooting list, the capability boundary, and a README
+  highlight linking in. `mkdocs build --strict` green locally.
 - [M13.5] ☐ _(later)_ **Resources/prompts** (`analyser://log|selection|node-types|source`) and/or **option B**
   in-app Streamable-HTTP MCP server.
 

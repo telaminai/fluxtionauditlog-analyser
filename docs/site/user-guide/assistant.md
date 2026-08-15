@@ -58,3 +58,116 @@ drive the same verbs:
 
 `GET /manifest` publishes a JSON schema for every verb, so a foreign agent learns the shapes up front
 instead of trial-and-erroring against the structured errors.
+
+## Connect an MCP client
+
+If your agent speaks **MCP** (Model Context Protocol), it can drive the analyser with **no prompting and
+no copied token**. The same jar doubles as an MCP server:
+
+```bash
+java -jar fluxtion-auditlog-analyser.jar --mcp
+```
+
+The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_filter`,
+`analyser_graph`, `analyser_goto`, `analyser_flag` — with full parameter schemas, so there's nothing to
+paste into a prompt. `aggregate` and `read` are marked read-only; the render verbs change what the app
+shows and are all reversible.
+
+**First, turn the socket on:** Settings ▸ Assistant ▸ **localhost REST transport** (off by default). The
+bridge talks to the running app through it.
+
+### Configure your client
+
+Use an **absolute path** to the jar in all three. Desktop apps don't inherit your shell's `PATH`, so if
+`java` isn't found, use its full path too (`which java` to get it).
+
+=== "Claude Code"
+
+    Add it to `.mcp.json` in your project root:
+
+    ```json
+    {
+      "mcpServers": {
+        "fluxtion-analyser": {
+          "command": "java",
+          "args": ["-jar", "/absolute/path/to/fluxtion-auditlog-analyser.jar", "--mcp"]
+        }
+      }
+    }
+    ```
+
+    Or from the CLI — everything after `--` is the launch command:
+
+    ```bash
+    claude mcp add fluxtion-analyser \
+      -- java -jar /absolute/path/to/fluxtion-auditlog-analyser.jar --mcp
+    ```
+
+    Add `--scope user` to make it available in every project instead of just this one. A project-scoped
+    `.mcp.json` is committable, so a team shares one setup.
+
+=== "Claude Desktop"
+
+    Settings ▸ Developer ▸ **Edit Config**, which opens
+    `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or
+    `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+    ```json
+    {
+      "mcpServers": {
+        "fluxtion-analyser": {
+          "command": "java",
+          "args": ["-jar", "/absolute/path/to/fluxtion-auditlog-analyser.jar", "--mcp"]
+        }
+      }
+    }
+    ```
+
+    Quit and restart Claude Desktop completely — it only reads this file at startup.
+
+=== "Codex"
+
+    In `~/.codex/config.toml` (or a project's `.codex/config.toml`):
+
+    ```toml
+    [mcp_servers.fluxtion-analyser]
+    command = "java"
+    args = ["-jar", "/absolute/path/to/fluxtion-auditlog-analyser.jar", "--mcp"]
+    ```
+
+    Or `codex mcp add fluxtion-analyser -- java -jar /absolute/path/to/analyser.jar --mcp`.
+
+    Codex caps each tool call at 60s by default; raise `tool_timeout_sec` if you aggregate over a very
+    large log.
+
+### How it finds your running analyser
+
+REST picks a fresh port and mints a fresh token every launch, so there is nothing stable to hard-code.
+Instead, while the transport is running the app writes its live endpoint to
+`~/.fluxtion-analyser/rest-endpoint` (owner-readable only), and the bridge reads it **on every call**.
+
+Two things follow, both useful:
+
+- **Configure once.** No token in your client config, and nothing to update after a restart — the bridge
+  picks up the new port and token by itself.
+- **Connecting doesn't need the app.** Your client can start and list the tools with the analyser closed;
+  only the *calls* need it running.
+
+### If it isn't working
+
+- **"analyser not running, or REST transport disabled"** — exactly what it says: either the app isn't
+  open, or the REST transport is off in Settings ▸ Assistant. The same message appears if the app was
+  killed, because the bridge checks the recorded process is still alive before trying to connect.
+- **The server won't start at all** — usually the jar path or `java` not being found. Try the exact
+  command from your config in a terminal; it should sit and wait for input rather than exit.
+- **Claude Desktop**: per-server logs are at `~/Library/Logs/Claude/mcp-server-fluxtion-analyser.log`
+  (macOS). The bridge writes all diagnostics to stderr, so they land there.
+- **Rate limiting** — a burst of calls gets a "rate limited" tool error rather than a broken connection.
+  It's retryable; the agent should pace itself.
+
+### What it can and can't do
+
+The MCP door opens the **same six verbs** as the other transports and nothing more. An agent can read the
+loaded log and change what the app displays. It **cannot** open a different file, change your settings,
+touch your API key, or reach anything outside the log you have open. Server control is deliberately not
+an assistant capability. The channel is loopback-only and the endpoint file is owner-readable.
