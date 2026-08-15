@@ -179,8 +179,11 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   caught three defects a green test suite did not: the layout sheared into a diagonal (systemic drift in
   the coordinate pass, fixed in `LayeredLayout`), arrowheads were painted underneath node boxes (edges now
   stop at the border), and labels were hidden by a zoom-based LOD threshold.
-- [M21.4] ☐ **Step-through** — record → fired nodes highlighted **in dispatch order**; step node-by-node
-  within a cycle showing logged values; bidirectional; bound to the shared filter.
+- [M21.4] ☑ **Step-through** — selecting a record lights the nodes that fired, **numbered in dispatch
+  order** (green ring + ordinal badge), fades the ones that didn't, and ◀ ▶ walks the cycle node by node
+  with that node's logged key/values on the status line. Bidirectional. **Driven by the table's existing
+  selection** — one `topologyPanel.showRecord(focus)` in `onRowsSelected`, no second cursor, per the
+  binding reuse constraint. Flags instanceIds absent from the loaded topology (build mismatch) inline.
 - [M21.5] ☐ **Cross-view wiring** — node → source · node → graph a key · node → filter/flag.
 - [M21.6] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
 - _M21.1–2 carry the risk and are pure logic — front-loaded deliberately, testable before a pixel exists._

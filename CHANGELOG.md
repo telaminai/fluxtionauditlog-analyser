@@ -10,7 +10,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Topology tab** — open a processor's `.graphml` to see its node graph laid out by dispatch order, with
   pan, zoom, fit, hover, selection and a top-down/left-right toggle. Node colour distinguishes events,
   event handlers, nodes and exported services; selecting a node highlights what feeds it and what it
-  feeds. Groundwork for stepping through events on the graph.
+  feeds.
+- **Step through an event on the graph** — select a record and the Topology tab lights up the nodes that
+  fired, numbered in dispatch order, with everything that didn't fire faded back. Walk the cycle node by
+  node with ◀ ▶ to see what each one logged at that point. It follows the table's selection, so the
+  record you're looking at everywhere else is the cycle you're stepping through.
 
 ### Changed
 - JBang launches no longer print JVM native-access warnings — the catalog alias now passes

@@ -734,6 +734,7 @@ public final class MainFrame extends JFrame {
         if (store == null || modelRows.length == 0) {
             selectedRecords = List.of();
             detailPanel.clear();
+            topologyPanel.showRecord(null);
             return;
         }
         List<LogRecord> records = new ArrayList<>();
@@ -746,6 +747,7 @@ public final class MainFrame extends JFrame {
         detailPanel.showRecords(java.util.List.of(focus));
         detailPanel.setSelectionInfo(records.size());
         sourcePanel.showDispatchFor(focus);
+        topologyPanel.showRecord(focus);   // the table's selection IS the step cursor (M21.4)
     }
 
     private void chooseFile() {

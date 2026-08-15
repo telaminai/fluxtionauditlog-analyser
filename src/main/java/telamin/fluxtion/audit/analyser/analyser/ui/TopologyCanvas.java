@@ -56,6 +56,13 @@ public final class TopologyCanvas extends JPanel {
     private String hoveredId;
     private String selectedId;
 
+    /** Ids that fired in the shown cycle, in dispatch order; empty when no record is shown. */
+    private List<String> dispatch = List.of();
+    /** id → its first position in {@link #dispatch}, for the ordinal badge. */
+    private java.util.Map<String, Integer> firedAt = java.util.Map.of();
+    /** Index into {@link #dispatch}, or -1 for "the whole cycle at once". */
+    private int step = -1;
+
     private Point dragOrigin;
     private double dragOffsetX;
     private double dragOffsetY;
@@ -161,6 +168,41 @@ public final class TopologyCanvas extends JPanel {
 
     LayeredLayout.Config config() {
         return config;
+    }
+
+    // ---- step-through (M21.4) ---------------------------------------------------------------------
+
+    /**
+     * Show which nodes fired in a cycle, in dispatch order. Nodes that did not fire are dimmed rather
+     * than hidden — "this node was not involved" is itself the answer to most questions asked here.
+     */
+    public void setDispatch(List<String> dispatchOrder) {
+        this.dispatch = dispatchOrder == null ? List.of() : List.copyOf(dispatchOrder);
+        java.util.Map<String, Integer> ordinals = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < this.dispatch.size(); i++) {
+            ordinals.putIfAbsent(this.dispatch.get(i), i);
+        }
+        this.firedAt = ordinals;
+        this.step = -1;
+        repaint();
+    }
+
+    /** {@code -1} shows the whole cycle; otherwise emphasise that position in the dispatch order. */
+    public void setStep(int step) {
+        this.step = step < 0 || dispatch.isEmpty() ? -1 : Math.min(step, dispatch.size() - 1);
+        repaint();
+    }
+
+    public int step() {
+        return step;
+    }
+
+    public List<String> dispatch() {
+        return dispatch;
+    }
+
+    private boolean showingCycle() {
+        return !dispatch.isEmpty();
     }
 
     /** Called with the selected node id, or {@code null} when the selection is cleared. */
@@ -369,25 +411,42 @@ public final class TopologyCanvas extends JPanel {
             boolean isSelected = box.id().equals(selectedId);
             boolean isHovered = box.id().equals(hoveredId);
 
+            Integer ordinal = firedAt.get(box.id());
+            boolean fired = ordinal != null;
+            boolean isCurrentStep = showingCycle() && step >= 0 && step < dispatch.size()
+                                    && dispatch.get(step).equals(box.id());
+            boolean dimmed = showingCycle() && !fired;
+
             double x = sx(box.x());
             double y = sy(box.y());
             double w = box.width() * scale;
             double h = box.height() * scale;
             RoundRectangle2D.Double shape = new RoundRectangle2D.Double(x, y, w, h, 8 * scale, 8 * scale);
 
-            g.setColor(fillFor(node, dark));
+            Color fill = fillFor(node, dark);
+            g.setColor(dimmed ? fade(fill, dark) : fill);
             g.fill(shape);
-            g.setColor(isSelected ? accent(dark) : borderFor(dark, isHovered));
-            g.setStroke(new BasicStroke(isSelected ? 2.4f : isHovered ? 1.8f : 1f));
+
+            Color border = isCurrentStep ? accent(dark)
+                    : isSelected ? accent(dark)
+                    : fired ? firedBorder(dark)
+                    : dimmed ? fade(borderFor(dark, false), dark)
+                    : borderFor(dark, isHovered);
+            g.setColor(border);
+            g.setStroke(new BasicStroke(isCurrentStep ? 3f : isSelected ? 2.4f : fired ? 1.8f
+                    : isHovered ? 1.8f : 1f));
             g.draw(shape);
+
+            if (fired && labels) paintOrdinal(g, x, y, ordinal + 1, dark);
 
             if (!labels) continue;
             String title = node == null ? box.id() : node.simpleName();
             String subtitle = box.id();
-            g.setColor(text);
-            drawClipped(g, fm, title, x + 8 * scale, y + h / 2 - (subtitle.equals(title) ? -fm.getAscent() / 2.0 : 1), w - 16 * scale);
+            g.setColor(dimmed ? fade(text, dark) : text);
+            drawClipped(g, fm, title, x + 8 * scale,
+                    y + h / 2 - (subtitle.equals(title) ? -fm.getAscent() / 2.0 : 1), w - 16 * scale);
             if (!subtitle.equals(title)) {
-                g.setColor(muted);
+                g.setColor(dimmed ? fade(muted, dark) : muted);
                 drawClipped(g, fm, subtitle, x + 8 * scale, y + h / 2 + fm.getHeight() - 2, w - 16 * scale);
             }
         }
@@ -425,6 +484,37 @@ public final class TopologyCanvas extends JPanel {
 
     private static Color accent(boolean dark) {
         return dark ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
+    }
+
+    /** Ring around a node that fired this cycle. */
+    private static Color firedBorder(boolean dark) {
+        return dark ? new Color(0x3FB950) : new Color(0x1A7F37);
+    }
+
+    /** Pull a colour toward the canvas so a node that never fired recedes without disappearing. */
+    private static Color fade(Color c, boolean dark) {
+        Color canvas = dark ? new Color(0x0D1117) : new Color(0xF6F8FA);
+        double keep = 0.22;
+        return new Color(
+                (int) (c.getRed() * keep + canvas.getRed() * (1 - keep)),
+                (int) (c.getGreen() * keep + canvas.getGreen() * (1 - keep)),
+                (int) (c.getBlue() * keep + canvas.getBlue() * (1 - keep)));
+    }
+
+    /** The node's position in dispatch order, in a small badge on its corner. */
+    private void paintOrdinal(Graphics2D g, double x, double y, int ordinal, boolean dark) {
+        double r = 9 * Math.max(0.8, Math.min(1.2, scale));
+        double cx = x + r * 0.65;
+        double cy = y + r * 0.65;
+        g.setColor(firedBorder(dark));
+        g.fill(new java.awt.geom.Ellipse2D.Double(cx - r / 2, cy - r / 2, r, r));
+        g.setColor(dark ? new Color(0x0D1117) : Color.WHITE);
+        java.awt.Font previous = g.getFont();
+        g.setFont(previous.deriveFont(java.awt.Font.BOLD, (float) Math.max(8, r * 0.9)));
+        FontMetrics fm = g.getFontMetrics();
+        String s = String.valueOf(ordinal);
+        g.drawString(s, (float) (cx - fm.stringWidth(s) / 2.0), (float) (cy + fm.getAscent() / 2.5));
+        g.setFont(previous);
     }
 
     /** Corner readout: what you are looking at and how far in. */
