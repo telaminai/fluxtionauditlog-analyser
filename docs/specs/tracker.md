@@ -26,10 +26,11 @@ replacement: in-process drives the app's own chat; REST stays the universal zero
 - [M13.1] ☐ **`RestEndpointFile`** — app publishes its live REST url+token+**pid** to `~/.fluxtion-analyser/rest-endpoint`
   (mode 600) on REST start, deletes on stop/exit; bridge does a **pid liveness check** before trusting it
   (clean "not running" vs connection-refused) — so a static MCP client config finds the per-run endpoint.
-- [M13.2] ☐ **`McpToolSchemas` + `McpBridge` handshake/list** — `analyser.jar --mcp` (**headless-safe**: sets
+- [M13.2] ☐ **`McpTools` adapter + `McpBridge` handshake/list** — `analyser.jar --mcp` (**headless-safe**: sets
   `java.awt.headless`, touches no Swing): hand-rolled **newline-delimited** JSON-RPC stdio (`initialize`
-  negotiates `protocolVersion`; `tools/list`) returning the tool schemas. Schemas are the **single
-  source of truth** shared with the REST `/manifest` (no drift).
+  negotiates `protocolVersion`; `tools/list`) returning one tool per verb (six today, incl. `read`)
+  **adapted from the shipped `VerbSchemas`** (AV.3) — the same single source of truth as REST
+  `/manifest`; no parallel schema holder.
 - [M13.3] ☐ **`tools/call` → REST forward** — map a tool call to `{action, params}`, POST `/action` with the
   token, wrap `ok:true`→text result / `ok:false`→`isError:true` (same actionable feedback). Reuses slice 4.
 - [M13.4] ☐ **Docs** — "connect an MCP client" (site assistant page + README) + client config snippet.
@@ -106,15 +107,18 @@ analyser (reverse funnel)._
   **`CLAUDE.md` agent bootstrap** (canonical Fluxtion authoring prompt, maintained with
   fluxtion-compiler's LLM-authoring guidance) + admin REST on + README with run command and analyser
   link; tracked in the playground repo, contract recorded in the spec.
-- [M19.2] ☐ **Verify M15 import with bundle-relative roots** (spec O4) — small analyser fix if import
-  only handles absolute/`~`-relative paths.
+- [M19.2] ☐ **`SettingsShare`: resolve relative roots against the import file's parent** — verified
+  precondition (spec O4 resolved): shipped code expands only `~`-prefixed paths, so bundle-relative
+  roots would break against CWD. This fix gates the tutorial's "zero manual setup" claim.
 - [M19.3] ☐ **Tutorial page** `docs/site/tutorial-playground.md` — four parts (run+import ·
   analyse/tail · assistant · edit-with-your-IDE's-AI) + the 8-screenshot set (spec §Part 2, anonymised
-  per policy), nav under Getting started.
+  per policy), nav under Getting started. **Publish-gated on the bundle shipping** (write against the
+  contract; publish only when Download delivers).
 - [M19.4] ☐ **Cross-links** — getting-started step 2, producing-a-log, landing "Get going".
 - [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
   (import + open + Follow).
-- Open: O2 which example · O3 version pinning. _(O1 bundle form: resolved — Maven project.)_
+- Open: O2 which example. _(O1: Maven project · O3: bundles generated at Download time, nothing to
+  regenerate · O4: committed as M19.2 — all resolved.)_
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the

@@ -1,6 +1,12 @@
 # Assistant Actions — MCP Transport (Design Spec)
 
-Status: DRAFT v1 · Owner: greg.higgins · Last updated: 2026-08-12
+Status: DRAFT v1.1 · Owner: greg.higgins · Last updated: 2026-08-15
+
+> **v1.1 — reconciled to shipped code.** Written before the assistant-vocabulary round landed; now
+> updated: **six verbs** (the `read` verb shipped, AV.1), current `graph`/`goto` params (`exprs`,
+> `from/to`, `rationale` — AV.2; `reveal` — AV.4), and the schema single-source-of-truth **already
+> exists**: `llm.VerbSchemas` (AV.3), backing REST `/manifest`, with `VerbSchemasTest`. The bridge
+> **reuses it** — it does not create a parallel schema holder.
 
 Companion to **[spec-assistant-actions.md](completed/spec-assistant-actions.md)** (the action schema + the
 in-process and REST transports) and **[tracker.md](tracker.md)** (milestone **M13**).
@@ -45,8 +51,8 @@ existing `llm.Json` codec — the same choice already made for JSON, HTTP, YAML 
   target client demands headers.
 - **Methods handled:** `initialize` → **echo a mutually-supported `protocolVersion`** (negotiate: return
   the client's version if supported, else the newest we support) + capabilities `{tools:{}}`; `tools/list`
-  → the five tool schemas (§4); `tools/call` → forward to REST, wrap the result (§6). Everything else → a
-  JSON-RPC method-not-found (`-32601`).
+  → one tool per verb from `VerbSchemas` (§4; six at time of writing); `tools/call` → forward to REST,
+  wrap the result (§6). Everything else → a JSON-RPC method-not-found (`-32601`).
 - **No MCP SDK dependency.** The bridge is a separate artifact (or a `--mcp` launch mode of the same jar),
   so the **main analyser stays dependency-light**; even if a future maintainer prefers the SDK, it never
   touches the core.
@@ -82,24 +88,29 @@ Assistant") when the file is absent. The endpoint file is deleted on a clean RES
 
 ## 4. Tool mapping (verbs → MCP tools)
 
-One MCP tool per verb, each with a JSON-Schema `inputSchema` derived from the action params
-(spec-assistant-actions §4). Names are prefixed to avoid collisions in a client with many servers.
+One MCP tool per verb. The `inputSchema`s are **not defined here** — they come from the shipped
+`llm.VerbSchemas` (single source of truth, already backing REST `/manifest`; `VerbSchemasTest` pins
+the verb set to the dispatcher's). The table below is an illustrative summary of the **current** six:
 
-| MCP tool | Kind | inputSchema (summary) |
+| MCP tool | Kind | inputSchema (summary — canonical in `VerbSchemas`) |
 |---|---|---|
 | `analyser_aggregate` | query (read-only) | `{metric, groupBy, filter?: {dimensions[], from, to, text}, limit?}` |
+| `analyser_read` | query (read-only) | `{byteOffset? / recordIndex?, before?, count?}` — raw text of N records around an anchor (rate-limited) |
 | `analyser_filter` | render | `{from?, to?, dimensions?[], text?}` |
-| `analyser_graph` | render | `{name?, series?[], style?, newTab?, rename?}` |
-| `analyser_goto` | render | `{byteOffset?, recordIndex?}` |
+| `analyser_graph` | render | `{name?, series?[], exprs?[{expr, label?, resolve?}], style?, newTab?, from?, to?, rename?, rationale?}` |
+| `analyser_goto` | render | `{byteOffset?, recordIndex?, reveal?}` |
 | `analyser_flag` | render | `{byteOffsets?[], recordIndexes?[], note?}` |
 
 - `tools/list` returns these with full schemas — this **replaces the prompt manifest** for MCP clients
   (discovery is native). The in-process/REST manifests are unaffected.
 - Each `tools/call` forwards `{action: <verb>, params: <arguments>}` to REST `/action` (bridge) or the
   dispatcher (in-app), and wraps the `ActionResult` (§6).
-- **Annotations:** mark `analyser_aggregate` `readOnlyHint: true`; the render verbs mutate UI state but are
-  reversible — `readOnlyHint: false`, `destructiveHint: false` (nothing is deleted; flags/graphs/filters
-  are undoable). This lets a client surface "this will change the app view" appropriately.
+- **Annotations:** mark `analyser_aggregate` and `analyser_read` `readOnlyHint: true`; the render verbs
+  mutate UI state but are reversible — `readOnlyHint: false`, `destructiveHint: false` (nothing is
+  deleted; flags/graphs/filters are undoable). This lets a client surface "this will change the app
+  view" appropriately.
+- **A new verb costs zero MCP work by construction**: the bridge enumerates `VerbSchemas` at
+  `tools/list` time — adding a verb to the dispatcher + schemas automatically publishes the tool.
 
 ---
 
@@ -174,10 +185,12 @@ an `assistantActionsMcpHttp` toggle mirroring the REST one.
   initializing AWT (esp. on macOS) can fail oddly. `--mcp` short-circuits `Main` *before* any UI bootstrap.
 - `net/RestEndpointFile` — write on REST start / delete on stop (in `ActionServer` or `MainFrame`), read by
   the bridge (with the pid liveness check, §3). `600` perms.
-- `mcp/McpToolSchemas` — the five tool `inputSchema`s. **Single source of truth:** derive both the REST
-  `/manifest` body and these MCP `inputSchema`s from **one** schema definition (a small per-verb descriptor)
-  so a future verb-param change can't fork the two transports. Pure data; unit-testable (a test asserts the
-  verb set matches the dispatcher's).
+- ~~`mcp/McpToolSchemas`~~ **not built — the single source of truth already shipped**: `llm.VerbSchemas`
+  (AV.3) defines every verb's params/types/enums/required and backs REST `/manifest`;
+  `VerbSchemasTest` asserts the verb set matches the dispatcher. The bridge adds only a thin
+  **`mcp/McpTools` adapter** that maps `VerbSchemas` entries to MCP tool descriptors
+  (`analyser_<verb>` name, description, `inputSchema`, read-only annotations). Creating a parallel
+  schema holder here would fork the transports — the exact drift this section exists to prevent.
 - _(option B, later)_ `net/McpHttpServer` — Streamable-HTTP MCP hosted in-app over the dispatcher.
 
 No change to `ActionDispatcher` / `RenderExecutor` / `AggregateService` — MCP rides the existing seam.
@@ -188,8 +201,9 @@ No change to `ActionDispatcher` / `RenderExecutor` / `AggregateService` — MCP 
 
 1. **`RestEndpointFile`** — the app publishes its live REST endpoint+token to `~/.fluxtion-analyser/rest-endpoint`
    on start, removes it on stop/exit. (Headless-testable.)
-2. **`McpToolSchemas` + `McpBridge` handshake/list** — `initialize`, `tools/list` return the five schemas;
-   hand-rolled JSON-RPC over stdio. (Testable by feeding JSON-RPC frames to the loop.)
+2. **`McpTools` adapter + `McpBridge` handshake/list** — `initialize`, `tools/list` return one tool per
+   `VerbSchemas` verb (six today); hand-rolled JSON-RPC over stdio. (Testable by feeding JSON-RPC
+   frames to the loop.)
 3. **`tools/call` → REST forward** — map a tool call to `{action, params}`, POST to `/action`, wrap the
    result/error (§6). End-to-end against a live `ActionServer` in a test.
 4. **Docs** — a short "connect an MCP client" section (help/README), client config snippet, tracker close-out.
@@ -202,8 +216,9 @@ Slice 1–2 are pure/headless; slice 3 reuses the `ActionServerTest` harness (re
 ## 11. Testing
 
 - `RestEndpointFileTest` — write/read/round-trip; delete on stop; perms best-effort.
-- `McpToolSchemasTest` — every verb present; schemas are valid JSON with the expected fields.
-- `McpBridgeTest` — feed `initialize` → assert capabilities; `tools/list` → assert five tools;
+- `McpToolsTest` — the adapter exposes **exactly** the `VerbSchemas` verb set (no more, no fewer);
+  descriptors are valid MCP tool JSON; read-only annotations on `aggregate`/`read` only.
+- `McpBridgeTest` — feed `initialize` → assert capabilities; `tools/list` → assert one tool per verb;
   `tools/call analyser_aggregate` against a live `ActionServer` → assert a wrapped result;
   `tools/call` with a bad param → `isError:true` carrying the dispatcher's message; unknown method →
   JSON-RPC `-32601`.
@@ -217,7 +232,8 @@ Slice 1–2 are pure/headless; slice 3 reuses the `ActionServerTest` harness (re
 - ~~Framing~~ → **newline-delimited JSON-RPC** (§2); `initialize` negotiates `protocolVersion`.
 - ~~`--mcp` environment~~ → **headless-safe**, no Swing/AWT on the bridge path (§9).
 - ~~Stale endpoint file after a crash~~ → **pid liveness check** before erroring (§3).
-- ~~Schema drift REST vs MCP~~ → **one source of truth** feeds `/manifest` and the MCP `inputSchema`s (§9).
+- ~~Schema drift REST vs MCP~~ → **one source of truth** feeds `/manifest` and the MCP `inputSchema`s —
+  and it **already ships** as `llm.VerbSchemas` (AV.3); the bridge only adapts it (§9).
 
 **Still open:**
 - **Multiple running analysers:** the endpoint file holds one endpoint; if two apps run, last-writer-wins.

@@ -74,8 +74,16 @@ defers to it on framework semantics). The bundle layers them:
    connected agents can refresh and humans can browse.
 
 Contract notes:
-- Paths in the settings file are **bundle-relative** (`~`-relative won't survive; M15 import already
-  handles relative roots — verify, else this is a small analyser fix).
+- Paths in the settings file are **bundle-relative** — and this is a **committed analyser precondition,
+  not a "verify"**: `SettingsShare` as shipped expands only `~`-prefixed paths ("anything else is
+  verbatim" — a bare `src/main/java` would resolve against the CWD and break unless the analyser is
+  launched from the bundle dir). Fix: `SettingsShare.fromPortable` resolves relative roots against the
+  **import file's parent directory**. This fix is what makes "one dialog, everything configured" true.
+- **Bundles are generated at Download time** by the playground service — never pre-built artifacts —
+  so every bundle (code, settings, embedded prompt snapshot) is pinned to the playground's
+  then-current Mongoose version at the moment of download. There is no regeneration cadence to own and
+  nothing to rot; already-downloaded bundles are self-consistent snapshots, which is the correct
+  semantic. _(Resolves O3.)_
 - The bundle README's analyser link is the **reverse funnel**: every playground download advertises
   the analyser, not just vice versa.
 - Version pinning: the bundle names the Mongoose version it was generated against (O3).
@@ -97,6 +105,9 @@ Contract notes:
   policy): playground Download button · terminal run + log path · Import-settings summary dialog ·
   Follow streaming with an event-type filter · click-to-source landing in example code · a graph ·
   an Explain answer · the IDE with `CLAUDE.md` open beside a node edit.
+  **Publish gate:** the page is *written* against the bundle contract but **published only when the
+  playground's Download actually ships the bundle** — a tutorial that promises a Download that isn't
+  there is worse than no tutorial.
 - **Cross-links**: getting-started Quick start step 2 ("No log yet?") gains the playground option next
   to the static sample; producing-a-log.md links it as "want a live producer to try?"; landing page
   "Get going" mentions it.
@@ -133,6 +144,9 @@ grounded answer. Timed under 10 minutes by someone who isn't us.
   edit story.)
 - **O2** — which example: needs to be small enough to read, busy enough to graph (a periodic
   price-feed / order-flow toy that emits a few events per second — visible motion in Follow).
-- **O3** — version pinning between bundle and Mongoose release; who regenerates bundles on release.
-- **O4** — does M15 import accept bundle-relative source roots today, or only absolute/`~`-relative?
-  (Small analyser fix if not.)
+- ~~**O3** — version pinning / regeneration owner~~ **resolved**: bundles are generated at Download
+  time, pinned to the playground's current Mongoose version; no pre-built artifacts, no cadence to own
+  (§Contract notes).
+- ~~**O4** — relative source roots~~ **resolved as a committed precondition**: verified `SettingsShare`
+  expands only `~`-prefixed paths; the fix (resolve relative roots against the import file's parent)
+  is tracker item **M19.2** and gates the tutorial's "zero manual setup" claim.
