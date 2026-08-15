@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- Assistant: while the localhost REST transport is running, the app publishes its live endpoint to
+  **`~/.fluxtion-analyser/rest-endpoint`** (mode 600 — url, token, pid, start time) and removes it on
+  stop/exit. A client configured once can now find the per-run port and token instead of you copying
+  them each launch; a file left by a crash is detectable via its pid.
+
 ### Changed
 - JBang launches no longer print JVM native-access warnings — the catalog alias now passes
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).

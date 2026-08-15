@@ -40,13 +40,26 @@ public final class ActionServer {
     private final double ratePerSec;
     private final RateLimiter limiter;
     private final int port;
+    private final RestEndpointFile endpointFile;   // null = publish nothing (the default; tests, embedders)
 
     public ActionServer(ActionDispatcher dispatcher, String token, int maxActionsPerReply, double ratePerSec)
             throws IOException {
+        this(dispatcher, token, maxActionsPerReply, ratePerSec, null);
+    }
+
+    /**
+     * @param endpointFile where to publish the live url+token while the server runs (M13.1), or
+     *                     {@code null} to publish nothing. Opt-in on purpose: the server is started for
+     *                     real inside unit tests, and publishing to the well-known path from there would
+     *                     clobber a developer's running analyser.
+     */
+    public ActionServer(ActionDispatcher dispatcher, String token, int maxActionsPerReply, double ratePerSec,
+                        RestEndpointFile endpointFile) throws IOException {
         this.dispatcher = dispatcher;
         this.token = token;
         this.maxActionsPerReply = maxActionsPerReply;
         this.ratePerSec = ratePerSec;
+        this.endpointFile = endpointFile;
         this.limiter = new RateLimiter(ratePerSec, Math.max(1, ratePerSec));
         this.server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         this.port = server.getAddress().getPort();
@@ -57,9 +70,18 @@ public final class ActionServer {
 
     public void start() {
         server.start();
+        if (endpointFile != null) {
+            try {
+                endpointFile.write(url(), token);
+            } catch (IOException e) {
+                // REST itself is up and usable — only MCP discovery is degraded, so warn, never fail
+                System.out.println("[analyser] could not publish " + endpointFile.path() + ": " + e);
+            }
+        }
     }
 
     public void stop() {
+        if (endpointFile != null) endpointFile.delete();
         server.stop(0);
         if (server.getExecutor() instanceof java.util.concurrent.ExecutorService es) es.shutdownNow();
     }

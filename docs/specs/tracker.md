@@ -23,9 +23,12 @@ MCP-native clients (Claude Code/Desktop) — one MCP tool per verb over the **sa
 `RenderExecutor`**. Hand-rolled minimal JSON-RPC (no MCP SDK → keeps the near-zero-dep ethos). Not a
 replacement: in-process drives the app's own chat; REST stays the universal zero-config door. AV.3's
 `VerbSchemas` already provides the shared tool schemas._
-- [M13.1] ☐ **`RestEndpointFile`** — app publishes its live REST url+token+**pid** to `~/.fluxtion-analyser/rest-endpoint`
+- [M13.1] ☑ **`RestEndpointFile`** — app publishes its live REST url+token+**pid** to `~/.fluxtion-analyser/rest-endpoint`
   (mode 600) on REST start, deletes on stop/exit; bridge does a **pid liveness check** before trusting it
   (clean "not running" vs connection-refused) — so a static MCP client config finds the per-run endpoint.
+  Publishing is an **opt-in `ActionServer` collaborator** (the path is injected, not baked in) so the
+  server started inside unit tests can't clobber a running app's endpoint; exit-time cleanup is
+  ownership-checked (pid) so a second instance's endpoint survives. 9 tests.
 - [M13.2] ☐ **`McpTools` adapter + `McpBridge` handshake/list** — `analyser.jar --mcp` (**headless-safe**: sets
   `java.awt.headless`, touches no Swing): hand-rolled **newline-delimited** JSON-RPC stdio (`initialize`
   negotiates `protocolVersion`; `tools/list`) returning one tool per verb (six today, incl. `read`)

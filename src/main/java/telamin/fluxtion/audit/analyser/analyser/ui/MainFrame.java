@@ -591,7 +591,10 @@ public final class MainFrame extends JFrame {
                         },
                         row -> store == null ? null : store.rawText(row),
                         actionExecutor);
-                actionServer = new telamin.fluxtion.audit.analyser.analyser.net.ActionServer(d, actionToken, config.maxActionsPerReply, 10.0);
+                // publish the live url+token to the well-known file so an MCP client (M13) can find this
+                // run's ephemeral port/token from a static config; removed again on stop/exit
+                actionServer = new telamin.fluxtion.audit.analyser.analyser.net.ActionServer(d, actionToken, config.maxActionsPerReply, 10.0,
+                        telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown());
                 actionServer.start();
                 llmPanel.setRestEndpoint(actionServer.url(), actionToken);
                 // status bar shows only a token prefix (screenshots/screen-shares); the full token goes to
@@ -1149,6 +1152,9 @@ public final class MainFrame extends JFrame {
     private void onExit() {
         if (followTimer != null) followTimer.stop();
         if (actionServer != null) actionServer.stop();
+        // stop() already removes it; this also clears a file stranded by an earlier crash of ours, so a
+        // clean quit never leaves a stale endpoint for an MCP client to find (M13.1)
+        telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown().deleteIfOwnedByThisProcess();
         config.windowX = getX();
         config.windowY = getY();
         config.windowW = getWidth();
