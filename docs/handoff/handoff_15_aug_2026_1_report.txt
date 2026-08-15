@@ -18,8 +18,10 @@ Seven commits on handoff/15_aug_2026_1, in order:
   6179d45  M13.4  docs — "Connect an MCP client"
   229046e  docs: "does my client launch the analyser?" + session transcript
   dbe4c3b  CLI: reject unknown options; docs: agent-driven setup + session start
+  e8e5cd8  handoff: this report
+  5aa1b6a  fix: a failing shutdown step could make the app impossible to close
 
-Tests: 197 → 239 (42 added). `mvn test` green before every commit.
+Tests: 197 → 243 (46 added). `mvn test` green before every commit.
 Docs: `mkdocs build --strict` green (run locally — see §5).
 Anonymisation sweep: clean before every commit.
 
@@ -79,6 +81,25 @@ D6. One out-of-scope repo fix: docs/admin/docs-site.md §4a told the reader to
     run `pip3 install -r docs-requirements.txt`, which cannot work on a Homebrew
     (PEP 668) python — the machine it was being read on. Rewritten for the venv
     route. Committed separately from the slices.
+
+D7. PRE-EXISTING BUG FOUND AND FIXED (5aa1b6a), approved by the owner: onExit
+    ran the quit sequence unguarded, so a failing step escaped windowClosing
+    before System.exit and left the app IMPOSSIBLE TO CLOSE — window on screen,
+    REST already torn down, every further click failing identically. Hit for
+    real during the §11 manual check: the jar was rebuilt while the app ran, so
+    config.GraphSpec (not yet loaded, reached via graphTabs.specs()) vanished
+    from under the JVM and onExit died with NoClassDefFoundError. That is a
+    normal thing to do here — CLAUDE.md has UI changes verified by building and
+    running the jar — so any developer with the app open during `mvn package`
+    could hit it. Steps are now isolated and the exit sits in a finally;
+    Throwable is absorbed rather than Exception because the failure was an
+    Error. 4 headless tests on the isolation helper.
+    NOT introduced by M13: the milestone only added two more steps to an
+    already-unguarded sequence.
+    NOT fully verified: the complete quit path needs a human click (Swing
+    convention). Reproduce with — launch the jar on a log, run
+    `mvn -o package -DskipTests` underneath it, then click close: it should now
+    exit while printing "shutdown step failed, continuing".
 
 ================================================================================
 3. SPEC-VS-REALITY MISMATCHES FOUND (spec updated — nothing left divergent)
