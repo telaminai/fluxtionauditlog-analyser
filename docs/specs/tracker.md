@@ -72,7 +72,9 @@ restart to pick up a fix. Capabilities tiered by risk; **server verbs are never 
 human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only in v1._
 - [M18.0] ☐ **Spike — verify the admin surface (gates all of Part B)** — confirm against a running
   server that `serverplugin-rest` exposes status, audit-sink path, `EventLogControlEvent`, and
-  lifecycle; any gap becomes a `fluxtion-server-plugins` PR **before** M18.1+ is scheduled.
+  lifecycle; any gap becomes a `fluxtion-server-plugins` PR **before** M18.1+ is scheduled. **Test
+  bench: the M19 example bundle** (admin REST on, disposable, predictable log) — M19.1 and M18.0
+  co-develop.
 - [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced;
   per-link **"development server — restarts allowed"** opt-in flag); status-bar chip
   (connected/name/uptime); Server menu scaffold.

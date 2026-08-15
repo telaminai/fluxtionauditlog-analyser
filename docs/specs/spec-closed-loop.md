@@ -113,9 +113,11 @@ Mongoose ships `serverplugin-rest` and `serverplugin-admintelnet`; nodes registe
 endpoint** only.
 
 > **O1 is load-bearing, not a footnote** — it gates M18.2–M18.4, and any missing endpoint is a
-> cross-repo PR into `fluxtion-server-plugins`. **M18.0 (spike)** therefore precedes everything else in
-> Part B: verify the four capabilities below against a running server *before* committing the M18
-> delivery order; the "small, immediately useful" framing of M18.1–3 holds only if the surface exists.
+> cross-repo PR into `fluxtion-server-plugins` (expected, not exceptional — budget for plugin updates).
+> **M18.0 (spike)** therefore precedes everything else in Part B: verify the four capabilities below
+> against a running server *before* committing the M18 delivery order. **The spike's test bench is the
+> M19 onboarding-example bundle** (spec-onboarding-example §Synergy) — a disposable local Mongoose
+> server with admin REST on and a predictable log, which then also hosts M18.2–18.4's acceptance demos.
 
 Required capabilities, to verify in the spike (and add server-side if missing):
 

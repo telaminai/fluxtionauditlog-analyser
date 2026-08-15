@@ -46,6 +46,7 @@ The Download bundle MUST contain:
 | the **generated EventProcessor source** + the example's node sources | source navigation works out of the box |
 | **`analyser-settings.fluxtion-settings`** — relative source roots + EP FQN | File ▸ Import = zero-setup (M15) |
 | **`README.md`** — run command, the log path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser |
+| **admin REST enabled** (`serverplugin-rest` on a known localhost port, named in the README and the settings file) | the example doubles as **M18's validation bench** (below) |
 
 Contract notes:
 - Paths in the settings file are **bundle-relative** (`~`-relative won't survive; M15 import already
@@ -72,6 +73,21 @@ Contract notes:
   polish item if testing shows friction: a **File ▸ Open example…** helper that takes the bundle
   folder and does import + open + Follow in one action (defer unless the tutorial reads clunky
   without it).
+
+## Synergy: this example is M18's validation bench
+
+The same bundle validates the **Mongoose server link** (spec-closed-loop Part B) end to end: a
+known-good local server with the admin REST on, a predictable log, restart-safe (it's disposably
+local — the per-link dev opt-in is honestly true here). Concretely:
+
+- **M18.0 (spike)** runs *against this example* — verify status / sink-path discovery /
+  `EventLogControlEvent` / lifecycle on it; **any missing admin capability becomes a
+  `fluxtion-server-plugins` PR** (updates to the Mongoose plugin are expected, not exceptional —
+  budget for them).
+- M18.2's "Open server's audit log", M18.3's level control (watch Follow get chattier live), and
+  M18.4's dev restart all get their acceptance demos on this bundle.
+- Later, the tutorial gains an optional part 4 ("control the server from the analyser") once M18.1–3
+  ship — the onboarding page and the feature validate each other.
 
 ## Acceptance
 
