@@ -8,6 +8,23 @@ Companion to **[tracker.md](tracker.md)** (milestone **M19**) and
 distribution point, so part of this spec is a *contract* on what that bundle contains (cross-repo,
 like M18's O1).
 
+## The bigger picture — one of three pathways
+
+This tutorial is the **"How do I support a Fluxtion system"** pathway — the third leg of the Telamin
+learning journey, each owned by its own property and eventually tied together by the umbrella Telamin
+site:
+
+| Pathway | Question it answers | Lives at |
+|---|---|---|
+| **Architect** | How do I *build* a Fluxtion system (with AI)? | <https://fluxtion-playground.dev/build-with-ai> |
+| **Extend** | How do I write Mongoose plugins? | <https://telaminai.github.io/mongoose-plugins/> |
+| **Support** | How do I run, observe, diagnose and fix one? | **this tutorial** (analyser docs site) |
+
+Implication for the tutorial: alongside the own-system end-bridge (§Part 2), the closing section also
+links the **sibling pathways** ("Want to build one from scratch? → build-with-ai · Extending the
+server? → mongoose-plugins") — every pathway routes to the other two, so the umbrella site only has to
+route by intent, not re-teach.
+
 ## The gap
 
 Today's onboarding tops out at the **static sample log**: download `sample-audit-log.yaml`, browse it.
