@@ -91,6 +91,20 @@ Data flows: `parse` → `LogStore`/`index` → `filter` scopes everything → `s
 - `docs/specs/completed/` — shipped milestones and their design specs (history).
 - `docs/admin/release-process.md`, `docs/admin/docs-site.md` — ops.
 
+## Handoffs between sessions/machines
+
+Work delegated to another session (human or LLM, any machine) travels through the repo:
+
+- **Brief**: `docs/handoff/handoff_<date>_<n>.txt` — self-contained task brief (orient-first reading
+  list, slices, constraints, process). Commit and **push** it; the receiving session's starting prompt
+  is just "Read docs/handoff/<file> and do what it says."
+- **Report**: when the work completes, the receiving session writes
+  `docs/handoff/handoff_<date>_<n>_report.txt` — what shipped, what was skipped/deferred and why, and
+  any spec-vs-reality mismatches found (fix the spec too; never silently diverge) — committed with its
+  final change.
+
+The paired brief/report trail makes every delegated work block auditable from the repo itself.
+
 ## Tracker discipline
 
 When you finish work: mark items ☑ in `docs/specs/tracker.md`; when a whole milestone/round is done,

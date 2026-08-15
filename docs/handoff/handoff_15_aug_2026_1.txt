@@ -45,9 +45,11 @@ PROCESS (per CLAUDE.md):
 - After each slice: mark the tracker item ☑ in docs/specs/tracker.md.
 - Run the anonymisation sweep before any commit that adds fixtures or examples.
 - When all four slices are done: run the manual check in spec §11 (register the
-  bridge in a real MCP client, run an aggregate and a graph build), then report
-  what works, what you skipped, and any spec-vs-reality mismatches you found —
-  update the spec if you find any, don't silently diverge.
+  bridge in a real MCP client, run an aggregate and a graph build), then write your
+  completion report to docs/handoff/handoff_15_aug_2026_1_report.txt (what shipped,
+  what was skipped/deferred and why, any spec-vs-reality mismatches you found —
+  update the spec too if you find any, don't silently diverge) and commit it with
+  your final change. See docs/ONBOARDING.md § Handoffs.
 
 NOTE ON THE MANUAL CHECK: the automated tests spin up their own ActionServer, so
 they run headless. Only the final §11 manual verification needs the desktop app
