@@ -23,8 +23,7 @@ duplicated.
 - **[MkDocs Material](https://squidfunk.github.io/mkdocs-material/)** — the same generator and theme
   as **mongoose-plugins**, config copied from its `mkdocs.yml` (indigo/deep-orange palette, Inter +
   JetBrains Mono, dark-mode toggle, search, tabs). One toolchain and one visual identity across
-  telaminai docs sites. Local preview is `pip install -r docs-requirements.txt && mkdocs serve` —
-  no Ruby.
+  telaminai docs sites. Local preview needs a venv (§4a) — no Ruby.
 - **Built and deployed by GitHub Actions** (`mkdocs build --strict` + `actions/deploy-pages`), not
   the legacy "Pages builds from a branch" mode. The build **copies `CHANGELOG.md` in as the
   Release-notes page** so the site and the app always show the same notes with zero duplication.
@@ -150,14 +149,28 @@ release-notes page.
 Needs Python 3.9+ (macOS ships one; `python3 -V` to check). From the **repo root**:
 
 ```bash
-pip3 install -r docs-requirements.txt   # once (or into a venv, if you prefer)
-mkdocs serve                            # http://127.0.0.1:8000/ — live-reloads on save
+python3 -m venv .venv                        # once
+.venv/bin/pip install -r docs-requirements.txt
+.venv/bin/mkdocs serve                       # live-reloads on save
 ```
 
-If `mkdocs` is "command not found", pip's user-install script dir isn't on your PATH — either run
-`python3 -m mkdocs serve` (works regardless), or add `$(python3 -m site --user-base)/bin` to PATH.
+It serves at **`http://127.0.0.1:8000/fluxtionauditlog-analyser/`** (the sub-path comes from
+`site_url`); plain `http://127.0.0.1:8000/` 302-redirects there, which browsers follow but `curl`
+without `-L` does not.
 
-`mkdocs build --strict` runs the same link-checking build CI uses.
+**Use a venv — a bare `pip3 install` fails on this stack.** Homebrew's Python is marked
+*externally-managed* ([PEP 668](https://peps.python.org/pep-0668/)), so `pip3 install -r
+docs-requirements.txt` refuses with `error: externally-managed-environment` and suggests
+`--break-system-packages`. Don't: that flag can break the Homebrew Python other tools rely on. The
+venv is gitignored (`.venv/`) and pins exactly the versions CI installs, which a `brew install` or
+`pipx` route would not.
+
+Prefer not to type the prefix? `source .venv/bin/activate` once per shell, then plain `mkdocs serve`
+works; `deactivate` to leave. (`mkdocs: command not found` outside the venv is expected — nothing is
+installed system-wide.)
+
+`.venv/bin/mkdocs build --strict` runs the same link-checking build CI uses. **Run it before pushing
+any site change** — CI enforces it and it fails on broken internal links.
 
 Notes:
 - The release-notes page is a placeholder locally: the `CHANGELOG.md` injection only runs in the
