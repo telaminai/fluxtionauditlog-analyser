@@ -66,3 +66,70 @@ NOTE ON THE MANUAL CHECK: the automated tests spin up their own ActionServer, so
 they run headless. Only the final §11 manual verification needs the desktop app
 running with REST enabled — if this machine has no display, mark that step
 "deferred to a desktop machine" in your report rather than skipping it silently.
+
+================================================================================
+QUESTIONS / QUERIES FROM THE RECEIVING SESSION       (added 2026-08-15, session 1)
+================================================================================
+Raised after the orient-first read (CLAUDE.md, ONBOARDING, spec v1.1, tracker,
+and the seam: ActionDispatcher, VerbSchemas+test, ActionServer+test, Json,
+ActionResult, Main, MainFrame's REST wiring). Q1 is a process deviation the repo
+owner has already decided; Q2-Q6 are design/spec points found in the code that
+the brief and spec don't cover. Answer or correct these inline, or in the report.
+
+Q1. BRANCH, NOT MAIN — decided by the repo owner, overrides the CONSTRAINTS
+    block above. Work lands on branch `handoff/15_aug_2026_1` (one commit per
+    slice, as specified) so the originating session can review before it merges
+    to main. Nothing else about the slicing/process changes. The brief's
+    "Commit directly to main (trunk-based)" line is superseded for this handoff
+    only. → Merge to main is the originating session's call.
+
+Q2. RestEndpointFile must NOT write the well-known path during tests.
+    ActionServerTest starts a real ActionServer in @BeforeEach and stops it in
+    @AfterEach; McpBridgeTest (M13.3) will do the same. If ActionServer.start()
+    writes ~/.fluxtion-analyser/rest-endpoint unconditionally and .stop()
+    deletes it, then every `mvn test` run on a machine where the analyser is
+    running clobbers the live endpoint file and then deletes it — the developer's
+    running app silently loses its MCP discoverability.
+    → PROPOSED (implementing this unless corrected): RestEndpointFile carries an
+      explicit Path (static factory for the well-known default); ActionServer
+      gains an optional publisher collaborator — null = publish nothing. The
+      existing 4-arg ActionServer constructor keeps today's behaviour (no
+      publish), so ActionServerTest is untouched; MainFrame passes the real one.
+      Tests that need the file use a @TempDir path.
+
+Q3. MainFrame.onExit already stops the server (MainFrame.java:1151), so a
+    delete-on-stop in ActionServer.stop() already covers a clean quit. The
+    brief asks for an onExit hook too — implementing it as belt-and-braces
+    (it also clears a file stranded by an earlier crash), but flagging that it
+    is redundant with the stop path rather than load-bearing. → OK?
+
+Q4. SPEC GAP — JSON-RPC notifications. Spec §2 says "everything else → -32601".
+    But `notifications/initialized` is sent by every client straight after the
+    handshake and is a NOTIFICATION: no `id`, and replying to it violates
+    JSON-RPC 2.0. Rule must be: no `id` present → consume silently, never
+    respond; unknown method WITH an id → -32601. → Will implement this and
+    update spec §2 in M13.2 unless told otherwise.
+
+Q5. GOTCHA — llm.Json parses every number to Double and writes it back as
+    "1.0". Echoing a JSON-RPC `id` through parse→write turns the client's
+    `"id": 1` into `"id": 1.0`; strict clients match ids exactly and would drop
+    the response. → Fix stays local to mcp/: normalise integral Doubles to Long
+    on the bridge's write path. NOT changing the shipped llm.Json (it backs the
+    LLM clients and REST). Forwarded params are unaffected — the dispatcher
+    already reads Number.intValue().
+
+Q6. SPEC GAP — §6 error mapping omits the rate limit. ActionServer returns HTTP
+    429 with an {"ok":false,"error":"rate limited (…)"} body (10/s from
+    MainFrame). It maps naturally, but §6 only enumerates ok:true / ok:false /
+    transport-dead. → Proposed rule for §6: any HTTP response carrying a JSON
+    ok:false body → isError:true with that error text (covers 400/401/429/500);
+    only a dead/absent endpoint is a JSON-RPC error.
+
+ENVIRONMENT NOTES (this machine)
+- mkdocs was NOT installed; Homebrew python is PEP 668 externally-managed, so it
+  is now installed in a repo-local venv (`.venv/`, gitignored):
+      python3 -m venv .venv && .venv/bin/pip install -r docs-requirements.txt
+      .venv/bin/mkdocs build --strict      # verified green before any M13 work
+  So M13.4's strict build CAN be run here — it will be, not deferred to CI.
+- macOS with a display: the spec §11 manual check should be runnable here rather
+  than deferred to a desktop machine.
