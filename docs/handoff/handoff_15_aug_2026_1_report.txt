@@ -1,0 +1,209 @@
+REPORT — milestone M13 (MCP transport)
+Date: 2026-08-15 · Brief: docs/handoff/handoff_15_aug_2026_1.txt
+Branch: handoff/15_aug_2026_1 (NOT main — see Deviation 1) · Repo: telaminai/fluxtionauditlog-analyser
+
+STATUS: all four slices shipped, tested and manually verified. Ready for review
+and merge to main by the originating session.
+
+================================================================================
+1. WHAT SHIPPED
+================================================================================
+Seven commits on handoff/15_aug_2026_1, in order:
+
+  899d858  handoff: receiving-session questions Q1-Q6 + local docs toolchain
+  a50d9f4  M13.1  RestEndpointFile — publish the live REST endpoint
+  3f8c2f0  M13.2  McpTools adapter + dual-era McpBridge (handshake/discover/list)
+  a7b8124  M13.3  tools/call → REST forward
+  5e3dc29  docs/admin: fix local docs-site instructions for PEP 668 pythons
+  6179d45  M13.4  docs — "Connect an MCP client"
+  229046e  docs: "does my client launch the analyser?" + session transcript
+  dbe4c3b  CLI: reject unknown options; docs: agent-driven setup + session start
+
+Tests: 197 → 239 (42 added). `mvn test` green before every commit.
+Docs: `mkdocs build --strict` green (run locally — see §5).
+Anonymisation sweep: clean before every commit.
+
+M13.1 — net/RestEndpointFile
+  Writes {url, token, pid, startedAt} to ~/.fluxtion-analyser/rest-endpoint on
+  REST start, deletes on stop/exit. Created mode 600 BEFORE the token is written
+  so it is never briefly world-readable. Endpoint.alive() is the ProcessHandle
+  liveness check; a corrupt/half-written file reads as absent rather than
+  throwing. 9 tests.
+
+M13.2 — mcp/McpTools + mcp/McpBridge
+  `analyser.jar --mcp`; Main routes before any UI bootstrap; bridge sets
+  java.awt.headless first. One tool per verb derived from llm.VerbSchemas (no
+  parallel schema holder), analyser_<verb>, readOnlyHint on aggregate+read only.
+  Hand-rolled newline-delimited JSON-RPC 2.0. Zero new dependencies. 26 tests.
+
+M13.3 — tools/call
+  Reads the endpoint PER CALL (so a long-lived client survives an analyser
+  restart), pid-liveness-checks it, POSTs {action, params} to /action with the
+  token header. Tool failure (bad params, 401, 429) → isError:true with the
+  dispatcher's own message; only an absent/dead endpoint is a JSON-RPC error
+  (-32001) carrying the "enable it in Settings" hint. 12 tests including a live
+  ActionServer round-trip over real loopback HTTP.
+
+M13.4 — docs
+  "Connect an MCP client" on docs/site/user-guide/assistant.md: tabbed config for
+  Claude Code / Claude Desktop / Codex, a worked session transcript, endpoint
+  discovery, troubleshooting, capability boundary. README highlight links in.
+
+================================================================================
+2. DEVIATIONS FROM THE BRIEF (all authorised, none silent)
+================================================================================
+D1. BRANCH, NOT MAIN. The brief said commit directly to main. The repo owner
+    directed the work onto handoff/15_aug_2026_1 so this session could review
+    before merging. One commit per slice as specified. → Merge is your call.
+
+D2. DUAL-ERA MCP — the largest deviation, and the reason to read §3 first.
+    Authorised by the repo owner after the finding was presented.
+
+D3. RestEndpointFile publishing is an OPT-IN ActionServer collaborator with an
+    injected path, not a hardcoded write in start(). Rationale in Q2: the REST
+    server is started for real inside unit tests, so an unconditional write
+    would clobber (then delete) the endpoint of a developer's running analyser
+    on every `mvn test`. The 4-arg constructor keeps today's behaviour.
+
+D4. Exit cleanup is ownership-checked (deleteIfOwnedByThisProcess) rather than
+    an unconditional delete, so a second running analyser's endpoint survives
+    our quit. The brief asked for a plain delete on MainFrame.onExit; that would
+    have quietly worsened spec §12's deferred multi-instance case.
+
+D5. Two items outside the brief, both explicitly approved mid-flight:
+    - CLI hardening: unknown --options now exit 2 with usage, plus --help.
+    - Docs: "Let your agent set it up" (jbang/config/mcp-add recipe) and a
+      session-start transcript.
+
+D6. One out-of-scope repo fix: docs/admin/docs-site.md §4a told the reader to
+    run `pip3 install -r docs-requirements.txt`, which cannot work on a Homebrew
+    (PEP 668) python — the machine it was being read on. Rewritten for the venv
+    route. Committed separately from the slices.
+
+================================================================================
+3. SPEC-VS-REALITY MISMATCHES FOUND (spec updated — nothing left divergent)
+================================================================================
+THE BIG ONE — MCP MOVED. spec-assistant-actions-mcp v1.1 was written against an
+era of MCP that no longer exists. Current revision 2026-07-28 REMOVED the
+initialize/notifications-initialized handshake entirely:
+  - every request declares its version in
+    _meta["io.modelcontextprotocol/protocolVersion"];
+  - servers MUST implement a new server/discover RPC;
+  - all results carry resultType; list results also require ttlMs + cacheScope;
+  - version mismatch → UnsupportedProtocolVersionError, code -32022.
+The handshake era (2025-11-25 and earlier) is now formally "legacy", and MCP's
+own compatibility matrix marks legacy-server + modern-client as FAILS with no
+client-side fall-forward.
+
+  → Shipped DUAL-ERA (owner's decision): both eras answered, era chosen per
+    request by how the client opens. Advertises
+    ["2026-07-28","2025-11-25","2025-06-18"]. Cost ~60 lines.
+  → Spec raised to v1.2: new §2.1 (dual-era table), §2.2, §6, §9, §12.
+  → This was caught only by reading the live MCP spec during implementation.
+    Recommend treating "re-read the vendor spec" as a standing step for any
+    protocol work here, not a one-off.
+
+M2. NOTIFICATIONS. Spec §2 said "everything else → -32601". Wrong, and it would
+    have broken every legacy connection: notifications/initialized has no id,
+    and answering a JSON-RPC notification is a protocol violation. Rule is now
+    §2.2: no id → consume silently; unknown method WITH an id → -32601.
+
+M3. llm.Json PARSES EVERY NUMBER TO Double AND WRITES "1.0". An echoed JSON-RPC
+    id turns the client's `"id": 1` into `"id": 1.0`; strict clients match ids
+    exactly and would drop the response. Fixed locally in the bridge (integral
+    doubles narrowed to long on the write path). llm.Json itself deliberately
+    untouched — it also backs the LLM clients and REST. Warning added to §9.
+
+M4. §6's error mapping omitted the rate limit. ActionServer returns HTTP 429
+    with an ok:false body (10/s bucket in MainFrame), so a busy agent WILL meet
+    it. §6 now says: any HTTP status with an ok:false body → isError:true; only
+    an absent/dead endpoint is a transport error.
+
+M5. Spec §11's manual check assumed the desktop app; it also implicitly assumed
+    the *client* starts the analyser. It does not — the client starts the
+    bridge; the app must already be running. This was implicit everywhere and
+    confusing in the drafted docs, so it is now stated explicitly on the user
+    page. No spec change needed, but worth knowing it was never written down.
+
+================================================================================
+4. QUESTIONS RAISED — Q1-Q7 in the brief (all answered/decided in-flight)
+================================================================================
+Q1 branch not main .................. owner's decision, see D1.
+Q2 endpoint file clobbers in tests ... implemented as proposed (D3).
+Q3 onExit hook redundant ............ implemented, ownership-checked (D4).
+Q4 notification rule ................ fixed in code + spec (M2).
+Q5 Json Double id echo .............. fixed in the bridge (M3).
+Q6 429 missing from §6 .............. fixed in spec + code (M4).
+Q7 MCP era change ................... dual-era shipped (§3).
+
+STILL OPEN FOR YOU — one architectural call, deliberately not taken here:
+  SDK vs hand-roll. MCP made a breaking change within months of the spec being
+  written. The hand-roll is still small (dual-era cost ~60 lines, the supported
+  version list is one constant) and keeps the zero-dep ethos, but the
+  maintenance signal is now evidence, not speculation. Argument recorded in
+  spec §12 "Still open". No action taken.
+
+================================================================================
+5. SKIPPED / DEFERRED — and what was NOT skipped
+================================================================================
+NOTHING IN THE BRIEF WAS SKIPPED. Specifically, the two items the brief expected
+might be deferred were both completed:
+
+  - mkdocs strict build: the brief allowed "say so in the report and let CI run
+    it". Not needed — mkdocs was absent because Homebrew python is PEP 668
+    externally-managed, so it was installed into a gitignored .venv/ and
+    `mkdocs build --strict` ran green locally before every docs commit.
+
+  - Spec §11 manual verification: the brief allowed "deferred to a desktop
+    machine" if headless. Not needed — this is macOS with a display. RUN AND
+    PASSED, against the live desktop app on the repo's anonymised
+    src/test/resources/sample.yml (deliberately NOT the developer's own log in
+    ~/Downloads, which is not anonymised):
+        endpoint file published .... mode -rw-------, pid recorded
+        initialize ................. negotiated 2025-06-18, tools advertised
+        notifications/initialized .. correctly produced no response
+        server/discover ............ supportedVersions advertised
+        analyser_aggregate ......... 21 records, real dimension buckets
+        analyser_graph ............. resolved the series, built the tab
+        analyser_flag .............. flagged 2 records
+        stdout ..................... MCP frames only; stderr empty
+    Also smoke-tested through the packaged fatjar, not just in-process.
+    NOTE: the on-screen result (graph tab rendered, rows flagged) was confirmed
+    by the tool results' applied/resolved payloads; a human eyeball of the
+    window is the one step a session cannot self-certify.
+
+M13.5 (resources/prompts, in-app HTTP-MCP) remains ☐ — explicitly "(later)" in
+the tracker, out of scope for this handoff.
+
+================================================================================
+6. RECOMMENDATIONS FOR THE ORIGINATING SESSION
+================================================================================
+R1. Review McpBridge's use of ui.ReleaseNotes.version(). It is Swing-free (only
+    InputStream/StandardCharsets) and is the single source of truth for the
+    version, but it lives in the ui package — a `ui` import on a path the spec
+    says must stay clean. McpBridgeHeadlessTest proves the compiled bytecode
+    references no Swing/AWT/FlatLaf, so this is a taste call, not a bug. Moving
+    ReleaseNotes to a neutral package would settle it.
+
+R2. Decide the SDK-vs-hand-roll question above before the next MCP revision
+    lands, not after it breaks something.
+
+R3. When M13 ships in a release, jbang users need --fresh: the cached 1.0.0 jar
+    has no bridge, and `analyser --mcp` against it now exits 2 with usage
+    (before this handoff it silently opened the GUI). Worth a release-note line.
+
+R4. Consider whether tools/call should also return MCP `structuredContent` (the
+    payload as JSON alongside the text). Not done: it invites an outputSchema
+    per verb, which is a real design step rather than a freebie.
+
+================================================================================
+7. HOW TO VERIFY THIS YOURSELF
+================================================================================
+  mvn -o test                                   # 239 green
+  .venv/bin/mkdocs build --strict               # docs (see docs/admin/docs-site.md §4a)
+  java -jar target/*.jar --help                 # usage, exit 0
+  printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+    | java -jar target/*.jar --mcp              # six analyser_* tools, no app needed
+Then open the app, enable Settings ▸ Assistant ▸ REST, register the bridge in a
+real MCP client, and ask it to aggregate and graph — docs/site/user-guide/
+assistant.md § "Connect an MCP client" is the user-facing walkthrough.

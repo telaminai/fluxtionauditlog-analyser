@@ -17,7 +17,10 @@ assistant-vocabulary follow-ups (read / rationale / schemas / reveal).
 
 ---
 
-## M13 · MCP transport — ☐ NEXT (a third door over the same seam)
+## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (a third door over the same seam)
+_Delivered on branch `handoff/15_aug_2026_1` (report: **[handoff_15_aug_2026_1_report.txt](../handoff/handoff_15_aug_2026_1_report.txt)**)
+— awaiting review/merge to main. Stays live because **M13.5** (resources/prompts, in-app HTTP-MCP) is
+still open; move the milestone to `completed/` once that lands or is dropped._
 _Design: **[spec-assistant-actions-mcp.md](spec-assistant-actions-mcp.md)**. MCP as the preferred door for
 MCP-native clients (Claude Code/Desktop) — one MCP tool per verb over the **same `ActionDispatcher` /
 `RenderExecutor`**. Hand-rolled minimal JSON-RPC (no MCP SDK → keeps the near-zero-dep ethos). Not a
@@ -196,8 +199,8 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 _M13 and M18 are **independent tracks** (spec-closed-loop §Delivery order) — M12.4's floor is the
 already-shipped REST + brief file, so neither blocks the other; run them in parallel or in this order:_
-1. **M13.1–13.4** (MCP bridge) — smallest step, biggest reach: every MCP-native agent can drive the
-   analyser with zero prompting; AV.3 already built the schemas.
+1. ~~**M13.1–13.4** (MCP bridge)~~ — **shipped** (branch `handoff/15_aug_2026_1`, pending merge): every
+   MCP-native agent can drive the analyser with zero prompting; AV.3's schemas fed it directly.
 2. **M18.0 spike, then M18.1 → M18.2 → M18.3** (verify admin surface; server link, read-only → log
    discovery → audit level) — small slices, each immediately useful with Follow.
 3. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent can
