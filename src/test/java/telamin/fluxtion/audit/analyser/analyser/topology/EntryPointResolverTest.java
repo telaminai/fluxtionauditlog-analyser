@@ -115,11 +115,12 @@ class EntryPointResolverTest {
     @Test
     void anEntryPointContradictedByTheLogIsDistrusted() {
         // resolution missed, or the graphml is from another build: a logged node outside the predicted
-        // path means the entry cannot be believed, so fall back to reasoning from the evidence
+        // path means the entry cannot be believed
         Map<String, ProcessorTopology.Execution> state =
                 topology().classifyCycle(List.of("handler_1"), List.of("hedgeMonitor"));
         assertEquals(ProcessorTopology.Execution.LOGGED, state.get("handler_1"));
-        assertEquals(ProcessorTopology.Execution.RAN_SILENTLY, state.get("priceEvent"),
-                "handler_1's only parent — still forced, despite the bogus entry point");
+        assertEquals(ProcessorTopology.Execution.MAY_HAVE_RUN, state.get("priceEvent"),
+                "with the entry distrusted we no longer know this was event dispatch at all, so nothing "
+                + "upstream is forced — connectivity only");
     }
 }

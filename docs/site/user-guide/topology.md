@@ -31,6 +31,10 @@ log never mentions it. The order-handling branch is faded because a market-data 
     to have fired, so its other ancestors are unknowns, not certainties. Hover any node and it tells you
     in words.
 
+    "Ran, logged nothing" is only claimed when the log says how the cycle started. A record that isn't
+    event dispatch at all — a startup callback, say — makes no such claim, because nothing upstream ran
+    to cause it.
+
 ## Open a topology
 
 Fluxtion emits a `.graphml` for the processor when it builds. In the Topology tab, **Open .graphml…** and
@@ -49,8 +53,12 @@ else days ago.
 
 ## Read the graph
 
-Layers run in dispatch order — **lower is later**. Every edge points from a node to something it feeds,
-so nothing sits above the thing that triggers it.
+Every edge points from a node to something it feeds, and layers respect that: **a node always sits below
+everything that feeds it**. So for any two connected nodes, lower means later.
+
+Two nodes on the same layer are simply unrelated — the layout says nothing about which of them the
+processor dispatched first. When you need the true order, that's what the **numbers** give you: they come
+from the log, not the layout.
 
 Fill colour distinguishes what a node *is*. Note that **execution enters the graph two ways**, and both
 appear at the top with nothing above them:

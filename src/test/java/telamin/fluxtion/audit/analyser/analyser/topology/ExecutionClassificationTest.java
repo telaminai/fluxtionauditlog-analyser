@@ -36,12 +36,25 @@ class ExecutionClassificationTest {
 
     @Test
     void aSoleParentOfALoggedNodeMustHaveRun() {
-        // a→b→c, only c logged: c has exactly one way in, and so does b — dispatch had no alternative
+        // a→b→c, only c logged: c has exactly one way in, and so does b — dispatch had no alternative.
+        // The entry must be known for the claim to be made at all (see the lifecycle test below).
         Map<String, ProcessorTopology.Execution> state =
-                topo("a->b", "b->c").classifyCycle(List.of("c"));
+                topo("a->b", "b->c").classifyCycle(List.of("c"), List.of("a"));
         assertEquals(LOGGED, state.get("c"));
         assertEquals(RAN_SILENTLY, state.get("b"), "it is the only route to c");
         assertEquals(RAN_SILENTLY, state.get("a"), "and the only route to b");
+    }
+
+    @Test
+    void nothingIsForcedWhenTheRecordIsNotEventDispatch() {
+        // A @Initialise/@Start callback logs too, and nothing upstream ran to cause it. With no
+        // resolvable entry point this may be such a record, so "its parent must have run" is not a
+        // claim the log supports — the same over-claiming, pointed upstream.
+        Map<String, ProcessorTopology.Execution> state =
+                topo("a->b", "b->c").classifyCycle(List.of("c"));
+        assertEquals(LOGGED, state.get("c"));
+        assertEquals(MAY_HAVE_RUN, state.get("b"), "unknown without knowing how the cycle started");
+        assertEquals(MAY_HAVE_RUN, state.get("a"));
     }
 
     @Test
@@ -75,8 +88,8 @@ class ExecutionClassificationTest {
 
     @Test
     void theStrongerClaimWinsWhenANodeIsBothUpstreamAndDownstream() {
-        Map<String, ProcessorTopology.Execution> state =
-                topo("source->mid", "mid->sink").classifyCycle(List.of("source", "sink"));
+        Map<String, ProcessorTopology.Execution> state = topo("source->mid", "mid->sink")
+                .classifyCycle(List.of("source", "sink"), List.of("source"));
         assertEquals(RAN_SILENTLY, state.get("mid"),
                 "sink's only way in is mid, so mid is forced — the stronger claim wins");
     }
@@ -111,9 +124,9 @@ class ExecutionClassificationTest {
     void aRealisticCycleLeavesMostOfTheGraphOffPath() {
         ProcessorTopology t = topo("evt->handler", "handler->calc", "calc->publisher",
                 "other->unrelated", "unrelated->elsewhere");
-        Map<String, ProcessorTopology.Execution> state = t.classifyCycle(List.of("calc"));
+        Map<String, ProcessorTopology.Execution> state = t.classifyCycle(List.of("calc"), List.of("evt"));
         assertEquals(RAN_SILENTLY, state.get("handler"), "calc's only parent");
-        assertEquals(RAN_SILENTLY, state.get("evt"), "handler's only parent");
+        assertEquals(RAN_SILENTLY, state.get("evt"), "the entry itself");
         assertEquals(MAY_HAVE_RUN, state.get("publisher"));
         assertEquals(OFF_PATH, state.get("other"));
     }

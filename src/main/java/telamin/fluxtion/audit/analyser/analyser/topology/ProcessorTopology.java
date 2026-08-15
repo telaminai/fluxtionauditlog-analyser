@@ -15,7 +15,8 @@ import java.util.TreeSet;
 /**
  * The processor's node graph, parsed from the GraphML Fluxtion emits at build time (M21.1,
  * spec-graph-replay §2). The static half of the picture the audit log animates: the log says which nodes
- * fired in a cycle, this says how they are wired.
+ * <b>logged</b> in a cycle, this says how they are wired — and therefore what the log implies about the
+ * ones that stayed quiet.
  *
  * <p>The join key is the <b>node id</b>, which is the same {@code instanceId} that appears in a record's
  * {@code nodeLogs}. That correspondence is what makes step-through (M21.4) a lookup rather than an
@@ -123,8 +124,17 @@ public final class ProcessorTopology {
         /** Wrote audit output this cycle. The only state the log gives directly. */
         LOGGED,
         /**
-         * Silent, but something downstream of it logged — so dispatch must have passed through here.
+         * Silent, but it is the only way into something that ran — so dispatch had no other route in.
          * Executed; simply produced no audit output.
+         *
+         * <p>Note this holds whichever way the branch went: {@code @OnTrigger(dirty=false)} fires on the
+         * <em>inverse</em> of its parent's boolean, so a child running tells you the parent ran, not
+         * which way it answered.
+         *
+         * <p><b>Residual assumption:</b> that a node fires only via its inputs. An {@code @AfterEvent}
+         * node fires after every event regardless of upstream, and the GraphML records no annotations,
+         * so the analyser cannot tell one apart. Claimed only when the entry point is known
+         * (see {@link #classifyCycle(Collection, Collection)}), which keeps it off lifecycle records.
          */
         RAN_SILENTLY,
         /**
@@ -260,22 +270,28 @@ public final class ProcessorTopology {
             }
         }
 
-        // fixpoint: anything that is the sole parent of a node known to have run, also ran
-        Set<String> ran = new LinkedHashSet<>(logged);
-        Deque<String> queue = new ArrayDeque<>(logged);
-        while (!queue.isEmpty()) {
-            Set<String> feeders = parentsOf(queue.poll());
-            if (feeders.size() != 1) continue;             // more than one way in → nothing is forced
-            String only = feeders.iterator().next();
-            if (ran.add(only)) queue.add(only);
-        }
-
         // The predicted path: everything dispatch could have reached from where the cycle came in.
         // When it is known and consistent with the evidence it is AUTHORITATIVE — a node the event
         // could not reach did not run, however it happens to be wired to something that logged.
         Set<String> predicted = new LinkedHashSet<>(entries);
         predicted.addAll(reach(entries, true));
         boolean trustPredicted = !entries.isEmpty() && predicted.containsAll(logged);
+
+        // Anything that is the sole parent of a node known to have run, also ran.
+        //
+        // Only claimed when the entry point is known and consistent. Without one this record may not be
+        // event dispatch at all — a @Initialise/@Start lifecycle callback logs too, and nothing upstream
+        // ran to cause it — so "its parent must have run" would be an invented fact.
+        Set<String> ran = new LinkedHashSet<>(logged);
+        if (trustPredicted) {
+            Deque<String> queue = new ArrayDeque<>(logged);
+            while (!queue.isEmpty()) {
+                Set<String> feeders = parentsOf(queue.poll());
+                if (feeders.size() != 1) continue;         // more than one way in → nothing is forced
+                String only = feeders.iterator().next();
+                if (ran.add(only)) queue.add(only);
+            }
+        }
 
         Set<String> connected;
         if (trustPredicted) {
