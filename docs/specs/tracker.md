@@ -146,6 +146,31 @@ analyser (reverse funnel)._
   tutorial + the design→graph→record provenance chain; spec §Contract notes). _(O1: Maven project · O3: bundles generated at Download time, nothing to
   regenerate · O4: committed as M19.2 — all resolved.)_
 
+## M21 · Topology view + event step-through — ☐ PROPOSED (the web-admin's best idea, offline)
+_Design: **[spec-graph-replay.md](spec-graph-replay.md)**. Render the processor **GraphML** and **step
+through events on it** — nodes that fired lit in dispatch order, with their logged values. Resolves O5:
+web-admin sees one live server whose log may vanish; the analyser works on **many archived logs with no
+server at all**, which is production support. So the view belongs where the logs land. Wired into the
+index, filter, table, value graphs and click-to-source — the cross-view coupling a per-server web tab
+structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Decisions)._
+- [M21.1] ☐ **GraphML parse + model** — `ProcessorTopology` from GraphML; resolve via source roots like
+  source already is; **pair-check against the log's `instanceId` set** and surface a partial match (a
+  topology from a different build misleads silently). Pure logic, headless. **Read
+  `fluxtion-visualiser`'s Java `GraphMlTopologyParser` first** — likely liftable, certainly the reference.
+- [M21.2] ☐ **Layered layout** — Sugiyama: layer assignment → crossing reduction (median) → coordinates →
+  edge routing, emitting plain geometry. Pure logic, headless (assert layering, crossing counts,
+  determinism). ~600–800 lines; ELK is the fallback, not the opening move.
+- [M21.3] ☐ **Topology panel** — Java2D render of M21.2's geometry; theme-aware, pan/zoom, hover, select.
+  Verify by running the jar.
+- [M21.4] ☐ **Step-through** — record → fired nodes highlighted **in dispatch order**; step node-by-node
+  within a cycle showing logged values; bidirectional; bound to the shared filter.
+- [M21.5] ☐ **Cross-view wiring** — node → source · node → graph a key · node → filter/flag.
+- [M21.6] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
+- _M21.1–2 carry the risk and are pure logic — front-loaded deliberately, testable before a pixel exists._
+- Open: **O1** GraphML attribute shape (read the visualiser's parser) · **O2** logRecord sink/transport
+  config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
+  topologies (elision/clustering) — defer until a real graph hurts.
+
 ## M20 · Project profiles — global vs local settings — ☐ PROPOSED
 _Design: **[spec-project-profiles.md](spec-project-profiles.md)**. Give the analyser a first-class
 **project** concept so a user jumps between Fluxtion projects without re-importing. Two disjoint tiers
@@ -222,18 +247,19 @@ already-shipped REST + brief file, so neither blocks the other; run them in para
   approval. Keeps the FAQ's security guarantee simple and true.
 - **Agent fixes arrive as evidence-linked PRs on a branch, never direct edits** (spec-closed-loop
   §A.4) — the M12 guardrail, embedded verbatim in every generated brief.
+- **O5 RESOLVED (2026-08-15) — the analyser and `svc-admin-web` complement, and the overlap is
+  deliberate.** The analyser is a **dev tool _and_ a production-support tool**; web-admin views **one
+  live server** whose log may be rolled or deleted, and suits dev + MCP-driven poking. A low-latency
+  production system may have **no admin-web and no MCP at all** — logs are transported to a shared store,
+  and **offline analysis across many files is where the analyser shines**. So the topology view and event
+  step-through are **replicated into the analyser** (**M21**), because the good view has to exist where
+  the logs actually land. Consequence: the analyser needs the **GraphML**, sourced from a file first and
+  the server only when one happens to be there.
+- **Rendering stays Swing/Java2D — no embedded browser.** Reusing the JS replay engine via JCEF/JavaFX
+  WebView would cost a ~100MB native per-platform dependency and destroy the single shaded fatjar that
+  `jbang analyser@…` depends on. FlatLaf remains the only runtime dependency; a hand-rolled layered
+  layout is the work, with pure-Java ELK as the fallback (spec-graph-replay §3).
 
-## Open questions
-- **O5 — positioning vs the server's own audit viewer (gates M18.2–18.4).** Raised by the M18.0 spike.
-  The mongoose audit-capture plugin's Phase 2 puts a **web audit-log viewer with graph replay** inside
-  `svc-admin-web` (porting `replay-engine.js` / `eventlog-parser.js` from fluxtion-visualiser as a
-  "Replay" tab on the processor GraphML view). It overlaps this analyser's core job. The analyser still
-  owns multi-GB index-first browsing, formula graphing, click-to-source, and the LLM/MCP action socket;
-  the web tab owns zero-install, live tail and node-level replay inside the ops surface. Three coherent
-  stances — **complement** (analyser is the deep-dive; M18.2 is the deliberate hand-off, which the plugin
-  README already frames via `/export?format=yaml`), **converge** (analyser becomes a desktop client of the
-  same API), **diverge** (drop the control-plane ambition, shrink M18 to link + discovery). Product call,
-  not an engineering one. M18.1 is safe to start regardless.
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
 - spec-closed-loop **O1–O4** (admin endpoint surface · multi-processor discovery · admin auth ·
   brief-file gitignore).
