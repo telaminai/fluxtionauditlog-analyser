@@ -230,6 +230,18 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   anonymised `demo-marketmaker.graphml` fixture — and a test pins that fixture to the sample log, so the
   page can't quietly start depicting a mismatch. `mkdocs build --strict` green. **Release gate cleared.**
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
+- [M21.9] ☐ **Use `ProcessorDescriptor` instead of inferring** _(found 2026-08-16 reading a generated
+  processor)_ — AOT processors carry a self-description: `inputs()` (name + FQN of every accepted event),
+  `sinks()`, `services()`, plus `graphmlResource()`, `sourceFingerprint()` and `toolchainVersion()`.
+  Two of those would replace guesswork outright:
+  **`graphmlResource()`** is "the classpath resource name of the graphml sidecar describing this
+  processor's topology" → auto-resolve the topology instead of *Open .graphml…*;
+  **`sourceFingerprint()`** is "a fingerprint of the source graph… the cache/staleness key" → exact build
+  pairing instead of `Match` inferring it from instanceIds.
+  **Blocked, not ready:** verified on two independently generated processors that `Meta` is emitted as
+  `(null, null, null, null)` — the contract exists, the values are unrecorded. `inputs()`/`services()`
+  *are* populated and could sharpen `EntryPointResolver`, though the graphml's EVENT/EXPORTSERVICE nodes
+  already carry equivalent information. **Next step is an ask upstream** (populate `Meta`), not code here.
 - [M21.8] ☐ _(later)_ **node → flag** — "flag every record where node X fired" needs an `instanceId`
   lookup in `LogIndex`; flags are per-record and no such index exists, so M21.5 shipped filter-to-node
   (existing free-text scan) instead. Index work, not wiring.

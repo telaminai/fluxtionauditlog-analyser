@@ -185,5 +185,10 @@ play/pause.
   on it.
 - **O3 — does the topology deserve to be a tab or a split?** Sequencing suggests a tab beside Graphs;
   the cross-view wiring may argue for a dockable split. Decide with the panel in hand (M21.3).
+- **O5 — the pairing problem may be solvable exactly, not heuristically.** `ProcessorDescriptor` on a
+  generated processor declares `sourceFingerprint()` and `graphmlResource()`. If those were populated the
+  analyser could resolve the right graphml automatically and verify the pair exactly, retiring §2's
+  instanceId-based `Match` heuristic. Measured on two generated processors: currently emitted as null
+  (tracker M21.9). Until then `Match` stays the mechanism.
 - **O4 — very large topologies.** Elision/clustering strategy is undecided; defer until a real graph
   hurts.
