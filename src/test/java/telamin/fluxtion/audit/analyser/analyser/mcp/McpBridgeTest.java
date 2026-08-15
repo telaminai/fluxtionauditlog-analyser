@@ -2,12 +2,16 @@ package telamin.fluxtion.audit.analyser.analyser.mcp;
 
 import telamin.fluxtion.audit.analyser.analyser.llm.Json;
 import telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas;
+import telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +24,16 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class McpBridgeTest {
 
-    private final McpBridge bridge = new McpBridge();
+    @TempDir
+    Path dir;
+
+    private McpBridge bridge;
+
+    @BeforeEach
+    void setUp() {
+        // never the well-known path: a test must not read (or depend on) a developer's running analyser
+        bridge = new McpBridge(new RestEndpointFile(dir.resolve("rest-endpoint")));
+    }
 
     private Object reply(String line) {
         String out = bridge.handle(line);
@@ -149,10 +162,33 @@ class McpBridgeTest {
     }
 
     @Test
-    void toolsCallIsNotServedUntilTheNextSlice() {
-        // M13.3 replaces this with a REST forward; pinned so the slice boundary is visible
-        assertEquals(-32601, errorCode("{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\","
-                + "\"params\":{\"name\":\"analyser_aggregate\",\"arguments\":{}}}"));
+    void anUnknownToolIsAProtocolError() {
+        // not something a model can fix by retrying with different arguments
+        assertEquals(-32602, errorCode("{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\","
+                + "\"params\":{\"name\":\"analyser_launch_missiles\",\"arguments\":{}}}"));
+        assertEquals(-32602, errorCode("{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\","
+                + "\"params\":{\"arguments\":{}}}"), "missing name");
+    }
+
+    @Test
+    void callingWithNoRunningAnalyserIsATransportError() {
+        // no endpoint file in the temp dir at all
+        Object r = reply("{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\","
+                + "\"params\":{\"name\":\"analyser_aggregate\",\"arguments\":{}}}");
+        assertEquals(McpBridge.ERR_ANALYSER_UNREACHABLE, ((Number) Json.at(r, "error", "code")).intValue());
+        assertEquals(McpBridge.NOT_RUNNING, Json.at(r, "error", "message"));
+    }
+
+    @Test
+    void aCrashStrandedEndpointFileIsReportedAsNotRunning() throws IOException {
+        // well-formed file, dead pid — the liveness check must catch it before we try to connect
+        java.nio.file.Files.writeString(dir.resolve("rest-endpoint"),
+                "{\"url\":\"http://127.0.0.1:1\",\"token\":\"t\",\"pid\":2147483646}", StandardCharsets.UTF_8);
+        Object r = reply("{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\","
+                + "\"params\":{\"name\":\"analyser_aggregate\",\"arguments\":{}}}");
+        assertEquals(McpBridge.ERR_ANALYSER_UNREACHABLE, ((Number) Json.at(r, "error", "code")).intValue());
+        assertEquals(McpBridge.NOT_RUNNING, Json.at(r, "error", "message"));
+        assertNotNull(Json.at(r, "error", "data", "detail"), "says which pid went away");
     }
 
     @Test

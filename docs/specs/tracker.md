@@ -37,8 +37,12 @@ replacement: in-process drives the app's own chat; REST stays the universal zero
   `2026-07-28` **deleted the `initialize` handshake** this milestone was specced against, so the bridge
   answers both the legacy handshake *and* modern per-request `_meta` versioning + the now-mandatory
   `server/discover`, with `-32022` for unsupported versions. 26 tests.
-- [M13.3] ☐ **`tools/call` → REST forward** — map a tool call to `{action, params}`, POST `/action` with the
+- [M13.3] ☑ **`tools/call` → REST forward** — map a tool call to `{action, params}`, POST `/action` with the
   token, wrap `ok:true`→text result / `ok:false`→`isError:true` (same actionable feedback). Reuses slice 4.
+  The endpoint is re-read **per call**, so a long-lived MCP client survives an analyser restart (new port
+  + token) without being restarted itself. Tool vs transport failure kept distinct: a dispatcher rejection
+  or a `429` is `isError:true` (retryable, actionable); only an absent/dead endpoint is a JSON-RPC error,
+  carrying the "enable it in Settings ▸ Assistant" hint. 12 tests, incl. a live `ActionServer` round-trip.
 - [M13.4] ☐ **Docs** — "connect an MCP client" (site assistant page + README) + client config snippet.
 - [M13.5] ☐ _(later)_ **Resources/prompts** (`analyser://log|selection|node-types|source`) and/or **option B**
   in-app Streamable-HTTP MCP server.

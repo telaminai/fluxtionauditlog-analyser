@@ -1,6 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.mcp;
 
 import telamin.fluxtion.audit.analyser.analyser.llm.Json;
+import telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile;
 import telamin.fluxtion.audit.analyser.analyser.ui.ReleaseNotes;
 
 import java.io.BufferedReader;
@@ -10,7 +11,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -65,6 +71,27 @@ public final class McpBridge {
 
     /** Tool list and identity are static for a process, so a client may cache them. */
     private static final long CACHE_TTL_MS = 3_600_000L;
+
+    /** Implementation-defined JSON-RPC error: the analyser isn't reachable (MCP reserves -32000..-32019). */
+    static final int ERR_ANALYSER_UNREACHABLE = -32001;
+
+    static final String NOT_RUNNING =
+            "analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant";
+
+    /** An aggregate over a multi-GB log can take a while; a hung call must still eventually fail. */
+    private static final Duration CALL_TIMEOUT = Duration.ofSeconds(60);
+
+    private final RestEndpointFile endpointFile;
+    private final HttpClient http;
+
+    public McpBridge() {
+        this(RestEndpointFile.wellKnown());
+    }
+
+    McpBridge(RestEndpointFile endpointFile) {
+        this.endpointFile = endpointFile;
+        this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    }
 
     public static void main(String[] args) {
         // FIRST: an MCP client may launch us anywhere (no display, no window server) and AWT
@@ -130,7 +157,7 @@ public final class McpBridge {
                 case "initialize" -> initialize(id, params);
                 case "server/discover" -> discover(id, modern);
                 case "tools/list" -> toolsList(id, modern);
-                // "tools/call" arrives in M13.3, where it forwards to the app's REST /action
+                case "tools/call" -> toolsCall(id, params, modern);
                 default -> error(id, -32601, "method not found: " + method, null);
             };
         } catch (RuntimeException e) {
@@ -189,6 +216,96 @@ public final class McpBridge {
             result.put("_meta", Map.of(META_SERVER_INFO, serverInfo()));
         }
         return response(id, result);
+    }
+
+    /**
+     * Forward one tool call to the running app's REST {@code /action} (spec §6). The two failure modes are
+     * kept distinct on purpose:
+     * <ul>
+     *   <li>the <b>tool</b> failed (bad params, no log loaded, rate limited) → a result with
+     *       {@code isError:true} carrying the dispatcher's own message, which is actionable feedback the
+     *       model can self-correct from — the same feedback the in-process path gives it;</li>
+     *   <li>the <b>transport</b> failed (app not running, REST disabled) → a JSON-RPC error, because no
+     *       amount of re-prompting fixes it; the user has to start the app or enable the socket.</li>
+     * </ul>
+     */
+    private String toolsCall(Object id, Map<?, ?> params, boolean modern) {
+        Object rawName = params.get("name");
+        String verb = McpTools.verbFor(rawName == null ? null : rawName.toString());
+        if (verb == null) {
+            // an unknown tool is a protocol error, not something the model can fix by retrying
+            return error(id, -32602, "Unknown tool: " + rawName, null);
+        }
+        Map<String, Object> arguments = params.get("arguments") instanceof Map<?, ?> a
+                ? asStringKeyed(a) : Map.of();
+
+        // read the endpoint on every call, not once at startup: the app may have restarted (new port and
+        // token) or had its REST transport toggled since the last tool call
+        RestEndpointFile.Endpoint endpoint = endpointFile.read();
+        if (endpoint == null) return error(id, ERR_ANALYSER_UNREACHABLE, NOT_RUNNING, null);
+        if (!endpoint.alive()) {
+            // a file stranded by a crash — say so plainly rather than letting the POST fail obscurely
+            return error(id, ERR_ANALYSER_UNREACHABLE, NOT_RUNNING,
+                    Map.of("detail", "the analyser that published " + endpointFile.path()
+                            + " (pid " + endpoint.pid() + ") is no longer running"));
+        }
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("action", verb);
+        body.put("params", normalizeNumbers(arguments));
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint.url() + "/action"))
+                    .header("Content-Type", "application/json")
+                    .header("X-Analyser-Token", endpoint.token())
+                    .timeout(CALL_TIMEOUT)
+                    .POST(HttpRequest.BodyPublishers.ofString(Json.write(body), StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            return toolResult(id, response, modern);
+        } catch (IOException e) {
+            // the endpoint file said alive, but nothing answered: REST toggled off, or the app is starting
+            return error(id, ERR_ANALYSER_UNREACHABLE, NOT_RUNNING, Map.of("detail", String.valueOf(e)));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return error(id, ERR_ANALYSER_UNREACHABLE, "interrupted while calling the analyser", null);
+        }
+    }
+
+    /**
+     * Wrap a REST reply as an MCP tool result. Any response carrying an {@code ok:false} body — including
+     * {@code 401}/{@code 403}/{@code 429} — is a tool error, since {@code ActionServer} reports all of
+     * them in the dispatcher's own shape and a rate limit in particular is worth retrying.
+     */
+    private String toolResult(Object id, HttpResponse<String> response, boolean modern) {
+        String text = response.body() == null ? "" : response.body();
+        boolean failed = response.statusCode() != 200;
+
+        Object parsed = null;
+        try {
+            parsed = Json.parse(text);
+        } catch (RuntimeException ignore) {
+            // a non-JSON body (should not happen against our own server) is reported verbatim below
+        }
+        if (parsed instanceof Map<?, ?> m) {
+            failed = !Boolean.TRUE.equals(m.get("ok"));
+            if (failed && m.get("error") != null) text = m.get("error").toString();
+        } else if (failed) {
+            text = "the analyser returned HTTP " + response.statusCode() + ": " + text;
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (modern) result.put("resultType", "complete");
+        result.put("content", List.of(Map.of("type", "text", "text", text)));
+        result.put("isError", failed);
+        if (modern) result.put("_meta", Map.of(META_SERVER_INFO, serverInfo()));
+        return response(id, result);
+    }
+
+    private static Map<String, Object> asStringKeyed(Map<?, ?> in) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> e : in.entrySet()) out.put(String.valueOf(e.getKey()), e.getValue());
+        return out;
     }
 
     // ---- JSON-RPC plumbing ----------------------------------------------------------------------
@@ -272,6 +389,6 @@ public final class McpBridge {
 
     /** The methods this bridge answers — used by the tests and by the docs to stay honest. */
     static Set<String> methods() {
-        return Set.of("initialize", "server/discover", "tools/list");
+        return Set.of("initialize", "server/discover", "tools/list", "tools/call");
     }
 }
