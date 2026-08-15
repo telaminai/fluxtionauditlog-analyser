@@ -5,6 +5,7 @@ eventLogRecord:
     groupingId: null
     event: MarketDataEvent
     eventToString: MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]
+    thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - priceListener: { symbol: DEMO-A, mid: 100.19999999999999}
         - quotePublisher: { spread: 0.02004, liveOrders: 0}
@@ -16,6 +17,7 @@ eventLogRecord:
     groupingId: null
     event: OrderUpdateEvent
     eventToString: OrderUpdateEvent[orderId=ord-1, state=LIVE]
+    thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - orderTracker: { orderId: ord-1, live: 1}
         - quotePublisher: { spread: 0.02004, liveOrders: 1}
@@ -27,6 +29,7 @@ eventLogRecord:
     groupingId: null
     event: MarketDataEvent
     eventToString: MarketDataEvent[symbol=DEMO-A, bid=100.12, ask=100.28]
+    thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - priceListener: { symbol: DEMO-A, mid: 100.2}
         - quotePublisher: { spread: 0.020040000000000002, liveOrders: 1}
@@ -38,6 +41,7 @@ eventLogRecord:
     groupingId: null
     event: OrderUpdateEvent
     eventToString: OrderUpdateEvent[orderId=ord-1, state=DONE]
+    thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - orderTracker: { orderId: ord-1, live: 0}
         - quotePublisher: { spread: 0.020040000000000002, liveOrders: 0}
@@ -49,6 +53,7 @@ eventLogRecord:
     groupingId: null
     event: MarketDataEvent
     eventToString: MarketDataEvent[symbol=DEMO-B, bid=55.01, ask=55.09]
+    thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - priceListener: { symbol: DEMO-B, mid: 55.05}
         - quotePublisher: { spread: 0.01101, liveOrders: 0}
