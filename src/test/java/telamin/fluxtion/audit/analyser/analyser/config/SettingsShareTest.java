@@ -213,6 +213,32 @@ class SettingsShareTest {
     }
 
     @Test
+    void bundleRelativeRootsResolveAgainstTheImportDirectory() {
+        // a bundle ships relative roots; import must anchor them at the bundle dir, not the CWD (M19.2)
+        String bundle = "share.version=1\n"
+                + "sourceRoot.count=2\nsourceRoot.0=src/main/java\nsourceRoot.1=/opt/abs/src\n"
+                + "mavenRepo.count=1\nmavenRepo.0=libs\n";
+        java.nio.file.Path base = java.nio.file.Path.of("/tmp/mybundle");
+        AppConfig d = emptyTarget();
+        ImportPlan plan = share.preview(bundle, d, base);
+        share.apply(plan, plan.present(), d);
+
+        assertEquals(List.of("/tmp/mybundle/src/main/java", "/opt/abs/src"), d.sourceRoots,
+                "relative root anchored at bundle dir; absolute root untouched");
+        assertEquals(List.of("/tmp/mybundle/libs"), d.mavenRepos);
+    }
+
+    @Test
+    void relativeRootsAreLeftAloneWithoutABaseDir() {
+        // clipboard/paste import (no file) — 2-arg preview leaves relative paths as-is (back-compat)
+        String s = "share.version=1\nsourceRoot.count=1\nsourceRoot.0=src/main/java\n";
+        AppConfig d = emptyTarget();
+        ImportPlan plan = share.preview(s, d);   // no baseDir
+        share.apply(plan, plan.present(), d);
+        assertEquals(List.of("src/main/java"), d.sourceRoots);
+    }
+
+    @Test
     void versionGateRejectsNewerMajor() {
         String future = "share.version=2\nsourceRoot.count=1\nsourceRoot.0=/x\n";
         SettingsShare.IncompatibleVersionException ex = assertThrows(

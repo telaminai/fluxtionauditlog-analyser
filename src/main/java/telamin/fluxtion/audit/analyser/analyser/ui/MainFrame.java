@@ -1075,7 +1075,8 @@ public final class MainFrame extends JFrame {
         telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.ImportPlan plan;
         try {
             syncOpenGraphsIntoConfig();   // diff/merge graphs against what's actually open
-            plan = share.preview(text, config);
+            // resolve any bundle-relative source roots against the imported file's own directory (M19.2)
+            plan = share.preview(text, config, file.toPath().toAbsolutePath().getParent());
         } catch (telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.IncompatibleVersionException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Import settings", JOptionPane.WARNING_MESSAGE);
             return;

@@ -107,9 +107,10 @@ analyser (reverse funnel)._
   **`CLAUDE.md` agent bootstrap** (canonical Fluxtion authoring prompt, maintained with
   fluxtion-compiler's LLM-authoring guidance) + admin REST on + README with run command and analyser
   link; tracked in the playground repo, contract recorded in the spec.
-- [M19.2] ☐ **`SettingsShare`: resolve relative roots against the import file's parent** — verified
-  precondition (spec O4 resolved): shipped code expands only `~`-prefixed paths, so bundle-relative
-  roots would break against CWD. This fix gates the tutorial's "zero manual setup" claim.
+- [M19.2] ☑ **`SettingsShare`: resolve relative roots against the import file's parent** — `preview`
+  gained a `baseDir` overload; import resolves bundle-relative source roots / Maven repos against the
+  settings file's directory (absolute & `~`-paths untouched; clipboard imports pass no baseDir). 2 tests.
+  Unblocks the tutorial's "zero manual setup" claim.
 - [M19.3] ☐ **Tutorial page** `docs/site/tutorial-playground.md` — four parts (run+import ·
   analyse/tail · assistant · edit-with-your-IDE's-AI) + the 8-screenshot set (spec §Part 2, anonymised
   per policy), nav under Getting started. **Publish-gated on the bundle shipping** (write against the

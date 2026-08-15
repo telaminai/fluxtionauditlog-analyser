@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -139,6 +140,16 @@ public final class SettingsShare {
      * {@link IncompatibleVersionException} if the file's version is newer than this build.
      */
     public ImportPlan preview(String text, AppConfig current) {
+        return preview(text, current, null);
+    }
+
+    /**
+     * As {@link #preview(String, AppConfig)}, but {@code baseDir} (the imported file's directory) is used
+     * to resolve <b>bundle-relative</b> source roots / Maven repos — a path that is neither absolute nor
+     * {@code ~}-prefixed resolves against {@code baseDir} (M19.2). Pass {@code null} (e.g. clipboard
+     * imports) to leave relative paths untouched.
+     */
+    public ImportPlan preview(String text, AppConfig current, Path baseDir) {
         Properties p = new Properties();
         try {
             p.load(new StringReader(text == null ? "" : text));
@@ -160,7 +171,7 @@ public final class SettingsShare {
         List<String> sourceRoots = null;
         if (p.getProperty("sourceRoot.count") != null) {
             present.add(Category.SOURCE_ROOTS);
-            sourceRoots = fromPortable(readList(p, "sourceRoot"));
+            sourceRoots = resolveAgainstBase(fromPortable(readList(p, "sourceRoot")), baseDir);
             summary.put(Category.SOURCE_ROOTS, listSummary(sourceRoots, current.sourceRoots));
         }
 
@@ -169,7 +180,7 @@ public final class SettingsShare {
         if (p.getProperty("mavenRepo.count") != null || p.getProperty("mavenRepoSearch") != null) {
             present.add(Category.MAVEN_REPOS);
             mavenRepos = p.getProperty("mavenRepo.count") != null
-                    ? fromPortable(readList(p, "mavenRepo")) : List.of();
+                    ? resolveAgainstBase(fromPortable(readList(p, "mavenRepo")), baseDir) : List.of();
             if (p.getProperty("mavenRepoSearch") != null) {
                 mavenRepoSearch = ConfigStore.parseBool(p.getProperty("mavenRepoSearch"), current.searchMavenRepos);
             }
@@ -342,6 +353,26 @@ public final class SettingsShare {
         String home = homeDir.endsWith("/") ? homeDir.substring(0, homeDir.length() - 1) : homeDir;
         if (path.equals("~")) return home;
         return path.startsWith("~/") ? home + "/" + path.substring(2) : path;
+    }
+
+    /**
+     * Resolve any still-relative path against {@code baseDir} (the imported file's directory) — so a
+     * bundle that ships {@code sourceRoot.0=src/main/java} lands at {@code <bundle>/src/main/java} rather
+     * than resolving against the working directory. Absolute (incl. {@code ~}-expanded) paths are left
+     * alone; {@code baseDir == null} leaves everything untouched (M19.2).
+     */
+    private static List<String> resolveAgainstBase(List<String> paths, Path baseDir) {
+        if (baseDir == null) return paths;
+        List<String> out = new ArrayList<>(paths.size());
+        for (String s : paths) {
+            if (s == null || s.isBlank()) {
+                out.add(s);
+                continue;
+            }
+            Path p = Path.of(s);
+            out.add(p.isAbsolute() ? s : baseDir.resolve(p).normalize().toString());
+        }
+        return out;
     }
 
     private static List<String> readList(Properties p, String prefix) {
