@@ -28,6 +28,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
 
 ### Fixed
+- **The app could become impossible to close.** If any step of the quit sequence failed, the exception
+  escaped the window-closing handler before the exit call, so the window stayed on screen and every
+  further click on the close box failed the same way — with the assistant's REST transport already shut
+  down. Quitting is now step-isolated and the exit always runs. Most likely to bite when the jar is
+  rebuilt underneath a running app.
 - A release now refreshes the **docs site's release-notes page** automatically — the release workflow
   dispatches the docs deploy (the changelog-stamp push alone never triggered it).
 

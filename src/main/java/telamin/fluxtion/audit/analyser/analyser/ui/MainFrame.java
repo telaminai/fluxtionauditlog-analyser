@@ -1149,22 +1149,57 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Quit. Every step is isolated and the exit is in a {@code finally}, because a shutdown that throws
+     * half way used to leave the app <em>unquittable</em>: the exception escaped {@code windowClosing},
+     * {@link System#exit} was never reached, and each further click on the close box threw again — with
+     * the REST transport already stopped and the window still on screen. (Seen for real when the jar was
+     * rebuilt underneath a running app, so a class not yet loaded went missing: a normal thing to do here,
+     * since UI changes are verified by building and running the jar.)
+     *
+     * <p>So: one failing step must never cost the others, and nothing may cost the exit.
+     */
     private void onExit() {
-        if (followTimer != null) followTimer.stop();
-        if (actionServer != null) actionServer.stop();
-        // stop() already removes it; this also clears a file stranded by an earlier crash of ours, so a
-        // clean quit never leaves a stale endpoint for an MCP client to find (M13.1)
-        telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown().deleteIfOwnedByThisProcess();
-        config.windowX = getX();
-        config.windowY = getY();
-        config.windowW = getWidth();
-        config.windowH = getHeight();
-        config.savedGraphs.clear();
-        config.savedGraphs.addAll(graphTabs.specs());   // remember open graphs
-        saveConfigQuietly();
-        Background.shutdown();
-        dispose();
-        System.exit(0);
+        try {
+            step(() -> { if (followTimer != null) followTimer.stop(); });
+            step(() -> { if (actionServer != null) actionServer.stop(); });
+            // stop() already removes it; this also clears a file stranded by an earlier crash of ours, so a
+            // clean quit never leaves a stale endpoint for an MCP client to find (M13.1)
+            step(() -> telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown()
+                    .deleteIfOwnedByThisProcess());
+            step(() -> {
+                config.windowX = getX();
+                config.windowY = getY();
+                config.windowW = getWidth();
+                config.windowH = getHeight();
+            });
+            step(() -> {
+                config.savedGraphs.clear();
+                config.savedGraphs.addAll(graphTabs.specs());   // remember open graphs
+            });
+            step(this::saveConfigQuietly);   // still runs even if the graph capture above failed
+            step(Background::shutdown);
+        } finally {
+            try {
+                dispose();
+            } catch (Throwable ignore) {
+                // never let a disposal failure keep the process alive
+            }
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Run one shutdown step, absorbing anything it throws. {@code Throwable}, not {@code Exception}: the
+     * failure this exists for was a {@link NoClassDefFoundError}, and at exit there is nothing left to
+     * protect by rethrowing.
+     */
+    static void step(Runnable action) {
+        try {
+            action.run();
+        } catch (Throwable t) {
+            System.err.println("[analyser] shutdown step failed, continuing: " + t);
+        }
     }
 
     private void saveConfigQuietly() {
