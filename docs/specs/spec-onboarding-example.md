@@ -31,9 +31,15 @@ the browser **and has a Download button** — the two best demos in the stack st
    node line → the bundled source opens; graph a value; **Explain** a cycle (copy-prompt works without
    a key).
 
+6. **Edit it — in your IDE, with your own LLM** — open the Maven project in IntelliJ/VS Code; the
+   bundled `CLAUDE.md` bootstraps the IDE's agent with Fluxtion knowledge. Change a node, re-run,
+   watch the log change in Follow. **Division of labour is deliberate**: the *in-app assistant*
+   analyses the log; *code editing* happens in the user's IDE with their own agent (the
+   hand-off-don't-embed principle from spec-closed-loop, experienced on day one).
+
 Every headline feature — tail, trace-to-source, graph, assistant — demonstrated against a system the
-user is running, on code the user can edit. Step 5's "edit the example, re-run, watch the log change"
-is the seed of the whole closed-loop story.
+user is running, on code the user can edit. Step 6's edit → re-run → re-watch is the seed of the whole
+closed-loop story.
 
 ## Part 1 — the bundle contract (playground-side; tracked there, specced here)
 
@@ -47,6 +53,7 @@ The Download bundle MUST contain:
 | **`analyser-settings.fluxtion-settings`** — relative source roots + EP FQN | File ▸ Import = zero-setup (M15) |
 | **`README.md`** — run command, the log path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser |
 | **admin REST enabled** (`serverplugin-rest` on a known localhost port, named in the README and the settings file) | the example doubles as **M18's validation bench** (below) |
+| **agent bootstrap — `CLAUDE.md` (+ `AGENTS.md` mirror)** seeded with the **Fluxtion authoring prompt** (canonical text maintained with the fluxtion-compiler LLM-authoring guidance): the dataflow model, how to edit nodes/flows, the rebuild/re-run command, where the audit log lands, and how to read the analyser's endpoint file for query-back | the user opens the project in their IDE and **their own LLM already knows Fluxtion** — the edit loop needs zero prompting |
 
 Contract notes:
 - Paths in the settings file are **bundle-relative** (`~`-relative won't survive; M15 import already
@@ -65,7 +72,13 @@ Contract notes:
        type, click a node line to land in the bundled source, graph a value over time.
     3. **The LLM assistant** — select records, **Explain** (works keyless via copy-prompt), and the
        round trip: watch the assistant plot/flag/filter its findings into the views you're reading.
-  Nav: under **Getting started** (third child).
+    4. **Edit with your IDE's AI** — open the Maven project in the IDE; the bundled `CLAUDE.md` means
+       the IDE agent knows Fluxtion; change a node, re-run, watch Follow pick it up. (Explicitly *not*
+       the in-app assistant's job.)
+  Nav: under **Getting started** (third child). **Screenshot set** (captured once, anonymised per
+  policy): playground Download button · terminal run + log path · Import-settings summary dialog ·
+  Follow streaming with an event-type filter · click-to-source landing in example code · a graph ·
+  an Explain answer · the IDE with `CLAUDE.md` open beside a node edit.
 - **Cross-links**: getting-started Quick start step 2 ("No log yet?") gains the playground option next
   to the static sample; producing-a-log.md links it as "want a live producer to try?"; landing page
   "Get going" mentions it.
@@ -97,9 +110,9 @@ grounded answer. Timed under 10 minutes by someone who isn't us.
 
 ## Open questions
 
-- **O1** — bundle form: full Maven project (edit-and-rerun works, heavier) vs runnable jar + config
-  (fastest to run, no edit story). Leaning **Maven project** — the edit-rerun-rewatch moment is the
-  point.
+- ~~**O1** — bundle form~~ **resolved: full Maven project** — the user views/edits it in their IDE
+  with their own LLM session; the edit-rerun-rewatch moment is the point. (Jar-only was rejected: no
+  edit story.)
 - **O2** — which example: needs to be small enough to read, busy enough to graph (a periodic
   price-feed / order-flow toy that emits a few events per second — visible motion in Follow).
 - **O3** — version pinning between bundle and Mongoose release; who regenerates bundles on release.

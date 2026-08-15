@@ -101,18 +101,20 @@ bundled source, and an `analyser-settings.fluxtion-settings` — so onboarding b
 jbang the analyser → **File ▸ Import** → Follow a live log with click-to-source and Explain working.
 Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README links back to the
 analyser (reverse funnel)._
-- [M19.1] ☐ **Bundle contract (playground-side)** — audit-enabled example + generated/EP source +
-  settings file + README with run command and analyser link; tracked in the playground repo, contract
-  recorded in the spec.
+- [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
+  it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
+  **`CLAUDE.md` agent bootstrap** (canonical Fluxtion authoring prompt, maintained with
+  fluxtion-compiler's LLM-authoring guidance) + admin REST on + README with run command and analyser
+  link; tracked in the playground repo, contract recorded in the spec.
 - [M19.2] ☐ **Verify M15 import with bundle-relative roots** (spec O4) — small analyser fix if import
   only handles absolute/`~`-relative paths.
-- [M19.3] ☐ **Tutorial page** `docs/site/tutorial-playground.md` (5 steps + screenshots), nav under
-  Getting started.
+- [M19.3] ☐ **Tutorial page** `docs/site/tutorial-playground.md` — four parts (run+import ·
+  analyse/tail · assistant · edit-with-your-IDE's-AI) + the 8-screenshot set (spec §Part 2, anonymised
+  per policy), nav under Getting started.
 - [M19.4] ☐ **Cross-links** — getting-started step 2, producing-a-log, landing "Get going".
 - [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
   (import + open + Follow).
-- Open: O1 bundle form (leaning Maven project — edit-rerun is the point) · O2 which example ·
-  O3 version pinning.
+- Open: O2 which example · O3 version pinning. _(O1 bundle form: resolved — Maven project.)_
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
