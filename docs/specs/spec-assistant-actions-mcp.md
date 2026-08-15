@@ -1,12 +1,21 @@
 # Assistant Actions — MCP Transport (Design Spec)
 
-Status: DRAFT v1.1 · Owner: greg.higgins · Last updated: 2026-08-15
+Status: DRAFT v1.2 · Owner: greg.higgins · Last updated: 2026-08-15
 
 > **v1.1 — reconciled to shipped code.** Written before the assistant-vocabulary round landed; now
 > updated: **six verbs** (the `read` verb shipped, AV.1), current `graph`/`goto` params (`exprs`,
 > `from/to`, `rationale` — AV.2; `reveal` — AV.4), and the schema single-source-of-truth **already
 > exists**: `llm.VerbSchemas` (AV.3), backing REST `/manifest`, with `VerbSchemasTest`. The bridge
 > **reuses it** — it does not create a parallel schema holder.
+>
+> **v1.2 — reconciled to MCP itself, which moved (M13.2).** MCP's current revision **`2026-07-28`**
+> **removed the `initialize` handshake** this spec was written against. Versions now ride on every
+> request in `_meta`, servers **MUST** implement `server/discover`, results carry `resultType`, and a
+> version mismatch is `UnsupportedProtocolVersionError` (**-32022**). The handshake era
+> (**`2025-11-25` and earlier**) is now formally "legacy". Decision: the bridge is **dual-era** — it
+> answers both, which the MCP spec explicitly sanctions, and is the only posture that works for every
+> client era. See §2.1. Also fixed here: the notification rule (§2.2) and the rate-limit case in the
+> error mapping (§6).
 
 Companion to **[spec-assistant-actions.md](completed/spec-assistant-actions.md)** (the action schema + the
 in-process and REST transports) and **[tracker.md](tracker.md)** (milestone **M13**).
@@ -46,16 +55,41 @@ handshake, `tools/list`, and `tools/call` (optionally `resources/*`, `prompts/*`
 SDK (and its transitive deps) into the project, the bridge **hand-rolls** these few methods using the
 existing `llm.Json` codec — the same choice already made for JSON, HTTP, YAML colouring, and charting.
 
-- **Framing (decided):** **newline-delimited JSON-RPC** on stdin/stdout (one JSON object per line) — *not*
-  LSP-style `Content-Length` headers. Fixed now so no one implements the wrong framing; revisit only if a
-  target client demands headers.
-- **Methods handled:** `initialize` → **echo a mutually-supported `protocolVersion`** (negotiate: return
-  the client's version if supported, else the newest we support) + capabilities `{tools:{}}`; `tools/list`
-  → one tool per verb from `VerbSchemas` (§4; six at time of writing); `tools/call` → forward to REST,
-  wrap the result (§6). Everything else → a JSON-RPC method-not-found (`-32601`).
-- **No MCP SDK dependency.** The bridge is a separate artifact (or a `--mcp` launch mode of the same jar),
-  so the **main analyser stays dependency-light**; even if a future maintainer prefers the SDK, it never
-  touches the core.
+- **Framing (decided, and confirmed still current in `2026-07-28`):** **newline-delimited JSON-RPC** on
+  stdin/stdout (one JSON object per line, no embedded newlines) — *not* LSP-style `Content-Length`
+  headers. MCP also requires that **nothing but MCP messages** goes to stdout, so all bridge diagnostics
+  go to **stderr** (the protocol's own logging feature is deprecated in favour of exactly this).
+- **Methods handled:** `initialize` (legacy), `server/discover` (modern), `tools/list`, and `tools/call`
+  → forward to REST, wrap the result (§6). Unknown methods → `-32601`, subject to §2.2.
+- **No MCP SDK dependency.** The bridge is a `--mcp` launch mode of the same jar, so the **main analyser
+  stays dependency-light**; even if a future maintainer prefers the SDK, it never touches the core.
+
+### 2.1 Dual-era: the handshake became optional, then went away
+
+MCP split into two eras, and the bridge answers **both**. The era is decided per request by how the
+client opens — an `initialize` is legacy; a request carrying `_meta.io.modelcontextprotocol/protocolVersion`
+is modern:
+
+| | **Legacy** (`2025-11-25` and earlier) | **Modern** (`2026-07-28`) |
+|---|---|---|
+| Opening | `initialize` handshake + `notifications/initialized` | none — stateless, per-request |
+| Version | negotiated once: echo the client's if supported, else our newest | declared per request in `_meta`; mismatch → **-32022** with a `supported` list |
+| Discovery | `tools/list` after the handshake | `server/discover` (**mandatory**) + `tools/list` |
+| Results | bare result object | `resultType:"complete"`; list results also carry `ttlMs` + `cacheScope` |
+
+**We advertise `["2026-07-28", "2025-11-25", "2025-06-18"]`.** Dual-era is the only row in MCP's own
+compatibility matrix that works for *both* client eras; a legacy-only server hard-fails a modern client,
+which has no fall-forward mechanism. Legacy results are emitted **without** the modern-only fields, so an
+old client never sees a shape its schema rejects.
+
+### 2.2 Notifications are never answered
+
+A JSON-RPC **notification has no `id`, and a response to one is a protocol violation** — so "everything
+else → `-32601`" is wrong as stated. The rule is:
+
+- **no `id`** → handle silently, emit nothing (`notifications/initialized` arrives on every legacy
+  connection; answering it with `-32601` breaks the handshake);
+- **unknown method *with* an `id`** → `-32601`.
 
 ---
 
@@ -136,8 +170,12 @@ MCP `tools/call` maps that cleanly:
 - `ok:true`  → tool result `content: [{type:"text", text: <result JSON>}]`, `isError:false`.
 - `ok:false` → tool result `content: [{type:"text", text: <error message>}]`, **`isError:true`** — so the
   model gets the same actionable feedback it gets in-process, in MCP's native error shape.
-- transport failures (app not running, REST off) → a JSON-RPC error on the *call*, with the "enable REST"
-  hint.
+- **any HTTP status with an `ok:false` body → `isError:true`** carrying that error text. This covers the
+  cases the list above missed: `401` (bad token), `403` (`Origin` present) and especially **`429` rate
+  limited** — `ActionServer` runs a 10/s token bucket, so a runaway agent *will* meet it, and it must read
+  as a retryable tool error rather than a dead transport.
+- transport failures (app not running, REST off, endpoint file stale) → a JSON-RPC error on the *call*,
+  with the "enable REST" hint. Only an absent/dead endpoint is a transport failure.
 
 ---
 
@@ -178,8 +216,11 @@ an `assistantActionsMcpHttp` toggle mirroring the REST one.
 ## 9. Components (new)
 
 - `mcp/McpBridge` — a `main(String[])` (launched via `analyser.jar --mcp`): a hand-rolled JSON-RPC 2.0
-  stdio loop (`initialize` / `tools/list` / `tools/call`) using `llm.Json`; discovers the endpoint via the
-  well-known file; forwards `tools/call` to REST `/action` with the token header; wraps results (§6).
+  stdio loop (`initialize` / `server/discover` / `tools/list` / `tools/call`) using `llm.Json`; discovers
+  the endpoint via the well-known file; forwards `tools/call` to REST `/action` with the token header;
+  wraps results (§6). **Watch `llm.Json`:** it parses every number to `Double` and writes it back as
+  `1.0`, so a JSON-RPC `id` echoed straight through stops matching a strict client's request — the bridge
+  narrows integral doubles back to `long` on its write path rather than changing the shared codec.
   **Headless-safe:** the very first line sets `System.setProperty("java.awt.headless","true")` and the
   bridge path **touches no Swing/AWT class** — an MCP client launches this in an arbitrary environment, and
   initializing AWT (esp. on macOS) can fail oddly. `--mcp` short-circuits `Main` *before* any UI bootstrap.
@@ -229,7 +270,10 @@ Slice 1–2 are pure/headless; slice 3 reuses the `ActionServerTest` harness (re
 ## 12. Open questions
 
 **Resolved (folded into the spec):**
-- ~~Framing~~ → **newline-delimited JSON-RPC** (§2); `initialize` negotiates `protocolVersion`.
+- ~~Framing~~ → **newline-delimited JSON-RPC** (§2), re-confirmed against `2026-07-28`.
+- ~~Which era to speak~~ → **dual-era** (§2.1): legacy `initialize` negotiation *and* modern per-request
+  `_meta` + `server/discover`.
+- ~~Are unknown notifications `-32601`?~~ → **no**: never answer a message without an `id` (§2.2).
 - ~~`--mcp` environment~~ → **headless-safe**, no Swing/AWT on the bridge path (§9).
 - ~~Stale endpoint file after a crash~~ → **pid liveness check** before erroring (§3).
 - ~~Schema drift REST vs MCP~~ → **one source of truth** feeds `/manifest` and the MCP `inputSchema`s —
@@ -240,6 +284,9 @@ Slice 1–2 are pure/headless; slice 3 reuses the `ActionServerTest` harness (re
   Encode the pid and let the bridge pick / error, or use per-pid files + a selector. (Deferred; single
   instance is the norm.)
 - **SDK vs hand-roll:** hand-roll keeps the ethos and is small, but an official MCP SDK would track spec
-  evolution for free. Revisit if MCP's surface we use grows beyond tools.
+  evolution for free. **Sharper after v1.2:** MCP made a breaking change (`2026-07-28`) within months of
+  this spec being written, and we only caught it by reading the live spec during M13.2. The hand-roll is
+  still tiny — dual-era cost ~60 lines — but the maintenance signal is real. Revisit if a third era lands
+  or if our surface grows beyond tools. Mitigation meanwhile: the supported-version list is one constant.
 - **Resources/prompts:** worth it only if a concrete client workflow pulls context via MCP rather than the
   existing prompt seeding.

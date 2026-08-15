@@ -7,6 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **MCP bridge (preview)** — `java -jar analyser.jar --mcp` runs the analyser as an MCP server over
+  stdio, publishing one tool per assistant verb (`analyser_aggregate`, `analyser_read`,
+  `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`) so an MCP-native client
+  discovers them natively instead of being prompted. Speaks both the legacy `initialize` handshake and
+  the current handshake-free MCP revision (`2026-07-28`). Tool calls arrive in the next release.
 - Assistant: while the localhost REST transport is running, the app publishes its live endpoint to
   **`~/.fluxtion-analyser/rest-endpoint`** (mode 600 — url, token, pid, start time) and removes it on
   stop/exit. A client configured once can now find the per-run port and token instead of you copying

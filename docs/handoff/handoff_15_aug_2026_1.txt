@@ -125,6 +125,30 @@ Q6. SPEC GAP — §6 error mapping omits the rate limit. ActionServer returns HT
     ok:false body → isError:true with that error text (covers 400/401/429/500);
     only a dead/absent endpoint is a JSON-RPC error.
 
+Q7. MCP MOVED — the spec was written against an era that no longer exists.
+    Found while implementing M13.2, by reading the live MCP spec rather than
+    trusting the design doc. MCP's current revision is 2026-07-28, and it
+    REMOVED the initialize/notifications-initialized handshake entirely:
+      - every request now declares its version in
+        _meta["io.modelcontextprotocol/protocolVersion"];
+      - servers MUST implement a new `server/discover` RPC;
+      - all results carry resultType ("complete"); list results additionally
+        require ttlMs + cacheScope;
+      - version mismatch → UnsupportedProtocolVersionError, code -32022,
+        data {supported[], requested}.
+    The handshake era (2025-11-25 and earlier) is now formally "legacy". MCP's
+    own compatibility matrix marks legacy-server + modern-client as FAILS, with
+    no fall-forward for the client.
+    → DECIDED BY THE REPO OWNER (2026-08-15): ship the bridge DUAL-ERA — answer
+      the legacy handshake AND the modern per-request/_meta + server/discover
+      path, advertising ["2026-07-28","2025-11-25","2025-06-18"]. Cost was ~60
+      lines. Implemented in M13.2; spec updated to v1.2 (new §2.1 dual-era table,
+      §2.2 notification rule, §6 rate-limit case, §9 Json-Double warning, §12
+      re-opened SDK-vs-hand-roll with the churn evidence).
+    → FOR THE ORIGINATING SESSION: worth deciding whether the hand-roll stays the
+      right call now that MCP has shown it will break compatibility on a months
+      cadence. Spec §12 carries the argument; no action taken beyond recording it.
+
 ENVIRONMENT NOTES (this machine)
 - mkdocs was NOT installed; Homebrew python is PEP 668 externally-managed, so it
   is now installed in a repo-local venv (`.venv/`, gitignored):

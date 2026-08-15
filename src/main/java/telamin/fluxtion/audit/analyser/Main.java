@@ -12,10 +12,27 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.nio.file.Path;
 
-/** Launches the Fluxtion Audit Log Analyser (Swing + FlatLaf). Optional arg: a log file to open. */
+/**
+ * Launches the Fluxtion Audit Log Analyser (Swing + FlatLaf). Optional arg: a log file to open.
+ *
+ * <p>{@code --mcp} instead runs the headless MCP stdio bridge (M13.2) — it short-circuits before any UI
+ * bootstrap, so no theme, no taskbar icon, no frame.
+ */
 public class Main {
 
+    /** Launch flag for the MCP stdio bridge — an MCP client runs {@code java -jar analyser.jar --mcp}. */
+    private static final String MCP_FLAG = "--mcp";
+
     public static void main(String[] args) {
+        // BEFORE anything else: the bridge is headless and must touch no Swing/AWT class, so this has to
+        // come ahead of the theme/taskbar/frame bootstrap below (spec-assistant-actions-mcp §9)
+        for (String arg : args) {
+            if (MCP_FLAG.equals(arg)) {
+                telamin.fluxtion.audit.analyser.analyser.mcp.McpBridge.main(args);
+                return;
+            }
+        }
+
         ThemeManager.apply(new ConfigStore().load().theme);   // FlatLaf theme before any UI is built
         // custom Dock/taskbar icon (replaces the default Java "Duke")
         try {

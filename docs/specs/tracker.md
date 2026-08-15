@@ -29,11 +29,14 @@ replacement: in-process drives the app's own chat; REST stays the universal zero
   Publishing is an **opt-in `ActionServer` collaborator** (the path is injected, not baked in) so the
   server started inside unit tests can't clobber a running app's endpoint; exit-time cleanup is
   ownership-checked (pid) so a second instance's endpoint survives. 9 tests.
-- [M13.2] ☐ **`McpTools` adapter + `McpBridge` handshake/list** — `analyser.jar --mcp` (**headless-safe**: sets
-  `java.awt.headless`, touches no Swing): hand-rolled **newline-delimited** JSON-RPC stdio (`initialize`
-  negotiates `protocolVersion`; `tools/list`) returning one tool per verb (six today, incl. `read`)
+- [M13.2] ☑ **`McpTools` adapter + `McpBridge` handshake/list** — `analyser.jar --mcp` (**headless-safe**: sets
+  `java.awt.headless`, touches no Swing — enforced against the compiled bytecode, not by review):
+  hand-rolled **newline-delimited** JSON-RPC stdio returning one tool per verb (six today, incl. `read`)
   **adapted from the shipped `VerbSchemas`** (AV.3) — the same single source of truth as REST
-  `/manifest`; no parallel schema holder.
+  `/manifest`; no parallel schema holder. **Shipped dual-era** (spec §2.1, v1.2): MCP's current revision
+  `2026-07-28` **deleted the `initialize` handshake** this milestone was specced against, so the bridge
+  answers both the legacy handshake *and* modern per-request `_meta` versioning + the now-mandatory
+  `server/discover`, with `-32022` for unsupported versions. 26 tests.
 - [M13.3] ☐ **`tools/call` → REST forward** — map a tool call to `{action, params}`, POST `/action` with the
   token, wrap `ok:true`→text result / `ok:false`→`isError:true` (same actionable feedback). Reuses slice 4.
 - [M13.4] ☐ **Docs** — "connect an MCP client" (site assistant page + README) + client config snippet.
