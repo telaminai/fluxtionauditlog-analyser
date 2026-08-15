@@ -51,6 +51,7 @@ public final class MainFrame extends JFrame {
     private final SourceService sourceService = new SourceService();
     private final LlmPanel llmPanel = new LlmPanel();
     private final GraphTabs graphTabs = new GraphTabs();
+    private final TopologyPanel topologyPanel = new TopologyPanel();
     private final TimeRangeSlider timeSlider = new TimeRangeSlider();
     private final JComboBox<WindowSpan> windowCombo = new JComboBox<>(WindowSpan.ALL_OPTIONS);
     private final JScrollBar windowScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1000, 0, 1000);
@@ -108,7 +109,9 @@ public final class MainFrame extends JFrame {
             if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
         });
         detailPanel.setExplainAction(this::explainSelection);
-        detailPanel.setGraphTargets(new DetailPanel.GraphTargets() {
+        // one GraphTargets, shared: the detail viewer and the topology plot through the same path, so a
+        // series added from either lands on the same graph in the same way (M21.5)
+        DetailPanel.GraphTargets graphTargets = new DetailPanel.GraphTargets() {
             @Override public String currentName() { return graphTabs.selectedGraphName(); }
             @Override public java.util.List<String> names() { return graphTabs.graphNames(); }
             @Override public void addSeries(String graphName, String instanceId, String key) {
@@ -116,7 +119,11 @@ public final class MainFrame extends JFrame {
                         new telamin.fluxtion.audit.analyser.analyser.graph.GraphKey(instanceId, key));
                 sideTabs.setSelectedComponent(graphTabs);   // show the plot the series landed on
             }
-        });
+        };
+        detailPanel.setGraphTargets(graphTargets);
+        topologyPanel.setGraphTargets(graphTargets);
+        topologyPanel.setInstanceSourceOpener(this::openNodeSource);
+        topologyPanel.setFilterAction(this::filterToInstance);
         tablePanel.setFlagTester(flaggedRows::contains);
         tablePanel.setFlagToggle(this::toggleFlags);
         tablePanel.setNoteProvider(flagNotes::get);
@@ -360,6 +367,19 @@ public final class MainFrame extends JFrame {
         JOptionPane.showMessageDialog(this, sp, "What's new in " + current, JOptionPane.INFORMATION_MESSAGE);
     }
 
+    /**
+     * Narrow every view to records mentioning {@code instanceId}, from the topology's node menu (M21.5).
+     * Routed through the existing search field rather than poking {@link FilterState} directly, so the
+     * filter box shows what is being filtered and the user can edit or clear it as usual — the same
+     * free-text scan, which is slow on a large log by nature.
+     */
+    private void filterToInstance(String instanceId) {
+        if (filter == null || instanceId == null) return;
+        searchField.setText(instanceId);
+        filter.setText(instanceId);
+        status.setText("Filtered to records mentioning " + instanceId + " — clear the search box to undo.");
+    }
+
     private void openNodeSource(String instanceId, String method) {
         sourcePanel.openInstance(instanceId, method);
         if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
@@ -491,6 +511,7 @@ public final class MainFrame extends JFrame {
         sideTabs.addTab("Summary", summaryPanel);
         sideTabs.addTab("Source", sourcePanel);
         sideTabs.addTab("Graph", graphTabs);
+        sideTabs.addTab("Topology", topologyPanel);
         sideTabs.addTab("Analyser assistant", llmPanel);
 
         mainSplit.setMinimumSize(new Dimension(200, 120));
@@ -735,6 +756,7 @@ public final class MainFrame extends JFrame {
         if (store == null || modelRows.length == 0) {
             selectedRecords = List.of();
             detailPanel.clear();
+            topologyPanel.showRecord(null);
             return;
         }
         List<LogRecord> records = new ArrayList<>();
@@ -747,6 +769,7 @@ public final class MainFrame extends JFrame {
         detailPanel.showRecords(java.util.List.of(focus));
         detailPanel.setSelectionInfo(records.size());
         sourcePanel.showDispatchFor(focus);
+        topologyPanel.showRecord(focus);   // the table's selection IS the step cursor (M21.4)
     }
 
     private void chooseFile() {

@@ -18,9 +18,11 @@ assistant-vocabulary follow-ups (read / rationale / schemas / reveal).
 ---
 
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (a third door over the same seam)
-_Delivered on branch `handoff/15_aug_2026_1` (report: **[handoff_15_aug_2026_1_report.txt](../handoff/handoff_15_aug_2026_1_report.txt)**)
-— awaiting review/merge to main. Stays live because **M13.5** (resources/prompts, in-app HTTP-MCP) is
-still open; move the milestone to `completed/` once that lands or is dropped._
+_**Reviewed, approved and merged to main** (report + review: **[handoff_15_aug_2026_1_report.txt](../handoff/handoff_15_aug_2026_1_report.txt)**).
+Stays live only because **M13.5** (resources/prompts, in-app HTTP-MCP) is open; move the milestone to
+`completed/` once that lands or is dropped. Review decisions: hand-roll **kept** over an MCP SDK (the era
+change was absorbed in ~60 lines — evidence *for* it); `structuredContent` parked with M13.5; move
+`ReleaseNotes` to a neutral package as a later non-blocking refactor._
 _Design: **[spec-assistant-actions-mcp.md](spec-assistant-actions-mcp.md)**. MCP as the preferred door for
 MCP-native clients (Claude Code/Desktop) — one MCP tool per verb over the **same `ActionDispatcher` /
 `RenderExecutor`**. Hand-rolled minimal JSON-RPC (no MCP SDK → keeps the near-zero-dep ethos). Not a
@@ -88,22 +90,36 @@ running** Mongoose server's admin REST (`serverplugin-rest`; nodes already regis
 restart to pick up a fix. Capabilities tiered by risk; **server verbs are never assistant actions**
 (the FAQ's "nothing outside the loaded log" guarantee stays true for agents); every mutation is
 human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only in v1._
-- [M18.0] ☐ **Spike — verify the admin surface (gates all of Part B)** — `svc-admin-web` (validated)
-  already serves **status/identity** (`GET /api/server`) and **processor enumeration**
-  (`/api/services`,`/api/agents`,`/api/queues`); the spike's real job is the three gaps — **audit-sink
-  discovery, audit level (`EventLogControlEvent`), lifecycle** — none are REST endpoints, so confirm
-  each as a registered `AdminCommandRegistry` command (`POST /api/commands/{name}`) or file a
-  `fluxtion-server-plugins` PR **before** M18.1+ is scheduled. Note `WS /ws/logs` is app logging, **not**
-  the event-audit sink. **Test bench: the M19 example bundle** (admin REST on, disposable, predictable
-  log) — M19.1 and M18.0 co-develop.
+- [M18.0] ☑ **Spike — verify the admin surface (gates all of Part B)** — **done; O1 resolved.** Findings:
+  **[spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md)**. Two of the three "gaps" are already
+  **closed** on `mongoose-plugins@origin/develop` (the local checkout was stale): **audit level** is a
+  REST endpoint (`POST /api/processors/{group}/{name}/audit/level`), not a registry command; **log
+  discovery** is `GET /api/audit/files` + `/api/audit/file/{id}/export?format=yaml`, which returns the
+  exact YAML the analyser parses. **Lifecycle is the only real gap** — service start/stop are commented
+  out in `MongooseServerAdmin` and no restart exists → small `mongoose` PR. No `fluxtion-server-plugins`
+  PR needed to unblock M18.1–18.3. _Caveat: verified by reading source, **not** against a running server
+  (the M19 bench doesn't exist yet) — M18.1 must re-confirm live._
+  **⚠ Gating question raised, not answered — see [Decisions ▸ open](#open-questions): the audit-capture
+  plugin's Phase 2 is a web audit-log viewer with graph replay inside `svc-admin-web`, overlapping this
+  analyser. Settle positioning before scheduling M18.2–18.4.**
 - [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced;
   per-link **"development server — restarts allowed"** opt-in flag); status-bar chip
   (connected/name/uptime); Server menu scaffold.
-- [M18.2] ☐ **Log discovery** — "Open server's audit log": resolve the **sink descriptor (type+path)**
-  from server config; text file sink → open + offer Follow; Chronicle/kafka/jdbc sink → say so plainly
-  (analyser reads the text file sink). The audit **writer is pluggable** so discovery must branch on
-  sink *type*, not assume a file path. _One-click "point the analyser at your running system"._
-  _(Future, uncommitted: pluggable analyser readers mirroring the sinks.)_
+- [M18.2] ☐ **Log discovery** — **redesigned by M18.0**: not "resolve a path from config" (the on-disk
+  format is **Chronicle**, which the analyser cannot read). Instead `GET /api/audit/files` → pick from the
+  catalog (`path`, `sizeBytes`, `recordCount`, `startedAt`) → `GET /api/audit/file/{id}/export?format=yaml`
+  → open the projected YAML the analyser already parses. `WS /ws/audit-tail/{processor}` is the candidate
+  for Follow. _One-click "point the analyser at your running system"._ **Blocked on the positioning
+  question** (tracker ▸ Open questions).
+- [M18.3a] ☐ **DECIDE before M18.3** _(review F2)_ — the audit-level endpoint is a **setter with no `GET`
+  companion**, so capture-and-restore has nothing to read. Either file the small server-side `GET` ask, or
+  re-spec restore to a **user-declared baseline**. Blocks M18.3 only; M18.1 is unaffected.
+- [M18.4a] ☐ **ASK mongoose before M18.4** _(review F3)_ — `server.service.start`/`stop` exist but are
+  **commented out** in `MongooseServerAdmin`. Find out **why** before sending the uncomment-plus-restart
+  PR; the reason may be load-bearing.
+- [M18.6] ☐ _(post-M18.1, review F4)_ **Free wins from the spike** — `GET /api/source?fqn=` and
+  `/api/processors/{group}/{name}/graphml` let a linked server resolve **source** and **topology**,
+  complementing local source roots (and feeding M21.7).
 - [M18.3] ☐ **Audit level control** — raise/lower the processor's audit level
   (`EventLogControlEvent`) while tailing, with **capture-and-restore** (record the found level,
   auto-restore on disconnect/exit — never strand a server at TRACE); confirm dialog names the
@@ -115,9 +131,15 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
 - [M18.5] ☐ _(deferred)_ deploy-jar-and-restart; non-loopback/production posture (only alongside the
   regulated-tier approvals/attestation story); agent-initiated server actions behind per-action human
   approval.
-- Open questions: **O1** admin endpoint surface — **partly resolved by `svc-admin-web`** (status +
-  enumeration served; audit-sink/level/lifecycle still spike-gated in **M18.0**) · **O2** multi-processor
-  servers (list from `/api/services`; per-processor *typed* sink) · **O3** admin auth beyond localhost.
+- Open questions: **O1 admin endpoint surface — RESOLVED by M18.0** (audit level + log discovery served;
+  only lifecycle gapped — see [spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md)) ·
+  **O2** multi-processor servers — **largely answered**, and a terminology fix: **event processors**
+  (the DataFlow graphs that emit `nodeLogs`) are *not* **services** (environmental deps Mongoose manages —
+  DB, Kafka). Processors come from `server.processors.list` / `/api/processors/{group}/{name}/…`, and the
+  audit + level + graphml routes are already per-processor. `/api/services` enumerates something else
+  entirely, and `/api/services/{name}/config` says nothing about the audit sink. · **O3** admin auth beyond localhost — **now concrete**: `svc-admin-web`
+  has `POST /api/session/login` and `authMode` may not be `NONE`, so M18.1 needs auth from day one.
+  · **O5 (NEW, gating) positioning vs the server's own audit viewer** — see Open questions below.
   _(O4 gitignore: resolved — the analyser writes it.)_
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
@@ -154,6 +176,65 @@ analyser (reverse funnel)._
 - Open: O2 which example — **tiebreaker: prefer Spring-XML-defined** (design-IR edit variant in the
   tutorial + the design→graph→record provenance chain; spec §Contract notes). _(O1: Maven project · O3: bundles generated at Download time, nothing to
   regenerate · O4: committed as M19.2 — all resolved.)_
+
+## M21 · Topology view + event step-through — ◧ M21.1–21.5 SHIPPED (the web-admin's best idea, offline)
+_**Reviewed and approved** ([review_feat_m21-topology.txt](../handoff/review_feat_m21-topology.txt)),
+merged from `feat/m21-topology`. **O5 is formally resolved as complement** by §1 of the design spec —
+recorded here per the review's F5, so M18.2–18.4 are no longer positioning-blocked._
+_Design: **[spec-graph-replay.md](spec-graph-replay.md)**. Render the processor **GraphML** and **step
+through events on it** — nodes that fired lit in dispatch order, with their logged values. Resolves O5:
+web-admin sees one live server whose log may vanish; the analyser works on **many archived logs with no
+server at all**, which is production support. So the view belongs where the logs land. Wired into the
+index, filter, table, value graphs and click-to-source — the cross-view coupling a per-server web tab
+structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Decisions)._
+- [M21.1] ☑ **GraphML parse + model** — `topology/GraphMlParser` + `ProcessorTopology` (nodes with
+  `instanceId`/class/`Kind`, directed edges, parents/children, roots) and `Match` — the **pair-check**
+  against the log's `instanceId` set, distinguishing *a node that never fired* from *a topology from a
+  different build*. Lifted from `fluxtion-visualiser`'s Java `GraphMlTopologyParser` (our code): same
+  document shape and label conventions, IntelliJ logger dropped, model widened for rendering. Lenient
+  like the log parser; XXE refused (a `.graphml` can arrive from a shared store). 24 tests, plus
+  validation against three real emitted graphs (69/16/**300** nodes). _Resolution via source roots is
+  M21.3's UI work — the parser takes text or a Path today._
+- [M21.2] ☑ **Layered layout** — `LayeredLayout` (Sugiyama): break cycles → longest-path layering →
+  dummy bend points → median sweeps + adjacent-exchange crossing reduction → median coordinate
+  assignment → routed polylines, emitting `TopologyLayout` (plain geometry, no Swing). Deterministic by
+  construction. 22 tests on **invariants** (every edge points downward, no overlap, same graph lays out
+  identically) rather than coordinates. **Two bugs only the real 300-node graph exposed** — an
+  intransitive comparator that made TimSort throw, and bend points consuming a full node's width
+  (135661px canvas). Both fixed and regression-tested; layout went 2000ms → **13ms** at 300 nodes.
+  Real graphs: 69 nodes → 8 layers, 5924×888. ELK not needed.
+- [M21.3] ☑ **Topology panel** — `TopologyCanvas` (Java2D: pan, zoom-at-cursor, fit, hover, select,
+  tooltips, kind-coloured boxes, arrowheads, viewport culling, label LOD by rendered pixel width) +
+  `TopologyPanel` (toolbar, open `.graphml`, orientation toggle, status line incl. the M21.1 pair-check).
+  Added as a **Topology** tab. Verified by **rendering offscreen to PNG and inspecting it** — which
+  caught three defects a green test suite did not: the layout sheared into a diagonal (systemic drift in
+  the coordinate pass, fixed in `LayeredLayout`), arrowheads were painted underneath node boxes (edges now
+  stop at the border), and labels were hidden by a zoom-based LOD threshold.
+- [M21.4] ☑ **Step-through** — selecting a record lights the nodes that fired, **numbered in dispatch
+  order** (green ring + ordinal badge), fades the ones that didn't, and ◀ ▶ walks the cycle node by node
+  with that node's logged key/values on the status line. Bidirectional. **Driven by the table's existing
+  selection** — one `topologyPanel.showRecord(focus)` in `onRowsSelected`, no second cursor, per the
+  binding reuse constraint. Flags instanceIds absent from the loaded topology (build mismatch) inline.
+- [M21.5] ☑ **Cross-view wiring** — right-click a node: **open source** (the same `openNodeSource` the
+  detail viewer uses), **graph a key** (the *same* `DetailPanel.GraphTargets` instance, now shared by both
+  panels rather than duplicated), **filter records to this node** (routed through the existing search
+  field so the box shows what is filtered and can be cleared normally), copy instance id; double-click →
+  source. Offered keys come from `KV.graphValue()`, so "graphable" means what it means everywhere else.
+  6 headless tests on the menu-population rules (panel constructed, never shown).
+  _Node → flag not done: flags are per-record and the index has no instanceId lookup, so "flag every
+  record where node X fired" needs index work — filter-to-node covers the same intent for now._
+- [M21.6] ☐ **Docs — the Topology tab** _(review F1; **before the next release**)_ — user-guide page/section
+  + an anonymised screenshot, nav entry, and cross-links from graphs/records pages. The changelog already
+  announces topology + step-through, so a release now would point users at an undocumented feature.
+  `mkdocs build --strict` must pass.
+- [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
+- [M21.8] ☐ _(later)_ **node → flag** — "flag every record where node X fired" needs an `instanceId`
+  lookup in `LogIndex`; flags are per-record and no such index exists, so M21.5 shipped filter-to-node
+  (existing free-text scan) instead. Index work, not wiring.
+- _M21.1–2 carry the risk and are pure logic — front-loaded deliberately, testable before a pixel exists._
+- Open: **O1** GraphML attribute shape (read the visualiser's parser) · **O2** logRecord sink/transport
+  config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
+  topologies (elision/clustering) — defer until a real graph hurts.
 
 ## M20 · Project profiles — global vs local settings — ☐ PROPOSED
 _Design: **[spec-project-profiles.md](spec-project-profiles.md)**. Give the analyser a first-class
@@ -231,8 +312,19 @@ already-shipped REST + brief file, so neither blocks the other; run them in para
   approval. Keeps the FAQ's security guarantee simple and true.
 - **Agent fixes arrive as evidence-linked PRs on a branch, never direct edits** (spec-closed-loop
   §A.4) — the M12 guardrail, embedded verbatim in every generated brief.
+- **O5 RESOLVED (2026-08-15) — the analyser and `svc-admin-web` complement, and the overlap is
+  deliberate.** The analyser is a **dev tool _and_ a production-support tool**; web-admin views **one
+  live server** whose log may be rolled or deleted, and suits dev + MCP-driven poking. A low-latency
+  production system may have **no admin-web and no MCP at all** — logs are transported to a shared store,
+  and **offline analysis across many files is where the analyser shines**. So the topology view and event
+  step-through are **replicated into the analyser** (**M21**), because the good view has to exist where
+  the logs actually land. Consequence: the analyser needs the **GraphML**, sourced from a file first and
+  the server only when one happens to be there.
+- **Rendering stays Swing/Java2D — no embedded browser.** Reusing the JS replay engine via JCEF/JavaFX
+  WebView would cost a ~100MB native per-platform dependency and destroy the single shaded fatjar that
+  `jbang analyser@…` depends on. FlatLaf remains the only runtime dependency; a hand-rolled layered
+  layout is the work, with pure-Java ELK as the fallback (spec-graph-replay §3).
 
-## Open questions
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
 - spec-closed-loop **O1–O4** (admin endpoint surface · multi-processor discovery · admin auth ·
   brief-file gitignore).

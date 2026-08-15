@@ -19,6 +19,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   **`~/.fluxtion-analyser/rest-endpoint`** (mode 600 — url, token, pid, start time) and removes it on
   stop/exit. A client configured once can now find the per-run port and token instead of you copying
   them each launch; a file left by a crash is detectable via its pid.
+- **Topology tab** — open a processor's `.graphml` to see its node graph laid out by dispatch order, with
+  pan, zoom, fit, hover, selection and a top-down/left-right toggle. Node colour distinguishes events,
+  event handlers, nodes and exported services; selecting a node highlights what feeds it and what it
+  feeds.
+- **Step through an event on the graph** — select a record and the Topology tab lights up the nodes that
+  fired, numbered in dispatch order, with everything that didn't fire faded back. Walk the cycle node by
+  node with ◀ ▶ to see what each one logged at that point. It follows the table's selection, so the
+  record you're looking at everywhere else is the cycle you're stepping through.
+- **Act on a node from the graph** — right-click any node in the Topology tab to open its source, plot one
+  of its logged values, filter every view to records mentioning it, or copy its instance id. Double-click
+  jumps straight to the source. Plots land on the same graphs, and filtering uses the same search box, as
+  everywhere else in the app.
 
 ### Changed
 - The launcher now **rejects an unknown `--option`** with a usage message and exit code 2, and adds

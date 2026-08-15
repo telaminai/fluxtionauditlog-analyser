@@ -1,0 +1,47 @@
+REVIEW — feat/m21-topology (M18.0 spike + M21 topology view)
+Date: 2026-08-15 · Reviewer: main session · Branch tip: 777cab0 · Base: eab5f6e (pre-M13-merge)
+
+VERDICT: approved — merge with one manual conflict resolution and the follow-ups below.
+
+INDEPENDENTLY VERIFIED (clean worktree):
+  mvn -o test .................... 240/240 green on the branch
+  GraphMlParser .................. XXE-hardened (doctype disallowed, external entities off,
+                                   ACCESS_EXTERNAL_DTD empty) — correct for foreign .graphml files
+  LayeredLayout / TopologyLayout . pure geometry, zero Swing/AWT imports, headlessly tested (305-line
+                                   test class); cycle-breaking implemented ("never trust the DAG")
+  TopologyCanvas ................. theme-aware
+  ProcessorTopology.Match ........ build-mismatch surfaced, not hidden — the spec's pairing risk,
+                                   handled as designed
+  sample-processor.graphml ....... anonymisation clean
+
+M18.0 SPIKE — outstanding. Accepted in full, including its self-declared limit (routes verified to
+exist in source, not exercised live; M18.1 re-confirms against a running server as its first act).
+Key corrections stand: audit level is a dedicated REST setter; log discovery is /api/audit/files +
+/export?format=yaml (the on-disk sink is Chronicle — M18.2 redesigned accordingly); processors ≠
+services; lifecycle is the only remaining gap.
+
+M21 POSITIONING (O5 = complement): endorsed. "The analyser is where the logs land" — offline,
+multi-file, production-support — is the durable argument, and the cross-view wiring (topology ⇄ index
+⇄ filter ⇄ source ⇄ assistant) is what a per-server web tab structurally cannot have. Consistent with
+the M11 Grafana boundary and the admin-web lane split already recorded.
+
+MERGE INSTRUCTIONS:
+  - One textual conflict: CHANGELOG.md [Unreleased]/Added — both sides added entries (M13 bridge vs
+    M21 topology). Resolution: keep both blocks, M13 entries first (they shipped first).
+  - MainFrame.java and tracker.md merge cleanly BUT MainFrame combines M13's shutdown/endpoint wiring
+    with M21's topology wiring — do not trust the auto-merge blind: run `mvn test` after the merge and
+    launch the jar once (topology tab + a clean quit).
+
+FOLLOW-UPS (owner: as noted):
+  F1. DOCS GAP — no docs/site page for the Topology tab (changelog entry exists; user guide silent).
+      Add a user-guide section + screenshot (anonymised) as M21.6 before the next release; the release
+      notes will otherwise point at an undocumented feature.
+  F2. DECISION NEEDED (M18.3): the audit-level endpoint is a setter with no GET companion, so
+      capture-and-restore has nothing to read. Choose: file the small server-side GET ask, or re-spec
+      restore-to-declared-baseline. Blocker for M18.3, not for M18.1.
+  F3. QUESTION FOR mongoose (M18.4): server.service.start/stop commands exist but are commented out —
+      confirm WHY before the uncomment-plus-restart PR; the reason may be load-bearing.
+  F4. FREE WINS (unplanned): /api/source?fqn and /api/processors/.../graphml — server-side source and
+      topology resolution as a complement to local roots. Tracker follow-up item, post-M18.1.
+  F5. Do not schedule M18.2–18.4 until the spike's §5 positioning is formally recorded as resolved by
+      the M21 spec §1 (it is — this review so records it; tracker should say so on merge).
