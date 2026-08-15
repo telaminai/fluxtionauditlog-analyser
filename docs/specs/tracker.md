@@ -71,22 +71,27 @@ running** Mongoose server's admin REST (`serverplugin-rest`; nodes already regis
 restart to pick up a fix. Capabilities tiered by risk; **server verbs are never assistant actions**
 (the FAQ's "nothing outside the loaded log" guarantee stays true for agents); every mutation is
 human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only in v1._
-- [M18.0] ☐ **Spike — verify the admin surface (gates all of Part B)** — `svc-admin-web` (validated)
-  already serves **status/identity** (`GET /api/server`) and **processor enumeration**
-  (`/api/services`,`/api/agents`,`/api/queues`); the spike's real job is the three gaps — **audit-sink
-  discovery, audit level (`EventLogControlEvent`), lifecycle** — none are REST endpoints, so confirm
-  each as a registered `AdminCommandRegistry` command (`POST /api/commands/{name}`) or file a
-  `fluxtion-server-plugins` PR **before** M18.1+ is scheduled. Note `WS /ws/logs` is app logging, **not**
-  the event-audit sink. **Test bench: the M19 example bundle** (admin REST on, disposable, predictable
-  log) — M19.1 and M18.0 co-develop.
+- [M18.0] ☑ **Spike — verify the admin surface (gates all of Part B)** — **done; O1 resolved.** Findings:
+  **[spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md)**. Two of the three "gaps" are already
+  **closed** on `mongoose-plugins@origin/develop` (the local checkout was stale): **audit level** is a
+  REST endpoint (`POST /api/processors/{group}/{name}/audit/level`), not a registry command; **log
+  discovery** is `GET /api/audit/files` + `/api/audit/file/{id}/export?format=yaml`, which returns the
+  exact YAML the analyser parses. **Lifecycle is the only real gap** — service start/stop are commented
+  out in `MongooseServerAdmin` and no restart exists → small `mongoose` PR. No `fluxtion-server-plugins`
+  PR needed to unblock M18.1–18.3. _Caveat: verified by reading source, **not** against a running server
+  (the M19 bench doesn't exist yet) — M18.1 must re-confirm live._
+  **⚠ Gating question raised, not answered — see [Decisions ▸ open](#open-questions): the audit-capture
+  plugin's Phase 2 is a web audit-log viewer with graph replay inside `svc-admin-web`, overlapping this
+  analyser. Settle positioning before scheduling M18.2–18.4.**
 - [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced;
   per-link **"development server — restarts allowed"** opt-in flag); status-bar chip
   (connected/name/uptime); Server menu scaffold.
-- [M18.2] ☐ **Log discovery** — "Open server's audit log": resolve the **sink descriptor (type+path)**
-  from server config; text file sink → open + offer Follow; Chronicle/kafka/jdbc sink → say so plainly
-  (analyser reads the text file sink). The audit **writer is pluggable** so discovery must branch on
-  sink *type*, not assume a file path. _One-click "point the analyser at your running system"._
-  _(Future, uncommitted: pluggable analyser readers mirroring the sinks.)_
+- [M18.2] ☐ **Log discovery** — **redesigned by M18.0**: not "resolve a path from config" (the on-disk
+  format is **Chronicle**, which the analyser cannot read). Instead `GET /api/audit/files` → pick from the
+  catalog (`path`, `sizeBytes`, `recordCount`, `startedAt`) → `GET /api/audit/file/{id}/export?format=yaml`
+  → open the projected YAML the analyser already parses. `WS /ws/audit-tail/{processor}` is the candidate
+  for Follow. _One-click "point the analyser at your running system"._ **Blocked on the positioning
+  question** (tracker ▸ Open questions).
 - [M18.3] ☐ **Audit level control** — raise/lower the processor's audit level
   (`EventLogControlEvent`) while tailing, with **capture-and-restore** (record the found level,
   auto-restore on disconnect/exit — never strand a server at TRACE); confirm dialog names the
@@ -98,9 +103,12 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
 - [M18.5] ☐ _(deferred)_ deploy-jar-and-restart; non-loopback/production posture (only alongside the
   regulated-tier approvals/attestation story); agent-initiated server actions behind per-action human
   approval.
-- Open questions: **O1** admin endpoint surface — **partly resolved by `svc-admin-web`** (status +
-  enumeration served; audit-sink/level/lifecycle still spike-gated in **M18.0**) · **O2** multi-processor
-  servers (list from `/api/services`; per-processor *typed* sink) · **O3** admin auth beyond localhost.
+- Open questions: **O1 admin endpoint surface — RESOLVED by M18.0** (audit level + log discovery served;
+  only lifecycle gapped — see [spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md)) ·
+  **O2** multi-processor servers (list from `/api/services`; audit endpoints are already per-processor,
+  so this is largely answered too) · **O3** admin auth beyond localhost — **now concrete**: `svc-admin-web`
+  has `POST /api/session/login` and `authMode` may not be `NONE`, so M18.1 needs auth from day one.
+  · **O5 (NEW, gating) positioning vs the server's own audit viewer** — see Open questions below.
   _(O4 gitignore: resolved — the analyser writes it.)_
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
@@ -216,6 +224,16 @@ already-shipped REST + brief file, so neither blocks the other; run them in para
   §A.4) — the M12 guardrail, embedded verbatim in every generated brief.
 
 ## Open questions
+- **O5 — positioning vs the server's own audit viewer (gates M18.2–18.4).** Raised by the M18.0 spike.
+  The mongoose audit-capture plugin's Phase 2 puts a **web audit-log viewer with graph replay** inside
+  `svc-admin-web` (porting `replay-engine.js` / `eventlog-parser.js` from fluxtion-visualiser as a
+  "Replay" tab on the processor GraphML view). It overlaps this analyser's core job. The analyser still
+  owns multi-GB index-first browsing, formula graphing, click-to-source, and the LLM/MCP action socket;
+  the web tab owns zero-install, live tail and node-level replay inside the ops surface. Three coherent
+  stances — **complement** (analyser is the deep-dive; M18.2 is the deliberate hand-off, which the plugin
+  README already frames via `/export?format=yaml`), **converge** (analyser becomes a desktop client of the
+  same API), **diverge** (drop the control-plane ambition, shrink M18 to link + discovery). Product call,
+  not an engineering one. M18.1 is safe to start regardless.
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
 - spec-closed-loop **O1–O4** (admin endpoint surface · multi-processor discovery · admin auth ·
   brief-file gitignore).

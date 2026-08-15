@@ -110,6 +110,16 @@ loaded log") stays true for agents.
 
 ### B.2 Admin surface (dependency check — open question O1)
 
+> **⚠ SUPERSEDED IN PART by the M18.0 spike (2026-08-15) —
+> [spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md).** This section was written against a
+> **stale** view of `mongoose-plugins`. On `origin/develop`, **audit level** and **log discovery** are
+> both served (a REST endpoint and an audit-file catalog + YAML export respectively); **only lifecycle
+> is still a gap**. The "gap" table below is kept for the record — read the spike for what is true.
+> Two corrections that change design, not just status: the on-disk audit format is **Chronicle** (so
+> M18.2 fetches a projected YAML export, it does not open a path), and core Mongoose has **no
+> declarative audit-sink config at all** — `logRecordListener` is a lambda passed to `bootServer`,
+> defaulting to dumping audit records into the *application* log.
+
 Mongoose ships `serverplugin-rest` and `serverplugin-admintelnet`; nodes register commands via
 `AdminCommandRegistry` (e.g. `mkDataBook.<name>.currentBook`). The analyser talks to the **REST admin
 endpoint** only.
