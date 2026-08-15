@@ -48,8 +48,8 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
   the targeted records change). Built on `PromptBuilder`. **Precondition:** journal ↔ audit-log pairing
   (the analyser loads the output log, not the input journal).
 - [M12.4] ☐ **"Fix with agent…" handoff launcher** _(spec-closed-loop §A)_ — writes the brief to
-  `<sourceRoot>/.analyser/fix-brief-<ts>.md` **plus `.analyser/.gitignore` (`*`) so briefs can never be
-  committed**; v1 copies a ready-to-paste launch command (presets for Claude Code / Codex; template
+  `<sourceRoot>/.analyser/fix-brief-<ts>.md` **plus `.analyser/.gitignore` (`fix-brief-*` — scoped so
+  M20's committed project profile in the same dir isn't ignored) so briefs can never be committed**; v1 copies a ready-to-paste launch command (presets for Claude Code / Codex; template
   placeholders `{brief}` `{sourceRoot}` `{logPath}` — **no token in the command**: the agent reads the
   rotating endpoint+token from M13.1's `~/.fluxtion-analyser/rest-endpoint`). Every brief embeds the
   **git-hygiene contract** (branch, evidence-linked PR, never merge autonomously, prove by replay
@@ -98,8 +98,9 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
 ships a runnable Mongoose example with audit logging pre-enabled (file sink at a predictable path),
-bundled source, and an `analyser-settings.fluxtion-settings` — so onboarding becomes: download → run →
-jbang the analyser → **File ▸ Import** → Follow a live log with click-to-source and Explain working.
+bundled source, and a **project profile at `.analyser/project.fluxtion-settings`** (M20's canonical path —
+the bundle *is* a project profile) — so onboarding becomes: download → run → jbang the analyser →
+project auto-loads (M20; **File ▸ Import** until it lands) → Follow a live log with click-to-source and Explain working.
 Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README links back to the
 analyser (reverse funnel)._
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
@@ -126,7 +127,8 @@ _Design: **[spec-project-profiles.md](spec-project-profiles.md)**. Give the anal
 **project** concept so a user jumps between Fluxtion projects without re-importing. Two disjoint tiers
 reusing M15's whitelist as the boundary: **global (machine)** = API key · LLM · AWS · theme · perf ·
 history (`~/.fluxtion-analyser/config`, as today); **project profile** = source roots · event processor ·
-Maven repos · graphs · hidden columns (a `.fluxtion-settings` file, e.g. `<project>/.analyser/`).
+Maven repos · graphs · hidden columns (at `<project>/.analyser/project.fluxtion-settings` — one canonical
+path, shared with the M19 bundle).
 Switching a project **replaces** the project-scoped set (never merges into global); the API key can't
 leak by construction, so a profile is **git-shareable** (commit it like `.vscode/settings.json`).
 Generalises M19 (the playground bundle is a project profile → auto-configure on open). Import (M15) stays
@@ -137,8 +139,9 @@ the additive *share* flow, gaining an explicit "open as project (replace)" optio
 - [M20.3] ☐ **Auto-detect** a project file beside an opened log → "Load this project?" (the M19 hook).
 - [M20.4] ☐ **Docs** — user-guide "working across projects"; git-shareable profile; M19 tutorial upgrades
   from "import once" to "auto-loaded project".
-- Depends on **M19.2** (relative-root import, shipped). O1 project-set scope · O2 profile location · O3
-  reopen-last-log — in the spec.
+- Depends on **M19.2** (relative-root import, shipped). Open questions all resolved in the spec: O1
+  Maven repos project-scoped · O2 in-repo profile path · O3 defer reopen-last-log · O4 auto-persist
+  (debounced), no explicit Save.
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
@@ -173,9 +176,16 @@ already-shipped REST + brief file, so neither blocks the other; run them in para
    (spec-closed-loop §B.7), the demo that sells the platform.
 5. **M12.1 / M12.2** (export_finding structure; replay-test fixture) — upgrades the brief's
    acceptance from prose to a red test. Journal↔log pairing is the precondition to resolve first.
-6. **M19** (onboarding example) — mostly docs + playground-side; M19.1's bundle contract can proceed
-   in parallel with anything above; highest funnel value per effort after launch.
-7. **M11** stays vision until a real Grafana consumer appears.
+6. **M20.1 + M20.3** (tier the config + auto-detect a project profile beside a log) — **pulled ahead of
+   the tutorial**: these turn M19's onboarding from "import once (additive into global)" into
+   "open the log → project auto-loads", which is the experience the tutorial should teach. Small,
+   headless-testable, depends only on the shipped M19.2.
+7. **M19** (onboarding example) — mostly docs + playground-side; M19.1's bundle contract can proceed
+   in parallel with anything above; write the tutorial against the M20 auto-load flow. Highest funnel
+   value per effort after launch.
+8. **M20.2 + M20.4** (switch/new/recent UI + docs) — completes project profiles once the auto-load path
+   is proven by the tutorial.
+9. **M11** stays vision until a real Grafana consumer appears.
 
 ## Decisions (resolved)
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.

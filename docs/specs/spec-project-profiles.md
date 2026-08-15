@@ -43,9 +43,13 @@ tie-break. Switching a project replaces the project-scoped working set; global i
 - **Open / Switch project** (new, **REPLACE** semantics) — pick a project file (or a recent one). The
   analyser **swaps** the project-scoped categories to that file's values (does not merge), keeps global
   as-is, and records it as the **active project**. This is the "jump project to project" action.
-- **Save project / Save project as…** — writes the current project-scoped categories back to the active
-  project file (never the key). Edits made while a project is active persist to the *project* file, not
-  global.
+- **Persistence — auto-persist, debounced** (resolves **O4**) — edits made while a project is active
+  persist to the *project* file (never the key), exactly as today's single config auto-saves; writes are
+  debounced so a burst of graph tweaks is one write, not many. **Save project as…** exists only to *fork*
+  the profile to a new path (then that becomes active). There is no manual "Save project" — matching
+  today's no-surprise behaviour. Because a profile may be a committed file, the docs note that a
+  committed profile evolves like any config-as-code (`.vscode/settings.json`): expect diffs, review them
+  like code. (See O4 for why not explicit-save.)
 - **New project…** — start an empty project profile at a chosen path.
 - **Recent projects** — a list (like Open Recent) for one-click switching.
 - **Import settings (M15) is unchanged** — it stays the **additive, share-a-setup** flow (merge into the
@@ -62,12 +66,14 @@ tie-break. Switching a project replaces the project-scoped working set; global i
 
 ## Auto-detect (ties M19 together)
 
-When a log is opened, if it sits under a directory containing `.analyser/project.fluxtion-settings` (or
-the M19 bundle's settings file), offer **"Load this project?"**. This is what makes the **playground
-template auto-configure**: download the template → open its audit log → the analyser detects the bundled
-project profile and loads roots/EP/graphs → **zero manual setup**, and it's a real switchable project you
-can leave and return to (not a one-off merge into global). M20 generalises M19's import into a
-first-class profile.
+When a log is opened, if it sits under a directory containing `.analyser/project.fluxtion-settings`,
+offer **"Load this project?"**. Detection is **one rule, one path** — the M19 playground bundle ships
+its profile at exactly this path (spec-onboarding-example §Part 1), so it *is* a project profile, not a
+separately-named file the detector also has to accept. This is what makes the **playground template
+auto-configure**: download the template → open its audit log → the analyser detects the bundled project
+profile and loads roots/EP/graphs → **zero manual setup**, and it's a real switchable project you can
+leave and return to (not a one-off merge into global). M20 generalises M19's import into a first-class
+profile.
 
 ## Team-share via git
 
@@ -97,14 +103,21 @@ M19 fix-brief `.analyser/` gitignore must *not* exclude the committed profile �
 
 ## Open questions
 
-- **O1** — project-scoped set: keep it identical to the M15 whitelist, or make Maven repos global
-  (they're local `.m2` paths, arguably machine-level)? Leaning: follow M15 (project-scoped) for
-  consistency; revisit if it surprises.
-- **O2** — where the profile lives by default: `<project>/.analyser/project.fluxtion-settings` (git-
-  shareable, auto-detectable) vs a managed list under `~/.fluxtion-analyser/projects/`. Leaning: the
-  in-repo path (team-share + M19 auto-detect); the managed list is the recent-projects index.
-- **O3** — should switching projects also re-open that project's last log? (Nice, but couples log state
-  to the profile — defer.)
+- ~~**O1** — Maven repos global or project-scoped?~~ **resolved: project-scoped** (identical to the M15
+  whitelist). The portability worry dissolves because `SettingsShare` writes `~`-relative paths, so
+  `~/.m2/repository` expands correctly on every teammate's machine — no absolute-path leak. Consistency
+  with M15 wins.
+- ~~**O2** — profile location by default~~ **resolved: the in-repo path**
+  `<project>/.analyser/project.fluxtion-settings` — team-share and M19 auto-detect both depend on it.
+  The managed list under `~/.fluxtion-analyser/projects/` is *only* the recent-projects index, not the
+  profile store.
+- ~~**O3** — should switching projects also re-open that project's last log?~~ **deferred** — nice, but
+  coupling log state to the profile is the kind of convenience that becomes a surprise; revisit if asked.
+- ~~**O4** — Save semantics: explicit-save vs auto-persist?~~ **resolved: auto-persist, debounced** (see
+  Flows). Explicit-save was rejected as a surprise — today's app auto-saves config, so a project profile
+  behaving differently would violate least-astonishment. Debounce keeps a committed profile's git diffs
+  legible; `Save as…` remains for forking to a new path. Teams committing the profile treat it as
+  config-as-code (evolves, review the diffs).
 
 ## Acceptance
 

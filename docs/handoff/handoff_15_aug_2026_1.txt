@@ -17,6 +17,9 @@ in order, mvn test green before every commit:
 
   M13.1  net/RestEndpointFile — on REST start, write url+token+pid+startedAt to
          ~/.fluxtion-analyser/rest-endpoint (mode 600); delete on clean stop/exit.
+         Hook points: write where the REST server starts and delete where it stops
+         (net/ActionServer.start / .stop), and also delete on app exit
+         (ui/MainFrame.onExit) so a clean quit leaves no stale file.
          Test: write/read round-trip, delete-on-stop, pid field present.
   M13.2  mcp/McpTools adapter + mcp/McpBridge — `analyser.jar --mcp` launch mode:
          FIRST line sets java.awt.headless=true; the bridge path must touch no
@@ -25,6 +28,8 @@ in order, mvn test green before every commit:
          llm.VerbSchemas — one tool per verb (six today, incl. read), named
          analyser_<verb>; do NOT create a parallel schema definition.
          readOnlyHint:true on aggregate and read only.
+         Wire it in Main: detect --mcp in args and route to McpBridge.main BEFORE
+         any Swing/AWT init (no MainFrame, no look-and-feel) — the bridge is headless.
   M13.3  tools/call → discover endpoint via RestEndpointFile (pid liveness check via
          ProcessHandle before trusting it), POST /action with the token header,
          map ok:true → text content / ok:false → isError:true; absent-or-dead
@@ -32,9 +37,15 @@ in order, mvn test green before every commit:
          enable it in Settings ▸ Assistant" JSON-RPC error.
   M13.4  Docs — "Connect an MCP client" section on docs/site/user-guide/assistant.md
          with config snippets for Claude Code (.mcp.json), Claude Desktop
-         (claude_desktop_config.json), and Codex; mkdocs build --strict must pass.
+         (claude_desktop_config.json), and Codex. The spec shows the Claude Code
+         shape only — the Desktop/Codex config formats are a small research item;
+         confirm the current shapes before pasting. mkdocs build --strict must pass
+         (CI enforces it); if this machine has no mkdocs, say so in the report and
+         let CI run the strict build rather than skipping the check.
 
 CONSTRAINTS (from the spec — follow, don't re-decide):
+- Commit directly to main (trunk-based; CI gates each slice). Do not open a feature
+  branch — one commit per slice, mvn test green before each.
 - Zero new dependencies. JSON via the existing llm.Json. No MCP SDK.
 - The bridge forwards to REST; it never calls the dispatcher directly.
 - Server/lifecycle capabilities are NOT tools — only the six VerbSchemas verbs.

@@ -24,9 +24,11 @@ the browser **and has a Download button** — the two best demos in the stack st
 2. **Run it** — one command from the bundle's README (`mvn -q exec` / `java -jar …` — see O1). The
    server starts and writes an **audit log to a predictable path** (`./logs/audit-<name>.yaml`).
 3. **Open the analyser** — `jbang analyser@telaminai/fluxtionauditlog-analyser`.
-4. **Import the bundle's settings** — File ▸ Import settings… on the `.fluxtion-settings` file shipped
-   in the bundle: source roots (relative, they ship in the zip), the event processor FQN — **zero
-   manual setup** (this is M15's import doing onboarding duty).
+4. **Load the bundle's project** — the bundle ships a **project profile** at
+   `.analyser/project.fluxtion-settings` (M20's canonical path): source roots (relative, they ship in
+   the zip), the event processor FQN — **zero manual setup**. Once M20 lands the analyser auto-detects
+   it beside the log; until then it's File ▸ Import settings… on that file (M15's import doing
+   onboarding duty).
 5. **Watch it live** — open `./logs/audit-<name>.yaml` with **Follow** on: records stream in; click a
    node line → the bundled source opens; graph a value; **Explain** a cycle (copy-prompt works without
    a key).
@@ -50,7 +52,7 @@ The Download bundle MUST contain:
 | runnable Mongoose example (source + build, or jar + config — O1) | the thing that runs |
 | **audit logging pre-enabled** — `EventLogManager` → file sink at `./logs/audit-<name>.yaml`, level INFO | no configuration step; the log path the docs can name |
 | the **generated EventProcessor source** + the example's node sources | source navigation works out of the box |
-| **`analyser-settings.fluxtion-settings`** — relative source roots + EP FQN | File ▸ Import = zero-setup (M15) |
+| **`.analyser/project.fluxtion-settings`** — relative source roots + EP FQN, at **M20's canonical project-profile path** so the bundle *is* a project profile (not a separately-named file the detector also accepts) | zero-setup: M20 auto-detects it; M15 import until then |
 | **`README.md`** — run command, the log path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser |
 | **admin REST enabled** (`serverplugin-rest` on a known localhost port, named in the README and the settings file) | the example doubles as **M18's validation bench** (below) |
 | **agent bootstrap — `CLAUDE.md` (+ `AGENTS.md` mirror), layered** (see below) | the user opens the project in their IDE and **their own LLM already knows Fluxtion** — the edit loop needs zero prompting |
