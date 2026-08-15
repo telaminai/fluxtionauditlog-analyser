@@ -1,0 +1,69 @@
+HANDOFF — implement milestone M20 (project profiles) + one small refactor
+Date: 2026-08-15 · From: main session · Repo: https://github.com/telaminai/fluxtionauditlog-analyser
+Predecessor: handoff_15_aug_2026_1 (M13, shipped + merged — see its report §8 for the review pattern).
+
+Work on branch handoff/15_aug_2026_2 (review-before-merge worked well last time; it's now the default).
+
+ORIENT FIRST (in this order, before writing any code):
+1. CLAUDE.md — hard rules (note new rule 6: re-read live vendor specs — not protocol
+   work this time, but the habit stands).
+2. docs/ONBOARDING.md — conventions, incl. § Handoffs (your report file is
+   docs/handoff/handoff_15_aug_2026_2_report.txt, committed with your final change).
+3. docs/specs/spec-project-profiles.md — the design you are implementing. All four
+   open questions are RESOLVED in the spec (O4 = auto-persist, debounced). Trust it;
+   if reality disagrees, fix the spec and say so in your report.
+4. docs/specs/tracker.md — milestone M20, items M20.1–M20.4.
+5. Read the seams you build on: config/SettingsShare (+ SettingsShareTest — note the
+   M19.2 relative-root resolution, shipped), config/AppConfig, config/ConfigStore,
+   the Import wiring in ui/MainFrame, config/GraphSpec.
+
+TASK: implement milestone M20 as four slices, one commit each, in order,
+mvn test green before every commit:
+
+  M20.1  Tier the config — mark the project-scoped categories (source roots, event
+         processors + selected, Maven repos, saved graphs, hidden columns — exactly
+         the M15 shareable whitelist, no new boundary); add activeProjectPath to the
+         global config; load/save a project profile via the existing SettingsShare
+         machinery with REPLACE semantics for the project set. Startup: load global,
+         then the active profile over the project-scoped categories; a missing
+         profile file → fall back to global-only, clear the pointer, status note —
+         NEVER fail to start. Headless-testable; this slice has no UI.
+  M20.2  Open / Switch / New project + Recent projects (File menu), REPLACE
+         semantics; the Import dialog gains the explicit choice: "Merge (share)" vs
+         "Open as project (replace)". Auto-persist project-scoped edits to the
+         active profile file, DEBOUNCED (one write per burst — the profile may be a
+         committed file; keep its git diffs legible). "Save project as…" forks to a
+         new path (no plain "Save project" — auto-persist is the rule, see spec O4).
+  M20.3  Auto-detect — when a log is opened and .analyser/project.fluxtion-settings
+         exists in a containing directory, offer "Load this project?" (this is the
+         M19 zero-setup hook). Respect "no" (don't re-nag for the same log/session).
+  M20.4  Docs — user-guide page or section "Working across projects": switching,
+         the git-shareable profile (no API key by construction — say why it's safe
+         to commit), auto-detect, and the Import merge-vs-open distinction.
+         mkdocs build --strict must pass.
+
+WARM-UP (separate commit, before or after M20.1):
+  R1 from the M13 report: move ui/ReleaseNotes to a neutral package (it is
+  Swing-free but ui.* is imported on the headless bridge path). Keep
+  McpBridgeHeadlessTest green — it is the invariant that matters.
+
+CONSTRAINTS (from the spec — follow, don't re-decide):
+- Global and project sets are DISJOINT (the M15 whitelist is the boundary). The API
+  key can never be written to a profile — by construction, not by filtering twice.
+- Switch REPLACES the project set; Import (merge) stays additive. Never conflate.
+- No active project → behaviour is exactly today's app (full backward compat; the
+  global config's project-scoped values remain the "no project" defaults and are
+  restored on switching back to no-project).
+- Relative roots in a profile resolve against the profile file's directory (M19.2,
+  shipped — reuse it, don't reimplement).
+- Canonical profile path: <project>/.analyser/project.fluxtion-settings.
+
+PROCESS (per CLAUDE.md):
+- Every user-visible change: a line under [Unreleased] in CHANGELOG.md, same commit.
+- After each slice: mark the tracker item ☑.
+- Anonymisation sweep before any commit adding fixtures/examples.
+- M20.2/M20.3 are Swing — headless CI can't verify them. Build the jar and exercise
+  the flows by hand where you have a display; list what a human still needs to
+  eyeball in your report (last time's report §5 note is the model).
+- Report: what shipped, deviations (authorised, never silent), spec-vs-reality
+  mismatches (fix the spec too), open questions for the originating session.
