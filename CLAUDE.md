@@ -27,9 +27,10 @@ architecture, conventions). This file is only the rules that must never be skipp
 
 ## Current work
 
-`docs/specs/tracker.md` has the delivery order. Next up (independent tracks): **M13** MCP bridge
-(`docs/specs/spec-assistant-actions-mcp.md`) and **M18.0** admin-surface spike
-(`docs/specs/spec-closed-loop.md`). Two standing design decisions (tracker ▸ Decisions): server verbs
+`docs/specs/tracker.md` has the delivery order. **M13.1–13.4 (MCP bridge) shipped 2026-08-15.** Next up
+(independent tracks): the **M18.0** admin-surface spike (`docs/specs/spec-closed-loop.md`) and the
+**M19.1** playground bundle contract (`docs/specs/spec-onboarding-example.md`) — both cross-repo;
+analyser-side next is **M20.1** (project profiles, `docs/specs/spec-project-profiles.md`). Two standing design decisions (tracker ▸ Decisions): server verbs
 are **never** assistant actions; agent fixes arrive as **evidence-linked PRs**, never direct edits.
 
 ## Build & run
