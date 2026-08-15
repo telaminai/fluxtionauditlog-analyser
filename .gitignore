@@ -38,3 +38,7 @@ build/
 ### Mac OS ###
 .DS_Store
 # MkDocs docs site builds to target/docs-site (covered by the target/ ignore above)
+
+# JetBrains Junie local agent state
+.junie/
+!.junie/guidelines.md
