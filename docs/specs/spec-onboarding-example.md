@@ -105,6 +105,15 @@ Contract notes:
   semantic. _(Resolves O3.)_
 - The bundle README's analyser link is the **reverse funnel**: every playground download advertises
   the analyser, not just vice versa.
+- **Prefer a Spring-XML-defined example (O2 tiebreaker).** If the example is authored via the
+  **design IR** (the [build-with-ai](https://fluxtion-playground.dev/build-with-ai) Spring-authoring
+  contract), the bundle also ships its **design XML**, and two things follow: (a) tutorial part 4
+  gains a second edit variant — *change the design, regenerate, re-run* — so the ten-minute journey
+  demonstrates **all three IRs** (design → graph → record); (b) the bundle becomes a working example
+  of **design-to-execution provenance** (committed design XML → generated system → audit record), the
+  chain the regulated story will later sell. If the example is XML-defined, the bundle `CLAUDE.md`
+  (layer 1) also references the spring-authoring `contract.md`/`skill.md` so the IDE agent can edit at
+  the design level, not just the node level.
 - Version pinning: the bundle names the Mongoose version it was generated against (O3).
 
 ## Part 2 — analyser-side and docs-site work
@@ -170,6 +179,8 @@ grounded answer. Timed under 10 minutes by someone who isn't us.
   edit story.)
 - **O2** — which example: needs to be small enough to read, busy enough to graph (a periodic
   price-feed / order-flow toy that emits a few events per second — visible motion in Follow).
+  **Tiebreaker: prefer a Spring-XML-defined example** (§Contract notes) — same effort, and the
+  tutorial then demonstrates the design IR too.
 - ~~**O3** — version pinning / regeneration owner~~ **resolved**: bundles are generated at Download
   time, pinned to the playground's current Mongoose version; no pre-built artifacts, no cadence to own
   (§Contract notes).

@@ -134,7 +134,8 @@ analyser (reverse funnel)._
   the toy.
 - [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
   (import + open + Follow).
-- Open: O2 which example. _(O1: Maven project · O3: bundles generated at Download time, nothing to
+- Open: O2 which example — **tiebreaker: prefer Spring-XML-defined** (design-IR edit variant in the
+  tutorial + the design→graph→record provenance chain; spec §Contract notes). _(O1: Maven project · O3: bundles generated at Download time, nothing to
   regenerate · O4: committed as M19.2 — all resolved.)_
 
 ## M20 · Project profiles — global vs local settings — ☐ PROPOSED
