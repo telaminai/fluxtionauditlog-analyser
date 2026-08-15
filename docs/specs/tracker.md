@@ -115,7 +115,11 @@ analyser (reverse funnel)._
 - [M19.3] ☐ **Tutorial page** `docs/site/tutorial-playground.md` — four parts (run+import ·
   analyse/tail · assistant · edit-with-your-IDE's-AI) + the 8-screenshot set (spec §Part 2, anonymised
   per policy), nav under Getting started. **Publish-gated on the bundle shipping** (write against the
-  contract; publish only when Download delivers).
+  contract; publish only when Download delivers). **Two authoring notes:** (a) the pathway table names
+  the Support leg "run, observe, diagnose *and fix*" — but "fix" is M12/M18; keep the page copy honest
+  to what's shipped that week (don't promise fixing before M18 lands — the end-bridge already phases it
+  as "+ server link once M18 ships"). (b) In-page links must be **site-relative** (`producing-a-log.md`,
+  not the spec's `../site/producing-a-log.md`) or `mkdocs build --strict` fails the link-check.
 - [M19.4] ☐ **Cross-links** — getting-started step 2, producing-a-log, landing "Get going"; **and the
   tutorial's end-bridge**: a closing "Do this on your own system →" section linking producing-a-log
   (+ the server link once M18 ships) — the demo must hand off to the user's real adoption, not stop at
