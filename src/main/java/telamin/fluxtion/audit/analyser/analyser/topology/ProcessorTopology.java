@@ -232,11 +232,31 @@ public final class ProcessorTopology {
      * pointed the other way.
      */
     public Map<String, Execution> classifyCycle(Collection<String> loggedIds) {
+        return classifyCycle(loggedIds, null);
+    }
+
+    /**
+     * As {@link #classifyCycle(Collection)}, but told where the cycle <b>entered</b> the graph
+     * (see {@link EntryPointResolver}).
+     *
+     * <p>This matters for the case the log is worst at. A branch that executed but logged nothing at all
+     * is invisible to reasoning that starts from logged nodes — it comes out {@link Execution#OFF_PATH},
+     * which reads as "the event never went near it". Given the entry point, everything reachable from it
+     * is on the path dispatch <em>could</em> have taken, so those nodes are reported as
+     * {@link Execution#MAY_HAVE_RUN}: unknown, which is the truth, rather than excluded.
+     */
+    public Map<String, Execution> classifyCycle(Collection<String> loggedIds, Collection<String> entryIds) {
         Map<String, Execution> out = new LinkedHashMap<>();
         Set<String> logged = new LinkedHashSet<>();
         if (loggedIds != null) {
             for (String id : loggedIds) {
                 if (id != null && nodes.containsKey(id)) logged.add(id);
+            }
+        }
+        Set<String> entries = new LinkedHashSet<>();
+        if (entryIds != null) {
+            for (String id : entryIds) {
+                if (id != null && nodes.containsKey(id)) entries.add(id);
             }
         }
 
@@ -250,8 +270,24 @@ public final class ProcessorTopology {
             if (ran.add(only)) queue.add(only);
         }
 
-        Set<String> connected = reach(logged, false);
-        connected.addAll(reach(logged, true));
+        // The predicted path: everything dispatch could have reached from where the cycle came in.
+        // When it is known and consistent with the evidence it is AUTHORITATIVE — a node the event
+        // could not reach did not run, however it happens to be wired to something that logged.
+        Set<String> predicted = new LinkedHashSet<>(entries);
+        predicted.addAll(reach(entries, true));
+        boolean trustPredicted = !entries.isEmpty() && predicted.containsAll(logged);
+
+        Set<String> connected;
+        if (trustPredicted) {
+            connected = predicted;
+        } else {
+            // no entry point, or one that contradicts the log (a resolution miss, or a build mismatch) —
+            // fall back to reasoning outward from what actually logged
+            connected = reach(logged, false);
+            connected.addAll(reach(logged, true));
+            connected.addAll(predicted);
+        }
+
         for (String id : nodes.keySet()) {
             Execution state = logged.contains(id) ? Execution.LOGGED
                     : ran.contains(id) ? Execution.RAN_SILENTLY

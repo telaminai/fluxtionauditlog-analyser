@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.topology.EntryPointResolver;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
 import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
 import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
@@ -248,7 +249,10 @@ public final class TopologyPanel extends JPanel {
         cycle = record == null ? List.of() : record.nodeLogs();
         List<String> order = new ArrayList<>(cycle.size());
         for (NodeLog n : cycle) order.add(n.instanceId());
-        canvas.setDispatch(order);
+        List<String> entries = record == null ? List.of()
+                : List.copyOf(EntryPointResolver.resolve(
+                        canvas.topology(), record.event(), record.eventToString()));
+        canvas.setDispatch(order, entries);
         updateStepControls();
         if (record == null) {
             status.setText(hasTopology() && loadedFrom != null

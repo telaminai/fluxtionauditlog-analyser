@@ -6,11 +6,13 @@ the log implies about everything that stayed quiet.
 
 ![A cycle on the topology: nodes that logged are ringed and numbered in dispatch order; the rest are shaded by what the log supports](../assets/topology-step-through.png)
 
-*The graph above is a **synthetic illustration** — the node names come from the sample log, but the
-wiring is made up to show the states. Your own `.graphml` shows your processor's real dispatch order.*
 
-Eight nodes **logged** in this event, numbered 1–8 in dispatch order. The rest of the graph stays on
-screen, shaded by what the log actually supports — which is not the same as what ran.
+A `MarketDataEvent` arrived. Two nodes **logged** — `priceListener` ① and `quotePublisher` ② — and the
+rest of the graph is shaded by what the log actually supports, which is not the same as what ran.
+
+Look at `spreadCalculator`, sitting between them with a **dashed** outline. It certainly executed: the
+spread it computes is in `quotePublisher`'s log line. It simply writes no audit output of its own, so the
+log never mentions it. The order-handling branch is faded because a market-data event cannot reach it.
 
 !!! danger "No audit entry does not mean the node didn't run"
 

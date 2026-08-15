@@ -60,6 +60,8 @@ public final class TopologyCanvas extends JPanel {
     private List<String> dispatch = List.of();
     /** id → its first position in {@link #dispatch}, for the ordinal badge. */
     private java.util.Map<String, Integer> firedAt = java.util.Map.of();
+    /** Where this cycle entered the graph, if the record says. */
+    private List<String> entryPoints = List.of();
     /** id → what the log lets us claim about it this cycle. Empty when no record is shown. */
     private java.util.Map<String, ProcessorTopology.Execution> execution = java.util.Map.of();
     /** Index into {@link #dispatch}, or -1 for "the whole cycle at once". */
@@ -186,14 +188,23 @@ public final class TopologyCanvas extends JPanel {
      * run" from "not on this path" instead of implying the log is a complete record of execution.
      */
     public void setDispatch(List<String> dispatchOrder) {
+        setDispatch(dispatchOrder, List.of());
+    }
+
+    /**
+     * As {@link #setDispatch(List)}, plus where the cycle entered the graph — which lets a branch that
+     * executed while logging nothing show as unknown rather than as unrelated to the event.
+     */
+    public void setDispatch(List<String> dispatchOrder, List<String> entryPoints) {
         this.dispatch = dispatchOrder == null ? List.of() : List.copyOf(dispatchOrder);
+        this.entryPoints = entryPoints == null ? List.of() : List.copyOf(entryPoints);
         java.util.Map<String, Integer> ordinals = new java.util.LinkedHashMap<>();
         for (int i = 0; i < this.dispatch.size(); i++) {
             ordinals.putIfAbsent(this.dispatch.get(i), i);
         }
         this.firedAt = ordinals;
-        this.execution = this.dispatch.isEmpty()
-                ? java.util.Map.of() : topology.classifyCycle(this.dispatch);
+        this.execution = this.dispatch.isEmpty() && this.entryPoints.isEmpty()
+                ? java.util.Map.of() : topology.classifyCycle(this.dispatch, this.entryPoints);
         this.step = -1;
         repaint();
     }
