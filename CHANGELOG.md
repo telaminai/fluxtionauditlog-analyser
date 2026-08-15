@@ -15,6 +15,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   fired, numbered in dispatch order, with everything that didn't fire faded back. Walk the cycle node by
   node with ◀ ▶ to see what each one logged at that point. It follows the table's selection, so the
   record you're looking at everywhere else is the cycle you're stepping through.
+- **Act on a node from the graph** — right-click any node in the Topology tab to open its source, plot one
+  of its logged values, filter every view to records mentioning it, or copy its instance id. Double-click
+  jumps straight to the source. Plots land on the same graphs, and filtering uses the same search box, as
+  everywhere else in the app.
 
 ### Changed
 - JBang launches no longer print JVM native-access warnings — the catalog alias now passes

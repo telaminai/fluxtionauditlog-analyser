@@ -69,6 +69,7 @@ public final class TopologyCanvas extends JPanel {
 
     private Consumer<String> nodeSelected = id -> { };
     private Consumer<String> nodeActivated = id -> { };
+    private java.util.function.BiConsumer<String, java.awt.Point> contextMenu = (id, at) -> { };
 
     private record Point(int x, int y) { }
 
@@ -85,6 +86,7 @@ public final class TopologyCanvas extends JPanel {
                 dragOrigin = new Point(e.getX(), e.getY());
                 dragOffsetX = offsetX;
                 dragOffsetY = offsetY;
+                if (maybeShowMenu(e)) return;
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     TopologyLayout.NodeBox hit = boxAt(e.getX(), e.getY());
                     String id = hit == null ? null : hit.id();
@@ -109,6 +111,7 @@ public final class TopologyCanvas extends JPanel {
             public void mouseReleased(MouseEvent e) {
                 dragOrigin = null;
                 setCursor(Cursor.getDefaultCursor());
+                maybeShowMenu(e);   // popup trigger fires on press on some platforms, release on others
             }
 
             @Override
@@ -213,6 +216,21 @@ public final class TopologyCanvas extends JPanel {
     /** Called on double-click — the hook M21.5 hangs "go to source" on. */
     public void onNodeActivated(Consumer<String> listener) {
         this.nodeActivated = listener == null ? id -> { } : listener;
+    }
+
+    /** Called with the node id and the click point when a context menu is requested on a node. */
+    public void onNodeContextMenu(java.util.function.BiConsumer<String, java.awt.Point> listener) {
+        this.contextMenu = listener == null ? (id, at) -> { } : listener;
+    }
+
+    /** Selects the node under a popup-trigger click and asks for a menu. True if it handled the event. */
+    private boolean maybeShowMenu(MouseEvent e) {
+        if (!e.isPopupTrigger()) return false;
+        TopologyLayout.NodeBox hit = boxAt(e.getX(), e.getY());
+        if (hit == null) return false;
+        select(hit.id());
+        contextMenu.accept(hit.id(), e.getPoint());
+        return true;
     }
 
     public String selected() {

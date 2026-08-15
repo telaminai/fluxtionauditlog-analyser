@@ -184,7 +184,14 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   with that node's logged key/values on the status line. Bidirectional. **Driven by the table's existing
   selection** — one `topologyPanel.showRecord(focus)` in `onRowsSelected`, no second cursor, per the
   binding reuse constraint. Flags instanceIds absent from the loaded topology (build mismatch) inline.
-- [M21.5] ☐ **Cross-view wiring** — node → source · node → graph a key · node → filter/flag.
+- [M21.5] ☑ **Cross-view wiring** — right-click a node: **open source** (the same `openNodeSource` the
+  detail viewer uses), **graph a key** (the *same* `DetailPanel.GraphTargets` instance, now shared by both
+  panels rather than duplicated), **filter records to this node** (routed through the existing search
+  field so the box shows what is filtered and can be cleared normally), copy instance id; double-click →
+  source. Offered keys come from `KV.graphValue()`, so "graphable" means what it means everywhere else.
+  6 headless tests on the menu-population rules (panel constructed, never shown).
+  _Node → flag not done: flags are per-record and the index has no instanceId lookup, so "flag every
+  record where node X fired" needs index work — filter-to-node covers the same intent for now._
 - [M21.6] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
 - _M21.1–2 carry the risk and are pure logic — front-loaded deliberately, testable before a pixel exists._
 - Open: **O1** GraphML attribute shape (read the visualiser's parser) · **O2** logRecord sink/transport

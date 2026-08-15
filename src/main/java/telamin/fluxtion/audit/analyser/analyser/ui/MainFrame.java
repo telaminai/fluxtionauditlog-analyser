@@ -109,7 +109,9 @@ public final class MainFrame extends JFrame {
             if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
         });
         detailPanel.setExplainAction(this::explainSelection);
-        detailPanel.setGraphTargets(new DetailPanel.GraphTargets() {
+        // one GraphTargets, shared: the detail viewer and the topology plot through the same path, so a
+        // series added from either lands on the same graph in the same way (M21.5)
+        DetailPanel.GraphTargets graphTargets = new DetailPanel.GraphTargets() {
             @Override public String currentName() { return graphTabs.selectedGraphName(); }
             @Override public java.util.List<String> names() { return graphTabs.graphNames(); }
             @Override public void addSeries(String graphName, String instanceId, String key) {
@@ -117,7 +119,11 @@ public final class MainFrame extends JFrame {
                         new telamin.fluxtion.audit.analyser.analyser.graph.GraphKey(instanceId, key));
                 sideTabs.setSelectedComponent(graphTabs);   // show the plot the series landed on
             }
-        });
+        };
+        detailPanel.setGraphTargets(graphTargets);
+        topologyPanel.setGraphTargets(graphTargets);
+        topologyPanel.setInstanceSourceOpener(this::openNodeSource);
+        topologyPanel.setFilterAction(this::filterToInstance);
         tablePanel.setFlagTester(flaggedRows::contains);
         tablePanel.setFlagToggle(this::toggleFlags);
         tablePanel.setNoteProvider(flagNotes::get);
@@ -359,6 +365,19 @@ public final class MainFrame extends JFrame {
         JScrollPane sp = new JScrollPane(ta);
         sp.setPreferredSize(new Dimension(520, 320));
         JOptionPane.showMessageDialog(this, sp, "What's new in " + current, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Narrow every view to records mentioning {@code instanceId}, from the topology's node menu (M21.5).
+     * Routed through the existing search field rather than poking {@link FilterState} directly, so the
+     * filter box shows what is being filtered and the user can edit or clear it as usual — the same
+     * free-text scan, which is slow on a large log by nature.
+     */
+    private void filterToInstance(String instanceId) {
+        if (filter == null || instanceId == null) return;
+        searchField.setText(instanceId);
+        filter.setText(instanceId);
+        status.setText("Filtered to records mentioning " + instanceId + " — clear the search box to undo.");
     }
 
     private void openNodeSource(String instanceId, String method) {

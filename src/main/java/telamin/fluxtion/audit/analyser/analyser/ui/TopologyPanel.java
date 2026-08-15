@@ -12,6 +12,9 @@ import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JPanel;
 import javax.swing.JToolBar;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -44,6 +47,11 @@ public final class TopologyPanel extends JPanel {
 
     /** The nodeLogs of the record the table has selected — the cycle being stepped through. */
     private List<NodeLog> cycle = List.of();
+
+    // Collaborators, all of them things the app already does; the topology only routes to them (M21.5).
+    private java.util.function.BiConsumer<String, String> sourceOpener;
+    private DetailPanel.GraphTargets graphTargets;
+    private Consumer<String> filterAction;
 
     public TopologyPanel() {
         super(new BorderLayout());
@@ -83,6 +91,7 @@ public final class TopologyPanel extends JPanel {
 
         canvas.onNodeActivated(id -> nodeActivated.accept(id));
         canvas.onNodeSelected(this::describeSelection);
+        canvas.onNodeContextMenu(this::showNodeMenu);
     }
 
     private JButton button(String text, Runnable action) {
@@ -144,6 +153,88 @@ public final class TopologyPanel extends JPanel {
         if (!hasTopology()) return;
         ProcessorTopology.Match match = canvas.topology().match(logInstanceIds);
         status.setText((loadedFrom == null ? "" : loadedFrom.getFileName() + " — ") + match.describe());
+    }
+
+    // ---- cross-view wiring (M21.5) ----------------------------------------------------------------
+
+    /** {@code (instanceId, method)} → open that node's source. Same opener the detail viewer uses. */
+    public void setInstanceSourceOpener(java.util.function.BiConsumer<String, String> opener) {
+        this.sourceOpener = opener;
+        canvas.onNodeActivated(id -> openSource(id));   // double-click is the shortcut for the menu item
+    }
+
+    /** The same {@link DetailPanel.GraphTargets} the detail viewer plots through — not a second path. */
+    public void setGraphTargets(DetailPanel.GraphTargets targets) {
+        this.graphTargets = targets;
+    }
+
+    /** Narrow the shared filter to a node — routed through the app's existing text filter. */
+    public void setFilterAction(Consumer<String> action) {
+        this.filterAction = action;
+    }
+
+    private void openSource(String instanceId) {
+        if (sourceOpener != null) sourceOpener.accept(instanceId, null);
+    }
+
+    /**
+     * The node menu. Every item hands off to something that already exists — source navigation, the
+     * graph tabs, the shared filter — so the topology adds routes, not parallel implementations.
+     */
+    private void showNodeMenu(String instanceId, java.awt.Point at) {
+        JPopupMenu menu = new JPopupMenu();
+
+        JMenuItem source = new JMenuItem("Open source");
+        source.setEnabled(sourceOpener != null);
+        source.addActionListener(e -> openSource(instanceId));
+        menu.add(source);
+
+        List<KV> graphable = graphableEntries(instanceId);
+        JMenu graph = new JMenu("Graph");
+        graph.setEnabled(graphTargets != null && !graphable.isEmpty());
+        for (KV kv : graphable) {
+            JMenuItem item = new JMenuItem(kv.key() + "  (" + kv.rawValue() + ")");
+            item.addActionListener(e -> graphTargets.addSeries(null, instanceId, kv.key()));
+            graph.add(item);
+        }
+        if (graphable.isEmpty()) {
+            JMenuItem none = new JMenuItem(cycle.isEmpty()
+                    ? "select a record first" : "no numeric values in this cycle");
+            none.setEnabled(false);
+            graph.add(none);
+        }
+        menu.add(graph);
+
+        JMenuItem filter = new JMenuItem("Filter records to this node");
+        filter.setEnabled(filterAction != null);
+        filter.addActionListener(e -> filterAction.accept(instanceId));
+        menu.add(filter);
+
+        menu.addSeparator();
+        JMenuItem copy = new JMenuItem("Copy instance id");
+        copy.addActionListener(e -> java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
+                .setContents(new java.awt.datatransfer.StringSelection(instanceId), null));
+        menu.add(copy);
+
+        menu.show(canvas, at.x, at.y);
+    }
+
+    /**
+     * The keys of this node worth plotting, taken from the cycle on screen. Graphable means what it means
+     * everywhere else in the app — {@link KV#graphValue()} decides, so a number buried in a
+     * {@code toString()} is text here too.
+     */
+    List<KV> graphableEntries(String instanceId) {
+        List<KV> out = new ArrayList<>();
+        for (NodeLog node : cycle) {
+            if (!node.instanceId().equals(instanceId)) continue;
+            for (KV kv : node.entries()) {
+                if (kv.graphValue().isPresent() && out.stream().noneMatch(k -> k.key().equals(kv.key()))) {
+                    out.add(kv);
+                }
+            }
+        }
+        return out;
     }
 
     // ---- step-through (M21.4) ---------------------------------------------------------------------
