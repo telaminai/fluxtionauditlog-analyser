@@ -223,10 +223,12 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   6 headless tests on the menu-population rules (panel constructed, never shown).
   _Node → flag not done: flags are per-record and the index has no instanceId lookup, so "flag every
   record where node X fired" needs index work — filter-to-node covers the same intent for now._
-- [M21.6] ☐ **Docs — the Topology tab** _(review F1; **before the next release**)_ — user-guide page/section
-  + an anonymised screenshot, nav entry, and cross-links from graphs/records pages. The changelog already
-  announces topology + step-through, so a release now would point users at an undocumented feature.
-  `mkdocs build --strict` must pass.
+- [M21.6] ☑ **Docs — the Topology tab** _(review F1)_ — `user-guide/topology.md`: reading the graph,
+  opening a `.graphml`, the **build-mismatch warning**, stepping a cycle, node right-click actions, and
+  why the offline case is the one this tab is for. Nav entry + cross-links from graphs / records /
+  user-guide index. Screenshot is a **real render** of the canvas over `sample.yml` against a new
+  anonymised `demo-marketmaker.graphml` fixture — and a test pins that fixture to the sample log, so the
+  page can't quietly start depicting a mismatch. `mkdocs build --strict` green. **Release gate cleared.**
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
 - [M21.8] ☐ _(later)_ **node → flag** — "flag every record where node X fired" needs an `instanceId`
   lookup in `LogIndex`; flags are per-record and no such index exists, so M21.5 shipped filter-to-node

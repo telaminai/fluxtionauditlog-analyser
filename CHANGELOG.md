@@ -49,6 +49,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   dispatches the docs deploy (the changelog-stamp push alone never triggered it).
 
 ### Docs
+- User guide: **Topology & step-through** — reading the processor graph, opening a `.graphml`, stepping
+  through a cycle, and the node right-click actions. Includes the build-mismatch warning and why the
+  offline case is the one this tab is for.
 - Assistant guide: **"Connect an MCP client"** — copy-paste config for Claude Code, Claude Desktop and
   Codex, a worked session transcript, how the bridge finds your running analyser, troubleshooting, and
   exactly what an MCP agent can and cannot reach. Spells out that **your client does not launch the

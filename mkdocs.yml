@@ -96,6 +96,7 @@ nav:
       - user-guide/index.md
       - Records, detail & filtering: user-guide/records-and-filtering.md
       - Graphs: user-guide/graphs.md
+      - Topology & step-through: user-guide/topology.md
       - Analyser assistant: user-guide/assistant.md
       - Source navigation: user-guide/source-navigation.md
       - Sharing setups: user-guide/sharing-setups.md

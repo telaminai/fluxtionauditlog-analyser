@@ -41,3 +41,6 @@ askMakerOrder.price − bidMakerOrder.price
 
 Saved graphs (names, series, formulas and pins) persist in your profile and reopen with the next log —
 and can be shared, see [Sharing setups](sharing-setups.md).
+
+A series can also be started from the graph of the processor itself — right-click a node in
+[Topology & step-through](topology.md) and pick one of the values it logged.

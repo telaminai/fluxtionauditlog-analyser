@@ -12,6 +12,7 @@ New here? Start with **[Getting started](../getting-started.md)**.
 - [Records, detail & filtering](records-and-filtering.md) — the core lenses: the records table, the
   detail viewer, search, the shared filter, summary and diff.
 - [Graphs](graphs.md) — plot node values and formulas over time.
+- [Topology & step-through](topology.md) — the processor's node graph, and which nodes fired in a cycle.
 - [Assistant](assistant.md) — explain records, and let the assistant drive the analyser.
 - [Source navigation](source-navigation.md) — jump from a log line to the code.
 - [Sharing setups](sharing-setups.md) — export/import your whole configuration.

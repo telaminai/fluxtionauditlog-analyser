@@ -107,3 +107,6 @@ A header reports the total **difference count**, and you can **export** the whol
 
 This is how you catch what moved between two cycles — e.g. a price, a quote id or an order state that
 changed one propagation to the next — without eyeballing two raw blocks of `nodeLogs`.
+
+Selecting a record also drives [Topology & step-through](topology.md): the nodes that fired in that
+cycle light up on the processor graph, in dispatch order.
