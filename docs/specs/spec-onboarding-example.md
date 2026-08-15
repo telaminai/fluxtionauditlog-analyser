@@ -53,7 +53,25 @@ The Download bundle MUST contain:
 | **`analyser-settings.fluxtion-settings`** — relative source roots + EP FQN | File ▸ Import = zero-setup (M15) |
 | **`README.md`** — run command, the log path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser |
 | **admin REST enabled** (`serverplugin-rest` on a known localhost port, named in the README and the settings file) | the example doubles as **M18's validation bench** (below) |
-| **agent bootstrap — `CLAUDE.md` (+ `AGENTS.md` mirror)** seeded with the **Fluxtion authoring prompt** (canonical text maintained with the fluxtion-compiler LLM-authoring guidance): the dataflow model, how to edit nodes/flows, the rebuild/re-run command, where the audit log lands, and how to read the analyser's endpoint file for query-back | the user opens the project in their IDE and **their own LLM already knows Fluxtion** — the edit loop needs zero prompting |
+| **agent bootstrap — `CLAUDE.md` (+ `AGENTS.md` mirror), layered** (see below) | the user opens the project in their IDE and **their own LLM already knows Fluxtion** — the edit loop needs zero prompting |
+
+**The agent-bootstrap prompt stack — embed a snapshot, reference the canon.** Hosted canonicals
+already exist and are maintained: <https://fluxtion-playground.dev/CLAUDE.md>,
+<https://fluxtion-playground.dev/fluxtion-golden-path.md>, and the framework canon **`claude.txt`**
+(<https://github.com/telaminai/fluxtion/blob/main/docs/claude.txt> — raw:
+`https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt`; the golden path itself
+defers to it on framework semantics). The bundle layers them:
+
+1. **`CLAUDE.md` (thin, example-specific, written at generation)** — this example's flow, the run
+   command, the audit-log path, the admin port, "the analyser's endpoint file for query-back" — plus
+   an instruction to read layer 2.
+2. **Embedded snapshot** of the Fluxtion authoring guidance (`claude.txt` + the golden path's
+   non-playground sections — the CheerpJ/portability material is playground-flavoured and wrong for a
+   standalone Maven project), **snapshotted at bundle-generation time** so it matches the Mongoose
+   version the pom pins. Rationale: agents reliably load local files, not URLs (offline/sandboxed
+   agents can't fetch), and "always current" hosted text can describe APIs newer than the bundle.
+3. **One canonical-reference line** — the hosted URLs above, labelled "canonical, possibly newer" — so
+   connected agents can refresh and humans can browse.
 
 Contract notes:
 - Paths in the settings file are **bundle-relative** (`~`-relative won't survive; M15 import already
