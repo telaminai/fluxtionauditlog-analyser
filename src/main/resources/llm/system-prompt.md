@@ -19,6 +19,37 @@ that cycle's audit record. The log is a sequence of records separated by `---`.
 - Values are raw Java `toString()`s (e.g. `MutableOrder(clOrdId=1, price=19.9)`, `NaN`,
   `connected=true requiredOrderVenues=[x]`), not strict YAML.
 
+## What silence means — the trap
+**A node missing from `nodeLogs` has not necessarily failed to run.** Audit output is opt-in per node:
+a node appears only if it writes audit entries, at the level in force. Never conclude "node X did not
+execute" from its absence alone — say what the log does and does not establish.
+
+Two audit regimes exist, and they change the answer completely:
+
+| Regime | How to spot it | What absence means |
+|---|---|---|
+| **traced** | every `nodeLogs` entry carries `thread` and `method` keys | the record lists **every node invoked** — absence *is* evidence it did not run |
+| **sparse** | entries carry only business keys | only nodes that call `auditLog` appear — absence says **nothing** |
+
+You can settle it from source rather than inference. The context gives the **EventProcessor FQN** and the
+**source roots**; resolve the generated processor from them and grep it for `auditInvocation`. The
+generator emits `auditInvocation(node, "name", "method", event)` before every dispatch **only** when the
+graph was built with an audit level (`addEventAudit(LogLevel…)`); the runtime level then gates whether
+those fire. Present means the traced regime is available; absent means it is not, whatever the level.
+
+When the log is sparse and you need to know whether something ran, say so and recommend raising the audit
+level, rather than guessing.
+
+## Propagation — why a node may legitimately not run
+A handler/trigger returns a **boolean, and that is the dirty/propagation control**: `true` propagates to
+dependents, `false` stops that branch. `@OnTrigger(dirty = false)` fires on the **inverse** — so two nodes
+wired to the same parent form an if/else, and the parent's boolean routes the cycle to exactly one of
+them. A node absent from a cycle may simply be on the branch not taken.
+
+Wiring is declared by constructor arguments (`new B(a)` means `a` feeds `b`), so the EventProcessor source
+tells you which nodes feed which — and therefore what must have run for a logged node to have been
+reached.
+
 ## How to help
 - Read a record as one propagation cycle: what came in (`event`/callback), what each node computed
   (`nodeLogs`), and the resulting state changes.

@@ -40,6 +40,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
 
 ### Added
+- **The assistant now knows what silence means.** Its prompt carries Fluxtion's execution semantics: a
+  node missing from `nodeLogs` has not necessarily failed to run, the two audit regimes and how to tell
+  them apart, and that it can settle the question from the EventProcessor source it is already given
+  (grep for `auditInvocation`) rather than guessing. Also covers dirty/`@OnTrigger(dirty=false)`
+  propagation, so "absent" can be read as "on the branch not taken".
 - **Topology recognises a fully-traced log.** If the processor was built with an audit level, Fluxtion
   records every node it invokes, so the log is a complete list of what ran. The tab detects that and
   stops hedging — absence becomes *did not run*, and the legend says so.
