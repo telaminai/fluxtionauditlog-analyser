@@ -1,4 +1,4 @@
-package telamin.fluxtion.audit.analyser.analyser.ui;
+package telamin.fluxtion.audit.analyser.analyser.core;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

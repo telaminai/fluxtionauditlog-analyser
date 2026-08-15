@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.config.ConfigStore;
 import telamin.fluxtion.audit.analyser.analyser.core.Background;
+import telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes;
 import telamin.fluxtion.audit.analyser.analyser.export.RecordExporter;
 import telamin.fluxtion.audit.analyser.analyser.filter.FilterState;
 import telamin.fluxtion.audit.analyser.analyser.index.LogIndex;

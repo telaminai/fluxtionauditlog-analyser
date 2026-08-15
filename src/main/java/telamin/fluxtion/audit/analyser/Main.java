@@ -4,7 +4,7 @@ import telamin.fluxtion.audit.analyser.analyser.config.ConfigStore;
 import telamin.fluxtion.audit.analyser.analyser.ui.AppImages;
 import telamin.fluxtion.audit.analyser.analyser.ui.ExceptionHandling;
 import telamin.fluxtion.audit.analyser.analyser.ui.MainFrame;
-import telamin.fluxtion.audit.analyser.analyser.ui.ReleaseNotes;
+import telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes;
 import telamin.fluxtion.audit.analyser.analyser.ui.SplashScreen;
 import telamin.fluxtion.audit.analyser.analyser.ui.ThemeManager;
 
