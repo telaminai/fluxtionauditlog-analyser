@@ -105,8 +105,11 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
   approval.
 - Open questions: **O1 admin endpoint surface — RESOLVED by M18.0** (audit level + log discovery served;
   only lifecycle gapped — see [spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md)) ·
-  **O2** multi-processor servers (list from `/api/services`; audit endpoints are already per-processor,
-  so this is largely answered too) · **O3** admin auth beyond localhost — **now concrete**: `svc-admin-web`
+  **O2** multi-processor servers — **largely answered**, and a terminology fix: **event processors**
+  (the DataFlow graphs that emit `nodeLogs`) are *not* **services** (environmental deps Mongoose manages —
+  DB, Kafka). Processors come from `server.processors.list` / `/api/processors/{group}/{name}/…`, and the
+  audit + level + graphml routes are already per-processor. `/api/services` enumerates something else
+  entirely, and `/api/services/{name}/config` says nothing about the audit sink. · **O3** admin auth beyond localhost — **now concrete**: `svc-admin-web`
   has `POST /api/session/login` and `authMode` may not be `NONE`, so M18.1 needs auth from day one.
   · **O5 (NEW, gating) positioning vs the server's own audit viewer** — see Open questions below.
   _(O4 gitignore: resolved — the analyser writes it.)_
@@ -153,10 +156,14 @@ web-admin sees one live server whose log may vanish; the analyser works on **man
 server at all**, which is production support. So the view belongs where the logs land. Wired into the
 index, filter, table, value graphs and click-to-source — the cross-view coupling a per-server web tab
 structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Decisions)._
-- [M21.1] ☐ **GraphML parse + model** — `ProcessorTopology` from GraphML; resolve via source roots like
-  source already is; **pair-check against the log's `instanceId` set** and surface a partial match (a
-  topology from a different build misleads silently). Pure logic, headless. **Read
-  `fluxtion-visualiser`'s Java `GraphMlTopologyParser` first** — likely liftable, certainly the reference.
+- [M21.1] ☑ **GraphML parse + model** — `topology/GraphMlParser` + `ProcessorTopology` (nodes with
+  `instanceId`/class/`Kind`, directed edges, parents/children, roots) and `Match` — the **pair-check**
+  against the log's `instanceId` set, distinguishing *a node that never fired* from *a topology from a
+  different build*. Lifted from `fluxtion-visualiser`'s Java `GraphMlTopologyParser` (our code): same
+  document shape and label conventions, IntelliJ logger dropped, model widened for rendering. Lenient
+  like the log parser; XXE refused (a `.graphml` can arrive from a shared store). 24 tests, plus
+  validation against three real emitted graphs (69/16/**300** nodes). _Resolution via source roots is
+  M21.3's UI work — the parser takes text or a Path today._
 - [M21.2] ☐ **Layered layout** — Sugiyama: layer assignment → crossing reduction (median) → coordinates →
   edge routing, emitting plain geometry. Pure logic, headless (assert layering, crossing counts,
   determinism). ~600–800 lines; ELK is the fallback, not the opening move.

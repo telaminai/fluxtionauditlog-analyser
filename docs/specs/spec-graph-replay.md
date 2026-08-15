@@ -112,7 +112,45 @@ selection → topology; node click → filter/flag/graph that node's keys; node 
 Slices 1–2 carry the risk and are pure logic, so they are testable before a pixel is drawn — deliberately
 front-loaded.
 
-## 6. Open questions
+## 6. Capability union — what to match
+
+Inventory of what `fluxtion-visualiser`'s webapp and `svc-admin-web` actually ship, so M21 aims at the
+union rather than rediscovering it. Both use the **same engines** — web-admin ports
+`replay-engine.js`, `eventlog-parser.js`, `cytoscape-renderer.js` and `graph-parser.js` from the
+visualiser — so this is one feature set with two front-ends.
+
+| Capability | Where | Notes for M21 |
+|---|---|---|
+| GraphML → graph model | `graph-parser.js`, Java `GraphMlTopologyParser` | **M21.1 — done**, lifted from the Java parser |
+| Layered layout | `cytoscape-dagre` + `dagre` | **dagre is Sugiyama layered layout** — confirms M21.2's approach; ELK is its pure-Java equivalent |
+| Zoom in/out/**fit** | `cytoscape-renderer.js` | fit-to-view matters more than free zoom; add zoom-to-selection |
+| Pan | ditto | drag + keyboard nudge |
+| Select / highlight | ditto | selection must be shared with the table, not local to the panel |
+| **Step: record ↔ record** | `replay-engine.js` (`nextRecord`/`prevRecord`) | maps to the analyser's existing row navigation — reuse it, don't duplicate |
+| **Step: node ↔ node within a cycle** | `nextStep`/`prevStep`, `stepIndex` | the distinctive one — walks dispatch order inside one event |
+| **Play / pause auto-advance** | `play`, `pause`, `playTimer` | a timed walk through events; pairs naturally with Follow mode |
+| Filter by node kind | `filterByNodeKind` | our `Kind` enum already carries this |
+| Filter by package | `filterByPackage` | needs `className`, which M21.1 parses |
+| Search nodes | `searchNodes` | fold into the app's existing search rather than a second box |
+| Breadcrumb trail | `breadcrumb.js` | navigation history through the graph |
+| **Diff two replays** | `diff-engine.js`, `diff-replay-engine.js`, `diff.js` | the analyser **already has record diff** (`DiffBuilder`) — the win is showing an existing diff *on the topology* |
+| Export graph | `export-graph.js` | the analyser already exports graphs/records; extend rather than invent |
+| Live replay | `live-replay-client.js`, `WS /ws/audit-tail` | server-dependent → M21.6/M18, not the offline core |
+| Theming | `theme.js` | ours comes free from `ThemeManager`/`UiTheme` |
+
+**Read as a plan, with a caveat.** Several rows already exist in the analyser in a *better* form because
+they are wired to the index and the shared filter (record stepping, search, diff, export, theming). For
+those the work is **connecting the topology to what exists**, not porting a second implementation. The
+genuinely new capabilities are: layered layout, the topology canvas, within-cycle node stepping, and
+play/pause.
+
+> **Guard against feature-parity drift.** The analyser's advantage is coupling — topology ↔ index ↔
+> filter ↔ source ↔ assistant — not matching a web tab feature for feature. Judge each candidate by
+> whether it serves *offline forensics across many logs*, which is the job web-admin structurally cannot
+> do. Don't inherit web-admin's roadmap; server-shaped features (live tail, capture control, audit level)
+> belong to M18 and stay optional.
+
+## 7. Open questions
 
 - **O1 — GraphML shape.** Fluxtion's emitted GraphML has not been inspected here. `fluxtion-visualiser`
   already ships a Java `GraphMlTopologyParser` (`com.telamin.fluxtion.visualiser.llm`) — **read it before

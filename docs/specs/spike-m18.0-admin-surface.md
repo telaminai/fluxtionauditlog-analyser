@@ -32,15 +32,23 @@ intended test bench — the M19 example bundle — does not exist yet. Treat the
 | Area | Endpoints |
 |---|---|
 | identity / health | `GET /api/server` · `/api/version` · `/api/jvm` · `/healthz` · `WS /ws/monitor` |
-| inventory | `GET /api/services` · `/api/agents` · `/api/queues` · `/api/pipes` · `/api/config` |
+| environmental services | `GET /api/services` · `/api/services/{name}/config` · `/api/agents` · `/api/queues` · `/api/pipes` · `/api/config` |
 | **audit files** | `GET /api/audit/files` · `/api/audit/file/{id}` · `/{id}/metadata` · **`/{id}/export`** |
 | **audit capture** | `POST /api/audit/{processor}/start` · `/stop` · **`WS /ws/audit-tail/{processor}`** |
 | **audit level** | **`POST /api/processors/{group}/{name}/audit/level`** |
-| processor internals | `GET /api/processors/{group}/{name}/graphml` · `/compliance` |
+| **event-processor internals** | `GET /api/processors/{group}/{name}/graphml` · `/compliance` |
 | source | `GET /api/source?fqn=<FQN>` |
 | generic commands | `GET /api/commands` · `POST /api/commands/{name}` |
 | session | `POST /api/session/login` · `/logout` |
 | misc | `GET /api/files` · `POST /api/loader/upload` |
+
+> **Event processors ≠ services** — and the older spec text conflates them. **Event processors** are the
+> DataFlow graphs whose dispatch produces the `nodeLogs` the analyser reads; they are enumerated by
+> `server.processors.list` and addressed as `/api/processors/{group}/{name}/…`. **Services** are the
+> environmental dependencies Mongoose manages — a DB connection, a Kafka client — enumerated by
+> `/api/services`. Everything M18 cares about (audit files, audit level, the topology) hangs off
+> **processors**. Corollary: `/api/services/{name}/config` is a Kafka/DB service's config and will
+> **not** tell you anything about the audit sink.
 
 ## 3. The three gaps, answered
 
