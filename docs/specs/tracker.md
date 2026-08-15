@@ -92,6 +92,26 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
 - Open questions: **O1** admin endpoint surface — resolved by **M18.0** · **O2** multi-processor
   servers · **O3** admin auth beyond localhost. _(O4 gitignore: resolved — the analyser writes it.)_
 
+## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
+_Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
+ships a runnable Mongoose example with audit logging pre-enabled (file sink at a predictable path),
+bundled source, and an `analyser-settings.fluxtion-settings` — so onboarding becomes: download → run →
+jbang the analyser → **File ▸ Import** → Follow a live log with click-to-source and Explain working.
+Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README links back to the
+analyser (reverse funnel)._
+- [M19.1] ☐ **Bundle contract (playground-side)** — audit-enabled example + generated/EP source +
+  settings file + README with run command and analyser link; tracked in the playground repo, contract
+  recorded in the spec.
+- [M19.2] ☐ **Verify M15 import with bundle-relative roots** (spec O4) — small analyser fix if import
+  only handles absolute/`~`-relative paths.
+- [M19.3] ☐ **Tutorial page** `docs/site/tutorial-playground.md` (5 steps + screenshots), nav under
+  Getting started.
+- [M19.4] ☐ **Cross-links** — getting-started step 2, producing-a-log, landing "Get going".
+- [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
+  (import + open + Follow).
+- Open: O1 bundle form (leaning Maven project — edit-rerun is the point) · O2 which example ·
+  O3 version pinning.
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
@@ -125,7 +145,9 @@ already-shipped REST + brief file, so neither blocks the other; run them in para
    (spec-closed-loop §B.7), the demo that sells the platform.
 5. **M12.1 / M12.2** (export_finding structure; replay-test fixture) — upgrades the brief's
    acceptance from prose to a red test. Journal↔log pairing is the precondition to resolve first.
-6. **M11** stays vision until a real Grafana consumer appears.
+6. **M19** (onboarding example) — mostly docs + playground-side; M19.1's bundle contract can proceed
+   in parallel with anything above; highest funnel value per effort after launch.
+7. **M11** stays vision until a real Grafana consumer appears.
 
 ## Decisions (resolved)
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.
