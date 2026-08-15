@@ -164,9 +164,14 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   like the log parser; XXE refused (a `.graphml` can arrive from a shared store). 24 tests, plus
   validation against three real emitted graphs (69/16/**300** nodes). _Resolution via source roots is
   M21.3's UI work — the parser takes text or a Path today._
-- [M21.2] ☐ **Layered layout** — Sugiyama: layer assignment → crossing reduction (median) → coordinates →
-  edge routing, emitting plain geometry. Pure logic, headless (assert layering, crossing counts,
-  determinism). ~600–800 lines; ELK is the fallback, not the opening move.
+- [M21.2] ☑ **Layered layout** — `LayeredLayout` (Sugiyama): break cycles → longest-path layering →
+  dummy bend points → median sweeps + adjacent-exchange crossing reduction → median coordinate
+  assignment → routed polylines, emitting `TopologyLayout` (plain geometry, no Swing). Deterministic by
+  construction. 22 tests on **invariants** (every edge points downward, no overlap, same graph lays out
+  identically) rather than coordinates. **Two bugs only the real 300-node graph exposed** — an
+  intransitive comparator that made TimSort throw, and bend points consuming a full node's width
+  (135661px canvas). Both fixed and regression-tested; layout went 2000ms → **13ms** at 300 nodes.
+  Real graphs: 69 nodes → 8 layers, 5924×888. ELK not needed.
 - [M21.3] ☐ **Topology panel** — Java2D render of M21.2's geometry; theme-aware, pan/zoom, hover, select.
   Verify by running the jar.
 - [M21.4] ☐ **Step-through** — record → fired nodes highlighted **in dispatch order**; step node-by-node

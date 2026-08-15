@@ -144,11 +144,27 @@ those the work is **connecting the topology to what exists**, not porting a seco
 genuinely new capabilities are: layered layout, the topology canvas, within-cycle node stepping, and
 play/pause.
 
-> **Guard against feature-parity drift.** The analyser's advantage is coupling — topology ↔ index ↔
-> filter ↔ source ↔ assistant — not matching a web tab feature for feature. Judge each candidate by
-> whether it serves *offline forensics across many logs*, which is the job web-admin structurally cannot
-> do. Don't inherit web-admin's roadmap; server-shaped features (live tail, capture control, audit level)
-> belong to M18 and stay optional.
+> **Guard against feature-parity drift — this is a constraint, not a preference (agreed 2026-08-15).**
+> The analyser's advantage is coupling — topology ↔ index ↔ filter ↔ source ↔ assistant — not matching a
+> web tab feature for feature. Judge each candidate by whether it serves *offline forensics across many
+> logs*, which is the job web-admin structurally cannot do. Don't inherit web-admin's roadmap;
+> server-shaped features (live tail, capture control, audit level) belong to M18 and stay optional.
+>
+> **Binding on M21.4/M21.5: connect, don't re-implement.** Where the analyser already has a capability,
+> the topology wires into it — no second implementation, no parallel state:
+>
+> | Need | Existing thing to wire into |
+> |---|---|
+> | record ↔ record stepping | the table's selection + row navigation |
+> | scoping the sequence | `FilterState` (the shared time range + dimensions) |
+> | node → source | `SourceService` / `SourceNavigation` |
+> | node → plot a key | the existing graph tabs and `GraphSpec` |
+> | comparing two cycles | `DiffBuilder` — show the *existing* diff on the topology |
+> | export | the existing CSV/YAML export |
+> | light/dark | `ThemeManager` / `UiTheme` |
+>
+> A new "replay cursor" that is not the table's selection would be the failure this table exists to
+> prevent: two sources of truth for "which record are we on".
 
 ## 7. Open questions
 
