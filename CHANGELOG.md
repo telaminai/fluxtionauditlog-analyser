@@ -39,6 +39,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - JBang launches no longer print JVM native-access warnings — the catalog alias now passes
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
 
+### Added
+- **Topology recognises a fully-traced log.** If the processor was built with an audit level, Fluxtion
+  records every node it invokes, so the log is a complete list of what ran. The tab detects that and
+  stops hedging — absence becomes *did not run*, and the legend says so.
+
 ### Fixed
 - **Topology: a node with no audit entry is no longer shown as if it didn't run.** Nodes log only if they
   write audit output, at the level in force, so silence is not absence of execution. The tab now

@@ -21,6 +21,7 @@ import java.nio.file.StandardCopyOption;
 public final class GenerateFixtures {
 
     private static final String PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor";
+    private static final String TRACED_PROCESSOR = "com.acme.demo.generated.DemoQuoteTracedProcessor";
 
     /** Where the analyser keeps the fixtures, relative to this module. */
     private static final Path FIXTURES = Path.of("../../src/test/resources/topology");
@@ -32,17 +33,26 @@ public final class GenerateFixtures {
     private static final long FIXED_START_MILLIS = 1_767_258_000_000L;
 
     public static void main(String[] args) throws Exception {
+        write(PROCESSOR, EventLogControlEvent.LogLevel.INFO, "demo-quote-audit.yaml");
+        // the same graph with node-invocation tracing compiled in: every node that runs appears
+        write(TRACED_PROCESSOR, EventLogControlEvent.LogLevel.TRACE, "demo-quote-audit-traced.yaml");
+        copyGraphMlIfPresent();
+        System.out.println("fixtures written to " + FIXTURES.toAbsolutePath().normalize());
+    }
+
+    private static void write(String processorClass, EventLogControlEvent.LogLevel level, String file)
+            throws Exception {
         StringBuilder log = new StringBuilder();
         // Loaded reflectively, as the golden path does: this class then has no compile-time dependency
         // on generated source, so the module compiles before the processor has been generated.
-        DataFlow processor = (DataFlow) Class.forName(PROCESSOR)
+        DataFlow processor = (DataFlow) Class.forName(processorClass)
                 .getDeclaredConstructor().newInstance();
         processor.init();
         // Pin the clock, or every run rewrites the fixture with new timestamps and a real change is
         // lost in the diff noise.
         long[] tick = {FIXED_START_MILLIS};
         processor.onEvent(ClockStrategy.registerClockEvent(() -> tick[0] += 10));
-        processor.setAuditLogLevel(EventLogControlEvent.LogLevel.INFO);
+        processor.setAuditLogLevel(level);
         processor.setAuditLogProcessor(record -> append(log, record.toString()));
 
         processor.onEvent(new Events.MarketDataEvent("DEMO-A", 100.10, 100.30));
@@ -52,9 +62,7 @@ public final class GenerateFixtures {
         processor.onEvent(new Events.MarketDataEvent("DEMO-B", 55.01, 55.09));
 
         Files.createDirectories(FIXTURES);
-        Files.writeString(FIXTURES.resolve("demo-quote-audit.yaml"), log.toString());
-        copyGraphMlIfPresent();
-        System.out.println("fixtures written to " + FIXTURES.toAbsolutePath().normalize());
+        Files.writeString(FIXTURES.resolve(file), log.toString());
     }
 
     /**

@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace;
 import telamin.fluxtion.audit.analyser.analyser.topology.EntryPointResolver;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
 import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
@@ -252,7 +253,8 @@ public final class TopologyPanel extends JPanel {
         List<String> entries = record == null ? List.of()
                 : List.copyOf(EntryPointResolver.resolve(
                         canvas.topology(), record.event(), record.eventToString()));
-        canvas.setDispatch(order, entries);
+        canvas.setDispatch(order, entries,
+                record != null && AuditTrace.tracesEveryInvocation(record.nodeLogs()));
         updateStepControls();
         if (record == null) {
             status.setText(hasTopology() && loadedFrom != null
@@ -260,7 +262,8 @@ public final class TopologyPanel extends JPanel {
             return;
         }
         long unknown = order.stream().filter(id -> !canvas.topology().contains(id)).distinct().count();
-        status.setText(describeEvent(record) + " — " + order.size() + " node(s) logged"
+        status.setText(describeEvent(record) + " — " + order.size()
+                       + (AuditTrace.tracesEveryInvocation(record.nodeLogs()) ? " node(s) ran" : " node(s) logged")
                        + (unknown > 0 && hasTopology()
                                ? "  ·  " + unknown + " not in this topology (different build?)" : ""));
     }

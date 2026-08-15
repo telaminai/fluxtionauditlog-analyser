@@ -35,6 +35,18 @@ log never mentions it. The order-handling branch is faded because a market-data 
     event dispatch at all — a startup callback, say — makes no such claim, because nothing upstream ran
     to cause it.
 
+!!! tip "Turn the guesswork off: build with node-invocation tracing"
+
+    If the processor is built with an audit **level** — `cfg.addEventAudit(LogLevel.TRACE)` — Fluxtion
+    emits an `auditInvocation(...)` call before every node it invokes, so **every node that runs logs a
+    `method` entry** whether or not it makes `auditLog` calls of its own. The runtime level then gates
+    whether those fire, so you can raise it on a live processor to get the detail.
+
+    The analyser detects such a record and stops hedging: the log is now a complete list of what ran, so
+    a node's absence is **proof it did not run**, and the legend changes to say exactly that. All the
+    "may have run" shading above exists because most production logs aren't traced — not because the
+    distinction is unknowable.
+
 ## Open a topology
 
 Fluxtion emits a `.graphml` for the processor when it builds. In the Topology tab, **Open .graphml…** and

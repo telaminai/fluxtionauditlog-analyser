@@ -39,8 +39,16 @@ class RealProcessorPairTest {
         return GraphMlParser.parse(resource("demo-quote-processor.graphml"));
     }
 
+    private static List<LogRecord> tracedRecords() throws IOException {
+        return recordsOf("demo-quote-audit-traced.yaml");
+    }
+
     private static List<LogRecord> records() throws IOException {
-        HeapLogStore store = new HeapLogStore(resource("demo-quote-audit.yaml"));
+        return recordsOf("demo-quote-audit.yaml");
+    }
+
+    private static List<LogRecord> recordsOf(String fixture) throws IOException {
+        HeapLogStore store = new HeapLogStore(resource(fixture));
         List<LogRecord> out = new ArrayList<>();
         for (int row = 0; row < store.size(); row++) out.add(store.record(row));
         return out;
@@ -105,6 +113,46 @@ class RealProcessorPairTest {
         assertNotEquals(OFF_PATH, state.get("spreadCalculator"),
                 "it demonstrably ran — the value it computes reached quotePublisher's log line");
         assertEquals(MAY_HAVE_RUN, state.get("spreadCalculator"));
+    }
+
+    // ---- the two audit regimes, both real -------------------------------------------------------
+
+    @Test
+    void theSparseLogDoesNotTraceInvocations() throws IOException {
+        for (LogRecord record : records()) {
+            assertFalse(AuditTrace.tracesEveryInvocation(record.nodeLogs()),
+                    "built with addEventAudit() and no level — no auditInvocation calls are generated");
+        }
+    }
+
+    @Test
+    void theTracedLogRecordsEveryNodeThatRan() throws IOException {
+        List<LogRecord> traced = tracedRecords();
+        LogRecord marketData = traced.stream()
+                .filter(r -> "MarketDataEvent".equals(r.event())).findFirst().orElseThrow();
+
+        assertTrue(AuditTrace.tracesEveryInvocation(marketData.nodeLogs()));
+        assertTrue(loggedIn(marketData).contains("spreadCalculator"),
+                "tracing records the silent node too — this is the same graph, a different audit level");
+    }
+
+    @Test
+    void withTracingAbsenceBecomesProof() throws IOException {
+        ProcessorTopology t = topology();
+        LogRecord marketData = tracedRecords().stream()
+                .filter(r -> "MarketDataEvent".equals(r.event())).findFirst().orElseThrow();
+        List<String> logged = loggedIn(marketData);
+
+        Map<String, ProcessorTopology.Execution> state = t.classifyCycle(
+                logged,
+                List.copyOf(EntryPointResolver.resolve(t, marketData.event(), marketData.eventToString())),
+                AuditTrace.tracesEveryInvocation(marketData.nodeLogs()));
+
+        assertEquals(LOGGED, state.get("spreadCalculator"), "it ran, and tracing recorded it");
+        assertEquals(DID_NOT_RUN, state.get("orderTracker"),
+                "a complete record turns silence into evidence — no hedging needed");
+        assertFalse(state.containsValue(MAY_HAVE_RUN), "nothing is unknown when every invocation is traced");
+        assertFalse(state.containsValue(RAN_SILENTLY));
     }
 
     @Test

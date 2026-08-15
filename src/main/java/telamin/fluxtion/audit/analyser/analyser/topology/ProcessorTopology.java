@@ -143,7 +143,13 @@ public final class ProcessorTopology {
          */
         MAY_HAVE_RUN,
         /** Not connected to anything that logged: no reason to think this event's dispatch came near it. */
-        OFF_PATH
+        OFF_PATH,
+        /**
+         * <b>Did not run.</b> Only ever claimed when the record traces every invocation
+         * ({@link AuditTrace}), which makes the log a complete list of what ran — so absence from it is
+         * evidence, not silence. Without tracing this state is never used.
+         */
+        DID_NOT_RUN
     }
 
     private final Map<String, Node> nodes;              // id → node, insertion-ordered
@@ -256,6 +262,20 @@ public final class ProcessorTopology {
      * {@link Execution#MAY_HAVE_RUN}: unknown, which is the truth, rather than excluded.
      */
     public Map<String, Execution> classifyCycle(Collection<String> loggedIds, Collection<String> entryIds) {
+        return classifyCycle(loggedIds, entryIds, false);
+    }
+
+    /**
+     * As {@link #classifyCycle(Collection, Collection)}, but told whether the record <b>traces every
+     * invocation</b> (see {@link AuditTrace}).
+     *
+     * <p>When it does, the log is a complete list of what ran and all the inference above becomes
+     * unnecessary: anything absent {@link Execution#DID_NOT_RUN did not run}. That is a much stronger
+     * statement than this class can otherwise make, and it is worth making — the reason the weaker states
+     * exist is that most production logs are not traced, not that the distinction is unknowable.
+     */
+    public Map<String, Execution> classifyCycle(Collection<String> loggedIds, Collection<String> entryIds,
+                                                boolean tracesEveryInvocation) {
         Map<String, Execution> out = new LinkedHashMap<>();
         Set<String> logged = new LinkedHashSet<>();
         if (loggedIds != null) {
@@ -305,10 +325,16 @@ public final class ProcessorTopology {
         }
 
         for (String id : nodes.keySet()) {
-            Execution state = logged.contains(id) ? Execution.LOGGED
-                    : ran.contains(id) ? Execution.RAN_SILENTLY
-                    : connected.contains(id) ? Execution.MAY_HAVE_RUN
-                    : Execution.OFF_PATH;
+            Execution state;
+            if (logged.contains(id)) {
+                state = Execution.LOGGED;
+            } else if (tracesEveryInvocation) {
+                state = Execution.DID_NOT_RUN;   // the log records every invocation, so absence is proof
+            } else {
+                state = ran.contains(id) ? Execution.RAN_SILENTLY
+                        : connected.contains(id) ? Execution.MAY_HAVE_RUN
+                        : Execution.OFF_PATH;
+            }
             out.put(id, state);
         }
         return out;

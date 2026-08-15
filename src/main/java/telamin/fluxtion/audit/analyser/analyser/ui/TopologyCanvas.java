@@ -196,6 +196,14 @@ public final class TopologyCanvas extends JPanel {
      * executed while logging nothing show as unknown rather than as unrelated to the event.
      */
     public void setDispatch(List<String> dispatchOrder, List<String> entryPoints) {
+        setDispatch(dispatchOrder, entryPoints, false);
+    }
+
+    /**
+     * As above, plus whether the record traces every invocation — when it does, absence from the log is
+     * proof a node did not run, and the view says so instead of hedging.
+     */
+    public void setDispatch(List<String> dispatchOrder, List<String> entryPoints, boolean traced) {
         this.dispatch = dispatchOrder == null ? List.of() : List.copyOf(dispatchOrder);
         this.entryPoints = entryPoints == null ? List.of() : List.copyOf(entryPoints);
         java.util.Map<String, Integer> ordinals = new java.util.LinkedHashMap<>();
@@ -204,7 +212,8 @@ public final class TopologyCanvas extends JPanel {
         }
         this.firedAt = ordinals;
         this.execution = this.dispatch.isEmpty() && this.entryPoints.isEmpty()
-                ? java.util.Map.of() : topology.classifyCycle(this.dispatch, this.entryPoints);
+                ? java.util.Map.of()
+                : topology.classifyCycle(this.dispatch, this.entryPoints, traced);
         this.step = -1;
         repaint();
     }
@@ -339,6 +348,7 @@ public final class TopologyCanvas extends JPanel {
             case RAN_SILENTLY -> "ran, but logged nothing — something it feeds did log";
             case MAY_HAVE_RUN -> "may have run — it logged nothing, and the log cannot say either way";
             case OFF_PATH -> "not on this event's path";
+            case DID_NOT_RUN -> "did not run — this log records every node invocation";
         };
     }
 
@@ -474,7 +484,8 @@ public final class TopologyCanvas extends JPanel {
             ProcessorTopology.Execution ran = execution.get(box.id());
             // only "no reason to think dispatch came near it" recedes; a silent node that demonstrably
             // ran, or might have, stays fully legible
-            boolean dimmed = showingCycle() && ran == ProcessorTopology.Execution.OFF_PATH;
+            boolean dimmed = showingCycle() && (ran == ProcessorTopology.Execution.OFF_PATH
+                                            || ran == ProcessorTopology.Execution.DID_NOT_RUN);
 
             double x = sx(box.x());
             double y = sy(box.y());
@@ -603,20 +614,21 @@ public final class TopologyCanvas extends JPanel {
      */
     private void paintLegend(Graphics2D g) {
         boolean dark = ThemeManager.isDark();
-        String[] labels = {
-                dispatch.size() + " logged",
-                "ran, logged nothing",
-                "may have run",
-                "not on this path"};
-        Color[] colours = {
-                firedBorder(dark), ranSilentlyBorder(dark),
-                ranSilentlyBorder(dark), fade(ranSilentlyBorder(dark), dark)};
+        boolean complete = execution.containsValue(ProcessorTopology.Execution.DID_NOT_RUN);
+        String[] labels = complete
+                ? new String[]{dispatch.size() + " ran", "did not run"}
+                : new String[]{dispatch.size() + " logged", "ran, logged nothing",
+                        "may have run", "not on this path"};
+        Color[] colours = complete
+                ? new Color[]{firedBorder(dark), fade(ranSilentlyBorder(dark), dark)}
+                : new Color[]{firedBorder(dark), ranSilentlyBorder(dark),
+                        ranSilentlyBorder(dark), fade(ranSilentlyBorder(dark), dark)};
         FontMetrics fm = g.getFontMetrics();
         int y = 18;
         int x = 12;
         for (int i = 0; i < labels.length; i++) {
             g.setColor(colours[i]);
-            g.setStroke(i == 2
+            g.setStroke(!complete && i == 2
                     ? new BasicStroke(1.4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
                             new float[]{4f, 3f}, 0f)
                     : new BasicStroke(i == 0 ? 1.8f : 1.4f));
