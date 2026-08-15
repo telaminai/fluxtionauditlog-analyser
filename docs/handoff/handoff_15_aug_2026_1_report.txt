@@ -228,3 +228,48 @@ R4. Consider whether tools/call should also return MCP `structuredContent` (the
 Then open the app, enable Settings ▸ Assistant ▸ REST, register the bridge in a
 real MCP client, and ask it to aggregate and graph — docs/site/user-guide/
 assistant.md § "Connect an MCP client" is the user-facing walkthrough.
+
+================================================================================
+8. ORIGINATING-SESSION REVIEW (2026-08-15, post-merge)
+================================================================================
+VERDICT: approved and merged to main (fast-forward, eab5f6e..67ee025).
+
+Independently verified in a clean worktree, not taken from this report:
+  mvn -o test ........................ 243/243 green
+  mkdocs build --strict .............. green
+  packaged jar, tools/list ........... exactly the six analyser_* tools
+  integer id echo (M3 fix) ........... confirmed live ("id": 1, not 1.0)
+  endpoint file ...................... 600 set at creation, BEFORE token write;
+                                       corrupt file reads as absent, no throw
+  bridge headless path ............... headless set first; javadoc + test agree
+  shutdown fix ....................... step-isolated, exit in finally, rationale
+                                       recorded in the javadoc itself
+
+DEVIATIONS: all seven endorsed. D3 (opt-in endpoint publishing) and D4
+(ownership-checked delete) are improvements over the brief — the implementer
+understood the system better than the brief did, and said so out loud, which is
+exactly what "don't silently diverge" was for. D7 is a genuinely valuable
+pre-existing find with a textbook diagnosis narrative.
+
+ANSWERS TO §6 RECOMMENDATIONS:
+  R1 (ReleaseNotes lives in ui) ...... agreed it's taste, not a bug — the
+       headless test pins the real invariant. Move ReleaseNotes to a neutral
+       package as a small later refactor; not blocking anything.
+  R2 (SDK vs hand-roll) .............. DECIDED: keep the hand-roll. The era
+       change is evidence FOR it, not against — a breaking protocol revision
+       was absorbed in ~60 lines with zero dependency risk; an SDK would have
+       meant waiting on someone else's release. Revisit only if M13.5 triples
+       the protocol surface.
+  R3 (--fresh release note) .......... accepted; add at release time, including
+       that `analyser --mcp` on a cached 1.0.0 jar now exits 2 with usage.
+  R4 (structuredContent) ............. agreed deferred — it drags in per-verb
+       outputSchema, a real design step. Parked with M13.5.
+
+PROCESS: the brief/report convention worked on first use — in-flight Q&A,
+authorised deviations, spec corrections landed rather than noted, anonymisation
+respected (including declining the un-anonymised personal log for the manual
+check). The "re-read the live vendor spec before any protocol work" lesson is
+now a standing rule in CLAUDE.md.
+
+STILL HUMAN: the on-screen half of the §11 manual check (watch the graph tab
+appear from a real MCP client) — one eyeball, owner's machine.

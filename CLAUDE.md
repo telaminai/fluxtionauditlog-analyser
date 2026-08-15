@@ -18,7 +18,10 @@ architecture, conventions). This file is only the rules that must never be skipp
 5. **Docs site** (`docs/site/`, root `mkdocs.yml`, MkDocs Material): `mkdocs build --strict` must pass
    before pushing site changes (CI link-checks). Local: `pip3 install -r docs-requirements.txt &&
    mkdocs serve`.
-6. **Tracker discipline**: finished items → ☑ in `docs/specs/tracker.md`; fully-shipped
+6. **Protocol work**: before implementing against any external protocol or vendor API (MCP, admin
+   REST, …), **re-read the live vendor spec first** — MCP shipped a breaking revision within months of
+   our spec being written, caught only this way (see docs/handoff/handoff_15_aug_2026_1_report.txt §3).
+7. **Tracker discipline**: finished items → ☑ in `docs/specs/tracker.md`; fully-shipped
    milestones/rounds → move to `docs/specs/completed/tracker.md`. The live tracker holds only
    in-progress + future work.
 
