@@ -66,6 +66,12 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
   (`instanceId → file:line`, EP FQN, roots), replay reference, task, and acceptance (replay-diff: only
   the targeted records change). Built on `PromptBuilder`. **Precondition:** journal ↔ audit-log pairing
   (the analyser loads the output log, not the input journal).
+- _Decision (2026-08-16): **the analyser prompt distils Fluxtion semantics; the fix brief carries the
+  authoring rules**. The assistant reads logs, so it gets the reading-relevant subset (propagation/dirty,
+  audit regimes, wiring-by-constructor) plus a fetch-on-demand pointer — not `claude.txt` inline, which is
+  ~30KB of authoring guidance per request and invites answering the wrong question. **M12.4's brief is
+  where the full authoring rules belong**, since that agent edits code; M19.1's bundle already plans the
+  same via its `CLAUDE.md` bootstrap._
 - [M12.4] ☐ **"Fix with agent…" handoff launcher** _(spec-closed-loop §A)_ — writes the brief to
   `<sourceRoot>/.analyser/fix-brief-<ts>.md` **plus `.analyser/.gitignore` (`fix-brief-*` — scoped so
   M20's committed project profile in the same dir isn't ignored) so briefs can never be committed**; v1 copies a ready-to-paste launch command (presets for Claude Code / Codex; template

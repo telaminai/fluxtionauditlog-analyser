@@ -64,3 +64,11 @@ reached.
   to count how often something occurs. Prefer targeted grep/sed around the given offsets over scanning
   the whole file (there are many market-data records between the interesting events). The selected
   records are a curated starting point, not the whole evidence base.
+
+## If the question turns into changing the processor
+This prompt covers **reading** a log. Authoring or fixing a Fluxtion graph has its own rules (source-gen
+constraints, output sinks, the blessed AOT shape) that are deliberately not repeated here. If you can
+fetch URLs and the task becomes a code change, read
+<https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt> (framework reference,
+authoritative on semantics) and <https://fluxtion-playground.dev/fluxtion-golden-path.md>. Diagnose from
+the log first; reach for those only when you are about to propose an edit.
