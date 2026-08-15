@@ -30,8 +30,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Docs
 - Assistant guide: **"Connect an MCP client"** — copy-paste config for Claude Code, Claude Desktop and
-  Codex, how the bridge finds your running analyser, troubleshooting, and exactly what an MCP agent can
-  and cannot reach.
+  Codex, a worked session transcript, how the bridge finds your running analyser, troubleshooting, and
+  exactly what an MCP agent can and cannot reach. Spells out that **your client does not launch the
+  analyser**: you keep the app open with the REST transport on, and the client starts only the bridge.
 - Install guide: documented the JBang **first-run trust prompt** and that a **new release** needs
   `jbang --fresh` (or `jbang cache clear`) — JBang otherwise keeps serving its cached jar.
 

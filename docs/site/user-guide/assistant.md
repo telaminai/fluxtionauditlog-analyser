@@ -62,19 +62,34 @@ instead of trial-and-erroring against the structured errors.
 ## Connect an MCP client
 
 If your agent speaks **MCP** (Model Context Protocol), it can drive the analyser with **no prompting and
-no copied token**. The same jar doubles as an MCP server:
-
-```bash
-java -jar fluxtion-auditlog-analyser.jar --mcp
-```
+no copied token**. The same jar doubles as an MCP server — your client runs it as
+`java -jar fluxtion-auditlog-analyser.jar --mcp` (you don't type that yourself; it goes in the client's
+config, below).
 
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_filter`,
 `analyser_graph`, `analyser_goto`, `analyser_flag` — with full parameter schemas, so there's nothing to
 paste into a prompt. `aggregate` and `read` are marked read-only; the render verbs change what the app
 shows and are all reversible.
 
-**First, turn the socket on:** Settings ▸ Assistant ▸ **localhost REST transport** (off by default). The
-bridge talks to the running app through it.
+### Does my client launch the analyser?
+
+**No — you start the analyser yourself, and leave it open.** Your MCP client launches a small *bridge*
+process (that's the `--mcp` command in the config below); the bridge then talks to the analyser you
+already have running.
+
+It works this way because the point is to drive **your live session** — the log you have loaded, the
+graphs you have open, the flags you have set. All of that lives in the running desktop app. A freshly
+spawned subprocess would have none of it, so the bridge forwards to the app instead of trying to be one.
+
+So the working setup is:
+
+1. **You** open the analyser and load a log, as usual.
+2. **You** enable Settings ▸ Assistant ▸ **localhost REST transport** (off by default) — once; it's
+   remembered.
+3. **Your client** starts the bridge on its own, whenever it needs a tool.
+
+If you skip step 1 or 2, the tools still appear in your client, but calling one answers *"analyser not
+running, or REST transport disabled"*.
 
 ### Configure your client
 
@@ -139,6 +154,46 @@ Use an **absolute path** to the jar in all three. Desktop apps don't inherit you
 
     Codex caps each tool call at 60s by default; raise `tool_timeout_sec` if you aggregate over a very
     large log.
+
+### What a session looks like
+
+With the analyser open on a log and the bridge registered, you just ask. Here's a real exchange in a CLI
+client — you type the question, the agent picks the tools:
+
+```text
+> the hedge stopped quoting somewhere in this log. what happened?
+
+⏺ analyser_aggregate(metric: "count", groupBy: "dimension")
+  ⎿ total 21 records
+     orderUpdate 10 · ScheduledTriggerNode 3 · orderVenueConnected 2
+     onMultilevelMarketData 2 · registerService 2 · LifecycleEvent 1
+     marketDataVenueConnected 1
+
+⏺ analyser_read(recordIndex: 1, count: 3)
+  ⎿ hedgeConnectionMonitor: { orderVenueConnected: …, status: CLOSED, hedgeQuantity: NaN }
+     hedgePositionMonitor:  { hedgePositionBreach: false, hedgeStatus: CLOSED }
+
+⏺ analyser_graph(name: "hedge quantity",
+                series: ["hedgeConnectionMonitor.hedgeQuantity"],
+                rationale: "hedgeQuantity goes NaN when the venue drops")
+  ⎿ {"ok":true,"applied":{"name":"hedge quantity",
+      "resolved":["hedgeConnectionMonitor.hedgeQuantity"],"unresolved":[]}}
+
+⏺ analyser_flag(recordIndexes: [1, 2], note: "hedge went NaN here")
+  ⎿ {"ok":true,"applied":{"flagged":2}}
+
+  The hedge monitor reports status CLOSED with hedgeQuantity NaN from the venue-connect
+  event onward, so the quote calculator had nothing to size against. I've plotted
+  hedgeQuantity as "hedge quantity" and flagged the two records where it flips.
+```
+
+**Watch the analyser while this runs.** A *hedge quantity* tab appears, captioned with the agent's
+`rationale`; two rows pick up flags. The findings land **in your instrument**, as things you can click,
+zoom and trace to source — not as prose you have to take on trust. That's the whole point of the round
+trip: you verify the claim against the same data it was made from.
+
+Note what the agent *didn't* need: no file path, no token, no pasted records. It read the log through
+`analyser_read` over the socket.
 
 ### How it finds your running analyser
 
