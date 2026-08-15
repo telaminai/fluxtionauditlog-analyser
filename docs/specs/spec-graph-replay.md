@@ -82,8 +82,16 @@ The audit record already names the nodes that fired, in dispatch order (`nodeLog
 **join between the record and the topology**, not new data:
 
 - **Scrub the event sequence** — next/previous record, or jump from any table selection; the topology
-  shows that cycle: nodes that fired highlighted **in dispatch order**, the triggering event marked, nodes
-  that did not fire dimmed.
+  shows that cycle: nodes that **logged** highlighted **in dispatch order**.
+
+> **Correction (2026-08-15, from review feedback).** An earlier draft said "nodes that did not fire
+> dimmed". That is wrong and actively misleading: **a node appears in `nodeLogs` only if it writes audit
+> output**, at the level in force, so silence is not absence of execution. Only some nodes on a dispatch
+> path log at all. The view therefore reports four separable claims — `LOGGED` (observed),
+> `RAN_SILENTLY` (forced: sole route into something that ran), `MAY_HAVE_RUN` (connected but unknown),
+> `OFF_PATH` — with only the last shown faded, and every one of them stated in words on hover and in an
+> on-canvas legend. Note `RAN_SILENTLY` is deliberately narrow: a node with several parents needs only
+> one to have fired, so "every ancestor ran" would itself be an invented fact.
 - **Within a cycle**, step node-by-node through the dispatch order, showing each node's logged key/values
   at that point — the "which nodes lit up, what did they hold" view.
 - **Bidirectional** — the log is a complete record; stepping back is just moving the cursor.

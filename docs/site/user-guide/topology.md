@@ -1,13 +1,33 @@
 # Topology & step-through
 
-The **Topology** tab draws the processor's node graph and lights up what happened in a cycle. The log
-tells you *what* fired and in what order; the graph tells you *why* — which node feeds which.
+The **Topology** tab draws the processor's node graph and shows what a cycle did to it. The log tells
+you which nodes *logged*, and in what order; the graph tells you how they are wired — and therefore what
+the log implies about everything that stayed quiet.
 
-![A cycle on the topology: fired nodes ringed and numbered in dispatch order, everything else faded back](../assets/topology-step-through.png)
+![A cycle on the topology: nodes that logged are ringed and numbered in dispatch order; the rest are shaded by what the log supports](../assets/topology-step-through.png)
 
-Eight nodes fired in this event, numbered **1–8** in the order the processor dispatched them. The
-nineteen-node graph stays on screen but recedes, because "this node was not involved" is usually part of
-the answer.
+*The graph above is a **synthetic illustration** — the node names come from the sample log, but the
+wiring is made up to show the states. Your own `.graphml` shows your processor's real dispatch order.*
+
+Eight nodes **logged** in this event, numbered 1–8 in dispatch order. The rest of the graph stays on
+screen, shaded by what the log actually supports — which is not the same as what ran.
+
+!!! danger "No audit entry does not mean the node didn't run"
+
+    A node appears in `nodeLogs` only if it **writes** audit output, and only at the audit level in
+    force. Plenty of nodes execute silently. So the tab never colours a node "didn't run" — it shows
+    four different claims, and says which is which:
+
+    | On screen | What it means |
+    |---|---|
+    | **green ring + number** | **logged** — it wrote audit output, and the number is its dispatch position. The only thing directly observed. |
+    | **solid outline** | **ran, logged nothing** — it is the *only* way into something that ran, so dispatch had no other route. Certain. |
+    | **dashed outline** | **may have run** — connected to something that logged, but the log cannot say whether dispatch reached it. A genuine unknown. |
+    | **faded** | **not on this path** — nothing that logged is connected to it. |
+
+    The distinction between the last two matters: a node with several parents only needs *one* of them
+    to have fired, so its other ancestors are unknowns, not certainties. Hover any node and it tells you
+    in words.
 
 ## Open a topology
 
@@ -30,14 +50,19 @@ else days ago.
 Layers run in dispatch order — **lower is later**. Every edge points from a node to something it feeds,
 so nothing sits above the thing that triggers it.
 
-Colour distinguishes what a node *is*:
+Fill colour distinguishes what a node *is*. Note that **execution enters the graph two ways**, and both
+appear at the top with nothing above them:
 
 | | |
 |---|---|
-| **Events** | classes entering the graph |
+| **Events** | event classes arriving at the processor |
 | **Event handlers** | the nodes that take them |
+| **Exported services** | a service interface the processor exports. An **entry point, not an output**: an external caller invokes the interface and dispatch flows from there, exactly like an event |
 | **Nodes** | ordinary compute nodes |
-| **Exported services** | what the processor publishes outward |
+
+Output goes the other way and isn't a node kind: a node publishes to a **sink**, a Mongoose-supplied
+service the graph registers with. You'll see that registration in the graph as a `SinkRegistration` event
+feeding the publishing node.
 
 Drag to pan, scroll to zoom (the point under the cursor stays put), **Fit** to frame the whole graph.
 Labels fade out when boxes get too small to read them, so a big graph zoomed out stays legible as shape
@@ -49,12 +74,13 @@ Select any record — in the table, or by jumping to one from a graph — and th
 It follows the **table's selection**, so the record you're reading in the detail pane is the cycle you're
 looking at here; there's no separate cursor to keep in sync.
 
-- **◀ ▶** walk the dispatch order one node at a time. The current node takes the accent ring and the
-  status line shows **what it logged at that point** — the values it held as the event passed through.
+- **◀ ▶** walk the dispatch order one node at a time — that is, the nodes that logged. The current
+  node takes the accent ring and the status line shows **what it logged at that point**, plus what the
+  log does or doesn't establish about it.
 - **Whole cycle** goes back to showing them all at once.
-- A node that fired **twice** in one cycle gets two steps, because that's information.
+- A node that logged **twice** in one cycle gets two steps, because that's information.
 
-This is the "which nodes lit up, and what did they hold" view. Pair it with
+This is the "what did the log actually witness, and what does that imply" view. Pair it with
 [Graphs](graphs.md) when you want the same value across many cycles instead of one.
 
 ## Act on a node

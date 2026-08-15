@@ -256,7 +256,7 @@ public final class TopologyPanel extends JPanel {
             return;
         }
         long unknown = order.stream().filter(id -> !canvas.topology().contains(id)).distinct().count();
-        status.setText(describeEvent(record) + " — " + order.size() + " node(s) fired"
+        status.setText(describeEvent(record) + " — " + order.size() + " node(s) logged"
                        + (unknown > 0 && hasTopology()
                                ? "  ·  " + unknown + " not in this topology (different build?)" : ""));
     }
@@ -307,7 +307,7 @@ public final class TopologyPanel extends JPanel {
         nextStep.setEnabled(stepping);
         wholeCycle.setEnabled(stepping && canvas.step() >= 0);
         stepLabel.setText(!stepping ? "  no record selected"
-                : canvas.step() < 0 ? "  " + cycle.size() + " nodes fired"
+                : canvas.step() < 0 ? "  " + cycle.size() + " nodes logged"
                 : "  " + (canvas.step() + 1) + " / " + cycle.size());
     }
 
@@ -319,10 +319,12 @@ public final class TopologyPanel extends JPanel {
         ProcessorTopology topology = canvas.topology();
         ProcessorTopology.Node node = topology.node(id);
         if (node == null) return;
+        var ran = canvas.executionOf(id);
         status.setText(id
                        + (node.className() == null ? "" : "  ·  " + node.className())
                        + "  ·  fed by " + topology.parentsOf(id).size()
-                       + ", feeds " + topology.childrenOf(id).size());
+                       + ", feeds " + topology.childrenOf(id).size()
+                       + (ran == null ? "" : "  ·  " + TopologyCanvas.describe(ran)));
     }
 
     private void toggleOrientation() {

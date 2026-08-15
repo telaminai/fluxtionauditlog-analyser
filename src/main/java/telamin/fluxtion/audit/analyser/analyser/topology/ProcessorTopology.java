@@ -1,7 +1,9 @@
 package telamin.fluxtion.audit.analyser.analyser.topology;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -33,7 +35,11 @@ public final class ProcessorTopology {
         EVENT,
         /** A node that handles an inbound event. */
         EVENT_HANDLER,
-        /** A service the processor exports. */
+        /**
+         * A service interface the processor exports. <b>An entry point, not an output</b>: an external
+         * caller invokes the interface and dispatch flows from here into the graph, the same way an event
+         * does. Fluxtion emits these with no inbound edges, like event nodes.
+         */
         EXPORT_SERVICE,
         /** Present in the graph but unstyled or a style we don't know. */
         UNKNOWN;
@@ -102,6 +108,32 @@ public final class ProcessorTopology {
             List<String> shown = ids.stream().limit(3).toList();
             return String.join(", ", shown) + (ids.size() > shown.size() ? ", …" : "");
         }
+    }
+
+    /**
+     * What the log lets you say about a node in one cycle.
+     *
+     * <p>The distinction this exists to protect: <b>an absent audit entry does not mean the node did not
+     * run.</b> A node only appears in {@code nodeLogs} if it actually writes audit output, and whether it
+     * does depends on the node and on the audit level in force. Colouring "no entry" as "did not execute"
+     * would invent a fact the log never stated — and would do it in the one place a user is trying to
+     * work out what ran.
+     */
+    public enum Execution {
+        /** Wrote audit output this cycle. The only state the log gives directly. */
+        LOGGED,
+        /**
+         * Silent, but something downstream of it logged — so dispatch must have passed through here.
+         * Executed; simply produced no audit output.
+         */
+        RAN_SILENTLY,
+        /**
+         * Silent, and downstream of something that logged. Dispatch may have reached it, or may have
+         * stopped short — the log does not say. <b>Unknown, not "no".</b>
+         */
+        MAY_HAVE_RUN,
+        /** Not connected to anything that logged: no reason to think this event's dispatch came near it. */
+        OFF_PATH
     }
 
     private final Map<String, Node> nodes;              // id → node, insertion-ordered
@@ -179,6 +211,69 @@ public final class ProcessorTopology {
             if (parentsOf(n.id()).isEmpty()) roots.add(n);
         }
         return roots;
+    }
+
+    /**
+     * Classify every node by what this cycle's audit entries let you claim about it.
+     *
+     * <p>Only {@link Execution#LOGGED} is observed. The rest are inferences from the wiring, kept
+     * deliberately separate so the UI can show them as different claims:
+     * <ul>
+     *   <li>{@link Execution#RAN_SILENTLY} — <b>forced</b>: the node is the <em>only</em> parent of
+     *       something that ran, so dispatch had no other way in;</li>
+     *   <li>{@link Execution#MAY_HAVE_RUN} — connected to something that logged, upstream or down, but
+     *       not forced. A genuine unknown;</li>
+     *   <li>{@link Execution#OFF_PATH} — not connected to anything that logged.</li>
+     * </ul>
+     *
+     * <p><b>Why "only parent" and not "any ancestor".</b> A node with several parents needs just one of
+     * them to have triggered it, so its other ancestors may never have run. Marking every ancestor as
+     * certain would manufacture evidence — the same over-claiming this classification exists to prevent,
+     * pointed the other way.
+     */
+    public Map<String, Execution> classifyCycle(Collection<String> loggedIds) {
+        Map<String, Execution> out = new LinkedHashMap<>();
+        Set<String> logged = new LinkedHashSet<>();
+        if (loggedIds != null) {
+            for (String id : loggedIds) {
+                if (id != null && nodes.containsKey(id)) logged.add(id);
+            }
+        }
+
+        // fixpoint: anything that is the sole parent of a node known to have run, also ran
+        Set<String> ran = new LinkedHashSet<>(logged);
+        Deque<String> queue = new ArrayDeque<>(logged);
+        while (!queue.isEmpty()) {
+            Set<String> feeders = parentsOf(queue.poll());
+            if (feeders.size() != 1) continue;             // more than one way in → nothing is forced
+            String only = feeders.iterator().next();
+            if (ran.add(only)) queue.add(only);
+        }
+
+        Set<String> connected = reach(logged, false);
+        connected.addAll(reach(logged, true));
+        for (String id : nodes.keySet()) {
+            Execution state = logged.contains(id) ? Execution.LOGGED
+                    : ran.contains(id) ? Execution.RAN_SILENTLY
+                    : connected.contains(id) ? Execution.MAY_HAVE_RUN
+                    : Execution.OFF_PATH;
+            out.put(id, state);
+        }
+        return out;
+    }
+
+    /** Everything reachable from {@code seeds} following edges forward ({@code down}) or backward. */
+    private Set<String> reach(Set<String> seeds, boolean down) {
+        Set<String> seen = new LinkedHashSet<>();
+        Deque<String> queue = new ArrayDeque<>(seeds);
+        while (!queue.isEmpty()) {
+            String id = queue.poll();
+            for (String next : down ? childrenOf(id) : parentsOf(id)) {
+                if (seen.add(next)) queue.add(next);
+            }
+        }
+        seen.removeAll(seeds);
+        return seen;
     }
 
     /**

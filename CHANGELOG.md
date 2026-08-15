@@ -40,6 +40,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
 
 ### Fixed
+- **Topology: a node with no audit entry is no longer shown as if it didn't run.** Nodes log only if they
+  write audit output, at the level in force, so silence is not absence of execution. The tab now
+  distinguishes *logged* (observed), *ran but logged nothing* (it was the only route into something that
+  ran), *may have run* (connected, but the log can't say), and *not on this path* — with a legend on the
+  canvas and the claim in words on hover.
+- Topology: exported services are drawn as what they are — **inbound callback entry points**, alongside
+  events — rather than as outputs.
 - **The app could become impossible to close.** If any step of the quit sequence failed, the exception
   escaped the window-closing handler before the exit call, so the window stayed on screen and every
   further click on the close box failed the same way — with the assistant's REST transport already shut
