@@ -48,9 +48,11 @@ M12.4 is the **delivery mechanism**: get that brief into an agent with one actio
   editable), and the **launch method** (below). Confirm → brief is written to
   `<sourceRoot>/.analyser/fix-brief-<timestamp>.md` and the launch fires.
 - **The analyser guarantees its own cleanliness**: on first brief-write it also writes
-  `<sourceRoot>/.analyser/.gitignore` containing `*` — deterministic, no race, and briefs can never be
-  committed. (Not delegated to the agent; this is the only place the analyser touches the source tree,
-  and it arrives pre-ignored.)
+  `<sourceRoot>/.analyser/.gitignore` containing **`fix-brief-*`** — deterministic, no race, and briefs
+  can never be committed. (Not delegated to the agent; this is the only place the analyser touches the
+  source tree, and it arrives pre-ignored.) **Scoped to briefs, not `*`**: the same `.analyser/` dir
+  holds the *deliberately committed* project profile (`project.fluxtion-settings`, M20 /
+  spec-project-profiles) — a blanket ignore would silently exclude it.
 
 ### A.3 Launch methods (Settings ▸ Assistant ▸ Fix handoff)
 
