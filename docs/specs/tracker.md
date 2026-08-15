@@ -116,7 +116,10 @@ analyser (reverse funnel)._
   analyse/tail · assistant · edit-with-your-IDE's-AI) + the 8-screenshot set (spec §Part 2, anonymised
   per policy), nav under Getting started. **Publish-gated on the bundle shipping** (write against the
   contract; publish only when Download delivers).
-- [M19.4] ☐ **Cross-links** — getting-started step 2, producing-a-log, landing "Get going".
+- [M19.4] ☐ **Cross-links** — getting-started step 2, producing-a-log, landing "Get going"; **and the
+  tutorial's end-bridge**: a closing "Do this on your own system →" section linking producing-a-log
+  (+ the server link once M18 ships) — the demo must hand off to the user's real adoption, not stop at
+  the toy.
 - [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
   (import + open + Follow).
 - Open: O2 which example. _(O1: Maven project · O3: bundles generated at Download time, nothing to

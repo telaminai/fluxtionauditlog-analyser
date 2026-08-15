@@ -103,6 +103,12 @@ Contract notes:
     4. **Edit with your IDE's AI** — open the Maven project in the IDE; the bundled `CLAUDE.md` means
        the IDE agent knows Fluxtion; change a node, re-run, watch Follow pick it up. (Explicitly *not*
        the in-app assistant's job.)
+
+  **The tutorial must end with a bridge, not a full stop.** After the demo the user's real question is
+  *"now, my processor?"* — the closing section is **"Do this on your own system →"** linking
+  [producing-a-log](../site/producing-a-log.md) (enable auditing on their processor) and the server
+  link once M18 ships. Without the bridge the experience ends at a toy and the wow evaporates on
+  Monday morning; with it, the tutorial's last click starts the user's real adoption.
   Nav: under **Getting started** (third child). **Screenshot set** (captured once, anonymised per
   policy): playground Download button · terminal run + log path · Import-settings summary dialog ·
   Follow streaming with an event-type filter · click-to-source landing in example code · a graph ·
