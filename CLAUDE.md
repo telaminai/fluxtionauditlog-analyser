@@ -18,9 +18,16 @@ architecture, conventions). This file is only the rules that must never be skipp
 5. **Docs site** (`docs/site/`, root `mkdocs.yml`, MkDocs Material): `mkdocs build --strict` must pass
    before pushing site changes (CI link-checks). Local: `pip3 install -r docs-requirements.txt &&
    mkdocs serve`.
-6. **Protocol work**: before implementing against any external protocol or vendor API (MCP, admin
-   REST, …), **re-read the live vendor spec first** — MCP shipped a breaking revision within months of
-   our spec being written, caught only this way (see docs/handoff/handoff_15_aug_2026_1_report.txt §3).
+6. **Protocol *and framework* work**: before implementing against any external protocol, vendor API
+   (MCP, admin REST, …) **or Fluxtion's own execution semantics**, **read the live source of truth
+   first** — never infer it.
+   - Protocols: MCP shipped a breaking revision within months of our spec being written, caught only
+     this way (docs/handoff/handoff_15_aug_2026_1_report.txt §3).
+   - Fluxtion: this app's model of dispatch, audit logging and propagation is only correct if the
+     framework's is. Authoritative: **[`docs/claude.txt`](https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt)**
+     (framework reference), then the [golden path](https://fluxtion-playground.dev/fluxtion-golden-path.md).
+     Every defect in the M21 topology work came from inferring instead of reading — including two
+     unsound inferences that shipped. See ONBOARDING § *Understand Fluxtion's execution model*.
 7. **Tracker discipline**: finished items → ☑ in `docs/specs/tracker.md`; fully-shipped
    milestones/rounds → move to `docs/specs/completed/tracker.md`. The live tracker holds only
    in-progress + future work.
