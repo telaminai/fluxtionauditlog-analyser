@@ -1,0 +1,55 @@
+HANDOFF — implement milestone M13 (MCP transport)
+Date: 2026-08-15 · From: main session · Repo: https://github.com/telaminai/fluxtionauditlog-analyser
+
+Clone https://github.com/telaminai/fluxtionauditlog-analyser and work on branch main.
+
+ORIENT FIRST (in this order, before writing any code):
+1. CLAUDE.md (repo root) — hard rules; they are non-negotiable.
+2. docs/ONBOARDING.md — architecture, conventions, process.
+3. docs/specs/spec-assistant-actions-mcp.md — the design you are implementing (v1.1,
+   reconciled 2026-08-15 to shipped code — trust it over any older assumptions).
+4. docs/specs/tracker.md — milestone M13, items M13.1–M13.4.
+5. Read the existing seam you build on: llm/ActionDispatcher, llm/VerbSchemas (+ its
+   test), net/ActionServer, llm/Json.
+
+TASK: implement milestone M13 (MCP transport) as four slices, one commit each,
+in order, mvn test green before every commit:
+
+  M13.1  net/RestEndpointFile — on REST start, write url+token+pid+startedAt to
+         ~/.fluxtion-analyser/rest-endpoint (mode 600); delete on clean stop/exit.
+         Test: write/read round-trip, delete-on-stop, pid field present.
+  M13.2  mcp/McpTools adapter + mcp/McpBridge — `analyser.jar --mcp` launch mode:
+         FIRST line sets java.awt.headless=true; the bridge path must touch no
+         Swing/AWT class. Hand-rolled newline-delimited JSON-RPC 2.0 on stdio
+         (initialize negotiates protocolVersion; tools/list). Tools come ONLY from
+         llm.VerbSchemas — one tool per verb (six today, incl. read), named
+         analyser_<verb>; do NOT create a parallel schema definition.
+         readOnlyHint:true on aggregate and read only.
+  M13.3  tools/call → discover endpoint via RestEndpointFile (pid liveness check via
+         ProcessHandle before trusting it), POST /action with the token header,
+         map ok:true → text content / ok:false → isError:true; absent-or-dead
+         endpoint file → clean "analyser not running, or REST transport disabled —
+         enable it in Settings ▸ Assistant" JSON-RPC error.
+  M13.4  Docs — "Connect an MCP client" section on docs/site/user-guide/assistant.md
+         with config snippets for Claude Code (.mcp.json), Claude Desktop
+         (claude_desktop_config.json), and Codex; mkdocs build --strict must pass.
+
+CONSTRAINTS (from the spec — follow, don't re-decide):
+- Zero new dependencies. JSON via the existing llm.Json. No MCP SDK.
+- The bridge forwards to REST; it never calls the dispatcher directly.
+- Server/lifecycle capabilities are NOT tools — only the six VerbSchemas verbs.
+- Newline-delimited framing (not Content-Length). Unknown methods → -32601.
+
+PROCESS (per CLAUDE.md):
+- Every user-visible change: a line under [Unreleased] in CHANGELOG.md, same commit.
+- After each slice: mark the tracker item ☑ in docs/specs/tracker.md.
+- Run the anonymisation sweep before any commit that adds fixtures or examples.
+- When all four slices are done: run the manual check in spec §11 (register the
+  bridge in a real MCP client, run an aggregate and a graph build), then report
+  what works, what you skipped, and any spec-vs-reality mismatches you found —
+  update the spec if you find any, don't silently diverge.
+
+NOTE ON THE MANUAL CHECK: the automated tests spin up their own ActionServer, so
+they run headless. Only the final §11 manual verification needs the desktop app
+running with REST enabled — if this machine has no display, mark that step
+"deferred to a desktop machine" in your report rather than skipping it silently.
