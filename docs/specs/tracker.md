@@ -71,16 +71,22 @@ running** Mongoose server's admin REST (`serverplugin-rest`; nodes already regis
 restart to pick up a fix. Capabilities tiered by risk; **server verbs are never assistant actions**
 (the FAQ's "nothing outside the loaded log" guarantee stays true for agents); every mutation is
 human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only in v1._
-- [M18.0] ☐ **Spike — verify the admin surface (gates all of Part B)** — confirm against a running
-  server that `serverplugin-rest` exposes status, audit-sink path, `EventLogControlEvent`, and
-  lifecycle; any gap becomes a `fluxtion-server-plugins` PR **before** M18.1+ is scheduled. **Test
-  bench: the M19 example bundle** (admin REST on, disposable, predictable log) — M19.1 and M18.0
-  co-develop.
+- [M18.0] ☐ **Spike — verify the admin surface (gates all of Part B)** — `svc-admin-web` (validated)
+  already serves **status/identity** (`GET /api/server`) and **processor enumeration**
+  (`/api/services`,`/api/agents`,`/api/queues`); the spike's real job is the three gaps — **audit-sink
+  discovery, audit level (`EventLogControlEvent`), lifecycle** — none are REST endpoints, so confirm
+  each as a registered `AdminCommandRegistry` command (`POST /api/commands/{name}`) or file a
+  `fluxtion-server-plugins` PR **before** M18.1+ is scheduled. Note `WS /ws/logs` is app logging, **not**
+  the event-audit sink. **Test bench: the M19 example bundle** (admin REST on, disposable, predictable
+  log) — M19.1 and M18.0 co-develop.
 - [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced;
   per-link **"development server — restarts allowed"** opt-in flag); status-bar chip
   (connected/name/uptime); Server menu scaffold.
-- [M18.2] ☐ **Log discovery** — "Open server's audit log": resolve the audit sink path from server
-  config, open it, offer Follow. _One-click "point the analyser at your running system"._
+- [M18.2] ☐ **Log discovery** — "Open server's audit log": resolve the **sink descriptor (type+path)**
+  from server config; text file sink → open + offer Follow; Chronicle/kafka/jdbc sink → say so plainly
+  (analyser reads the text file sink). The audit **writer is pluggable** so discovery must branch on
+  sink *type*, not assume a file path. _One-click "point the analyser at your running system"._
+  _(Future, uncommitted: pluggable analyser readers mirroring the sinks.)_
 - [M18.3] ☐ **Audit level control** — raise/lower the processor's audit level
   (`EventLogControlEvent`) while tailing, with **capture-and-restore** (record the found level,
   auto-restore on disconnect/exit — never strand a server at TRACE); confirm dialog names the
@@ -92,8 +98,10 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
 - [M18.5] ☐ _(deferred)_ deploy-jar-and-restart; non-loopback/production posture (only alongside the
   regulated-tier approvals/attestation story); agent-initiated server actions behind per-action human
   approval.
-- Open questions: **O1** admin endpoint surface — resolved by **M18.0** · **O2** multi-processor
-  servers · **O3** admin auth beyond localhost. _(O4 gitignore: resolved — the analyser writes it.)_
+- Open questions: **O1** admin endpoint surface — **partly resolved by `svc-admin-web`** (status +
+  enumeration served; audit-sink/level/lifecycle still spike-gated in **M18.0**) · **O2** multi-processor
+  servers (list from `/api/services`; per-processor *typed* sink) · **O3** admin auth beyond localhost.
+  _(O4 gitignore: resolved — the analyser writes it.)_
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button

@@ -67,11 +67,11 @@ The Download bundle MUST contain:
 | Item | Why |
 |---|---|
 | runnable Mongoose example (source + build, or jar + config — O1) | the thing that runs |
-| **audit logging pre-enabled** — `EventLogManager` → file sink at `./logs/audit-<name>.yaml`, level INFO | no configuration step; the log path the docs can name |
+| **audit logging pre-enabled** — `EventLogManager` → **text file sink** at `./logs/audit-<name>.yaml`, level INFO | no configuration step; deliberately the file sink (not Chronicle/binary) because that's the sink the analyser reads |
 | the **generated EventProcessor source** + the example's node sources | source navigation works out of the box |
 | **`.analyser/project.fluxtion-settings`** — relative source roots + EP FQN, at **M20's canonical project-profile path** so the bundle *is* a project profile (not a separately-named file the detector also accepts) | zero-setup: M20 auto-detects it; M15 import until then |
 | **`README.md`** — run command, the log path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser |
-| **admin REST enabled** (`serverplugin-rest` on a known localhost port, named in the README and the settings file) | the example doubles as **M18's validation bench** (below) |
+| **admin REST enabled** (`svc-admin-web` / `serverplugin-rest` — default `127.0.0.1:8181`, named in the README and the settings file) | the example doubles as **M18's validation bench** (below) — `svc-admin-web` is the concrete surface M18.0 spikes against |
 | **agent bootstrap — `CLAUDE.md` (+ `AGENTS.md` mirror), layered** (see below) | the user opens the project in their IDE and **their own LLM already knows Fluxtion** — the edit loop needs zero prompting |
 
 **The agent-bootstrap prompt stack — embed a snapshot, reference the canon.** Hosted canonicals
@@ -147,10 +147,11 @@ The same bundle validates the **Mongoose server link** (spec-closed-loop Part B)
 known-good local server with the admin REST on, a predictable log, restart-safe (it's disposably
 local — the per-link dev opt-in is honestly true here). Concretely:
 
-- **M18.0 (spike)** runs *against this example* — verify status / sink-path discovery /
-  `EventLogControlEvent` / lifecycle on it; **any missing admin capability becomes a
+- **M18.0 (spike)** runs *against this example* — `svc-admin-web` already serves status + processor
+  enumeration; verify the three gaps on it (**sink-descriptor discovery, `EventLogControlEvent`,
+  lifecycle** — registered admin commands or none); **any missing admin capability becomes a
   `fluxtion-server-plugins` PR** (updates to the Mongoose plugin are expected, not exceptional —
-  budget for them).
+  budget for them). The bundle's file sink keeps discovery simple (a real path to resolve).
 - M18.2's "Open server's audit log", M18.3's level control (watch Follow get chattier live), and
   M18.4's dev restart all get their acceptance demos on this bundle.
 - Later, the tutorial gains an optional part 4 ("control the server from the analyser") once M18.1–3

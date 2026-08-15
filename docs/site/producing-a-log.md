@@ -43,8 +43,15 @@ sink; that file is the one you open here.
 
 - **Log level** — raise it (e.g. `DEBUG`) while diagnosing to capture more per-node detail; lower it
   (`INFO`) in steady state.
-- **File sink** — the server writes records to a `---`-separated file. Open it locally, or copy it to S3
-  and open `s3://bucket/key`.
+- **File sink** — the server writes records to a `---`-separated text file. Open it locally, or copy it
+  to S3 and open `s3://bucket/key`. **This is the sink the analyser reads.**
+
+!!! note "The audit writer is pluggable — use the file sink for the analyser"
+    `EventLogManager` takes a `LogRecordListener`, so a processor can write its audit stream to any
+    back-end sink — a text file, or **Chronicle**, kafka, jdbc, etc. for higher throughput. The analyser
+    reads the **text file sink**. If your production system logs to Chronicle (or another binary sink)
+    for performance, add a text file sink alongside it to feed the analyser. (A file sink and a
+    high-performance sink can run side by side on the same processor.)
 
 The exact configuration lives with the producer — see the **Fluxtion / Mongoose server documentation**
 for enabling the `EventLogManager` auditor, setting the level, and wiring the file sink.

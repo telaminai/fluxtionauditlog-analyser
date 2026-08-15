@@ -114,6 +114,30 @@ Mongoose ships `serverplugin-rest` and `serverplugin-admintelnet`; nodes registe
 `AdminCommandRegistry` (e.g. `mkDataBook.<name>.currentBook`). The analyser talks to the **REST admin
 endpoint** only.
 
+**Validated against the shipped [`svc-admin-web`](https://telaminai.github.io/mongoose-plugins/services/admin-web/)
+plugin** (the reference admin-web service — the spike's concrete target). Its actual surface:
+
+| Endpoint | Gives |
+|---|---|
+| `GET /api/server` | identity: **pid, runtime, startTime** (→ uptime) |
+| `GET /api/services` · `/api/agents` · `/api/queues` | **enumerate processors/services** (O2's discovery data) |
+| `GET /api/jvm` · `WS /ws/monitor` | JVM snapshots |
+| `GET /api/commands` · `POST /api/commands/{name}` | **generic** list/invoke over whatever nodes registered with `AdminCommandRegistry` |
+| `GET /healthz` · `WS /ws/logs` | liveness · buffered **application** log stream |
+
+Bind default `127.0.0.1:8181` (loopback by default, configurable); `authMode` = `NONE` (default) /
+`BASIC` / `BEARER`, HMAC-signed session cookies.
+
+**Two corrections this forces (why the spike still matters):**
+1. `svc-admin-web` resolves **identity/uptime and processor enumeration** directly — but it exposes
+   **no dedicated audit surface**. Audit-sink path, audit level (`EventLogControlEvent`), and lifecycle
+   are **not** REST endpoints; they are reached (if at all) as **registered `AdminCommandRegistry`
+   commands via `POST /api/commands/{name}`**, or they are the **gaps M18.0 turns into a
+   `fluxtion-server-plugins` PR**. So O1 is *partly* answered (status/enumeration ✔), *not* fully.
+2. `WS /ws/logs` is the **application logging** stream — **not** the Fluxtion event-audit sink the
+   analyser parses (the `EventLogManager` `LogRecord`/`nodeLogs` file). Do not wire M18.2 to `/ws/logs`;
+   the audit log is a separate, pluggable **sink** (below).
+
 > **O1 is load-bearing, not a footnote** — it gates M18.2–M18.4, and any missing endpoint is a
 > cross-repo PR into `fluxtion-server-plugins` (expected, not exceptional — budget for plugin updates).
 > **M18.0 (spike)** therefore precedes everything else in Part B: verify the four capabilities below
@@ -121,20 +145,28 @@ endpoint** only.
 > M19 onboarding-example bundle** (spec-onboarding-example §Synergy) — a disposable local Mongoose
 > server with admin REST on and a predictable log, which then also hosts M18.2–18.4's acceptance demos.
 
-Required capabilities, to verify in the spike (and add server-side if missing):
+Required capabilities, to verify in the spike (and add server-side if missing) — column shows what
+`svc-admin-web` confirmed vs. what's an open gap:
 
-| Need | Admin call (expected shape) |
+| Need | Reality after the `svc-admin-web` check |
 |---|---|
-| liveness / identity | server status: name, uptime, processors, versions |
-| **log discovery** | per-processor audit sink config → the log **file path** |
-| **audit level** | send `EventLogControlEvent` (level, optionally per-logger) — the generated code already handles `calculationLogConfig` |
-| stop / start / restart | server lifecycle command (dev scope) |
+| liveness / identity | **✔ served** — `GET /api/server` (pid, runtime, startTime) + `/api/services` `/api/agents` `/api/queues` for the processor/service inventory |
+| **log discovery** | **gap** — no audit-sink endpoint. Needs a registered command exposing the **sink descriptor** (type + path), or a plugin PR. **The sink is pluggable and *typed*** — a file sink has a path the analyser can open; a **Chronicle** (or kafka/jdbc) sink does **not**, so discovery must return sink *type*, not assume a file path (see B.4 M18.2) |
+| **audit level** | **gap** — `EventLogControlEvent` is not a REST endpoint; reach it via a registered `AdminCommandRegistry` command (`POST /api/commands/{name}`) if present, else a plugin PR. Generated code already handles `calculationLogConfig` |
+| stop / start / restart | **gap** — no lifecycle endpoint; registered command (dev scope) or plugin PR |
 | _(later)_ deploy | replace processor jar + restart (dev scope) |
+
+The audit log's **writer is pluggable** (the same `EventLogManager` `LogRecordListener` seam M11 uses
+for a metrics sink) — one declared processor can log to a file sink, Chronicle, kafka, jdbc… The
+analyser consumes the **text file sink** today; discovery and open must **recognise the sink type and
+degrade honestly** when it isn't one the analyser reads. Pluggable output sinks mirror Fluxtion's
+pluggable compile targets (IR → JVM/native/WASM): one IR, many back-ends, both directions.
 
 ### B.3 Configuration & UI
 
 - **Settings ▸ Server link** (per event-processor entry, like source roots): admin base URL
-  (default `http://127.0.0.1:<port>`), optional auth header. **Localhost-only in v1** — a non-loopback
+  (default `http://127.0.0.1:8181` — `svc-admin-web`'s default bind), **auth matching `authMode`**
+  (`NONE` default / `BASIC` user+password / `BEARER` token). **Localhost-only in v1** — a non-loopback
   URL is refused with an explanatory message (production posture comes later, deliberately).
 - **Status-bar chip**: ● connected (server name, uptime) / ○ not configured / ✕ unreachable.
 - **Server menu**: Status · Open server's audit log · Audit level ▸ (NONE/INFO/DEBUG/TRACE) ·
@@ -143,9 +175,14 @@ Required capabilities, to verify in the spike (and add server-side if missing):
 ### B.4 Capabilities, tiered by risk
 
 1. **M18.1 — Link + status (read-only).** Connect, show identity/health. Zero risk, ships first.
-2. **M18.2 — Log discovery.** "Open server's audit log" resolves the sink path from server config and
-   opens it (with Follow offered). Kills the last onboarding friction — *point the analyser at your
-   running system* becomes one click. Read-only.
+2. **M18.2 — Log discovery.** "Open server's audit log" resolves the **sink descriptor** from server
+   config; if it's a **text file sink**, open it (with Follow offered) — *point the analyser at your
+   running system* in one click. If it's a **Chronicle/kafka/jdbc** sink the analyser can't read, say so
+   plainly (*"this processor logs to a Chronicle sink — the analyser reads the text file sink; add one,
+   or use the matching reader"*) rather than failing opaquely. Read-only. **Future (not committed):**
+   pluggable analyser *readers* mirroring the pluggable *sinks* (a Chronicle reader, etc.) — recognised
+   here as the boundary, built only if demand appears; the sink plugins themselves live in
+   `mongoose-plugins` (the Extend pathway), not the analyser.
 3. **M18.3 — Audit level control.** Raise to DEBUG/TRACE while tailing, watch richer `nodeLogs`
    stream in. **Capture-and-restore, never "drop back to INFO"**: the analyser records the level it
    found (which may not be INFO) and **auto-restores it** on disconnect/exit, so a server is never
@@ -232,11 +269,15 @@ acceptance from prose to a red test. M18.5 stays deferred.
 
 ## Open questions
 
-- **O1** — exact `serverplugin-rest` endpoints for status / sink config / `EventLogControlEvent` /
-  lifecycle: **resolved by the M18.0 spike** (§B.2) before any other Part B work; anything missing is a
-  small server-side PR (tracked in `fluxtion-server-plugins`, not here).
+- **O1** — exact admin endpoints for status / sink config / `EventLogControlEvent` / lifecycle:
+  **partly resolved by `svc-admin-web` (§B.2)** — status/identity and processor enumeration are served
+  REST endpoints; **audit-sink discovery, audit level, and lifecycle are the remaining unknowns** (no
+  dedicated endpoint — registered `AdminCommandRegistry` commands or `fluxtion-server-plugins` PRs).
+  M18.0 confirms those three against a running server before any other Part B work.
 - **O2** — multi-processor servers: the link is per-server, the log per-processor; the discovery UI
-  must list processors and their sinks.
+  lists processors from `GET /api/services`/`/api/agents` and each processor's **sink descriptor
+  (type + path)** — remembering the sink is pluggable, so "path" is only meaningful for a file sink.
 - **O3** — auth for the admin endpoint beyond localhost trust (defer with M18.5).
-- ~~**O4** — brief-file gitignore~~ **resolved**: the analyser writes `.analyser/.gitignore` (`*`)
-  itself at brief-write time (§A.2) — deterministic, no agent delegation, no race.
+- ~~**O4** — brief-file gitignore~~ **resolved**: the analyser writes `.analyser/.gitignore`
+  (**`fix-brief-*`** — scoped so M20's committed project profile in the same dir isn't ignored) itself
+  at brief-write time (§A.2) — deterministic, no agent delegation, no race.
