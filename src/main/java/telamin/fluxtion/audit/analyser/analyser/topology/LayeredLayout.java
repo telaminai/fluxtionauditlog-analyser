@@ -513,6 +513,14 @@ public final class LayeredLayout {
                 double max = pos[layer.get(i + 1)] - separation(layer.get(i), layer.get(i + 1));
                 pos[layer.get(i)] = Math.min(pos[layer.get(i)], max);
             }
+
+            // Cancel systemic drift. Separation can only push a node right of where its median wanted it,
+            // so every pass nudges the layer rightward and the graph shears into a diagonal smear. A
+            // rigid shift by the mean error pulls the layer back without disturbing the spacing inside it.
+            double drift = 0;
+            for (int i = 0; i < layer.size(); i++) drift += desired[i] - pos[layer.get(i)];
+            drift /= layer.size();
+            for (int v : layer) pos[v] += drift;
         }
 
         /** Shift so the leftmost node's left edge sits at 0 — the view owns pan, not the layout. */

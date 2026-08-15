@@ -172,8 +172,13 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   intransitive comparator that made TimSort throw, and bend points consuming a full node's width
   (135661px canvas). Both fixed and regression-tested; layout went 2000ms → **13ms** at 300 nodes.
   Real graphs: 69 nodes → 8 layers, 5924×888. ELK not needed.
-- [M21.3] ☐ **Topology panel** — Java2D render of M21.2's geometry; theme-aware, pan/zoom, hover, select.
-  Verify by running the jar.
+- [M21.3] ☑ **Topology panel** — `TopologyCanvas` (Java2D: pan, zoom-at-cursor, fit, hover, select,
+  tooltips, kind-coloured boxes, arrowheads, viewport culling, label LOD by rendered pixel width) +
+  `TopologyPanel` (toolbar, open `.graphml`, orientation toggle, status line incl. the M21.1 pair-check).
+  Added as a **Topology** tab. Verified by **rendering offscreen to PNG and inspecting it** — which
+  caught three defects a green test suite did not: the layout sheared into a diagonal (systemic drift in
+  the coordinate pass, fixed in `LayeredLayout`), arrowheads were painted underneath node boxes (edges now
+  stop at the border), and labels were hidden by a zoom-based LOD threshold.
 - [M21.4] ☐ **Step-through** — record → fired nodes highlighted **in dispatch order**; step node-by-node
   within a cycle showing logged values; bidirectional; bound to the shared filter.
 - [M21.5] ☐ **Cross-view wiring** — node → source · node → graph a key · node → filter/flag.

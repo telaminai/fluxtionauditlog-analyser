@@ -51,6 +51,7 @@ public final class MainFrame extends JFrame {
     private final SourceService sourceService = new SourceService();
     private final LlmPanel llmPanel = new LlmPanel();
     private final GraphTabs graphTabs = new GraphTabs();
+    private final TopologyPanel topologyPanel = new TopologyPanel();
     private final TimeRangeSlider timeSlider = new TimeRangeSlider();
     private final JComboBox<WindowSpan> windowCombo = new JComboBox<>(WindowSpan.ALL_OPTIONS);
     private final JScrollBar windowScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1000, 0, 1000);
@@ -491,6 +492,7 @@ public final class MainFrame extends JFrame {
         sideTabs.addTab("Summary", summaryPanel);
         sideTabs.addTab("Source", sourcePanel);
         sideTabs.addTab("Graph", graphTabs);
+        sideTabs.addTab("Topology", topologyPanel);
         sideTabs.addTab("Analyser assistant", llmPanel);
 
         mainSplit.setMinimumSize(new Dimension(200, 120));

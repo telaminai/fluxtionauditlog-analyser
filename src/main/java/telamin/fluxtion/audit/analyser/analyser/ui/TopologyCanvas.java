@@ -1,0 +1,446 @@
+package telamin.fluxtion.audit.analyser.analyser.ui;
+
+import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
+import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
+import telamin.fluxtion.audit.analyser.analyser.topology.TopologyLayout;
+
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+import java.awt.geom.Path2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.RoundRectangle2D;
+import java.util.List;
+import java.util.function.Consumer;
+
+/**
+ * Paints a {@link TopologyLayout} (M21.3): the processor graph, pan/zoom/hover/select, theme-aware.
+ *
+ * <p>Owns no layout. Geometry is computed once by {@link LayeredLayout} when the topology changes and
+ * cached; repaint only transforms and draws, which is what keeps panning smooth on a graph of a few
+ * hundred nodes. Off-screen boxes are culled, so cost tracks what you can see rather than graph size.
+ *
+ * <p>Screen = world × {@code scale} + offset. Everything interactive works in world coordinates and
+ * converts at the edges, so zoom never accumulates error in the model.
+ */
+public final class TopologyCanvas extends JPanel {
+
+    /**
+     * Labels appear once a box is at least this wide <em>on screen</em>. Keyed to rendered pixels, not to
+     * the zoom factor: what decides whether a name is readable is how many pixels it has, and a zoom
+     * threshold gets that wrong the moment the node size changes.
+     */
+    private static final double LABEL_MIN_BOX_PX = 54;
+    private static final double MIN_SCALE = 0.08;
+    private static final double MAX_SCALE = 4.0;
+
+    private ProcessorTopology topology = ProcessorTopology.empty();
+    private TopologyLayout layout = TopologyLayout.empty();
+    private LayeredLayout.Config config = LayeredLayout.Config.defaults();
+
+    private double scale = 1.0;
+    private double offsetX;
+    private double offsetY;
+
+    private String hoveredId;
+    private String selectedId;
+
+    private Point dragOrigin;
+    private double dragOffsetX;
+    private double dragOffsetY;
+
+    private Consumer<String> nodeSelected = id -> { };
+    private Consumer<String> nodeActivated = id -> { };
+
+    private record Point(int x, int y) { }
+
+    public TopologyCanvas() {
+        setOpaque(true);
+        setPreferredSize(new Dimension(640, 420));
+        setFocusable(true);
+        ToolTipManager.sharedInstance().registerComponent(this);
+
+        MouseAdapter mouse = new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                requestFocusInWindow();
+                dragOrigin = new Point(e.getX(), e.getY());
+                dragOffsetX = offsetX;
+                dragOffsetY = offsetY;
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    TopologyLayout.NodeBox hit = boxAt(e.getX(), e.getY());
+                    String id = hit == null ? null : hit.id();
+                    if (e.getClickCount() == 2 && id != null) {
+                        nodeActivated.accept(id);
+                    } else {
+                        select(id);
+                    }
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (dragOrigin == null) return;
+                offsetX = dragOffsetX + (e.getX() - dragOrigin.x());
+                offsetY = dragOffsetY + (e.getY() - dragOrigin.y());
+                setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                repaint();
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                dragOrigin = null;
+                setCursor(Cursor.getDefaultCursor());
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                TopologyLayout.NodeBox hit = boxAt(e.getX(), e.getY());
+                String id = hit == null ? null : hit.id();
+                if (!java.util.Objects.equals(id, hoveredId)) {
+                    hoveredId = id;
+                    setCursor(id == null ? Cursor.getDefaultCursor()
+                            : Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                    repaint();
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (hoveredId != null) {
+                    hoveredId = null;
+                    repaint();
+                }
+            }
+
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                zoomAt(e.getX(), e.getY(), Math.pow(1.1, -e.getPreciseWheelRotation()));
+            }
+        };
+        addMouseListener(mouse);
+        addMouseMotionListener(mouse);
+        addMouseWheelListener(mouse);
+    }
+
+    // ---- model ------------------------------------------------------------------------------------
+
+    /** Lay out and show a topology. Fits to the view, because an unfitted graph opens off-screen. */
+    public void setTopology(ProcessorTopology topology) {
+        this.topology = topology == null ? ProcessorTopology.empty() : topology;
+        this.layout = LayeredLayout.layout(this.topology, config);
+        this.hoveredId = null;
+        this.selectedId = null;
+        fitToView();
+    }
+
+    public ProcessorTopology topology() {
+        return topology;
+    }
+
+    public void setOrientation(LayeredLayout.Orientation orientation) {
+        config = config.withOrientation(orientation);
+        layout = LayeredLayout.layout(topology, config);
+        fitToView();
+    }
+
+    public LayeredLayout.Orientation orientation() {
+        return config.orientation();
+    }
+
+    LayeredLayout.Config config() {
+        return config;
+    }
+
+    /** Called with the selected node id, or {@code null} when the selection is cleared. */
+    public void onNodeSelected(Consumer<String> listener) {
+        this.nodeSelected = listener == null ? id -> { } : listener;
+    }
+
+    /** Called on double-click — the hook M21.5 hangs "go to source" on. */
+    public void onNodeActivated(Consumer<String> listener) {
+        this.nodeActivated = listener == null ? id -> { } : listener;
+    }
+
+    public String selected() {
+        return selectedId;
+    }
+
+    public void select(String id) {
+        if (java.util.Objects.equals(id, selectedId)) return;
+        selectedId = id;
+        repaint();
+        nodeSelected.accept(id);
+    }
+
+    // ---- view -------------------------------------------------------------------------------------
+
+    /** Scale and centre so the whole graph is visible with a small margin. */
+    public void fitToView() {
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0 || layout.isEmpty()) {
+            scale = 1.0;
+            offsetX = offsetY = 0;
+            repaint();
+            return;
+        }
+        double margin = 24;
+        double sx = (w - 2 * margin) / Math.max(1, layout.width());
+        double sy = (h - 2 * margin) / Math.max(1, layout.height());
+        scale = clamp(Math.min(sx, sy), MIN_SCALE, 1.0);   // never zoom past 1:1 just to fill space
+        offsetX = (w - layout.width() * scale) / 2;
+        offsetY = (h - layout.height() * scale) / 2;
+        repaint();
+    }
+
+    public void zoomIn() {
+        zoomAt(getWidth() / 2, getHeight() / 2, 1.2);
+    }
+
+    public void zoomOut() {
+        zoomAt(getWidth() / 2, getHeight() / 2, 1 / 1.2);
+    }
+
+    /** Zoom about a screen point, so the thing under the cursor stays under the cursor. */
+    private void zoomAt(int px, int py, double factor) {
+        double next = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+        if (next == scale) return;
+        double worldX = (px - offsetX) / scale;
+        double worldY = (py - offsetY) / scale;
+        scale = next;
+        offsetX = px - worldX * scale;
+        offsetY = py - worldY * scale;
+        repaint();
+    }
+
+    private static double clamp(double v, double min, double max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    private TopologyLayout.NodeBox boxAt(int px, int py) {
+        return layout.at((px - offsetX) / scale, (py - offsetY) / scale);
+    }
+
+    @Override
+    public String getToolTipText(MouseEvent e) {
+        TopologyLayout.NodeBox box = boxAt(e.getX(), e.getY());
+        if (box == null) return null;
+        ProcessorTopology.Node node = topology.node(box.id());
+        if (node == null) return null;
+        String className = node.className() == null ? "" : "<br>" + node.className();
+        return "<html><b>" + node.id() + "</b>" + className
+               + "<br><i>" + node.kind().name().toLowerCase().replace('_', ' ') + "</i></html>";
+    }
+
+    // ---- painting ---------------------------------------------------------------------------------
+
+    @Override
+    protected void paintComponent(Graphics g0) {
+        super.paintComponent(g0);
+        Graphics2D g = (Graphics2D) g0.create();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        boolean dark = ThemeManager.isDark();
+        Color canvas = dark ? new Color(0x0D1117) : new Color(0xF6F8FA);
+        Color edge = dark ? new Color(0x545D68) : new Color(0x9AA5B1);
+        Color edgeHot = dark ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
+        Color text = dark ? new Color(0xC9D1D9) : new Color(0x24292F);
+        Color muted = dark ? new Color(0x8B949E) : new Color(0x6E7781);
+
+        g.setColor(canvas);
+        g.fillRect(0, 0, getWidth(), getHeight());
+
+        if (layout.isEmpty()) {
+            g.setColor(muted);
+            String msg = "No topology loaded — open the processor's .graphml to see the node graph.";
+            FontMetrics fm = g.getFontMetrics();
+            g.drawString(msg, (getWidth() - fm.stringWidth(msg)) / 2, getHeight() / 2);
+            g.dispose();
+            return;
+        }
+
+        Rectangle2D visible = visibleWorldRect();
+        paintEdges(g, visible, edge, edgeHot);
+        paintNodes(g, visible, dark, text, muted);
+        paintHud(g, muted);
+        g.dispose();
+    }
+
+    /** The world rectangle currently on screen — everything outside it is skipped. */
+    private Rectangle2D visibleWorldRect() {
+        return new Rectangle2D.Double(
+                -offsetX / scale, -offsetY / scale, getWidth() / scale, getHeight() / scale);
+    }
+
+    private void paintEdges(Graphics2D g, Rectangle2D visible, Color normal, Color hot) {
+        String focus = selectedId != null ? selectedId : hoveredId;
+        g.setStroke(new BasicStroke((float) Math.max(1, 1.1 * scale)));
+        for (TopologyLayout.EdgePath path : layout.edges()) {
+            boolean incident = focus != null
+                               && (focus.equals(path.source()) || focus.equals(path.target()));
+            List<TopologyLayout.Point> pts = path.points();
+            if (!incident && !touches(visible, pts)) continue;
+
+            // Stop the line at the box border rather than its centre. Drawn to the centre, the last
+            // segment — and the arrowhead on it — is painted over by the node and the graph loses all
+            // sense of direction.
+            TopologyLayout.Point first = trimToBox(layout.box(path.source()), pts.get(0), pts.get(1));
+            TopologyLayout.Point last = trimToBox(
+                    layout.box(path.target()), pts.get(pts.size() - 1), pts.get(pts.size() - 2));
+
+            Path2D.Double shape = new Path2D.Double();
+            shape.moveTo(sx(first.x()), sy(first.y()));
+            for (int i = 1; i < pts.size() - 1; i++) {
+                shape.lineTo(sx(pts.get(i).x()), sy(pts.get(i).y()));
+            }
+            shape.lineTo(sx(last.x()), sy(last.y()));
+            g.setColor(incident ? hot : normal);
+            g.draw(shape);
+            paintArrowHead(g, pts.get(pts.size() - 2), last);
+        }
+    }
+
+    /**
+     * Where the line from {@code centre} toward {@code toward} leaves {@code box}. Falls back to the
+     * centre when there is no box (a bend point, or an edge naming a node the document never declared).
+     */
+    private static TopologyLayout.Point trimToBox(TopologyLayout.NodeBox box,
+                                                  TopologyLayout.Point centre,
+                                                  TopologyLayout.Point toward) {
+        if (box == null) return centre;
+        double cx = box.centerX();
+        double cy = box.centerY();
+        double dx = toward.x() - cx;
+        double dy = toward.y() - cy;
+        if (dx == 0 && dy == 0) return centre;
+        double halfW = box.width() / 2;
+        double halfH = box.height() / 2;
+        double tx = dx == 0 ? Double.MAX_VALUE : halfW / Math.abs(dx);
+        double ty = dy == 0 ? Double.MAX_VALUE : halfH / Math.abs(dy);
+        double t = Math.min(tx, ty);
+        return new TopologyLayout.Point(cx + dx * t, cy + dy * t);
+    }
+
+    private boolean touches(Rectangle2D visible, List<TopologyLayout.Point> pts) {
+        for (TopologyLayout.Point p : pts) {
+            if (visible.contains(p.x(), p.y())) return true;
+        }
+        return false;
+    }
+
+    /** A small filled triangle at the target end, so dispatch direction is readable at a glance. */
+    private void paintArrowHead(Graphics2D g, TopologyLayout.Point from, TopologyLayout.Point to) {
+        double angle = Math.atan2(to.y() - from.y(), to.x() - from.x());
+        // kept close to constant on screen: direction has to stay readable when zoomed out, which is
+        // exactly when a head scaled with the graph would vanish
+        double size = 9 * Math.max(0.85, Math.min(1.3, scale));
+        double tipX = sx(to.x());
+        double tipY = sy(to.y());
+        Path2D.Double head = new Path2D.Double();
+        head.moveTo(tipX, tipY);
+        head.lineTo(tipX - size * Math.cos(angle - Math.PI / 7), tipY - size * Math.sin(angle - Math.PI / 7));
+        head.lineTo(tipX - size * Math.cos(angle + Math.PI / 7), tipY - size * Math.sin(angle + Math.PI / 7));
+        head.closePath();
+        g.fill(head);
+    }
+
+    private void paintNodes(Graphics2D g, Rectangle2D visible, boolean dark, Color text, Color muted) {
+        boolean labels = config().nodeWidth() * scale >= LABEL_MIN_BOX_PX;
+        g.setFont(getFont().deriveFont(11f));
+        FontMetrics fm = g.getFontMetrics();
+
+        for (TopologyLayout.NodeBox box : layout.boxes()) {
+            if (!visible.intersects(box.x(), box.y(), box.width(), box.height())) continue;   // cull
+
+            ProcessorTopology.Node node = topology.node(box.id());
+            boolean isSelected = box.id().equals(selectedId);
+            boolean isHovered = box.id().equals(hoveredId);
+
+            double x = sx(box.x());
+            double y = sy(box.y());
+            double w = box.width() * scale;
+            double h = box.height() * scale;
+            RoundRectangle2D.Double shape = new RoundRectangle2D.Double(x, y, w, h, 8 * scale, 8 * scale);
+
+            g.setColor(fillFor(node, dark));
+            g.fill(shape);
+            g.setColor(isSelected ? accent(dark) : borderFor(dark, isHovered));
+            g.setStroke(new BasicStroke(isSelected ? 2.4f : isHovered ? 1.8f : 1f));
+            g.draw(shape);
+
+            if (!labels) continue;
+            String title = node == null ? box.id() : node.simpleName();
+            String subtitle = box.id();
+            g.setColor(text);
+            drawClipped(g, fm, title, x + 8 * scale, y + h / 2 - (subtitle.equals(title) ? -fm.getAscent() / 2.0 : 1), w - 16 * scale);
+            if (!subtitle.equals(title)) {
+                g.setColor(muted);
+                drawClipped(g, fm, subtitle, x + 8 * scale, y + h / 2 + fm.getHeight() - 2, w - 16 * scale);
+            }
+        }
+    }
+
+    /** Draw text, eliding with an ellipsis rather than spilling out of the box. */
+    private void drawClipped(Graphics2D g, FontMetrics fm, String s, double x, double y, double maxWidth) {
+        if (maxWidth <= 8) return;
+        String out = s;
+        if (fm.stringWidth(out) > maxWidth) {
+            while (out.length() > 1 && fm.stringWidth(out + "…") > maxWidth) {
+                out = out.substring(0, out.length() - 1);
+            }
+            out = out + "…";
+        }
+        g.drawString(out, (float) x, (float) y);
+    }
+
+    /** Node kinds are distinguished by fill, so the graph's shape reads before any label does. */
+    private static Color fillFor(ProcessorTopology.Node node, boolean dark) {
+        ProcessorTopology.Kind kind = node == null ? ProcessorTopology.Kind.UNKNOWN : node.kind();
+        return switch (kind) {
+            case EVENT -> dark ? new Color(0x2D2A1F) : new Color(0xFFF8C5);
+            case EVENT_HANDLER -> dark ? new Color(0x1B2B34) : new Color(0xDDF4FF);
+            case EXPORT_SERVICE -> dark ? new Color(0x272132) : new Color(0xF3E8FF);
+            case NODE -> dark ? new Color(0x1C2128) : new Color(0xFFFFFF);
+            case UNKNOWN -> dark ? new Color(0x21262D) : new Color(0xEFF1F3);
+        };
+    }
+
+    private static Color borderFor(boolean dark, boolean hovered) {
+        if (hovered) return dark ? new Color(0x8B949E) : new Color(0x57606A);
+        return dark ? new Color(0x30363D) : new Color(0xB6BFC9);
+    }
+
+    private static Color accent(boolean dark) {
+        return dark ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
+    }
+
+    /** Corner readout: what you are looking at and how far in. */
+    private void paintHud(Graphics2D g, Color muted) {
+        g.setColor(muted);
+        g.setFont(getFont().deriveFont(11f));
+        String hud = topology.nodeCount() + " nodes · " + topology.edgeCount() + " edges · "
+                     + layout.layerCount() + " layers · " + Math.round(scale * 100) + "%";
+        g.drawString(hud, 10, getHeight() - 10);
+    }
+
+    private double sx(double worldX) {
+        return worldX * scale + offsetX;
+    }
+
+    private double sy(double worldY) {
+        return worldY * scale + offsetY;
+    }
+}
