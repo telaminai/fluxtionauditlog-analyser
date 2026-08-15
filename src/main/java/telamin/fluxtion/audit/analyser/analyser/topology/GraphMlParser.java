@@ -51,13 +51,28 @@ public final class GraphMlParser {
     /** Newline forms seen in the label attribute once the XML entity is decoded, plus the raw entity. */
     private static final String LABEL_LINE_SPLIT = "\\r\\n|\\n|\\r|&#10;";
 
+    /** Swallows parser diagnostics; {@link #parse(String)} already reports failure by returning empty. */
+    private static final org.xml.sax.ErrorHandler SILENT = new org.xml.sax.ErrorHandler() {
+        @Override public void warning(org.xml.sax.SAXParseException e) { }
+
+        @Override public void error(org.xml.sax.SAXParseException e) { }
+
+        @Override public void fatalError(org.xml.sax.SAXParseException e) throws org.xml.sax.SAXException {
+            throw e;   // still abort the parse — just without printing it first
+        }
+    };
+
     /** Parse GraphML text. Never throws; returns an empty topology if the document is unusable. */
     public static ProcessorTopology parse(String graphMlText) {
         if (graphMlText == null || graphMlText.isBlank()) return ProcessorTopology.empty();
         try {
-            Document doc = secureBuilderFactory()
-                    .newDocumentBuilder()
-                    .parse(new ByteArrayInputStream(graphMlText.getBytes(StandardCharsets.UTF_8)));
+            javax.xml.parsers.DocumentBuilder builder = secureBuilderFactory().newDocumentBuilder();
+            // The default handler prints "[Fatal Error] …" to stderr before the exception we already
+            // handle. This parser is lenient by contract — a bad file becomes an empty topology — so it
+            // must not also shout on the console, and stderr is the MCP bridge's diagnostic channel.
+            builder.setErrorHandler(SILENT);
+            Document doc = builder.parse(
+                    new ByteArrayInputStream(graphMlText.getBytes(StandardCharsets.UTF_8)));
             return new ProcessorTopology(readNodes(doc), readEdges(doc));
         } catch (Exception e) {
             return ProcessorTopology.empty();
