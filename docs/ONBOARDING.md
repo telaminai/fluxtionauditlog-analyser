@@ -59,20 +59,43 @@ Data flows: `parse` → `LogStore`/`index` → `filter` scopes everything → `s
 
 ## Process
 
-- **Trunk-based**: `master` is the only long-lived branch and is always releasable; short-lived feature
-  branches optional (see `docs/admin/release-process.md`).
+- **This repo is PUBLIC** (since 2026-08-14, fresh single-commit history). Everything committed is
+  world-readable. **Anonymisation is policy**: no real venue / vendor / book / thread / logger /
+  account names anywhere — samples, fixtures, screenshots, javadoc examples all use neutral
+  placeholders (`DEMO`, `marketMaker-DEMO`, `com.acme…`). Sweep before committing:
+  `grep -ri "aquis\|talos\|nonco" --exclude-dir=target .` must return nothing.
+- **Trunk-based**: `main` is the only long-lived branch and is always releasable; short-lived feature
+  branches optional (see `docs/admin/release-process.md`). `pull.rebase` is on — keep history linear.
 - **Changelog is the one manual habit**: add a line under `[Unreleased]` in `CHANGELOG.md` with any
-  user-visible change; the release workflow stamps it. It's bundled into the jar (Help ▸ Release notes).
-- **Releases**: Actions ▸ Release ▸ type a version — CI tests, stamps, tags, builds, publishes.
-- **Docs site**: `docs/site/` (Jekyll + Just the Docs) deploys via `.github/workflows/pages.yml`.
+  user-visible change; the release workflow stamps it. It's bundled into the jar (Help ▸ Release notes)
+  **and** injected into the docs site's release-notes page at deploy.
+- **Releases**: Actions ▸ Release ▸ type a version — CI tests, stamps, tags, builds, publishes, and
+  re-deploys the docs site. v1.0.0 shipped 2026-08-14. JBang users need `--fresh` to pick up a new
+  release (cached stable-name jar).
+- **Docs site**: **MkDocs Material** (matches mongoose-plugins; migrated from Jekyll — the
+  `github-pages` gem can't run on modern Ruby). Live at
+  <https://telaminai.github.io/fluxtionauditlog-analyser/>. Sources in `docs/site/`, config in root
+  `mkdocs.yml`. Local preview: `pip3 install -r docs-requirements.txt && mkdocs serve`. Before pushing
+  site changes: `mkdocs build --strict` must pass (CI enforces; it link-checks).
 
 ## Where to read next
 
 - `docs/specs/spec.md` — the product spec (start here for the "what/why").
-- `docs/specs/tracker.md` — **live** work items only; finished milestones are archived under
-  `docs/specs/completed/`.
+- `docs/specs/tracker.md` — **live** work items only, with the current delivery order (next up:
+  **M13** MCP bridge and the **M18.0** admin-surface spike — independent tracks); finished milestones
+  are archived under `docs/specs/completed/`.
+- `docs/specs/spec-closed-loop.md` — the active design: agent fix handoff (M12.4) + Mongoose server
+  link (M18). Its two load-bearing decisions are recorded in the tracker's Decisions: server verbs are
+  **never** assistant actions, and agent fixes arrive as **evidence-linked PRs**, never direct edits.
+- `docs/specs/spec-assistant-actions-mcp.md` — the M13 MCP transport design.
 - `docs/specs/completed/` — shipped milestones and their design specs (history).
 - `docs/admin/release-process.md`, `docs/admin/docs-site.md` — ops.
+
+## Tracker discipline
+
+When you finish work: mark items ☑ in `docs/specs/tracker.md`; when a whole milestone/round is done,
+**move it to `docs/specs/completed/tracker.md`** and keep the live tracker to in-progress + future
+only. New designs get a `spec-<name>.md`; superseded ones move to `completed/`.
 
 ## Gotchas
 
