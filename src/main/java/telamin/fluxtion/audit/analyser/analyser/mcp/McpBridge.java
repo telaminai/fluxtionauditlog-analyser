@@ -2,7 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.mcp;
 
 import telamin.fluxtion.audit.analyser.analyser.llm.Json;
 import telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile;
-import telamin.fluxtion.audit.analyser.analyser.ui.ReleaseNotes;
+import telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
