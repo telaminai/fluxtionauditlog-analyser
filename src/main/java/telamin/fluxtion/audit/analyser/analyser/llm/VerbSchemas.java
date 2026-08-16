@@ -69,6 +69,15 @@ public final class VerbSchemas {
                         p("note", string(), "annotation stored with the flag (your finding)")),
                 List.of()));
 
+        s.put("context", schema("Read-only: what the user is currently looking at — the active filter, "
+                        + "their selection and flags, the topology cursor, the open graphs, and the source "
+                        + "configuration. Returns POINTERS (record indexes and byte offsets), not record "
+                        + "text; fetch what you need with 'read'. The returned 'filter' is in the exact "
+                        + "shape 'aggregate' accepts, so you can scope a query to the user's own filter by "
+                        + "passing it straight back.",
+                props(),
+                List.of()));
+
         s.put("topology", schema("Drive the Topology tab: what is shown, what is selected, and where the "
                         + "step cursor is. All reversible view state — nothing is loaded or written.",
                 props(

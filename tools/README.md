@@ -32,5 +32,27 @@ subprocess.run(["screencapture", "-x", "-R",
 PY
 ```
 
+## The investigation loop
+
+`context` is the verb that makes the rest worth having. The other ten let an assistant **change** the
+view; `context` lets it **see** one — the active filter, the selection, the user's flags *and their
+notes*, the topology cursor, the open graphs, and the source configuration.
+
+That removes the copy-a-prompt seam. The human does the expensive part — narrowing the log, flagging what
+looks wrong, writing down why — and the assistant reads it directly:
+
+```bash
+tools/drive-analyser.sh context
+```
+
+It returns **pointers, not payloads**: record indexes and byte offsets, never record text, so the answer
+stays small and you fetch only what you need with `read`. The `filter` it reports is in the exact shape
+`aggregate` takes, so "answer this using my filter" is passing it straight back:
+
+```bash
+F=$(tools/drive-analyser.sh context | python3 -c "import json,sys;print(json.dumps(json.load(sys.stdin)['context']['filter']))")
+tools/drive-analyser.sh aggregate "{\"metric\":\"count\",\"groupBy\":\"dimension\",\"filter\":$F}"
+```
+
 **Reach.** `open` and `source_root` touch the filesystem — see `docs/proposals/upstream-asks.md` and the
 `AppControl` javadoc for why they are held behind their own interface.

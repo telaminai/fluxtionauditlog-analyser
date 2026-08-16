@@ -27,7 +27,7 @@ public final class McpTools {
     public static final String PREFIX = "analyser_";
 
     /** Verbs that never mutate the app: query-only over the loaded log. */
-    private static final Set<String> READ_ONLY = Set.of("aggregate", "read");
+    private static final Set<String> READ_ONLY = Set.of("aggregate", "read", "context");
 
     /** One MCP tool descriptor per verb, in {@code VerbSchemas} order. */
     @SuppressWarnings("unchecked")

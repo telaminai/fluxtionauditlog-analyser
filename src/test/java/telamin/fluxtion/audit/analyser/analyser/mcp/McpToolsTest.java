@@ -36,7 +36,7 @@ class McpToolsTest {
                 .map(v -> "analyser_" + v).collect(Collectors.toSet());
         Set<String> actual = tools.stream().map(t -> (String) t.get("name")).collect(Collectors.toSet());
         assertEquals(expected, actual, "no more, no fewer — the adapter must not fork the schema set");
-        assertEquals(10, tools.size(), "ten verbs ship today: 2 query, 4 render, 4 control");
+        assertEquals(11, tools.size(), "eleven verbs ship today: 3 query, 4 render, 4 control");
     }
 
     @Test

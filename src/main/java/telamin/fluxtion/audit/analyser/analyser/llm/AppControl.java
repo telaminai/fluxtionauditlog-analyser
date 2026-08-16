@@ -52,6 +52,20 @@ public interface AppControl {
      */
     ActionResult screenshot(String path, String scope);
 
+    /**
+     * What the user is currently looking at, as data.
+     *
+     * <p>The other verbs let an assistant <b>change</b> the view; none of them let it <b>see</b> one. That
+     * asymmetry is why the workflow needed a copied prompt: the human's filtering, flagging and graphing
+     * — the expensive, judgement-laden part of an investigation — was invisible unless pasted in.
+     *
+     * <p>Returns <b>pointers, not payloads</b>: record indexes and byte offsets rather than record text,
+     * so the answer stays small and the caller fetches only what it needs through the rate-limited
+     * {@code read}. The {@code filter} it reports is in the shape {@code aggregate} accepts, so scoping a
+     * query to the user's own filter is passing it straight back rather than reconstructing it.
+     */
+    ActionResult context();
+
     /** Bring a named side tab to the front ({@code Summary|Source|Graph|Topology|Analyser assistant}). */
     boolean showTab(String name);
 }

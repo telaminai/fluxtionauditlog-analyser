@@ -90,4 +90,42 @@ class ActionDispatcherTest {
         assertFalse(d.dispatch("{\"token\":\"wrong\",\"action\":\"aggregate\"}").ok(), "wrong token rejected");
         assertTrue(d.dispatch("{\"token\":\"s3cr3t\",\"action\":\"aggregate\"}").ok(), "correct token accepted");
     }
+
+    // ---- the control verbs route like render verbs (M22.47/49) ------------------------------------
+
+    /**
+     * Every verb the dispatcher accepts but cannot serve itself must say so <b>structurally</b>, not
+     * throw or silently succeed. An embedder that supplies no executor still gets a usable error, which
+     * is what lets the render/control verbs be optional at all.
+     */
+    @Test
+    void controlVerbsReportUnavailableRatherThanUnknownWhenNoExecutorIsWired() {
+        for (String verb : java.util.List.of("topology", "open", "source_root", "screenshot", "context")) {
+            ActionResult r = inProcess().dispatch(java.util.Map.of("v", 1, "action", verb,
+                    "params", java.util.Map.of()));
+            assertFalse(r.ok(), verb);
+            assertTrue(r.error().contains("not enabled here"),
+                    verb + " must report unavailable, not unknown: " + r.error());
+        }
+    }
+
+    @Test
+    void anUnknownVerbIsStillUnknown() {
+        ActionResult r = inProcess().dispatch(java.util.Map.of("v", 1, "action", "teleport",
+                "params", java.util.Map.of()));
+        assertFalse(r.ok());
+        assertTrue(r.error().contains("unknown verb"), r.error());
+    }
+
+    @Test
+    void everyDispatchableVerbHasAPublishedSchema() {
+        // the dispatcher and VerbSchemas drifting apart is how a foreign agent learns about a verb it
+        // cannot call, or calls one it was never told about
+        for (String verb : VerbSchemas.all().keySet()) {
+            ActionResult r = inProcess().dispatch(java.util.Map.of("v", 1, "action", verb,
+                    "params", java.util.Map.of()));
+            assertFalse(r.error() != null && r.error().contains("unknown verb"),
+                    verb + " is published but the dispatcher does not know it");
+        }
+    }
 }

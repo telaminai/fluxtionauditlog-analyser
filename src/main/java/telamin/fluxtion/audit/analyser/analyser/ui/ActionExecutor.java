@@ -69,6 +69,11 @@ public final class ActionExecutor implements RenderExecutor {
             case "topology" -> {
                 return onEdt(() -> doTopology(params));
             }
+            case "context" -> {
+                return onEdt(() -> app == null
+                        ? ActionResult.error("'context' is not enabled here")
+                        : app.context());
+            }
             case "screenshot" -> {
                 return onEdt(() -> app == null
                         ? ActionResult.error("'screenshot' is not enabled here")

@@ -1504,6 +1504,73 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context() {
+            Map<String, Object> out = new java.util.LinkedHashMap<>();
+
+            telamin.fluxtion.audit.analyser.analyser.llm.LogFileInfo info = currentLogFileInfo();
+            if (info != null) {
+                Map<String, Object> log = new java.util.LinkedHashMap<>();
+                // absolute: the caller is very likely a different process with a different working
+                // directory, and a relative path it cannot resolve is worse than no path
+                log.put("path", info.localPath() == null ? null
+                        : Path.of(info.localPath()).toAbsolutePath().normalize().toString());
+                log.put("openedFrom", info.displayLocation());
+                log.put("records", info.recordCount());
+                log.put("sizeBytes", info.sizeBytes());
+                if (info.minTime() != null) log.put("from", info.minTime());
+                if (info.maxTime() != null) log.put("to", info.maxTime());
+                out.put("log", log);
+            }
+
+            // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
+            Map<String, Object> f = new java.util.LinkedHashMap<>();
+            if (filter.fromMillis() != null) f.put("from", filter.fromMillis());
+            if (filter.toMillis() != null) f.put("to", filter.toMillis());
+            if (filter.dimensions() != null && !filter.dimensions().isEmpty()) {
+                f.put("dimensions", List.copyOf(filter.dimensions()));
+            }
+            if (filter.text() != null && !filter.text().isBlank()) f.put("text", filter.text());
+            out.put("filter", f);
+            out.put("showing", Map.of(
+                    "visible", tablePanel.viewRowCount(),
+                    "total", store == null ? 0 : store.size()));
+
+            List<Map<String, Object>> selected = new ArrayList<>();
+            for (LogRecord r : selectedRecords) {
+                selected.add(Map.of("byteOffset", r.fileOffset(),
+                        "event", String.valueOf(r.event()),
+                        "logTime", r.logTime() == null ? -1L : r.logTime()));
+            }
+            out.put("selection", selected);
+
+            // the user's findings so far — the highest-value thing here, and the part a pasted prompt
+            // usually loses
+            List<Map<String, Object>> flags = new ArrayList<>();
+            for (Integer row : new java.util.TreeSet<>(flaggedRows)) {
+                Map<String, Object> flag = new java.util.LinkedHashMap<>();
+                flag.put("recordIndex", row);
+                String note = flagNotes.get(row);
+                if (note != null && !note.isBlank()) flag.put("note", note);
+                flags.add(flag);
+            }
+            out.put("flags", flags);
+
+            if (topologyPanel.hasTopology()) out.put("topology", topologyPanel.cursorState());
+
+            List<String> graphs = graphTabs.graphNames();
+            if (!graphs.isEmpty()) out.put("graphs", graphs);
+
+            Map<String, Object> src = new java.util.LinkedHashMap<>();
+            src.put("roots", List.copyOf(config.sourceRoots));
+            if (config.selectedEventProcessor != null) {
+                src.put("eventProcessor", config.selectedEventProcessor);
+            }
+            out.put("source", src);
+
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
+        }
+
+        @Override
         public boolean showTab(String name) {
             if (sideTabs == null || name == null) return false;
             for (int i = 0; i < sideTabs.getTabCount(); i++) {
