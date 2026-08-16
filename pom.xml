@@ -63,6 +63,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+                <configuration>
+                    <!-- Tests ALWAYS run headless, locally too — CI has no display, and a dev machine
+                         having one is exactly how a HeadlessException reached CI unseen. Panels must be
+                         constructible without a display (repo convention); this keeps that honest. -->
+                    <argLine>-Djava.awt.headless=true</argLine>
+                </configuration>
             </plugin>
             <!-- Zero runtime deps, so a plain jar with a Main-Class manifest is runnable via java -jar. -->
             <plugin>

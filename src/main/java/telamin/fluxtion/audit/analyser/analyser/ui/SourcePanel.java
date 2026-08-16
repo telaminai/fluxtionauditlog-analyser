@@ -329,15 +329,26 @@ public final class SourcePanel extends JPanel {
         var im = getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
         var am = getActionMap();
         im.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK), "nav-back");
-        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET,
-                Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()), "nav-back");
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, menuShortcutMask()), "nav-back");
         am.put("nav-back", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { back(); }
         });
     }
 
+    /**
+     * The platform menu-shortcut mask, headless-safe: {@code HeadlessToolkit} throws on
+     * {@code getMenuShortcutKeyMaskEx()}, and this panel must stay constructible in headless tests/CI
+     * (the repo convention — panels are built but never shown). Ctrl is the honest fallback: with no
+     * display there is no platform to be right about.
+     */
+    private static int menuShortcutMask() {
+        return java.awt.GraphicsEnvironment.isHeadless()
+                ? InputEvent.CTRL_DOWN_MASK
+                : Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+    }
+
     private static String menuKeyName() {
-        return Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() == InputEvent.META_DOWN_MASK ? "Cmd" : "Ctrl";
+        return menuShortcutMask() == InputEvent.META_DOWN_MASK ? "Cmd" : "Ctrl";
     }
 
     // ---- one source pane --------------------------------------------------------------------------
