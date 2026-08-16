@@ -21,6 +21,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- Fixed: a node that ran was drawn faded if an earlier selection left it outside the focus scope — the
+  execution shading and the selection shading were compounding. Evidence now wins.
+- Fixed: the Topology tab's source pane kept the old palette after a theme change.
 - **Selecting a record syncs the source view you can see** — the Topology tab's embedded pane when that
   is what is open, the Source tab otherwise. It never switches tabs on you.
 - **Source navigation lands where you meant**: clicking an event in the topology opens the processor at

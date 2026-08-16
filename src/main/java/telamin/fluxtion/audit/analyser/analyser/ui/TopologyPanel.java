@@ -1108,6 +1108,9 @@ public final class TopologyPanel extends JPanel {
     public void refreshTheme() {
         canvas.setBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge()));
         index.applyTheme();
+        // the embedded viewer holds its own theme-derived colours; MainFrame only knew about the Source
+        // tab's panel, so this one kept the previous theme's palette after a switch
+        if (embeddedSource != null) embeddedSource.refresh();
         repaint();
     }
 

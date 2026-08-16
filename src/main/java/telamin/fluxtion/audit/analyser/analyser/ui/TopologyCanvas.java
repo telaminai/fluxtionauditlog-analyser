@@ -732,7 +732,15 @@ public final class TopologyCanvas extends JPanel {
             ProcessorTopology.Execution ran = execution.get(box.id());
             // only "no reason to think dispatch came near it" recedes; a silent node that demonstrably
             // ran, or might have, stays fully legible
-            boolean outOfScope = !emphasis.isEmpty() && !emphasis.contains(box.id());
+            // Two dimming reasons exist and they must not compound. Execution shading answers "what did
+            // this cycle do"; scope shading answers "what is in my selection". A node that RAN is the one
+            // thing the cycle view exists to show, so a selection made earlier must not fade it out —
+            // otherwise the node with the green ring and the ordinal badge is drawn as though it were
+            // barely there. Evidence outranks the selection; entry points too, for the same reason.
+            boolean hasCycleEvidence = ran == ProcessorTopology.Execution.LOGGED
+                                       || ran == ProcessorTopology.Execution.RAN_SILENTLY
+                                       || isEntry;
+            boolean outOfScope = !emphasis.isEmpty() && !emphasis.contains(box.id()) && !hasCycleEvidence;
             boolean dimmed = outOfScope || showingCycle() && (ran == ProcessorTopology.Execution.OFF_PATH
                                             || ran == ProcessorTopology.Execution.DID_NOT_RUN);
 

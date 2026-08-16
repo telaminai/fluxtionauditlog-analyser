@@ -384,7 +384,12 @@ public final class SourcePanel extends JPanel {
             UiTheme.applySurface(scroll, text);
             if (!source.isEmpty()) highlighter.render(text.getStyledDocument(), source);
             else if (fqn != null) showNothingToShow(fqn);
+            // a pane showing only its "nothing open yet" message has neither source nor an fqn, so
+            // without this it kept the previous theme's muted grey after a switch
+            else if (placeholder != null) renderPlain(placeholder);
         }
+
+        private String placeholder;
 
         void setWrap(boolean on) {
             text.setWrap(on);
@@ -444,6 +449,7 @@ public final class SourcePanel extends JPanel {
 
         /** Plain, muted text — messages must not be coloured as if they were code. */
         void renderPlain(String message) {
+            this.placeholder = message;
             javax.swing.text.StyledDocument doc = text.getStyledDocument();
             try {
                 doc.remove(0, doc.getLength());
