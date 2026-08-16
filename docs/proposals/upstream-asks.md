@@ -230,6 +230,32 @@ the audit log plus a replay log is a complete, re-runnable account of a run. For
 in modern Java that pair is currently unavailable, so "replay it locally with a debugger" is advice that
 does not work for the apps most likely to be written today.
 
+### UP-FLX-24 ◐ Replay omits exported-service calls, so a replayed run diverges
+
+_Filed: https://github.com/telaminai/fluxtion/issues/18_
+
+**Target** `fluxtion` (runtime + builder/replay) · **Priority** highest of the replay asks
+
+**Evidence — measured.** An `Auditor` tape records events; an `@ExportService` call is an entry point
+that dispatches identically but is not an event, so it is never recorded. Replaying a 309-node
+application's trading day:
+
+```
+replay: 582 live cycles, 574 replayed, 295 divergent
+```
+
+**295 of 574 replayed cycles produce different node output** — because three `setPrice` calls never
+replayed, the price book was empty, and every downstream figure was computed from nothing. The wrong
+numbers are plausible (`stockAtCost: 262.9`) and nothing throws.
+
+**Why it matters here.** This repo's whole argument is that the audit log plus a replay log is a
+complete, re-runnable account of a run. It is not, for any application with an operator surface — and
+"what did the operator do" is usually the regulatory question. A replay that yields a believable
+alternative history is worse than no replay, because it presents as evidence.
+
+**Cost to us if unfixed.** The analyser cannot tell a replayed log from a live one, and has no basis to
+warn that a log it is showing came from an incomplete replay.
+
 ---
 
 ## 2 · Fluxtion runtime — metadata the audit log should carry
