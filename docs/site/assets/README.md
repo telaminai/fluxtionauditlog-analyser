@@ -27,6 +27,9 @@ thread, logger or account names** — use neutral placeholders (e.g. `DEMO`, `ma
 | `source-navigation.png` | Source navigation |
 | `topology-step-through.png` | Topology — stepping a cycle |
 | `topology-explore.png` | Topology — scope and the index |
+| `graph-series-dark.png` | Graphs — a value plotted over time (dark: plots read better on it) |
+| `graph-step-dark.png` | Graphs — stairs style |
+| `graph-series-light.png` | spare — the same plot on the light theme, if a page needs to match |
 | `sample-audit-log.yaml` | Downloadable sample (Home, Getting started, Install, Log format) |
 
 ### Withdrawn — need recapturing

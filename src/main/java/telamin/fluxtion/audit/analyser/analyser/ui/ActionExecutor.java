@@ -122,6 +122,9 @@ public final class ActionExecutor implements RenderExecutor {
     // ---- graph -----------------------------------------------------------------------------------
 
     private ActionResult doGraph(LogStore s, Map<String, Object> p) {
+        // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is
+        // indistinguishable from one that was never drawn
+        if (app != null) app.showTab("Graph");
         // rename requires an explicit target {name, rename} — never selection-dependent
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));

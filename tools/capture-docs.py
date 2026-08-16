@@ -31,6 +31,8 @@ import urllib.request
 REPO = pathlib.Path(__file__).resolve().parent.parent
 ASSETS = REPO / "docs" / "site" / "assets"
 LOG = REPO / "src/test/resources/topology/demo-quote-audit.yaml"
+# a longer run of the same graph — a chart drawn from ten flat records shows nothing
+SERIES_LOG = REPO / "src/test/resources/topology/demo-quote-series.yaml"
 GRAPHML = REPO / "src/test/resources/topology/demo-quote-processor.graphml"
 ROOT = REPO / "examples/fixture-generator/src/main/java"
 PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
@@ -149,12 +151,29 @@ def main():
     act(ep, "topology", {"showAll": True, "select": "quotePublisher", "scope": "neighbours"})
     capture(ep, "topology-explore.png")
 
+    # graphs need the long log: a wandering price and an order book that fills and drains
+    act(ep, "open", {"log": str(SERIES_LOG)})
+    time.sleep(2)
+    act(ep, "graph", {"name": "Mid price", "series": ["priceListener.mid"], "style": "line"})
+    time.sleep(1)
+    capture(ep, "graph-series-light.png")
+
     print("dark theme")
     ep = launch("Dark")
     seed(ep)
     act(ep, "goto", {"recordIndex": 5, "reveal": True})
     act(ep, "topology", {"select": "quotePublisher", "scope": "neighbours"})
     capture(ep, "screenshot-dark.png")
+
+    act(ep, "open", {"log": str(SERIES_LOG)})
+    time.sleep(2)
+    act(ep, "graph", {"name": "Mid price", "series": ["priceListener.mid"], "style": "line"})
+    time.sleep(1)
+    capture(ep, "graph-series-dark.png")
+    act(ep, "graph", {"name": "Order book", "series": ["orderTracker.live"],
+                      "style": "step", "newTab": True})
+    time.sleep(1)
+    capture(ep, "graph-step-dark.png")
 
     if "--keep" not in sys.argv:
         subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)

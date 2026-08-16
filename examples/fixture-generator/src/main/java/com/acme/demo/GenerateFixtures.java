@@ -43,6 +43,7 @@ public final class GenerateFixtures {
         write(PROCESSOR, EventLogControlEvent.LogLevel.INFO, "demo-quote-audit.yaml");
         // the same graph with node-invocation tracing compiled in: every node that runs appears
         write(TRACED_PROCESSOR, EventLogControlEvent.LogLevel.TRACE, "demo-quote-audit-traced.yaml");
+        writeSeries("demo-quote-series.yaml");
         copyGraphMlIfPresent();
         System.out.println("fixtures written to " + FIXTURES.toAbsolutePath().normalize());
     }
@@ -81,6 +82,59 @@ public final class GenerateFixtures {
 
         Files.createDirectories(FIXTURES);
         Files.writeString(FIXTURES.resolve(file), log.toString());
+    }
+
+    /**
+     * A longer run of the SAME graph, for anything that needs a series worth plotting: a wandering price,
+     * an order book that fills and drains, and the risk breaches that follow from it.
+     *
+     * <p>The short fixture exists to pin execution semantics and is deliberately tiny; a chart drawn from
+     * ten records with a constant price shows nothing. This one is only ever read as data — no test
+     * asserts against it — so it can be long without making the semantic fixtures unreadable.
+     *
+     * <p>Deterministic by construction: a fixed seed and a pinned clock, no {@code Math.random}. Rerunning
+     * must produce the same bytes, or every regeneration churns the file and hides real changes in the
+     * diff.
+     */
+    private static void writeSeries(String file) throws Exception {
+        StringBuilder log = new StringBuilder();
+        DataFlow processor = (DataFlow) Class.forName(PROCESSOR).getDeclaredConstructor().newInstance();
+        processor.init();
+        long[] tick = {FIXED_START_MILLIS};
+        processor.onEvent(ClockStrategy.registerClockEvent(() -> tick[0] += 500));
+        processor.setAuditLogLevel(EventLogControlEvent.LogLevel.INFO);
+        processor.setAuditLogProcessor(record -> append(log, record.toString()));
+
+        long seed = 20260816L;                       // fixed: the file must be byte-reproducible
+        double mid = 100.0;
+        int liveOrders = 0;
+        for (int i = 0; i < 400; i++) {
+            seed = (seed * 6364136223846793005L + 1442695040888963407L);   // plain LCG, no dependency
+            int step = (int) ((seed >>> 33) % 21) - 10;                    // -10..+10
+            mid = Math.max(80, Math.min(120, mid + step * 0.01));
+            double half = 0.05 + ((seed >>> 20) % 5) * 0.01;
+            processor.onEvent(new Events.MarketDataEvent("DEMO-A",
+                    round(mid - half), round(mid + half)));
+
+            // An order book that fills AND drains. The rates have to be balanced, not merely both
+            // present: adding on i%7 and removing on i%11 adds 57 and removes 36 over 400 events, so
+            // 'live' ramps to 22 and the plot is a diagonal line rather than a book. Filling only below
+            // a ceiling, and draining faster, gives the sawtooth an order book actually has.
+            if (i % 3 == 0 && liveOrders < 6) {
+                processor.onEvent(new Events.OrderUpdateEvent("ord-" + i, "LIVE"));
+                liveOrders++;
+            }
+            if (i % 5 == 0 && liveOrders > 0) {
+                processor.onEvent(new Events.OrderUpdateEvent("ord-" + (i - 3), "DONE"));
+                liveOrders--;
+            }
+        }
+        Files.createDirectories(FIXTURES);
+        Files.writeString(FIXTURES.resolve(file), log.toString());
+    }
+
+    private static double round(double v) {
+        return Math.round(v * 1000) / 1000.0;
     }
 
     /**

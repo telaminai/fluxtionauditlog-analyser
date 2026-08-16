@@ -11,6 +11,12 @@ Plot any node value over time. Open the **Graph** tab; each graph is its own sub
 
 The series key sits as an overlay on the top-right of the plot; right-click a label to remove it.
 
+![A node value plotted over time — priceListener.mid across a 400-event run](../assets/graph-series-dark.png)
+
+That is one node's `mid` across a few hundred cycles. Nothing was extracted or transformed to get it:
+the value was in the audit log because the node logged it, and every point on the line is a record you
+can click back to.
+
 ## Formula series — f(x)
 
 Beyond raw keys, add a **derived series** from a formula over other keys, e.g.:
@@ -26,6 +32,12 @@ askMakerOrder.price − bidMakerOrder.price
   evaluates within a single record.
 
 ## Styling, zoom and pins
+
+![The same log plotted as stairs — an order book filling and draining](../assets/graph-step-dark.png)
+
+**Stairs** is the honest style for a value that holds between updates — an order count, a state, a
+threshold. A line between two samples implies the value passed through everything in between, which for
+`orderTracker.live` it never did.
 
 - **Style** — stairs (step), line or points.
 - **Zoom / pan** — `+` / `−` / **Fit**, or drag to pan.
