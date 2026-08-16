@@ -407,6 +407,11 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.23] ☑ **The side-split divider stays put when you change tab** (owner). A `JTabbedPane` reports the
+  **selected** tab's preferred size as its own, and the tabs differ widely (the topology canvas asks for
+  640×420, a chart more), so the split re-laid out to suit whichever tab was showing and the divider
+  walked about. Fixed by pinning each tab's minimum size, fixing the divider size, and restoring the
+  divider location after a tab change.
 - [M22.22] ☑ **Records: right-click on the table; Columns off the menu bar** (owner). The record actions
   (flag, show-flagged-only, clear, copy as YAML, diff, export CSV/YAML) plus the column chooser are now on
   the table's context menu, and **Columns is no longer a top-level menu** — the nav rail and the

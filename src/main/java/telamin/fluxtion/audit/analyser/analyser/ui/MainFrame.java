@@ -681,7 +681,23 @@ public final class MainFrame extends JFrame {
 
         mainSplit.setMinimumSize(new Dimension(200, 120));
         sideTabs.setMinimumSize(new Dimension(200, 120));
+        // Each tab's content has its own preferred size — the canvas asks for 640x420, a chart more — and
+        // a JTabbedPane reports the SELECTED tab's preference as its own. Left alone the split re-lays out
+        // to suit whichever tab is showing, so the divider walks about as you switch between them. Pinning
+        // the minimums stops the content forcing a move; restoring the location below covers the rest.
+        for (java.awt.Component tab : new java.awt.Component[]{
+                summaryPanel, sourcePanel, graphTabs, topologyPanel, llmPanel}) {
+            if (tab instanceof JComponent c) c.setMinimumSize(new Dimension(200, 120));
+        }
         JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainSplit, sideTabs);
+        center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
+        sideTabs.addChangeListener(e -> {
+            // read now, restore after the tab change has re-laid out
+            int location = center.getDividerLocation();
+            SwingUtilities.invokeLater(() -> {
+                if (center.getDividerLocation() != location) center.setDividerLocation(location);
+            });
+        });
         center.setResizeWeight(0.55);
         center.setDividerLocation(630);
         center.setContinuousLayout(true);
