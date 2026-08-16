@@ -152,12 +152,15 @@ class ConfigStoreTest {
         c.topologySpacingPercent = 175;
         c.topologyTextSize = 15;
         c.recentGraphml.add("/tmp/one.graphml");
+        c.graphmlFile = "/tmp/showing.graphml";
         store.save(c);
 
         AppConfig back = new ConfigStore(file).load();
         assertEquals(175, back.topologySpacingPercent);
         assertEquals(15, back.topologyTextSize);
         assertEquals(java.util.List.of("/tmp/one.graphml"), back.recentGraphml);
+        assertEquals("/tmp/showing.graphml", back.graphmlFile,
+                "the topology showing at shutdown is restored beside the log");
     }
 
     @org.junit.jupiter.api.Test
@@ -179,6 +182,7 @@ class ConfigStoreTest {
         c.topologySpacingPercent = 250;
         c.topologyTextSize = 20;
         c.recentGraphml.add("/tmp/secret-path.graphml");
+        c.graphmlFile = "/tmp/secret-path.graphml";
         String shared = new SettingsShare().export(c, java.util.EnumSet.allOf(SettingsShare.Category.class));
 
         assertFalse(shared.contains("topologySpacing"), shared);

@@ -68,6 +68,9 @@ public class Main {
             if (toOpen != null && !toOpen.isBlank()) {
                 frame.openFile(Path.of(toOpen));
             }
+            // the topology is the other half of the working state; restoring only the log means finding
+            // the graph again on every launch
+            frame.reopenLastGraphml();
 
             // keep the splash visible briefly, then dismiss; on a first run (no config file yet)
             // open Settings so the user can configure source roots / LLM before anything else

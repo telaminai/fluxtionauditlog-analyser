@@ -409,6 +409,19 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.41] ☑ **Fixed: arrow-key stepping stopped working** (owner). A `JSplitPane`'s look-and-feel binds
+  Up/Down/Left/Right to move its divider in the **ancestor** input map, and key lookup walks *up* from the
+  focused component — so the split added in M22.37 sat between the canvas and the panel and was consulted
+  first. Adding a source pane silently broke stepping, and nothing threw. The four strokes are now
+  shadowed on the split with a name no `ActionMap` defines, which makes `processKeyBinding` return false
+  and keep walking rather than consume the key; drag and F6/F8 still move the divider.
+  Pinned by a test that **mirrors Swing's own lookup** — walks from the canvas up and asserts the first
+  ancestor that both binds the stroke and has an action is the panel. Asserting the panel's own map (as
+  the existing tests did) passes happily while an ancestor eats the key.
+- [M22.42] ☑ **The topology showing at shutdown reopens on start** (owner). `AppConfig.graphmlFile`
+  alongside `logFile` — the graph is half of the same working state, and having to find it again every
+  launch is what stops people leaving it open. Silent when the file has moved: a startup dialog about a
+  file you have not thought about in a week is noise, and the tab already says nothing is loaded.
 - [M22.39] ☑ **Topology toolbar is controls only** (owner: "too busy and confused"). The two readouts —
   step position and selection scope — moved to the status line, and *Open .graphml…* moved to the File
   menu. A toolbar is for controls: readouts wedged between a slider and a play button are hard to find

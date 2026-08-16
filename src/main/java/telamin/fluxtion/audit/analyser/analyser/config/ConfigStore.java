@@ -44,6 +44,7 @@ public final class ConfigStore {
             return c;   // lenient: defaults on any read problem
         }
         c.logFile = nz(p.getProperty("logFile"));
+        c.graphmlFile = nz(p.getProperty("graphmlFile"));
         readList(p, "sourceRoot", c.sourceRoots);
         c.llmProvider = p.getProperty("llmProvider", c.llmProvider);
         c.llmModel = p.getProperty("llmModel", c.llmModel);
@@ -85,6 +86,7 @@ public final class ConfigStore {
     public void save(AppConfig c) {
         Properties p = new Properties();
         put(p, "logFile", c.logFile);
+        put(p, "graphmlFile", c.graphmlFile);
         writeList(p, "sourceRoot", c.sourceRoots);
         put(p, "llmProvider", c.llmProvider);
         put(p, "llmModel", c.llmModel);

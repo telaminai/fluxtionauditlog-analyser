@@ -1368,9 +1368,25 @@ public final class MainFrame extends JFrame {
     }
 
     private void rememberGraphml(java.nio.file.Path file) {
-        config.addRecentGraphml(file.toAbsolutePath().toString());
+        config.graphmlFile = file.toAbsolutePath().toString();
+        config.addRecentGraphml(config.graphmlFile);
         rebuildRecentMenu();
         saveConfigQuietly();
+    }
+
+    /**
+     * Reopen the topology that was showing at shutdown, if it is still there.
+     *
+     * <p>The log is already restored on start; the graph is half of the same working state, and having to
+     * find it again every launch is what stops people leaving it open. Silent when the file has moved —
+     * a dialog on startup about a file you may not have thought about in a week is noise, and the Topology
+     * tab says plainly that nothing is loaded.
+     */
+    public void reopenLastGraphml() {
+        String path = config.graphmlFile;
+        if (path == null || path.isBlank()) return;
+        java.nio.file.Path file = java.nio.file.Path.of(path);
+        if (java.nio.file.Files.isReadable(file)) topologyPanel.load(file);
     }
 
     private void restoreBounds() {

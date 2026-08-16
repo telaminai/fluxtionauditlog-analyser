@@ -22,6 +22,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JPanel;
+import javax.swing.JComponent;
 import javax.swing.JToolBar;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BorderLayout;
@@ -170,6 +171,7 @@ public final class TopologyPanel extends JPanel {
         graphSplit.setRightComponent(null);       // the source pane appears only once asked for
         graphSplit.setResizeWeight(0.62);
         graphSplit.setBorder(null);
+        releaseArrowKeys(graphSplit);
         add(graphSplit, BorderLayout.CENTER);
         add(south, BorderLayout.SOUTH);
 
@@ -274,6 +276,25 @@ public final class TopologyPanel extends JPanel {
     private boolean shadingCleared;
     /** The record last shaded, by identity — so a repeated notification is not mistaken for a change. */
     private LogRecord lastShownRecord;
+
+    /**
+     * Stop a {@link javax.swing.JSplitPane} eating the arrow keys.
+     *
+     * <p>Its look-and-feel binds Up/Down/Left/Right to move the divider, in the
+     * {@code WHEN_ANCESTOR_OF_FOCUSED_COMPONENT} map. Key lookup walks <em>up</em> from the focused
+     * component, so the split — sitting between the canvas and this panel — is consulted first and the
+     * step keys never fire. Adding the split for the source pane silently broke stepping this way.
+     *
+     * <p>Shadowing with a name no {@code ActionMap} defines makes {@code processKeyBinding} return false
+     * and continue up the hierarchy, rather than consuming the key. The divider still moves by dragging,
+     * and F6/F8 still work.
+     */
+    private static void releaseArrowKeys(JComponent component) {
+        javax.swing.InputMap keys = component.getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        for (String arrow : new String[]{"UP", "DOWN", "LEFT", "RIGHT"}) {
+            keys.put(javax.swing.KeyStroke.getKeyStroke(arrow), "topology-arrow-passthrough");
+        }
+    }
 
     private JButton button(String text, Runnable action) {
         JButton b = new JButton(text);

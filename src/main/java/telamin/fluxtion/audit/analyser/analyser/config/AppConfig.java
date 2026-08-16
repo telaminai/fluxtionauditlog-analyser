@@ -11,6 +11,8 @@ import java.util.List;
 public final class AppConfig {
 
     public String logFile;
+    /** The topology showing when the app last closed, reopened on the next start beside the log. */
+    public String graphmlFile;
     public final List<String> sourceRoots = new ArrayList<>();
     public String llmProvider = "anthropic";     // anthropic | openai
     public String llmModel = "";
