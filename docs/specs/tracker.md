@@ -158,9 +158,19 @@ Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README
 analyser (reverse funnel)._
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
-  **`CLAUDE.md` agent bootstrap** (canonical Fluxtion authoring prompt, maintained with
-  fluxtion-compiler's LLM-authoring guidance) + admin REST on + README with run command and analyser
-  link; tracked in the playground repo, contract recorded in the spec.
+  **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
+  layer, snapshot of the canon at generation time, canonical-reference line) + admin REST on + README
+  with run command and analyser link; tracked in the playground repo, contract recorded in the spec.
+  _**The authoring path is not a gap — use its front door.** It is already layered and maintained:
+  [`/build-with-ai`](https://fluxtion-playground.dev/build-with-ai) →
+  [`CLAUDE.md`](https://fluxtion-playground.dev/CLAUDE.md) (orientation) → `spring-authoring/skill.md`
+  (how to run the design conversation) → `contract.md` (the exact `FluxtionSpringConfig` XML to emit) →
+  `example.md` (a worked run) → the **project starter generates the build** — the pom is generated
+  output, not something an author writes. Design work: `fluxtion-compiler/design/spring-authoring`.
+  The bundle's job is to **reference and snapshot** that canon plus what only it knows (log path, admin
+  port, the analyser's endpoint file), never to author a rival prompt. Add `skill.md`/`contract.md` to
+  the snapshot set for the XML-defined example (spec O2), since those are what make the design-level
+  edit in tutorial part 4 possible._
 - [M19.2] ☑ **`SettingsShare`: resolve relative roots against the import file's parent** — `preview`
   gained a `baseDir` overload; import resolves bundle-relative source roots / Maven repos against the
   settings file's directory (absolute & `~`-paths untouched; clipboard imports pass no baseDir). 2 tests.

@@ -90,7 +90,20 @@ defers to it on framework semantics). The bundle layers them:
    version the pom pins. Rationale: agents reliably load local files, not URLs (offline/sandboxed
    agents can't fetch), and "always current" hosted text can describe APIs newer than the bundle.
 3. **One canonical-reference line** — the hosted URLs above, labelled "canonical, possibly newer" — so
-   connected agents can refresh and humans can browse.
+   connected agents can refresh and humans can browse. Include
+   <https://fluxtion-playground.dev/build-with-ai>, which is the entry point a human lands on.
+
+**Snapshot the Spring-authoring interface too, for the XML-defined example (O2).** Beyond `claude.txt`
+and the golden path there is a *design-conversation* interface — `spring-authoring/skill.md` (how to run
+the describe → events → nodes → wiring → emit conversation), `contract.md` (the exact
+`FluxtionSpringConfig` shape, `eventTypes` as FQCN strings, nodes in `nodeBeans`, dependencies as
+constructor-arg `ref`) and `example.md` (a worked run). Those three are what make **tutorial part 4's
+design-level edit** possible at all: without the contract an agent cannot emit XML the starter accepts.
+Design work lives in `fluxtion-compiler/design/spring-authoring`.
+
+> **The build is generated output.** The starter emits the pom; an author writes nodes and (for the XML
+> shape) the Spring file. Any bundle guidance that encourages hand-authoring a pom is steering the user
+> off the supported path — the bundle ships a generated project precisely so nobody has to.
 
 Contract notes:
 - Paths in the settings file are **bundle-relative** — and this is a **committed analyser precondition,
