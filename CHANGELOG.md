@@ -20,6 +20,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Clearer panel surfaces**: source, record-detail and topology now share one content surface with a
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
+- **Topology exploration**: hide Fluxtion's scaffolding nodes with a checkbox (off by default — they are
+  half the graph and none of your application); click a node repeatedly to widen its scope
+  *node → neighbours → all routes → whole graph*; **F** or the Focus button shows only that scope.
+  Cmd/Ctrl-click selects several nodes. What the log establishes about execution is unaffected by what is
+  filtered from view.
 - **Right-click the records table** for the record actions (flag, copy as YAML, diff, export) and the
   column chooser. **Columns is no longer a top-level menu** — it is on the nav rail and the right-click.
 - **Better code type**: picks the best monospaced family installed rather than Swing's logical

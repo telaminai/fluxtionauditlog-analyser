@@ -290,17 +290,28 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
 _Owner-specified batch (2026-08-16), ported from what fluxtion-visualiser already does well. The
 topology renders correctly but does not yet let you **explore** — these are the affordances that turn a
 picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that change daily use._
-- [M22.1] ◐ **Hide framework scaffolding** (checkbox, on by default) — model shipped (`Scaffolding` +
-  `ProcessorTopology.subgraph`), **UI checkbox still to wire**. **10 of 20 nodes in the demo graph
+- [M22.1] ☑ **Hide framework scaffolding** — shipped: a toolbar checkbox (off = hidden, the default).
+  **10 of 20 nodes in the demo graph
   are scaffolding** (`context`, `clock`, `nodeNameLookup`, `callbackDispatcher`, `subscriptionManager`,
   `serviceRegistry`, `eventLogger`, `ClockStrategyEvent`, `EventLogControlEvent`, `ServiceListener`), so
   the user's actual graph is a third of what is drawn. Detection must handle **both** label shapes seen in
   real graphml — a package-qualified `class:` (`com.telamin.fluxtion.runtime.…`) and a bare simple name —
   plus EVENT nodes whose `class:` is absent entirely, which need matching by id.
-- [M22.2] ☐ **Selection-driven focus** — click cycles a node's scope: *node → immediate parents+children →
-  all parent routes + transitive children → whole graph → node*; **F** (or a Focus button) hides everything
-  outside the selection; **ctrl-click** adds to the selection. This is the exploration model; it is what
-  makes a 300-node graph usable and it composes with 22.1.
+- [M22.2] ☑ **Selection-driven focus** — shipped. `TopologyFocus` (pure, 15 tests) holds the cycle
+  *node → +neighbours → +all routes → whole graph → node*; clicking the same node widens one step,
+  Cmd/Ctrl-click (Cmd on macOS — plain Ctrl-click is the popup trigger there) adds to the selection, **F**
+  or the Focus button hides everything outside the scope. Unfocused, the scope is **dimmed rather than
+  hidden**: a node you cannot see reads as a node that is not there, which is the one confusion this view
+  exists to prevent.
+  Three things that had to be right, each a place the obvious implementation is wrong:
+    - **classification is pinned to the full graph** (`setClassificationTopology`). `classifyCycle`
+      reasons from parents and reachability, so filtering the drawn graph would change what the view
+      claims about the same log — ticking a checkbox could turn RAN_SILENTLY into MAY_HAVE_RUN;
+    - **every graph question uses the full topology** — entry-point resolution, build-mismatch matching,
+      "not in this topology", parent/child counts. What is drawn is a display choice; what the graph says
+      is not;
+    - **filters keep the zoom/pan and selection** (`setTopology(view, keepView)`); re-fitting on each
+      toggle discards where the user had navigated to, which defeats the exploring.
 - [M22.8] ☑ **Shape carries the kind** — event = stadium, exported service = hexagon, everything that
   computes = rounded rect. Fill alone failed in greyscale, on a projector and for colour-blind readers,
   and the three roles are the first thing you need to read. _(Answers "how do you render exported

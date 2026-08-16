@@ -8,7 +8,9 @@ import telamin.fluxtion.audit.analyser.analyser.topology.EntryPointResolver;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
 import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
 import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
+import telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding;
 import telamin.fluxtion.audit.analyser.analyser.topology.StepCursor;
+import telamin.fluxtion.audit.analyser.analyser.topology.TopologyFocus;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -50,6 +52,16 @@ public final class TopologyPanel extends JPanel {
     /** Autoplay: one step per tick, on the EDT, so it drives exactly the same path as pressing ↓. */
     private final javax.swing.Timer autoplay = new javax.swing.Timer(700, e -> autoplayTick());
 
+    private final javax.swing.JCheckBox scaffoldingBox = new javax.swing.JCheckBox("Scaffolding", false);
+    private final javax.swing.JToggleButton focusButton = new javax.swing.JToggleButton("Focus");
+    private final JLabel scopeLabel = new JLabel(" ");
+
+    /** The graph as loaded. The canvas shows a filtered VIEW of this; classification always uses this. */
+    private ProcessorTopology fullTopology = ProcessorTopology.empty();
+    /** Clicked nodes — more than one when Cmd/Ctrl-clicked. */
+    private final java.util.LinkedHashSet<String> selection = new java.util.LinkedHashSet<>();
+    private TopologyFocus.Scope scope = TopologyFocus.Scope.NODE;
+
     private StepCursor.RecordSource recordSource;
     private Path loadedFrom;
     private Consumer<String> nodeActivated = id -> { };
@@ -85,6 +97,18 @@ public final class TopologyPanel extends JPanel {
         orientationButton.addActionListener(e -> toggleOrientation());
         bar.add(orientationButton);
         bar.addSeparator();
+        scaffoldingBox.setToolTipText("Show the nodes Fluxtion adds to every graph — context, clock, "
+                + "dispatcher, audit and service plumbing. Off by default: they are most of the graph "
+                + "and none of your application.");
+        scaffoldingBox.addActionListener(e -> applyView());
+        bar.add(scaffoldingBox);
+        focusButton.setToolTipText("Show only the selection and its scope (F). Off, the scope is dimmed "
+                + "rather than hidden.");
+        focusButton.addActionListener(e -> applyView());
+        bar.add(focusButton);
+        UiTheme.status(scopeLabel);
+        bar.add(scopeLabel);
+        bar.addSeparator();
         prevStep.setToolTipText("Previous step  ↑   (rows, then back into the previous record)");
         nextStep.setToolTipText("Next step  ↓   (this record's rows, then on to the next record)");
         prevStep.addActionListener(e -> stepBy(-1));
@@ -119,6 +143,7 @@ public final class TopologyPanel extends JPanel {
 
         canvas.onNodeActivated(id -> nodeActivated.accept(id));
         canvas.onNodeSelected(this::describeSelection);
+        canvas.onNodeClicked(this::onNodeClicked);
         canvas.onNodeContextMenu(this::showNodeMenu);
         installStepKeys();
     }
@@ -137,6 +162,14 @@ public final class TopologyPanel extends JPanel {
         javax.swing.ActionMap actions = getActionMap();
         keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DOWN, 0), "step-next");
         keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_UP, 0), "step-prev");
+        keys.put(javax.swing.KeyStroke.getKeyStroke('F'), "focus-toggle");
+        keys.put(javax.swing.KeyStroke.getKeyStroke('f'), "focus-toggle");
+        actions.put("focus-toggle", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                focusButton.setSelected(!focusButton.isSelected());
+                applyView();
+            }
+        });
         keys.put(javax.swing.KeyStroke.getKeyStroke(']'), "step-next");
         keys.put(javax.swing.KeyStroke.getKeyStroke('['), "step-prev");
         actions.put("step-next", new javax.swing.AbstractAction() {
@@ -162,8 +195,9 @@ public final class TopologyPanel extends JPanel {
         return canvas;
     }
 
+    /** Whether a graph is loaded — asked of the graph, not of the filtered view, which can be empty. */
     public boolean hasTopology() {
-        return !canvas.topology().isEmpty();
+        return !fullTopology.isEmpty();
     }
 
     // ---- loading ----------------------------------------------------------------------------------
@@ -189,8 +223,79 @@ public final class TopologyPanel extends JPanel {
             return;
         }
         loadedFrom = file;
-        canvas.setTopology(topology);
+        fullTopology = topology;
+        selection.clear();
+        scope = TopologyFocus.Scope.NODE;
+        canvas.setClassificationTopology(fullTopology);
+        applyView(false);
         status.setText(summary(topology, file));
+    }
+
+    /**
+     * The click cycle (M22.2). Clicking the <b>same</b> node again widens the scope one step; clicking a
+     * different one starts over at that node; Cmd/Ctrl-click adds to or removes from the selection, and
+     * leaves the scope where it is so a multi-node scope can be built up.
+     */
+    private void onNodeClicked(String id, boolean additive) {
+        if (id == null) {
+            selection.clear();
+            scope = TopologyFocus.Scope.NODE;
+        } else if (additive) {
+            if (!selection.remove(id)) selection.add(id);
+        } else if (selection.size() == 1 && selection.contains(id)) {
+            scope = scope.next();
+        } else {
+            selection.clear();
+            selection.add(id);
+            scope = TopologyFocus.Scope.NODE;
+        }
+        applyView();
+    }
+
+    private void applyView() {
+        applyView(true);
+    }
+
+    /**
+     * Rebuild the shown graph from the two filters. The canvas is given a <b>subgraph</b>, so a hidden
+     * node's edges go with it and the view never draws a dependency that runs through something absent;
+     * classification stays pinned to the full graph so what the log establishes does not change with what
+     * is on screen.
+     */
+    private void applyView(boolean keepView) {
+        java.util.Set<String> scoped = selection.isEmpty()
+                ? null
+                : TopologyFocus.expand(fullTopology, selection, scope);
+        boolean focusing = focusButton.isSelected() && scoped != null;
+
+        java.util.Set<String> visible =
+                TopologyFocus.visible(fullTopology, scaffoldingBox.isSelected(), focusing ? scoped : null);
+        canvas.setClassificationTopology(fullTopology);
+        canvas.setTopology(fullTopology.subgraph(visible), keepView);
+        // focusing already removes everything else, so dimming on top of it would say the same thing twice
+        canvas.setEmphasis(focusing || scoped == null ? java.util.Set.of() : scoped);
+
+        // the canvas cleared its shading when the graph changed — put the current cycle back
+        if (!cycle.isEmpty() && cursor.record() != null) {
+            showCycleOf(cursor.record());
+            canvas.setCursor(cursor.currentInstanceId(), cursor.steppedSoFar(), cursor.atEntry());
+        }
+        updateScopeLabel(scoped, visible.size());
+    }
+
+    private void updateScopeLabel(java.util.Set<String> scoped, int visible) {
+        int hidden = fullTopology.nodeCount() - visible;
+        StringBuilder sb = new StringBuilder("  ");
+        if (selection.isEmpty()) {
+            sb.append(hidden > 0 ? hidden + " scaffolding node(s) hidden" : "");
+        } else {
+            sb.append(selection.size() == 1 ? selection.iterator().next()
+                            : selection.size() + " selected")
+              .append("  ·  ").append(scope.label())
+              .append("  ·  ").append(scoped == null ? 0 : scoped.size()).append(" node(s)");
+            if (!focusButton.isSelected()) sb.append("  ·  click again to widen");
+        }
+        scopeLabel.setText(sb.toString());
     }
 
     private String summary(ProcessorTopology topology, Path file) {
@@ -204,7 +309,9 @@ public final class TopologyPanel extends JPanel {
      */
     public void checkAgainstLog(Collection<String> logInstanceIds) {
         if (!hasTopology()) return;
-        ProcessorTopology.Match match = canvas.topology().match(logInstanceIds);
+        // matched against the whole graph: a build mismatch is a fact about the file, and hiding
+        // scaffolding must not turn a mismatch into a clean bill of health
+        ProcessorTopology.Match match = fullTopology.match(logInstanceIds);
         status.setText((loadedFrom == null ? "" : loadedFrom.getFileName() + " — ") + match.describe());
     }
 
@@ -337,7 +444,7 @@ public final class TopologyPanel extends JPanel {
         for (NodeLog n : cycle) order.add(n.instanceId());
         List<String> entries = record == null ? List.of()
                 : List.copyOf(EntryPointResolver.resolve(
-                        canvas.topology(), record.event(), record.eventToString()));
+                        fullTopology, record.event(), record.eventToString()));
         canvas.setDispatch(order, entries,
                 record != null && AuditTrace.tracesEveryInvocation(record.nodeLogs()));
         if (record == null) {
@@ -351,10 +458,10 @@ public final class TopologyPanel extends JPanel {
         updateStepControls();
         if (record == null) {
             status.setText(hasTopology() && loadedFrom != null
-                    ? summary(canvas.topology(), loadedFrom) : " ");
+                    ? summary(fullTopology, loadedFrom) : " ");
             return;
         }
-        long unknown = order.stream().filter(id -> !canvas.topology().contains(id)).distinct().count();
+        long unknown = order.stream().filter(id -> !fullTopology.contains(id)).distinct().count();
         status.setText(describeEvent(record) + " — " + order.size()
                        + (AuditTrace.tracesEveryInvocation(record.nodeLogs()) ? " node(s) ran" : " node(s) logged")
                        + (unknown > 0 && hasTopology()
@@ -391,7 +498,7 @@ public final class TopologyPanel extends JPanel {
         List<String> order = new ArrayList<>(cycle.size());
         for (NodeLog n : cycle) order.add(n.instanceId());
         canvas.setDispatch(order,
-                List.copyOf(EntryPointResolver.resolve(canvas.topology(), record.event(), record.eventToString())),
+                List.copyOf(EntryPointResolver.resolve(fullTopology, record.event(), record.eventToString())),
                 AuditTrace.tracesEveryInvocation(record.nodeLogs()));
     }
 
@@ -454,7 +561,7 @@ public final class TopologyPanel extends JPanel {
         status.setText(cursor.atEntry()
                 ? cursor.positionLabel() + describeEntry()
                 : cursor.positionLabel() + "  ·  " + cursor.rowSummary()
-                  + (canvas.topology().contains(id) ? "" : "   [not in this topology]"));
+                  + (fullTopology.contains(id) ? "" : "   [not in this topology]"));
         updateStepControls();
     }
 
@@ -471,7 +578,7 @@ public final class TopologyPanel extends JPanel {
     }
 
     private String describeEntry() {
-        List<String> entries = cursor.entryPoints(canvas.topology());
+        List<String> entries = cursor.entryPoints(fullTopology);
         return entries.isEmpty() ? "  ·  entry point not resolved from this record"
                 : "  ·  entered at " + String.join(", ", entries);
     }
@@ -516,10 +623,10 @@ public final class TopologyPanel extends JPanel {
 
     private void describeSelection(String id) {
         if (id == null) {
-            if (hasTopology() && loadedFrom != null) status.setText(summary(canvas.topology(), loadedFrom));
+            if (hasTopology() && loadedFrom != null) status.setText(summary(fullTopology, loadedFrom));
             return;
         }
-        ProcessorTopology topology = canvas.topology();
+        ProcessorTopology topology = fullTopology;
         ProcessorTopology.Node node = topology.node(id);
         if (node == null) return;
         var ran = canvas.executionOf(id);

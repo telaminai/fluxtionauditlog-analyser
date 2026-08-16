@@ -102,6 +102,11 @@ public final class TopologyCanvas extends JPanel {
                         nodeActivated.accept(id);
                     } else {
                         select(id);
+                        // Cmd on macOS, Ctrl elsewhere (plain Ctrl-click is the popup trigger on macOS),
+                        // Shift as a second spelling everywhere
+                        int menuMask = java.awt.Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+                        boolean additive = (e.getModifiersEx() & menuMask) != 0 || e.isShiftDown();
+                        nodeClicked.accept(id, additive);
                     }
                 }
             }
@@ -156,12 +161,52 @@ public final class TopologyCanvas extends JPanel {
 
     /** Lay out and show a topology. Fits to the view, because an unfitted graph opens off-screen. */
     public void setTopology(ProcessorTopology topology) {
+        setTopology(topology, false);
+    }
+
+    /**
+     * @param keepView keep the current zoom/pan and selection. Set when the change is a <b>filter</b>
+     *                 rather than a new graph: re-fitting on every scaffolding or focus toggle throws
+     *                 away where the user had navigated to, which makes the filters unusable for the
+     *                 exploring they exist to support.
+     */
+    public void setTopology(ProcessorTopology topology, boolean keepView) {
+        double scale0 = scale;
+        double ox = offsetX;
+        double oy = offsetY;
+        String keptSelection = selectedId;
+
         this.topology = topology == null ? ProcessorTopology.empty() : topology;
         this.layout = LayeredLayout.layout(this.topology, config);
         this.hoveredId = null;
         this.selectedId = null;
-        fitToView();
+        if (keepView) {
+            scale = scale0;
+            offsetX = ox;
+            offsetY = oy;
+            if (keptSelection != null && this.topology.contains(keptSelection)) selectedId = keptSelection;
+            repaint();
+        } else {
+            fitToView();
+        }
     }
+
+    /**
+     * The graph execution is classified against, when the <b>shown</b> graph is a filtered view of it.
+     *
+     * <p>Classification must not depend on what is currently visible. {@code classifyCycle} reasons from
+     * parents and reachability — hiding a node would change the answer for its neighbours, so toggling
+     * scaffolding off could turn a RAN_SILENTLY into a MAY_HAVE_RUN and the view would quietly claim
+     * something different about the same log. What is drawn is a display choice; what the log establishes
+     * is not.
+     */
+    public void setClassificationTopology(ProcessorTopology full) {
+        this.classifyAgainst = full;
+    }
+
+    private ProcessorTopology classifyAgainst;
+
+    private final java.util.Set<String> emphasis = new java.util.LinkedHashSet<>();
 
     public ProcessorTopology topology() {
         return topology;
@@ -215,9 +260,10 @@ public final class TopologyCanvas extends JPanel {
             ordinals.putIfAbsent(this.dispatch.get(i), i);
         }
         this.firedAt = ordinals;
+        ProcessorTopology basis = classifyAgainst != null ? classifyAgainst : topology;
         this.execution = this.dispatch.isEmpty() && this.entryPoints.isEmpty()
                 ? java.util.Map.of()
-                : topology.classifyCycle(this.dispatch, this.entryPoints, traced);
+                : basis.classifyCycle(this.dispatch, this.entryPoints, traced);
         this.cursorNode = null;
         this.steppedNodes = List.of();
         this.cursorAtEntry = true;
@@ -246,6 +292,22 @@ public final class TopologyCanvas extends JPanel {
     }
 
     /** Clear the cursor overlay, leaving the execution shading alone. */
+    /**
+     * Nodes to keep at full strength, dimming the rest — the focus scope, shown <b>without</b> hiding
+     * anything. Dimming rather than hiding is the honest default while exploring: a node you cannot see
+     * is easily read as a node that is not there, and the topology's whole job is telling those apart.
+     * The Focus toggle is what actually removes them.
+     */
+    public void setEmphasis(java.util.Collection<String> ids) {
+        emphasis.clear();
+        if (ids != null) emphasis.addAll(ids);
+        repaint();
+    }
+
+    public java.util.Set<String> emphasis() {
+        return java.util.Set.copyOf(emphasis);
+    }
+
     public void clearCursor() {
         setCursor(null, List.of(), false);
     }
@@ -261,6 +323,13 @@ public final class TopologyCanvas extends JPanel {
     private boolean showingCycle() {
         return !dispatch.isEmpty();
     }
+
+    /** Called on every left click: {@code (id, additive)} — additive means add to / remove from a set. */
+    public void onNodeClicked(java.util.function.BiConsumer<String, Boolean> listener) {
+        this.nodeClicked = listener == null ? (id, add) -> { } : listener;
+    }
+
+    private java.util.function.BiConsumer<String, Boolean> nodeClicked = (id, add) -> { };
 
     /** Called with the selected node id, or {@code null} when the selection is cleared. */
     public void onNodeSelected(Consumer<String> listener) {
@@ -508,7 +577,8 @@ public final class TopologyCanvas extends JPanel {
             ProcessorTopology.Execution ran = execution.get(box.id());
             // only "no reason to think dispatch came near it" recedes; a silent node that demonstrably
             // ran, or might have, stays fully legible
-            boolean dimmed = showingCycle() && (ran == ProcessorTopology.Execution.OFF_PATH
+            boolean outOfScope = !emphasis.isEmpty() && !emphasis.contains(box.id());
+            boolean dimmed = outOfScope || showingCycle() && (ran == ProcessorTopology.Execution.OFF_PATH
                                             || ran == ProcessorTopology.Execution.DID_NOT_RUN);
 
             double x = sx(box.x());
