@@ -133,6 +133,8 @@ public final class MainFrame extends JFrame {
         topologyPanel.setGraphTargets(graphTargets);
         topologyPanel.setInstanceSourceOpener(this::openNodeSource);
         topologyPanel.setFilterAction(this::filterToInstance);
+        // node tooltips pick up the class javadoc when a source root reaches the class
+        topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // stepping walks the FILTERED sequence, so it honours the shared filter like every other view
         topologyPanel.setRecordSource(new telamin.fluxtion.audit.analyser.analyser.topology.StepCursor.RecordSource() {
             @Override public int size() {

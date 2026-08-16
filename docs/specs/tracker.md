@@ -407,6 +407,28 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.24] ☑ **Selection is marked positively, not by dimming alone** (owner: "too subtle"). The clicked
+  nodes get a heavy accent ring and an accent-tinted fill; nodes their scope *reaches* get a lighter ring;
+  everything else fades harder (0.22 → 0.16). "What did I select" should be answerable by looking at the
+  selection, not by comparing the whole graph against itself.
+- [M22.25] ☑ **"N scaffolding node(s) hidden" on the status line**, not just beside its checkbox — it is a
+  statement about what you are looking at, and half the graph being absent is the most misleading thing
+  this view can do quietly. All eight status writes now go through one setter so no caller can drop it.
+- [M22.26] ☑ **Collapsible index overlay**, bottom-left of the canvas (owner, from the playground
+  reference): sections for Nodes / Events / Services, click to select, double-click to open source.
+  Hunting for a box does not scale — zoomed out the labels are gone, zoomed in most of the graph is off
+  screen; a list is immune to both. Built from the **full** graph, so it is how you reach a node the
+  filters have hidden. Sections start collapsed (expanded, three lists cover half the canvas) and an empty
+  section is omitted rather than shown — most graphs export no services.
+- [M22.27] ☑ **Node tooltips show the class javadoc** (owner asked whether they did — they did not).
+  `Javadoc.forType` is a deliberate text scan, not a parse: the analyser reads generated processors and
+  classes whose dependencies are absent, so anything needing a resolvable compilation unit would fail on
+  exactly the files most worth reading. Cached per class — a tooltip fires on every hover. 11 tests,
+  including that it does not steal a comment belonging to something else.
+- [M22.28] ☑ **Node boxes smaller and the plain-node fill visible** (owner). 160×48 → 132×40: the boxes
+  carried more weight than the edges, which are what the graph exists to show. And the `NODE` fill was
+  `0xFFFFFF` on a `0xFCFDFF` canvas — invisible, **caused by M22.18** moving the canvas to a near-white
+  surface; dark was one hex step away too. Both are now a distinct slate.
 - [M22.23] ☑ **The side-split divider stays put when you change tab** (owner). A `JTabbedPane` reports the
   **selected** tab's preferred size as its own, and the tabs differ widely (the topology canvas asks for
   640×420, a chart more), so the split re-laid out to suit whichever tab was showing and the divider

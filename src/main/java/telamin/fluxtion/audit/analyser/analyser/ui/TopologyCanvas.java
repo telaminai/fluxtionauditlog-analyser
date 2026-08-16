@@ -207,6 +207,8 @@ public final class TopologyCanvas extends JPanel {
     private ProcessorTopology classifyAgainst;
 
     private final java.util.Set<String> emphasis = new java.util.LinkedHashSet<>();
+    /** The nodes actually clicked. Distinct from {@link #emphasis}, which is what their scope reaches. */
+    private final java.util.Set<String> selectedNodes = new java.util.LinkedHashSet<>();
 
     public ProcessorTopology topology() {
         return topology;
@@ -332,6 +334,17 @@ public final class TopologyCanvas extends JPanel {
         repaint();
     }
 
+    /**
+     * The clicked nodes. Marked <b>positively</b> — a brighter fill and a heavy accent ring — rather than
+     * by dimming everything else: "what did I select" should be answerable by looking at the selection,
+     * not by comparing the whole graph against itself.
+     */
+    public void setSelectedNodes(java.util.Collection<String> ids) {
+        selectedNodes.clear();
+        if (ids != null) selectedNodes.addAll(ids);
+        repaint();
+    }
+
     public java.util.Set<String> emphasis() {
         return java.util.Set.copyOf(emphasis);
     }
@@ -444,6 +457,16 @@ public final class TopologyCanvas extends JPanel {
         return layout.at((px - offsetX) / scale, (py - offsetY) / scale);
     }
 
+    /**
+     * Supplies a node's class documentation for the tooltip, keyed by class name. Optional: without it the
+     * tooltip is unchanged, which is what happens when no source root reaches the class.
+     */
+    public void setDocLookup(java.util.function.Function<ProcessorTopology.Node, String> lookup) {
+        this.docLookup = lookup;
+    }
+
+    private java.util.function.Function<ProcessorTopology.Node, String> docLookup;
+
     @Override
     public String getToolTipText(MouseEvent e) {
         TopologyLayout.NodeBox box = boxAt(e.getX(), e.getY());
@@ -454,9 +477,25 @@ public final class TopologyCanvas extends JPanel {
         String claim = "";
         ProcessorTopology.Execution ran = execution.get(box.id());
         if (ran != null) claim = "<br><br>" + describe(ran);
+        String doc = "";
+        if (docLookup != null) {
+            String summary = docLookup.apply(node);
+            // the class javadoc says what the node IS; the execution claim says what it DID this cycle.
+            // Both belong here and neither substitutes for the other.
+            if (summary != null && !summary.isBlank()) {
+                doc = "<br><br>" + escape(summary);
+            }
+        }
         return "<html><b>" + node.id() + "</b>" + className
                + "<br><i>" + node.kind().name().toLowerCase().replace('_', ' ') + "</i>"
-               + claim + "</html>";
+               + doc + claim + "</html>";
+    }
+
+    /** The tooltip is HTML, and a javadoc summary can legitimately contain angle brackets. */
+    private static String escape(String text) {
+        String safe = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        // wrap: a long first sentence otherwise makes a tooltip as wide as the screen
+        return "<div width=\"320\">" + safe + "</div>";
     }
 
     /** Plain words for a claim — the colour alone must never be what tells a user this. */
@@ -594,8 +633,10 @@ public final class TopologyCanvas extends JPanel {
             if (!visible.intersects(box.x(), box.y(), box.width(), box.height())) continue;   // cull
 
             ProcessorTopology.Node node = topology.node(box.id());
-            boolean isSelected = box.id().equals(selectedId);
+            boolean isSelected = box.id().equals(selectedId) || selectedNodes.contains(box.id());
             boolean isHovered = box.id().equals(hoveredId);
+            // in the scope but not itself clicked — reached BY the selection rather than part of it
+            boolean inScope = !emphasis.isEmpty() && emphasis.contains(box.id()) && !isSelected;
 
             Integer ordinal = firedAt.get(box.id());
             boolean fired = ordinal != null;
@@ -616,7 +657,9 @@ public final class TopologyCanvas extends JPanel {
             java.awt.Shape shape = shapeFor(node, x, y, w, h);
 
             Color fill = fillFor(node, dark);
-            g.setColor(dimmed ? fade(fill, dark) : fill);
+            g.setColor(dimmed ? fade(fill, dark)
+                    : isSelected ? towards(fill, accent(dark), dark ? 0.34 : 0.20)
+                    : fill);
             g.fill(shape);
 
             Color border = isSelected ? accent(dark)
@@ -636,6 +679,8 @@ public final class TopologyCanvas extends JPanel {
             g.draw(shape);
 
             if (fired && labels) paintOrdinal(g, x, y, ordinal + 1, dark);
+            if (inScope) paintHalo(g, x, y, w, h, dark, HaloStyle.SCOPE);
+            if (isSelected) paintHalo(g, x, y, w, h, dark, HaloStyle.SELECTION);
             if (isEntry) paintHalo(g, x, y, w, h, dark, HaloStyle.ENTRY);
             if (isStepped) paintHalo(g, x, y, w, h, dark, HaloStyle.TRAIL);
             if (isCurrentStep) paintHalo(g, x, y, w, h, dark, HaloStyle.CURRENT);
@@ -666,7 +711,7 @@ public final class TopologyCanvas extends JPanel {
         g.drawString(out, (float) x, (float) y);
     }
 
-    private enum HaloStyle { CURRENT, TRAIL, ENTRY }
+    private enum HaloStyle { CURRENT, TRAIL, ENTRY, SELECTION, SCOPE }
 
     /**
      * Cursor halos, drawn <b>outside</b> the node so it keeps its own execution border and fill.
@@ -675,12 +720,21 @@ public final class TopologyCanvas extends JPanel {
      */
     private void paintHalo(Graphics2D g, double x, double y, double w, double h, boolean dark,
                            HaloStyle style) {
-        double pad = style == HaloStyle.TRAIL ? 2.5 : 4;
+        double pad = switch (style) {
+            case TRAIL -> 2.5;
+            case SELECTION -> 3;
+            case SCOPE -> 2;
+            default -> 4;
+        };
         RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
                 x - pad, y - pad, w + 2 * pad, h + 2 * pad, 10 * scale + pad, 10 * scale + pad);
-        g.setColor(style == HaloStyle.TRAIL ? steppedHalo(dark) : accent(dark));
+        g.setColor(style == HaloStyle.TRAIL ? steppedHalo(dark)
+                : style == HaloStyle.SCOPE ? fade2(accent(dark), dark, 0.6)
+                : accent(dark));
         g.setStroke(switch (style) {
             case CURRENT -> new BasicStroke(2.6f);
+            case SELECTION -> new BasicStroke(3f);
+            case SCOPE -> new BasicStroke(1.6f);
             case TRAIL -> new BasicStroke(1.4f);
             case ENTRY -> new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
                     new float[]{6f, 4f}, 0f);
@@ -733,21 +787,37 @@ public final class TopologyCanvas extends JPanel {
         return p;
     }
 
-    /** Node kinds are distinguished by fill too, so the graph's shape reads before any label does. */
+    /**
+     * Node kinds are distinguished by fill too, so the graph's shape reads before any label does.
+     *
+     * <p>The plain {@code NODE} fill has to carry the most weight and had the least: white on a near-white
+     * canvas, and one hex step from the canvas in dark mode, so an ordinary compute node — the commonest
+     * thing in any graph — was a border floating on the background. It is now a distinct slate in both
+     * themes. The tinted kinds are unchanged; they were never the problem.
+     */
     private static Color fillFor(ProcessorTopology.Node node, boolean dark) {
         ProcessorTopology.Kind kind = node == null ? ProcessorTopology.Kind.UNKNOWN : node.kind();
         return switch (kind) {
-            case EVENT -> dark ? new Color(0x2D2A1F) : new Color(0xFFF8C5);
-            case EVENT_HANDLER -> dark ? new Color(0x1B2B34) : new Color(0xDDF4FF);
-            case EXPORT_SERVICE -> dark ? new Color(0x272132) : new Color(0xF3E8FF);
-            case NODE -> dark ? new Color(0x1C2128) : new Color(0xFFFFFF);
-            case UNKNOWN -> dark ? new Color(0x21262D) : new Color(0xEFF1F3);
+            case EVENT -> dark ? new Color(0x33301F) : new Color(0xFFF8C5);
+            case EVENT_HANDLER -> dark ? new Color(0x1B3140) : new Color(0xDDF4FF);
+            case EXPORT_SERVICE -> dark ? new Color(0x2E2640) : new Color(0xF3E8FF);
+            case NODE -> dark ? new Color(0x2A313B) : new Color(0xE9EEF4);
+            case UNKNOWN -> dark ? new Color(0x343B45) : new Color(0xDDE2E8);
         };
     }
 
     private static Color borderFor(boolean dark, boolean hovered) {
         if (hovered) return dark ? new Color(0x8B949E) : new Color(0x57606A);
         return dark ? new Color(0x30363D) : new Color(0xB6BFC9);
+    }
+
+    /** Blend {@code from} toward {@code to} by {@code amount} — used to tint a selected node's fill. */
+    private static Color towards(Color from, Color to, double amount) {
+        double a = Math.max(0, Math.min(1, amount));
+        return new Color(
+                (int) (from.getRed() * (1 - a) + to.getRed() * a),
+                (int) (from.getGreen() * (1 - a) + to.getGreen() * a),
+                (int) (from.getBlue() * (1 - a) + to.getBlue() * a));
     }
 
     private static Color accent(boolean dark) {
@@ -769,7 +839,7 @@ public final class TopologyCanvas extends JPanel {
         // one shared content surface with the record-detail and source panels: the graph is a document,
         // and at 0xF6F8FA it sat within a shade of FlatLaf's light panel grey and lost its own edge
         Color canvas = UiTheme.surface();
-        double keep = 0.22;
+        double keep = 0.16;   // out-of-scope must recede, not merely soften
         return new Color(
                 (int) (c.getRed() * keep + canvas.getRed() * (1 - keep)),
                 (int) (c.getGreen() * keep + canvas.getGreen() * (1 - keep)),

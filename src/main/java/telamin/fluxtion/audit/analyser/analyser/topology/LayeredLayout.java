@@ -61,7 +61,9 @@ public final class LayeredLayout {
                          Orientation orientation, int sweeps) {
 
         public static Config defaults() {
-            return new Config(160, 48, 28, 72, Orientation.TOP_DOWN, 4);
+            // 160x48 dominated the canvas: at any useful zoom the boxes carried more visual weight than
+            // the edges between them, and the edges are the thing the graph exists to show
+            return new Config(132, 40, 26, 64, Orientation.TOP_DOWN, 4);
         }
 
         /**
@@ -84,7 +86,7 @@ public final class LayeredLayout {
          */
         public Config withSpacing(double factor) {
             double f = Math.max(0.25, Math.min(4, factor));
-            return new Config(nodeWidth, nodeHeight, 28 * f, 72 * f, orientation, sweeps);
+            return new Config(nodeWidth, nodeHeight, 26 * f, 64 * f, orientation, sweeps);
         }
     }
 

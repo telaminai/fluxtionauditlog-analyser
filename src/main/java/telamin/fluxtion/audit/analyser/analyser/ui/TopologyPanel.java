@@ -52,6 +52,7 @@ public final class TopologyPanel extends JPanel {
     /** Autoplay: one step per tick, on the EDT, so it drives exactly the same path as pressing ↓. */
     private final javax.swing.Timer autoplay = new javax.swing.Timer(700, e -> autoplayTick());
 
+    private final TopologyIndex index = new TopologyIndex(null, null);
     private final javax.swing.JCheckBox scaffoldingBox = new javax.swing.JCheckBox("Scaffolding", false);
     private final javax.swing.JToggleButton focusButton = new javax.swing.JToggleButton("Focus");
     private final JLabel scopeLabel = new JLabel(" ");
@@ -147,12 +148,22 @@ public final class TopologyPanel extends JPanel {
 
         add(bar, BorderLayout.NORTH);
         canvas.setBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge()));
+        // the index is a child of the canvas, so it floats over the drawing rather than taking width
+        // from it; the bottom inset clears the "N nodes · N edges" HUD line the canvas paints there
+        canvas.setLayout(new BorderLayout());
+        JPanel overlay = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        overlay.setOpaque(false);
+        overlay.setBorder(BorderFactory.createEmptyBorder(0, 4, 22, 4));
+        overlay.add(index);
+        canvas.add(overlay, BorderLayout.SOUTH);
         add(canvas, BorderLayout.CENTER);
         add(south, BorderLayout.SOUTH);
 
         canvas.onNodeActivated(id -> nodeActivated.accept(id));
         canvas.onNodeSelected(this::describeSelection);
         canvas.onNodeClicked(this::onNodeClicked);
+        index.setSelectHandler(id -> onNodeClicked(id, false));
+        index.setOpenSourceHandler(this::openSource);
         canvas.onNodeContextMenu(this::showNodeMenu);
         installStepKeys();
     }
@@ -256,7 +267,7 @@ public final class TopologyPanel extends JPanel {
     public void load(Path file) {
         ProcessorTopology topology = GraphMlParser.parse(file);
         if (topology.isEmpty()) {
-            status.setText("Could not read a topology from " + file.getFileName()
+            setStatus("Could not read a topology from " + file.getFileName()
                            + " — is it a Fluxtion .graphml?");
             return;
         }
@@ -265,8 +276,10 @@ public final class TopologyPanel extends JPanel {
         selection.clear();
         scope = TopologyFocus.Scope.NODE;
         canvas.setClassificationTopology(fullTopology);
+        // the FULL graph: the index is how you reach a node the filters have hidden
+        index.setTopology(fullTopology);
         applyView(false);
-        status.setText(summary(topology, file));
+        setStatus(summary(topology, file));
     }
 
     /**
@@ -312,21 +325,37 @@ public final class TopologyPanel extends JPanel {
         canvas.setTopology(fullTopology.subgraph(visible), keepView);
         // focusing already removes everything else, so dimming on top of it would say the same thing twice
         canvas.setEmphasis(focusing || scoped == null ? java.util.Set.of() : scoped);
+        canvas.setSelectedNodes(selection);
+        index.setSelection(selection);
 
         // the canvas cleared its shading when the graph changed — put the current cycle back
         if (!cycle.isEmpty() && cursor.record() != null) {
             showCycleOf(cursor.record());
             canvas.setCursor(cursor.currentInstanceId(), cursor.steppedSoFar(), cursor.atEntry());
         }
-        updateScopeLabel(scoped, visible.size());
+        updateScopeLabel(scoped);
+        refreshStatus();
     }
 
-    private void updateScopeLabel(java.util.Set<String> scoped, int visible) {
-        int hidden = fullTopology.nodeCount() - visible;
+    /**
+     * All status writes go through here so the "what is hidden" note cannot be dropped by whichever
+     * caller last set the text — and there are eight of them, each about something else.
+     */
+    private void setStatus(String text) {
+        statusBase = text == null ? " " : text;
+        status.setText(statusBase + viewNote());
+    }
+
+    /** Re-render the status line after a filter change, keeping whatever it was saying. */
+    private void refreshStatus() {
+        status.setText(statusBase + viewNote());
+    }
+
+    private String statusBase = " ";
+
+    private void updateScopeLabel(java.util.Set<String> scoped) {
         StringBuilder sb = new StringBuilder("  ");
-        if (selection.isEmpty()) {
-            sb.append(hidden > 0 ? hidden + " scaffolding node(s) hidden" : "");
-        } else {
+        if (!selection.isEmpty()) {
             sb.append(selection.size() == 1 ? selection.iterator().next()
                             : selection.size() + " selected")
               .append("  ·  ").append(scope.label())
@@ -334,6 +363,30 @@ public final class TopologyPanel extends JPanel {
             if (!focusButton.isSelected()) sb.append("  ·  click again to widen");
         }
         scopeLabel.setText(sb.toString());
+    }
+
+    /**
+     * What the current filters are keeping off screen, appended to the status line.
+     *
+     * <p>It belongs on the status line rather than only next to its checkbox because it is a statement
+     * about <b>what you are looking at</b>. Half the nodes being absent is the single most misleading
+     * thing this view can do quietly, and someone reading the graph is looking at the graph, not at the
+     * toolbar they set ten minutes ago.
+     */
+    private String viewNote() {
+        if (fullTopology.isEmpty()) return "";
+        int shown = canvas.topology().nodeCount();
+        int hidden = fullTopology.nodeCount() - shown;
+        if (hidden <= 0) return "";
+        List<String> parts = new ArrayList<>(2);
+        if (!scaffoldingBox.isSelected()) {
+            int scaffolding = Scaffolding.count(fullTopology);
+            if (scaffolding > 0) parts.add(scaffolding + " scaffolding node(s) hidden");
+        }
+        int byFocus = hidden - (scaffoldingBox.isSelected() ? 0 : Scaffolding.count(fullTopology));
+        if (byFocus > 0) parts.add(byFocus + " outside the focus");
+        if (parts.isEmpty()) parts.add(hidden + " node(s) hidden");
+        return "   [" + String.join(", ", parts) + "]";
     }
 
     private String summary(ProcessorTopology topology, Path file) {
@@ -350,7 +403,7 @@ public final class TopologyPanel extends JPanel {
         // matched against the whole graph: a build mismatch is a fact about the file, and hiding
         // scaffolding must not turn a mismatch into a clean bill of health
         ProcessorTopology.Match match = fullTopology.match(logInstanceIds);
-        status.setText((loadedFrom == null ? "" : loadedFrom.getFileName() + " — ") + match.describe());
+        setStatus((loadedFrom == null ? "" : loadedFrom.getFileName() + " — ") + match.describe());
     }
 
     // ---- cross-view wiring (M21.5) ----------------------------------------------------------------
@@ -495,12 +548,12 @@ public final class TopologyPanel extends JPanel {
         }
         updateStepControls();
         if (record == null) {
-            status.setText(hasTopology() && loadedFrom != null
+            setStatus(hasTopology() && loadedFrom != null
                     ? summary(fullTopology, loadedFrom) : " ");
             return;
         }
         long unknown = order.stream().filter(id -> !fullTopology.contains(id)).distinct().count();
-        status.setText(describeEvent(record) + " — " + order.size()
+        setStatus(describeEvent(record) + " — " + order.size()
                        + (AuditTrace.tracesEveryInvocation(record.nodeLogs()) ? " node(s) ran" : " node(s) logged")
                        + (unknown > 0 && hasTopology()
                                ? "  ·  " + unknown + " not in this topology (different build?)" : ""));
@@ -596,7 +649,7 @@ public final class TopologyPanel extends JPanel {
         String id = cursor.currentInstanceId();
         rowChanged.accept(id, occurrenceOfCurrentRow());
         if (id != null) canvas.select(id);
-        status.setText(cursor.atEntry()
+        setStatus(cursor.atEntry()
                 ? cursor.positionLabel() + describeEntry()
                 : cursor.positionLabel() + "  ·  " + cursor.rowSummary()
                   + (fullTopology.contains(id) ? "" : "   [not in this topology]"));
@@ -653,22 +706,46 @@ public final class TopologyPanel extends JPanel {
         return sb.toString();
     }
 
+    /**
+     * Wire the node tooltip to class documentation. Takes a resolver from FQN to source text — the panel
+     * caches per class, because a tooltip fires on every hover and reading a file each time would make
+     * moving the mouse across a graph do filesystem work.
+     */
+    public void setSourceResolver(java.util.function.Function<String, java.util.Optional<String>> resolver) {
+        java.util.Map<String, String> cache = new java.util.HashMap<>();
+        canvas.setDocLookup(node -> {
+            String fqn = node.className();
+            if (resolver == null || fqn == null || fqn.isBlank()) return null;
+            return cache.computeIfAbsent(fqn, key -> resolver.apply(key)
+                    .map(src -> telamin.fluxtion.audit.analyser.analyser.source.Javadoc.summary(
+                            telamin.fluxtion.audit.analyser.analyser.source.Javadoc.forType(
+                                    src, simpleNameOf(key))))
+                    .orElse(""));      // "" is a cached MISS; null would retry the file on every hover
+        });
+    }
+
+    private static String simpleNameOf(String fqn) {
+        int dot = fqn.lastIndexOf('.');
+        return dot < 0 ? fqn : fqn.substring(dot + 1);
+    }
+
     /** Re-apply theme-derived chrome. The canvas paints its own surface, but its edge is set once. */
     public void refreshTheme() {
         canvas.setBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge()));
+        index.applyTheme();
         repaint();
     }
 
     private void describeSelection(String id) {
         if (id == null) {
-            if (hasTopology() && loadedFrom != null) status.setText(summary(fullTopology, loadedFrom));
+            if (hasTopology() && loadedFrom != null) setStatus(summary(fullTopology, loadedFrom));
             return;
         }
         ProcessorTopology topology = fullTopology;
         ProcessorTopology.Node node = topology.node(id);
         if (node == null) return;
         var ran = canvas.executionOf(id);
-        status.setText(id
+        setStatus(id
                        + (node.className() == null ? "" : "  ·  " + node.className())
                        + "  ·  fed by " + topology.parentsOf(id).size()
                        + ", feeds " + topology.childrenOf(id).size()
