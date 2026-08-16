@@ -42,6 +42,47 @@ the second (M23.7–23.9) diagnoses a SINGLE RECORD. Tracker has the full detail
      in this codebase and it should stay that way. 14 tests in FindingReportTest.
 
 ================================================================================
+ADDENDUM 2 — M24 AND THE 300-NODE EVIDENCE (read before M20.1)
+================================================================================
+The supermarket POC was scaled from 44 to 275 application nodes (309 graph nodes, 503 edges) on
+16 Aug. That run produced one new analyser feature and three findings that change what M20 should
+assume about scale.
+
+  i) NEW VERB: `coverage` (M24.1). THE VERB SET IS NOW THIRTEEN. VerbSchemasTest and McpToolsTest
+     both assert the exact set and both were updated; do not weaken those assertions.
+     It answers "which authored nodes never wrote audit output in this run?" by comparing the
+     GraphML against the log. Marked readOnlyHint. Scans OFF the EDT — a 300-node/20k-record pass
+     on the UI thread is the freeze that makes a tool feel broken.
+     `topology/NodeCoverage` is pure (5 tests). It keeps three outcomes apart on purpose:
+     covered / never-logged / silent-by-design, plus a separate BUILD MISMATCH signal when the log
+     contains instanceIds the topology does not. If you touch it, keep those apart — collapsing
+     them produces a report people learn to ignore.
+     Why it exists: the POC harness emitted chiller readings at `i % 12` against a 24-wide estate,
+     so only 2 of 24 chillers were EVER reachable and 54 of 275 nodes never ran. Clean build,
+     green suite, nothing to say so.
+
+ ii) THE ANALYSER IS COMFORTABLE AT 309 NODES — measured, and it surprised me.
+     graphml load + layout 0.0s · show-all + fit (299 visible) 0.2s · focus 0.1s · screenshot 0.1s.
+     No defects surfaced. M20 does NOT need to plan for scale work.
+     TWO REAL USABILITY FINDINGS, both open and neither filed as tracker items yet:
+       - `scope=routes` DEGENERATES AT A TERMINAL NODE. Focusing routes on `storePnl` — which
+         everything eventually feeds — showed 198 of 309 nodes. Focus works in the middle of a
+         graph and does nothing at its sink. A bounded default (N hops) for terminal nodes is
+         probably right.
+       - Node labels truncate to `Category…` at default node width. Fine when you can hover;
+         not fine in an exported report picture.
+
+iii) THE FINDING REPORT'S WHOLE-GRAPH VIEW IS UNTESTED ABOVE ~100 NODES. At 309 a picture of the
+     whole estate with 12 nodes lit is likely a grey rectangle. Predicted in PREDICTION-3 (P3.12),
+     NOT verified. Worth ten minutes before anyone relies on that view at scale.
+
+ iv) PERFORMANCE CONTEXT for anything you build that touches the log: the POC's 309-node graph runs
+     at ~830k audited events/sec single-threaded (~1.2 microseconds per blended event), and ~4.9M
+     events/sec with the audit off. Audit cost tracks how much nodes SAY, not graph size. So a
+     one-day log from a busy system can be very large, and M20's project profiles should not assume
+     a log fits comfortably in memory. POC one-day log at this scale: 21,453 lines.
+
+================================================================================
 WHAT CHANGED SINCE THE ORIGINAL BRIEF
 ================================================================================
 Two milestones landed on this branch on 16 Aug and both touch what M20 has to tier:
@@ -153,7 +194,7 @@ PROCESS (per CLAUDE.md)
 STATE OF THE BRANCH
 ================================================================================
 - handoff/15_aug_2026_2, ~60 commits ahead of main, UNMERGED and awaiting review.
-- 463 tests green · mkdocs build --strict green · anonymisation sweep clean (text).
+- 473 tests green · mkdocs build --strict green · anonymisation sweep clean (text).
   (mkdocs is NOT installed system-wide on the owner's machine as of 16 Aug — the python3.14 upgrade
   removed it. `python3 -m venv <tmp>/venv && <tmp>/venv/bin/pip install -r docs-requirements.txt`.)
 - OPEN, owner's call, not yours: the pre-16-Aug docs screenshots contained real venue/vendor names
