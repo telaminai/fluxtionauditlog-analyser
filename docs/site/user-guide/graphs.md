@@ -11,7 +11,7 @@ Plot any node value over time. Open the **Graph** tab; each graph is its own sub
 
 The series key sits as an overlay on the top-right of the plot; right-click a label to remove it.
 
-![A node value plotted over time — priceListener.mid across a 400-event run](../assets/graph-series-dark.png)
+![A node value plotted over time — priceListener.mid across 400 market-data cycles](../assets/graph-series-dark.png)
 
 That is one node's `mid` across a few hundred cycles. Nothing was extracted or transformed to get it:
 the value was in the audit log because the node logged it, and every point on the line is a record you

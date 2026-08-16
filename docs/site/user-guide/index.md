@@ -20,4 +20,4 @@ New here? Start with **[Getting started](../getting-started.md)**.
 Not sure where to begin? **[Getting started](../getting-started.md)** walks you from a fresh install to a
 graphed, explained log.
 
-![The analyser in the Dark theme](../assets/screenshot-dark.png)
+![The same view in the Light theme](../assets/screenshot-light.png)

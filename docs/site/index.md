@@ -6,7 +6,7 @@ history of a Mongoose/Fluxtion `EventProcessor`. Index-first, so it stays respon
 Your processor already writes down everything it does. The analyser is what makes that record **answer
 questions — in minutes, with evidence** — whether it's you asking or an AI.
 
-![The analyser showing a 30k-record log: the records table, the event-type filter, and a stepped graph](assets/screenshot-light.png)
+![The analyser on a demo log: the records table, one cycle read out logically, and the processor's own graph with that cycle shaded](assets/screenshot-dark.png)
 
 ## Run it now
 

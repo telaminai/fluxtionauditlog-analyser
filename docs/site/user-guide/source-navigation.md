@@ -25,4 +25,4 @@ the method that dispatches that record (its callback), so you land on the code t
 Navigation resolves through the processor's field declarations, so it works from any file — the
 processor or a node class.
 
-![Clicking a nodeLog line jumps to the node's source method](../assets/source-navigation.png)
+![Source beside the graph: the generated processor above, the node class it dispatches into below](../assets/source-navigation.png)

@@ -5,7 +5,7 @@ Fluxtion audit log**: the log is the source of truth, and the table, detail view
 summary, graphs and assistant are just different lenses on it. Narrow the view once and everything
 follows.
 
-![The main log-viewing surfaces: the time-range bar, the event-type filter (left), the records table, the record detail, and the summary](../assets/records-overview.png)
+![The main log-viewing surfaces: the time-range bar, the event-type filter (left), the records table, and the record detail showing one cycle's nodeLogs](../assets/records-overview.png)
 
 The main window at a glance:
 
@@ -40,7 +40,7 @@ Toggle **Flagged only** (toolbar) to collapse the table to just the flagged reco
 everything you (or the assistant) marked as relevant, while the counts and time range still reflect it.
 *Records ▸ Clear all flags* resets them.
 
-![Flagged only — the table narrowed to the flagged (tinted) records](../assets/flagged-only.png)
+![Flagged records are tinted in the table, and carry the note you filed them with](../assets/flagged-only.png)
 
 Because flagging is also one of the assistant's [actions](assistant.md), an agent's findings land here
 as flags too — with a note attached — so its conclusions become a reviewable set in your own view, not

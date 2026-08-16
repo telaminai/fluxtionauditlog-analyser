@@ -19,8 +19,8 @@ thread, logger or account names** — use neutral placeholders (e.g. `DEMO`, `ma
 
 | File | Used on |
 |------|---------|
-| `screenshot-light.png` | Home — hero |
-| `screenshot-dark.png` | User guide — index (dark theme) |
+| `screenshot-dark.png` | Home — hero (the tool photographs better dark: the canvas, source panes and plots all use a recessed dark surface, and light flattens all three) |
+| `screenshot-light.png` | User guide — index (the light theme) |
 | `audit-loop.svg` | Home — the closed-loop diagram (inlined via a snippet) |
 | `records-overview.png` | Records, detail & filtering — the surfaces at a glance |
 | `flagged-only.png` | Records, detail & filtering — flagging & focus |
