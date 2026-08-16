@@ -7,6 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- Topology: **exported services are entry points too.** A cycle that arrived through an
+  `@ExportService` call now resolves to the service node and shades the path from it, so an operator
+  action reads like an event rather than an unexplained cycle. Both signature spellings the runtime
+  emits are understood — the fully-qualified one, and the method-name-only one, which resolves when the
+  graph declares a single exported service.
 - Topology: **drag-and-drop a `.graphml`** anywhere on the window to load it into the Topology tab —
   and drop a log + graphml pair together to open both in one gesture.
 - **MCP bridge** — `java -jar analyser.jar --mcp` runs the analyser as an MCP server over stdio, so an

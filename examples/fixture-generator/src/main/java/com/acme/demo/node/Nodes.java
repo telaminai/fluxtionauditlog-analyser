@@ -1,8 +1,10 @@
 package com.acme.demo.node;
 
+import com.acme.demo.api.QuoteControl;
 import com.acme.demo.event.Events;
 import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
 import com.telamin.fluxtion.runtime.annotations.OnTrigger;
+import com.telamin.fluxtion.runtime.annotations.ExportService;
 import com.telamin.fluxtion.runtime.audit.EventLogNode;
 
 /**
@@ -71,9 +73,15 @@ public final class Nodes {
         }
     }
 
-    public static class QuotePublisher extends EventLogNode {
+    /**
+     * Publishes quotes, and exports a control surface. {@code @ExportService} makes this an <b>entry
+     * point</b>: an outside caller invokes {@link QuoteControl} and the call dispatches into the graph
+     * exactly as an event does, which is why the topology draws it with nothing above it.
+     */
+    public static class QuotePublisher extends EventLogNode implements @ExportService QuoteControl {
         private final SpreadCalculator spread;
         private final OrderTracker orders;
+        private boolean suspended;
 
         public QuotePublisher(SpreadCalculator spread, OrderTracker orders) {
             this.spread = spread;
@@ -82,8 +90,22 @@ public final class Nodes {
 
         @OnTrigger
         public boolean publish() {
-            auditLog.info("spread", spread.getSpread()).info("liveOrders", orders.getLive());
+            auditLog.info("spread", spread.getSpread())
+                    .info("liveOrders", orders.getLive())
+                    .info("suspended", suspended);
             return true;
+        }
+
+        @Override
+        public void suspendQuoting(String reason) {
+            suspended = true;
+            auditLog.info("suspended", true).info("reason", reason);
+        }
+
+        @Override
+        public void resumeQuoting() {
+            suspended = false;
+            auditLog.info("suspended", false);
         }
     }
 }

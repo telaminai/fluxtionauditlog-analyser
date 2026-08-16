@@ -32,15 +32,18 @@ class ScaffoldingTest {
         Set<String> authored = Scaffolding.authoredNodes(demo());
         assertEquals(
                 Set.of("priceListener", "spreadCalculator", "orderTracker", "quotePublisher",
-                        "MarketDataEvent", "OrderUpdateEvent"),
+                        "MarketDataEvent", "OrderUpdateEvent", "QuoteControl"),
                 authored,
-                "exactly the four nodes and two events the builder declares");
+                "the four nodes, two events and one exported service the builder declares");
+        assertTrue(authored.contains("QuoteControl"),
+                "an exported service is a way INTO the user's graph — plumbing is what the framework "
+                + "adds, not what the author chose to expose");
     }
 
     @Test
-    void tenOfSixteenNodesArePlumbing() throws IOException {
+    void tenOfSeventeenNodesArePlumbing() throws IOException {
         ProcessorTopology t = demo();
-        assertEquals(16, t.nodeCount());
+        assertEquals(17, t.nodeCount());
         assertEquals(10, Scaffolding.count(t), "which is why this feature exists");
     }
 
@@ -74,12 +77,13 @@ class ScaffoldingTest {
         ProcessorTopology t = demo();
         ProcessorTopology authored = t.subgraph(Scaffolding.authoredNodes(t));
 
-        assertEquals(6, authored.nodeCount());
+        assertEquals(7, authored.nodeCount());
         // the pipeline the builder declares survives end to end
         assertEquals(Set.of("priceListener"), authored.childrenOf("MarketDataEvent"));
         assertEquals(Set.of("spreadCalculator"), authored.childrenOf("priceListener"));
         assertEquals(Set.of("quotePublisher"), authored.childrenOf("spreadCalculator"));
-        assertEquals(Set.of("spreadCalculator", "orderTracker"), authored.parentsOf("quotePublisher"));
+        assertEquals(Set.of("spreadCalculator", "orderTracker", "QuoteControl"), authored.parentsOf("quotePublisher"),
+                "the exported service is an inbound edge too: calling it enters at quotePublisher");
     }
 
     @Test

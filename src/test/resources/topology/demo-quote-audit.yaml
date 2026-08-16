@@ -8,7 +8,7 @@ eventLogRecord:
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - priceListener: { symbol: DEMO-A, mid: 100.19999999999999}
-        - quotePublisher: { spread: 0.02004, liveOrders: 0}
+        - quotePublisher: { spread: 0.02004, liveOrders: 0, suspended: false}
     endTime: 1767258000100
 ---
 eventLogRecord: 
@@ -20,7 +20,7 @@ eventLogRecord:
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - orderTracker: { orderId: ord-1, live: 1}
-        - quotePublisher: { spread: 0.02004, liveOrders: 1}
+        - quotePublisher: { spread: 0.02004, liveOrders: 1, suspended: false}
     endTime: 1767258000130
 ---
 eventLogRecord: 
@@ -32,7 +32,7 @@ eventLogRecord:
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - priceListener: { symbol: DEMO-A, mid: 100.2}
-        - quotePublisher: { spread: 0.020040000000000002, liveOrders: 1}
+        - quotePublisher: { spread: 0.020040000000000002, liveOrders: 1, suspended: false}
     endTime: 1767258000160
 ---
 eventLogRecord: 
@@ -44,7 +44,7 @@ eventLogRecord:
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - orderTracker: { orderId: ord-1, live: 0}
-        - quotePublisher: { spread: 0.020040000000000002, liveOrders: 0}
+        - quotePublisher: { spread: 0.020040000000000002, liveOrders: 0, suspended: false}
     endTime: 1767258000190
 ---
 eventLogRecord: 
@@ -56,5 +56,29 @@ eventLogRecord:
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - priceListener: { symbol: DEMO-B, mid: 55.05}
-        - quotePublisher: { spread: 0.01101, liveOrders: 0}
+        - quotePublisher: { spread: 0.01101, liveOrders: 0, suspended: false}
     endTime: 1767258000220
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1767258000240
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void suspendQuoting(String arg0)
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - quotePublisher: { suspended: true, reason: demo: spread too wide}
+    endTime: 1767258000250
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1767258000270
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void resumeQuoting()
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - quotePublisher: { suspended: false}
+    endTime: 1767258000280

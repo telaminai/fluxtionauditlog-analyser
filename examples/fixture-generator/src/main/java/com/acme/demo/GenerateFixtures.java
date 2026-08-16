@@ -1,5 +1,6 @@
 package com.acme.demo;
 
+import com.acme.demo.api.QuoteControl;
 import com.acme.demo.event.Events;
 import com.telamin.fluxtion.runtime.DataFlow;
 import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
@@ -26,8 +27,14 @@ public final class GenerateFixtures {
     /** Where the analyser keeps the fixtures, relative to this module. */
     private static final Path FIXTURES = Path.of("../../src/test/resources/topology");
 
+    /**
+     * The plugin writes the authoritative graphml back into the <b>source</b> tree, starter-style, next to
+     * the generated processor — {@code target/generated-resources} holds a build-time copy that goes stale
+     * whenever a build reuses it. Reading the source-tree copy is what keeps the fixture matched to the
+     * processor that produced the audit log.
+     */
     private static final Path EMITTED_GRAPHML =
-            Path.of("target/generated-resources/com/acme/demo/generated/DemoQuoteProcessor.graphml");
+            Path.of("src/main/resources/com/acme/demo/generated/DemoQuoteProcessor.graphml");
 
     /** Fixed instant (2026-01-01T09:00:00Z) so regeneration is byte-reproducible. */
     private static final long FIXED_START_MILLIS = 1_767_258_000_000L;
@@ -60,6 +67,13 @@ public final class GenerateFixtures {
         processor.onEvent(new Events.MarketDataEvent("DEMO-A", 100.12, 100.28));
         processor.onEvent(new Events.OrderUpdateEvent("ord-1", "DONE"));
         processor.onEvent(new Events.MarketDataEvent("DEMO-B", 55.01, 55.09));
+        // an exported-service call: dispatches into the graph like an event, and the record it produces
+        // is an ExportFunctionAuditEvent carrying the method signature — the OTHER way a cycle can start
+        QuoteControl control = processor.getExportedService(QuoteControl.class);
+        if (control != null) {
+            control.suspendQuoting("demo: spread too wide");
+            control.resumeQuoting();
+        }
 
         Files.createDirectories(FIXTURES);
         Files.writeString(FIXTURES.resolve(file), log.toString());

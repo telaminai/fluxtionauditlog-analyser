@@ -8,6 +8,7 @@
  */
 package com.acme.demo.generated;
 
+import com.acme.demo.api.QuoteControl;
 import com.acme.demo.event.Events.MarketDataEvent;
 import com.acme.demo.event.Events.OrderUpdateEvent;
 import com.acme.demo.node.Nodes.OrderTracker;
@@ -71,6 +72,7 @@ import java.util.function.Consumer;
 public class DemoQuoteTracedProcessor
     implements CloneableDataFlow<DemoQuoteTracedProcessor>,
         /*--- @ExportService start ---*/
+        @ExportService QuoteControl,
         @ExportService ServiceListener,
         /*--- @ExportService end ---*/
         DataFlow,
@@ -124,7 +126,12 @@ public class DemoQuoteTracedProcessor
                 "OrderUpdateEvent", "com.acme.demo.event.Events.OrderUpdateEvent", false)
           },
           new ProcessorDescriptor.Sink[] {},
-          new ProcessorDescriptor.Service[] {},
+          new ProcessorDescriptor.Service[] {
+            new ProcessorDescriptor.Service(
+                "QuoteControl",
+                "com.acme.demo.api.QuoteControl",
+                ProcessorDescriptor.Service.Direction.EXPORTED)
+          },
           new DescriptorSupport.Meta(null, null, null, null));
 
   @Override
@@ -357,6 +364,24 @@ public class DemoQuoteTracedProcessor
     ExportFunctionAuditEvent typedEvent = functionAudit;
     auditInvocation(serviceRegistry, "serviceRegistry", "registerService", typedEvent);
     serviceRegistry.registerService(arg0);
+    afterServiceCall();
+  }
+
+  @Override
+  public void resumeQuoting() {
+    beforeServiceCall("@Override\npublic void resumeQuoting()");
+    ExportFunctionAuditEvent typedEvent = functionAudit;
+    auditInvocation(quotePublisher, "quotePublisher", "resumeQuoting", typedEvent);
+    quotePublisher.resumeQuoting();
+    afterServiceCall();
+  }
+
+  @Override
+  public void suspendQuoting(String arg0) {
+    beforeServiceCall("@Override\npublic void suspendQuoting(String arg0)");
+    ExportFunctionAuditEvent typedEvent = functionAudit;
+    auditInvocation(quotePublisher, "quotePublisher", "suspendQuoting", typedEvent);
+    quotePublisher.suspendQuoting(arg0);
     afterServiceCall();
   }
   //EXPORTED SERVICE FUNCTIONS - END

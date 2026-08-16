@@ -119,6 +119,15 @@
                 </jGraph:ShapeNode>
             </data>
         </node>
+        <node id="QuoteControl">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;ExportService&gt;&gt;&#10;class:com.acme.demo.api.QuoteControl&#10;"/>
+                    <jGraph:Style properties="EXPORTSERVICE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
         <node id="OrderUpdateEvent">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
@@ -201,17 +210,22 @@
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="12" source="OrderUpdateEvent" target="orderTracker">
+        <edge id="12" source="QuoteControl" target="quotePublisher">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="13" source="ServiceListener" target="serviceRegistry">
+        <edge id="13" source="OrderUpdateEvent" target="orderTracker">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="14" source="EventLogControlEvent" target="eventLogger">
+        <edge id="14" source="ServiceListener" target="serviceRegistry">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+        </edge>
+        <edge id="15" source="EventLogControlEvent" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>

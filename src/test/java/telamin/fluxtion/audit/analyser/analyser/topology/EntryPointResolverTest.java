@@ -123,4 +123,67 @@ class EntryPointResolverTest {
                 "with the entry distrusted we no longer know this was event dispatch at all, so nothing "
                 + "upstream is forced — connectivity only");
     }
+
+    // ---- the two exported-call signature spellings -------------------------------------------------
+
+    /**
+     * The demo graph, which carries a user-authored exported service ({@code QuoteControl}) alongside the
+     * framework's {@code ServiceListener}.
+     */
+    private static ProcessorTopology demo() throws java.io.IOException {
+        try (java.io.InputStream in =
+                     EntryPointResolverTest.class.getResourceAsStream("/topology/demo-quote-processor.graphml")) {
+            assertNotNull(in);
+            return GraphMlParser.parse(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void aQualifiedSignatureResolvesByItsDeclaringClass() {
+        // the spelling the server-produced logs carry: the IMPLEMENTING class is named
+        assertEquals("com.acme.tradecalculator.Monitor", EntryPointResolver.declaringClassOf(
+                "public boolean com.acme.tradecalculator.Monitor.onConnected(com.acme.ConnectedEvent)"));
+    }
+
+    @Test
+    void anUnqualifiedSignatureResolvesToTheSoleExportedService() throws java.io.IOException {
+        // the spelling the compiler emits into the demo processor — a method name and nothing else
+        String signature = "@Override\npublic void suspendQuoting(String arg0)";
+        assertNull(EntryPointResolver.declaringClassOf(signature), "there is no class in it to find");
+
+        assertEquals(Set.of("QuoteControl"),
+                EntryPointResolver.resolve(demo(), "ExportFunctionAuditEvent", signature),
+                "the record says a service was called and the author declared exactly one — no guess");
+    }
+
+    @Test
+    void theFrameworksOwnServiceIsNotMistakenForTheAuthorsOne() throws java.io.IOException {
+        // demo() also contains ServiceListener; excluding it is what leaves a single candidate
+        assertTrue(Scaffolding.isScaffolding(demo().node("ServiceListener")));
+    }
+
+    @Test
+    void twoExportedServicesResolveToNeither() {
+        // a method name cannot pick between them, and naming both would put a subtree that did not run
+        // onto the predicted path
+        var nodes = new java.util.LinkedHashMap<String, ProcessorTopology.Node>();
+        nodes.put("Alpha", new ProcessorTopology.Node("Alpha", "", "com.acme.Alpha",
+                ProcessorTopology.Kind.EXPORT_SERVICE));
+        nodes.put("Beta", new ProcessorTopology.Node("Beta", "", "com.acme.Beta",
+                ProcessorTopology.Kind.EXPORT_SERVICE));
+        ProcessorTopology t = new ProcessorTopology(nodes, List.of());
+
+        assertTrue(EntryPointResolver.resolve(t, "ExportFunctionAuditEvent", "public void doThing()").isEmpty(),
+                "ambiguous is reported as unknown, not as both");
+    }
+
+    @Test
+    void theExportedCallRecordsInTheFixtureResolve() throws java.io.IOException {
+        // end to end on the real pair: the last two records of the sparse fixture are exported calls
+        ProcessorTopology t = demo();
+        assertEquals(Set.of("QuoteControl"), EntryPointResolver.resolve(
+                t, "ExportFunctionAuditEvent", "@Override\npublic void suspendQuoting(String arg0)"));
+        assertEquals(Set.of("QuoteControl"), EntryPointResolver.resolve(
+                t, "ExportFunctionAuditEvent", "@Override\npublic void resumeQuoting()"));
+    }
 }

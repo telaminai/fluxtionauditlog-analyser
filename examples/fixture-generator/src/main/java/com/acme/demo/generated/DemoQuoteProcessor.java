@@ -8,6 +8,7 @@
  */
 package com.acme.demo.generated;
 
+import com.acme.demo.api.QuoteControl;
 import com.acme.demo.event.Events.MarketDataEvent;
 import com.acme.demo.event.Events.OrderUpdateEvent;
 import com.acme.demo.node.Nodes.OrderTracker;
@@ -71,6 +72,7 @@ import java.util.function.Consumer;
 public class DemoQuoteProcessor
     implements CloneableDataFlow<DemoQuoteProcessor>,
         /*--- @ExportService start ---*/
+        @ExportService QuoteControl,
         @ExportService ServiceListener,
         /*--- @ExportService end ---*/
         DataFlow,
@@ -124,7 +126,12 @@ public class DemoQuoteProcessor
                 "OrderUpdateEvent", "com.acme.demo.event.Events.OrderUpdateEvent", false)
           },
           new ProcessorDescriptor.Sink[] {},
-          new ProcessorDescriptor.Service[] {},
+          new ProcessorDescriptor.Service[] {
+            new ProcessorDescriptor.Service(
+                "QuoteControl",
+                "com.acme.demo.api.QuoteControl",
+                ProcessorDescriptor.Service.Direction.EXPORTED)
+          },
           new DescriptorSupport.Meta(null, null, null, null));
 
   @Override
@@ -348,6 +355,22 @@ public class DemoQuoteProcessor
         "@Override\npublic void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)");
     ExportFunctionAuditEvent typedEvent = functionAudit;
     serviceRegistry.registerService(arg0);
+    afterServiceCall();
+  }
+
+  @Override
+  public void resumeQuoting() {
+    beforeServiceCall("@Override\npublic void resumeQuoting()");
+    ExportFunctionAuditEvent typedEvent = functionAudit;
+    quotePublisher.resumeQuoting();
+    afterServiceCall();
+  }
+
+  @Override
+  public void suspendQuoting(String arg0) {
+    beforeServiceCall("@Override\npublic void suspendQuoting(String arg0)");
+    ExportFunctionAuditEvent typedEvent = functionAudit;
+    quotePublisher.suspendQuoting(arg0);
     afterServiceCall();
   }
   //EXPORTED SERVICE FUNCTIONS - END
