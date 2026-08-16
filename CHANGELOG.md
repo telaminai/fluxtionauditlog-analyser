@@ -20,6 +20,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Clearer panel surfaces**: source, record-detail and topology now share one content surface with a
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
+- **Right-click the records table** for the record actions (flag, copy as YAML, diff, export) and the
+  column chooser. **Columns is no longer a top-level menu** — it is on the nav rail and the right-click.
 - **Better code type**: picks the best monospaced family installed rather than Swing's logical
   `Monospaced` (which lands on Courier on some platforms), with slightly opened line spacing.
 - Topology fixtures now include a **re-dispatch** (`processReentrantEvent`): a node raising an event on

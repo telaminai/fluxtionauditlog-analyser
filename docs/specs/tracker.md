@@ -390,6 +390,13 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.22] ☑ **Records: right-click on the table; Columns off the menu bar** (owner). The record actions
+  (flag, show-flagged-only, clear, copy as YAML, diff, export CSV/YAML) plus the column chooser are now on
+  the table's context menu, and **Columns is no longer a top-level menu** — the nav rail and the
+  right-click both reach it, and you are at the table when you notice a column is missing. The popup is
+  rebuilt per click so enabled states match the selection (Diff needs exactly two); right-clicking outside
+  the selection selects the row under the cursor first, as elsewhere. One shared `addRecordActions` builds
+  both entry points so they cannot drift, and the *Show flagged only* checkboxes are kept in step.
 - [M22.21] ☑ **Control clusters tint away from content** — the time-range bar is a *control*, not a
   document, and shared the panel background with everything around it. `UiTheme.controlSurface()` shifts
   the **theme's own** `Panel.background` (lighter in dark themes, darker in light) rather than naming a

@@ -58,6 +58,8 @@ public final class MainFrame extends JFrame {
     /** Chrome whose colours are derived from the theme, so they must be recomputed when it changes. */
     private JPanel filterBar;
     private NavRail navRail;
+    /** Every live "Show flagged only" checkbox, kept in step — the menu's and any open popup's. */
+    private final List<JCheckBoxMenuItem> flaggedOnlyToggles = new ArrayList<>();
     private final JScrollBar windowScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1000, 0, 1000);
     private boolean syncingWindow;      // guards the combo/scrollbar ↔ slider feedback loop
     private final HistoryComboBox searchField = new HistoryComboBox();
@@ -100,6 +102,7 @@ public final class MainFrame extends JFrame {
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         buildMenu();
         buildLayout();
+        installTablePopup();
         restoreBounds();
         wireSelection();
         sourcePanel.bind(sourceService);
@@ -264,33 +267,109 @@ public final class MainFrame extends JFrame {
 
     private JMenu buildRecordsMenu() {
         JMenu menu = new JMenu("Records");
+        addRecordActions(menu);
+        return menu;
+    }
+
+    /**
+     * The record actions, added to whichever container asked for them — the Records menu, or the table's
+     * own right-click. Built fresh each time rather than shared, because a Swing menu item lives in one
+     * container only; the one piece of state involved (<i>Show flagged only</i>) is read from the field at
+     * build time and written back to every copy, so the two entry points cannot drift apart.
+     */
+    private void addRecordActions(java.awt.Container into) {
+        boolean haveSelection = !selectedRecords.isEmpty();
+
         JMenuItem flag = new JMenuItem("Flag / unflag selected  (F)");
+        flag.setEnabled(haveSelection);
         flag.addActionListener(e -> toggleFlags(tablePanel.selectedModelRows()));
-        menu.add(flag);
-        JCheckBoxMenuItem only = new JCheckBoxMenuItem("Show flagged only");
+        into.add(flag);
+
+        JCheckBoxMenuItem only = new JCheckBoxMenuItem("Show flagged only", flaggedOnly);
         only.addActionListener(e -> {
             flaggedOnly = only.isSelected();
+            for (JCheckBoxMenuItem other : flaggedOnlyToggles) other.setSelected(flaggedOnly);
             tablePanel.reFilter();
             onFilterChanged();
         });
-        menu.add(only);
+        flaggedOnlyToggles.add(only);
+        into.add(only);
+
         JMenuItem clearFlags = new JMenuItem("Clear all flags");
+        clearFlags.setEnabled(!flaggedRows.isEmpty());
         clearFlags.addActionListener(e -> {
             flaggedRows.clear();
             flagNotes.clear();
             tablePanel.reFilter();
             tablePanel.repaintRows();
         });
-        menu.add(clearFlags);
-        menu.addSeparator();
+        into.add(clearFlags);
+
+        addSeparator(into);
         JMenuItem copyYaml = new JMenuItem("Copy selected as YAML");
         copyYaml.setToolTipText("Copy the selected record(s) raw YAML to the clipboard");
+        copyYaml.setEnabled(haveSelection);
         copyYaml.addActionListener(e -> copySelectedAsYaml());
-        menu.add(copyYaml);
+        into.add(copyYaml);
+
         JMenuItem diff = new JMenuItem("Diff selected two records");
+        diff.setEnabled(selectedRecords.size() == 2);
         diff.addActionListener(e -> diffSelected());
-        menu.add(diff);
-        return menu;
+        into.add(diff);
+
+        addSeparator(into);
+        JMenuItem exportCsv = new JMenuItem("Export records (CSV)…");
+        exportCsv.addActionListener(e -> exportRecords(false));
+        into.add(exportCsv);
+        JMenuItem exportYaml = new JMenuItem("Export records (YAML)…");
+        exportYaml.addActionListener(e -> exportRecords(true));
+        into.add(exportYaml);
+    }
+
+    /** JMenu and JPopupMenu both take separators but share no interface that says so. */
+    private static void addSeparator(java.awt.Container into) {
+        if (into instanceof JMenu menu) menu.addSeparator();
+        else if (into instanceof JPopupMenu popup) popup.addSeparator();
+    }
+
+    /**
+     * Right-click on the records table: the same actions as the Records menu, plus the column chooser,
+     * because the table is where a column being hidden is noticed. Built on each show so the enabled
+     * states match the selection under the cursor rather than the selection when the window opened.
+     */
+    private void installTablePopup() {
+        javax.swing.JTable table = tablePanel.table();
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mousePressed(java.awt.event.MouseEvent e) { maybeShow(e); }
+            @Override public void mouseReleased(java.awt.event.MouseEvent e) { maybeShow(e); }
+
+            private void maybeShow(java.awt.event.MouseEvent e) {
+                if (!e.isPopupTrigger()) return;
+                int row = table.rowAtPoint(e.getPoint());
+                // right-clicking outside the selection acts on the row under the cursor, as everywhere else
+                if (row >= 0 && !table.isRowSelected(row)) table.setRowSelectionInterval(row, row);
+
+                JPopupMenu popup = new JPopupMenu();
+                int toggles = flaggedOnlyToggles.size();
+                addRecordActions(popup);
+                addSeparator(popup);
+                JMenu columns = buildColumnsMenu();
+                columns.setText("Columns");
+                popup.add(columns);
+                // the popup is rebuilt on every right-click, so its toggle must leave the sync list with
+                // it — otherwise the list grows without bound for the life of the window
+                popup.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+                    @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent ev) { }
+                    @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent ev) {
+                        while (flaggedOnlyToggles.size() > toggles) {
+                            flaggedOnlyToggles.remove(flaggedOnlyToggles.size() - 1);
+                        }
+                    }
+                    @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent ev) { }
+                });
+                popup.show(table, e.getX(), e.getY());
+            }
+        });
     }
 
     private void copySelectedAsYaml() {
@@ -538,7 +617,8 @@ public final class MainFrame extends JFrame {
         bar.add(file);
 
         bar.add(buildRecordsMenu());
-        bar.add(buildColumnsMenu());
+        // Columns is no longer a top-level menu: it lives on the nav rail and on the table's right-click,
+        // which is where you are when you notice a column is missing
         bar.add(buildThemeMenu());
 
         JMenu help = new JMenu("Help");
