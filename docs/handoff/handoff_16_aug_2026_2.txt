@@ -1,9 +1,21 @@
 HANDOFF — implement milestone M20 (project profiles)
 Date: 2026-08-16 · From: main session · Repo: https://github.com/telaminai/fluxtionauditlog-analyser
-Branch: handoff/15_aug_2026_2 (continue on it — M21.10 and M22 already landed there, unmerged)
+Branch: START A NEW BRANCH off main — suggest feat/m20-project-profiles. (An earlier revision of this
+brief said to continue on handoff/15_aug_2026_2; that branch has since been REVIEWED, MERGED and
+DELETED, and everything it carried shipped in v1.1.0. Base yourself on the v1.1.0 main.)
 
 SUPERSEDES handoff_15_aug_2026_2.txt. That brief was written on 15 Aug, before M21.10 and all of M22.
 Its four slices still stand; this file restates them with what has changed underneath. Read THIS one.
+
+POST-RELEASE NOTES (2026-08-16, after v1.1.0 shipped):
+- Everything the addenda below describe is now ON MAIN and RELEASED. The tracker reflects it.
+- Tests now ALWAYS run headless — surefire sets java.awt.headless=true, locally too. Any panel you
+  construct in a test must survive with no display (a Toolkit.getMenuShortcutKeyMaskEx() call cost us
+  a red CI on release day; SourcePanel.menuShortcutMask() shows the fallback pattern).
+- Review B1 shipped: llm/ExportGuard + the two assistant.export* GLOBAL keys (see the note in section
+  (a) below) + FaqSecurityContractTest. Do not weaken any of them.
+- Your report file: docs/handoff/handoff_16_aug_2026_2_report.txt, committed with your final change,
+  on your branch. Reviews and merge happen from the originating session, per ONBOARDING § Handoffs.
 
 ================================================================================
 ADDENDUM — M23 LANDED AFTER THIS BRIEF WAS WRITTEN (read before M20.1)
