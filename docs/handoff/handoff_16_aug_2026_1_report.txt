@@ -1,0 +1,112 @@
+REPORT — intra-record step-through on the topology (M21.10)
+Date: 2026-08-16 · Brief: docs/handoff/handoff_16_aug_2026_1.txt
+Branch: handoff/15_aug_2026_2 (rebased onto main per Step 0) · Base: main @ 0b54a32
+
+STATUS: all four slices shipped. 340 tests green · mkdocs --strict green · sweep clean.
+  Step 0 rebase: clean, 15 commits absorbed, suite green before any new code.
+  Commits: e3f5713 S1 · 32058a8 S2 · bb51242 S3 · 590526b S4 (+ d1070ad R1, carried per the brief).
+
+================================================================================
+1. WHAT SHIPPED
+================================================================================
+S1  topology/StepCursor — the model, no Swing
+    One cursor at two depths: record → nodeLogs row → next record. Arrival at a record is its own stop
+    (ENTRY), which is where the entry point is marked before any node highlights. prev() from an entry
+    lands on the PREVIOUS record's last row, not its entry — the log is complete both ways and stepping
+    should read the same in either direction.
+    16 tests, driven by BOTH real fixtures so the regime difference is asserted rather than assumed
+    (the traced fixture has more rows for the same cycle — that assertion is the brief's thesis).
+
+S2  cursor overlay on the canvas
+    Current position is a halo drawn OUTSIDE the box; the trail of already-stepped rows a weaker halo;
+    the entry a dashed one. The node keeps its own execution border and fill underneath.
+    Deliberate: recolouring the current node's border is the obvious implementation and would trade the
+    epistemic state (what the log establishes) for the navigational one (where you are). Stepping is
+    precisely when both are wanted.
+
+S3  wiring
+    RecordSource reads the table's visible rows, so "next record" means next in the FILTERED view.
+    Rolling into another record re-shades the canvas and moves the table selection; a guard flag stops
+    the table ⇄ cursor sync looping. Detail viewer highlights the cursor's nodeLogs line BY OCCURRENCE.
+    Keys: [ and ]. F3/Shift+F3 untouched.
+
+S4  docs
+    topology.md "Step through a cycle" rewritten; spec-graph-replay §4 records the finalised
+    granularity, replacing its looser "step node-by-node" wording.
+
+================================================================================
+2. SEMANTICS CONSTRAINTS — HOW EACH IS HONOURED
+================================================================================
+The brief called these non-negotiable; each is enforced somewhere a change would break a test or a
+visible label, not just by intention:
+
+  "row order IS the dispatch sequence; layers say nothing"
+      The cursor walks nodeLogs order. The ordinal badges already painted come from the same list, so
+      cursor and numbers cannot disagree — they read the same source.
+
+  "untraced records: the label must say rows are only the logged nodes"
+      StepCursor.positionLabel() emits "row 3 / 8 (logged nodes)" untraced and "invocation 3 / 16"
+      traced; both spellings are asserted in StepCursorTest. Silent nodes keep their RAN_SILENTLY /
+      MAY_HAVE_RUN shading at every step because the cursor overlay never touches the border.
+
+  "traced records: stepping is exact, absent nodes stay DID_NOT_RUN"
+      AuditTrace decides; the shading comes from classifyCycle, which the cursor does not modify.
+
+  "the same instanceId in several rows — each row is its own step, do not dedupe"
+      steppedSoFar() keeps repeats; two tests cover it, one fixture-driven and one explicit. The detail
+      highlight resolves BY OCCURRENCE for the same reason — first-match would highlight the wrong line
+      and quietly claim the cursor is somewhere it is not.
+
+  "record sequence respects the shared filter"
+      RecordSource is the table's visible rows.
+
+================================================================================
+3. DEVIATIONS
+================================================================================
+D1. The brief's UX list says "Next/Prev buttons + keyboard". The existing "Whole cycle" button was kept
+    and re-pointed at the record's entry, since entry is now a real position rather than a separate
+    "show everything" mode. No button was removed.
+D2. showRecord() gained a (record, filteredIndex) overload rather than replacing the single-argument
+    form. The old form still works and confines stepping to that record — used where no filtered index
+    is available. Not a behaviour change for existing callers.
+No other deviations. No spec-vs-reality mismatches found in this slice.
+
+================================================================================
+4. HUMAN EYEBALL — WHAT I COULD NOT VERIFY
+================================================================================
+Swing, headless CI, so the same limits as report_fix_m21-execution-vs-logging §5 apply. Verified by
+offscreen render: the halo/trail/entry states paint correctly over the shading (cursor-entry.png and
+cursor-row2.png in the session scratchpad show current-vs-stepped with the green logged borders intact).
+Verified by launch: the jar starts on the traced fixture with no exceptions.
+
+NOT verified — please click:
+  1. [ and ] step, and keep stepping past the last row of a record: the table selection should follow
+     into the next record and the canvas re-shade for the new cycle.
+  2. Step BACKWARDS from a record's entry: it should land on the previous record's LAST row.
+  3. Open demo-quote-audit.yaml (untraced) and confirm the readout says "(logged nodes)"; open
+     demo-quote-audit-traced.yaml and confirm it says "invocation k / n". Same graph, different claim —
+     this is the thesis of the previous branch and the label that protects it.
+  4. Detail viewer: step and watch the highlighted nodeLogs line track the cursor.
+  5. A record where one node logs twice (traced fixture): stepping should visit it twice and highlight
+     the SECOND line the second time.
+
+================================================================================
+5. OPEN / NOT DONE
+================================================================================
+- M20 remains DEFERRED per the brief. handoff_15_aug_2026_2.txt is still on this branch, unstarted; its
+  orient list is now three sessions stale (the reviewer's F3 on the previous branch says the same).
+  Whoever picks it up should refresh it first.
+- Reviewer follow-up F2 from the previous branch is still open and is not mine to close: file the two
+  upstream asks — populate ProcessorDescriptor.Meta (sourceFingerprint / graphmlResource), and a
+  traced-regime marker in the record header. The reviewer noted sourceFingerprint is also the natural
+  carrier for the provenance stamp the commercial story needs, so it is worth raising with both hats on.
+- Not merged, per standing instruction.
+
+================================================================================
+6. HOW TO VERIFY
+================================================================================
+  mvn -o test                                   # 340 green
+  .venv/bin/mkdocs build --strict               # docs
+  java -jar target/fluxtion-auditlog-analyser-*.jar src/test/resources/topology/demo-quote-audit-traced.yaml
+  # then Topology ▸ Open .graphml… ▸ src/test/resources/topology/demo-quote-processor.graphml
+  # and work through §4's list.
