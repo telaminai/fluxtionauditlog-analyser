@@ -245,6 +245,16 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   user-guide index. Screenshot is a **real render** of the canvas over `sample.yml` against a new
   anonymised `demo-marketmaker.graphml` fixture — and a test pins that fixture to the sample log, so the
   page can't quietly start depicting a mismatch. `mkdocs build --strict` green. **Release gate cleared.**
+- [M21.10] ◧ **Intra-record step-through** _(brief: [handoff_16_aug_2026_1.txt](../handoff/handoff_16_aug_2026_1.txt))_ —
+  one cursor walking record → nodeLog row → next record, the topology following it.
+  - [S1] ☑ **`StepCursor`** — pure two-depth model over the filtered record sequence: next/prev with
+    entry-as-a-stop, backwards roll-over to the previous record's *last* row, per-cycle accumulation,
+    entry-point resolution, and **regime-aware labels** ("row 3/8 (logged nodes)" vs "invocation 3/16")
+    so a row count is never read as "the nodes that ran". Repeated rows are separate steps, never
+    deduped. 16 tests, driven by both real fixtures. No Swing.
+  - [S2] ☐ cursor highlight states painted over (not replacing) the `Execution` shading.
+  - [S3] ☐ buttons + keys + table ⇄ cursor ⇄ detail sync.
+  - [S4] ☐ docs + spec-graph-replay §4 + CHANGELOG.
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
 - [M21.9] ☐ **Use `ProcessorDescriptor` instead of inferring** _(found 2026-08-16 reading a generated
   processor)_ — AOT processors carry a self-description: `inputs()` (name + FQN of every accepted event),
