@@ -1,0 +1,56 @@
+REVIEW — handoff/15_aug_2026_2 (M21.10 step-through · M22 usability · M23 findings/PDF · M24 coverage)
+Date: 2026-08-16 · Reviewer: main session · Tip reviewed: e8b193e · Base: main @ 0b54a32 (fast-forward)
+
+VERDICT: approved on engineering — 473/473 tests green (133 added), mkdocs --strict green, text sweep
+clean, M21.10's semantics constraints each enforced by a test or a visible label as the brief demanded —
+WITH ONE MERGE BLOCKER (B1) and a governance discussion the owner has asked to have before merging.
+
+B1 — THE SOCKET'S SECURITY PROMISE IS NOW FALSE. docs/site/faq.md still answers "Is the assistant's
+action socket safe to enable?" with "no file or shell access — nothing outside the loaded log." This
+branch adds `screenshot` and `report`, which WRITE files to caller-supplied paths unconditionally
+(ActionExecutor gates only on the app hook being wired — no settings toggle, no path confinement, no
+overwrite refusal), and `open`/`source_root`, which mutate config from outside the UI. The branch
+itself marked the writers destructiveHint:true — correct and honest at the MCP layer — but the FAQ is
+the sentence a bank's evaluator reads, and merging this makes the live site wrong about exactly the
+thing it exists to reassure on. Fix before merge, preferred shape:
+  (i)  a Settings toggle, DEFAULT OFF: "assistant may export files (screenshot / report)" — the socket's
+       out-of-box promise stays true; plus
+  (ii) confine writes to ONE configured export directory (reject paths outside it) and refuse silent
+       overwrite; plus
+  (iii) FAQ + assistant.md updated to describe both modes truthfully, including one sentence on the
+       config-mutating verbs ("scripting can change what is open — still nothing outside the analyser").
+A docs-only fix (tell the truth, keep unconfined writes) is the weaker fallback — the promise was a
+selling point, not a disclaimer.
+
+VERIFIED INDEPENDENTLY: full suite in a clean worktree · strict docs build · anonymisation text sweep ·
+FAQ/ActionExecutor/VerbSchemas read directly (B1 evidence) · step-through report's claims spot-checked.
+Taken on the report's word (sampled, not exhaustively re-proven): PdfDoc as the single PDF writer,
+NodeCoverage off-EDT scan, the 309-node timings.
+
+COMMENDATIONS — keep all of these habits:
+  C1. The SECURITY commit (49238fd): real names found inside released PNGs — where the grep cannot
+      see — replaced, harness-generated screenshots adopted, CLAUDE.md rule 1 amended. Self-caught,
+      self-fixed, institutionalised. Exemplary.
+  C2. Owner-in-the-loop recorded: the [ / ] → arrow-key change is written down with who decided and
+      why, and the brackets kept as aliases. This is what "authorised deviation" should look like.
+  C3. Evidence culture: the 300-node POC produced measured timings, two honest usability findings, an
+      unverified prediction labelled as such (P3.12), and a new verb (coverage) whose existence is
+      justified by a real failure it would have caught (2-of-24 chillers reachable, suite green).
+  C4. Upstream asks filed as actual fluxtion issues (14–18) with a local record of where and why.
+  C5. handoff_16_aug_2026_2.txt: the M20 brief refreshed for everything that changed underneath it,
+      with the judgment calls (graphmlFile tiering; findings deliberately not persisted; verbs bypassing
+      dialog-close persistence) EXPLICITLY delegated rather than silently pre-decided.
+
+DISCUSSION ITEMS (owner requested discussion before merge — reviewer's slate):
+  D1. B1's shape — toggle+confinement vs docs-only.
+  D2. Verb governance: 6 → 13 verbs in two days. Each is individually justified; collectively the
+      socket is becoming an app-automation API. Proposed standing rule: read-only verbs may land with
+      tests alone; any MUTATING or FILE-WRITING verb must update the FAQ's security answer in the SAME
+      commit, and VerbSchemasTest should assert that every destructiveHint verb appears in the FAQ's
+      documented list — making the security answer mechanically un-forgettable.
+  D3. File as tracker items: routes-scope degenerating at terminal nodes (bounded default) · label
+      truncation in exported pictures · P3.12 whole-graph render above ~100 nodes (ten-minute check).
+  D4. GraphSpec now carries an author's PROSE (explanation, notes) inside the M15 shareable whitelist —
+      fine for sharing, debatable for M20 project profiles; the refreshed brief correctly hands this to
+      the M20 implementer, noting here that the reviewer leans "share by default, strip-on-export
+      option later if it annoys".
