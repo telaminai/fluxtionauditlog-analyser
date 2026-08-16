@@ -204,6 +204,32 @@ consider a declarative dirty-contract annotation.
 reference are indistinguishable in the topology — including in the two-view finding report. A reader
 cannot tell "this node ran because of that one" from "this node read that one" without opening source.
 
+### UP-FLX-23 ◐ Replay cannot serialise record events
+
+_Filed: https://github.com/telaminai/fluxtion/issues/17_
+
+**Target** `fluxtion` (builder/replay) · **Priority** high — it is silent until the worst moment
+
+**Evidence — measured.** `YamlReplayRecordWriter` serialises inbound events through SnakeYAML's JavaBean
+representer, which needs `getX()`. A record exposes `x()`. A 309-node application with 24 record event
+types throws on the first event:
+
+```
+YAMLException: No JavaBean properties found in com.acme.store.event.StoreEvents$TariffChanged
+```
+
+**Why it is worse than a missing feature.** The two capabilities pull against each other. Records are the
+right way to write Fluxtion events *because* their generated `toString()` lands readably in the audit
+log — which is what a reader sees in `eventToString` on every record. So an event vocabulary optimised
+for the **audit log** cannot be recorded for **replay**, and nothing says so until you try. The recorder
+is inert while its target writer is unset, so the failure surfaces the first time someone records a
+production incident.
+
+**Cost to us if unfixed.** The analyser's pitch — and three rounds of assessment in this repo — assume
+the audit log plus a replay log is a complete, re-runnable account of a run. For any application written
+in modern Java that pair is currently unavailable, so "replay it locally with a debugger" is advice that
+does not work for the apps most likely to be written today.
+
 ---
 
 ## 2 · Fluxtion runtime — metadata the audit log should carry
