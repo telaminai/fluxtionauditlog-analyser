@@ -8,6 +8,7 @@ import telamin.fluxtion.audit.analyser.analyser.topology.EntryPointResolver;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
 import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
 import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
+import telamin.fluxtion.audit.analyser.analyser.topology.StepCursor;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -49,6 +50,8 @@ public final class TopologyPanel extends JPanel {
 
     /** The nodeLogs of the record the table has selected — the cycle being stepped through. */
     private List<NodeLog> cycle = List.of();
+    /** Walks the cycle; S3 widens it from this record to the whole filtered sequence. */
+    private StepCursor cursor = StepCursor.over(List.of());
 
     // Collaborators, all of them things the app already does; the topology only routes to them (M21.5).
     private java.util.function.BiConsumer<String, String> sourceOpener;
@@ -255,6 +258,7 @@ public final class TopologyPanel extends JPanel {
                         canvas.topology(), record.event(), record.eventToString()));
         canvas.setDispatch(order, entries,
                 record != null && AuditTrace.tracesEveryInvocation(record.nodeLogs()));
+        cursor = record == null ? StepCursor.over(List.of()) : StepCursor.over(List.of(record));
         updateStepControls();
         if (record == null) {
             status.setText(hasTopology() && loadedFrom != null
@@ -275,47 +279,41 @@ public final class TopologyPanel extends JPanel {
 
     private void stepBy(int delta) {
         if (cycle.isEmpty()) return;
-        int current = canvas.step();
-        int next = current < 0 ? (delta > 0 ? 0 : cycle.size() - 1) : current + delta;
-        next = Math.max(0, Math.min(cycle.size() - 1, next));
-        canvas.setStep(next);
-        canvas.select(cycle.get(next).instanceId());
-        describeStep(next);
-        updateStepControls();
+        boolean moved = delta > 0 ? cursor.next() : cursor.prev();
+        if (!moved) return;
+        syncCursor();
     }
 
     private void showWholeCycle() {
-        canvas.setStep(-1);
+        cursor.moveToRecord(cursor.recordIndex());   // back to the entry: the whole cycle, nothing current
         canvas.select(null);
+        syncCursor();
+    }
+
+    /** Push the cursor position into the canvas and the status line. */
+    private void syncCursor() {
+        canvas.setCursor(cursor.currentInstanceId(), cursor.steppedSoFar(), cursor.atEntry());
+        String id = cursor.currentInstanceId();
+        if (id != null) canvas.select(id);
+        status.setText(cursor.atEntry()
+                ? cursor.positionLabel() + describeEntry()
+                : cursor.positionLabel() + "  ·  " + cursor.rowSummary()
+                  + (canvas.topology().contains(id) ? "" : "   [not in this topology]"));
         updateStepControls();
     }
 
-    /** What this node held at this point in the cycle — the "what did it hold" half of stepping. */
-    private void describeStep(int index) {
-        NodeLog node = cycle.get(index);
-        StringBuilder sb = new StringBuilder(node.instanceId());
-        if (!node.entries().isEmpty()) {
-            sb.append("  ·  ");
-            for (int i = 0; i < node.entries().size(); i++) {
-                if (i > 0) sb.append(", ");
-                KV kv = node.entries().get(i);
-                sb.append(kv.key()).append('=').append(kv.rawValue());
-            }
-        }
-        if (!canvas.topology().contains(node.instanceId())) {
-            sb.append("   [not in this topology]");
-        }
-        status.setText(sb.toString());
+    private String describeEntry() {
+        List<String> entries = cursor.entryPoints(canvas.topology());
+        return entries.isEmpty() ? "  ·  entry point not resolved from this record"
+                : "  ·  entered at " + String.join(", ", entries);
     }
 
     private void updateStepControls() {
         boolean stepping = !cycle.isEmpty();
-        prevStep.setEnabled(stepping);
-        nextStep.setEnabled(stepping);
-        wholeCycle.setEnabled(stepping && canvas.step() >= 0);
-        stepLabel.setText(!stepping ? "  no record selected"
-                : canvas.step() < 0 ? "  " + cycle.size() + " nodes logged"
-                : "  " + (canvas.step() + 1) + " / " + cycle.size());
+        prevStep.setEnabled(stepping && cursor.canPrev());
+        nextStep.setEnabled(stepping && cursor.canNext());
+        wholeCycle.setEnabled(stepping && !cursor.atEntry());
+        stepLabel.setText(stepping ? "  " + cursor.positionLabel() : "  no record selected");
     }
 
     private void describeSelection(String id) {

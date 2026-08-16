@@ -64,8 +64,12 @@ public final class TopologyCanvas extends JPanel {
     private List<String> entryPoints = List.of();
     /** id → what the log lets us claim about it this cycle. Empty when no record is shown. */
     private java.util.Map<String, ProcessorTopology.Execution> execution = java.util.Map.of();
-    /** Index into {@link #dispatch}, or -1 for "the whole cycle at once". */
-    private int step = -1;
+    /** The node the step cursor is on, or null (at a record's entry, or no cursor). */
+    private String cursorNode;
+    /** Nodes stepped through in this cycle so far, in order and including repeats. */
+    private List<String> steppedNodes = List.of();
+    /** True when the cursor sits at the record's entry, before any row. */
+    private boolean cursorAtEntry;
 
     private Point dragOrigin;
     private double dragOffsetX;
@@ -214,7 +218,9 @@ public final class TopologyCanvas extends JPanel {
         this.execution = this.dispatch.isEmpty() && this.entryPoints.isEmpty()
                 ? java.util.Map.of()
                 : topology.classifyCycle(this.dispatch, this.entryPoints, traced);
-        this.step = -1;
+        this.cursorNode = null;
+        this.steppedNodes = List.of();
+        this.cursorAtEntry = true;
         repaint();
     }
 
@@ -223,14 +229,29 @@ public final class TopologyCanvas extends JPanel {
         return execution.get(id);
     }
 
-    /** {@code -1} shows the whole cycle; otherwise emphasise that position in the dispatch order. */
-    public void setStep(int step) {
-        this.step = step < 0 || dispatch.isEmpty() ? -1 : Math.min(step, dispatch.size() - 1);
+    /**
+     * Place the step cursor (M21.10 S2). Painted <b>over</b> the execution shading, never instead of it:
+     * the cursor says where you are, the shading says what the log establishes, and losing the second to
+     * show the first would undo the fix this view exists for.
+     *
+     * @param currentId  the node under the cursor, or null at the record's entry
+     * @param stepped    nodes already stepped in this cycle, in order (repeats kept)
+     * @param atEntry    true when sitting at the entry, before any row
+     */
+    public void setCursor(String currentId, List<String> stepped, boolean atEntry) {
+        this.cursorNode = currentId;
+        this.steppedNodes = stepped == null ? List.of() : List.copyOf(stepped);
+        this.cursorAtEntry = atEntry;
         repaint();
     }
 
-    public int step() {
-        return step;
+    /** Clear the cursor overlay, leaving the execution shading alone. */
+    public void clearCursor() {
+        setCursor(null, List.of(), false);
+    }
+
+    public String cursorNode() {
+        return cursorNode;
     }
 
     public List<String> dispatch() {
@@ -479,8 +500,9 @@ public final class TopologyCanvas extends JPanel {
 
             Integer ordinal = firedAt.get(box.id());
             boolean fired = ordinal != null;
-            boolean isCurrentStep = showingCycle() && step >= 0 && step < dispatch.size()
-                                    && dispatch.get(step).equals(box.id());
+            boolean isCurrentStep = box.id().equals(cursorNode);
+            boolean isStepped = !isCurrentStep && steppedNodes.contains(box.id());
+            boolean isEntry = cursorAtEntry && entryPoints.contains(box.id());
             ProcessorTopology.Execution ran = execution.get(box.id());
             // only "no reason to think dispatch came near it" recedes; a silent node that demonstrably
             // ran, or might have, stays fully legible
@@ -497,7 +519,7 @@ public final class TopologyCanvas extends JPanel {
             g.setColor(dimmed ? fade(fill, dark) : fill);
             g.fill(shape);
 
-            Color border = isCurrentStep || isSelected ? accent(dark)
+            Color border = isSelected ? accent(dark)
                     : fired ? firedBorder(dark)
                     : ran == ProcessorTopology.Execution.RAN_SILENTLY ? ranSilentlyBorder(dark)
                     : dimmed ? fade(borderFor(dark, false), dark)
@@ -505,15 +527,18 @@ public final class TopologyCanvas extends JPanel {
             g.setColor(border);
             // MAY_HAVE_RUN is drawn dashed: the log genuinely does not say whether dispatch got here, and
             // a solid box would state more than the evidence does
-            g.setStroke(ran == ProcessorTopology.Execution.MAY_HAVE_RUN && !isSelected && !isCurrentStep
+            g.setStroke(ran == ProcessorTopology.Execution.MAY_HAVE_RUN && !isSelected
                     ? new BasicStroke(1.4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
                             new float[]{5f, 4f}, 0f)
-                    : new BasicStroke(isCurrentStep ? 3f : isSelected ? 2.4f : fired ? 1.8f
+                    : new BasicStroke(isSelected ? 2.4f : fired ? 1.8f
                             : ran == ProcessorTopology.Execution.RAN_SILENTLY ? 1.6f
                             : isHovered ? 1.8f : 1f));
             g.draw(shape);
 
             if (fired && labels) paintOrdinal(g, x, y, ordinal + 1, dark);
+            if (isEntry) paintEntryMarker(g, shape, dark);
+            if (isStepped) paintSteppedMarker(g, shape, dark);
+            if (isCurrentStep) paintCursorHalo(g, shape, dark);
 
             if (!labels) continue;
             String title = node == null ? box.id() : node.simpleName();
@@ -539,6 +564,57 @@ public final class TopologyCanvas extends JPanel {
             out = out + "…";
         }
         g.drawString(out, (float) x, (float) y);
+    }
+
+    /**
+     * The cursor's position: a halo drawn <b>outside</b> the box, so the node keeps its own execution
+     * border and fill. Recolouring the border would hide what the log establishes about the node in
+     * order to say where you are standing — the two are different questions and both matter.
+     */
+    private void paintCursorHalo(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
+        double pad = 4;
+        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
+                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
+                box.arcwidth + pad, box.archeight + pad);
+        g.setColor(accent(dark));
+        g.setStroke(new BasicStroke(2.6f));
+        g.draw(halo);
+    }
+
+    /** Already stepped in this cycle: a thin trailing halo, clearly weaker than the current one. */
+    private void paintSteppedMarker(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
+        double pad = 2.5;
+        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
+                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
+                box.arcwidth + pad, box.archeight + pad);
+        g.setColor(steppedHalo(dark));
+        g.setStroke(new BasicStroke(1.4f));
+        g.draw(halo);
+    }
+
+    /** Where the cycle came in — marked while the cursor sits at the record's entry. */
+    private void paintEntryMarker(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
+        double pad = 4;
+        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
+                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
+                box.arcwidth + pad, box.archeight + pad);
+        g.setColor(accent(dark));
+        g.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
+                new float[]{6f, 4f}, 0f));
+        g.draw(halo);
+    }
+
+    /** Trailing-halo colour: the accent, muted toward the canvas so "current" stays dominant. */
+    private static Color steppedHalo(boolean dark) {
+        return fade2(accent(dark), dark, 0.55);
+    }
+
+    private static Color fade2(Color c, boolean dark, double keep) {
+        Color canvas = dark ? new Color(0x0D1117) : new Color(0xF6F8FA);
+        return new Color(
+                (int) (c.getRed() * keep + canvas.getRed() * (1 - keep)),
+                (int) (c.getGreen() * keep + canvas.getGreen() * (1 - keep)),
+                (int) (c.getBlue() * keep + canvas.getBlue() * (1 - keep)));
     }
 
     /** Node kinds are distinguished by fill, so the graph's shape reads before any label does. */

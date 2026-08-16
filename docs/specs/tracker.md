@@ -252,7 +252,10 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
     entry-point resolution, and **regime-aware labels** ("row 3/8 (logged nodes)" vs "invocation 3/16")
     so a row count is never read as "the nodes that ran". Repeated rows are separate steps, never
     deduped. 16 tests, driven by both real fixtures. No Swing.
-  - [S2] ☐ cursor highlight states painted over (not replacing) the `Execution` shading.
+  - [S2] ☑ **Cursor overlay** — current position is a **halo drawn outside the box**, the trail a
+    weaker one, the entry a dashed one; the node keeps its own execution border and fill underneath.
+    Recolouring the border (the obvious implementation) would hide what the log establishes in order to
+    show where you are standing — two different questions, both needed at once. Verified offscreen.
   - [S3] ☐ buttons + keys + table ⇄ cursor ⇄ detail sync.
   - [S4] ☐ docs + spec-graph-replay §4 + CHANGELOG.
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
