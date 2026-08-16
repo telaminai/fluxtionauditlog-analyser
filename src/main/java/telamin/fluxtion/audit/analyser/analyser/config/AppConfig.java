@@ -52,6 +52,22 @@ public final class AppConfig {
      */
     public int topologySpacingPercent = 100;
     public int topologyTextSize = 11;
+    /** Zoom and pan of the topology canvas; 0 zoom means "not saved yet — fit the graph instead". */
+    public double topologyZoom;
+    public double topologyPanX;
+    public double topologyPanY;
+    /** "TOP_DOWN" or "LEFT_RIGHT". */
+    public String topologyOrientation = "TOP_DOWN";
+
+    /** Everything under "how the topology is displayed" — cleared as a group from Settings ▸ History. */
+    public void clearTopologyView() {
+        topologySpacingPercent = 100;
+        topologyTextSize = 11;
+        topologyZoom = 0;
+        topologyPanX = 0;
+        topologyPanY = 0;
+        topologyOrientation = "TOP_DOWN";
+    }
 
     /** Saved graphs: one entry per graph tab, each a list of series encoded as {@code instanceIdkey}. */
     public final List<GraphSpec> savedGraphs = new ArrayList<>();

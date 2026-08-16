@@ -286,7 +286,10 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
-## M22 · Topology view usability — ☐ PROPOSED (parity with fluxtion-visualiser's exploration model)
+## M22 · Topology view usability — ◐ IN PROGRESS (36 of 41 shipped, 2026-08-16)
+_Open: **22.3** PNG export · **22.6** alternative layouts · **22.11** re-dispatch cause (needs
+`UP-FLX-10` upstream, see `docs/proposals/upstream-asks.md`) · **22.19** partial (chips deliberately not
+built). Superseded: 22.5, 22.9._
 _Owner-specified batch (2026-08-16), ported from what fluxtion-visualiser already does well. The
 topology renders correctly but does not yet let you **explore** — these are the affordances that turn a
 picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that change daily use._
@@ -409,6 +412,18 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.44] ☑ **Topology zoom, pan and orientation persist** (owner) — `topologyZoom` / `topologyPanX` /
+  `topologyPanY` / `topologyOrientation`. Applied **after** a load rather than before, because loading
+  fits the graph and would overwrite them, and used **once**: a later load of a different graph fits
+  normally rather than jumping to where an unrelated graph happened to be scrolled. Saved on zoom, on
+  pan-*end* and on Fit — never mid-drag, which would rewrite the config file hundreds of times per
+  gesture. Zoom `0` is the "never saved" marker.
+- [M22.45] ☑ **Settings ▸ History clears the new settings too** (owner asked whether it did — it did not).
+  *Clear recent files* now also clears the recent-GraphML list and both "last opened" paths — one idea to
+  the user ("forget what I have had open"), and leaving the topology quietly remembered would look like a
+  bug. A new **Reset topology view** button covers zoom/pan/orientation/spacing/label size, and *Clear
+  all* includes both. Tested that the reset restores **every** display default: a reset that leaves one
+  behind looks broken.
 - [M22.43] ☑ **Dark-theme node fills lifted for contrast** (owner: "getting lost when not dimmed"). M22.28
   fixed the *light* theme's invisible plain node but left dark only a few steps off its canvas, so an
   undimmed node barely read as filled. All five kinds are raised, and **the border moved with them** — at

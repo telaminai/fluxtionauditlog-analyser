@@ -21,6 +21,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- The Topology tab remembers its zoom, pan, orientation, spacing and label size between sessions.
+  **Settings ▸ History ▸ Reset topology view** puts them back, and *Clear recent files* now also clears
+  the recent-GraphML list.
 - Topology nodes have more contrast in the dark theme — they were getting lost against the canvas.
 - Fixed: arrow-key stepping in the Topology tab stopped working once the source pane was added — the
   split pane was intercepting Up/Down to move its divider.

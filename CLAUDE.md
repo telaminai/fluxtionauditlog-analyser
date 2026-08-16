@@ -34,11 +34,18 @@ architecture, conventions). This file is only the rules that must never be skipp
 
 ## Current work
 
-`docs/specs/tracker.md` has the delivery order. **M13.1–13.4 (MCP bridge) shipped 2026-08-15.** Next up
-(independent tracks): the **M18.0** admin-surface spike (`docs/specs/spec-closed-loop.md`) and the
-**M19.1** playground bundle contract (`docs/specs/spec-onboarding-example.md`) — both cross-repo;
-analyser-side next is **M20.1** (project profiles, `docs/specs/spec-project-profiles.md`). Two standing design decisions (tracker ▸ Decisions): server verbs
-are **never** assistant actions; agent fixes arrive as **evidence-linked PRs**, never direct edits.
+`docs/specs/tracker.md` has the delivery order. **M13.1–13.4 (MCP bridge) shipped 2026-08-15**;
+**M21.10** (intra-record step-through) and most of **M22** (topology usability — 36 of 41) shipped
+2026-08-16 on `handoff/15_aug_2026_2`. Open in M22: PNG export (22.3), alternative layouts (22.6), and
+re-dispatch cause (22.11), which needs a runtime change filed in
+[`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — that file is the holding pen for
+anything belonging to another repo (compiler rejection codes, audit-log metadata, svc-admin-web).
+
+Other tracks, both cross-repo: the **M18.0** admin-surface spike (`docs/specs/spec-closed-loop.md`) and
+the **M19.1** playground bundle contract (`docs/specs/spec-onboarding-example.md`); analyser-side after
+M22 is **M20.1** (project profiles, `docs/specs/spec-project-profiles.md`). Two standing design decisions
+(tracker ▸ Decisions): server verbs are **never** assistant actions; agent fixes arrive as
+**evidence-linked PRs**, never direct edits.
 
 ## Build & run
 

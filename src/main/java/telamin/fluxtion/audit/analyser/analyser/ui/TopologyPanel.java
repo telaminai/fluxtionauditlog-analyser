@@ -99,7 +99,7 @@ public final class TopologyPanel extends JPanel {
 
         JToolBar bar = new JToolBar();
         bar.setFloatable(false);
-        bar.add(button("Fit", canvas::fitToView));
+        bar.add(button("Fit", () -> { canvas.fitToView(); displayPrefsChanged.run(); }));
         bar.add(button("+", canvas::zoomIn));
         bar.add(button("−", canvas::zoomOut));
         bar.addSeparator();
@@ -178,6 +178,7 @@ public final class TopologyPanel extends JPanel {
         canvas.onNodeActivated(id -> nodeActivated.accept(id));
         canvas.onNodeSelected(this::describeSelection);
         canvas.onNodeClicked(this::onNodeClicked);
+        canvas.onViewChanged(() -> displayPrefsChanged.run());
         index.setSelectHandler(id -> {
             onNodeClicked(id, false);
             // picked by name rather than found on screen, so bring it into view — otherwise the only
@@ -345,6 +346,42 @@ public final class TopologyPanel extends JPanel {
         }
     }
 
+    /**
+     * The zoom/pan to restore once a topology is loaded. Held rather than applied, because loading a
+     * graph fits it to the view — applying the saved transform first would simply be overwritten. It is
+     * used once and then forgotten, so a later load fits normally instead of jumping to where a different
+     * graph happened to be scrolled.
+     */
+    public void setSavedView(double zoom, double panX, double panY, String orientation) {
+        this.pendingZoom = zoom;
+        this.pendingPanX = panX;
+        this.pendingPanY = panY;
+        if ("LEFT_RIGHT".equals(orientation)) {
+            canvas.setOrientation(LayeredLayout.Orientation.LEFT_RIGHT);
+            orientationButton.setText("Top→down");
+        }
+    }
+
+    public double zoom() {
+        return canvas.zoom();
+    }
+
+    public double panX() {
+        return canvas.panX();
+    }
+
+    public double panY() {
+        return canvas.panY();
+    }
+
+    public String orientationName() {
+        return canvas.orientation().name();
+    }
+
+    private double pendingZoom;
+    private double pendingPanX;
+    private double pendingPanY;
+
     public int spacingPercent() {
         return spacingSlider.getValue();
     }
@@ -378,6 +415,10 @@ public final class TopologyPanel extends JPanel {
         // the FULL graph: the index is how you reach a node the filters have hidden
         index.setTopology(fullTopology);
         applyView(false);
+        if (pendingZoom > 0) {
+            canvas.setViewState(pendingZoom, pendingPanX, pendingPanY);
+            pendingZoom = 0;                        // restore once; later loads fit as usual
+        }
         setStatus(summary(topology, file));
         topologyLoaded.accept(file);
     }
@@ -953,5 +994,6 @@ public final class TopologyPanel extends JPanel {
                 ? LayeredLayout.Orientation.LEFT_RIGHT
                 : LayeredLayout.Orientation.TOP_DOWN);
         orientationButton.setText(topDown ? "Top→down" : "Left→right");
+        displayPrefsChanged.run();
     }
 }

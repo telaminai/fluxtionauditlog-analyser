@@ -437,20 +437,30 @@ public final class ConfigPanel extends JDialog {
         c.insets = new Insets(3, 0, 3, 0);
         JButton search = clearButton("Clear search history", config.searchHistory::clear);
         JButton graphs = clearButton("Clear saved graphs", config.savedGraphs::clear);
-        JButton recents = clearButton("Clear recent files", config.recentFiles::clear);
+        // one button for both recent lists and both "last opened" paths: they are one idea to the user
+        // ("forget what I have had open"), and splitting them would leave the topology quietly remembered
+        JButton recents = clearButton("Clear recent files", () -> {
+            config.recentFiles.clear();
+            config.recentGraphml.clear();
+            config.logFile = null;
+            config.graphmlFile = null;
+        });
+        JButton view = clearButton("Reset topology view", config::clearTopologyView);
+        view.setToolTipText("Zoom, pan, orientation, spacing and label size for the Topology tab");
         c.gridy = 1; p.add(search, c);
         c.gridy = 2; p.add(graphs, c);
         c.gridy = 3; p.add(recents, c);
-        c.gridy = 4; c.insets = new Insets(12, 0, 3, 0);
+        c.gridy = 4; p.add(view, c);
+        c.gridy = 5; c.insets = new Insets(12, 0, 3, 0);
         JButton all = new JButton("Clear all");
         all.setPreferredSize(new Dimension(210, all.getPreferredSize().height));
         all.addActionListener(e -> {
-            for (JButton b : new JButton[]{search, graphs, recents}) if (b.isEnabled()) b.doClick();
+            for (JButton b : new JButton[]{search, graphs, recents, view}) if (b.isEnabled()) b.doClick();
             all.setText("Clear all  ✓");
             all.setEnabled(false);
         });
         p.add(all, c);
-        c.gridy = 5; c.weightx = 1; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
+        c.gridy = 6; c.weightx = 1; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
         p.add(Box.createGlue(), c);
         return p;
     }

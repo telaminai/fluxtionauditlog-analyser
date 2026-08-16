@@ -142,9 +142,15 @@ public final class MainFrame extends JFrame {
         // keeps the graph on screen instead of switching to the sibling Source tab
         topologyPanel.bindSource(sourceService);
         topologyPanel.setDisplayPrefs(config.topologySpacingPercent, config.topologyTextSize);
+        topologyPanel.setSavedView(config.topologyZoom, config.topologyPanX, config.topologyPanY,
+                config.topologyOrientation);
         topologyPanel.onDisplayPrefsChanged(() -> {
             config.topologySpacingPercent = topologyPanel.spacingPercent();
             config.topologyTextSize = topologyPanel.textSize();
+            config.topologyZoom = topologyPanel.zoom();
+            config.topologyPanX = topologyPanel.panX();
+            config.topologyPanY = topologyPanel.panY();
+            config.topologyOrientation = topologyPanel.orientationName();
             saveConfigQuietly();
         });
         // stepping walks the FILTERED sequence, so it honours the shared filter like every other view

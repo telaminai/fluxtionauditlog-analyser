@@ -133,6 +133,8 @@ public final class TopologyCanvas extends JPanel {
                     pendingBackgroundClick = false;
                     select(null);
                     nodeClicked.accept(null, pendingAdditive);
+                } else {
+                    viewChanged.run();      // the drag that just ended was a pan
                 }
             }
 
@@ -479,6 +481,38 @@ public final class TopologyCanvas extends JPanel {
         repaint();
     }
 
+    public double zoom() {
+        return scale;
+    }
+
+    public double panX() {
+        return offsetX;
+    }
+
+    public double panY() {
+        return offsetY;
+    }
+
+    /** Restore a saved zoom and pan. Ignored when the values are not a usable view. */
+    public void setViewState(double zoom, double panX, double panY) {
+        if (zoom <= 0 || Double.isNaN(zoom) || Double.isNaN(panX) || Double.isNaN(panY)) return;
+        scale = clamp(zoom, MIN_SCALE, MAX_SCALE);
+        offsetX = panX;
+        offsetY = panY;
+        repaint();
+    }
+
+    /**
+     * Told when the user has changed the view — after a zoom, or when a pan finishes. Deliberately not
+     * during a drag: a pan fires continuously, and persisting on every pixel would write the config file
+     * hundreds of times for one gesture.
+     */
+    public void onViewChanged(Runnable listener) {
+        this.viewChanged = listener == null ? () -> { } : listener;
+    }
+
+    private Runnable viewChanged = () -> { };
+
     public void zoomIn() {
         zoomAt(getWidth() / 2, getHeight() / 2, 1.2);
     }
@@ -497,6 +531,7 @@ public final class TopologyCanvas extends JPanel {
         offsetX = px - worldX * scale;
         offsetY = py - worldY * scale;
         repaint();
+        viewChanged.run();
     }
 
     private static double clamp(double v, double min, double max) {

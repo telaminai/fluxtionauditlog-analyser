@@ -189,4 +189,51 @@ class ConfigStoreTest {
         assertFalse(shared.contains("topologyTextSize"), shared);
         assertFalse(shared.contains("secret-path"), "recent paths must not leak either");
     }
+
+    @org.junit.jupiter.api.Test
+    void theTopologyViewSurvivesARoundTrip(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        java.nio.file.Path file = dir.resolve("config");
+        AppConfig c = new AppConfig();
+        c.topologyZoom = 1.75;
+        c.topologyPanX = -240.5;
+        c.topologyPanY = 88.25;
+        c.topologyOrientation = "LEFT_RIGHT";
+        new ConfigStore(file).save(c);
+
+        AppConfig back = new ConfigStore(file).load();
+        assertEquals(1.75, back.topologyZoom, 0.0001);
+        assertEquals(-240.5, back.topologyPanX, 0.0001, "a negative pan is normal — it is a scroll offset");
+        assertEquals(88.25, back.topologyPanY, 0.0001);
+        assertEquals("LEFT_RIGHT", back.topologyOrientation);
+    }
+
+    @org.junit.jupiter.api.Test
+    void anUnsavedViewMeansFitRatherThanZeroZoom() {
+        // 0 is the "never saved" marker; the panel fits the graph instead of applying a useless transform
+        assertEquals(0d, new AppConfig().topologyZoom, 0.0001);
+        assertEquals("TOP_DOWN", new AppConfig().topologyOrientation);
+    }
+
+    @org.junit.jupiter.api.Test
+    void resettingTheTopologyViewRestoresEveryDisplayDefault() {
+        AppConfig c = new AppConfig();
+        c.topologyZoom = 3;
+        c.topologyPanX = 10;
+        c.topologyPanY = 20;
+        c.topologySpacingPercent = 300;
+        c.topologyTextSize = 20;
+        c.topologyOrientation = "LEFT_RIGHT";
+
+        c.clearTopologyView();
+
+        AppConfig fresh = new AppConfig();
+        assertEquals(fresh.topologyZoom, c.topologyZoom, 0.0001);
+        assertEquals(fresh.topologyPanX, c.topologyPanX, 0.0001);
+        assertEquals(fresh.topologyPanY, c.topologyPanY, 0.0001);
+        assertEquals(fresh.topologySpacingPercent, c.topologySpacingPercent);
+        assertEquals(fresh.topologyTextSize, c.topologyTextSize);
+        assertEquals(fresh.topologyOrientation, c.topologyOrientation,
+                "a reset that leaves one setting behind is worse than none — it looks broken");
+    }
 }

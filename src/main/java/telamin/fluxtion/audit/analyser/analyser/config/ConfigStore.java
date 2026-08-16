@@ -60,6 +60,11 @@ public final class ConfigStore {
         c.eventFilterCollapsed = parseBool(p.getProperty("eventFilterCollapsed"), c.eventFilterCollapsed);
         c.topologySpacingPercent = parseInt(p.getProperty("topologySpacing"), c.topologySpacingPercent);
         c.topologyTextSize = parseInt(p.getProperty("topologyTextSize"), c.topologyTextSize);
+        c.topologyZoom = parseDouble(p.getProperty("topologyZoom"), c.topologyZoom);
+        c.topologyPanX = parseDouble(p.getProperty("topologyPanX"), c.topologyPanX);
+        c.topologyPanY = parseDouble(p.getProperty("topologyPanY"), c.topologyPanY);
+        String orientation = nz(p.getProperty("topologyOrientation"));
+        if (orientation != null && !orientation.isBlank()) c.topologyOrientation = orientation;
         c.awsProfile = p.getProperty("awsProfile", c.awsProfile);
         c.awsRegion = p.getProperty("awsRegion", c.awsRegion);
         c.theme = p.getProperty("theme", c.theme);
@@ -100,6 +105,10 @@ public final class ConfigStore {
         put(p, "eventFilterCollapsed", Boolean.toString(c.eventFilterCollapsed));
         put(p, "topologySpacing", Integer.toString(c.topologySpacingPercent));
         put(p, "topologyTextSize", Integer.toString(c.topologyTextSize));
+        put(p, "topologyZoom", Double.toString(c.topologyZoom));
+        put(p, "topologyPanX", Double.toString(c.topologyPanX));
+        put(p, "topologyPanY", Double.toString(c.topologyPanY));
+        put(p, "topologyOrientation", c.topologyOrientation);
         put(p, "awsProfile", c.awsProfile);
         put(p, "awsRegion", c.awsRegion);
         put(p, "theme", c.theme);
@@ -194,6 +203,14 @@ public final class ConfigStore {
             if (v != null) tmp.add(v);
         }
         out.addAll(tmp);
+    }
+
+    static double parseDouble(String s, double def) {
+        try {
+            return s == null || s.isBlank() ? def : Double.parseDouble(s.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
     }
 
     static int parseInt(String s, int def) {
