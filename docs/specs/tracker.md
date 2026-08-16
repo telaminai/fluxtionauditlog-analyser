@@ -299,6 +299,27 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   by `at` (epoch millis) **or** `recordIndex`, because a caller that just found something with `read` has
   the index to hand. Colliding notes stack by pixel column instead of overprinting. `ChartNotes` is pure;
   7 tests.
+- [M23.4] ☑ **Right-click a chart to pin a note** (owner) — reading a chart is when you notice the thing
+  worth writing down, and an annotation you must leave the chart to add is one you mostly do not add.
+  Right-click inside the plot gives *Add note here* (the time comes from the cursor), *Add/Edit
+  explanation*, and *Clear notes* — which keeps the explanation, because they are different statements.
+  The note picks up the series whose line passes nearest the click, in **both** axes: matching on y alone
+  labels the note with whatever series happens to cross that height at some other time entirely.
+  Annotations persist with the graph (`GraphSpec` + `ConfigStore`), because a note that does not survive
+  a restart is one nobody bothers to write. A pre-M23 config still loads, with empty annotations.
+- [M23.5] ☑ **Fixed: clicking a node reset the topology zoom** (owner). Self-inflicted in M22: opening
+  the source pane re-fits the canvas (correct — its width changed), but `showSourcePane(true)` re-fit
+  **unconditionally**, so with Sync on every node click ran `openSource → showSourcePane(true) → fitToView`
+  and threw away the zoom. Now it re-fits only when the pane actually appeared or disappeared.
+- [M23.6] ☑ **Fixed: clicking a node in a focused view emptied it** (owner). Two causes. The mouse path
+  reset the scope to NODE on a new selection, which under focus collapses the view to a single box; a
+  focused width is a width the user *chose*, so it now survives a new selection (unfocused still starts
+  the cycle fresh — nothing is hidden, so it is harmless). And the saved zoom/pan was being kept across a
+  **re-layout**: a different node set is a different coordinate space, so the old view addressed
+  coordinates that no longer existed and left the user staring at empty space. The view is now preserved
+  only while the visible node set is unchanged.
+  _Also aligned `selectNode` (verb) with `onNodeClicked` (mouse) — they had different scope rules, which
+  is how a scripted session and a hand-driven one stop agreeing._
 - [M23.3] ☑ **All of it over REST/MCP** — the `analyser_graph` verb carries the new fields, so the MCP
   bridge publishes them with no extra work. Verified by driving a live analyser and capturing the result.
   _One bug caught in review: epoch millis do not fit in an `int`, and my first `anchorMillis` parsed `at`

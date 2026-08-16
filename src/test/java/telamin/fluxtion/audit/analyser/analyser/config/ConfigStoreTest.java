@@ -241,4 +241,38 @@ class ConfigStoreTest {
                 "a reset that leaves one setting behind is worse than none — it looks broken");
         assertEquals(fresh.topologySyncSource, c.topologySyncSource);
     }
+
+    @org.junit.jupiter.api.Test
+    void chartAnnotationsSurviveARoundTrip(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        // a note that does not survive a restart is one nobody bothers to write
+        java.nio.file.Path file = dir.resolve("config");
+        AppConfig c = new AppConfig();
+        c.savedGraphs.add(new GraphSpec("Oversell", java.util.List.of("a.b"), java.util.List.of(),
+                null, null, "why", "the shelf empties here",
+                java.util.List.of(new GraphSpec.NoteSpec(1767258083000L, "first oversell", "a.b")),
+                java.util.List.of("a.b")));
+        new ConfigStore(file).save(c);
+
+        AppConfig back = new ConfigStore(file).load();
+        GraphSpec g = back.savedGraphs.get(0);
+        assertEquals("the shelf empties here", g.explanation());
+        assertEquals(1, g.notes().size());
+        assertEquals(1767258083000L, g.notes().get(0).at(), "epoch millis must not be truncated");
+        assertEquals("first oversell", g.notes().get(0).text());
+        assertEquals(java.util.List.of("a.b"), g.rightAxis());
+    }
+
+    @org.junit.jupiter.api.Test
+    void aGraphSavedBeforeAnnotationsExistedStillLoads(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        java.nio.file.Path file = dir.resolve("config");
+        java.nio.file.Files.writeString(file,
+                "graph.count=1\ngraph.0.name=Old\ngraph.0.count=1\ngraph.0.0=a.b\n");
+        GraphSpec g = new ConfigStore(file).load().savedGraphs.get(0);
+        assertEquals("Old", g.name());
+        assertEquals("", g.explanation(), "absent annotations are empty, not null");
+        assertTrue(g.notes().isEmpty());
+        assertTrue(g.rightAxis().isEmpty());
+    }
 }

@@ -203,8 +203,14 @@ public final class GraphTabs extends JPanel {
         List<GraphSpec> out = new ArrayList<>();
         for (int i = 0; i < tabs.getTabCount(); i++) {
             if (tabs.getComponentAt(i) instanceof GraphPanel gp) {
+                var notes = gp.notes();
+                List<GraphSpec.NoteSpec> noteSpecs = new ArrayList<>();
+                for (var n : notes.notes()) {
+                    noteSpecs.add(new GraphSpec.NoteSpec(n.atMillis(), n.text(), n.series()));
+                }
                 out.add(new GraphSpec(gp.graphName(), gp.seriesSpecs(), gp.exprSpecs(),
-                        gp.pinnedFrom(), gp.pinnedTo(), gp.caption()));
+                        gp.pinnedFrom(), gp.pinnedTo(), gp.caption(),
+                        notes.explanation(), noteSpecs, new ArrayList<>(gp.axes().rightSeries())));
             }
         }
         return out;
@@ -224,6 +230,17 @@ public final class GraphTabs extends JPanel {
                 panel.addExpr(ex.label(), ex.expr(), resolveOf(ex.resolve()));
             }
             if (g.isPinned()) panel.pin(g.from(), g.to());
+            // the reading of the chart, restored with it
+            var notes = new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes(
+                    g.explanation(), g.notes().stream()
+                    .map(n -> new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
+                            n.at(), n.text(), n.series()))
+                    .toList());
+            if (!notes.isEmpty()) panel.setNotes(notes);
+            if (!g.rightAxis().isEmpty()) {
+                panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
+                        g.rightAxis()));
+            }
         }
         if (tabs.getTabCount() == 0) addGraph();
     }

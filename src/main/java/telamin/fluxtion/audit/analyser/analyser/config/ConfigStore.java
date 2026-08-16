@@ -158,6 +158,20 @@ public final class ConfigStore {
                 put(p, "graph." + i + ".expr." + j + ".expr", exprs.get(j).expr());
                 put(p, "graph." + i + ".expr." + j + ".resolve", exprs.get(j).resolve());
             }
+            // annotations: the reading of the chart, which is the part worth keeping
+            put(p, "graph." + i + ".explanation", g.explanation().isBlank() ? null : g.explanation());
+            List<GraphSpec.NoteSpec> notes = g.notes();
+            p.setProperty("graph." + i + ".note.count", Integer.toString(notes.size()));
+            for (int j = 0; j < notes.size(); j++) {
+                p.setProperty("graph." + i + ".note." + j + ".at", Long.toString(notes.get(j).at()));
+                put(p, "graph." + i + ".note." + j + ".text", notes.get(j).text());
+                put(p, "graph." + i + ".note." + j + ".series", notes.get(j).series());
+            }
+            List<String> right = g.rightAxis();
+            p.setProperty("graph." + i + ".right.count", Integer.toString(right.size()));
+            for (int j = 0; j < right.size(); j++) {
+                put(p, "graph." + i + ".right." + j, right.get(j));
+            }
         }
     }
 
@@ -183,7 +197,24 @@ public final class ConfigStore {
                 String resolve = p.getProperty("graph." + i + ".expr." + j + ".resolve");
                 if (expr != null) exprs.add(new GraphSpec.ExprSpec(label, expr, resolve));
             }
-            out.add(new GraphSpec(name, series, exprs, from, to, note));
+            String explanation = nz(p.getProperty("graph." + i + ".explanation"));
+            List<GraphSpec.NoteSpec> notes = new ArrayList<>();
+            int noteCount = parseInt(p.getProperty("graph." + i + ".note.count"), 0);
+            for (int j = 0; j < noteCount; j++) {
+                String text = p.getProperty("graph." + i + ".note." + j + ".text");
+                Long at = parseLongOrNull(p.getProperty("graph." + i + ".note." + j + ".at"));
+                if (text != null && at != null) {
+                    notes.add(new GraphSpec.NoteSpec(at, text,
+                            nz(p.getProperty("graph." + i + ".note." + j + ".series"))));
+                }
+            }
+            List<String> right = new ArrayList<>();
+            int rightCount = parseInt(p.getProperty("graph." + i + ".right.count"), 0);
+            for (int j = 0; j < rightCount; j++) {
+                String label = p.getProperty("graph." + i + ".right." + j);
+                if (label != null) right.add(label);
+            }
+            out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right));
         }
     }
 

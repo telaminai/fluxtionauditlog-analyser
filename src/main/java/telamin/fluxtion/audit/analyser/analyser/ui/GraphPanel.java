@@ -466,6 +466,11 @@ public final class GraphPanel extends JPanel {
         chart.setNotes(notes);
     }
 
+    /** Told when the user pins or edits a note on the chart itself, so the caller can persist it. */
+    public void onNotesChanged(Runnable listener) {
+        chart.onNotesChanged(listener);
+    }
+
     public telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes() {
         return chart.notes();
     }

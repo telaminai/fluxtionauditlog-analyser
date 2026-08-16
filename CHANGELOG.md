@@ -10,7 +10,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Charts can explain themselves.** A multi-line `explanation` and `notes` pinned to moments in time are
   drawn on the plot (so they survive an exported PNG), and a `rightAxis` gives a second vertical scale so
   series of very different magnitude stay readable together. All three are available through the
-  `analyser_graph` verb over REST and MCP.
+  `analyser_graph` verb over REST and MCP — or by right-clicking the plot to pin a note where you are
+  reading. Annotations are saved with the graph.
+- Fixed: clicking a node in the Topology tab reset the zoom, and clicking one in a focused view emptied
+  it.
 
 ### Security
 - **Documentation screenshots have been replaced.** The images shipped with the first public release

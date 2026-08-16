@@ -71,6 +71,8 @@ public final class TopologyPanel extends JPanel {
     /** Clicked nodes — more than one when Cmd/Ctrl-clicked. */
     private final java.util.LinkedHashSet<String> selection = new java.util.LinkedHashSet<>();
     private TopologyFocus.Scope scope = TopologyFocus.Scope.NODE;
+    /** The node set currently laid out — a change to it invalidates the saved zoom and pan. */
+    private java.util.Set<String> shownNodes = java.util.Set.of();
 
     private StepCursor.RecordSource recordSource;
     private Path loadedFrom;
@@ -446,7 +448,12 @@ public final class TopologyPanel extends JPanel {
         } else {
             selection.clear();
             selection.add(id);
-            scope = TopologyFocus.Scope.NODE;
+            // Focused, the scope is a width the user chose — clicking another node means "show me THAT
+            // one at this width", not "collapse to a single box". Unfocused, resetting is harmless
+            // because nothing is hidden, so the cycle starts fresh as it should.
+            if (!focusButton.isSelected()) {
+                scope = TopologyFocus.Scope.NODE;
+            }
         }
         applyView();
         syncSourceTo(id);
@@ -470,8 +477,13 @@ public final class TopologyPanel extends JPanel {
 
         java.util.Set<String> visible =
                 TopologyFocus.visible(fullTopology, scaffoldingBox.isSelected(), focusing ? scoped : null);
+        // A different node set is a different LAYOUT, so the old zoom and pan address coordinates that no
+        // longer exist — keeping them leaves the user staring at empty space where the graph used to be.
+        // Preserve the view only while the visible set is unchanged; otherwise reframe.
+        boolean sameNodes = visible.equals(shownNodes);
+        shownNodes = java.util.Set.copyOf(visible);
         canvas.setClassificationTopology(fullTopology);
-        canvas.setTopology(fullTopology.subgraph(visible), keepView);
+        canvas.setTopology(fullTopology.subgraph(visible), keepView && sameNodes);
         // focusing already removes everything else, so dimming on top of it would say the same thing twice
         canvas.setEmphasis(focusing || scoped == null ? java.util.Set.of() : scoped);
         canvas.setSelectedNodes(selection);
@@ -646,6 +658,12 @@ public final class TopologyPanel extends JPanel {
         }
         selection.clear();
         selection.add(id);
+        // the same scope rule the mouse path uses — a focused width is a deliberate choice and survives
+        // a new selection; unfocused, the cycle starts fresh. Two paths with two rules is how a scripted
+        // session and a hand-driven one stop agreeing.
+        if (!focusButton.isSelected()) {
+            scope = TopologyFocus.Scope.NODE;
+        }
         canvas.select(id);
         canvas.centreOn(id);
         applyView();
@@ -828,6 +846,7 @@ public final class TopologyPanel extends JPanel {
     private void showSourcePane(boolean show) {
         if (embeddedSource == null) return;
         sourceButton.setSelected(show);
+        boolean wasShowing = graphSplit.getRightComponent() == embeddedSource;
         if (show) {
             if (graphSplit.getRightComponent() != embeddedSource) {
                 graphSplit.setRightComponent(embeddedSource);
@@ -840,8 +859,12 @@ public final class TopologyPanel extends JPanel {
         }
         graphSplit.revalidate();
         graphSplit.repaint();
-        // the canvas just gained or lost half its width; a graph framed for the old size is now cut off
-        javax.swing.SwingUtilities.invokeLater(canvas::fitToView);
+        // Re-fit ONLY when the pane actually appeared or disappeared. Fitting unconditionally meant that
+        // with Sync on, every node click ran openSource -> showSourcePane(true) -> fitToView, throwing
+        // away the zoom the user had set. The canvas only needs reframing when its width changed.
+        if (wasShowing != show) {
+            javax.swing.SwingUtilities.invokeLater(canvas::fitToView);
+        }
     }
 
     /**

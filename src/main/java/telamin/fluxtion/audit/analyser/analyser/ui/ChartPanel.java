@@ -51,7 +51,11 @@ public final class ChartPanel extends JPanel {
     public ChartPanel() {
         ToolTipManager.sharedInstance().registerComponent(this);
         MouseAdapter ma = new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) { dragX = e.getX(); dragY = e.getY(); }
+            @Override public void mousePressed(MouseEvent e) {
+                dragX = e.getX();
+                dragY = e.getY();
+                maybeNoteMenu(e);   // popup fires on press on some platforms, release on others
+            }
             @Override public void mouseDragged(MouseEvent e) { pan(e.getX() - dragX, e.getY() - dragY); dragX = e.getX(); dragY = e.getY(); }
             @Override public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) { resetView(); return; }
@@ -62,6 +66,7 @@ public final class ChartPanel extends JPanel {
                 }
             }
             @Override public void mouseWheelMoved(MouseWheelEvent e) { zoom(e); }
+            @Override public void mouseReleased(MouseEvent e) { maybeNoteMenu(e); }
         };
         addMouseListener(ma);
         addMouseMotionListener(ma);
@@ -509,6 +514,101 @@ public final class ChartPanel extends JPanel {
         }
         return out + "…";
     }
+
+    /**
+     * Right-click inside the plot: pin a note at the time under the cursor, or clear the pins.
+     *
+     * <p>The gesture matters as much as the feature. Reading a chart is when you notice the thing worth
+     * writing down, and an annotation you have to leave the chart to add is one you mostly do not add.
+     * The moment is taken from the cursor's x, so the note lands where you were looking.
+     */
+    private void maybeNoteMenu(MouseEvent e) {
+        if (!e.isPopupTrigger() || Double.isNaN(vx0)) {
+            return;
+        }
+        if (e.getX() < plotX || e.getX() > plotX + plotW || e.getY() < plotY || e.getY() > plotY + plotH) {
+            return;
+        }
+        long at = (long) pxToX(e.getX());
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+
+        javax.swing.JMenuItem add = new javax.swing.JMenuItem(
+                "Add note at " + TimeFormat.utc(at) + "…");
+        add.addActionListener(a -> {
+            String text = javax.swing.JOptionPane.showInputDialog(this,
+                    "Note at " + TimeFormat.utc(at) + " UTC:", "Add note",
+                    javax.swing.JOptionPane.PLAIN_MESSAGE);
+            if (text != null && !text.isBlank()) {
+                setNotes(notes.plus(new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
+                        at, text.strip(), nearestSeriesLabel(e.getX(), e.getY()))));
+                notesChanged.run();
+            }
+        });
+        menu.add(add);
+
+        javax.swing.JMenuItem explain = new javax.swing.JMenuItem(
+                notes.explanation().isBlank() ? "Add explanation…" : "Edit explanation…");
+        explain.addActionListener(a -> {
+            javax.swing.JTextArea area = new javax.swing.JTextArea(notes.explanation(), 6, 44);
+            area.setLineWrap(true);
+            area.setWrapStyleWord(true);
+            int ok = javax.swing.JOptionPane.showConfirmDialog(this,
+                    new javax.swing.JScrollPane(area), "What does this chart show, and why does it matter?",
+                    javax.swing.JOptionPane.OK_CANCEL_OPTION, javax.swing.JOptionPane.PLAIN_MESSAGE);
+            if (ok == javax.swing.JOptionPane.OK_OPTION) {
+                setNotes(notes.withExplanation(area.getText()));
+                notesChanged.run();
+            }
+        });
+        menu.add(explain);
+
+        if (!notes.notes().isEmpty()) {
+            menu.addSeparator();
+            javax.swing.JMenuItem clear = new javax.swing.JMenuItem(
+                    "Clear " + notes.notes().size() + " note(s)");
+            clear.addActionListener(a -> {
+                setNotes(notes.withoutNotes());   // keeps the explanation: they are different statements
+                notesChanged.run();
+            });
+            menu.add(clear);
+        }
+        menu.show(this, e.getX(), e.getY());
+    }
+
+    /**
+     * The series whose line passes closest to the click, so a note picks up what it is about without the
+     * user saying. Returns null when nothing is near — a note about the chart rather than a series is a
+     * real case, and guessing would put the wrong label on it.
+     */
+    private String nearestSeriesLabel(int px, int py) {
+        String best = null;
+        int bestDistance = 18;                    // pixels; beyond this the click was not "on" a line
+        for (Series s : series) {
+            if (s.size() == 0) continue;
+            drawingRight = axes.isRight(s.label());
+            for (int i = 0; i < s.size(); i++) {
+                double v = s.y(i);
+                if (Double.isNaN(v) || Double.isInfinite(v)) continue;
+                // near in BOTH axes: matching on y alone picks a series that happens to cross that
+                // height at some other time entirely, and labels the note with the wrong thing
+                if (Math.abs(xToPx(s.x(i)) - px) > 6) continue;
+                int d = Math.abs(yToPx(v) - py);
+                if (d < bestDistance) {
+                    bestDistance = d;
+                    best = s.label();
+                }
+            }
+        }
+        drawingRight = false;
+        return best;
+    }
+
+    /** Told when the user edits notes here, so the graph can persist them. */
+    public void onNotesChanged(Runnable listener) {
+        this.notesChanged = listener == null ? () -> { } : listener;
+    }
+
+    private Runnable notesChanged = () -> { };
 
     /** The axis the series currently being drawn belongs to — set once per series, read by yToPx. */
     private boolean drawingRight;
