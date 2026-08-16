@@ -629,6 +629,120 @@ public final class TopologyPanel extends JPanel {
         onNodeClicked(id, false);
     }
 
+    // ---- control surface (assistant verbs; see llm.AppControl) -------------------------------------
+
+    /** Select a node, or clear the selection with null. Does not change the scope. */
+    public void selectNode(String id) {
+        if (id == null) {
+            clearHighlights();
+            return;
+        }
+        selection.clear();
+        selection.add(id);
+        canvas.select(id);
+        canvas.centreOn(id);
+        applyView();
+    }
+
+    public boolean hasNode(String id) {
+        return id != null && fullTopology.contains(id);
+    }
+
+    /** Set the scope directly, rather than by repeated clicking. */
+    public void setScope(TopologyFocus.Scope newScope) {
+        if (newScope == null) return;
+        scope = newScope;
+        applyView();
+    }
+
+    public void setFocus(boolean on) {
+        focusButton.setSelected(on);
+        applyView();
+    }
+
+    public void setScaffoldingVisible(boolean on) {
+        scaffoldingBox.setSelected(on);
+        applyView();
+    }
+
+    /**
+     * Show or hide the source pane. Showing it with a node selected also <b>opens that node</b> — asking
+     * for the source view is asking to see some source, and an empty pane beside the graph answers
+     * nothing.
+     */
+    public void setSourcePaneVisible(boolean on) {
+        if (on && !selection.isEmpty()) {
+            openSource(selection.iterator().next());
+            return;
+        }
+        showSourcePane(on);
+    }
+
+    public void setOrientation(LayeredLayout.Orientation orientation) {
+        if (orientation == null || canvas.orientation() == orientation) return;
+        toggleOrientation();
+    }
+
+    public void fit() {
+        canvas.fitToView();
+    }
+
+    public void clearView() {
+        clearHighlights();
+    }
+
+    /** Move the step cursor by {@code n} rows; negative steps back. Returns how many steps were taken. */
+    public int step(int n) {
+        int taken = 0;
+        for (int i = 0; i < Math.abs(n); i++) {
+            boolean before = cursor.atEntry();
+            int record = cursor.recordIndex();
+            stepBy(n > 0 ? 1 : -1);
+            if (cursor.recordIndex() == record && cursor.atEntry() == before && cursor.rowCount() > 0
+                    && !canStillMove(n)) {
+                break;
+            }
+            taken++;
+        }
+        return taken;
+    }
+
+    private boolean canStillMove(int direction) {
+        return direction > 0 ? cursor.canNext() : cursor.canPrev();
+    }
+
+    public void moveToRecord(int index) {
+        if (cursor.isEmpty()) return;
+        shadingCleared = false;
+        syncing = true;
+        try {
+            cursor.moveToRecord(index);
+            showCycleOf(cursor.record());
+            recordChanged.accept(cursor.recordIndex());
+        } finally {
+            syncing = false;
+        }
+        syncCursor();
+    }
+
+    /** A machine-readable snapshot of where the cursor is — the echo an assistant verb returns. */
+    public java.util.Map<String, Object> cursorState() {
+        java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("recordIndex", cursor.recordIndex());
+        out.put("rowIndex", cursor.rowIndex());
+        out.put("atEntry", cursor.atEntry());
+        out.put("rowCount", cursor.rowCount());
+        out.put("position", cursor.positionLabel());
+        out.put("currentNode", cursor.currentInstanceId());
+        out.put("selected", List.copyOf(selection));
+        out.put("scope", scope.name().toLowerCase(java.util.Locale.ROOT));
+        out.put("focus", focusButton.isSelected());
+        out.put("scaffolding", scaffoldingBox.isSelected());
+        out.put("visibleNodes", canvas.topology().nodeCount());
+        out.put("totalNodes", fullTopology.nodeCount());
+        return out;
+    }
+
     /** Open a node's source in the embedded pane, from outside the panel. */
     public void openSourceFor(String instanceId) {
         openSource(instanceId);
@@ -637,6 +751,9 @@ public final class TopologyPanel extends JPanel {
     private void openSource(String instanceId) {
         if (embeddedSource != null) {
             showSourcePane(true);
+            // fill the processor half too — Split exists to show the call site and the method together,
+            // and half of it sitting empty defeats the point
+            embeddedSource.showSelectedProcessor();
             embeddedSource.openInstance(instanceId, null);
             return;
         }
@@ -670,6 +787,8 @@ public final class TopologyPanel extends JPanel {
         }
         graphSplit.revalidate();
         graphSplit.repaint();
+        // the canvas just gained or lost half its width; a graph framed for the old size is now cut off
+        javax.swing.SwingUtilities.invokeLater(canvas::fitToView);
     }
 
     /**

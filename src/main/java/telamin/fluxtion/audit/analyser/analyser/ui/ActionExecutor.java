@@ -37,6 +37,8 @@ public final class ActionExecutor implements RenderExecutor {
     private final GraphTabs graphTabs;
     private final LogTablePanel tablePanel;
     private final BiConsumer<int[], String> flagRows;   // (model rows, optional note)
+    private TopologyPanel topology;
+    private telamin.fluxtion.audit.analyser.analyser.llm.AppControl app;
 
     public ActionExecutor(Supplier<LogStore> store, Supplier<FilterState> filter, GraphTabs graphTabs,
                           LogTablePanel tablePanel, BiConsumer<int[], String> flagRows) {
@@ -47,8 +49,33 @@ public final class ActionExecutor implements RenderExecutor {
         this.flagRows = flagRows;
     }
 
+    /** Wire the verbs that reach beyond the records table. Optional: unwired verbs report unavailable. */
+    public void bind(TopologyPanel topology, telamin.fluxtion.audit.analyser.analyser.llm.AppControl app) {
+        this.topology = topology;
+        this.app = app;
+    }
+
     @Override
     public ActionResult render(String action, Map<String, Object> params) {
+        // these three do not read the records table, and two of them exist precisely to get a log open —
+        // requiring one first would make them useless
+        switch (action) {
+            case "open" -> {
+                return onEdt(() -> doOpen(params));
+            }
+            case "source_root" -> {
+                return onEdt(() -> doSourceRoot(params));
+            }
+            case "topology" -> {
+                return onEdt(() -> doTopology(params));
+            }
+            case "screenshot" -> {
+                return onEdt(() -> app == null
+                        ? ActionResult.error("'screenshot' is not enabled here")
+                        : app.screenshot(str(params.get("path")), str(params.get("scope"))));
+            }
+            default -> { }
+        }
         LogStore s = store.get();
         if (s == null) return ActionResult.error("no log is loaded");
         return switch (action) {
@@ -319,6 +346,125 @@ public final class ActionExecutor implements RenderExecutor {
     }
 
     // ---- helpers ---------------------------------------------------------------------------------
+
+    // ---- environment and topology verbs -----------------------------------------------------------
+
+    private ActionResult doOpen(Map<String, Object> params) {
+        if (app == null) return ActionResult.error("'open' is not enabled here");
+        String log = str(params.get("log"));
+        String graphml = str(params.get("graphml"));
+        String processor = str(params.get("processor"));
+        if (log == null && graphml == null && processor == null) {
+            return ActionResult.error("'open' needs 'log', 'graphml' and/or 'processor'");
+        }
+        Map<String, Object> echo = new java.util.LinkedHashMap<>();
+        if (log != null) {
+            ActionResult r = app.openLog(log);
+            if (!r.ok()) return r;
+            echo.put("log", log);
+        }
+        if (graphml != null) {
+            ActionResult r = app.openGraphml(graphml);
+            if (!r.ok()) return r;
+            echo.put("graphml", graphml);
+        }
+        if (processor != null) {
+            ActionResult r = app.selectProcessor(processor);
+            if (!r.ok()) return r;
+            echo.put("processor", processor);
+        }
+        return ActionResult.ok("open", "opened", echo);
+    }
+
+    private ActionResult doSourceRoot(Map<String, Object> params) {
+        if (app == null) return ActionResult.error("'source_root' is not enabled here");
+        List<String> added = new java.util.ArrayList<>();
+        List<String> rejected = new java.util.ArrayList<>();
+        for (String path : strList(params.get("add"))) {
+            if (app.addSourceRoot(path)) added.add(path);
+            else rejected.add(path);
+        }
+        List<String> removed = new java.util.ArrayList<>();
+        for (String path : strList(params.get("remove"))) {
+            if (app.removeSourceRoot(path)) removed.add(path);
+        }
+        Map<String, Object> echo = new java.util.LinkedHashMap<>();
+        echo.put("roots", app.sourceRoots());
+        if (!added.isEmpty()) echo.put("added", added);
+        if (!removed.isEmpty()) echo.put("removed", removed);
+        // a path that is not a source root is reported rather than silently ignored: the caller would
+        // otherwise go on to wonder why source navigation still finds nothing
+        if (!rejected.isEmpty()) echo.put("notASourceRoot", rejected);
+        return ActionResult.ok("source_root", "sourceRoots", echo);
+    }
+
+    private ActionResult doTopology(Map<String, Object> params) {
+        if (topology == null) return ActionResult.error("'topology' is not enabled here");
+        if (!topology.hasTopology()) {
+            return ActionResult.error("no topology is loaded — use 'open' with a graphml first");
+        }
+        if (app != null) app.showTab("Topology");
+
+        if (params.containsKey("scaffolding")) topology.setScaffoldingVisible(bool(params.get("scaffolding")));
+        if (params.containsKey("showAll") && bool(params.get("showAll"))) topology.clearView();
+
+        if (params.containsKey("select")) {
+            String id = str(params.get("select"));
+            if (id != null && !topology.hasNode(id)) {
+                return ActionResult.error("no node '" + id + "' in this topology");
+            }
+            topology.selectNode(id);
+        }
+        String scope = str(params.get("scope"));
+        if (scope != null) {
+            try {
+                topology.setScope(telamin.fluxtion.audit.analyser.analyser.topology.TopologyFocus.Scope
+                        .valueOf(scope.toUpperCase(java.util.Locale.ROOT)));
+            } catch (IllegalArgumentException e) {
+                return ActionResult.error("unknown scope '" + scope + "'");
+            }
+        }
+        if (params.containsKey("focus")) topology.setFocus(bool(params.get("focus")));
+        if (params.containsKey("source")) topology.setSourcePaneVisible(bool(params.get("source")));
+
+        String orientation = str(params.get("orientation"));
+        if (orientation != null) {
+            topology.setOrientation("left_right".equalsIgnoreCase(orientation)
+                    ? telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout.Orientation.LEFT_RIGHT
+                    : telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout.Orientation.TOP_DOWN);
+        }
+        Integer record = intOrNull(params.get("recordIndex"));
+        if (record != null) topology.moveToRecord(record);
+        Integer step = intOrNull(params.get("step"));
+        if (step != null && step != 0) topology.step(step);
+        if (params.containsKey("fit") && bool(params.get("fit"))) topology.fit();
+
+        return ActionResult.ok("topology", "topology", topology.cursorState());
+    }
+
+    private static String str(Object o) {
+        return o == null ? null : o.toString();
+    }
+
+    private static boolean bool(Object o) {
+        return o instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(o));
+    }
+
+    private static Integer intOrNull(Object o) {
+        if (o instanceof Number n) return n.intValue();
+        try {
+            return o == null ? null : Integer.valueOf(o.toString().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static List<String> strList(Object o) {
+        if (!(o instanceof List<?> list)) return List.of();
+        List<String> out = new java.util.ArrayList<>(list.size());
+        for (Object item : list) if (item != null) out.add(item.toString());
+        return out;
+    }
 
     /** Run {@code body} on the EDT and return its result (render verbs mutate Swing state). */
     private <T> T onEdt(Callable<T> body) {

@@ -69,6 +69,47 @@ public final class VerbSchemas {
                         p("note", string(), "annotation stored with the flag (your finding)")),
                 List.of()));
 
+        s.put("topology", schema("Drive the Topology tab: what is shown, what is selected, and where the "
+                        + "step cursor is. All reversible view state — nothing is loaded or written.",
+                props(
+                        p("select", string(), "instanceId to select (null clears the selection)"),
+                        p("scope", enumStr("node", "neighbours", "routes", "all"),
+                                "how far around the selection to reach; default keeps the current scope"),
+                        p("focus", bool(), "true hides everything outside the scope; false dims it instead"),
+                        p("scaffolding", bool(), "show the framework nodes Fluxtion adds to every graph"),
+                        p("step", integer(), "advance the cursor by N rows (negative steps back)"),
+                        p("recordIndex", integer(), "move the cursor to this record in the filtered view"),
+                        p("source", bool(), "show the source pane beside the graph"),
+                        p("orientation", enumStr("top_down", "left_right"), "layout direction"),
+                        p("fit", bool(), "frame the whole graph"),
+                        p("showAll", bool(), "clear selection, focus and cycle shading — the plain graph")),
+                List.of()));
+
+        s.put("screenshot", schema("Write a PNG of the app's own window to a path. Painted by the app, "
+                        + "so it needs no screen-recording permission — and captures exactly the state the "
+                        + "other verbs just set up.",
+                props(
+                        p("path", string(), "where to write the .png"),
+                        p("scope", enumStr("window", "topology", "records"),
+                                "whole window (default), or just one panel")),
+                req("path")));
+
+        s.put("open", schema("Open an audit log and/or a processor .graphml. Reaches the FILESYSTEM: it "
+                        + "points the app at any readable path.",
+                props(
+                        p("log", string(), "path to an audit log, or an s3:// URI"),
+                        p("graphml", string(), "path to a processor .graphml"),
+                        p("processor", string(), "fully-qualified EventProcessor class to resolve nodes "
+                                + "against; needed before source navigation works")),
+                List.of()));
+
+        s.put("source_root", schema("Inspect or change the configured Java source roots. Reaches the "
+                        + "FILESYSTEM: a root grants source reading of every .java file beneath it.",
+                props(
+                        p("add", arr(string()), "roots to add"),
+                        p("remove", arr(string()), "roots to remove")),
+                List.of()));
+
         return s;
     }
 

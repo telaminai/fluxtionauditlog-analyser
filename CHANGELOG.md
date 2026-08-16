@@ -21,6 +21,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- **The app can be driven end to end by an assistant**: four new verbs — `topology`, `open`,
+  `source_root` and `screenshot` — join the six existing ones and are published as MCP tools
+  automatically. `tools/drive-analyser.sh` scripts them over the localhost REST transport.
+- Fixed: opening the source pane left the graph clipped; an unopened source pane was blank rather than
+  explaining itself; adding a source root did not re-run EventProcessor inference.
 - Documentation: the Topology guide covers the exploration model, stepping controls and source split,
   with fresh screenshots; the in-app help (Help ▸ User guide) gains a Topology section.
 - The Topology tab remembers its zoom, pan, orientation, spacing and label size between sessions.

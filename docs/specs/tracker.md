@@ -412,6 +412,34 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.47] ☑ **The app is scriptable end to end** (owner) — four new verbs take the set from six to ten:
+  **`topology`** (select · scope · focus · scaffolding · step · record · source pane · orientation · fit ·
+  showAll, echoing the full cursor state), **`open`** (log / graphml / **processor**), **`source_root`**
+  (add / remove), **`screenshot`**. The MCP bridge picked all four up with no work, as
+  `spec-assistant-actions-mcp` promised — the verb set is enumerated from `VerbSchemas`.
+  Design points worth keeping:
+    - the filesystem-reaching verbs live behind their own `AppControl` interface, separate from
+      `RenderExecutor`. Render verbs rearrange what is loaded and are reversible; `open` replaces the log
+      (losing in-session flags) and `source_root` writes config. They are marked
+      **`destructiveHint: true`** to MCP for that reason — calling them reversible because "no file is
+      deleted" would be true and useless;
+    - **`screenshot` has the app paint itself** rather than asking the OS. A macOS screen grab needs the
+      Screen Recording permission, which a headless caller cannot grant; painting has no such gate and is
+      deterministic. It cannot draw the native title bar, so the echo carries `windowBounds` for a caller
+      that *does* hold the permission to capture the same window with `screencapture -R`.
+  `tools/drive-analyser.sh` + `tools/README.md` document the whole loop.
+- [M22.48] ☑ **Four bugs the scripted run exposed** — none would have been found by reading the code:
+    - opening the source pane left the graph **clipped**: the canvas kept a frame sized for the old width.
+      It now re-fits;
+    - both source panes were **blank** before anything was opened, which reads as broken rather than
+      empty. They now say what they are waiting for;
+    - `source: true` showed an empty pane next to a selected node. Asking for the source view is asking
+      to see source, so it now opens the selection;
+    - **adding a source root did not re-run processor inference**, so source navigation kept reporting
+      "no source mapping" with the source sitting right there. Adding a root *is* the statement "the code
+      is here", so it re-infers. That in turn exposed the need for `open {processor}`: inference only
+      considers candidates in the package of the currently-selected processor, so a differently-packaged
+      one is invisible to it.
 - [M22.46] ☑ **Docs and in-app help brought up to date** (owner). `user-guide/topology.md` gains the
   exploration model (scaffolding, scope cycle, focus, index), the new open/persistence behaviour, record
   skip + autoplay, the edge-highlight rule and the source split; its screenshot was **three months of

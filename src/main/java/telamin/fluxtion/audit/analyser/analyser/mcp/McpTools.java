@@ -59,6 +59,15 @@ public final class McpTools {
     }
 
     /**
+     * Verbs whose effect is <b>not</b> reversible from the UI: {@code open} replaces the loaded log, and
+     * anything held only in the session — flags, their notes — goes with it; {@code source_root} writes
+     * the persisted config. Marking them {@code destructiveHint:true} is what lets a client prompt before
+     * running them, which is the whole point of the hint. Calling them reversible because "no file is
+     * deleted" would be true and useless.
+     */
+    private static final java.util.Set<String> DESTRUCTIVE = java.util.Set.of("open", "source_root");
+
+    /**
      * Read-only hint on the query verbs only. The render verbs change what the UI shows, so they are not
      * read-only — but nothing is deleted and every one of them is reversible (a filter can be widened, a
      * graph closed, a flag cleared), hence {@code destructiveHint:false}.
@@ -67,7 +76,7 @@ public final class McpTools {
         Map<String, Object> a = new LinkedHashMap<>();
         boolean readOnly = READ_ONLY.contains(verb);
         a.put("readOnlyHint", readOnly);
-        if (!readOnly) a.put("destructiveHint", false);
+        if (!readOnly) a.put("destructiveHint", DESTRUCTIVE.contains(verb));
         return a;
     }
 }

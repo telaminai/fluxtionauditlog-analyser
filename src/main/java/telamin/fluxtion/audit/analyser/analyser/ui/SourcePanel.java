@@ -315,6 +315,12 @@ public final class SourcePanel extends JPanel {
             add(label, BorderLayout.NORTH);
             add(scroll, BorderLayout.CENTER);
             applyTheme();
+            // a blank pane reads as broken; say what it is waiting for
+            renderPlain(role.equals("Node")
+                    ? "No node open.\n\nCtrl-click a type here, or open a node from the topology "
+                      + "(Enter on a selected node, or its right-click menu)."
+                    : "No EventProcessor open.\n\nPick one above and press Show, or select a record — "
+                      + "the processor is inferred from the log's instance ids.");
 
             MouseAdapter nav = new MouseAdapter() {
                 @Override public void mousePressed(MouseEvent e) {

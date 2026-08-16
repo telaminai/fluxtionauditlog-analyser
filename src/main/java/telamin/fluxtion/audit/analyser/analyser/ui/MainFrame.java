@@ -25,10 +25,12 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -110,6 +112,7 @@ public final class MainFrame extends JFrame {
         graphTabs.setTimeClickHandler(this::gotoNearestRecordByTime);
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
+        actionExecutor.bind(topologyPanel, new AppControlAdapter());
         llmPanel.bind(() -> config, () -> selectedRecords, sourceService::selectedFqn,
                 this::currentLogFileInfo, () -> store, actionExecutor, sourceService);
         applyRestServer();   // start the localhost REST transport if the profile opted in
@@ -1371,6 +1374,146 @@ public final class MainFrame extends JFrame {
         }
         topologyPanel.load(file);   // the load listener records it
         if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+    }
+
+    /**
+     * {@link telamin.fluxtion.audit.analyser.analyser.llm.AppControl} over this frame — the verbs that
+     * open files and configure source roots.
+     *
+     * <p>An inner class rather than {@code MainFrame implements AppControl}: these methods reach the
+     * filesystem, and keeping them in one named place makes the app's whole scriptable surface visible
+     * at a glance instead of scattered among two hundred UI methods.
+     */
+    private final class AppControlAdapter implements telamin.fluxtion.audit.analyser.analyser.llm.AppControl {
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path) {
+            if (path == null || path.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'log' is empty");
+            }
+            if (!S3Source.isS3(path) && !Files.isReadable(Path.of(path))) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "cannot read log '" + path + "'");
+            }
+            openLocation(path);
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
+                    "open", "log", Map.of("path", path));
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openGraphml(String path) {
+            if (path == null || path.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'graphml' is empty");
+            }
+            Path file = Path.of(path);
+            if (!Files.isReadable(file)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "cannot read graphml '" + path + "'");
+            }
+            topologyPanel.load(file);
+            if (!topologyPanel.hasTopology()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "not a readable Fluxtion .graphml: " + path);
+            }
+            if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
+                    "open", "graphml", Map.of("path", path));
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult selectProcessor(String fqn) {
+            if (fqn == null || fqn.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'processor' is empty");
+            }
+            if (sourceService.sourceForFqn(fqn).isEmpty()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "no source for '" + fqn + "' under the configured roots");
+            }
+            config.selectedEventProcessor = fqn;
+            sourceService.select(fqn);
+            onConfigChanged();
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
+                    "open", "processor", Map.of("fqn", fqn));
+        }
+
+        @Override
+        public List<String> sourceRoots() {
+            return List.copyOf(config.sourceRoots);
+        }
+
+        @Override
+        public boolean addSourceRoot(String path) {
+            if (path == null || path.isBlank()) return false;
+            Path dir = Path.of(path);
+            if (!Files.isDirectory(dir)) return false;
+            String canonical = dir.toAbsolutePath().normalize().toString();
+            if (!config.sourceRoots.contains(canonical)) config.sourceRoots.add(canonical);
+            onConfigChanged();
+            // Adding a root IS the statement "the code is here". Inference runs when a log is opened, so
+            // a root added afterwards would otherwise leave the processor unresolved and every
+            // source-navigation attempt reporting "no source mapping" with the source sitting right there.
+            inferAndPopulateSource();
+            return true;
+        }
+
+        @Override
+        public boolean removeSourceRoot(String path) {
+            if (path == null) return false;
+            String canonical = Path.of(path).toAbsolutePath().normalize().toString();
+            boolean removed = config.sourceRoots.remove(canonical) || config.sourceRoots.remove(path);
+            if (removed) onConfigChanged();
+            return removed;
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult screenshot(String path, String scope) {
+            if (path == null || path.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'path' is required");
+            }
+            java.awt.Component target = switch (scope == null ? "window" : scope.toLowerCase(java.util.Locale.ROOT)) {
+                case "topology" -> topologyPanel;
+                case "records" -> tablePanel;
+                default -> getContentPane();
+            };
+            if (target.getWidth() <= 0 || target.getHeight() <= 0) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "nothing to capture — the window has no size yet");
+            }
+            try {
+                java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
+                        target.getWidth(), target.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
+                java.awt.Graphics2D g = img.createGraphics();
+                target.paint(g);
+                g.dispose();
+                Path out = Path.of(path);
+                if (out.getParent() != null) Files.createDirectories(out.getParent());
+                javax.imageio.ImageIO.write(img, "png", out.toFile());
+                // The window's position on screen, so a caller that DOES have the OS screen-recording
+                // permission can take a native capture (with the title bar) of exactly this window —
+                // `screencapture -R x,y,w,h`. Painting cannot draw the title bar; the window server owns it.
+                java.awt.Rectangle onScreen = new java.awt.Rectangle(getLocationOnScreen(), getSize());
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("screenshot", "wrote",
+                        Map.of("path", out.toAbsolutePath().toString(),
+                                "width", img.getWidth(), "height", img.getHeight(),
+                                "windowBounds", Map.of("x", onScreen.x, "y", onScreen.y,
+                                        "width", onScreen.width, "height", onScreen.height)));
+            } catch (java.io.IOException e) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "could not write " + path + ": " + e.getMessage());
+            }
+        }
+
+        @Override
+        public boolean showTab(String name) {
+            if (sideTabs == null || name == null) return false;
+            for (int i = 0; i < sideTabs.getTabCount(); i++) {
+                if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)) {
+                    sideTabs.setSelectedIndex(i);
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private void rememberGraphml(java.nio.file.Path file) {
