@@ -234,12 +234,31 @@ public final class TopologyPanel extends JPanel {
      * the view can hide most of the graph.
      */
     private void showAll() {
+        clearHighlights();
+    }
+
+    /**
+     * Back to the plain graph: nothing selected, nothing focused, and <b>no cycle shading</b>, so every
+     * node is at full strength.
+     *
+     * <p>Dropping the cycle shading as well is the point. Selection dimming and execution dimming look
+     * the same on screen, so clearing only the selection leaves a graph that is still half-faded and
+     * gives no way to see the whole thing plainly. Stepping restores the shading on the next keypress,
+     * so nothing is lost — {@link #stepBy} re-applies the cycle when it finds it cleared.
+     */
+    private void clearHighlights() {
         selection.clear();
         scope = TopologyFocus.Scope.NODE;
         focusButton.setSelected(false);
         canvas.select(null);
+        shadingCleared = true;
+        canvas.setDispatch(List.of(), List.of(), false);
+        canvas.clearCursor();
         applyView();
     }
+
+    /** True while the cycle shading has been deliberately dropped; the next step brings it back. */
+    private boolean shadingCleared;
 
     private JButton button(String text, Runnable action) {
         JButton b = new JButton(text);
@@ -333,9 +352,10 @@ public final class TopologyPanel extends JPanel {
      */
     private void onNodeClicked(String id, boolean additive) {
         if (id == null) {
-            selection.clear();
-            scope = TopologyFocus.Scope.NODE;
-        } else if (additive) {
+            clearHighlights();
+            return;
+        }
+        if (additive) {
             if (!selection.remove(id)) selection.add(id);
         } else if (selection.size() == 1 && selection.contains(id)) {
             scope = scope.next();
@@ -372,8 +392,9 @@ public final class TopologyPanel extends JPanel {
         canvas.setSelectedNodes(selection);
         index.setSelection(selection);
 
-        // the canvas cleared its shading when the graph changed — put the current cycle back
-        if (!cycle.isEmpty() && cursor.record() != null) {
+        // the canvas cleared its shading when the graph changed — put the current cycle back, unless the
+        // user has just asked to see the plain graph
+        if (!shadingCleared && !cycle.isEmpty() && cursor.record() != null) {
             showCycleOf(cursor.record());
             canvas.setCursor(cursor.currentInstanceId(), cursor.steppedSoFar(), cursor.atEntry());
         }
@@ -574,6 +595,7 @@ public final class TopologyPanel extends JPanel {
      */
     public void showRecord(LogRecord record, int filteredIndex) {
         if (!syncing && autoplay.isRunning()) stopPlay();   // a manual selection wins over the timer
+        shadingCleared = false;                             // a new record is a new cycle to shade
         cycle = record == null ? List.of() : record.nodeLogs();
         List<String> order = new ArrayList<>(cycle.size());
         for (NodeLog n : cycle) order.add(n.instanceId());
@@ -610,6 +632,12 @@ public final class TopologyPanel extends JPanel {
 
     private void stepBy(int delta) {
         if (cursor.isEmpty()) return;
+        if (shadingCleared) {
+            // the user cleared the view, then asked to step again: restore the cycle before moving, or
+            // the first keypress would silently do half of what the second one does
+            shadingCleared = false;
+            showCycleOf(cursor.record());
+        }
         int before = cursor.recordIndex();
         boolean moved = delta > 0 ? cursor.next() : cursor.prev();
         if (!moved) return;
@@ -644,6 +672,7 @@ public final class TopologyPanel extends JPanel {
      */
     private void moveRecord(int delta) {
         if (cursor.isEmpty()) return;
+        shadingCleared = false;
         int target = cursor.recordIndex() + delta;
         if (target < 0 || (recordSource != null && target >= recordSource.size())) return;
         syncing = true;
@@ -682,6 +711,10 @@ public final class TopologyPanel extends JPanel {
     }
 
     private void showWholeCycle() {
+        if (shadingCleared) {                        // asking for the cycle is asking for it to be shaded
+            shadingCleared = false;
+            showCycleOf(cursor.record());
+        }
         cursor.moveToRecord(cursor.recordIndex());   // back to the entry: the whole cycle, nothing current
         canvas.select(null);
         syncCursor();

@@ -409,6 +409,15 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.34] ☑ **Show all / background click returns the plain, fully-lit graph** (owner). Clearing the
+  selection was not enough: **selection dimming and execution dimming look identical on screen**, so a
+  graph with a record selected stayed half-faded and there was no way to see the whole thing plainly. Both
+  are now dropped together — selection, focus, emphasis *and* the cycle shading. Nothing is lost: stepping
+  (↓/↑), the record buttons, *Whole cycle* and selecting a row all restore the shading, and `stepBy`
+  restores it **before** moving so the first keypress after a clear does not silently do half of what the
+  second does.
+  A background press is also how a **pan** starts, so the clear is held until release and dropped if the
+  mouse moves — otherwise dragging the canvas would wipe the shading every time.
 - [M22.29] ☑ **Only edges that carried dispatch light up while stepping** (owner). Highlighting every
   edge touching the current node is right with no cycle on screen and **wrong** the moment one is on:
   stepping into `quotePublisher` on an order cycle lit its `QuoteControl` edge, asserting that an operator

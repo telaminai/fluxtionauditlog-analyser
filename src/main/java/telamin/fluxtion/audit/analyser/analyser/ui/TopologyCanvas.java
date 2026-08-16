@@ -98,15 +98,20 @@ public final class TopologyCanvas extends JPanel {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     TopologyLayout.NodeBox hit = boxAt(e.getX(), e.getY());
                     String id = hit == null ? null : hit.id();
+                    // Cmd on macOS, Ctrl elsewhere (plain Ctrl-click is the popup trigger on macOS),
+                    // Shift as a second spelling everywhere
+                    int menuMask = java.awt.Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+                    boolean additive = (e.getModifiersEx() & menuMask) != 0 || e.isShiftDown();
                     if (e.getClickCount() == 2 && id != null) {
                         nodeActivated.accept(id);
-                    } else {
+                    } else if (id != null) {
                         select(id);
-                        // Cmd on macOS, Ctrl elsewhere (plain Ctrl-click is the popup trigger on macOS),
-                        // Shift as a second spelling everywhere
-                        int menuMask = java.awt.Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
-                        boolean additive = (e.getModifiersEx() & menuMask) != 0 || e.isShiftDown();
                         nodeClicked.accept(id, additive);
+                    } else {
+                        // A press on the background is also how a pan starts, and a pan must not be read
+                        // as "clear everything". Held until release, and dropped if the mouse moves.
+                        pendingBackgroundClick = true;
+                        pendingAdditive = additive;
                     }
                 }
             }
@@ -114,6 +119,7 @@ public final class TopologyCanvas extends JPanel {
             @Override
             public void mouseDragged(MouseEvent e) {
                 if (dragOrigin == null) return;
+                pendingBackgroundClick = false;   // this is a pan, not a click
                 offsetX = dragOffsetX + (e.getX() - dragOrigin.x());
                 offsetY = dragOffsetY + (e.getY() - dragOrigin.y());
                 setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
@@ -125,6 +131,11 @@ public final class TopologyCanvas extends JPanel {
                 dragOrigin = null;
                 setCursor(Cursor.getDefaultCursor());
                 maybeShowMenu(e);   // popup trigger fires on press on some platforms, release on others
+                if (pendingBackgroundClick) {
+                    pendingBackgroundClick = false;
+                    select(null);
+                    nodeClicked.accept(null, pendingAdditive);
+                }
             }
 
             @Override
@@ -206,6 +217,8 @@ public final class TopologyCanvas extends JPanel {
 
     private ProcessorTopology classifyAgainst;
 
+    private boolean pendingBackgroundClick;
+    private boolean pendingAdditive;
     private final java.util.Set<String> emphasis = new java.util.LinkedHashSet<>();
     /** The nodes actually clicked. Distinct from {@link #emphasis}, which is what their scope reaches. */
     private final java.util.Set<String> selectedNodes = new java.util.LinkedHashSet<>();

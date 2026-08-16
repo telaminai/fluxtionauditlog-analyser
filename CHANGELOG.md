@@ -21,6 +21,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- **Show all**, or a click on empty canvas, returns the topology to the plain full graph — selection,
+  focus and cycle shading all cleared, every node at full strength. Stepping brings the shading back.
 - **Open recent** is split into *audit log* and *GraphML*.
 - While stepping, only edges whose **both** ends ran are highlighted — an arrow from a node that did not
   run is no longer drawn as though the event arrived that way.
