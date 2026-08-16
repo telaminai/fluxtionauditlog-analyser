@@ -220,7 +220,10 @@ public final class PdfDoc {
                 + pages.size() + " >>"));
 
         for (Face f : Face.values()) {
-            objects.add(bytes("<< /Type /Font /Subtype /Type1 /BaseFont /" + f.baseFont + " >>"));
+            // WinAnsi, not the default StandardEncoding: without it bytes 0x80-0xFF are read from a
+            // 1980s glyph table, so a middot or an accented name renders as something else entirely
+            objects.add(bytes("<< /Type /Font /Subtype /Type1 /BaseFont /" + f.baseFont
+                    + " /Encoding /WinAnsiEncoding >>"));
         }
         objects.addAll(imageObjects);
 
@@ -287,7 +290,16 @@ public final class PdfDoc {
         return String.format("%.3f", f);
     }
 
-    /** Escape for a PDF literal string; the standard-14 fonts are single-byte, so drop what cannot show. */
+    /**
+     * Escape for a PDF literal string, in WinAnsi.
+     *
+     * <p>The standard-14 fonts are single-byte, so anything above U+00FF has to become something. The
+     * obvious "replace it with {@code ?}" is wrong in the one case that actually occurs: this codebase
+     * writes em dashes and curly quotes everywhere, and a report reading "the evidence ? the explanation
+     * rests on" looks like a corrupted file rather than a typographic limitation. Common punctuation is
+     * therefore transliterated to its ASCII equivalent, and only genuinely unrepresentable characters
+     * fall back to {@code ?}.
+     */
     private static String escape(String s) {
         StringBuilder sb = new StringBuilder(s.length() + 8);
         for (int i = 0; i < s.length(); i++) {
@@ -297,6 +309,14 @@ public final class PdfDoc {
                 case ')' -> sb.append("\\)");
                 case '\\' -> sb.append("\\\\");
                 case '\t' -> sb.append("    ");
+                case '—', '–', '−' -> sb.append('-');       // em/en dash, minus
+                case '‘', '’', '‛' -> sb.append('\'');      // curly single quotes
+                case '“', '”' -> sb.append('"');                 // curly double quotes
+                case '…' -> sb.append("...");                         // ellipsis
+                case '•' -> sb.append('·');                      // bullet → middot (WinAnsi)
+                case ' ', ' ', ' ' -> sb.append(' ');       // non-breaking / thin spaces
+                case '→' -> sb.append("->");                          // rightwards arrow
+                case '✓', '✔' -> sb.append('v');                 // check marks
                 default -> sb.append(c > 0xFF ? '?' : c);
             }
         }

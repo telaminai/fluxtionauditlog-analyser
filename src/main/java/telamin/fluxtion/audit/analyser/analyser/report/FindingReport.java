@@ -210,22 +210,31 @@ public final class FindingReport {
      * A monospace evidence block. Log lines are paginated rather than truncated: a node log cut off at
      * the page break is exactly where the interesting line tends to be.
      */
+    private static final float MONO_LINE_H = 11f;
+    private static final float MONO_SIZE = 8.2f;
+    /** Never start a block that can only fit a line or two — the rest widows onto an empty page. */
+    private static final int MIN_LINES_WITH_HEADING = 5;
+
     private static void monoBlock(PdfDoc doc, Cursor c, String heading, List<String> lines, String blurb) {
-        c.ensure(doc, 70);
+        // pre-flow before deciding where the heading goes: how much room this needs is a property of the
+        // wrapped lines, not of the raw ones
+        List<String> flowed = new ArrayList<>();
+        for (String line : lines) {
+            flowed.addAll(PdfDoc.wrap(line, PdfDoc.Face.COURIER, MONO_SIZE, CONTENT_W - 20));
+        }
+        float headingH = 30 + (blurb == null ? 0 : 11 * PdfDoc.wrap(
+                blurb, PdfDoc.Face.HELVETICA, 8.5f, CONTENT_W).size());
+        int wanted = Math.max(1, Math.min(flowed.isEmpty() ? 1 : flowed.size(), MIN_LINES_WITH_HEADING));
+        c.ensure(doc, headingH + wanted * MONO_LINE_H + 26);
+
         sectionHeading(doc, c, heading, blurb);
         if (lines.isEmpty()) {
             doc.text("(nothing recorded)", MARGIN + 10, c.y + 12, PdfDoc.Face.HELVETICA, 9.5f, MUTED);
             c.y += 26;
             return;
         }
-        float lineH = 11f;
-        float size = 8.2f;
-        float textW = CONTENT_W - 20;
-        // pre-flow so a wrapped line is never split across the panel edge
-        List<String> flowed = new ArrayList<>();
-        for (String line : lines) {
-            flowed.addAll(PdfDoc.wrap(line, PdfDoc.Face.COURIER, size, textW));
-        }
+        float lineH = MONO_LINE_H;
+        float size = MONO_SIZE;
         int i = 0;
         while (i < flowed.size()) {
             float available = BOTTOM - c.y - 12;

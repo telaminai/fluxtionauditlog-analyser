@@ -317,8 +317,17 @@ plot shows trends, this is a particular issue diagnosis."_
   - Pictures shrink to fit the space left on the page (down to 260pt, below which a screenshot is
     unreadable and a page break is better). A first draft always pushed the image to a new page and
     produced a third-full page 1 — caught by looking at the output, not by a test.
-  - 14 tests (`FindingReportTest`) covering the value type's merge semantics, the coordinate flip, PDF
+  - 17 tests (`FindingReportTest`) covering the value type's merge semantics, the coordinate flip, PDF
     string escaping, image embedding, wrapping, pagination and footers.
+  - _Two defects found by **looking at the exported PDF**, both invisible to the tests that existed:_
+    (a) em dashes rendered as `?` — the standard-14 fonts are single-byte and my fallback replaced
+    everything above U+00FF with a question mark, which reads as a corrupted file rather than a
+    typographic limit. Common punctuation is now transliterated, and the fonts declare
+    `/WinAnsiEncoding` so bytes 0x80–0xFF are not read from a 1980s glyph table.
+    (b) a 3-line node log widowed across a page break, leaving one line at the foot of one page and two
+    on an otherwise blank next page — a section heading was placed with room for less than it needed.
+    Both now have regression tests; the widow test **sweeps** the variable that moves the cursor rather
+    than guessing one value, because the first version of it passed with the fix deliberately disabled.
 - [M23.9] ☑ **`flag` carries a `fix`; a human can write one too.** `flag {note, fix}` — supplying one
   keeps the other (`Finding.merge`), so an agent adding a suggested fix cannot wipe the note that says
   what the fix is for. Records ▸ *Write a finding for this record…* is the human path into the same

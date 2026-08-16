@@ -90,6 +90,30 @@ class FindingReportTest {
                 "an unescaped ')' truncates the string and corrupts the page");
     }
 
+    /**
+     * The standard-14 fonts are single-byte, and this codebase writes em dashes and curly quotes
+     * everywhere. Replacing them with '?' — the obvious fallback — makes a report read like a corrupted
+     * file rather than a typographic limitation, which is exactly how it shipped in the first draft.
+     */
+    @Test
+    void typographicPunctuationIsTransliteratedNotReplacedWithQuestionMarks() {
+        PdfDoc doc = new PdfDoc();
+        doc.text("evidence — the “claim” it rests on… 100 → 200", 10, 10,
+                PdfDoc.Face.HELVETICA, 9, Color.BLACK);
+        String out = body(doc.toBytes());
+
+        assertTrue(out.contains("evidence - the \"claim\" it rests on... 100 -> 200"), out);
+        assertFalse(out.contains("?"), "no character should degrade to a question mark here");
+    }
+
+    /** Without WinAnsi the viewer reads bytes 0x80-0xFF from StandardEncoding and renders the wrong glyph. */
+    @Test
+    void fontsDeclareWinAnsiEncoding() {
+        String out = body(new PdfDoc().toBytes());
+        assertTrue(out.contains("/BaseFont /Helvetica /Encoding /WinAnsiEncoding"));
+        assertTrue(out.contains("/BaseFont /Courier /Encoding /WinAnsiEncoding"));
+    }
+
     @Test
     void pagesAreCountedAndSelectable() {
         PdfDoc doc = new PdfDoc();
@@ -202,6 +226,38 @@ class FindingReportTest {
         assertTrue(m.find());
         assertTrue(Integer.parseInt(m.group(1)) >= 4,
                 "400 log lines should span several pages, got " + m.group(1));
+    }
+
+    /**
+     * A short node log must not be split across a page boundary. The first draft put the "Node log"
+     * heading at the foot of page 2 with room for one of its three lines and widowed the other two onto
+     * a page that was otherwise blank — visible immediately in the output, invisible to every test.
+     */
+    @Test
+    void aShortBlockIsNotWidowedAcrossAPageBreak() {
+        // The break depends on exactly where the cursor lands, so sweep the thing that moves it rather
+        // than guess one value. Every event-record length must keep the 3-line node log together.
+        for (int eventLines = 1; eventLines <= 70; eventLines++) {
+            List<String> event = new ArrayList<>();
+            for (int i = 0; i < eventLines; i++) event.add("  field" + i + ": value" + i);
+
+            FindingReport.Evidence e = new FindingReport.Evidence(
+                    "Widow check", new Finding(5, "something is wrong", null), "log.yaml", null, null,
+                    null, event,
+                    List.of("  1. alpha  x=1", "  2. beta  y=2", "  3. gamma  z=3"),
+                    null, null, null);
+            String out = body(FindingReport.render(e));
+
+            String[] pages = out.split("/Type /Page /Parent");
+            int alpha = -1, gamma = -1;
+            for (int i = 0; i < pages.length; i++) {
+                if (pages[i].contains("alpha")) alpha = i;
+                if (pages[i].contains("gamma")) gamma = i;
+            }
+            assertTrue(alpha > 0 && alpha == gamma,
+                    "with " + eventLines + " event lines the 3-line node log split across pages "
+                            + alpha + " and " + gamma);
+        }
     }
 
     /** Every page carries the anchor, because printed pages get separated from each other. */
