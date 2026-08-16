@@ -409,7 +409,12 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
-- [M22.41] ☑ **Fixed: arrow-key stepping stopped working** (owner). A `JSplitPane`'s look-and-feel binds
+- [M22.43] ☑ **Dark-theme node fills lifted for contrast** (owner: "getting lost when not dimmed"). M22.28
+  fixed the *light* theme's invisible plain node but left dark only a few steps off its canvas, so an
+  undimmed node barely read as filled. All five kinds are raised, and **the border moved with them** — at
+  `0x30363D` it was darker than the new fills, so lifting the fills alone would have traded one vanishing
+  element for another. Both states re-checked by render: undimmed nodes read against the canvas, dimmed
+  ones still recede. (owner). A `JSplitPane`'s look-and-feel binds
   Up/Down/Left/Right to move its divider in the **ancestor** input map, and key lookup walks *up* from the
   focused component — so the split added in M22.37 sat between the canvas and the panel and was consulted
   first. Adding a source pane silently broke stepping, and nothing threw. The four strokes are now

@@ -849,17 +849,22 @@ public final class TopologyCanvas extends JPanel {
     private static Color fillFor(ProcessorTopology.Node node, boolean dark) {
         ProcessorTopology.Kind kind = node == null ? ProcessorTopology.Kind.UNKNOWN : node.kind();
         return switch (kind) {
-            case EVENT -> dark ? new Color(0x33301F) : new Color(0xFFF8C5);
-            case EVENT_HANDLER -> dark ? new Color(0x1B3140) : new Color(0xDDF4FF);
-            case EXPORT_SERVICE -> dark ? new Color(0x2E2640) : new Color(0xF3E8FF);
-            case NODE -> dark ? new Color(0x2A313B) : new Color(0xE9EEF4);
-            case UNKNOWN -> dark ? new Color(0x343B45) : new Color(0xDDE2E8);
+            case EVENT -> dark ? new Color(0x4B4526) : new Color(0xFFF8C5);
+            case EVENT_HANDLER -> dark ? new Color(0x24455C) : new Color(0xDDF4FF);
+            case EXPORT_SERVICE -> dark ? new Color(0x40355C) : new Color(0xF3E8FF);
+            case NODE -> dark ? new Color(0x39424F) : new Color(0xE9EEF4);
+            case UNKNOWN -> dark ? new Color(0x4A525E) : new Color(0xDDE2E8);
         };
     }
 
+    /**
+     * The border has to stay visible against the fill it outlines. In dark mode the old value was darker
+     * than the (now lighter) fills, so raising the fills for contrast against the canvas would have made
+     * the outline vanish into them — the two colours have to move together.
+     */
     private static Color borderFor(boolean dark, boolean hovered) {
-        if (hovered) return dark ? new Color(0x8B949E) : new Color(0x57606A);
-        return dark ? new Color(0x30363D) : new Color(0xB6BFC9);
+        if (hovered) return dark ? new Color(0xADB6C0) : new Color(0x57606A);
+        return dark ? new Color(0x616C7A) : new Color(0xB6BFC9);
     }
 
     /** Blend {@code from} toward {@code to} by {@code amount} — used to tint a selected node's fill. */
