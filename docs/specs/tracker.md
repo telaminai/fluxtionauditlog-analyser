@@ -256,7 +256,12 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
     weaker one, the entry a dashed one; the node keeps its own execution border and fill underneath.
     Recolouring the border (the obvious implementation) would hide what the log establishes in order to
     show where you are standing — two different questions, both needed at once. Verified offscreen.
-  - [S3] ☐ buttons + keys + table ⇄ cursor ⇄ detail sync.
+  - [S3] ☑ **Wiring** — cursor walks the **filtered** view (`RecordSource` over the table's visible
+    rows, so stepping honours the shared filter); `[` / `]` keys (F3 left alone — one key meaning two
+    kinds of "next" is worse than a second pair); rolling into another record re-shades the canvas and
+    moves the table selection; the row under the cursor is highlighted in the detail viewer's
+    `nodeLogs` text **by occurrence**, so a node logging twice highlights the right line. A guard flag
+    stops the table ⇄ cursor sync looping.
   - [S4] ☐ docs + spec-graph-replay §4 + CHANGELOG.
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
 - [M21.9] ☐ **Use `ProcessorDescriptor` instead of inferring** _(found 2026-08-16 reading a generated
