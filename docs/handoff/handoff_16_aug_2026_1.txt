@@ -1,0 +1,60 @@
+HANDOFF — intra-record step-through on the topology (supersedes the M20 brief on this branch)
+Date: 2026-08-16 · From: main session · Owner-specified design (verbatim intent below)
+
+M20 (handoff_15_aug_2026_2.txt) is DEFERRED — do not start it. This brief is the next piece of work.
+Keep the R1 commit already on this branch; it rides along.
+
+STEP 0 — REBASE THIS BRANCH ONTO main FIRST. You are 15 commits behind, and every one of them matters
+here: main now has the corrected execution semantics (ProcessorTopology.Execution five-state model,
+AuditTrace traced-regime detection, EntryPointResolver), the real compiler-emitted fixtures
+(src/test/resources/topology/demo-quote-audit{,-traced}.yaml + demo-quote-processor.graphml, regenerable
+via examples/fixture-generator), the .graphml drag-and-drop, and the review/report trail. Read
+docs/handoff/report_fix_m21-execution-vs-logging.txt and its review before writing code — the semantics
+constraints below come from there and are non-negotiable.
+
+THE DESIGN (owner-specified):
+  One step cursor walks the log at two depths with a single Next/Prev:
+      eventLogRecord → each nodeLog row within it → next eventLogRecord → its rows → …
+  The topology follows the cursor: entering a record marks the ENTRY POINT (event or exported-service
+  call — EntryPointResolver already resolves it); each step highlights that row's node as the current
+  dispatch position, with already-stepped rows of the SAME cycle staying lit (accumulate within the
+  cycle); rolling into the next record clears the accumulation and marks the new entry.
+
+SEMANTICS CONSTRAINTS (from the merged fix branch — violating these re-introduces the bugs it fixed):
+  - The row order IS the dispatch sequence; the layout's layers are a partial order and say nothing.
+    The numbers already painted on nodes come from the log — the cursor and those numbers must agree.
+  - UNTRACED records: rows are the nodes that LOGGED, nothing more. The step label must say so —
+    "row 3/8 (logged nodes)" — and silent nodes keep their RAN_SILENTLY / MAY_HAVE_RUN shading at
+    every step. Stepping must never imply "these were the only nodes that ran".
+  - TRACED records (AuditTrace detects them): rows are every invocation; stepping is exact; absent
+    nodes stay DID_NOT_RUN and the label can say "invocation 3/16".
+  - The SAME instanceId can appear in several rows of one record — each row is its own step; the node
+    re-highlights as current again. Do not dedupe.
+  - Record sequence respects the SHARED FILTER (next record = next in the filtered view, like F3).
+
+UX WIRING (all two-way, reusing what exists):
+  - Next/Prev buttons on the Topology tab + keyboard (suggest [ and ] — F3/Shift+F3 stay
+    anomaly-jump; do not overload them). Stepping past the last row advances the record; before the
+    first row, retreats to the previous record's last row (bidirectional — the log is complete).
+  - Record table selection ⇄ cursor: selecting a record puts the cursor at its entry (step 0);
+    stepping into a new record moves the table selection.
+  - Detail viewer sync: the cursor's current row is highlighted in the record detail's nodeLogs text —
+    step in the graph, see the row; the two views narrate each other.
+  - Status line: record timestamp · row k/n (+regime wording above) · instanceId · the row's key/values
+    summarised.
+
+SLICES (one commit each, mvn test green before each):
+  S1  StepCursor — pure model over (filtered record sequence × that record's nodeLog rows): next/prev,
+      recordIndex, rowIndex, entry-point id, regime-aware labels. NO Swing. Test against BOTH demo
+      fixtures — the traced/untraced label difference is a test assertion, not a hope.
+  S2  Topology highlight states for the cursor (current row · stepped-so-far · entry marker) painted
+      distinctly from the existing Execution shading — current is a strong outline, not a recolour,
+      so the epistemic states stay visible underneath. Theme-aware both ways.
+  S3  Wiring: buttons + keys + table⇄cursor⇄detail sync (EDT rules per ONBOARDING).
+  S4  Docs (topology.md gains a "Step through a cycle" section; spec-graph-replay §4 updated to this
+      finalized granularity) + CHANGELOG + tracker.
+
+PROCESS (per CLAUDE.md — unchanged): changelog same-commit · tracker ☑ per slice · anonymisation sweep ·
+mkdocs build --strict for the docs slice · report to docs/handoff/handoff_16_aug_2026_1_report.txt,
+committed with your final change; deviations authorised, never silent; the human-eyeball list for the
+Swing slices goes in the report (the model: report_fix_m21-execution-vs-logging.txt §5).
