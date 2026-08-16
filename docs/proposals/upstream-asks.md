@@ -18,6 +18,8 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
+**Filed 2026-08-16:** all nine fluxtion-owned asks are open as [telaminai/fluxtion issues 8–13](https://github.com/telaminai/fluxtion/issues) (some grouped: 11 covers UP-FLX-11+12, 12 covers UP-FLX-14+SHARED-01, 8 covers UP-FLX-01+SHARED-02). The four `svc-admin-web` asks (UP-WEB-01…04) belong to `telaminai/mongoose-plugins` and are **not yet filed** — see below.
+
 ---
 
 ## 1 · Fluxtion compiler — rejection codes and machine-readable diagnostics
@@ -25,7 +27,9 @@ Status: ☐ not filed · ◐ filed · ☑ landed.
 The owner is adding rejection codes (2026-08-16). These are the asks that would have saved time in this
 repo, in priority order.
 
-### UP-FLX-01 ☐ Structured, coded diagnostics with a machine-readable form
+### UP-FLX-01 ◐ Structured, coded diagnostics with a machine-readable form
+
+_Filed: https://github.com/telaminai/fluxtion/issues/8_
 
 **Target** `fluxtion` (compiler) · **Priority** high
 
@@ -66,7 +70,9 @@ it turns "read English that changes between versions, guess, retry" into a deter
 **Cost to us if unfixed** none directly (we consume logs, not the compiler), but every agent authoring a
 processor for the analyser to read pays it.
 
-### UP-FLX-02 ☐ Codes for rules that are currently prose-only
+### UP-FLX-02 ◐ Codes for rules that are currently prose-only
+
+_Filed: https://github.com/telaminai/fluxtion/issues/9_
 
 **Target** `fluxtion` (compiler) · **Priority** high for the first two
 
@@ -90,7 +96,9 @@ than merely absent, and no downstream tool can distinguish it from a node that l
 The analyser's hardest problems are all "the log does not say". Each item below is something the runtime
 knows at write time and the analyser has to guess at afterwards.
 
-### UP-FLX-10 ☐ Mark a re-dispatched record as re-dispatched
+### UP-FLX-10 ◐ Mark a re-dispatched record as re-dispatched
+
+_Filed: https://github.com/telaminai/fluxtion/issues/10_
 
 **Target** `fluxtion` (runtime, `EventLogManager`) · **Priority** high — biggest single win
 
@@ -121,7 +129,9 @@ for `processReentrantEvent`/`processAsNewEventCycle` call sites and correlating 
 inference, so it must be presented as a guess or not at all. Fixture and two pinning tests live at
 `src/test/resources/topology/demo-quote-audit.yaml` + `RealProcessorPairTest`.
 
-### UP-FLX-11 ☐ Traced-regime marker in the record header
+### UP-FLX-11 ◐ Traced-regime marker in the record header
+
+_Filed: https://github.com/telaminai/fluxtion/issues/11_
 
 **Target** `fluxtion` (runtime) · **Priority** high · *(carried over: reviewer follow-up F2)*
 
@@ -135,7 +145,9 @@ Ask: `auditLevel: TRACE` (or `tracesInvocations: true`) in the record header.
 
 **Cost to us if unfixed** an inference on every record, and no answer at all for empty cycles.
 
-### UP-FLX-12 ☐ Populate `ProcessorDescriptor.Meta`
+### UP-FLX-12 ◐ Populate `ProcessorDescriptor.Meta`
+
+_Filed: https://github.com/telaminai/fluxtion/issues/11_
 
 **Target** `fluxtion` / `mongoose` · **Priority** medium · *(carried over: reviewer follow-up F2)*
 
@@ -145,7 +157,9 @@ and would let it say *this graph is not the build that produced this log* with c
 counting unmatched instance ids. The reviewer noted `sourceFingerprint` is also the natural carrier for a
 provenance stamp.
 
-### UP-FLX-13 ☐ One spelling for exported-call signatures
+### UP-FLX-13 ◐ One spelling for exported-call signatures
+
+_Filed: https://github.com/telaminai/fluxtion/issues/13_
 
 **Target** `fluxtion` (runtime/compiler) · **Priority** medium
 
@@ -166,7 +180,9 @@ every downstream reader handle a multi-line field for no gain).
 **Cost to us if unfixed** entry-point resolution is ambiguous for any graph with two or more exported
 services — see `EntryPointResolver.addSoleExportedService`.
 
-### UP-FLX-14 ☐ Carry lifecycle/annotation facts into the GraphML
+### UP-FLX-14 ◐ Carry lifecycle/annotation facts into the GraphML
+
+_Filed: https://github.com/telaminai/fluxtion/issues/12_
 
 **Target** `fluxtion` (compiler, graphml emission) · **Priority** medium
 
@@ -227,7 +243,9 @@ arrived from outside.
 
 ## 4 · Shared assets
 
-### UP-SHARED-01 ☐ A published fixture pack
+### UP-SHARED-01 ◐ A published fixture pack
+
+_Filed: https://github.com/telaminai/fluxtion/issues/12_
 
 **Target** `fluxtion` · **Priority** medium
 
@@ -239,7 +257,9 @@ one — a hand-written fixture drifts from the log it claims to describe and sti
 Ask: publish it (or its equivalent) as a small artefact from the fluxtion repo so svc-admin-web, the
 visualiser and the analyser test against identical bytes.
 
-### UP-SHARED-02 ☐ Error-code doc anchors
+### UP-SHARED-02 ◐ Error-code doc anchors
+
+_Filed: https://github.com/telaminai/fluxtion/issues/8_
 
 **Target** `fluxtion` docs · **Priority** medium — pairs with UP-FLX-01
 
