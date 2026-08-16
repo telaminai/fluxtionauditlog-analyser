@@ -1,0 +1,140 @@
+REPORT — branch fix/m21-execution-vs-logging
+Date: 2026-08-16 · Branch tip: 9330561 · Base: main @ 8e9b6ca (M21.6)
+Prompted by: owner review of the merged M21 work, in conversation (no written brief)
+
+STATUS: complete and pushed, NOT merged — merge is the reviewing session's call.
+  12 commits · 39 files · +4724/-302 · 322 tests green · mkdocs --strict green · sweep clean
+
+WHAT THIS BRANCH IS. M21.1-21.6 shipped to main with a model of Fluxtion execution that was wrong in
+ways the tests could not see. The owner caught it in review; this branch corrects it, and then
+corrects the corrections where reading the framework docs proved them unsound too. Several fixes here
+land on work already merged — the user guide, the screenshot and the demo fixture on main are all
+superseded by commits on this branch.
+
+================================================================================
+1. WHAT SHIPPED
+================================================================================
+720c49f  execution vs logging — the original defect
+  A node absent from nodeLogs was rendered as "not involved". Audit output is opt-in per node, so
+  silence is not absence of execution. Replaced with four separable claims (ProcessorTopology.Execution):
+  LOGGED (observed) · RAN_SILENTLY (forced) · MAY_HAVE_RUN (unknown) · OFF_PATH. Only OFF_PATH fades;
+  MAY_HAVE_RUN is dashed because the log genuinely cannot say. Every state is stated in words on hover
+  and in an on-canvas legend, so colour is never the only carrier.
+  Also: EXPORTSERVICE nodes are ENTRY POINTS, not outputs (measured: in=0, out>0, like events). Output
+  leaves via sinks, which appear as SinkRegistration events feeding the publishing node.
+
+440680c + 9a4a236 + 53c8ec3  real artefacts, and the module that makes them
+  The demo fixture was mine — real instance ids over invented wiring, so its dispatch order was fiction
+  and the user-guide screenshot depicted a dataflow that never existed. Replaced with a compiler-emitted
+  pair (graphml from the Fluxtion AOT plugin; audit log from running that generated processor).
+  examples/fixture-generator is a standalone, starter-shaped Maven module that regenerates both. It is
+  deliberately NOT part of the analyser build: the analyser keeps FlatLaf as its only runtime dependency
+  and CI must not resolve a Fluxtion toolchain to run unit tests.
+
+ce574ea  the inference tightened against the framework's actual semantics
+  RAN_SILENTLY was claimed on records that are not event dispatch at all (a @Initialise/@Start callback
+  logs too, and nothing upstream caused it). Now claimed only when the entry point is known and
+  consistent with the evidence. EntryPointResolver resolves the entry from the record: an event class,
+  or — the shape the sample log actually uses — an ExportFunctionAuditEvent whose eventToString names
+  the declaring class of the invoked service method.
+
+719d0b4  traced logs — stop hedging when the log is complete
+  Build with an audit level and the generated dispatcher emits auditInvocation(...) before every
+  invocation, so every node that runs logs thread+method whether or not it calls auditLog. Measured on
+  two generated processors, same graph: addEventAudit() -> 0 such calls; addEventAudit(TRACE) -> 16.
+  AuditTrace detects such a record; classification then reports absent nodes as DID_NOT_RUN, and the
+  legend collapses to "N ran / did not run". Both regimes are real fixtures from the same graph.
+
+a8a9cc3 + eb6e6fd  the assistant
+  Its prompt now carries the same semantics: the trap, the two regimes and the per-record tell, how to
+  settle it from the EventProcessor source it is already given (grep auditInvocation), dirty propagation
+  including @OnTrigger(dirty=false) firing on the inverse, and wiring-by-constructor. Plus a
+  fetch-on-demand pointer to the authoring canon rather than ~30KB of it inline — see §4 Q2.
+
+6b9058b + d7f0bc5 + 9330561 + b3760af  the record
+  ONBOARDING gains a "read Fluxtion's semantics before the analyser's model of them" section; CLAUDE.md
+  rule 6 extends from protocols to framework semantics; M19.1 records the Spring-authoring interface;
+  M21.9 records ProcessorDescriptor as the exact answer to two things we currently infer.
+
+================================================================================
+2. WHAT I GOT WRONG, AND WHO CAUGHT IT
+================================================================================
+Recorded because the pattern matters more than the individual defects: five of six were found by the
+owner or by running real artefacts, none by the test suite.
+
+W1. "Not involved" for unlogged nodes ................. owner review
+W2. EXPORTSERVICE modelled as an output sink .......... owner ("service interfaces are callbacks")
+W3. The demo graphml was invented, and shipped in docs. owner ("are you guessing the graphml?")
+W4. Every ancestor of a logged node "must have run" .... found by rendering it — nearly the whole
+    graph came out certain, which is what made the error visible. A node with several parents needs
+    only one to have fired.
+W5. RAN_SILENTLY on lifecycle records ................. found by reading claude.txt
+W6. Wrong artefact line (com.fluxtion:compiler 9.x) ... owner ("use the bom", "wrong package"). Every
+    downstream problem I reported as a Fluxtion sharp edge — the exec:java classpath dead end
+    especially — followed from that one wrong choice, not from the framework.
+
+Two criticisms I published and then retracted, both from inferring instead of reading:
+  - "the boolean return is a footgun" — it is the dirty/propagation control, and @OnTrigger(dirty=false)
+    firing on the inverse is what makes an in-graph branch expressible. Retracted.
+  - "the on-ramp is the weakest link" — a layered LLM authoring path exists (/build-with-ai → CLAUDE.md
+    → spring-authoring skill/contract/example → the starter generates the build). My friction came from
+    never using it. Retracted, and recorded on M19.1 so the bundle work does not inherit the mistake.
+
+================================================================================
+3. SPEC-VS-REALITY MISMATCHES (fixed in the specs, not left in commit messages)
+================================================================================
+M1. spec-graph-replay §4 said "nodes that did not fire dimmed". Corrected in place with the reason,
+    since that sentence is what the original implementation was faithful to.
+M2. Layers are a PARTIAL order, not dispatch order — two nodes sharing a layer are unrelated. The
+    layout javadoc and the user guide both overstated it; the true sequence is the log's numbering.
+M3. spec-onboarding-example: added the Spring-authoring interface to the snapshot set for the
+    XML-defined example (O2), and "the build is generated output" so bundle guidance never steers a
+    user into hand-authoring a pom. NOTE: my first draft of the tracker note contradicted the spec's
+    prompt stack; the spec's design (snapshot at generation time) is better and the note now points at
+    it rather than arguing with it.
+
+================================================================================
+4. OPEN QUESTIONS FOR THE REVIEWING SESSION
+================================================================================
+Q1. M21.9 — ProcessorDescriptor carries sourceFingerprint() and graphmlResource(), which would replace
+    two things we infer: auto-resolving the right .graphml, and exact build pairing instead of the
+    instanceId heuristic in Match. Verified on two generated processors that Meta is emitted as
+    (null,null,null,null) — the contract exists, the values are unrecorded. This is an ask upstream,
+    not code here. Worth raising with the compiler team.
+Q2. The assistant prompt deliberately does NOT inline claude.txt / the golden path (authoring guidance,
+    ~30KB per request, invites answering the wrong question). It links instead. If you disagree, the
+    change is one file — but note M12.4's fix brief is where the full rules belong.
+Q3. AuditTrace detects the traced regime by "every entry carries a method key". It works, but the
+    writer knows for certain and does not say. A marker in the record header would make it explicit —
+    a second, smaller upstream ask.
+Q4. Branch size. 12 commits is more than one review ought to be. Each correction exposed the next, so
+    splitting now means separating things that genuinely depend on each other (the fixtures exist
+    because the semantics changed). Natural cut if you want one: 720c49f..53c8ec3 (semantics +
+    fixtures) and ce574ea..9330561 (tightening + docs + prompt).
+
+================================================================================
+5. NOT DONE
+================================================================================
+- NOT MERGED, by instruction. main still carries the superseded user guide, screenshot and fixture.
+- The on-screen half is unverified by me: I rendered the canvas offscreen to PNG and inspected it
+  (which is how W4 was caught), and launched the jar, but nobody has clicked through the Topology tab
+  with a traced log to see the legend collapse to "N ran / did not run".
+- M21.7 (server-sourced graphml), M21.8 (node -> flag, needs an instanceId index) untouched.
+- M20 has not started. handoff/15_aug_2026_2 sits on main with only the R1 warm-up (ReleaseNotes moved
+  out of ui). It is two sessions behind; worth deciding whether it stays with this session or moves.
+
+================================================================================
+6. HOW TO VERIFY
+================================================================================
+  mvn -o test                                  # 322 green
+  .venv/bin/mkdocs build --strict              # docs (docs/admin/docs-site.md §4a for the venv)
+  cd examples/fixture-generator && \
+    mvn process-classes exec:java -Dexec.mainClass=com.acme.demo.GenerateFixtures
+                                               # regenerates both fixtures; git diff should be empty
+                                               # (clock pinned, control records filtered — if it is
+                                               # NOT empty, that is a real finding)
+Then open the app, load src/test/resources/topology/demo-quote-audit-traced.yaml with
+demo-quote-processor.graphml in the Topology tab, and confirm the legend reads "N ran / did not run"
+and spreadCalculator is present. Load demo-quote-audit.yaml instead and confirm spreadCalculator shows
+dashed "may have run" — same graph, different audit level, opposite claim. That contrast is the whole
+point of the branch.
