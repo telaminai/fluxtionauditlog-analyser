@@ -197,6 +197,41 @@ Right-click any node:
   box, so you can edit or clear it as usual. It's a free-text scan, so it's slow on a very large log.
 - **Copy instance id** — for pasting into a prompt or a search.
 
+## Explain one cycle
+
+A chart explains a **trend**. Most support work is the other question: *this record is wrong — why?*
+
+Select the record, then **Records ▸ Write a finding for this record…**. Write what is wrong, and
+optionally where you think the cause is. The finding is then painted as a callout in the bottom-right of
+the graph whenever that record is on screen — the explanation in the ordinary text colour, the suggested
+fix in green, an amber bar down the left edge so it reads as commentary rather than as more log output.
+
+It matters that this is drawn **on the graph** rather than beside it. This picture gets screenshotted
+into a ticket, and an explanation that lives only in the app is gone the moment the image leaves it.
+
+There is exactly **one place** a finding is written — the record's flag — and three places it shows: the
+note column in the records table, this callout, and an exported report. That is deliberate. The same
+sentence maintained in two places is the same sentence right up until it isn't.
+
+Use the **Callout** state (or `topology {"callout": false}`) to hide it without losing it.
+
+## Export a finding
+
+**Records ▸ Export finding to PDF…** writes the whole diagnosis as one document:
+
+- the explanation and the suggested fix,
+- which record, when, which event, which log and which processor,
+- a picture of the topology **as you currently have it focused**,
+- the plot from the selected Graph tab, if one is open,
+- the full event record and node log, in monospace.
+
+Everything comes from what is on screen rather than being recomputed, so the document cannot disagree
+with the app it came from. Node logs paginate rather than truncate, and every page carries the record
+anchor — printed pages get separated from each other.
+
+An agent can produce the same document without you: write the finding with `flag`, set the view up with
+`goto` and `topology`, then call `report`. See [Analyser assistant](assistant.md).
+
 ## Where it fits
 
 A Mongoose server with the admin web console can show you a live processor's graph. This tab is for the

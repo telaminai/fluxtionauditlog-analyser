@@ -68,4 +68,21 @@ public interface AppControl {
 
     /** Bring a named side tab to the front ({@code Summary|Source|Graph|Topology|Analyser assistant}). */
     boolean showTab(String name);
+
+    /**
+     * Write one record's finding out as a PDF: the explanation, the event, the node log, a picture of the
+     * graph, and — when named — a relevant plot.
+     *
+     * <p>The diagnosis is already assembled on screen by the time this is called; this is the step that
+     * makes it leave the machine. A finding that can only be seen by driving the analyser is a finding
+     * that never reaches the person who has to act on it.
+     *
+     * @param path        where to write the .pdf
+     * @param recordIndex which record, or {@code null} for whatever is selected
+     * @param title       the headline; {@code null} derives one from the record
+     * @param graph       the name of a plot to include, or {@code null} for none
+     * @param withTopology include a picture of the graph
+     */
+    ActionResult exportFinding(String path, Integer recordIndex, String title, String graph,
+                               boolean withTopology);
 }

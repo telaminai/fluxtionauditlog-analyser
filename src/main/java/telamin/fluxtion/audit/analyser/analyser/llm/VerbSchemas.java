@@ -70,12 +70,28 @@ public final class VerbSchemas {
                         p("reveal", bool(), "if the record is filtered out, relax the filter to show it")),
                 List.of()));
 
-        s.put("flag", schema("Bookmark records so your findings are reviewable in the UI.",
+        s.put("flag", schema("Bookmark records so your findings are reviewable in the UI. This is the ONE "
+                        + "place a finding is written: the note and fix appear in the records table, as a "
+                        + "callout painted on the Topology graph for that record, and in an exported "
+                        + "report. Supplying only one of note/fix keeps the other.",
                 props(
                         p("byteOffsets", arr(integer()), "anchors by byte offset"),
                         p("recordIndexes", arr(integer()), "anchors by record index"),
-                        p("note", string(), "annotation stored with the flag (your finding)")),
+                        p("note", string(), "what is wrong with this cycle, and why it matters"),
+                        p("fix", string(), "the likely cause or suggested fix — where to look")),
                 List.of()));
+
+        s.put("report", schema("Export one record's finding as a PDF: the explanation and suggested fix, "
+                        + "the event, the node log, a picture of the topology as currently focused, and "
+                        + "optionally a plot. Write the finding with 'flag' and set the view up with "
+                        + "'goto' + 'topology' first — the report captures what is on screen.",
+                props(
+                        p("path", string(), "where to write the .pdf"),
+                        p("recordIndex", integer(), "which record; defaults to the current selection"),
+                        p("title", string(), "the headline; defaults to the event and record index"),
+                        p("graph", string(), "name of an open graph to include, when the problem is a trend"),
+                        p("topology", bool(), "include the graph picture (default true)")),
+                req("path")));
 
         s.put("context", schema("Read-only: what the user is currently looking at — the active filter, "
                         + "their selection and flags, the topology cursor, the open graphs, and the source "
@@ -100,6 +116,9 @@ public final class VerbSchemas {
                         p("sync", bool(), "does the source pane follow what is selected, or stay put?"),
                         p("orientation", enumStr("top_down", "left_right"), "layout direction"),
                         p("fit", bool(), "frame the whole graph"),
+                        p("callout", bool(), "show the current record's finding painted over the graph "
+                                + "(default on). The TEXT comes from that record's flag — write it with "
+                                + "'flag', not here"),
                         p("showAll", bool(), "clear selection, focus and cycle shading — the plain graph")),
                 List.of()));
 

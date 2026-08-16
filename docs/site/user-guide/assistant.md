@@ -52,7 +52,12 @@ drive the same verbs:
 - **graph** — plot a series or formula, with an optional `rationale` that **captions the plot** with why
   it was drawn (durable provenance).
 - **goto** — select a record; `reveal:true` un-hides one the current filter is hiding.
-- **flag** — bookmark the culprit records with a note, so the finding is reviewable later.
+- **flag** — bookmark the culprit records with a `note` and an optional `fix`. This is the **one** place
+  a finding is written; it then shows in the records table, as a callout on the Topology graph for that
+  record, and in an exported report. Supplying only one of `note`/`fix` keeps the other, so adding a
+  suggested fix can't wipe the explanation it's a fix for.
+- **report** — write one record's finding out as a PDF: the explanation, the suggested fix, the event,
+  the node log, a picture of the topology as currently focused, and optionally a plot.
 
 `GET /manifest` publishes a JSON schema for every verb, so a foreign agent learns the shapes up front
 instead of trial-and-erroring against the structured errors.
@@ -65,9 +70,15 @@ no copied token**. The same jar doubles as an MCP server — your client runs it
 config, below).
 
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_filter`,
-`analyser_graph`, `analyser_goto`, `analyser_flag` — with full parameter schemas, so there's nothing to
-paste into a prompt. `aggregate` and `read` are marked read-only; the render verbs change what the app
-shows and are all reversible.
+`analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_topology`, `analyser_report`,
+`analyser_context`, `analyser_screenshot`, `analyser_open` and `analyser_source_root` — with full
+parameter schemas, so there's nothing to paste into a prompt.
+
+`aggregate`, `read` and `context` are marked read-only. The verbs that only change what the app shows
+are reversible and marked accordingly. Four are marked **destructive**, so a client can prompt before
+running them: `open` replaces the loaded log (taking the session's flags with it), `source_root` writes
+the persisted config, and `screenshot` and `report` write a caller-supplied path — which can overwrite a
+file the app knows nothing about.
 
 ### Does my client launch the analyser?
 
@@ -162,9 +173,11 @@ server actually connected, then say what you want:
 $ claude
 
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 6 tools
+  ⎿ fluxtion-analyser   ✔ connected · 12 tools
        analyser_aggregate · analyser_read · analyser_filter
-       analyser_graph · analyser_goto · analyser_flag
+       analyser_graph · analyser_goto · analyser_flag · analyser_report
+       analyser_context · analyser_topology · analyser_screenshot
+       analyser_open · analyser_source_root
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.
@@ -212,6 +225,36 @@ trip: you verify the claim against the same data it was made from.
 
 Note what the agent *didn't* need: no file path, no token, no pasted records. It read the log through
 `analyser_read` over the socket.
+
+## Hand the diagnosis on
+
+A plot answers *"this trend is wrong"*. To answer *"**this cycle** is wrong, and here's why"*, compose
+the verbs you already have with `report`:
+
+```text
+⏺ analyser_flag(recordIndexes: [40],
+               note: "quotePublisher republished before riskMonitor re-evaluated the limit,
+                      so the quote on the wire was priced against stale risk state.",
+               fix: "riskMonitor must be upstream of quotePublisher — check the @OnTrigger ordering")
+
+⏺ analyser_goto(recordIndex: 40, reveal: true)
+
+⏺ analyser_topology(select: "quotePublisher", scope: "routes", focus: true)
+  ⎿ {"ok":true,"topology":{"visibleNodes":7,"totalNodes":20,"callout":true,
+      "finding":{"note":"quotePublisher republished before …","fix":"riskMonitor must be …"}}}
+
+⏺ analyser_report(path: "finding-40.pdf", title: "Stale risk state at record 40",
+                 graph: "Mid price")
+  ⎿ {"ok":true,"wrote":{"path":"…/finding-40.pdf","recordIndex":40,
+      "hasExplanation":true,"hasFix":true,"topology":true,"graph":"Mid price"}}
+```
+
+`topology` echoes back the finding it is showing, so an agent can confirm the graph is displaying its
+diagnosis rather than assume it. The PDF is the artefact you send to someone who wasn't watching: the
+explanation next to the event, the node log, the graph and the plot it rests on.
+
+The `topology` verb's `callout` field is a **visibility** switch and nothing more — the text always comes
+from the record's flag. One place to write, several to read.
 
 ### Let your agent set it up
 

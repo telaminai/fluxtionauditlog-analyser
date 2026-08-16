@@ -71,6 +71,10 @@ public final class TopologyCanvas extends JPanel {
     /** True when the cursor sits at the record's entry, before any row. */
     private boolean cursorAtEntry;
 
+    /** The finding for the record on screen, drawn as a callout; null when this record has none. */
+    private telamin.fluxtion.audit.analyser.analyser.report.Finding callout;
+    private boolean calloutVisible = true;
+
     private Point dragOrigin;
     private double dragOffsetX;
     private double dragOffsetY;
@@ -628,7 +632,128 @@ public final class TopologyCanvas extends JPanel {
         paintEdges(g, visible, edge, edgeHot);
         paintNodes(g, visible, dark, text, muted);
         paintHud(g, muted);
+        paintCallout(g, dark);
         g.dispose();
+    }
+
+    /**
+     * What is wrong with the cycle on screen, in the author's words — pinned bottom-right of the graph.
+     *
+     * <p>Painted onto the canvas rather than docked beside it for the same reason the chart's explanation
+     * is: this picture gets screenshotted and pasted into a ticket, and a diagnosis that lives in a side
+     * panel is gone the instant the image leaves the app. Clear of the legend (top-left), the HUD and the
+     * index overlay (both bottom-left).
+     *
+     * <p>The text is not authored here. It is the record's {@link
+     * telamin.fluxtion.audit.analyser.analyser.report.Finding} — written once, on the flag — so the note
+     * in the table, this callout and the exported report cannot disagree.
+     */
+    private void paintCallout(Graphics2D g, boolean dark) {
+        if (!calloutVisible || callout == null || callout.isEmpty()) {
+            return;
+        }
+        g.setFont(getFont().deriveFont(Math.max(11f, labelPoints)));
+        FontMetrics fm = g.getFontMetrics();
+        int maxW = Math.min(360, getWidth() - 40);
+        if (maxW < 140) {
+            return;   // too narrow to be read; a clipped diagnosis is worse than none
+        }
+
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        java.util.List<Boolean> isFix = new java.util.ArrayList<>();
+        for (String line : wrapText(fm, callout.note(), maxW - 24)) {
+            lines.add(line);
+            isFix.add(false);
+        }
+        if (callout.hasFix()) {
+            if (!lines.isEmpty()) {
+                lines.add("");
+                isFix.add(true);
+            }
+            for (String line : wrapText(fm, "Fix · " + callout.fix(), maxW - 24)) {
+                lines.add(line);
+                isFix.add(true);
+            }
+        }
+        if (lines.isEmpty()) {
+            return;
+        }
+
+        int pad = 10;
+        int lineH = fm.getHeight();
+        int boxW = 0;
+        for (String line : lines) {
+            boxW = Math.max(boxW, fm.stringWidth(line));
+        }
+        boxW = Math.min(boxW + pad * 2 + 6, maxW);
+        int boxH = lines.size() * lineH + pad * 2;
+        int bx = getWidth() - boxW - 12;
+        int by = getHeight() - boxH - 12;
+
+        Color fill = dark ? new Color(0x1B1F24) : new Color(0xFFFFFF);
+        g.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 238));
+        g.fillRoundRect(bx, by, boxW, boxH, 8, 8);
+        g.setColor(dark ? new Color(0x3D444D) : new Color(0xC2CAD3));
+        g.drawRoundRect(bx, by, boxW, boxH, 8, 8);
+        Color problem = dark ? new Color(0xE3A008) : new Color(0xB45309);
+        g.setColor(problem);
+        g.fillRoundRect(bx, by, 4, boxH, 4, 4);
+
+        Color fixInk = dark ? new Color(0x6FCF97) : new Color(0x15803D);
+        Color ink = dark ? new Color(0xC9D1D9) : new Color(0x24292F);
+        int ty = by + pad + fm.getAscent();
+        for (int i = 0; i < lines.size(); i++) {
+            g.setColor(isFix.get(i) ? fixInk : ink);
+            g.drawString(lines.get(i), bx + pad + 6, ty);
+            ty += lineH;
+        }
+    }
+
+    /** Greedy word wrap to a pixel width; a word wider than the box is left long rather than broken. */
+    private static java.util.List<String> wrapText(FontMetrics fm, String text, int maxWidth) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (text == null || text.isBlank() || maxWidth <= 0) {
+            return out;
+        }
+        for (String paragraph : text.split("\n")) {
+            StringBuilder line = new StringBuilder();
+            for (String word : paragraph.split("\\s+")) {
+                if (word.isEmpty()) continue;
+                String candidate = line.isEmpty() ? word : line + " " + word;
+                if (fm.stringWidth(candidate) > maxWidth && !line.isEmpty()) {
+                    out.add(line.toString());
+                    line = new StringBuilder(word);
+                } else {
+                    line = new StringBuilder(candidate);
+                }
+            }
+            if (!line.isEmpty()) out.add(line.toString());
+        }
+        return out;
+    }
+
+    /** The finding to draw over the graph, or {@code null} for none. */
+    public void setCallout(telamin.fluxtion.audit.analyser.analyser.report.Finding finding) {
+        if (java.util.Objects.equals(callout, finding)) {
+            return;
+        }
+        this.callout = finding;
+        repaint();
+    }
+
+    public telamin.fluxtion.audit.analyser.analyser.report.Finding callout() {
+        return callout;
+    }
+
+    public void setCalloutVisible(boolean visible) {
+        if (calloutVisible != visible) {
+            calloutVisible = visible;
+            repaint();
+        }
+    }
+
+    public boolean isCalloutVisible() {
+        return calloutVisible;
     }
 
     /** The world rectangle currently on screen — everything outside it is skipped. */

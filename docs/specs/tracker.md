@@ -286,6 +286,48 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
+## M23 · Explaining what you found — ☑ SHIPPED (2026-08-16, owner-requested)
+_M23.1–23.6 explain a **trend**; M23.7–23.9 explain a **single cycle**. The owner's framing: "the graph
+plot shows trends, this is a particular issue diagnosis."_
+
+- [M23.7] ☑ **A finding callout on the topology** (owner). A record's diagnosis is painted bottom-right
+  over the graph — note in ink, suggested fix in green, an amber bar down the left edge so it reads as
+  commentary rather than more log output. On the canvas, not in a side panel, for the same reason the
+  chart's explanation is: this picture gets screenshotted into a ticket, and a diagnosis that lives only
+  in the app is gone the moment the image leaves it. Clear of the legend (top-left), the HUD and the index
+  overlay (bottom-left). Both themes verified against a running app.
+  _Design decision worth keeping: the callout has **no text of its own**. It renders the record's
+  `Finding` — the flag's note and fix. One write site, three readers (table note column, callout,
+  exported report). The `topology` verb therefore gets `callout` as a **visibility** switch only; adding
+  an `explanation` field there would have been a second place to write the same sentence, which is how
+  this codebase has produced disagreeing halves three times already._
+- [M23.8] ☑ **Export a finding as a PDF** (owner). One document: coloured header, provenance strip
+  (record / time / event / log / processor), the explanation, the suggested fix, a picture of the
+  topology as currently focused, an optional plot, then the event record and the full node log in
+  monospace. Everything is taken from **what is on screen** rather than recomputed — a report assembled
+  from a parallel query is a document that can disagree with the app it came from.
+  - `report/PdfDoc` — a small dependency-free writer: pages, coloured text and rects, Flate/DeviceRGB
+    image XObjects, standard-14 fonts only (nothing embedded, opens anywhere). Exposes **top-left**
+    coordinates and flips into PDF's bottom-left space internally, so no call site does that arithmetic.
+  - `diff/TextPdf` was **reimplemented on top of it**. Two writers emitting the same format is a standing
+    invitation for one to acquire a bug the other lacks. `DiffExportTest` unchanged and green.
+  - Node logs paginate rather than truncate — a log cut off at the page break is exactly where the
+    interesting line tends to be. Every page carries the record anchor and `n / m`, because printed pages
+    get separated from each other.
+  - Pictures shrink to fit the space left on the page (down to 260pt, below which a screenshot is
+    unreadable and a page break is better). A first draft always pushed the image to a new page and
+    produced a third-full page 1 — caught by looking at the output, not by a test.
+  - 14 tests (`FindingReportTest`) covering the value type's merge semantics, the coordinate flip, PDF
+    string escaping, image embedding, wrapping, pagination and footers.
+- [M23.9] ☑ **`flag` carries a `fix`; a human can write one too.** `flag {note, fix}` — supplying one
+  keeps the other (`Finding.merge`), so an agent adding a suggested fix cannot wipe the note that says
+  what the fix is for. Records ▸ *Write a finding for this record…* is the human path into the same
+  store, and *Export finding to PDF…* the human path out. Verified live: a fix-only re-flag preserved the
+  note.
+  _Also corrected: `screenshot` was never marked `destructiveHint` even though it writes a
+  caller-supplied path unconditionally and can overwrite a file the app knows nothing about. It and
+  `report` now are._
+
 ## M23 · Charts that explain themselves — ☑ SHIPPED (2026-08-16, owner-requested)
 - [M23.1] ☑ **Second vertical scale** (`rightAxis`). One shared range is right until two series differ in
   magnitude, and then it is actively misleading — a revenue line at 2,000 beside a stock level at 20

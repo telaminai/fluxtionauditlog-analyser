@@ -6,6 +6,42 @@ SUPERSEDES handoff_15_aug_2026_2.txt. That brief was written on 15 Aug, before M
 Its four slices still stand; this file restates them with what has changed underneath. Read THIS one.
 
 ================================================================================
+ADDENDUM — M23 LANDED AFTER THIS BRIEF WAS WRITTEN (read before M20.1)
+================================================================================
+M23 shipped in two halves on 16 Aug, both owner-requested. The first (M23.1–23.6) annotates a CHART;
+the second (M23.7–23.9) diagnoses a SINGLE RECORD. Tracker has the full detail. What touches M20:
+
+  e) THE VERB SET IS NOW TWELVE, not eleven. `report` was added (export a finding as a PDF).
+     VerbSchemasTest and McpToolsTest both assert the exact set and both had to be updated — that is
+     working as designed, do not weaken those assertions.
+     Also: `screenshot` and `report` are now marked destructiveHint:true. Both write a caller-supplied
+     path unconditionally and can overwrite a file the app knows nothing about; `screenshot` had been
+     mis-marked since it shipped.
+
+  f) NEW PERSISTED STATE, AND A TIERING QUESTION FOR YOU. GraphSpec now carries `explanation`,
+     `notes[]` and `rightAxis[]`, written through ConfigStore.writeGraphs/readGraphs. Saved graphs were
+     ALREADY in the M15 shareable whitelist, so these ride along with no new boundary — but note what
+     they now contain: an author's prose about a specific log. A shared setup carrying someone else's
+     analysis notes is arguably a nuisance in the same way their text size is (M22.32). NOT decided.
+     Flag it in your report with whatever you choose.
+     >>> Findings themselves (Finding: recordIndex + note + fix) are DELIBERATELY NOT PERSISTED. They
+     are keyed by model row index and cleared when a log is opened, exactly like flags — a row index
+     means nothing against a different file. If M20 ever wants findings to survive, they must be
+     re-anchored on something stable (byte offset), and that is a design change, not a config key.
+
+  g) A DESIGN CONSTRAINT WORTH NOT BREAKING. A finding has exactly ONE write site — the record's flag.
+     It has three readers: the note column in the records table, the callout painted on the topology,
+     and the exported PDF. The `topology` verb's `callout` field is a VISIBILITY switch and carries no
+     text of its own, on purpose. If a future milestone adds a second way to author the same sentence,
+     the two will drift; this repo has produced disagreeing halves three times already (M22.55 being
+     the most recent).
+
+  h) NEW PACKAGE: report/ — Finding (value), PdfDoc (a small dependency-free PDF writer: colour, text,
+     rects, Flate/DeviceRGB images, standard-14 fonts, TOP-LEFT coordinates flipped internally), and
+     FindingReport (layout). diff/TextPdf was reimplemented on top of PdfDoc — there is ONE PDF writer
+     in this codebase and it should stay that way. 14 tests in FindingReportTest.
+
+================================================================================
 WHAT CHANGED SINCE THE ORIGINAL BRIEF
 ================================================================================
 Two milestones landed on this branch on 16 Aug and both touch what M20 has to tier:
@@ -117,7 +153,9 @@ PROCESS (per CLAUDE.md)
 STATE OF THE BRANCH
 ================================================================================
 - handoff/15_aug_2026_2, ~60 commits ahead of main, UNMERGED and awaiting review.
-- 431 tests green · mkdocs build --strict green · anonymisation sweep clean (text).
+- 463 tests green · mkdocs build --strict green · anonymisation sweep clean (text).
+  (mkdocs is NOT installed system-wide on the owner's machine as of 16 Aug — the python3.14 upgrade
+  removed it. `python3 -m venv <tmp>/venv && <tmp>/venv/bin/pip install -r docs-requirements.txt`.)
 - OPEN, owner's call, not yours: the pre-16-Aug docs screenshots contained real venue/vendor names
   and remain in git history on a public repo. Replaced on disk; purging history needs a rewrite +
   force-push, which rule 3 forbids. Flagged in the tracker (M22.56).

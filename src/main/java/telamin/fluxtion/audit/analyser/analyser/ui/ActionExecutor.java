@@ -36,12 +36,22 @@ public final class ActionExecutor implements RenderExecutor {
     private final Supplier<FilterState> filter;
     private final GraphTabs graphTabs;
     private final LogTablePanel tablePanel;
-    private final BiConsumer<int[], String> flagRows;   // (model rows, optional note)
+    /**
+     * Where a flag lands: the model rows, and what was concluded about them. Both text fields are
+     * optional and a null means "leave whatever is already recorded" — flagging a row to add a suggested
+     * fix must not wipe the note that says what the fix is for.
+     */
+    @FunctionalInterface
+    public interface FlagSink {
+        void flag(int[] modelRows, String note, String fix);
+    }
+
+    private final FlagSink flagRows;
     private TopologyPanel topology;
     private telamin.fluxtion.audit.analyser.analyser.llm.AppControl app;
 
     public ActionExecutor(Supplier<LogStore> store, Supplier<FilterState> filter, GraphTabs graphTabs,
-                          LogTablePanel tablePanel, BiConsumer<int[], String> flagRows) {
+                          LogTablePanel tablePanel, FlagSink flagRows) {
         this.store = store;
         this.filter = filter;
         this.graphTabs = graphTabs;
@@ -78,6 +88,15 @@ public final class ActionExecutor implements RenderExecutor {
                 return onEdt(() -> app == null
                         ? ActionResult.error("'screenshot' is not enabled here")
                         : app.screenshot(str(params.get("path")), str(params.get("scope"))));
+            }
+            case "report" -> {
+                return onEdt(() -> app == null
+                        ? ActionResult.error("'report' is not enabled here")
+                        // the topology goes in unless asked otherwise: a diagnosis of one cycle that does
+                        // not show the cycle is the half of the evidence a reader cannot reconstruct
+                        : app.exportFinding(str(params.get("path")), intOrNull(params.get("recordIndex")),
+                                str(params.get("title")), str(params.get("graph")),
+                                !params.containsKey("topology") || bool(params.get("topology"))));
             }
             default -> { }
         }
@@ -316,13 +335,15 @@ public final class ActionExecutor implements RenderExecutor {
         }
         if (rows.isEmpty()) return ActionResult.error("flag needs byteOffsets[] or recordIndexes[]");
         String note = asText(p.get("note"));
+        String fix = asText(p.get("fix"));
         int[] rowArr = rows.stream().mapToInt(Integer::intValue).toArray();
         return onEdt(() -> {
-            flagRows.accept(rowArr, note);
+            flagRows.flag(rowArr, note, fix);
             Map<String, Object> applied = new LinkedHashMap<>();
             applied.put("flagged", rowArr.length);
             applied.put("recordIndexes", rows.stream().sorted().toList());
             if (note != null) applied.put("note", note);
+            if (fix != null) applied.put("fix", fix);
             return ActionResult.ok("flag", "applied", applied);
         });
     }
@@ -440,6 +461,9 @@ public final class ActionExecutor implements RenderExecutor {
         }
         if (params.containsKey("focus")) topology.setFocus(bool(params.get("focus")));
         if (params.containsKey("source")) topology.setSourcePaneVisible(bool(params.get("source")));
+        // deliberately a visibility switch and nothing more: the callout's TEXT is the record's flag, so
+        // there is exactly one place to write a diagnosis and this is not it
+        if (params.containsKey("callout")) topology.setCalloutVisible(bool(params.get("callout")));
 
         String orientation = str(params.get("orientation"));
         if (orientation != null) {

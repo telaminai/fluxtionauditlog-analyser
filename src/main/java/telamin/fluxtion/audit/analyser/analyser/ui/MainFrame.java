@@ -80,7 +80,15 @@ public final class MainFrame extends JFrame {
     private Timer searchDebounce;
     private List<LogRecord> selectedRecords = List.of();
     private final java.util.Set<Integer> flaggedRows = new java.util.HashSet<>();
-    private final java.util.Map<Integer, String> flagNotes = new java.util.HashMap<>();   // assistant flag notes
+    /**
+     * What has been concluded about a flagged record, by model row: the note and any suggested fix.
+     *
+     * <p>One store, three readers — the table's note column, the callout painted on the topology, and the
+     * exported report. Written in exactly one place (a flag), because the same sentence maintained in two
+     * places is the same sentence until it isn't.
+     */
+    private final java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.report.Finding> findings
+            = new java.util.HashMap<>();
     private boolean flaggedOnly = false;
     /** Guards the table ⇄ topology cursor loop: a selection we caused must not re-drive the cursor. */
     private boolean steppingSelection;
@@ -185,7 +193,16 @@ public final class MainFrame extends JFrame {
         topologyPanel.onRowChanged(detailPanel::highlightNodeLog);
         tablePanel.setFlagTester(flaggedRows::contains);
         tablePanel.setFlagToggle(this::toggleFlags);
-        tablePanel.setNoteProvider(flagNotes::get);
+        tablePanel.setNoteProvider(row -> {
+            var f = findings.get(row);
+            return f == null || !f.hasNote() ? null : f.note();
+        });
+        // the callout on the graph is the same finding as the note in the table, resolved through the
+        // table's own view→model mapping so stepping and filtering cannot pull them apart
+        topologyPanel.setFindingProvider(filteredIndex -> {
+            int modelRow = tablePanel.modelRowAt(filteredIndex);
+            return modelRow < 0 ? null : findings.get(modelRow);
+        });
         installGlobalKeys();
         installFileDrop();
         addWindowListener(new WindowAdapter() {
@@ -290,11 +307,26 @@ public final class MainFrame extends JFrame {
         clearFlags.setEnabled(!flaggedRows.isEmpty());
         clearFlags.addActionListener(e -> {
             flaggedRows.clear();
-            flagNotes.clear();
+            findings.clear();
             tablePanel.reFilter();
             tablePanel.repaintRows();
+            topologyPanel.refreshFinding();
         });
         into.add(clearFlags);
+
+        JMenuItem writeFinding = new JMenuItem("Write a finding for this record…");
+        writeFinding.setToolTipText("Write what is wrong with this cycle — shown in the table, "
+                                   + "as a callout on the topology, and in an exported report");
+        writeFinding.setEnabled(haveSelection);
+        writeFinding.addActionListener(e -> writeFindingForSelection());
+        into.add(writeFinding);
+
+        JMenuItem report = new JMenuItem("Export finding to PDF…");
+        report.setToolTipText("The explanation, the event, the node log, the graph and — if one is "
+                             + "open — a plot, as one document");
+        report.setEnabled(haveSelection);
+        report.addActionListener(e -> exportFindingWithChooser());
+        into.add(report);
 
         addSeparator(into);
         JMenuItem copyYaml = new JMenuItem("Copy selected as YAML");
@@ -402,20 +434,225 @@ public final class MainFrame extends JFrame {
 
     private void toggleFlags(int[] modelRows) {
         for (int r : modelRows) {
-            if (!flaggedRows.add(r)) { flaggedRows.remove(r); flagNotes.remove(r); }
+            if (!flaggedRows.add(r)) { flaggedRows.remove(r); findings.remove(r); }
         }
         tablePanel.repaintRows();
+        topologyPanel.refreshFinding();
         if (flaggedOnly) tablePanel.reFilter();
     }
 
-    /** Flag rows from the assistant {@code flag} action: sets (never toggles) the flag + optional note. */
-    private void flagRowsFromAction(int[] modelRows, String note) {
+    /**
+     * Flag rows from the assistant {@code flag} action: sets (never toggles) the flag, and records what
+     * was concluded. A caller supplying only one of note/fix is refining the finding, so the other is
+     * kept — see {@link telamin.fluxtion.audit.analyser.analyser.report.Finding#merge}.
+     */
+    private void flagRowsFromAction(int[] modelRows, String note, String fix) {
         for (int r : modelRows) {
             flaggedRows.add(r);
-            if (note != null) flagNotes.put(r, note);
+            if (note != null || fix != null) {
+                var existing = findings.get(r);
+                findings.put(r, existing == null
+                        ? new telamin.fluxtion.audit.analyser.analyser.report.Finding(r, note, fix)
+                        : existing.merge(note, fix));
+            }
         }
         tablePanel.repaintRows();
+        topologyPanel.refreshFinding();
         if (flaggedOnly) tablePanel.reFilter();
+    }
+
+    /**
+     * The human half of the finding loop: write (or edit) what is wrong with the selected record.
+     *
+     * <p>Same store, same fields and same single write path as the assistant's {@code flag} verb — an
+     * agent's diagnosis and a person's correction of it are the same kind of thing, and giving each its
+     * own store is how they end up contradicting each other on the same screen.
+     */
+    private void writeFindingForSelection() {
+        int[] rows = tablePanel.selectedModelRows();
+        if (rows.length == 0) return;
+        int row = rows[0];
+        var existing = findings.get(row);
+
+        JTextArea note = new JTextArea(existing == null ? "" : existing.note(), 5, 46);
+        note.setLineWrap(true);
+        note.setWrapStyleWord(true);
+        JTextArea fix = new JTextArea(existing == null || existing.fix() == null ? "" : existing.fix(), 3, 46);
+        fix.setLineWrap(true);
+        fix.setWrapStyleWord(true);
+
+        JPanel form = new JPanel(new java.awt.BorderLayout(0, 6));
+        JPanel top = new JPanel(new java.awt.BorderLayout(0, 4));
+        top.add(new JLabel("What is wrong with record " + row + "?"), java.awt.BorderLayout.NORTH);
+        top.add(new JScrollPane(note), java.awt.BorderLayout.CENTER);
+        JPanel bottom = new JPanel(new java.awt.BorderLayout(0, 4));
+        bottom.add(new JLabel("Likely cause / suggested fix (optional)"), java.awt.BorderLayout.NORTH);
+        bottom.add(new JScrollPane(fix), java.awt.BorderLayout.CENTER);
+        form.add(top, java.awt.BorderLayout.CENTER);
+        form.add(bottom, java.awt.BorderLayout.SOUTH);
+
+        int ok = JOptionPane.showConfirmDialog(this, form, "Explain record " + row,
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (ok != JOptionPane.OK_OPTION) return;
+
+        String noteText = note.getText().strip();
+        String fixText = fix.getText().strip();
+        if (noteText.isEmpty() && fixText.isEmpty()) {
+            findings.remove(row);
+        } else {
+            findings.put(row, new telamin.fluxtion.audit.analyser.analyser.report.Finding(
+                    row, noteText, fixText.isEmpty() ? null : fixText));
+            flaggedRows.add(row);   // an explained record is a flagged one: findings live on the flag
+        }
+        tablePanel.repaintRows();
+        topologyPanel.refreshFinding();
+        if (flaggedOnly) tablePanel.reFilter();
+    }
+
+    /** Export the selected record's finding, asking where to put it. */
+    private void exportFindingWithChooser() {
+        int[] rows = tablePanel.selectedModelRows();
+        if (rows.length == 0 || store == null) return;
+        int row = rows[0];
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Export finding");
+        fc.setSelectedFile(new File("finding-record-" + row + ".pdf"));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        // the currently-selected graph goes in when one exists: on this path the user picked the tab, so
+        // "is this plot relevant?" is a question they have already answered
+        String graph = graphTabs.selectedGraphName();
+        var result = exportFinding(fc.getSelectedFile().getAbsolutePath(), row, null, graph, true);
+        if (result.ok()) {
+            status.setText("Wrote " + fc.getSelectedFile().getName());
+        } else {
+            JOptionPane.showMessageDialog(this, result.error(), "Export finding",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Assemble and write a finding report (M23.8).
+     *
+     * <p>Everything in it is taken from what is <b>on screen</b> rather than recomputed: the same
+     * explanation the callout shows, the same node log the detail panel shows, a picture of the topology
+     * as it is currently focused. A report assembled from a second, parallel query would be a document
+     * that can disagree with the app it came from, which defeats the purpose of exporting evidence.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult exportFinding(
+            String path, Integer recordIndex, String title, String graphName, boolean withTopology) {
+        if (path == null || path.isBlank()) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'path' is required");
+        }
+        if (store == null) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
+        }
+        int row = recordIndex != null ? Math.max(0, Math.min(recordIndex, store.size() - 1))
+                : firstSelectedModelRow();
+        if (row < 0) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                    "no record selected — pass 'recordIndex' or select one first");
+        }
+        LogRecord record = store.record(row);
+        var finding = findings.get(row);
+        if (finding == null) {
+            finding = new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, "", null);
+        }
+
+        java.util.List<String> eventLines = new java.util.ArrayList<>();
+        String raw = store.rawText(row);
+        if (raw != null) {
+            for (String line : raw.split("\n")) {
+                // the node log has a section of its own below; repeating it here doubles the page count
+                if (line.strip().startsWith("nodeLogs")) break;
+                eventLines.add(line);
+            }
+        }
+
+        java.util.List<String> nodeLogLines = new java.util.ArrayList<>();
+        int n = 0;
+        for (var nodeLog : record.nodeLogs()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("%3d. %s", ++n, nodeLog.instanceId()));
+            for (var kv : nodeLog.entries()) {
+                sb.append("  ").append(kv.key()).append('=').append(kv.rawValue());
+            }
+            nodeLogLines.add(sb.toString());
+        }
+
+        java.awt.image.BufferedImage topologyImage = null;
+        if (withTopology && topologyPanel.hasTopology()) {
+            // the PDF renders the finding as its own section, so the copy painted on the canvas would be
+            // the same sentence twice on one page
+            boolean was = topologyPanel.isCalloutVisible();
+            topologyPanel.setCalloutVisible(false);
+            try {
+                topologyImage = paintOf(topologyPanel);
+            } finally {
+                topologyPanel.setCalloutVisible(was);
+            }
+        }
+        java.awt.image.BufferedImage chartImage = null;
+        if (graphName != null && !graphName.isBlank()) {
+            GraphPanel panel = graphTabs.graphNamed(graphName);
+            if (panel == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "no graph named '" + graphName + "' — open graphs: " + graphTabs.graphNames());
+            }
+            chartImage = paintOf(panel);
+        }
+
+        String heading = title != null && !title.isBlank() ? title
+                : (record.event() == null ? "Record " + row : record.event() + " · record " + row);
+        var evidence = new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Evidence(
+                heading, finding,
+                logDisplayLocation == null ? null : new File(logDisplayLocation).getName(),
+                config.selectedEventProcessor,
+                record.logTime() == null ? null : TimeFormat.utc(record.logTime()),
+                record.eventToString(), eventLines, nodeLogLines,
+                topologyImage, chartImage, graphName);
+
+        try {
+            Path out = Path.of(path);
+            if (out.getParent() != null) Files.createDirectories(out.getParent());
+            Files.write(out, telamin.fluxtion.audit.analyser.analyser.report.FindingReport.render(evidence));
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("path", out.toAbsolutePath().toString());
+            echo.put("recordIndex", row);
+            echo.put("title", heading);
+            echo.put("hasExplanation", finding.hasNote());
+            echo.put("hasFix", finding.hasFix());
+            echo.put("topology", topologyImage != null);
+            echo.put("graph", chartImage == null ? null : graphName);
+            // an empty finding still produces a valid report; say so rather than let the caller assume
+            // the explanation made it in
+            if (finding.isEmpty()) {
+                echo.put("note", "no explanation is recorded for this record — write one with "
+                        + "flag {recordIndexes:[" + row + "], note:\"…\", fix:\"…\"} and export again");
+            }
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "wrote", echo);
+        } catch (java.io.IOException e) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                    "could not write " + path + ": " + e.getMessage());
+        }
+    }
+
+    /** The first selected record's model row, falling back to the topology cursor; -1 if neither. */
+    private int firstSelectedModelRow() {
+        int[] rows = tablePanel.selectedModelRows();
+        if (rows.length > 0) return rows[0];
+        if (!topologyPanel.hasTopology()) return -1;
+        Object idx = topologyPanel.cursorState().get("recordIndex");
+        return idx instanceof Integer i ? tablePanel.modelRowAt(i) : -1;
+    }
+
+    private static java.awt.image.BufferedImage paintOf(java.awt.Component c) {
+        if (c.getWidth() <= 0 || c.getHeight() <= 0) return null;
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
+                c.getWidth(), c.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = img.createGraphics();
+        c.paint(g);
+        g.dispose();
+        return img;
     }
 
     private void exportRecords(boolean yaml) {
@@ -1077,7 +1314,7 @@ public final class MainFrame extends JFrame {
         this.logDisplayLocation = location;
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
         flaggedRows.clear();       // flags are per-file (model row indices)
-        flagNotes.clear();
+        findings.clear();
         flaggedOnly = false;
         tableModel = new LogTableModel(loaded);
         tablePanel.setModel(tableModel);
@@ -1545,6 +1782,12 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult exportFinding(
+                String path, Integer recordIndex, String title, String graph, boolean withTopology) {
+            return MainFrame.this.exportFinding(path, recordIndex, title, graph, withTopology);
+        }
+
+        @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context() {
             Map<String, Object> out = new java.util.LinkedHashMap<>();
 
@@ -1584,8 +1827,9 @@ public final class MainFrame extends JFrame {
             for (Integer row : new java.util.TreeSet<>(flaggedRows)) {
                 Map<String, Object> flag = new java.util.LinkedHashMap<>();
                 flag.put("recordIndex", row);
-                String note = flagNotes.get(row);
-                if (note != null && !note.isBlank()) flag.put("note", note);
+                var finding = findings.get(row);
+                if (finding != null && finding.hasNote()) flag.put("note", finding.note());
+                if (finding != null && finding.hasFix()) flag.put("fix", finding.fix());
                 flags.add(flag);
             }
             out.put("flags", flags);

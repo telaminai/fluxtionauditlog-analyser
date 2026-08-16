@@ -7,6 +7,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Diagnose one cycle, not just a trend.** A record's finding — what is wrong, and optionally the likely
+  cause — is now painted as a callout over the Topology graph for that record, so a screenshot of the
+  graph carries its own explanation. Write it from Records ▸ *Write a finding for this record…*, or from
+  an assistant with `flag {note, fix}`. There is one place to write it and three places it shows: the
+  table's note column, the callout, and an exported report.
+- **Export a finding as a PDF.** Records ▸ *Export finding to PDF…* (or the `analyser_report` verb)
+  writes one document containing the explanation and suggested fix, which record and log it is about,
+  a picture of the topology as you have it focused, an optional plot, and the full event record and node
+  log. Dependency-free — nothing new in the build.
 - **Charts can explain themselves.** A multi-line `explanation` and `notes` pinned to moments in time are
   drawn on the plot (so they survive an exported PNG), and a `rightAxis` gives a second vertical scale so
   series of very different magnitude stay readable together. All three are available through the

@@ -64,8 +64,14 @@ public final class McpTools {
      * the persisted config. Marking them {@code destructiveHint:true} is what lets a client prompt before
      * running them, which is the whole point of the hint. Calling them reversible because "no file is
      * deleted" would be true and useless.
+     *
+     * <p>{@code screenshot} and {@code report} are here for the same reason: both take a caller-supplied
+     * path and write it unconditionally, so both can overwrite a file the app knows nothing about. That
+     * {@code screenshot} was not marked so before M23.8 was an oversight — a file the app silently
+     * replaced is exactly the case the hint exists to warn about.
      */
-    private static final java.util.Set<String> DESTRUCTIVE = java.util.Set.of("open", "source_root");
+    private static final java.util.Set<String> DESTRUCTIVE =
+            java.util.Set.of("open", "source_root", "screenshot", "report");
 
     /**
      * Read-only hint on the query verbs only. The render verbs change what the UI shows, so they are not

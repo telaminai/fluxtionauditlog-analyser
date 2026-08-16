@@ -285,6 +285,9 @@ public final class TopologyPanel extends JPanel {
     private boolean shadingCleared;
     /** The record last shaded, by identity — so a repeated notification is not mistaken for a change. */
     private LogRecord lastShownRecord;
+    /** Looks up the finding for a record in the filtered view; null when nothing supplies findings. */
+    private java.util.function.IntFunction<telamin.fluxtion.audit.analyser.analyser.report.Finding>
+            findingProvider;
 
     /**
      * Stop a {@link javax.swing.JSplitPane} eating the arrow keys.
@@ -769,6 +772,16 @@ public final class TopologyPanel extends JPanel {
         out.put("syncSource", syncButton.isSelected());
         out.put("visibleNodes", canvas.topology().nodeCount());
         out.put("totalNodes", fullTopology.nodeCount());
+        out.put("callout", canvas.isCalloutVisible());
+        // echo the finding actually on screen, so a caller that has just written one can confirm the
+        // graph is showing it rather than assume it
+        var finding = canvas.callout();
+        if (finding != null && !finding.isEmpty()) {
+            java.util.Map<String, Object> f = new java.util.LinkedHashMap<>();
+            if (finding.hasNote()) f.put("note", finding.note());
+            if (finding.hasFix()) f.put("fix", finding.fix());
+            out.put("finding", f);
+        }
         return out;
     }
 
@@ -972,6 +985,7 @@ public final class TopologyPanel extends JPanel {
             cursor = StepCursor.over(List.of(record));
         }
         updateStepControls();
+        refreshCallout();
         if (record == null) {
             setStatus(hasTopology() && loadedFrom != null
                     ? summary(fullTopology, loadedFrom) : " ");
@@ -1081,6 +1095,7 @@ public final class TopologyPanel extends JPanel {
 
     /** Push the cursor position into the canvas and the status line. */
     private void syncCursor() {
+        refreshCallout();
         canvas.setCursor(cursor.currentInstanceId(), cursor.steppedSoFar(), cursor.atEntry());
         String id = cursor.currentInstanceId();
         rowChanged.accept(id, occurrenceOfCurrentRow());
@@ -1091,6 +1106,48 @@ public final class TopologyPanel extends JPanel {
                 : cursor.positionLabel() + "  ·  " + cursor.rowSummary()
                   + (fullTopology.contains(id) ? "" : "   [not in this topology]"));
         updateStepControls();
+    }
+
+    /**
+     * Put the current record's finding on the canvas.
+     *
+     * <p>Pull, not push. The panel asks "is there a finding for the record I am showing?" every time the
+     * cursor moves, rather than being told when one is written — so a flag added while the topology is on
+     * screen, a flag added from the assistant, and a flag that was already there all arrive by the same
+     * path. A push would need three call sites and would eventually be missing one.
+     */
+    private void refreshCallout() {
+        canvas.setCallout(findingProvider == null ? null : findingProvider.apply(cursor.recordIndex()));
+    }
+
+    /** Re-read the finding for the record on screen — call after one is written, edited or cleared. */
+    public void refreshFinding() {
+        refreshCallout();
+    }
+
+    /**
+     * Where the callout's text comes from: the record's flag note and suggested fix, looked up by the
+     * cursor's position in the <b>filtered</b> view. The caller owns that translation, because it is the
+     * only layer that knows how the table maps view rows to records.
+     */
+    public void setFindingProvider(
+            java.util.function.IntFunction<telamin.fluxtion.audit.analyser.analyser.report.Finding> provider) {
+        this.findingProvider = provider;
+        refreshCallout();
+    }
+
+    /** Hide or show the callout without discarding the finding — it is still there when toggled back. */
+    public void setCalloutVisible(boolean visible) {
+        canvas.setCalloutVisible(visible);
+    }
+
+    public boolean isCalloutVisible() {
+        return canvas.isCalloutVisible();
+    }
+
+    /** The finding currently drawn, or null — so a report export takes exactly what is on screen. */
+    public telamin.fluxtion.audit.analyser.analyser.report.Finding shownFinding() {
+        return canvas.callout();
     }
 
     /** How many times the cursor's node has already appeared in this cycle — a node can log twice. */
