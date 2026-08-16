@@ -42,6 +42,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
 
 ### Added
+- **Step through the log on the graph.** One cursor now walks record → `nodeLogs` row → next record with
+  `]` and `[`: arriving at a record marks where the cycle came in, each step lights the next node with
+  the path so far trailing behind it, and stepping past the last row rolls into the next record. It
+  follows the filtered view, moves the table selection with it, and highlights the matching line in the
+  detail viewer — so the graph and the text narrate each other. The readout says whether you are walking
+  *logged rows* or *every invocation*, and a node that logs twice gets two steps.
 - **The assistant now knows what silence means.** Its prompt carries Fluxtion's execution semantics: a
   node missing from `nodeLogs` has not necessarily failed to run, the two audit regimes and how to tell
   them apart, and that it can settle the question from the EventProcessor source it is already given

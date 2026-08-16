@@ -245,7 +245,7 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   user-guide index. Screenshot is a **real render** of the canvas over `sample.yml` against a new
   anonymised `demo-marketmaker.graphml` fixture — and a test pins that fixture to the sample log, so the
   page can't quietly start depicting a mismatch. `mkdocs build --strict` green. **Release gate cleared.**
-- [M21.10] ◧ **Intra-record step-through** _(brief: [handoff_16_aug_2026_1.txt](../handoff/handoff_16_aug_2026_1.txt))_ —
+- [M21.10] ☑ **Intra-record step-through** _(brief: [handoff_16_aug_2026_1.txt](../handoff/handoff_16_aug_2026_1.txt))_ —
   one cursor walking record → nodeLog row → next record, the topology following it.
   - [S1] ☑ **`StepCursor`** — pure two-depth model over the filtered record sequence: next/prev with
     entry-as-a-stop, backwards roll-over to the previous record's *last* row, per-cycle accumulation,
@@ -262,7 +262,9 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
     moves the table selection; the row under the cursor is highlighted in the detail viewer's
     `nodeLogs` text **by occurrence**, so a node logging twice highlights the right line. A guard flag
     stops the table ⇄ cursor sync looping.
-  - [S4] ☐ docs + spec-graph-replay §4 + CHANGELOG.
+  - [S4] ☑ **Docs** — `topology.md` "Step through a cycle" rewritten to the two-depth walk (entry as a
+    stop, `[`/`]`, halo-over-shading, filtered sequence, detail sync) with the regime readout and the
+    logs-twice rule called out; spec-graph-replay §4 records the finalised granularity. `--strict` green.
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
 - [M21.9] ☐ **Use `ProcessorDescriptor` instead of inferring** _(found 2026-08-16 reading a generated
   processor)_ — AOT processors carry a self-description: `inputs()` (name + FQN of every accepted event),

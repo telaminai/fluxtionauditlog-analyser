@@ -92,8 +92,12 @@ The audit record already names the nodes that fired, in dispatch order (`nodeLog
 > `OFF_PATH` — with only the last shown faded, and every one of them stated in words on hover and in an
 > on-canvas legend. Note `RAN_SILENTLY` is deliberately narrow: a node with several parents needs only
 > one to have fired, so "every ancestor ran" would itself be an invented fact.
-- **Within a cycle**, step node-by-node through the dispatch order, showing each node's logged key/values
-  at that point — the "which nodes lit up, what did they hold" view.
+- **Within a cycle**, step row-by-row through `nodeLogs`, showing each row's key/values at that point.
+  **Finalised granularity (M21.10):** one cursor spans both depths — record → row → next record — with
+  arrival at a record its own stop (the entry, where the entry point is marked). A row is a `nodeLogs`
+  entry, not a node: the same instanceId can occupy several rows and each is its own step. The position
+  readout names the audit regime, because "row 3 / 8" otherwise reads as "8 nodes ran", which is true
+  only of a traced record.
 - **Bidirectional** — the log is a complete record; stepping back is just moving the cursor.
 - **Bound to the shared filter**, so the time window and dimension filters scope the sequence like every
   other view.

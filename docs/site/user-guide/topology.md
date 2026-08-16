@@ -94,18 +94,46 @@ rather than noise. **Left→right** flips the orientation if a wide graph suits 
 
 ## Step through a cycle
 
-Select any record — in the table, or by jumping to one from a graph — and the topology shows that cycle.
-It follows the **table's selection**, so the record you're reading in the detail pane is the cycle you're
-looking at here; there's no separate cursor to keep in sync.
+Select any record and the topology shows that cycle. It follows the **table's selection**, so the record
+you're reading in the detail pane is the cycle you're looking at here.
 
-- **◀ ▶** walk the dispatch order one node at a time — that is, the nodes that logged. The current
-  node takes the accent ring and the status line shows **what it logged at that point**, plus what the
-  log does or doesn't establish about it.
-- **Whole cycle** goes back to showing them all at once.
-- A node that logged **twice** in one cycle gets two steps, because that's information.
+Then walk it. **`]`** steps forward, **`[`** back (or use the ◀ ▶ buttons):
 
-This is the "what did the log actually witness, and what does that imply" view. Pair it with
-[Graphs](graphs.md) when you want the same value across many cycles instead of one.
+```
+record ─→ row 1 ─→ row 2 ─→ … ─→ next record ─→ its rows ─→ …
+   ↑ entry: where the cycle came in
+```
+
+One cursor, two depths. Arriving at a record is its own stop — the **entry**, where the graph marks how
+the cycle got in (the event, or the exported-service call that was invoked). Step again and you move
+through that record's `nodeLogs` rows one at a time; step past the last and you roll into the next
+record's entry. Backwards works the same in reverse, landing on the *previous* record's last row.
+
+As you go:
+
+- the node under the cursor takes a **strong halo**, and rows already stepped in this cycle keep a
+  **fainter one**, so you can see the path taken through the graph so far;
+- the halo sits *outside* the node, so its execution shading stays readable underneath — where you are
+  and what the log establishes are different questions;
+- the status line names the position, the node and what it logged;
+- the detail viewer highlights the matching `nodeLogs` line, so the graph and the text narrate each
+  other.
+
+Stepping moves through the **filtered** records, so narrowing the time range or the event types narrows
+what you walk.
+
+!!! note "What a row is depends on the audit level"
+
+    The position readout says which, because the number matters:
+
+    - **`row 3 / 8 (logged nodes)`** — an untraced record. The 8 rows are the nodes that *logged*, not
+      the nodes that ran; silent nodes keep their "ran, logged nothing" or "may have run" shading while
+      you step past them.
+    - **`invocation 3 / 16`** — a traced record. Every invocation is recorded, so stepping is exact.
+
+    A node that logs **twice** in one cycle gets **two steps** — it lights up again as current, and the
+    detail viewer highlights the second line, not the first. That repeat is information, so it isn't
+    collapsed.
 
 ## Act on a node
 
