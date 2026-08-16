@@ -239,6 +239,30 @@ public final class SourcePanel extends JPanel {
         navigate(fqn, method);
     }
 
+    /**
+     * Open the EventProcessor at the {@code handleEvent} overload for this event type — where dispatch
+     * for that event actually begins. Falls back to opening the processor when the overload is absent
+     * (an event the processor does not handle, or a hand-written processor).
+     */
+    public void openEventHandler(String eventSimpleName) {
+        if (service == null || eventSimpleName == null) return;
+        String fqn = service.selectedFqn();
+        if (fqn == null) return;
+        navigate(fqn, null);
+        int off = SourceNavigation.eventHandlerOffset(processorPane.source, eventSimpleName);
+        if (off < 0) return;
+        // navigate() may have just replaced the document, and a scroll issued before the new view has
+        // been laid out lands roughly a screen out — the target ends up at the bottom instead of the top.
+        // Deferring puts it after layout.
+        SwingUtilities.invokeLater(() -> processorPane.scrollToOffset(off));
+    }
+
+    private static String simpleName(String fqn) {
+        if (fqn == null) return null;
+        int dot = fqn.lastIndexOf('.');
+        return dot < 0 ? fqn : fqn.substring(dot + 1);
+    }
+
     /** The pane a file belongs in: the selected EventProcessor has its own, everything else is a node. */
     private Pane paneFor(String fqn) {
         return service != null && Objects.equals(fqn, service.selectedFqn()) ? processorPane : nodePane;
@@ -256,7 +280,13 @@ public final class SourcePanel extends JPanel {
             pane.render(fqn);
         }
         revealPaneFor(pane);
-        int off = method == null ? -1 : SourceNavigation.methodDeclOffset(pane.source, method);
+        // With no method to aim at, land on the TYPE rather than at line 1. A Fluxtion graph's node
+        // classes are commonly nested in one holder, so opening the file is only half the answer —
+        // the reader still has to find the class among its siblings. Single-type files are unaffected:
+        // the declaration is at the top anyway.
+        int off = method != null
+                ? SourceNavigation.methodDeclOffset(pane.source, method)
+                : SourceNavigation.typeDeclOffset(pane.source, simpleName(fqn));
         pane.scrollToOffset(off >= 0 ? off : 0);
     }
 

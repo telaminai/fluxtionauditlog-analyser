@@ -21,6 +21,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- **Source navigation lands where you meant**: clicking an event in the topology opens the processor at
+  that event's own `handleEvent` overload; clicking a node scrolls to its class declaration, which
+  matters when a file holds a dozen nested node classes.
 - **The app can be driven end to end by an assistant**: four new verbs — `topology`, `open`,
   `source_root` and `screenshot` — join the six existing ones and are published as MCP tools
   automatically. `tools/drive-analyser.sh` scripts them over the localhost REST transport.

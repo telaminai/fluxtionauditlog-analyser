@@ -51,7 +51,10 @@ public final class PromptBuilder {
      */
     public static String recordContext(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file) {
         StringBuilder sb = new StringBuilder();
-        appendFileAccess(sb, file, records);
+        Map<String, String> nodeTypes = source == null ? Map.of() : nodeTypes(records, source);
+        SessionFacts facts = SessionFacts.of(file, epFqn, source, nodeTypes);
+        facts.appendLogFraming(sb);
+        appendRecordAnchors(sb, file, records);
         if (epFqn != null) sb.append("EventProcessor: ").append(epFqn).append("\n\n");
 
         // The last record is the one to explain; earlier selected records are prior context.
@@ -67,21 +70,7 @@ public final class PromptBuilder {
         }
 
         if (source != null) {
-            // source roots let an agentic reader open related classes (superclasses, callers, hierarchy)
-            List<Path> roots = source.resolver().roots();
-            if (!roots.isEmpty()) {
-                sb.append("\n\nSource roots (open files below these to explore related classes / object hierarchy):\n");
-                for (Path root : roots) sb.append("  ").append(root).append('\n');
-            }
-            Map<String, String> nodeTypes = nodeTypes(records, source);
-            if (!nodeTypes.isEmpty()) {
-                sb.append("\nNode types (nodeLogs instanceId → declared field type @ source file):\n");
-                nodeTypes.forEach((id, fqn) -> {
-                    sb.append("  ").append(id).append(" -> ").append(fqn);
-                    source.resolver().find(fqn).ifPresent(p -> sb.append(" @ ").append(p));
-                    sb.append('\n');
-                });
-            }
+            facts.appendSourceFacts(sb);
             appendSnippets(sb, epFqn, records, source, nodeTypes);
         }
 
@@ -93,29 +82,12 @@ public final class PromptBuilder {
     }
 
     /**
-     * Seeds the prompt with the log file's location, shape and framing, plus a byte anchor per selected
-     * record — so an agentic reader can grep/seek the file (read-ahead and read-behind) for follow-ups.
-     * Inert text for a non-agentic target. No-op when there is no readable local file.
+     * A byte anchor per selected record, so an agentic reader can seek to one and read outward. Stays
+     * here rather than in {@link SessionFacts}: it is a fact about <em>this selection</em>, not about the
+     * session, and the {@code context} verb reports the same thing as structured offsets instead.
      */
-    private static void appendFileAccess(StringBuilder sb, LogFileInfo file, List<LogRecord> records) {
+    private static void appendRecordAnchors(StringBuilder sb, LogFileInfo file, List<LogRecord> records) {
         if (file == null || !file.hasLocalFile()) return;
-        sb.append("Full audit log: ").append(file.localPath());
-        sb.append(" (").append(humanSize(file.sizeBytes()))
-                .append(", ").append(String.format("%,d", file.recordCount())).append(" records");
-        if (file.minTime() != null && file.maxTime() != null) {
-            sb.append(", ").append(utc(file.minTime())).append(" → ").append(utc(file.maxTime())).append(" UTC");
-        }
-        sb.append(").\n");
-        if (file.isRemote()) {
-            sb.append("Opened from: ").append(file.displayLocation()).append(" (fetched to the local path above).\n");
-        }
-        sb.append("Framing: records are separated by lines of exactly `---`; each record starts with a "
-                + "`#HH:MM:SS.mmm [thread] LEVEL logger` header, then an `eventLogRecord:` block whose "
-                + "`nodeLogs:` list holds `- instanceId: {key: value, …}` entries. All times are UTC.\n");
-        sb.append("You may read or grep this file to answer follow-up questions — navigate in BOTH "
-                + "directions from the byte offsets below (read-behind for what led up to a record, read-ahead "
-                + "for what followed). There are many market-data records between events, so prefer targeted "
-                + "grep / sed around an offset over sequential scans of the whole file.\n");
         sb.append("Selected record anchors (byte offset into the file above):\n");
         for (LogRecord r : records) {
             sb.append("  - byte ").append(String.format("%,d", r.fileOffset()))
@@ -126,29 +98,18 @@ public final class PromptBuilder {
         sb.append('\n');
     }
 
-    private static final java.time.format.DateTimeFormatter UTC_FMT =
-            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
-                    .withZone(java.time.ZoneOffset.UTC);
-
     private static String utc(long epochMillis) {
-        return UTC_FMT.format(java.time.Instant.ofEpochMilli(epochMillis));
+        return SessionFacts.utc(epochMillis);
     }
 
-    private static String humanSize(long bytes) {
-        if (bytes < 0) return "size unknown";
-        if (bytes < 1024) return bytes + " B";
-        String[] units = {"KB", "MB", "GB", "TB"};
-        double v = bytes / 1024.0;
-        int u = 0;
-        while (v >= 1024 && u < units.length - 1) {
-            v /= 1024;
-            u++;
-        }
-        return String.format("%.1f %s", v, units[u]);
-    }
 
     /** Ordered instanceId → declared-type FQN for the nodes in the records (resolved via the EP). */
-    private static Map<String, String> nodeTypes(List<LogRecord> records, SourceService source) {
+    /**
+     * {@code instanceId → declared field type} for the nodes these records mention. Public because the
+     * {@code context} verb needs the same map: it is the one piece of the shared assembly that depends on
+     * records, so it is computed by the caller and handed to {@link SessionFacts}.
+     */
+    public static Map<String, String> nodeTypes(List<LogRecord> records, SourceService source) {
         Map<String, String> types = new LinkedHashMap<>();
         for (LogRecord r : records) {
             for (NodeLog nl : r.nodeLogs()) {

@@ -1507,20 +1507,14 @@ public final class MainFrame extends JFrame {
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context() {
             Map<String, Object> out = new java.util.LinkedHashMap<>();
 
-            telamin.fluxtion.audit.analyser.analyser.llm.LogFileInfo info = currentLogFileInfo();
-            if (info != null) {
-                Map<String, Object> log = new java.util.LinkedHashMap<>();
-                // absolute: the caller is very likely a different process with a different working
-                // directory, and a relative path it cannot resolve is worse than no path
-                log.put("path", info.localPath() == null ? null
-                        : Path.of(info.localPath()).toAbsolutePath().normalize().toString());
-                log.put("openedFrom", info.displayLocation());
-                log.put("records", info.recordCount());
-                log.put("sizeBytes", info.sizeBytes());
-                if (info.minTime() != null) log.put("from", info.minTime());
-                if (info.maxTime() != null) log.put("to", info.maxTime());
-                out.put("log", log);
-            }
+            // the same assembly the pasted prompt uses, rendered as JSON instead of prose
+            telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts facts =
+                    telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.of(
+                            currentLogFileInfo(), config.selectedEventProcessor, sourceService,
+                            telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.nodeTypes(
+                                    selectedRecords, sourceService));
+            Map<String, Object> log = facts.logAsMap();
+            if (!log.isEmpty()) out.put("log", log);
 
             // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
             Map<String, Object> f = new java.util.LinkedHashMap<>();
@@ -1560,12 +1554,7 @@ public final class MainFrame extends JFrame {
             List<String> graphs = graphTabs.graphNames();
             if (!graphs.isEmpty()) out.put("graphs", graphs);
 
-            Map<String, Object> src = new java.util.LinkedHashMap<>();
-            src.put("roots", List.copyOf(config.sourceRoots));
-            if (config.selectedEventProcessor != null) {
-                src.put("eventProcessor", config.selectedEventProcessor);
-            }
-            out.put("source", src);
+            out.put("source", facts.sourceAsMap());
 
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
         }

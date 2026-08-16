@@ -754,7 +754,15 @@ public final class TopologyPanel extends JPanel {
             // fill the processor half too — Split exists to show the call site and the method together,
             // and half of it sitting empty defeats the point
             embeddedSource.showSelectedProcessor();
-            embeddedSource.openInstance(instanceId, null);
+            // An EVENT node has no class of its own in the graph — what you want to see is where the
+            // processor dispatches it, which is its handleEvent overload. Sending it down the node path
+            // instead just reports "no source mapping", which is true and unhelpful.
+            ProcessorTopology.Node node = fullTopology.node(instanceId);
+            if (node != null && node.kind() == ProcessorTopology.Kind.EVENT) {
+                embeddedSource.openEventHandler(node.simpleName());
+            } else {
+                embeddedSource.openInstance(instanceId, null);
+            }
             return;
         }
         if (sourceOpener != null) sourceOpener.accept(instanceId, null);

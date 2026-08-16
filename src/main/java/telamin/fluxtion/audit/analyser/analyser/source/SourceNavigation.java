@@ -38,6 +38,37 @@ public final class SourceNavigation {
         return call.find() ? call.start() : -1;
     }
 
+    /**
+     * Offset of the declaration of a <b>type</b> by simple name, or -1.
+     *
+     * <p>Needed because a Fluxtion graph's node classes are commonly nested in one holder — the
+     * framework's own examples do it — so opening {@code Nodes.java} and landing at line 1 leaves the
+     * reader to find {@code QuotePublisher} among a dozen siblings. When the file holds a single
+     * top-level type this finds it at the top anyway, so the caller needs no special case.
+     */
+    public static int typeDeclOffset(String source, String simpleName) {
+        if (source == null || simpleName == null || simpleName.isBlank()) return -1;
+        Matcher m = Pattern.compile("(?m)^[ \\t]*(?:(?:public|private|protected|static|final|abstract|sealed|non-sealed)\\s+)*"
+                + "(?:class|interface|enum|record)\\s+" + Pattern.quote(simpleName) + "\\b").matcher(source);
+        return m.find() ? m.start() : -1;
+    }
+
+    /**
+     * Offset of the generated processor's {@code handleEvent} overload for {@code eventSimpleName}, or -1.
+     *
+     * <p>A generated EventProcessor has one {@code handleEvent} per event type, so
+     * {@link #methodDeclOffset} would land on whichever came first — almost never the one asked for.
+     * Matching on the parameter type is what makes clicking an event node land on the dispatch that
+     * actually handles it.
+     */
+    public static int eventHandlerOffset(String source, String eventSimpleName) {
+        if (source == null || eventSimpleName == null || eventSimpleName.isBlank()) return -1;
+        Matcher m = Pattern.compile("(?m)^[ \\t]*(?:(?:public|private|protected|static|final)\\s+)*"
+                + "\\w+\\s+handleEvent\\s*\\(\\s*(?:[\\w.$]+\\.)?" + Pattern.quote(eventSimpleName)
+                + "\\s+\\w+\\s*\\)").matcher(source);
+        return m.find() ? m.start() : -1;
+    }
+
     /** The identifier under {@code offset}, plus a preceding {@code receiver.} and whether a {@code (} follows. */
     public static Ref resolveAt(String s, int offset) {
         if (s == null || offset < 0 || offset > s.length()) return null;
