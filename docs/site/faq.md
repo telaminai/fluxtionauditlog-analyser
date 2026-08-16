@@ -41,10 +41,17 @@ Yes — it's built to be. The optional REST transport that lets an external agen
 - **loopback-only** — bound to `127.0.0.1`; not reachable from the network,
 - **token-guarded** — every request needs a **per-run** secret token (regenerated each launch),
 - **CSRF-hardened** — requests carrying an `Origin` header are rejected, so a browser page can't reach it,
-- **rate-limited** and **bounded** — capped actions per reply, and it only exposes the same read/curate
-  verbs the in-app assistant uses (no file or shell access).
+- **rate-limited** and **bounded** — capped actions per reply; no shell access, ever.
 
-So an agent can compute, filter, graph, flag and read records — nothing outside the loaded log.
+Out of the box an agent can compute, filter, graph, flag and read records — **nothing outside the loaded
+log, and no file writes**. Two groups of verbs go further, honestly labelled:
+
+- **File exports — `screenshot` and `report` — are off by default.** Enabling *Allow file exports*
+  (Settings ▸ Assistant) lets them write **only inside the export directory you choose**, and they never
+  overwrite an existing file. Both are marked destructive to MCP clients so your agent asks first.
+- **Scripting verbs — `open` and `source_root` — can change which log, event processor or source roots
+  are open**, the same things you change through the UI. Still nothing outside the analyser: no shell,
+  no arbitrary file reads, and your API key is never reachable.
 
 ## How do I check for updates?
 

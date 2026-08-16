@@ -304,6 +304,11 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
 _M23.1–23.6 explain a **trend**; M23.7–23.9 explain a **single cycle**. The owner's framing: "the graph
 plot shows trends, this is a particular issue diagnosis."_
 
+- [M24.2] ☑ **Export guard (review B1).** `screenshot`/`report` are opt-in (*Allow file exports*,
+  Settings ▸ Assistant, default off) and confined to one export directory via pure `llm/ExportGuard`
+  (relative paths land inside it; escapes and overwrites refused; 7 tests). FAQ + assistant.md rewritten
+  to the new truth; `FaqSecurityContractTest` asserts every destructiveHint verb is named in the FAQ's
+  security answer, so the promise can't silently drift again. Implemented by the reviewing session.
 - [M23.7] ☑ **A finding callout on the topology** (owner). A record's diagnosis is painted bottom-right
   over the graph — note in ink, suggested fix in green, an amber bar down the left edge so it reads as
   commentary rather than more log output. On the canvas, not in a side panel, for the same reason the

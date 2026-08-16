@@ -121,6 +121,7 @@ public final class MainFrame extends JFrame {
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
         actionExecutor.bind(topologyPanel, new AppControlAdapter());
+        actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         llmPanel.bind(() -> config, () -> selectedRecords, sourceService::selectedFqn,
                 this::currentLogFileInfo, () -> store, actionExecutor, sourceService);
         applyRestServer();   // start the localhost REST transport if the profile opted in

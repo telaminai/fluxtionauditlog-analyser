@@ -65,6 +65,25 @@ public final class ActionExecutor implements RenderExecutor {
         this.app = app;
     }
 
+    /**
+     * The export policy for file-writing verbs (screenshot / report): opt-in + directory-confined
+     * (B1, review_handoff_16_aug_2026). Unwired → those verbs are refused, which is the safe default.
+     */
+    public void bindExportPolicy(java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.config.AppConfig> config) {
+        this.exportConfig = config;
+    }
+
+    private java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.config.AppConfig> exportConfig;
+
+    /** Resolve a verb-supplied write path against the policy; error string when refused. */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.Resolved guardedPath(Object requested) {
+        var cfg = exportConfig == null ? null : exportConfig.get();
+        return telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(
+                requested == null ? null : requested.toString(),
+                cfg != null && cfg.assistantExports,
+                cfg == null ? "" : cfg.assistantExportDir);
+    }
+
     @Override
     public ActionResult render(String action, Map<String, Object> params) {
         // these three do not read the records table, and two of them exist precisely to get a log open —
@@ -88,16 +107,20 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.context());
             }
             case "screenshot" -> {
+                var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere
+                if (!out.ok()) return ActionResult.error(out.error());
                 return onEdt(() -> app == null
                         ? ActionResult.error("'screenshot' is not enabled here")
-                        : app.screenshot(str(params.get("path")), str(params.get("scope"))));
+                        : app.screenshot(out.path().toString(), str(params.get("scope"))));
             }
             case "report" -> {
+                var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere
+                if (!out.ok()) return ActionResult.error(out.error());
                 return onEdt(() -> app == null
                         ? ActionResult.error("'report' is not enabled here")
                         // the topology goes in unless asked otherwise: a diagnosis of one cycle that does
                         // not show the cycle is the half of the evidence a reader cannot reconstruct
-                        : app.exportFinding(str(params.get("path")), intOrNull(params.get("recordIndex")),
+                        : app.exportFinding(out.path().toString(), intOrNull(params.get("recordIndex")),
                                 str(params.get("title")), str(params.get("graph")),
                                 !params.containsKey("topology") || bool(params.get("topology"))));
             }

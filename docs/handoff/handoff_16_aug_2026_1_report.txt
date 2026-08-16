@@ -118,3 +118,29 @@ NOT verified — please click:
   java -jar target/fluxtion-auditlog-analyser-*.jar src/test/resources/topology/demo-quote-audit-traced.yaml
   # then Topology ▸ Open .graphml… ▸ src/test/resources/topology/demo-quote-processor.graphml
   # and work through §4's list.
+
+================================================================================
+B1 RESOLUTION (2026-08-16, appended by the reviewing session — author = reviewer, disclosed)
+================================================================================
+The review's merge blocker (review_handoff_16_aug_2026 B1) was implemented by the reviewer at the
+owner's direction ("toggle-plus-confinement — you make the change, test, update the report, merge"):
+
+  - AppConfig.assistantExports (default FALSE) + assistantExportDir; persisted; Settings ▸ Assistant
+    gains the toggle, a directory chooser, and an honest note. Machine-scoped: GLOBAL under M20,
+    excluded from SettingsShare (recorded in the M20 brief).
+  - llm/ExportGuard (pure, 7 tests): verb-supplied paths resolve INSIDE the export directory
+    (relative → inside; absolute → must normalise inside; .. escapes refused); existing files never
+    overwritten; disabled/unconfigured states produce actionable errors. Applied in ActionExecutor to
+    `screenshot` and `report` ONLY — human File▸ choosers are untouched (a person picking a location
+    is the authorisation; the guard exists for the path with no person in the loop).
+  - FAQ security answer + assistant.md capability boundary rewritten to the truth (both had been
+    falsified by the M22 verb expansion — assistant.md still said "six verbs" and "cannot open a
+    different file"). VerbSchemas descriptions for both verbs state the policy so agents learn it at
+    discovery time.
+  - Governance made mechanical (review D2): McpTools.destructiveVerbs() exposed;
+    FaqSecurityContractTest fails the build if a destructiveHint verb is not named in the FAQ's
+    security answer.
+
+Verified: 481/481 tests (8 added) · mkdocs --strict green. Author-is-reviewer is a known weakness of
+this addendum; mitigations: the change is small, the policy is enforced by pure tested code, the
+contract test outlives both of us, and this disclosure exists.

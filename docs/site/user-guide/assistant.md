@@ -313,7 +313,13 @@ Two things follow, both useful:
 
 ### What it can and can't do
 
-The MCP door opens the **same six verbs** as the other transports and nothing more. An agent can read the
-loaded log and change what the app displays. It **cannot** open a different file, change your settings,
-touch your API key, or reach anything outside the log you have open. Server control is deliberately not
-an assistant capability. The channel is loopback-only and the endpoint file is owner-readable.
+The MCP door opens the **same verbs** as the other transports and nothing more — one tool per verb,
+discovered live, so the list you see in your client is the truth. An agent can read the loaded log,
+change what the app displays, and (via `open` / `source_root`) switch which log, processor or source
+roots are open — the same things you change through the UI. **File writes are off by default**: the
+`screenshot` / `report` verbs work only after you enable *Allow file exports* (Settings ▸ Assistant),
+write **only inside the export directory you configure**, and never overwrite. It **cannot** touch your
+API key, run anything, or read files outside the log and sources you configured. Server control is
+deliberately not an assistant capability. The channel is loopback-only and the endpoint file is
+owner-readable. (The [FAQ's security answer](../faq.md#is-the-assistants-action-socket-safe-to-enable)
+is the canonical statement of this boundary.)

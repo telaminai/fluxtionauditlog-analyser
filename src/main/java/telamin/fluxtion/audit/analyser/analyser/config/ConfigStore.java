@@ -78,6 +78,8 @@ public final class ConfigStore {
         readGraphs(p, c.savedGraphs);
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
+        c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
+        c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.maxActionRounds = parseInt(p.getProperty("assistant.maxRounds"), c.maxActionRounds);
         c.maxActionsPerReply = parseInt(p.getProperty("assistant.maxActionsPerReply"), c.maxActionsPerReply);
         readList(p, "searchHistory", c.searchHistory);
@@ -122,6 +124,8 @@ public final class ConfigStore {
         writeGraphs(p, c.savedGraphs);
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
+        put(p, "assistant.exports", Boolean.toString(c.assistantExports));
+        put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "assistant.maxRounds", Integer.toString(c.maxActionRounds));
         put(p, "assistant.maxActionsPerReply", Integer.toString(c.maxActionsPerReply));
         put(p, "windowX", Integer.toString(c.windowX));

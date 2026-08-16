@@ -82,6 +82,12 @@ public final class AppConfig {
     public int maxActionRounds = 3;
     public int maxActionsPerReply = 20;
 
+    // B1 (review_handoff_16_aug_2026): verb-initiated file writes (screenshot/report) are OPT-IN and
+    // confined to one directory — the socket's out-of-box promise stays "nothing outside the loaded log".
+    // Machine-scoped (like display prefs): stays GLOBAL under M20 tiering, excluded from SettingsShare.
+    public boolean assistantExports = false;
+    public String assistantExportDir = "";
+
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();
 

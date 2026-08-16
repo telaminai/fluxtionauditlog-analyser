@@ -103,6 +103,11 @@ M22     topology usability — ~56 items. Tracker has the detail. The parts that
      boundary drifting by accident, not to forbid a considered change.
      The display prefs (spacing/text/zoom/pan/orientation/sync/eventFilterCollapsed) should stay
      GLOBAL whatever you decide. They describe this screen and these eyes.
+     B1 RESOLVED (review_handoff_16_aug_2026, implemented by the reviewer on this branch): TWO MORE
+     GLOBAL KEYS — assistant.exports (bool, default false) and assistant.exportDir. Machine-scoped
+     like the display prefs: they stay GLOBAL and OUT of SettingsShare. The screenshot/report verbs
+     now run through llm/ExportGuard (opt-in + confined + no overwrite); FaqSecurityContractTest
+     asserts every destructive verb is named in the FAQ's security answer — do not weaken it.
 
   b) The app is now SCRIPTABLE. Eleven verbs (VerbSchemas), four of them added on 16 Aug:
      topology, open, source_root, screenshot, plus the read-only context.

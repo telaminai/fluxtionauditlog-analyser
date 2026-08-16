@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- Assistant **file exports are now opt-in and confined**: the `screenshot` and `report` verbs require
+  *Allow file exports* (Settings ▸ Assistant), write only inside the configured **export directory**,
+  and never overwrite an existing file. Off by default — the action socket's out-of-box promise stays
+  "nothing outside the loaded log".
 - **Node coverage** — `analyser_coverage` answers "which of this processor's nodes never logged in this
   run?", by comparing the GraphML against the audit log. Raised by a 309-node test estate where 54 of
   275 nodes never ran because the harness could not reach them, with every test green. A gap means

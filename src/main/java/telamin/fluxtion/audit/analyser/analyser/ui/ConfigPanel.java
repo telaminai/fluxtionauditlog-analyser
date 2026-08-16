@@ -52,6 +52,8 @@ public final class ConfigPanel extends JDialog {
             new JSpinner(new SpinnerNumberModel(500, 0, 1_000_000, 50));
     private final JCheckBox actionsInProcess = new JCheckBox("Let the assistant build views from its replies (in-process)");
     private final JCheckBox actionsRest = new JCheckBox("Allow the assistant to drive the UI over localhost (REST)");
+    private final JCheckBox exportsToggle = new JCheckBox("Allow file exports (screenshot / report verbs)");
+    private final JTextField exportDirField = new JTextField(28);
     private final JSpinner maxRoundsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 20, 1));
     private final JSpinner maxActionsSpinner = new JSpinner(new SpinnerNumberModel(20, 1, 200, 1));
 
@@ -405,24 +407,42 @@ public final class ConfigPanel extends JDialog {
         c.gridwidth = 2; c.insets = new Insets(3, 0, 3, 0);
         c.gridy = 0; p.add(actionsInProcess, c);
         c.gridy = 1; p.add(actionsRest, c);
+        c.gridy = 2; p.add(exportsToggle, c);
 
         // label column stays at preferred width; the value column takes all spare width so the
         // spinners keep their preferred size instead of being squeezed / clipped on the right
         c.gridwidth = 1; c.insets = new Insets(6, 0, 3, 8);
-        c.gridy = 2; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
+        c.gridy = 3; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Export directory:"), c);
+        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.HORIZONTAL;
+        JPanel dirRow = new JPanel(new BorderLayout(6, 0));
+        dirRow.setOpaque(false);
+        dirRow.add(exportDirField, BorderLayout.CENTER);
+        JButton browseExport = new JButton("Browse…");
+        browseExport.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser(exportDirField.getText().isBlank() ? null : exportDirField.getText());
+            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                exportDirField.setText(fc.getSelectedFile().getAbsolutePath());
+            }
+        });
+        dirRow.add(browseExport, BorderLayout.EAST);
+        p.add(dirRow, c);
+        c.fill = GridBagConstraints.NONE;
+        c.gridy = 4; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxRoundsSpinner), c);
-        c.gridy = 3; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
+        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxActionsSpinner), c);
         c.weightx = 0;
 
-        c.gridx = 0; c.gridy = 4; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridx = 0; c.gridy = 6; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(14, 0, 4, 0);
         p.add(mutedNote("The assistant can <b>compute over the index</b> and <b>build curation</b> (filter / "
                 + "graph / goto / flag) as it answers. <b>In-process</b> opens no port. <b>REST</b> exposes a "
                 + "<b>loopback-only</b> endpoint (127.0.0.1) guarded by a per-run token, for an external agent that "
                 + "can make HTTP calls — its URL + token appear in the status bar (and console) when enabled. "
-                + "Read-only over the log; reversible."), c);
-        c.gridy = 5; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
+                + "<b>File exports are off by default</b>: when allowed, the screenshot/report verbs may write "
+                + "<b>only inside the export directory</b> above, and never overwrite an existing file."), c);
+        c.gridy = 7; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
         p.add(Box.createGlue(), c);
         return p;
     }
@@ -501,6 +521,8 @@ public final class ConfigPanel extends JDialog {
         memThresholdSpinner.setValue(config.memoryThresholdMb);
         actionsInProcess.setSelected(config.assistantActionsInProcess);
         actionsRest.setSelected(config.assistantActionsRest);
+        exportsToggle.setSelected(config.assistantExports);
+        exportDirField.setText(config.assistantExportDir == null ? "" : config.assistantExportDir);
         maxRoundsSpinner.setValue(config.maxActionRounds);
         maxActionsSpinner.setValue(config.maxActionsPerReply);
     }
@@ -524,6 +546,8 @@ public final class ConfigPanel extends JDialog {
         config.memoryThresholdMb = (Integer) memThresholdSpinner.getValue();
         config.assistantActionsInProcess = actionsInProcess.isSelected();
         config.assistantActionsRest = actionsRest.isSelected();
+        config.assistantExports = exportsToggle.isSelected();
+        config.assistantExportDir = exportDirField.getText().trim();
         config.maxActionRounds = (Integer) maxRoundsSpinner.getValue();
         config.maxActionsPerReply = (Integer) maxActionsSpinner.getValue();
         if (onSaved != null) onSaved.run();

@@ -74,6 +74,15 @@ public final class McpTools {
             java.util.Set.of("open", "source_root", "screenshot", "report");
 
     /**
+     * The verbs marked destructive to MCP clients. Exposed so {@code FaqSecurityContractTest} can assert
+     * every one of them is named in the FAQ's security answer — a mutating verb that the user-facing
+     * security promise doesn't mention is exactly the drift that made review B1 a merge blocker.
+     */
+    public static java.util.Set<String> destructiveVerbs() {
+        return DESTRUCTIVE;
+    }
+
+    /**
      * Read-only hint on the query verbs only. The render verbs change what the UI shows, so they are not
      * read-only — but nothing is deleted and every one of them is reversible (a filter can be widened, a
      * graph closed, a flag cleared), hence {@code destructiveHint:false}.

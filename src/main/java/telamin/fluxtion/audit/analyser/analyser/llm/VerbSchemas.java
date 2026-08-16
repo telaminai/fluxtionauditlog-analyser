@@ -95,7 +95,9 @@ public final class VerbSchemas {
         s.put("report", schema("Export one record's finding as a PDF: the explanation and suggested fix, "
                         + "the event, the node log, a picture of the topology as currently focused, and "
                         + "optionally a plot. Write the finding with 'flag' and set the view up with "
-                        + "'goto' + 'topology' first — the report captures what is on screen.",
+                        + "'goto' + 'topology' first — the report captures what is on screen. Requires "
+                        + "'Allow file exports' (Settings > Assistant); the path resolves INSIDE the "
+                        + "configured export directory and existing files are never overwritten.",
                 props(
                         p("path", string(), "where to write the .pdf"),
                         p("recordIndex", integer(), "which record; defaults to the current selection"),
@@ -135,7 +137,9 @@ public final class VerbSchemas {
 
         s.put("screenshot", schema("Write a PNG of the app's own window to a path. Painted by the app, "
                         + "so it needs no screen-recording permission — and captures exactly the state the "
-                        + "other verbs just set up.",
+                        + "other verbs just set up. Requires 'Allow file exports' (Settings > Assistant); "
+                        + "the path resolves INSIDE the configured export directory (pass a relative name) "
+                        + "and existing files are never overwritten.",
                 props(
                         p("path", string(), "where to write the .png"),
                         p("scope", enumStr("window", "topology", "records"),
