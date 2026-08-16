@@ -79,6 +79,9 @@ public final class ActionExecutor implements RenderExecutor {
             case "topology" -> {
                 return onEdt(() -> doTopology(params));
             }
+            case "coverage" -> {
+                return doCoverage(params);
+            }
             case "context" -> {
                 return onEdt(() -> app == null
                         ? ActionResult.error("'context' is not enabled here")
@@ -109,6 +112,79 @@ public final class ActionExecutor implements RenderExecutor {
             case "flag" -> doFlag(s, params);
             default -> ActionResult.error("unknown render verb '" + action + "'");
         };
+    }
+
+    // ---- coverage --------------------------------------------------------------------------------
+
+    /**
+     * Which declared nodes never logged in this run.
+     *
+     * <p>Deliberately not marshalled to the EDT for the scan: it walks the whole log, and holding the UI
+     * thread for a 300-node/20k-record pass is exactly the kind of freeze that makes a tool feel broken.
+     * Only the topology read needs the EDT, and that is a set copy.
+     */
+    private ActionResult doCoverage(Map<String, Object> p) {
+        if (topology == null || !topology.hasTopology()) {
+            return ActionResult.error("no topology is loaded — 'coverage' compares the graph against "
+                    + "the log, so it needs a graphml. Use 'open' with a graphml first.");
+        }
+        LogStore s = store.get();
+        if (s == null) return ActionResult.error("no log is loaded");
+
+        Set<String> declared = onEdt(() -> Set.copyOf(topology.authoredNodeIds()));
+
+        // one pass, honouring the active filter only if asked: coverage over "the records I am looking
+        // at" and coverage over "the whole run" are different questions and the caller must pick
+        boolean filtered = Boolean.TRUE.equals(p.get("filtered"));
+        FilterState f = filtered ? filter.get() : null;
+        Set<String> logged = new java.util.LinkedHashSet<>();
+        int scanned = 0;
+        for (int row = 0; row < s.size(); row++) {
+            if (f != null && !f.test(s.index(), row)) continue;
+            scanned++;
+            for (var nodeLog : s.record(row).nodeLogs()) {
+                logged.add(nodeLog.instanceId());
+            }
+        }
+
+        telamin.fluxtion.audit.analyser.analyser.topology.NodeCoverage cov =
+                telamin.fluxtion.audit.analyser.analyser.topology.NodeCoverage.of(
+                        declared, logged, Set.of());
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("declared", cov.declaredCount());
+        out.put("covered", cov.covered().size());
+        out.put("uncovered", cov.uncovered().size());
+        out.put("ratio", Math.round(cov.ratio() * 1000) / 1000.0);
+        out.put("recordsScanned", scanned);
+        out.put("scope", filtered ? "current filter" : "whole log");
+
+        int limit = p.get("limit") instanceof Number n ? Math.max(1, n.intValue()) : 100;
+        List<Map<String, Object>> never = new ArrayList<>();
+        for (String id : cov.uncovered()) {
+            if (never.size() >= limit) break;
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("instanceId", id);
+            var info = onEdt(() -> topology.nodeInfo(id));
+            if (info != null && info.className() != null) entry.put("class", info.className());
+            never.add(entry);
+        }
+        out.put("neverLogged", never);
+        if (cov.uncovered().size() > never.size()) {
+            out.put("neverLoggedTruncated", cov.uncovered().size() - never.size());
+        }
+        // a node absent from the log may have run silently; say so once rather than let the caller read
+        // this as a list of dead code
+        out.put("note", "a node appears here if it never wrote audit output. That is 'never logged', "
+                + "not proven 'never ran' — a node with no auditLog call, or one whose dirty contract "
+                + "stops it early, is silent by design. Build with addEventAudit(LogLevel.TRACE) to make "
+                + "absence conclusive.");
+        if (cov.buildMismatch()) {
+            out.put("loggedButNotInTopology", cov.loggedButNotInTopology().stream().limit(20).toList());
+            out.put("warning", "instanceIds in the log are absent from the topology — the graphml is "
+                    + "probably from a different build, which makes every other figure here suspect");
+        }
+        return ActionResult.ok("coverage", "coverage", out);
     }
 
     // ---- filter ----------------------------------------------------------------------------------

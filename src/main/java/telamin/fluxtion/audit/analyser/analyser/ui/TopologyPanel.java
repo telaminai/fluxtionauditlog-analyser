@@ -675,6 +675,22 @@ public final class TopologyPanel extends JPanel {
         syncSourceTo(id);
     }
 
+    /**
+     * The application nodes this topology declares — scaffolding excluded.
+     *
+     * <p>The denominator for node coverage. Framework nodes are left out on purpose: they are not the
+     * author's code and reporting them as uncovered would be noise in the one report whose value depends
+     * on people reading every line of it.
+     */
+    public java.util.Set<String> authoredNodeIds() {
+        return telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding.authoredNodes(fullTopology);
+    }
+
+    /** The kind and class of a node, for a report that needs to explain what it is naming. */
+    public telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.Node nodeInfo(String id) {
+        return fullTopology.node(id);
+    }
+
     public boolean hasNode(String id) {
         return id != null && fullTopology.contains(id);
     }

@@ -286,6 +286,20 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
+## M24 · Coverage for a graph — ☑ SHIPPED (2026-08-16, owner-requested)
+- [M24.1] ☑ **`coverage` verb.** Which declared nodes never wrote audit output in a run. Came out of the
+  POC's 309-node round: the harness emitted chiller readings at `i % 12` against a **24**-wide estate, so
+  only 2 of 24 chillers were ever reachable and **54 of 275 nodes never ran** — through a clean build and
+  a green suite. Nothing in the tool could have told you.
+  `NodeCoverage` is pure (5 tests) and keeps three outcomes apart that a naive implementation collapses:
+  covered, never-logged, and **silent by design** (a node with no `auditLog` call can never appear, and
+  listing it would be the noise that trains people to ignore the report). The reverse direction —
+  instanceIds in the log that the topology does not contain — is reported separately as a **build
+  mismatch**, because if that is true no other figure on screen can be trusted.
+  Read-only, scans off the EDT, and honest in the result: absence is only conclusive under
+  `addEventAudit(TRACE)`, and the payload says so.
+  _Measured on the POC: 299 declared, 217 covered, 82 uncovered, ratio 0.726._
+
 ## M23 · Explaining what you found — ☑ SHIPPED (2026-08-16, owner-requested)
 _M23.1–23.6 explain a **trend**; M23.7–23.9 explain a **single cycle**. The owner's framing: "the graph
 plot shows trends, this is a particular issue diagnosis."_

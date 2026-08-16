@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Node coverage** — `analyser_coverage` answers "which of this processor's nodes never logged in this
+  run?", by comparing the GraphML against the audit log. Raised by a 309-node test estate where 54 of
+  275 nodes never ran because the harness could not reach them, with every test green. A gap means
+  "never logged", not proven "never ran", and the result says so.
 - **Diagnose one cycle, not just a trend.** A record's finding — what is wrong, and optionally the likely
   cause — is now painted as a callout over the Topology graph for that record, so a screenshot of the
   graph carries its own explanation. Write it from Records ▸ *Write a finding for this record…*, or from

@@ -81,6 +81,17 @@ public final class VerbSchemas {
                         p("fix", string(), "the likely cause or suggested fix — where to look")),
                 List.of()));
 
+        s.put("coverage", schema("Which of the processor's nodes never wrote audit output in this run — "
+                        + "coverage, for a graph. Needs a log AND a graphml. Answers the question a human "
+                        + "cannot answer by looking at a 300-node estate: what did this run never "
+                        + "exercise? A gap means 'never logged', not proven 'never ran' — see the note in "
+                        + "the result.",
+                props(
+                        p("filtered", bool(), "score only the records the current filter shows "
+                                + "(default false: the whole log)"),
+                        p("limit", integer(), "how many never-logged nodes to list (default 100)")),
+                List.of()));
+
         s.put("report", schema("Export one record's finding as a PDF: the explanation and suggested fix, "
                         + "the event, the node log, a picture of the topology as currently focused, and "
                         + "optionally a plot. Write the finding with 'flag' and set the view up with "
