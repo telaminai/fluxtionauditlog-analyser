@@ -743,6 +743,12 @@ public final class TopologyPanel extends JPanel {
         return out;
     }
 
+    /** The embedded source viewer when it is on screen, else null — the caller decides what that means. */
+    public SourcePanel openSourcePane() {
+        return embeddedSource != null && graphSplit.getRightComponent() == embeddedSource
+                ? embeddedSource : null;
+    }
+
     /** Open a node's source in the embedded pane, from outside the panel. */
     public void openSourceFor(String instanceId) {
         openSource(instanceId);

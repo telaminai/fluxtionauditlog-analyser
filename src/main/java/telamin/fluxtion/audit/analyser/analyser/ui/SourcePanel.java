@@ -213,11 +213,24 @@ public final class SourcePanel extends JPanel {
         nodePane.setWrap(on);
     }
 
-    /** Scroll the EventProcessor source to the method that dispatches this record (its callback). */
+    /**
+     * Scroll the EventProcessor to where <b>this record's</b> cycle entered it.
+     *
+     * <p>Two shapes, and they need different lookups. An exported-service call names its method in
+     * {@code callback()}, so that is the target. An ordinary event names no method at all — the entry is
+     * the processor's {@code handleEvent} overload for that event type, and there is one per type, so
+     * searching by method name alone would land on whichever came first.
+     */
     public void showDispatchFor(LogRecord record) {
         if (service == null || record == null) return;
         this.dispatchRecord = record;
-        openFqnAtMethod(service.selectedFqn(), record.callback());
+        String fqn = service.selectedFqn();
+        if (fqn == null) return;
+        if (record.callback() != null) {
+            openFqnAtMethod(fqn, record.callback());
+            return;
+        }
+        openEventHandler(record.event());
     }
 
     /** Open a node's declaring class (via the selected processor) and scroll to {@code method}. */
@@ -249,7 +262,9 @@ public final class SourcePanel extends JPanel {
         String fqn = service.selectedFqn();
         if (fqn == null) return;
         navigate(fqn, null);
-        int off = SourceNavigation.eventHandlerOffset(processorPane.source, eventSimpleName);
+        // an event class may be nested (Events.MarketDataEvent); the overload names the simple type
+        String simple = simpleName(eventSimpleName.strip());
+        int off = SourceNavigation.eventHandlerOffset(processorPane.source, simple);
         if (off < 0) return;
         // navigate() may have just replaced the document, and a scroll issued before the new view has
         // been laid out lands roughly a screen out — the target ends up at the bottom instead of the top.

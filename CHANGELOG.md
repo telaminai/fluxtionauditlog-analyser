@@ -21,6 +21,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- **Selecting a record syncs the source view you can see** — the Topology tab's embedded pane when that
+  is what is open, the Source tab otherwise. It never switches tabs on you.
 - **Source navigation lands where you meant**: clicking an event in the topology opens the processor at
   that event's own `handleEvent` overload; clicking a node scrolls to its class declaration, which
   matters when a file holds a dozen nested node classes.

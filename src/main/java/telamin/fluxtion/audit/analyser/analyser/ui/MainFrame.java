@@ -957,11 +957,48 @@ public final class MainFrame extends JFrame {
         LogRecord focus = records.get(records.size() - 1);
         detailPanel.showRecords(java.util.List.of(focus));
         detailPanel.setSelectionInfo(records.size());
-        sourcePanel.showDispatchFor(focus);
+        syncSourceForRecord(focus);
         // the table's selection IS the step cursor (M21.4/M21.10); skip when the move came FROM stepping
         if (!steppingSelection) {
             topologyPanel.showRecord(focus, tablePanel.viewRowOf(modelRows[limit - 1]));
         }
+    }
+
+    /**
+     * Point <b>the source view the user can actually see</b> at the selected record's dispatch.
+     *
+     * <p>Selecting a record is not a request to change tab. There are two source viewers now — the
+     * Source tab and the Topology tab's embedded pane — and syncing the wrong one is invisible while
+     * syncing by switching tabs would yank the user off the graph they were reading. So: whichever is on
+     * screen wins; if the topology is showing without its source pane open there is nothing visible to
+     * sync, and the Source tab is updated silently so it is already right when they get there.
+     */
+    private void syncSourceForRecord(LogRecord focus) {
+        SourcePanel embedded = topologyPanel.openSourcePane();
+        java.awt.Component front = sideTabs == null ? null : sideTabs.getSelectedComponent();
+        SourceTarget target = chooseSourceTarget(front == topologyPanel, front == sourcePanel,
+                embedded != null);
+        SourcePanel panel = target == SourceTarget.EMBEDDED ? embedded : sourcePanel;
+        if (panel != null) panel.showDispatchFor(focus);
+    }
+
+    /** Which source viewer a record selection should update. */
+    enum SourceTarget { EMBEDDED, SOURCE_TAB }
+
+    /**
+     * The routing rule, kept as a pure function so it can be reasoned about and tested without a window.
+     *
+     * <p>Rules, in order: a <b>visible</b> viewer always wins, because syncing one the user cannot see is
+     * the same as not syncing. When the topology is in front without its source pane open there is
+     * nothing visible to update, so the Source tab is updated <b>silently</b> — it is then already right
+     * when they switch. Never switch tabs: selecting a record is not a request to leave the graph.
+     */
+    static SourceTarget chooseSourceTarget(boolean topologyShowing, boolean sourceTabShowing,
+                                           boolean embeddedPaneOpen) {
+        if (topologyShowing && embeddedPaneOpen) return SourceTarget.EMBEDDED;
+        if (sourceTabShowing) return SourceTarget.SOURCE_TAB;
+        // neither viewer is in front: prefer the pane the user deliberately opened
+        return embeddedPaneOpen ? SourceTarget.EMBEDDED : SourceTarget.SOURCE_TAB;
     }
 
     private void chooseFile() {
