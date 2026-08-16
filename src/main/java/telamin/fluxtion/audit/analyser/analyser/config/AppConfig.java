@@ -40,6 +40,17 @@ public final class AppConfig {
     /** Event-type rail panel collapsed — it costs 240px of a window whose job is showing wide records. */
     public boolean eventFilterCollapsed = false;
 
+    /**
+     * Topology display preferences: layout spacing as a percentage, and label point size.
+     *
+     * <p>Deliberately <b>not</b> in any {@code SettingsShare.Category}, so they are never exported. They
+     * are a fact about this screen and these eyes — a shared setup carrying someone else's text size is
+     * a nuisance, not a convenience — and the whitelist is opt-in, so leaving them out of it is the whole
+     * mechanism. Same reasoning as the theme.
+     */
+    public int topologySpacingPercent = 100;
+    public int topologyTextSize = 11;
+
     /** Saved graphs: one entry per graph tab, each a list of series encoded as {@code instanceIdkey}. */
     public final List<GraphSpec> savedGraphs = new ArrayList<>();
 
@@ -67,9 +78,21 @@ public final class AppConfig {
     public int windowX = -1, windowY = -1, windowW = 1200, windowH = 800;
 
     public void addRecent(String path) {
+        addRecent(recentFiles, path);
+    }
+
+    /** Recently opened {@code .graphml} topologies — a separate list: a graph and a log are not
+     *  interchangeable, and one list would mean scrolling past logs to find a graph. */
+    public final List<String> recentGraphml = new ArrayList<>();
+
+    public void addRecentGraphml(String path) {
+        addRecent(recentGraphml, path);
+    }
+
+    private static void addRecent(List<String> into, String path) {
         if (path == null) return;
-        recentFiles.remove(path);
-        recentFiles.add(0, path);
-        while (recentFiles.size() > 10) recentFiles.remove(recentFiles.size() - 1);
+        into.remove(path);
+        into.add(0, path);
+        while (into.size() > 10) into.remove(into.size() - 1);
     }
 }

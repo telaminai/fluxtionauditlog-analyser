@@ -66,7 +66,8 @@ public final class MainFrame extends JFrame {
     private final JLabel showingLabel = new JLabel();
     private final JProgressBar progress = new JProgressBar();
     private final JLabel status = new JLabel("Open a log — File ▸ Open (or the toolbar), drag a file in, or File ▸ Open from S3.");
-    private final JMenu recentMenu = new JMenu("Open Recent");
+    private final JMenu recentMenu = new JMenu("Open recent audit log");
+    private final JMenu recentGraphmlMenu = new JMenu("Open recent GraphML");
     private JTabbedPane sideTabs;
 
     private LogStore store;
@@ -135,6 +136,14 @@ public final class MainFrame extends JFrame {
         topologyPanel.setFilterAction(this::filterToInstance);
         // node tooltips pick up the class javadoc when a source root reaches the class
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
+        // one place remembers a loaded topology, whichever entry point loaded it
+        topologyPanel.onTopologyLoaded(this::rememberGraphml);
+        topologyPanel.setDisplayPrefs(config.topologySpacingPercent, config.topologyTextSize);
+        topologyPanel.onDisplayPrefsChanged(() -> {
+            config.topologySpacingPercent = topologyPanel.spacingPercent();
+            config.topologyTextSize = topologyPanel.textSize();
+            saveConfigQuietly();
+        });
         // stepping walks the FILTERED sequence, so it honours the shared filter like every other view
         topologyPanel.setRecordSource(new telamin.fluxtion.audit.analyser.analyser.topology.StepCursor.RecordSource() {
             @Override public int size() {
@@ -163,7 +172,6 @@ public final class MainFrame extends JFrame {
         tablePanel.setFlagTester(flaggedRows::contains);
         tablePanel.setFlagToggle(this::toggleFlags);
         tablePanel.setNoteProvider(flagNotes::get);
-        installTableContextMenu();
         installGlobalKeys();
         installFileDrop();
         addWindowListener(new WindowAdapter() {
@@ -234,39 +242,6 @@ public final class MainFrame extends JFrame {
         });
     }
 
-    /** Right-click menu on the records table: Diff (needs 2), Explain, Flag — mirrors the Records menu. */
-    private void installTableContextMenu() {
-        JTable t = tablePanel.table();
-        JPopupMenu menu = new JPopupMenu();
-        JMenuItem diff = new JMenuItem("Diff selected two records");
-        diff.addActionListener(e -> diffSelected());
-        JMenuItem explain = new JMenuItem("Explain selected with LLM");
-        explain.addActionListener(e -> explainSelection());
-        JMenuItem flag = new JMenuItem("Flag / unflag selected  (F)");
-        flag.addActionListener(e -> toggleFlags(tablePanel.selectedModelRows()));
-        menu.add(diff);
-        menu.add(explain);
-        menu.addSeparator();
-        menu.add(flag);
-
-        t.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mousePressed(java.awt.event.MouseEvent e) { maybeShow(e); }
-            @Override public void mouseReleased(java.awt.event.MouseEvent e) { maybeShow(e); }
-
-            private void maybeShow(java.awt.event.MouseEvent e) {
-                if (!e.isPopupTrigger()) return;
-                int row = t.rowAtPoint(e.getPoint());
-                // if the click isn't on an already-selected row, select just that row
-                if (row >= 0 && !t.isRowSelected(row)) t.setRowSelectionInterval(row, row);
-                int n = t.getSelectedRowCount();
-                diff.setEnabled(n == 2);
-                explain.setEnabled(n >= 1);
-                flag.setEnabled(n >= 1);
-                menu.show(t, e.getX(), e.getY());
-            }
-        });
-    }
-
     private JMenu buildRecordsMenu() {
         JMenu menu = new JMenu("Records");
         addRecordActions(menu);
@@ -318,6 +293,11 @@ public final class MainFrame extends JFrame {
         diff.setEnabled(selectedRecords.size() == 2);
         diff.addActionListener(e -> diffSelected());
         into.add(diff);
+
+        JMenuItem explain = new JMenuItem("Explain selected with LLM");
+        explain.setEnabled(haveSelection);
+        explain.addActionListener(e -> explainSelection());
+        into.add(explain);
 
         addSeparator(into);
         JMenuItem exportCsv = new JMenuItem("Export records (CSV)…");
@@ -587,6 +567,7 @@ public final class MainFrame extends JFrame {
         file.add(openS3);
         rebuildRecentMenu();
         file.add(recentMenu);
+        file.add(recentGraphmlMenu);
         file.addSeparator();
         followMenuItem = new JCheckBoxMenuItem("Follow (tail)");
         followMenuItem.setToolTipText("Poll the open local file for newly-appended records and auto-scroll");
@@ -1337,19 +1318,47 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Two recent lists, not one. A log and a topology are opened for different reasons and neither
+     * substitutes for the other, so a single list means scrolling past logs to find a graph — and picking
+     * the wrong kind silently does nothing useful.
+     */
     private void rebuildRecentMenu() {
-        recentMenu.removeAll();
-        if (config.recentFiles.isEmpty()) {
+        fillRecent(recentMenu, config.recentFiles, this::openLocation);
+        fillRecent(recentGraphmlMenu, config.recentGraphml, this::openGraphml);
+    }
+
+    private void fillRecent(JMenu menu, List<String> paths, java.util.function.Consumer<String> open) {
+        menu.removeAll();
+        if (paths.isEmpty()) {
             JMenuItem none = new JMenuItem("(none)");
             none.setEnabled(false);
-            recentMenu.add(none);
+            menu.add(none);
             return;
         }
-        for (String p : config.recentFiles) {
+        for (String p : paths) {
             JMenuItem item = new JMenuItem(p);
-            item.addActionListener(e -> openLocation(p));
-            recentMenu.add(item);
+            item.addActionListener(e -> open.accept(p));
+            menu.add(item);
         }
+    }
+
+    /** Load a topology and remember it, from wherever it was chosen — menu, recent list or a drop. */
+    private void openGraphml(String path) {
+        java.nio.file.Path file = java.nio.file.Path.of(path);
+        if (!java.nio.file.Files.isReadable(file)) {
+            JOptionPane.showMessageDialog(this, "Cannot read " + path,
+                    "Open GraphML", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        topologyPanel.load(file);   // the load listener records it
+        if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+    }
+
+    private void rememberGraphml(java.nio.file.Path file) {
+        config.addRecentGraphml(file.toAbsolutePath().toString());
+        rebuildRecentMenu();
+        saveConfigQuietly();
     }
 
     private void restoreBounds() {

@@ -21,10 +21,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- **Open recent** is split into *audit log* and *GraphML*.
+- While stepping, only edges whose **both** ends ran are highlighted — an arrow from a node that did not
+  run is no longer drawn as though the event arrived that way.
 - **Topology**: a collapsible index overlay (Nodes / Events / Services) for picking a node by name and
   jumping to its source; node tooltips now show the class javadoc; selected nodes are marked with a ring
   and tint rather than by dimming everything else; smaller node boxes with a visible fill for plain nodes;
-  and the status line says how many nodes the filters are hiding.
+  and the status line says how many nodes the filters are hiding. Clicking an index entry scrolls that
+  node into view. Spacing and text size are remembered between sessions (and never included in an
+  exported settings file).
 - **Topology**: spacing and text-size sliders, and a **Show all** button that clears the selection and
   focus so nothing is dimmed.
 - **Topology exploration**: hide Fluxtion's scaffolding nodes with a checkbox (off by default — they are

@@ -57,10 +57,13 @@ public final class ConfigStore {
         }
         c.searchMavenRepos = parseBool(p.getProperty("mavenRepoSearch"), c.searchMavenRepos);
         c.eventFilterCollapsed = parseBool(p.getProperty("eventFilterCollapsed"), c.eventFilterCollapsed);
+        c.topologySpacingPercent = parseInt(p.getProperty("topologySpacing"), c.topologySpacingPercent);
+        c.topologyTextSize = parseInt(p.getProperty("topologyTextSize"), c.topologyTextSize);
         c.awsProfile = p.getProperty("awsProfile", c.awsProfile);
         c.awsRegion = p.getProperty("awsRegion", c.awsRegion);
         c.theme = p.getProperty("theme", c.theme);
         readList(p, "recentFile", c.recentFiles);
+        readList(p, "recentGraphml", c.recentGraphml);
         if (p.getProperty("hiddenColumn.count") != null) {   // configured before → honour it (even if empty)
             readList(p, "hiddenColumn", c.hiddenColumns);
             c.hiddenColumnsSet = true;
@@ -93,10 +96,13 @@ public final class ConfigStore {
         writeList(p, "mavenRepo", c.mavenRepos);
         put(p, "mavenRepoSearch", Boolean.toString(c.searchMavenRepos));
         put(p, "eventFilterCollapsed", Boolean.toString(c.eventFilterCollapsed));
+        put(p, "topologySpacing", Integer.toString(c.topologySpacingPercent));
+        put(p, "topologyTextSize", Integer.toString(c.topologyTextSize));
         put(p, "awsProfile", c.awsProfile);
         put(p, "awsRegion", c.awsRegion);
         put(p, "theme", c.theme);
         writeList(p, "recentFile", c.recentFiles);
+        writeList(p, "recentGraphml", c.recentGraphml);
         writeList(p, "hiddenColumn", c.hiddenColumns);
         writeList(p, "searchHistory", c.searchHistory);
         put(p, "lastRunVersion", c.lastRunVersion);

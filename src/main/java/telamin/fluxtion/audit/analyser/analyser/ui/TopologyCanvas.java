@@ -365,6 +365,28 @@ public final class TopologyCanvas extends JPanel {
         return !dispatch.isEmpty();
     }
 
+    /**
+     * Whether this edge could have carried dispatch <b>in the cycle being shown</b> — both ends ran.
+     *
+     * <p>Highlighting every edge touching the current node is right when no cycle is on screen, and wrong
+     * the moment one is: an edge from a node that did not run is drawn as though the event came in that
+     * way. Stepping into {@code quotePublisher} on an order cycle lit its {@code QuoteControl} edge, which
+     * says an operator called the service — the one thing that definitely did not happen.
+     *
+     * <p>{@link ProcessorTopology.Execution#MAY_HAVE_RUN} is deliberately excluded. It means the log does
+     * not say, and a highlighted arrow is an assertion.
+     */
+    private boolean carriedDispatch(String source, String target) {
+        if (!showingCycle()) return true;
+        return ran(source) && ran(target);
+    }
+
+    private boolean ran(String id) {
+        ProcessorTopology.Execution state = execution.get(id);
+        return state == ProcessorTopology.Execution.LOGGED
+               || state == ProcessorTopology.Execution.RAN_SILENTLY;
+    }
+
     /** Called on every left click: {@code (id, additive)} — additive means add to / remove from a set. */
     public void onNodeClicked(java.util.function.BiConsumer<String, Boolean> listener) {
         this.nodeClicked = listener == null ? (id, add) -> { } : listener;
@@ -426,6 +448,23 @@ public final class TopologyCanvas extends JPanel {
         scale = clamp(Math.min(sx, sy), MIN_SCALE, 1.0);   // never zoom past 1:1 just to fill space
         offsetX = (w - layout.width() * scale) / 2;
         offsetY = (h - layout.height() * scale) / 2;
+        repaint();
+    }
+
+    /**
+     * Pan so a node sits in the middle of the view, without changing the zoom.
+     *
+     * <p>Zoom is left alone deliberately: picking a name from the index is a request to <em>go there</em>,
+     * not to change how much of the graph you can see, and a jump that also rescales loses the context
+     * you had. Already-visible nodes are still centred, so the gesture behaves the same wherever the node
+     * happens to be.
+     */
+    public void centreOn(String id) {
+        if (id == null || layout.isEmpty()) return;
+        TopologyLayout.NodeBox box = layout.box(id);
+        if (box == null) return;               // filtered out of the current view
+        offsetX = getWidth() / 2.0 - (box.x() + box.width() / 2) * scale;
+        offsetY = getHeight() / 2.0 - (box.y() + box.height() / 2) * scale;
         repaint();
     }
 
@@ -557,7 +596,8 @@ public final class TopologyCanvas extends JPanel {
         g.setStroke(new BasicStroke((float) Math.max(1, 1.1 * scale)));
         for (TopologyLayout.EdgePath path : layout.edges()) {
             boolean incident = focus != null
-                               && (focus.equals(path.source()) || focus.equals(path.target()));
+                               && (focus.equals(path.source()) || focus.equals(path.target()))
+                               && carriedDispatch(path.source(), path.target());
             List<TopologyLayout.Point> pts = path.points();
             if (!incident && !touches(visible, pts)) continue;
 

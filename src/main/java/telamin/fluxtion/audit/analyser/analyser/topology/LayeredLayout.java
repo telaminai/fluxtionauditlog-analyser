@@ -70,9 +70,14 @@ public final class LayeredLayout {
          * Width reserved for a bend point. A dummy is a place an edge passes through, not a box, so it
          * must not occupy a whole node's width — a graph with many long edges is otherwise spread to
          * absurdity by rows that are mostly bend points.
+         *
+         * <p>It must not be tiny either. At 8 a long edge's bend sat close enough to the real node beside
+         * it that the line appeared to touch the box, and a line touching a box reads as an edge into it —
+         * turning an independent sibling into an apparent dependant. 28 buys visible clearance while
+         * staying far below a node's width.
          */
         double dummyWidth() {
-            return 8;
+            return 28;
         }
 
         public Config withOrientation(Orientation o) {

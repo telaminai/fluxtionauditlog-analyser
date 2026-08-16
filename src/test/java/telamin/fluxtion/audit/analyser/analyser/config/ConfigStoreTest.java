@@ -140,4 +140,49 @@ class ConfigStoreTest {
         new ConfigStore(cfg).save(d);
         assertTrue(new ConfigStore(cfg).load().mavenRepos.isEmpty());
     }
+
+    // ---- topology display preferences (M22.29) ----------------------------------------------------
+
+    @org.junit.jupiter.api.Test
+    void topologyDisplayPreferencesSurviveARoundTrip(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        java.nio.file.Path file = dir.resolve("config");
+        ConfigStore store = new ConfigStore(file);
+        AppConfig c = new AppConfig();
+        c.topologySpacingPercent = 175;
+        c.topologyTextSize = 15;
+        c.recentGraphml.add("/tmp/one.graphml");
+        store.save(c);
+
+        AppConfig back = new ConfigStore(file).load();
+        assertEquals(175, back.topologySpacingPercent);
+        assertEquals(15, back.topologyTextSize);
+        assertEquals(java.util.List.of("/tmp/one.graphml"), back.recentGraphml);
+    }
+
+    @org.junit.jupiter.api.Test
+    void defaultsApplyWhenTheKeysAreAbsent(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        // an older config file has neither key; it must load rather than yielding zeros
+        java.nio.file.Path file = dir.resolve("config");
+        java.nio.file.Files.writeString(file, "theme=Dark\n");
+        AppConfig back = new ConfigStore(file).load();
+        assertEquals(100, back.topologySpacingPercent);
+        assertEquals(11, back.topologyTextSize);
+        assertTrue(back.recentGraphml.isEmpty());
+    }
+
+    @org.junit.jupiter.api.Test
+    void displayPreferencesAreNeverExported() throws Exception {
+        // they are a fact about this screen; the whitelist is opt-in, and this asserts they stayed out
+        AppConfig c = new AppConfig();
+        c.topologySpacingPercent = 250;
+        c.topologyTextSize = 20;
+        c.recentGraphml.add("/tmp/secret-path.graphml");
+        String shared = new SettingsShare().export(c, java.util.EnumSet.allOf(SettingsShare.Category.class));
+
+        assertFalse(shared.contains("topologySpacing"), shared);
+        assertFalse(shared.contains("topologyTextSize"), shared);
+        assertFalse(shared.contains("secret-path"), "recent paths must not leak either");
+    }
 }

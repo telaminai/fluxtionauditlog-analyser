@@ -56,6 +56,9 @@ public final class TopologyPanel extends JPanel {
     private final javax.swing.JCheckBox scaffoldingBox = new javax.swing.JCheckBox("Scaffolding", false);
     private final javax.swing.JToggleButton focusButton = new javax.swing.JToggleButton("Focus");
     private final JLabel scopeLabel = new JLabel(" ");
+    private javax.swing.JSlider spacingSlider;
+    private javax.swing.JSlider textSlider;
+    private Runnable displayPrefsChanged = () -> { };
 
     /** The graph as loaded. The canvas shows a filtered VIEW of this; classification always uses this. */
     private ProcessorTopology fullTopology = ProcessorTopology.empty();
@@ -66,6 +69,8 @@ public final class TopologyPanel extends JPanel {
     private StepCursor.RecordSource recordSource;
     private Path loadedFrom;
     private Consumer<String> nodeActivated = id -> { };
+    /** Told whenever a topology loads successfully, from any entry point — menu, recent list or drop. */
+    private Consumer<Path> topologyLoaded = f -> { };
 
     /** The nodeLogs of the record the table has selected — the cycle being stepped through. */
     private List<NodeLog> cycle = List.of();
@@ -112,12 +117,14 @@ public final class TopologyPanel extends JPanel {
         bar.add(scopeLabel);
         bar.addSeparator();
         bar.add(new JLabel(" spacing "));
-        bar.add(slider(25, 400, 100, "Space the layers and siblings further apart",
-                v -> canvas.setSpacing(v / 100.0)));
+        spacingSlider = slider(25, 400, 100, "Space the layers and siblings further apart",
+                v -> { canvas.setSpacing(v / 100.0); displayPrefsChanged.run(); });
+        bar.add(spacingSlider);
         bar.add(new JLabel(" text "));
-        bar.add(slider(7, 22, 11, "Label point size — independent of zoom, so labels stay readable "
+        textSlider = slider(7, 22, 11, "Label point size — independent of zoom, so labels stay readable "
                         + "when you zoom out",
-                v -> canvas.setLabelSize(v)));
+                v -> { canvas.setLabelSize(v); displayPrefsChanged.run(); });
+        bar.add(textSlider);
         bar.addSeparator();
         prevStep.setToolTipText("Previous step  ↑   (rows, then back into the previous record)");
         nextStep.setToolTipText("Next step  ↓   (this record's rows, then on to the next record)");
@@ -162,7 +169,12 @@ public final class TopologyPanel extends JPanel {
         canvas.onNodeActivated(id -> nodeActivated.accept(id));
         canvas.onNodeSelected(this::describeSelection);
         canvas.onNodeClicked(this::onNodeClicked);
-        index.setSelectHandler(id -> onNodeClicked(id, false));
+        index.setSelectHandler(id -> {
+            onNodeClicked(id, false);
+            // picked by name rather than found on screen, so bring it into view — otherwise the only
+            // feedback for a node that is off screen is a status line changing
+            canvas.centreOn(id);
+        });
         index.setOpenSourceHandler(this::openSource);
         canvas.onNodeContextMenu(this::showNodeMenu);
         installStepKeys();
@@ -263,6 +275,37 @@ public final class TopologyPanel extends JPanel {
         }
     }
 
+    /** Apply saved display preferences. Silent — restoring a setting is not a change to report back. */
+    public void setDisplayPrefs(int spacingPercent, int textSize) {
+        Runnable saved = displayPrefsChanged;
+        displayPrefsChanged = () -> { };
+        try {
+            spacingSlider.setValue(spacingPercent);
+            textSlider.setValue(textSize);
+            canvas.setSpacing(spacingPercent / 100.0);
+            canvas.setLabelSize(textSize);
+        } finally {
+            displayPrefsChanged = saved;
+        }
+    }
+
+    public int spacingPercent() {
+        return spacingSlider.getValue();
+    }
+
+    public int textSize() {
+        return textSlider.getValue();
+    }
+
+    /** Told when the user moves either display slider, so the caller can persist it. */
+    public void onDisplayPrefsChanged(Runnable listener) {
+        this.displayPrefsChanged = listener == null ? () -> { } : listener;
+    }
+
+    public void onTopologyLoaded(Consumer<Path> listener) {
+        this.topologyLoaded = listener == null ? f -> { } : listener;
+    }
+
     /** Load a topology from a {@code .graphml}; a bad file reports rather than throwing. */
     public void load(Path file) {
         ProcessorTopology topology = GraphMlParser.parse(file);
@@ -280,6 +323,7 @@ public final class TopologyPanel extends JPanel {
         index.setTopology(fullTopology);
         applyView(false);
         setStatus(summary(topology, file));
+        topologyLoaded.accept(file);
     }
 
     /**

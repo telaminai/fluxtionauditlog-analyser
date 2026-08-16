@@ -347,8 +347,10 @@ picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that ch
 - [M22.6] ☐ **Alternative layouts** — the largest item. `LayeredLayout` is Sugiyama; candidates are
   breadthfirst-from-entry and a compact/orthogonal variant. Keep `TopologyLayout` as the output contract
   so the canvas is unchanged.
-- [M22.7] ☐ **Split Open Recent** — separate *Recent audit logs* and *Recent GraphML*; needs a second
-  recent list in `AppConfig` (the existing one is log-only) and menu wiring.
+- [M22.7] ☑ **Split Open Recent** — shipped: *Open recent audit log* and *Open recent GraphML*
+  (`AppConfig.recentGraphml`). One list would mean scrolling past logs to find a graph, and picking the
+  wrong kind silently does nothing useful. A `onTopologyLoaded` listener records the graph from **every**
+  entry point — the toolbar chooser, the recent list and a drop — rather than each caller remembering to.
 
 ### Added 2026-08-16 (owner, from the playground visualiser reference)
 _Reference implementations reviewed: `mongoose-plugins/service/svc-admin-web/src/main/resources/web`
@@ -407,6 +409,27 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.29] ☑ **Only edges that carried dispatch light up while stepping** (owner). Highlighting every
+  edge touching the current node is right with no cycle on screen and **wrong** the moment one is on:
+  stepping into `quotePublisher` on an order cycle lit its `QuoteControl` edge, asserting that an operator
+  called the service — the one thing that definitely did not happen. An edge is now hot only when **both
+  ends ran** (LOGGED or RAN_SILENTLY). MAY_HAVE_RUN is excluded on purpose: it means the log does not say,
+  and a highlighted arrow is an assertion.
+- [M22.30] ☑ **Bend points clear the boxes beside them** (owner: "the box clips the arrow… they look like
+  dependants, not siblings"). `dummyWidth` 8 → 28. A long edge's bend sat close enough to the real node
+  next to it that the line appeared to touch the box, and a line touching a box reads as an edge into it.
+  _(The layering itself was correct: `riskMonitor` is one layer above `quotePublisher` because
+  `quotePublisher` also waits on `spreadCalculator`. Longest-path layering, not a sort-order bug.)_
+- [M22.31] ☑ **Index click scrolls the node into view** (owner) — `canvas.centreOn`, pan only. Picking a
+  name is a request to go there, not to change how much of the graph you can see.
+- [M22.32] ☑ **Topology display prefs persist and are never exported** (owner) — `topologySpacing` /
+  `topologyTextSize` in the config file. `SettingsShare`'s whitelist is opt-in in both directions, so
+  leaving them out of every `Category` *is* the mechanism; a test asserts they never appear in a share
+  file. Same reasoning as the theme: a fact about this screen and these eyes.
+- [M22.33] ☑ **One right-click menu on the records table, not two.** M22.22 added a full popup while an
+  older three-item `installTableContextMenu` (Diff / Explain / Flag) was still installed — two listeners
+  on the same table, and the narrow one is what the owner was seeing. Removed, and *Explain selected with
+  LLM* folded into the shared `addRecordActions` so both entry points carry it.
 - [M22.24] ☑ **Selection is marked positively, not by dimming alone** (owner: "too subtle"). The clicked
   nodes get a heavy accent ring and an accent-tinted fill; nodes their scope *reaches* get a lighter ring;
   everything else fades harder (0.22 → 0.16). "What did I select" should be answerable by looking at the
