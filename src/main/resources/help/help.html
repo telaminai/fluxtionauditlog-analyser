@@ -126,6 +126,52 @@ from Settings (default <code>~/.m2/repository</code>) are searched for its <code
 disable with the "don't search" checkbox. The <b>Source</b> tab shows the code read-only with Java
 colouring.</p>
 
+<h2>Topology &amp; step-through</h2>
+<p>The <b>Topology</b> tab draws the processor's node graph and shows what a cycle did to it. Open a
+processor's <code>.graphml</code> with <i>File &rarr; Open GraphML&hellip;</i>, from <i>Open recent
+GraphML</i>, or by dragging it onto the window. Whatever was open when you quit &mdash; and the zoom, pan,
+orientation, spacing and label size &mdash; comes back next time.</p>
+
+<p><b>A node missing from <code>nodeLogs</code> did not necessarily fail to run.</b> Audit output is
+opt-in per node, so the tab never colours a node "didn't run". It shows four different claims:</p>
+<ul>
+<li><b>green ring + number</b> &mdash; <b>logged</b>: it wrote audit output, and the number is its
+dispatch position. The only thing directly observed.</li>
+<li><b>solid outline</b> &mdash; <b>ran, logged nothing</b>: it is the only way into something that ran,
+so dispatch had no other route in. Certain.</li>
+<li><b>dashed outline</b> &mdash; <b>may have run</b>: connected to something that logged, but the log
+cannot say whether dispatch reached it. A genuine unknown.</li>
+<li><b>faded</b> &mdash; <b>not on this path</b>: nothing that logged is connected to it.</li>
+</ul>
+<p>Build the processor with <code>cfg.addEventAudit(LogLevel.TRACE)</code> and every node that runs logs
+a <code>method</code> entry. The analyser detects such a record and stops hedging: absence becomes proof
+a node did not run, and the legend says so.</p>
+
+<p><b>Stepping.</b> Select a record and the tab shows that cycle. <b>&darr;</b> steps forward and
+<b>&uarr;</b> back, through this record's <code>nodeLogs</code> rows and on into the next record;
+<b>&#9664;&#9664; &#9654;&#9654;</b> skip a whole record and <b>Play</b> runs to the end of the log. The
+status line reads <code>event 8 / 10 &middot; step 2 / 5</code>. A node that logs twice gets two steps.
+Only edges whose <i>both</i> ends ran are highlighted &mdash; a highlighted arrow is an assertion.</p>
+
+<p><b>Finding your way round a big graph.</b> Fluxtion's own scaffolding (context, clock, dispatcher,
+audit and service plumbing) is hidden by default &mdash; the <b>Scaffolding</b> box shows it, and the
+status line always says how many nodes are being kept back. Clicking a node scopes the view to it;
+clicking again widens: <i>node &rarr; + neighbours &rarr; + all routes &rarr; whole graph</i>.
+Cmd/Ctrl-click adds to the selection. The scope is <i>dimmed</i> rather than hidden, because a node you
+cannot see reads as a node that is not there; press <b>F</b> or <b>Focus</b> when you do want the rest
+gone, and <b>Show all</b> (or a click on empty canvas) to return to the plain graph. The collapsible
+<b>Index</b> at the bottom-left lists Nodes, Events and Services from the whole graph &mdash; so it also
+reaches what the filters are hiding &mdash; and clicking an entry scrolls that node into view.</p>
+
+<p><b>From a node.</b> Right-click for source, graphing a logged value, filtering the records to that
+node, or copying its id. <b>Enter</b> on a selected node opens its source <i>beside</i> the graph, in a
+pane with a draggable divider, so the code and the picture stay on screen together. Hovering shows the
+node's kind, what the log claims about it, and the first line of its Javadoc when the class is under a
+source root.</p>
+
+<p>A topology from a <i>different build</i> renders perfectly and misleads silently, so the status line
+reports how well the graph matches the log. Treat a mismatch as a version problem.</p>
+
 <h2>LLM assistant</h2>
 <p>The <b>LLM</b> tab explains records. In <i>Settings</i> choose a provider (Anthropic / OpenAI), a
 model and an API key. Select record(s), type a question, and <i>Send</i>. The context sent is: the

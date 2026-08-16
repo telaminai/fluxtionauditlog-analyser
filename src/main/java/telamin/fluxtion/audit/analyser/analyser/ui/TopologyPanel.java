@@ -623,6 +623,12 @@ public final class TopologyPanel extends JPanel {
      * The embedded pane keeps both on screen with a divider you can drag. It falls back to the Source tab
      * only when no source service has been bound.
      */
+    /** Select a node and widen its scope one step — the same as two clicks, for scripted screenshots. */
+    public void selectForDocs(String id) {
+        onNodeClicked(id, false);
+        onNodeClicked(id, false);
+    }
+
     /** Open a node's source in the embedded pane, from outside the panel. */
     public void openSourceFor(String instanceId) {
         openSource(instanceId);

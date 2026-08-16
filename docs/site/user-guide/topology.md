@@ -49,10 +49,17 @@ log never mentions it. The order-handling branch is faded because a market-data 
 
 ## Open a topology
 
-Fluxtion emits a `.graphml` for the processor when it builds. In the Topology tab, **Open .graphml…** and
-pick it — typically beside the generated processor source in your build output. Or just **drag the
-`.graphml` onto the window** — it routes to the Topology tab by extension (and dropping a log and a
-graphml *together* opens both: the cycle and the graph it ran on, in one gesture).
+Fluxtion emits a `.graphml` for the processor when it builds — typically beside the generated processor
+source in your build output. Three ways in:
+
+- **File ▸ Open GraphML…**
+- **File ▸ Open recent GraphML** — kept separately from recent logs, so you're not scrolling past logs
+  to find a graph
+- **drag the `.graphml` onto the window** — it routes to the Topology tab by extension, and dropping a
+  log and a graphml *together* opens both: the cycle and the graph it ran on, in one gesture
+
+Whatever was open when you quit is reopened next time, alongside the log — as are the zoom, pan,
+orientation, spacing and label size. (**Settings ▸ History ▸ Reset topology view** puts those back.)
 
 You don't need a server for any of this. The graph is a file, the log is a file, and the analyser works
 on both offline — which is the point when you're supporting a system whose logs were shipped somewhere
@@ -90,14 +97,51 @@ feeding the publishing node.
 
 Drag to pan, scroll to zoom (the point under the cursor stays put), **Fit** to frame the whole graph.
 Labels fade out when boxes get too small to read them, so a big graph zoomed out stays legible as shape
-rather than noise. **Left→right** flips the orientation if a wide graph suits your screen better.
+rather than noise. **Left→right** flips the orientation if a wide graph suits your screen better. The
+**spacing** and **text** sliders adjust how much room the layout takes and how big the labels are —
+label size is independent of zoom, so labels stay readable when you zoom out to get your bearings.
+
+Hovering a node tells you what it is, what the log claims about it in this cycle, and — when the class is
+under one of your [source roots](source-navigation.md) — the **first line of its Javadoc**.
+
+## Find your way round a big graph
+
+A 300-node processor doesn't fit on a screen in a form anyone can read. Three things make it workable.
+
+![Exploring: quotePublisher selected with its immediate neighbours ringed, everything else dimmed, and the collapsible index bottom-left](../assets/topology-explore.png)
+
+**Hide the scaffolding.** Fluxtion adds a dozen nodes to every graph it builds — the context, clock,
+dispatcher, audit and service plumbing. In the demo graph that's **10 of 20 nodes**: half the picture,
+none of it yours. They're hidden by default; the **Scaffolding** checkbox shows them, and the status line
+always says how many are being kept back.
+
+**Click a node to scope it, click again to widen.** Each click steps the scope out one level:
+
+```
+node  →  + neighbours  →  + all routes  →  whole graph  →  node
+```
+
+*Neighbours* is one hop each way; *all routes* is every ancestor and every descendant — what feeds it,
+and what it can affect. The status line names the current width and how many nodes it covers.
+**Cmd/Ctrl-click** (Cmd on macOS) adds nodes to the selection to build a wider scope.
+
+The selection is ringed heavily, its scope ringed lightly, and everything else dimmed — **dimmed, not
+hidden**, because a node you can't see reads as a node that isn't there, and telling those two apart is
+this tab's whole job. Press **F** or **Focus** when you do want the rest gone. **Show all** — or a click
+on empty canvas — clears the lot and returns the plain, fully-lit graph.
+
+**Pick nodes by name.** The collapsible **Index** at the bottom-left lists everything in three groups —
+**Nodes**, **Events** and **Services** — built from the *whole* graph, so it's also how you reach
+something the filters are hiding. Clicking an entry selects that node and scrolls it into view;
+double-clicking opens its source.
 
 ## Step through a cycle
 
 Select any record and the topology shows that cycle. It follows the **table's selection**, so the record
 you're reading in the detail pane is the cycle you're looking at here.
 
-Then walk it. **↓** steps forward, **↑** back (or use the ◀ ▶ buttons):
+Then walk it. **↓** steps forward, **↑** back (or use the ◀ ▶ buttons). **◀◀ ▶▶** skip a whole record
+when the rest of a cycle isn't interesting, and **Play** steps automatically to the end of the log:
 
 ```
 record ─→ row 1 ─→ row 2 ─→ … ─→ next record ─→ its rows ─→ …
@@ -115,9 +159,11 @@ As you go:
   **fainter one**, so you can see the path taken through the graph so far;
 - the halo sits *outside* the node, so its execution shading stays readable underneath — where you are
   and what the log establishes are different questions;
-- the status line names the position, the node and what it logged;
+- the status line names the position — `event 8 / 10 · step 2 / 5` — plus the node and what it logged;
 - the detail viewer highlights the matching `nodeLogs` line, so the graph and the text narrate each
-  other.
+  other;
+- **only edges whose both ends ran** are highlighted. An arrow from a node that didn't run would say the
+  event arrived that way, and a highlighted arrow is an assertion.
 
 Stepping moves through the **filtered** records, so narrowing the time range or the event types narrows
 what you walk.
@@ -139,8 +185,11 @@ what you walk.
 
 Right-click any node:
 
-- **Open source** — jumps to that node's class in [Source navigation](source-navigation.md).
-  Double-clicking does the same.
+- **Open source** — opens that node's class **beside the graph**, in a pane with a draggable divider, so
+  you can read the code without losing the picture you navigated from. **Enter** on a selected node does
+  the same, as does double-clicking an entry in the Index. (Repeated clicks on a node are reserved for
+  the scope cycle, so a node's *own* double-click doesn't open source.) The **Source** button shows and
+  hides the pane.
 - **Graph ▸** — plot one of the values this node logged. Only values that *can* be plotted are offered,
   which follows the same rule as everywhere else: a number inside a `toString()` is text, not a series
   (see [Graphs ▸ Adding series](graphs.md#adding-series)).

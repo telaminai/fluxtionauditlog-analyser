@@ -21,6 +21,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- Documentation: the Topology guide covers the exploration model, stepping controls and source split,
+  with fresh screenshots; the in-app help (Help ▸ User guide) gains a Topology section.
 - The Topology tab remembers its zoom, pan, orientation, spacing and label size between sessions.
   **Settings ▸ History ▸ Reset topology view** puts them back, and *Clear recent files* now also clears
   the recent-GraphML list.
