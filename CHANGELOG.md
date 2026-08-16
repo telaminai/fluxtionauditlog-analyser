@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-16
+
 **The topology release.** The analyser now draws the processor's graph, walks events across it step by
 step, and is honest about what the log can and cannot prove. The whole app is scriptable by AI agents
 over MCP, findings export as evidence-grade PDFs — and anything that writes a file is locked behind an
