@@ -409,6 +409,15 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.39] ☑ **Topology toolbar is controls only** (owner: "too busy and confused"). The two readouts —
+  step position and selection scope — moved to the status line, and *Open .graphml…* moved to the File
+  menu. A toolbar is for controls: readouts wedged between a slider and a play button are hard to find
+  and make the toolbar's width jump as their text changes. The status line is now composed from four
+  independently-owned parts (what is happening · step position · selection scope · what is hidden) rather
+  than each caller overwriting one string.
+- [M22.40] ☑ **File menu: added *Open GraphML…*, renamed *Open from S3…* → *Open log from S3…*** (owner).
+  Opening a topology is the same kind of act as opening a log and belongs beside it; the S3 rename says
+  which of the two it opens, now that there are two.
 - [M22.35] ☑ **Fixed: Show all sometimes left nodes dimmed** (owner). `showRecord` re-shaded
   unconditionally, and the table re-fires its selection for reasons the user never caused — a re-filter, a
   repaint, regaining focus — so the clear was silently undone. Now a repeat notification for the **same

@@ -21,6 +21,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- **File ▸ Open GraphML…** opens a processor topology (and *Open from S3…* is now *Open log from S3…*).
+  The Topology toolbar loses its own Open button and its two readouts — step position and selection
+  scope now appear on the status line, leaving the toolbar to controls.
 - **Source opens beside the graph** in the Topology tab, with a draggable divider, instead of switching
   to the Source tab. Open it with **Enter** on a selected node, the node's right-click menu, or a
   double-click in the index. Repeated clicks on a node now always cycle its scope.

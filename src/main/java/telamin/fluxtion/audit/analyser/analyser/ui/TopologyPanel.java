@@ -46,7 +46,6 @@ public final class TopologyPanel extends JPanel {
     private final JButton prevStep = new JButton("◀");
     private final JButton nextStep = new JButton("▶");
     private final JButton wholeCycle = new JButton("Whole cycle");
-    private final JLabel stepLabel = new JLabel(" ");
     private final JButton prevRecord = new JButton("◀◀");
     private final JButton nextRecord = new JButton("▶▶");
     private final JButton playButton = new JButton("▶ Play");
@@ -56,7 +55,6 @@ public final class TopologyPanel extends JPanel {
     private final TopologyIndex index = new TopologyIndex(null, null);
     private final javax.swing.JCheckBox scaffoldingBox = new javax.swing.JCheckBox("Scaffolding", false);
     private final javax.swing.JToggleButton focusButton = new javax.swing.JToggleButton("Focus");
-    private final JLabel scopeLabel = new JLabel(" ");
     private SourcePanel embeddedSource;
     private final javax.swing.JToggleButton sourceButton = new javax.swing.JToggleButton("Source");
     private final javax.swing.JSplitPane graphSplit =
@@ -100,8 +98,6 @@ public final class TopologyPanel extends JPanel {
 
         JToolBar bar = new JToolBar();
         bar.setFloatable(false);
-        bar.add(button("Open .graphml…", this::chooseFile));
-        bar.addSeparator();
         bar.add(button("Fit", canvas::fitToView));
         bar.add(button("+", canvas::zoomIn));
         bar.add(button("−", canvas::zoomOut));
@@ -123,8 +119,6 @@ public final class TopologyPanel extends JPanel {
         sourceButton.setEnabled(false);
         sourceButton.addActionListener(e -> showSourcePane(sourceButton.isSelected()));
         bar.add(sourceButton);
-        UiTheme.status(scopeLabel);
-        bar.add(scopeLabel);
         bar.addSeparator();
         bar.add(new JLabel(" spacing "));
         spacingSlider = slider(25, 400, 100, "Space the layers and siblings further apart",
@@ -154,7 +148,6 @@ public final class TopologyPanel extends JPanel {
         bar.add(nextStep);
         bar.add(nextRecord);
         bar.add(wholeCycle);
-        bar.add(stepLabel);
         bar.add(Box.createHorizontalGlue());
         updateStepControls();
 
@@ -304,7 +297,8 @@ public final class TopologyPanel extends JPanel {
 
     // ---- loading ----------------------------------------------------------------------------------
 
-    private void chooseFile() {
+    /** Ask for a {@code .graphml} and load it. Public because the File menu owns opening, not the tab. */
+    public void chooseFile() {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Open processor GraphML");
         chooser.setFileFilter(new FileNameExtensionFilter("GraphML (*.graphml, *.xml)", "graphml", "xml"));
@@ -425,31 +419,54 @@ public final class TopologyPanel extends JPanel {
     }
 
     /**
-     * All status writes go through here so the "what is hidden" note cannot be dropped by whichever
-     * caller last set the text — and there are eight of them, each about something else.
+     * The status line is assembled from independent parts, each owned by a different concern: what is
+     * happening, where the step cursor is, what is selected, and what the filters are hiding.
+     *
+     * <p>They live here rather than in the toolbar because a toolbar is for <b>controls</b>. Readouts
+     * mixed in among buttons make it hard to find either — the position label and the scope label were
+     * two moving strings between a slider and a play button — and they also make the toolbar's width
+     * jump as the text changes.
      */
     private void setStatus(String text) {
         statusBase = text == null ? " " : text;
-        status.setText(statusBase + viewNote());
+        renderStatus();
     }
 
-    /** Re-render the status line after a filter change, keeping whatever it was saying. */
+    /** Re-render after a filter change, keeping whatever the line was saying. */
     private void refreshStatus() {
-        status.setText(statusBase + viewNote());
+        renderStatus();
+    }
+
+    private void renderStatus() {
+        StringBuilder sb = new StringBuilder(statusBase == null ? " " : statusBase);
+        appendPart(sb, stepPart);
+        appendPart(sb, scopePart);
+        sb.append(viewNote());
+        status.setText(sb.toString());
+    }
+
+    private static void appendPart(StringBuilder sb, String part) {
+        if (part == null || part.isBlank()) return;
+        if (sb.length() > 0 && !sb.toString().isBlank()) sb.append("   ·   ");
+        sb.append(part.strip());
     }
 
     private String statusBase = " ";
+    private String stepPart = "";
+    private String scopePart = "";
 
     private void updateScopeLabel(java.util.Set<String> scoped) {
-        StringBuilder sb = new StringBuilder("  ");
-        if (!selection.isEmpty()) {
-            sb.append(selection.size() == 1 ? selection.iterator().next()
-                            : selection.size() + " selected")
-              .append("  ·  ").append(scope.label())
-              .append("  ·  ").append(scoped == null ? 0 : scoped.size()).append(" node(s)");
-            if (!focusButton.isSelected()) sb.append("  ·  click again to widen");
+        if (selection.isEmpty()) {
+            scopePart = "";
+            return;
         }
-        scopeLabel.setText(sb.toString());
+        StringBuilder sb = new StringBuilder();
+        sb.append(selection.size() == 1 ? selection.iterator().next()
+                        : selection.size() + " selected")
+          .append(" · ").append(scope.label())
+          .append(" · ").append(scoped == null ? 0 : scoped.size()).append(" node(s)");
+        if (!focusButton.isSelected()) sb.append(" · click again to widen");
+        scopePart = sb.toString();
     }
 
     /**
@@ -839,7 +856,8 @@ public final class TopologyPanel extends JPanel {
         prevRecord.setEnabled(stepping && cursor.recordIndex() > 0);
         nextRecord.setEnabled(stepping && cursor.recordIndex() + 1 < records);
         playButton.setEnabled(stepping && (autoplay.isRunning() || cursor.canNext()));
-        stepLabel.setText(stepping ? "  " + headerText(records) : "  no record selected");
+        stepPart = stepping ? headerText(records) : "";
+        renderStatus();
     }
 
     /**

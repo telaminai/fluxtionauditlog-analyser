@@ -565,9 +565,18 @@ public final class MainFrame extends JFrame {
         JMenuItem open = new JMenuItem("Open log…");
         open.addActionListener(e -> chooseFile());
         file.add(open);
-        JMenuItem openS3 = new JMenuItem("Open from S3…");
+        JMenuItem openS3 = new JMenuItem("Open log from S3…");
         openS3.addActionListener(e -> chooseS3());
         file.add(openS3);
+        // opening lives on the File menu with the log actions, not on the Topology tab's own toolbar:
+        // it is the same kind of act, and a toolbar is better spent on controls for what is already open
+        JMenuItem openGraphml = new JMenuItem("Open GraphML…");
+        openGraphml.setToolTipText("Open a processor's .graphml topology");
+        openGraphml.addActionListener(e -> {
+            topologyPanel.chooseFile();
+            if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+        });
+        file.add(openGraphml);
         rebuildRecentMenu();
         file.add(recentMenu);
         file.add(recentGraphmlMenu);
