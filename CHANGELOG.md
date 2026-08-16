@@ -43,7 +43,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 - **Step through the log on the graph.** One cursor now walks record → `nodeLogs` row → next record with
-  `]` and `[`: arriving at a record marks where the cycle came in, each step lights the next node with
+  **↓** and **↑**: arriving at a record marks where the cycle came in, each step lights the next node with
   the path so far trailing behind it, and stepping past the last row rolls into the next record. It
   follows the filtered view, moves the table selection with it, and highlights the matching line in the
   detail viewer — so the graph and the text narrate each other. The readout says whether you are walking

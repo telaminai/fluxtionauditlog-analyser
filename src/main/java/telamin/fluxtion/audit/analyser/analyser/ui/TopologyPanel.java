@@ -80,8 +80,8 @@ public final class TopologyPanel extends JPanel {
         orientationButton.addActionListener(e -> toggleOrientation());
         bar.add(orientationButton);
         bar.addSeparator();
-        prevStep.setToolTipText("Previous step  [   (rows, then the previous record)");
-        nextStep.setToolTipText("Next step  ]   (rows, then the next record)");
+        prevStep.setToolTipText("Previous step  ↑   (rows, then back into the previous record)");
+        nextStep.setToolTipText("Next step  ↓   (this record's rows, then on to the next record)");
         prevStep.addActionListener(e -> stepBy(-1));
         nextStep.addActionListener(e -> stepBy(1));
         wholeCycle.addActionListener(e -> showWholeCycle());
@@ -108,12 +108,19 @@ public final class TopologyPanel extends JPanel {
     }
 
     /**
-     * [ and ] step. F3/Shift+F3 stay anomaly-jump — overloading them would make one key mean two kinds
-     * of "next" depending on focus, which is worse than a second pair.
+     * <b>Down / Up step</b> — one key walks the whole log: into this record's rows, then on to the next
+     * record. Arrows because that is what "next thing down the list" already means everywhere else; the
+     * bracket keys stay bound as aliases but nothing advertises them.
+     *
+     * <p>Bound on the panel, so they only fire while focus is inside the Topology tab and the records
+     * table keeps its own arrow behaviour. F3/Shift+F3 stay anomaly-jump: one key meaning two kinds of
+     * "next" depending on focus is worse than two pairs.
      */
     private void installStepKeys() {
         javax.swing.InputMap keys = getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
         javax.swing.ActionMap actions = getActionMap();
+        keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DOWN, 0), "step-next");
+        keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_UP, 0), "step-prev");
         keys.put(javax.swing.KeyStroke.getKeyStroke(']'), "step-next");
         keys.put(javax.swing.KeyStroke.getKeyStroke('['), "step-prev");
         actions.put("step-next", new javax.swing.AbstractAction() {

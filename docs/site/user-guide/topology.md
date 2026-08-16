@@ -97,7 +97,7 @@ rather than noise. **Left→right** flips the orientation if a wide graph suits 
 Select any record and the topology shows that cycle. It follows the **table's selection**, so the record
 you're reading in the detail pane is the cycle you're looking at here.
 
-Then walk it. **`]`** steps forward, **`[`** back (or use the ◀ ▶ buttons):
+Then walk it. **↓** steps forward, **↑** back (or use the ◀ ▶ buttons):
 
 ```
 record ─→ row 1 ─→ row 2 ─→ … ─→ next record ─→ its rows ─→ …
