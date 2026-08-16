@@ -286,6 +286,34 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
+## M22 · Topology view usability — ☐ PROPOSED (parity with fluxtion-visualiser's exploration model)
+_Owner-specified batch (2026-08-16), ported from what fluxtion-visualiser already does well. The
+topology renders correctly but does not yet let you **explore** — these are the affordances that turn a
+picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that change daily use._
+- [M22.1] ☐ **Hide framework scaffolding** (checkbox, on by default) — **10 of 16 nodes in the demo graph
+  are scaffolding** (`context`, `clock`, `nodeNameLookup`, `callbackDispatcher`, `subscriptionManager`,
+  `serviceRegistry`, `eventLogger`, `ClockStrategyEvent`, `EventLogControlEvent`, `ServiceListener`), so
+  the user's actual graph is a third of what is drawn. Detection must handle **both** label shapes seen in
+  real graphml — a package-qualified `class:` (`com.telamin.fluxtion.runtime.…`) and a bare simple name —
+  plus EVENT nodes whose `class:` is absent entirely, which need matching by id.
+- [M22.2] ☐ **Selection-driven focus** — click cycles a node's scope: *node → immediate parents+children →
+  all parent routes + transitive children → whole graph → node*; **F** (or a Focus button) hides everything
+  outside the selection; **ctrl-click** adds to the selection. This is the exploration model; it is what
+  makes a 300-node graph usable and it composes with 22.1.
+- [M22.3] ☐ **Export the view as PNG** — reuses the offscreen render already used to verify the canvas;
+  pairs with the existing graph/record exports.
+- [M22.4] ☐ **Text-size and separation sliders** — separation re-runs `LayeredLayout` (`nodeWidth`,
+  `siblingGap`, `layerGap` are already config); text size is a canvas concern. Persist in `AppConfig`.
+- [M22.5] ☐ **Text scales with zoom** _(design question, not just work)_ — today the font is a fixed
+  screen size and labels disappear below a pixel threshold, so zooming out shrinks boxes around
+  constant-size text. Growing text with zoom reads better while zoomed in but re-introduces unreadable
+  labels when out. Likely answer: scale within a clamped band, keeping the existing threshold.
+- [M22.6] ☐ **Alternative layouts** — the largest item. `LayeredLayout` is Sugiyama; candidates are
+  breadthfirst-from-entry and a compact/orthogonal variant. Keep `TopologyLayout` as the output contract
+  so the canvas is unchanged.
+- [M22.7] ☐ **Split Open Recent** — separate *Recent audit logs* and *Recent GraphML*; needs a second
+  recent list in `AppConfig` (the existing one is log-only) and menu wiring.
+
 ## M20 · Project profiles — global vs local settings — ☐ PROPOSED
 _Design: **[spec-project-profiles.md](spec-project-profiles.md)**. Give the analyser a first-class
 **project** concept so a user jumps between Fluxtion projects without re-importing. Two disjoint tiers
