@@ -18,6 +18,8 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
+**Added 2026-08-16 (round 2):** UP-FLX-20…22 come from the supermarket POC's *maintenance* round — injecting new subsystems upstream of working ones — and are **not yet filed**. They are the first asks here raised from changing a graph rather than building one.
+
 **Filed 2026-08-16:** all nine fluxtion-owned asks are open as [telaminai/fluxtion issues 8–13](https://github.com/telaminai/fluxtion/issues) (some grouped: 11 covers UP-FLX-11+12, 12 covers UP-FLX-14+SHARED-01, 8 covers UP-FLX-01+SHARED-02). The four `svc-admin-web` asks (UP-WEB-01…04) belong to `telaminai/mongoose-plugins` and are **not yet filed** — see below.
 
 ---
@@ -88,6 +90,113 @@ _Filed: https://github.com/telaminai/fluxtion/issues/9_
 
 `FLX-1008` is the one with a direct analyser consequence: it produces a log that is *misleading* rather
 than merely absent, and no downstream tool can distinguish it from a node that legitimately stayed quiet.
+
+---
+
+## 1b · Fluxtion compiler — the maintenance manoeuvre
+
+Raised 2026-08-16 from the **supermarket POC round 2**: nine new subsystems injected *upstream* of ten
+nodes that already worked (23 → 44 application nodes, 44 → 95 edges, 31 → 90 distinct dispatch paths).
+That exercise is the first time this repo has evidence about **changing** a Fluxtion graph rather than
+building one, and it produced two asks that greenfield work could not have surfaced.
+
+### UP-FLX-20 ☐ Warn when a new parent is a data reference, not a trigger
+
+**Target** `fluxtion` (compiler) · **Priority** high — this is the sharpest edge in the maintenance path
+
+**Evidence — measured.** `PurchaseOrderRaiser` was given a `SupplierScorecard` reference so its purchase
+orders could *quote* a reliability score. A plain field reference makes the referenced node a **parent**,
+and a parent firing runs the child's `@OnTrigger`. So a scorecard update — which happens on every
+delivery — fired the order raiser with no reorder decision behind it, and the app emitted:
+
+```
+PO,null,0,unknown,score=1.0
+```
+
+A purchase order for no product, from a node whose own logic had not changed. The build was clean, the
+subsystem tests were green, and it took reading the output CSV to notice.
+
+`@NoTriggerReference` is the correct answer and it works. The problem is that **the default is the wrong
+way round for this manoeuvre**: when you inject a reference into working code you usually want the data
+and not the trigger, and the quiet path silently gives you both. Five of this round's ten injections
+turned out to be data-only.
+
+**The ask.** A build warning when a node's `@OnTrigger` method body does not reference a field that is a
+graph parent:
+
+```
+FLX-1020 WARN  purchaseOrders: 'suppliers' is a trigger parent but @OnTrigger raise() never reads it.
+               If it is a data reference, mark it @NoTriggerReference.
+```
+
+Detectable statically — it is "does the trigger method touch this field" — and it would have caught the
+defect above at build time rather than in a CSV. Not an error: a node may legitimately want to recompute
+on a parent it does not read.
+
+**Cost to us if unfixed.** The analyser can show that a node ran when it should not have, but only after
+a log exists and only if someone steps the trace. This class is cheap to catch at build time and
+expensive to catch afterwards, because the symptom appears in output rather than in behaviour anyone is
+testing.
+
+### UP-FLX-21 ☐ Regenerate before compiling, or fail with a message that says what happened
+
+**Target** `fluxtion` (maven plugin) · **Priority** medium · supersedes the round-1 note on F6
+
+**Evidence — measured, twice, and it scales with the size of the change.** The generated processor is
+checked in and compiled as ordinary source, but the plugin regenerates it at `process-classes` — *after*
+`compile`. So any change to a node constructor breaks the build against the stale generated file before
+regeneration can run. Round 1 hit this with **one** changed constructor. Round 2 changed **ten** and got
+ten errors, all inside generated code:
+
+```
+StoreProcessor.java:[131,7] constructor MaintenanceScheduler cannot be applied to given types;
+  required: FridgeMonitor,CompressorHealth,ModelDrift
+  found:    FridgeMonitor
+```
+
+The messages are accurate and point at the generator's output, so they read like a generator bug rather
+than a stale artefact. The fix — delete the generated file and rebuild — is not discoverable from them.
+
+**The ask**, in preference order:
+
+1. Bind generation *before* `compile` when the output directory is a source root, so a constructor change
+   simply regenerates.
+2. Failing that, detect the case and say so: `FLX-1021: generated processor is stale — it was built
+   against a different signature of com.acme.store.equipment.MaintenanceScheduler. Delete
+   src/main/java/…/StoreProcessor.java and rebuild.`
+
+**Cost to us if unfixed.** One wasted iteration per structural change, every time, for anyone who
+checks generated source into their repo — which the golden-path examples encourage.
+
+### UP-FLX-22 ☐ Give the dirty contract and reference-kind an artefact
+
+**Target** `fluxtion` (compiler + GraphML) · **Priority** medium · **extends round 1's finding**
+
+Round 1's assessment ended: *"a node's dirty contract has no artefact… it is the one interface element
+between subsystem author and orchestration author with nothing machine-readable behind it."* Round 2
+makes that concrete and adds a second field to it.
+
+**Evidence — measured.** The most expensive bug of round 2 was a **getter's meaning**, not its type.
+`StockLedger.lastQty()` returns the shelf level *after* the movement; a new subsystem read it as "units
+just sold". Both are `int`, both read plausibly at the call site, and the result was demand predicted as
+a function of stock on hand — a feedback loop that took the milk reorder point to 908 units and raised
+264 purchase orders in a day.
+
+That is not something a compiler can check. But two adjacent facts **are** machine-readable and would
+have narrowed it:
+
+- **Reference kind** — is this parent a trigger or a data reference? Already known to the compiler
+  (`@NoTriggerReference`); not currently in the GraphML, so no downstream tool can show it.
+- **Dirty contract** — a node's `@OnTrigger` returns `true` under conditions stated only in prose. An
+  optional `@DirtyWhen("a reorder is needed")` carried through to the GraphML would let the analyser
+  render, on the edge, *why* propagation happens.
+
+**The ask.** Emit reference kind as a GraphML edge attribute now (free — the compiler has it), and
+consider a declarative dirty-contract annotation.
+
+**Cost to us if unfixed.** The analyser draws every edge identically, so a data reference and a trigger
+reference are indistinguishable in the topology — including in the two-view finding report. A reader
+cannot tell "this node ran because of that one" from "this node read that one" without opening source.
 
 ---
 
