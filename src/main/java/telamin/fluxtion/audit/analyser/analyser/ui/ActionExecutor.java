@@ -200,6 +200,7 @@ public final class ActionExecutor implements RenderExecutor {
             for (Object[] pe : parsedExprs) panel.addExpr((String) pe[0], (String) pe[1], (SeriesExtractor.Resolve) pe[2]);
             if (style != null) panel.setStyleByName(style);
             if (rationale != null) panel.setCaption(rationale);   // caption the plot with the agent's reason
+            applyNotesAndAxes(panel, p, s);
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
             Map<String, Object> applied = new LinkedHashMap<>();
             applied.put("name", name == null ? "(current)" : name);
@@ -453,6 +454,68 @@ public final class ActionExecutor implements RenderExecutor {
         if (params.containsKey("fit") && bool(params.get("fit"))) topology.fit();
 
         return ActionResult.ok("topology", "topology", topology.cursorState());
+    }
+
+    /**
+     * Apply the reader-facing annotations: the explanation block, notes pinned to moments, and which
+     * series belong on a second scale.
+     *
+     * <p>A note may be anchored by {@code at} (epoch millis) or by {@code recordIndex}, because a caller
+     * that has just found something with {@code read} or {@code aggregate} has the index to hand and
+     * should not have to convert it. An index that does not resolve is dropped rather than pinned to
+     * zero — a note at the wrong moment is worse than a missing one.
+     */
+    private void applyNotesAndAxes(telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel panel,
+                                   Map<String, Object> p, LogStore store) {
+        var notes = panel.notes();
+        if (bool(p.get("clearNotes"))) {
+            notes = notes.withoutNotes();
+        }
+        String explanation = str(p.get("explanation"));
+        if (explanation != null) {
+            notes = notes.withExplanation(explanation);
+        }
+        if (p.get("notes") instanceof List<?> list) {
+            for (Object item : list) {
+                if (!(item instanceof Map<?, ?> m)) continue;
+                String text = str(m.get("text"));
+                if (text == null || text.isBlank()) continue;
+                Long at = anchorMillis(m, store);
+                if (at == null) continue;
+                notes = notes.plus(new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
+                        at, text, str(m.get("series"))));
+            }
+        }
+        panel.setNotes(notes);
+
+        if (p.containsKey("rightAxis")) {
+            panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
+                    strList(p.get("rightAxis"))));
+        }
+    }
+
+    /** A note's moment, from an explicit time or from the record it refers to. */
+    private static Long anchorMillis(Map<?, ?> note, LogStore store) {
+        // epoch millis do NOT fit in an int — parsing this as one silently wraps to a negative and pins
+        // the note somewhere in 1969
+        Long at = longOrNull(note.get("at"));
+        if (at != null && at > 0) {
+            return at;
+        }
+        Long index = longOrNull(note.get("recordIndex"));
+        if (index == null || store == null || index < 0 || index >= store.size()) {
+            return null;
+        }
+        return store.record(index.intValue()).logTime();
+    }
+
+    private static Long longOrNull(Object o) {
+        if (o instanceof Number n) return n.longValue();
+        try {
+            return o == null ? null : Long.valueOf(o.toString().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static String str(Object o) {

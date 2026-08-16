@@ -48,6 +48,14 @@ public final class VerbSchemas {
                         p("series", arr(string()), "raw keys, each \"instanceId.key\""),
                         p("exprs", arr(exprObject()), "formula series over keys"),
                         p("style", enumStr("step", "line", "points"), "plot style"),
+                        p("explanation", string(), "multi-line write-up drawn ON the plot — what this "
+                                + "chart shows and why it matters. Survives an exported PNG."),
+                        p("notes", arr(noteObject()), "notes pinned to moments in time, numbered on the "
+                                + "plot and listed beneath it"),
+                        p("clearNotes", bool(), "drop existing pins (keeps the explanation)"),
+                        p("rightAxis", arr(string()), "series to measure against a SECOND vertical scale; "
+                                + "use when magnitudes differ enough that one scale flattens the smaller "
+                                + "series into the axis"),
                         p("from", integer(), "pin window start (epoch millis) — survives filter changes"),
                         p("to", integer(), "pin window end (epoch millis)"),
                         p("newTab", bool(), "open a new graph tab"),
@@ -186,6 +194,18 @@ public final class VerbSchemas {
                 p("from", integer(), "window start (epoch millis)"),
                 p("to", integer(), "window end (epoch millis)"),
                 p("text", string(), "free-text match")), List.of());
+    }
+
+    /** A note pinned to a moment: when, what it says, and optionally which series it is about. */
+    private static Map<String, Object> noteObject() {
+        Map<String, Object> m = type("object");
+        m.put("properties", props(
+                p("at", integer(), "epoch millis the note is about"),
+                p("recordIndex", integer(), "…or the record whose logTime to pin it to"),
+                p("text", string(), "what to say"),
+                p("series", string(), "the series it refers to; omit for a note about the chart")));
+        m.put("required", List.of("text"));
+        return m;
     }
 
     private static Map<String, Object> exprObject() {

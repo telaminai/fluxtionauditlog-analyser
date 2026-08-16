@@ -286,6 +286,24 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
+## M23 · Charts that explain themselves — ☑ SHIPPED (2026-08-16, owner-requested)
+- [M23.1] ☑ **Second vertical scale** (`rightAxis`). One shared range is right until two series differ in
+  magnitude, and then it is actively misleading — a revenue line at 2,000 beside a stock level at 20
+  renders the stock as a flat smear. Both facts on screen, neither readable, and it *looks* like an
+  answer. Two axes only: past two, a height needs a legend to interpret and the chart has stopped being a
+  picture. `AxisAssignment` is pure with a `suggestFor` heuristic that deliberately refuses to split a
+  bid from an ask (comparable series must stay comparable). 8 tests.
+- [M23.2] ☑ **Explanation block and pinned notes** (`explanation`, `notes`, `clearNotes`). Drawn **on**
+  the plot rather than beside it, so they survive an exported PNG — a rationale that lives only in the app
+  is lost exactly when the picture is shared. Notes are numbered on the chart and listed beneath, anchored
+  by `at` (epoch millis) **or** `recordIndex`, because a caller that just found something with `read` has
+  the index to hand. Colliding notes stack by pixel column instead of overprinting. `ChartNotes` is pure;
+  7 tests.
+- [M23.3] ☑ **All of it over REST/MCP** — the `analyser_graph` verb carries the new fields, so the MCP
+  bridge publishes them with no extra work. Verified by driving a live analyser and capturing the result.
+  _One bug caught in review: epoch millis do not fit in an `int`, and my first `anchorMillis` parsed `at`
+  with `intOrNull` — silently wrapping to a negative and pinning notes somewhere in 1969._
+
 ## M22 · Topology view usability — ◐ IN PROGRESS (36 of 41 shipped, 2026-08-16)
 _Open: **22.3** PNG export · **22.6** alternative layouts · **22.11** re-dispatch cause (needs
 `UP-FLX-10` upstream, see `docs/proposals/upstream-asks.md`) · **22.19** partial (chips deliberately not

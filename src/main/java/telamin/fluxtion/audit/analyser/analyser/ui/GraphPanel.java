@@ -455,6 +455,30 @@ public final class GraphPanel extends JPanel {
     public String graphName() { return graphName; }
     public void setGraphName(String name) { this.graphName = name == null ? "" : name; }
 
+    /**
+     * The explanation block and pinned notes drawn on the plot.
+     *
+     * <p>Distinct from {@link #setCaption} on purpose: the caption is a one-line provenance stamp under
+     * the chart, and this is the reader-facing write-up drawn <b>on</b> it, so it survives an exported
+     * PNG. A rationale that lives only in the app is lost exactly when the picture is shared.
+     */
+    public void setNotes(telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes) {
+        chart.setNotes(notes);
+    }
+
+    public telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes() {
+        return chart.notes();
+    }
+
+    /** Which series are measured against the right-hand scale. */
+    public void setAxes(telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes) {
+        chart.setAxes(axes);
+    }
+
+    public telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes() {
+        return chart.axes();
+    }
+
     /** The provenance caption (agent rationale), or "" when none. */
     public String caption() { return caption; }
 

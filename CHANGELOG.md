@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Charts can explain themselves.** A multi-line `explanation` and `notes` pinned to moments in time are
+  drawn on the plot (so they survive an exported PNG), and a `rightAxis` gives a second vertical scale so
+  series of very different magnitude stay readable together. All three are available through the
+  `analyser_graph` verb over REST and MCP.
+
 ### Security
 - **Documentation screenshots have been replaced.** The images shipped with the first public release
   were captured against a real audit log and contained live venue, vendor and project names. They are

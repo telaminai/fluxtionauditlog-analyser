@@ -38,7 +38,13 @@ public final class ChartPanel extends JPanel {
     private java.util.function.LongConsumer onPlotClick = t -> { };   // click in the plot → time at cursor
     private Style style = Style.STEP;
 
-    private double vx0 = Double.NaN, vx1, vy0, vy1;   // view bounds (data coords)
+    private double vx0 = Double.NaN, vx1, vy0, vy1;   // view bounds (data coords) — the LEFT axis
+    /** Right-axis view bounds. Only meaningful when {@link #axes} puts something on the right. */
+    private double ry0, ry1;
+    private telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes =
+            new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment();
+    private telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes =
+            telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.EMPTY;
     private int plotX, plotY, plotW, plotH;           // last painted plot rect
     private int dragX, dragY;
 
@@ -95,6 +101,33 @@ public final class ChartPanel extends JPanel {
         return img;
     }
 
+    /** Which series are measured against the right-hand scale. */
+    public void setAxes(telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes) {
+        this.axes = axes == null
+                ? new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment() : axes;
+        resetView();
+    }
+
+    public telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes() {
+        return axes;
+    }
+
+    /** The explanation block and the pinned notes drawn over the plot. */
+    public void setNotes(telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes) {
+        this.notes = notes == null
+                ? telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.EMPTY : notes;
+        repaint();
+    }
+
+    public telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes() {
+        return notes;
+    }
+
+    /** True when a right-hand scale is being drawn, so the caller can widen the right margin. */
+    private int rightMargin() {
+        return axes.hasRightAxis() ? 56 : R;
+    }
+
     /** The [minX, maxX] across all series, or null if empty — used to pin an unbounded filter to real data. */
     public long[] dataBounds() {
         long gx0 = Long.MAX_VALUE, gx1 = Long.MIN_VALUE;
@@ -109,22 +142,43 @@ public final class ChartPanel extends JPanel {
     /** Reset the view to fit all data (autoscale). */
     public void resetView() {
         long gx0 = Long.MAX_VALUE, gx1 = Long.MIN_VALUE;
-        double gy0 = Double.POSITIVE_INFINITY, gy1 = Double.NEGATIVE_INFINITY;
+        // each axis is scaled to ITS OWN series: sharing one range is what reduces a small series to a
+        // flat smear when it is plotted beside a large one
+        double ly0 = Double.POSITIVE_INFINITY, ly1 = Double.NEGATIVE_INFINITY;
+        double gr0 = Double.POSITIVE_INFINITY, gr1 = Double.NEGATIVE_INFINITY;
         for (Series s : series) {
             if (s.size() == 0) continue;
             gx0 = Math.min(gx0, s.minX());
             gx1 = Math.max(gx1, s.maxX());
-            gy0 = Math.min(gy0, s.minFiniteY());
-            gy1 = Math.max(gy1, s.maxFiniteY());
+            if (axes.isRight(s.label())) {
+                gr0 = Math.min(gr0, s.minFiniteY());
+                gr1 = Math.max(gr1, s.maxFiniteY());
+            } else {
+                ly0 = Math.min(ly0, s.minFiniteY());
+                ly1 = Math.max(ly1, s.maxFiniteY());
+            }
         }
         if (gx1 < gx0) { vx0 = Double.NaN; repaint(); return; }
         vx0 = gx0; vx1 = gx1;
-        vy0 = gy0; vy1 = gy1;
         if (vx1 <= vx0) vx1 = vx0 + 1;
-        if (!(vy1 > vy0)) { vy0 -= 1; vy1 += 1; }
-        double padY = (vy1 - vy0) * 0.05;
-        vy0 -= padY; vy1 += padY;
+        double[] left = padded(ly0, ly1);
+        vy0 = left[0]; vy1 = left[1];
+        double[] right = padded(gr0, gr1);
+        ry0 = right[0]; ry1 = right[1];
         repaint();
+    }
+
+    /** A usable range from possibly-degenerate bounds: empty or flat still has to map to pixels. */
+    private static double[] padded(double lo, double hi) {
+        if (Double.isInfinite(lo) || Double.isInfinite(hi)) {
+            return new double[]{0, 1};
+        }
+        if (!(hi > lo)) {
+            lo -= 1;
+            hi += 1;
+        }
+        double pad = (hi - lo) * 0.05;
+        return new double[]{lo - pad, hi + pad};
     }
 
     /**
@@ -224,7 +278,7 @@ public final class ChartPanel extends JPanel {
         g.setColor(panelBg);
         g.fillRect(0, 0, w, h);
 
-        plotX = L; plotY = T; plotW = w - L - R; plotH = h - T - B;
+        plotX = L; plotY = T; plotW = w - L - rightMargin(); plotH = h - T - B;
         if (plotW > 10 && plotH > 10) {
             g.setColor(canvas);
             g.fillRect(plotX, plotY, plotW, plotH);   // the plot card, distinct from the panel margins
@@ -247,6 +301,11 @@ public final class ChartPanel extends JPanel {
             g.setColor(text);
             String lbl = formatY(vy0 + (double) i / yDivs * (vy1 - vy0));
             g.drawString(lbl, plotX - 6 - g.getFontMetrics().stringWidth(lbl), gy + 4);
+            if (axes.hasRightAxis()) {
+                // the second scale, read against the same gridlines — that shared grid is what lets the
+                // eye compare two series whose numbers have nothing in common
+                g.drawString(formatY(ry0 + (double) i / yDivs * (ry1 - ry0)), plotX + plotW + 6, gy + 4);
+            }
         }
         int xDivs = 5;
         for (int i = 1; i < xDivs; i++) {
@@ -267,10 +326,14 @@ public final class ChartPanel extends JPanel {
         for (Series s : series) {
             g.setColor(PALETTE[ci % PALETTE.length]);
             g.setStroke(new BasicStroke(1.5f));
+            drawingRight = axes.isRight(s.label());
             drawSeries(g, s);
             ci++;
         }
+        drawingRight = false;
+        paintNotes(g, dark);
         g.setClip(null);
+        paintExplanation(g, dark);
         // the legend is a Swing overlay component (GraphPanel), not painted here — so labels are readable,
         // untruncated, and support right-click actions
         g.dispose();
@@ -356,7 +419,105 @@ public final class ChartPanel extends JPanel {
     }
 
     private int xToPx(long x) { return plotX + (int) Math.round((x - vx0) / (vx1 - vx0) * plotW); }
-    private int yToPx(double y) { return plotY + plotH - (int) Math.round((y - vy0) / (vy1 - vy0) * plotH); }
+    /**
+     * Notes pinned to moments: a dashed rule at the time, a numbered marker, and the text.
+     *
+     * <p>Numbered rather than labelled in place, because a note long enough to be worth writing is long
+     * enough to cover the data it is about. The number sits on the plot; the words sit under it, in the
+     * same order.
+     */
+    private void paintNotes(Graphics2D g, boolean dark) {
+        if (notes.notes().isEmpty() || Double.isNaN(vx0)) {
+            return;
+        }
+        Color rule = dark ? new Color(0x6E7681) : new Color(0x8C959F);
+        Color pin = dark ? new Color(0xE3B341) : new Color(0x9A6700);
+        var columns = notes.byColumn((long) vx0, (long) vx1, plotW);
+        int index = 0;
+        for (var entry : columns.entrySet()) {
+            int px = plotX + entry.getKey();
+            g.setColor(rule);
+            g.setStroke(new java.awt.BasicStroke(1f, java.awt.BasicStroke.CAP_BUTT,
+                    java.awt.BasicStroke.JOIN_MITER, 10f, new float[]{3f, 4f}, 0f));
+            g.drawLine(px, plotY, px, plotY + plotH);
+            // notes sharing a column stack downwards rather than overprinting each other
+            int stack = 0;
+            for (var ignored : entry.getValue()) {
+                index++;
+                int cy = plotY + 12 + stack * 16;
+                g.setColor(pin);
+                g.fillOval(px - 7, cy - 7, 14, 14);
+                g.setColor(dark ? Color.BLACK : Color.WHITE);
+                String n = String.valueOf(index);
+                g.drawString(n, px - g.getFontMetrics().stringWidth(n) / 2, cy + 4);
+                stack++;
+            }
+        }
+    }
+
+    /**
+     * The explanation block, bottom-left inside the plot: what this chart is for, in the author's words.
+     *
+     * <p>Drawn on the chart rather than beside it so it survives an exported PNG — a rationale that lives
+     * only in the app is lost the moment the picture is shared, which is exactly when it is needed.
+     */
+    private void paintExplanation(Graphics2D g, boolean dark) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        if (!notes.explanation().isBlank()) {
+            lines.addAll(java.util.Arrays.asList(notes.explanation().split("\n")));
+        }
+        int n = 0;
+        for (var note : notes.between((long) vx0, (long) vx1)) {
+            lines.add(++n + ". " + note.text()
+                    + (note.series() == null ? "" : "  [" + note.series() + "]"));
+        }
+        if (lines.isEmpty() || plotW < 120) {
+            return;
+        }
+        java.awt.FontMetrics fm = g.getFontMetrics();
+        int pad = 8;
+        int lineH = fm.getHeight();
+        int boxW = 0;
+        for (String line : lines) {
+            boxW = Math.max(boxW, fm.stringWidth(line));
+        }
+        boxW = Math.min(boxW + pad * 2, plotW - 16);
+        int boxH = lines.size() * lineH + pad * 2;
+        int bx = plotX + 8;
+        int by = plotY + plotH - boxH - 8;
+
+        Color fill = dark ? new Color(0x1B1F24) : new Color(0xFFFFFF);
+        g.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 235));
+        g.fillRoundRect(bx, by, boxW, boxH, 8, 8);
+        g.setColor(dark ? new Color(0x3D444D) : new Color(0xC2CAD3));
+        g.drawRoundRect(bx, by, boxW, boxH, 8, 8);
+        g.setColor(dark ? new Color(0xC9D1D9) : new Color(0x24292F));
+        int ty = by + pad + fm.getAscent();
+        for (String line : lines) {
+            g.drawString(clip(fm, line, boxW - pad * 2), bx + pad, ty);
+            ty += lineH;
+        }
+    }
+
+    private static String clip(java.awt.FontMetrics fm, String text, int maxWidth) {
+        if (fm.stringWidth(text) <= maxWidth) {
+            return text;
+        }
+        String out = text;
+        while (out.length() > 1 && fm.stringWidth(out + "…") > maxWidth) {
+            out = out.substring(0, out.length() - 1);
+        }
+        return out + "…";
+    }
+
+    /** The axis the series currently being drawn belongs to — set once per series, read by yToPx. */
+    private boolean drawingRight;
+
+    private int yToPx(double y) {
+        double lo = drawingRight ? ry0 : vy0;
+        double hi = drawingRight ? ry1 : vy1;
+        return plotY + plotH - (int) Math.round((y - lo) / (hi - lo) * plotH);
+    }
 
     private static String formatY(double v) {
         if (v == Math.rint(v) && Math.abs(v) < 1e15) return String.valueOf((long) v);
