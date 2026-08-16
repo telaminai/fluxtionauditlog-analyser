@@ -79,9 +79,17 @@ offscreen render: the halo/trail/entry states paint correctly over the shading (
 cursor-row2.png in the session scratchpad show current-vs-stepped with the green logged borders intact).
 Verified by launch: the jar starts on the traced fixture with no exceptions.
 
+KEYS CHANGED AFTER FIRST TRIAL: stepping is now Down/Up, not [ and ]. The owner tried the brackets on a
+live instance and they "felt weird"; arrows are what "next thing down the list" already means, and the
+walk they describe — into this record's rows, then on to the next record — was already the behaviour, so
+only the binding moved. Brackets stay bound as undocumented aliases. 4 headless tests on the input map,
+because a wrong keystroke binds silently.
+
+CONFIRMED ON A LIVE INSTANCE (owner, 2026-08-16): stepping with the arrow keys works.
+
 NOT verified — please click:
-  1. [ and ] step, and keep stepping past the last row of a record: the table selection should follow
-     into the next record and the canvas re-shade for the new cycle.
+  1. Keep stepping past the last row of a record: the table selection should follow into the next record
+     and the canvas re-shade for the new cycle.
   2. Step BACKWARDS from a record's entry: it should land on the previous record's LAST row.
   3. Open demo-quote-audit.yaml (untraced) and confirm the readout says "(logged nodes)"; open
      demo-quote-audit-traced.yaml and confirm it says "invocation k / n". Same graph, different claim —
