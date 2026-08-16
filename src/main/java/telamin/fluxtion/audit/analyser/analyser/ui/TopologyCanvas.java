@@ -383,7 +383,9 @@ public final class TopologyCanvas extends JPanel {
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         boolean dark = ThemeManager.isDark();
-        Color canvas = dark ? new Color(0x0D1117) : new Color(0xF6F8FA);
+        // one shared content surface with the record-detail and source panels: the graph is a document,
+        // and at 0xF6F8FA it sat within a shade of FlatLaf's light panel grey and lost its own edge
+        Color canvas = UiTheme.surface();
         Color edge = dark ? new Color(0x545D68) : new Color(0x9AA5B1);
         Color edgeHot = dark ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
         Color text = dark ? new Color(0xC9D1D9) : new Color(0x24292F);
@@ -594,7 +596,9 @@ public final class TopologyCanvas extends JPanel {
     }
 
     private static Color fade2(Color c, boolean dark, double keep) {
-        Color canvas = dark ? new Color(0x0D1117) : new Color(0xF6F8FA);
+        // one shared content surface with the record-detail and source panels: the graph is a document,
+        // and at 0xF6F8FA it sat within a shade of FlatLaf's light panel grey and lost its own edge
+        Color canvas = UiTheme.surface();
         return new Color(
                 (int) (c.getRed() * keep + canvas.getRed() * (1 - keep)),
                 (int) (c.getGreen() * keep + canvas.getGreen() * (1 - keep)),
@@ -664,7 +668,9 @@ public final class TopologyCanvas extends JPanel {
 
     /** Pull a colour toward the canvas so a node that never fired recedes without disappearing. */
     private static Color fade(Color c, boolean dark) {
-        Color canvas = dark ? new Color(0x0D1117) : new Color(0xF6F8FA);
+        // one shared content surface with the record-detail and source panels: the graph is a document,
+        // and at 0xF6F8FA it sat within a shade of FlatLaf's light panel grey and lost its own edge
+        Color canvas = UiTheme.surface();
         double keep = 0.22;
         return new Color(
                 (int) (c.getRed() * keep + canvas.getRed() * (1 - keep)),

@@ -37,6 +37,8 @@ public final class AppConfig {
     public final List<String> hiddenColumns = new ArrayList<>(List.of(
             "eventTime", "groupingId", "eventToString", "endTime"));
     public boolean hiddenColumnsSet = false;   // distinguishes "never configured" from "user cleared all"
+    /** Event-type rail panel collapsed — it costs 240px of a window whose job is showing wide records. */
+    public boolean eventFilterCollapsed = false;
 
     /** Saved graphs: one entry per graph tab, each a list of series encoded as {@code instanceIdkey}. */
     public final List<GraphSpec> savedGraphs = new ArrayList<>();

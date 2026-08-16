@@ -39,6 +39,7 @@ public final class YamlHighlighter {
             styleLine(doc, line, pos, comment, key, number, keyword, punct);
             pos += line.length() + 1;
         }
+        UiTheme.applyReadingRhythm(doc);
     }
 
     private void styleLine(StyledDocument doc, String line, int offset, SimpleAttributeSet comment,
@@ -67,7 +68,7 @@ public final class YamlHighlighter {
     private static SimpleAttributeSet attr(int rgb, boolean italic) {
         SimpleAttributeSet a = new SimpleAttributeSet();
         StyleConstants.setForeground(a, new Color(rgb));
-        StyleConstants.setFontFamily(a, "Monospaced");
+        StyleConstants.setFontFamily(a, UiTheme.monoFamily());
         StyleConstants.setItalic(a, italic);
         return a;
     }

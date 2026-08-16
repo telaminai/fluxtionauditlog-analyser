@@ -8,13 +8,17 @@ import telamin.fluxtion.audit.analyser.analyser.source.SourceService;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JToggleButton;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;
@@ -37,7 +41,16 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Read-only, colourised source viewer with click-to-source navigation (spec §9):
+ * Read-only, colourised source viewer with click-to-source navigation (spec §9), in three modes
+ * (M22.13): <b>Processor</b>, <b>Node</b>, and <b>Split</b> showing both.
+ *
+ * <p>Split exists because of how a dispatch is actually read. The generated processor holds the call
+ * site — the {@code auditInvocation(node, "name", "method", event)} and the guard above it that decides
+ * whether the node runs at all — and the node class holds what that method then computed. With one pane,
+ * following the call loses the guard, and going back to the guard loses the method; the two halves of the
+ * answer will not sit still at the same time. So navigating to a node from the processor promotes the
+ * view to Split rather than replacing what you navigated from.
+ *
  * <ul>
  *   <li>{@link #showDispatchFor} scrolls the EventProcessor to the method that dispatches the
  *       selected record (its callback);</li>
@@ -45,23 +58,28 @@ import java.util.Optional;
  *       that node's class at the method; a field opens its type; a Type opens its source;</li>
  *   <li>{@link #openInstance} opens a node's class (and scrolls to a method).</li>
  * </ul>
- * The currently shown file is itself parsed into an {@link EventProcessorModel} so navigation works
- * from any file (the processor or a node class).
+ * Each pane parses whatever it is showing into its own {@link EventProcessorModel}, so Ctrl-click
+ * navigation works from either half of the split.
  */
 public final class SourcePanel extends JPanel {
 
+    /** Which of the two panes are on screen. */
+    public enum Mode { PROCESSOR, NODE, SPLIT }
+
     private final JComboBox<String> processorCombo = new JComboBox<>();
-    private final JLabel currentLabel = new JLabel(" ");
-    private final WrapTextPane source = new WrapTextPane(false);
-    private final JScrollPane sourceScroll = new JScrollPane(source);
     private final JavaHighlighter highlighter = new JavaHighlighter();
+
+    private final Pane processorPane = new Pane("EventProcessor");
+    private final Pane nodePane = new Pane("Node");
+    private final JSplitPane split =
+            new JSplitPane(JSplitPane.VERTICAL_SPLIT, true, processorPane, nodePane);
+    private final JPanel host = new JPanel(new BorderLayout());
+    private Mode mode = Mode.SPLIT;
 
     private SourceService service;
     private boolean syncing;
+    private boolean wrap;
 
-    private String currentFqn;
-    private String currentSource = "";
-    private EventProcessorModel currentModel;
     private final Deque<String> backStack = new ArrayDeque<>();
     private final JButton backButton = new JButton("◀ Back");
     private LogRecord dispatchRecord;   // the record whose dispatch method we scroll to on the EP
@@ -79,23 +97,19 @@ public final class SourcePanel extends JPanel {
         top.add(processorCombo);
         JButton openSel = new JButton("Show");
         top.add(openSel);
-        javax.swing.JCheckBox wrap = new javax.swing.JCheckBox("Wrap", false);
-        wrap.addActionListener(e -> setSourceWrap(wrap.isSelected()));
-        top.add(wrap);
+        top.add(buildModeToggle());
+        JCheckBox wrapBox = new JCheckBox("Wrap", false);
+        wrapBox.addActionListener(e -> setSourceWrap(wrapBox.isSelected()));
+        top.add(wrapBox);
         top.add(new JLabel("  (Ctrl-click a node/method/type to navigate)"));
         add(top, BorderLayout.NORTH);
 
         installBackKeyBindings();
 
-        source.setEditable(false);
-        source.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        applySourceBackground();
-        sourceScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);   // no-wrap default
-        JPanel center = new JPanel(new BorderLayout());
-        currentLabel.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
-        center.add(currentLabel, BorderLayout.NORTH);
-        center.add(sourceScroll, BorderLayout.CENTER);
-        add(center, BorderLayout.CENTER);
+        split.setResizeWeight(0.5);
+        split.setBorder(null);
+        add(host, BorderLayout.CENTER);
+        applyMode();
 
         openSel.addActionListener(e -> showSelectedProcessor());
         processorCombo.addActionListener(e -> {
@@ -106,19 +120,67 @@ public final class SourcePanel extends JPanel {
                 showSelectedProcessor();
             }
         });
-
-        MouseAdapter nav = new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) {
-                if (e.isControlDown() || e.isMetaDown()) navigateAt(source.viewToModel2D(e.getPoint()));
-            }
-            @Override public void mouseMoved(MouseEvent e) {
-                source.setCursor(Cursor.getPredefinedCursor(
-                        (e.isControlDown() || e.isMetaDown()) ? Cursor.HAND_CURSOR : Cursor.TEXT_CURSOR));
-            }
-        };
-        source.addMouseListener(nav);
-        source.addMouseMotionListener(nav);
     }
+
+    // ---- modes ------------------------------------------------------------------------------------
+
+    private JPanel buildModeToggle() {
+        JPanel group = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        ButtonGroup buttons = new ButtonGroup();
+        JToggleButton processor = new JToggleButton("Processor");
+        JToggleButton node = new JToggleButton("Node");
+        JToggleButton both = new JToggleButton("Split", true);
+        processor.setToolTipText("Only the generated EventProcessor — the dispatch and its guards");
+        node.setToolTipText("Only the node class you navigated to");
+        both.setToolTipText("Both: the call site above, the method it calls below");
+        processor.addActionListener(e -> setMode(Mode.PROCESSOR));
+        node.addActionListener(e -> setMode(Mode.NODE));
+        both.addActionListener(e -> setMode(Mode.SPLIT));
+        for (JToggleButton b : List.of(processor, node, both)) {
+            b.setFocusable(false);
+            buttons.add(b);
+            group.add(b);
+        }
+        return group;
+    }
+
+    public void setMode(Mode newMode) {
+        if (newMode == null || mode == newMode) return;
+        mode = newMode;
+        applyMode();
+    }
+
+    /** Rebuild the centre for the current mode, keeping the split's divider position across switches. */
+    private void applyMode() {
+        int divider = split.getDividerLocation();
+        host.removeAll();
+        switch (mode) {
+            case PROCESSOR -> host.add(processorPane, BorderLayout.CENTER);
+            case NODE -> host.add(nodePane, BorderLayout.CENTER);
+            case SPLIT -> {
+                split.setTopComponent(processorPane);
+                split.setBottomComponent(nodePane);
+                host.add(split, BorderLayout.CENTER);
+                if (divider > 0) split.setDividerLocation(divider);
+            }
+        }
+        host.revalidate();
+        host.repaint();
+    }
+
+    /**
+     * Promote to Split when a navigation would otherwise land in a hidden pane. Following a call into a
+     * node while showing only the processor would look like nothing happened, which is worse than the
+     * mode changing under the user.
+     */
+    private void revealPaneFor(Pane pane) {
+        if (mode == Mode.SPLIT) return;
+        if ((mode == Mode.PROCESSOR && pane == nodePane) || (mode == Mode.NODE && pane == processorPane)) {
+            setMode(Mode.SPLIT);
+        }
+    }
+
+    // ---- wiring -----------------------------------------------------------------------------------
 
     public void bind(SourceService service) {
         this.service = service;
@@ -138,74 +200,17 @@ public final class SourcePanel extends JPanel {
         if (service != null) openFqn(service.selectedFqn());
     }
 
-    /** Re-colour the current source (e.g. after a theme change). */
+    /** Re-colour both panes (e.g. after a theme change). */
     public void refresh() {
-        applySourceBackground();
-        if (!currentSource.isEmpty()) highlighter.render(source.getStyledDocument(), currentSource);
+        processorPane.applyTheme();
+        nodePane.applyTheme();
     }
 
-    /** A subtle, theme-aware editor background so the source viewer reads apart from other panels. */
-    private void applySourceBackground() {
-        java.awt.Color editor = ThemeManager.isDark()
-                ? new java.awt.Color(0x1B1F24) : new java.awt.Color(0xFBFCFE);
-        source.setBackground(editor);
-        // The viewport shows through wherever the pane does not reach — during a resize, and around the
-        // margins. Matching it keeps the editor a single surface instead of two shades meeting mid-panel.
-        sourceScroll.getViewport().setBackground(editor);
-        sourceScroll.setBackground(editor);
-    }
-
-    /**
-     * What the viewer shows when there is no file behind the name: an explanation, the roots actually
-     * searched, and the way to add another. An empty editor says "nothing here" when the truth is
-     * "configured to look in the wrong place", and the roots are the one fact that distinguishes them.
-     */
-    private void showNothingToShow(String fqn) {
-        List<java.nio.file.Path> roots = service == null ? List.of() : service.resolver().roots();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("No source to show\n\n")
-          .append(fqn).append('\n')
-          .append("was not found under the source roots below.\n\n");
-        if (roots.isEmpty()) {
-            sb.append("No source roots are configured yet.\n\n");
-        } else {
-            sb.append(roots.size() == 1 ? "Source root searched:\n" : "Source roots searched:\n");
-            for (java.nio.file.Path root : roots) sb.append("    ").append(root).append('\n');
-            sb.append('\n');
-        }
-        sb.append("Add one:  File ▸ Settings… ▸ Source roots ▸ Add…\n")
-          .append("or drag a project folder onto that tab — a project expands to its src/main/java,\n")
-          .append("sub-modules included.\n\n")
-          .append("A source root is the folder that directly contains your top-level package directory.");
-
-        renderPlain(sb.toString());
-    }
-
-    /** Plain, muted text in the editor — used for messages, which must not be coloured as if they were code. */
-    private void renderPlain(String text) {
-        javax.swing.text.StyledDocument doc = source.getStyledDocument();
-        try {
-            doc.remove(0, doc.getLength());
-            javax.swing.text.SimpleAttributeSet style = new javax.swing.text.SimpleAttributeSet();
-            javax.swing.text.StyleConstants.setForeground(style, UiTheme.mutedForeground());
-            doc.insertString(0, text, style);
-        } catch (javax.swing.text.BadLocationException ignore) {
-            // the document was just emptied; nothing sensible to recover
-        }
-        source.setCaretPosition(0);
-    }
-
-    /** Toggle source line-wrap: swap the view behaviour, sync the scrollbar, and rebuild the views. */
-    private void setSourceWrap(boolean wrap) {
-        source.setWrap(wrap);
-        sourceScroll.setHorizontalScrollBarPolicy(wrap
-                ? JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
-                : JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        if (!currentSource.isEmpty()) highlighter.render(source.getStyledDocument(), currentSource);
-        source.revalidate();
-        sourceScroll.revalidate();
-        sourceScroll.repaint();
+    /** Toggle source line-wrap in both panes: swap the view behaviour, sync the scrollbars, re-render. */
+    private void setSourceWrap(boolean on) {
+        this.wrap = on;
+        processorPane.setWrap(on);
+        nodePane.setWrap(on);
     }
 
     /** Scroll the EventProcessor source to the method that dispatches this record (its callback). */
@@ -222,7 +227,7 @@ public final class SourcePanel extends JPanel {
         if (fqn != null) {
             openFqnAtMethod(fqn, method);
         } else {
-            currentLabel.setText("no source mapping for node '" + instanceId + "'");
+            nodePane.label.setText("no source mapping for node '" + instanceId + "'");
         }
     }
 
@@ -234,47 +239,39 @@ public final class SourcePanel extends JPanel {
         navigate(fqn, method);
     }
 
+    /** The pane a file belongs in: the selected EventProcessor has its own, everything else is a node. */
+    private Pane paneFor(String fqn) {
+        return service != null && Objects.equals(fqn, service.selectedFqn()) ? processorPane : nodePane;
+    }
+
     /** Navigate to a source file (recording history when the file changes) and scroll to a method. */
     private void navigate(String fqn, String method) {
         if (service == null || fqn == null) return;
-        if (!Objects.equals(fqn, currentFqn)) {
-            if (currentFqn != null) {
-                backStack.push(currentFqn);
+        Pane pane = paneFor(fqn);
+        if (!Objects.equals(fqn, pane.fqn)) {
+            if (pane.fqn != null) {
+                backStack.push(pane.fqn);
                 backButton.setEnabled(true);
             }
-            render(fqn);
+            pane.render(fqn);
         }
-        int off = method == null ? -1 : SourceNavigation.methodDeclOffset(currentSource, method);
-        scrollToOffset(off >= 0 ? off : 0);
+        revealPaneFor(pane);
+        int off = method == null ? -1 : SourceNavigation.methodDeclOffset(pane.source, method);
+        pane.scrollToOffset(off >= 0 ? off : 0);
     }
 
     /** Navigate back to the previously shown source file (Alt+Left / Cmd|Ctrl+[). */
     private void back() {
         if (backStack.isEmpty()) return;
         String prev = backStack.pop();
-        render(prev);
+        Pane pane = paneFor(prev);
+        pane.render(prev);
+        revealPaneFor(pane);
         backButton.setEnabled(!backStack.isEmpty());
         // if we've returned to the EventProcessor, scroll to the triggering handler for the record
         if (service != null && prev.equals(service.selectedFqn()) && dispatchRecord != null) {
-            int off = SourceNavigation.methodDeclOffset(currentSource, dispatchRecord.callback());
-            scrollToOffset(off >= 0 ? off : 0);
-        }
-    }
-
-    private void render(String fqn) {
-        Optional<String> src = service.sourceForFqn(fqn);
-        currentFqn = fqn;
-        if (src.isPresent()) {
-            currentSource = src.get();
-            currentModel = EventProcessorModel.parse(fqn, currentSource);
-            currentLabel.setText(fqn);
-            highlighter.render(source.getStyledDocument(), currentSource);
-            source.setCaretPosition(0);
-        } else {
-            currentSource = "";
-            currentModel = null;
-            currentLabel.setText(fqn + "  —  not found under the configured source roots");
-            showNothingToShow(fqn);
+            int off = SourceNavigation.methodDeclOffset(pane.source, dispatchRecord.callback());
+            pane.scrollToOffset(off >= 0 ? off : 0);
         }
     }
 
@@ -293,39 +290,156 @@ public final class SourcePanel extends JPanel {
         return Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() == InputEvent.META_DOWN_MASK ? "Cmd" : "Ctrl";
     }
 
-    private void navigateAt(int offset) {
-        if (currentModel == null || currentSource.isEmpty()) return;
-        Ref ref = SourceNavigation.resolveAt(currentSource, offset);
-        if (ref == null) return;
-        // receiver.method() -> open the field's type at the method
-        if (ref.receiver() != null && currentModel.hasInstance(ref.receiver())) {
-            String fqn = currentModel.fieldTypeFqn(ref.receiver());
-            if (fqn != null) openFqnAtMethod(fqn, ref.methodCall() ? ref.identifier() : null);
-            return;
-        }
-        // a field name -> open its type
-        if (currentModel.hasInstance(ref.identifier())) {
-            String fqn = currentModel.fieldTypeFqn(ref.identifier());
-            if (fqn != null) openFqn(fqn);
-            return;
-        }
-        // a Type -> open it if resolvable
-        if (!ref.identifier().isEmpty() && Character.isUpperCase(ref.identifier().charAt(0))) {
-            String fqn = currentModel.resolveSimpleType(ref.identifier());
-            if (fqn != null && service.sourceForFqn(fqn).isPresent()) openFqn(fqn);
-        }
-    }
+    // ---- one source pane --------------------------------------------------------------------------
 
-    private void scrollToOffset(int offset) {
-        try {
-            source.setCaretPosition(Math.min(offset, source.getDocument().getLength()));
-            Rectangle2D r = source.modelToView2D(offset);
-            if (r != null) {
-                Rectangle view = new Rectangle((int) r.getX(), (int) r.getY(), 10, source.getVisibleRect().height);
-                source.scrollRectToVisible(view);   // bring the target near the top
+    /**
+     * One file on screen: its own text, model and history-free state. Two of these make the split, and
+     * each parses what it shows so Ctrl-click navigation works from either.
+     */
+    private final class Pane extends JPanel {
+        private final WrapTextPane text = new WrapTextPane(false);
+        private final JScrollPane scroll = new JScrollPane(text);
+        private final JLabel label = new JLabel(" ");
+        private String fqn;
+        private String source = "";
+        private EventProcessorModel model;
+
+        Pane(String role) {
+            super(new BorderLayout());
+            text.setEditable(false);
+            text.setFont(UiTheme.mono(12));
+            scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            label.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
+            UiTheme.status(label);
+            label.setText(role);
+            add(label, BorderLayout.NORTH);
+            add(scroll, BorderLayout.CENTER);
+            applyTheme();
+
+            MouseAdapter nav = new MouseAdapter() {
+                @Override public void mousePressed(MouseEvent e) {
+                    if (e.isControlDown() || e.isMetaDown()) navigateAt(text.viewToModel2D(e.getPoint()));
+                }
+                @Override public void mouseMoved(MouseEvent e) {
+                    text.setCursor(Cursor.getPredefinedCursor(
+                            (e.isControlDown() || e.isMetaDown()) ? Cursor.HAND_CURSOR : Cursor.TEXT_CURSOR));
+                }
+            };
+            text.addMouseListener(nav);
+            text.addMouseMotionListener(nav);
+        }
+
+        void applyTheme() {
+            UiTheme.applySurface(scroll, text);
+            if (!source.isEmpty()) highlighter.render(text.getStyledDocument(), source);
+            else if (fqn != null) showNothingToShow(fqn);
+        }
+
+        void setWrap(boolean on) {
+            text.setWrap(on);
+            scroll.setHorizontalScrollBarPolicy(on
+                    ? JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+                    : JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            if (!source.isEmpty()) highlighter.render(text.getStyledDocument(), source);
+            text.revalidate();
+            scroll.revalidate();
+            scroll.repaint();
+        }
+
+        void render(String newFqn) {
+            Optional<String> src = service.sourceForFqn(newFqn);
+            fqn = newFqn;
+            if (src.isPresent()) {
+                source = src.get();
+                model = EventProcessorModel.parse(newFqn, source);
+                label.setText(newFqn);
+                highlighter.render(text.getStyledDocument(), source);
+                text.setWrap(wrap);
+                text.setCaretPosition(0);
+            } else {
+                source = "";
+                model = null;
+                label.setText(newFqn + "  —  not found under the configured source roots");
+                showNothingToShow(newFqn);
             }
-        } catch (BadLocationException | IllegalArgumentException ignore) {
-            SwingUtilities.invokeLater(() -> source.setCaretPosition(0));
+        }
+
+        /**
+         * What the viewer shows when there is no file behind the name: an explanation, the roots actually
+         * searched, and the way to add another. An empty editor says "nothing here" when the truth is
+         * "configured to look in the wrong place", and the roots are the one fact that separates them.
+         */
+        void showNothingToShow(String missingFqn) {
+            List<java.nio.file.Path> roots = service == null ? List.of() : service.resolver().roots();
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("No source to show\n\n")
+              .append(missingFqn).append('\n')
+              .append("was not found under the source roots below.\n\n");
+            if (roots.isEmpty()) {
+                sb.append("No source roots are configured yet.\n\n");
+            } else {
+                sb.append(roots.size() == 1 ? "Source root searched:\n" : "Source roots searched:\n");
+                for (java.nio.file.Path root : roots) sb.append("    ").append(root).append('\n');
+                sb.append('\n');
+            }
+            sb.append("Add one:  File ▸ Settings… ▸ Source roots ▸ Add…\n")
+              .append("or drag a project folder onto that tab — a project expands to its src/main/java,\n")
+              .append("sub-modules included.\n\n")
+              .append("A source root is the folder that directly contains your top-level package directory.");
+
+            renderPlain(sb.toString());
+        }
+
+        /** Plain, muted text — messages must not be coloured as if they were code. */
+        void renderPlain(String message) {
+            javax.swing.text.StyledDocument doc = text.getStyledDocument();
+            try {
+                doc.remove(0, doc.getLength());
+                javax.swing.text.SimpleAttributeSet style = new javax.swing.text.SimpleAttributeSet();
+                javax.swing.text.StyleConstants.setForeground(style, UiTheme.mutedForeground());
+                doc.insertString(0, message, style);
+            } catch (BadLocationException ignore) {
+                // the document was just emptied; nothing sensible to recover
+            }
+            text.setCaretPosition(0);
+        }
+
+        void navigateAt(int offset) {
+            if (model == null || source.isEmpty()) return;
+            Ref ref = SourceNavigation.resolveAt(source, offset);
+            if (ref == null) return;
+            // receiver.method() -> open the field's type at the method
+            if (ref.receiver() != null && model.hasInstance(ref.receiver())) {
+                String target = model.fieldTypeFqn(ref.receiver());
+                if (target != null) openFqnAtMethod(target, ref.methodCall() ? ref.identifier() : null);
+                return;
+            }
+            // a field name -> open its type
+            if (model.hasInstance(ref.identifier())) {
+                String target = model.fieldTypeFqn(ref.identifier());
+                if (target != null) openFqn(target);
+                return;
+            }
+            // a Type -> open it if resolvable
+            if (!ref.identifier().isEmpty() && Character.isUpperCase(ref.identifier().charAt(0))) {
+                String target = model.resolveSimpleType(ref.identifier());
+                if (target != null && service.sourceForFqn(target).isPresent()) openFqn(target);
+            }
+        }
+
+        void scrollToOffset(int offset) {
+            try {
+                text.setCaretPosition(Math.min(offset, text.getDocument().getLength()));
+                Rectangle2D r = text.modelToView2D(offset);
+                if (r != null) {
+                    Rectangle view = new Rectangle((int) r.getX(), (int) r.getY(), 10,
+                            text.getVisibleRect().height);
+                    text.scrollRectToVisible(view);   // bring the target near the top
+                }
+            } catch (BadLocationException | IllegalArgumentException ignore) {
+                SwingUtilities.invokeLater(() -> text.setCaretPosition(0));
+            }
         }
     }
 }

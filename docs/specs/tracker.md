@@ -306,7 +306,9 @@ picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that ch
   and the three roles are the first thing you need to read. _(Answers "how do you render exported
   services": they are the hexagon — the only one in the demo graph is the framework's `ServiceListener`,
   which 22.1 hides, so a user-authored `@ExportService` in the fixture would show it better — see 22.10.)_
-- [M22.9] ☐ **Source without losing the graph** — double-click currently opens the Source tab, which is a
+- [M22.9] ⊘ **Source without losing the graph** — SUPERSEDED by M22.13, which answers the layout question
+  it left open (the source view splits Processor/Node rather than the topology tab embedding a viewer).
+  _Original note:_ **Source without losing the graph** — double-click currently opens the Source tab, which is a
   *sibling* of Topology in the same tabbed pane, so navigating to source hides the thing you navigated
   from. Options: split the side pane (graph above, source below) when navigating from the topology; or
   give the Topology tab its own embedded source view. Owner-raised; needs a layout decision before code.
@@ -349,12 +351,18 @@ design, not a port._
   needs the **processor source** (which node calls `processReentrantEvent`/`processAsNewEventCycle` with
   which type) plus record adjacency. Without source, claim nothing. Fixture: `riskMonitor` →
   `RiskBreachEvent` → `breachHandler` in `demo-quote-audit.yaml`, pinned by two tests.
-- [M22.12] ☐ **Node-log panel: Logical and Text views**, both colourised — Logical groups each node's
-  key/values under the node name (what the playground shows); Text is the raw YAML. Today the analyser has
-  one rendering.
-- [M22.13] ☐ **Source view: three modes — Event processor · Node · Split.** Split shows the generated
-  processor and the node class together, which is how you read a dispatch: the `auditInvocation` call site
-  above, the method it calls below. Supersedes the open layout question in M22.9.
+- [M22.12] ☑ **Node-log panel: Logical and Text views** — shipped. Logical gives each node a block with its
+  values on their own lines, in dispatch order; Text is the raw YAML, kept one click away because it is the
+  **evidence** for anything Logical re-arranges. Framework keys (`thread`, `method`) are **muted, not
+  hidden** — they are the marker that says the record is traced, so dropping them would hide the regime.
+  Layout is separated from colouring (`LogicalLogView.Layout`) because the block offsets drive
+  click-to-source and the step cursor's highlight: an off-by-one opens the wrong file rather than merely
+  looking wrong. 9 tests.
+- [M22.13] ☑ **Source view: three modes — Processor · Node · Split** — shipped. `SourcePanel` now holds two
+  independent panes, each parsing what it shows into its own `EventProcessorModel` so Ctrl-click navigation
+  works from either half. Navigating to a node while in Processor mode **promotes the view to Split**
+  rather than replacing what you navigated from — the whole point being that the call site (and the guard
+  above it that decides whether the node runs) and the method body need to sit still at the same time.
 - [M22.14] ☑ **Source view fills the viewport with wrap off** — `getScrollableTracksViewportWidth()`
   returned the wrap flag, so the pane sized to its longest line and the rest of the viewport showed the
   scroll pane's background. Now tracks the viewport whenever the text is narrower (and the same
@@ -363,15 +371,34 @@ design, not a port._
   panel and names the roots actually searched plus `File ▸ Settings… ▸ Source roots ▸ Add…`. An empty
   editor says "nothing here" when the truth is usually "looking in the wrong place".
 - [M22.16] ☑ **Window-span selector moved to the left** of the time-range bar (owner).
-- [M22.17] ☐ **Collapsible event-types panel behind a vertical nav bar** (IntelliJ-style, icons or text,
-  left edge). The event-types filter is permanently docked and takes a large share of the window. Column
-  selection could move from the menu bar into the same nav bar.
-- [M22.18] ☐ **Panel surfaces must read as surfaces** — graphml, event-record and node-log panels need a
-  background that separates them from the app background, in **both** light and dark themes. The source
-  viewer already does this (`applySourceBackground`); the others do not.
-- [M22.19] ☐ **Step-through header, playground-style** — `event 8/10 · step 2/5` with prev/next controls,
-  event-kind filter chips above the record list, and autoplay (play/pause), which `replay-engine.js` has
-  and `StepCursor` does not.
+- [M22.17] ☑ **Collapsible event-types panel behind a vertical nav bar** — shipped. `NavRail` draws
+  bottom-to-top labels as an `Icon`, so hover/pressed/selected stay FlatLaf's to render. Collapsed state
+  persists (`AppConfig.eventFilterCollapsed`) — a window that forgets its layout teaches people not to
+  adjust it. **Deviation:** Columns is *added* to the rail as a popup rather than *moved* off the menu bar;
+  removing a menu that people already know costs more than the duplication saves.
+- [M22.18] ☑ **Panel surfaces must read as surfaces** — shipped. `UiTheme.surface()` / `surfaceEdge()` /
+  `applySurface()` give the source, record-detail and topology panels one content surface with a hairline
+  edge. The canvas's old light value (`0xF6F8FA`) sat within a shade of FlatLaf's panel grey and lost its
+  own boundary. `applySurface` paints the **viewport** as well as the view: the viewport is what shows
+  through around the margins and during a resize, which is what made a short document look like a strip.
+- [M22.19] ◐ **Step-through header, playground-style** — header (`event 8 / 10 · step 2 / 5`), whole-record
+  skip (`◀◀`/`▶▶`) and autoplay shipped; autoplay drives the same `stepBy(1)` path as ↓ and stops at the
+  end of the log rather than sitting on the last row. The compact wording is deliberately terse: the full
+  regime-aware form ("row 2 / 5 (logged nodes)") stays in the status line, because two differently-worded
+  claims about the same position is how the regime distinction gets lost.
+  **Event-kind chips NOT built, on purpose:** the app already has an event-type filter (the panel M22.17
+  just made collapsible). A second one in the topology tab would be a second source of truth for which
+  records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
+  are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.21] ☑ **Control clusters tint away from content** — the time-range bar is a *control*, not a
+  document, and shared the panel background with everything around it. `UiTheme.controlSurface()` shifts
+  the **theme's own** `Panel.background` (lighter in dark themes, darker in light) rather than naming a
+  colour, so it holds for Light/Dark/IntelliJ/Darcula and anything added later. Theme switching re-applies
+  it: `updateComponentTreeUI` preserves an explicitly-set colour, so a stale tint would otherwise survive.
+- [M22.20] ☑ **Code type** — Swing's logical `Monospaced` is a per-platform alias that lands on Courier on
+  some machines, so `UiTheme.mono()` picks the best installed family (JetBrains Mono → SF Mono → Menlo →
+  …) and `applyReadingRhythm()` opens line spacing to 0.18. Swing sets lines at the font's own leading,
+  which is most of why dense key/value output reads as a block next to the same content on a web page.
 
 ## M20 · Project profiles — global vs local settings — ☐ PROPOSED
 _Design: **[spec-project-profiles.md](spec-project-profiles.md)**. Give the analyser a first-class

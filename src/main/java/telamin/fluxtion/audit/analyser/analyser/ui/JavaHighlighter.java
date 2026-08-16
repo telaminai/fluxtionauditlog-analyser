@@ -62,6 +62,7 @@ public final class JavaHighlighter {
         apply(doc, text, STRING, string);
         apply(doc, text, LINE_COMMENT, comment);
         apply(doc, text, BLOCK_COMMENT, comment);
+        UiTheme.applyReadingRhythm(doc);
     }
 
     private SimpleAttributeSet classifyWord(String w, String text, int end) {
@@ -88,7 +89,7 @@ public final class JavaHighlighter {
     private static SimpleAttributeSet attr(int rgb, boolean italic) {
         SimpleAttributeSet a = new SimpleAttributeSet();
         StyleConstants.setForeground(a, new Color(rgb));
-        StyleConstants.setFontFamily(a, "Monospaced");
+        StyleConstants.setFontFamily(a, UiTheme.monoFamily());
         StyleConstants.setItalic(a, italic);
         return a;
     }

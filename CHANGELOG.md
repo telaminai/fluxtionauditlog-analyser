@@ -7,6 +7,21 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Node log: Logical and Text views.** Logical gives each node a block with its values on their own
+  lines in dispatch order; Text is the raw audit YAML. Traced-only keys (`thread`, `method`) are muted
+  rather than hidden, so you can still see at a glance that a record is traced.
+- **Source view: Processor · Node · Split.** Split shows the generated processor and the node class at
+  once — the dispatch call site above, the method it runs below. Navigating to a node from the processor
+  promotes to Split instead of replacing what you navigated from.
+- **Collapsible event-type panel** behind a vertical nav rail on the left (state persists), with the
+  column checkboxes available from the rail as well as the menu.
+- **Topology step-through**: an `event 8 / 10 · step 2 / 5` header, whole-record skip buttons, and
+  autoplay.
+- **Clearer panel surfaces**: source, record-detail and topology now share one content surface with a
+  hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
+  theme, so it holds in Light, Dark, IntelliJ and Darcula.
+- **Better code type**: picks the best monospaced family installed rather than Swing's logical
+  `Monospaced` (which lands on Courier on some platforms), with slightly opened line spacing.
 - Topology fixtures now include a **re-dispatch** (`processReentrantEvent`): a node raising an event on
   its own graph. It lands in the log as a separate record that looks externally caused, which is the
   case most likely to be misread when stepping through a cycle.

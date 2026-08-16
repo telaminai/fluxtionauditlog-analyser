@@ -56,6 +56,7 @@ public final class ConfigStore {
             readList(p, "mavenRepo", c.mavenRepos);
         }
         c.searchMavenRepos = parseBool(p.getProperty("mavenRepoSearch"), c.searchMavenRepos);
+        c.eventFilterCollapsed = parseBool(p.getProperty("eventFilterCollapsed"), c.eventFilterCollapsed);
         c.awsProfile = p.getProperty("awsProfile", c.awsProfile);
         c.awsRegion = p.getProperty("awsRegion", c.awsRegion);
         c.theme = p.getProperty("theme", c.theme);
@@ -91,6 +92,7 @@ public final class ConfigStore {
         put(p, "memoryThresholdMb", Integer.toString(c.memoryThresholdMb));
         writeList(p, "mavenRepo", c.mavenRepos);
         put(p, "mavenRepoSearch", Boolean.toString(c.searchMavenRepos));
+        put(p, "eventFilterCollapsed", Boolean.toString(c.eventFilterCollapsed));
         put(p, "awsProfile", c.awsProfile);
         put(p, "awsRegion", c.awsRegion);
         put(p, "theme", c.theme);

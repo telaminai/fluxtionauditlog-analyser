@@ -55,6 +55,9 @@ public final class MainFrame extends JFrame {
     private final TopologyPanel topologyPanel = new TopologyPanel();
     private final TimeRangeSlider timeSlider = new TimeRangeSlider();
     private final JComboBox<WindowSpan> windowCombo = new JComboBox<>(WindowSpan.ALL_OPTIONS);
+    /** Chrome whose colours are derived from the theme, so they must be recomputed when it changes. */
+    private JPanel filterBar;
+    private NavRail navRail;
     private final JScrollBar windowScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1000, 0, 1000);
     private boolean syncingWindow;      // guards the combo/scrollbar ↔ slider feedback loop
     private final HistoryComboBox searchField = new HistoryComboBox();
@@ -161,6 +164,37 @@ public final class MainFrame extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent e) { onExit(); }
         });
+    }
+
+    /**
+     * The left edge: a {@link NavRail} plus whatever it is currently showing. The event-type checklist
+     * starts docked (it is the app's main filter) but can be collapsed to the rail, and the state
+     * persists — a window that forgets its layout every launch teaches people not to adjust it.
+     */
+    private JPanel buildWestRail() {
+        NavRail rail = new NavRail();
+        this.navRail = rail;
+        JPanel west = new JPanel(new BorderLayout());
+
+        eventFilterPanel.setVisible(!config.eventFilterCollapsed);
+        rail.addToggle("Event types", !config.eventFilterCollapsed, showing -> {
+            eventFilterPanel.setVisible(showing);
+            config.eventFilterCollapsed = !showing;
+            saveConfigQuietly();
+            west.revalidate();
+            west.repaint();
+        });
+        // the same column checkboxes as the menu, one click from the table instead of up in the menu bar
+        rail.addAction("Columns", () -> {
+            JPopupMenu popup = new JPopupMenu();
+            for (java.awt.Component item : buildColumnsMenu().getMenuComponents()) popup.add(item);
+            popup.show(rail, rail.getWidth(), 0);
+        });
+        rail.addGap();
+
+        west.add(rail, BorderLayout.WEST);
+        west.add(eventFilterPanel, BorderLayout.CENTER);
+        return west;
     }
 
     /** View menu with a checkbox per record-table column (persisted; some hidden by default). */
@@ -349,6 +383,11 @@ public final class MainFrame extends JFrame {
         SwingUtilities.updateComponentTreeUI(this);
         detailPanel.refresh();     // re-colour with the theme-appropriate palette
         sourcePanel.refresh();
+        topologyPanel.refreshTheme();
+        // these hold explicit colours derived from the OLD theme: updateComponentTreeUI keeps the value
+        // it was given, so a stale tint survives a theme switch unless it is recomputed
+        UiTheme.applyControlSurface(filterBar);
+        if (navRail != null) navRail.refreshTheme();
         repaint();                 // charts read the theme on paint
         config.theme = theme;
         saveConfigQuietly();
@@ -574,7 +613,7 @@ public final class MainFrame extends JFrame {
         north.add(buildFilterBar(), BorderLayout.CENTER);
         add(north, BorderLayout.NORTH);
         eventFilterPanel.setPreferredSize(new Dimension(240, 200));
-        add(eventFilterPanel, BorderLayout.WEST);
+        add(buildWestRail(), BorderLayout.WEST);
         add(center, BorderLayout.CENTER);
 
         JPanel statusBar = new JPanel(new BorderLayout());
@@ -734,6 +773,10 @@ public final class MainFrame extends JFrame {
         bar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createEmptyBorder(2, 6, 2, 6),
                 UiTheme.section("Time range")));
+        // a control cluster, not a content surface: tinted the other way so the two read as different
+        // kinds of thing rather than as one continuous panel
+        UiTheme.applyControlSurface(bar);
+        this.filterBar = bar;
 
         // top row above the slider: Window (left) · showing N of M (centre).
         // Search moved to sit directly above the Records table (see buildLayout).

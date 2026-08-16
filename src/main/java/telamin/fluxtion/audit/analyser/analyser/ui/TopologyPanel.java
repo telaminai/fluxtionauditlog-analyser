@@ -44,6 +44,11 @@ public final class TopologyPanel extends JPanel {
     private final JButton nextStep = new JButton("▶");
     private final JButton wholeCycle = new JButton("Whole cycle");
     private final JLabel stepLabel = new JLabel(" ");
+    private final JButton prevRecord = new JButton("◀◀");
+    private final JButton nextRecord = new JButton("▶▶");
+    private final JButton playButton = new JButton("▶ Play");
+    /** Autoplay: one step per tick, on the EDT, so it drives exactly the same path as pressing ↓. */
+    private final javax.swing.Timer autoplay = new javax.swing.Timer(700, e -> autoplayTick());
 
     private StepCursor.RecordSource recordSource;
     private Path loadedFrom;
@@ -85,8 +90,18 @@ public final class TopologyPanel extends JPanel {
         prevStep.addActionListener(e -> stepBy(-1));
         nextStep.addActionListener(e -> stepBy(1));
         wholeCycle.addActionListener(e -> showWholeCycle());
+        prevRecord.setToolTipText("Previous record — skip the rest of this cycle");
+        nextRecord.setToolTipText("Next record — skip the rest of this cycle");
+        prevRecord.addActionListener(e -> moveRecord(-1));
+        nextRecord.addActionListener(e -> moveRecord(1));
+        playButton.setToolTipText("Step automatically until the end of the log");
+        playButton.addActionListener(e -> togglePlay());
+        autoplay.setInitialDelay(0);
+        bar.add(prevRecord);
         bar.add(prevStep);
+        bar.add(playButton);
         bar.add(nextStep);
+        bar.add(nextRecord);
         bar.add(wholeCycle);
         bar.add(stepLabel);
         bar.add(Box.createHorizontalGlue());
@@ -98,6 +113,7 @@ public final class TopologyPanel extends JPanel {
         south.add(status, BorderLayout.CENTER);
 
         add(bar, BorderLayout.NORTH);
+        canvas.setBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge()));
         add(canvas, BorderLayout.CENTER);
         add(south, BorderLayout.SOUTH);
 
@@ -315,6 +331,7 @@ public final class TopologyPanel extends JPanel {
      * filtered view, so stepping can continue into neighbouring records; -1 confines it to this record.
      */
     public void showRecord(LogRecord record, int filteredIndex) {
+        if (!syncing && autoplay.isRunning()) stopPlay();   // a manual selection wins over the timer
         cycle = record == null ? List.of() : record.nodeLogs();
         List<String> order = new ArrayList<>(cycle.size());
         for (NodeLog n : cycle) order.add(n.instanceId());
@@ -378,6 +395,50 @@ public final class TopologyPanel extends JPanel {
                 AuditTrace.tracesEveryInvocation(record.nodeLogs()));
     }
 
+    /**
+     * Jump a whole record, rather than walking its remaining rows. On a market-data log most cycles are
+     * the same three nodes, so stepping row by row to reach the next interesting event is not navigation
+     * — it is scrolling.
+     */
+    private void moveRecord(int delta) {
+        if (cursor.isEmpty()) return;
+        int target = cursor.recordIndex() + delta;
+        if (target < 0 || (recordSource != null && target >= recordSource.size())) return;
+        syncing = true;
+        try {
+            cursor.moveToRecord(target);
+            showCycleOf(cursor.record());
+            recordChanged.accept(cursor.recordIndex());
+        } finally {
+            syncing = false;
+        }
+        syncCursor();
+    }
+
+    private void togglePlay() {
+        if (autoplay.isRunning()) {
+            stopPlay();
+        } else if (!cursor.isEmpty() && cursor.canNext()) {
+            autoplay.start();
+            playButton.setText("❚❚ Pause");
+        }
+    }
+
+    private void stopPlay() {
+        autoplay.stop();
+        playButton.setText("▶ Play");
+        updateStepControls();
+    }
+
+    /** One autoplay tick. Stops at the end of the log rather than silently sitting on the last row. */
+    private void autoplayTick() {
+        if (cursor.isEmpty() || !cursor.canNext()) {
+            stopPlay();
+            return;
+        }
+        stepBy(1);
+    }
+
     private void showWholeCycle() {
         cursor.moveToRecord(cursor.recordIndex());   // back to the entry: the whole cycle, nothing current
         canvas.select(null);
@@ -420,7 +481,37 @@ public final class TopologyPanel extends JPanel {
         prevStep.setEnabled(stepping && cursor.canPrev());
         nextStep.setEnabled(stepping && cursor.canNext());
         wholeCycle.setEnabled(stepping && !cursor.atEntry());
-        stepLabel.setText(stepping ? "  " + cursor.positionLabel() : "  no record selected");
+        int records = recordSource == null ? 0 : recordSource.size();
+        prevRecord.setEnabled(stepping && cursor.recordIndex() > 0);
+        nextRecord.setEnabled(stepping && cursor.recordIndex() + 1 < records);
+        playButton.setEnabled(stepping && (autoplay.isRunning() || cursor.canNext()));
+        stepLabel.setText(stepping ? "  " + headerText(records) : "  no record selected");
+    }
+
+    /**
+     * The compact position: {@code event 8 / 10 · step 2 / 5}. Deliberately terse — the full, regime-aware
+     * wording ("row 2 / 5 (logged nodes)") stays in the status line, where there is room to say what a row
+     * means. Shortening it here and leaving it long there would be two claims about the same thing.
+     */
+    private String headerText(int records) {
+        StringBuilder sb = new StringBuilder();
+        if (records > 1) {
+            sb.append("event ").append(cursor.recordIndex() + 1).append(" / ").append(records).append("  ·  ");
+        }
+        int rows = cursor.rowCount();
+        if (cursor.atEntry()) {
+            sb.append("entry");
+            if (rows > 0) sb.append("  ·  ").append(rows).append(rows == 1 ? " row" : " rows");
+        } else {
+            sb.append("step ").append(cursor.rowIndex() + 1).append(" / ").append(rows);
+        }
+        return sb.toString();
+    }
+
+    /** Re-apply theme-derived chrome. The canvas paints its own surface, but its edge is set once. */
+    public void refreshTheme() {
+        canvas.setBorder(BorderFactory.createLineBorder(UiTheme.surfaceEdge()));
+        repaint();
     }
 
     private void describeSelection(String id) {

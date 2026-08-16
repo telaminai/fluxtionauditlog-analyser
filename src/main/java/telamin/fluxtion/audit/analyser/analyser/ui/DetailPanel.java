@@ -42,6 +42,8 @@ public final class DetailPanel extends JPanel {
     private final Map<String, String> methodByInstance = new LinkedHashMap<>();  // instanceId -> driving method
     private final javax.swing.JLabel selectionInfo = new javax.swing.JLabel(" ");
     private String shownText = "";
+    private boolean logical = true;                     // Logical is the default reading view; Text is the evidence
+    private LogicalLogView.Layout layout = LogicalLogView.layout(List.of());
     private final List<LogRecord> shownRecords = new java.util.ArrayList<>();   // records currently displayed
     private final List<Integer> recordStarts = new java.util.ArrayList<>();     // their start offsets in shownText
     private BiConsumer<String, String> nodeSourceOpener = (id, method) -> { };
@@ -62,10 +64,11 @@ public final class DetailPanel extends JPanel {
     public DetailPanel() {
         super(new BorderLayout());
         text.setEditable(false);
-        text.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        text.setFont(UiTheme.mono(12));
         text.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
 
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        bar.add(buildViewToggle());
         JCheckBox wrap = new JCheckBox("Wrap", false);
         wrap.addActionListener(e -> setWrap(wrap.isSelected()));
         JButton explain = new JButton("Explain with LLM");
@@ -80,6 +83,7 @@ public final class DetailPanel extends JPanel {
         bar.add(selectionInfo);
         add(bar, BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
+        UiTheme.applySurface(scroll, text);
         setWrap(false);
         highlighter.render(text.getStyledDocument(), HINT);
         // let the split freely resize this panel (don't let the text pane's content dictate a large min)
@@ -95,6 +99,44 @@ public final class DetailPanel extends JPanel {
             }
         };
         text.addMouseListener(ma);
+    }
+
+    /**
+     * Logical / Text. Two views of one record: Logical lays the cycle out as a propagation, Text is the
+     * raw YAML. The raw form stays one click away because it is the <b>evidence</b> — anything the logical
+     * view re-arranges or tones down can be checked against what the processor actually wrote.
+     */
+    private JPanel buildViewToggle() {
+        JPanel group = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        javax.swing.ButtonGroup buttons = new javax.swing.ButtonGroup();
+        javax.swing.JToggleButton logicalButton = new javax.swing.JToggleButton("Logical", true);
+        javax.swing.JToggleButton textButton = new javax.swing.JToggleButton("Text", false);
+        logicalButton.setToolTipText("The cycle as a propagation: one node per block, values beneath it");
+        textButton.setToolTipText("The raw audit YAML, exactly as the processor wrote it");
+        for (javax.swing.JToggleButton b : List.of(logicalButton, textButton)) {
+            b.setFocusable(false);
+            buttons.add(b);
+            group.add(b);
+        }
+        logicalButton.addActionListener(e -> setLogical(true));
+        textButton.addActionListener(e -> setLogical(false));
+        return group;
+    }
+
+    private void setLogical(boolean useLogical) {
+        if (logical == useLogical) return;
+        logical = useLogical;
+        renderCurrentView();
+    }
+
+    /** Paint whichever view is selected from the records already shown. */
+    private void renderCurrentView() {
+        if (logical) {
+            LogicalLogView.render(text.getStyledDocument(), layout);
+        } else {
+            highlighter.render(text.getStyledDocument(), shownText);
+        }
+        text.setCaretPosition(0);
     }
 
     /** Supplies the action used to open a node's source: {@code (instanceId, method)}. */
@@ -132,7 +174,8 @@ public final class DetailPanel extends JPanel {
         recordStarts.clear();
         if (records == null || records.isEmpty()) {
             shownText = "";
-            highlighter.render(text.getStyledDocument(), "");
+            layout = LogicalLogView.layout(List.of());
+            renderCurrentView();
             return;
         }
         StringBuilder sb = new StringBuilder();
@@ -150,8 +193,8 @@ public final class DetailPanel extends JPanel {
             }
         }
         shownText = sb.toString();
-        highlighter.render(text.getStyledDocument(), shownText);
-        text.setCaretPosition(0);
+        layout = LogicalLogView.layout(records);
+        renderCurrentView();
     }
 
     /**
@@ -162,6 +205,14 @@ public final class DetailPanel extends JPanel {
     public void highlightNodeLog(String instanceId, int occurrence) {
         if (instanceId == null) {
             text.setCaretPosition(text.getCaretPosition());
+            return;
+        }
+        if (logical) {
+            LogicalLogView.Block block = layout.block(instanceId, occurrence);
+            if (block != null) {
+                text.select(block.headerStart(), block.headerEnd());
+                text.getCaret().setSelectionVisible(true);
+            }
             return;
         }
         String body = text.getText();
@@ -185,13 +236,15 @@ public final class DetailPanel extends JPanel {
         shownRecords.clear();
         recordStarts.clear();
         shownText = "";
+        layout = LogicalLogView.layout(List.of());
         setSelectionInfo(0);
         highlighter.render(text.getStyledDocument(), HINT);
     }
 
     /** Re-colour the current content (e.g. after a theme change). */
     public void refresh() {
-        highlighter.render(text.getStyledDocument(), shownText);
+        UiTheme.applySurface(scroll, text);
+        renderCurrentView();
     }
 
     private void copyToClipboard() {
@@ -203,6 +256,13 @@ public final class DetailPanel extends JPanel {
     private void navigateAtClick(MouseEvent e) {
         if (shownText.isEmpty()) return;
         int offset = text.viewToModel2D(e.getPoint());
+        if (logical) {
+            // the logical view is not YAML, so the line parser does not apply — the layout's block map is
+            // the authority on which node a click landed in
+            LogicalLogView.Block block = layout.blockAt(offset);
+            if (block != null) nodeSourceOpener.accept(block.instanceId(), block.method());
+            return;
+        }
         String line = SourceNavigation.lineAt(shownText, offset);
         NodeRef ref = SourceNavigation.parseNodeLogLine(line);
         if (ref != null) {
@@ -234,7 +294,7 @@ public final class DetailPanel extends JPanel {
         scroll.setHorizontalScrollBarPolicy(wrap
                 ? JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
                 : JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        highlighter.render(text.getStyledDocument(), shownText);   // rebuild views under the new mode
+        renderCurrentView();                                       // rebuild views under the new mode
         text.revalidate();
         scroll.revalidate();
         scroll.repaint();
