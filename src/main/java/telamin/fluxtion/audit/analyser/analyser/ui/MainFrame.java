@@ -74,6 +74,8 @@ public final class MainFrame extends JFrame {
     private final java.util.Set<Integer> flaggedRows = new java.util.HashSet<>();
     private final java.util.Map<Integer, String> flagNotes = new java.util.HashMap<>();   // assistant flag notes
     private boolean flaggedOnly = false;
+    /** Guards the table ⇄ topology cursor loop: a selection we caused must not re-drive the cursor. */
+    private boolean steppingSelection;
 
     // follow / tail mode (H8.7): poll a growing local file and append new records live
     private static final int FOLLOW_POLL_MS = 1000;
@@ -125,6 +127,31 @@ public final class MainFrame extends JFrame {
         topologyPanel.setGraphTargets(graphTargets);
         topologyPanel.setInstanceSourceOpener(this::openNodeSource);
         topologyPanel.setFilterAction(this::filterToInstance);
+        // stepping walks the FILTERED sequence, so it honours the shared filter like every other view
+        topologyPanel.setRecordSource(new telamin.fluxtion.audit.analyser.analyser.topology.StepCursor.RecordSource() {
+            @Override public int size() {
+                return store == null ? 0 : tablePanel.visibleRowCount();
+            }
+
+            @Override public LogRecord record(int index) {
+                int modelRow = tablePanel.modelRowAt(index);
+                return store == null || modelRow < 0 ? null : store.record(modelRow);
+            }
+        });
+        // cursor rolled into another record → move the table selection to match
+        topologyPanel.onRecordChanged(filteredIndex -> {
+            int modelRow = tablePanel.modelRowAt(filteredIndex);
+            if (modelRow >= 0) {
+                steppingSelection = true;
+                try {
+                    tablePanel.selectModelRow(modelRow);
+                } finally {
+                    steppingSelection = false;
+                }
+            }
+        });
+        // cursor moved within a record → highlight that row in the detail viewer
+        topologyPanel.onRowChanged(detailPanel::highlightNodeLog);
         tablePanel.setFlagTester(flaggedRows::contains);
         tablePanel.setFlagToggle(this::toggleFlags);
         tablePanel.setNoteProvider(flagNotes::get);
@@ -386,7 +413,11 @@ public final class MainFrame extends JFrame {
         if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
     }
 
-    /** Accepts a dropped log file anywhere on the window and opens it (improvements.md). */
+    /**
+     * Accepts files dropped anywhere on the window: a {@code .graphml} loads into the Topology tab,
+     * anything else opens as a log. Dropping a log + graphml pair together routes each — the
+     * "here's the cycle and here's the graph it ran on" gesture.
+     */
     private void installFileDrop() {
         setTransferHandler(new TransferHandler() {
             @Override public boolean canImport(TransferSupport s) {
@@ -399,16 +430,30 @@ public final class MainFrame extends JFrame {
                     Transferable t = s.getTransferable();
                     @SuppressWarnings("unchecked")
                     List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
-                    if (!files.isEmpty()) {
-                        openFile(files.get(0).toPath());
-                        return true;
+                    boolean any = false;
+                    boolean droppedTopology = false;
+                    for (File f : files) {
+                        if (isGraphml(f.getName())) {
+                            topologyPanel.load(f.toPath());
+                            droppedTopology = true;
+                        } else if (!any) {
+                            openFile(f.toPath());   // first non-graphml is the log; extras are ignored
+                            any = true;
+                        }
                     }
+                    if (droppedTopology && sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+                    return any || droppedTopology;
                 } catch (Exception ignore) {
                     // ignore malformed drops
                 }
                 return false;
             }
         });
+    }
+
+    /** Routing rule for dropped files — {@code .graphml} goes to the Topology tab. */
+    static boolean isGraphml(String fileName) {
+        return fileName != null && fileName.toLowerCase(java.util.Locale.ROOT).endsWith(".graphml");
     }
 
     private void buildMenu() {
@@ -770,7 +815,10 @@ public final class MainFrame extends JFrame {
         detailPanel.showRecords(java.util.List.of(focus));
         detailPanel.setSelectionInfo(records.size());
         sourcePanel.showDispatchFor(focus);
-        topologyPanel.showRecord(focus);   // the table's selection IS the step cursor (M21.4)
+        // the table's selection IS the step cursor (M21.4/M21.10); skip when the move came FROM stepping
+        if (!steppingSelection) {
+            topologyPanel.showRecord(focus, tablePanel.viewRowOf(modelRows[limit - 1]));
+        }
     }
 
     private void chooseFile() {

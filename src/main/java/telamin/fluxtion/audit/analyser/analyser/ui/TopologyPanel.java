@@ -3,9 +3,12 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace;
+import telamin.fluxtion.audit.analyser.analyser.topology.EntryPointResolver;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
 import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
 import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
+import telamin.fluxtion.audit.analyser.analyser.topology.StepCursor;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -42,11 +45,20 @@ public final class TopologyPanel extends JPanel {
     private final JButton wholeCycle = new JButton("Whole cycle");
     private final JLabel stepLabel = new JLabel(" ");
 
+    private StepCursor.RecordSource recordSource;
     private Path loadedFrom;
     private Consumer<String> nodeActivated = id -> { };
 
     /** The nodeLogs of the record the table has selected — the cycle being stepped through. */
     private List<NodeLog> cycle = List.of();
+    /** Walks the filtered record sequence and the rows within each record. */
+    private StepCursor cursor = StepCursor.over(List.of());
+    /** Told when the cursor rolls into a different record, so the table can follow. */
+    private java.util.function.IntConsumer recordChanged = index -> { };
+    /** Told the current row so the detail viewer can highlight it: (instanceId, occurrence). */
+    private java.util.function.BiConsumer<String, Integer> rowChanged = (id, n) -> { };
+    /** Guards the table ⇄ cursor loop. */
+    private boolean syncing;
 
     // Collaborators, all of them things the app already does; the topology only routes to them (M21.5).
     private java.util.function.BiConsumer<String, String> sourceOpener;
@@ -68,8 +80,8 @@ public final class TopologyPanel extends JPanel {
         orientationButton.addActionListener(e -> toggleOrientation());
         bar.add(orientationButton);
         bar.addSeparator();
-        prevStep.setToolTipText("Previous node in dispatch order");
-        nextStep.setToolTipText("Next node in dispatch order");
+        prevStep.setToolTipText("Previous step  [   (rows, then the previous record)");
+        nextStep.setToolTipText("Next step  ]   (rows, then the next record)");
         prevStep.addActionListener(e -> stepBy(-1));
         nextStep.addActionListener(e -> stepBy(1));
         wholeCycle.addActionListener(e -> showWholeCycle());
@@ -92,6 +104,24 @@ public final class TopologyPanel extends JPanel {
         canvas.onNodeActivated(id -> nodeActivated.accept(id));
         canvas.onNodeSelected(this::describeSelection);
         canvas.onNodeContextMenu(this::showNodeMenu);
+        installStepKeys();
+    }
+
+    /**
+     * [ and ] step. F3/Shift+F3 stay anomaly-jump — overloading them would make one key mean two kinds
+     * of "next" depending on focus, which is worse than a second pair.
+     */
+    private void installStepKeys() {
+        javax.swing.InputMap keys = getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        javax.swing.ActionMap actions = getActionMap();
+        keys.put(javax.swing.KeyStroke.getKeyStroke(']'), "step-next");
+        keys.put(javax.swing.KeyStroke.getKeyStroke('['), "step-prev");
+        actions.put("step-next", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { stepBy(1); }
+        });
+        actions.put("step-prev", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { stepBy(-1); }
+        });
     }
 
     private JButton button(String text, Runnable action) {
@@ -166,6 +196,31 @@ public final class TopologyPanel extends JPanel {
     /** The same {@link DetailPanel.GraphTargets} the detail viewer plots through — not a second path. */
     public void setGraphTargets(DetailPanel.GraphTargets targets) {
         this.graphTargets = targets;
+    }
+
+    /**
+     * Walk the <b>filtered</b> record sequence, so stepping honours the shared filter like every other
+     * view. Passing null falls back to stepping within the selected record only.
+     */
+    public void setRecordSource(StepCursor.RecordSource source) {
+        this.recordSource = source;
+    }
+
+    /** Called with the filtered-view index when stepping moves into a different record. */
+    public void onRecordChanged(java.util.function.IntConsumer listener) {
+        this.recordChanged = listener == null ? index -> { } : listener;
+    }
+
+    /** Called with (instanceId, occurrence) for the row under the cursor; (null, 0) at an entry. */
+    public void onRowChanged(java.util.function.BiConsumer<String, Integer> listener) {
+        this.rowChanged = listener == null ? (id, n) -> { } : listener;
+    }
+
+    /** Move the cursor to a record in the filtered view without re-entering the table's listener. */
+    public void cursorToRecord(int filteredIndex) {
+        if (syncing) return;
+        cursor.moveToRecord(filteredIndex);
+        syncCursor();
     }
 
     /** Narrow the shared filter to a node — routed through the app's existing text filter. */
@@ -245,10 +300,30 @@ public final class TopologyPanel extends JPanel {
      * the failure this design avoids (spec-graph-replay §6).
      */
     public void showRecord(LogRecord record) {
+        showRecord(record, -1);
+    }
+
+    /**
+     * Show the cycle for the selected record. {@code filteredIndex} is its position in the table's
+     * filtered view, so stepping can continue into neighbouring records; -1 confines it to this record.
+     */
+    public void showRecord(LogRecord record, int filteredIndex) {
         cycle = record == null ? List.of() : record.nodeLogs();
         List<String> order = new ArrayList<>(cycle.size());
         for (NodeLog n : cycle) order.add(n.instanceId());
-        canvas.setDispatch(order);
+        List<String> entries = record == null ? List.of()
+                : List.copyOf(EntryPointResolver.resolve(
+                        canvas.topology(), record.event(), record.eventToString()));
+        canvas.setDispatch(order, entries,
+                record != null && AuditTrace.tracesEveryInvocation(record.nodeLogs()));
+        if (record == null) {
+            cursor = StepCursor.over(List.of());
+        } else if (recordSource != null && recordSource.size() > 0) {
+            cursor = new StepCursor(recordSource);
+            cursor.moveToRecord(Math.max(0, filteredIndex));
+        } else {
+            cursor = StepCursor.over(List.of(record));
+        }
         updateStepControls();
         if (record == null) {
             status.setText(hasTopology() && loadedFrom != null
@@ -256,7 +331,8 @@ public final class TopologyPanel extends JPanel {
             return;
         }
         long unknown = order.stream().filter(id -> !canvas.topology().contains(id)).distinct().count();
-        status.setText(describeEvent(record) + " — " + order.size() + " node(s) fired"
+        status.setText(describeEvent(record) + " — " + order.size()
+                       + (AuditTrace.tracesEveryInvocation(record.nodeLogs()) ? " node(s) ran" : " node(s) logged")
                        + (unknown > 0 && hasTopology()
                                ? "  ·  " + unknown + " not in this topology (different build?)" : ""));
     }
@@ -267,48 +343,77 @@ public final class TopologyPanel extends JPanel {
     }
 
     private void stepBy(int delta) {
-        if (cycle.isEmpty()) return;
-        int current = canvas.step();
-        int next = current < 0 ? (delta > 0 ? 0 : cycle.size() - 1) : current + delta;
-        next = Math.max(0, Math.min(cycle.size() - 1, next));
-        canvas.setStep(next);
-        canvas.select(cycle.get(next).instanceId());
-        describeStep(next);
-        updateStepControls();
+        if (cursor.isEmpty()) return;
+        int before = cursor.recordIndex();
+        boolean moved = delta > 0 ? cursor.next() : cursor.prev();
+        if (!moved) return;
+        if (cursor.recordIndex() != before) {
+            // rolled into another cycle: re-shade for the new record, then let the table follow
+            syncing = true;
+            try {
+                showCycleOf(cursor.record());
+                recordChanged.accept(cursor.recordIndex());
+            } finally {
+                syncing = false;
+            }
+        }
+        syncCursor();
+    }
+
+    /** Re-shade the canvas for a record reached by stepping (not by table selection). */
+    private void showCycleOf(telamin.fluxtion.audit.analyser.analyser.model.LogRecord record) {
+        if (record == null) return;
+        cycle = record.nodeLogs();
+        List<String> order = new ArrayList<>(cycle.size());
+        for (NodeLog n : cycle) order.add(n.instanceId());
+        canvas.setDispatch(order,
+                List.copyOf(EntryPointResolver.resolve(canvas.topology(), record.event(), record.eventToString())),
+                AuditTrace.tracesEveryInvocation(record.nodeLogs()));
     }
 
     private void showWholeCycle() {
-        canvas.setStep(-1);
+        cursor.moveToRecord(cursor.recordIndex());   // back to the entry: the whole cycle, nothing current
         canvas.select(null);
+        syncCursor();
+    }
+
+    /** Push the cursor position into the canvas and the status line. */
+    private void syncCursor() {
+        canvas.setCursor(cursor.currentInstanceId(), cursor.steppedSoFar(), cursor.atEntry());
+        String id = cursor.currentInstanceId();
+        rowChanged.accept(id, occurrenceOfCurrentRow());
+        if (id != null) canvas.select(id);
+        status.setText(cursor.atEntry()
+                ? cursor.positionLabel() + describeEntry()
+                : cursor.positionLabel() + "  ·  " + cursor.rowSummary()
+                  + (canvas.topology().contains(id) ? "" : "   [not in this topology]"));
         updateStepControls();
     }
 
-    /** What this node held at this point in the cycle — the "what did it hold" half of stepping. */
-    private void describeStep(int index) {
-        NodeLog node = cycle.get(index);
-        StringBuilder sb = new StringBuilder(node.instanceId());
-        if (!node.entries().isEmpty()) {
-            sb.append("  ·  ");
-            for (int i = 0; i < node.entries().size(); i++) {
-                if (i > 0) sb.append(", ");
-                KV kv = node.entries().get(i);
-                sb.append(kv.key()).append('=').append(kv.rawValue());
-            }
+    /** How many times the cursor's node has already appeared in this cycle — a node can log twice. */
+    private int occurrenceOfCurrentRow() {
+        String id = cursor.currentInstanceId();
+        if (id == null) return 0;
+        int seen = -1;
+        List<String> stepped = cursor.steppedSoFar();
+        for (String s : stepped) {
+            if (s.equals(id)) seen++;
         }
-        if (!canvas.topology().contains(node.instanceId())) {
-            sb.append("   [not in this topology]");
-        }
-        status.setText(sb.toString());
+        return Math.max(0, seen);
+    }
+
+    private String describeEntry() {
+        List<String> entries = cursor.entryPoints(canvas.topology());
+        return entries.isEmpty() ? "  ·  entry point not resolved from this record"
+                : "  ·  entered at " + String.join(", ", entries);
     }
 
     private void updateStepControls() {
         boolean stepping = !cycle.isEmpty();
-        prevStep.setEnabled(stepping);
-        nextStep.setEnabled(stepping);
-        wholeCycle.setEnabled(stepping && canvas.step() >= 0);
-        stepLabel.setText(!stepping ? "  no record selected"
-                : canvas.step() < 0 ? "  " + cycle.size() + " nodes fired"
-                : "  " + (canvas.step() + 1) + " / " + cycle.size());
+        prevStep.setEnabled(stepping && cursor.canPrev());
+        nextStep.setEnabled(stepping && cursor.canNext());
+        wholeCycle.setEnabled(stepping && !cursor.atEntry());
+        stepLabel.setText(stepping ? "  " + cursor.positionLabel() : "  no record selected");
     }
 
     private void describeSelection(String id) {
@@ -319,10 +424,12 @@ public final class TopologyPanel extends JPanel {
         ProcessorTopology topology = canvas.topology();
         ProcessorTopology.Node node = topology.node(id);
         if (node == null) return;
+        var ran = canvas.executionOf(id);
         status.setText(id
                        + (node.className() == null ? "" : "  ·  " + node.className())
                        + "  ·  fed by " + topology.parentsOf(id).size()
-                       + ", feeds " + topology.childrenOf(id).size());
+                       + ", feeds " + topology.childrenOf(id).size()
+                       + (ran == null ? "" : "  ·  " + TopologyCanvas.describe(ran)));
     }
 
     private void toggleOrientation() {

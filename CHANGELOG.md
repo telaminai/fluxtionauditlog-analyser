@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- Topology: **drag-and-drop a `.graphml`** anywhere on the window to load it into the Topology tab —
+  and drop a log + graphml pair together to open both in one gesture.
 - **MCP bridge** — `java -jar analyser.jar --mcp` runs the analyser as an MCP server over stdio, so an
   MCP-native client (Claude Code, Claude Desktop, Codex) drives the running app with **no prompting
   and no copied token**: it discovers one tool per assistant verb (`analyser_aggregate`,
@@ -39,7 +41,30 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - JBang launches no longer print JVM native-access warnings — the catalog alias now passes
   `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
 
+### Added
+- **Step through the log on the graph.** One cursor now walks record → `nodeLogs` row → next record with
+  `]` and `[`: arriving at a record marks where the cycle came in, each step lights the next node with
+  the path so far trailing behind it, and stepping past the last row rolls into the next record. It
+  follows the filtered view, moves the table selection with it, and highlights the matching line in the
+  detail viewer — so the graph and the text narrate each other. The readout says whether you are walking
+  *logged rows* or *every invocation*, and a node that logs twice gets two steps.
+- **The assistant now knows what silence means.** Its prompt carries Fluxtion's execution semantics: a
+  node missing from `nodeLogs` has not necessarily failed to run, the two audit regimes and how to tell
+  them apart, and that it can settle the question from the EventProcessor source it is already given
+  (grep for `auditInvocation`) rather than guessing. Also covers dirty/`@OnTrigger(dirty=false)`
+  propagation, so "absent" can be read as "on the branch not taken".
+- **Topology recognises a fully-traced log.** If the processor was built with an audit level, Fluxtion
+  records every node it invokes, so the log is a complete list of what ran. The tab detects that and
+  stops hedging — absence becomes *did not run*, and the legend says so.
+
 ### Fixed
+- **Topology: a node with no audit entry is no longer shown as if it didn't run.** Nodes log only if they
+  write audit output, at the level in force, so silence is not absence of execution. The tab now
+  distinguishes *logged* (observed), *ran but logged nothing* (it was the only route into something that
+  ran), *may have run* (connected, but the log can't say), and *not on this path* — with a legend on the
+  canvas and the claim in words on hover.
+- Topology: exported services are drawn as what they are — **inbound callback entry points**, alongside
+  events — rather than as outputs.
 - **The app could become impossible to close.** If any step of the quit sequence failed, the exception
   escaped the window-closing handler before the exit call, so the window stayed on screen and every
   further click on the close box failed the same way — with the assistant's REST transport already shut

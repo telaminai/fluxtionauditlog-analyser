@@ -45,3 +45,6 @@ build/
 # JetBrains Junie local agent state
 .junie/
 !.junie/guidelines.md
+
+# fixture generator build output (the generated processor is a build artefact, not source)
+examples/*/target/

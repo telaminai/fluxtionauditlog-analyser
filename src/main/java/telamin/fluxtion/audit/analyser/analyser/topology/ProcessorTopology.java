@@ -1,7 +1,9 @@
 package telamin.fluxtion.audit.analyser.analyser.topology;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -13,7 +15,8 @@ import java.util.TreeSet;
 /**
  * The processor's node graph, parsed from the GraphML Fluxtion emits at build time (M21.1,
  * spec-graph-replay §2). The static half of the picture the audit log animates: the log says which nodes
- * fired in a cycle, this says how they are wired.
+ * <b>logged</b> in a cycle, this says how they are wired — and therefore what the log implies about the
+ * ones that stayed quiet.
  *
  * <p>The join key is the <b>node id</b>, which is the same {@code instanceId} that appears in a record's
  * {@code nodeLogs}. That correspondence is what makes step-through (M21.4) a lookup rather than an
@@ -33,7 +36,11 @@ public final class ProcessorTopology {
         EVENT,
         /** A node that handles an inbound event. */
         EVENT_HANDLER,
-        /** A service the processor exports. */
+        /**
+         * A service interface the processor exports. <b>An entry point, not an output</b>: an external
+         * caller invokes the interface and dispatch flows from here into the graph, the same way an event
+         * does. Fluxtion emits these with no inbound edges, like event nodes.
+         */
         EXPORT_SERVICE,
         /** Present in the graph but unstyled or a style we don't know. */
         UNKNOWN;
@@ -102,6 +109,47 @@ public final class ProcessorTopology {
             List<String> shown = ids.stream().limit(3).toList();
             return String.join(", ", shown) + (ids.size() > shown.size() ? ", …" : "");
         }
+    }
+
+    /**
+     * What the log lets you say about a node in one cycle.
+     *
+     * <p>The distinction this exists to protect: <b>an absent audit entry does not mean the node did not
+     * run.</b> A node only appears in {@code nodeLogs} if it actually writes audit output, and whether it
+     * does depends on the node and on the audit level in force. Colouring "no entry" as "did not execute"
+     * would invent a fact the log never stated — and would do it in the one place a user is trying to
+     * work out what ran.
+     */
+    public enum Execution {
+        /** Wrote audit output this cycle. The only state the log gives directly. */
+        LOGGED,
+        /**
+         * Silent, but it is the only way into something that ran — so dispatch had no other route in.
+         * Executed; simply produced no audit output.
+         *
+         * <p>Note this holds whichever way the branch went: {@code @OnTrigger(dirty=false)} fires on the
+         * <em>inverse</em> of its parent's boolean, so a child running tells you the parent ran, not
+         * which way it answered.
+         *
+         * <p><b>Residual assumption:</b> that a node fires only via its inputs. An {@code @AfterEvent}
+         * node fires after every event regardless of upstream, and the GraphML records no annotations,
+         * so the analyser cannot tell one apart. Claimed only when the entry point is known
+         * (see {@link #classifyCycle(Collection, Collection)}), which keeps it off lifecycle records.
+         */
+        RAN_SILENTLY,
+        /**
+         * Silent, and downstream of something that logged. Dispatch may have reached it, or may have
+         * stopped short — the log does not say. <b>Unknown, not "no".</b>
+         */
+        MAY_HAVE_RUN,
+        /** Not connected to anything that logged: no reason to think this event's dispatch came near it. */
+        OFF_PATH,
+        /**
+         * <b>Did not run.</b> Only ever claimed when the record traces every invocation
+         * ({@link AuditTrace}), which makes the log a complete list of what ran — so absence from it is
+         * evidence, not silence. Without tracing this state is never used.
+         */
+        DID_NOT_RUN
     }
 
     private final Map<String, Node> nodes;              // id → node, insertion-ordered
@@ -179,6 +227,131 @@ public final class ProcessorTopology {
             if (parentsOf(n.id()).isEmpty()) roots.add(n);
         }
         return roots;
+    }
+
+    /**
+     * Classify every node by what this cycle's audit entries let you claim about it.
+     *
+     * <p>Only {@link Execution#LOGGED} is observed. The rest are inferences from the wiring, kept
+     * deliberately separate so the UI can show them as different claims:
+     * <ul>
+     *   <li>{@link Execution#RAN_SILENTLY} — <b>forced</b>: the node is the <em>only</em> parent of
+     *       something that ran, so dispatch had no other way in;</li>
+     *   <li>{@link Execution#MAY_HAVE_RUN} — connected to something that logged, upstream or down, but
+     *       not forced. A genuine unknown;</li>
+     *   <li>{@link Execution#OFF_PATH} — not connected to anything that logged.</li>
+     * </ul>
+     *
+     * <p><b>Why "only parent" and not "any ancestor".</b> A node with several parents needs just one of
+     * them to have triggered it, so its other ancestors may never have run. Marking every ancestor as
+     * certain would manufacture evidence — the same over-claiming this classification exists to prevent,
+     * pointed the other way.
+     */
+    public Map<String, Execution> classifyCycle(Collection<String> loggedIds) {
+        return classifyCycle(loggedIds, null);
+    }
+
+    /**
+     * As {@link #classifyCycle(Collection)}, but told where the cycle <b>entered</b> the graph
+     * (see {@link EntryPointResolver}).
+     *
+     * <p>This matters for the case the log is worst at. A branch that executed but logged nothing at all
+     * is invisible to reasoning that starts from logged nodes — it comes out {@link Execution#OFF_PATH},
+     * which reads as "the event never went near it". Given the entry point, everything reachable from it
+     * is on the path dispatch <em>could</em> have taken, so those nodes are reported as
+     * {@link Execution#MAY_HAVE_RUN}: unknown, which is the truth, rather than excluded.
+     */
+    public Map<String, Execution> classifyCycle(Collection<String> loggedIds, Collection<String> entryIds) {
+        return classifyCycle(loggedIds, entryIds, false);
+    }
+
+    /**
+     * As {@link #classifyCycle(Collection, Collection)}, but told whether the record <b>traces every
+     * invocation</b> (see {@link AuditTrace}).
+     *
+     * <p>When it does, the log is a complete list of what ran and all the inference above becomes
+     * unnecessary: anything absent {@link Execution#DID_NOT_RUN did not run}. That is a much stronger
+     * statement than this class can otherwise make, and it is worth making — the reason the weaker states
+     * exist is that most production logs are not traced, not that the distinction is unknowable.
+     */
+    public Map<String, Execution> classifyCycle(Collection<String> loggedIds, Collection<String> entryIds,
+                                                boolean tracesEveryInvocation) {
+        Map<String, Execution> out = new LinkedHashMap<>();
+        Set<String> logged = new LinkedHashSet<>();
+        if (loggedIds != null) {
+            for (String id : loggedIds) {
+                if (id != null && nodes.containsKey(id)) logged.add(id);
+            }
+        }
+        Set<String> entries = new LinkedHashSet<>();
+        if (entryIds != null) {
+            for (String id : entryIds) {
+                if (id != null && nodes.containsKey(id)) entries.add(id);
+            }
+        }
+
+        // The predicted path: everything dispatch could have reached from where the cycle came in.
+        // When it is known and consistent with the evidence it is AUTHORITATIVE — a node the event
+        // could not reach did not run, however it happens to be wired to something that logged.
+        Set<String> predicted = new LinkedHashSet<>(entries);
+        predicted.addAll(reach(entries, true));
+        boolean trustPredicted = !entries.isEmpty() && predicted.containsAll(logged);
+
+        // Anything that is the sole parent of a node known to have run, also ran.
+        //
+        // Only claimed when the entry point is known and consistent. Without one this record may not be
+        // event dispatch at all — a @Initialise/@Start lifecycle callback logs too, and nothing upstream
+        // ran to cause it — so "its parent must have run" would be an invented fact.
+        Set<String> ran = new LinkedHashSet<>(logged);
+        if (trustPredicted) {
+            Deque<String> queue = new ArrayDeque<>(logged);
+            while (!queue.isEmpty()) {
+                Set<String> feeders = parentsOf(queue.poll());
+                if (feeders.size() != 1) continue;         // more than one way in → nothing is forced
+                String only = feeders.iterator().next();
+                if (ran.add(only)) queue.add(only);
+            }
+        }
+
+        Set<String> connected;
+        if (trustPredicted) {
+            connected = predicted;
+        } else {
+            // no entry point, or one that contradicts the log (a resolution miss, or a build mismatch) —
+            // fall back to reasoning outward from what actually logged
+            connected = reach(logged, false);
+            connected.addAll(reach(logged, true));
+            connected.addAll(predicted);
+        }
+
+        for (String id : nodes.keySet()) {
+            Execution state;
+            if (logged.contains(id)) {
+                state = Execution.LOGGED;
+            } else if (tracesEveryInvocation) {
+                state = Execution.DID_NOT_RUN;   // the log records every invocation, so absence is proof
+            } else {
+                state = ran.contains(id) ? Execution.RAN_SILENTLY
+                        : connected.contains(id) ? Execution.MAY_HAVE_RUN
+                        : Execution.OFF_PATH;
+            }
+            out.put(id, state);
+        }
+        return out;
+    }
+
+    /** Everything reachable from {@code seeds} following edges forward ({@code down}) or backward. */
+    private Set<String> reach(Set<String> seeds, boolean down) {
+        Set<String> seen = new LinkedHashSet<>();
+        Deque<String> queue = new ArrayDeque<>(seeds);
+        while (!queue.isEmpty()) {
+            String id = queue.poll();
+            for (String next : down ? childrenOf(id) : parentsOf(id)) {
+                if (seen.add(next)) queue.add(next);
+            }
+        }
+        seen.removeAll(seeds);
+        return seen;
     }
 
     /**

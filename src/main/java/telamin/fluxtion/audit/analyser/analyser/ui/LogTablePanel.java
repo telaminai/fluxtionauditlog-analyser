@@ -185,6 +185,24 @@ public final class LogTablePanel extends JPanel {
      * Select and scroll to a model row (assistant {@code goto}). Returns false if the row is currently
      * filtered out of the view (so the caller can say so). Call on the EDT.
      */
+    /** Rows currently visible under the filter — the sequence stepping walks (M21.10 S3). */
+    public int visibleRowCount() {
+        return table.getRowCount();
+    }
+
+    /** Model row for a visible row, or -1. */
+    public int modelRowAt(int viewRow) {
+        return viewRow < 0 || viewRow >= table.getRowCount() ? -1 : table.convertRowIndexToModel(viewRow);
+    }
+
+    /** Visible row showing this model row, or -1 when the filter hides it. */
+    public int viewRowOf(int modelRow) {
+        for (int view = 0; view < table.getRowCount(); view++) {
+            if (table.convertRowIndexToModel(view) == modelRow) return view;
+        }
+        return -1;
+    }
+
     public boolean selectModelRow(int modelRow) {
         if (modelRow < 0 || modelRow >= table.getModel().getRowCount()) return false;
         int view = table.convertRowIndexToView(modelRow);

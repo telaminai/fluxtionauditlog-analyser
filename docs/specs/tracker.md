@@ -66,6 +66,12 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
   (`instanceId → file:line`, EP FQN, roots), replay reference, task, and acceptance (replay-diff: only
   the targeted records change). Built on `PromptBuilder`. **Precondition:** journal ↔ audit-log pairing
   (the analyser loads the output log, not the input journal).
+- _Decision (2026-08-16): **the analyser prompt distils Fluxtion semantics; the fix brief carries the
+  authoring rules**. The assistant reads logs, so it gets the reading-relevant subset (propagation/dirty,
+  audit regimes, wiring-by-constructor) plus a fetch-on-demand pointer — not `claude.txt` inline, which is
+  ~30KB of authoring guidance per request and invites answering the wrong question. **M12.4's brief is
+  where the full authoring rules belong**, since that agent edits code; M19.1's bundle already plans the
+  same via its `CLAUDE.md` bootstrap._
 - [M12.4] ☐ **"Fix with agent…" handoff launcher** _(spec-closed-loop §A)_ — writes the brief to
   `<sourceRoot>/.analyser/fix-brief-<ts>.md` **plus `.analyser/.gitignore` (`fix-brief-*` — scoped so
   M20's committed project profile in the same dir isn't ignored) so briefs can never be committed**; v1 copies a ready-to-paste launch command (presets for Claude Code / Codex; template
@@ -152,9 +158,19 @@ Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README
 analyser (reverse funnel)._
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
-  **`CLAUDE.md` agent bootstrap** (canonical Fluxtion authoring prompt, maintained with
-  fluxtion-compiler's LLM-authoring guidance) + admin REST on + README with run command and analyser
-  link; tracked in the playground repo, contract recorded in the spec.
+  **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
+  layer, snapshot of the canon at generation time, canonical-reference line) + admin REST on + README
+  with run command and analyser link; tracked in the playground repo, contract recorded in the spec.
+  _**The authoring path is not a gap — use its front door.** It is already layered and maintained:
+  [`/build-with-ai`](https://fluxtion-playground.dev/build-with-ai) →
+  [`CLAUDE.md`](https://fluxtion-playground.dev/CLAUDE.md) (orientation) → `spring-authoring/skill.md`
+  (how to run the design conversation) → `contract.md` (the exact `FluxtionSpringConfig` XML to emit) →
+  `example.md` (a worked run) → the **project starter generates the build** — the pom is generated
+  output, not something an author writes. Design work: `fluxtion-compiler/design/spring-authoring`.
+  The bundle's job is to **reference and snapshot** that canon plus what only it knows (log path, admin
+  port, the analyser's endpoint file), never to author a rival prompt. Add `skill.md`/`contract.md` to
+  the snapshot set for the XML-defined example (spec O2), since those are what make the design-level
+  edit in tutorial part 4 possible._
 - [M19.2] ☑ **`SettingsShare`: resolve relative roots against the import file's parent** — `preview`
   gained a `baseDir` overload; import resolves bundle-relative source roots / Maven repos against the
   settings file's directory (absolute & `~`-paths untouched; clipboard imports pass no baseDir). 2 tests.
@@ -229,7 +245,39 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   user-guide index. Screenshot is a **real render** of the canvas over `sample.yml` against a new
   anonymised `demo-marketmaker.graphml` fixture — and a test pins that fixture to the sample log, so the
   page can't quietly start depicting a mismatch. `mkdocs build --strict` green. **Release gate cleared.**
+- [M21.10] ☑ **Intra-record step-through** _(brief: [handoff_16_aug_2026_1.txt](../handoff/handoff_16_aug_2026_1.txt))_ —
+  one cursor walking record → nodeLog row → next record, the topology following it.
+  - [S1] ☑ **`StepCursor`** — pure two-depth model over the filtered record sequence: next/prev with
+    entry-as-a-stop, backwards roll-over to the previous record's *last* row, per-cycle accumulation,
+    entry-point resolution, and **regime-aware labels** ("row 3/8 (logged nodes)" vs "invocation 3/16")
+    so a row count is never read as "the nodes that ran". Repeated rows are separate steps, never
+    deduped. 16 tests, driven by both real fixtures. No Swing.
+  - [S2] ☑ **Cursor overlay** — current position is a **halo drawn outside the box**, the trail a
+    weaker one, the entry a dashed one; the node keeps its own execution border and fill underneath.
+    Recolouring the border (the obvious implementation) would hide what the log establishes in order to
+    show where you are standing — two different questions, both needed at once. Verified offscreen.
+  - [S3] ☑ **Wiring** — cursor walks the **filtered** view (`RecordSource` over the table's visible
+    rows, so stepping honours the shared filter); `[` / `]` keys (F3 left alone — one key meaning two
+    kinds of "next" is worse than a second pair); rolling into another record re-shades the canvas and
+    moves the table selection; the row under the cursor is highlighted in the detail viewer's
+    `nodeLogs` text **by occurrence**, so a node logging twice highlights the right line. A guard flag
+    stops the table ⇄ cursor sync looping.
+  - [S4] ☑ **Docs** — `topology.md` "Step through a cycle" rewritten to the two-depth walk (entry as a
+    stop, `[`/`]`, halo-over-shading, filtered sequence, detail sync) with the regime readout and the
+    logs-twice rule called out; spec-graph-replay §4 records the finalised granularity. `--strict` green.
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
+- [M21.9] ☐ **Use `ProcessorDescriptor` instead of inferring** _(found 2026-08-16 reading a generated
+  processor)_ — AOT processors carry a self-description: `inputs()` (name + FQN of every accepted event),
+  `sinks()`, `services()`, plus `graphmlResource()`, `sourceFingerprint()` and `toolchainVersion()`.
+  Two of those would replace guesswork outright:
+  **`graphmlResource()`** is "the classpath resource name of the graphml sidecar describing this
+  processor's topology" → auto-resolve the topology instead of *Open .graphml…*;
+  **`sourceFingerprint()`** is "a fingerprint of the source graph… the cache/staleness key" → exact build
+  pairing instead of `Match` inferring it from instanceIds.
+  **Blocked, not ready:** verified on two independently generated processors that `Meta` is emitted as
+  `(null, null, null, null)` — the contract exists, the values are unrecorded. `inputs()`/`services()`
+  *are* populated and could sharpen `EntryPointResolver`, though the graphml's EVENT/EXPORTSERVICE nodes
+  already carry equivalent information. **Next step is an ask upstream** (populate `Meta`), not code here.
 - [M21.8] ☐ _(later)_ **node → flag** — "flag every record where node X fired" needs an `instanceId`
   lookup in `LogIndex`; flags are per-record and no such index exists, so M21.5 shipped filter-to-node
   (existing free-text scan) instead. Index work, not wiring.

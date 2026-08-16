@@ -82,10 +82,22 @@ The audit record already names the nodes that fired, in dispatch order (`nodeLog
 **join between the record and the topology**, not new data:
 
 - **Scrub the event sequence** — next/previous record, or jump from any table selection; the topology
-  shows that cycle: nodes that fired highlighted **in dispatch order**, the triggering event marked, nodes
-  that did not fire dimmed.
-- **Within a cycle**, step node-by-node through the dispatch order, showing each node's logged key/values
-  at that point — the "which nodes lit up, what did they hold" view.
+  shows that cycle: nodes that **logged** highlighted **in dispatch order**.
+
+> **Correction (2026-08-15, from review feedback).** An earlier draft said "nodes that did not fire
+> dimmed". That is wrong and actively misleading: **a node appears in `nodeLogs` only if it writes audit
+> output**, at the level in force, so silence is not absence of execution. Only some nodes on a dispatch
+> path log at all. The view therefore reports four separable claims — `LOGGED` (observed),
+> `RAN_SILENTLY` (forced: sole route into something that ran), `MAY_HAVE_RUN` (connected but unknown),
+> `OFF_PATH` — with only the last shown faded, and every one of them stated in words on hover and in an
+> on-canvas legend. Note `RAN_SILENTLY` is deliberately narrow: a node with several parents needs only
+> one to have fired, so "every ancestor ran" would itself be an invented fact.
+- **Within a cycle**, step row-by-row through `nodeLogs`, showing each row's key/values at that point.
+  **Finalised granularity (M21.10):** one cursor spans both depths — record → row → next record — with
+  arrival at a record its own stop (the entry, where the entry point is marked). A row is a `nodeLogs`
+  entry, not a node: the same instanceId can occupy several rows and each is its own step. The position
+  readout names the audit regime, because "row 3 / 8" otherwise reads as "8 nodes ran", which is true
+  only of a traced record.
 - **Bidirectional** — the log is a complete record; stepping back is just moving the cursor.
 - **Bound to the shared filter**, so the time window and dimension filters scope the sequence like every
   other view.
@@ -177,5 +189,10 @@ play/pause.
   on it.
 - **O3 — does the topology deserve to be a tab or a split?** Sequencing suggests a tab beside Graphs;
   the cross-view wiring may argue for a dockable split. Decide with the panel in hand (M21.3).
+- **O5 — the pairing problem may be solvable exactly, not heuristically.** `ProcessorDescriptor` on a
+  generated processor declares `sourceFingerprint()` and `graphmlResource()`. If those were populated the
+  analyser could resolve the right graphml automatically and verify the pair exactly, retiring §2's
+  instanceId-based `Match` heuristic. Measured on two generated processors: currently emitted as null
+  (tracker M21.9). Until then `Match` stays the mechanism.
 - **O4 — very large topologies.** Elision/clustering strategy is undecided; defer until a real graph
   hurts.

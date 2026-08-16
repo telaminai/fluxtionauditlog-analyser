@@ -154,6 +154,32 @@ public final class DetailPanel extends JPanel {
         text.setCaretPosition(0);
     }
 
+    /**
+     * Highlight the {@code occurrence}-th {@code nodeLogs} line for this instance id, so stepping on the
+     * graph moves the caret in the text and the two views narrate each other (M21.10 S3). A node can log
+     * more than once per record, which is why the occurrence matters and a plain search would not do.
+     */
+    public void highlightNodeLog(String instanceId, int occurrence) {
+        if (instanceId == null) {
+            text.setCaretPosition(text.getCaretPosition());
+            return;
+        }
+        String body = text.getText();
+        String needle = "- " + instanceId + ":";
+        int from = 0;
+        for (int i = 0; i <= occurrence; i++) {
+            int at = body.indexOf(needle, from);
+            if (at < 0) return;
+            if (i == occurrence) {
+                int end = body.indexOf('\n', at);
+                text.select(at, end < 0 ? body.length() : end);
+                text.getCaret().setSelectionVisible(true);
+                return;
+            }
+            from = at + needle.length();
+        }
+    }
+
     public void clear() {
         methodByInstance.clear();
         shownRecords.clear();

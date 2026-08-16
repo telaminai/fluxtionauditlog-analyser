@@ -44,6 +44,33 @@ mvn -o clean verify                                     # offline full build + t
 
 Data flows: `parse` → `LogStore`/`index` → `filter` scopes everything → `summary`/`graph`/`ui` read it.
 
+## Understand Fluxtion's execution model before touching the analyser's model of it
+
+The analyser interprets logs a Fluxtion processor emits, so several of its behaviours are only correct if
+the framework's semantics are. **Read these rather than inferring them** — every defect found in the
+topology work (M21) came from inferring:
+
+- **[`docs/claude.txt`](https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt)** in the
+  fluxtion repo — the framework reference, and authoritative on semantics.
+- **[golden path](https://fluxtion-playground.dev/fluxtion-golden-path.md)** — the blessed shape of an
+  audited AOT graph, and the gotchas.
+- **[playground CLAUDE.md](https://fluxtion-playground.dev/CLAUDE.md)** — the agent-facing guide.
+
+The three that bite hardest here:
+
+1. **A node appears in `nodeLogs` only if it writes audit output**, at the level in force. Silence is not
+   absence of execution — most of `topology`'s `Execution` model exists for this.
+2. **The boolean a handler/trigger returns is the dirty/propagation control**, and
+   `@OnTrigger(dirty=false)` fires on the **inverse**. A child running proves its parent ran, not which
+   way the parent answered.
+3. **`@AfterEvent` and lifecycle callbacks (`@Initialise`/`@Start`) fire without upstream propagation**, so
+   "something downstream logged, therefore this ran" is unsound for them. GraphML carries no annotations,
+   so the analyser cannot detect them.
+
+`examples/fixture-generator/` is a real, minimal Fluxtion project (starter-shaped, AOT via
+`fluxtion-maven-plugin`) that regenerates the topology fixtures — the fastest way to see the model
+behave, and to produce a paired graph + log to test against.
+
 ## Conventions that matter
 
 - **Pure logic is unit-tested; GUI is not** — anything headless-testable has tests (parse, index,

@@ -1,0 +1,51 @@
+REVIEW — fix/m21-execution-vs-logging
+Date: 2026-08-16 · Reviewer: main session · Branch tip reviewed: bd336e7 · Base: main @ 8e9b6ca
+
+VERDICT: approved. Merge is a clean fast-forward (branch bases on main's exact tip). Not merged here,
+per standing instruction — but merge SOON: main currently ships the superseded user guide, screenshot
+and invented fixture this branch corrects, so main is wrong in public until this lands.
+
+INDEPENDENTLY VERIFIED:
+  mvn -o test ..................... 322/322 green
+  mkdocs build --strict ........... green
+  fixture regeneration ............ byte-identical (0 diffs) — the pinned-clock reproducibility
+                                    claim holds; the fixtures are now evidence, not illustration
+  build isolation ................. examples/fixture-generator is NOT a module of the analyser pom;
+                                    FlatLaf remains the only runtime dependency
+  anonymisation ................... clean (com.acme.demo throughout)
+  semantics core .................. ProcessorTopology.Execution five-state model reads exactly as
+                                    reported; RAN_SILENTLY claimed only via only-route-in reasoning;
+                                    DID_NOT_RUN only under a traced record; W4's only-parent rule
+                                    documented with its rationale in place
+
+STILL HUMAN: the §6 two-log contrast check (same graph, INFO vs TRACE, spreadCalculator dashed vs
+present) — one eyeball on the Topology tab. This is the branch's thesis made visible; worth the click.
+
+ANSWERS TO §4:
+  Q1 (ProcessorDescriptor.sourceFingerprint/graphmlResource) — ENDORSED, file the upstream ask. It
+      replaces the instanceId heuristic with exact build pairing, and it is ALSO the natural carrier
+      for the provenance/tier stamp the commercial story needs — one upstream change serving two
+      roadmaps. Raise it with both hats on.
+  Q2 (link, don't inline, the authoring canon) — AGREED as shipped. 30KB of authoring guidance in an
+      analysis prompt invites answering the wrong question; M12.4's fix brief is where the full rules
+      belong. No change.
+  Q3 (traced-regime marker in the record header) — ENDORSED as the second upstream ask, and note it is
+      the first concrete field of the versioned record-model contract already discussed (the record IR):
+      the writer knows the regime; the reader should not have to infer it from shape.
+  Q4 (branch size) — ACCEPTED AS ONE UNIT. The dependency chain is real (the fixtures exist because
+      the semantics changed) and the commit narrative carries a 12-commit review comfortably. Do not
+      split.
+
+ON §2 — keep doing exactly this. Five of six defects found by owner review or by running real
+artefacts, none by the test suite: that is the honest shape of semantic bugs — a model of an external
+system's MEANING cannot be falsified from inside the model. The countermeasure this branch built
+(fixtures emitted by the real toolchain, regenerable, byte-stable) is the right one and is now
+institutional via examples/fixture-generator and the ONBOARDING semantics section. The two published
+retractions are worth more than the fixes: they are what make the rest of the report trustworthy.
+
+FOLLOW-UPS:
+  F1. Merge to main promptly (see verdict) and re-run the human contrast check post-merge.
+  F2. File the two upstream asks (Q1, Q3) where the compiler/mongoose team will see them.
+  F3. handoff/15_aug_2026_2 (M20) is two sessions stale on its "current work" framing — refresh its
+      orient list before any session picks it up (M21 + this branch changed MainFrame and the specs
+      it references).

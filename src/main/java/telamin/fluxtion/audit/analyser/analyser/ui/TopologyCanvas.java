@@ -56,12 +56,20 @@ public final class TopologyCanvas extends JPanel {
     private String hoveredId;
     private String selectedId;
 
-    /** Ids that fired in the shown cycle, in dispatch order; empty when no record is shown. */
+    /** Ids that <b>logged</b> in the shown cycle, in dispatch order; empty when no record is shown. */
     private List<String> dispatch = List.of();
     /** id → its first position in {@link #dispatch}, for the ordinal badge. */
     private java.util.Map<String, Integer> firedAt = java.util.Map.of();
-    /** Index into {@link #dispatch}, or -1 for "the whole cycle at once". */
-    private int step = -1;
+    /** Where this cycle entered the graph, if the record says. */
+    private List<String> entryPoints = List.of();
+    /** id → what the log lets us claim about it this cycle. Empty when no record is shown. */
+    private java.util.Map<String, ProcessorTopology.Execution> execution = java.util.Map.of();
+    /** The node the step cursor is on, or null (at a record's entry, or no cursor). */
+    private String cursorNode;
+    /** Nodes stepped through in this cycle so far, in order and including repeats. */
+    private List<String> steppedNodes = List.of();
+    /** True when the cursor sits at the record's entry, before any row. */
+    private boolean cursorAtEntry;
 
     private Point dragOrigin;
     private double dragOffsetX;
@@ -176,28 +184,74 @@ public final class TopologyCanvas extends JPanel {
     // ---- step-through (M21.4) ---------------------------------------------------------------------
 
     /**
-     * Show which nodes fired in a cycle, in dispatch order. Nodes that did not fire are dimmed rather
-     * than hidden — "this node was not involved" is itself the answer to most questions asked here.
+     * Show a cycle: the ids that <b>wrote audit output</b>, in dispatch order.
+     *
+     * <p>Everything else is classified by {@link ProcessorTopology#classifyCycle}, not simply dimmed.
+     * A node with no audit entry may still have executed — nodes log only if they write audit output,
+     * and only at the level in force — so the view distinguishes "ran, said nothing" from "might have
+     * run" from "not on this path" instead of implying the log is a complete record of execution.
      */
     public void setDispatch(List<String> dispatchOrder) {
+        setDispatch(dispatchOrder, List.of());
+    }
+
+    /**
+     * As {@link #setDispatch(List)}, plus where the cycle entered the graph — which lets a branch that
+     * executed while logging nothing show as unknown rather than as unrelated to the event.
+     */
+    public void setDispatch(List<String> dispatchOrder, List<String> entryPoints) {
+        setDispatch(dispatchOrder, entryPoints, false);
+    }
+
+    /**
+     * As above, plus whether the record traces every invocation — when it does, absence from the log is
+     * proof a node did not run, and the view says so instead of hedging.
+     */
+    public void setDispatch(List<String> dispatchOrder, List<String> entryPoints, boolean traced) {
         this.dispatch = dispatchOrder == null ? List.of() : List.copyOf(dispatchOrder);
+        this.entryPoints = entryPoints == null ? List.of() : List.copyOf(entryPoints);
         java.util.Map<String, Integer> ordinals = new java.util.LinkedHashMap<>();
         for (int i = 0; i < this.dispatch.size(); i++) {
             ordinals.putIfAbsent(this.dispatch.get(i), i);
         }
         this.firedAt = ordinals;
-        this.step = -1;
+        this.execution = this.dispatch.isEmpty() && this.entryPoints.isEmpty()
+                ? java.util.Map.of()
+                : topology.classifyCycle(this.dispatch, this.entryPoints, traced);
+        this.cursorNode = null;
+        this.steppedNodes = List.of();
+        this.cursorAtEntry = true;
         repaint();
     }
 
-    /** {@code -1} shows the whole cycle; otherwise emphasise that position in the dispatch order. */
-    public void setStep(int step) {
-        this.step = step < 0 || dispatch.isEmpty() ? -1 : Math.min(step, dispatch.size() - 1);
+    /** What the log lets us claim about this node in the shown cycle; null when no cycle is shown. */
+    public ProcessorTopology.Execution executionOf(String id) {
+        return execution.get(id);
+    }
+
+    /**
+     * Place the step cursor (M21.10 S2). Painted <b>over</b> the execution shading, never instead of it:
+     * the cursor says where you are, the shading says what the log establishes, and losing the second to
+     * show the first would undo the fix this view exists for.
+     *
+     * @param currentId  the node under the cursor, or null at the record's entry
+     * @param stepped    nodes already stepped in this cycle, in order (repeats kept)
+     * @param atEntry    true when sitting at the entry, before any row
+     */
+    public void setCursor(String currentId, List<String> stepped, boolean atEntry) {
+        this.cursorNode = currentId;
+        this.steppedNodes = stepped == null ? List.of() : List.copyOf(stepped);
+        this.cursorAtEntry = atEntry;
         repaint();
     }
 
-    public int step() {
-        return step;
+    /** Clear the cursor overlay, leaving the execution shading alone. */
+    public void clearCursor() {
+        setCursor(null, List.of(), false);
+    }
+
+    public String cursorNode() {
+        return cursorNode;
     }
 
     public List<String> dispatch() {
@@ -300,8 +354,23 @@ public final class TopologyCanvas extends JPanel {
         ProcessorTopology.Node node = topology.node(box.id());
         if (node == null) return null;
         String className = node.className() == null ? "" : "<br>" + node.className();
+        String claim = "";
+        ProcessorTopology.Execution ran = execution.get(box.id());
+        if (ran != null) claim = "<br><br>" + describe(ran);
         return "<html><b>" + node.id() + "</b>" + className
-               + "<br><i>" + node.kind().name().toLowerCase().replace('_', ' ') + "</i></html>";
+               + "<br><i>" + node.kind().name().toLowerCase().replace('_', ' ') + "</i>"
+               + claim + "</html>";
+    }
+
+    /** Plain words for a claim — the colour alone must never be what tells a user this. */
+    public static String describe(ProcessorTopology.Execution ran) {
+        return switch (ran) {
+            case LOGGED -> "logged audit output in this cycle";
+            case RAN_SILENTLY -> "ran, but logged nothing — something it feeds did log";
+            case MAY_HAVE_RUN -> "may have run — it logged nothing, and the log cannot say either way";
+            case OFF_PATH -> "not on this event's path";
+            case DID_NOT_RUN -> "did not run — this log records every node invocation";
+        };
     }
 
     // ---- painting ---------------------------------------------------------------------------------
@@ -431,9 +500,14 @@ public final class TopologyCanvas extends JPanel {
 
             Integer ordinal = firedAt.get(box.id());
             boolean fired = ordinal != null;
-            boolean isCurrentStep = showingCycle() && step >= 0 && step < dispatch.size()
-                                    && dispatch.get(step).equals(box.id());
-            boolean dimmed = showingCycle() && !fired;
+            boolean isCurrentStep = box.id().equals(cursorNode);
+            boolean isStepped = !isCurrentStep && steppedNodes.contains(box.id());
+            boolean isEntry = cursorAtEntry && entryPoints.contains(box.id());
+            ProcessorTopology.Execution ran = execution.get(box.id());
+            // only "no reason to think dispatch came near it" recedes; a silent node that demonstrably
+            // ran, or might have, stays fully legible
+            boolean dimmed = showingCycle() && (ran == ProcessorTopology.Execution.OFF_PATH
+                                            || ran == ProcessorTopology.Execution.DID_NOT_RUN);
 
             double x = sx(box.x());
             double y = sy(box.y());
@@ -445,17 +519,26 @@ public final class TopologyCanvas extends JPanel {
             g.setColor(dimmed ? fade(fill, dark) : fill);
             g.fill(shape);
 
-            Color border = isCurrentStep ? accent(dark)
-                    : isSelected ? accent(dark)
+            Color border = isSelected ? accent(dark)
                     : fired ? firedBorder(dark)
+                    : ran == ProcessorTopology.Execution.RAN_SILENTLY ? ranSilentlyBorder(dark)
                     : dimmed ? fade(borderFor(dark, false), dark)
                     : borderFor(dark, isHovered);
             g.setColor(border);
-            g.setStroke(new BasicStroke(isCurrentStep ? 3f : isSelected ? 2.4f : fired ? 1.8f
-                    : isHovered ? 1.8f : 1f));
+            // MAY_HAVE_RUN is drawn dashed: the log genuinely does not say whether dispatch got here, and
+            // a solid box would state more than the evidence does
+            g.setStroke(ran == ProcessorTopology.Execution.MAY_HAVE_RUN && !isSelected
+                    ? new BasicStroke(1.4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
+                            new float[]{5f, 4f}, 0f)
+                    : new BasicStroke(isSelected ? 2.4f : fired ? 1.8f
+                            : ran == ProcessorTopology.Execution.RAN_SILENTLY ? 1.6f
+                            : isHovered ? 1.8f : 1f));
             g.draw(shape);
 
             if (fired && labels) paintOrdinal(g, x, y, ordinal + 1, dark);
+            if (isEntry) paintEntryMarker(g, shape, dark);
+            if (isStepped) paintSteppedMarker(g, shape, dark);
+            if (isCurrentStep) paintCursorHalo(g, shape, dark);
 
             if (!labels) continue;
             String title = node == null ? box.id() : node.simpleName();
@@ -483,6 +566,57 @@ public final class TopologyCanvas extends JPanel {
         g.drawString(out, (float) x, (float) y);
     }
 
+    /**
+     * The cursor's position: a halo drawn <b>outside</b> the box, so the node keeps its own execution
+     * border and fill. Recolouring the border would hide what the log establishes about the node in
+     * order to say where you are standing — the two are different questions and both matter.
+     */
+    private void paintCursorHalo(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
+        double pad = 4;
+        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
+                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
+                box.arcwidth + pad, box.archeight + pad);
+        g.setColor(accent(dark));
+        g.setStroke(new BasicStroke(2.6f));
+        g.draw(halo);
+    }
+
+    /** Already stepped in this cycle: a thin trailing halo, clearly weaker than the current one. */
+    private void paintSteppedMarker(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
+        double pad = 2.5;
+        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
+                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
+                box.arcwidth + pad, box.archeight + pad);
+        g.setColor(steppedHalo(dark));
+        g.setStroke(new BasicStroke(1.4f));
+        g.draw(halo);
+    }
+
+    /** Where the cycle came in — marked while the cursor sits at the record's entry. */
+    private void paintEntryMarker(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
+        double pad = 4;
+        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
+                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
+                box.arcwidth + pad, box.archeight + pad);
+        g.setColor(accent(dark));
+        g.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
+                new float[]{6f, 4f}, 0f));
+        g.draw(halo);
+    }
+
+    /** Trailing-halo colour: the accent, muted toward the canvas so "current" stays dominant. */
+    private static Color steppedHalo(boolean dark) {
+        return fade2(accent(dark), dark, 0.55);
+    }
+
+    private static Color fade2(Color c, boolean dark, double keep) {
+        Color canvas = dark ? new Color(0x0D1117) : new Color(0xF6F8FA);
+        return new Color(
+                (int) (c.getRed() * keep + canvas.getRed() * (1 - keep)),
+                (int) (c.getGreen() * keep + canvas.getGreen() * (1 - keep)),
+                (int) (c.getBlue() * keep + canvas.getBlue() * (1 - keep)));
+    }
+
     /** Node kinds are distinguished by fill, so the graph's shape reads before any label does. */
     private static Color fillFor(ProcessorTopology.Node node, boolean dark) {
         ProcessorTopology.Kind kind = node == null ? ProcessorTopology.Kind.UNKNOWN : node.kind();
@@ -504,9 +638,14 @@ public final class TopologyCanvas extends JPanel {
         return dark ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
     }
 
-    /** Ring around a node that fired this cycle. */
+    /** Ring around a node that wrote audit output this cycle — the only observed state. */
     private static Color firedBorder(boolean dark) {
         return dark ? new Color(0x3FB950) : new Color(0x1A7F37);
+    }
+
+    /** Ran but said nothing: inferred with certainty from a logged descendant, so shown plainly. */
+    private static Color ranSilentlyBorder(boolean dark) {
+        return dark ? new Color(0x8B949E) : new Color(0x57606A);
     }
 
     /** Pull a colour toward the canvas so a node that never fired recedes without disappearing. */
@@ -535,13 +674,45 @@ public final class TopologyCanvas extends JPanel {
         g.setFont(previous);
     }
 
-    /** Corner readout: what you are looking at and how far in. */
+    /** Corner readout: what you are looking at and how far in, plus the cycle legend when one is shown. */
     private void paintHud(Graphics2D g, Color muted) {
         g.setColor(muted);
         g.setFont(getFont().deriveFont(11f));
         String hud = topology.nodeCount() + " nodes · " + topology.edgeCount() + " edges · "
                      + layout.layerCount() + " layers · " + Math.round(scale * 100) + "%";
         g.drawString(hud, 10, getHeight() - 10);
+        if (showingCycle()) paintLegend(g);
+    }
+
+    /**
+     * The legend is not decoration. Without it the greyed boxes read as "did not run", which the log does
+     * not say — so the three claims are spelled out on screen wherever a cycle is shown.
+     */
+    private void paintLegend(Graphics2D g) {
+        boolean dark = ThemeManager.isDark();
+        boolean complete = execution.containsValue(ProcessorTopology.Execution.DID_NOT_RUN);
+        String[] labels = complete
+                ? new String[]{dispatch.size() + " ran", "did not run"}
+                : new String[]{dispatch.size() + " logged", "ran, logged nothing",
+                        "may have run", "not on this path"};
+        Color[] colours = complete
+                ? new Color[]{firedBorder(dark), fade(ranSilentlyBorder(dark), dark)}
+                : new Color[]{firedBorder(dark), ranSilentlyBorder(dark),
+                        ranSilentlyBorder(dark), fade(ranSilentlyBorder(dark), dark)};
+        FontMetrics fm = g.getFontMetrics();
+        int y = 18;
+        int x = 12;
+        for (int i = 0; i < labels.length; i++) {
+            g.setColor(colours[i]);
+            g.setStroke(!complete && i == 2
+                    ? new BasicStroke(1.4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
+                            new float[]{4f, 3f}, 0f)
+                    : new BasicStroke(i == 0 ? 1.8f : 1.4f));
+            g.draw(new RoundRectangle2D.Double(x, y - 8, 16, 11, 4, 4));
+            g.setColor(dark ? new Color(0x8B949E) : new Color(0x6E7781));
+            g.drawString(labels[i], x + 22, y + 1);
+            x += 22 + fm.stringWidth(labels[i]) + 16;
+        }
     }
 
     private double sx(double worldX) {

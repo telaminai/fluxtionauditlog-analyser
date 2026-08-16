@@ -1,0 +1,63 @@
+---
+eventLogRecord: 
+    eventTime: 1767258000080
+    logTime: 1767258000090
+    groupingId: null
+    event: MarketDataEvent
+    eventToString: MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - priceListener: { thread: com.acme.demo.GenerateFixtures.main(), method: marketData, symbol: DEMO-A, mid: 100.19999999999999}
+        - spreadCalculator: { thread: com.acme.demo.GenerateFixtures.main(), method: calculate}
+        - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.02004, liveOrders: 0}
+    endTime: 1767258000100
+---
+eventLogRecord: 
+    eventTime: 1767258000110
+    logTime: 1767258000120
+    groupingId: null
+    event: OrderUpdateEvent
+    eventToString: OrderUpdateEvent[orderId=ord-1, state=LIVE]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - orderTracker: { thread: com.acme.demo.GenerateFixtures.main(), method: orderUpdate, orderId: ord-1, live: 1}
+        - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.02004, liveOrders: 1}
+    endTime: 1767258000130
+---
+eventLogRecord: 
+    eventTime: 1767258000140
+    logTime: 1767258000150
+    groupingId: null
+    event: MarketDataEvent
+    eventToString: MarketDataEvent[symbol=DEMO-A, bid=100.12, ask=100.28]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - priceListener: { thread: com.acme.demo.GenerateFixtures.main(), method: marketData, symbol: DEMO-A, mid: 100.2}
+        - spreadCalculator: { thread: com.acme.demo.GenerateFixtures.main(), method: calculate}
+        - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.020040000000000002, liveOrders: 1}
+    endTime: 1767258000160
+---
+eventLogRecord: 
+    eventTime: 1767258000170
+    logTime: 1767258000180
+    groupingId: null
+    event: OrderUpdateEvent
+    eventToString: OrderUpdateEvent[orderId=ord-1, state=DONE]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - orderTracker: { thread: com.acme.demo.GenerateFixtures.main(), method: orderUpdate, orderId: ord-1, live: 0}
+        - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.020040000000000002, liveOrders: 0}
+    endTime: 1767258000190
+---
+eventLogRecord: 
+    eventTime: 1767258000200
+    logTime: 1767258000210
+    groupingId: null
+    event: MarketDataEvent
+    eventToString: MarketDataEvent[symbol=DEMO-B, bid=55.01, ask=55.09]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - priceListener: { thread: com.acme.demo.GenerateFixtures.main(), method: marketData, symbol: DEMO-B, mid: 55.05}
+        - spreadCalculator: { thread: com.acme.demo.GenerateFixtures.main(), method: calculate}
+        - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.01101, liveOrders: 0}
+    endTime: 1767258000220
