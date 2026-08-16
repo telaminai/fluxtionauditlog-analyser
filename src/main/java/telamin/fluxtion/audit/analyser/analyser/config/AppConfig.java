@@ -58,6 +58,8 @@ public final class AppConfig {
     public double topologyPanY;
     /** "TOP_DOWN" or "LEFT_RIGHT". */
     public String topologyOrientation = "TOP_DOWN";
+    /** Topology: does the source pane follow what you click, or do you drive it yourself? */
+    public boolean topologySyncSource = true;
 
     /** Everything under "how the topology is displayed" — cleared as a group from Settings ▸ History. */
     public void clearTopologyView() {
@@ -67,6 +69,7 @@ public final class AppConfig {
         topologyPanX = 0;
         topologyPanY = 0;
         topologyOrientation = "TOP_DOWN";
+        topologySyncSource = true;
     }
 
     /** Saved graphs: one entry per graph tab, each a list of series encoded as {@code instanceIdkey}. */

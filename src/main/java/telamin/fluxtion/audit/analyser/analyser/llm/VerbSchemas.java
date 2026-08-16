@@ -89,6 +89,7 @@ public final class VerbSchemas {
                         p("step", integer(), "advance the cursor by N rows (negative steps back)"),
                         p("recordIndex", integer(), "move the cursor to this record in the filtered view"),
                         p("source", bool(), "show the source pane beside the graph"),
+                        p("sync", bool(), "does the source pane follow what is selected, or stay put?"),
                         p("orientation", enumStr("top_down", "left_right"), "layout direction"),
                         p("fit", bool(), "frame the whole graph"),
                         p("showAll", bool(), "clear selection, focus and cycle shading — the plain graph")),

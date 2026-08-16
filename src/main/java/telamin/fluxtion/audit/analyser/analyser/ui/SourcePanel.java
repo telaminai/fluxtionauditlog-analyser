@@ -200,6 +200,11 @@ public final class SourcePanel extends JPanel {
         if (service != null) openFqn(service.selectedFqn());
     }
 
+    /** True once the processor half has a file in it — used to avoid re-navigating (and re-scrolling) it. */
+    public boolean hasProcessorOpen() {
+        return processorPane.fqn != null && !processorPane.source.isEmpty();
+    }
+
     /** Re-colour both panes (e.g. after a theme change). */
     public void refresh() {
         processorPane.applyTheme();

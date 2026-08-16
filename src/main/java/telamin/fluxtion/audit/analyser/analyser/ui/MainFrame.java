@@ -147,6 +147,7 @@ public final class MainFrame extends JFrame {
         topologyPanel.setDisplayPrefs(config.topologySpacingPercent, config.topologyTextSize);
         topologyPanel.setSavedView(config.topologyZoom, config.topologyPanX, config.topologyPanY,
                 config.topologyOrientation);
+        topologyPanel.setSourceSync(config.topologySyncSource);
         topologyPanel.onDisplayPrefsChanged(() -> {
             config.topologySpacingPercent = topologyPanel.spacingPercent();
             config.topologyTextSize = topologyPanel.textSize();
@@ -154,6 +155,7 @@ public final class MainFrame extends JFrame {
             config.topologyPanX = topologyPanel.panX();
             config.topologyPanY = topologyPanel.panY();
             config.topologyOrientation = topologyPanel.orientationName();
+            config.topologySyncSource = topologyPanel.isSourceSyncOn();
             saveConfigQuietly();
         });
         // stepping walks the FILTERED sequence, so it honours the shared filter like every other view
@@ -978,6 +980,8 @@ public final class MainFrame extends JFrame {
         java.awt.Component front = sideTabs == null ? null : sideTabs.getSelectedComponent();
         SourceTarget target = chooseSourceTarget(front == topologyPanel, front == sourcePanel,
                 embedded != null);
+        // the toggle governs the embedded pane only — it lives on that toolbar and describes that pane
+        if (target == SourceTarget.EMBEDDED && !topologyPanel.isSourceSyncOn()) return;
         SourcePanel panel = target == SourceTarget.EMBEDDED ? embedded : sourcePanel;
         if (panel != null) panel.showDispatchFor(focus);
     }

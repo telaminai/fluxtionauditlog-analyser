@@ -58,6 +58,7 @@ public final class TopologyPanel extends JPanel {
     private final javax.swing.JToggleButton focusButton = new javax.swing.JToggleButton("Focus");
     private SourcePanel embeddedSource;
     private final javax.swing.JToggleButton sourceButton = new javax.swing.JToggleButton("Source");
+    private final javax.swing.JToggleButton syncButton = new javax.swing.JToggleButton("Sync", true);
     private final javax.swing.JSplitPane graphSplit =
             new javax.swing.JSplitPane(javax.swing.JSplitPane.HORIZONTAL_SPLIT, true);
     private int dividerAt;
@@ -120,6 +121,11 @@ public final class TopologyPanel extends JPanel {
         sourceButton.setEnabled(false);
         sourceButton.addActionListener(e -> showSourcePane(sourceButton.isSelected()));
         bar.add(sourceButton);
+        syncButton.setToolTipText("Source pane follows what you click and step through. Off, it stays "
+                + "where you put it — Enter and the right-click menu still navigate.");
+        syncButton.setFocusable(false);
+        syncButton.addActionListener(e -> displayPrefsChanged.run());
+        bar.add(syncButton);
         bar.addSeparator();
         bar.add(new JLabel(" spacing "));
         spacingSlider = slider(25, 400, 100, "Space the layers and siblings further apart",
@@ -443,6 +449,7 @@ public final class TopologyPanel extends JPanel {
             scope = TopologyFocus.Scope.NODE;
         }
         applyView();
+        syncSourceTo(id);
     }
 
     private void applyView() {
@@ -642,6 +649,9 @@ public final class TopologyPanel extends JPanel {
         canvas.select(id);
         canvas.centreOn(id);
         applyView();
+        // the scripted path must behave like the mouse path, or a verb-driven session and a hand-driven
+        // one diverge — which is exactly what makes scripted screenshots stop matching reality
+        syncSourceTo(id);
     }
 
     public boolean hasNode(String id) {
@@ -738,9 +748,36 @@ public final class TopologyPanel extends JPanel {
         out.put("scope", scope.name().toLowerCase(java.util.Locale.ROOT));
         out.put("focus", focusButton.isSelected());
         out.put("scaffolding", scaffoldingBox.isSelected());
+        out.put("syncSource", syncButton.isSelected());
         out.put("visibleNodes", canvas.topology().nodeCount());
         out.put("totalNodes", fullTopology.nodeCount());
         return out;
+    }
+
+    /**
+     * Whether the source pane <b>follows</b> selection and stepping.
+     *
+     * <p>Off, the pane is yours: it stays where you put it and only an explicit navigation — Enter, the
+     * right-click menu, a double-click in the index — moves it. That distinction is the point. Automatic
+     * tracking is what you want while exploring, and exactly what you do not want while reading one
+     * method and clicking around the graph to work out what calls it.
+     */
+    public boolean isSourceSyncOn() {
+        return syncButton.isSelected();
+    }
+
+    public void setSourceSync(boolean on) {
+        syncButton.setSelected(on);
+    }
+
+    /**
+     * Follow a node into the source, but only if tracking is on and the pane is already open. It never
+     * opens the pane: having a panel appear because you clicked a box would be the view rearranging
+     * itself under you, which is what the toggle exists to prevent.
+     */
+    private void syncSourceTo(String instanceId) {
+        if (instanceId == null || !syncButton.isSelected() || openSourcePane() == null) return;
+        openSource(instanceId);
     }
 
     /** The embedded source viewer when it is on screen, else null — the caller decides what that means. */
@@ -757,9 +794,11 @@ public final class TopologyPanel extends JPanel {
     private void openSource(String instanceId) {
         if (embeddedSource != null) {
             showSourcePane(true);
-            // fill the processor half too — Split exists to show the call site and the method together,
-            // and half of it sitting empty defeats the point
-            embeddedSource.showSelectedProcessor();
+            // Fill the processor half on FIRST use only — Split exists to show the call site and the
+            // method together, and half of it sitting empty defeats the point. Re-navigating it on every
+            // sync would yank its scroll back to the class declaration each time you clicked a node,
+            // which is precisely the flicker tracking is supposed to avoid.
+            if (!embeddedSource.hasProcessorOpen()) embeddedSource.showSelectedProcessor();
             // An EVENT node has no class of its own in the graph — what you want to see is where the
             // processor dispatches it, which is its handleEvent overload. Sending it down the node path
             // instead just reports "no source mapping", which is true and unhelpful.
@@ -1023,6 +1062,7 @@ public final class TopologyPanel extends JPanel {
         String id = cursor.currentInstanceId();
         rowChanged.accept(id, occurrenceOfCurrentRow());
         if (id != null) canvas.select(id);
+        syncSourceTo(id);
         setStatus(cursor.atEntry()
                 ? cursor.positionLabel() + describeEntry()
                 : cursor.positionLabel() + "  ·  " + cursor.rowSummary()

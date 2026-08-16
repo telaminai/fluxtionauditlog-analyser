@@ -413,6 +413,11 @@ public final class ActionExecutor implements RenderExecutor {
         if (params.containsKey("scaffolding")) topology.setScaffoldingVisible(bool(params.get("scaffolding")));
         if (params.containsKey("showAll") && bool(params.get("showAll"))) topology.clearView();
 
+        // Tracking is set BEFORE anything that could follow, so one call can turn it off AND select
+        // without the selection dragging the source pane along on its way out. Ordering is the whole
+        // meaning of the flag here.
+        if (params.containsKey("sync")) topology.setSourceSync(bool(params.get("sync")));
+
         if (params.containsKey("select")) {
             String id = str(params.get("select"));
             if (id != null && !topology.hasNode(id)) {

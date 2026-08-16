@@ -172,6 +172,7 @@ class ConfigStoreTest {
         AppConfig back = new ConfigStore(file).load();
         assertEquals(100, back.topologySpacingPercent);
         assertEquals(11, back.topologyTextSize);
+        assertTrue(back.topologySyncSource, "tracking on is the default — it is what people expect");
         assertTrue(back.recentGraphml.isEmpty());
     }
 
@@ -199,6 +200,7 @@ class ConfigStoreTest {
         c.topologyPanX = -240.5;
         c.topologyPanY = 88.25;
         c.topologyOrientation = "LEFT_RIGHT";
+        c.topologySyncSource = false;
         new ConfigStore(file).save(c);
 
         AppConfig back = new ConfigStore(file).load();
@@ -206,6 +208,7 @@ class ConfigStoreTest {
         assertEquals(-240.5, back.topologyPanX, 0.0001, "a negative pan is normal — it is a scroll offset");
         assertEquals(88.25, back.topologyPanY, 0.0001);
         assertEquals("LEFT_RIGHT", back.topologyOrientation);
+        assertFalse(back.topologySyncSource, "turning tracking off must survive a restart");
     }
 
     @org.junit.jupiter.api.Test
@@ -224,6 +227,7 @@ class ConfigStoreTest {
         c.topologySpacingPercent = 300;
         c.topologyTextSize = 20;
         c.topologyOrientation = "LEFT_RIGHT";
+        c.topologySyncSource = false;
 
         c.clearTopologyView();
 
@@ -235,5 +239,6 @@ class ConfigStoreTest {
         assertEquals(fresh.topologyTextSize, c.topologyTextSize);
         assertEquals(fresh.topologyOrientation, c.topologyOrientation,
                 "a reset that leaves one setting behind is worse than none — it looks broken");
+        assertEquals(fresh.topologySyncSource, c.topologySyncSource);
     }
 }

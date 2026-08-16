@@ -63,6 +63,7 @@ public final class ConfigStore {
         c.topologyZoom = parseDouble(p.getProperty("topologyZoom"), c.topologyZoom);
         c.topologyPanX = parseDouble(p.getProperty("topologyPanX"), c.topologyPanX);
         c.topologyPanY = parseDouble(p.getProperty("topologyPanY"), c.topologyPanY);
+        c.topologySyncSource = parseBool(p.getProperty("topologySyncSource"), c.topologySyncSource);
         String orientation = nz(p.getProperty("topologyOrientation"));
         if (orientation != null && !orientation.isBlank()) c.topologyOrientation = orientation;
         c.awsProfile = p.getProperty("awsProfile", c.awsProfile);
@@ -109,6 +110,7 @@ public final class ConfigStore {
         put(p, "topologyPanX", Double.toString(c.topologyPanX));
         put(p, "topologyPanY", Double.toString(c.topologyPanY));
         put(p, "topologyOrientation", c.topologyOrientation);
+        put(p, "topologySyncSource", Boolean.toString(c.topologySyncSource));
         put(p, "awsProfile", c.awsProfile);
         put(p, "awsRegion", c.awsRegion);
         put(p, "theme", c.theme);
