@@ -32,18 +32,21 @@ class ScaffoldingTest {
         Set<String> authored = Scaffolding.authoredNodes(demo());
         assertEquals(
                 Set.of("priceListener", "spreadCalculator", "orderTracker", "quotePublisher",
-                        "MarketDataEvent", "OrderUpdateEvent", "QuoteControl"),
+                        "riskMonitor", "breachHandler",
+                        "MarketDataEvent", "OrderUpdateEvent", "RiskBreachEvent", "QuoteControl"),
                 authored,
-                "the four nodes, two events and one exported service the builder declares");
+                "every node, event and exported service the builder declares");
+        assertTrue(authored.contains("RiskBreachEvent"),
+                "an event the graph raises on ITSELF is still the author's — see riskMonitor");
         assertTrue(authored.contains("QuoteControl"),
                 "an exported service is a way INTO the user's graph — plumbing is what the framework "
                 + "adds, not what the author chose to expose");
     }
 
     @Test
-    void tenOfSeventeenNodesArePlumbing() throws IOException {
+    void tenOfTwentyNodesArePlumbing() throws IOException {
         ProcessorTopology t = demo();
-        assertEquals(17, t.nodeCount());
+        assertEquals(20, t.nodeCount());
         assertEquals(10, Scaffolding.count(t), "which is why this feature exists");
     }
 
@@ -77,7 +80,7 @@ class ScaffoldingTest {
         ProcessorTopology t = demo();
         ProcessorTopology authored = t.subgraph(Scaffolding.authoredNodes(t));
 
-        assertEquals(7, authored.nodeCount());
+        assertEquals(10, authored.nodeCount());
         // the pipeline the builder declares survives end to end
         assertEquals(Set.of("priceListener"), authored.childrenOf("MarketDataEvent"));
         assertEquals(Set.of("spreadCalculator"), authored.childrenOf("priceListener"));

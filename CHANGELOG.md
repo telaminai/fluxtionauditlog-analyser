@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- Topology fixtures now include a **re-dispatch** (`processReentrantEvent`): a node raising an event on
+  its own graph. It lands in the log as a separate record that looks externally caused, which is the
+  case most likely to be misread when stepping through a cycle.
 - Topology: **exported services are entry points too.** A cycle that arrived through an
   `@ExportService` call now resolves to the service node and shades the path from it, so an operator
   action reads like an event rather than an unexplained cycle. Both signature spellings the runtime

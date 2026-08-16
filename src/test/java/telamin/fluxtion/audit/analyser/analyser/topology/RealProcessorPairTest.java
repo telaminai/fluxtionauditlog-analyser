@@ -166,4 +166,47 @@ class RealProcessorPairTest {
         assertEquals(OFF_PATH, state.get("orderTracker"),
                 "an order-update handler is not reachable from a market-data event");
     }
+
+    // ---- re-dispatch ------------------------------------------------------------------------------
+
+    /**
+     * A node can raise an event on its own graph ({@code processReentrantEvent}). This pins down what that
+     * looks like in the log, because it is the case most likely to be misread: the queued event is
+     * dispatched only <b>after</b> the current cycle has published its record, so it arrives as a separate
+     * record that carries no trace of having come from inside.
+     */
+    @Test
+    void aReDispatchedEventArrivesAsItsOwnRecordAndLooksExternal() throws IOException {
+        List<LogRecord> records = recordsOf("demo-quote-audit.yaml");
+
+        int breach = -1;
+        for (int i = 0; i < records.size(); i++) {
+            if ("RiskBreachEvent".equals(records.get(i).event())) breach = i;
+        }
+        assertTrue(breach > 0, "the fixture drives riskMonitor over its limit");
+
+        LogRecord cause = records.get(breach - 1);
+        LogRecord effect = records.get(breach);
+
+        // the raising node logged in the PREVIOUS record — the re-dispatch did not extend that cycle
+        assertTrue(cause.nodeLogs().stream().anyMatch(n -> "riskMonitor".equals(n.instanceId())),
+                "riskMonitor ran in the cycle before the breach, not in it");
+        assertTrue(effect.nodeLogs().stream().noneMatch(n -> "riskMonitor".equals(n.instanceId())),
+                "and does not appear in the cycle it caused");
+
+        // nothing in the record says "internally raised": same thread, a normal event time
+        assertEquals(cause.thread(), effect.thread());
+        assertNotEquals(-1L, effect.eventTime(),
+                "an exported call is stamped -1; a re-dispatch is stamped like any other event, which is "
+                + "why the log alone cannot distinguish it from one fed in from outside");
+    }
+
+    @Test
+    void theRaisedEventIsAnOrdinaryEntryPointInTheGraph() throws IOException {
+        // the graph gives no hint either: an internally-raised event is just an EVENT node
+        ProcessorTopology t = topology();
+        assertEquals(ProcessorTopology.Kind.EVENT, t.node("RiskBreachEvent").kind());
+        assertTrue(t.parentsOf("RiskBreachEvent").isEmpty(), "no edge records riskMonitor as its cause");
+        assertEquals(java.util.Set.of("breachHandler"), t.childrenOf("RiskBreachEvent"));
+    }
 }

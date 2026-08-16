@@ -6,6 +6,7 @@ import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
 import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.annotations.ExportService;
 import com.telamin.fluxtion.runtime.audit.EventLogNode;
+import com.telamin.fluxtion.runtime.node.SingleNamedNode;
 
 /**
  * A small quoting graph, written so the compiler emits a genuine topology and a genuine audit log.
@@ -70,6 +71,57 @@ public final class Nodes {
 
         public int getLive() {
             return live;
+        }
+    }
+
+    /**
+     * Raises an event <b>on the graph itself</b> when too many orders are live.
+     *
+     * <p>{@code processReentrantEvent} does not dispatch inline. The event is queued, the current cycle
+     * finishes and <em>publishes its audit record</em>, and only then is the queued event dispatched —
+     * into a brand new cycle with its own record. So a re-dispatch appears in the log as a separate
+     * {@code eventLogRecord} that looks exactly like one fed in from outside, even though nothing outside
+     * the processor sent it. Reading the log alone, the only clue is that the graph contains a node able
+     * to raise it.
+     */
+    public static class RiskMonitor extends SingleNamedNode {
+        private final OrderTracker orders;
+        private final int limit;
+
+        /**
+         * Constructor arguments must correspond to the mapped fields, in order — that is how the generator
+         * reconstructs the node in source. {@code SingleNamedNode}'s own {@code name} is
+         * {@code @FluxtionIgnore}d, so it is <b>not</b> one of them and has to be supplied here rather than
+         * taken as a parameter.
+         */
+        public RiskMonitor(OrderTracker orders, int limit) {
+            super("riskMonitor");
+            this.orders = orders;
+            this.limit = limit;
+        }
+
+        @OnTrigger
+        public boolean checkLimit() {
+            if (orders.getLive() < limit) {
+                return false;                  // under the limit: stop the branch here
+            }
+            auditLog.info("liveOrders", orders.getLive()).info("limit", limit).info("redispatch", true);
+            processReentrantEvent(new Events.RiskBreachEvent("ord-" + orders.getLive(), orders.getLive()));
+            return true;
+        }
+    }
+
+    /** Handles the event {@link RiskMonitor} raised — the far side of a re-dispatch. */
+    public static class BreachHandler extends EventLogNode {
+        private int breaches;
+
+        @OnEventHandler
+        public boolean onBreach(Events.RiskBreachEvent event) {
+            breaches++;
+            auditLog.info("breachedOn", event.orderId())
+                    .info("liveOrders", event.liveOrders())
+                    .info("breachesToday", breaches);
+            return true;
         }
     }
 

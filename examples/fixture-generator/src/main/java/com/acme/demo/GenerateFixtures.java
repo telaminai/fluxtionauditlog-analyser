@@ -67,6 +67,10 @@ public final class GenerateFixtures {
         processor.onEvent(new Events.MarketDataEvent("DEMO-A", 100.12, 100.28));
         processor.onEvent(new Events.OrderUpdateEvent("ord-1", "DONE"));
         processor.onEvent(new Events.MarketDataEvent("DEMO-B", 55.01, 55.09));
+        // two more live orders takes the book over riskMonitor's limit, and it raises a RiskBreachEvent
+        // on the graph itself. The breach arrives as its OWN record, after this one has been published.
+        processor.onEvent(new Events.OrderUpdateEvent("ord-2", "LIVE"));
+        processor.onEvent(new Events.OrderUpdateEvent("ord-3", "LIVE"));
         // an exported-service call: dispatches into the graph like an event, and the record it produces
         // is an ExportFunctionAuditEvent carrying the method signature — the OTHER way a cycle can start
         QuoteControl control = processor.getExportedService(QuoteControl.class);

@@ -11,9 +11,12 @@ package com.acme.demo.generated;
 import com.acme.demo.api.QuoteControl;
 import com.acme.demo.event.Events.MarketDataEvent;
 import com.acme.demo.event.Events.OrderUpdateEvent;
+import com.acme.demo.event.Events.RiskBreachEvent;
+import com.acme.demo.node.Nodes.BreachHandler;
 import com.acme.demo.node.Nodes.OrderTracker;
 import com.acme.demo.node.Nodes.PriceListener;
 import com.acme.demo.node.Nodes.QuotePublisher;
+import com.acme.demo.node.Nodes.RiskMonitor;
 import com.acme.demo.node.Nodes.SpreadCalculator;
 import com.telamin.fluxtion.runtime.CloneableDataFlow;
 import com.telamin.fluxtion.runtime.DataFlow;
@@ -62,6 +65,7 @@ import java.util.function.Consumer;
  * <ul>
  *   <li>com.acme.demo.event.Events.MarketDataEvent
  *   <li>com.acme.demo.event.Events.OrderUpdateEvent
+ *   <li>com.acme.demo.event.Events.RiskBreachEvent
  *   <li>com.telamin.fluxtion.runtime.audit.EventLogControlEvent
  *   <li>com.telamin.fluxtion.runtime.time.ClockStrategy.ClockStrategyEvent
  * </ul>
@@ -95,7 +99,10 @@ public class DemoQuoteProcessor
   private final transient MutableDataFlowContext context =
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
+  public final transient RiskMonitor riskMonitor =
+      new com.acme.demo.node.Nodes.RiskMonitor(orderTracker, 2);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
+  public final transient BreachHandler breachHandler = new BreachHandler();
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
   private boolean initCalled = false;
@@ -123,7 +130,9 @@ public class DemoQuoteProcessor
             new ProcessorDescriptor.Input(
                 "MarketDataEvent", "com.acme.demo.event.Events.MarketDataEvent", false),
             new ProcessorDescriptor.Input(
-                "OrderUpdateEvent", "com.acme.demo.event.Events.OrderUpdateEvent", false)
+                "OrderUpdateEvent", "com.acme.demo.event.Events.OrderUpdateEvent", false),
+            new ProcessorDescriptor.Input(
+                "RiskBreachEvent", "com.acme.demo.event.Events.RiskBreachEvent", false)
           },
           new ProcessorDescriptor.Sink[] {},
           new ProcessorDescriptor.Service[] {
@@ -146,6 +155,7 @@ public class DemoQuoteProcessor
     if (context != null) {
       context.replaceMappings(contextMap);
     }
+    riskMonitor.setDataFlowContext(context);
     eventLogger.setClearAfterPublish(false);
     eventLogger.trace = false;
     eventLogger.printEventToString = true;
@@ -270,6 +280,9 @@ public class DemoQuoteProcessor
     } else if (event instanceof OrderUpdateEvent) {
       OrderUpdateEvent typedEvent = (OrderUpdateEvent) event;
       handleEvent(typedEvent);
+    } else if (event instanceof RiskBreachEvent) {
+      RiskBreachEvent typedEvent = (RiskBreachEvent) event;
+      handleEvent(typedEvent);
     } else if (event instanceof EventLogControlEvent) {
       EventLogControlEvent typedEvent = (EventLogControlEvent) event;
       handleEvent(typedEvent);
@@ -288,6 +301,11 @@ public class DemoQuoteProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(OrderUpdateEvent event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(RiskBreachEvent event) {
     processEvent(event);
   }
 
@@ -321,6 +339,16 @@ public class DemoQuoteProcessor
     if (guardCheck_quotePublisher()) {
       quotePublisher.publish();
     }
+    if (guardCheck_riskMonitor()) {
+      riskMonitor.checkLimit();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(RiskBreachEvent typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    breachHandler.onBreach(typedEvent);
     afterEvent();
   }
 
@@ -386,6 +414,10 @@ public class DemoQuoteProcessor
       OrderUpdateEvent typedEvent = (OrderUpdateEvent) event;
       auditEvent(typedEvent);
       isDirty_orderTracker = orderTracker.orderUpdate(typedEvent);
+    } else if (event instanceof RiskBreachEvent) {
+      RiskBreachEvent typedEvent = (RiskBreachEvent) event;
+      auditEvent(typedEvent);
+      breachHandler.onBreach(typedEvent);
     } else if (event instanceof EventLogControlEvent) {
       EventLogControlEvent typedEvent = (EventLogControlEvent) event;
       auditEvent(typedEvent);
@@ -405,6 +437,9 @@ public class DemoQuoteProcessor
     }
     if (guardCheck_quotePublisher()) {
       quotePublisher.publish();
+    }
+    if (guardCheck_riskMonitor()) {
+      riskMonitor.checkLimit();
     }
     afterEvent();
   }
@@ -426,9 +461,11 @@ public class DemoQuoteProcessor
 
   private void initialiseAuditor(Auditor auditor) {
     auditor.init();
+    auditor.nodeRegistered(breachHandler, "breachHandler");
     auditor.nodeRegistered(orderTracker, "orderTracker");
     auditor.nodeRegistered(priceListener, "priceListener");
     auditor.nodeRegistered(quotePublisher, "quotePublisher");
+    auditor.nodeRegistered(riskMonitor, "riskMonitor");
     auditor.nodeRegistered(spreadCalculator, "spreadCalculator");
     auditor.nodeRegistered(callbackDispatcher, "callbackDispatcher");
     auditor.nodeRegistered(subscriptionManager, "subscriptionManager");
@@ -507,6 +544,10 @@ public class DemoQuoteProcessor
 
   private boolean guardCheck_quotePublisher() {
     return isDirty_orderTracker | isDirty_spreadCalculator;
+  }
+
+  private boolean guardCheck_riskMonitor() {
+    return isDirty_orderTracker;
   }
 
   private boolean guardCheck_spreadCalculator() {

@@ -23,11 +23,16 @@ public class DemoQuoteTracedProcessorBuilder implements FluxtionGraphBuilder {
         Nodes.SpreadCalculator spread = new Nodes.SpreadCalculator(prices);
         Nodes.OrderTracker orders = new Nodes.OrderTracker();
         Nodes.QuotePublisher publisher = new Nodes.QuotePublisher(spread, orders);
+        // raises an event on the graph itself when the order book gets too long
+        Nodes.RiskMonitor risk = new Nodes.RiskMonitor(orders, 2);
+        Nodes.BreachHandler breaches = new Nodes.BreachHandler();
         // the names become the instanceIds in nodeLogs, and the node ids in the graphml
         cfg.addNode(prices, "priceListener");
         cfg.addNode(spread, "spreadCalculator");
         cfg.addNode(orders, "orderTracker");
         cfg.addNode(publisher, "quotePublisher");
+        cfg.addNode(risk, "riskMonitor");
+        cfg.addNode(breaches, "breachHandler");
         // WITH a level: compiles node-invocation tracing into the processor, so every node that runs
         // logs a thread + method entry whether or not it makes auditLog calls of its own. The runtime
         // level then gates it. This is the regime where absence from the log really does mean the node

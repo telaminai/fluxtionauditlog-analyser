@@ -22,6 +22,7 @@ eventLogRecord:
     nodeLogs: 
         - orderTracker: { thread: com.acme.demo.GenerateFixtures.main(), method: orderUpdate, orderId: ord-1, live: 1}
         - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.02004, liveOrders: 1, suspended: false}
+        - riskMonitor: { thread: com.acme.demo.GenerateFixtures.main(), method: checkLimit}
     endTime: 1767258000130
 ---
 eventLogRecord: 
@@ -47,6 +48,7 @@ eventLogRecord:
     nodeLogs: 
         - orderTracker: { thread: com.acme.demo.GenerateFixtures.main(), method: orderUpdate, orderId: ord-1, live: 0}
         - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.020040000000000002, liveOrders: 0, suspended: false}
+        - riskMonitor: { thread: com.acme.demo.GenerateFixtures.main(), method: checkLimit}
     endTime: 1767258000190
 ---
 eventLogRecord: 
@@ -63,8 +65,45 @@ eventLogRecord:
     endTime: 1767258000220
 ---
 eventLogRecord: 
-    eventTime: -1
+    eventTime: 1767258000230
     logTime: 1767258000240
+    groupingId: null
+    event: OrderUpdateEvent
+    eventToString: OrderUpdateEvent[orderId=ord-2, state=LIVE]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - orderTracker: { thread: com.acme.demo.GenerateFixtures.main(), method: orderUpdate, orderId: ord-2, live: 1}
+        - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.01101, liveOrders: 1, suspended: false}
+        - riskMonitor: { thread: com.acme.demo.GenerateFixtures.main(), method: checkLimit}
+    endTime: 1767258000250
+---
+eventLogRecord: 
+    eventTime: 1767258000260
+    logTime: 1767258000270
+    groupingId: null
+    event: OrderUpdateEvent
+    eventToString: OrderUpdateEvent[orderId=ord-3, state=LIVE]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - orderTracker: { thread: com.acme.demo.GenerateFixtures.main(), method: orderUpdate, orderId: ord-3, live: 2}
+        - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: publish, spread: 0.01101, liveOrders: 2, suspended: false}
+        - riskMonitor: { thread: com.acme.demo.GenerateFixtures.main(), method: checkLimit, liveOrders: 2, limit: 2, redispatch: true}
+    endTime: 1767258000280
+---
+eventLogRecord: 
+    eventTime: 1767258000290
+    logTime: 1767258000300
+    groupingId: null
+    event: RiskBreachEvent
+    eventToString: RiskBreachEvent[orderId=ord-2, liveOrders=2]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - breachHandler: { thread: com.acme.demo.GenerateFixtures.main(), method: onBreach, breachedOn: ord-2, liveOrders: 2, breachesToday: 1}
+    endTime: 1767258000310
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1767258000330
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -72,11 +111,11 @@ public void suspendQuoting(String arg0)
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: suspendQuoting, suspended: true, reason: demo: spread too wide}
-    endTime: 1767258000250
+    endTime: 1767258000340
 ---
 eventLogRecord: 
     eventTime: -1
-    logTime: 1767258000270
+    logTime: 1767258000360
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -84,4 +123,4 @@ public void resumeQuoting()
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - quotePublisher: { thread: com.acme.demo.GenerateFixtures.main(), method: resumeQuoting, suspended: false}
-    endTime: 1767258000280
+    endTime: 1767258000370

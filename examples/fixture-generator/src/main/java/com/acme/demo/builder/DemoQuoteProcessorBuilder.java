@@ -22,11 +22,16 @@ public class DemoQuoteProcessorBuilder implements FluxtionGraphBuilder {
         Nodes.SpreadCalculator spread = new Nodes.SpreadCalculator(prices);
         Nodes.OrderTracker orders = new Nodes.OrderTracker();
         Nodes.QuotePublisher publisher = new Nodes.QuotePublisher(spread, orders);
+        // raises an event on the graph itself when the order book gets too long
+        Nodes.RiskMonitor risk = new Nodes.RiskMonitor(orders, 2);
+        Nodes.BreachHandler breaches = new Nodes.BreachHandler();
         // the names become the instanceIds in nodeLogs, and the node ids in the graphml
         cfg.addNode(prices, "priceListener");
         cfg.addNode(spread, "spreadCalculator");
         cfg.addNode(orders, "orderTracker");
         cfg.addNode(publisher, "quotePublisher");
+        cfg.addNode(risk, "riskMonitor");
+        cfg.addNode(breaches, "breachHandler");
         // No level argument. addEventAudit(LogLevel.INFO) additionally traces every node invocation
         // (thread + method per node), which would make every executed node appear — the opposite of the
         // case these fixtures exist to capture, and unlike the production logs the analyser reads.

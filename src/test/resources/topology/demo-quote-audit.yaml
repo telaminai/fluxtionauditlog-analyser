@@ -60,8 +60,44 @@ eventLogRecord:
     endTime: 1767258000220
 ---
 eventLogRecord: 
-    eventTime: -1
+    eventTime: 1767258000230
     logTime: 1767258000240
+    groupingId: null
+    event: OrderUpdateEvent
+    eventToString: OrderUpdateEvent[orderId=ord-2, state=LIVE]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - orderTracker: { orderId: ord-2, live: 1}
+        - quotePublisher: { spread: 0.01101, liveOrders: 1, suspended: false}
+    endTime: 1767258000250
+---
+eventLogRecord: 
+    eventTime: 1767258000260
+    logTime: 1767258000270
+    groupingId: null
+    event: OrderUpdateEvent
+    eventToString: OrderUpdateEvent[orderId=ord-3, state=LIVE]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - orderTracker: { orderId: ord-3, live: 2}
+        - quotePublisher: { spread: 0.01101, liveOrders: 2, suspended: false}
+        - riskMonitor: { liveOrders: 2, limit: 2, redispatch: true}
+    endTime: 1767258000280
+---
+eventLogRecord: 
+    eventTime: 1767258000290
+    logTime: 1767258000300
+    groupingId: null
+    event: RiskBreachEvent
+    eventToString: RiskBreachEvent[orderId=ord-2, liveOrders=2]
+    thread: com.acme.demo.GenerateFixtures.main()
+    nodeLogs: 
+        - breachHandler: { breachedOn: ord-2, liveOrders: 2, breachesToday: 1}
+    endTime: 1767258000310
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1767258000330
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -69,11 +105,11 @@ public void suspendQuoting(String arg0)
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - quotePublisher: { suspended: true, reason: demo: spread too wide}
-    endTime: 1767258000250
+    endTime: 1767258000340
 ---
 eventLogRecord: 
     eventTime: -1
-    logTime: 1767258000270
+    logTime: 1767258000360
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -81,4 +117,4 @@ public void resumeQuoting()
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - quotePublisher: { suspended: false}
-    endTime: 1767258000280
+    endTime: 1767258000370
