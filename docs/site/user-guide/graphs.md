@@ -11,8 +11,6 @@ Plot any node value over time. Open the **Graph** tab; each graph is its own sub
 
 The series key sits as an overlay on the top-right of the plot; right-click a label to remove it.
 
-![Adding a nodeLog value to a graph from the record detail view](../assets/adding-to-graph.png)
-
 ## Formula series — f(x)
 
 Beyond raw keys, add a **derived series** from a formula over other keys, e.g.:
@@ -26,8 +24,6 @@ askMakerOrder.price − bidMakerOrder.price
 - Formulas can **reference other formulas** by their label.
 - **Resolve policy**: *locf* carries each ref's last value (for cross-node formulas); *strict* only
   evaluates within a single record.
-
-![Editing a series and its formula in the Edit-series panel](../assets/series-editing.png)
 
 ## Styling, zoom and pins
 

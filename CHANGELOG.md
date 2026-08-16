@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Security
+- **Documentation screenshots have been replaced.** The images shipped with the first public release
+  were captured against a real audit log and contained live venue, vendor and project names. They are
+  regenerated from the anonymised demo fixture; five that could not be regenerated automatically have
+  been withdrawn. Screenshots are now produced by `tools/capture-docs.py`, which only ever loads the
+  demo fixture.
+
 ### Added
 - **Node log: Logical and Text views.** Logical gives each node a block with its values on their own
   lines in dispatch order; Text is the raw audit YAML. Traced-only keys (`thread`, `method`) are muted

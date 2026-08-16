@@ -44,8 +44,6 @@ under **Settings ▸ Performance & S3**.
 Open **File ▸ Settings…**. The dialog is tabbed — Source roots, Maven repos, Event processor, LLM,
 Performance & S3, Assistant and History:
 
-![The Settings dialog on the Source roots tab, listing Java source folders](assets/settings-source-roots.png)
-
 ### Source roots
 The source folders for your processor and node classes. With these set, clicking a nodeLog line opens
 the exact class/method, and the assistant explains against real code. A root that can't be found shows

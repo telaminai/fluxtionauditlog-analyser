@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""Regenerate the documentation screenshots by driving a real analyser.
+
+Why this exists
+---------------
+The screenshots shipped with the first public release were taken against a **real** audit log. They
+carried live venue, vendor and project names into a public repository and onto the published docs site,
+and the anonymisation sweep never caught it because `grep` cannot read a PNG.
+
+So docs images are no longer taken by hand. This script launches the analyser on the **demo fixture**
+(`com.acme…`, `DEMO-A`) and drives it over the localhost REST transport, so every published image is
+anonymous by construction rather than by inspection.
+
+Usage
+-----
+    python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
+    python3 tools/capture-docs.py --keep     # leave the app running afterwards
+
+Requires: a built jar (`mvn package`), and macOS `screencapture` with Screen Recording permission for
+the invoking terminal — a native capture is what gives the window its title bar.
+"""
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
+ASSETS = REPO / "docs" / "site" / "assets"
+LOG = REPO / "src/test/resources/topology/demo-quote-audit.yaml"
+GRAPHML = REPO / "src/test/resources/topology/demo-quote-processor.graphml"
+ROOT = REPO / "examples/fixture-generator/src/main/java"
+PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
+CONFIG = pathlib.Path.home() / ".fluxtion-analyser" / "config"
+ENDPOINT = pathlib.Path.home() / ".fluxtion-analyser" / "rest-endpoint"
+
+
+def jar():
+    hits = sorted((REPO / "target").glob("fluxtion-auditlog-analyser-*.jar"))
+    if not hits:
+        sys.exit("no jar — run `mvn package` first")
+    return hits[-1]
+
+
+def set_config(**values):
+    """Force the settings a capture depends on (theme, REST) without disturbing the rest."""
+    lines = CONFIG.read_text().splitlines() if CONFIG.exists() else []
+    for key, value in values.items():
+        lines = [l for l in lines if not l.startswith(key + "=")]
+        lines.append(f"{key}={value}")
+    CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG.write_text("\n".join(lines) + "\n")
+
+
+def launch(theme):
+    subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
+    time.sleep(1)
+    ENDPOINT.unlink(missing_ok=True)
+    # a fresh view every run: a remembered zoom or a stale topology would make the images irreproducible
+    set_config(**{"assistant.rest": "true", "theme": theme, "topologyZoom": "0",
+                  "topologySpacing": "100", "topologyTextSize": "11",
+                  "topologyOrientation": "TOP_DOWN", "topologySyncSource": "true",
+                  "eventFilterCollapsed": "false"})
+    subprocess.Popen(["java", "-jar", str(jar()), str(LOG)],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(40):
+        time.sleep(1)
+        if ENDPOINT.exists():
+            time.sleep(2)
+            return json.loads(ENDPOINT.read_text())
+    sys.exit("the app did not publish a REST endpoint — is the transport enabled?")
+
+
+def act(ep, verb, params=None):
+    body = json.dumps({"v": 1, "action": verb, "params": params or {}}).encode()
+    req = urllib.request.Request(ep["url"] + "/action", data=body, method="POST",
+                                 headers={"Content-Type": "application/json",
+                                          "X-Analyser-Token": ep["token"]})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        out = json.loads(r.read())
+    if not out.get("ok"):
+        print(f"  ! {verb} failed: {out.get('error')}")
+    return out
+
+
+def capture(ep, name):
+    """Native window capture — the painted fallback cannot draw the title bar."""
+    scratch = "/tmp/.analyser-shot.png"
+    res = act(ep, "screenshot", {"path": scratch})
+    if not res.get("ok"):
+        return False
+    b = res["wrote"]["windowBounds"]
+    target = ASSETS / name
+    subprocess.run(["screencapture", "-x", "-R",
+                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(target)], check=False)
+    if target.exists():
+        print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
+        return True
+    # no Screen Recording permission: fall back to the app painting itself, minus the title bar
+    shutil.copy(scratch, target)
+    print(f"  ~ {name}  (painted fallback — no native capture)")
+    return True
+
+
+def seed(ep):
+    """Every capture starts from the same loaded state."""
+    act(ep, "source_root", {"add": [str(ROOT)]})
+    act(ep, "open", {"processor": PROCESSOR})
+    act(ep, "open", {"graphml": str(GRAPHML)})
+
+
+def main():
+    ASSETS.mkdir(parents=True, exist_ok=True)
+
+    print("light theme")
+    ep = launch("Light")
+    seed(ep)
+
+    # the front page: the whole tool at work — records, the logical detail, and the graph of the cycle
+    act(ep, "goto", {"recordIndex": 5, "reveal": True})
+    act(ep, "topology", {"select": "quotePublisher", "scope": "neighbours"})
+    capture(ep, "screenshot-light.png")
+
+    # records and filtering: the table, the time range, and one record read out logically
+    act(ep, "topology", {"showAll": True})
+    act(ep, "goto", {"recordIndex": 6, "reveal": True})
+    capture(ep, "records-overview.png")
+
+    # flagging: findings the user has marked, with their notes
+    act(ep, "flag", {"recordIndexes": [6, 7],
+                     "note": "live orders hit the risk limit — check what riskMonitor did next"})
+    act(ep, "goto", {"recordIndex": 7, "reveal": True})
+    capture(ep, "flagged-only.png")
+
+    # source navigation: the processor and the node it dispatches into, side by side
+    act(ep, "topology", {"select": "quotePublisher", "source": True})
+    capture(ep, "source-navigation.png")
+
+    # topology: stepping a cycle
+    act(ep, "topology", {"source": False, "showAll": True})
+    act(ep, "goto", {"recordIndex": 0, "reveal": True})
+    act(ep, "topology", {"step": 2})
+    capture(ep, "topology-step-through.png")
+
+    # topology: exploring by scope
+    act(ep, "topology", {"showAll": True, "select": "quotePublisher", "scope": "neighbours"})
+    capture(ep, "topology-explore.png")
+
+    print("dark theme")
+    ep = launch("Dark")
+    seed(ep)
+    act(ep, "goto", {"recordIndex": 5, "reveal": True})
+    act(ep, "topology", {"select": "quotePublisher", "scope": "neighbours"})
+    capture(ep, "screenshot-dark.png")
+
+    if "--keep" not in sys.argv:
+        subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
+    print("done")
+
+
+if __name__ == "__main__":
+    main()

@@ -103,8 +103,6 @@ two are aligned key-by-key. Every row is classified and colour-coded:
 A header reports the total **difference count**, and you can **export** the whole diff as **CSV**,
 **JSON** or **PDF** from the buttons along the bottom.
 
-![The record diff — two cycles aligned by instanceId.key, changed values highlighted, with CSV/JSON/PDF export](../assets/record-diff.png)
-
 This is how you catch what moved between two cycles — e.g. a price, a quote id or an order state that
 changed one propagation to the next — without eyeballing two raw blocks of `nodeLogs`.
 

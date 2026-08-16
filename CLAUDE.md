@@ -9,6 +9,11 @@ architecture, conventions). This file is only the rules that must never be skipp
    `DEMO` / `marketMaker-DEMO` / `com.acme…` placeholders. Before committing anything containing log
    data, fixtures, screenshots or examples: `grep -ri "aquis\|talos\|nonco" --exclude-dir=target .`
    must be empty.
+   **The sweep cannot see inside images.** It passed for the whole life of the repo while the release
+   screenshots carried real venue, vendor and project names onto the public docs site (found 2026-08-16).
+   Screenshots are therefore generated, not taken: `python3 tools/capture-docs.py` drives a real analyser
+   loaded **only** with the demo fixture. Capture by hand only when the harness cannot reach the surface,
+   and then read every visible string — title bar, status bar, paths — before committing.
 2. **CHANGELOG.md**: every user-visible change adds a line under `## [Unreleased]` in the same commit.
    The release workflow stamps it; it feeds the GitHub release, the in-app notes, and the docs site.
 3. **Branch**: `main` only (trunk-based, always releasable); `pull.rebase` is set — no merge bubbles.

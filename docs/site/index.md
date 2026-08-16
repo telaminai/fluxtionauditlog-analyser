@@ -73,8 +73,6 @@ records flagged, the table filtered down to them. Its answer is a chart and a se
 of text you have to trust. The verification loop is built in: click a plotted point, jump to a flagged
 record, trace it to the exact source method.
 
-![Select a time window and records, hit Explain — the assistant can then plot, flag and filter to show the fault](assets/assistant-explain.png)
-
 !!! tip "No API key needed — and it works with any agent"
     Hit **Copy prompt** and the analyser hands you a self-contained brief — the evidence plus its
     **action protocol** (localhost endpoint, token, verbs). Claude Code, Claude Desktop or any agent can

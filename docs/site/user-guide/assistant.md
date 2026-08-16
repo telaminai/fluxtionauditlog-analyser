@@ -10,8 +10,6 @@ and trace to source. The conclusion arrives as a chart, not a wall of text you h
 **verification loop is built in**. When the assistant says "the quote calculator stopped because the
 venue disconnected here", it can plot that series and flag those cycles, and you watch it on screen.
 
-![Scope a time window, select records, then Explain — or copy the seeded prompt for an external agent](../assets/assistant-explain.png)
-
 ## Fault-finding in practice
 
 1. **Scope it.** Drag the **Time range** window to the incident, then select the suspicious records in
