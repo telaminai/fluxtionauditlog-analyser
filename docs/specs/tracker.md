@@ -409,6 +409,26 @@ design, not a port._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+- [M22.35] ☑ **Fixed: Show all sometimes left nodes dimmed** (owner). `showRecord` re-shaded
+  unconditionally, and the table re-fires its selection for reasons the user never caused — a re-filter, a
+  repaint, regaining focus — so the clear was silently undone. Now a repeat notification for the **same
+  record** (by identity) neither resets the cleared flag nor re-applies the shading; only a genuinely
+  different record does. This is why it was intermittent rather than broken.
+- [M22.36] ☑ **Repeated clicks always cycle the scope** (owner: "sometimes misinterpreted as a
+  double-click"). Java increments `clickCount` for successive clicks, so click 2 of a fast cycle arrived
+  as a double-click and opened source. Double-click activation is **removed from the canvas** — the two
+  gestures cannot coexist when one of them *is* repeated clicking. Source navigation is now **Enter** on
+  the selected node, the node context menu, or a double-click in the index overlay, all of which are
+  unambiguous.
+- [M22.37] ☑ **Source opens beside the graph, draggable** (owner; completes what M22.13 began). The
+  Topology tab holds its own `SourcePanel` in a horizontal split, sharing the app's `SourceService` so the
+  processor selection and roots are the configured ones rather than a second set. Navigating no longer
+  switches to the sibling Source tab, which hid the thing you navigated from.
+- [M22.38] ☑ **Nested classes resolve to their enclosing file.** Exposed by M22.37: the demo's own nodes
+  are `Nodes.QuotePublisher`, and the resolver looked for `Nodes/QuotePublisher.java`. Fluxtion's examples
+  group nodes inside a holder, so source navigation failed on exactly the shape the framework teaches.
+  Trailing capitalised segments are now dropped in turn, stopping at the package — a lower-case segment
+  cannot enclose a class. 8 tests, including that a real file still wins over the fallback.
 - [M22.34] ☑ **Show all / background click returns the plain, fully-lit graph** (owner). Clearing the
   selection was not enough: **selection dimming and execution dimming look identical on screen**, so a
   graph with a record selected stayed half-faded and there was no way to see the whole thing plainly. Both

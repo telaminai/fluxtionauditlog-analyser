@@ -8,6 +8,7 @@ import telamin.fluxtion.audit.analyser.analyser.topology.EntryPointResolver;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
 import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
 import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
+import telamin.fluxtion.audit.analyser.analyser.source.SourceService;
 import telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding;
 import telamin.fluxtion.audit.analyser.analyser.topology.StepCursor;
 import telamin.fluxtion.audit.analyser.analyser.topology.TopologyFocus;
@@ -56,6 +57,11 @@ public final class TopologyPanel extends JPanel {
     private final javax.swing.JCheckBox scaffoldingBox = new javax.swing.JCheckBox("Scaffolding", false);
     private final javax.swing.JToggleButton focusButton = new javax.swing.JToggleButton("Focus");
     private final JLabel scopeLabel = new JLabel(" ");
+    private SourcePanel embeddedSource;
+    private final javax.swing.JToggleButton sourceButton = new javax.swing.JToggleButton("Source");
+    private final javax.swing.JSplitPane graphSplit =
+            new javax.swing.JSplitPane(javax.swing.JSplitPane.HORIZONTAL_SPLIT, true);
+    private int dividerAt;
     private javax.swing.JSlider spacingSlider;
     private javax.swing.JSlider textSlider;
     private Runnable displayPrefsChanged = () -> { };
@@ -113,6 +119,10 @@ public final class TopologyPanel extends JPanel {
         focusButton.addActionListener(e -> applyView());
         bar.add(focusButton);
         bar.add(button("Show all", this::showAll));
+        sourceButton.setToolTipText("Show the source beside the graph (Enter on a selected node)");
+        sourceButton.setEnabled(false);
+        sourceButton.addActionListener(e -> showSourcePane(sourceButton.isSelected()));
+        bar.add(sourceButton);
         UiTheme.status(scopeLabel);
         bar.add(scopeLabel);
         bar.addSeparator();
@@ -163,7 +173,11 @@ public final class TopologyPanel extends JPanel {
         overlay.setBorder(BorderFactory.createEmptyBorder(0, 4, 22, 4));
         overlay.add(index);
         canvas.add(overlay, BorderLayout.SOUTH);
-        add(canvas, BorderLayout.CENTER);
+        graphSplit.setLeftComponent(canvas);
+        graphSplit.setRightComponent(null);       // the source pane appears only once asked for
+        graphSplit.setResizeWeight(0.62);
+        graphSplit.setBorder(null);
+        add(graphSplit, BorderLayout.CENTER);
         add(south, BorderLayout.SOUTH);
 
         canvas.onNodeActivated(id -> nodeActivated.accept(id));
@@ -194,6 +208,12 @@ public final class TopologyPanel extends JPanel {
         javax.swing.ActionMap actions = getActionMap();
         keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DOWN, 0), "step-next");
         keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_UP, 0), "step-prev");
+        keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0), "open-source");
+        actions.put("open-source", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (canvas.selected() != null) openSource(canvas.selected());
+            }
+        });
         keys.put(javax.swing.KeyStroke.getKeyStroke('F'), "focus-toggle");
         keys.put(javax.swing.KeyStroke.getKeyStroke('f'), "focus-toggle");
         actions.put("focus-toggle", new javax.swing.AbstractAction() {
@@ -259,6 +279,8 @@ public final class TopologyPanel extends JPanel {
 
     /** True while the cycle shading has been deliberately dropped; the next step brings it back. */
     private boolean shadingCleared;
+    /** The record last shaded, by identity — so a repeated notification is not mistaken for a change. */
+    private LogRecord lastShownRecord;
 
     private JButton button(String text, Runnable action) {
         JButton b = new JButton(text);
@@ -514,8 +536,55 @@ public final class TopologyPanel extends JPanel {
         this.filterAction = action;
     }
 
+    /**
+     * Open a node's source <b>beside the graph</b> rather than in the Source tab.
+     *
+     * <p>Reading a dispatch means holding two things at once — which node ran, and what its method does —
+     * and the Source tab is a sibling of this one, so going there hides the thing you navigated from.
+     * The embedded pane keeps both on screen with a divider you can drag. It falls back to the Source tab
+     * only when no source service has been bound.
+     */
+    /** Open a node's source in the embedded pane, from outside the panel. */
+    public void openSourceFor(String instanceId) {
+        openSource(instanceId);
+    }
+
     private void openSource(String instanceId) {
+        if (embeddedSource != null) {
+            showSourcePane(true);
+            embeddedSource.openInstance(instanceId, null);
+            return;
+        }
         if (sourceOpener != null) sourceOpener.accept(instanceId, null);
+    }
+
+    /**
+     * Give the topology its own source viewer. Shares the caller's {@link SourceService}, so the
+     * processor selection and source roots are the ones already configured — not a second set.
+     */
+    public void bindSource(SourceService service) {
+        if (service == null || embeddedSource != null) return;
+        embeddedSource = new SourcePanel();
+        embeddedSource.bind(service);
+        embeddedSource.setMinimumSize(new java.awt.Dimension(220, 80));
+        sourceButton.setEnabled(true);
+    }
+
+    private void showSourcePane(boolean show) {
+        if (embeddedSource == null) return;
+        sourceButton.setSelected(show);
+        if (show) {
+            if (graphSplit.getRightComponent() != embeddedSource) {
+                graphSplit.setRightComponent(embeddedSource);
+                // half and half the first time; after that whatever the user dragged it to
+                graphSplit.setDividerLocation(dividerAt > 0 ? dividerAt : Math.max(240, getWidth() / 2));
+            }
+        } else {
+            if (graphSplit.getRightComponent() != null) dividerAt = graphSplit.getDividerLocation();
+            graphSplit.setRightComponent(null);
+        }
+        graphSplit.revalidate();
+        graphSplit.repaint();
     }
 
     /**
@@ -595,15 +664,25 @@ public final class TopologyPanel extends JPanel {
      */
     public void showRecord(LogRecord record, int filteredIndex) {
         if (!syncing && autoplay.isRunning()) stopPlay();   // a manual selection wins over the timer
-        shadingCleared = false;                             // a new record is a new cycle to shade
+
+        // Selecting a DIFFERENT record is a new cycle and re-shades. Being told about the SAME one again
+        // is not a user action at all — the table re-fires its selection on a re-filter, on a repaint, on
+        // being handed back focus — and treating that as "shade it again" is what made Show all appear to
+        // work only sometimes: the clear was undone by an event the user never caused.
+        boolean sameRecord = record != null && record == lastShownRecord;
+        lastShownRecord = record;
+        if (!sameRecord) shadingCleared = false;
+
         cycle = record == null ? List.of() : record.nodeLogs();
         List<String> order = new ArrayList<>(cycle.size());
         for (NodeLog n : cycle) order.add(n.instanceId());
         List<String> entries = record == null ? List.of()
                 : List.copyOf(EntryPointResolver.resolve(
                         fullTopology, record.event(), record.eventToString()));
-        canvas.setDispatch(order, entries,
-                record != null && AuditTrace.tracesEveryInvocation(record.nodeLogs()));
+        if (!shadingCleared) {
+            canvas.setDispatch(order, entries,
+                    record != null && AuditTrace.tracesEveryInvocation(record.nodeLogs()));
+        }
         if (record == null) {
             cursor = StepCursor.over(List.of());
         } else if (recordSource != null && recordSource.size() > 0) {

@@ -26,9 +26,34 @@ public final class SourceRootResolver {
         return roots;
     }
 
-    /** First existing {@code <root>/<pkg-as-path>/<Simple>.java} for the FQN. */
+    /**
+     * First existing {@code <root>/<pkg-as-path>/<Simple>.java} for the FQN, falling back to the
+     * <b>enclosing</b> file for a nested class.
+     *
+     * <p>{@code com.acme.node.Nodes.QuotePublisher} lives in {@code Nodes.java}, not
+     * {@code Nodes/QuotePublisher.java}. Nested node classes are common — the golden path's own demo
+     * groups its nodes inside one holder — so without this, source navigation fails on exactly the shape
+     * the framework's examples teach. Each trailing capitalised segment is dropped in turn, which stops
+     * at the package (lower-case by convention) rather than walking off the top.
+     */
     public Optional<Path> find(String fqn) {
         if (fqn == null || fqn.isBlank()) return Optional.empty();
+        String name = fqn;
+        while (true) {
+            Optional<Path> hit = findExact(name);
+            if (hit.isPresent()) return hit;
+            int dot = name.lastIndexOf('.');
+            if (dot < 0) return Optional.empty();
+            String enclosing = name.substring(0, dot);
+            int prev = enclosing.lastIndexOf('.');
+            String last = prev < 0 ? enclosing : enclosing.substring(prev + 1);
+            // only a type can enclose a type; a lower-case segment is the package, so stop
+            if (last.isEmpty() || !Character.isUpperCase(last.charAt(0))) return Optional.empty();
+            name = enclosing;
+        }
+    }
+
+    private Optional<Path> findExact(String fqn) {
         String rel = fqn.replace('.', '/') + ".java";
         for (Path root : roots) {
             Path candidate = root.resolve(rel);

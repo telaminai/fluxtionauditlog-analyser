@@ -138,6 +138,9 @@ public final class MainFrame extends JFrame {
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // one place remembers a loaded topology, whichever entry point loaded it
         topologyPanel.onTopologyLoaded(this::rememberGraphml);
+        // the topology gets its own source viewer, sharing this service — so navigating from the graph
+        // keeps the graph on screen instead of switching to the sibling Source tab
+        topologyPanel.bindSource(sourceService);
         topologyPanel.setDisplayPrefs(config.topologySpacingPercent, config.topologyTextSize);
         topologyPanel.onDisplayPrefsChanged(() -> {
             config.topologySpacingPercent = topologyPanel.spacingPercent();

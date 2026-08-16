@@ -21,6 +21,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
   theme, so it holds in Light, Dark, IntelliJ and Darcula.
 - Switching side tabs no longer moves the main split divider.
+- **Source opens beside the graph** in the Topology tab, with a draggable divider, instead of switching
+  to the Source tab. Open it with **Enter** on a selected node, the node's right-click menu, or a
+  double-click in the index. Repeated clicks on a node now always cycle its scope.
+- Nested classes (e.g. `Nodes.QuotePublisher`) now resolve to their enclosing `.java` file, so source
+  navigation works for graphs whose nodes are grouped in a holder class.
 - **Show all**, or a click on empty canvas, returns the topology to the plain full graph — selection,
   focus and cycle shading all cleared, every node at full strength. Stepping brings the shading back.
 - **Open recent** is split into *audit log* and *GraphML*.

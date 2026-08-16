@@ -102,9 +102,7 @@ public final class TopologyCanvas extends JPanel {
                     // Shift as a second spelling everywhere
                     int menuMask = java.awt.Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
                     boolean additive = (e.getModifiersEx() & menuMask) != 0 || e.isShiftDown();
-                    if (e.getClickCount() == 2 && id != null) {
-                        nodeActivated.accept(id);
-                    } else if (id != null) {
+                    if (id != null) {
                         select(id);
                         nodeClicked.accept(id, additive);
                     } else {
