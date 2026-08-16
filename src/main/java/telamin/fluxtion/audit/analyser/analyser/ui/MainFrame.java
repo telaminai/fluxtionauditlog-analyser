@@ -385,7 +385,11 @@ public final class MainFrame extends JFrame {
         if (sideTabs != null) sideTabs.setSelectedComponent(sourcePanel);
     }
 
-    /** Accepts a dropped log file anywhere on the window and opens it (improvements.md). */
+    /**
+     * Accepts files dropped anywhere on the window: a {@code .graphml} loads into the Topology tab,
+     * anything else opens as a log. Dropping a log + graphml pair together routes each — the
+     * "here's the cycle and here's the graph it ran on" gesture.
+     */
     private void installFileDrop() {
         setTransferHandler(new TransferHandler() {
             @Override public boolean canImport(TransferSupport s) {
@@ -398,16 +402,30 @@ public final class MainFrame extends JFrame {
                     Transferable t = s.getTransferable();
                     @SuppressWarnings("unchecked")
                     List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
-                    if (!files.isEmpty()) {
-                        openFile(files.get(0).toPath());
-                        return true;
+                    boolean any = false;
+                    boolean droppedTopology = false;
+                    for (File f : files) {
+                        if (isGraphml(f.getName())) {
+                            topologyPanel.load(f.toPath());
+                            droppedTopology = true;
+                        } else if (!any) {
+                            openFile(f.toPath());   // first non-graphml is the log; extras are ignored
+                            any = true;
+                        }
                     }
+                    if (droppedTopology && sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+                    return any || droppedTopology;
                 } catch (Exception ignore) {
                     // ignore malformed drops
                 }
                 return false;
             }
         });
+    }
+
+    /** Routing rule for dropped files — {@code .graphml} goes to the Topology tab. */
+    static boolean isGraphml(String fileName) {
+        return fileName != null && fileName.toLowerCase(java.util.Locale.ROOT).endsWith(".graphml");
     }
 
     private void buildMenu() {

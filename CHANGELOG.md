@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- Topology: **drag-and-drop a `.graphml`** anywhere on the window to load it into the Topology tab —
+  and drop a log + graphml pair together to open both in one gesture.
 - **MCP bridge** — `java -jar analyser.jar --mcp` runs the analyser as an MCP server over stdio, so an
   MCP-native client (Claude Code, Claude Desktop, Codex) drives the running app with **no prompting
   and no copied token**: it discovers one tool per assistant verb (`analyser_aggregate`,

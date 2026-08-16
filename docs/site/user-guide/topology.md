@@ -50,7 +50,9 @@ log never mentions it. The order-handling branch is faded because a market-data 
 ## Open a topology
 
 Fluxtion emits a `.graphml` for the processor when it builds. In the Topology tab, **Open .graphml…** and
-pick it — typically beside the generated processor source in your build output.
+pick it — typically beside the generated processor source in your build output. Or just **drag the
+`.graphml` onto the window** — it routes to the Topology tab by extension (and dropping a log and a
+graphml *together* opens both: the cycle and the graph it ran on, in one gesture).
 
 You don't need a server for any of this. The graph is a file, the log is a file, and the analyser works
 on both offline — which is the point when you're supporting a system whose logs were shipped somewhere
