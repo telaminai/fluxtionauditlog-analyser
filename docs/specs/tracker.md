@@ -332,9 +332,15 @@ picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that ch
   knew only the fully-qualified signature spelling, so every exported call resolved to no entry point.
 - [M22.3] ☐ **Export the view as PNG** — reuses the offscreen render already used to verify the canvas;
   pairs with the existing graph/record exports.
-- [M22.4] ☐ **Text-size and separation sliders** — separation re-runs `LayeredLayout` (`nodeWidth`,
-  `siblingGap`, `layerGap` are already config); text size is a canvas concern. Persist in `AppConfig`.
-- [M22.5] ☐ **Text scales with zoom** _(design question, not just work)_ — today the font is a fixed
+- [M22.4] ☑ **Text-size and separation sliders** — shipped, plus a **Show all** reset (clears the
+  selection and focus so nothing is dimmed; clicking empty canvas does the same, but only if you know it
+  does). `Config.withSpacing()` scales the **gaps only** — growing the boxes would also move the
+  label-visibility threshold, which is keyed to box pixels. Label size is deliberately **independent of
+  zoom**, which settles M22.5: labels that scale with zoom read well zoomed in and become unreadable
+  zoomed out, exactly when you most need to know what you are looking at. The spacing slider reports on
+  drag-settle so a 300-node layout does not re-run per pixel. _(Not yet persisted in `AppConfig`.)_
+- [M22.5] ⊘ **Text scales with zoom** — DECIDED AGAINST, see M22.4: label size is a slider, independent
+  of zoom. _Original note:_ **Text scales with zoom** _(design question, not just work)_ — today the font is a fixed
   screen size and labels disappear below a pixel threshold, so zooming out shrinks boxes around
   constant-size text. Growing text with zoom reads better while zoomed in but re-introduces unreadable
   labels when out. Likely answer: scale within a clamped band, keeping the existing threshold.

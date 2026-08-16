@@ -76,6 +76,16 @@ public final class LayeredLayout {
         public Config withOrientation(Orientation o) {
             return new Config(nodeWidth, nodeHeight, siblingGap, layerGap, o, sweeps);
         }
+
+        /**
+         * Scale the gaps, leaving box size alone. Separation and node size are different questions: a
+         * user asking for more room wants the graph to breathe, not the boxes to grow — growing the
+         * boxes would also change when labels appear, since that threshold is keyed to box pixels.
+         */
+        public Config withSpacing(double factor) {
+            double f = Math.max(0.25, Math.min(4, factor));
+            return new Config(nodeWidth, nodeHeight, 28 * f, 72 * f, orientation, sweeps);
+        }
     }
 
     public static TopologyLayout layout(ProcessorTopology topology) {

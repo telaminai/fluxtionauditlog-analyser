@@ -212,6 +212,34 @@ public final class TopologyCanvas extends JPanel {
         return topology;
     }
 
+    /** Re-space the layout. Re-runs the layout, keeping zoom and pan so the view does not jump. */
+    public void setSpacing(double factor) {
+        double scale0 = scale;
+        double ox = offsetX;
+        double oy = offsetY;
+        config = config.withSpacing(factor);
+        layout = LayeredLayout.layout(topology, config);
+        scale = scale0;
+        offsetX = ox;
+        offsetY = oy;
+        repaint();
+    }
+
+    /**
+     * Label point size. Kept independent of zoom: labels that scale with zoom read well while zoomed in
+     * and become unreadable when zoomed out, which is when you most need to know what you are looking at.
+     */
+    public void setLabelSize(float points) {
+        this.labelPoints = Math.max(7f, Math.min(22f, points));
+        repaint();
+    }
+
+    public float labelSize() {
+        return labelPoints;
+    }
+
+    private float labelPoints = 11f;
+
     public void setOrientation(LayeredLayout.Orientation orientation) {
         config = config.withOrientation(orientation);
         layout = LayeredLayout.layout(topology, config);
@@ -559,7 +587,7 @@ public final class TopologyCanvas extends JPanel {
 
     private void paintNodes(Graphics2D g, Rectangle2D visible, boolean dark, Color text, Color muted) {
         boolean labels = config().nodeWidth() * scale >= LABEL_MIN_BOX_PX;
-        g.setFont(getFont().deriveFont(11f));
+        g.setFont(getFont().deriveFont(labelPoints));
         FontMetrics fm = g.getFontMetrics();
 
         for (TopologyLayout.NodeBox box : layout.boxes()) {
@@ -767,7 +795,7 @@ public final class TopologyCanvas extends JPanel {
     /** Corner readout: what you are looking at and how far in, plus the cycle legend when one is shown. */
     private void paintHud(Graphics2D g, Color muted) {
         g.setColor(muted);
-        g.setFont(getFont().deriveFont(11f));
+        g.setFont(getFont().deriveFont(labelPoints));
         String hud = topology.nodeCount() + " nodes · " + topology.edgeCount() + " edges · "
                      + layout.layerCount() + " layers · " + Math.round(scale * 100) + "%";
         g.drawString(hud, 10, getHeight() - 10);

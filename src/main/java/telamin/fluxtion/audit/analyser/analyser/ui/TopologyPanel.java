@@ -106,8 +106,17 @@ public final class TopologyPanel extends JPanel {
                 + "rather than hidden.");
         focusButton.addActionListener(e -> applyView());
         bar.add(focusButton);
+        bar.add(button("Show all", this::showAll));
         UiTheme.status(scopeLabel);
         bar.add(scopeLabel);
+        bar.addSeparator();
+        bar.add(new JLabel(" spacing "));
+        bar.add(slider(25, 400, 100, "Space the layers and siblings further apart",
+                v -> canvas.setSpacing(v / 100.0)));
+        bar.add(new JLabel(" text "));
+        bar.add(slider(7, 22, 11, "Label point size — independent of zoom, so labels stay readable "
+                        + "when you zoom out",
+                v -> canvas.setLabelSize(v)));
         bar.addSeparator();
         prevStep.setToolTipText("Previous step  ↑   (rows, then back into the previous record)");
         nextStep.setToolTipText("Next step  ↓   (this record's rows, then on to the next record)");
@@ -178,6 +187,35 @@ public final class TopologyPanel extends JPanel {
         actions.put("step-prev", new javax.swing.AbstractAction() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { stepBy(-1); }
         });
+    }
+
+    /** A compact toolbar slider that reports only when the drag settles, so layout does not re-run per pixel. */
+    private javax.swing.JSlider slider(int min, int max, int value, String tip,
+                                       java.util.function.IntConsumer onChange) {
+        javax.swing.JSlider s = new javax.swing.JSlider(min, max, value);
+        s.setToolTipText(tip);
+        s.setPreferredSize(new java.awt.Dimension(90, s.getPreferredSize().height));
+        s.setMaximumSize(new java.awt.Dimension(90, s.getPreferredSize().height));
+        s.setFocusable(false);
+        s.addChangeListener(e -> {
+            // re-laying out a 300-node graph on every intermediate value makes the drag feel broken;
+            // the label size is cheap enough to follow live
+            if (!s.getValueIsAdjusting() || max <= 22) onChange.accept(s.getValue());
+        });
+        return s;
+    }
+
+    /**
+     * Back to the whole graph, undimmed: clears the selection and the focus. Clicking empty canvas does
+     * the same, but only if you know it does — an explicit way out matters more than an implicit one when
+     * the view can hide most of the graph.
+     */
+    private void showAll() {
+        selection.clear();
+        scope = TopologyFocus.Scope.NODE;
+        focusButton.setSelected(false);
+        canvas.select(null);
+        applyView();
     }
 
     private JButton button(String text, Runnable action) {

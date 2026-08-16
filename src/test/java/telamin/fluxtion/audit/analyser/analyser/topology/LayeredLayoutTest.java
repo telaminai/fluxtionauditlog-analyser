@@ -302,4 +302,33 @@ class LayeredLayoutTest {
             if (!e.reversed()) assertTrue(layerOf(l, e.source()) < layerOf(l, e.target()));
         }
     }
+
+    // ---- spacing (M22.4) --------------------------------------------------------------------------
+
+    @Test
+    void spacingScalesTheGapsAndLeavesTheBoxesAlone() {
+        LayeredLayout.Config base = LayeredLayout.Config.defaults();
+        LayeredLayout.Config wide = base.withSpacing(2.0);
+
+        assertEquals(base.nodeWidth(), wide.nodeWidth(), "asking for room must not grow the boxes — the "
+                + "label-visibility threshold is keyed to box pixels");
+        assertEquals(base.nodeHeight(), wide.nodeHeight());
+        assertEquals(base.siblingGap() * 2, wide.siblingGap(), 0.001);
+        assertEquals(base.layerGap() * 2, wide.layerGap(), 0.001);
+    }
+
+    @Test
+    void spacingIsClampedSoTheLayoutCannotBeDrivenToNothingOrToAbsurdity() {
+        LayeredLayout.Config base = LayeredLayout.Config.defaults();
+        assertEquals(base.withSpacing(0.25).siblingGap(), base.withSpacing(-5).siblingGap(), 0.001);
+        assertEquals(base.withSpacing(4).layerGap(), base.withSpacing(1000).layerGap(), 0.001);
+    }
+
+    @Test
+    void spacingKeepsTheOrientation() {
+        LayeredLayout.Config sideways = LayeredLayout.Config.defaults()
+                .withOrientation(LayeredLayout.Orientation.LEFT_RIGHT);
+        assertEquals(LayeredLayout.Orientation.LEFT_RIGHT, sideways.withSpacing(1.5).orientation(),
+                "a spacing change is not a chance to reset the other settings");
+    }
 }
