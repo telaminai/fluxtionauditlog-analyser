@@ -58,6 +58,10 @@ drive the same verbs:
   suggested fix can't wipe the explanation it's a fix for.
 - **report** — write one record's finding out as a PDF: the explanation, the suggested fix, the event,
   the node log, a picture of the topology as currently focused, and optionally a plot.
+- **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a
+  graphml, and answers the question nobody can answer by eye on a large graph: what did this run never
+  exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
+  whose dirty contract stops it early, is silent by design, and the result says so.
 
 `GET /manifest` publishes a JSON schema for every verb, so a foreign agent learns the shapes up front
 instead of trial-and-erroring against the structured errors.
@@ -70,15 +74,20 @@ no copied token**. The same jar doubles as an MCP server — your client runs it
 config, below).
 
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_filter`,
-`analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_topology`, `analyser_report`,
-`analyser_context`, `analyser_screenshot`, `analyser_open` and `analyser_source_root` — with full
-parameter schemas, so there's nothing to paste into a prompt.
+`analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`, `analyser_topology`,
+`analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open` and
+`analyser_source_root` — with full parameter schemas, so there's nothing to paste into a prompt.
 
-`aggregate`, `read` and `context` are marked read-only. The verbs that only change what the app shows
-are reversible and marked accordingly. Four are marked **destructive**, so a client can prompt before
-running them: `open` replaces the loaded log (taking the session's flags with it), `source_root` writes
-the persisted config, and `screenshot` and `report` write a caller-supplied path — which can overwrite a
-file the app knows nothing about.
+`aggregate`, `read`, `context` and `coverage` are marked read-only. The verbs that only change what the
+app shows are reversible and marked accordingly. Four are marked **destructive**, so a client can prompt
+before running them: `open` replaces the loaded log (taking the session's flags with it), `source_root`
+writes the persisted config, and `screenshot` and `report` write files.
+
+Those last two are **off by default**. Turning on *Allow file exports* (Settings ▸ Assistant) lets them
+write **only inside an export directory you choose**, and they never overwrite an existing file — so a
+second export under the same name is refused rather than silently replacing the first. Exports you drive
+yourself, through a File menu chooser, are unaffected: picking a location in a dialog *is* the
+authorisation.
 
 ### Does my client launch the analyser?
 
@@ -173,11 +182,11 @@ server actually connected, then say what you want:
 $ claude
 
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 12 tools
+  ⎿ fluxtion-analyser   ✔ connected · 13 tools
        analyser_aggregate · analyser_read · analyser_filter
        analyser_graph · analyser_goto · analyser_flag · analyser_report
-       analyser_context · analyser_topology · analyser_screenshot
-       analyser_open · analyser_source_root
+       analyser_coverage · analyser_context · analyser_topology
+       analyser_screenshot · analyser_open · analyser_source_root
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.

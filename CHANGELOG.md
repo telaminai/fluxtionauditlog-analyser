@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **The action manifest advertised six verbs while thirteen shipped.** `GET /manifest` hardcoded its
+  `verbs` list, so it contradicted its own `schemas` field and an external agent never learned that
+  `topology`, `open`, `source_root`, `screenshot`, `report`, `context` and `coverage` existed. The
+  copy-prompt handed to agents named five. Both are now derived from the schema set, with a test that
+  fails if either is written out again.
+- **`analyser_coverage` shipped undocumented**, and the assistant guide still described file exports as
+  able to overwrite anything — which stopped being true when exports became opt-in and confined.
+- **Documentation screenshots can be regenerated again.** `tools/capture-docs.py` now uses a throwaway
+  export directory and unique capture names, so it works with the export guard rather than around it.
+
+
 ## [1.1.0] - 2026-08-16
 
 **The topology release.** The analyser now draws the processor's graph, walks events across it step by

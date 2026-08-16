@@ -190,7 +190,10 @@ public final class PromptBuilder {
     public static String restActionManifest(String url, String token, int maxActionsPerReply) {
         return "ANALYSER ACTIONS over REST (this session can drive the app): POST JSON to " + url + "/action\n"
                 + "with header  X-Analyser-Token: " + token + "\n"
-                + "GET " + url + "/manifest for the verbs + caps. Verbs: aggregate (query), filter, graph, goto, flag.\n"
+                // derived, not listed: this sentence named five verbs while thirteen shipped, and it is
+                // the only verb list a copy-prompt session ever sees
+                + "GET " + url + "/manifest for the verbs + caps. Verbs: "
+                + String.join(", ", VerbSchemas.all().keySet()) + ".\n"
                 + "aggregate {metric, groupBy, filter?} returns typed counts/rates over the index (scan:index|raw); "
                 + "prefer a dimension/flag filter. Up to " + maxActionsPerReply + " actions per reply. Loopback only; "
                 + "do NOT send an Origin header.\n"

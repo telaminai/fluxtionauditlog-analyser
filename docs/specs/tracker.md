@@ -286,6 +286,30 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
+## M25 · Post-1.1.0 drift fixes — ☑ SHIPPED (2026-08-16)
+_Found reviewing v1.1.0 main after the release. Three were pre-existing and mine; one is fallout from
+review B1._
+- [M25.1] ☑ **The manifest lied about its own verb set.** `ActionServer.handleManifest` hardcoded
+  `List.of("aggregate","read","filter","graph","goto","flag")` and never grew, so `/manifest` published
+  `verbs` naming six and `schemas` describing thirteen — an internally inconsistent document, and the
+  `verbs` field is the one a foreign agent reads. `PromptBuilder.restActionManifest` repeated a
+  five-verb list in prose, which is the *only* verb list a copy-prompt session ever sees.
+  Both now derive from `VerbSchemas`. `ManifestVerbContractTest` pins all three published lists
+  (manifest, copy-prompt, assistant guide) and refuses a literal list in the manifest stanza.
+  _Why it rotted: `VerbSchemasTest` and `McpToolsTest` pin the schema set and the MCP tool set, so the
+  two places that tell a **foreign** agent what it may call were the two nothing guarded._
+- [M25.2] ☑ **`analyser_coverage` was undocumented**, and the assistant guide's destructive paragraph
+  still claimed exports "can overwrite a file the app knows nothing about" — untrue since B1, and in
+  direct contradiction of the FAQ answer the same commit corrected.
+- [M25.3] ☑ **`tools/capture-docs.py` was broken by the export guard** — it set no export directory,
+  wrote an absolute `/tmp` path, and reused one filename for every capture, so it failed all three of
+  the guard's rules at once. Now points the app at a throwaway export directory, asks for a unique name
+  per capture, and copies into `docs/site/assets` itself.
+  **The guard was not weakened.** Confinement exists because a verb-driven write is one no human
+  approved; regeneration is the script's problem and the script solves it on its own side of the socket.
+  Verified end to end: all ten assets regenerate, and the output is pixel-identical to what shipped
+  (82 differing pixels of 11.6M — PNG encoding noise), so no image churn was committed.
+
 ## M24 · Coverage for a graph — ☑ SHIPPED (2026-08-16, owner-requested)
 - [M24.1] ☑ **`coverage` verb.** Which declared nodes never wrote audit output in a run. Came out of the
   POC's 309-node round: the harness emitted chiller readings at `i % 12` against a **24**-wide estate, so

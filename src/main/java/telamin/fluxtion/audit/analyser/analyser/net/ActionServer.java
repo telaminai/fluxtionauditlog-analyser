@@ -132,7 +132,12 @@ public final class ActionServer {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("v", ActionDispatcher.SCHEMA_VERSION);
             m.put("tokenHeader", TOKEN_HEADER);
-            m.put("verbs", List.of("aggregate", "read", "filter", "graph", "goto", "flag"));
+            // DERIVED, never listed. This field was hardcoded to six verbs and stayed there while seven
+            // more shipped, so the manifest contradicted itself: `verbs` said six, `schemas` said
+            // thirteen, and an agent reading the obvious field never learned the rest existed.
+            // VerbSchemas calls itself the single source of truth; this is what honouring that means.
+            m.put("verbs", List.copyOf(
+                    telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().keySet()));
             m.put("schemas", telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all());
             m.put("maxActionsPerReply", maxActionsPerReply);
             m.put("rateLimitPerSec", ratePerSec);

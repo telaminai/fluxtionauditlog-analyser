@@ -18,6 +18,18 @@ Usage
 
 Requires: a built jar (`mvn package`), and macOS `screencapture` with Screen Recording permission for
 the invoking terminal — a native capture is what gives the window its title bar.
+
+File exports and the guard
+--------------------------
+Since v1.1.0 the `screenshot` verb is **opt-in and directory-confined**: it writes only inside an export
+directory the user has chosen, and it never overwrites. This script therefore points the app at a
+throwaway export directory and asks for a **unique name per capture**, then does its own copy into
+`docs/site/assets`.
+
+It deliberately does not ask for that guard to be relaxed. The confinement exists because a verb-driven
+write is one no human approved, and "the docs script is inconvenienced" is not a reason to hand an agent
+an arbitrary path. Regeneration is the script's problem to solve, and it solves it by managing its own
+filenames on this side of the socket.
 """
 import json
 import os
@@ -25,6 +37,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 
@@ -38,6 +51,9 @@ ROOT = REPO / "examples/fixture-generator/src/main/java"
 PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
 CONFIG = pathlib.Path.home() / ".fluxtion-analyser" / "config"
 ENDPOINT = pathlib.Path.home() / ".fluxtion-analyser" / "rest-endpoint"
+# the app writes here; this script copies out of it. Cleared each run so "never overwrite" is satisfied
+# by construction rather than by hoping the names are fresh.
+EXPORT_DIR = pathlib.Path(tempfile.gettempdir()) / "analyser-doc-capture"
 
 
 def jar():
@@ -62,10 +78,16 @@ def launch(theme):
     time.sleep(1)
     ENDPOINT.unlink(missing_ok=True)
     # a fresh view every run: a remembered zoom or a stale topology would make the images irreproducible
+    # a fresh export directory per launch: the guard refuses to overwrite, and regenerating the same
+    # nine filenames is the entire job
+    if EXPORT_DIR.exists():
+        shutil.rmtree(EXPORT_DIR)
+    EXPORT_DIR.mkdir(parents=True)
     set_config(**{"assistant.rest": "true", "theme": theme, "topologyZoom": "0",
                   "topologySpacing": "100", "topologyTextSize": "11",
                   "topologyOrientation": "TOP_DOWN", "topologySyncSource": "true",
-                  "eventFilterCollapsed": "false"})
+                  "eventFilterCollapsed": "false",
+                  "assistant.exports": "true", "assistant.exportDir": str(EXPORT_DIR)})
     subprocess.Popen(["java", "-jar", str(jar()), str(LOG)],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(40):
@@ -90,10 +112,16 @@ def act(ep, verb, params=None):
 
 def capture(ep, name):
     """Native window capture — the painted fallback cannot draw the title bar."""
-    scratch = "/tmp/.analyser-shot.png"
-    res = act(ep, "screenshot", {"path": scratch})
+    # a relative name lands inside the export directory; unique per call because the guard never
+    # overwrites, and this script regenerates the same asset names every run
+    scratch_name = f"{len(_captured):02d}-{name}"
+    res = act(ep, "screenshot", {"path": scratch_name})
     if not res.get("ok"):
+        print(f"  ! {name}: {res.get('error')}")
         return False
+    _captured.append(scratch_name)
+    painted = EXPORT_DIR / scratch_name
+
     b = res["wrote"]["windowBounds"]
     target = ASSETS / name
     subprocess.run(["screencapture", "-x", "-R",
@@ -102,9 +130,12 @@ def capture(ep, name):
         print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
         return True
     # no Screen Recording permission: fall back to the app painting itself, minus the title bar
-    shutil.copy(scratch, target)
+    shutil.copy(painted, target)
     print(f"  ~ {name}  (painted fallback — no native capture)")
     return True
+
+
+_captured = []
 
 
 def seed(ep):
@@ -177,7 +208,8 @@ def main():
 
     if "--keep" not in sys.argv:
         subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
-    print("done")
+        shutil.rmtree(EXPORT_DIR, ignore_errors=True)
+    print(f"done — {len(_captured)} captures")
 
 
 if __name__ == "__main__":
