@@ -18,7 +18,7 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
-**Added 2026-08-16 (round 2):** UP-FLX-20…22 come from the supermarket POC's *maintenance* round — injecting new subsystems upstream of working ones — and are **not yet filed**. They are the first asks here raised from changing a graph rather than building one.
+**Filed 2026-08-16 (round 2):** UP-FLX-20…22 are open as [telaminai/fluxtion issues 14–16](https://github.com/telaminai/fluxtion/issues). They come from the supermarket POC's *maintenance* round — injecting new subsystems upstream of working ones — and are the first asks here raised from changing a graph rather than building one.
 
 **Filed 2026-08-16:** all nine fluxtion-owned asks are open as [telaminai/fluxtion issues 8–13](https://github.com/telaminai/fluxtion/issues) (some grouped: 11 covers UP-FLX-11+12, 12 covers UP-FLX-14+SHARED-01, 8 covers UP-FLX-01+SHARED-02). The four `svc-admin-web` asks (UP-WEB-01…04) belong to `telaminai/mongoose-plugins` and are **not yet filed** — see below.
 
@@ -100,7 +100,9 @@ nodes that already worked (23 → 44 application nodes, 44 → 95 edges, 31 → 
 That exercise is the first time this repo has evidence about **changing** a Fluxtion graph rather than
 building one, and it produced two asks that greenfield work could not have surfaced.
 
-### UP-FLX-20 ☐ Warn when a new parent is a data reference, not a trigger
+### UP-FLX-20 ◐ Warn when a new parent is a data reference, not a trigger
+
+_Filed: https://github.com/telaminai/fluxtion/issues/14_
 
 **Target** `fluxtion` (compiler) · **Priority** high — this is the sharpest edge in the maintenance path
 
@@ -138,7 +140,9 @@ a log exists and only if someone steps the trace. This class is cheap to catch a
 expensive to catch afterwards, because the symptom appears in output rather than in behaviour anyone is
 testing.
 
-### UP-FLX-21 ☐ Regenerate before compiling, or fail with a message that says what happened
+### UP-FLX-21 ◐ Regenerate before compiling, or fail with a message that says what happened
+
+_Filed: https://github.com/telaminai/fluxtion/issues/15_
 
 **Target** `fluxtion` (maven plugin) · **Priority** medium · supersedes the round-1 note on F6
 
@@ -168,7 +172,9 @@ than a stale artefact. The fix — delete the generated file and rebuild — is 
 **Cost to us if unfixed.** One wasted iteration per structural change, every time, for anyone who
 checks generated source into their repo — which the golden-path examples encourage.
 
-### UP-FLX-22 ☐ Give the dirty contract and reference-kind an artefact
+### UP-FLX-22 ◐ Give the dirty contract and reference-kind an artefact
+
+_Filed: https://github.com/telaminai/fluxtion/issues/16_
 
 **Target** `fluxtion` (compiler + GraphML) · **Priority** medium · **extends round 1's finding**
 
