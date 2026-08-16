@@ -1,0 +1,125 @@
+HANDOFF — implement milestone M20 (project profiles)
+Date: 2026-08-16 · From: main session · Repo: https://github.com/telaminai/fluxtionauditlog-analyser
+Branch: handoff/15_aug_2026_2 (continue on it — M21.10 and M22 already landed there, unmerged)
+
+SUPERSEDES handoff_15_aug_2026_2.txt. That brief was written on 15 Aug, before M21.10 and all of M22.
+Its four slices still stand; this file restates them with what has changed underneath. Read THIS one.
+
+================================================================================
+WHAT CHANGED SINCE THE ORIGINAL BRIEF
+================================================================================
+Two milestones landed on this branch on 16 Aug and both touch what M20 has to tier:
+
+M21.10  intra-record step-through (StepCursor). Report: handoff_16_aug_2026_1_report.txt.
+M22     topology usability — ~56 items. Tracker has the detail. The parts that matter to you:
+
+  a) AppConfig grew NINE keys that did not exist when the tiering was designed:
+        topologySpacingPercent, topologyTextSize, topologyZoom, topologyPanX, topologyPanY,
+        topologyOrientation, topologySyncSource, eventFilterCollapsed, graphmlFile, recentGraphml
+     They are all currently GLOBAL, and the display ones are deliberately excluded from
+     SettingsShare (M22.32) — a shared setup carrying someone else's text size is a nuisance.
+     >>> DECISION YOU MUST MAKE (and record): graphmlFile and recentGraphml are arguably
+     PROJECT-scoped — "which graph am I working on" travels with the project, the way source
+     roots do. The original brief says "exactly the M15 shareable whitelist, no new boundary",
+     which would keep them global. Both readings are defensible. Pick one, say why in the report,
+     and if you widen the boundary say so loudly — that constraint was written to stop the
+     boundary drifting by accident, not to forbid a considered change.
+     The display prefs (spacing/text/zoom/pan/orientation/sync/eventFilterCollapsed) should stay
+     GLOBAL whatever you decide. They describe this screen and these eyes.
+
+  b) The app is now SCRIPTABLE. Eleven verbs (VerbSchemas), four of them added on 16 Aug:
+     topology, open, source_root, screenshot, plus the read-only context.
+     >>> CONSTRAINT: `source_root` MUTATES A PROJECT-SCOPED SETTING from outside the UI, and
+     `open {processor}` mutates selectedEventProcessor. Your auto-persist (M20.2) must catch
+     config changes made by VERBS, not only by the Settings dialog. If you hang persistence off
+     dialog-close you will silently lose scripted edits. MainFrame.onConfigChanged() is the
+     single funnel both paths already go through — use it.
+
+  c) Warm-up R1 from the original brief is DONE — ReleaseNotes is already in core/, not ui/.
+     Skip it. McpBridgeHeadlessTest is green.
+
+  d) Screenshots are now GENERATED, not taken by hand: `python3 tools/capture-docs.py`.
+     Read CLAUDE.md rule 1 before adding any image to M20.4 — the release screenshots were found
+     on 16 Aug to contain real venue/vendor names, because the anonymisation grep cannot see
+     inside a PNG. Do not capture by hand unless the harness cannot reach the surface.
+
+================================================================================
+ORIENT FIRST (in this order, before writing any code)
+================================================================================
+1. CLAUDE.md — hard rules. Rule 1 now carries the image caveat; rule 6 (read the live source of
+   truth, never infer framework semantics) is the one that has cost this repo the most.
+2. docs/ONBOARDING.md — conventions, incl. § Handoffs. Your report is
+   docs/handoff/handoff_16_aug_2026_2_report.txt, committed with your final change.
+3. docs/specs/spec-project-profiles.md — the design you are implementing. All four open questions
+   are RESOLVED there (O4 = auto-persist, debounced). Trust it; if reality disagrees, fix the spec
+   and say so.
+4. docs/specs/tracker.md — M20.1–M20.4, and skim the M22 block so you know what the UI now does.
+5. The seams you build on: config/SettingsShare (+ SettingsShareTest — M19.2 relative-root
+   resolution is shipped, reuse it), config/AppConfig, config/ConfigStore, config/GraphSpec, and
+   the Import wiring plus onConfigChanged() in ui/MainFrame.
+6. docs/proposals/upstream-asks.md — not your work, but it says which analyser limitations are
+   waiting on fluxtion (issues 8–13). Do not try to fix those here.
+
+================================================================================
+TASK — four slices, one commit each, in order, `mvn test` green before every commit
+================================================================================
+M20.1  Tier the config. Mark the project-scoped categories (source roots, event processors +
+       selected, Maven repos, saved graphs, hidden columns — the M15 shareable whitelist, plus
+       whatever you decide in (a) above); add activeProjectPath to the global config; load/save a
+       profile through the existing SettingsShare machinery with REPLACE semantics for the project
+       set. Startup: global first, then the active profile over the project-scoped categories. A
+       missing profile file → global-only, clear the pointer, status note — NEVER fail to start.
+       Headless-testable; no UI in this slice.
+
+M20.2  Open / Switch / New project + Recent projects (File menu), REPLACE semantics. The Import
+       dialog gains the explicit choice: "Merge (share)" vs "Open as project (replace)".
+       Auto-persist project-scoped edits to the active profile, DEBOUNCED (one write per burst —
+       the profile may be a committed file; keep its git diffs legible). "Save project as…" forks
+       to a new path; there is no plain "Save project" (auto-persist is the rule, spec O4).
+       NOTE (b): persistence must fire for verb-driven edits too.
+       NOTE: the File menu has grown — Open log / Open log from S3 / Open GraphML / two Open-recent
+       submenus. Put the project items where they read as a group, not appended to the end.
+
+M20.3  Auto-detect — when a log is opened and .analyser/project.fluxtion-settings exists in a
+       containing directory, offer "Load this project?" (the M19 zero-setup hook). Respect "no",
+       and do not re-nag for the same log in the same session.
+
+M20.4  Docs — a user-guide page or section "Working across projects": switching, the git-shareable
+       profile (no API key by construction — say WHY it is safe to commit), auto-detect, and the
+       Import merge-vs-open distinction. `mkdocs build --strict` must pass. Images only via
+       tools/capture-docs.py.
+
+================================================================================
+CONSTRAINTS (from the spec — follow, don't re-decide)
+================================================================================
+- Global and project sets are DISJOINT. The API key can never be written to a profile — by
+  construction, not by filtering twice.
+- Switch REPLACES the project set; Import (merge) stays additive. Never conflate the two.
+- No active project → behaviour is exactly today's app. The global config's project-scoped values
+  remain the "no project" defaults and are restored when switching back to no project.
+- Relative roots in a profile resolve against the profile file's directory (M19.2 — reuse it).
+- Canonical profile path: <project>/.analyser/project.fluxtion-settings.
+
+================================================================================
+PROCESS (per CLAUDE.md)
+================================================================================
+- Every user-visible change: a line under [Unreleased] in CHANGELOG.md, same commit.
+- After each slice: mark the tracker item ☑.
+- Anonymisation sweep before any commit adding fixtures/examples — and remember it cannot read
+  images.
+- M20.2/M20.3 are Swing; headless CI cannot verify them. You can now drive the running app over
+  the REST transport (tools/drive-analyser.sh, tools/capture-docs.py) — that found four real bugs
+  on 16 Aug that 400+ passing tests did not. Use it, and still list what a human must eyeball.
+- Report: what shipped, deviations (authorised, never silent), spec-vs-reality mismatches (fix the
+  spec too), and the tiering decision from (a) with its reasoning.
+
+================================================================================
+STATE OF THE BRANCH
+================================================================================
+- handoff/15_aug_2026_2, ~60 commits ahead of main, UNMERGED and awaiting review.
+- 431 tests green · mkdocs build --strict green · anonymisation sweep clean (text).
+- OPEN, owner's call, not yours: the pre-16-Aug docs screenshots contained real venue/vendor names
+  and remain in git history on a public repo. Replaced on disk; purging history needs a rewrite +
+  force-push, which rule 3 forbids. Flagged in the tracker (M22.56).
+- Still open in M22, none blocking M20: PNG export (22.3), alternative layouts (22.6), re-dispatch
+  cause (22.11 — blocked on fluxtion issue #10).

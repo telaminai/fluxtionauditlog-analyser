@@ -1,3 +1,7 @@
+*** SUPERSEDED 2026-08-16 — read docs/handoff/handoff_16_aug_2026_2.txt instead. ***
+*** This brief predates M21.10 and M22, both of which changed what M20 has to tier.   ***
+*** Kept for the trail; its four slices survive, restated in the newer file.          ***
+
 HANDOFF — implement milestone M20 (project profiles) + one small refactor
 Date: 2026-08-15 · From: main session · Repo: https://github.com/telaminai/fluxtionauditlog-analyser
 Predecessor: handoff_15_aug_2026_1 (M13, shipped + merged — see its report §8 for the review pattern).
