@@ -340,6 +340,35 @@ public final class ProcessorTopology {
         return out;
     }
 
+    /**
+     * A copy holding only {@code keep}, with the edges whose <b>both</b> ends survive.
+     *
+     * <p>The mechanism behind hiding scaffolding (M22.1) and focusing a selection (M22.2): rather than
+     * dimming, the view lays out a genuinely smaller graph, so the survivors re-pack and a 300-node
+     * processor becomes readable.
+     *
+     * <p><b>Dropping a node drops the routes through it.</b> Two survivors joined only via a removed node
+     * come apart, because the edge that remained would assert a direct dependency the processor does not
+     * have. Callers wanting connectivity preserved must keep the intermediate nodes — which is why the
+     * focus scopes include the routes, not just the endpoints.
+     */
+    public ProcessorTopology subgraph(Collection<String> keep) {
+        if (keep == null) return this;
+        Set<String> kept = new LinkedHashSet<>();
+        for (String id : keep) {
+            if (id != null && nodes.containsKey(id)) kept.add(id);
+        }
+        Map<String, Node> keptNodes = new LinkedHashMap<>();
+        for (Map.Entry<String, Node> e : nodes.entrySet()) {          // original order preserved
+            if (kept.contains(e.getKey())) keptNodes.put(e.getKey(), e.getValue());
+        }
+        List<Edge> keptEdges = new ArrayList<>();
+        for (Edge e : edges) {
+            if (kept.contains(e.source()) && kept.contains(e.target())) keptEdges.add(e);
+        }
+        return new ProcessorTopology(keptNodes, keptEdges);
+    }
+
     /** Everything reachable from {@code seeds} following edges forward ({@code down}) or backward. */
     private Set<String> reach(Set<String> seeds, boolean down) {
         Set<String> seen = new LinkedHashSet<>();

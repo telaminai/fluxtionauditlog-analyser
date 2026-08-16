@@ -300,6 +300,18 @@ picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that ch
   all parent routes + transitive children → whole graph → node*; **F** (or a Focus button) hides everything
   outside the selection; **ctrl-click** adds to the selection. This is the exploration model; it is what
   makes a 300-node graph usable and it composes with 22.1.
+- [M22.8] ☑ **Shape carries the kind** — event = stadium, exported service = hexagon, everything that
+  computes = rounded rect. Fill alone failed in greyscale, on a projector and for colour-blind readers,
+  and the three roles are the first thing you need to read. _(Answers "how do you render exported
+  services": they are the hexagon — the only one in the demo graph is the framework's `ServiceListener`,
+  which 22.1 hides, so a user-authored `@ExportService` in the fixture would show it better — see 22.10.)_
+- [M22.9] ☐ **Source without losing the graph** — double-click currently opens the Source tab, which is a
+  *sibling* of Topology in the same tabbed pane, so navigating to source hides the thing you navigated
+  from. Options: split the side pane (graph above, source below) when navigating from the topology; or
+  give the Topology tab its own embedded source view. Owner-raised; needs a layout decision before code.
+- [M22.10] ☐ **A user-authored exported service in the demo fixture** — the generator has none, so the
+  hexagon only ever appears on framework plumbing. Per `claude.txt`, `@ExportService` interface methods
+  must return `void`. Would also give the analyser a realistic entry point that is not an event.
 - [M22.3] ☐ **Export the view as PNG** — reuses the offscreen render already used to verify the canvas;
   pairs with the existing graph/record exports.
 - [M22.4] ☐ **Text-size and separation sliders** — separation re-runs `LayeredLayout` (`nodeWidth`,

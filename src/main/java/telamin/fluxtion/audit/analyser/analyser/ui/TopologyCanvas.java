@@ -513,7 +513,7 @@ public final class TopologyCanvas extends JPanel {
             double y = sy(box.y());
             double w = box.width() * scale;
             double h = box.height() * scale;
-            RoundRectangle2D.Double shape = new RoundRectangle2D.Double(x, y, w, h, 8 * scale, 8 * scale);
+            java.awt.Shape shape = shapeFor(node, x, y, w, h);
 
             Color fill = fillFor(node, dark);
             g.setColor(dimmed ? fade(fill, dark) : fill);
@@ -536,9 +536,9 @@ public final class TopologyCanvas extends JPanel {
             g.draw(shape);
 
             if (fired && labels) paintOrdinal(g, x, y, ordinal + 1, dark);
-            if (isEntry) paintEntryMarker(g, shape, dark);
-            if (isStepped) paintSteppedMarker(g, shape, dark);
-            if (isCurrentStep) paintCursorHalo(g, shape, dark);
+            if (isEntry) paintHalo(g, x, y, w, h, dark, HaloStyle.ENTRY);
+            if (isStepped) paintHalo(g, x, y, w, h, dark, HaloStyle.TRAIL);
+            if (isCurrentStep) paintHalo(g, x, y, w, h, dark, HaloStyle.CURRENT);
 
             if (!labels) continue;
             String title = node == null ? box.id() : node.simpleName();
@@ -566,41 +566,25 @@ public final class TopologyCanvas extends JPanel {
         g.drawString(out, (float) x, (float) y);
     }
 
+    private enum HaloStyle { CURRENT, TRAIL, ENTRY }
+
     /**
-     * The cursor's position: a halo drawn <b>outside</b> the box, so the node keeps its own execution
-     * border and fill. Recolouring the border would hide what the log establishes about the node in
-     * order to say where you are standing — the two are different questions and both matter.
+     * Cursor halos, drawn <b>outside</b> the node so it keeps its own execution border and fill.
+     * Recolouring the border would hide what the log establishes in order to show where you are
+     * standing — two different questions, both wanted at once while stepping.
      */
-    private void paintCursorHalo(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
-        double pad = 4;
+    private void paintHalo(Graphics2D g, double x, double y, double w, double h, boolean dark,
+                           HaloStyle style) {
+        double pad = style == HaloStyle.TRAIL ? 2.5 : 4;
         RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
-                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
-                box.arcwidth + pad, box.archeight + pad);
-        g.setColor(accent(dark));
-        g.setStroke(new BasicStroke(2.6f));
-        g.draw(halo);
-    }
-
-    /** Already stepped in this cycle: a thin trailing halo, clearly weaker than the current one. */
-    private void paintSteppedMarker(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
-        double pad = 2.5;
-        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
-                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
-                box.arcwidth + pad, box.archeight + pad);
-        g.setColor(steppedHalo(dark));
-        g.setStroke(new BasicStroke(1.4f));
-        g.draw(halo);
-    }
-
-    /** Where the cycle came in — marked while the cursor sits at the record's entry. */
-    private void paintEntryMarker(Graphics2D g, RoundRectangle2D.Double box, boolean dark) {
-        double pad = 4;
-        RoundRectangle2D.Double halo = new RoundRectangle2D.Double(
-                box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad,
-                box.arcwidth + pad, box.archeight + pad);
-        g.setColor(accent(dark));
-        g.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
-                new float[]{6f, 4f}, 0f));
+                x - pad, y - pad, w + 2 * pad, h + 2 * pad, 10 * scale + pad, 10 * scale + pad);
+        g.setColor(style == HaloStyle.TRAIL ? steppedHalo(dark) : accent(dark));
+        g.setStroke(switch (style) {
+            case CURRENT -> new BasicStroke(2.6f);
+            case TRAIL -> new BasicStroke(1.4f);
+            case ENTRY -> new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
+                    new float[]{6f, 4f}, 0f);
+        });
         g.draw(halo);
     }
 
@@ -617,7 +601,37 @@ public final class TopologyCanvas extends JPanel {
                 (int) (c.getBlue() * keep + canvas.getBlue() * (1 - keep)));
     }
 
-    /** Node kinds are distinguished by fill, so the graph's shape reads before any label does. */
+    /**
+     * <b>Shape carries the kind</b>, not just colour: an event is a stadium (something arriving), an
+     * exported service a hexagon (a surface something calls into), everything that computes a rounded
+     * rectangle. Shape survives greyscale, projectors and colour-blindness, which fill alone does not —
+     * and the three roles read at a glance even when the labels are too small to draw.
+     */
+    private static java.awt.Shape shapeFor(ProcessorTopology.Node node, double x, double y,
+                                           double w, double h) {
+        ProcessorTopology.Kind kind = node == null ? ProcessorTopology.Kind.UNKNOWN : node.kind();
+        return switch (kind) {
+            case EVENT -> new RoundRectangle2D.Double(x, y, w, h, h, h);            // stadium
+            case EXPORT_SERVICE -> hexagon(x, y, w, h);
+            default -> new RoundRectangle2D.Double(x, y, w, h, Math.min(10, h / 4), Math.min(10, h / 4));
+        };
+    }
+
+    /** A flat-topped hexagon: distinct from both the stadium and the rectangle at any size. */
+    private static java.awt.Shape hexagon(double x, double y, double w, double h) {
+        double notch = Math.min(h / 2, w / 5);
+        Path2D.Double p = new Path2D.Double();
+        p.moveTo(x + notch, y);
+        p.lineTo(x + w - notch, y);
+        p.lineTo(x + w, y + h / 2);
+        p.lineTo(x + w - notch, y + h);
+        p.lineTo(x + notch, y + h);
+        p.lineTo(x, y + h / 2);
+        p.closePath();
+        return p;
+    }
+
+    /** Node kinds are distinguished by fill too, so the graph's shape reads before any label does. */
     private static Color fillFor(ProcessorTopology.Node node, boolean dark) {
         ProcessorTopology.Kind kind = node == null ? ProcessorTopology.Kind.UNKNOWN : node.kind();
         return switch (kind) {
