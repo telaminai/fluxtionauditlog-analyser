@@ -6,197 +6,115 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-### Added
-- Assistant **file exports are now opt-in and confined**: the `screenshot` and `report` verbs require
-  *Allow file exports* (Settings ▸ Assistant), write only inside the configured **export directory**,
-  and never overwrite an existing file. Off by default — the action socket's out-of-box promise stays
-  "nothing outside the loaded log".
-- **Node coverage** — `analyser_coverage` answers "which of this processor's nodes never logged in this
-  run?", by comparing the GraphML against the audit log. Raised by a 309-node test estate where 54 of
-  275 nodes never ran because the harness could not reach them, with every test green. A gap means
-  "never logged", not proven "never ran", and the result says so.
-- **Diagnose one cycle, not just a trend.** A record's finding — what is wrong, and optionally the likely
-  cause — is now painted as a callout over the Topology graph for that record, so a screenshot of the
-  graph carries its own explanation. Write it from Records ▸ *Write a finding for this record…*, or from
-  an assistant with `flag {note, fix}`. There is one place to write it and three places it shows: the
-  table's note column, the callout, and an exported report.
-- **Export a finding as a PDF.** Records ▸ *Export finding to PDF…* (or the `analyser_report` verb)
-  writes one document containing the explanation and suggested fix, which record and log it is about,
-  the full event record and node log, and **two views of the graph**: the cycle on its own, and the whole
-  processor with that cycle lit — so you can see what the event *didn't* reach as well as what it did.
-  Both are rendered for the page rather than screenshotted, so the document doesn't inherit your current
-  zoom and exporting never changes what you are looking at. An included plot is marked with a dashed rule
-  at the record being diagnosed, and the report records when the analysis was made. Dependency-free —
-  nothing new in the build.
-- **Charts can explain themselves.** A multi-line `explanation` and `notes` pinned to moments in time are
-  drawn on the plot (so they survive an exported PNG), and a `rightAxis` gives a second vertical scale so
-  series of very different magnitude stay readable together. All three are available through the
-  `analyser_graph` verb over REST and MCP — or by right-clicking the plot to pin a note where you are
-  reading. Annotations are saved with the graph.
-- Fixed: clicking a node in the Topology tab reset the zoom, and clicking one in a focused view emptied
-  it.
-
-### Security
-- **Documentation screenshots have been replaced.** The images shipped with the first public release
-  were captured against a real audit log and contained live venue, vendor and project names. They are
-  regenerated from the anonymised demo fixture; five that could not be regenerated automatically have
-  been withdrawn. Screenshots are now produced by `tools/capture-docs.py`, which only ever loads the
-  demo fixture.
+**The topology release.** The analyser now draws the processor's graph, walks events across it step by
+step, and is honest about what the log can and cannot prove. The whole app is scriptable by AI agents
+over MCP, findings export as evidence-grade PDFs — and anything that writes a file is locked behind an
+opt-in.
 
 ### Added
-- **Node log: Logical and Text views.** Logical gives each node a block with its values on their own
-  lines in dispatch order; Text is the raw audit YAML. Traced-only keys (`thread`, `method`) are muted
-  rather than hidden, so you can still see at a glance that a record is traced.
-- **Source view: Processor · Node · Split.** Split shows the generated processor and the node class at
-  once — the dispatch call site above, the method it runs below. Navigating to a node from the processor
-  promotes to Split instead of replacing what you navigated from.
-- **Collapsible event-type panel** behind a vertical nav rail on the left (state persists), with the
-  column checkboxes available from the rail as well as the menu.
-- **Topology step-through**: an `event 8 / 10 · step 2 / 5` header, whole-record skip buttons, and
-  autoplay.
-- **Clearer panel surfaces**: source, record-detail and topology now share one content surface with a
-  hairline edge, and control clusters (the time-range bar) tint the other way — derived from the active
-  theme, so it holds in Light, Dark, IntelliJ and Darcula.
-- Switching side tabs no longer moves the main split divider.
-- The `analyser_graph` verb now brings the Graph tab forward, so a scripted plot is visible.
-- **Sync toggle** on the Topology toolbar: the source pane either follows what you click and step
-  through, or stays where you put it. On by default, remembered between sessions.
-- Fixed: a node that ran was drawn faded if an earlier selection left it outside the focus scope — the
-  execution shading and the selection shading were compounding. Evidence now wins.
-- Fixed: the Topology tab's source pane kept the old palette after a theme change.
-- **Selecting a record syncs the source view you can see** — the Topology tab's embedded pane when that
-  is what is open, the Source tab otherwise. It never switches tabs on you.
-- **Source navigation lands where you meant**: clicking an event in the topology opens the processor at
-  that event's own `handleEvent` overload; clicking a node scrolls to its class declaration, which
-  matters when a file holds a dozen nested node classes.
-- **The app can be driven end to end by an assistant**: four new verbs — `topology`, `open`,
-  `source_root` and `screenshot` — join the six existing ones and are published as MCP tools
-  automatically. `tools/drive-analyser.sh` scripts them over the localhost REST transport.
-- Fixed: opening the source pane left the graph clipped; an unopened source pane was blank rather than
-  explaining itself; adding a source root did not re-run EventProcessor inference.
-- Documentation: the Topology guide covers the exploration model, stepping controls and source split,
-  with fresh screenshots; the in-app help (Help ▸ User guide) gains a Topology section.
-- The Topology tab remembers its zoom, pan, orientation, spacing and label size between sessions.
-  **Settings ▸ History ▸ Reset topology view** puts them back, and *Clear recent files* now also clears
-  the recent-GraphML list.
-- Topology nodes have more contrast in the dark theme — they were getting lost against the canvas.
-- Fixed: arrow-key stepping in the Topology tab stopped working once the source pane was added — the
-  split pane was intercepting Up/Down to move its divider.
-- The topology you had open is reopened on the next start, alongside the log.
-- **File ▸ Open GraphML…** opens a processor topology (and *Open from S3…* is now *Open log from S3…*).
-  The Topology toolbar loses its own Open button and its two readouts — step position and selection
-  scope now appear on the status line, leaving the toolbar to controls.
-- **Source opens beside the graph** in the Topology tab, with a draggable divider, instead of switching
-  to the Source tab. Open it with **Enter** on a selected node, the node's right-click menu, or a
-  double-click in the index. Repeated clicks on a node now always cycle its scope.
-- Nested classes (e.g. `Nodes.QuotePublisher`) now resolve to their enclosing `.java` file, so source
-  navigation works for graphs whose nodes are grouped in a holder class.
-- **Show all**, or a click on empty canvas, returns the topology to the plain full graph — selection,
-  focus and cycle shading all cleared, every node at full strength. Stepping brings the shading back.
-- **Open recent** is split into *audit log* and *GraphML*.
-- While stepping, only edges whose **both** ends ran are highlighted — an arrow from a node that did not
-  run is no longer drawn as though the event arrived that way.
-- **Topology**: a collapsible index overlay (Nodes / Events / Services) for picking a node by name and
-  jumping to its source; node tooltips now show the class javadoc; selected nodes are marked with a ring
-  and tint rather than by dimming everything else; smaller node boxes with a visible fill for plain nodes;
-  and the status line says how many nodes the filters are hiding. Clicking an index entry scrolls that
-  node into view. Spacing and text size are remembered between sessions (and never included in an
-  exported settings file).
-- **Topology**: spacing and text-size sliders, and a **Show all** button that clears the selection and
-  focus so nothing is dimmed.
-- **Topology exploration**: hide Fluxtion's scaffolding nodes with a checkbox (off by default — they are
-  half the graph and none of your application); click a node repeatedly to widen its scope
-  *node → neighbours → all routes → whole graph*; **F** or the Focus button shows only that scope.
-  Cmd/Ctrl-click selects several nodes. What the log establishes about execution is unaffected by what is
-  filtered from view.
-- **Right-click the records table** for the record actions (flag, copy as YAML, diff, export) and the
-  column chooser. **Columns is no longer a top-level menu** — it is on the nav rail and the right-click.
-- **Better code type**: picks the best monospaced family installed rather than Swing's logical
-  `Monospaced` (which lands on Courier on some platforms), with slightly opened line spacing.
-- Topology fixtures now include a **re-dispatch** (`processReentrantEvent`): a node raising an event on
-  its own graph. It lands in the log as a separate record that looks externally caused, which is the
-  case most likely to be misread when stepping through a cycle.
-- Topology: **exported services are entry points too.** A cycle that arrived through an
-  `@ExportService` call now resolves to the service node and shades the path from it, so an operator
-  action reads like an event rather than an unexplained cycle. Both signature spellings the runtime
-  emits are understood — the fully-qualified one, and the method-name-only one, which resolves when the
-  graph declares a single exported service.
-- Topology: **drag-and-drop a `.graphml`** anywhere on the window to load it into the Topology tab —
-  and drop a log + graphml pair together to open both in one gesture.
-- **MCP bridge** — `java -jar analyser.jar --mcp` runs the analyser as an MCP server over stdio, so an
-  MCP-native client (Claude Code, Claude Desktop, Codex) drives the running app with **no prompting
-  and no copied token**: it discovers one tool per assistant verb (`analyser_aggregate`,
-  `analyser_read`, `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`) natively.
-  Point the client at the jar once — the bridge finds the app's per-run port and token by itself, and
-  keeps working across analyser restarts. Speaks both the legacy `initialize` handshake and the
-  current handshake-free MCP revision (`2026-07-28`). Needs the REST transport enabled
-  (Settings ▸ Assistant); if the app isn't running you get a plain "analyser not running" message.
-- Assistant: while the localhost REST transport is running, the app publishes its live endpoint to
-  **`~/.fluxtion-analyser/rest-endpoint`** (mode 600 — url, token, pid, start time) and removes it on
-  stop/exit. A client configured once can now find the per-run port and token instead of you copying
-  them each launch; a file left by a crash is detectable via its pid.
-- **Topology tab** — open a processor's `.graphml` to see its node graph laid out by dispatch order, with
-  pan, zoom, fit, hover, selection and a top-down/left-right toggle. Node colour distinguishes events,
-  event handlers, nodes and exported services; selecting a node highlights what feeds it and what it
-  feeds.
-- **Step through an event on the graph** — select a record and the Topology tab lights up the nodes that
-  fired, numbered in dispatch order, with everything that didn't fire faded back. Walk the cycle node by
-  node with ◀ ▶ to see what each one logged at that point. It follows the table's selection, so the
-  record you're looking at everywhere else is the cycle you're stepping through.
-- **Act on a node from the graph** — right-click any node in the Topology tab to open its source, plot one
-  of its logged values, filter every view to records mentioning it, or copy its instance id. Double-click
-  jumps straight to the source. Plots land on the same graphs, and filtering uses the same search box, as
-  everywhere else in the app.
+- **Topology tab** — open the processor's build-time `.graphml` (**File ▸ Open GraphML…**, or just
+  **drag it onto the window** — drop a log + graphml pair together and both open) and see the node graph
+  laid out by dispatch layers: pan/zoom/fit, top-down or left-right, node colours for events / handlers /
+  nodes / exported services, spacing and text-size sliders, a collapsible name index with javadoc
+  tooltips, and a status line that counts what the filters are hiding. The topology you had open reopens
+  next start; **Open recent** is split into *audit log* and *GraphML*.
+    - **Explore**: click a node repeatedly to widen its scope (*node → neighbours → routes → whole
+      graph*), **F** to focus, Cmd/Ctrl-click to multi-select, **Show all** (or click empty canvas) to
+      reset; Fluxtion's scaffolding nodes hide behind a checkbox.
+    - **Act on a node**: right-click to open its source, plot one of its logged values, filter every
+      view to records mentioning it, or copy its instance id; double-click jumps to source (nested
+      holder classes resolve).
+    - **Source opens beside the graph** (Processor · Node · **Split** — the dispatch call site above,
+      the method below) with a **Sync** toggle: follows your stepping, or stays where you put it.
+    - **Build mismatch is surfaced, never hidden**: the status line names instance ids that appear in
+      the log but not the graph — treat that as a version mismatch, not a curiosity.
+- **Step through an event on the graph** — select a record and its cycle lights up in dispatch order;
+  one cursor walks *record → each nodeLogs row → next record* with **↓/↑** (plus whole-record skip and
+  autoplay): the entry point is marked, the path trails behind the current node, the table selection and
+  the detail viewer's highlighted line track every step. The readout says whether you are walking
+  *logged rows* or *every invocation*; a node that logs twice gets two steps; only edges whose **both**
+  ends ran are lit.
+- **Execution honesty** — what makes the picture trustworthy:
+    - A silent node is no longer drawn as "didn't run". The graph distinguishes *logged* / *ran but
+      logged nothing* (it was the only route into something that ran) / *may have run* / *not on this
+      path* — with an on-canvas legend and the claim in words on hover.
+    - A **fully-traced log** (processor built with an audit level) is detected, and the tab stops
+      hedging: absence becomes **did not run**, and the legend says so.
+    - **Exported services are entry points**, drawn alongside events — an operator action reads like an
+      event, not an unexplained cycle. Re-dispatched events (`processReentrantEvent`) are in the test
+      fixtures because they are the case most likely to be misread.
+    - The **assistant knows what silence means** too: its prompt carries the two audit regimes, how to
+      settle them from the processor source it is given, and dirty/`@OnTrigger(dirty=false)`
+      propagation — so "absent" can be read as "the branch not taken" instead of guessed at.
+- **Diagnose one cycle, not just a trend** — write a **finding** on a record (Records ▸ *Write a
+  finding…*, or `flag {note, fix}` from an agent). One write site, three readers: the table's note
+  column, a callout painted on the topology, and **Export finding to PDF** — the explanation and
+  suggested fix, the full event record and node log, and **two graph views** (the cycle alone, and the
+  whole processor with that cycle lit, so you see what the event *didn't* reach). Rendered for the page,
+  not screenshotted; dependency-free.
+- **Charts explain themselves** — a multi-line explanation block, **notes pinned to moments in time**
+  (right-click the plot where you are reading), and a second **right axis** for series of different
+  magnitude. Drawn on the plot, so an exported PNG carries them; saved with the graph; scriptable via
+  `analyser_graph`.
+- **Node coverage** — *"which of this processor's nodes never logged in this run?"*
+  (`analyser_coverage`): compares the GraphML against the log, keeping *covered* / *never logged* /
+  *silent-by-design* apart, with a separate build-mismatch signal. Born from a 309-node test estate
+  where 54 nodes were unreachable — with every test green and nothing to say so.
+- **MCP bridge** — `java -jar analyser.jar --mcp` runs the analyser as an MCP server over stdio: an
+  MCP-native client (Claude Code, Claude Desktop, Codex) discovers **one tool per assistant verb —
+  thirteen of them — automatically**, with no prompting and no copied token. The app publishes its live
+  REST endpoint to `~/.fluxtion-analyser/rest-endpoint` (mode 600) while the transport runs, so a client
+  configured once keeps working across analyser restarts; both the legacy MCP handshake and the current
+  handshake-free revision (`2026-07-28`) are spoken.
+- **Fully scriptable** — new verbs `topology`, `open`, `source_root`, `screenshot`, `report`,
+  `coverage` join the existing set, published as MCP tools automatically; `tools/drive-analyser.sh`
+  scripts them over the localhost REST transport. Scripted plots bring the Graph tab forward so you see
+  what the agent built.
+- **Node log, two ways** — **Logical** (each node a block, values on their own lines, dispatch order)
+  and **Text** (the raw audit YAML). Traced-only keys are muted rather than hidden, so a traced record
+  is recognisable at a glance.
+- **Collapsible event-type panel** behind a vertical nav rail (state persists); column checkboxes on the
+  rail and the table right-click. Better code typography (best installed monospaced family).
 
 ### Changed
-- The launcher now **rejects an unknown `--option`** with a usage message and exit code 2, and adds
-  `--help`. Previously any unrecognised argument was treated as a log file to open, so running an older
-  build with `--mcp` silently launched the desktop app trying to load a file called `--mcp`.
-- JBang launches no longer print JVM native-access warnings — the catalog alias now passes
-  `--enable-native-access=ALL-UNNAMED` (pick it up with `jbang --fresh analyser@…`).
+- The launcher **rejects unknown `--options`** with usage and exit 2, and adds `--help`. *Upgrading
+  note:* JBang serves its cached jar, so run **`jbang --fresh analyser@…`** to get this version — on the
+  cached 1.0.0 jar, `analyser --mcp` shows usage instead of starting the bridge.
+- JBang launches no longer print JVM native-access warnings (the catalog passes
+  `--enable-native-access=ALL-UNNAMED`).
+- **Right-click the records table** for record actions (flag, copy as YAML, diff, export) and the column
+  chooser; Columns is no longer a top-level menu. *Open from S3…* is now *Open log from S3…*.
+- One shared content surface (source, record detail, topology) with hairline edges, derived from the
+  active theme; switching side tabs no longer moves the main divider.
 
-### Added
-- **Step through the log on the graph.** One cursor now walks record → `nodeLogs` row → next record with
-  **↓** and **↑**: arriving at a record marks where the cycle came in, each step lights the next node with
-  the path so far trailing behind it, and stepping past the last row rolls into the next record. It
-  follows the filtered view, moves the table selection with it, and highlights the matching line in the
-  detail viewer — so the graph and the text narrate each other. The readout says whether you are walking
-  *logged rows* or *every invocation*, and a node that logs twice gets two steps.
-- **The assistant now knows what silence means.** Its prompt carries Fluxtion's execution semantics: a
-  node missing from `nodeLogs` has not necessarily failed to run, the two audit regimes and how to tell
-  them apart, and that it can settle the question from the EventProcessor source it is already given
-  (grep for `auditInvocation`) rather than guessing. Also covers dirty/`@OnTrigger(dirty=false)`
-  propagation, so "absent" can be read as "on the branch not taken".
-- **Topology recognises a fully-traced log.** If the processor was built with an audit level, Fluxtion
-  records every node it invokes, so the log is a complete list of what ran. The tab detects that and
-  stops hedging — absence becomes *did not run*, and the legend says so.
+### Security
+- **Documentation screenshots were replaced.** The images shipped with 1.0.0 were captured against a
+  real audit log and contained live venue, vendor and project names; they are regenerated from the
+  anonymised demo fixture (five that could not be regenerated were withdrawn). Screenshots are now
+  produced by a capture harness that only ever loads the demo fixture.
+- **File-writing verbs are opt-in and confined.** `screenshot` and `report` require **Allow file
+  exports** (Settings ▸ Assistant, off by default), write **only inside the export directory you
+  choose**, and never overwrite an existing file — so the action socket's out-of-box promise stays
+  *"nothing outside the loaded log"*. The FAQ's security answer documents every mutating verb, and a
+  test now fails the build if that ever stops being true.
 
 ### Fixed
-- **Topology: a node with no audit entry is no longer shown as if it didn't run.** Nodes log only if they
-  write audit output, at the level in force, so silence is not absence of execution. The tab now
-  distinguishes *logged* (observed), *ran but logged nothing* (it was the only route into something that
-  ran), *may have run* (connected, but the log can't say), and *not on this path* — with a legend on the
-  canvas and the claim in words on hover.
-- Topology: exported services are drawn as what they are — **inbound callback entry points**, alongside
-  events — rather than as outputs.
-- **The app could become impossible to close.** If any step of the quit sequence failed, the exception
-  escaped the window-closing handler before the exit call, so the window stayed on screen and every
-  further click on the close box failed the same way — with the assistant's REST transport already shut
-  down. Quitting is now step-isolated and the exit always runs. Most likely to bite when the jar is
-  rebuilt underneath a running app.
-- A release now refreshes the **docs site's release-notes page** automatically — the release workflow
-  dispatches the docs deploy (the changelog-stamp push alone never triggered it).
+- **The app could become impossible to close** — a failing step in the quit sequence escaped the
+  window-closing handler before the exit call. Quitting is now step-isolated and the exit always runs
+  (most likely to bite when the jar is rebuilt underneath a running app).
+- Topology: a node that ran was drawn faded when execution shading and selection shading compounded —
+  evidence now wins; clicking a node no longer resets the zoom; a focused view no longer empties on
+  click; the embedded source pane re-themes on theme change and no longer clips the graph or steals
+  ↓/↑ from stepping; adding a source root re-runs EventProcessor inference.
+- A release now refreshes the **docs site's release-notes page** automatically.
 
 ### Docs
-- User guide: **Topology & step-through** — reading the processor graph, opening a `.graphml`, stepping
-  through a cycle, and the node right-click actions. Includes the build-mismatch warning and why the
-  offline case is the one this tab is for.
+- User guide: **Topology & step-through** — reading the graph, opening a `.graphml`, stepping a cycle,
+  node actions, the build-mismatch warning, and why the offline case is the one this tab is for.
 - Assistant guide: **"Connect an MCP client"** — copy-paste config for Claude Code, Claude Desktop and
-  Codex, a worked session transcript, how the bridge finds your running analyser, troubleshooting, and
-  exactly what an MCP agent can and cannot reach. Spells out that **your client does not launch the
-  analyser**: you keep the app open with the REST transport on, and the client starts only the bridge.
-- Install guide: documented the JBang **first-run trust prompt** and that a **new release** needs
-  `jbang --fresh` (or `jbang cache clear`) — JBang otherwise keeps serving its cached jar.
+  Codex, a worked session transcript, troubleshooting, and exactly what an agent can and cannot reach
+  (your client does not launch the analyser — it starts only the bridge).
+- Install guide: the JBang **first-run trust prompt**, and that a new release needs `jbang --fresh`.
 
 ## [1.0.0] - 2026-08-14
 
