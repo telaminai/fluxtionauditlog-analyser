@@ -1126,6 +1126,97 @@ public final class TopologyPanel extends JPanel {
     }
 
     /**
+     * Two pictures of one cycle, for a report.
+     *
+     * @param trace      only the nodes this event actually reached — the answer to "what ran?"
+     * @param wholeGraph the entire processor with those nodes lit — the answer to "and what didn't?"
+     */
+    public record CycleViews(java.awt.image.BufferedImage trace,
+                             java.awt.image.BufferedImage wholeGraph) { }
+
+    /**
+     * Render the cycle for a report, <b>offscreen</b>.
+     *
+     * <p>Deliberately not a screenshot of this panel. Capturing the live view meant the report inherited
+     * whatever zoom, pan and toolbar happened to be on screen — usually a focused subgraph adrift in a
+     * field of empty canvas, because the user had zoomed in on one node. It also meant the act of
+     * exporting could only be made to look right by changing what the user was looking at.
+     *
+     * <p>A detached canvas costs one layout pass and leaves this panel untouched, so the export is
+     * side-effect free and the picture is framed for the page rather than for the window.
+     *
+     * <p>Two views because they answer different questions, and the second is the one people forget to
+     * ask. The trace shows what ran. The whole graph shows what that cycle <em>didn't</em> reach — which
+     * is exactly the evidence for "the stock check never fired" or "this node is downstream of the wrong
+     * thing". A trace alone cannot show an absence.
+     */
+    public CycleViews renderCycleViews(LogRecord record, int width, int height) {
+        if (!hasTopology() || record == null) {
+            return new CycleViews(null, null);
+        }
+        List<NodeLog> logs = record.nodeLogs();
+        List<String> order = new ArrayList<>(logs.size());
+        for (NodeLog n : logs) order.add(n.instanceId());
+        List<String> entries = List.copyOf(
+                EntryPointResolver.resolve(fullTopology, record.event(), record.eventToString()));
+        boolean traced = AuditTrace.tracesEveryInvocation(logs);
+
+        java.util.Set<String> touched = new java.util.LinkedHashSet<>();
+        for (String id : order) if (fullTopology.contains(id)) touched.add(id);
+        for (String id : entries) if (fullTopology.contains(id)) touched.add(id);
+
+        // the trace view is meaningless with nothing in it — a record whose nodes are all from a
+        // different build would otherwise render an empty box captioned "the cycle"
+        java.awt.image.BufferedImage trace = touched.isEmpty() ? null
+                : paintOffscreen(fullTopology.subgraph(touched), order, entries, traced,
+                        java.util.Set.of(), width, height);
+
+        // honour the scaffolding toggle: a bird's-eye view padded with framework nodes is harder to read,
+        // and the user has already said whether they want to see them
+        java.util.Set<String> all =
+                TopologyFocus.visible(fullTopology, scaffoldingBox.isSelected(), null);
+        java.awt.image.BufferedImage whole = paintOffscreen(
+                fullTopology.subgraph(all), order, entries, traced, touched, width, height);
+
+        return new CycleViews(trace, whole);
+    }
+
+    /**
+     * How far a report picture may magnify to fill its frame. Bounded rather than unlimited: a two-node
+     * cycle scaled until it fits looks like a diagram of something important, and the reader deserves to
+     * see that it is two boxes.
+     */
+    private static final double REPORT_MAX_ZOOM = 2.2;
+
+    /** A canvas that is never added to this window: configured, sized, fitted, painted, discarded. */
+    private java.awt.image.BufferedImage paintOffscreen(
+            ProcessorTopology shown, List<String> order, List<String> entries, boolean traced,
+            java.util.Set<String> emphasis, int width, int height) {
+        TopologyCanvas off = new TopologyCanvas();
+        off.setSpacing(spacingPercent() / 100.0);
+        off.setLabelSize(textSize());
+        off.setOrientation(canvas.orientation());
+        // classification stays pinned to the FULL graph, exactly as on screen: what the log establishes
+        // about a node must not change with how much of the graph a picture happens to show
+        off.setClassificationTopology(fullTopology);
+        off.setTopology(shown);
+        off.setDispatch(order, entries, traced);
+        off.setEmphasis(emphasis);
+        off.setSize(width, height);
+        off.doLayout();
+        // fill the frame: a report's picture has a fixed box and nothing else can use the space, so the
+        // on-screen 1:1 ceiling would leave a four-node trace as a stamp in the middle of a white page
+        off.fitToView(REPORT_MAX_ZOOM);
+
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
+                width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = img.createGraphics();
+        off.paint(g);
+        g.dispose();
+        return img;
+    }
+
+    /**
      * Where the callout's text comes from: the record's flag note and suggested fix, looked up by the
      * cursor's position in the <b>filtered</b> view. The caller owns that translation, because it is the
      * only layer that knows how the table maps view rows to records.

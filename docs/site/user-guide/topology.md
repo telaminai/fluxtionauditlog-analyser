@@ -220,14 +220,22 @@ Use the **Callout** state (or `topology {"callout": false}`) to hide it without 
 **Records ▸ Export finding to PDF…** writes the whole diagnosis as one document:
 
 - the explanation and the suggested fix,
-- which record, when, which event, which log and which processor,
-- a picture of the topology **as you currently have it focused**,
-- the plot from the selected Graph tab, if one is open,
+- which record, when, which event, which log and which processor — and when the analysis was made,
+- **two views of the graph** (below),
+- the plot from the selected Graph tab, if one is open, marked with a dashed rule at this record,
 - the full event record and node log, in monospace.
 
-Everything comes from what is on screen rather than being recomputed, so the document cannot disagree
-with the app it came from. Node logs paginate rather than truncate, and every page carries the record
-anchor — printed pages get separated from each other.
+The two graph views answer different questions, and the second is the one people forget to ask:
+
+- **The cycle** — only the nodes this event reached, and the order they logged in.
+- **Where it sits in the processor** — the whole graph with that cycle lit. What stayed grey is what the
+  event did *not* reach, which is the entire evidence for anything of the form "the check never fired".
+  A trace on its own cannot show an absence.
+
+Both are drawn for the page rather than screenshotted from the tab, so the document never inherits
+whatever zoom you happened to be at, and exporting never changes what you are looking at. Node logs
+paginate rather than truncate, and every page carries the record anchor — printed pages get separated
+from each other.
 
 An agent can produce the same document without you: write the finding with `flag`, set the view up with
 `goto` and `topology`, then call `report`. See [Analyser assistant](assistant.md).

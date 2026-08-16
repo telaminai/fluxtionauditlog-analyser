@@ -328,6 +328,30 @@ plot shows trends, this is a particular issue diagnosis."_
     on an otherwise blank next page — a section heading was placed with room for less than it needed.
     Both now have regression tests; the widow test **sweeps** the variable that moves the cursor rather
     than guessing one value, because the first version of it passed with the fix deliberately disabled.
+- [M23.10] ☑ **The report renders its own graph views, and two of them** (owner). Screenshotting the
+  live panel meant the document inherited whatever zoom, pan and toolbar the user had left on screen —
+  and the only way to make it look right was to change what they were looking at. `renderCycleViews`
+  builds a **detached** `TopologyCanvas`, sizes it for the page, fits and paints it, then discards it:
+  the export is side-effect free and framed for the paper rather than the window.
+  Two views, because they answer different questions and the second is the one people forget to ask:
+  **the trace** (only the nodes the event reached) and **the whole processor with that cycle lit**. What
+  stayed grey in the second is what the event did *not* reach — which is the entire evidence for "the
+  stock check never fired". A trace alone cannot show an absence.
+  `fitToView(maxScale)` was added rather than a second fit method: on screen the 1:1 ceiling is right (a
+  four-node graph blown up to fill a window looks broken); in a fixed report frame nothing else can use
+  the space, so it magnifies to 2.2×.
+  _Evidence was restructured from three nullable image fields to a `List<Picture>` (heading + caption +
+  image) — captions matter here, because the same picture of three lit nodes means "this is all that
+  ran" or "this is a filtered slice" depending on which view it is, and those support opposite
+  conclusions._
+- [M23.11] ☑ **The plot is marked with the record under diagnosis** (owner). A chart pasted beside a
+  finding shows a trend but says nothing about *which* point of it the finding is about, leaving the
+  reader to join a header timestamp to an axis by eye. `ChartPanel.setRecordMarker` draws a dashed rule
+  and a `record #N` label. Deliberately **not** a `ChartNotes.Note`: a note is authored and saved with
+  the graph, this is a transient pointer at whatever is being looked at, so it is held in its own field
+  and can never leak into a saved graph's annotations. Cleared in a `finally`.
+  The meta strip also gained **ANALYSED** — when the report was produced, which on an archived log is
+  months from when the event happened. A report carrying only the second reads as if it were live.
 - [M23.9] ☑ **`flag` carries a `fix`; a human can write one too.** `flag {note, fix}` — supplying one
   keeps the other (`Finding.merge`), so an agent adding a suggested fix cannot wipe the note that says
   what the fix is for. Records ▸ *Write a finding for this record…* is the human path into the same

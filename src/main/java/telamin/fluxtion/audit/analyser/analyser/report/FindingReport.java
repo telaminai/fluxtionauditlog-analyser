@@ -53,9 +53,8 @@ public final class FindingReport {
      * @param eventSummary the one-line event description shown in the header strip
      * @param eventLines   the raw event record
      * @param nodeLogLines the node log for the cycle
-     * @param topology     a picture of the graph, focused on the trace, or {@code null}
-     * @param chart        a relevant plot, or {@code null}
-     * @param chartName    what the plot is called, or {@code null}
+     * @param pictures     captioned images — the cycle, the whole graph, a plot — in the order to show
+     * @param analysedAt   when this report was produced, or {@code null}
      */
     public record Evidence(String title,
                            Finding finding,
@@ -65,15 +64,30 @@ public final class FindingReport {
                            String eventSummary,
                            List<String> eventLines,
                            List<String> nodeLogLines,
-                           BufferedImage topology,
-                           BufferedImage chart,
-                           String chartName) {
+                           List<Picture> pictures,
+                           String analysedAt) {
 
         public Evidence {
             eventLines = eventLines == null ? List.of() : List.copyOf(eventLines);
             nodeLogLines = nodeLogLines == null ? List.of() : List.copyOf(nodeLogLines);
+            List<Picture> pics = pictures == null ? List.of() : new ArrayList<>(pictures);
+            pics.removeIf(p -> p == null || p.image() == null);
+            pictures = List.copyOf(pics);
         }
     }
+
+    /**
+     * An image with the sentence that says what it is.
+     *
+     * <p>The caption is not decoration. A picture of a graph with three nodes lit and the rest grey means
+     * nothing until you know whether you are looking at the whole processor or a filtered slice of it —
+     * and those two readings support opposite conclusions about what did <em>not</em> run.
+     *
+     * @param heading what this picture is
+     * @param caption one line on how to read it, or {@code null}
+     * @param image   the picture
+     */
+    public record Picture(String heading, String caption, BufferedImage image) { }
 
     public static byte[] render(Evidence e) {
         PdfDoc doc = new PdfDoc();
@@ -94,11 +108,8 @@ public final class FindingReport {
                     "No explanation was recorded for this record.", MUTED, PANEL);
         }
 
-        if (e.topology() != null) {
-            image(doc, c, "The cycle", e.topology());
-        }
-        if (e.chart() != null) {
-            image(doc, c, e.chartName() == null ? "Trend" : "Trend · " + e.chartName(), e.chart());
+        for (Picture picture : e.pictures()) {
+            image(doc, c, picture);
         }
 
         monoBlock(doc, c, "Event record", e.eventLines(),
@@ -130,6 +141,9 @@ public final class FindingReport {
         if (e.eventSummary() != null) cells.add(new String[]{"EVENT", e.eventSummary()});
         if (e.logFile() != null) cells.add(new String[]{"LOG", e.logFile()});
         if (e.processor() != null) cells.add(new String[]{"PROCESSOR", e.processor()});
+        // the two times are different questions and an archived log makes them months apart: when the
+        // event happened, and when somebody looked at it
+        if (e.analysedAt() != null) cells.add(new String[]{"ANALYSED", e.analysedAt()});
 
         float rowH = 15;
         float boxH = cells.size() * rowH + 14;
@@ -180,15 +194,17 @@ public final class FindingReport {
      */
     private static final float MIN_IMAGE_H = 260;
 
-    private static void image(PdfDoc doc, Cursor c, String heading, BufferedImage img) {
+    private static void image(PdfDoc doc, Cursor c, Picture picture) {
+        BufferedImage img = picture.image();
         if (img.getWidth() <= 0 || img.getHeight() <= 0) {
             return;
         }
-        float headingH = 30;
+        float headingH = 30 + (picture.caption() == null ? 0 : 11 * PdfDoc.wrap(
+                picture.caption(), PdfDoc.Face.HELVETICA, 8.5f, CONTENT_W).size());
         if (BOTTOM - c.y - headingH - 20 < MIN_IMAGE_H) {
             c.page(doc);
         }
-        sectionHeading(doc, c, heading, null);
+        sectionHeading(doc, c, picture.heading(), picture.caption());
 
         float available = BOTTOM - c.y - 20;
         float aspect = img.getHeight() / (float) img.getWidth();

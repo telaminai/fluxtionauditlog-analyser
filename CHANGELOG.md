@@ -14,8 +14,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   table's note column, the callout, and an exported report.
 - **Export a finding as a PDF.** Records ▸ *Export finding to PDF…* (or the `analyser_report` verb)
   writes one document containing the explanation and suggested fix, which record and log it is about,
-  a picture of the topology as you have it focused, an optional plot, and the full event record and node
-  log. Dependency-free — nothing new in the build.
+  the full event record and node log, and **two views of the graph**: the cycle on its own, and the whole
+  processor with that cycle lit — so you can see what the event *didn't* reach as well as what it did.
+  Both are rendered for the page rather than screenshotted, so the document doesn't inherit your current
+  zoom and exporting never changes what you are looking at. An included plot is marked with a dashed rule
+  at the record being diagnosed, and the report records when the analysis was made. Dependency-free —
+  nothing new in the build.
 - **Charts can explain themselves.** A multi-line `explanation` and `notes` pinned to moments in time are
   drawn on the plot (so they survive an exported PNG), and a `rightAxis` gives a second vertical scale so
   series of very different magnitude stay readable together. All three are available through the

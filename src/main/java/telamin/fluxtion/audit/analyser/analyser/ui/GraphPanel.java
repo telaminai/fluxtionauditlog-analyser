@@ -475,6 +475,17 @@ public final class GraphPanel extends JPanel {
         return chart.notes();
     }
 
+    /**
+     * Mark the moment under diagnosis with a dashed rule and a label; {@code null} clears it.
+     *
+     * <p>Transient by construction — it is not a note and is never saved with the graph. A plot beside a
+     * finding shows a trend but says nothing about <em>which</em> point of it the finding is about; this
+     * is what joins the two.
+     */
+    public void setRecordMarker(Long atMillis, String label) {
+        chart.setRecordMarker(atMillis, label);
+    }
+
     /** Which series are measured against the right-hand scale. */
     public void setAxes(telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes) {
         chart.setAxes(axes);

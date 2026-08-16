@@ -579,26 +579,52 @@ public final class MainFrame extends JFrame {
             nodeLogLines.add(sb.toString());
         }
 
-        java.awt.image.BufferedImage topologyImage = null;
+        List<telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture> pictures =
+                new java.util.ArrayList<>();
+        TopologyPanel.CycleViews views = new TopologyPanel.CycleViews(null, null);
         if (withTopology && topologyPanel.hasTopology()) {
-            // the PDF renders the finding as its own section, so the copy painted on the canvas would be
-            // the same sentence twice on one page
-            boolean was = topologyPanel.isCalloutVisible();
-            topologyPanel.setCalloutVisible(false);
-            try {
-                topologyImage = paintOf(topologyPanel);
-            } finally {
-                topologyPanel.setCalloutVisible(was);
+            // rendered offscreen and fitted for the page, NOT screenshotted: a capture of the live panel
+            // inherits whatever zoom and pan the user left it at, and the only way to make it look right
+            // is to change what they are looking at
+            views = topologyPanel.renderCycleViews(record, 1200, 800);
+            if (views.trace() != null) {
+                pictures.add(new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                        "The cycle",
+                        "Only the nodes this event reached, and the order they logged in.",
+                        views.trace()));
+            }
+            if (views.wholeGraph() != null) {
+                pictures.add(new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                        "Where it sits in the processor",
+                        "The whole graph with that cycle lit. What stayed grey is what this event did "
+                                + "not reach — which is the evidence for anything of the form "
+                                + "\"the check never fired\".",
+                        views.wholeGraph()));
             }
         }
-        java.awt.image.BufferedImage chartImage = null;
         if (graphName != null && !graphName.isBlank()) {
             GraphPanel panel = graphTabs.graphNamed(graphName);
             if (panel == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "no graph named '" + graphName + "' — open graphs: " + graphTabs.graphNames());
             }
-            chartImage = paintOf(panel);
+            // mark WHERE ON THE TREND this cycle is. Without it the reader has two artefacts — a plot and
+            // a record — and has to join them by comparing the header timestamp to an axis by eye.
+            // Cleared in a finally: a marker is about the record being diagnosed, not a property of the
+            // graph, and leaving one behind would make the next reader think the app was still on it.
+            String marker = record.logTime() == null ? null : "record #" + row;
+            panel.setRecordMarker(record.logTime(), marker);
+            java.awt.image.BufferedImage plot;
+            try {
+                plot = paintOf(panel);
+            } finally {
+                panel.setRecordMarker(null, null);
+            }
+            pictures.add(new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                    "Trend · " + graphName,
+                    marker == null ? null
+                            : "The dashed rule marks record " + row + " — the cycle this finding is about.",
+                    plot));
         }
 
         String heading = title != null && !title.isBlank() ? title
@@ -608,8 +634,10 @@ public final class MainFrame extends JFrame {
                 logDisplayLocation == null ? null : new File(logDisplayLocation).getName(),
                 config.selectedEventProcessor,
                 record.logTime() == null ? null : TimeFormat.utc(record.logTime()),
-                record.eventToString(), eventLines, nodeLogLines,
-                topologyImage, chartImage, graphName);
+                record.eventToString(), eventLines, nodeLogLines, pictures,
+                // when the analysis was made, not when the event happened — the two are months apart on
+                // an archived log, and a report that only carries the second reads as if it were live
+                TimeFormat.utc(System.currentTimeMillis()));
 
         try {
             Path out = Path.of(path);
@@ -621,8 +649,16 @@ public final class MainFrame extends JFrame {
             echo.put("title", heading);
             echo.put("hasExplanation", finding.hasNote());
             echo.put("hasFix", finding.hasFix());
-            echo.put("topology", topologyImage != null);
-            echo.put("graph", chartImage == null ? null : graphName);
+            echo.put("cycleView", views.trace() != null);
+            echo.put("wholeGraphView", views.wholeGraph() != null);
+            echo.put("graph", graphName == null || graphName.isBlank() ? null : graphName);
+            echo.put("pages", pictures.size());
+            // a topology that has no node from this record is a build mismatch, not an empty cycle —
+            // silently omitting the picture would leave the reader wondering where it went
+            if (withTopology && topologyPanel.hasTopology() && views.trace() == null) {
+                echo.put("warning", "none of this record's nodes are in the loaded topology — "
+                        + "the graphml is probably from a different build");
+            }
             // an empty finding still produces a valid report; say so rather than let the caller assume
             // the explanation made it in
             if (finding.isEmpty()) {

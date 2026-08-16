@@ -163,12 +163,20 @@ class FindingReportTest {
 
     private static FindingReport.Evidence evidence(Finding finding, BufferedImage topology,
                                                    BufferedImage chart, String graphName) {
+        List<FindingReport.Picture> pictures = new ArrayList<>();
+        if (topology != null) {
+            pictures.add(new FindingReport.Picture("The cycle", "Only the nodes this event reached.",
+                    topology));
+        }
+        if (chart != null) {
+            pictures.add(new FindingReport.Picture("Trend \u00b7 " + graphName, null, chart));
+        }
         return new FindingReport.Evidence(
                 "Oversell at record 99", finding, "demo-store.yaml", "com.acme.demo.StoreProcessor",
                 "2026-08-16T09:15:00Z", "SaleEvent",
                 List.of("eventTime: 1755334500000", "event: SaleEvent"),
                 List.of("  1. stockLedger  onHand=-4  fulfilled=12"),
-                topology, chart, graphName);
+                pictures, "2026-08-16T18:40:00Z");
     }
 
     @Test
@@ -209,6 +217,47 @@ class FindingReportTest {
         assertTrue(out.contains("Stock vs revenue"));
     }
 
+    /**
+     * The two graph views are the point of including a picture at all, and each needs its caption: the
+     * same image of three lit nodes means "this is all that ran" or "this is a filtered slice" depending
+     * entirely on which view you are looking at, and those support opposite conclusions.
+     */
+    @Test
+    void bothGraphViewsAreCaptionedDistinctly() {
+        FindingReport.Evidence e = new FindingReport.Evidence(
+                "Two views", new Finding(3, "the check never fired", null), "log.yaml", null, null, null,
+                List.of("event: Sale"), List.of("  1. till  total=12"),
+                List.of(new FindingReport.Picture("The cycle",
+                                "Only the nodes this event reached.",
+                                new BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB)),
+                        new FindingReport.Picture("Where it sits in the processor",
+                                "What stayed grey is what this event did not reach.",
+                                new BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB))), null);
+        String out = body(FindingReport.render(e));
+
+        assertTrue(out.contains("The cycle"));
+        assertTrue(out.contains("Where it sits in the processor"));
+        assertTrue(out.contains("Only the nodes this event reached."));
+        assertTrue(out.contains("did not reach."));
+        assertTrue(out.contains("/Im1 Do") && out.contains("/Im2 Do"), "both views must be embedded");
+    }
+
+    /** A view that could not be rendered is dropped, not drawn as an empty box with a confident caption. */
+    @Test
+    void picturesWithNoImageAreDropped() {
+        FindingReport.Evidence e = new FindingReport.Evidence(
+                "Missing view", new Finding(3, "x", null), "log.yaml", null, null, null,
+                List.of("event: Sale"), List.of("  1. till  total=12"),
+                java.util.Arrays.asList(
+                        new FindingReport.Picture("The cycle", "caption", null),
+                        null,
+                        new FindingReport.Picture("Trend", null,
+                                new BufferedImage(300, 200, BufferedImage.TYPE_INT_RGB))), null);
+        assertEquals(1, e.pictures().size());
+        String out = body(FindingReport.render(e));
+        assertFalse(out.contains("(The cycle) Tj"), "a heading with no picture under it is a lie");
+    }
+
     /** A long node log paginates rather than being cut off — that is where the interesting line lives. */
     @Test
     void aLongNodeLogPaginates() {
@@ -218,7 +267,7 @@ class FindingReportTest {
         }
         FindingReport.Evidence e = new FindingReport.Evidence(
                 "Long cycle", new Finding(1, "lots happened", null), "log.yaml", null, null, null,
-                List.of("event: Tick"), nodeLog, null, null, null);
+                List.of("event: Tick"), nodeLog, List.of(), null);
         String out = body(FindingReport.render(e));
 
         assertTrue(out.contains("399. node19"), "the last line must survive pagination");
@@ -245,7 +294,7 @@ class FindingReportTest {
                     "Widow check", new Finding(5, "something is wrong", null), "log.yaml", null, null,
                     null, event,
                     List.of("  1. alpha  x=1", "  2. beta  y=2", "  3. gamma  z=3"),
-                    null, null, null);
+                    List.of(), null);
             String out = body(FindingReport.render(e));
 
             String[] pages = out.split("/Type /Page /Parent");
@@ -267,7 +316,7 @@ class FindingReportTest {
         for (int i = 0; i < 200; i++) nodeLog.add("line " + i);
         FindingReport.Evidence e = new FindingReport.Evidence(
                 "Multi page", new Finding(42, "x", null), "log.yaml", null, null, null,
-                List.of("event: Tick"), nodeLog, null, null, null);
+                List.of("event: Tick"), nodeLog, List.of(), null);
         byte[] pdf = FindingReport.render(e);
         String out = body(pdf);
 

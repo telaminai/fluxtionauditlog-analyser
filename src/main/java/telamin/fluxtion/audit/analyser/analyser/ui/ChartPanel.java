@@ -39,6 +39,9 @@ public final class ChartPanel extends JPanel {
     private Style style = Style.STEP;
 
     private double vx0 = Double.NaN, vx1, vy0, vy1;   // view bounds (data coords) — the LEFT axis
+    /** A transient "the cycle under discussion is here" pointer; never persisted (see paintRecordMarker). */
+    private Double markerAt;
+    private String markerLabel;
     /** Right-axis view bounds. Only meaningful when {@link #axes} puts something on the right. */
     private double ry0, ry1;
     private telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes =
@@ -338,6 +341,7 @@ public final class ChartPanel extends JPanel {
         drawingRight = false;
         paintNotes(g, dark);
         g.setClip(null);
+        paintRecordMarker(g, dark);
         paintExplanation(g, dark);
         // the legend is a Swing overlay component (GraphPanel), not painted here — so labels are readable,
         // untruncated, and support right-click actions
@@ -458,6 +462,56 @@ public final class ChartPanel extends JPanel {
                 stack++;
             }
         }
+    }
+
+    /**
+     * A vertical rule at the moment being diagnosed, labelled with the record.
+     *
+     * <p>Deliberately <b>not</b> a {@link telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note}.
+     * A note is something a person wrote and it is saved with the graph; this is a pointer that says
+     * "the cycle under discussion is here", and it belongs to whatever is currently being looked at. Held
+     * as its own transient field so it can never leak into a saved graph's annotations.
+     *
+     * <p>It earns its place in a report: a plot pasted beside a finding shows a trend, but nothing on it
+     * says which point of that trend the finding is about, and the reader is left to infer it from the
+     * timestamp in the header. Marking it turns two artefacts into one argument.
+     */
+    private void paintRecordMarker(Graphics2D g, boolean dark) {
+        if (markerAt == null || Double.isNaN(vx0) || markerAt < vx0 || markerAt > vx1) {
+            return;
+        }
+        int px = xToPx((long) (double) markerAt);
+        Color accent = dark ? new Color(0xE3A008) : new Color(0xB45309);
+        g.setColor(accent);
+        g.setStroke(new java.awt.BasicStroke(1.2f, java.awt.BasicStroke.CAP_BUTT,
+                java.awt.BasicStroke.JOIN_MITER, 10f, new float[]{5f, 4f}, 0f));
+        g.drawLine(px, plotY, px, plotY + plotH);
+        g.setStroke(new java.awt.BasicStroke(1f));
+
+        if (markerLabel == null || markerLabel.isBlank()) {
+            return;
+        }
+        java.awt.FontMetrics fm = g.getFontMetrics();
+        int pad = 4;
+        int w = fm.stringWidth(markerLabel) + pad * 2;
+        int h = fm.getHeight() + 2;
+        // flip the label to the left of the rule when it would otherwise run off the plot
+        int bx = px + 4 + w > plotX + plotW ? px - 4 - w : px + 4;
+        int by = plotY + 4;
+        g.setColor(accent);
+        g.fillRoundRect(bx, by, w, h, 4, 4);
+        g.setColor(Color.WHITE);
+        g.drawString(markerLabel, bx + pad, by + fm.getAscent() + 1);
+    }
+
+    /**
+     * Point the chart at a moment — typically the record being diagnosed. {@code null} clears it.
+     * Transient: never saved, never exported as an annotation.
+     */
+    public void setRecordMarker(Long atMillis, String label) {
+        this.markerAt = atMillis == null ? null : atMillis.doubleValue();
+        this.markerLabel = label;
+        repaint();
     }
 
     /**

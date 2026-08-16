@@ -451,6 +451,18 @@ public final class TopologyCanvas extends JPanel {
 
     /** Scale and centre so the whole graph is visible with a small margin. */
     public void fitToView() {
+        fitToView(1.0);
+    }
+
+    /**
+     * Fit, allowing magnification up to {@code maxScale}.
+     *
+     * <p>On screen the ceiling is 1:1 — a three-node graph blown up to fill a window looks broken, and
+     * the space is better spent telling you the graph is small. A picture being rendered <b>for a page</b>
+     * is the opposite case: the frame is fixed, nothing else can use the space, and a graph adrift in a
+     * field of white just wastes the reader's page. Hence the parameter rather than a second fit method.
+     */
+    public void fitToView(double maxScale) {
         int w = getWidth();
         int h = getHeight();
         if (w <= 0 || h <= 0 || layout.isEmpty()) {
@@ -462,7 +474,7 @@ public final class TopologyCanvas extends JPanel {
         double margin = 24;
         double sx = (w - 2 * margin) / Math.max(1, layout.width());
         double sy = (h - 2 * margin) / Math.max(1, layout.height());
-        scale = clamp(Math.min(sx, sy), MIN_SCALE, 1.0);   // never zoom past 1:1 just to fill space
+        scale = clamp(Math.min(sx, sy), MIN_SCALE, Math.max(MIN_SCALE, maxScale));
         offsetX = (w - layout.width() * scale) / 2;
         offsetY = (h - layout.height() * scale) / 2;
         repaint();
