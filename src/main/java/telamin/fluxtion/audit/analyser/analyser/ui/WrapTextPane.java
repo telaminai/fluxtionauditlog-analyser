@@ -37,9 +37,31 @@ public final class WrapTextPane extends JTextPane {
         return wrap;
     }
 
+    /**
+     * Wrapping always tracks the viewport. <b>Not</b> wrapping tracks it too whenever the text is
+     * narrower than the viewport — otherwise the pane sizes to its longest line and everything to the
+     * right of that is the scroll pane's background rather than the editor's, so a short file (or an
+     * empty one) reads as a narrow strip floating in an unrelated panel. Long lines still exceed the
+     * viewport and scroll horizontally, which is the point of turning wrap off.
+     */
     @Override
     public boolean getScrollableTracksViewportWidth() {
-        return wrap;
+        if (wrap) return true;
+        return fillsLessThanViewport(true);
+    }
+
+    /** Same reasoning vertically: a short document should not leave a band of foreign background below it. */
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return fillsLessThanViewport(false);
+    }
+
+    private boolean fillsLessThanViewport(boolean horizontal) {
+        if (!(getParent() instanceof javax.swing.JViewport viewport)) return false;
+        Dimension preferred = getUI().getPreferredSize(this);
+        return horizontal
+                ? preferred.width <= viewport.getWidth()
+                : preferred.height <= viewport.getHeight();
     }
 
     @Override

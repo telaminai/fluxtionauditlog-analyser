@@ -735,11 +735,11 @@ public final class MainFrame extends JFrame {
                 BorderFactory.createEmptyBorder(2, 6, 2, 6),
                 UiTheme.section("Time range")));
 
-        // top row above the slider: showing N of M (centre) · Window (right).
+        // top row above the slider: Window (left) · showing N of M (centre).
         // Search moved to sit directly above the Records table (see buildLayout).
         windowCombo.setToolTipText("Shrink the visible time window so a short span isn't a sliver of the whole log; pan with the bar below.");
         windowCombo.setEnabled(false);
-        JPanel windowCluster = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        JPanel windowCluster = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         windowCluster.add(new JLabel("Window:"));
         windowCluster.add(windowCombo);
 
@@ -748,7 +748,7 @@ public final class MainFrame extends JFrame {
 
         JPanel top = new JPanel(new BorderLayout(8, 0));
         top.add(showingLabel, BorderLayout.CENTER);
-        top.add(windowCluster, BorderLayout.EAST);
+        top.add(windowCluster, BorderLayout.WEST);
 
         windowScroll.setEnabled(false);
         windowScroll.setToolTipText("Pan the visible window across the full log range.");

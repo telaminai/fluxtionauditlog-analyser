@@ -290,7 +290,8 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
 _Owner-specified batch (2026-08-16), ported from what fluxtion-visualiser already does well. The
 topology renders correctly but does not yet let you **explore** — these are the affordances that turn a
 picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that change daily use._
-- [M22.1] ☐ **Hide framework scaffolding** (checkbox, on by default) — **10 of 16 nodes in the demo graph
+- [M22.1] ◐ **Hide framework scaffolding** (checkbox, on by default) — model shipped (`Scaffolding` +
+  `ProcessorTopology.subgraph`), **UI checkbox still to wire**. **10 of 20 nodes in the demo graph
   are scaffolding** (`context`, `clock`, `nodeNameLookup`, `callbackDispatcher`, `subscriptionManager`,
   `serviceRegistry`, `eventLogger`, `ClockStrategyEvent`, `EventLogControlEvent`, `ServiceListener`), so
   the user's actual graph is a third of what is drawn. Detection must handle **both** label shapes seen in
@@ -309,9 +310,13 @@ picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that ch
   *sibling* of Topology in the same tabbed pane, so navigating to source hides the thing you navigated
   from. Options: split the side pane (graph above, source below) when navigating from the topology; or
   give the Topology tab its own embedded source view. Owner-raised; needs a layout decision before code.
-- [M22.10] ☐ **A user-authored exported service in the demo fixture** — the generator has none, so the
-  hexagon only ever appears on framework plumbing. Per `claude.txt`, `@ExportService` interface methods
-  must return `void`. Would also give the analyser a realistic entry point that is not an event.
+- [M22.10] ☑ **A user-authored exported service in the demo fixture** — shipped. `QuotePublisher`
+  implements `@ExportService QuoteControl` (`suspendQuoting`/`resumeQuoting`, both `void` per
+  `claude.txt`), so the compiler emits a **separate `QuoteControl` EXPORTSERVICE node** with an edge into
+  `quotePublisher` — an exported service is its own entry-point node, not a marking on the implementing
+  node. Two defects came out of using real artefacts: the generator was copying a **stale** graphml from
+  `target/generated-resources` (the plugin writes back into the source tree), and `EntryPointResolver`
+  knew only the fully-qualified signature spelling, so every exported call resolved to no entry point.
 - [M22.3] ☐ **Export the view as PNG** — reuses the offscreen render already used to verify the canvas;
   pairs with the existing graph/record exports.
 - [M22.4] ☐ **Text-size and separation sliders** — separation re-runs `LayeredLayout` (`nodeWidth`,
@@ -325,6 +330,48 @@ picture into a tool. Ordered by value/effort; 22.1 and 22.2 are the ones that ch
   so the canvas is unchanged.
 - [M22.7] ☐ **Split Open Recent** — separate *Recent audit logs* and *Recent GraphML*; needs a second
   recent list in `AppConfig` (the existing one is log-only) and menu wiring.
+
+### Added 2026-08-16 (owner, from the playground visualiser reference)
+_Reference implementations reviewed: `mongoose-plugins/service/svc-admin-web/src/main/resources/web`
+(`visualiser/scaffold-filter.js`, `replay/replay-engine.js`, `replay/eventlog-parser.js`) and the
+playground's `audit/step-through` screen. Findings: our `Scaffolding` is already a **superset** of
+`scaffold-filter.js` (which matches by class name only, so framework EVENT nodes stay visible); our
+`StepCursor` is a superset of `replay-engine.js` **except** it has no play/pause autoplay; and **neither
+reference handles re-dispatch at all** — their replay engines are record→step only, so M22.11 is new
+design, not a port._
+
+- [M22.11] ☐ **Re-dispatch (`processReentrantEvent`) — show the cause.** A node can raise an event on its
+  own graph. Measured against generated code and a real fixture: `afterEvent()` publishes the audit record
+  **before** `dispatchQueuedCallbacks()` runs, so a re-dispatch is **not** extra rows on the causing
+  cycle — it is a **separate `eventLogRecord`**, same thread, normal `eventTime` (an exported call is
+  stamped `-1`), carrying nothing that says it came from inside. The graphml is no help either: the raised
+  event is an ordinary EVENT node with no edge from the node that raises it. So linking effect to cause
+  needs the **processor source** (which node calls `processReentrantEvent`/`processAsNewEventCycle` with
+  which type) plus record adjacency. Without source, claim nothing. Fixture: `riskMonitor` →
+  `RiskBreachEvent` → `breachHandler` in `demo-quote-audit.yaml`, pinned by two tests.
+- [M22.12] ☐ **Node-log panel: Logical and Text views**, both colourised — Logical groups each node's
+  key/values under the node name (what the playground shows); Text is the raw YAML. Today the analyser has
+  one rendering.
+- [M22.13] ☐ **Source view: three modes — Event processor · Node · Split.** Split shows the generated
+  processor and the node class together, which is how you read a dispatch: the `auditInvocation` call site
+  above, the method it calls below. Supersedes the open layout question in M22.9.
+- [M22.14] ☑ **Source view fills the viewport with wrap off** — `getScrollableTracksViewportWidth()`
+  returned the wrap flag, so the pane sized to its longest line and the rest of the viewport showed the
+  scroll pane's background. Now tracks the viewport whenever the text is narrower (and the same
+  vertically); long lines still scroll horizontally.
+- [M22.15] ☑ **"No source to show" instead of a 5%-tall empty editor** — the empty state now fills the
+  panel and names the roots actually searched plus `File ▸ Settings… ▸ Source roots ▸ Add…`. An empty
+  editor says "nothing here" when the truth is usually "looking in the wrong place".
+- [M22.16] ☑ **Window-span selector moved to the left** of the time-range bar (owner).
+- [M22.17] ☐ **Collapsible event-types panel behind a vertical nav bar** (IntelliJ-style, icons or text,
+  left edge). The event-types filter is permanently docked and takes a large share of the window. Column
+  selection could move from the menu bar into the same nav bar.
+- [M22.18] ☐ **Panel surfaces must read as surfaces** — graphml, event-record and node-log panels need a
+  background that separates them from the app background, in **both** light and dark themes. The source
+  viewer already does this (`applySourceBackground`); the others do not.
+- [M22.19] ☐ **Step-through header, playground-style** — `event 8/10 · step 2/5` with prev/next controls,
+  event-kind filter chips above the record list, and autoplay (play/pause), which `replay-engine.js` has
+  and `StepCursor` does not.
 
 ## M20 · Project profiles — global vs local settings — ☐ PROPOSED
 _Design: **[spec-project-profiles.md](spec-project-profiles.md)**. Give the analyser a first-class

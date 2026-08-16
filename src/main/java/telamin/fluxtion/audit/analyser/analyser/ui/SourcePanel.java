@@ -146,7 +146,54 @@ public final class SourcePanel extends JPanel {
 
     /** A subtle, theme-aware editor background so the source viewer reads apart from other panels. */
     private void applySourceBackground() {
-        source.setBackground(ThemeManager.isDark() ? new java.awt.Color(0x1B1F24) : new java.awt.Color(0xFBFCFE));
+        java.awt.Color editor = ThemeManager.isDark()
+                ? new java.awt.Color(0x1B1F24) : new java.awt.Color(0xFBFCFE);
+        source.setBackground(editor);
+        // The viewport shows through wherever the pane does not reach — during a resize, and around the
+        // margins. Matching it keeps the editor a single surface instead of two shades meeting mid-panel.
+        sourceScroll.getViewport().setBackground(editor);
+        sourceScroll.setBackground(editor);
+    }
+
+    /**
+     * What the viewer shows when there is no file behind the name: an explanation, the roots actually
+     * searched, and the way to add another. An empty editor says "nothing here" when the truth is
+     * "configured to look in the wrong place", and the roots are the one fact that distinguishes them.
+     */
+    private void showNothingToShow(String fqn) {
+        List<java.nio.file.Path> roots = service == null ? List.of() : service.resolver().roots();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("No source to show\n\n")
+          .append(fqn).append('\n')
+          .append("was not found under the source roots below.\n\n");
+        if (roots.isEmpty()) {
+            sb.append("No source roots are configured yet.\n\n");
+        } else {
+            sb.append(roots.size() == 1 ? "Source root searched:\n" : "Source roots searched:\n");
+            for (java.nio.file.Path root : roots) sb.append("    ").append(root).append('\n');
+            sb.append('\n');
+        }
+        sb.append("Add one:  File ▸ Settings… ▸ Source roots ▸ Add…\n")
+          .append("or drag a project folder onto that tab — a project expands to its src/main/java,\n")
+          .append("sub-modules included.\n\n")
+          .append("A source root is the folder that directly contains your top-level package directory.");
+
+        renderPlain(sb.toString());
+    }
+
+    /** Plain, muted text in the editor — used for messages, which must not be coloured as if they were code. */
+    private void renderPlain(String text) {
+        javax.swing.text.StyledDocument doc = source.getStyledDocument();
+        try {
+            doc.remove(0, doc.getLength());
+            javax.swing.text.SimpleAttributeSet style = new javax.swing.text.SimpleAttributeSet();
+            javax.swing.text.StyleConstants.setForeground(style, UiTheme.mutedForeground());
+            doc.insertString(0, text, style);
+        } catch (javax.swing.text.BadLocationException ignore) {
+            // the document was just emptied; nothing sensible to recover
+        }
+        source.setCaretPosition(0);
     }
 
     /** Toggle source line-wrap: swap the view behaviour, sync the scrollbar, and rebuild the views. */
@@ -227,7 +274,7 @@ public final class SourcePanel extends JPanel {
             currentSource = "";
             currentModel = null;
             currentLabel.setText(fqn + "  —  not found under the configured source roots");
-            highlighter.render(source.getStyledDocument(), "");
+            showNothingToShow(fqn);
         }
     }
 
