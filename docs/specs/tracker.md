@@ -822,27 +822,6 @@ design, not a port._
   …) and `applyReadingRhythm()` opens line spacing to 0.18. Swing sets lines at the font's own leading,
   which is most of why dense key/value output reads as a block next to the same content on a web page.
 
-## M20 · Project profiles — global vs local settings — ☐ PROPOSED
-_Design: **[spec-project-profiles.md](spec-project-profiles.md)**. Give the analyser a first-class
-**project** concept so a user jumps between Fluxtion projects without re-importing. Two disjoint tiers
-reusing M15's whitelist as the boundary: **global (machine)** = API key · LLM · AWS · theme · perf ·
-history (`~/.fluxtion-analyser/config`, as today); **project profile** = source roots · event processor ·
-Maven repos · graphs · hidden columns (at `<project>/.analyser/project.fluxtion-settings` — one canonical
-path, shared with the M19 bundle).
-Switching a project **replaces** the project-scoped set (never merges into global); the API key can't
-leak by construction, so a profile is **git-shareable** (commit it like `.vscode/settings.json`).
-Generalises M19 (the playground bundle is a project profile → auto-configure on open). Import (M15) stays
-the additive *share* flow, gaining an explicit "open as project (replace)" option._
-- [M20.1] ☐ **Tier the config** — mark project-scoped categories; add `activeProjectPath`; load/save a
-  project profile via `SettingsShare` (REPLACE for the project set). Headless-testable.
-- [M20.2] ☐ **Open / Switch / New project + Recent projects** UI; merge-vs-open-as-project choice on Import.
-- [M20.3] ☐ **Auto-detect** a project file beside an opened log → "Load this project?" (the M19 hook).
-- [M20.4] ☐ **Docs** — user-guide "working across projects"; git-shareable profile; M19 tutorial upgrades
-  from "import once" to "auto-loaded project".
-- Depends on **M19.2** (relative-root import, shipped). Open questions all resolved in the spec: O1
-  Maven repos project-scoped · O2 in-repo profile path · O3 defer reopen-last-log · O4 auto-persist
-  (debounced), no explicit Save.
-
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
