@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-17
+
 ### Added
 - **An assistant can show you where a control is.** `analyser_screenshot` accepts
   `scope: "menu:File"`, which opens a top-level menu and captures it — so "it's under File" can be a
