@@ -81,6 +81,9 @@ public final class MainFrame extends JFrame {
      * clock.
      */
     private javax.swing.Timer projectSaveDebounce;
+    /** Whether opening a log should offer the project it sits in, and when to stay quiet (M20.3). */
+    private final telamin.fluxtion.audit.analyser.analyser.config.ProjectAutoDetect projectDetect =
+            new telamin.fluxtion.audit.analyser.analyser.config.ProjectAutoDetect();
     private JTabbedPane sideTabs;
 
     private LogStore store;
@@ -1397,6 +1400,7 @@ public final class MainFrame extends JFrame {
         this.store = loaded;
         this.logDisplayLocation = location;
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
+        maybeOfferProject();       // M20.3 — the log may sit inside a project we could configure from
         flaggedRows.clear();       // flags are per-file (model row indices)
         findings.clear();
         flaggedOnly = false;
@@ -1720,6 +1724,34 @@ public final class MainFrame extends JFrame {
         if (store != null) {
             showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
         }
+    }
+
+    /**
+     * Offer the project a freshly-opened log sits in.
+     *
+     * <p>Asked once per log per session and never for a project that is already open — the policy lives
+     * in {@link telamin.fluxtion.audit.analyser.analyser.config.ProjectAutoDetect} so it can be tested
+     * without a dialog. Deliberately a question rather than an action: loading a project replaces your
+     * source roots and graphs, which is not something to do to someone because they opened a file.
+     */
+    private void maybeOfferProject() {
+        Path log = logLocalPath == null ? null : Path.of(logLocalPath);
+        Path offer = projectDetect.offerFor(log, project.activeFile());
+        if (offer == null) {
+            return;
+        }
+        Path root = offer.getParent() == null ? offer : offer.getParent().getParent();
+        String name = root == null ? offer.toString() : root.getFileName().toString();
+        int answer = JOptionPane.showConfirmDialog(this,
+                "This log sits inside the project \"" + name + "\", which has analyser settings.\n\n"
+                + "Load them? Your source roots, Maven repos, event processors, graphs and hidden\n"
+                + "columns will be replaced by that project\u2019s.",
+                "Load this project?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (answer != JOptionPane.YES_OPTION) {
+            projectDetect.decline(log);      // asked and answered; do not ask again for this log
+            return;
+        }
+        applyProjectResult(project.open(offer));
     }
 
     // ---- projects (M20.2) --------------------------------------------------------------------

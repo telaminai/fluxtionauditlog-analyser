@@ -17,6 +17,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   a committed profile keeps legible diffs) — including edits made by an assistant over the socket.
   **File ▸ Import settings** now asks whether you mean *Merge* (share a setup, additive) or *Open as
   project* (replace).
+  Opening a log that sits inside a project **offers to load that project** — so a downloaded bundle
+  configures itself. It asks once per log, never for a project already open, and takes "no" for an
+  answer for the rest of the session.
 
 ### Fixed
 - **The action manifest advertised six verbs while thirteen shipped.** `GET /manifest` hardcoded its

@@ -288,6 +288,22 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
 
 ## M20 · Project profiles — ◐ IN PROGRESS
 _Brief: `docs/handoff/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles.md` (O1–O4 resolved)._
+- [M20.3] ☑ **Auto-detect a project beside an opened log** — the M19 zero-setup hook. Open a bundle's
+  audit log and the profile committed at its repo root offers to configure roots, event processor and
+  graphs. `config/ProjectAutoDetect` holds the policy (7 tests) because *when not to ask* is the hard
+  part: no profile above the log, the profile is already the active project, this log was declined
+  earlier this session, or the log has no local path at all (an `s3://` object streams to a temp
+  directory, and a temp directory is not a project). Declines are per session and per log — a later
+  launch is a fair time to ask again, and declining one file says nothing about another.
+  Deliberately a **question**, not an action: loading a project replaces your roots and graphs, which
+  is not something to do to someone because they opened a file. Nested repositories resolve to the
+  nearest profile.
+  _Verification note worth keeping:_ I tried to confirm the dialog appeared by checking whether the
+  REST socket went unresponsive, reasoning that a modal dialog blocks the EDT. **It does not** —
+  `JOptionPane` runs a nested event loop, so the EDT keeps pumping and the socket answers normally.
+  The heuristic could never have worked; the owner seeing the dialog, plus a one-line diagnostic
+  showing the computed offer, is what actually confirmed it.
+
 - [M20.2] ☑ **Open / New / Save-as / Close project, recent projects, and auto-persist.**
   `config/ProjectSession` owns the lifecycle and is headless (13 tests); the File menu is a thin caller.
   Project items are their own group after the log/graph openers — the items above open a *file to look
