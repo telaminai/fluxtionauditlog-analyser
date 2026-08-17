@@ -25,9 +25,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   speak, a non-numeric sample leaves a window unchanged (so a rolling mean survives a no-quote gap
   instead of erasing its history — and, stated plainly, a full count window holds its value
   indefinitely after the last contributing sample; time windows go empty instead), and conditionals
-  compose: `mean(if(c, x), 10)` is the mean of the
-  last 10 samples where `c` held; `if(c, mean(x, 10))` shows the all-samples mean only while `c`
-  holds. Time-windowed forms take a duration instead of a count — `mean(x, "5m")`, `rate(x, "1m")`
+  compose: `mean(if(c, x), 10)` is the mean of the last 10 samples where `c` held;
+  `if(c, mean(x, 10))` shows the all-samples mean only while `c` holds. Time-windowed forms take a duration instead of a count — `mean(x, "5m")`, `rate(x, "1m")`
   (change per minute, scaled from however much of the minute the samples actually cover, so a filling
   window reads the true rate rather than understating it) — and age samples out against each record's
   own clock, which is the right tool when record arrival rate varies.

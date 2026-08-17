@@ -882,7 +882,7 @@ arithmetic; one scan should answer it). All read-only — no change to the FAQ s
 - [M26.4] ☑ **Echo hardening** — `graph` warns on a `rightAxis`/note series not in the graph; verbs
   name ignored parameters in their echoes. Docs + changelog.
 
-## M28 · Expression conditionals + rolling windows — ☑ ON BRANCH `feat/m28-expr-conditionals` (awaiting review) (formulas that judge and remember)
+## M28 · Expression conditionals + rolling windows — ☑ SHIPPED 2026-08-17 (merged; review approved — F1 rate() bias fixed on branch, F2 resolved by disclosure/D-W2b) (formulas that judge and remember)
 _Design: **[spec-expr-conditionals-windows.md](spec-expr-conditionals-windows.md)**. Owner ask:
 `if(x−y > 10, f(x))` conditional plotting and rolling-window memory formulas. Two bounded vocabulary
 additions to `Expr` — NOT a scripting engine — landing in graphs and the `series` verb at once because
@@ -890,23 +890,23 @@ they share the engine. NaN-is-no-point carries the design: a false condition or 
 plots nothing. Windows need the one real refactor: per-scan stateful evaluators (`newEvaluator()` +
 `EvalContext{logTime, values}`) — the AST stays immutable. Three window-semantics decisions (what
 enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the spec for review._
-- [M28.1] ☑ **Conditionals** *(shipped on `feat/m28-expr-conditionals`)* — comparisons +
+- [M28.1] ☑ **Conditionals** — comparisons +
   `if(cond, then[, else])` + `and/or/not`; two-arg `if` defaults else to NaN = "plot only when".
   Stateless, no signature changes; ships alone.
-- [M28.2] ☑ **Evaluator refactor (W0)** *(shipped on `feat/m28-expr-conditionals`)* — per-scan compiled MIRROR (position-keyed state, not
+- [M28.2] ☑ **Evaluator refactor (W0)** — per-scan compiled MIRROR (position-keyed state, not
   value-equal-node-keyed: `delta(x)+delta(x)` must be `2*delta(x)`); `Expr.eval(Map)` DELETED so the
   compiler enforces migration; all three call sites (extractExpr STRICT/LOCF, SeriesScan) migrated.
-- [M28.3] ☑ **Count windows** *(shipped on `feat/m28-expr-conditionals`)* —
+- [M28.3] ☑ **Count windows** —
   `lag/delta/mean/sum/rollingMin/rollingMax(x, N)` (min/max overload REJECTED in review: breaks
   `min(4, 2)`); D-W1/2/3 semantics pinned by test, incl. gate-output vs gate-input and
   `delta(x)+delta(x) == 2*delta(x)`.
-- [M28.4] ☑ **Time windows** *(shipped on `feat/m28-expr-conditionals`)* — duration literals
+- [M28.4] ☑ **Time windows** — duration literals
   (`"5m"`), `rate`, the D-W3 arrival-rate steer; docs (incl. the gate-output/gate-input table) +
   changelog.
-- [M28.5] ☑ **Guide lines (P1)** *(shipped on `feat/m28-expr-conditionals`)* — labelled threshold
+- [M28.5] ☑ **Guide lines (P1)** — labelled threshold
   rules on either scale; share-surface checklist honoured (spec round-trip, share ride-along,
   restore-not-an-edit, disclosure row updated).
-- [M28.6] ☑ **Condition bands (P2)** *(shipped on `feat/m28-expr-conditionals`)* — condition
+- [M28.6] ☑ **Condition bands (P2)** — condition
   persists, intervals recompute with the series' own extraction pass; same checklist.
 
 ## M29 · External series — ☐ PROPOSED (plot what the outside world did)
