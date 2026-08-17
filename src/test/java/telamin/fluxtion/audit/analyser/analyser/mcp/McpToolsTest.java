@@ -36,7 +36,7 @@ class McpToolsTest {
                 .map(v -> "analyser_" + v).collect(Collectors.toSet());
         Set<String> actual = tools.stream().map(t -> (String) t.get("name")).collect(Collectors.toSet());
         assertEquals(expected, actual, "no more, no fewer — the adapter must not fork the schema set");
-        assertEquals(13, tools.size(), "thirteen verbs ship today: 4 query, 5 render, 4 control");
+        assertEquals(14, tools.size(), "fourteen verbs ship today: 5 query, 5 render, 4 control");
     }
 
     @Test
@@ -66,6 +66,7 @@ class McpToolsTest {
     void readOnlyHintOnQueryVerbsOnly() {
         assertEquals(true, annotations("aggregate").get("readOnlyHint"));
         assertEquals(true, annotations("read").get("readOnlyHint"));
+        assertEquals(true, annotations("series").get("readOnlyHint"));
         for (String render : List.of("filter", "graph", "goto", "flag")) {
             assertEquals(false, annotations(render).get("readOnlyHint"), render + " changes the UI");
             assertEquals(false, annotations(render).get("destructiveHint"), render + " is reversible");

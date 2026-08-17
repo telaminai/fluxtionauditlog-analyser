@@ -48,6 +48,9 @@ drive the same verbs:
 - **aggregate** — counts / rates over the index (the expensive parse is done once and shared).
 - **read** — the raw text of N records around an anchor, so an agent can seek the log through the socket
   without its own file access.
+- **series** — stats, threshold crossings and time buckets over any key or formula, computed in the
+  analyser. "Where does the spread exceed 0.004?" is one call returning the exact records (each with a
+  `recordIndex`/`byteOffset` anchor for a follow-up `read`), not a page-through of raw text.
 - **filter** — narrow every view to the records in question.
 - **graph** — plot a series or formula, with an optional `rationale` that **captions the plot** with why
   it was drawn (durable provenance).
@@ -77,12 +80,12 @@ no copied token**. The same jar doubles as an MCP server — your client runs it
 `java -jar fluxtion-auditlog-analyser.jar --mcp` (you don't type that yourself; it goes in the client's
 config, below).
 
-The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_filter`,
-`analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`, `analyser_topology`,
-`analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open` and
+The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
+`analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
+`analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open` and
 `analyser_source_root` — with full parameter schemas, so there's nothing to paste into a prompt.
 
-`aggregate`, `read`, `context` and `coverage` are marked read-only. The verbs that only change what the
+`aggregate`, `read`, `series`, `context` and `coverage` are marked read-only. The verbs that only change what the
 app shows are reversible and marked accordingly. Four are marked **destructive**, so a client can prompt
 before running them: `open` replaces the loaded log (taking the session's flags with it), `source_root`
 writes the persisted config, and `screenshot` and `report` write files.
@@ -186,11 +189,12 @@ server actually connected, then say what you want:
 $ claude
 
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 13 tools
-       analyser_aggregate · analyser_read · analyser_filter
-       analyser_graph · analyser_goto · analyser_flag · analyser_report
-       analyser_coverage · analyser_context · analyser_topology
-       analyser_screenshot · analyser_open · analyser_source_root
+  ⎿ fluxtion-analyser   ✔ connected · 14 tools
+       analyser_aggregate · analyser_read · analyser_series
+       analyser_filter · analyser_graph · analyser_goto
+       analyser_flag · analyser_report · analyser_coverage
+       analyser_context · analyser_topology · analyser_screenshot
+       analyser_open · analyser_source_root
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.
@@ -295,7 +299,7 @@ Order matters, and step 2 in particular has a trap:
 
     Installing, configuring and launching are deliberately **not** exposed as MCP tools. Partly because
     it would be circular — a tool that installs the bridge needs the bridge already installed — and
-    partly because the analyser's tool surface is kept to the six log verbs on purpose. Shell commands
+    partly because the analyser's tool surface is kept to the log verbs on purpose. Shell commands
     are yours to approve; tools are the model's to invoke, and that difference is the whole security
     story below.
 

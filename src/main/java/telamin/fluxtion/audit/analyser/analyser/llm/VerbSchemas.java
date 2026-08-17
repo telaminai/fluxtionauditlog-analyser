@@ -23,6 +23,25 @@ public final class VerbSchemas {
                         p("filter", filterObject(), "optional scope for the aggregation")),
                 req("metric")));
 
+        s.put("series", schema("Read-only: stats and threshold crossings over any key or formula, "
+                        + "computed in the analyser — ask 'where does X exceed Y' in ONE call instead of "
+                        + "paging records. Crossings are edge events with recordIndex/byteOffset anchors "
+                        + "for a targeted 'read'; capped with an explicit truncated flag.",
+                props(
+                        p("expr", string(), "a key (\"instanceId.key\") or a formula over keys, e.g. "
+                                + "\"ask.price - bid.price\""),
+                        p("resolve", enumStr("STRICT", "LOCF"), "STRICT (default): all refs co-occur in "
+                                + "one record; LOCF: carry each ref's last value"),
+                        p("filter", filterObject(), "optional scope (from/to/dimensions; text is refused "
+                                + "here — narrow with the 'filter' verb instead)"),
+                        p("crossings", crossingsObject(), "report where the value ENTERS a region: "
+                                + "{above} and/or {below}"),
+                        p("limit", integer(), "max crossing events per direction (default and cap "
+                                + telamin.fluxtion.audit.analyser.analyser.graph.SeriesScan.MAX_CROSSINGS + ")"),
+                        p("buckets", enumStr("minute", "hour"), "per-bucket count/min/max/mean instead of "
+                                + "one whole-window summary")),
+                req("expr")));
+
         s.put("read", schema("Read-only: the raw text of N records around an anchor, so you can seek the "
                         + "log through this socket without filesystem access. Max " + ReadService.MAX_COUNT
                         + " records/call.",
@@ -237,6 +256,21 @@ public final class VerbSchemas {
     private static Map<String, Object> type(String t) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("type", t);
+        return m;
+    }
+
+    private static Map<String, Object> crossingsObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("above", number(), "report entries into value > above"),
+                p("below", number(), "report entries into value < below")));
+        return m;
+    }
+
+    private static Map<String, Object> number() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "number");
         return m;
     }
 

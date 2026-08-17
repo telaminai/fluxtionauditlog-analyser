@@ -101,6 +101,18 @@ public final class ActionExecutor implements RenderExecutor {
             case "coverage" -> {
                 return doCoverage(params);
             }
+            case "series" -> {
+                // M26.1 — computed HERE, off the EDT, so a token-metered agent never pages raw records
+                // to do arithmetic the index can do in milliseconds
+                LogStore sStore = store.get();
+                if (sStore == null) return ActionResult.error("no log is loaded");
+                try {
+                    return ActionResult.ok("series", "result",
+                            telamin.fluxtion.audit.analyser.analyser.graph.SeriesScan.scan(sStore, params));
+                } catch (RuntimeException e) {
+                    return ActionResult.error("series failed: " + e.getMessage());
+                }
+            }
             case "context" -> {
                 return onEdt(() -> app == null
                         ? ActionResult.error("'context' is not enabled here")

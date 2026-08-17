@@ -16,6 +16,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   current context can't show, the status line says so rather than cropping the propagation silently.
 
 ### Added
+- **`series` verb** — stats, threshold crossings and minute/hour buckets over any key or formula,
+  computed inside the analyser (assistant, REST and MCP alike). "Where does the spread exceed 0.004?"
+  is now one call returning the exact crossing records — each with a `recordIndex`/`byteOffset` anchor
+  for a follow-up `read` — instead of an agent paging raw text to do arithmetic. Crossing lists are
+  capped with an explicit `truncated` flag, and `filter.text` is refused loudly rather than running an
+  index-speed verb at scan speed.
 - **Named focuses** — save the current topology context by name with a rationale (**Focuses ▾** on the
   toolbar, or `topology {saveFocusAs, rationale}` from an agent), recall it by name (picker or
   `topology {focus: "name"}`), delete from the picker. Saved with the project (never the API key),

@@ -865,14 +865,14 @@ in-flight H4; coordinate._
 - [M27.4] ☑ **Docs** — exploration section rewritten around the filter-context model; harness
   screenshots.
 
-## M26 · Agent-efficiency verbs — ☐ PROPOSED (the analyser computes, the agent concludes)
+## M26 · Agent-efficiency verbs — ☐ IN PROGRESS (the analyser computes, the agent concludes)
 _Design: **[spec-agent-efficiency.md](spec-agent-efficiency.md)**. The analyser is an un-metered local
 JVM holding the whole log behind the index; the agent is token-metered — so any question answerable by
 an index/series scan should be a **verb**, not a paged raw read. Every item came from a real friction
 in a production-log MCP session (finding "spread > 0.004" took five hand-anchored reads and manual
 arithmetic; one scan should answer it). All read-only — no change to the FAQ security answer, and
 `FaqSecurityContractTest` must not need touching._
-- [M26.1] ☐ **`series` scan** — stats + threshold crossings over any key or formula (STRICT/LOCF),
+- [M26.1] ☑ **`series` scan** *(shipped on `feat/b-m20-3-m26-m27`)* — stats + threshold crossings over any key or formula (STRICT/LOCF),
   filter-scoped, edge-events with a hard cap and an explicit `truncated` flag, off the EDT. Reuses
   `SeriesExtractor`/`Expr`; auto-publishes over MCP via `VerbSchemas`.
 - [M26.2] ☐ **Time anchors** — `read {at}` / `goto {at}` resolve epoch millis to the record
