@@ -1,11 +1,10 @@
 REPORT — branch feat/m28-expr-conditionals
-Date: 2026-08-17 · Last WORK commit: 215da6c · Base: main @ 217983e (post-1.3.0, spec review in)
+Date: 2026-08-17 · Last WORK commit: 4deabe6 · Base: main @ 217983e (post-1.3.0, spec review in)
 Prompted by: owner: "the other LLM has reviewed the spec, review and start implementing".
 
-STATUS: M28.1–M28.4 complete (the whole ENGINE track), NOT merged. M28.5 (guide lines) and
-M28.6 (condition bands) — the rendering/persistence slices with the share-surface checklist — are
-deliberately NOT started: they are a different kind of work and a natural review boundary.
-  6 commits · 594 tests green · mkdocs --strict green · sweep clean
+STATUS: M28 COMPLETE — all six slices (M28.1–.4 engine, M28.5 guide lines, M28.6 condition
+bands; the owner asked for .5/.6 before review rather than after), NOT merged.
+  8 commits · 604 tests green · mkdocs --strict green · sweep clean · tracker: M28 ☑ ON BRANCH
   Spec: docs/specs/spec-expr-conditionals-windows.md, updated to ACCEPTED v2 first — ALL seven
   review changes adopted; the review's three factual claims (min(4,2) test, acrossAllTime=true,
   logTime-null skips) were verified against source before adopting, not taken on faith.
@@ -48,6 +47,21 @@ dbe8ed1  M28.3 count windows — lag/delta/mean/sum/rollingMin/rollingMax(x, N)
   the last T; NaN below two samples (one observation has no rate). lag stays count-only, rate
   duration-only; each refusal explains why. Docs carry the D-W3 arrival-rate steer.
 
+4deabe6  M28.5+M28.6 guide lines + condition bands (ONE commit — they share the model/persistence
+  plumbing; the report says so rather than pretending two slices happened)
+  GraphSpec gains GuideSpec{value,label,rightAxis} and BandSpec{expr,label}; ConfigStore round-trips
+  both; SettingsShare rides writeGraphs/readGraphs (asserted by test, not assumed). Guides paint as
+  labelled dashed rules on either scale, skipped when scrolled out of the window. Bands persist the
+  CONDITION only — intervals are data, recomputed inside GraphPanel's own extraction pass (same
+  filter, same LOCF carry), so a band can never disagree with a plotted series about when the
+  condition held; ConditionBands.intervals is the pure walk, and unknown samples BRIDGE a band
+  rather than break it (the extractor's NaN-is-omitted rule — documented and pinned). Verb:
+  graph {guides, bands}, present = REPLACE (like rightAxis); malformed items skipped AND named in
+  warnings[]; band exprs parse-checked at set time. Share-surface checklist (the F1 lesson):
+  ConfigStore round-trip ✓ share ride-along ✓ restore-not-an-edit ✓ disclosure row updated
+  (sharing-setups.md Graphs row now names notes/guides/bands) ✓ PNG/report ride the same
+  paintComponent (eyeball item) ✓. 10 tests.
+
 Docs discipline per slice (the four drift-class lessons): the graphs guide, the in-process prompt's
 formula grammar line, and the changelog moved in the SAME commits as the engine changes.
 
@@ -79,6 +93,17 @@ D6  Time-windowed rollingMin/Max: the monotonic deque discards dominated samples
     the standard sliding-window-minimum structure and correct under time pruning (a dominated
     sample is strictly older than its dominator, so it can never outlive it into being the answer).
     Stated here because it looks lossy on first read.
+D7  (M28.6) Band unknown-handling: the condition is extracted as a series, so NaN samples are OMITTED
+    before the interval walk — an unknowable stretch neither opens nor closes a band, meaning a band
+    runs from the first held sample to the next measurably-false one, BRIDGING unknown gaps. The
+    alternative (unknown breaks the band) would claim the condition stopped holding on no evidence.
+    Pinned by ConditionBandsTest.unknownSamplesNeitherOpenNorCloseABand.
+D8  (M28.6) Band conditions evaluate under LOCF, not the graph's per-series resolve choice — a band
+    has no resolve knob. Cross-node conditions are the whole point of bands and STRICT would blank
+    them; a per-band resolve can be added if anyone ever asks.
+D9  (M28.5) No manual UI for authoring guides/bands was added — the spec's P1/P2 shapes are verb-
+    first, and the UI READS them (paint, persistence, share). If hand-authoring is wanted it is a
+    dialog on the existing setGuides/setBands seams.
 
 ================================================================================
 3. WHAT THE REVIEWER SHOULD GO AFTER
@@ -93,12 +118,17 @@ D6  Time-windowed rollingMin/Max: the monotonic deque discards dominated samples
   R5  Parser errors: every refusal teaches the fix (chained comparisons → and(...), bare '=' →
       '==', count-vs-duration mismatches → why). Cheap to verify, high agent value.
 
-NOT STARTED (deliberate): M28.5 guide lines, M28.6 condition bands — persisted graph state; each
-carries the share-surface checklist (ConfigStore round-trip · project snapshot/restore/clear ·
-SettingsShare export/preview/apply · ShareDisclosureContractTest · PNG + report render). They are
-rendering work and deserve their own slice-and-review cycle.
+  R6  (M28.5/.6) The paint code is the one thing tests cannot see: guide label placement vs the
+      right margin, band alpha legibility in BOTH themes, band labels stacking when several bands
+      overlap, and clipping at the plot edges.
+  R7  (M28.6) GraphPanel.reExtract's band computation rides the same background job as series —
+      check the generation-counter supersedence still holds with bands in the result record.
 
 HUMAN EYEBALL (Swing untested by design): build the jar, open the demo fixture, and plot
   if(askMakerOrder.price − bidMakerOrder.price > 0.004, askMakerOrder.price − bidMakerOrder.price)
 then mean(askMakerOrder.price, "1m") — breach-only gaps on the first, a smooth lagging line on the
-second, and the f(x) autocomplete not fighting the new syntax.
+second, and the f(x) autocomplete not fighting the new syntax. Then the annotations:
+  graph {guides: [{value: 0.004, label: "4bp limit"}],
+         bands:  [{expr: "askMakerOrder.price - bidMakerOrder.price > 0.004", label: "in breach"}]}
+— a labelled dashed rule, shaded spans behind the series (both themes), both surviving an app
+restart and arriving in a PNG/report export.
