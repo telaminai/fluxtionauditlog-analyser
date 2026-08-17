@@ -286,6 +286,26 @@ Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise the
   refusal names installed plugins.
 - [M31.4] ☐ **Out-of-tree example reader + plugin-author guide** (playground repo) + changelog.
 
+## M32 · Marker series — ☐ PROPOSED (events on a value chart)
+_Design: **[spec-marker-series.md](spec-marker-series.md)**. Owner ask: buys/sells on a price plot
+with the client order id and a distinctive point style, plus point-snapped mouseover. A marker series
+is `(time, y, payload)` drawn as glyphs — the one legitimate path for categorical/per-event data onto
+a chart (text values are unplottable today by design). Three sources, one model: key triples from the
+log, M28 condition exprs, the M29 CSV loader (severable coupling). Payloads are DISPLAY CARGO — hover,
+click→goto, exports — never computable (`Expr` stays numeric; the record is the queryable form).
+Density degrades to a count glyph, never silence and never soup (cap-honesty, drawn). Persisted as
+SOURCE not points (M28.6's rule); fifth artifact on the Graphs share category — full checklist +
+disclosure row. Subsumes M28's P3: the rug strip is `y: "axis"`, and flagged records become a built-in
+rug. Mouseover generalises to EVERY series: snap to the nearest sample (label · time · value; payload
+for markers; min/max on a decimated column), coordinate readout as fallback._
+- [M32.1] ☐ **Model + extraction** (pure) — MarkerSeries, key-triple + condition sources on the
+  existing record walk, series-pinned `y`, density aggregation as data (headless-testable D-M3).
+- [M32.2] ☐ **Rendering + hover** — glyphs, count badges, click→goto, the axis lane + Flags rug,
+  point-snapped mouseover for all series; offscreen-PNG verification (the eyeball-heavy slice).
+- [M32.3] ☐ **Verb** — `graph {markers}`, REPLACE + warnings contract, M26.4 echoes.
+- [M32.4] ☐ **Persistence + share + exports** — D-M4 checklist, PDF markers table with cap note,
+  capture-harness screenshot, docs + changelog; external-CSV source here iff M29 shipped.
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
