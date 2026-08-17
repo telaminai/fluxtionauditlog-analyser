@@ -1,0 +1,148 @@
+REVIEW — M28 spec: expression conditionals + rolling windows
+Spec: docs/specs/spec-expr-conditionals-windows.md (PROPOSED v1, 63c2d72)
+Date: 2026-08-17 · Reviewed against main @ 6deb06b (1.3.0)
+
+VERDICT: adopt as written, with ONE rejection (the min/max overload) and three additions that are
+documentation or design shape rather than scope. The spec is in good condition — the decisions are
+proposed rather than assumed, and each names its alternative, which is what made this reviewable.
+
+The owner nominated D-W2 as "the single most attackable thing in the spec". I disagree, and the
+disagreement is the main content of this review: D-W2 is the strongest joint in the design, and the
+actual breaking change is filed under "scope calls".
+
+================================================================================
+1. D-W2 IS NOT AN INCONSISTENCY — AND IT IS LOAD-BEARING
+================================================================================
+The charge: D-W2 (a non-finite sample leaves the window unchanged) contradicts LOCF's carry rule
+(an explicit NaN CLEARS the carry — SeriesExtractor.java:95).
+
+It does not, because the two answer different questions:
+
+  - The CARRY answers "what is x right now?". Clearing on explicit NaN is correct because a no-quote
+    is positive evidence the value is no longer known. Carrying through it would FABRICATE A PRESENT.
+  - A WINDOW answers "what were the last N values of x?". An explicit NaN says x is unknown NOW; it is
+    not evidence that the previous N observations never happened. Clearing would ERASE A REAL PAST.
+
+One invariant covers both: NEVER FABRICATE, NEVER ERASE. Carry-clear prevents fabrication;
+window-keep prevents erasure. Same rule, applied to a present-tense and a past-tense question. State
+this in the spec and the inconsistency stops existing.
+
+Then the argument that should close the debate. Under clear-on-NaN this composition collapses:
+
+    mean(if(spread > 0.004, spread), 10)      # mean of the last 10 BREACHING samples
+
+Window-over-a-conditional is expressible ONLY because non-finite samples leave the window untouched.
+Under clear-on-NaN it is self-erasing and useless, since the condition is false most of the time.
+D-W2 is therefore what makes C and W compose at all — it is not a wart to be defended, it is the
+mechanism. The spec does not currently say this. Put that example in the D-W2 rationale.
+
+D-W1 — fine, and better than the spec claims. Graph extraction passes acrossAllTime=true
+(GraphPanel.java:650, :975), so the TIME-RANGE SLIDER DOES NOT PERTURB WINDOW CONTENTS; only
+dimension/text filters do. Worth stating explicitly, because "I zoomed and the smoothed line moved"
+is the bug report you would otherwise field.
+
+D-W3 — right, with a sharp edge worth documenting. Under LOCF a sample is produced per record that
+touches ANY ref, so mean(x, 100) is "the last 100 plotted points", which may include the same carried
+value repeated many times. A count window's span is governed by record ARRIVAL RATE, not time. That
+is an argument for steering users toward the time-windowed forms — and against M28.4 (which is where
+time windows live) being the last slice.
+
+================================================================================
+2. EAGER EVALUATION — KEEP IT; DO NOT FORBID WINDOWS INSIDE if()
+================================================================================
+Forbidding would ban the most valuable idiom the feature has: if(regime, mean(x, 10)) — smoothed x,
+shown only during the regime.
+
+And laziness is MORE surprising, not less. A dormant window goes cold, so every branch switch would
+emit NaN for the next N samples, and "the last 10 samples" would silently span an arbitrary stretch
+of time. Eager evaluation is what keeps a window warm and its span meaningful.
+
+The surprise the owner is right to worry about is real, but it is a DOCUMENTATION problem with a
+clean fix — name the two idioms side by side:
+
+    if(c, mean(x, 10))     mean over ALL samples, plotted only while c holds   — gate the OUTPUT
+    mean(if(c, x), 10)     mean over ONLY the samples where c held             — gate the INPUT
+
+Ship that pair and eager evaluation stops being a trap. Without it, users will write the first and
+expect the second. This table is the single highest-value paragraph the docs slice can carry.
+
+================================================================================
+3. W0 — ONE REAL HAZARD, AND A SHAPE THAT REMOVES IT
+================================================================================
+Expr.Num/Ref/Neg/Bin/Call are all RECORDS, so equality is value-based and deep through Call's
+List<Expr>. "One state cell per stateful AST node, identity-keyed" therefore has a live failure mode:
+
+    delta(x) + delta(x)
+
+The two sub-expressions are .equals(). Keyed by a HashMap they SHARE ONE CELL, which then advances
+twice per record, and the expression silently stops equalling 2*delta(x). An IdentityHashMap fixes it
+only for as long as the parser never interns or shares equal subtrees — an invariant nothing in the
+codebase currently enforces, and exactly the kind of thing a later optimisation would break.
+
+RECOMMENDATION: do not key by node at all. Have newEvaluator() walk the AST once and compile a small
+per-scan MIRROR (or a flat step list), with state living in the mirror. Each POSITION in the tree gets
+its own mirror node, so structurally-equal subtrees are naturally distinct. No identity map, no
+interning invariant, and stateSlotCount() == 0 becomes a checkable proof that a stateless expression
+carries no state. The AST stays immutable and shareable — the property W0 exists to protect.
+
+Either way, a named test is owed: delta(x) + delta(x) == 2 * delta(x).
+
+ALSO, cheap and important: DELETE Expr.eval(Map) in M28.2 rather than keeping it as a convenience.
+If it survives, some future call site will use it, get a throwaway evaluator per row, and windows will
+reset every record — a bug whose only symptom is wrong numbers. Removing it makes the compiler enforce
+the migration. (The existing suite is a good regression net for the stateless path, as the spec says.)
+
+Minor: EvalContext.logTime can be a primitive long — both call sites already `continue` on
+logTime == null before evaluating (SeriesExtractor.java:84, :97).
+
+================================================================================
+4. SCOPE CALLS
+================================================================================
+REJECT — the min/max windowed-vs-variadic overload. It breaks a test on main:
+
+    ExprTest.java:45   assertEquals(2.0, Expr.parse("min(4, 2)", Set.of()).eval(Map.of()), 1e-9);
+
+A numeric literal in second position is precisely the proposed selector for the windowed form, so
+min(4, 2) silently reinterprets from "the smaller of 4 and 2" to "rolling min of 4 over 2 samples".
+It is also a real user idiom — min(spread, 0.004) as a clamp. And it contradicts the spec's own
+guardrail: "Old expressions parse unchanged (pure grammar additions)."
+
+Only min/max collide; mean/sum/lag/delta/rate are new names with no clash. The collision therefore
+buys nothing and costs the compatibility guarantee. Give the windowed forms DISTINCT NAMES
+(rollingMin/rollingMax, or whatever matches house style) and the guardrail holds unqualified.
+
+KEEP — two-arg if() defaulting else to NaN. It is the feature, if(NaN,a,b) → NaN is consistent with
+"unknown stays unknown", and it needs no new machinery.
+
+MOVE — P1/P2 do not belong in M28.4. Two reasons, the second more important than size:
+
+  - P1 (guide lines) is INDEPENDENT of both C and W. It can ship any time, including before M28.1.
+    It is the highest value-per-effort item in the document; do not hold it behind a stateful
+    evaluator refactor.
+  - P1 and P2 both add PERSISTED GRAPH STATE, which pulls in share/merge semantics, the export
+    categories, PNG/PDF export and the report renderer. That is exactly the surface where F1 just bit
+    us (d0f554a) — a new thing riding the Graphs category without the export side disclosing it. They
+    are not cheap riders; they carry share-surface obligations and deserve a slice with that checklist
+    attached.
+
+As currently drawn M28.4 is duration literals + rate + guides + bands + docs — the only slice mixing
+engine work with rendering, and the largest.
+
+Of the unscheduled items, P3 (event markers / rug strip) is the strongest: it is the only one that
+answers "what HAPPENED when this went wrong", which is this tool's actual job.
+
+================================================================================
+5. SUMMARY OF REQUESTED CHANGES
+================================================================================
+  1. D-W2: add the never-fabricate/never-erase invariant, and the mean(if(c,x),N) example that shows
+     D-W2 is load-bearing for C+W composition.
+  2. D-W1: note that graphs extract acrossAllTime=true, so the time slider does not perturb windows.
+  3. D-W3: document that count windows are paced by record arrival rate; steer users to time windows.
+  4. C: add the gate-the-output vs gate-the-input table.
+  5. W0: compile a per-scan mirror instead of identity-keying cells; delete Expr.eval(Map); add the
+     delta(x)+delta(x) test.
+  6. Reject the min/max overload; name the windowed forms distinctly.
+  7. Pull P1 forward (independent, ships alone); give P2 its own slice with the share-surface checklist.
+
+Everything else — the principle, the C grammar, the NaN-as-no-data-point carry-through, the per-scan
+reset-by-construction, the non-goals, and the acceptance criteria — I would ship as written.
