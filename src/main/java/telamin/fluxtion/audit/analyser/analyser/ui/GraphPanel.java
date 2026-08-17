@@ -75,6 +75,20 @@ public final class GraphPanel extends JPanel {
 
     private String graphName = "";         // logical name (the tab title's 📌 prefix is display-only)
     private String caption = "";           // provenance: an agent's one-line rationale for this graph
+    /**
+     * Told after any persistable mutation (series, formulas, style, pin, caption, notes, axes) so the
+     * owner can sync {@code config.savedGraphs} and persist to the right tier — B-M20-3: without this,
+     * graph edits only ever reached disk at export/exit, and never reached an active project profile.
+     */
+    private Runnable onMutation = () -> { };
+
+    public void setOnMutation(Runnable onMutation) {
+        this.onMutation = onMutation == null ? () -> { } : onMutation;
+    }
+
+    private void mutated() {
+        onMutation.run();
+    }
     private final JLabel captionLabel = new JLabel();   // shows the caption under the plot (when set)
     private Long pinnedFrom, pinnedTo;     // non-null → pinned to this window; null → follows the filter
     private final JToggleButton pinButton = new JToggleButton("📌");
@@ -322,7 +336,10 @@ public final class GraphPanel extends JPanel {
         for (GraphKey k : SeriesPickerDialog.pick(this, all)) {
             if (!activeKeys.contains(k)) { activeKeys.add(k); added = true; }
         }
-        if (added) reExtract();
+        if (added) {
+            reExtract();
+            mutated();
+        }
     }
 
     /** Selecting a formula row loads it into the f(x) fields for editing. */
@@ -464,6 +481,7 @@ public final class GraphPanel extends JPanel {
      */
     public void setNotes(telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes) {
         chart.setNotes(notes);
+        mutated();
     }
 
     /** Told when the user pins or edits a note on the chart itself, so the caller can persist it. */
@@ -489,6 +507,7 @@ public final class GraphPanel extends JPanel {
     /** Which series are measured against the right-hand scale. */
     public void setAxes(telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes) {
         chart.setAxes(axes);
+        mutated();
     }
 
     public telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes() {
@@ -504,6 +523,7 @@ public final class GraphPanel extends JPanel {
         captionLabel.setText(caption.isBlank() ? "" : "ⓘ " + caption);
         captionLabel.setToolTipText(caption.isBlank() ? null : caption);
         captionLabel.setVisible(!caption.isBlank());
+        mutated();
     }
 
     public boolean isPinned() { return pinnedFrom != null || pinnedTo != null; }
@@ -520,6 +540,7 @@ public final class GraphPanel extends JPanel {
         pinButton.setSelected(isPinned());
         applyWindow();
         onPinChanged.run();
+        mutated();
     }
 
     public void unpin() {
@@ -562,6 +583,7 @@ public final class GraphPanel extends JPanel {
             default -> 0;   // step
         };
         styleCombo.setSelectedIndex(idx);   // fires the listener → chart.setStyle
+        mutated();
     }
 
     private void onFilterChanged() {
@@ -670,13 +692,17 @@ public final class GraphPanel extends JPanel {
         activeExprs.removeIf(d -> d.label().equals(label));
         activeExprs.add(new Derived(label, exprText, resolve == null ? SeriesExtractor.Resolve.LOCF : resolve));
         reExtract();   // refreshes the Series list too
+        mutated();
     }
 
     /** Remove a series (raw or derived) by its display label — the overlay's right-click "Remove". */
     private void removeSeriesByLabel(String label) {
         boolean removed = activeKeys.removeIf(k -> k.display().equals(label));
         boolean formulaRemoved = activeExprs.removeIf(d -> d.label().equals(label));
-        if (removed || formulaRemoved) reExtract();
+        if (removed || formulaRemoved) {
+            reExtract();
+            mutated();
+        }
     }
 
     // ---- f(x) autocomplete suggestions (keys ∪ formula labels) ----------------------------------

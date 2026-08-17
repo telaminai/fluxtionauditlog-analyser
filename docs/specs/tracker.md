@@ -296,7 +296,7 @@ _Brief: `docs/handoff/completed/handoff_16_aug_2026_2.txt` · Spec: `spec-projec
   which is what makes pointing at build output safe. Rationale for the original exclusion stands for
   *unasked* reopening; this is the offered middle path. Bundle synergy: M19's bundle names exactly
   these artifacts — with M20.5 the bundle profile carries them natively instead of via README prose.
-- [B-M20-3] ☐ **BUG (owner-confirmed 2026-08-17, diagnosis verified): graph persistence ignores the
+- [B-M20-3] ☑ **FIXED (feat/b-m20-3-m26-m27): graph persistence ignores the
   active project tier — ALL new graphs write to GLOBAL.** With maker-fxoc ACTIVE, four named graphs
   (one UI-created, three verb-created) sit in `~/.fluxtion-analyser/config` (`graph.0..3`) while the
   project file says `graph.count=0`. Not verb-specific: the graph-save path routes to the global store
@@ -305,7 +305,11 @@ _Brief: `docs/handoff/completed/handoff_16_aug_2026_2.txt` · Spec: `spec-projec
   empty graph set REPLACES the in-memory graphs, so the user's graphs silently vanish from view (they
   resurrect on switching to no-project — maximally confusing). Fix at the tier-routing seam, not per
   entry point; regression tests for BOTH paths (UI save and dispatcher-created) asserting the active
-  profile file gains the graph and global does not.
+  profile file gains the graph and global does not. _Fix shipped: GraphPanel/GraphTabs change
+  notifications → sync + global save (snapshot-shielded) + debounced project save; ProjectSession
+  preSave hook re-syncs live tabs before EVERY profile write (stale flush impossible); quit sequence
+  flushes the project and uses the guarded sync (the old raw clear could wipe saved graphs when no log
+  was open). 3 regression tests incl. the dispatcher-path one; suite 520 green._
 - [M20.4] ☑ **Docs — "Working across projects"**, plus the harness work the screenshots needed.
   New user-guide page (nav + a cross-reference from Sharing setups, which now explains merge-vs-open).
   Says *why* a committed profile is safe: the key is not filtered out, it was **never in the project

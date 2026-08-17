@@ -32,6 +32,17 @@ public final class GraphTabs extends JPanel {
     private FilterState filter;
     private int counter;
     private java.util.function.LongConsumer timeClickHandler = t -> { };   // plot click → scroll table there
+    /** Told after any persistable graph change (see B-M20-3); quiet while {@link #restore} rebuilds. */
+    private Runnable changeListener = () -> { };
+    private boolean restoring;
+
+    public void setChangeListener(Runnable listener) {
+        this.changeListener = listener == null ? () -> { } : listener;
+    }
+
+    private void fireChanged() {
+        if (!restoring) changeListener.run();
+    }
 
     public GraphTabs() {
         super(new BorderLayout());
@@ -95,8 +106,11 @@ public final class GraphTabs extends JPanel {
         counter++;   // keep the counter ahead so later default names never collide with a chosen name
         panel.setGraphName((name == null || name.isBlank()) ? "Graph " + counter : name.trim());
         panel.setOnPinChanged(() -> refreshTabTitle(panel));   // 📌 indicator tracks the pin state
+        panel.setOnMutation(this::fireChanged);                // B-M20-3: edits persist as you make them
+        panel.onNotesChanged(this::fireChanged);               // interactive note pins/edits too
         tabs.addTab(displayTitle(panel), panel);
         tabs.setSelectedComponent(panel);
+        fireChanged();
         return panel;
     }
 
@@ -182,6 +196,7 @@ public final class GraphTabs extends JPanel {
         if (gp == null) return false;
         gp.setGraphName(to.trim());
         refreshTabTitle(gp);
+        fireChanged();
         return true;
     }
 
@@ -189,6 +204,7 @@ public final class GraphTabs extends JPanel {
         if (i >= 0 && name != null && !name.isBlank() && tabs.getComponentAt(i) instanceof GraphPanel gp) {
             gp.setGraphName(name.trim());
             refreshTabTitle(gp);
+            fireChanged();
         }
     }
 
@@ -219,6 +235,15 @@ public final class GraphTabs extends JPanel {
     /** Rebuild graphs (names + series + formulas + pin) from saved specs (used when a profile is restored). */
     public void restore(List<GraphSpec> saved) {
         if (saved == null || saved.isEmpty() || store == null) return;
+        restoring = true;   // rebuilding from persisted state is not a user edit — don't echo it back
+        try {
+            doRestore(saved);
+        } finally {
+            restoring = false;
+        }
+    }
+
+    private void doRestore(List<GraphSpec> saved) {
         clearGraphs();
         counter = 0;
         for (GraphSpec g : saved) {
@@ -266,5 +291,6 @@ public final class GraphTabs extends JPanel {
         if (i < 0) return;
         if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.unbind();
         tabs.removeTabAt(i);
+        fireChanged();
     }
 }

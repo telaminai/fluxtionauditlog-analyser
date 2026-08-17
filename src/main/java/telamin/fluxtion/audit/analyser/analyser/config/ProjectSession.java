@@ -47,6 +47,19 @@ public final class ProjectSession {
     private ProjectProfile.Snapshot noProjectDefaults;
     private boolean dirty;
     private int writes;
+    /**
+     * Runs immediately before every profile write, so live UI state (the open graph tabs) is captured
+     * into {@code config} at the moment it is persisted — B-M20-3: {@code config.savedGraphs} was only
+     * synced at export/exit, so every flush wrote a STALE graph list and project graph work was lost.
+     * The change-listener path makes saves timely; this hook is the safety net that makes every write
+     * current even if a mutation point forgot to notify.
+     */
+    private Runnable preSave;
+
+    /** Set the pre-write sync hook (see {@link #preSave}). Null clears it. */
+    public void setPreSave(Runnable preSave) {
+        this.preSave = preSave;
+    }
 
     public ProjectSession(AppConfig config, SettingsShare share, SaveScheduler scheduler) {
         this.config = config;
@@ -201,6 +214,7 @@ public final class ProjectSession {
         if (activeFile == null || !dirty) {
             return;
         }
+        if (preSave != null) preSave.run();   // capture live state (open graphs) before writing (B-M20-3)
         try {
             ProjectProfile.save(activeFile, config, share);
             writes++;

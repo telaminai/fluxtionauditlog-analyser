@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **Graphs made while a project was active were never saved to the project — and could be lost
+  entirely.** Graph edits only reached disk at exit, and the project file was always written with a
+  stale (empty) graph list; quitting with no log open could even wipe previously saved graphs. Graph
+  changes (from the UI or the `graph` verb alike) now persist as they happen, to the active project's
+  file; every profile write captures the live tabs first; and the project is flushed on quit.
+
 ## [1.2.0] - 2026-08-17
 
 ### Added

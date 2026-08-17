@@ -146,6 +146,10 @@ public final class MainFrame extends JFrame {
         wireSelection();
         sourcePanel.bind(sourceService);
         graphTabs.setTimeClickHandler(this::gotoNearestRecordByTime);
+        // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
+        // profile write first captures the live tabs, so no flush can ever write a stale graph list.
+        graphTabs.setChangeListener(this::onGraphsEdited);
+        project.setPreSave(this::syncOpenGraphsIntoConfig);
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
         actionExecutor.bind(topologyPanel, new AppControlAdapter());
@@ -1639,6 +1643,16 @@ public final class MainFrame extends JFrame {
         ConfigPanel.show(this, config, this::onConfigChanged);
     }
 
+    /**
+     * A graph was created/edited/closed (any path — the UI or the {@code graph} verb both mutate the
+     * same panels). Persist now, to the right tier: sync → global write (project tier shielded by the
+     * session's snapshot) → debounced project write. B-M20-3.
+     */
+    private void onGraphsEdited() {
+        saveConfigQuietly();                       // syncs the open tabs first (see saveConfigQuietly)
+        if (project != null) project.requestSave();
+    }
+
     private void onConfigChanged() {
         sourceService.configure(config.sourceRoots, config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
@@ -2230,11 +2244,18 @@ public final class MainFrame extends JFrame {
                 config.windowW = getWidth();
                 config.windowH = getHeight();
             });
+            // remember open graphs — via the guarded sync, so quitting with NO log open can never
+            // wipe the saved graphs with an empty tab set (the old raw clear+add here did exactly that)
+            step(this::syncOpenGraphsIntoConfig);
             step(() -> {
-                config.savedGraphs.clear();
-                config.savedGraphs.addAll(graphTabs.specs());   // remember open graphs
+                // B-M20-3: the profile gets the final state too — without this, graphs made this
+                // session never reached the active project at all
+                if (project != null) {
+                    project.requestSave();
+                    project.flush();
+                }
             });
-            step(this::saveConfigQuietly);   // still runs even if the graph capture above failed
+            step(this::saveConfigQuietly);   // still runs even if the steps above failed
             step(Background::shutdown);
         } finally {
             try {
@@ -2260,6 +2281,7 @@ public final class MainFrame extends JFrame {
     }
 
     private void saveConfigQuietly() {
+        syncOpenGraphsIntoConfig();   // never write a stale graph list (B-M20-3)
         try {
             // while a project is open the live config holds BOTH tiers; the global file must keep the
             // user's own pre-project values, or deleting a project directory would leave them with a
