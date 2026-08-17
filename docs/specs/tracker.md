@@ -296,13 +296,16 @@ _Brief: `docs/handoff/completed/handoff_16_aug_2026_2.txt` · Spec: `spec-projec
   which is what makes pointing at build output safe. Rationale for the original exclusion stands for
   *unasked* reopening; this is the offered middle path. Bundle synergy: M19's bundle names exactly
   these artifacts — with M20.5 the bundle profile carries them natively instead of via README prose.
-- [B-M20-3] ☐ **BUG (owner-confirmed 2026-08-17): verb-created graphs bypass project auto-persist.**
-  With a project ACTIVE, three named graphs created via the `graph` verb did not land in the project
-  file (`graph.count=0` in maker-fxoc's profile). The M20 brief warned exactly this: persistence must
-  hang off the `onConfigChanged()` funnel, not dialog-close — either the verb path skips the funnel or
-  graph writes miss the project tier. Reproduce: activate a project → `analyser_graph` a named graph →
-  inspect the profile file. Fix + a regression test that creates a graph via the DISPATCHER (not the
-  UI) and asserts the active profile file gains it.
+- [B-M20-3] ☐ **BUG (owner-confirmed 2026-08-17, diagnosis verified): graph persistence ignores the
+  active project tier — ALL new graphs write to GLOBAL.** With maker-fxoc ACTIVE, four named graphs
+  (one UI-created, three verb-created) sit in `~/.fluxtion-analyser/config` (`graph.0..3`) while the
+  project file says `graph.count=0`. Not verb-specific: the graph-save path routes to the global store
+  regardless of the active project — the tier split (B-M20-1's mirror: that bug leaked project→global
+  on snapshot; this writes new project-work→global). Consequence: on next launch the active profile's
+  empty graph set REPLACES the in-memory graphs, so the user's graphs silently vanish from view (they
+  resurrect on switching to no-project — maximally confusing). Fix at the tier-routing seam, not per
+  entry point; regression tests for BOTH paths (UI save and dispatcher-created) asserting the active
+  profile file gains the graph and global does not.
 - [M20.4] ☑ **Docs — "Working across projects"**, plus the harness work the screenshots needed.
   New user-guide page (nav + a cross-reference from Sharing setups, which now explains merge-vs-open).
   Says *why* a committed profile is safe: the key is not filtered out, it was **never in the project
