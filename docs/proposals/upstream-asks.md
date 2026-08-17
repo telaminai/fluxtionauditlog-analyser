@@ -426,6 +426,16 @@ timeBase:
 replay, a test) must not be silently aligned against a real venue log, and today nothing distinguishes
 the two.
 
+**Consumer contract (added 2026-08-17, review F2 — what the analyser will do the day this lands):**
+(1) `TimeFormat` renders in the DECLARED zone for declared logs, retiring the display-decision UTC
+default there (undeclared logs keep it, labelled as an assumption); (2) `SeriesScan` buckets in the
+declared zone, retiring the hardcoded `ZoneOffset.UTC` at SeriesScan:212; (3) M29's external-series
+echo upgrades from "declared offset shown" to a verdict — **"clocks comparable"** / **"NOT
+comparable: audit log is monotonic, CSV declares wall-clock"**; (4) a `source: injected` log draws a
+visible replay banner so simulated time is never silently aligned with venue time; (5) rolled sets
+(M30) compare per-file declarations and refuse a set that mixes epochs or sources louder than any
+timestamp heuristic could.
+
 **Cost to us if unfixed** M29 pushes the whole burden onto the user — the CSV's format and zone are
 *required* inputs (D-F1: never inferred) precisely because the analyser cannot state its own side of
 the comparison. It can show a declared offset but can never say whether the two clocks are actually
@@ -468,13 +478,43 @@ The same ambiguity exists on the **value** side of the log and is now more expen
 formula compute over that number (`mean(stockLedger.lastQty, 10)`) and M29 will plot it against an
 external series. A window over a misunderstood quantity is a confident wrong answer.
 
-Ask: an optional description/unit on a logged key, carried into the record —
+**REVISED 2026-08-17 (owner challenge: "how would the extra key information be added? on every
+call? I don't see how it works").** The challenge is correct — the first draft put the metadata on
+the logging CALL, which is the wrong transport: a key's unit and meaning are **static facts about
+the key**, not about the observation, so carrying them per call would repeat an unchanging string on
+every record (log bloat proportional to record count for zero information gain) and would let two
+call sites disagree about what the same key means. **Per-call carriage is rejected.** The metadata
+must be **declared once**; the ask is now two complementary transports:
 
-```java
-auditLog.info("lastQty", qty, "units", "shelf level AFTER the movement");
-```
+- **(a) Compile-time, via the GraphML — the primary ask.** An annotation on the node class:
 
-— surfaced by the analyser in the key picker, the series legend and the LLM prompt.
+  ```java
+  @AuditKey(name = "lastQty", unit = "units",
+            desc = "shelf level AFTER the movement")
+  public class StockLedger { … }
+  ```
+
+  The compiler already walks these classes; it emits the key dictionary into the node's GraphML
+  payload (a vertex-shaped fact — joins `kind`, `framework`, lifecycle callbacks in §2c's
+  vertex list, and rides the same additive `<data>` mechanism the backward-compat probe verified).
+  **Zero log cost, versioned with the build, arrives with the topology the analyser already loads.**
+  Limit, stated honestly: annotations cannot describe keys computed at runtime (a node logging
+  dynamic key names), and a log-only session (no graphml) gets nothing.
+
+- **(b) Runtime, once per log — the optional complement.** A declare-once API,
+
+  ```java
+  auditLog.describeKey("lastQty", "units", "shelf level AFTER the movement");   // in @Initialise
+  ```
+
+  emitted by the `EventLogger` as a one-time `keyInfo:` block (file header, or on the key's first
+  appearance). Covers dynamic keys and log-only sessions; costs one line per described key per FILE,
+  not per record. If both transports are present and disagree, the log's declaration wins for that
+  run (it is closer to what actually executed) and the analyser says so.
+
+Surfaced by the analyser in the key picker, the series legend, marker/point tooltips (M32) and the
+LLM prompt — the places where a plausible name and a bare number currently reproduce the original
+defect.
 
 **Cost to us if unfixed** the analyser presents `stockLedger.lastQty` as a bare label and an LLM
 diagnosing from the chart has exactly the information that produced the original defect: a plausible

@@ -116,8 +116,17 @@ Three cases the contract answers explicitly (review G1–G3), because each is a 
   > the analyser can only read back what it, or the user, was already permitted to put there.
 
   No new consent surface, and a user may still drop a file into that directory by hand. Anything else
-  goes through the chooser. The FAQ's security answer gains a sentence describing the read rule when
-  M29.3 lands, pinned the same way the write rules are (`FaqSecurityContractTest`).
+  goes through the chooser.
+
+  **Stated as a decision (review F1), not an implication:** with the opt-in OFF — the default — the
+  `external` verb has **no reachable path root at all** (chooser grants are UI-only), so an MCP agent
+  cannot hand over a CSV until the user enables the setting. That is the intended trust posture: one
+  file-exchange surface, one opt-in, reads and writes together. Consequence: the setting's LABEL is
+  the consent surface and must widen when M29.3 lands — *"Allow file exports"* becomes *"Allow
+  assistant file exchange"* (or equivalent) with the confined directory named, and the FAQ's security
+  answer gains the read sentence, both pinned the same way the write rules are
+  (`FaqSecurityContractTest`). The verb's refusal message names the setting AND the directory, so the
+  first MCP user who hits it knows exactly which switch was meant.
   **Parse diagnostics are bounded and sanitised** — they name the line number and the column, never the
   offending cell contents verbatim beyond a short, escaped excerpt.
   *Rationale:* `ExportGuard` already makes verb *writes* opt-in and directory-confined; reads deserve the
@@ -189,8 +198,10 @@ points, not a chart — one reader, two consumers. Worth knowing before the load
    audit-derived evidence.
 3. A saved graph whose foreign file has moved opens, draws the remaining series, and states what did not
    resolve (D-F5 demonstrated, not merely documented).
-4. A path outside the allowlist is refused with a message naming the rule; a malformed cell produces a
-   diagnostic that does **not** contain the cell's full contents (D-F4 pinned by test).
+4. A path outside the allowlist is refused with a message naming the rule, the setting and the
+   confined directory; a malformed cell produces a diagnostic that does **not** contain the cell's
+   full contents (D-F4 pinned by test). With the opt-in off, the refusal explains that reads and
+   writes share the one opt-in (F1's decision demonstrated, not buried).
 5. Every D-decision above is pinned by a named test.
 6. Foreign series remain unreferencable from `Expr` — attempting it is a parse error naming the label
    (D-F3 pinned).
@@ -200,7 +211,9 @@ points, not a chart — one reader, two consumers. Worth knowing before the load
 1. **M29.1** Loader + the explicit CSV contract + time/zone handling + bounded sanitised diagnostics.
    Headless and pure; ships with the full D-F1/D-F4 test set before any UI exists.
 2. **M29.2** UI: *Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
-3. **M29.3** `graph {external}` verb + M26.4-style echo + read confinement wired to the allowlist.
+3. **M29.3** `graph {external}` verb + M26.4-style echo + read confinement wired to the allowlist;
+   the opt-in's label widens to name reads (*"Allow assistant file exchange"*), the FAQ gains the
+   read sentence, and both are contract-test pinned (review F1).
 4. **M29.4** Persistence and sharing: project-relative paths, honest degradation, export-side disclosure,
    docs (`sharing-setups.md`, `graphing.md`) + changelog.
 5. **M29.5** *(optional, decide after 29.4)* `embed: true` — carry small series inside the saved graph for
