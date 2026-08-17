@@ -26,6 +26,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   record at-or-before that moment, so "show me 09:14:03" is one call instead of estimating record
   indexes from record rates. Clamping to the first timed record (when `at` predates the log) is
   declared in the reply, never silent.
+- **Field projection on `read`** — pass `fields: ["instanceId.key", "instanceId.*"]` and each record
+  comes back as compact `{recordIndex, logTime, event, values{}}` rows instead of ~2 KB of raw text —
+  a 10–50× token saving when an agent needs two numbers, not the whole record. Last occurrence per
+  record (identical to graphing, so a projected value always matches the plotted one); requested
+  fields that matched nothing are named in the reply. Raw text stays the default.
 - **Named focuses** — save the current topology context by name with a rationale (**Focuses ▾** on the
   toolbar, or `topology {saveFocusAs, rationale}` from an agent), recall it by name (picker or
   `topology {focus: "name"}`), delete from the picker. Saved with the project (never the API key),

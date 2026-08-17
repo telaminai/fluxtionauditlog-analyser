@@ -877,7 +877,7 @@ arithmetic; one scan should answer it). All read-only — no change to the FAQ s
   `SeriesExtractor`/`Expr`; auto-publishes over MCP via `VerbSchemas`.
 - [M26.2] ☑ **Time anchors** *(shipped on `feat/b-m20-3-m26-m27`)* — `read {at}` / `goto {at}` resolve epoch millis to the record
   at-or-before (index binary search); kills records-per-minute estimation arithmetic.
-- [M26.3] ☐ **`read.fields` projection** — compact `{recordIndex, logTime, values{}}` rows for named
+- [M26.3] ☑ **`read.fields` projection** *(shipped on `feat/b-m20-3-m26-m27`)* — compact `{recordIndex, logTime, values{}}` rows for named
   `instanceId.key`s (wildcards ok; last-occurrence semantics); raw text stays the default.
 - [M26.4] ☐ **Echo hardening** — `graph` warns on a `rightAxis`/note series not in the graph; verbs
   name ignored parameters in their echoes. Docs + changelog.

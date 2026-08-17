@@ -52,7 +52,11 @@ public final class VerbSchemas {
                                 + "at-or-before that moment; no need to estimate record indexes from times"),
                         p("count", integer(), "total records, centred on the anchor (default " + ReadService.DEFAULT_COUNT + ")"),
                         p("before", integer(), "records before the anchor (overrides count)"),
-                        p("after", integer(), "records after the anchor (overrides count)")),
+                        p("after", integer(), "records after the anchor (overrides count)"),
+                        p("fields", arr(string()), "project just these \"instanceId.key\"s (or "
+                                + "\"instanceId.*\") per record instead of raw text — 10-50x fewer tokens "
+                                + "when you only need specific values; last occurrence per record, same "
+                                + "as graphing. Omit for the full raw record (quoting evidence)")),
                 List.of() /* one of recordIndex|byteOffset|at — enforced at runtime */));
 
         s.put("filter", schema("Narrow every view. A missing field is unchanged; null clears it.",

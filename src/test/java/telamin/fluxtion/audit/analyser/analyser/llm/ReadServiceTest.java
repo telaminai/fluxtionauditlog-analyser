@@ -145,6 +145,83 @@ class ReadServiceTest {
         assertTrue(((String) out.get("note")).contains("after 'at'"), "the clamp is declared, not silent");
     }
 
+    // ---- field projection (M26.3) ------------------------------------------------------------
+
+    /** Two records; nodeA logs twice in the first (last occurrence must win, as in graphing). */
+    private static HeapLogStore fieldsStore() {
+        return new HeapLogStore("""
+                ---
+                #00:00:01.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 1000
+                  event: PriceEvent
+                  nodeLogs:
+                    - nodeA: { price: 1.5, side: bid}
+                    - nodeB: { qty: 5}
+                    - nodeA: { price: 2.5}
+                ---
+                #00:00:02.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 2000
+                  event: OtherEvent
+                  nodeLogs:
+                    - nodeB: { qty: 7}
+                ---
+                """);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void fieldsProjectCompactRowsWithLastOccurrenceSemantics() {
+        HeapLogStore s = fieldsStore();
+        Map<String, Object> out = ReadService.read(s.index().snapshot(),
+                Map.of("recordIndex", 0, "after", 1, "fields", List.of("nodeA.price", "nodeB.qty")),
+                s::rawText);
+        List<Map<String, Object>> recs = records(out);
+        assertEquals(2, recs.size());
+
+        Map<String, Object> r0 = recs.get(0);
+        assertNull(r0.get("text"), "projection replaces raw text");
+        assertEquals("PriceEvent", r0.get("event"));
+        assertEquals(0, r0.get("recordIndex"));
+        Map<String, String> v0 = (Map<String, String>) r0.get("values");
+        assertEquals("2.5", v0.get("nodeA.price"), "nodeA logs twice — the LAST occurrence wins, as in graphing");
+        assertEquals("5", v0.get("nodeB.qty"));
+
+        Map<String, String> v1 = (Map<String, String>) recs.get(1).get("values");
+        assertEquals(Map.of("nodeB.qty", "7"), v1, "a field the record never logged is absent, not null");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void wildcardTakesEveryKeyTheInstanceLogged() {
+        HeapLogStore s = fieldsStore();
+        Map<String, Object> out = ReadService.read(s.index().snapshot(),
+                Map.of("recordIndex", 0, "count", 1, "fields", List.of("nodeA.*")), s::rawText);
+        Map<String, String> v = (Map<String, String>) records(out).get(0).get("values");
+        assertEquals(Map.of("nodeA.price", "2.5", "nodeA.side", "bid"), v);
+    }
+
+    @Test
+    void fieldsNeverSeenAreNamedInTheReply() {
+        HeapLogStore s = fieldsStore();
+        Map<String, Object> out = ReadService.read(s.index().snapshot(),
+                Map.of("recordIndex", 0, "after", 1, "fields", List.of("nodeA.price", "ghost.value")),
+                s::rawText);
+        assertTrue(((String) out.get("note")).contains("ghost.value"),
+                "a projected field that matched nothing is declared, never silently empty");
+    }
+
+    @Test
+    void rawTextStaysTheDefault() {
+        HeapLogStore s = fieldsStore();
+        Map<String, Object> out = ReadService.read(s.index().snapshot(),
+                Map.of("recordIndex", 0, "count", 1), s::rawText);
+        Map<String, Object> r0 = records(out).get(0);
+        assertNotNull(r0.get("text"));
+        assertNull(r0.get("values"));
+    }
+
     @Test
     void missingAnchorThrows() throws IOException {
         HeapLogStore s = store(5);

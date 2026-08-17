@@ -1,11 +1,16 @@
 package telamin.fluxtion.audit.analyser.analyser.llm;
 
 import telamin.fluxtion.audit.analyser.analyser.index.LogIndex;
+import telamin.fluxtion.audit.analyser.analyser.model.KV;
+import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
+import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.parse.RecordParser;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.IntFunction;
 
 /**
@@ -76,6 +81,8 @@ public final class ReadService {
         int start = clamp(anchor - b, 0, size - 1);
         int end = clamp(anchor + a, 0, size - 1);
 
+        List<String> fields = fieldList(params.get("fields"));
+        Set<String> seenFields = fields == null ? null : new java.util.LinkedHashSet<>();
         List<Map<String, Object>> records = new ArrayList<>();
         for (int row = start; row <= end; row++) {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -83,7 +90,13 @@ public final class ReadService {
             m.put("byteOffset", snap.offset(row));
             Long lt = snap.logTime(row);
             if (lt != null) m.put("logTime", lt);
-            m.put("text", rawText.apply(row));
+            if (fields == null) {
+                m.put("text", rawText.apply(row));
+            } else {
+                LogRecord rec = RecordParser.parse(rawText.apply(row), snap.offset(row));
+                if (rec.event() != null) m.put("event", rec.event());
+                m.put("values", project(rec.nodeLogs(), fields, seenFields));
+            }
             records.add(m);
         }
 
@@ -91,9 +104,59 @@ public final class ReadService {
         out.put("from", start);
         out.put("to", end);
         out.put("records", records);
-        if (capped) out.put("note", "capped at " + MAX_COUNT + " records per read; page with recordIndex");
-        else if (anchorNote != null) out.put("note", anchorNote);
+        List<String> notes = new ArrayList<>();
+        if (capped) notes.add("capped at " + MAX_COUNT + " records per read; page with recordIndex");
+        else if (anchorNote != null) notes.add(anchorNote);
+        if (fields != null) {
+            List<String> missed = fields.stream()
+                    .filter(f -> !f.endsWith(".*") && !seenFields.contains(f)).toList();
+            if (!missed.isEmpty()) notes.add("fields never seen in these records: " + missed);
+        }
+        if (!notes.isEmpty()) out.put("note", String.join("; ", notes));
         return out;
+    }
+
+    /** The {@code fields} param as a non-empty list of {@code instanceId.key} / {@code instanceId.*}, or null. */
+    private static List<String> fieldList(Object o) {
+        if (!(o instanceof List<?> l) || l.isEmpty()) return null;
+        List<String> out = new ArrayList<>(l.size());
+        for (Object f : l) if (f != null && !f.toString().isBlank()) out.add(f.toString().trim());
+        return out.isEmpty() ? null : out;
+    }
+
+    /**
+     * The projected {@code values} for one record (M26.3): each requested {@code instanceId.key} that the
+     * record logged, with <b>last-occurrence-per-record</b> semantics — the same rule graphing uses, so a
+     * projected value always matches the plotted one. {@code instanceId.*} takes every key that instance
+     * logged. Values stay the raw logged text: projection is a token economy, not a retype.
+     */
+    private static Map<String, String> project(List<NodeLog> nodeLogs, List<String> fields, Set<String> seen) {
+        Map<String, String> values = new LinkedHashMap<>();
+        for (String f : fields) {
+            int dot = f.lastIndexOf('.');
+            if (dot <= 0 || dot == f.length() - 1) continue;   // not instanceId.key shaped — noted as unseen
+            String id = f.substring(0, dot);
+            String key = f.substring(dot + 1);
+            if ("*".equals(key)) {
+                for (NodeLog nl : nodeLogs) {
+                    if (!nl.instanceId().equals(id)) continue;
+                    for (KV kv : nl.entries()) {
+                        if (kv.key() != null) values.put(id + "." + kv.key(), kv.rawValue());   // last wins
+                    }
+                }
+            } else {
+                String v = null;
+                boolean present = false;
+                for (NodeLog nl : nodeLogs) {
+                    if (!nl.instanceId().equals(id)) continue;
+                    KV kv = nl.last(key);
+                    if (kv != null) { v = kv.rawValue(); present = true; }   // last occurrence wins
+                }
+                if (present) values.put(f, v);
+            }
+        }
+        seen.addAll(values.keySet());
+        return values;
     }
 
     /**
