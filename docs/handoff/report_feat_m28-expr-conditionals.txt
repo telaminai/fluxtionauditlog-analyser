@@ -1,0 +1,104 @@
+REPORT — branch feat/m28-expr-conditionals
+Date: 2026-08-17 · Last WORK commit: 215da6c · Base: main @ 217983e (post-1.3.0, spec review in)
+Prompted by: owner: "the other LLM has reviewed the spec, review and start implementing".
+
+STATUS: M28.1–M28.4 complete (the whole ENGINE track), NOT merged. M28.5 (guide lines) and
+M28.6 (condition bands) — the rendering/persistence slices with the share-surface checklist — are
+deliberately NOT started: they are a different kind of work and a natural review boundary.
+  6 commits · 594 tests green · mkdocs --strict green · sweep clean
+  Spec: docs/specs/spec-expr-conditionals-windows.md, updated to ACCEPTED v2 first — ALL seven
+  review changes adopted; the review's three factual claims (min(4,2) test, acrossAllTime=true,
+  logTime-null skips) were verified against source before adopting, not taken on faith.
+
+================================================================================
+1. WHAT SHIPPED
+================================================================================
+f5d14de  spec v2 — review adopted (never-fabricate/never-erase into D-W2 with the composition
+  example; acrossAllTime note into D-W1; arrival-rate steer into D-W3; gate-output/gate-input
+  table into C; mirror-not-identity-map into W0 + eval(Map) deletion; min/max overload REJECTED →
+  rollingMin/rollingMax; P1/P2 pulled out into slices M28.5/M28.6 with the share-surface
+  checklist). Tracker restructured to six slices.
+
+f180cc3  M28.1 conditionals
+  New Cmp AST node (1.0/0.0; NaN operand → NaN — unknown stays unknown) at a new lowest-precedence
+  level, deliberately NON-chaining (a < b < c errors, message teaches and(...)). if(cond, then[,
+  else]) / and / or / not; two-arg if defaults else to NaN = "plot only when". Bare '=' / '!' get a
+  did-you-mean error. Unicode ≥ ≤ ≠ accepted. Every if() argument evaluated eagerly, with the
+  do-not-short-circuit warning at the eval site. Compatibility pinned by test: min(4,2) unchanged,
+  a node whose instanceId is literally "if" still refs (function only when followed by '(').
+
+1dd8f0c  M28.2 W0 — per-scan mirror evaluator; Expr.eval(Map) DELETED
+  Evaluation moved off the immutable AST into Evaluator (compiled mirror; one node per tree
+  POSITION) + EvalContext{long logTime, values}. Deleting eval(Map) let the compiler enforce the
+  migration — exactly four production call sites (extractExpr STRICT/LOCF arms, SeriesScan ×2),
+  each now one evaluator per scan, so windows reset by construction. stateSlotCount()==0 pins
+  statelessness. No behaviour change; the whole suite ran through the mirror as the regression net.
+
+dbe8ed1  M28.3 count windows — lag/delta/mean/sum/rollingMin/rollingMax(x, N)
+  Stateful mirror nodes; the review's owed test is in (delta(x)+delta(x) == 2*delta(x), plus a
+  two-slots assertion). Windows fill before they speak; min/max via monotonic deque (O(1) amortised
+  at any N); window size is a parse-time-validated integer literal 1..1_000_000. The gate-output vs
+  gate-input idiom pair is pinned by test AND is the docs' centrepiece table.
+
+215da6c  M28.4 time windows — mean/sum/rollingMin/rollingMax(x, "5m"), rate(x, "1m")
+  Duration literals (ms/s/m/h) via a new STRING lexer token and a Dur AST node valid ONLY as a
+  window argument ("5m" + 1 is a parse error via a post-parse walk). Time windows prune against
+  each record's own clock — old samples age out even on non-contributing records — and have NO fill
+  requirement (the duration defines the window; one sample answers). rate = newest − oldest within
+  the last T; NaN below two samples (one observation has no rate). lag stays count-only, rate
+  duration-only; each refusal explains why. Docs carry the D-W3 arrival-rate steer.
+
+Docs discipline per slice (the four drift-class lessons): the graphs guide, the in-process prompt's
+formula grammar line, and the changelog moved in the SAME commits as the engine changes.
+
+================================================================================
+2. DECISIONS BEYOND THE SPEC'S LETTER (flag these in review)
+================================================================================
+D1  NON-CONTRIBUTING RECORDS ON A FULL WINDOW — the spec says an empty/under-filled window is NaN
+    and a NaN sample leaves the window unchanged, but not what a FULL window ANSWERS on a record
+    that contributes nothing. Implemented as an anchor split, stated in Evaluator's javadoc:
+      - AGGREGATES (mean/sum/rollingMin/rollingMax) describe the WINDOW, which exists independently
+        of the current record → a full window answers. This is what makes mean(if(c,x),10) a
+        CONTINUOUS "mean of the last 10 breaching samples" (holds between breaches) — pinned by
+        the gateTheOutputVersusGateTheInput test.
+      - lag/delta are anchored to the CURRENT sample ("N samples ago" needs a now) → no finite
+        sample this record, no point this record.
+    I believe this is the only reading that makes the review's own composition argument work, but
+    it is the one place I chose semantics the spec did not dictate.
+D2  lag needs N+1 samples before it speaks (the spec's "NaN until N have been seen" is off by one —
+    the value 1 sample ago requires 2 seen). Implemented correctly; test names it.
+D3  delta on a gap: prev is KEPT through a NaN sample (D-W2), so the next delta measures ACROSS the
+    gap (1, NaN, 3 → deltas NaN, NaN, 2). The alternative (reset on gap) would erase a real past.
+D4  rate is (newest − oldest) over the pruned window — the spec's "(last − first)/window — change
+    per T" formula read literally would double-normalise; for a "1m" window, newest − oldest over
+    that minute IS the change per minute.
+D5  MAX_WINDOW = 1_000_000 samples (parse error above): beyond that a "window" is a whole-series
+    statistic, which is a spec non-goal. Durations are uncapped — memory is bounded by samples
+    actually inside the window.
+D6  Time-windowed rollingMin/Max: the monotonic deque discards dominated samples at insert; this is
+    the standard sliding-window-minimum structure and correct under time pruning (a dominated
+    sample is strictly older than its dominator, so it can never outlive it into being the answer).
+    Stated here because it looks lossy on first read.
+
+================================================================================
+3. WHAT THE REVIEWER SHOULD GO AFTER
+================================================================================
+  R1  D1 above — the anchor split is the implementation's one real semantic choice.
+  R2  Evaluator window nodes: ring/deque arithmetic (count % n indexing in lag; running-sum
+      drift on evict for mean/sum; the monotonic deque under time pruning).
+  R3  The post-parse Dur walk (rejectStrayDurations) — is there a position it misses? (Nested
+      calls, Neg, both Cmp sides are covered; the walk recurses everything else.)
+  R4  Eager evaluation composed with windows: if(c, mean(x, 2)) consumes samples in the untaken
+      branch BY DESIGN (the table's gate-the-output row). Confirm the docs say it loudly enough.
+  R5  Parser errors: every refusal teaches the fix (chained comparisons → and(...), bare '=' →
+      '==', count-vs-duration mismatches → why). Cheap to verify, high agent value.
+
+NOT STARTED (deliberate): M28.5 guide lines, M28.6 condition bands — persisted graph state; each
+carries the share-surface checklist (ConfigStore round-trip · project snapshot/restore/clear ·
+SettingsShare export/preview/apply · ShareDisclosureContractTest · PNG + report render). They are
+rendering work and deserve their own slice-and-review cycle.
+
+HUMAN EYEBALL (Swing untested by design): build the jar, open the demo fixture, and plot
+  if(askMakerOrder.price − bidMakerOrder.price > 0.004, askMakerOrder.price − bidMakerOrder.price)
+then mean(askMakerOrder.price, "1m") — breach-only gaps on the first, a smooth lagging line on the
+second, and the f(x) autocomplete not fighting the new syntax.
