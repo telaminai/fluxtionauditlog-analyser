@@ -286,8 +286,28 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
-## M20 · Project profiles — ◐ IN PROGRESS
+## M20 · Project profiles — ☑ SHIPPED (2026-08-17)
 _Brief: `docs/handoff/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles.md` (O1–O4 resolved)._
+- [M20.4] ☑ **Docs — "Working across projects"**, plus the harness work the screenshots needed.
+  New user-guide page (nav + a cross-reference from Sharing setups, which now explains merge-vs-open).
+  Says *why* a committed profile is safe: the key is not filtered out, it was **never in the project
+  tier**, so no setting or mistake can put it there.
+  - `screenshot` gained a **`menu:<Name>`** scope: it opens a top-level menu via the selection manager
+    and leaves it open so a native capture includes the popup (`menu:close` restores). The painted
+    fallback can never show a menu — a Swing popup is a separate layer, not part of the content pane's
+    paint. `setPopupMenuVisible` alone highlights the title without laying the popup out, which looks
+    right on screen and is empty in the capture.
+  - **`screenshot` now raises the window, and so does the harness.** `screencapture -R` photographs a
+    REGION OF THE SCREEN, not a window: a browser sitting over the analyser was captured into a docs
+    image complete with its URL bar and personal bookmarks. Caught by reading the image before
+    committing, which is the only control that can catch it — rule 1 exists because a text sweep cannot
+    see inside a PNG. **Nothing leaked was committed.**
+  - Capture geometry is now **fixed** (1680×1050). Without it every run produced differently-sized
+    images and the whole asset set churned for no visual change; documentation images being
+    reproducible is the reason they are generated rather than taken by hand.
+  - The harness **backs off on HTTP 429**. The added captures pushed it past the socket's rate limit and
+    an unhandled 429 aborted the run mid-way.
+
 - [M20.3] ☑ **Auto-detect a project beside an opened log** — the M19 zero-setup hook. Open a bundle's
   audit log and the profile committed at its repo root offers to configure roots, event processor and
   graphs. `config/ProjectAutoDetect` holds the policy (7 tests) because *when not to ask* is the hard

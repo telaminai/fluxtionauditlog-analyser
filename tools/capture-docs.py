@@ -54,6 +54,9 @@ ENDPOINT = pathlib.Path.home() / ".fluxtion-analyser" / "rest-endpoint"
 # the app writes here; this script copies out of it. Cleared each run so "never overwrite" is satisfied
 # by construction rather than by hoping the names are fresh.
 EXPORT_DIR = pathlib.Path(tempfile.gettempdir()) / "analyser-doc-capture"
+# A throwaway project for the project-profile shots. Deliberately under a NEUTRAL path: the status bar
+# prints the profile's full path, and rule 1 exists because a screenshot carries strings grep cannot see.
+DEMO_PROJECT = pathlib.Path("/tmp/analyser-docs/demo-quote-project")
 
 
 def jar():
@@ -73,7 +76,43 @@ def set_config(**values):
     CONFIG.write_text("\n".join(lines) + "\n")
 
 
-def launch(theme):
+def make_demo_project():
+    """A project profile pointing at the demo fixture — anonymous by construction, like every other shot."""
+    profile = DEMO_PROJECT / ".analyser" / "project.fluxtion-settings"
+    profile.parent.mkdir(parents=True, exist_ok=True)
+    profile.write_text(
+        "share.version=1\n"
+        f"sourceRoot.count=1\nsourceRoot.0={ROOT}\n"
+        f"eventProcessorFqn.count=1\neventProcessorFqn.0={PROCESSOR}\n"
+        f"selectedEventProcessor={PROCESSOR}\n"
+        "mavenRepo.count=0\nmavenRepoSearch=true\n")
+    return profile
+
+
+def menu_capture(ep, menu, name):
+    """Open a top-level menu, capture natively, close it.
+
+    The painted fallback cannot be used here: a Swing popup is a separate layer and never appears in the
+    content pane's paint. So this shot needs the native path, and is skipped rather than faked without it.
+    """
+    res = act(ep, "screenshot", {"path": f"menu-{menu}.png", "scope": f"menu:{menu}"})
+    if not res.get("ok"):
+        return False
+    b = res["wrote"]["windowBounds"]
+    raise_window()
+    time.sleep(0.8)                     # let the popup lay out before the shutter
+    target = ASSETS / name
+    subprocess.run(["screencapture", "-x", "-R",
+                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(target)], check=False)
+    act(ep, "screenshot", {"path": f"menu-{menu}-close.png", "scope": "menu:close"})
+    if target.exists():
+        print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
+        return True
+    print(f"  ! {name} skipped — a menu shot needs a native capture (Screen Recording permission)")
+    return False
+
+
+def launch(theme, project=None):
     subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
     time.sleep(1)
     ENDPOINT.unlink(missing_ok=True)
@@ -87,7 +126,12 @@ def launch(theme):
                   "topologySpacing": "100", "topologyTextSize": "11",
                   "topologyOrientation": "TOP_DOWN", "topologySyncSource": "true",
                   "eventFilterCollapsed": "false",
-                  "assistant.exports": "true", "assistant.exportDir": str(EXPORT_DIR)})
+                  "assistant.exports": "true", "assistant.exportDir": str(EXPORT_DIR),
+                  "activeProjectPath": str(project) if project else "",
+                  # Fixed window geometry, or every run produces images of a different size and the
+                  # whole asset set churns for no visual change. Documentation images should be
+                  # reproducible; that is the reason they are generated rather than taken by hand.
+                  "windowX": "60", "windowY": "60", "windowW": "1680", "windowH": "1050"})
     subprocess.Popen(["java", "-jar", str(jar()), str(LOG)],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(40):
@@ -99,15 +143,51 @@ def launch(theme):
 
 
 def act(ep, verb, params=None):
+    """One verb call, backing off on the socket's rate limit.
+
+    The limit is per-second and deliberately low — it exists so a runaway agent cannot hammer the app.
+    A capture run is a burst of small calls and will meet it, so this waits rather than failing the run;
+    an unhandled 429 previously aborted the whole capture mid-way through.
+    """
     body = json.dumps({"v": 1, "action": verb, "params": params or {}}).encode()
-    req = urllib.request.Request(ep["url"] + "/action", data=body, method="POST",
-                                 headers={"Content-Type": "application/json",
-                                          "X-Analyser-Token": ep["token"]})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        out = json.loads(r.read())
+    for attempt in range(6):
+        req = urllib.request.Request(ep["url"] + "/action", data=body, method="POST",
+                                     headers={"Content-Type": "application/json",
+                                              "X-Analyser-Token": ep["token"]})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                out = json.loads(r.read())
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            try:
+                out = json.loads(e.read())
+            except Exception:
+                out = {"ok": False, "error": f"HTTP {e.code}"}
+            break
+    else:
+        out = {"ok": False, "error": "rate limited after 6 attempts"}
     if not out.get("ok"):
         print(f"  ! {verb} failed: {out.get('error')}")
     return out
+
+
+def raise_window():
+    """Bring the analyser to the front before a native capture.
+
+    `screencapture -R` photographs a REGION OF THE SCREEN, not a window, so anything overlapping the
+    analyser is captured with it. A browser window once landed in a documentation shot complete with its
+    URL bar and personal bookmarks — the exact leak CLAUDE.md rule 1 exists to prevent, and one a text
+    sweep can never catch. The app raises itself too; this is the belt to that pair of braces.
+    """
+    subprocess.run(["osascript", "-e",
+                    'tell application "System Events" to set frontmost of '
+                    'the first process whose unix id is (do shell script '
+                    '"pgrep -f fluxtion-auditlog-analyser | head -1") to true'],
+                   check=False, capture_output=True)
+    time.sleep(0.4)
 
 
 def capture(ep, name):
@@ -123,6 +203,7 @@ def capture(ep, name):
     painted = EXPORT_DIR / scratch_name
 
     b = res["wrote"]["windowBounds"]
+    raise_window()
     target = ASSETS / name
     subprocess.run(["screencapture", "-x", "-R",
                     f"{b['x']},{b['y']},{b['width']},{b['height']}", str(target)], check=False)
@@ -206,9 +287,21 @@ def main():
     time.sleep(1)
     capture(ep, "graph-step-dark.png")
 
+    # ---- project profiles (M20.4) ------------------------------------------------------------
+    print("project profiles")
+    profile = make_demo_project()
+    ep = launch("Light")
+    menu_capture(ep, "File", "projects-file-menu.png")
+
+    ep = launch("Light", project=profile)      # relaunch WITH the project active
+    seed(ep)
+    act(ep, "goto", {"recordIndex": 3, "reveal": True})
+    capture(ep, "projects-active.png")
+
     if "--keep" not in sys.argv:
         subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
         shutil.rmtree(EXPORT_DIR, ignore_errors=True)
+        shutil.rmtree(DEMO_PROJECT.parent, ignore_errors=True)
     print(f"done — {len(_captured)} captures")
 
 

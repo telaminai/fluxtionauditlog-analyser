@@ -26,6 +26,12 @@ Your **API key**, AWS profile/region, recent files, search history and window/th
 and the whitelist is enforced on **import** too, so a hand-crafted file can't plant or overwrite a
 secret. Paths under your home are written `~`-relative so they survive a move to another machine.
 
+## Import or open?
+
+Importing asks which of two things you mean. **Merge** adds the file's settings to what you have — the
+share-a-setup flow this page is about. **Open as project** replaces your project settings and makes the
+file active; see [Working across projects](projects.md).
+
 ## Import
 
 **File ▸ Import settings…** shows a per-category **summary** — what's new, what would be replaced —

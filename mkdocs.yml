@@ -99,6 +99,7 @@ nav:
       - Topology & step-through: user-guide/topology.md
       - Analyser assistant: user-guide/assistant.md
       - Source navigation: user-guide/source-navigation.md
+      - Working across projects: user-guide/projects.md
       - Sharing setups: user-guide/sharing-setups.md
   - The audit log:
       - Log format: log-format.md

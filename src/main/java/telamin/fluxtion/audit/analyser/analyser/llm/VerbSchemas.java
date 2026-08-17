@@ -142,8 +142,10 @@ public final class VerbSchemas {
                         + "and existing files are never overwritten.",
                 props(
                         p("path", string(), "where to write the .png"),
-                        p("scope", enumStr("window", "topology", "records"),
-                                "whole window (default), or just one panel")),
+                        p("scope", string(), "\"window\" (default), \"topology\", \"records\", or "
+                                + "\"menu:File\" to open a top-level menu and leave it open so a native "
+                                + "screen capture includes the popup — \"menu:close\" puts it back. The "
+                                + "painted PNG never contains a popup; a Swing menu is a separate layer.")),
                 req("path")));
 
         s.put("open", schema("Open an audit log and/or a processor .graphml. Reaches the FILESYSTEM: it "

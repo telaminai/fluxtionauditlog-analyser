@@ -717,6 +717,26 @@ public final class MainFrame extends JFrame {
         return idx instanceof Integer i ? tablePanel.modelRowAt(i) : -1;
     }
 
+    /** A top-level menu by name, case-insensitively — the menu bar is small and this keeps callers simple. */
+    private javax.swing.JMenu topLevelMenu(String name) {
+        javax.swing.JMenuBar bar = getJMenuBar();
+        if (bar == null || name == null) return null;
+        for (int i = 0; i < bar.getMenuCount(); i++) {
+            javax.swing.JMenu m = bar.getMenu(i);
+            if (m != null && m.getText() != null && m.getText().equalsIgnoreCase(name.strip())) return m;
+        }
+        return null;
+    }
+
+    private java.util.List<String> topLevelMenuNames() {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        javax.swing.JMenuBar bar = getJMenuBar();
+        for (int i = 0; bar != null && i < bar.getMenuCount(); i++) {
+            if (bar.getMenu(i) != null) names.add(bar.getMenu(i).getText());
+        }
+        return names;
+    }
+
     private static java.awt.image.BufferedImage paintOf(java.awt.Component c) {
         if (c.getWidth() <= 0 || c.getHeight() <= 0) return null;
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
@@ -2008,7 +2028,43 @@ public final class MainFrame extends JFrame {
             if (path == null || path.isBlank()) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'path' is required");
             }
-            java.awt.Component target = switch (scope == null ? "window" : scope.toLowerCase(java.util.Locale.ROOT)) {
+            // menu:<Name> opens a top-level menu and leaves it open, so a NATIVE screen capture of the
+            // returned windowBounds includes the popup. The painted fallback cannot: a Swing popup is a
+            // separate layer, not part of the content pane's paint. menu:close puts it back.
+            String requested = scope == null ? "window" : scope.toLowerCase(java.util.Locale.ROOT);
+            if (requested.startsWith("menu:")) {
+                String which = scope.substring("menu:".length());
+                if ("close".equalsIgnoreCase(which)) {
+                    javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath();
+                } else {
+                    javax.swing.JMenu menu = topLevelMenu(which);
+                    if (menu == null) {
+                        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                                "no menu '" + which + "' — try one of " + topLevelMenuNames());
+                    }
+                    // the canonical way to open a menu programmatically: hand the selection manager
+                    // the full path. setPopupMenuVisible alone highlights the title without laying the
+                    // popup out, which looks right in the app and is empty in a capture.
+                    javax.swing.MenuSelectionManager.defaultManager().setSelectedPath(
+                            new javax.swing.MenuElement[]{getJMenuBar(), menu, menu.getPopupMenu()});
+                }
+            }
+            // Raise the window before reporting bounds. A native capture of those bounds photographs
+            // whatever is ON SCREEN there — so any window sitting on top of the analyser lands in the
+            // image, and a documentation screenshot is exactly where someone else's browser tabs must
+            // never appear. CLAUDE.md rule 1 exists because a text sweep cannot see inside a PNG.
+            toFront();
+            requestFocus();
+            try {
+                java.awt.Desktop desktop = java.awt.Desktop.getDesktop();
+                if (desktop.isSupported(java.awt.Desktop.Action.APP_REQUEST_FOREGROUND)) {
+                    desktop.requestForeground(true);
+                }
+            } catch (RuntimeException ignored) {
+                // headless or unsupported platform: toFront() is the best we can do
+            }
+
+            java.awt.Component target = switch (requested) {
                 case "topology" -> topologyPanel;
                 case "records" -> tablePanel;
                 default -> getContentPane();
