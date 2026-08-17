@@ -1,0 +1,60 @@
+REVIEW — feat/m20-project-profiles
+Date: 2026-08-17 · Reviewer: main session · Tip: d4f049c · Base: main @ 82b396b (clean fast-forward)
+
+VERDICT: approved. Merge on the owner's word; no blockers.
+
+INDEPENDENTLY VERIFIED:
+  mvn -o test ................. 517/517 green (headless-enforced suite)
+  mkdocs build --strict ....... green
+  tier boundary ............... PROJECT_SCOPED = exactly 5 categories, pinned by a test that also
+                                asserts ASSISTANT and LLM are excluded ("the API key can never be in
+                                a profile at all")
+  key-leak test ............... a profile written from a config holding "sk-do-not-leak-this" is
+                                asserted to contain neither the key nor the field name
+  B-M20-1 ordering fix ........ ProjectSessionTest carries the exact found-by-driving ordering bug
+                                (profile applied before session built → empty snapshot → global file
+                                overwritten) as a named regression test
+  auto-detect ................. asks, never acts; declines remembered per-session per-log, with the
+                                rationale in javadoc (a later launch is a fair time to ask again)
+  relative roots .............. resolved via SettingsShare (M19.2), not reimplemented
+
+DECISIONS — all endorsed:
+  E1. graphmlFile/recentGraphml stay GLOBAL. The O3-side-door argument is exactly right: the open
+      topology is session state like the open log, and delivering O3's deferred surprise through a
+      side door would be worse than deciding O3. Boundary unchanged; constraint intact.
+  E2. The brief's "M15 shareable whitelist" shorthand corrected to five categories — SHAREABLE and
+      PROJECT-SCOPED are different questions, and the pinning test stops the shorthand creeping back.
+      This is the right kind of spec-vs-brief correction: the spec was right, the shorthand was loose,
+      and the report says so plainly.
+  E3. REPLACE total over the tier (present-categories-only would resurrect the pile-up M20 exists to
+      remove); the single Maven-repo exception is narrow, reasoned ("'I did not say' is not 'never
+      search'"), only reachable via hand-edited files, and documented at the code site.
+  E4. New-project-starts-empty; save-as is the fork. Ask-don't-act on auto-detect.
+  E5. No project-switching verb — replacing a user's working set is not a scripted action. Consistent
+      with the socket's promises; the right refusal.
+  E6. screenshot menu:<Name> kept as product surface by owner decision, documented as such. Fine —
+      "an assistant can show a user where a control is" is a real capability, and it stays inside the
+      export-guard policy.
+
+THE TWO BUGS — both found by driving the app, neither by the suite, continuing the established
+pattern (semantic/integration defects live outside unit tests' reach):
+  B-M20-1 config-tier leak: the interesting half is the ordering, and the report's telling of "correct
+      code, wrong order" is worth future implementers reading.
+  B-M20-2 a browser window photographed into a docs screenshot: caught by READING the image — the
+      second image near-miss in two days. See F1.
+
+THE VERIFICATION LESSON: "modal dialogs do not block the EDT — JOptionPane runs a nested event loop,
+so socket responsiveness is no proxy for dialog visibility." Reported twice with confidence before
+the owner contradicted it. Recorded here so it is inherited: verify UI visibility by capture or by
+human, never by side-channel inference.
+
+FOLLOW-UPS:
+  F1. tools/capture-docs.py still captures a screen REGION (screencapture -R): anything overlapping
+      the window is in the image. Switch to window-id capture (screencapture -l <windowid>) so the
+      class of B-M20-2 is impossible rather than caught-by-vigilance. Small, worth doing before the
+      next screenshot refresh.
+  F2. On merge: M20 completes — archive its tracker block to completed/tracker.md and move
+      spec-project-profiles.md to completed/, per the tracker discipline.
+  F3. The M19 bundle contract already names .analyser/project.fluxtion-settings as the profile path;
+      with M20 merged, the auto-detect hook it depends on is real. M19.1 (playground bundle) is now
+      unblocked end-to-end on the analyser side.
