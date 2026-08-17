@@ -3,7 +3,7 @@
 Status: PROPOSED v1 · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M29**
 
 Companion to **[tracker.md](tracker.md)** (M29), the graph engine (`graph/Series`, `graph/SeriesExtractor`)
-and **[spec-expr-conditionals-windows.md](spec-expr-conditionals-windows.md)** (M28), whose window
+and **[spec-expr-conditionals-windows.md](completed/spec-expr-conditionals-windows.md)** (M28), whose window
 semantics this spec deliberately does **not** reopen. Prompted by the owner: *"Claude could filter, parse
 and generate a series from a FIX log; pass the file location to the analyser to plot. Accept CSV to begin
 with."*
