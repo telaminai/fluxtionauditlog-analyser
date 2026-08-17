@@ -18,6 +18,14 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
+**Raised 2026-08-17 (round 3), NOT yet filed:** UP-FLX-25…27 (§2b) come from specifying M28 (rolling
+windows) and M29 (external series) — the first asks here raised from making the log's own **clock**
+load-bearing, and from putting a second clock beside it. UP-FLX-28…30 (§2c) answer the owner's
+proposal to add backward-compatible GraphML attributes. All six are facts the compiler or runtime
+already holds at write time. §2c opens with the **verified** backward-compatibility contract and the
+one constraint it carries; UP-FLX-26 carries a **name collision** with the owner's proposed record
+header `source` that should be settled before either is filed.
+
 **Filed 2026-08-16 (round 2):** UP-FLX-20…22 are open as [telaminai/fluxtion issues 14–16](https://github.com/telaminai/fluxtion/issues). They come from the supermarket POC's *maintenance* round — injecting new subsystems upstream of working ones — and are the first asks here raised from changing a graph rather than building one.
 
 **Filed 2026-08-16:** all nine fluxtion-owned asks are open as [telaminai/fluxtion issues 8–13](https://github.com/telaminai/fluxtion/issues) (some grouped: 11 covers UP-FLX-11+12, 12 covers UP-FLX-14+SHARED-01, 8 covers UP-FLX-01+SHARED-02). The four `svc-admin-web` asks (UP-WEB-01…04) belong to `telaminai/mongoose-plugins` and are **not yet filed** — see below.
@@ -360,6 +368,193 @@ logged, therefore this ran" is unsound for exactly those nodes and the analyser 
 
 Ask: a style or data key per node for the callback kinds it declares. Even a coarse
 `lifecycleOnly="true"` would let the view stop reasoning about propagation for those nodes.
+
+---
+
+## 2b · Fluxtion runtime — what the log must say to be correlated with anything else
+
+Round 3, raised 2026-08-17 while specifying **M28** (rolling windows over the log's own clock) and
+**M29** (`spec-external-series.md` — plotting a foreign CSV, e.g. a FIX log an agent parsed, beside the
+audit-derived series). Both make the audit log's *time base* load-bearing in a way it has never been:
+M28 computes `mean(x, "5m")` and `rate(x, "1m")` against `logTime`, and M29 puts a second clock on the
+same axis. These three asks are the facts the log would need to carry for that to be sound rather than
+assumed.
+
+### UP-FLX-25 ☐ Declare the log's time base — source, zone and resolution
+
+**Target** `fluxtion` (runtime, record header) · **Priority** high — blocks honest cross-log correlation
+
+**Measured, 2026-08-17.** A record carries a bare number and nothing about what produced it:
+
+```yaml
+eventTime: 1767258000080
+logTime:   1767258000090
+```
+
+(from `src/test/resources/topology/demo-quote-audit.yaml`). The analyser assumes **epoch
+milliseconds** in six files — `Instant.ofEpochMilli` in `TimeFormat`, `TimeRangeSlider`, `SeriesScan`,
+`AggregateService`, `SessionFacts` and `RecordExporter` — and `SeriesScan:211` additionally hardcodes
+`ZoneOffset.UTC` when it buckets by minute or hour. Nothing in the log confirms any of that; if a
+processor ever emitted micros, every timestamp in the app would be silently wrong by a factor of 1000
+and no test anywhere would fail.
+
+Ask: a once-per-file (or per-record-header) declaration, e.g.
+
+```yaml
+timeBase:
+    epoch: millis            # millis | micros | nanos
+    zone: UTC                # the zone the writer's clock was reporting
+    source: wallClock        # wallClock | monotonic | injected(ClockStrategy)
+```
+
+`source` matters as much as the unit: a log written under an injected/simulated `ClockStrategy` (a
+replay, a test) must not be silently aligned against a real venue log, and today nothing distinguishes
+the two.
+
+**Cost to us if unfixed** M29 pushes the whole burden onto the user — the CSV's format and zone are
+*required* inputs (D-F1: never inferred) precisely because the analyser cannot state its own side of
+the comparison. It can show a declared offset but can never say whether the two clocks are actually
+comparable. A `rate(x, "1m")` computed against an unlabelled clock is a number with no unit.
+
+### UP-FLX-26 ☐ Identify the record's origin — process, host, processor instance
+
+**Target** `fluxtion` (runtime, record header) · **Priority** medium
+
+Nothing in a record says which process wrote it. A file that concatenates two processors' logs is
+indistinguishable from one processor's, so every time-ordered operation the analyser performs —
+the `at` anchor's binary search (M26.2), rolling windows (M28.3/.4), band intervals (M28.6) — silently
+assumes one monotonic time base. That assumption was accepted explicitly as a stated boundary in the
+review of `feat/b-m20-3-m26-m27` (assumption A2) rather than defended, because there is nothing in the
+log to defend it with.
+
+Ask: `writer: {host, pid, processorId}` in the header, or once per file.
+
+!!! warning "Name collision — resolve before either is filed"
+
+    This ask originally proposed the key `source`. The owner independently proposed (2026-08-17) a
+    `source` property on the record header meaning **what caused this cycle** — external event,
+    re-dispatch, exported service call — which is UP-FLX-10's `origin` enum arrived at from the other
+    direction, and confirms it is the right shape. Two different facts cannot both be `source`.
+    Suggested split: **`origin`** = why this cycle ran (UP-FLX-10's enum, plus `causedBy`), and
+    **`writer`** = which process emitted the record (this ask). Both are header fields, both are known
+    at write time, and they would file naturally as one issue.
+
+**Cost to us if unfixed** the analyser cannot detect a merged multi-logger file, so it cannot warn;
+it just interleaves and produces a plausible, wrong picture. Detection is the whole ask — the analyser
+does not need to *handle* merged files, only to stop pretending they are single-source.
+
+### UP-FLX-27 ☐ Let a logged key carry its unit and meaning
+
+**Target** `fluxtion` (runtime, `EventLogger` API) · **Priority** medium · *audit-log twin of UP-FLX-22*
+
+UP-FLX-22 asks for reference-kind and dirty-contract on the **GraphML edges**, from the round-2 finding
+that `StockLedger.lastQty()` means *shelf level after the movement* and was read as *units just sold*.
+The same ambiguity exists on the **value** side of the log and is now more expensive, because M28 lets a
+formula compute over that number (`mean(stockLedger.lastQty, 10)`) and M29 will plot it against an
+external series. A window over a misunderstood quantity is a confident wrong answer.
+
+Ask: an optional description/unit on a logged key, carried into the record —
+
+```java
+auditLog.info("lastQty", qty, "units", "shelf level AFTER the movement");
+```
+
+— surfaced by the analyser in the key picker, the series legend and the LLM prompt.
+
+**Cost to us if unfixed** the analyser presents `stockLedger.lastQty` as a bare label and an LLM
+diagnosing from the chart has exactly the information that produced the original defect: a plausible
+name and a number. The javadoc that would disambiguate it exists in source the log never references —
+and in the round-2 case that getter was the only one of three with no javadoc at all.
+
+---
+
+## 2c · GraphML — richer edges and nodes, backward compatibly
+
+Owner proposal, 2026-08-17: *"add backward compatible attributes to the graphml edge definitions such
+as push edge. Maybe data only nodes."* The asks below answer that and the follow-up *"what else would
+be useful?"*.
+
+### The backward-compatibility contract — VERIFIED, with one constraint
+
+**Measured against `topology/GraphmlParser.java`, 2026-08-17.** The analyser's reader takes `id` from
+each `<node>`, `source`/`target`/`id` from each `<edge>`, and then hunts descendants for two attribute
+*names*: `text` (the label) and `properties` (the style, from which node `Kind` is inferred). It
+validates nothing else and there is no key whitelist — so **new `<key>` declarations and new `<data>`
+children are invisible to today's build and cannot break it**. Backward compatibility is real.
+
+**The one constraint:** `firstDescendantAttribute` returns the first non-empty value of the named
+attribute on **any** descendant. A new element that carries an attribute literally called `text` or
+`properties` on a node's subtree could therefore be picked up as that node's label or style. New data
+must not reuse those two attribute names. Everything else is free.
+
+*(Aside: node `Kind` being sniffed from a style string is itself a weakness. An explicit
+`kind="EVENT|HANDLER|NODE|EXPORT_SERVICE"` data key would retire the sniffing — cheap, and covered by
+the same additive mechanism.)*
+
+### UP-FLX-28 ☐ Edge attributes: `propagates` and `refKind`
+
+**Target** `fluxtion` (compiler, graphml emission) · **Priority** high · *implements the owner's "push
+edge", extends UP-FLX-22*
+
+Two **independent** facts, and the distinction matters — they are not the same attribute:
+
+- **`refKind = trigger | data`** — does this parent *fire* the child, or is it only read? Already known
+  to the compiler (`@NoTriggerReference`); this is UP-FLX-22's edge half. Measured in POC round 2,
+  where an injected data reference silently became a trigger (`PO,null,0,unknown`).
+- **`propagates = true | false`** — the **push edge**. Verified against the framework reference
+  (`docs/claude.txt`): *"`.push()` is for side effects observable outside the graph (logging, sinks,
+  metrics)"*, and of sinks, *"they fire externally to the graph dispatch, so **downstream nodes won't
+  see the effect**"*. So a push edge carries data but **not propagation** — the opposite direction of
+  the data-reference case, which carries propagation-relevance but no trigger.
+
+**On "data only nodes":** the edge attribute is the primitive and the node flag is derivable from it —
+a node whose every outgoing edge is `refKind="data"` (or `propagates="false"`) is data-only. Asking for
+the edge attribute alone keeps the vocabulary smaller and cannot disagree with itself, which a
+separately-emitted node flag eventually would. Recommend edges only.
+
+**Cost to us if unfixed** the analyser draws every edge identically, so it will present a push target
+as though it participates in propagation — a *wrong* picture, not merely an imprecise one, in exactly
+the "did this node run because of that one?" question the topology tab exists to answer.
+
+### UP-FLX-29 ☐ Mark framework-generated nodes as such
+
+**Target** `fluxtion` (compiler, graphml emission) · **Priority** high — cheapest big win here
+
+**Measured, 2026-08-17.** `topology/Scaffolding.java` classifies framework plumbing with three
+heuristics over *names*: a hardcoded id list (`FRAMEWORK_EVENT_IDS`), framework package prefixes, and a
+hardcoded simple-name list (`SinkRegistration`, `SinkDeregister`, `LifecycleEvent`, …). That is this
+repo guessing at what the compiler generated, and it is wrong in both directions — a user class in a
+matching package is hidden, a new framework type is shown until we notice and add its name.
+
+Ask: `framework="true"` (or `role="scaffold"`) on every node the compiler generates.
+
+**Cost to us if unfixed** the **Scaffolding** checkbox — which hides 10 of 20 nodes in the demo graph,
+half the picture — is driven by a name list that must be maintained in this repo, in lockstep with a
+framework it does not ship with. Every new framework node type is a silent defect here until someone
+spots it.
+
+### UP-FLX-30 ☐ A build fingerprint in the GraphML itself
+
+**Target** `fluxtion` (compiler, graphml emission) · **Priority** medium · *pairs with UP-FLX-12*
+
+UP-FLX-12 asks the runtime to populate `ProcessorDescriptor.Meta.sourceFingerprint()`. The graphml
+side of the same fact would let the analyser answer *"is this graph the build that produced this log?"*
+from **the two files alone**, with no running processor — which is the normal forensic case: someone
+sends you a log and a graphml.
+
+Ask: graph-level `<data>` for a build fingerprint, generator version and build timestamp.
+
+**Cost to us if unfixed** the analyser answers the question by counting unmatched instance ids — a
+heuristic that cannot distinguish "wrong build" from "this cycle simply didn't touch those nodes".
+
+### Also worth considering (not yet asks — no measured need in this repo)
+
+- **Dispatch order index per node.** The analyser lays out by layers it recomputes; the compiler knows
+  the real invocation order. Would make step-through ordering authoritative rather than reconstructed.
+- **Declaring source location** (file + line) per node, so source navigation is exact rather than an
+  FQN lookup — and can say *"generated, no source"* honestly instead of failing to find one.
+- **Exported-service interface and method signatures** per node — pairs with UP-FLX-13's "one spelling
+  for exported-call signatures"; the analyser currently matches exported calls to nodes by name.
 
 ---
 
