@@ -105,6 +105,11 @@ aa0e76f  M26.4 — echo hardening (spec V4)
 
 4a9f1cb  handoff: this report (kept current since — see header).
 
+RIDER (docs-only, NOT part of the reviewable dev work): spec-expr-conditionals-windows.md (M28,
+  PROPOSED — conditional formulas + rolling-window formulas + a plotting-ideas survey) and its
+  tracker entry were added on this branch at the owner's request after the dev work closed.
+  Nothing is implemented; review it as a proposal if at all.
+
 4bd1ff3  fix: routes scope is directional — never the whole connected component
   Owner-found live: click-escalation step 3 (transitive parents + children) selected the WHOLE
   graph. FocusStack.reachWithin (M27.1, this branch only — never released) walked BOTH edge

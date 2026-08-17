@@ -882,6 +882,22 @@ arithmetic; one scan should answer it). All read-only — no change to the FAQ s
 - [M26.4] ☑ **Echo hardening** *(shipped on `feat/b-m20-3-m26-m27`)* — `graph` warns on a `rightAxis`/note series not in the graph; verbs
   name ignored parameters in their echoes. Docs + changelog.
 
+## M28 · Expression conditionals + rolling windows — ☐ PROPOSED (formulas that judge and remember)
+_Design: **[spec-expr-conditionals-windows.md](spec-expr-conditionals-windows.md)**. Owner ask:
+`if(x−y > 10, f(x))` conditional plotting and rolling-window memory formulas. Two bounded vocabulary
+additions to `Expr` — NOT a scripting engine — landing in graphs and the `series` verb at once because
+they share the engine. NaN-is-no-point carries the design: a false condition or unfilled window simply
+plots nothing. Windows need the one real refactor: per-scan stateful evaluators (`newEvaluator()` +
+`EvalContext{logTime, values}`) — the AST stays immutable. Three window-semantics decisions (what
+enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the spec for review._
+- [M28.1] ☐ **Conditionals** — comparisons + `if(cond, then[, else])` + `and/or/not`; two-arg `if`
+  defaults else to NaN = "plot only when". Stateless, no signature changes; ships alone.
+- [M28.2] ☐ **Evaluator refactor (W0)** — per-scan `Evaluator`/`EvalContext`; all three call sites
+  (extractExpr STRICT/LOCF, SeriesScan) migrated; stateless behaviour proven unchanged.
+- [M28.3] ☐ **Count windows** — `lag/delta/mean/min/max/sum(x, N)`; D-W1/2/3 semantics pinned by test.
+- [M28.4] ☐ **Time windows + plot pairings** — duration literals (`"5m"`), `rate`; threshold guide
+  lines (P1) and condition bands (P2) from the spec's plotting survey; docs + changelog.
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
