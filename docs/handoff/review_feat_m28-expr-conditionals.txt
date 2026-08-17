@@ -1,0 +1,161 @@
+REVIEW — feat/m28-expr-conditionals
+Date: 2026-08-17 · Reviewer: this session (I wrote the spec review; the other session implemented it)
+Reviewed at: b9bf572 (last work commit 4deabe6) · Base: main @ 217983e
+
+VERDICT: approved. One real defect found and FIXED ON THIS BRANCH (F1 — rate() was systematically
+biased low); one semantic consequence raised for an owner decision (F2). Everything else verified.
+
+The report asked for attention on R1–R7 and I took them as instructions. Everything below is
+something I ran. Where the report made a factual claim I checked it against source rather than
+accepting it — including the claims about my own review having been adopted.
+
+================================================================================
+1. INDEPENDENTLY VERIFIED
+================================================================================
+  mvn -o test .................. 604/604 green, exit 0, zero failures/errors
+  mkdocs build --strict ........ exit 0, ZERO warnings
+  anonymisation sweep .......... clean (only the two rule-text self-matches)
+
+ALL SEVEN review changes from the spec review landed, checked in source not taken on trust:
+  1. min/max overload REJECTED → rollingMin/rollingMax. min(4, 2) still returns 2.0
+     (ExprTest:45 and :139). The "old expressions parse unchanged" guardrail now holds
+     unqualified — this was the one thing in the spec that would have shipped a silent
+     compatibility break.
+  2. Expr.eval(Map) DELETED. Exactly four production call sites remain and all four take
+     eval(logTime, …): SeriesExtractor:86, :99 (STRICT and LOCF arms) and SeriesScan:102, :116.
+     The compiler enforced the migration, which is what deleting it was for.
+  3. Mirror evaluator, not an identity map — one node per tree POSITION (Evaluator:169).
+     delta(x)+delta(x) == 2*delta(x) is pinned (EvaluatorTest:97), plus a two-slots assertion.
+     stateSlotCount()==0 pins statelessness for every pre-M28.3 expression.
+  4. never-fabricate/never-erase + the mean(if(c,x),N) composition example are in D-W2.
+  5. The gate-the-output vs gate-the-input table is in graphs.md:58-59 AND pinned by test.
+  6. P1/P2 became their own slices (M28.5/M28.6).
+  7. D-W1's acrossAllTime note and D-W3's arrival-rate steer are both in.
+
+R3 — STRAY DURATION REJECTION IS AIRTIGHT. I tried fifteen ways to smuggle a Dur into a
+non-window position: "5m"+1, abs("5m"), -"5m", min(a.x,"5m"), both if() branches, the condition
+side of if(), and("5m",1), not("5m"), mean("5m",3) (first-arg), nested max(abs("5m"),1),
+rate("5m","1m") (first-arg), and a trailing + "1s" after a valid window. All fifteen rejected, each
+message teaching the fix. lag(x,"5m") and rate(x,3) get bespoke explanations of why counts and
+durations are not interchangeable. I could not find a hole.
+
+R2 — WINDOW ARITHMETIC IS SOUND. The running sums (count and time forms) never recompute, so FP
+error accumulates monotonically across a scan — but only finite values are ever added or subtracted
+(so NaN/Inf cannot poison the accumulator, which would be unrecoverable), and the drift is ~1e-10
+relative over 1e6 records at realistic magnitudes. Not a defect. The monotonic deques are correct
+under both index pruning and time pruning; a dominated sample is strictly older than its dominator,
+so it can never outlive it into being the answer (D6's reasoning checks out).
+
+Also verified: the count-window ring's (count % n) indexing returns the value from exactly n
+accepted samples ago and needs n+1 samples to speak (D2 correct); delta keeps prev across a gap so
+the next step measures across it (D3); time pruning for aggregates runs OUTSIDE the finite guard so
+old samples age out on non-contributing records, while count pruning correctly runs inside it.
+
+F1-CLASS SHARE DISCLOSURE — APPLIED WITHOUT BEING ASKED. sharing-setups.md's category row now reads
+"named graphs (series, formulas, resolve policy, pinned windows, NOTES, GUIDES, CONDITION BANDS)".
+That is the drift class closing itself one round after it was caught.
+
+================================================================================
+2. F1 — rate() WAS SYSTEMATICALLY BIASED LOW  [FOUND, FIXED ON THIS BRANCH]
+================================================================================
+Not an edge case and not confined to startup. Probe: x rising exactly 1.0/s, sampled every 10s, so
+the true rate is 60 per minute at every point.
+
+    t=10s  rate=10.0     6x low  (window filling)
+    t=20s  rate=20.0
+    t=50s  rate=50.0
+    t=60s  rate=50.0     steady state, 17% low
+    t=90s  rate=50.0     never converges on 60
+
+Two compounding causes:
+  (a) No normalisation at all. D4 correctly rejected the spec's "(last − first)/window" as
+      double-normalising, but overcorrected to raw (newest − oldest). Combined with time windows
+      having no fill requirement, rate then reports the change over however much data happens to
+      exist.
+  (b) The window is open at the old end — pruning drops the sample sitting exactly at now − T — so
+      the retained span is short by one sampling interval even once the window is nominally full.
+
+The reported value is therefore low by (T − Δ)/T where Δ is the sampling interval, for ever. With
+30-second sampling on a "1m" window that is HALF the true rate, silently. This matters more than a
+normal off-by-a-bit because D-W3's steer deliberately sends rate-sensitive users to the time-windowed
+forms, and rate was the one function that is wrong there.
+
+FIX (Evaluator, rate node): normalise by the span actually covered, then scale to T.
+
+    double span = samples.peekLast()[0] - samples.peekFirst()[0];
+    if (span <= 0) return Double.NaN;   // no elapsed time — unknown, not infinite
+    return (samples.peekLast()[1] - samples.peekFirst()[1]) * windowMillis / span;
+
+Reads 60.0 at t=10s and at t=60s — correct while filling AND when full. Three tests pin it:
+rateIsChangePerWindow_normalisedByTheSpanActuallyCovered (the existing test, whose old expectation
+of 30.0 was the bug made visible — its data rises 1.0/s, so 60.0 was always the right answer),
+rateDoesNotUnderstateOnAPartlyCoveredWindow (constant 1.0/s must read 60 at every point, filling or
+full), and rateNeedsElapsedTime (samples sharing a timestamp → NaN).
+
+Spec, graphs.md and CHANGELOG updated in the same commit; the spec records why BOTH earlier formulas
+were wrong so this is not re-litigated later.
+
+================================================================================
+3. F2 — COUNT-WINDOW AGGREGATES HAVE NO STALENESS BOUND  [owner decision, not fixed]
+================================================================================
+This sharpens R1/D1 rather than contradicting it. Probe: mean(if(x > 100, x), 3) where the condition
+holds only for records 0–3.
+
+    rec=3  x=104.0  mean=103.00
+    rec=4  x=  1.0  mean=103.00     condition no longer holds
+    rec=9  x=  1.0  mean=103.00     ... and for every record to the end of the log
+
+The identical TIME-windowed form goes NaN once its window empties (verified side by side). So the two
+families disagree about staleness, and the count family has no bound at all.
+
+D1's justification — an aggregate describes the window, which exists independently of the current
+record — is the reading that makes the composition argument work, and I still endorse it. But the
+docs say the mean "holds between breaches", and what it actually does is hold INDEFINITELY: a point
+plotted hours after the last breach is indistinguishable from live data. These charts become PDF
+evidence, so that is the same honesty concern that decided D-W2 and M29's D-F2.
+
+Options, in the order I would consider them:
+  1. Say it plainly in the docs — "holds indefinitely after the last contributing sample" — and rely
+     on D-W3's existing steer toward time windows. Cheapest, and probably sufficient.
+  2. Give count aggregates a staleness rule (e.g. go NaN after N non-contributing records).
+     Principled, but invents a second policy the spec deliberately does not have.
+  3. Leave as is. Defensible, but the docs currently understate it.
+I did not change this — it is a semantics decision, and the spec is the owner's.
+
+================================================================================
+4. NOTES (no action requested)
+================================================================================
+N1  Times and indices are packed into double[] alongside values. Exact today — epoch millis (~1.8e12)
+    and windows (≤1e6) are far inside 2^53 — but it would degrade silently at nanosecond timestamps.
+    Worth one comment at the declaration; not worth changing.
+N2  The stray-duration error lists `delta` among the functions taking a window, though delta's N is
+    implicit. Cosmetic.
+N3  D7 (bands bridge unknown gaps) and D8 (bands evaluate under LOCF, no resolve knob) are both
+    right. Bridging matches never-fabricate — the alternative claims the condition stopped holding on
+    no evidence — and STRICT would blank the cross-node conditions that are the whole point of bands.
+N4  D9 (no manual authoring UI for guides/bands, verb-first with the UI reading them) is the correct
+    call for this slice. The setGuides/setBands seams are there when a dialog is wanted.
+N5  M28.5 and M28.6 landing in one commit is honestly reported rather than dressed up as two slices.
+    They share the model and persistence plumbing; splitting them would have been theatre.
+
+================================================================================
+5. WHAT I DID NOT VERIFY
+================================================================================
+  - R6, the paint code: guide label placement against the right margin, band alpha legibility in BOTH
+    themes, band labels stacking when several overlap, clipping at the plot edges. Swing is untested
+    by design here; this needs the jar and a person. It is the largest untested surface on the branch.
+  - R7: that GraphPanel.reExtract's generation-counter supersedence still holds now bands ride the
+    same background job. Read the code and saw nothing wrong; did not exercise it under a race.
+  - The human-eyeball list at the end of the report (breach-only gaps, the smoothed lagging line,
+    autocomplete not fighting the new syntax, guides/bands surviving a restart and reaching a PNG or
+    report export).
+
+================================================================================
+6. RECOMMENDATION
+================================================================================
+Merge once F1's fix has been eyeballed (it is on this branch with its tests) and F2 has an owner
+answer — F2 needs at most a documentation sentence and does not block.
+
+The engine work is good. The two things I would call out as better than asked for: deleting
+Expr.eval(Map) so the compiler enforced the migration rather than trusting a grep, and updating the
+share-disclosure row before anyone had to catch it a second time.
