@@ -1,0 +1,146 @@
+REVIEW — feat/b-m20-3-m26-m27
+Date: 2026-08-17 · Reviewer: this session (roles reversed — the other session implemented)
+Tip reviewed: 9d925d4 (last WORK commit 3d1d2e2, as the report states) · Base: main @ 7b0f606
+
+VERDICT: approved. No blockers. One documentation follow-up (F1 below), two notes.
+
+The report is unusually good: it names its own process slip, carries an ASSUMPTIONS section written
+to be attacked, and asks for specific adversarial attention. I took R1–R5 as instructions and went
+after them rather than reading around them. Everything below is something I ran, not something I
+agreed with.
+
+================================================================================
+1. INDEPENDENTLY VERIFIED
+================================================================================
+  mvn -o test .................. 565/565 green (headless-enforced)
+  mkdocs build --strict ........ green
+  anonymisation sweep .......... clean (text)
+  tip .......................... 9d925d4; report's stated work tip 3d1d2e2 is its ancestor
+
+R1  ROUTES DIRECTIONALITY — the fix restores parity with released behaviour, not merely
+    self-consistency. I ran FocusStack.expandInWorld(ROUTES) at the full graph against the
+    RELEASED TopologyFocus.expand(ROUTES) over the demo graphml, for four nodes:
+
+        quotePublisher   released=7  branch=7   IDENTICAL
+        priceListener    released=4  branch=4   IDENTICAL
+        orderTracker     released=4  branch=4   IDENTICAL
+        riskMonitor      released=9  branch=9   IDENTICAL
+
+    None selected the whole graph (20 nodes). So A1's semantics — ancestors ∪ descendants, each
+    closure one-directional, NOT descendants-of-ancestors — match what shipped in v1.2.0. That is
+    the right thing to have checked: a fix that made FocusStack merely self-consistent could have
+    silently changed released behaviour, and the two implementations now agree by measurement.
+
+R2  rowAtOrBefore — 14 adversarial cases, all correct:
+        sparse timed rows with untimed gaps (at between / after last / before all)
+        only the LAST row timed · only the FIRST row timed · no row timed (-1)
+        single row (at equal, at before) · duplicate timestamps (returns the LAST match at 10 → 2,
+        at 15 → 2, at 20 → 4) · empty log (-1) · at = Long.MIN_VALUE · at = Long.MAX_VALUE
+    I also walked the loop for termination: every branch either advances lo or lowers hi (in the
+    lt>at branch, probe ≤ mid ≤ hi so hi strictly decreases), so it cannot spin. The bounded
+    walk-left (`probe > lo`) never skips a timed row inside the current window, because it examines
+    every index in [lo, mid] before concluding the window is untimed. Sound under A2.
+
+R3  ignoredParams / schema completeness — I did the second audit the report asked for, mechanically
+    rather than by eye. Extracted each verb's declared properties from VerbSchemas AT RUNTIME (not
+    by regex — a regex over the source picks up nested object properties and gives a wrong answer),
+    then extracted every top-level params.get/containsKey key from each handler:
+
+        ReadService ......... after at before byteOffset count fields recordIndex  → exact match
+        AggregateService .... filter groupBy limit metric                          → exact match
+        SeriesScan .......... buckets crossings expr filter limit resolve          → exact match
+        ActionExecutor ...... union across its ten verbs                           → exact match
+
+    No handler reads an undeclared top-level param. A4 holds today. Caveat for the record: `goto`
+    passes its key names to a helper as string constants (targetRow(…, "byteOffset", "recordIndex"))
+    rather than reading them inline, so a source-grep audit will not see them — anyone repeating
+    this audit later should know that indirection exists.
+
+R4 / A6  NO DEBOUNCE ON THE GLOBAL WRITE — acceptable, and I can say why rather than guess. I
+    enumerated every site that fires GraphPanel.mutated(): addKeys, addExpr, removeSeriesByLabel,
+    setStyle, pin, setCaption, setNotes, setAxes. All are discrete user or agent actions. pin() is
+    called only from ActionExecutor (an explicit range) and GraphTabs.restore — never from
+    interactive zoom or pan. So there is no drag-driven mutation site and no edit storm to throttle;
+    the write rate is one per deliberate action, which is what saveConfigQuietly already did before
+    this branch. A6's worry is real in principle and inert in this code. If a future slider ever
+    mutates a graph continuously, the listener is indeed the one place to throttle.
+
+R5  NAMED FOCUS TIER PLUMBING — complete, and it applies the B-M20-1 lesson correctly. Focuses are
+    in ProjectProfile.Snapshot, in snapshot(), in restore(), in clearProjectScoped(), AND routed
+    through ConfigStore.save's globalTier override (writeFocuses(p, globalTier == null ?
+    c.namedFocuses : globalTier.namedFocuses())). That last one is the part that would have been
+    easy to miss and is exactly what leaked in M20 — good.
+    The tests say what they claim: I read NamedFocusTest rather than trusting its names.
+    neverLeaksTheApiKey asserts the profile contains "hedge path" AND does not contain "sk-never"
+    AND that focus.count is present — i.e. it proves the focus really was written, so the absent
+    key is not a false pass from an empty file. isProjectScoped_snapshotRestoreAndReplaceCarryIt
+    asserts the CLEAR as well as the restore.
+    The M20 five-category pin is intact (ProjectProfileTest still asserts size()==5).
+
+================================================================================
+2. FOLLOW-UP — the only thing I would ask for
+================================================================================
+F1  THE EXPORT SIDE DOES NOT DISCLOSE THAT FOCUSES RIDE "GRAPHS" (D5's consequence).
+    D5 is a sound decision — focuses are the same kind of named analysis artifact as saved graphs,
+    and widening the pinned five-category set deserves an owner decision rather than a side effect.
+    The IMPORT side is honest: the preview summary appends "· N named focus(es)". The topology
+    guide is honest: "Named focuses are saved with your project and shared like saved graphs."
+    Two places are not:
+      - docs/site/user-guide/sharing-setups.md still describes the category as
+        "| Graphs | named graphs, their series, formulas, resolve policy and pinned windows |"
+        with no mention of focuses. That page is the reference for what each category contains.
+      - The export dialog's checkbox is Category.label, i.e. the bare word "Graphs". A user ticking
+        it is not told focuses go too.
+    Severity: LOW — a focus is node ids plus a rationale string, so this is a disclosure gap, not a
+    leak, and nothing secret can ride the category. But it is precisely the drift class this repo
+    has now caught four times (assistant.md's 12-vs-13 tools, its stale destructive paragraph, the
+    manifest's six verbs, and this), and the established remedy is a test rather than vigilance —
+    ManifestVerbContractTest is the pattern. One line in sharing-setups.md, and optionally
+    GRAPHS("Graphs and named focuses", true), would close it.
+
+================================================================================
+3. NOTES (no action requested)
+================================================================================
+N1  THE PROCESS SLIP IS WELL HANDLED. A commit briefly chained past red guard tests because a grep
+    masked mvn's exit code; it was caught and amended before anything built on it, and the report
+    says so unprompted. That is the right disposition — the tip history is clean and the reviewer
+    was told anyway. Worth noting the mechanism for everyone: `mvn ... | grep ...` returns grep's
+    status, so a red build reads as success. I have made the same mistake in this repo.
+
+N2  D3 IS THE GUARDS WORKING, NOT A WEAKENING. Three drift-guard tests fired when `series` landed
+    (pinned verb set, MCP tool count 13→14, docs-must-name-every-tool) and were updated in the same
+    commit. That is the designed behaviour of those tests and the report is right to name it. I
+    wrote two of them and would rather they keep firing.
+
+N3  A3 (read.fields splits on the LAST dot) is the correct choice and its stated failure mode — a
+    key containing a dot mis-splits silently — is real but not reachable from any log this project
+    has produced. Worth leaving as a documented assumption rather than defending against.
+
+N4  THE VERIFICATION LESSON FROM THE LAST ROUND HELD. My M20 review inherited "verify UI visibility
+    by capture or by human, never by side-channel inference." This branch's human-eyeball list (E1–E6)
+    is properly scoped to what Swing tests cannot reach, and the click-escalation bug the owner found
+    live is now pinned by TopologyClickEscalationTest driving the SAME entry point the mouse uses —
+    which is the correct response to "the pure unit tests could not see this layer."
+
+================================================================================
+4. WHAT I DID NOT VERIFY
+================================================================================
+  - Every item on the report's E1–E6 human-eyeball list. Swing is untested by design here; those
+    need the running jar and a person. The owner found the routes bug that way, which is the
+    argument for doing them.
+  - M26 verbs over a live MCP client (E6). I checked the unit tests and the schema; I did not make
+    a live MCP call.
+  - Behaviour on a merged multi-logger file (A2). Nothing on this branch makes that worse — 'at'
+    inherits an assumption the graphing path already made — but it is now load-bearing for a verb,
+    and A2 is the right place to have said so.
+
+================================================================================
+5. RECOMMENDATION
+================================================================================
+Merge on the owner's word. F1 is a one-line documentation fix that can ride this branch or the
+next housekeeping round (handoff_17_aug_2026_1.txt, which is still unstarted) — it does not need to
+block a merge.
+
+On merge, the tracker discipline items already queued in that brief apply to this work too: M26 and
+M27 are marked ☑ on branch and should be archived with the rest, and spec-agent-efficiency.md /
+spec-topology-focus.md join spec-project-profiles.md in completed/ once shipped.
