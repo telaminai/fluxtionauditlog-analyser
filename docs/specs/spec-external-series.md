@@ -1,6 +1,8 @@
 # External Series — plotting what the outside world did (Design Spec)
 
-Status: PROPOSED v1 · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M29**
+Status: ACCEPTED v2 (review: docs/handoff/review_m29_external_series.txt — adopted with the D-F4
+allowlist narrowed, three contract gaps closed, D-F3's rationale made durable) · Owner: greg.higgins ·
+Last updated: 2026-08-17 · Milestone **M29**
 
 Companion to **[tracker.md](tracker.md)** (M29), the graph engine (`graph/Series`, `graph/SeriesExtractor`)
 and **[spec-expr-conditionals-windows.md](completed/spec-expr-conditionals-windows.md)** (M28), whose window
@@ -42,6 +44,17 @@ One row per sample. Columns are **named explicitly by the caller**; nothing is s
 A blank or non-numeric value cell yields `NaN` → a gap, reusing the existing **NaN is no data point**
 invariant. Rows whose timestamp fails to parse are counted and reported, never silently dropped.
 
+Three cases the contract answers explicitly (review G1–G3), because each is a silent choice otherwise:
+
+- **Row order** — rows may arrive out of time order (merged captures routinely are) and are **sorted on
+  load**; the echo reports `"N rows reordered"` when it happened. Refusing would bounce real files for
+  no safety gain; sorting silently would hide that the source was odd.
+- **Duplicate timestamps** — both points are kept (the audit-log side already permits multiple records
+  per millisecond); nothing is deduplicated.
+- **Size bound** — the loader refuses past **5,000,000 rows**, loudly, naming the bound (the M26
+  cap-honesty rule: bounded input, never a silent subset). The check runs during the streaming pass —
+  a 10 GB file is never buffered to find out it is too big.
+
 ## B — the five decisions (answers proposed, reviewer should challenge)
 
 - **D-F1 — the clock domain is declared, never inferred.** `timeFormat` and `zone` are required inputs; the
@@ -67,20 +80,28 @@ invariant. Rows whose timestamp fails to parse are counted and reported, never s
 - **D-F3 — no foreign references in formulas, in M29.** `Expr` refs stay audit-log-only; a foreign series
   is plotted, not computed against.
   *Rationale:* `spread − venueMid` puts two sampling regimes and two clocks inside one LOCF/STRICT
-  resolution, which is precisely M28's D-W1/D-W3 question and is not answerable before those land.
+  resolution. M28's landing supplies the **vocabulary** for that question, not the **answer** — carry
+  semantics across a clock boundary is a decision nobody has made, and it deserves its own proposal
+  rather than arriving as an accident of namespace admission. (First drafted as "not answerable before
+  M28 lands"; M28 then landed and the deferral still stands — the durable reason is the one above.)
   *Alternative rejected:* admitting foreign keys into the `GraphKey` namespace now. Cheap to type, and it
   would silently define cross-clock carry semantics by accident.
 
-- **D-F4 — reading a path is a new capability, and is confined.** Foreign files may be read only from the
-  active project directory, the configured source roots, or a file the user opened by hand this session.
+- **D-F4 — reading a path is a new capability, and is confined.** Foreign files may be read only from
+  the **active project directory** or a **file the user picked in a chooser this session — the chooser IS
+  the grant**. Source roots are deliberately NOT on the allowlist (review challenge, accepted): a user
+  who adds a source root consented to "read `.java` under here for navigation", and reusing that grant
+  as "an agent may read any file under here as data" is scope creep on directories that routinely hold
+  `.env` files and keys. The FAQ's security answer gains a sentence describing the read rule when M29.3
+  lands, pinned the same way the write rules are (`FaqSecurityContractTest`).
   **Parse diagnostics are bounded and sanitised** — they name the line number and the column, never the
   offending cell contents verbatim beyond a short, escaped excerpt.
   *Rationale:* `ExportGuard` already makes verb *writes* opt-in and directory-confined; reads deserve the
   symmetric treatment now that an MCP-connected agent can drive them. The real leak vector is not the plot
   but the error message: `line 4: expected number, got "ssh-rsa AAAAB3…"` echoes arbitrary file content
   straight into a model's context.
-  *Alternative rejected:* unrestricted paths with a UI confirmation. Confirmation fatigue makes that a
-  yes-button, and it does nothing about the diagnostic echo.
+  *Alternatives rejected:* unrestricted paths with a UI confirmation (confirmation fatigue makes that a
+  yes-button, and it does nothing about the diagnostic echo); source roots on the allowlist, as above.
 
 - **D-F5 — a saved graph stores a path, and degrades out loud.** Paths persist project-relative (`~`-relative
   outside a project, matching profile conventions). Opening a graph whose foreign file is missing reports
@@ -89,6 +110,10 @@ invariant. Rows whose timestamp fails to parse are counted and reported, never s
   *Rationale:* the F1 lesson from M27 — a category that silently carries something the export side does not
   mention. A shared graph that depends on a file the recipient does not have must say so before it is sent,
   not after it is opened.
+  Share-merge edge (review N1): graphs merge **replace-by-name**, so an arriving graph replaces the
+  same-named local one wholesale — external series and all; a label collision between an incoming
+  external series and a local series can therefore only occur *within* the arriving graph, where the
+  add-time rule above already forbids it. M29.4 pins this with a test rather than assuming it.
   *Alternative worth weighing:* **embedding the sample data in the saved graph** rather than a path. That
   makes a shared graph fully reproducible and immune to a moved file — genuinely attractive — at the cost
   of unbounded profile growth and data that silently goes stale against its source. Proposed as a possible
@@ -109,8 +134,12 @@ graph { external: [{ path: "runs/venue-mid.csv", label: "venue mid",
                      value: "mid", offsetMillis: 0 }] }
 ```
 
-The echo follows M26.4's hardening: it names rows loaded, rows skipped with reasons by count, the resolved
-time range, and the applied offset. A path outside the allowlist is refused **loudly**, naming the rule.
+The echo follows M26.4's hardening: it names rows loaded, rows skipped with reasons by count, rows
+reordered, the resolved time range, and the applied offset. A path outside the allowlist is refused
+**loudly**, naming the rule. The **resolved time range in the echo is a designed defence**, not
+decoration (review N2): a `timeFormat` pattern that parses but is wrong (US vs EU day/month) is D-F1's
+silent-skew risk arriving through the declared path — an agent that sees "resolved range:
+2019-03-04..2019-12-01" against last week's log catches its own pattern error in the same reply.
 
 ## D — convergence with M28 P3
 

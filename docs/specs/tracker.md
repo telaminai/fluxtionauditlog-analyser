@@ -219,7 +219,7 @@ not built)._
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
 
-## M29 · External series — ☐ PROPOSED (plot what the outside world did)
+## M29 · External series — ☐ ACCEPTED (plot what the outside world did)
 _Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
 foreign log (FIX to begin with) into a CSV, hands the analyser the file location, and the analyser plots it
 beside the audit-derived series. **The analyser never learns a foreign format** — the agent adapts, the tool
@@ -228,14 +228,20 @@ stays hermetic; spec'd as external timeseries, never as "FIX support". The drawi
 is structurally what a formula series already is — renderer, legend, axes and exports need no change. The
 work is honesty, posed as five decisions for review: the clock domain is **declared, never inferred**
 (D-F1); foreign series are **permanently second-class** — no recordIndex, so no goto/flag/anchors, and
-stamped external in every export (D-F2); **no foreign refs in formulas** until M28's window semantics land
-(D-F3); reads are **confined and their diagnostics sanitised**, the read counterpart to `ExportGuard`
-(D-F4); saved graphs store project-relative paths and **degrade out loud** (D-F5, the F1 lesson)._
-- [M29.1] ☐ **Loader + CSV contract** — explicit time/zone/value columns, no sniffing; bounded sanitised
-  parse diagnostics. Headless and pure; full D-F1/D-F4 tests before any UI.
+stamped external in every export (D-F2); **no foreign refs in formulas** — cross-clock carry semantics
+deserve their own proposal, not namespace accident (D-F3, rationale made durable in review); reads are
+**confined and their diagnostics sanitised**, the read counterpart to `ExportGuard` — allowlist narrowed
+in review to project dir + chooser-as-grant, source roots deliberately excluded, FAQ gains the read rule
+(D-F4); saved graphs store project-relative paths and **degrade out loud** (D-F5, the F1 lesson). Review
+also closed three contract gaps: out-of-order rows sort with an echo, duplicate timestamps both kept,
+5M-row cap refused loudly._
+- [M29.1] ☐ **Loader + CSV contract** — explicit time/zone/value columns, no sniffing; sort-on-load
+  with reorder echo; duplicates kept; 5M-row cap; bounded sanitised parse diagnostics. Headless and
+  pure; full D-F1/D-F4 tests before any UI.
 - [M29.2] ☐ **UI** — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
-- [M29.3] ☐ **`graph {external}` verb** — M26.4-style echo (rows loaded/skipped, range, offset); read
-  confinement wired to the allowlist.
+- [M29.3] ☐ **`graph {external}` verb** — M26.4-style echo (rows loaded/skipped/reordered, range,
+  offset — the range echo is the wrong-pattern defence); read confinement wired to the allowlist
+  (project dir + chooser grants); FAQ security answer gains the read rule, contract-test pinned.
 - [M29.4] ☐ **Persistence + sharing** — project-relative paths, honest degradation, export-side disclosure;
   docs + changelog.
 - [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
