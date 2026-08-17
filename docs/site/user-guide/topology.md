@@ -127,8 +127,25 @@ and what it can affect. The status line names the current width and how many nod
 
 The selection is ringed heavily, its scope ringed lightly, and everything else dimmed — **dimmed, not
 hidden**, because a node you can't see reads as a node that isn't there, and telling those two apart is
-this tab's whole job. Press **F** or **Focus** when you do want the rest gone. **Show all** — or a click
-on empty canvas — clears the lot and returns the plain, fully-lit graph.
+this tab's whole job.
+
+**Focus is a filter — drill in, step out.** Press **F** (or **Focus**) and the selection's scope becomes
+the graph: everything else is gone, and the tab now treats this **context** as the whole world. Click a
+node inside it and the scope cycle runs *within the context*; focus again and you drill a level deeper —
+contexts nest. A breadcrumb on the toolbar shows where you are (`All (62) ▸ hedge path (12) ▸ …`, each
+crumb clickable), **Esc** steps back out one level, and **Show all** returns to the full graph.
+
+Two things stay honest inside a context. **Clicking empty canvas clears the selection and dimming — it
+does not exit the filter** (leaving is always explicit: Esc, a crumb, or Show all). And if the cycle
+you're stepping ran through nodes the context can't show, **the status line says how many ran outside
+this view** — a filtered picture never quietly pretends a propagation was contained.
+
+**Name a view worth keeping.** **Focuses ▾** saves the current context as a **named focus** — a name
+plus a line saying *why the view exists* — and recalls it later from the same menu (or an agent can,
+with `topology {focus: "hedge path"}`; agents can save them too, rationale included). Named focuses are
+saved with your **project** and shared like saved graphs, so "the hedge path" can be a view your whole
+team opens by name. Recalling one against a different build says how many of its nodes resolved instead
+of silently showing a subset.
 
 **Pick nodes by name.** The collapsible **Index** at the bottom-left lists everything in three groups —
 **Nodes**, **Events** and **Services** — built from the *whole* graph, so it's also how you reach

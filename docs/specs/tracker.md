@@ -844,7 +844,7 @@ design, not a port._
   …) and `applyReadingRhythm()` opens line spacing to 0.18. Swing sets lines at the font's own leading,
   which is most of why dense key/value output reads as a block next to the same content on a web page.
 
-## M27 · Topology focus as a filter context — ◧ M27.1–3 ON BRANCH (docs M27.4 remaining)
+## M27 · Topology focus as a filter context — ☑ ON BRANCH feat/b-m20-3-m26-m27 (awaiting review)
 _Design: **[spec-topology-focus.md](spec-topology-focus.md)**. Owner correction to M22's focus model:
 focus is a **filter operation**, not a view toggle — the focused subgraph becomes "the whole graph" for
 every subsequent operation (contexts NEST); node clicks cycle scope within the context; canvas click
@@ -862,7 +862,7 @@ in-flight H4; coordinate._
   pop}` recalls/exits, `{saveFocusAs, rationale}` saves — **agents may create named focuses** (owner
   decision; AV.2 graph precedent: rationale-captioned, replace-by-name, not destructive-hinted, no
   FAQ change). Changelog must call out the gesture change.
-- [M27.4] ☐ **Docs** — exploration section rewritten around the filter-context model; harness
+- [M27.4] ☑ **Docs** — exploration section rewritten around the filter-context model; harness
   screenshots.
 
 ## M26 · Agent-efficiency verbs — ☐ PROPOSED (the analyser computes, the agent concludes)
