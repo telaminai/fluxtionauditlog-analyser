@@ -47,7 +47,9 @@ public final class SettingsShare {
         SOURCE_ROOTS("Source roots", true),
         MAVEN_REPOS("Maven repos", true),
         EVENT_PROCESSORS("Event processors", true),
-        GRAPHS("Graphs", true),
+        // the label must NAME everything the category carries — a user ticking the box is consenting
+        // to what leaves the machine, and named focuses ride this category (M27.3 D5 / review F1)
+        GRAPHS("Graphs and named focuses", true),
         VIEW("View (hidden columns)", true),
         ASSISTANT("Assistant", true),
         LLM("LLM provider/model/base-URL (never the API key)", false);

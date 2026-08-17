@@ -44,6 +44,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   Agents stepping out of contexts use `topology {pop: true | "all"}`.
 
 ### Fixed
+- **The share dialog now discloses that named focuses travel with the Graphs category** — the
+  checkbox reads "Graphs and named focuses" and the sharing guide's category table says what rides
+  along (node sets and the rationale; nothing secret can — the API key is excluded by construction).
+  Found in review: the import preview said it, the export consent didn't.
 - **Graphs made while a project was active were never saved to the project — and could be lost
   entirely.** Graph edits only reached disk at exit, and the project file was always written with a
   stale (empty) graph list; quitting with no log open could even wipe previously saved graphs. Graph
