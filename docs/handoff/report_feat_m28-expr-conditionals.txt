@@ -66,6 +66,23 @@ Docs discipline per slice (the four drift-class lessons): the graphs guide, the 
 formula grammar line, and the changelog moved in the SAME commits as the engine changes.
 
 ================================================================================
+1b. POST-REVIEW: F1 ENDORSED BY THE ORIGINATING SESSION (owner asked for a cross-check)
+================================================================================
+b8e6dee (reviewer's fix, rate() bias) — VERIFIED INDEPENDENTLY AND ENDORSED. I rederived the defect
+  rather than re-reading the argument: my prune condition (`<=`) drops the sample sitting exactly at
+  now − T, so the retained span is T − Δ in steady state and the raw newest − oldest under-reads by
+  (T−Δ)/T for ever — my D4 fixed the spec's double-normalisation by removing normalisation entirely,
+  which was overcorrection. The × T / spanCovered fix reads the true rate filling and full; the old
+  test's 30.0 expectation was indeed the bug made visible. 606 green re-run here.
+  One property worth knowing, not a defect: normalising by covered span makes early/sparse windows an
+  EXTRAPOLATION — two samples 1s apart in a "1m" window scale their local slope ×60. Unbiased where
+  the old formula was biased, but higher variance until the window covers T; the guide's "scaled from
+  however much of the minute the samples actually cover" is the honest disclosure of exactly that.
+F2 (count-window aggregates hold indefinitely after the last contributing sample) — awaiting the
+  owner's pick of the review's three options; recommendation from both sessions is option 1 (say it
+  plainly in the docs; D-W3 already steers rate-sensitive use to time windows).
+
+================================================================================
 2. DECISIONS BEYOND THE SPEC'S LETTER (flag these in review)
 ================================================================================
 D1  NON-CONTRIBUTING RECORDS ON A FULL WINDOW — the spec says an empty/under-filled window is NaN
