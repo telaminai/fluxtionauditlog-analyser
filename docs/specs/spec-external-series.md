@@ -1,8 +1,10 @@
 # External Series — plotting what the outside world did (Design Spec)
 
-Status: ACCEPTED v2 (review: docs/handoff/review_m29_external_series.txt — adopted with the D-F4
-allowlist narrowed, three contract gaps closed, D-F3's rationale made durable) · Owner: greg.higgins ·
-Last updated: 2026-08-17 · Milestone **M29**
+Status: ACCEPTED v3 (v2 adopted docs/handoff/review_m29_external_series.txt — D-F4 allowlist narrowed,
+three contract gaps closed, D-F3's rationale made durable. v3 finishes the D-F4 fix: the project
+directory is a repository root by the same argument that removed source roots, so the read root is the
+**export directory** `ExportGuard` already confines writes to; plus original-line-number diagnostics
+across the G1 sort) · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M29**
 
 Companion to **[tracker.md](tracker.md)** (M29), the graph engine (`graph/Series`, `graph/SeriesExtractor`)
 and **[spec-expr-conditionals-windows.md](completed/spec-expr-conditionals-windows.md)** (M28), whose window
@@ -49,6 +51,9 @@ Three cases the contract answers explicitly (review G1–G3), because each is a 
 - **Row order** — rows may arrive out of time order (merged captures routinely are) and are **sorted on
   load**; the echo reports `"N rows reordered"` when it happened. Refusing would bounce real files for
   no safety gain; sorting silently would hide that the source was odd.
+  Diagnostics cite the **original file line number**, carried through the sort. A message naming the
+  post-sort position would point at the wrong row, and under D-F4 those messages are the one place file
+  content reaches an agent at all — a misleading line number there is worse than none.
 - **Duplicate timestamps** — both points are kept (the audit-log side already permits multiple records
   per millisecond); nothing is deduplicated.
 - **Size bound** — the loader refuses past **5,000,000 rows**, loudly, naming the bound (the M26
@@ -87,13 +92,32 @@ Three cases the contract answers explicitly (review G1–G3), because each is a 
   *Alternative rejected:* admitting foreign keys into the `GraphKey` namespace now. Cheap to type, and it
   would silently define cross-clock carry semantics by accident.
 
-- **D-F4 — reading a path is a new capability, and is confined.** Foreign files may be read only from
-  the **active project directory** or a **file the user picked in a chooser this session — the chooser IS
-  the grant**. Source roots are deliberately NOT on the allowlist (review challenge, accepted): a user
-  who adds a source root consented to "read `.java` under here for navigation", and reusing that grant
-  as "an agent may read any file under here as data" is scope creep on directories that routinely hold
-  `.env` files and keys. The FAQ's security answer gains a sentence describing the read rule when M29.3
-  lands, pinned the same way the write rules are (`FaqSecurityContractTest`).
+- **D-F4 — reading a path is a new capability, and is confined to the directory the user already
+  nominated.** Foreign files may be read only from the **configured export directory** — the one
+  `ExportGuard` already confines verb *writes* to, behind the existing *Settings ▸ Assistant ▸ "Allow
+  file exports"* opt-in — or from a **file the user picked in a chooser this session; the chooser IS the
+  grant**.
+
+  Source roots are NOT on the allowlist (review challenge, accepted): a user who adds a source root
+  consented to "read `.java` under here for navigation", and reusing that grant as "an agent may read
+  any file under here as data" is scope creep on directories that routinely hold `.env` files and keys.
+  **Neither is the active project directory** — that argument condemns it equally. `ProjectProfile`
+  resolves its file as `<projectDir>/.analyser/project.fluxtion-settings` and the profile is *designed to
+  be committed*, so the project directory is normally a repository root: the same `.env` files, the same
+  keys. Allowing it would have removed one repo-shaped grant and kept another on reasoning that rules out
+  both.
+
+  The export directory is the right root because it is the only place the user has explicitly nominated
+  as *"where the analyser may keep files"*, and it makes the symmetry this decision claims actually true —
+  `ExportGuard` confines writes to a **designated single-purpose directory**, not to a repo, so the read
+  counterpart must be a designated directory too. It also answers the workflow question the spec
+  otherwise leaves open — *where does the agent's derived CSV land?* — and yields the invariant:
+
+  > the analyser can only read back what it, or the user, was already permitted to put there.
+
+  No new consent surface, and a user may still drop a file into that directory by hand. Anything else
+  goes through the chooser. The FAQ's security answer gains a sentence describing the read rule when
+  M29.3 lands, pinned the same way the write rules are (`FaqSecurityContractTest`).
   **Parse diagnostics are bounded and sanitised** — they name the line number and the column, never the
   offending cell contents verbatim beyond a short, escaped excerpt.
   *Rationale:* `ExportGuard` already makes verb *writes* opt-in and directory-confined; reads deserve the

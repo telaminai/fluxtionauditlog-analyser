@@ -20,8 +20,9 @@ Status: ☐ not filed · ◐ filed · ☑ landed.
 
 **Raised 2026-08-17 (round 3), NOT yet filed:** UP-FLX-25…27 (§2b) come from specifying M28 (rolling
 windows) and M29 (external series) — the first asks here raised from making the log's own **clock**
-load-bearing, and from putting a second clock beside it. UP-FLX-28…30 (§2c) answer the owner's
-proposal to add backward-compatible GraphML attributes. All six are facts the compiler or runtime
+load-bearing, and from putting a second clock beside it. UP-FLX-28…31 (§2c) answer the owner's
+proposal to add backward-compatible GraphML attributes, and settle which of them belong on **edges**
+rather than vertices. All six are facts the compiler or runtime
 already holds at write time. §2c opens with the **verified** backward-compatibility contract and the
 one constraint it carries; UP-FLX-26 carries a **name collision** with the owner's proposed record
 header `source` that should be settled before either is filed.
@@ -507,10 +508,23 @@ Two **independent** facts, and the distinction matters — they are not the same
   see the effect**"*. So a push edge carries data but **not propagation** — the opposite direction of
   the data-reference case, which carries propagation-relevance but no trigger.
 
-**On "data only nodes":** the edge attribute is the primitive and the node flag is derivable from it —
-a node whose every outgoing edge is `refKind="data"` (or `propagates="false"`) is data-only. Asking for
-the edge attribute alone keeps the vocabulary smaller and cannot disagree with itself, which a
-separately-emitted node flag eventually would. Recommend edges only.
+**Verified against the runtime source, 2026-08-17** (`fluxtion-runtime/.../runtime/annotations/`):
+`@NoPropagateFunction` — *"Marks an exported function as non propagating"* — already exists at method
+level. So non-propagation is a fact the compiler **holds today** for exported functions; it simply has
+no GraphML carrier. This ask is "emit what you know", not "invent a concept".
+
+**On "data only nodes" — the name is already taken, and means something else.** `@FluxtionDataOnly`
+exists, and it is a **lint-suppression marker**: *"The annotated type is intentionally not a Fluxtion
+event-handling node — it is a data class, DTO, event type, helper or launcher"*, and explicitly *"has
+no effect on Fluxtion source-generation, dispatch or runtime behaviour"*. It marks classes that are
+**not in the graph at all** — the opposite of a graph vertex that carries data without triggering.
+Emitting a GraphML node flag called "data only" would therefore collide head-on with an existing
+annotation of the same name and the opposite meaning.
+
+Independently of the name: the edge attribute is the primitive and a node classification is derivable
+from it — a node whose every outgoing edge is `refKind="data"` is data-only. Deriving it cannot
+disagree with the edges, which a separately-emitted node flag eventually would. **Recommend edges
+only**, and if a node-level convenience is ever wanted, do not call it data-only.
 
 **Cost to us if unfixed** the analyser draws every edge identically, so it will present a push target
 as though it participates in propagation — a *wrong* picture, not merely an imprecise one, in exactly
@@ -546,6 +560,61 @@ Ask: graph-level `<data>` for a build fingerprint, generator version and build t
 
 **Cost to us if unfixed** the analyser answers the question by counting unmatched instance ids — a
 heuristic that cannot distinguish "wrong build" from "this cycle simply didn't touch those nodes".
+
+### UP-FLX-31 ☐ Filtered handler edges — the filter value and the match strategy
+
+**Target** `fluxtion` (compiler, graphml emission) · **Priority** high
+
+**Verified against the runtime source, 2026-08-17.** `annotations/FilterType.java` is documented as the
+*"Filter match strategy for an `@OnEventHandler`"* with two values: **`matched`** — *"Only matching
+filters allow event propagation"* — and **`defaultCase`** — *"Invoked when no filter match is found,
+acts like a default branch in a case statement."* `annotations/FilterId.java` *"Marks a field as a
+default filter for all event handlers in that class"* (field-level, so a per-class default).
+
+So an event→handler edge is frequently **conditional**, and some edges are *default branches* that fire
+only when every other edge did not. The GraphML carries none of this, and the analyser draws every such
+edge as though it always fires.
+
+Ask: on the edge, the filter value and its `FilterType`; on the node, the class-level `@FilterId`
+default when one is declared.
+
+**Cost to us if unfixed** the topology cannot answer *"why didn't this handler run?"* — the commonest
+question after *"why did it?"* — for any filtered graph. Worse, the answer it currently implies is
+wrong: an unconditional arrow that did not fire reads as a defect in the processor rather than a filter
+working correctly. A `defaultCase` edge is misleading in the opposite direction, appearing to be an
+ordinary path when it is a fallback.
+
+*Process note: this ask was drafted, then dropped, on 2026-08-17 because the framework reference
+(`docs/claude.txt`) does not mention filters and this file does not accept asks built on inference. That
+was the wrong call — absence from a curated LLM-facing reference is not absence from the framework, and
+the rule forbids **inferring**, not **checking**. Reinstated after reading the annotation sources
+directly, which is what should have happened first.*
+
+### Where these properties belong — edges vs vertices
+
+Owner question, 2026-08-17: *"a vertex may have a few properties: Filter, Reference, Propagation,
+Push. Maybe more?"* Three of those four are **edge** facts, and putting them on the vertex would lose
+information:
+
+| fact | carrier | why |
+|---|---|---|
+| **Reference** (trigger \| data) | **edge** | the same node is commonly triggered by one parent and merely read by another — one value per vertex cannot express that |
+| **Propagation** (does the effect continue downstream) | **edge** | `@NoPropagateFunction` is per exported *method*; `FilterType.matched` gates propagation per handler |
+| **Push** (data flows against the dependency arrow) | **edge** | a property of the relationship, not of either end |
+| **Filter** value + match strategy | **edge** | one handler node may take event `E` under several filter values via different edges |
+| **Filter** *default* (`@FilterId`) | **vertex** | genuinely class-level — the default for all handlers in that class |
+
+`Push` and `Propagation` are related but not the same axis: a push edge is non-propagating **and**
+reverses the data direction, whereas `@NoPropagateFunction` is non-propagating without reversing
+anything. Modelling them as `propagates` plus a direction flag keeps them orthogonal; collapsing them
+into one attribute would make "push" unrecoverable. *(Worth the owner confirming how a `.push()` target
+is emitted today — whether it appears as an edge at all is not something this repo can verify.)*
+
+The genuinely **vertex**-shaped properties are a different list: `kind` (retiring the style-string
+sniffing), `framework` (UP-FLX-29), declared lifecycle callbacks (UP-FLX-14 — note `@AfterTrigger`
+exists alongside `@AfterEvent`, `@Initialise`, `@Start`), the `@FilterId` default, the exported
+interface and its method signatures with per-method `noPropagate`, the dirty contract (UP-FLX-22), and
+optionally source location and dispatch-order index.
 
 ### Also worth considering (not yet asks — no measured need in this repo)
 
