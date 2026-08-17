@@ -247,6 +247,45 @@ also closed three contract gaps: out-of-order rows sort with an echo, duplicate 
 - [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
   for fully-portable sharing (D-F5's alternative).
 
+## M30 · Rolled log sets — ☐ PROPOSED (one session, many files)
+_Design: **[spec-rolled-logs.md](spec-rolled-logs.md)**. Owner ask: open a set of same-rooted rolled
+files (date-time or index suffixes) as ONE log, with time validation catching sets that are not
+correctly ordered. Principle: **names discover; content orders; violations are reported, never
+repaired** — suffix conventions are ambiguous (logrotate's `.1` is newest, a writer's `.1` is oldest),
+so file order comes from each file's first `logTime`, and disordered records are surfaced as a
+`TimeOrderReport` (UI banner, `open` echo, `context`), never silently re-sorted. `recordIndex` stays
+the global gap-free anchor; byte offsets become (file, offset) pairs so the copy-prompt's
+grep-the-file promise stays true. Opening a set is offered, never assumed (M20.5's offer-never-act);
+memory scales per file (mixed Heap/Mapped backends under one index). Monotonicity checking also lands
+for single files — A2 (time order is load-bearing for `at`/windows/buckets) finally checked, with
+loud degradation notes instead of wrong answers._
+- [M30.1] ☐ **`RollSetResolver`** (pure) — suffix grammars, head/tail time probe, content ordering,
+  `TimeOrderReport`; both logrotate-convention fixtures pass without configuration.
+- [M30.2] ☐ **Composite store** — per-file backends under one global index, per-record file id,
+  (file, offset) anchors through read/goto/crossings/context/copy-prompt.
+- [M30.3] ☐ **Validation surfaced** — banner + go-to-violation, verb echoes, single-file
+  monotonicity check, D-R4 caveats on time-anchored features.
+- [M30.4] ☐ **Offer + `open {logs}`** — offer-never-act UI, verb + schema, docs + changelog.
+
+## M31 · Log-source plugins — ☐ PROPOSED (other containers, same records)
+_Design: **[spec-log-source-plugins.md](spec-log-source-plugins.md)**. Owner ask: parquet / Chronicle /
+DB audit sources as **plugins, not a requirement**. The core understands ONE thing — the Fluxtion audit
+record — and containers adapt to it: a tiny reader SPI (identity, `canOpen`, record stream in container
+order, capability flags) with the CORE building index/store above it; every record carries a canonical
+text rendering so the text-shaped surfaces keep working; plugins are jars the user explicitly installs
+(isolated classloaders, arbitrary-code warning named in FAQ + Settings, nothing bundled, no network).
+The fatjar stays FlatLaf-only — no format dependency ever enters this pom; the shipped text parser
+refactors to BE the built-in reader (the seam proven on the format that matters). Capabilities degrade
+loudly (a parquet file can't follow; a DB row has no byte offset — recordIndex anchors, per M30 D-R2).
+Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise them._
+- [M31.1] ☐ **The SPI + text parser behind it** — `analyser-reader-spi` artifact; suite green
+  unchanged (M28.2-shaped inversion).
+- [M31.2] ☐ **Registry + isolation + Settings ▸ Plugins** — trust boundary in FAQ, contract-test
+  pinned.
+- [M31.3] ☐ **Capability wiring + `open` integration** — loud degradation, `format` override,
+  refusal names installed plugins.
+- [M31.4] ☐ **Out-of-tree example reader + plugin-author guide** (playground repo) + changelog.
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
