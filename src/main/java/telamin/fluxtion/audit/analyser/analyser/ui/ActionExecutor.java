@@ -364,7 +364,9 @@ public final class ActionExecutor implements RenderExecutor {
 
     private ActionResult doGoto(LogStore s, Map<String, Object> p) {
         int row = targetRow(s.index(), p, "byteOffset", "recordIndex");
-        if (row < 0) return ActionResult.error("goto needs a byteOffset or recordIndex");
+        if (row < 0) return ActionResult.error(p.get("at") instanceof Number
+                ? "'at' cannot resolve — no record carries a log time"
+                : "goto needs a byteOffset, recordIndex or at (epoch millis)");
         boolean reveal = Boolean.TRUE.equals(p.get("reveal"));
         return onEdt(() -> {
             FilterState f = filter.get();
@@ -461,10 +463,18 @@ public final class ActionExecutor implements RenderExecutor {
 
     // ---- offset resolution (pure; unit-tested by GotoResolveTest) --------------------------------
 
-    /** Pick a target model row from {@code byteOffset} (floor) or {@code recordIndex} (clamp); -1 if neither. */
+    /**
+     * Pick a target model row from {@code byteOffset} (floor), {@code recordIndex} (clamp) or {@code at}
+     * (epoch millis, at-or-before — M26.2 time anchors); -1 if none given or {@code at} can't resolve
+     * (no record carries a log time).
+     */
     static int targetRow(LogIndex idx, Map<String, Object> p, String offsetKey, String indexKey) {
         if (p.get(offsetKey) instanceof Number n) return floorRow(idx, n.longValue());
         if (p.get(indexKey) instanceof Number n) return clampRow(idx, n.intValue());
+        if (p.get("at") instanceof Number n) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ReadService
+                    .rowAtOrBefore(idx.size(), idx::logTime, n.longValue());
+        }
         return -1;
     }
 

@@ -97,6 +97,54 @@ class ReadServiceTest {
         assertTrue(out.containsKey("note"));
     }
 
+    // ---- time anchors (M26.2) ----------------------------------------------------------------
+
+    private static IntFunction<Long> times(Long... t) {
+        return i -> t[i];
+    }
+
+    @Test
+    void rowAtOrBeforeFindsTheLatestRecordNotAfterTheMoment() {
+        IntFunction<Long> t = times(100L, 200L, 300L, 400L);
+        assertEquals(2, ReadService.rowAtOrBefore(4, t, 350), "between two records → the earlier one");
+        assertEquals(1, ReadService.rowAtOrBefore(4, t, 200), "exact match");
+        assertEquals(3, ReadService.rowAtOrBefore(4, t, 9_999), "after the last → the last");
+    }
+
+    @Test
+    void rowAtOrBeforeClampsToTheFirstTimedRecord() {
+        assertEquals(0, ReadService.rowAtOrBefore(3, times(100L, 200L, 300L), 5));
+        assertEquals(1, ReadService.rowAtOrBefore(3, times(null, 200L, 300L), 5), "untimed head is skipped");
+    }
+
+    @Test
+    void rowAtOrBeforeSkipsUntimedRecords() {
+        IntFunction<Long> t = times(100L, null, null, 400L);
+        assertEquals(0, ReadService.rowAtOrBefore(4, t, 350), "untimed rows can never anchor");
+        assertEquals(3, ReadService.rowAtOrBefore(4, t, 400));
+    }
+
+    @Test
+    void rowAtOrBeforeIsMinusOneWhenNothingIsTimed() {
+        assertEquals(-1, ReadService.rowAtOrBefore(3, times(null, null, null), 100));
+    }
+
+    @Test
+    void atAnchorsAReadByTime() throws IOException {
+        HeapLogStore s = store(40);   // fixture: logTime == recordIndex
+        Map<String, Object> out = ReadService.read(s.index().snapshot(), Map.of("at", 20, "count", 3), s::rawText);
+        assertEquals(20, out.get("anchor"));
+        assertEquals(3, records(out).size());
+    }
+
+    @Test
+    void atBeforeTheFirstTimedRecordAnchorsToItAndSaysSo() throws IOException {
+        HeapLogStore s = store(10);
+        Map<String, Object> out = ReadService.read(s.index().snapshot(), Map.of("at", -50, "count", 1), s::rawText);
+        assertEquals(0, out.get("anchor"));
+        assertTrue(((String) out.get("note")).contains("after 'at'"), "the clamp is declared, not silent");
+    }
+
     @Test
     void missingAnchorThrows() throws IOException {
         HeapLogStore s = store(5);

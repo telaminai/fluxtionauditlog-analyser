@@ -875,7 +875,7 @@ arithmetic; one scan should answer it). All read-only — no change to the FAQ s
 - [M26.1] ☑ **`series` scan** *(shipped on `feat/b-m20-3-m26-m27`)* — stats + threshold crossings over any key or formula (STRICT/LOCF),
   filter-scoped, edge-events with a hard cap and an explicit `truncated` flag, off the EDT. Reuses
   `SeriesExtractor`/`Expr`; auto-publishes over MCP via `VerbSchemas`.
-- [M26.2] ☐ **Time anchors** — `read {at}` / `goto {at}` resolve epoch millis to the record
+- [M26.2] ☑ **Time anchors** *(shipped on `feat/b-m20-3-m26-m27`)* — `read {at}` / `goto {at}` resolve epoch millis to the record
   at-or-before (index binary search); kills records-per-minute estimation arithmetic.
 - [M26.3] ☐ **`read.fields` projection** — compact `{recordIndex, logTime, values{}}` rows for named
   `instanceId.key`s (wildcards ok; last-occurrence semantics); raw text stays the default.

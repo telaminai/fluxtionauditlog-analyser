@@ -22,6 +22,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   for a follow-up `read` — instead of an agent paging raw text to do arithmetic. Crossing lists are
   capped with an explicit `truncated` flag, and `filter.text` is refused loudly rather than running an
   index-speed verb at scan speed.
+- **Time anchors on `read` and `goto`** — pass `at` (epoch millis) and the analyser resolves it to the
+  record at-or-before that moment, so "show me 09:14:03" is one call instead of estimating record
+  indexes from record rates. Clamping to the first timed record (when `at` predates the log) is
+  declared in the reply, never silent.
 - **Named focuses** — save the current topology context by name with a rationale (**Focuses ▾** on the
   toolbar, or `topology {saveFocusAs, rationale}` from an agent), recall it by name (picker or
   `topology {focus: "name"}`), delete from the picker. Saved with the project (never the API key),

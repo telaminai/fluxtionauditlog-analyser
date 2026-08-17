@@ -35,13 +35,20 @@ public final class ReadService {
 
         Integer recordIndex = asInt(params.get("recordIndex"));
         Long byteOffset = asLong(params.get("byteOffset"));
+        Long at = asLong(params.get("at"));
         int anchor;
+        String anchorNote = null;
         if (recordIndex != null) {
             anchor = clamp(recordIndex, 0, size - 1);
         } else if (byteOffset != null) {
             anchor = snap.rowForOffset(byteOffset);
+        } else if (at != null) {
+            anchor = rowAtOrBefore(size, snap::logTime, at);
+            if (anchor < 0) throw new IllegalArgumentException("no record carries a log time — 'at' cannot resolve");
+            Long lt = snap.logTime(anchor);
+            if (lt != null && lt > at) anchorNote = "every timed record is after 'at' — anchored to the first";
         } else {
-            throw new IllegalArgumentException("read needs a recordIndex or byteOffset anchor");
+            throw new IllegalArgumentException("read needs a recordIndex, byteOffset or at (epoch millis) anchor");
         }
 
         Integer count = asInt(params.get("count"));
@@ -85,7 +92,43 @@ public final class ReadService {
         out.put("to", end);
         out.put("records", records);
         if (capped) out.put("note", "capped at " + MAX_COUNT + " records per read; page with recordIndex");
+        else if (anchorNote != null) out.put("note", anchorNote);
         return out;
+    }
+
+    /**
+     * The latest row whose log time is <b>at-or-before</b> {@code at} (M26.2 time anchors) — so an agent
+     * translates "what was happening at 09:14:03.250" into a record in one call instead of estimating
+     * records-per-minute from a sample. Untimed rows (null log time) are skipped during comparison; if
+     * every timed row is after {@code at}, the <b>first timed</b> row is returned (clamp, like the byte
+     * anchors — callers note it). Returns -1 only when no row carries a time at all. Binary search —
+     * log times are non-decreasing in file order for a single-logger file, the shipped read model.
+     */
+    public static int rowAtOrBefore(int size, IntFunction<Long> logTime, long at) {
+        int lo = 0, hi = size - 1, ans = -1, firstTimed = -1;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            // an untimed row can't be compared — walk left to the nearest timed row in [lo, mid]
+            int probe = mid;
+            Long lt = logTime.apply(probe);
+            while (lt == null && probe > lo) lt = logTime.apply(--probe);
+            if (lt == null) {          // [lo, mid] is entirely untimed → the answer lies right of mid
+                lo = mid + 1;
+                continue;
+            }
+            if (firstTimed < 0 || probe < firstTimed) firstTimed = probe;
+            if (lt <= at) {
+                ans = probe;
+                lo = mid + 1;
+            } else {
+                hi = probe - 1;
+            }
+        }
+        if (ans >= 0) return ans;
+        if (firstTimed >= 0) return firstTimed;
+        // never met a timed row on the search path — scan for one (rare: mostly-untimed file)
+        for (int i = 0; i < size; i++) if (logTime.apply(i) != null) return i;
+        return -1;
     }
 
     private static int clamp(int v, int lo, int hi) {

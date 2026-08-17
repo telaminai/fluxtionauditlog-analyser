@@ -48,10 +48,12 @@ public final class VerbSchemas {
                 props(
                         p("recordIndex", integer(), "anchor by record index (0-based)"),
                         p("byteOffset", integer(), "anchor by byte offset (resolves to the containing record)"),
+                        p("at", integer(), "anchor by time (epoch millis) — resolves to the record "
+                                + "at-or-before that moment; no need to estimate record indexes from times"),
                         p("count", integer(), "total records, centred on the anchor (default " + ReadService.DEFAULT_COUNT + ")"),
                         p("before", integer(), "records before the anchor (overrides count)"),
                         p("after", integer(), "records after the anchor (overrides count)")),
-                List.of() /* one of recordIndex|byteOffset — enforced at runtime */));
+                List.of() /* one of recordIndex|byteOffset|at — enforced at runtime */));
 
         s.put("filter", schema("Narrow every view. A missing field is unchanged; null clears it.",
                 props(
@@ -86,6 +88,7 @@ public final class VerbSchemas {
                 props(
                         p("byteOffset", integer(), "anchor by byte offset"),
                         p("recordIndex", integer(), "anchor by record index"),
+                        p("at", integer(), "anchor by time (epoch millis) — the record at-or-before that moment"),
                         p("reveal", bool(), "if the record is filtered out, relax the filter to show it")),
                 List.of()));
 

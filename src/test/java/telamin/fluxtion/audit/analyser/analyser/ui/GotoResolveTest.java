@@ -37,6 +37,18 @@ class GotoResolveTest {
     }
 
     @Test
+    void timeAnchorResolvesThroughTargetRow() {
+        // find a timed record and target its exact moment (M26.2)
+        int timed = -1;
+        for (int r = 0; r < idx.size(); r++) if (idx.logTime(r) != null) { timed = r; break; }
+        assertTrue(timed >= 0, "the sample fixture carries log times");
+        int row = ActionExecutor.targetRow(idx, java.util.Map.of("at", idx.logTime(timed)),
+                "byteOffset", "recordIndex");
+        assertTrue(row >= 0 && idx.logTime(row) != null && idx.logTime(row) <= idx.logTime(timed),
+                "'at' resolves to a timed record at-or-before the moment");
+    }
+
+    @Test
     void recordIndexClamps() {
         assertEquals(0, ActionExecutor.clampRow(idx, -3));
         assertEquals(idx.size() - 1, ActionExecutor.clampRow(idx, 9999));
