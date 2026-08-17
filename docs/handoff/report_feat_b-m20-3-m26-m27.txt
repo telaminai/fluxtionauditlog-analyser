@@ -1,0 +1,145 @@
+REPORT — branch feat/b-m20-3-m26-m27
+Date: 2026-08-17 · Branch tip: aa0e76f · Base: main @ 7b0f606
+Prompted by: owner mandate in conversation (no written brief): "start B-M20-3 and then move onto
+M27" · "we are going to keep all your dev work for B-M20-3, M27 and M26 on the same branch".
+Roles are reversed this round: this session implemented; the reviewing LLM session reviews.
+
+STATUS: complete, NOT merged — merge is the reviewing session's call.
+  9 commits · 33 files · +1870/-89 · 556 tests green · mkdocs --strict green · sweep clean
+  Specs implemented: B-M20-3 (bug, diagnosed with the owner live), docs/specs/spec-topology-focus.md
+  (M27), docs/specs/spec-agent-efficiency.md (M26). Tracker: M27 and M26 marked ☑ ON BRANCH.
+
+================================================================================
+1. WHAT SHIPPED
+================================================================================
+b40f207  B-M20-3 — graph edits persist as they happen, to the active project tier
+  Root cause (diagnosed against the owner's live setup, four production graphs lost):
+  config.savedGraphs was only synced from the open tabs at export/exit; ProjectSession.flush()
+  therefore always wrote a STALE (usually empty) graph list to the profile, while the exit path
+  wrote the real graphs to the GLOBAL tier regardless of the active project; quitting with no log
+  open could wipe previously saved graphs outright.
+  Fix is layered so a stale flush is impossible by construction, not just unlikely:
+    - GraphPanel fires an onMutation callback at every mutating site (addKeys, addExpr, remove,
+      style, pin/unpin, caption, notes, axes);
+    - GraphTabs aggregates panel mutations + add/rename/close into one change listener, SUPPRESSED
+      during restore (restoring a profile must not echo back as an edit);
+    - MainFrame: change listener -> saveConfigQuietly() + project.requestSave() (timeliness);
+      ProjectSession gains a preSave hook that re-syncs tabs -> config before EVERY profile write
+      (safety net); the quit sequence now syncs under guard and flushes the project session.
+  GraphTierPersistenceTest (3 tests): a dispatcher-created graph reaches the ACTIVE PROFILE file
+  and not the global tier; a stale config is re-synced by preSave; restore does not mark dirty.
+
+b45635a  M27.1 — FocusStack (pure, headless)
+  Focus modelled as a NESTING FILTER CONTEXT, not a toggle (the owner's correction, verbatim in
+  the spec): push intersects with the current world and refuses an empty result; expandInWorld
+  recomputes neighbours/routes walking ONLY in-world edges — pruning a full-graph closure would
+  keep leave-and-reenter paths that do not exist inside the context (test pins this: in {a,c,e}
+  with full-graph edges a->b->c, routes of a = {a} alone); outsideWorld() supports boundary
+  honesty; breadcrumb renders "All (62) ▸ label (12)". 9 tests.
+
+af6746c  M27.2 — the UI rewired to the filter model
+  Focus button pushes (no longer toggles); F pushes, Esc pops one level; Show all = pop to full +
+  clear highlights. THE TWO GESTURE CHANGES THE OWNER CALLED OUT: clicking a node cycles selection
+  WITHIN the context; clicking empty canvas clears selection/dimming only — it never exits the
+  focus. Clickable crumb bar (each crumb pops to its level). Boundary honesty: if a shown cycle
+  ran through nodes outside the current context, the status line says "N node(s) of this cycle ran
+  OUTSIDE this view" instead of cropping silently. cursorState() gains context/contextDepth.
+
+2b7c5f6  M27.3 — named focuses (owner: "update the spec to allow agents to create a named focus")
+  FocusSpec {name, rationale, nodeIds} persisted via ConfigStore; PROJECT-SCOPED (rides the
+  GRAPHS category through ProjectProfile snapshot/restore and SettingsShare export/preview/apply,
+  replace-by-name, API key never leaks — pinned by test). UI: Focuses ▾ toolbar button (save-as
+  dialog, recall with rationale tooltips, delete submenu). Verb: topology {saveFocusAs, rationale}
+  (refused at full graph — "the full graph is not a focus"), {focus: "name"} recalls (partial
+  resolution is declared via recallNote, never silently dropped), {pop: true|"all"} steps out.
+  NamedFocusTest (4 tests).
+
+befe8d5  M27.4 — docs: topology guide teaches drill-in/step-out, breadcrumb, boundary honesty,
+  named focuses. mkdocs --strict green.
+
+a395f88  M26.1 — `series` verb (spec V1: the analyser computes, the agent concludes)
+  Stats (min/max/mean with timestamps, first/last) + threshold-ENTRY edge events, each carrying
+  recordIndex/byteOffset/logTime anchors so the follow-up read is targeted, never estimated.
+  Optional minute/hour buckets. STRICT/LOCF resolution SHARED with graphing (SeriesExtractor.
+  lastMatching widened to package-private — one matching rule, so a scanned value can never
+  disagree with a plotted one). Crossing lists capped (MAX_CROSSINGS=200, 'limit' narrows) with
+  an explicit truncated flag + note. filter.text REFUSED loudly (an index-speed verb must not run
+  at raw-scan speed). Runs off-EDT; read-only (readOnlyHint over MCP; DESTRUCTIVE set untouched,
+  FaqSecurityContractTest untouched — the spec's own guardrail). 6 tests.
+
+0cbf1f4  M26.2 — time anchors: read {at} / goto {at} (spec V2)
+  One shared resolver, ReadService.rowAtOrBefore: binary search over non-decreasing log times,
+  untimed rows skipped during comparison, at-before-the-first-timed-record clamps to the first
+  timed record AND SAYS SO in the reply; -1 only when no record carries a time. Kills the
+  records-per-minute estimation arithmetic from the motivating production session. 7 tests.
+
+cfb64fc  M26.3 — read.fields projection (spec V3)
+  fields: ["instanceId.key" | "instanceId.*"] -> compact {recordIndex, byteOffset, logTime, event,
+  values{}} rows instead of ~2KB raw text per record. Last-occurrence-per-record pinned by a test
+  whose record logs the same instance twice — identical rule to graphing. Requested fields that
+  matched nothing in the returned window are NAMED in the reply. Raw text stays the default;
+  anchors survive projection (spec guardrail). 4 tests.
+
+aa0e76f  M26.4 — echo hardening (spec V4)
+  (a) ActionDispatcher appends ignoredParams[] for any parameter the verb's schema does not
+  declare — implemented at the dispatcher so it covers every transport (in-process, REST, MCP)
+  and piggybacks on VerbSchemas as the single source of truth. The audit this forced found ONE
+  real schema gap: aggregate accepted 'limit' undeclared — now in the manifest (behaviour
+  unchanged; the schema just tells the truth now). Every other verb's accepted params were checked
+  against its schema by hand; they match.
+  (b) graph echoes warnings[] when rightAxis or a note's series names a label not on the graph
+  AFTER this call's additions (GraphPanel.plottedLabels = raw-key displays + formula labels).
+  Still applied — the series may arrive next call: warn, don't reject, per spec.
+  (c) The hand-written in-process prompt and the assistant guide caught up on series/at/fields
+  (the REST manifest and MCP tool list derive from VerbSchemas and needed nothing).
+  6 tests.
+
+================================================================================
+2. DECISIONS / DEVIATIONS (all within spec latitude; none silent)
+================================================================================
+D1  Spec V1 offered "verb or aggregate extension — implementer's call". Chose a separate `series`
+    verb: crossings/buckets/resolve would have tripled aggregate's schema, and the READ_ONLY /
+    tool-annotation story is cleaner with one verb = one tool.
+D2  ignoredParams echoes UNKNOWN keys only (schema-diff). A known key that a particular call
+    ignores (e.g. rationale without saveFocusAs) is NOT detected — that is per-verb logic, not
+    "cheap" per the spec's "where cheap" qualifier. Recorded as the honest boundary of the rule.
+D3  The three drift-guard tests (VerbSchemasTest pinned verb set, McpToolsTest count 13->14,
+    ManifestVerbContractTest docs-must-name-every-tool) fired when `series` landed and were
+    updated in the SAME commit — that is those guards working as designed, not a test weakening.
+    McpToolsTest also gains a readOnlyHint assertion for series.
+M26.1 process slip, self-caught: the M26.1 commit was chained on a grep that masked mvn's exit
+    code, so it briefly existed with those three guards red; fixed and AMENDED before anything
+    else happened on the branch. The tip history contains no red commit, but the reviewer should
+    know the sequence. (Also fixed en route: an illegal IllegalArgumentException|RuntimeException
+    multi-catch in the series dispatch — collapsed to RuntimeException.)
+D4  A stale "six log verbs" count in the assistant guide's setup note was corrected to "the log
+    verbs" while touching adjacent lines (it predates this branch).
+
+================================================================================
+3. HUMAN-EYEBALL LIST (Swing is untested by design — verify on the running jar)
+================================================================================
+Build: mvn package && java -jar target/fluxtion-auditlog-analyser-*.jar src/test/resources/sample.yml
+(load a graphml for topology items). The jar builds; all items below are visual.
+  E1  Focus gestures: select nodes -> Focus (or F) filters to context; click nodes INSIDE it
+      (selection cycles, never exits); click empty canvas (dimming clears, context REMAINS);
+      Esc pops one level; nested push; Show all returns to full.
+  E2  Crumb bar: "All (N) ▸ label (M)" renders, crumbs clickable, updates on push/pop.
+  E3  Boundary note when a shown cycle ran through out-of-context nodes.
+  E4  Focuses ▾ picker: save-as dialog (name + rationale), rationale tooltips on recall items,
+      delete submenu; recall from a DIFFERENT loaded topology reports partial resolution.
+  E5  B-M20-3 end-to-end with a real project: create/edit/close graphs with a project active,
+      quit, reopen -> graphs in <project>/.analyser/project.fluxtion-settings, NOT in the global
+      file; global settings untouched (the owner's original repro).
+  E6  Graph annotation warnings visible over MCP: a graph call with rightAxis naming a missing
+      series returns warnings[] (checked by unit test; worth one live MCP call).
+
+================================================================================
+4. SUGGESTED REVIEW FOCUS
+================================================================================
+  R1  FocusStackTest.routesConfinement — the in-world-edges recomputation is the load-bearing
+      semantic decision of M27; check the test pins what the spec means.
+  R2  ReadService.rowAtOrBefore null-handling (walk-left-over-untimed inside binary search) —
+      the trickiest code on the branch; adversarial cases welcome.
+  R3  The dispatcher-level ignoredParams: satisfy yourself no verb accepts an UNDECLARED param
+      (I audited by grep + read; a second pair of eyes is the point of this round).
+  R4  MainFrame quit sequence ordering (sync -> requestSave -> flush) vs. the no-log-open case.
