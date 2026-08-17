@@ -287,7 +287,7 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   topologies (elision/clustering) — defer until a real graph hurts.
 
 ## M20 · Project profiles — ☑ SHIPPED (2026-08-17)
-_Brief: `docs/handoff/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles.md` (O1–O4 resolved)._
+_Brief: `docs/handoff/completed/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles.md` (O1–O4 resolved)._
 - [M20.4] ☑ **Docs — "Working across projects"**, plus the harness work the screenshots needed.
   New user-guide page (nav + a cross-reference from Sharing setups, which now explains merge-vs-open).
   Says *why* a committed profile is safe: the key is not filtered out, it was **never in the project

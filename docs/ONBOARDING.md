@@ -131,6 +131,8 @@ Work delegated to another session (human or LLM, any machine) travels through th
   final change.
 
 The paired brief/report trail makes every delegated work block auditable from the repo itself.
+When a cycle is fully done (merged/shipped, review answered), its brief/report/review files move to
+`docs/handoff/completed/` — the live directory holds only in-flight correspondence.
 
 ## Tracker discipline
 

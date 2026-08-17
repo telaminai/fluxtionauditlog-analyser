@@ -27,7 +27,7 @@ architecture, conventions). This file is only the rules that must never be skipp
    (MCP, admin REST, …) **or Fluxtion's own execution semantics**, **read the live source of truth
    first** — never infer it.
    - Protocols: MCP shipped a breaking revision within months of our spec being written, caught only
-     this way (docs/handoff/handoff_15_aug_2026_1_report.txt §3).
+     this way (docs/handoff/completed/handoff_15_aug_2026_1_report.txt §3).
    - Fluxtion: this app's model of dispatch, audit logging and propagation is only correct if the
      framework's is. Authoritative: **[`docs/claude.txt`](https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt)**
      (framework reference), then the [golden path](https://fluxtion-playground.dev/fluxtion-golden-path.md).
