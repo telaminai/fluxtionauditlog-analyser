@@ -36,6 +36,25 @@ class ActionDispatcherTest {
     }
 
     @Test
+    void unknownParamsAreNamedNotSilentlyDropped() {
+        // M26.4: the dispatcher never throws on a bad param — but it must SAY it dropped one
+        ActionResult r = inProcess().dispatch(
+                "{\"action\":\"aggregate\",\"params\":{\"metric\":\"count\",\"bogus\":1,\"alsoBad\":2}}");
+        assertTrue(r.ok());
+        assertEquals(java.util.List.of("alsoBad", "bogus"),
+                ((Map<?, ?>) r.toMap().get("result")).get("ignoredParams"));
+    }
+
+    @Test
+    void knownParamsAreNeverFlaggedAsIgnored() {
+        ActionResult r = inProcess().dispatch(
+                "{\"action\":\"aggregate\",\"params\":{\"metric\":\"count\",\"limit\":5}}");
+        assertTrue(r.ok());
+        assertNull(((Map<?, ?>) r.toMap().get("result")).get("ignoredParams"),
+                "every schema-declared param is accepted — flagging one would mean the schema drifted");
+    }
+
+    @Test
     void unknownVerbIsRejected() {
         ActionResult r = inProcess().dispatch("{\"action\":\"frobnicate\"}");
         assertFalse(r.ok());

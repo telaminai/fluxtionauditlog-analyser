@@ -20,7 +20,8 @@ public final class VerbSchemas {
                 props(
                         p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute"),
                         p("groupBy", enumStr("dimension", "thread", "hour", "minute", "day", "none"), "bucketing"),
-                        p("filter", filterObject(), "optional scope for the aggregation")),
+                        p("filter", filterObject(), "optional scope for the aggregation"),
+                        p("limit", integer(), "max buckets returned (default 500)")),
                 req("metric")));
 
         s.put("series", schema("Read-only: stats and threshold crossings over any key or formula, "

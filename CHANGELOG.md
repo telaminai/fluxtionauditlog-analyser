@@ -31,6 +31,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   a 10–50× token saving when an agent needs two numbers, not the whole record. Last occurrence per
   record (identical to graphing, so a projected value always matches the plotted one); requested
   fields that matched nothing are named in the reply. Raw text stays the default.
+- **Verb echoes now name what they ignored** — a parameter no verb schema declares (usually a typo) is
+  listed as `ignoredParams` in the reply instead of vanishing; and a `graph` call whose `rightAxis` or
+  note names a series that isn't on the graph gets a `warnings` entry naming it (previously a silent
+  no-op, discoverable only by looking at the plot). The `aggregate` verb's `limit` parameter is now
+  declared in its schema (it always worked; the manifest just didn't say so).
 - **Named focuses** — save the current topology context by name with a rationale (**Focuses ▾** on the
   toolbar, or `topology {saveFocusAs, rationale}` from an agent), recall it by name (picker or
   `topology {focus: "name"}`), delete from the picker. Saved with the project (never the API key),

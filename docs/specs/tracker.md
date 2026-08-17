@@ -865,7 +865,7 @@ in-flight H4; coordinate._
 - [M27.4] ☑ **Docs** — exploration section rewritten around the filter-context model; harness
   screenshots.
 
-## M26 · Agent-efficiency verbs — ☐ IN PROGRESS (the analyser computes, the agent concludes)
+## M26 · Agent-efficiency verbs — ☑ ON BRANCH `feat/b-m20-3-m26-m27` (the analyser computes, the agent concludes)
 _Design: **[spec-agent-efficiency.md](spec-agent-efficiency.md)**. The analyser is an un-metered local
 JVM holding the whole log behind the index; the agent is token-metered — so any question answerable by
 an index/series scan should be a **verb**, not a paged raw read. Every item came from a real friction
@@ -879,7 +879,7 @@ arithmetic; one scan should answer it). All read-only — no change to the FAQ s
   at-or-before (index binary search); kills records-per-minute estimation arithmetic.
 - [M26.3] ☑ **`read.fields` projection** *(shipped on `feat/b-m20-3-m26-m27`)* — compact `{recordIndex, logTime, values{}}` rows for named
   `instanceId.key`s (wildcards ok; last-occurrence semantics); raw text stays the default.
-- [M26.4] ☐ **Echo hardening** — `graph` warns on a `rightAxis`/note series not in the graph; verbs
+- [M26.4] ☑ **Echo hardening** *(shipped on `feat/b-m20-3-m26-m27`)* — `graph` warns on a `rightAxis`/note series not in the graph; verbs
   name ignored parameters in their echoes. Docs + changelog.
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)

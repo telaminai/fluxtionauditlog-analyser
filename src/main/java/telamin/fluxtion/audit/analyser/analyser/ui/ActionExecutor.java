@@ -349,8 +349,37 @@ public final class ActionExecutor implements RenderExecutor {
                 pinned.put("to", panel.pinnedTo());
                 applied.put("pinned", pinned);
             }
+            List<String> warnings = annotationWarnings(panel, p);
+            if (!warnings.isEmpty()) applied.put("warnings", warnings);
             return ActionResult.ok("graph", "applied", applied);
         });
+    }
+
+    /**
+     * Echo hardening (M26.4): {@code rightAxis} or a note's {@code series} naming a series that is not on
+     * the graph — after this call's additions — is applied anyway (the series may arrive next call) but
+     * WARNED about, because before this it was a silent no-op only visible by inspecting the plot.
+     */
+    private static List<String> annotationWarnings(GraphPanel panel, Map<String, Object> p) {
+        List<String> warnings = new ArrayList<>();
+        Set<String> onGraph = panel.plottedLabels();
+        for (String ax : strList(p.get("rightAxis"))) {
+            if (!onGraph.contains(ax)) {
+                warnings.add("rightAxis names '" + ax + "' but no series with that label is on this "
+                        + "graph — it takes effect only when/if that series is added");
+            }
+        }
+        if (p.get("notes") instanceof List<?> list) {
+            for (Object item : list) {
+                if (!(item instanceof Map<?, ?> m)) continue;
+                String series = str(m.get("series"));
+                if (series != null && !onGraph.contains(series)) {
+                    warnings.add("a note names series '" + series + "' but no series with that label is "
+                            + "on this graph — the pin shows unattributed");
+                }
+            }
+        }
+        return warnings;
     }
 
     private static Map<String, Object> errEcho(String label, String error) {

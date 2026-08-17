@@ -936,6 +936,17 @@ public final class GraphPanel extends JPanel {
         return (v.contains(",") || v.contains("\"")) ? "\"" + v.replace("\"", "\"\"") + "\"" : v;
     }
 
+    /**
+     * Every label currently on this graph: raw keys as {@code instanceId.key} plus formula labels — the
+     * names {@code rightAxis} / note {@code series} refer to. Used for echo warnings (M26.4).
+     */
+    public java.util.Set<String> plottedLabels() {
+        java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        for (GraphKey k : activeKeys) out.add(k.display());
+        for (Derived d : activeExprs) out.add(d.label());
+        return out;
+    }
+
     /** The derived formulas, for persistence. */
     public List<GraphSpec.ExprSpec> exprSpecs() {
         List<GraphSpec.ExprSpec> out = new ArrayList<>();

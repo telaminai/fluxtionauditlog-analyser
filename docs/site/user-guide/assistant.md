@@ -46,15 +46,18 @@ feeds the results back. An optional localhost **REST transport** (off by default
 drive the same verbs:
 
 - **aggregate** — counts / rates over the index (the expensive parse is done once and shared).
-- **read** — the raw text of N records around an anchor, so an agent can seek the log through the socket
-  without its own file access.
+- **read** — N records around an anchor, so an agent can seek the log through the socket without its
+  own file access. The anchor can be a record index, a byte offset, or `at` (epoch millis — the record
+  at-or-before that moment). By default each record is raw text; `fields: ["instanceId.key"]` projects
+  just the named values per record instead — far cheaper when the question needs two numbers, not the
+  whole record.
 - **series** — stats, threshold crossings and time buckets over any key or formula, computed in the
   analyser. "Where does the spread exceed 0.004?" is one call returning the exact records (each with a
   `recordIndex`/`byteOffset` anchor for a follow-up `read`), not a page-through of raw text.
 - **filter** — narrow every view to the records in question.
 - **graph** — plot a series or formula, with an optional `rationale` that **captions the plot** with why
   it was drawn (durable provenance).
-- **goto** — select a record; `reveal:true` un-hides one the current filter is hiding.
+- **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
 - **flag** — bookmark the culprit records with a `note` and an optional `fix`. This is the **one** place
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that
   record, and in an exported report. Supplying only one of `note`/`fix` keeps the other, so adding a

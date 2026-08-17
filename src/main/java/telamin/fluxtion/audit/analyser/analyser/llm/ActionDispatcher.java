@@ -2,6 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.llm;
 
 import telamin.fluxtion.audit.analyser.analyser.index.LogIndex;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -73,7 +74,7 @@ public final class ActionDispatcher {
                 ? (Map<String, Object>) p : Map.of();
 
         try {
-            return switch (action) {
+            ActionResult result = switch (action) {
                 case "aggregate" -> ActionResult.ok("aggregate", "result",
                         AggregateService.aggregate(snapshot.get(), params, rawText));
                 case "read" -> ActionResult.ok("read", "result",
@@ -85,8 +86,26 @@ public final class ActionDispatcher {
                 case "" -> ActionResult.error("missing 'action'");
                 default -> ActionResult.error("unknown verb '" + action + "'");
             };
+            return withIgnoredParams(result, action, params);
         } catch (RuntimeException e) {
             return ActionResult.error(action + " failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * Every verb echo names what it ignored (M26.4): a param this verb's schema doesn't declare was
+     * silently dropped — the caller (usually a mistyped or misplaced key) deserves to hear that, not to
+     * wonder why nothing changed. Piggybacks on {@link VerbSchemas} being the single source of truth, so
+     * a verb that gains a param can never be accused of ignoring it.
+     */
+    private static ActionResult withIgnoredParams(ActionResult result, String action, Map<String, Object> params) {
+        if (!result.ok() || params.isEmpty() || result.payload() == null) return result;
+        if (!(VerbSchemas.all().get(action) instanceof Map<?, ?> schema)
+                || !(schema.get("properties") instanceof Map<?, ?> props)) return result;
+        List<String> ignored = params.keySet().stream().filter(k -> !props.containsKey(k)).sorted().toList();
+        if (ignored.isEmpty()) return result;
+        Map<String, Object> payload = new java.util.LinkedHashMap<>(result.payload());
+        payload.put("ignoredParams", ignored);
+        return ActionResult.ok(result.action(), result.payloadKey(), payload);
     }
 }
