@@ -1,0 +1,109 @@
+REVIEW — M29 spec v3 (509ab89) + round-3 upstream asks (b47a42e)
+Date: 2026-08-17 · Reviewer: this session (I wrote the M29 v2 review these commits answer)
+Reviewed against main @ 9316f06 · Both commits authored by the other session
+
+VERDICT: both endorsed. The v3 correction to my own v2 review is RIGHT and I verified its premise
+rather than defending my earlier position; the round-3 asks are the strongest round yet because they
+are measured, not reasoned — a compiled probe graph run through our own parser beats any argument.
+One follow-up each (F1, F2), three cross-references the documents don't yet make (X1–X3).
+
+================================================================================
+1. M29 v3 — THE CORRECTION TO MY REVIEW IS CORRECT, AND I OWNED THE INCONSISTENCY
+================================================================================
+My v2 review dropped source roots from the D-F4 read allowlist because repo checkouts hold .env files
+and keys — and kept the active project directory. That was internally inconsistent, exactly as v3
+says: ProjectProfile.pathFor resolves <projectDir>/.analyser/project.fluxtion-settings (verified,
+ProjectProfile:81), the profile is designed to be committed, and the one live project I have seen
+with my own tools (the owner's maker-fxoc) IS a repository root. v2 removed one repo-shaped grant and
+kept another on reasoning that condemns both. The v3 fix — read root = the configured EXPORT
+DIRECTORY, behind the existing opt-in, plus chooser-granted files — is better than either of my
+options: ExportGuard already establishes "a designated single-purpose directory the user explicitly
+nominated", so the read/write symmetry D-F4 claims becomes literally true, and the invariant ("the
+analyser can only read back what it, or the user, was already permitted to put there") is the
+strongest sentence in the spec. The G1 refinement (diagnostics cite the ORIGINAL line number, carried
+through the sort) is also right — under D-F4 the diagnostic is the only place file content reaches an
+agent, so a wrong line number there is worse than none.
+
+F1 — THE TOGGLE'S NAME IS NOW WRONG, AND THE COUPLING SHOULD BE STATED AS A DECISION.
+    v3 puts reads behind *Settings ▸ Assistant ▸ "Allow file exports"*. Two consequences the spec
+    should say out loud rather than imply:
+      (a) With the toggle OFF (the default), M29.3's verb has NO reachable path root at all —
+          chooser grants are UI-only, so an MCP agent cannot hand over a CSV until the user enables
+          a setting whose name says nothing about reads. That is probably the RIGHT trust posture
+          (one file-exchange surface, one opt-in) but it is a decision, and it needs recording as
+          one — otherwise the first MCP user hits a refusal naming a directory that "Allow file
+          exports" gave no hint about.
+      (b) The label and its FAQ sentence must widen when M29.3 lands: "Allow file exports" →
+          something like "Allow assistant file exchange (writes AND reads, confined to this
+          directory)". The FAQ change is already promised by D-F4; the SETTINGS LABEL is not — and
+          the label is the consent surface. Suggest: add to M29.3's slice text + acceptance.
+    Severity: wording + one decision paragraph. The architecture is right.
+
+================================================================================
+2. ROUND-3 ASKS — MEASUREMENT OVER REASONING; ENDORSED, PRIORITIES AGREED
+================================================================================
+The probe methodology (compile a one-of-each processor, run OUR GraphmlParser and Scaffolding over
+the emitted file, report what actually happens) is the standard this file should hold every future
+ask to. Findings verified where I could: SeriesScan:212 does hardcode ZoneOffset.UTC; ofEpochMilli
+appears in exactly the six claimed files; the pushTarget-orphan result follows from Scaffolding's
+package-prefix rule; the backward-compat reading of firstDescendantAttribute (new <data> is invisible
+to today's parser; only the attribute NAMES `text`/`properties` are reserved) matches the code.
+
+Individually:
+  UP-FLX-25 (time base: epoch/zone/source) — the `source: wallClock|monotonic|injected` distinction
+      is the best idea in the round: a replay log silently aligned against a venue log is M29's
+      false-causality failure with extra steps, and nothing today distinguishes them.
+  UP-FLX-26 (writer identity) — right, and the origin/writer name-collision resolution in the
+      warning box is the correct split. See X1: this ask and M30 are two halves of one story.
+  UP-FLX-27 (units/meaning on keys) — right; see X3.
+  UP-FLX-28/29 (propagates+refKind / framework marker) — the pairing argument is the finding:
+      identification WITHOUT propagation marking silently deletes the rawFeed→pushTarget
+      relationship under the DEFAULT scaffolding view. "Emit what you already know" (four existing
+      non-propagation carriers, none reaching the GraphML) makes it cheap to grant.
+      The @FluxtionDataOnly name-collision catch (existing annotation, opposite meaning) and
+      edges-are-the-primitive recommendation are both correct.
+  UP-FLX-30 (build fingerprint in GraphML) — pairs with UP-FLX-12; the two-files-alone case is the
+      real forensic case; agreed.
+  UP-FLX-31 (filter value + FilterType on edges) — the reinstatement process note is worth praise:
+      "the rule forbids INFERRING, not CHECKING" is the right reading of this repo's rule 6, and
+      reading the annotation sources is what the rule wanted all along. The ask itself is the
+      highest-value of the GraphML set: "why didn't this handler run?" is unanswerable today and
+      the current rendering actively implies the wrong answer.
+  The edges-vs-vertices table answering the owner's question — correct decomposition; keeping
+      `propagates` and push-direction orthogonal (rather than one collapsed attribute) is the detail
+      that will matter in five years.
+
+F2 — UP-FLX-25 SHOULD CARRY A CONSUMER CONTRACT, LIKE UP-FLX-11 NOW DOES.
+    UP-FLX-11 was strengthened today with "what the analyser will do when the flag lands" — the most
+    persuasive thing an ask can carry. UP-FLX-25 deserves the same paragraph: on landing, TimeFormat
+    renders in the declared zone (retiring the display-decision UTC default for declared logs),
+    SeriesScan buckets in the declared zone (retiring the :212 hardcode), M29's echo can finally say
+    "clocks comparable / NOT comparable" instead of only showing a declared offset, and
+    `source: injected` logs draw a visible replay banner. Five sentences that turn a schema request
+    into a feature the framework can see.
+
+================================================================================
+3. CROSS-REFERENCES NEITHER DOCUMENT MAKES YET (X1–X3)
+================================================================================
+X1  UP-FLX-26 ↔ M30 (rolled sets). M30's TimeOrderReport detects disorder but cannot explain it: a
+    mis-rolled set and two different processors' logs concatenated look identical. With writer
+    identity in the header, M30 upgrades from "time order is violated" to "these files are from TWO
+    WRITERS — this is not a rolled set". One line in each document; M30.1's report model should
+    reserve the field now (optional, absent until upstream lands).
+X2  UP-FLX-25 ↔ M30 + M31. Per-FILE timeBase declarations can disagree across a rolled set — M30's
+    validation should compare them (a set mixing millis and micros, or wallClock and injected, is a
+    louder refusal than any timestamp check). And M31's reader SPI should carry timeBase as a
+    per-source declaration from day one — a parquet reader KNOWS its epoch unit; making the SPI
+    field mandatory means plugin sources arrive with the declaration the native log still lacks.
+X3  UP-FLX-27 ↔ M32 (marker series). A unit/description on a logged key is exactly what a marker
+    tooltip and the PDF markers table want to print beside the payload ("lastQty — shelf level AFTER
+    the movement"), and what the M32 key-triple picker should show. One line in the M32 spec's D-M2
+    when either lands.
+
+================================================================================
+4. RECOMMENDATION
+================================================================================
+M29 v3: adopt as written once F1's two paragraphs land (the toggle-name widening into M29.3's slice
+and acceptance; the reads-behind-the-exports-opt-in coupling stated as a decision). Round-3 asks:
+file as-is, adding F2's consumer contract to UP-FLX-25 before filing; apply X1–X3 as one-line
+cross-references when convenient — none blocks anything.
