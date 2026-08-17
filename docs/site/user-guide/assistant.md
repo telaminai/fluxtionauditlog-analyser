@@ -56,6 +56,10 @@ drive the same verbs:
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that
   record, and in an exported report. Supplying only one of `note`/`fix` keeps the other, so adding a
   suggested fix can't wipe the explanation it's a fix for.
+- **screenshot** — write a PNG of the app, or of one panel. `scope: "menu:File"` opens a top-level menu
+  and leaves it open, so an assistant can *show you where a control is* rather than describe it
+  (`menu:close` puts it back). The window is raised first: a native capture photographs a region of the
+  screen, so anything sitting on top would otherwise be in the picture.
 - **report** — write one record's finding out as a PDF: the explanation, the suggested fix, the event,
   the node log, a picture of the topology as currently focused, and optionally a plot.
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a

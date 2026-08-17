@@ -7,7 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
-- **Project profiles (in progress).** Settings now have two tiers: machine things (API key, theme,
+- **An assistant can show you where a control is.** `analyser_screenshot` accepts
+  `scope: "menu:File"`, which opens a top-level menu and captures it — so "it's under File" can be a
+  picture instead of a sentence. The window is raised first, because a screen capture would otherwise
+  include whatever happens to be sitting on top of it.
+- **Project profiles.** Settings now have two tiers: machine things (API key, theme,
   recent files) stay in the global config, while a project's source roots, Maven repos, event
   processors, saved graphs and hidden columns can live in a `.analyser/project.fluxtion-settings` file
   beside the project. Switching projects **replaces** those settings instead of piling them on top of

@@ -292,7 +292,9 @@ _Brief: `docs/handoff/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles
   New user-guide page (nav + a cross-reference from Sharing setups, which now explains merge-vs-open).
   Says *why* a committed profile is safe: the key is not filtered out, it was **never in the project
   tier**, so no setting or mistake can put it there.
-  - `screenshot` gained a **`menu:<Name>`** scope: it opens a top-level menu via the selection manager
+  - `screenshot` gained a **`menu:<Name>`** scope — raised as a judgement call (product surface added
+    for docs) and **kept by owner decision**, documented in the user guide as a capability in its own
+    right: an assistant can show a user where a control is instead of describing it. It: it opens a top-level menu via the selection manager
     and leaves it open so a native capture includes the popup (`menu:close` restores). The painted
     fallback can never show a menu — a Swing popup is a separate layer, not part of the content pane's
     paint. `setPopupMenuVisible` alone highlights the title without laying the popup out, which looks

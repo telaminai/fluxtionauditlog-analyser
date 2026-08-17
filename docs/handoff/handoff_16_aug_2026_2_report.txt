@@ -81,8 +81,10 @@ B-M20-2  A BROWSER WINDOW WAS CAPTURED INTO A DOCUMENTATION SCREENSHOT, with its
 WHAT ELSE CHANGED (beyond the four slices)
 ================================================================================
 - screenshot gained scope "menu:<Name>" / "menu:close" so a menu can be captured.
-  This is product surface added for documentation; it is small, and it also lets an
-  agent show a user where a control is. Flagging it as a judgement call.
+  Raised as a judgement call — product surface added for documentation — and the
+  owner has decided to KEEP it. It is now documented in the user guide as a
+  capability in its own right: an assistant can show a user where a control is
+  rather than describing it. Treat it as shipped surface, not harness scaffolding.
 - tools/capture-docs.py: fixed window geometry (1680x1050) so runs are reproducible
   and the asset set stops churning; HTTP 429 backoff; a demo project fixture under a
   NEUTRAL path, because the status bar prints a profile's full path.
