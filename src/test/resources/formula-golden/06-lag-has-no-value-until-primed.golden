@@ -1,0 +1,30 @@
+name: lag-has-no-value-until-primed
+why: lag(x,1) is the value one sample ago; the first sample has no prior, so it emits nothing. 10,20,30 → t2=10 (prior of 20), t3=20 (prior of 30).
+expr: lag(nodeA.price, 1)
+keys: nodeA.price
+resolve: LOCF
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 10.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 20.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: 30.0}
+--- EXPECT ---
+2 => 10.0
+3 => 20.0

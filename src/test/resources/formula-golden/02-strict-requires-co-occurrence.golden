@@ -1,0 +1,37 @@
+name: strict-requires-co-occurrence
+why: STRICT (no carry) yields a point only where nodeA and nodeB are BOTH present-and-finite in the same record. Only t1 co-occurs → one point, 10-8=2; t2/t3/t4 have nodeA only.
+expr: nodeA.price - nodeB.price
+keys: nodeA.price, nodeB.price
+resolve: STRICT
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 10.0}
+    - nodeB: { price: 8.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 12.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: 13.0}
+---
+#00:00:04.000 [t] INFO L
+eventLogRecord:
+  logTime: 4
+  event: E
+  nodeLogs:
+    - nodeA: { price: 14.0}
+--- EXPECT ---
+1 => 2.0

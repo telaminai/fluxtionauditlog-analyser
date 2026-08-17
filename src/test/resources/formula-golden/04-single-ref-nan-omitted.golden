@@ -1,0 +1,38 @@
+name: single-ref-nan-omitted
+why: A single-ref LOCF series is every finite observation; an explicit NaN is omitted, not carried and not fabricated. 10, 12, (NaN omitted), 14 at t=1,2,4.
+expr: nodeA.price
+keys: nodeA.price
+resolve: LOCF
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 10.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 12.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: NaN}
+---
+#00:00:04.000 [t] INFO L
+eventLogRecord:
+  logTime: 4
+  event: E
+  nodeLogs:
+    - nodeA: { price: 14.0}
+--- EXPECT ---
+1 => 10.0
+2 => 12.0
+4 => 14.0

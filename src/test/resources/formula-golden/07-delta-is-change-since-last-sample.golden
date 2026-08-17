@@ -1,0 +1,30 @@
+name: delta-is-change-since-last-sample
+why: delta(x) is x minus the previous sample; the first sample has no prior, so it emits nothing. 10,20,35 → t2=20-10=10, t3=35-20=15.
+expr: delta(nodeA.price)
+keys: nodeA.price
+resolve: LOCF
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 10.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 20.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: 35.0}
+--- EXPECT ---
+2 => 10.0
+3 => 15.0

@@ -1,0 +1,29 @@
+name: two-arg-if-gaps-when-false
+why: if(c, x) with no else plots x only while c holds; a false condition is NO point, never a fabricated branch. price>3 admits only t2 (5>3). t1(1>3) and t3(2>3) are false → gaps.
+expr: if(nodeA.price > 3, nodeA.price)
+keys: nodeA.price
+resolve: LOCF
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 1.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 5.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: 2.0}
+--- EXPECT ---
+2 => 5.0

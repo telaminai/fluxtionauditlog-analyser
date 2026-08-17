@@ -1,0 +1,45 @@
+name: rolling-mean-fills-before-speaking
+why: mean(x,3) is a count window that fills before it speaks — no point until 3 samples are in hand. Samples 1,2,3,4,5 → t3=(1+2+3)/3=2, t4=(2+3+4)/3=3, t5=(3+4+5)/3=4; t1,t2 emit nothing.
+expr: mean(nodeA.price, 3)
+keys: nodeA.price
+resolve: LOCF
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 1.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 2.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: 3.0}
+---
+#00:00:04.000 [t] INFO L
+eventLogRecord:
+  logTime: 4
+  event: E
+  nodeLogs:
+    - nodeA: { price: 4.0}
+---
+#00:00:05.000 [t] INFO L
+eventLogRecord:
+  logTime: 5
+  event: E
+  nodeLogs:
+    - nodeA: { price: 5.0}
+--- EXPECT ---
+3 => 2.0
+4 => 3.0
+5 => 4.0

@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.mcp;
 import telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,6 +81,32 @@ class McpToolsTest {
         Map<String, Object> props = (Map<String, Object>) schema.get("properties");
         assertTrue(props.containsKey("rationale"), "the shipped graph params come through unchanged");
         assertTrue(props.containsKey("exprs"));
+    }
+
+    /**
+     * Cross-transport contract, at the value level. REST {@code /manifest} publishes
+     * {@code VerbSchemas.all()} verbatim as its {@code schemas} field (pinned in
+     * {@link telamin.fluxtion.audit.analyser.analyser.net.ManifestVerbContractTest}); every MCP tool must
+     * therefore expose the <em>same schema object</em> for its verb — the whole thing, properties and
+     * {@code required} and nested types, not just a param name or two — with only {@code description}
+     * lifted to the tool level. Asserting equality for every verb (not just {@code graph}) means the two
+     * transports can never advertise a divergent schema for the same verb: a future refactor that
+     * transformed, trimmed or rebuilt the MCP schema would fail here.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void everyToolsInputSchemaIsExactlyItsVerbSchemaMinusTheLiftedDescription() {
+        for (Map.Entry<String, Object> e : VerbSchemas.all().entrySet()) {
+            String verb = e.getKey();
+            Map<String, Object> expected = new LinkedHashMap<>((Map<String, Object>) e.getValue());
+            expected.remove("description");   // lifted to the tool description; VerbSchemasTest keeps it present at source
+
+            Map<String, Object> actual = (Map<String, Object>) tool(verb).get("inputSchema");
+            assertEquals(expected, actual,
+                    "MCP tool analyser_" + verb + " must expose exactly its VerbSchemas schema (minus the "
+                            + "lifted description). REST publishes the same object, so any difference here "
+                            + "means the REST and MCP transports have forked the schema for this verb.");
+        }
     }
 
     @Test

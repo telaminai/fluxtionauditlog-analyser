@@ -1,0 +1,39 @@
+name: locf-carry-and-nan-clears
+why: LOCF carries B's last finite value across records where B is absent; nodeA=NaN clears the carry so t3 yields NO point (no fabricated continuity). 10-8=2, 12-8=4, (NaN), 14-8=6.
+expr: nodeA.price - nodeB.price
+keys: nodeA.price, nodeB.price
+resolve: LOCF
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 10.0}
+    - nodeB: { price: 8.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 12.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: NaN}
+---
+#00:00:04.000 [t] INFO L
+eventLogRecord:
+  logTime: 4
+  event: E
+  nodeLogs:
+    - nodeA: { price: 14.0}
+--- EXPECT ---
+1 => 2.0
+2 => 4.0
+4 => 6.0

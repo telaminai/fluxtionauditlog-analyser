@@ -41,6 +41,28 @@ class ManifestVerbContractTest {
     }
 
     /**
+     * The value-level half of the cross-transport contract. The MCP side ({@code McpToolsTest.
+     * everyToolsInputSchemaIsExactlyItsVerbSchemaMinusTheLiftedDescription}) proves each tool wraps the
+     * exact {@code VerbSchemas} schema for its verb; this proves REST publishes those same schemas
+     * <b>verbatim</b> as its {@code schemas} field. Together they mean the two transports cannot advertise
+     * a different schema for the same verb — both are the one source, not two copies that agree today.
+     */
+    @Test
+    void theRestManifestPublishesTheVerbSchemasSchemasVerbatim() throws Exception {
+        String src = Files.readString(
+                Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/net/ActionServer.java"));
+        int at = src.indexOf("m.put(\"schemas\"");
+        assertTrue(at >= 0, "the manifest no longer publishes a 'schemas' field — if that was deliberate, "
+                + "update this test; a foreign agent reads each verb's parameters from here");
+        String stanza = src.substring(at, Math.min(src.length(), at + 200));
+        assertTrue(stanza.contains("VerbSchemas.all()"),
+                "the manifest's 'schemas' must BE VerbSchemas.all(), not a rebuilt or transformed copy — "
+                        + "anything else forks the REST schema from the MCP one the moment either changes");
+        assertFalse(stanza.contains("Map.of(") || stanza.contains("new LinkedHashMap"),
+                "found the manifest assembling its own schema map; publish VerbSchemas.all() directly");
+    }
+
+    /**
      * The copy-prompt is the only verb list an agent working from a pasted brief ever sees, so a stale
      * one silently caps what that session believes it can do.
      */

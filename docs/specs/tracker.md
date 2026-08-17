@@ -20,6 +20,21 @@ assistant-vocabulary follow-ups.
 
 ---
 
+## Hardening — test-only, ongoing (no user-visible change)
+- ☑ **Cross-transport schema contract** — REST `/manifest` and MCP `tools/list` are proven to advertise
+  the *same* `VerbSchemas` schema per verb at the **value** level, not just matching name sets:
+  `McpToolsTest` pins every tool's `inputSchema` == its verb schema minus the lifted `description`;
+  `ManifestVerbContractTest` pins `/manifest`'s `schemas` field == `VerbSchemas.all()` verbatim. The two
+  transports can no longer fork a verb's parameters.
+- ◧ **Formula golden fixtures** — a hand-derived expected-series corpus for the Expr engine, grown
+  **without code** (`graph/FormulaGoldenTest` + `src/test/resources/formula-golden/*.golden`). First
+  tranche: LOCF/STRICT/two-arg-if/NaN + rolling `mean` fill-before-speak / `lag` / `delta`. The rule
+  (derive from intended semantics, **never snapshot output**) and the TODO taxonomy — `rate()`
+  span-normalisation first, the c3094ea bug class — are in
+  **[spec-formula-golden-fixtures.md](spec-formula-golden-fixtures.md)**.
+
+---
+
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,
 reviewed and merged — full record in **[completed/tracker.md](completed/tracker.md)**.
