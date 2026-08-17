@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-17
+
 ### Changed
 - **Topology focus is now a filter, not a toggle** — and this changes two familiar gestures. Applying
   **Focus** (button or **F**) filters the view to the selection's scope, and that context becomes the
