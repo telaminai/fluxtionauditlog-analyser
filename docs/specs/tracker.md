@@ -171,6 +171,13 @@ _M21.1–21.6 (parse, layout, panel, step-through, wiring, docs) and M21.10 (int
 cursor) shipped and reviewed — full record in **[completed/tracker.md](completed/tracker.md)**.
 Design: **[completed/spec-graph-replay.md](completed/spec-graph-replay.md)**._
 - [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
+- [M21.11] ☐ **Consume the declared trace flag** _(owner ask 2026-08-17; needs UP-FLX-11 upstream)_ —
+  when the record header carries `trace: true|false` (per record — the level is runtime-gated, one
+  file can hold both regimes), prefer the declaration over `AuditTrace.tracesEveryInvocation` and keep
+  the heuristic only for legacy logs. Classification language shifts from inference to declared fact:
+  `trace:true` → absence drawn as DID NOT RUN with certainty; `trace:false` → absence drawn as a
+  potentially missing step; the empty-cycle case (unclassifiable today) resolves. Small: parser reads
+  one header key; `AuditTrace` gains a declared-first path; topology legend wording updates.
 - [M21.9] ☐ **Use `ProcessorDescriptor` instead of inferring** _(found 2026-08-16 reading a generated
   processor)_ — AOT processors carry a self-description: `inputs()` (name + FQN of every accepted event),
   `sinks()`, `services()`, plus `graphmlResource()`, `sourceFingerprint()` and `toolchainVersion()`.

@@ -319,7 +319,19 @@ infers it (`AuditTrace.tracesEveryInvocation`: every entry carries `thread` **an
 sound but fragile — one node logging a business key called `method` would break it, and a cycle where no
 node logged is unclassifiable.
 
-Ask: `auditLevel: TRACE` (or `tracesInvocations: true`) in the record header.
+Ask: `auditLevel: TRACE` (or the owner's preferred minimal spelling, `trace: true|false`) in the
+record header. **Per record, not per file**, deliberately: tracing is compiled in at build time but
+gated at runtime (`EventLogControlEvent`), so one file can legitimately contain both regimes — a
+file-level flag would lie across the switch.
+
+**Owner endorsement + consumer contract (2026-08-17):** the owner independently proposed exactly this
+("state trace:[true|false] in the header — this allows the analyser to either draw with certainty or
+say the non-log is a potentially missing step"). On landing, the analyser will: (1) prefer the declared
+flag over the `AuditTrace` heuristic wherever the header carries it, keeping the heuristic only for
+legacy logs; (2) render classification language as DECLARED fact rather than inference —
+`trace:true` → an absent node is drawn as **did not run** with certainty; `trace:false` → absence is
+drawn as a **potentially missing step**, never as absence of execution; (3) resolve the currently
+unclassifiable case (a cycle where no node logged) that the heuristic cannot answer at all.
 
 **Cost to us if unfixed** an inference on every record, and no answer at all for empty cycles.
 
