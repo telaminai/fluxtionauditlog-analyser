@@ -1,0 +1,117 @@
+REPORT — milestone M20 (project profiles)
+Date: 2026-08-17 · Branch: feat/m20-project-profiles (off v1.1.0 main + M25)
+Brief: docs/handoff/handoff_16_aug_2026_2.txt · Spec: docs/specs/spec-project-profiles.md
+
+STATUS: all four slices shipped. 517 tests green · mkdocs build --strict green · sweep clean.
+
+  e1c7b62  M20.1  tier the config, REPLACE semantics, startup
+  8a15ae6  M20.2  File menu, switching, auto-persist, import choice
+  9873ec2  M20.3  auto-detect a project beside an opened log
+  b93ffe1  M20.4  docs + the harness fixes capturing them exposed
+
+================================================================================
+THE DECISION THE BRIEF ASKED FOR (section (a))
+================================================================================
+graphmlFile and recentGraphml stay GLOBAL. The boundary is UNCHANGED — I did not
+need to widen it, so the constraint that exists to stop it drifting is intact.
+
+  graphmlFile is the topology CURRENTLY OPEN: session state, exactly the same kind
+  of thing as the loaded log. Open question O3 ("should switching projects re-open
+  that project's last log?") was DEFERRED precisely to avoid coupling session state
+  to a profile. Treating the graph differently from the log would deliver that same
+  surprise through a side door — switch project, half your workspace reopens.
+
+  recentGraphml is a recent-files list, and the spec's global tier names "recent
+  files" explicitly. A recent list is a fact about this machine's history.
+
+================================================================================
+SPEC-VS-REALITY: ONE CORRECTION, MADE IN THE CODE AND THE TRACKER
+================================================================================
+The brief describes the project tier as "the M15 shareable whitelist". That is one
+category too broad in two places. The whitelist has SEVEN categories; ASSISTANT
+(caps) and LLM (provider/model) are listed under GLOBAL in the spec's own tier
+table. They are shareable with a colleague but they are not project facts.
+
+SHAREABLE and PROJECT-SCOPED are different questions. ProjectProfile.PROJECT_SCOPED
+is five categories, and a test pins it so the shorthand cannot creep back in. The
+spec needed no change — it was already right; only the brief's shorthand was loose.
+
+================================================================================
+DESIGN CALLS WORTH A REVIEWER'S EYE
+================================================================================
+1. REPLACE IS TOTAL OVER THE TIER, not over the categories a file contains. A
+   profile with no graphs leaves you with no graphs. Applying only present
+   categories would let A's graphs survive into B — the pile-up M20 removes. The
+   scalars (selectedEventProcessor, searchMavenRepos, hiddenColumnsSet) reset with
+   their categories: a stale selected processor names a class that need not exist.
+
+2. ONE DELIBERATE EXCEPTION. A profile naming no Maven repo keeps the default
+   rather than emptying the list, because an empty list silently disables source
+   lookup for every dependency and "I did not say" is not "never search". Our own
+   writer always emits the category, so this only catches hand-edited files.
+
+3. NEW PROJECT STARTS EMPTY rather than inheriting what was open, or "New project"
+   is a slow way to copy one. Save-as is how you fork.
+
+4. AUTO-DETECT IS A QUESTION, NOT AN ACTION. Loading a project replaces roots and
+   graphs, which is not something to do to someone because they opened a file.
+
+================================================================================
+BUGS FOUND, BOTH BY DRIVING THE APP RATHER THAN BY TESTS
+================================================================================
+B-M20-1  THE OPEN PROJECT'S SETTINGS LEAKED INTO THE GLOBAL CONFIG FILE.
+   One AppConfig holds both tiers in memory and saveConfigQuietly() wrote all of
+   it. Delete that project directory afterwards and the user is left with a stale
+   project's settings as their own, their pre-project configuration gone — the
+   exact thing the spec promises survives.
+   THE FIRST FIX WAS INCOMPLETE and that is the interesting part: ConfigStore.save
+   gained a global-tier override, but the snapshot was still empty because startup
+   applied the profile BEFORE ProjectSession existed. Correct code, wrong order.
+   ProjectSession now owns startup activation so the snapshot is taken while the
+   user's values are still there. Both the leak and the ordering are now tested.
+
+B-M20-2  A BROWSER WINDOW WAS CAPTURED INTO A DOCUMENTATION SCREENSHOT, with its
+   URL bar and personal bookmarks. screencapture -R photographs a REGION OF THE
+   SCREEN, not a window, so anything overlapping the analyser is in the image.
+   Caught by READING the image before committing — the only control that can catch
+   it, and precisely why rule 1 says the sweep cannot see inside a PNG. Nothing
+   leaked was committed. screenshot now raises the window and the harness does too.
+
+================================================================================
+WHAT ELSE CHANGED (beyond the four slices)
+================================================================================
+- screenshot gained scope "menu:<Name>" / "menu:close" so a menu can be captured.
+  This is product surface added for documentation; it is small, and it also lets an
+  agent show a user where a control is. Flagging it as a judgement call.
+- tools/capture-docs.py: fixed window geometry (1680x1050) so runs are reproducible
+  and the asset set stops churning; HTTP 429 backoff; a demo project fixture under a
+  NEUTRAL path, because the status bar prints a profile's full path.
+- AppConfig gained activeProjectPath + recentProjects (both GLOBAL, both persisted).
+
+================================================================================
+WHAT A HUMAN MUST STILL EYEBALL
+================================================================================
+Swing is not unit-tested here, so these were verified by driving a real app and by
+the owner watching:
+  - the "Load this project?" dialog (owner confirmed seeing it; see below)
+  - Open/New/Save-as/Close from the File menu, and the recent-projects submenu
+  - the Import merge-vs-open dialog
+  - the window title following the active project
+
+A VERIFICATION MISTAKE WORTH INHERITING: I tried to confirm the auto-detect dialog
+by checking whether the REST socket went unresponsive, assuming a modal dialog
+blocks the EDT. IT DOES NOT — JOptionPane runs a nested event loop, so the EDT keeps
+pumping and the socket answers normally. I reported "no dialog appeared" twice with
+confidence before the owner said he had seen it. Do not use socket responsiveness
+as a proxy for modality.
+
+================================================================================
+NOT DONE / DEFERRED
+================================================================================
+- O3 (switching a project re-opening its last log) remains deferred, per the spec.
+- Findings (recordIndex + note + fix) are still NOT persisted, per the addendum:
+  they are keyed by model row and cleared on open, like flags. Making them survive
+  needs re-anchoring on byte offset — a design change, not a config key.
+- No verb for project switching. capture-docs drives the File menu screenshots via
+  the new menu: scope; there is deliberately no project verb, because switching a
+  project replaces a user's working set and that is not a scripted action.
