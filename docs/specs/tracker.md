@@ -286,6 +286,31 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
+## M20 · Project profiles — ◐ IN PROGRESS
+_Brief: `docs/handoff/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles.md` (O1–O4 resolved)._
+- [M20.1] ☑ **Tier the config; load/save a profile with REPLACE semantics.** `config/ProjectProfile` is
+  pure and headless; 13 tests written as the spec's two-project acceptance story, because an additive
+  implementation would pass a shallower one.
+  - **The project tier is FIVE categories, not the seven-category M15 whitelist.** The brief's shorthand
+    ("the M15 shareable whitelist") is one category too broad in two places: `ASSISTANT` caps and `LLM`
+    provider/model are *shareable* with a colleague but are not *project* facts, and the spec's own tier
+    table lists them under global. Shareable and project-scoped are different questions.
+  - **Decision recorded (the brief asked for one): `graphmlFile` and `recentGraphml` stay GLOBAL.**
+    `graphmlFile` is the topology *currently open* — session state of exactly the same kind as the loaded
+    log, and open question O3 deferred coupling log state to a profile precisely to avoid that surprise;
+    deciding differently for the graph than for the log would reopen half a workspace on every switch.
+    `recentGraphml` is a recent-files list, which the spec's global tier names explicitly. **The boundary
+    is unchanged** — nothing here required widening it.
+  - Replace is **total over the tier**, not over the categories a file happens to contain: a profile with
+    no graphs must leave you with no graphs, or A's graphs leak into B and the pile-up M20 exists to fix
+    comes back. The scalars (`selectedEventProcessor`, `searchMavenRepos`, `hiddenColumnsSet`) reset with
+    their categories — a stale selected processor names a class that need not exist in the new project.
+  - One deliberate exception: a profile naming **no Maven repo** keeps the default rather than emptying
+    the list. An empty list silently disables source lookup for every dependency, and "I did not say" is
+    not "never search".
+  - Startup is global → profile. A moved repository clears the pointer, reports it once in the status
+    bar, and the app opens exactly as it did before projects existed.
+
 ## M25 · Post-1.1.0 drift fixes — ☑ SHIPPED (2026-08-16)
 _Found reviewing v1.1.0 main after the release. Three were pre-existing and mine; one is fallout from
 review B1._

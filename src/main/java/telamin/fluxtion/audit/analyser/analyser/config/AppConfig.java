@@ -88,6 +88,19 @@ public final class AppConfig {
     public boolean assistantExports = false;
     public String assistantExportDir = "";
 
+    /**
+     * The project profile currently active, or blank for none (M20).
+     *
+     * <p>GLOBAL and deliberately so: which project this machine last had open is a fact about the
+     * machine, and a profile that recorded which profile was active would be circular. A missing file
+     * here clears the pointer with a status note rather than failing startup — a moved repository must
+     * not stop the app opening.
+     */
+    public String activeProjectPath = "";
+
+    /** Recently opened project profiles, most-recent first — the switcher's list (spec O2). */
+    public final List<String> recentProjects = new ArrayList<>();
+
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();
 

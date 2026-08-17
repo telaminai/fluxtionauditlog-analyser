@@ -1,0 +1,261 @@
+package telamin.fluxtion.audit.analyser.analyser.config;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * A project's settings, kept beside the project instead of in the one global config (M20).
+ *
+ * <p>The problem this solves: there is one config file, so working across several Fluxtion projects
+ * means importing each project's settings on top of the last one's. Import is <b>additive</b> — right
+ * for sharing a setup, wrong for switching between projects, because project A's source roots pile up
+ * under project B's.
+ *
+ * <h2>The tier, and why it is five categories rather than seven</h2>
+ *
+ * <p>M15 already split settings into shareable and never-shared, and the brief describes the project
+ * tier as "the M15 shareable whitelist". That is a useful shorthand and slightly too broad: the
+ * whitelist has seven categories, and two of them — {@code ASSISTANT} caps and {@code LLM}
+ * provider/model — are listed under <em>global</em> in the design spec's own tier table. They are
+ * shareable because a colleague may want your assistant setup; they are not <em>project</em> facts.
+ *
+ * <p><b>Shareable and project-scoped are different questions</b>, and this class answers the second.
+ * The five here are the ones the spec's project tier names: source roots, Maven repos, event
+ * processors, saved graphs, hidden columns.
+ *
+ * <h2>Two tiering decisions the brief asked to be made and recorded</h2>
+ *
+ * <p>{@code graphmlFile} and {@code recentGraphml} arrived in M22, after the tiering was designed, and
+ * both are arguably "which graph am I working on" — which travels with a project the way source roots
+ * do. <b>Both stay GLOBAL</b>, following the spec rather than widening the boundary:
+ *
+ * <ul>
+ *   <li>{@code graphmlFile} is the topology <em>currently open</em> — session state, exactly the same
+ *       kind of thing as the loaded log. Open question O3 ("should switching projects re-open that
+ *       project's last log?") was <b>deferred</b> precisely to avoid coupling session state to a
+ *       profile, and a graphml is session state by the same argument. Deciding differently for the
+ *       graph than for the log would make switching projects reopen half your workspace, which is the
+ *       surprise O3 was avoiding.</li>
+ *   <li>{@code recentGraphml} is a recent-files list, and the spec's global tier names "recent files"
+ *       explicitly. A recent list is a fact about this machine's history, not about a project.</li>
+ * </ul>
+ *
+ * <p>The boundary is therefore unchanged from the spec. That constraint exists to stop the boundary
+ * drifting by accident; nothing here required moving it.
+ *
+ * <h2>Replace, not merge</h2>
+ *
+ * <p>Loading a profile <b>replaces</b> every project-scoped category, including ones the profile does
+ * not mention. If project B's profile has no graphs, switching from A to B must leave you with no
+ * graphs — not with A's. Applying only the categories present would reintroduce the pile-up this
+ * milestone exists to remove.
+ *
+ * <p>Pure and headless: paths, policy and IO only. No Swing, no dialogs.
+ */
+public final class ProjectProfile {
+
+    /** Where a project's profile lives, relative to the project root. One rule, one path (spec O2). */
+    public static final String CANONICAL_RELATIVE = ".analyser/project.fluxtion-settings";
+
+    /**
+     * The categories a project owns. Everything else — the API key, theme, window bounds, recent files,
+     * LLM and assistant settings, topology display prefs — stays global by not being here.
+     */
+    public static final Set<SettingsShare.Category> PROJECT_SCOPED = EnumSet.of(
+            SettingsShare.Category.SOURCE_ROOTS,
+            SettingsShare.Category.MAVEN_REPOS,
+            SettingsShare.Category.EVENT_PROCESSORS,
+            SettingsShare.Category.GRAPHS,
+            SettingsShare.Category.VIEW);
+
+    private ProjectProfile() {
+    }
+
+    /** The canonical profile path for a project directory. */
+    public static Path pathFor(Path projectDir) {
+        return projectDir.resolve(CANONICAL_RELATIVE);
+    }
+
+    /**
+     * The nearest project profile at or above {@code start}, or {@code null}.
+     *
+     * <p>Walks upwards so opening a log deep inside a repo still finds the profile at its root — which
+     * is what makes the M19 zero-setup path work: download a bundle, open its log, and the profile
+     * beside the repo root is found without anyone configuring anything.
+     */
+    public static Path findNear(Path start) {
+        if (start == null) {
+            return null;
+        }
+        Path dir = Files.isDirectory(start) ? start : start.getParent();
+        while (dir != null) {
+            Path candidate = dir.resolve(CANONICAL_RELATIVE);
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+            dir = dir.getParent();
+        }
+        return null;
+    }
+
+    /**
+     * The project-scoped slice of a config, so it can be put back.
+     *
+     * <p>Needed because the global config's project values are the <b>"no project" defaults</b>: the
+     * first time a project is opened they are not deleted, and switching back to no project restores
+     * them. Without a snapshot, opening a project once would silently consume the settings a user had
+     * before they ever had projects.
+     */
+    public record Snapshot(List<String> sourceRoots,
+                           List<String> mavenRepos,
+                           boolean searchMavenRepos,
+                           List<String> eventProcessorFqns,
+                           String selectedEventProcessor,
+                           List<GraphSpec> savedGraphs,
+                           List<String> hiddenColumns,
+                           boolean hiddenColumnsSet) {
+
+        public Snapshot {
+            sourceRoots = List.copyOf(sourceRoots);
+            mavenRepos = List.copyOf(mavenRepos);
+            eventProcessorFqns = List.copyOf(eventProcessorFqns);
+            savedGraphs = List.copyOf(savedGraphs);
+            hiddenColumns = List.copyOf(hiddenColumns);
+        }
+    }
+
+    public static Snapshot snapshot(AppConfig c) {
+        return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
+                c.selectedEventProcessor, c.savedGraphs, c.hiddenColumns, c.hiddenColumnsSet);
+    }
+
+    /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
+    public static void restore(Snapshot s, AppConfig into) {
+        clearProjectScoped(into);
+        into.sourceRoots.addAll(s.sourceRoots());
+        into.mavenRepos.addAll(s.mavenRepos());
+        into.searchMavenRepos = s.searchMavenRepos();
+        into.eventProcessorFqns.addAll(s.eventProcessorFqns());
+        into.selectedEventProcessor = s.selectedEventProcessor();
+        into.savedGraphs.addAll(s.savedGraphs());
+        into.hiddenColumns.addAll(s.hiddenColumns());
+        into.hiddenColumnsSet = s.hiddenColumnsSet();
+    }
+
+    /**
+     * Empty every project-scoped category. Public because "switch to no project" and "load a profile"
+     * both need it, and a second copy of this list is a second thing to forget to update.
+     */
+    public static void clearProjectScoped(AppConfig c) {
+        c.sourceRoots.clear();
+        c.mavenRepos.clear();
+        c.eventProcessorFqns.clear();
+        c.savedGraphs.clear();
+        c.hiddenColumns.clear();
+        // the scalars belong to the same categories, so a replace that left them behind would carry
+        // project A's selected event processor into project B — a class that may not exist there
+        c.searchMavenRepos = true;
+        c.selectedEventProcessor = "";
+        c.hiddenColumnsSet = false;
+    }
+
+    /** What happened when a profile was loaded — never an exception, so startup cannot fail on it. */
+    public record LoadResult(boolean loaded, String message) { }
+
+    /**
+     * Load {@code file} over {@code target}'s project-scoped categories, replacing them.
+     *
+     * <p>Never throws. A missing, unreadable or unparseable profile returns {@code loaded=false} with a
+     * reason: a moved repository must degrade to "global only, and here is why", not to a dead app.
+     */
+    public static LoadResult load(Path file, AppConfig target, SettingsShare share) {
+        if (file == null) {
+            return new LoadResult(false, "no project file");
+        }
+        if (!Files.isRegularFile(file)) {
+            return new LoadResult(false, "project settings not found: " + file);
+        }
+        String text;
+        try {
+            text = Files.readString(file);
+        } catch (IOException e) {
+            return new LoadResult(false, "could not read " + file + ": " + e.getMessage());
+        }
+        try {
+            // relative roots resolve against the profile's own directory (M19.2), which is what lets a
+            // committed profile use repo-relative paths and still work on a teammate's machine
+            SettingsShare.ImportPlan plan = share.preview(text, target, file.getParent());
+            clearProjectScoped(target);
+            share.apply(plan, PROJECT_SCOPED, target);
+            // A profile that names no Maven repo means "I did not say", not "never search one" — and an
+            // empty list silently disables source lookup for every dependency. Our own writer always
+            // emits the category, so this only catches hand-edited or partial profiles; it catches them
+            // as a missing convenience rather than as a capability that vanished without a message.
+            if (target.mavenRepos.isEmpty()) {
+                target.mavenRepos.add(AppConfig.defaultMavenRepo());
+            }
+            return new LoadResult(true, "project loaded: " + file);
+        } catch (RuntimeException e) {
+            return new LoadResult(false, "could not load " + file + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Apply the active project over a freshly-loaded global config — the startup step.
+     *
+     * <p>Order matters and is fixed: global first, then the profile over the project-scoped categories.
+     * A pointer to a file that is no longer there (a moved or renamed repository) <b>clears the
+     * pointer</b> and returns a message for the status bar. Startup never fails on a project profile;
+     * the worst case is the app opening exactly as it did before projects existed.
+     *
+     * @return {@code null} when no project is configured — nothing to say and nothing to report
+     */
+    public static LoadResult activateOnStartup(AppConfig global, SettingsShare share) {
+        if (global.activeProjectPath == null || global.activeProjectPath.isBlank()) {
+            return null;
+        }
+        Path file = Path.of(global.activeProjectPath);
+        LoadResult result = load(file, global, share);
+        if (!result.loaded()) {
+            // the pointer is stale; keeping it would re-report the same failure on every launch
+            global.activeProjectPath = "";
+            return new LoadResult(false, result.message() + " — continuing without a project");
+        }
+        return result;
+    }
+
+    /** Serialise only the project-scoped categories — the API key cannot appear, by construction. */
+    public static String write(AppConfig c, SettingsShare share) {
+        return share.export(c, PROJECT_SCOPED);
+    }
+
+    /** Write a profile, creating {@code .analyser/} if needed. */
+    public static void save(Path file, AppConfig c, SettingsShare share) throws IOException {
+        if (file.getParent() != null) {
+            Files.createDirectories(file.getParent());
+        }
+        Files.writeString(file, write(c, share));
+    }
+
+    /** Most-recent-first, de-duplicated, capped — the recent-projects index (spec O2). */
+    public static void addRecent(List<String> recents, String path) {
+        if (path == null || path.isBlank()) {
+            return;
+        }
+        Set<String> seen = new LinkedHashSet<>();
+        seen.add(path);
+        seen.addAll(recents);
+        List<String> capped = new ArrayList<>(seen);
+        while (capped.size() > 10) {
+            capped.remove(capped.size() - 1);
+        }
+        recents.clear();
+        recents.addAll(capped);
+    }
+}

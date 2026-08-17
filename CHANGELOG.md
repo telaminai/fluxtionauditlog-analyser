@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Project profiles (in progress).** Settings now have two tiers: machine things (API key, theme,
+  recent files) stay in the global config, while a project's source roots, Maven repos, event
+  processors, saved graphs and hidden columns can live in a `.analyser/project.fluxtion-settings` file
+  beside the project. Switching projects **replaces** those settings instead of piling them on top of
+  the last project's. A profile can never contain your API key, so a team can commit one.
+
 ### Fixed
 - **The action manifest advertised six verbs while thirteen shipped.** `GET /manifest` hardcoded its
   `verbs` list, so it contradicted its own `schemas` field and an external agent never learned that

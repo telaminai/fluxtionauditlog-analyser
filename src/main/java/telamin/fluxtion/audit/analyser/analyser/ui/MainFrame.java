@@ -79,6 +79,9 @@ public final class MainFrame extends JFrame {
     private FilterState filter;
     private Timer searchDebounce;
     private List<LogRecord> selectedRecords = List.of();
+    /** What the startup project load had to say, shown once the status bar exists; null when silent. */
+    private final telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.LoadResult projectLoadNote;
+
     private final java.util.Set<Integer> flaggedRows = new java.util.HashSet<>();
     /**
      * What has been concluded about a flagged record, by model row: the note and any suggested fix.
@@ -109,6 +112,10 @@ public final class MainFrame extends JFrame {
     public MainFrame() {
         super("Fluxtion Audit Log Analyser");
         this.config = configStore.load();
+        // M20.1 — global first, then the active project over the project-scoped categories. A moved
+        // repository clears the pointer and says so; startup never fails on a profile.
+        this.projectLoadNote = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
+                .activateOnStartup(config, new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
         setIconImages(AppImages.icons());
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         buildMenu();
@@ -204,6 +211,11 @@ public final class MainFrame extends JFrame {
             int modelRow = tablePanel.modelRowAt(filteredIndex);
             return modelRow < 0 ? null : findings.get(modelRow);
         });
+        // said after the status bar exists, and only when there is something to say: a project that
+        // loaded, or a pointer that was stale and has been cleared
+        if (projectLoadNote != null) {
+            status.setText(projectLoadNote.message());
+        }
         installGlobalKeys();
         installFileDrop();
         addWindowListener(new WindowAdapter() {

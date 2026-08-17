@@ -71,6 +71,10 @@ public final class ConfigStore {
         c.theme = p.getProperty("theme", c.theme);
         readList(p, "recentFile", c.recentFiles);
         readList(p, "recentGraphml", c.recentGraphml);
+        // M20: which project is active, and the switcher's list. Both GLOBAL — a profile recording
+        // which profile is active would be circular, and a recent list is machine history.
+        c.activeProjectPath = p.getProperty("activeProjectPath", c.activeProjectPath);
+        readList(p, "recentProject", c.recentProjects);
         if (p.getProperty("hiddenColumn.count") != null) {   // configured before → honour it (even if empty)
             readList(p, "hiddenColumn", c.hiddenColumns);
             c.hiddenColumnsSet = true;
@@ -118,6 +122,8 @@ public final class ConfigStore {
         put(p, "theme", c.theme);
         writeList(p, "recentFile", c.recentFiles);
         writeList(p, "recentGraphml", c.recentGraphml);
+        put(p, "activeProjectPath", c.activeProjectPath);
+        writeList(p, "recentProject", c.recentProjects);
         writeList(p, "hiddenColumn", c.hiddenColumns);
         writeList(p, "searchHistory", c.searchHistory);
         put(p, "lastRunVersion", c.lastRunVersion);
