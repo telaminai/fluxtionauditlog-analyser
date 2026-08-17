@@ -149,6 +149,11 @@ holds unqualified.
   **compose**: `mean(if(spread > 0.004, spread), 10)` — the mean of the last 10 *breaching* samples
   — works only because false-condition samples (NaN) leave the window untouched; under clear-on-NaN
   it would be self-erasing and useless.
+- **D-W2b (post-review, owner decision):** a FULL count window answers on non-contributing records
+  — and therefore holds its last value indefinitely after the last contributing sample. Raised as
+  review F2 with three options; the owner chose disclosure over a staleness rule: the docs say it
+  plainly and steer staleness-sensitive use to the time-windowed forms (which go empty when their
+  window drains). A second staleness policy was deliberately NOT invented.
 - **D-W3 — resolution interaction:** windows sit **above** resolution. Under LOCF, `mean(x, 100)`
   averages carried evaluations, because carried evaluations are what the series plots. Under
   STRICT, only co-occurring records produce samples. No third policy. Sharp edge, documented

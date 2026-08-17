@@ -43,8 +43,11 @@ askMakerOrder.price − bidMakerOrder.price
 - **Rolling windows** — formulas can remember recent samples: `lag(x, N)` (the value N samples ago),
   `delta(x)` (change since the previous sample), and `mean` / `sum` / `rollingMin` / `rollingMax`
   `(x, N)` over the last N samples. A window fills before it speaks (no point until N samples), a
-  non-numeric sample leaves it unchanged, and it counts **samples, not time** — a quiet market makes
-  a count window span more wall-clock, so for anything rate-sensitive prefer the **time-windowed
+  non-numeric sample leaves it unchanged — which also means a full count window **holds its value
+  indefinitely after the last contributing sample**: on a gated series like `mean(if(c, x), 10)` the
+  plotted mean can be arbitrarily old once `c` stops holding (the time-windowed forms go empty
+  instead; prefer them when staleness matters) — and it counts **samples, not time** — a quiet
+  market makes a count window span more wall-clock, so for anything rate-sensitive prefer the **time-windowed
   forms**: `mean` / `sum` / `rollingMin` / `rollingMax` `(x, "5m")` (durations: `"250ms"`, `"5s"`,
   `"2m"`, `"1h"`) and `rate(x, "1m")` — the change per minute, scaled from however much of the minute
   the samples actually cover, so a filling window and a full one both read the true rate. A time window

@@ -78,9 +78,9 @@ b8e6dee (reviewer's fix, rate() bias) — VERIFIED INDEPENDENTLY AND ENDORSED. I
   EXTRAPOLATION — two samples 1s apart in a "1m" window scale their local slope ×60. Unbiased where
   the old formula was biased, but higher variance until the window covers T; the guide's "scaled from
   however much of the minute the samples actually cover" is the honest disclosure of exactly that.
-F2 (count-window aggregates hold indefinitely after the last contributing sample) — awaiting the
-  owner's pick of the review's three options; recommendation from both sessions is option 1 (say it
-  plainly in the docs; D-W3 already steers rate-sensitive use to time windows).
+F2 (count-window aggregates hold indefinitely after the last contributing sample) — RESOLVED: the
+  owner chose option 1. Disclosed plainly in graphs.md and the changelog; recorded in the spec as
+  D-W2b. No staleness rule invented; time windows remain the steer when staleness matters.
 
 ================================================================================
 2. DECISIONS BEYOND THE SPEC'S LETTER (flag these in review)
