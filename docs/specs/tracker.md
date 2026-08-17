@@ -288,6 +288,21 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
 
 ## M20 · Project profiles — ☑ SHIPPED (2026-08-17)
 _Brief: `docs/handoff/completed/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles.md` (O1–O4 resolved)._
+- [M20.5] ☐ **Project artifact pointers — offer, never act** (owner-requested 2026-08-17, revisits O3
+  with the surprise removed). The profile MAY carry optional `graphml=<relative>` and
+  `logDir=<relative>` / `logGlob=` entries; on open/switch the analyser **asks** — "Open this
+  project's topology (and latest log)?" — the same ask-don't-act gate as auto-detect. Missing files
+  ignored silently (never-fail rule); a stale graphml is caught by the existing build-mismatch check,
+  which is what makes pointing at build output safe. Rationale for the original exclusion stands for
+  *unasked* reopening; this is the offered middle path. Bundle synergy: M19's bundle names exactly
+  these artifacts — with M20.5 the bundle profile carries them natively instead of via README prose.
+- [B-M20-3] ☐ **BUG (owner-confirmed 2026-08-17): verb-created graphs bypass project auto-persist.**
+  With a project ACTIVE, three named graphs created via the `graph` verb did not land in the project
+  file (`graph.count=0` in maker-fxoc's profile). The M20 brief warned exactly this: persistence must
+  hang off the `onConfigChanged()` funnel, not dialog-close — either the verb path skips the funnel or
+  graph writes miss the project tier. Reproduce: activate a project → `analyser_graph` a named graph →
+  inspect the profile file. Fix + a regression test that creates a graph via the DISPATCHER (not the
+  UI) and asserts the active profile file gains it.
 - [M20.4] ☑ **Docs — "Working across projects"**, plus the harness work the screenshots needed.
   New user-guide page (nav + a cross-reference from Sharing setups, which now explains merge-vs-open).
   Says *why* a committed profile is safe: the key is not filtered out, it was **never in the project
