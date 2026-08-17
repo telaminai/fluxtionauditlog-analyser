@@ -5,6 +5,7 @@ import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
 import telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace;
 import telamin.fluxtion.audit.analyser.analyser.topology.EntryPointResolver;
+import telamin.fluxtion.audit.analyser.analyser.topology.FocusStack;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
 import telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout;
 import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
@@ -55,7 +56,7 @@ public final class TopologyPanel extends JPanel {
 
     private final TopologyIndex index = new TopologyIndex(null, null);
     private final javax.swing.JCheckBox scaffoldingBox = new javax.swing.JCheckBox("Scaffolding", false);
-    private final javax.swing.JToggleButton focusButton = new javax.swing.JToggleButton("Focus");
+    private final javax.swing.JButton focusButton = new javax.swing.JButton("Focus");
     private SourcePanel embeddedSource;
     private final javax.swing.JToggleButton sourceButton = new javax.swing.JToggleButton("Source");
     private final javax.swing.JToggleButton syncButton = new javax.swing.JToggleButton("Sync", true);
@@ -71,6 +72,11 @@ public final class TopologyPanel extends JPanel {
     /** Clicked nodes — more than one when Cmd/Ctrl-clicked. */
     private final java.util.LinkedHashSet<String> selection = new java.util.LinkedHashSet<>();
     private TopologyFocus.Scope scope = TopologyFocus.Scope.NODE;
+    /** Focus as a nesting FILTER (M27): the top context is the world; dimming never exits it. */
+    private FocusStack focusStack = new FocusStack(null);
+    /** Clickable breadcrumb of the context stack; empty (hidden) at the full graph. */
+    private final javax.swing.JPanel crumbBar = new javax.swing.JPanel(
+            new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 0));
     /** The node set currently laid out — a change to it invalidates the saved zoom and pan. */
     private java.util.Set<String> shownNodes = java.util.Set.of();
 
@@ -114,11 +120,14 @@ public final class TopologyPanel extends JPanel {
                 + "and none of your application.");
         scaffoldingBox.addActionListener(e -> applyView());
         bar.add(scaffoldingBox);
-        focusButton.setToolTipText("Show only the selection and its scope (F). Off, the scope is dimmed "
-                + "rather than hidden.");
-        focusButton.addActionListener(e -> applyView());
+        focusButton.setToolTipText("Filter the view to the selection's scope (F). The filtered graph "
+                + "becomes the whole graph — click a node to explore within it; Esc steps back out, "
+                + "Show all returns to the full graph.");
+        focusButton.addActionListener(e -> pushFocus());
         bar.add(focusButton);
         bar.add(button("Show all", this::showAll));
+        crumbBar.setOpaque(false);
+        bar.add(crumbBar);
         sourceButton.setToolTipText("Show the source beside the graph (Enter on a selected node)");
         sourceButton.setEnabled(false);
         sourceButton.addActionListener(e -> showSourcePane(sourceButton.isSelected()));
@@ -218,12 +227,17 @@ public final class TopologyPanel extends JPanel {
                 if (canvas.selected() != null) openSource(canvas.selected());
             }
         });
-        keys.put(javax.swing.KeyStroke.getKeyStroke('F'), "focus-toggle");
-        keys.put(javax.swing.KeyStroke.getKeyStroke('f'), "focus-toggle");
-        actions.put("focus-toggle", new javax.swing.AbstractAction() {
+        keys.put(javax.swing.KeyStroke.getKeyStroke('F'), "focus-push");
+        keys.put(javax.swing.KeyStroke.getKeyStroke('f'), "focus-push");
+        actions.put("focus-push", new javax.swing.AbstractAction() {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) {
-                focusButton.setSelected(!focusButton.isSelected());
-                applyView();
+                pushFocus();
+            }
+        });
+        keys.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0), "focus-pop");
+        actions.put("focus-pop", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                popFocus();
             }
         });
         keys.put(javax.swing.KeyStroke.getKeyStroke(']'), "step-next");
@@ -253,12 +267,65 @@ public final class TopologyPanel extends JPanel {
     }
 
     /**
-     * Back to the whole graph, undimmed: clears the selection and the focus. Clicking empty canvas does
-     * the same, but only if you know it does — an explicit way out matters more than an implicit one when
-     * the view can hide most of the graph.
+     * Back to the FULL graph, undimmed: pops every focus context, then clears selection and shading.
+     * This is the filter's exit. Clicking empty canvas clears only dimming/selection and stays inside
+     * the current context — filter and dimming never share an exit gesture (M27).
      */
     private void showAll() {
+        focusStack.popToFull();
         clearHighlights();
+        refreshCrumbs();
+    }
+
+    /** Filter the view to the current selection's scope: the context becomes the whole graph (M27). */
+    private void pushFocus() {
+        if (selection.isEmpty()) return;
+        java.util.Set<String> ids = focusStack.expandInWorld(selection, scope);
+        String label = (selection.size() == 1 ? selection.iterator().next() : selection.size() + " nodes")
+                + " · " + scope.label();
+        if (!focusStack.push(ids, label)) return;
+        selection.clear();
+        scope = TopologyFocus.Scope.NODE;   // the cycle restarts inside the new, smaller world
+        canvas.select(null);
+        applyView(false);                   // a different world is a different layout — reframe
+        refreshCrumbs();
+    }
+
+    /** Step back out one context level (Esc). */
+    private void popFocus() {
+        if (!focusStack.pop()) return;
+        applyView(false);
+        refreshCrumbs();
+    }
+
+    /** Rebuild the clickable breadcrumb: All (62) ▸ hedge path (12) ▸ … ; hidden at the full graph. */
+    private void refreshCrumbs() {
+        crumbBar.removeAll();
+        if (!focusStack.atFull()) {
+            java.util.List<FocusStack.Context> levels = focusStack.contextsOldestFirst();
+            crumbBar.add(crumbButton("All (" + fullTopology.nodeCount() + ")", 0));
+            for (int i = 0; i < levels.size(); i++) {
+                crumbBar.add(new javax.swing.JLabel("▸"));
+                FocusStack.Context c = levels.get(i);
+                crumbBar.add(crumbButton(c.label() + " (" + c.ids().size() + ")", i + 1));
+            }
+        }
+        crumbBar.revalidate();
+        crumbBar.repaint();
+    }
+
+    private javax.swing.JButton crumbButton(String text, int depth) {
+        javax.swing.JButton b = new javax.swing.JButton(text);
+        b.setBorderPainted(false);
+        b.setContentAreaFilled(false);
+        b.setFocusable(false);
+        b.setToolTipText(depth == 0 ? "Back to the full graph" : "Back to this context");
+        b.addActionListener(e -> {
+            focusStack.popTo(depth);
+            applyView(false);
+            refreshCrumbs();
+        });
+        return b;
     }
 
     /**
@@ -273,7 +340,6 @@ public final class TopologyPanel extends JPanel {
     private void clearHighlights() {
         selection.clear();
         scope = TopologyFocus.Scope.NODE;
-        focusButton.setSelected(false);
         canvas.select(null);
         shadingCleared = true;
         canvas.setDispatch(List.of(), List.of(), false);
@@ -420,6 +486,8 @@ public final class TopologyPanel extends JPanel {
         }
         loadedFrom = file;
         fullTopology = topology;
+        focusStack = new FocusStack(topology);
+        refreshCrumbs();
         selection.clear();
         scope = TopologyFocus.Scope.NODE;
         canvas.setClassificationTopology(fullTopology);
@@ -451,10 +519,10 @@ public final class TopologyPanel extends JPanel {
         } else {
             selection.clear();
             selection.add(id);
-            // Focused, the scope is a width the user chose — clicking another node means "show me THAT
-            // one at this width", not "collapse to a single box". Unfocused, resetting is harmless
-            // because nothing is hidden, so the cycle starts fresh as it should.
-            if (!focusButton.isSelected()) {
+            // Inside a context the scope is a width the user chose — clicking another node means
+            // "show me THAT one at this width". At the full graph, resetting is harmless because
+            // nothing is filtered, so the cycle starts fresh as it should.
+            if (focusStack.atFull()) {
                 scope = TopologyFocus.Scope.NODE;
             }
         }
@@ -475,11 +543,12 @@ public final class TopologyPanel extends JPanel {
     private void applyView(boolean keepView) {
         java.util.Set<String> scoped = selection.isEmpty()
                 ? null
-                : TopologyFocus.expand(fullTopology, selection, scope);
-        boolean focusing = focusButton.isSelected() && scoped != null;
+                : focusStack.expandInWorld(selection, scope);
 
-        java.util.Set<String> visible =
-                TopologyFocus.visible(fullTopology, scaffoldingBox.isSelected(), focusing ? scoped : null);
+        // the WORLD is the focus context (M27): hiding comes from the filter stack, dimming from the
+        // selection's scope — two different statements, never conflated again
+        java.util.Set<String> visible = TopologyFocus.visible(fullTopology, scaffoldingBox.isSelected(),
+                focusStack.atFull() ? null : focusStack.world());
         // A different node set is a different LAYOUT, so the old zoom and pan address coordinates that no
         // longer exist — keeping them leaves the user staring at empty space where the graph used to be.
         // Preserve the view only while the visible set is unchanged; otherwise reframe.
@@ -487,8 +556,7 @@ public final class TopologyPanel extends JPanel {
         shownNodes = java.util.Set.copyOf(visible);
         canvas.setClassificationTopology(fullTopology);
         canvas.setTopology(fullTopology.subgraph(visible), keepView && sameNodes);
-        // focusing already removes everything else, so dimming on top of it would say the same thing twice
-        canvas.setEmphasis(focusing || scoped == null ? java.util.Set.of() : scoped);
+        canvas.setEmphasis(scoped == null ? java.util.Set.of() : scoped);
         canvas.setSelectedNodes(selection);
         index.setSelection(selection);
 
@@ -549,7 +617,8 @@ public final class TopologyPanel extends JPanel {
                         : selection.size() + " selected")
           .append(" · ").append(scope.label())
           .append(" · ").append(scoped == null ? 0 : scoped.size()).append(" node(s)");
-        if (!focusButton.isSelected()) sb.append(" · click again to widen");
+        sb.append(" · click again to widen");
+        if (!focusStack.atFull()) sb.append(" · within ").append(focusStack.world().size()).append("-node context");
         scopePart = sb.toString();
     }
 
@@ -574,6 +643,15 @@ public final class TopologyPanel extends JPanel {
         int byFocus = hidden - (scaffoldingBox.isSelected() ? 0 : Scaffolding.count(fullTopology));
         if (byFocus > 0) parts.add(byFocus + " outside the focus");
         if (parts.isEmpty()) parts.add(hidden + " node(s) hidden");
+        // boundary honesty (M27): a context must never quietly misrepresent a propagation as contained.
+        // The shading is computed on the full graph; if the shown cycle ran through nodes this context
+        // cannot show, say so in words right where the person is reading.
+        if (!focusStack.atFull() && !cycle.isEmpty()) {
+            java.util.Set<String> ran = new java.util.LinkedHashSet<>();
+            for (NodeLog n : cycle) ran.add(n.instanceId());
+            int outside = focusStack.outsideWorld(ran).size();
+            if (outside > 0) parts.add(outside + " node(s) of this cycle ran OUTSIDE this view");
+        }
         return "   [" + String.join(", ", parts) + "]";
     }
 
@@ -661,10 +739,10 @@ public final class TopologyPanel extends JPanel {
         }
         selection.clear();
         selection.add(id);
-        // the same scope rule the mouse path uses — a focused width is a deliberate choice and survives
-        // a new selection; unfocused, the cycle starts fresh. Two paths with two rules is how a scripted
-        // session and a hand-driven one stop agreeing.
-        if (!focusButton.isSelected()) {
+        // the same scope rule the mouse path uses — inside a context the width is a deliberate choice
+        // and survives a new selection; at the full graph the cycle starts fresh. Two paths with two
+        // rules is how a scripted session and a hand-driven one stop agreeing.
+        if (focusStack.atFull()) {
             scope = TopologyFocus.Scope.NODE;
         }
         canvas.select(id);
@@ -703,8 +781,24 @@ public final class TopologyPanel extends JPanel {
     }
 
     public void setFocus(boolean on) {
-        focusButton.setSelected(on);
-        applyView();
+        if (on) {
+            pushFocus();
+        } else {
+            focusStack.popToFull();
+            applyView(false);
+            refreshCrumbs();
+        }
+    }
+
+    /** Step back out of focus contexts: one level, or all of them. The verb's {@code pop}. */
+    public void popFocus(boolean toFull) {
+        if (toFull) {
+            focusStack.popToFull();
+        } else if (!focusStack.pop()) {
+            return;
+        }
+        applyView(false);
+        refreshCrumbs();
     }
 
     public void setScaffoldingVisible(boolean on) {
@@ -783,7 +877,9 @@ public final class TopologyPanel extends JPanel {
         out.put("currentNode", cursor.currentInstanceId());
         out.put("selected", List.copyOf(selection));
         out.put("scope", scope.name().toLowerCase(java.util.Locale.ROOT));
-        out.put("focus", focusButton.isSelected());
+        out.put("focus", !focusStack.atFull());
+        out.put("context", focusStack.breadcrumb());
+        out.put("contextDepth", focusStack.depth());
         out.put("scaffolding", scaffoldingBox.isSelected());
         out.put("syncSource", syncButton.isSelected());
         out.put("visibleNodes", canvas.topology().nodeCount());
