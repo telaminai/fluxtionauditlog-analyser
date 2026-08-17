@@ -44,8 +44,12 @@ askMakerOrder.price − bidMakerOrder.price
   `delta(x)` (change since the previous sample), and `mean` / `sum` / `rollingMin` / `rollingMax`
   `(x, N)` over the last N samples. A window fills before it speaks (no point until N samples), a
   non-numeric sample leaves it unchanged, and it counts **samples, not time** — a quiet market makes
-  a count window span more wall-clock. Zooming the time slider never changes a window's contents;
-  only changing the dimension/text filter re-extracts.
+  a count window span more wall-clock, so for anything rate-sensitive prefer the **time-windowed
+  forms**: `mean` / `sum` / `rollingMin` / `rollingMax` `(x, "5m")` (durations: `"250ms"`, `"5s"`,
+  `"2m"`, `"1h"`) and `rate(x, "1m")` — the change over the last minute. A time window needs no fill
+  (one sample answers; a `rate` needs two), and old samples age out against each record's own clock.
+  Zooming the time slider never changes a window's contents; only changing the dimension/text filter
+  re-extracts.
 
   Conditionals and windows compose, and the order chooses the meaning:
 

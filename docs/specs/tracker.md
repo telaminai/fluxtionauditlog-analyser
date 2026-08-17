@@ -900,8 +900,9 @@ enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the sp
   `lag/delta/mean/sum/rollingMin/rollingMax(x, N)` (min/max overload REJECTED in review: breaks
   `min(4, 2)`); D-W1/2/3 semantics pinned by test, incl. gate-output vs gate-input and
   `delta(x)+delta(x) == 2*delta(x)`.
-- [M28.4] ☐ **Time windows** — duration literals (`"5m"`), `rate`, the D-W3 arrival-rate steer;
-  docs (incl. the gate-output/gate-input table) + changelog.
+- [M28.4] ☑ **Time windows** *(shipped on `feat/m28-expr-conditionals`)* — duration literals
+  (`"5m"`), `rate`, the D-W3 arrival-rate steer; docs (incl. the gate-output/gate-input table) +
+  changelog.
 - [M28.5] ☐ **Guide lines (P1)** — independent of C/W, schedulable any time; persisted graph state
   → share-surface checklist (the F1 lesson).
 - [M28.6] ☐ **Condition bands (P2)** — after M28.1; share-surface checklist.

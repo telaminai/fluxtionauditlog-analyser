@@ -93,6 +93,9 @@ public final class Evaluator {
                 };
             }
             case Expr.Call c -> compileCall(c);
+            // unreachable as a value: the parser rejects a Dur outside a window-arg position, and
+            // window nodes read their Dur from the AST, never by evaluating it
+            case Expr.Dur d -> ctx -> Double.NaN;
         };
     }
 
@@ -143,7 +146,10 @@ public final class Evaluator {
                 double x = args.get(0).eval(ctx);
                 return Double.isNaN(x) ? Double.NaN : (x == 0.0 ? 1.0 : 0.0);
             };
-            case "lag", "delta", "mean", "sum", "rollingMin", "rollingMax" -> compileWindow(c, args.get(0));
+            case "lag", "delta", "mean", "sum", "rollingMin", "rollingMax", "rate" ->
+                    c.args().size() > 1 && c.args().get(1) instanceof Expr.Dur dur
+                            ? compileTimeWindow(c, args.get(0), dur.millis())
+                            : compileWindow(c, args.get(0));
             default -> ctx -> Double.NaN;
         };
     }
@@ -222,6 +228,68 @@ public final class Evaluator {
                     }
                     if (count < n) return Double.NaN;
                     return deque.peekFirst()[1];
+                }
+            };
+            default -> ctx -> Double.NaN;
+        };
+    }
+
+    // ---- time windows (M28.4) ------------------------------------------------------------------
+    //
+    // The window is "accepted samples with logTime > now − T", pruned against the CURRENT record's
+    // time on every evaluation — so old samples fall out even on records that contribute nothing.
+    // Unlike count windows there is no fill requirement (the duration defines the window); empty →
+    // NaN → no point. rate() needs two samples — a rate from one observation is unknown, not zero.
+
+    private Node compileTimeWindow(Expr.Call c, Node arg, long windowMillis) {
+        stateSlots++;
+        return switch (c.fn()) {
+            case "mean", "sum" -> new Node() {
+                private final java.util.ArrayDeque<double[]> samples = new java.util.ArrayDeque<>();   // {time, value}
+                private double runningSum;
+                private final boolean mean = c.fn().equals("mean");
+                @Override public double eval(EvalContext ctx) {
+                    double x = arg.eval(ctx);
+                    if (Double.isFinite(x)) {
+                        samples.addLast(new double[]{ctx.logTime(), x});
+                        runningSum += x;
+                    }
+                    while (!samples.isEmpty() && samples.peekFirst()[0] <= ctx.logTime() - windowMillis) {
+                        runningSum -= samples.pollFirst()[1];
+                    }
+                    if (samples.isEmpty()) return Double.NaN;
+                    return mean ? runningSum / samples.size() : runningSum;
+                }
+            };
+            case "rollingMin", "rollingMax" -> new Node() {
+                // monotonic deque of {time, value}, pruned by time — O(1) amortised
+                private final java.util.ArrayDeque<double[]> deque = new java.util.ArrayDeque<>();
+                private final boolean min = c.fn().equals("rollingMin");
+                @Override public double eval(EvalContext ctx) {
+                    double x = arg.eval(ctx);
+                    if (Double.isFinite(x)) {
+                        while (!deque.isEmpty()
+                                && (min ? deque.peekLast()[1] >= x : deque.peekLast()[1] <= x)) {
+                            deque.pollLast();
+                        }
+                        deque.addLast(new double[]{ctx.logTime(), x});
+                    }
+                    while (!deque.isEmpty() && deque.peekFirst()[0] <= ctx.logTime() - windowMillis) {
+                        deque.pollFirst();
+                    }
+                    return deque.isEmpty() ? Double.NaN : deque.peekFirst()[1];
+                }
+            };
+            case "rate" -> new Node() {
+                private final java.util.ArrayDeque<double[]> samples = new java.util.ArrayDeque<>();   // {time, value}
+                @Override public double eval(EvalContext ctx) {
+                    double x = arg.eval(ctx);
+                    if (Double.isFinite(x)) samples.addLast(new double[]{ctx.logTime(), x});
+                    while (!samples.isEmpty() && samples.peekFirst()[0] <= ctx.logTime() - windowMillis) {
+                        samples.pollFirst();
+                    }
+                    if (samples.size() < 2) return Double.NaN;   // one observation has no rate
+                    return samples.peekLast()[1] - samples.peekFirst()[1];   // change over the last T
                 }
             };
             default -> ctx -> Double.NaN;

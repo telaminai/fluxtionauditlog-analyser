@@ -20,7 +20,7 @@ import java.util.Set;
  * an LLM — can fix it in one round. At eval time a missing ref, or division by zero, yields {@code NaN}
  * (the derived point is then omitted — the existing "NaN is no data point" semantics).
  */
-public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Expr.Cmp, Expr.Call {
+public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Expr.Cmp, Expr.Call, Expr.Dur {
 
     /**
      * Compile a per-scan evaluator (spec M28 W0). There is deliberately NO per-record eval shortcut
@@ -43,6 +43,14 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
     // ---- AST ------------------------------------------------------------------------------------
 
     record Num(double value) implements Expr {
+        @Override public void collectRefs(Set<GraphKey> out) { }
+    }
+
+    /**
+     * A duration literal ({@code "250ms"}, {@code "5s"}, {@code "2m"}, {@code "1h"}) — valid ONLY as a
+     * window argument (M28.4); anywhere else is a parse error, enforced by the post-parse walk.
+     */
+    record Dur(long millis, String literal) implements Expr {
         @Override public void collectRefs(Set<GraphKey> out) { }
     }
 
@@ -73,10 +81,10 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
     // ---- parsing --------------------------------------------------------------------------------
 
     Set<String> FUNCTIONS = Set.of("abs", "min", "max", "if", "and", "or", "not",
-            "lag", "delta", "mean", "sum", "rollingMin", "rollingMax");
+            "lag", "delta", "mean", "sum", "rollingMin", "rollingMax", "rate");
 
-    /** Rolling-window functions (M28.3): stateful, count-windowed; evaluated by the per-scan mirror. */
-    Set<String> WINDOW_FUNCTIONS = Set.of("lag", "delta", "mean", "sum", "rollingMin", "rollingMax");
+    /** Rolling-window functions (M28.3/.4): stateful; evaluated by the per-scan mirror. */
+    Set<String> WINDOW_FUNCTIONS = Set.of("lag", "delta", "mean", "sum", "rollingMin", "rollingMax", "rate");
 
     /** Sanity bound on a count window — beyond this the "window" is really a whole-series statistic. */
     int MAX_WINDOW = 1_000_000;
@@ -114,7 +122,30 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
             Expr e = parseComparison();
             Tok t = peek();
             if (t.type != T.END) throw err("unexpected '" + t.text + "' at position " + t.at);
+            rejectStrayDurations(e, false);
             return e;
+        }
+
+        /** A duration literal is a window argument, not a value — {@code "5m" + 1} must not parse. */
+        private void rejectStrayDurations(Expr e, boolean windowArgPosition) {
+            switch (e) {
+                case Dur d -> {
+                    if (!windowArgPosition) {
+                        throw err("a duration literal (\"" + d.literal() + "\") is only valid as the "
+                                + "window of " + WINDOW_FUNCTIONS);
+                    }
+                }
+                case Neg g -> rejectStrayDurations(g.e(), false);
+                case Bin b -> { rejectStrayDurations(b.left(), false); rejectStrayDurations(b.right(), false); }
+                case Cmp c -> { rejectStrayDurations(c.left(), false); rejectStrayDurations(c.right(), false); }
+                case Call c -> {
+                    boolean windowed = WINDOW_FUNCTIONS.contains(c.fn());
+                    for (int i = 0; i < c.args().size(); i++) {
+                        rejectStrayDurations(c.args().get(i), windowed && i == 1);
+                    }
+                }
+                default -> { }
+            }
         }
 
         private static final Set<String> CMP_OPS = Set.of(">", "<", ">=", "<=", "==", "!=");
@@ -173,6 +204,7 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                     return resolveRef(t);
                 }
                 case REF -> { next(); return resolveRef(t); }   // backtick-quoted ref
+                case STRING -> { next(); return duration(t); }
                 case END -> throw err("unexpected end of expression");
                 default -> throw err("unexpected '" + t.text + "' at position " + t.at);
             }
@@ -202,7 +234,23 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
             if (name.text.equals("delta") && n != 1) throw err("delta() takes exactly 1 argument, got " + n);
             if (WINDOW_FUNCTIONS.contains(name.text) && !name.text.equals("delta")) {
                 if (n != 2) throw err(name.text + "() takes (value, window), got " + n + " argument(s)");
-                windowSize(name.text, args.get(1));   // validated at parse, not discovered at eval
+                Expr w = args.get(1);
+                boolean count = w instanceof Num num && num.value() == Math.floor(num.value())
+                        && num.value() >= 1 && num.value() <= MAX_WINDOW;
+                boolean time = w instanceof Dur;
+                if (name.text.equals("lag") && !count) {
+                    throw err("lag() window must be an integer literal between 1 and " + MAX_WINDOW
+                            + " — \"N samples ago\" is a count, not a time");
+                }
+                if (name.text.equals("rate") && !time) {
+                    throw err("rate() window must be a duration literal (\"250ms\", \"5s\", \"2m\", "
+                            + "\"1h\") — a rate is change per TIME");
+                }
+                if (!count && !time) {
+                    throw err(name.text + "() window must be an integer literal between 1 and "
+                            + MAX_WINDOW + " (samples) or a duration literal (\"250ms\", \"5s\", "
+                            + "\"2m\", \"1h\")");
+                }
             }
             return new Call(name.text, args);
         }
@@ -243,13 +291,21 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
             next();
         }
 
-        private int windowSize(String fn, Expr arg) {
-            if (arg instanceof Num num && num.value() == Math.floor(num.value())
-                    && num.value() >= 1 && num.value() <= MAX_WINDOW) {
-                return (int) num.value();
+        private Expr duration(Tok t) {
+            var m = java.util.regex.Pattern.compile("(\\d+)(ms|s|m|h)").matcher(t.text.trim());
+            if (!m.matches()) {
+                throw err("'\"" + t.text + "\"' is not a duration — use e.g. \"250ms\", \"5s\", "
+                        + "\"2m\", \"1h\"");
             }
-            throw err(fn + "() window must be an integer literal between 1 and " + MAX_WINDOW
-                    + " (a count of samples)");
+            long v = Long.parseLong(m.group(1));
+            long millis = switch (m.group(2)) {
+                case "ms" -> v;
+                case "s" -> v * 1_000L;
+                case "m" -> v * 60_000L;
+                default -> v * 3_600_000L;
+            };
+            if (millis < 1) throw err("a duration window must be positive, got \"" + t.text + "\"");
+            return new Dur(millis, t.text.trim());
         }
 
         private IllegalArgumentException err(String msg) {
@@ -259,7 +315,7 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
 
     // ---- lexer ----------------------------------------------------------------------------------
 
-    enum T { NUMBER, IDENT, REF, OP, LPAREN, RPAREN, COMMA, END }
+    enum T { NUMBER, IDENT, REF, STRING, OP, LPAREN, RPAREN, COMMA, END }
 
     record Tok(T type, String text, int at) { }
 
@@ -284,6 +340,11 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                 }
                 out.add(new Tok(T.IDENT, s.substring(i, j), i));
                 i = j;
+            } else if (c == '"') {                         // string literal — duration windows ("5m")
+                int j = s.indexOf('"', i + 1);
+                if (j < 0) throw new IllegalArgumentException("unterminated string at position " + i + " in \"" + s + "\"");
+                out.add(new Tok(T.STRING, s.substring(i + 1, j), i));
+                i = j + 1;
             } else if (c == '`') {                         // backtick-quoted ref (escape hatch for odd keys)
                 int j = s.indexOf('`', i + 1);
                 if (j < 0) throw new IllegalArgumentException("unterminated `ref` at position " + i + " in \"" + s + "\"");

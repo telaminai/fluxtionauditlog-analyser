@@ -18,7 +18,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   speak, a non-numeric sample leaves a window unchanged (so a rolling mean survives a no-quote gap
   instead of erasing its history), and conditionals compose: `mean(if(c, x), 10)` is the mean of the
   last 10 samples where `c` held; `if(c, mean(x, 10))` shows the all-samples mean only while `c`
-  holds.
+  holds. Time-windowed forms take a duration instead of a count — `mean(x, "5m")`, `rate(x, "1m")`
+  (change over the last minute) — and age samples out against each record's own clock, which is the
+  right tool when record arrival rate varies.
 
 ## [1.3.0] - 2026-08-17
 

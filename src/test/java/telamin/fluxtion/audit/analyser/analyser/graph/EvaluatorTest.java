@@ -126,6 +126,51 @@ class EvaluatorTest {
         assertEquals(0, Expr.parse("a.x + 1", Set.of(X)).newEvaluator().stateSlotCount());
     }
 
+    // ---- time windows (M28.4) --------------------------------------------------------------------
+
+    /** Feed (time, sample) pairs in order and collect results. */
+    private static double[] feedTimed(String expr, long[] times, double... samples) {
+        Evaluator ev = Expr.parse(expr, Set.of(X)).newEvaluator();
+        double[] out = new double[samples.length];
+        for (int i = 0; i < samples.length; i++) out[i] = ev.eval(times[i], Map.of(X, samples[i]));
+        return out;
+    }
+
+    @Test
+    void timeWindowsPruneByTheCurrentRecordsClock() {
+        // samples at t=0s, 2s, 63s with a "1m" window: the first two fall out by the third
+        double[] r = feedTimed("mean(a.x, \"1m\")", new long[]{0, 2_000, 63_000}, 10, 20, 90);
+        assertEquals(10.0, r[0], 1e-9, "a time window has no fill requirement — one sample answers");
+        assertEquals(15.0, r[1], 1e-9);
+        assertEquals(90.0, r[2], 1e-9, "everything older than now − 1m fell out");
+    }
+
+    @Test
+    void timeWindowedMinPrunesOldExtremes() {
+        double[] r = feedTimed("rollingMin(a.x, \"5s\")", new long[]{0, 1_000, 7_000}, 3, 8, 9);
+        assertEquals(3.0, r[1], 1e-9);
+        assertEquals(9.0, r[2], 1e-9, "the 3 (t=0) and 8 (t=1s) are outside now − 5s");
+    }
+
+    @Test
+    void rateIsChangeOverTheWindow_andOneSampleHasNoRate() {
+        double[] r = feedTimed("rate(a.x, \"1m\")", new long[]{0, 30_000, 60_500}, 100, 130, 190);
+        assertTrue(Double.isNaN(r[0]), "a rate from one observation is unknown, not zero");
+        assertEquals(30.0, r[1], 1e-9, "130 - 100 within the last minute");
+        assertEquals(60.0, r[2], 1e-9, "the t=0 sample aged out; 190 - 130");
+    }
+
+    @Test
+    void durationLiteralsAreWindowsOnly_andRateRefusesACount() {
+        assertThrows(IllegalArgumentException.class, () -> Expr.parse("\"5m\" + 1", Set.of()),
+                "a duration is not a value");
+        assertThrows(IllegalArgumentException.class, () -> Expr.parse("rate(a.x, 5)", Set.of(X)),
+                "a rate is change per TIME — a count window is refused");
+        assertThrows(IllegalArgumentException.class, () -> Expr.parse("lag(a.x, \"5m\")", Set.of(X)),
+                "N samples ago is a count — a time window is refused");
+        assertThrows(IllegalArgumentException.class, () -> Expr.parse("mean(a.x, \"5 furlongs\")", Set.of(X)));
+    }
+
     @Test
     void windowSizeMustBeAPositiveIntegerLiteral() {
         for (String bad : new String[]{"mean(a.x)", "mean(a.x, 2.5)", "mean(a.x, 0)",
