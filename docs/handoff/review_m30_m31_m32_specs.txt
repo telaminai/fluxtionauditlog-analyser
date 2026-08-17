@@ -1,0 +1,200 @@
+REVIEW — M30 (rolled log sets) · M31 (log-source plugins) · M32 (marker series)
+Specs: spec-rolled-logs.md · spec-log-source-plugins.md · spec-marker-series.md (all PROPOSED v1)
+Date: 2026-08-17 · Reviewed against main @ 8fe6bdc · Reviewer: this session (the other session authored)
+
+VERDICT: all three adopt, with **one confirmed defect** (M30 D-R6's mechanism contradicts its own
+rationale — measured), **two unstated gaps that will surface in the first slice** (M30 D-R1's head
+probe, M31's classloader delegation), and **one scope severance** (M32's mouseover). Plus a
+cross-cutting sequencing point the specs' own note only half covers.
+
+All three are well-shaped: decisions posed with rejected alternatives, non-goals that bite, acceptance
+criteria that name the decision each one demonstrates. The standard is holding.
+
+================================================================================
+M30 — ROLLED LOG SETS
+================================================================================
+The principle ("names discover; content orders; violations are reported, never repaired") is the
+strongest sentence in the three documents. D-R1 dissolves the logrotate-vs-incrementing ambiguity
+instead of adding a toggle; D-R3's refusal to re-sort is never-fabricate applied to file order, and
+the observation that a backwards timestamp IS a finding is right.
+
+R1  **D-R6 IS SELF-CONTRADICTORY — CONFIRMED AGAINST SOURCE.** The decision says the composite
+    delegates to "one backend per file, each chosen by the existing size threshold", and then gives as
+    its rationale "a 6 × 400 MB set must not need 2.4 GB of heap because each member individually sat
+    under the heap threshold". The stated mechanism produces exactly the outcome the rationale
+    forbids.
+
+    Measured: `LogStores.open(Path, int thresholdMb)` decides per file from `Files.size(path)` —
+    `size <= thresholdBytes → HeapLogStore`, else `MappedLogStore`. Six 400 MB files under a 512 MB
+    threshold therefore give six heap stores and the 2.4 GB the rationale rules out.
+
+    Fix is a one-line decision change, but it must be made explicitly because it is a real policy
+    choice: either (a) the threshold applies to the **set total** (simplest, and matches the
+    rationale), or (b) the composite spends a heap budget in content order and maps the remainder
+    (better behaviour, more machinery). I'd take (a) for M30.2 and record (b) as the follow-up.
+    Whichever, D-R6's text and its rationale must agree — as written, an implementer reading the
+    mechanism ships the bug the rationale warns about.
+
+R2  **D-R1's HEAD PROBE ASSUMES THE FIRST RECORD HAS A TIME. IT NEED NOT.** `LogRecord.logTime()`
+    returns a **`Long`**, and shipped code guards it in four places (`SeriesExtractor:38, 85, 98`,
+    `SeriesScan:88` — all `if (logTime == null) continue`). Untimed records are ordinary, and my own
+    M26 review exercised a log where *no* row carried a time (`rowAtOrBefore` returns −1, with a
+    `firstTimed` fallback built for exactly this).
+
+    So "the load order is decided by each file's first record `logTime`" is underspecified in two
+    ways the first slice will hit:
+      - the probe must scan **forward to the first timed record**, not read record 0 — otherwise a
+        file whose header records are untimed sorts by a null;
+      - a file with **no timed record at all** has no orderable position. Say what happens. Options:
+        refuse the set naming that file, or place it by name with a loud note in the
+        `TimeOrderReport`. Silence is the one unacceptable answer, and D-R3's own logic says the
+        report is where this belongs.
+    Same point applies to the tail probe used for cross-file continuity.
+
+R3  **State which field the checks read.** D-R3 says `logTime`, which is right — but the asks file
+    records (UP-FLX-10, measured) that **an exported call is stamped `eventTime: -1`**. A future
+    implementer reaching for "the record's time" could pick `eventTime` and generate a violation
+    report full of false positives on any graph with an exported service. One clause: the checks read
+    `logTime`, and `eventTime` sentinels are never consulted.
+
+Endorsed without change: D-R2 (recordIndex global, byteOffset stays a real offset into a real file —
+the "a synthetic concatenated offset would be a number that exists in no file on disk" rejection is
+exactly right and protects the copy-prompt's grep-it-yourself promise), D-R4's loud degradation, and
+D-R5's offer-never-assume, which correctly reuses M20.5's rule.
+
+================================================================================
+M31 — LOG-SOURCE PLUGINS
+================================================================================
+D-P1 (the SPI hands over RECORDS, not stores) is the correct waist, and the rejection of `LogStore`
+as the SPI — "every core improvement would become a breaking plugin-API change" — is proven by M30
+landing a per-record file id in the same fortnight. D-P2's canonical text rendering is the decision
+that saves this from being a rewrite, and its honest consequence (for non-text containers the text is
+a rendering; byte anchors are a text-container feature) is stated rather than discovered.
+
+P1  **THE CLASSLOADER DELEGATION POLICY IS UNSTATED, AND ACCEPTANCE 5 CANNOT BE MET WITHOUT IT.**
+    D-P3 says "isolated per-plugin classloader" and acceptance 5 requires two plugins with conflicting
+    transitive dependencies to coexist. Isolation alone does not achieve that — it *breaks* the SPI.
+    If a plugin loads its own copy of the SPI types, the core receives objects whose classes are not
+    the core's classes, and every hand-off fails with `ClassCastException` / `LinkageError`. This is
+    the single most common way plugin isolation is got wrong.
+
+    The spec needs the delegation rule as a decision: **parent-first for the SPI package (and JDK),
+    child-first for everything else.** That is what makes "your Chronicle version must not fight
+    another's" true *and* keeps the record hand-off typed. It also constrains D-P1's SPI artifact:
+    once `analyser-reader-spi` is parent-loaded it is a compatibility surface with real versioning
+    obligations — worth saying in M31.1's slice text, because "tiny separate artifact" understates
+    what it becomes.
+
+P2  **S3 IS UNMENTIONED, AND IT IS AN EXISTING NON-LOCAL SOURCE.** The analyser already opens
+    `s3://` objects (streamed to a temp file — documented in `projects.md`, and it is why
+    `ProjectAutoDetect` refuses to treat a temp directory as a project). M31 draws a boundary around
+    "containers" without saying which side S3 falls on. Three defensible answers — S3 stays core
+    because it is a *transport* not a *container*; S3 becomes the second built-in reader alongside
+    text; S3 is the reference out-of-tree plugin — but the spec should pick one, because the first
+    person to write a reader will ask, and because "transport vs container" is exactly the
+    distinction D-P1's waist depends on.
+
+P3  **Two mechanisms will exist for "can this follow?"** M30 fixes `supportsFollow()` false on the
+    composite; M31 introduces a `follow` capability flag. One of them should subsume the other —
+    naturally M31's, with the composite reporting `follow=false` through the same flag. Cheap now,
+    two sources of truth later. (Related: a rolled *set* of a plugin source is a combination neither
+    spec addresses; not a v1 requirement, but worth one line in the non-goals so it is a decision
+    rather than an oversight.)
+
+Endorsed: D-P3's insistence on naming plugin loading as **arbitrary code execution** in the spec, the
+Settings page and the FAQ, and its rejection of sandboxing on the honest grounds that a real sandbox
+is a process boundary (with D-P5 recording that as the fallback rather than pretending it does not
+exist). "The analyser without plugins is byte-identical to today's" is the right acceptance bar.
+
+================================================================================
+M32 — MARKER SERIES
+================================================================================
+D-M5 is the best idea in the three specs: making the rug strip a marker series with `y: "axis"` means
+M28's P3 **falls out** of a model built for something else, rather than being a second feature with a
+second renderer and a second persistence shape. D-M2's "the record IS the queryable form; the marker
+is a signpost to it" is the sentence that keeps this from becoming a string-typed column store, and
+D-M3's count glyph is M26's cap-honesty rule drawn instead of written.
+
+M1  **SEVER THE POINT-SNAPPED MOUSEOVER FROM THIS MILESTONE.** §C changes the hover behaviour of
+    **every existing chart** — today's tooltip reports cursor coordinates; the spec replaces it with
+    nearest-sample snapping for all series. That is a good change and probably overdue. But it is
+    independent of markers, it regresses a shipped surface if it goes wrong, and it is buried inside
+    M32.2 whose stated risk is glyph rendering.
+
+    This is the same shape as P1/P2 riding M28.4, which review pulled into their own slices for the
+    same reason — and that turned out to matter, because M28.5/.6 carried share-surface obligations
+    nobody had counted. Give the mouseover its own slice, its own changelog line, and its own
+    acceptance; markers then *add* payload to an already-shipped snapping tooltip instead of
+    co-delivering it. Acceptance 6 already reads as a separate feature's acceptance.
+
+M2  **`y: {series: "…"}` HAS NO DANGLING-REFERENCE RULE.** A marker may pin its y to another series
+    *by label*. Labels are mutable: series get removed, renamed, or arrive renamed through a share
+    merge (replace-by-name). The spec does not say what a marker does when its referenced series is
+    gone. Every comparable case in this codebase has a loud-degrade rule — M28.4's `rightAxis`/note
+    warning names a series that isn't on the graph; M29 D-F5 reports "2 of 3 series resolved"; M27's
+    named focuses say how many nodes resolved. Markers need the same sentence, and D-M4 makes it
+    load-bearing: the *spec* is persisted and shared, so a dangling reference will arrive on someone
+    else's machine, not just survive an edit on yours.
+
+M3  Minor: D-M4's disclosure argument is correct as written (a `MarkerSpec` persists key *names*, not
+    values, so it discloses nothing the graph didn't) — but the `label` is free text authored by a
+    human or agent, and labels are the one field that can carry business content into a shared file.
+    Not a blocker; worth the same half-sentence the notes/explanation fields presumably already carry.
+
+================================================================================
+CROSS-CUTTING
+================================================================================
+C1  **THREE MILESTONES ARE EDITING THE ANCHOR MODEL AT ONCE.** M30.2 makes `byteOffset` a (file,
+    offset) pair and adds a per-record file id; M31 gates `byteOffset` behind a capability flag and
+    makes `recordIndex` the only anchor for non-file sources; M32 anchors markers by `recordIndex`
+    and makes click→goto the primary marker affordance. The specs' sequencing note covers only
+    M30.2 ↔ M31.1 ("do not run concurrently"). The wider rule is the useful one: **settle the anchor
+    model once, in M30.2, and have M31 and M32 build on the settled version.** Otherwise three
+    milestones each audit `read`/`goto`/crossings/`context`/copy-prompt separately and the third one
+    reconciles.
+
+C2  Positive, and worth stating so it is preserved deliberately: all three independently converge on
+    **`recordIndex` as the primary anchor and byte offsets as an optional extra**. That convergence
+    is what makes C1 tractable — the disagreements are about what rides *alongside* recordIndex, not
+    about what the anchor is.
+
+C3  M32.4's external-CSV marker source is the only M29 coupling and the spec correctly marks it
+    severable. Good. The reverse link is missing though: M29 §D says "one loader, two consumers —
+    design the loader to return points, not a chart", and M32 is that second consumer arriving. One
+    cross-reference in M29 §D naming M32 would close it.
+
+================================================================================
+ON THE REVIEW OF MY OWN WORK (review_m29v3_round3_asks.txt)
+================================================================================
+F1 accepted, both halves. (a) The coupling IS a decision and should read as one: with the exports
+toggle off — the default — M29.3's verb has no reachable root at all, because chooser grants are
+UI-only. That is the right posture (one file-exchange surface, one opt-in) but a silent one, and the
+first MCP user meets a refusal naming a directory the toggle's name never mentioned. (b) The settings
+label is the consent surface, so widening the FAQ without widening the label would leave the consent
+narrower than the grant. Both belong in M29.3's slice text and acceptance.
+
+F2 accepted — UP-FLX-25 should carry the consumer contract. On landing: `TimeFormat` renders in the
+declared zone, `SeriesScan:212`'s hardcoded `ZoneOffset.UTC` retires for declared logs, M29's echo can
+say "clocks comparable" rather than only showing an offset, and `source: injected` draws a replay
+banner. An ask that says what the consumer will *do* is far more persuasive than one that asks for a
+field.
+
+X1–X3 all accepted; X2 is the sharpest — a rolled set whose members declare **different** time bases
+(millis vs micros, wallClock vs injected) is a louder refusal than any timestamp check, and M31's SPI
+should make `timeBase` a mandatory per-source declaration from day one, since a parquet reader *knows*
+its epoch unit. That would leave plugin sources better-described than the native log until UP-FLX-25
+lands — an irony worth putting in the ask.
+
+================================================================================
+RECOMMENDATION
+================================================================================
+Adopt all three. Before the first slice of each:
+  M30 — fix D-R6 (R1, confirmed defect), specify the head-probe's untimed cases (R2), name the field
+        the checks read (R3).
+  M31 — add the delegation-policy decision (P1), decide where S3 sits (P2), unify the follow flag (P3).
+  M32 — sever the mouseover into its own slice (M1), add the dangling-`y`-series rule (M2).
+None is a scope change; all are decisions the specs currently leave to the implementer, and R1 is the
+one that would otherwise ship as a memory bug with a rationale in the spec saying it shouldn't.
+
+Sequence: M30.1 → M30.2 (anchor model settled) → then M31 and M32 in parallel, M32's external-CSV
+source last.
