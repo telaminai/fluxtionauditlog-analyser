@@ -296,7 +296,7 @@ _Brief: `docs/handoff/completed/handoff_16_aug_2026_2.txt` · Spec: `spec-projec
   which is what makes pointing at build output safe. Rationale for the original exclusion stands for
   *unasked* reopening; this is the offered middle path. Bundle synergy: M19's bundle names exactly
   these artifacts — with M20.5 the bundle profile carries them natively instead of via README prose.
-- [B-M20-3] ☑ **FIXED (feat/b-m20-3-m26-m27): graph persistence ignores the
+- [B-M20-3] ☑ **FIXED (shipped 2026-08-17): graph persistence ignores the
   active project tier — ALL new graphs write to GLOBAL.** With maker-fxoc ACTIVE, four named graphs
   (one UI-created, three verb-created) sit in `~/.fluxtion-analyser/config` (`graph.0..3`) while the
   project file says `graph.count=0`. Not verb-specific: the graph-save path routes to the global store
@@ -844,7 +844,7 @@ design, not a port._
   …) and `applyReadingRhythm()` opens line spacing to 0.18. Swing sets lines at the font's own leading,
   which is most of why dense key/value output reads as a block next to the same content on a web page.
 
-## M27 · Topology focus as a filter context — ☑ ON BRANCH feat/b-m20-3-m26-m27 (awaiting review)
+## M27 · Topology focus as a filter context — ☑ SHIPPED 2026-08-17 (merged; review approved)
 _Design: **[spec-topology-focus.md](spec-topology-focus.md)**. Owner correction to M22's focus model:
 focus is a **filter operation**, not a view toggle — the focused subgraph becomes "the whole graph" for
 every subsequent operation (contexts NEST); node clicks cycle scope within the context; canvas click
@@ -865,21 +865,21 @@ in-flight H4; coordinate._
 - [M27.4] ☑ **Docs** — exploration section rewritten around the filter-context model; harness
   screenshots.
 
-## M26 · Agent-efficiency verbs — ☑ ON BRANCH `feat/b-m20-3-m26-m27` (the analyser computes, the agent concludes)
+## M26 · Agent-efficiency verbs — ☑ SHIPPED 2026-08-17 (merged; review approved) (the analyser computes, the agent concludes)
 _Design: **[spec-agent-efficiency.md](spec-agent-efficiency.md)**. The analyser is an un-metered local
 JVM holding the whole log behind the index; the agent is token-metered — so any question answerable by
 an index/series scan should be a **verb**, not a paged raw read. Every item came from a real friction
 in a production-log MCP session (finding "spread > 0.004" took five hand-anchored reads and manual
 arithmetic; one scan should answer it). All read-only — no change to the FAQ security answer, and
 `FaqSecurityContractTest` must not need touching._
-- [M26.1] ☑ **`series` scan** *(shipped on `feat/b-m20-3-m26-m27`)* — stats + threshold crossings over any key or formula (STRICT/LOCF),
+- [M26.1] ☑ **`series` scan** — stats + threshold crossings over any key or formula (STRICT/LOCF),
   filter-scoped, edge-events with a hard cap and an explicit `truncated` flag, off the EDT. Reuses
   `SeriesExtractor`/`Expr`; auto-publishes over MCP via `VerbSchemas`.
-- [M26.2] ☑ **Time anchors** *(shipped on `feat/b-m20-3-m26-m27`)* — `read {at}` / `goto {at}` resolve epoch millis to the record
+- [M26.2] ☑ **Time anchors** — `read {at}` / `goto {at}` resolve epoch millis to the record
   at-or-before (index binary search); kills records-per-minute estimation arithmetic.
-- [M26.3] ☑ **`read.fields` projection** *(shipped on `feat/b-m20-3-m26-m27`)* — compact `{recordIndex, logTime, values{}}` rows for named
+- [M26.3] ☑ **`read.fields` projection** — compact `{recordIndex, logTime, values{}}` rows for named
   `instanceId.key`s (wildcards ok; last-occurrence semantics); raw text stays the default.
-- [M26.4] ☑ **Echo hardening** *(shipped on `feat/b-m20-3-m26-m27`)* — `graph` warns on a `rightAxis`/note series not in the graph; verbs
+- [M26.4] ☑ **Echo hardening** — `graph` warns on a `rightAxis`/note series not in the graph; verbs
   name ignored parameters in their echoes. Docs + changelog.
 
 ## M28 · Expression conditionals + rolling windows — ☐ PROPOSED (formulas that judge and remember)
