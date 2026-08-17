@@ -898,6 +898,28 @@ enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the sp
 - [M28.4] ☐ **Time windows + plot pairings** — duration literals (`"5m"`), `rate`; threshold guide
   lines (P1) and condition bands (P2) from the spec's plotting survey; docs + changelog.
 
+## M29 · External series — ☐ PROPOSED (plot what the outside world did)
+_Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
+foreign log (FIX to begin with) into a CSV, hands the analyser the file location, and the analyser plots it
+beside the audit-derived series. **The analyser never learns a foreign format** — the agent adapts, the tool
+stays hermetic; spec'd as external timeseries, never as "FIX support". The drawing is free: `Series` is
+`(long[], double[], label)` and `key == null` for derived series is already supported, so a foreign series
+is structurally what a formula series already is — renderer, legend, axes and exports need no change. The
+work is honesty, posed as five decisions for review: the clock domain is **declared, never inferred**
+(D-F1); foreign series are **permanently second-class** — no recordIndex, so no goto/flag/anchors, and
+stamped external in every export (D-F2); **no foreign refs in formulas** until M28's window semantics land
+(D-F3); reads are **confined and their diagnostics sanitised**, the read counterpart to `ExportGuard`
+(D-F4); saved graphs store project-relative paths and **degrade out loud** (D-F5, the F1 lesson)._
+- [M29.1] ☐ **Loader + CSV contract** — explicit time/zone/value columns, no sniffing; bounded sanitised
+  parse diagnostics. Headless and pure; full D-F1/D-F4 tests before any UI.
+- [M29.2] ☐ **UI** — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
+- [M29.3] ☐ **`graph {external}` verb** — M26.4-style echo (rows loaded/skipped, range, offset); read
+  confinement wired to the allowlist.
+- [M29.4] ☐ **Persistence + sharing** — project-relative paths, honest degradation, export-side disclosure;
+  docs + changelog.
+- [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
+  for fully-portable sharing (D-F5's alternative).
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
