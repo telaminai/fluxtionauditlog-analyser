@@ -896,8 +896,10 @@ enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the sp
 - [M28.2] ☑ **Evaluator refactor (W0)** *(shipped on `feat/m28-expr-conditionals`)* — per-scan compiled MIRROR (position-keyed state, not
   value-equal-node-keyed: `delta(x)+delta(x)` must be `2*delta(x)`); `Expr.eval(Map)` DELETED so the
   compiler enforces migration; all three call sites (extractExpr STRICT/LOCF, SeriesScan) migrated.
-- [M28.3] ☐ **Count windows** — `lag/delta/mean/sum/rollingMin/rollingMax(x, N)` (min/max overload
-  REJECTED in review: breaks `min(4, 2)`); D-W1/2/3 semantics pinned by test.
+- [M28.3] ☑ **Count windows** *(shipped on `feat/m28-expr-conditionals`)* —
+  `lag/delta/mean/sum/rollingMin/rollingMax(x, N)` (min/max overload REJECTED in review: breaks
+  `min(4, 2)`); D-W1/2/3 semantics pinned by test, incl. gate-output vs gate-input and
+  `delta(x)+delta(x) == 2*delta(x)`.
 - [M28.4] ☐ **Time windows** — duration literals (`"5m"`), `rate`, the D-W3 arrival-rate steer;
   docs (incl. the gate-output/gate-input table) + changelog.
 - [M28.5] ☐ **Guide lines (P1)** — independent of C/W, schedulable any time; persisted graph state

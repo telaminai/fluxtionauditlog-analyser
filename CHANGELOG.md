@@ -13,6 +13,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   draws the spread only in breach, gaps elsewhere — and an unknowable condition plots nothing rather
   than guessing a branch. Existing formulas are untouched (`min(4, 2)` still means the smaller of 4
   and 2).
+- **Rolling-window formulas** — `lag(x, N)`, `delta(x)`, and `mean`/`sum`/`rollingMin`/`rollingMax`
+  `(x, N)` over the last N samples, in graphs and the `series` verb alike. Windows fill before they
+  speak, a non-numeric sample leaves a window unchanged (so a rolling mean survives a no-quote gap
+  instead of erasing its history), and conditionals compose: `mean(if(c, x), 10)` is the mean of the
+  last 10 samples where `c` held; `if(c, mean(x, 10))` shows the all-samples mean only while `c`
+  holds.
 
 ## [1.3.0] - 2026-08-17
 

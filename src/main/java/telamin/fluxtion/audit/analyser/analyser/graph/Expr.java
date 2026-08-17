@@ -72,7 +72,14 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
 
     // ---- parsing --------------------------------------------------------------------------------
 
-    Set<String> FUNCTIONS = Set.of("abs", "min", "max", "if", "and", "or", "not");
+    Set<String> FUNCTIONS = Set.of("abs", "min", "max", "if", "and", "or", "not",
+            "lag", "delta", "mean", "sum", "rollingMin", "rollingMax");
+
+    /** Rolling-window functions (M28.3): stateful, count-windowed; evaluated by the per-scan mirror. */
+    Set<String> WINDOW_FUNCTIONS = Set.of("lag", "delta", "mean", "sum", "rollingMin", "rollingMax");
+
+    /** Sanity bound on a count window — beyond this the "window" is really a whole-series statistic. */
+    int MAX_WINDOW = 1_000_000;
 
     /** Parse {@code source}; references resolve against {@code known}. Throws {@link IllegalArgumentException}
      *  (message names the failing ref / points at the offending token) so the caller can surface ok:false. */
@@ -192,6 +199,11 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                 throw err(name.text + "() takes at least 2 arguments, got " + n);
             }
             if (name.text.equals("not") && n != 1) throw err("not() takes exactly 1 argument, got " + n);
+            if (name.text.equals("delta") && n != 1) throw err("delta() takes exactly 1 argument, got " + n);
+            if (WINDOW_FUNCTIONS.contains(name.text) && !name.text.equals("delta")) {
+                if (n != 2) throw err(name.text + "() takes (value, window), got " + n + " argument(s)");
+                windowSize(name.text, args.get(1));   // validated at parse, not discovered at eval
+            }
             return new Call(name.text, args);
         }
 
@@ -229,6 +241,15 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                         + "' at position " + t.at);
             }
             next();
+        }
+
+        private int windowSize(String fn, Expr arg) {
+            if (arg instanceof Num num && num.value() == Math.floor(num.value())
+                    && num.value() >= 1 && num.value() <= MAX_WINDOW) {
+                return (int) num.value();
+            }
+            throw err(fn + "() window must be an integer literal between 1 and " + MAX_WINDOW
+                    + " (a count of samples)");
         }
 
         private IllegalArgumentException err(String msg) {

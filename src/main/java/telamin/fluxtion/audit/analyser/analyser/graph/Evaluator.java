@@ -143,6 +143,87 @@ public final class Evaluator {
                 double x = args.get(0).eval(ctx);
                 return Double.isNaN(x) ? Double.NaN : (x == 0.0 ? 1.0 : 0.0);
             };
+            case "lag", "delta", "mean", "sum", "rollingMin", "rollingMax" -> compileWindow(c, args.get(0));
+            default -> ctx -> Double.NaN;
+        };
+    }
+
+    // ---- rolling windows (M28.3) -------------------------------------------------------------------
+    //
+    // D-W2 (never fabricate, never erase): a non-finite sample contributes nothing and the window is
+    // UNCHANGED; an under-filled window yields NaN → no point. Within that rule the functions split by
+    // what they are anchored to:
+    //   - AGGREGATES (mean/sum/rollingMin/rollingMax) describe the WINDOW, which exists independently
+    //     of the current record — so on a non-contributing record a full window still answers. This is
+    //     what makes mean(if(c, x), 10) a continuous "mean of the last 10 breaching samples".
+    //   - lag/delta are anchored to the CURRENT sample ("N samples ago" needs a now) — no finite sample
+    //     this record, no answer this record.
+
+    private Node compileWindow(Expr.Call c, Node arg) {
+        stateSlots++;   // each POSITION gets its own state — delta(x)+delta(x) is two slots, not one
+        int n = c.fn().equals("delta") ? 1 : (int) ((Expr.Num) c.args().get(1)).value();
+        return switch (c.fn()) {
+            case "lag" -> new Node() {
+                private final double[] ring = new double[n];
+                private long count;
+                @Override public double eval(EvalContext ctx) {
+                    double x = arg.eval(ctx);
+                    if (!Double.isFinite(x)) return Double.NaN;
+                    int i = (int) (count % n);
+                    double out = count >= n ? ring[i] : Double.NaN;   // the value n accepted samples ago
+                    ring[i] = x;
+                    count++;
+                    return out;
+                }
+            };
+            case "delta" -> new Node() {
+                private double prev = Double.NaN;
+                @Override public double eval(EvalContext ctx) {
+                    double x = arg.eval(ctx);
+                    if (!Double.isFinite(x)) return Double.NaN;   // prev is kept — a gap widens the step
+                    double out = x - prev;                        // NaN until the second accepted sample
+                    prev = x;
+                    return out;
+                }
+            };
+            case "mean", "sum" -> new Node() {
+                private final double[] ring = new double[n];
+                private long count;
+                private double runningSum;
+                private final boolean mean = c.fn().equals("mean");
+                @Override public double eval(EvalContext ctx) {
+                    double x = arg.eval(ctx);
+                    if (Double.isFinite(x)) {
+                        int i = (int) (count % n);
+                        if (count >= n) runningSum -= ring[i];
+                        ring[i] = x;
+                        runningSum += x;
+                        count++;
+                    }
+                    if (count < n) return Double.NaN;             // under-filled → no point
+                    return mean ? runningSum / n : runningSum;
+                }
+            };
+            case "rollingMin", "rollingMax" -> new Node() {
+                // monotonic deque of {sampleIndex, value} — O(1) amortised at any window size
+                private final java.util.ArrayDeque<double[]> deque = new java.util.ArrayDeque<>();
+                private long count;
+                private final boolean min = c.fn().equals("rollingMin");
+                @Override public double eval(EvalContext ctx) {
+                    double x = arg.eval(ctx);
+                    if (Double.isFinite(x)) {
+                        long idx = count++;
+                        while (!deque.isEmpty()
+                                && (min ? deque.peekLast()[1] >= x : deque.peekLast()[1] <= x)) {
+                            deque.pollLast();
+                        }
+                        deque.addLast(new double[]{idx, x});
+                        while (deque.peekFirst()[0] <= idx - n) deque.pollFirst();
+                    }
+                    if (count < n) return Double.NaN;
+                    return deque.peekFirst()[1];
+                }
+            };
             default -> ctx -> Double.NaN;
         };
     }
