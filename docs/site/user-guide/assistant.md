@@ -56,7 +56,8 @@ drive the same verbs:
   `recordIndex`/`byteOffset` anchor for a follow-up `read`), not a page-through of raw text.
 - **filter** — narrow every view to the records in question.
 - **graph** — plot a series or formula, with an optional `rationale` that **captions the plot** with why
-  it was drawn (durable provenance).
+  it was drawn (durable provenance). `guides` draws labelled threshold rules; `bands` shades the
+  intervals where a condition held — both persist with the graph.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
 - **flag** — bookmark the culprit records with a `note` and an optional `fix`. This is the **one** place
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that

@@ -120,6 +120,25 @@ public final class ChartPanel extends JPanel {
         return axes;
     }
 
+    /** A shaded set of time intervals where a named condition held (M28.6). */
+    public record Band(String label, java.util.List<long[]> spans) { }
+
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec> guides =
+            java.util.List.of();
+    private java.util.List<Band> bands = java.util.List.of();
+
+    /** Labelled horizontal threshold rules (M28.5). Replaces the set. */
+    public void setGuides(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec> guides) {
+        this.guides = guides == null ? java.util.List.of() : java.util.List.copyOf(guides);
+        repaint();
+    }
+
+    /** Computed condition intervals to shade (M28.6). Replaces the set. */
+    public void setBands(java.util.List<Band> bands) {
+        this.bands = bands == null ? java.util.List.of() : java.util.List.copyOf(bands);
+        repaint();
+    }
+
     /** The explanation block and the pinned notes drawn over the plot. */
     public void setNotes(telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes) {
         this.notes = notes == null
@@ -330,6 +349,7 @@ public final class ChartPanel extends JPanel {
         g.drawString(hiLabel, plotX + plotW - g.getFontMetrics().stringWidth(hiLabel), h - 6);
 
         g.setClip(plotX, plotY, plotW, plotH);
+        paintBands(g, dark);   // behind the series: bands are context, never occlusion
         int ci = 0;
         for (Series s : series) {
             g.setColor(PALETTE[ci % PALETTE.length]);
@@ -339,6 +359,7 @@ public final class ChartPanel extends JPanel {
             ci++;
         }
         drawingRight = false;
+        paintGuides(g, dark);
         paintNotes(g, dark);
         g.setClip(null);
         paintRecordMarker(g, dark);
@@ -428,6 +449,60 @@ public final class ChartPanel extends JPanel {
     }
 
     private int xToPx(long x) { return plotX + (int) Math.round((x - vx0) / (vx1 - vx0) * plotW); }
+
+    /**
+     * Threshold guides (M28.5): a labelled dashed rule at a y value, on either scale — the line the
+     * eye otherwise interpolates ("where is 0.004?"). Painted over the series but under the notes.
+     */
+    private void paintGuides(Graphics2D g, boolean dark) {
+        if (guides.isEmpty()) return;
+        Color rule = dark ? new Color(0xD29922) : new Color(0x9A6700);
+        java.awt.Stroke prev = g.getStroke();
+        g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f,
+                new float[]{6f, 4f}, 0f));
+        for (var guide : guides) {
+            drawingRight = guide.rightAxis() && axes.hasRightAxis();
+            int gy = yToPx(guide.value());
+            drawingRight = false;
+            if (gy < plotY || gy > plotY + plotH) continue;   // outside the current window — no rule
+            g.setColor(rule);
+            g.drawLine(plotX, gy, plotX + plotW, gy);
+            String label = (guide.label() == null || guide.label().isBlank()
+                    ? formatY(guide.value()) : guide.label() + " (" + formatY(guide.value()) + ")");
+            int tx = plotX + plotW - 8 - g.getFontMetrics().stringWidth(label);
+            g.drawString(label, tx, gy - 4);
+        }
+        g.setStroke(prev);
+    }
+
+    /**
+     * Condition bands (M28.6): translucent spans over the intervals a condition held, labelled once
+     * per band on its first visible span. Painted first — context sits behind data.
+     */
+    private void paintBands(Graphics2D g, boolean dark) {
+        if (bands.isEmpty()) return;
+        for (int bi = 0; bi < bands.size(); bi++) {
+            Band band = bands.get(bi);
+            Color base = PALETTE[(bi + 3) % PALETTE.length];   // offset so bands don't mirror series 0..n
+            g.setColor(new Color(base.getRed(), base.getGreen(), base.getBlue(), dark ? 46 : 36));
+            boolean labelled = false;
+            for (long[] span : band.spans()) {
+                int x0 = xToPx(span[0]);
+                int x1 = xToPx(span[1]);
+                if (x1 < plotX || x0 > plotX + plotW) continue;
+                int cx0 = Math.max(x0, plotX);
+                int cx1 = Math.min(x1, plotX + plotW);
+                g.fillRect(cx0, plotY, Math.max(1, cx1 - cx0), plotH);
+                if (!labelled && band.label() != null && !band.label().isBlank()) {
+                    Color c = g.getColor();
+                    g.setColor(new Color(base.getRed(), base.getGreen(), base.getBlue(), 200));
+                    g.drawString(band.label(), cx0 + 4, plotY + 12 + 12 * bi);
+                    g.setColor(c);
+                    labelled = true;
+                }
+            }
+        }
+    }
     /**
      * Notes pinned to moments: a dashed rule at the time, a numbered marker, and the text.
      *

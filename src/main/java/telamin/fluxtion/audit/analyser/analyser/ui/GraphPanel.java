@@ -636,7 +636,9 @@ public final class GraphPanel extends JPanel {
         final FilterState f = filter;
         final List<GraphKey> keys = new ArrayList<>(activeKeys);
         final List<Derived> exprs = new ArrayList<>(activeExprs);
+        final var bandsWanted = this.bandSpecs;
         final int gen = ++extractGen;
+        record Extracted(List<Series> series, List<ChartPanel.Band> bands) { }
         Background.run(
                 () -> {
                     List<Series> out = new ArrayList<>();
@@ -652,11 +654,25 @@ public final class GraphPanel extends JPanel {
                             // leave a syntactically-bad formula out of the plot
                         }
                     }
-                    return out;
+                    // condition bands ride the SAME extraction pass — same filter, same LOCF carry, so
+                    // a band can never disagree with a plotted series about when the condition held
+                    List<ChartPanel.Band> bands = new ArrayList<>();
+                    for (var b : bandsWanted) {
+                        try {
+                            Series cond = SeriesExtractor.extractExpr(s, f, Expr.parse(b.expr()),
+                                    b.label() == null ? b.expr() : b.label(), true, SeriesExtractor.Resolve.LOCF);
+                            bands.add(new ChartPanel.Band(b.label(),
+                                    telamin.fluxtion.audit.analyser.analyser.graph.ConditionBands.intervals(cond)));
+                        } catch (RuntimeException ignore) {
+                            // a syntactically-bad band shades nothing (the verb echoed the error at set time)
+                        }
+                    }
+                    return new Extracted(out, bands);
                 },
                 out -> {
                     if (gen != extractGen) return;   // a newer extraction superseded this one
-                    chart.setSeries(out);
+                    chart.setSeries(out.series());
+                    chart.setBands(out.bands());
                     applyWindow();                   // pinned range if pinned, else the filter's window
                 },
                 err -> { /* best-effort */ });
@@ -934,6 +950,38 @@ public final class GraphPanel extends JPanel {
     private static String csv(String v) {
         if (v == null) return "";
         return (v.contains(",") || v.contains("\"")) ? "\"" + v.replace("\"", "\"\"") + "\"" : v;
+    }
+
+    // ---- guides + condition bands (M28.5/M28.6) --------------------------------------------------
+
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec> guides =
+            java.util.List.of();
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec> bandSpecs =
+            java.util.List.of();
+
+    /** Replace the threshold guides (M28.5). Persisted with the graph. */
+    public void setGuides(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec> guides) {
+        this.guides = guides == null ? java.util.List.of() : java.util.List.copyOf(guides);
+        chart.setGuides(this.guides);
+        mutated();
+    }
+
+    public java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec> guides() {
+        return guides;
+    }
+
+    /**
+     * Replace the condition bands (M28.6). The CONDITION persists; its intervals are data — recomputed
+     * with the same extraction pass (same filter, same LOCF carry) as the series themselves.
+     */
+    public void setBands(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec> bands) {
+        this.bandSpecs = bands == null ? java.util.List.of() : java.util.List.copyOf(bands);
+        mutated();
+        reExtract();   // intervals come from the extraction pass
+    }
+
+    public java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec> bandSpecs() {
+        return bandSpecs;
     }
 
     /**

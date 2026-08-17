@@ -186,6 +186,8 @@ public final class PromptBuilder {
                 + "          = mean of ONLY the samples where c held.\n"
                 + "          from/to PIN the graph to a fixed window (evidence that survives filter changes); omit to\n"
                 + "          follow the filter. rationale captions the plot with WHY you built it (provenance).\n"
+                + "          guides:[{value, label, rightAxis?}] = labelled threshold rules; bands:[{expr, label}] =\n"
+                + "          shade where a condition held (both REPLACE their set; persisted with the graph).\n"
                 + "          rename with {name:\"old\", rename:\"new\"}\n"
                 + "  goto   {byteOffset | recordIndex | at (epoch ms), reveal?} -> selects the record; reveal:true relaxes the\n"
                 + "          filter if the record is hidden (else the echo names which filter hides it)\n"

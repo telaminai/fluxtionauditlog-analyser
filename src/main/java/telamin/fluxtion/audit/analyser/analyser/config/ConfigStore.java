@@ -230,6 +230,19 @@ public final class ConfigStore {
             for (int j = 0; j < right.size(); j++) {
                 put(p, "graph." + i + ".right." + j, right.get(j));
             }
+            List<GraphSpec.GuideSpec> guides = g.guides();
+            p.setProperty("graph." + i + ".guide.count", Integer.toString(guides.size()));
+            for (int j = 0; j < guides.size(); j++) {
+                p.setProperty("graph." + i + ".guide." + j + ".value", Double.toString(guides.get(j).value()));
+                put(p, "graph." + i + ".guide." + j + ".label", guides.get(j).label());
+                p.setProperty("graph." + i + ".guide." + j + ".right", Boolean.toString(guides.get(j).rightAxis()));
+            }
+            List<GraphSpec.BandSpec> bands = g.bands();
+            p.setProperty("graph." + i + ".band.count", Integer.toString(bands.size()));
+            for (int j = 0; j < bands.size(); j++) {
+                put(p, "graph." + i + ".band." + j + ".expr", bands.get(j).expr());
+                put(p, "graph." + i + ".band." + j + ".label", bands.get(j).label());
+            }
         }
     }
 
@@ -272,7 +285,29 @@ public final class ConfigStore {
                 String label = p.getProperty("graph." + i + ".right." + j);
                 if (label != null) right.add(label);
             }
-            out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right));
+            List<GraphSpec.GuideSpec> guides = new ArrayList<>();
+            int guideCount = parseInt(p.getProperty("graph." + i + ".guide.count"), 0);
+            for (int j = 0; j < guideCount; j++) {
+                String value = p.getProperty("graph." + i + ".guide." + j + ".value");
+                if (value == null) continue;
+                try {
+                    guides.add(new GraphSpec.GuideSpec(Double.parseDouble(value),
+                            nz(p.getProperty("graph." + i + ".guide." + j + ".label")),
+                            Boolean.parseBoolean(p.getProperty("graph." + i + ".guide." + j + ".right"))));
+                } catch (NumberFormatException ignored) {
+                    // a hand-edited non-numeric guide is dropped rather than poisoning the load
+                }
+            }
+            List<GraphSpec.BandSpec> bands = new ArrayList<>();
+            int bandCount = parseInt(p.getProperty("graph." + i + ".band.count"), 0);
+            for (int j = 0; j < bandCount; j++) {
+                String expr = p.getProperty("graph." + i + ".band." + j + ".expr");
+                if (expr != null) {
+                    bands.add(new GraphSpec.BandSpec(expr, nz(p.getProperty("graph." + i + ".band." + j + ".label"))));
+                }
+            }
+            out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right,
+                    guides, bands));
         }
     }
 

@@ -85,6 +85,11 @@ public final class VerbSchemas {
                         p("from", integer(), "pin window start (epoch millis) — survives filter changes"),
                         p("to", integer(), "pin window end (epoch millis)"),
                         p("newTab", bool(), "open a new graph tab"),
+                        p("guides", arr(guideObject()), "labelled horizontal threshold rules — REPLACES "
+                                + "the set; draw the 0.004 the reader would otherwise interpolate"),
+                        p("bands", arr(bandObject()), "shade the time intervals where a condition held "
+                                + "(e.g. {expr: \"ask.price - bid.price > 0.004\", label: \"in breach\"}) "
+                                + "— REPLACES the set; intervals recompute with the data like any series"),
                         p("rationale", string(), "why you built this graph — captions the plot (provenance)"),
                         p("rename", string(), "with {name}, rename that graph to this")),
                 List.of()));
@@ -291,6 +296,27 @@ public final class VerbSchemas {
     }
 
     /** A note pinned to a moment: when, what it says, and optionally which series it is about. */
+    private static Map<String, Object> guideObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("value", number(), "the y value the rule sits at"),
+                p("label", string(), "what this threshold means (e.g. \"4bp limit\")"),
+                p("rightAxis", bool(), "read the value against the right-hand scale")));
+        m.put("required", List.of("value"));
+        return m;
+    }
+
+    private static Map<String, Object> bandObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("expr", string(), "the condition — any formula; truthy = shaded"),
+                p("label", string(), "what the shaded region means")));
+        m.put("required", List.of("expr"));
+        return m;
+    }
+
     private static Map<String, Object> noteObject() {
         Map<String, Object> m = type("object");
         m.put("properties", props(

@@ -331,8 +331,11 @@ public final class ActionExecutor implements RenderExecutor {
             if (style != null) panel.setStyleByName(style);
             if (rationale != null) panel.setCaption(rationale);   // caption the plot with the agent's reason
             applyNotesAndAxes(panel, p, s);
+            List<String> annotationIssues = applyGuidesAndBands(panel, p);
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
             Map<String, Object> applied = new LinkedHashMap<>();
+            if (p.containsKey("guides")) applied.put("guides", panel.guides().size());
+            if (p.containsKey("bands")) applied.put("bands", panel.bandSpecs().size());
             applied.put("name", name == null ? "(current)" : name);
             applied.put("resolved", requested.stream().filter(found::contains).toList());
             applied.put("unresolved", unresolved);
@@ -349,7 +352,8 @@ public final class ActionExecutor implements RenderExecutor {
                 pinned.put("to", panel.pinnedTo());
                 applied.put("pinned", pinned);
             }
-            List<String> warnings = annotationWarnings(panel, p);
+            List<String> warnings = new ArrayList<>(annotationIssues);
+            warnings.addAll(annotationWarnings(panel, p));
             if (!warnings.isEmpty()) applied.put("warnings", warnings);
             return ActionResult.ok("graph", "applied", applied);
         });
@@ -686,6 +690,50 @@ public final class ActionExecutor implements RenderExecutor {
             panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
                     strList(p.get("rightAxis"))));
         }
+    }
+
+    /**
+     * Apply {@code guides} / {@code bands} (M28.5/.6) — present = REPLACE the set, like rightAxis.
+     * Malformed items are skipped and NAMED in the returned warnings (never silently dropped); a band
+     * whose expression does not parse is rejected here, at set time, where the caller can still react.
+     */
+    private static List<String> applyGuidesAndBands(GraphPanel panel, Map<String, Object> p) {
+        List<String> warnings = new ArrayList<>();
+        if (p.containsKey("guides")) {
+            List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec> guides = new ArrayList<>();
+            for (Object o : asList(p.get("guides"))) {
+                if (!(o instanceof Map<?, ?> m)) continue;
+                Object v = m.get("value");
+                if (v instanceof Number n) {
+                    guides.add(new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec(
+                            n.doubleValue(), asText(m.get("label")), bool(m.get("rightAxis"))));
+                } else {
+                    warnings.add("guide " + (m.get("label") != null ? "'" + m.get("label") + "' " : "")
+                            + "has no numeric 'value' — skipped");
+                }
+            }
+            panel.setGuides(guides);
+        }
+        if (p.containsKey("bands")) {
+            List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec> bands = new ArrayList<>();
+            for (Object o : asList(p.get("bands"))) {
+                if (!(o instanceof Map<?, ?> m)) continue;
+                String expr = asText(m.get("expr"));
+                if (expr == null || expr.isBlank()) {
+                    warnings.add("band has no 'expr' — skipped");
+                    continue;
+                }
+                try {
+                    telamin.fluxtion.audit.analyser.analyser.graph.Expr.parse(expr);
+                    bands.add(new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec(
+                            expr, asText(m.get("label"))));
+                } catch (RuntimeException ex) {
+                    warnings.add("band expr '" + expr + "' does not parse: " + ex.getMessage());
+                }
+            }
+            panel.setBands(bands);
+        }
+        return warnings;
     }
 
     /** A note's moment, from an explicit time or from the record it refers to. */

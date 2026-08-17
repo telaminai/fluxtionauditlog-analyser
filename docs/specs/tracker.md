@@ -882,7 +882,7 @@ arithmetic; one scan should answer it). All read-only — no change to the FAQ s
 - [M26.4] ☑ **Echo hardening** — `graph` warns on a `rightAxis`/note series not in the graph; verbs
   name ignored parameters in their echoes. Docs + changelog.
 
-## M28 · Expression conditionals + rolling windows — ☐ IN PROGRESS (formulas that judge and remember)
+## M28 · Expression conditionals + rolling windows — ☑ ON BRANCH `feat/m28-expr-conditionals` (awaiting review) (formulas that judge and remember)
 _Design: **[spec-expr-conditionals-windows.md](spec-expr-conditionals-windows.md)**. Owner ask:
 `if(x−y > 10, f(x))` conditional plotting and rolling-window memory formulas. Two bounded vocabulary
 additions to `Expr` — NOT a scripting engine — landing in graphs and the `series` verb at once because
@@ -903,9 +903,11 @@ enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the sp
 - [M28.4] ☑ **Time windows** *(shipped on `feat/m28-expr-conditionals`)* — duration literals
   (`"5m"`), `rate`, the D-W3 arrival-rate steer; docs (incl. the gate-output/gate-input table) +
   changelog.
-- [M28.5] ☐ **Guide lines (P1)** — independent of C/W, schedulable any time; persisted graph state
-  → share-surface checklist (the F1 lesson).
-- [M28.6] ☐ **Condition bands (P2)** — after M28.1; share-surface checklist.
+- [M28.5] ☑ **Guide lines (P1)** *(shipped on `feat/m28-expr-conditionals`)* — labelled threshold
+  rules on either scale; share-surface checklist honoured (spec round-trip, share ride-along,
+  restore-not-an-edit, disclosure row updated).
+- [M28.6] ☑ **Condition bands (P2)** *(shipped on `feat/m28-expr-conditionals`)* — condition
+  persists, intervals recompute with the series' own extraction pass; same checklist.
 
 ## M29 · External series — ☐ PROPOSED (plot what the outside world did)
 _Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a

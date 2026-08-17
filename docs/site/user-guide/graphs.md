@@ -58,6 +58,18 @@ askMakerOrder.price − bidMakerOrder.price
   | `if(c, mean(x, 10))` | mean over **all** samples, plotted only while `c` holds — gate the *output* |
   | `mean(if(c, x), 10)` | mean over **only** the samples where `c` held — gate the *input* |
 
+## Thresholds and condition bands
+
+A threshold worth investigating deserves to be **visible**, not interpolated by eye. A **guide** is a
+labelled horizontal rule at a value (`0.004 — 4bp limit`), drawn against either scale, persisted with
+the graph and exported with it.
+
+A **condition band** shades the time intervals where a condition held —
+`askMakerOrder.price − bidMakerOrder.price > 0.004` as a region you can see at a glance, rather than
+gaps you infer. The *condition* is what's saved; its intervals are recomputed with the data, by the
+same extraction pass as the series, so a band can never disagree with a plotted series about when the
+condition was true. Both are agent-authorable through the `graph` verb (`guides:`/`bands:`).
+
 ## Two scales
 
 A revenue line reaching 2,000 and a stock level oscillating around 20 share a chart where the stock line

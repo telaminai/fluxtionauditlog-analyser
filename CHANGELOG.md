@@ -13,6 +13,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   draws the spread only in breach, gaps elsewhere — and an unknowable condition plots nothing rather
   than guessing a branch. Existing formulas are untouched (`min(4, 2)` still means the smaller of 4
   and 2).
+- **Threshold guide lines** — `graph {guides: [{value: 0.004, label: "4bp limit"}]}` draws a
+  labelled horizontal rule on either scale, so the threshold an investigation turns on is visible on
+  the plot instead of interpolated by eye. Persisted with the graph, shared and exported with it.
+- **Condition bands** — `graph {bands: [{expr: "ask − bid > 0.004", label: "in breach"}]}` shades
+  the time intervals where the condition held. The condition is what persists; its intervals
+  recompute with the data by the same extraction pass as the series, so a band can never disagree
+  with a plotted series about when the condition was true.
 - **Rolling-window formulas** — `lag(x, N)`, `delta(x)`, and `mean`/`sum`/`rollingMin`/`rollingMax`
   `(x, N)` over the last N samples, in graphs and the `series` verb alike. Windows fill before they
   speak, a non-numeric sample leaves a window unchanged (so a rolling mean survives a no-quote gap

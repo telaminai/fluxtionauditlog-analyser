@@ -103,6 +103,31 @@ class ConfigStoreTest {
     }
 
     @Test
+    void savedGraphsRoundTripGuidesAndBands(@TempDir Path dir) {
+        // M28.5/.6: a guide is a value+label+axis; a band persists its CONDITION, never its intervals
+        Path cfg = dir.resolve("config");
+        ConfigStore store = new ConfigStore(cfg);
+
+        AppConfig c = new AppConfig();
+        c.savedGraphs.add(new GraphSpec("Spread", List.of("quoteNodespread"), List.of(), null, null,
+                null, null, List.of(), List.of(),
+                List.of(new GraphSpec.GuideSpec(0.004, "4bp limit", false),
+                        new GraphSpec.GuideSpec(150.0, "qty cap", true)),
+                List.of(new GraphSpec.BandSpec("askMakerOrder.price - bidMakerOrder.price > 0.004", "in breach"))));
+        store.save(c);
+
+        AppConfig d = store.load();
+        GraphSpec g = d.savedGraphs.get(0);
+        assertEquals(2, g.guides().size());
+        assertEquals(0.004, g.guides().get(0).value(), 1e-12);
+        assertEquals("4bp limit", g.guides().get(0).label());
+        assertTrue(g.guides().get(1).rightAxis(), "the axis choice survives");
+        assertEquals(1, g.bands().size());
+        assertEquals("askMakerOrder.price - bidMakerOrder.price > 0.004", g.bands().get(0).expr());
+        assertEquals("in breach", g.bands().get(0).label());
+    }
+
+    @Test
     void apiKeyIsStoredInCleartext(@TempDir Path dir) throws IOException {
         Path cfg = dir.resolve("config");
         AppConfig c = new AppConfig();

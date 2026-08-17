@@ -9,10 +9,26 @@ import java.util.List;
  * through the assistant {@code graph} action (spec-assistant-actions §4.3, spec-graph-artifacts §D).
  */
 public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
-                        String note, String explanation, List<NoteSpec> notes, List<String> rightAxis) {
+                        String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
+                        List<GuideSpec> guides, List<BandSpec> bands) {
 
     /** A derived (formula) series: a display {@code label}, the {@code expr} text, and a resolve policy. */
     public record ExprSpec(String label, String expr, String resolve) {
+    }
+
+    /**
+     * A labelled horizontal threshold rule (M28.5) — the line the eye otherwise has to interpolate
+     * ("where is 0.004?"). {@code rightAxis} reads the value against the second scale.
+     */
+    public record GuideSpec(double value, String label, boolean rightAxis) {
+    }
+
+    /**
+     * A condition band (M28.6): the time intervals where {@code expr} held, shaded on the plot. The
+     * CONDITION is persisted, never the intervals — they are data, recomputed per extraction exactly
+     * like the series themselves.
+     */
+    public record BandSpec(String expr, String label) {
     }
 
     /**
@@ -22,6 +38,12 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
      * write. The whole point of annotating a chart is that the reading outlives the session.
      */
     public record NoteSpec(long at, String text, String series) {
+    }
+
+    /** The pre-M28.5 shape (no guides/bands) — every earlier caller. */
+    public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
+                     String note, String explanation, List<NoteSpec> notes, List<String> rightAxis) {
+        this(name, series, exprs, from, to, note, explanation, notes, rightAxis, List.of(), List.of());
     }
 
     /** The canonical shape without annotations — every pre-M23 caller. */
@@ -63,5 +85,13 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
 
     public String explanation() {
         return explanation == null ? "" : explanation;
+    }
+
+    public List<GuideSpec> guides() {
+        return guides == null ? List.of() : guides;
+    }
+
+    public List<BandSpec> bands() {
+        return bands == null ? List.of() : bands;
     }
 }
