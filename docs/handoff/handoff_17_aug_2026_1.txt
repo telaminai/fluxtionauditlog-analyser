@@ -1,0 +1,50 @@
+HANDOFF — housekeeping + polish round (post-M20, post-v1.1.0)
+Date: 2026-08-17 · From: main session · Base: main (M20 merged)
+Branch: START A NEW BRANCH off main — suggest feat/polish-17-aug.
+
+No new features. This round clears every small analyser-side item accumulated by the last three
+reviews, so the board is clean for the cross-repo work (M19.1 playground bundle, M18 slices).
+
+ORIENT FIRST: CLAUDE.md · docs/ONBOARDING.md (§ Handoffs — your report is
+docs/handoff/handoff_17_aug_2026_1_report.txt) · the three review files in docs/handoff/ (the F-items
+below come from them) · docs/specs/tracker.md.
+
+TASK — six small slices, one commit each, mvn test green before every commit:
+
+  H1  TRACKER ARCHAEOLOGY. The live tracker is ~900 lines and most of it is shipped. Move every
+      fully-☑ milestone block (M13, M20, M21, M22, M23, M24, M25 — and the shipped parts of any
+      mixed block, keeping unshipped items live) to docs/specs/completed/tracker.md, update the
+      "Shipped — archived" summary line, and keep only live/future work in the main tracker
+      (M11 · M12 · M18 · M19 · open follow-ups). This is the tracker discipline in ONBOARDING —
+      it has been outrun by three days of shipping.
+  H2  SPEC ARCHIVING. git mv spec-project-profiles.md and spec-graph-replay.md (both fully shipped)
+      to docs/specs/completed/, and fix every reference (grep for both names across docs/ and
+      CLAUDE.md — there are ~7 for project-profiles). mkdocs build --strict must stay green.
+  H3  WINDOW-ID SCREENSHOT CAPTURE (review F1, closes the B-M20-2 incident class). tools/
+      capture-docs.py photographs a screen REGION (screencapture -R): anything overlapping the
+      window lands in a public docs image — a browser with personal bookmarks nearly shipped that
+      way. Switch to window-id capture (screencapture -l <windowid>; obtain the id via osascript /
+      CGWindowID or the app printing its own window id under a flag — your choice, say which and
+      why). Regenerate any screenshot the change alters; READ each image before committing
+      (CLAUDE.md rule 1 — the grep cannot see inside a PNG).
+  H4  ROUTES SCOPE AT A TERMINAL NODE (M24 finding). Focusing scope=routes on a node that
+      everything feeds (a sink like a P&L aggregate) selected 198 of 309 nodes — focus works
+      mid-graph and degenerates at its edges. Add a bounded default for terminal-ish nodes
+      (N hops, N small and stated in the UI), with the unbounded behaviour still reachable.
+      Headless tests on the scope computation; the fixtures include a suitable sink.
+  H5  LABEL TRUNCATION IN EXPORTED PICTURES (M24 finding). Node labels elide to "Category…" at
+      default width — fine on screen where hover exists, wrong in a FindingReport PDF where it
+      does not. In report/offscreen rendering, widen nodes to fit their labels (or wrap two lines)
+      — the page has no hover. On-screen behaviour unchanged.
+  H6  P3.12 — VERIFY THE WHOLE-GRAPH REPORT VIEW AT SCALE. Export a finding PDF against the
+      309-node POC graphml (examples/fixture-generator can regenerate a pairing if needed): is the
+      whole-estate view with a few nodes lit legible, or a grey rectangle? If legible, record it
+      and close P3.12. If not, the cheap fix is rendering the FOCUSED subgraph plus a count line
+      ("+297 nodes not shown") instead of the full estate — implement only if the check fails.
+
+PROCESS (per CLAUDE.md — unchanged): changelog same-commit for anything user-visible (H4, H5, and
+H6-if-changed are; H1-H3 are not) · anonymisation sweep + read-the-PNG for any image · tracker ☑ per
+slice · report file per ONBOARDING with deviations authorised, never silent.
+
+NOT IN SCOPE: M19.1 (playground repo) · M18.1+ (needs the M19 bundle as its bench) · M12 · anything
+that adds a verb (the socket surface is deliberately frozen this round).
