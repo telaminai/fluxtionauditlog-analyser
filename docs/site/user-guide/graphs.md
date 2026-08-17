@@ -30,6 +30,16 @@ askMakerOrder.price − bidMakerOrder.price
 - Formulas can **reference other formulas** by their label.
 - **Resolve policy**: *locf* carries each ref's last value (for cross-node formulas); *strict* only
   evaluates within a single record.
+- **Conditionals** — a formula can judge its inputs: comparisons (`> < >= <= == !=`) and
+  `if(condition, then)` / `if(condition, then, else)`, plus `and`/`or`/`not`. The two-argument `if`
+  plots **only while the condition holds** — a false condition yields no data point, so
+
+  ```
+  if(askMakerOrder.price − bidMakerOrder.price > 0.004, askMakerOrder.price − bidMakerOrder.price)
+  ```
+
+  draws the spread only where it is in breach, with gaps everywhere else. An unknowable condition
+  (a missing value) plots nothing rather than guessing a branch.
 
 ## Two scales
 

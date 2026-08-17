@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Conditional formulas** — graph and `series` expressions can now judge their inputs: comparisons
+  (`> < >= <= == !=`, Unicode forms accepted) and `if(condition, then[, else])` with `and`/`or`/`not`.
+  The two-argument `if` plots **only while the condition holds** — `if(ask − bid > 0.004, ask − bid)`
+  draws the spread only in breach, gaps elsewhere — and an unknowable condition plots nothing rather
+  than guessing a branch. Existing formulas are untouched (`min(4, 2)` still means the smaller of 4
+  and 2).
+
 ## [1.3.0] - 2026-08-17
 
 ### Changed

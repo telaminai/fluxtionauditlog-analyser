@@ -60,6 +60,88 @@ class ExprTest {
                 "a ref not in the values → NaN → omitted point");
     }
 
+    // ---- conditionals (M28.1) ------------------------------------------------------------------
+
+    @Test
+    void comparisonsYieldOneOrZero_andNaNStaysUnknown() {
+        assertEquals(1.0, Expr.parse("3 > 2", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(0.0, Expr.parse("2 > 3", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("2 >= 2", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("2 <= 3", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("2 == 2", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("2 != 3", Set.of()).eval(Map.of()), 1e-9);
+        // a comparison against a missing ref is unknown, not false
+        assertTrue(Double.isNaN(eval("askMakerOrder.price > 2", Map.of())));
+    }
+
+    @Test
+    void comparisonsAcceptUnicodeForms() {
+        assertEquals(1.0, Expr.parse("3 ≥ 3", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("2 ≤ 3", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("2 ≠ 3", Set.of()).eval(Map.of()), 1e-9);
+    }
+
+    @Test
+    void twoArgIfDefaultsElseToNoPoint() {
+        // THE feature (spec M28 §C): a false condition yields NaN → the point is simply not plotted
+        String gate = "if(askMakerOrder.price - bidMakerOrder.price > 0.004, askMakerOrder.price)";
+        assertEquals(5.0, eval(gate, Map.of(AB, 5.0, CD, 4.0)), 1e-9, "in breach → plot f(x)");
+        assertTrue(Double.isNaN(eval(gate, Map.of(AB, 5.0, CD, 4.999))), "not in breach → no point");
+    }
+
+    @Test
+    void threeArgIfSelectsAndNaNConditionNeverPicksABranch() {
+        assertEquals(7.0, Expr.parse("if(1 > 0, 7, 9)", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(9.0, Expr.parse("if(1 < 0, 7, 9)", Set.of()).eval(Map.of()), 1e-9);
+        assertTrue(Double.isNaN(eval("if(askMakerOrder.price > 0, 7, 9)", Map.of())),
+                "an unknowable condition must not silently pick a branch");
+    }
+
+    @Test
+    void andOrNotWithNaNPoisoning() {
+        assertEquals(1.0, Expr.parse("and(1 > 0, 2 > 1)", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(0.0, Expr.parse("and(1 > 0, 1 > 2)", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("or(1 > 2, 2 > 1)", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(0.0, Expr.parse("or(1 > 2, 2 > 3)", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(0.0, Expr.parse("not(1 > 0)", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("not(0)", Set.of()).eval(Map.of()), 1e-9);
+        assertTrue(Double.isNaN(eval("and(1 > 0, askMakerOrder.price > 0)", Map.of())), "NaN poisons and()");
+        assertTrue(Double.isNaN(eval("or(2 > 1, askMakerOrder.price > 0)", Map.of())), "NaN poisons or()");
+    }
+
+    @Test
+    void comparisonsNestInsideArithmeticAndCalls() {
+        assertEquals(5.0, Expr.parse("(3 > 2) * 5", Set.of()).eval(Map.of()), 1e-9);
+        assertEquals(1.0, Expr.parse("min(3 > 2, 9)", Set.of()).eval(Map.of()), 1e-9);
+    }
+
+    @Test
+    void chainedComparisonsAreRefusedWithGuidance() {
+        var ex = assertThrows(IllegalArgumentException.class, () -> Expr.parse("1 < 2 < 3", Set.of()));
+        assertTrue(ex.getMessage().contains("and("), "the error must teach the and(...) form");
+    }
+
+    @Test
+    void conditionalArityAndBareEqualsAreClearErrors() {
+        assertTrue(assertThrows(IllegalArgumentException.class, () -> Expr.parse("if(1)", Set.of()))
+                .getMessage().contains("if()"));
+        assertTrue(assertThrows(IllegalArgumentException.class, () -> Expr.parse("not(1, 2)", Set.of()))
+                .getMessage().contains("not()"));
+        assertTrue(assertThrows(IllegalArgumentException.class, () -> Expr.parse("and(1)", Set.of()))
+                .getMessage().contains("and()"));
+        assertTrue(assertThrows(IllegalArgumentException.class, () -> Expr.parse("2 = 3", Set.of()))
+                .getMessage().contains("=="), "bare '=' must suggest '=='");
+    }
+
+    @Test
+    void compatibilityGuardrail_variadicMinMaxAndRefsNamedIfAreUntouched() {
+        // the review REJECTED overloading min/max for windows precisely to keep this true forever
+        assertEquals(2.0, Expr.parse("min(4, 2)", Set.of()).eval(Map.of()), 1e-9);
+        // 'if' is only a function when followed by '(' — a node with that instanceId keeps working
+        GraphKey ifKey = new GraphKey("if", "x");
+        assertEquals(3.0, Expr.parse("if.x + 1", Set.of(ifKey)).eval(Map.of(ifKey, 2.0)), 1e-9);
+    }
+
     @Test
     void divisionByZeroIsNaNNotInfinity() {
         assertTrue(Double.isNaN(Expr.parse("1 / 0", Set.of()).eval(Map.of())));

@@ -7,10 +7,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A tiny, hermetic arithmetic expression over node-log references (spec-graph-artifacts §B) — the engine
- * behind derived graph series (`askMakerOrder.price − bidMakerOrder.price`). Deliberately <b>not</b> a
- * scripting engine: references, numeric literals, {@code + − × ÷}, parentheses and a small function set
- * ({@code abs}/{@code min}/{@code max}) only. No {@code eval}, no dependency — matching the project's
+ * A tiny, hermetic arithmetic expression over node-log references (spec-graph-artifacts §B; conditionals
+ * per spec-expr-conditionals-windows M28.1) — the engine behind derived graph series
+ * (`askMakerOrder.price − bidMakerOrder.price`). Deliberately <b>not</b> a scripting engine: references,
+ * numeric literals, {@code + − × ÷}, comparisons ({@code > < >= <= == !=} → {@code 1.0}/{@code 0.0}),
+ * parentheses and a small function set ({@code abs}/{@code min}/{@code max}/{@code if}/{@code and}/
+ * {@code or}/{@code not}) only. No {@code eval}, no dependency — matching the project's
  * bespoke-{@code Json} ethos — so a formula is safe to run, serializable, and portable (it can travel to a
  * Grafana transform, M11).
  *
@@ -19,7 +21,7 @@ import java.util.Set;
  * an LLM — can fix it in one round. At eval time a missing ref, or division by zero, yields {@code NaN}
  * (the derived point is then omitted — the existing "NaN is no data point" semantics).
  */
-public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Expr.Call {
+public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Expr.Cmp, Expr.Call {
 
     /** Evaluate; missing ref → {@code NaN}; any {@code NaN} operand propagates. */
     double eval(Map<GraphKey, Double> refValues);
@@ -67,10 +69,64 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
         @Override public void collectRefs(Set<GraphKey> out) { left.collectRefs(out); right.collectRefs(out); }
     }
 
+    /**
+     * A comparison — {@code 1.0} when it holds, {@code 0.0} when it does not, NaN when either side is
+     * NaN (unknown stays unknown; {@code if} then yields NaN and the point is omitted).
+     */
+    record Cmp(String op, Expr left, Expr right) implements Expr {
+        @Override public double eval(Map<GraphKey, Double> v) {
+            double a = left.eval(v), b = right.eval(v);
+            if (Double.isNaN(a) || Double.isNaN(b)) return Double.NaN;
+            boolean holds = switch (op) {
+                case ">"  -> a > b;
+                case "<"  -> a < b;
+                case ">=" -> a >= b;
+                case "<=" -> a <= b;
+                case "==" -> a == b;
+                case "!=" -> a != b;
+                default   -> false;
+            };
+            return holds ? 1.0 : 0.0;
+        }
+        @Override public void collectRefs(Set<GraphKey> out) { left.collectRefs(out); right.collectRefs(out); }
+    }
+
     record Call(String fn, List<Expr> args) implements Expr {
         @Override public double eval(Map<GraphKey, Double> v) {
+            // EVERY argument is evaluated eagerly — including if()'s untaken branch. No side effects
+            // exist today, and rolling windows (M28.2+) must see a deterministic sample stream
+            // regardless of which branch wins: a lazily-skipped window would go cold and emit NaN
+            // for its full length after every branch switch. Do not "optimise" this to short-circuit.
             return switch (fn) {
                 case "abs" -> Math.abs(args.get(0).eval(v));
+                case "if" -> {
+                    double c = args.get(0).eval(v);
+                    double then = args.get(1).eval(v);
+                    double els = args.size() > 2 ? args.get(2).eval(v) : Double.NaN;   // 2-arg: else = no point
+                    yield Double.isNaN(c) ? Double.NaN : (c != 0.0 ? then : els);
+                }
+                case "and" -> {
+                    double r = 1.0;
+                    for (Expr a : args) {
+                        double x = a.eval(v);
+                        if (Double.isNaN(x)) r = Double.NaN;             // NaN poisons, but keep evaluating
+                        else if (x == 0.0 && !Double.isNaN(r)) r = 0.0;
+                    }
+                    yield r;
+                }
+                case "or" -> {
+                    double r = 0.0;
+                    for (Expr a : args) {
+                        double x = a.eval(v);
+                        if (Double.isNaN(x)) r = Double.NaN;
+                        else if (x != 0.0 && !Double.isNaN(r)) r = 1.0;
+                    }
+                    yield r;
+                }
+                case "not" -> {
+                    double x = args.get(0).eval(v);
+                    yield Double.isNaN(x) ? Double.NaN : (x == 0.0 ? 1.0 : 0.0);
+                }
                 case "min" -> {
                     double m = Double.POSITIVE_INFINITY;
                     for (Expr a : args) m = Math.min(m, a.eval(v));
@@ -89,7 +145,7 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
 
     // ---- parsing --------------------------------------------------------------------------------
 
-    Set<String> FUNCTIONS = Set.of("abs", "min", "max");
+    Set<String> FUNCTIONS = Set.of("abs", "min", "max", "if", "and", "or", "not");
 
     /** Parse {@code source}; references resolve against {@code known}. Throws {@link IllegalArgumentException}
      *  (message names the failing ref / points at the offending token) so the caller can surface ok:false. */
@@ -121,9 +177,25 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
         }
 
         Expr parseTop() {
-            Expr e = parseAdditive();
+            Expr e = parseComparison();
             Tok t = peek();
             if (t.type != T.END) throw err("unexpected '" + t.text + "' at position " + t.at);
+            return e;
+        }
+
+        private static final Set<String> CMP_OPS = Set.of(">", "<", ">=", "<=", "==", "!=");
+
+        /** One comparison, lowest precedence, deliberately NON-chaining: {@code a < b < c} compares a
+         *  boolean to a value and never means what it reads as — combine with {@code and(...)}. */
+        private Expr parseComparison() {
+            Expr e = parseAdditive();
+            if (peek().type == T.OP && CMP_OPS.contains(peek().text)) {
+                String op = next().text;
+                e = new Cmp(op, e, parseAdditive());
+                if (peek().type == T.OP && CMP_OPS.contains(peek().text)) {
+                    throw err("chained comparisons are not supported — write and(a " + op + " b, ...) instead");
+                }
+            }
             return e;
         }
 
@@ -157,7 +229,7 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                 case NUMBER -> { next(); return new Num(Double.parseDouble(t.text)); }
                 case LPAREN -> {
                     next();
-                    Expr e = parseAdditive();
+                    Expr e = parseComparison();
                     expect(T.RPAREN, ")");
                     return e;
                 }
@@ -177,8 +249,8 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
             expect(T.LPAREN, "(");
             List<Expr> args = new ArrayList<>();
             if (peek().type != T.RPAREN) {
-                args.add(parseAdditive());
-                while (peek().type == T.COMMA) { next(); args.add(parseAdditive()); }
+                args.add(parseComparison());
+                while (peek().type == T.COMMA) { next(); args.add(parseComparison()); }
             }
             expect(T.RPAREN, ")");
             int n = args.size();
@@ -186,6 +258,13 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
             if ((name.text.equals("min") || name.text.equals("max")) && n < 1) {
                 throw err(name.text + "() takes at least 1 argument");
             }
+            if (name.text.equals("if") && n != 2 && n != 3) {
+                throw err("if() takes (condition, then) or (condition, then, else), got " + n + " argument(s)");
+            }
+            if ((name.text.equals("and") || name.text.equals("or")) && n < 2) {
+                throw err(name.text + "() takes at least 2 arguments, got " + n);
+            }
+            if (name.text.equals("not") && n != 1) throw err("not() takes exactly 1 argument, got " + n);
             return new Call(name.text, args);
         }
 
@@ -262,6 +341,17 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                 if (j < 0) throw new IllegalArgumentException("unterminated `ref` at position " + i + " in \"" + s + "\"");
                 out.add(new Tok(T.REF, s.substring(i + 1, j), i));
                 i = j + 1;
+            } else if (c == '>' || c == '<') {
+                boolean eq = i + 1 < n && s.charAt(i + 1) == '=';
+                out.add(new Tok(T.OP, eq ? c + "=" : String.valueOf(c), i));
+                i += eq ? 2 : 1;
+            } else if (c == '≥') { out.add(new Tok(T.OP, ">=", i)); i++; }
+            else if (c == '≤') { out.add(new Tok(T.OP, "<=", i)); i++; }
+            else if (c == '≠') { out.add(new Tok(T.OP, "!=", i)); i++; }
+            else if (c == '=' || c == '!') {
+                if (i + 1 < n && s.charAt(i + 1) == '=') { out.add(new Tok(T.OP, c + "=", i)); i += 2; }
+                else throw new IllegalArgumentException("single '" + c + "' is not an operator — did you "
+                        + "mean '" + c + "='? at position " + i + " in \"" + s + "\"");
             } else {
                 char op = normalizeOp(c);
                 switch (op) {

@@ -114,6 +114,42 @@ class SeriesScanTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void conditionalExprsGateThePointStream_endToEnd() {
+        // M28.1 through the verb: a false condition is NaN, NaN is no-point — so the scan sees only
+        // the gated samples. Deterministic fixture: prices 1, 5, 2 → 'price > 3' admits exactly one.
+        HeapLogStore s = new HeapLogStore("""
+                ---
+                #00:00:01.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 1000
+                  event: E
+                  nodeLogs:
+                    - nodeA: { price: 1}
+                ---
+                #00:00:02.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 2000
+                  event: E
+                  nodeLogs:
+                    - nodeA: { price: 5}
+                ---
+                #00:00:03.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 3000
+                  event: E
+                  nodeLogs:
+                    - nodeA: { price: 2}
+                ---
+                """);
+        Map<String, Object> r = SeriesScan.scan(s, Map.of("expr", "if(nodeA.price > 3, nodeA.price)"));
+        assertEquals(1L, r.get("points"), "only the breaching sample survives the gate");
+        Map<String, Object> stats = (Map<String, Object>) r.get("stats");
+        assertEquals(5.0, (Double) stats.get("max"), 1e-9);
+        assertEquals(2000L, stats.get("maxAt"));
+    }
+
+    @Test
     void textFilterIsRefusedLoudly() {
         var e = assertThrows(IllegalArgumentException.class, () -> SeriesScan.scan(store, Map.of(
                 "expr", "bidMakerOrder.price", "filter", Map.of("text", "x"))));
