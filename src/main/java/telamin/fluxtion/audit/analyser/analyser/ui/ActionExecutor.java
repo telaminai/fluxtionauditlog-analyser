@@ -558,7 +558,25 @@ public final class ActionExecutor implements RenderExecutor {
                 return ActionResult.error("unknown scope '" + scope + "'");
             }
         }
-        if (params.containsKey("focus")) topology.setFocus(bool(params.get("focus")));
+        // M27: pop leaves contexts ("all" = back to the full graph); focus accepts a BOOLEAN
+        // (true pushes the selection's scope as a context, false exits the filter) or a STRING
+        // (recall a named focus); saveFocusAs names the current context, with an optional rationale.
+        Object pop = params.get("pop");
+        if (pop != null) {
+            topology.popFocus("all".equalsIgnoreCase(String.valueOf(pop)));
+        }
+        Object focus = params.get("focus");
+        if (focus instanceof String namedFocus) {
+            String err = topology.recallFocus(namedFocus);
+            if (err != null) return ActionResult.error(err);
+        } else if (focus != null) {
+            topology.setFocus(bool(focus));
+        }
+        String saveFocusAs = str(params.get("saveFocusAs"));
+        if (saveFocusAs != null) {
+            String err = topology.saveFocusAs(saveFocusAs, str(params.get("rationale")));
+            if (err != null) return ActionResult.error(err);
+        }
         if (params.containsKey("source")) topology.setSourcePaneVisible(bool(params.get("source")));
         // deliberately a visibility switch and nothing more: the callout's TEXT is the record's flag, so
         // there is exactly one place to write a diagnosis and this is not it
@@ -576,7 +594,9 @@ public final class ActionExecutor implements RenderExecutor {
         if (step != null && step != 0) topology.step(step);
         if (params.containsKey("fit") && bool(params.get("fit"))) topology.fit();
 
-        return ActionResult.ok("topology", "topology", topology.cursorState());
+        java.util.Map<String, Object> echo = topology.cursorState();
+        if (!topology.lastRecallNote().isEmpty()) echo.put("recallNote", topology.lastRecallNote());
+        return ActionResult.ok("topology", "topology", echo);
     }
 
     /**

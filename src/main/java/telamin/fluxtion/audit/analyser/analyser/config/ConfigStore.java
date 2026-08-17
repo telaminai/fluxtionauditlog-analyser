@@ -80,6 +80,7 @@ public final class ConfigStore {
             c.hiddenColumnsSet = true;
         }
         readGraphs(p, c.savedGraphs);
+        readFocuses(p, c.namedFocuses);
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -144,6 +145,7 @@ public final class ConfigStore {
         writeList(p, "searchHistory", c.searchHistory);
         put(p, "lastRunVersion", c.lastRunVersion);
         writeGraphs(p, globalTier == null ? c.savedGraphs : globalTier.savedGraphs());
+        writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
@@ -166,6 +168,36 @@ public final class ConfigStore {
 
     // package-visible so SettingsShare (settings export/import, M15) reuses the exact same
     // list/graph serialization rather than duplicating the key layout
+    /** M27.3 — named focuses ride the same wire shape as graphs: focus.N.name/rationale/node.M. */
+    static void writeFocuses(java.util.Properties p, java.util.List<FocusSpec> focuses) {
+        p.setProperty("focus.count", Integer.toString(focuses.size()));
+        for (int i = 0; i < focuses.size(); i++) {
+            FocusSpec f = focuses.get(i);
+            put(p, "focus." + i + ".name", f.name());
+            put(p, "focus." + i + ".rationale", f.rationale());
+            p.setProperty("focus." + i + ".node.count", Integer.toString(f.nodeIds().size()));
+            for (int j = 0; j < f.nodeIds().size(); j++) {
+                put(p, "focus." + i + ".node." + j, f.nodeIds().get(j));
+            }
+        }
+    }
+
+    static void readFocuses(java.util.Properties p, java.util.List<FocusSpec> into) {
+        into.clear();
+        int count = parseInt(p.getProperty("focus.count"), 0);
+        for (int i = 0; i < count; i++) {
+            String name = p.getProperty("focus." + i + ".name");
+            if (name == null || name.isBlank()) continue;
+            int nodes = parseInt(p.getProperty("focus." + i + ".node.count"), 0);
+            java.util.List<String> ids = new java.util.ArrayList<>(nodes);
+            for (int j = 0; j < nodes; j++) {
+                String id = p.getProperty("focus." + i + ".node." + j);
+                if (id != null && !id.isBlank()) ids.add(id);
+            }
+            if (!ids.isEmpty()) into.add(new FocusSpec(name, p.getProperty("focus." + i + ".rationale"), ids));
+        }
+    }
+
     static void writeGraphs(Properties p, List<GraphSpec> graphs) {
         p.setProperty("graph.count", Integer.toString(graphs.size()));
         for (int i = 0; i < graphs.size(); i++) {

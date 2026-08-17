@@ -107,6 +107,9 @@ public final class SettingsShare {
         }
         if (categories.contains(Category.GRAPHS)) {
             ConfigStore.writeGraphs(p, c.savedGraphs);
+            // named focuses (M27.3) ride the GRAPHS category — same kind of named analysis artifact,
+            // and folding keeps ProjectProfile.PROJECT_SCOPED at its five pinned categories
+            ConfigStore.writeFocuses(p, c.namedFocuses);
         }
         if (categories.contains(Category.VIEW)) {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
@@ -199,11 +202,15 @@ public final class SettingsShare {
         }
 
         List<GraphSpec> graphs = null;
-        if (p.getProperty("graph.count") != null) {
+        List<FocusSpec> focuses = null;
+        if (p.getProperty("graph.count") != null || p.getProperty("focus.count") != null) {
             present.add(Category.GRAPHS);
             graphs = new ArrayList<>();
             ConfigStore.readGraphs(p, graphs);
-            summary.put(Category.GRAPHS, graphSummary(graphs, current.savedGraphs));
+            focuses = new ArrayList<>();
+            ConfigStore.readFocuses(p, focuses);
+            String s = graphSummary(graphs, current.savedGraphs);
+            summary.put(Category.GRAPHS, focuses.isEmpty() ? s : s + " · " + focuses.size() + " named focus(es)");
         }
 
         List<String> hiddenColumns = null;
@@ -238,7 +245,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, hiddenColumns,
+                eventProcessorFqns, selectedEventProcessor, graphs, focuses, hiddenColumns,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -264,6 +271,12 @@ public final class SettingsShare {
         }
         if (selected.contains(Category.GRAPHS) && plan.graphs() != null) {
             mergeGraphsByName(target.savedGraphs, plan.graphs());
+        }
+        if (selected.contains(Category.GRAPHS) && plan.focuses() != null) {
+            for (FocusSpec f : plan.focuses()) {
+                target.namedFocuses.removeIf(existing -> existing.name().equals(f.name()));
+                target.namedFocuses.add(f);   // replace-by-name, like graphs
+            }
         }
         if (selected.contains(Category.VIEW) && plan.hiddenColumns() != null) {
             // View is the sender's column layout — replace the set wholesale (not additive)
@@ -298,6 +311,7 @@ public final class SettingsShare {
             List<String> eventProcessorFqns,
             String selectedEventProcessor,
             List<GraphSpec> graphs,
+            List<FocusSpec> focuses,
             List<String> hiddenColumns,
             Boolean assistantInProcess,
             Boolean assistantRest,

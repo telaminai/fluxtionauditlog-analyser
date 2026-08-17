@@ -118,6 +118,7 @@ public final class ProjectProfile {
                            List<String> eventProcessorFqns,
                            String selectedEventProcessor,
                            List<GraphSpec> savedGraphs,
+                           List<FocusSpec> namedFocuses,
                            List<String> hiddenColumns,
                            boolean hiddenColumnsSet) {
 
@@ -126,13 +127,14 @@ public final class ProjectProfile {
             mavenRepos = List.copyOf(mavenRepos);
             eventProcessorFqns = List.copyOf(eventProcessorFqns);
             savedGraphs = List.copyOf(savedGraphs);
+            namedFocuses = List.copyOf(namedFocuses);
             hiddenColumns = List.copyOf(hiddenColumns);
         }
     }
 
     public static Snapshot snapshot(AppConfig c) {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
-                c.selectedEventProcessor, c.savedGraphs, c.hiddenColumns, c.hiddenColumnsSet);
+                c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.hiddenColumns, c.hiddenColumnsSet);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -144,6 +146,7 @@ public final class ProjectProfile {
         into.eventProcessorFqns.addAll(s.eventProcessorFqns());
         into.selectedEventProcessor = s.selectedEventProcessor();
         into.savedGraphs.addAll(s.savedGraphs());
+        into.namedFocuses.addAll(s.namedFocuses());
         into.hiddenColumns.addAll(s.hiddenColumns());
         into.hiddenColumnsSet = s.hiddenColumnsSet();
     }
@@ -157,6 +160,7 @@ public final class ProjectProfile {
         c.mavenRepos.clear();
         c.eventProcessorFqns.clear();
         c.savedGraphs.clear();
+        c.namedFocuses.clear();
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there

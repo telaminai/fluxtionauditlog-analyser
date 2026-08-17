@@ -150,6 +150,8 @@ public final class MainFrame extends JFrame {
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
         graphTabs.setChangeListener(this::onGraphsEdited);
         project.setPreSave(this::syncOpenGraphsIntoConfig);
+        // M27.3: named focuses live in the config's project tier; save/recall/delete persist like graphs
+        topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
         actionExecutor.bind(topologyPanel, new AppControlAdapter());

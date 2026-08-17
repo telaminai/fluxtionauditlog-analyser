@@ -77,6 +77,13 @@ public final class TopologyPanel extends JPanel {
     /** Clickable breadcrumb of the context stack; empty (hidden) at the full graph. */
     private final javax.swing.JPanel crumbBar = new javax.swing.JPanel(
             new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 0));
+    /** Named focuses (M27.3): project-tier storage owned by the config; the panel only reads/writes it. */
+    private java.util.function.Supplier<java.util.List<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>>
+            namedFocuses = java.util.List::of;
+    private Runnable focusesChanged = () -> { };
+    private final javax.swing.JButton focusPicker = new javax.swing.JButton("Focuses ▾");
+    /** What the last recall resolved — mismatch honesty for the status line and the verb echo. */
+    private String lastRecallNote = "";
     /** The node set currently laid out — a change to it invalidates the saved zoom and pan. */
     private java.util.Set<String> shownNodes = java.util.Set.of();
 
@@ -125,6 +132,10 @@ public final class TopologyPanel extends JPanel {
                 + "Show all returns to the full graph.");
         focusButton.addActionListener(e -> pushFocus());
         bar.add(focusButton);
+        focusPicker.setToolTipText("Named focuses — saved filter contexts for this project. Recalling one "
+                + "replaces the current context stack; the rationale says why the view exists.");
+        focusPicker.addActionListener(e -> showFocusPicker());
+        bar.add(focusPicker);
         bar.add(button("Show all", this::showAll));
         crumbBar.setOpaque(false);
         bar.add(crumbBar);
@@ -312,6 +323,128 @@ public final class TopologyPanel extends JPanel {
         }
         crumbBar.revalidate();
         crumbBar.repaint();
+    }
+
+    // ---- named focuses (M27.3) -----------------------------------------------------------------
+
+    public void bindNamedFocuses(
+            java.util.function.Supplier<java.util.List<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>> supplier,
+            Runnable onChanged) {
+        this.namedFocuses = supplier == null ? java.util.List::of : supplier;
+        this.focusesChanged = onChanged == null ? () -> { } : onChanged;
+    }
+
+    /**
+     * Save the current context as a named focus (replace-by-name). Returns an error message, or null.
+     * The full graph is refused: a focus that admits everything filters nothing and is never what was
+     * meant — apply a focus first, then name it.
+     */
+    public String saveFocusAs(String name, String rationale) {
+        if (name == null || name.isBlank()) return "'saveFocusAs' needs a name";
+        if (fullTopology.isEmpty()) return "no topology is loaded";
+        if (focusStack.atFull()) return "nothing to save — the full graph is not a focus; apply one first";
+        java.util.List<String> ids = java.util.List.copyOf(focusStack.world());
+        java.util.List<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec> list = namedFocuses.get();
+        String trimmed = name.trim();
+        list.removeIf(f -> f.name().equals(trimmed));
+        list.add(new telamin.fluxtion.audit.analyser.analyser.config.FocusSpec(trimmed,
+                rationale == null ? "" : rationale.trim(), ids));
+        focusesChanged.run();
+        setStatus("saved focus '" + trimmed + "' (" + ids.size() + " nodes)");
+        return null;
+    }
+
+    /**
+     * Recall a named focus: pops to the full graph and pushes the named context (a named focus is an
+     * absolute view — predictable regardless of what was open). Ids missing from this topology are
+     * surfaced, never silently dropped: a partial resolve usually means a different build.
+     * Returns an error message, or null.
+     */
+    public String recallFocus(String name) {
+        lastRecallNote = "";
+        if (name == null || name.isBlank()) return "'focus' needs a name";
+        telamin.fluxtion.audit.analyser.analyser.config.FocusSpec spec = namedFocuses.get().stream()
+                .filter(f -> f.name().equals(name.trim())).findFirst().orElse(null);
+        if (spec == null) {
+            java.util.List<String> known = namedFocuses.get().stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.FocusSpec::name).toList();
+            return "no focus named '" + name + "'" + (known.isEmpty() ? "" : " — available: " + known);
+        }
+        java.util.List<String> resolved = spec.nodeIds().stream().filter(fullTopology::contains).toList();
+        if (resolved.isEmpty()) {
+            return "focus '" + spec.name() + "': none of its " + spec.nodeIds().size()
+                    + " nodes exist in this topology — a different build?";
+        }
+        focusStack.popToFull();
+        focusStack.push(resolved, spec.name());
+        selection.clear();
+        scope = TopologyFocus.Scope.NODE;
+        canvas.select(null);
+        applyView(false);
+        refreshCrumbs();
+        int missing = spec.nodeIds().size() - resolved.size();
+        if (missing > 0) {
+            lastRecallNote = missing + " of " + spec.nodeIds().size()
+                    + " nodes are not in this topology — the focus may be from a different build";
+            setStatus("focus '" + spec.name() + "': " + lastRecallNote);
+        } else {
+            setStatus("focus '" + spec.name() + "' (" + resolved.size() + " nodes)"
+                    + (spec.rationale().isBlank() ? "" : " — " + spec.rationale()));
+        }
+        return null;
+    }
+
+    /** The mismatch note from the last {@link #recallFocus}, or "" — for the verb echo. */
+    public String lastRecallNote() {
+        return lastRecallNote;
+    }
+
+    private void showFocusPicker() {
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        javax.swing.JMenuItem save = new javax.swing.JMenuItem("Save focus as…");
+        save.setEnabled(!focusStack.atFull());
+        save.setToolTipText(focusStack.atFull() ? "Apply a focus first — the full graph is not a focus" : null);
+        save.addActionListener(e -> {
+            javax.swing.JTextField nameField = new javax.swing.JTextField(18);
+            javax.swing.JTextField whyField = new javax.swing.JTextField(28);
+            javax.swing.JPanel form = new javax.swing.JPanel(new java.awt.GridLayout(0, 1, 4, 4));
+            form.add(new javax.swing.JLabel("Name:"));
+            form.add(nameField);
+            form.add(new javax.swing.JLabel("Why this view exists (shown in the picker):"));
+            form.add(whyField);
+            if (javax.swing.JOptionPane.showConfirmDialog(this, form, "Save focus",
+                    javax.swing.JOptionPane.OK_CANCEL_OPTION) == javax.swing.JOptionPane.OK_OPTION) {
+                String err = saveFocusAs(nameField.getText(), whyField.getText());
+                if (err != null) setStatus(err);
+            }
+        });
+        menu.add(save);
+        java.util.List<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec> list = namedFocuses.get();
+        if (!list.isEmpty()) {
+            menu.addSeparator();
+            for (var f : list) {
+                javax.swing.JMenuItem item = new javax.swing.JMenuItem(f.name() + " (" + f.nodeIds().size() + ")");
+                item.setToolTipText(f.rationale().isBlank() ? null : f.rationale());
+                item.addActionListener(e -> {
+                    String err = recallFocus(f.name());
+                    if (err != null) setStatus(err);
+                });
+                menu.add(item);
+            }
+            javax.swing.JMenu delete = new javax.swing.JMenu("Delete");
+            for (var f : list) {
+                javax.swing.JMenuItem item = new javax.swing.JMenuItem(f.name());
+                item.addActionListener(e -> {
+                    namedFocuses.get().removeIf(x -> x.name().equals(f.name()));
+                    focusesChanged.run();
+                    setStatus("deleted focus '" + f.name() + "'");
+                });
+                delete.add(item);
+            }
+            menu.addSeparator();
+            menu.add(delete);
+        }
+        menu.show(focusPicker, 0, focusPicker.getHeight());
     }
 
     private javax.swing.JButton crumbButton(String text, int depth) {

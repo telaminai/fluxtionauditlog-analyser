@@ -6,6 +6,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **Topology focus is now a filter, not a toggle** — and this changes two familiar gestures. Applying
+  **Focus** (button or **F**) filters the view to the selection's scope, and that context becomes the
+  whole graph: clicking nodes explores *within* it, and focusing again drills deeper. **Esc** steps back
+  out one level; **Show all** returns to the full graph; a clickable breadcrumb
+  (`All (62) ▸ hedge path (12) ▸ …`) shows where you are. **Clicking empty canvas now clears only the
+  selection and dimming — it no longer exits the focus.** If a shown cycle ran through nodes the
+  current context can't show, the status line says so rather than cropping the propagation silently.
+
+### Added
+- **Named focuses** — save the current topology context by name with a rationale (**Focuses ▾** on the
+  toolbar, or `topology {saveFocusAs, rationale}` from an agent), recall it by name (picker or
+  `topology {focus: "name"}`), delete from the picker. Saved with the project (never the API key),
+  shared like saved graphs (replace-by-name), and honest across builds: recalling a focus whose nodes
+  aren't all in the loaded topology says how many resolved instead of silently dropping the rest.
+  Agents stepping out of contexts use `topology {pop: true | "all"}`.
+
 ### Fixed
 - **Graphs made while a project was active were never saved to the project — and could be lost
   entirely.** Graph edits only reached disk at exit, and the project file was always written with a

@@ -844,7 +844,7 @@ design, not a port._
   …) and `applyReadingRhythm()` opens line spacing to 0.18. Swing sets lines at the font's own leading,
   which is most of why dense key/value output reads as a block next to the same content on a web page.
 
-## M27 · Topology focus as a filter context — ☐ PROPOSED (drill-down, not toggle)
+## M27 · Topology focus as a filter context — ◧ M27.1–3 ON BRANCH (docs M27.4 remaining)
 _Design: **[spec-topology-focus.md](spec-topology-focus.md)**. Owner correction to M22's focus model:
 focus is a **filter operation**, not a view toggle — the focused subgraph becomes "the whole graph" for
 every subsequent operation (contexts NEST); node clicks cycle scope within the context; canvas click
@@ -853,11 +853,11 @@ pops-to-full). Execution shading stays computed on the full graph with out-of-co
 indicated at the boundary, never cropped silently. Plus **named focuses** — save/recall/share a context
 by name (project-tier, instanceId-based, mismatch-surfaced) — the large-graph payoff. Same seam as
 in-flight H4; coordinate._
-- [M27.1] ☐ **FocusContext + context stack** in `topology/TopologyFocus` — pure, headless: nesting,
+- [M27.1] ☑ **FocusContext + context stack** in `topology/TopologyFocus` — pure, headless: nesting,
   context-relative scope cycling, boundary detection, pop semantics.
-- [M27.2] ☐ **UI rewiring** — canvas-click = clear-dim only, Esc = pop, Show all = pop-to-full,
+- [M27.2] ☑ **UI rewiring** — canvas-click = clear-dim only, Esc = pop, Show all = pop-to-full,
   breadcrumb in the status line, boundary indication. (Behaviour change to a shipped gesture.)
-- [M27.3] ☐ **Named focus** — save/picker/persist (project tier; keep PROJECT_SCOPED at five pinned
+- [M27.3] ☑ **Named focus** — save/picker/persist (project tier; keep PROJECT_SCOPED at five pinned
   categories — fold deliberately, say so) + SettingsShare + verb alignment: `topology {focus: name,
   pop}` recalls/exits, `{saveFocusAs, rationale}` saves — **agents may create named focuses** (owner
   decision; AV.2 graph precedent: rationale-captioned, replace-by-name, not destructive-hinted, no

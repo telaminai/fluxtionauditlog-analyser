@@ -121,7 +121,15 @@ public final class VerbSchemas {
                         p("select", string(), "instanceId to select (null clears the selection)"),
                         p("scope", enumStr("node", "neighbours", "routes", "all"),
                                 "how far around the selection to reach; default keeps the current scope"),
-                        p("focus", bool(), "true hides everything outside the scope; false dims it instead"),
+                        pAny("focus", "boolean or string. TRUE filters the view to the selection's "
+                                + "scope — that context becomes the whole graph and later calls operate "
+                                + "inside it (contexts nest); FALSE exits every context. A STRING recalls "
+                                + "a saved named focus by name (replaces the context stack)"),
+                        pAny("pop", "true steps out one context level; \"all\" returns to the full graph"),
+                        p("saveFocusAs", string(), "save the current context as a named focus with this "
+                                + "name (replace-by-name; project-tier, shared with saved setups)"),
+                        p("rationale", string(), "with saveFocusAs: why this view exists — shown in the "
+                                + "picker so the focus is a finding, not an unexplained view"),
                         p("scaffolding", bool(), "show the framework nodes Fluxtion adds to every graph"),
                         p("step", integer(), "advance the cursor by N rows (negative steps back)"),
                         p("recordIndex", integer(), "move the cursor to this record in the filtered view"),
@@ -132,7 +140,8 @@ public final class VerbSchemas {
                         p("callout", bool(), "show the current record's finding painted over the graph "
                                 + "(default on). The TEXT comes from that record's flag — write it with "
                                 + "'flag', not here"),
-                        p("showAll", bool(), "clear selection, focus and cycle shading — the plain graph")),
+                        p("showAll", bool(), "exit every focus context and clear selection and cycle "
+                                + "shading — the plain full graph")),
                 List.of()));
 
         s.put("screenshot", schema("Write a PNG of the app's own window to a path. Painted by the app, "
@@ -188,6 +197,13 @@ public final class VerbSchemas {
     private static Map.Entry<String, Object> p(String name, Map<String, Object> type, String desc) {
         type.put("description", desc);
         return Map.entry(name, type);
+    }
+
+    /** A property that accepts more than one JSON type — described in words, unconstrained in type. */
+    private static Map.Entry<String, Object> pAny(String name, String desc) {
+        Map<String, Object> spec = new LinkedHashMap<>();
+        spec.put("description", desc);
+        return Map.entry(name, spec);
     }
 
     private static List<String> req(String... names) {

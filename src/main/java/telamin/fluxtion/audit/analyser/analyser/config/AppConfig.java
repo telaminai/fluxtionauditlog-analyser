@@ -101,6 +101,9 @@ public final class AppConfig {
     /** Recently opened project profiles, most-recent first — the switcher's list (spec O2). */
     public final List<String> recentProjects = new ArrayList<>();
 
+    /** Named topology focuses (M27.3) — project-tier, persisted with the saved graphs. */
+    public final List<FocusSpec> namedFocuses = new ArrayList<>();
+
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();
 
