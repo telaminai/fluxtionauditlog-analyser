@@ -893,7 +893,7 @@ enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the sp
 - [M28.1] ☑ **Conditionals** *(shipped on `feat/m28-expr-conditionals`)* — comparisons +
   `if(cond, then[, else])` + `and/or/not`; two-arg `if` defaults else to NaN = "plot only when".
   Stateless, no signature changes; ships alone.
-- [M28.2] ☐ **Evaluator refactor (W0)** — per-scan compiled MIRROR (position-keyed state, not
+- [M28.2] ☑ **Evaluator refactor (W0)** *(shipped on `feat/m28-expr-conditionals`)* — per-scan compiled MIRROR (position-keyed state, not
   value-equal-node-keyed: `delta(x)+delta(x)` must be `2*delta(x)`); `Expr.eval(Map)` DELETED so the
   compiler enforces migration; all three call sites (extractExpr STRICT/LOCF, SeriesScan) migrated.
 - [M28.3] ☐ **Count windows** — `lag/delta/mean/sum/rollingMin/rollingMax(x, N)` (min/max overload

@@ -65,6 +65,7 @@ public final class SeriesExtractor {
         Series series = new Series(label);
         var index = store.index();
         Set<GraphKey> refs = expr.refs();
+        Evaluator eval = expr.newEvaluator();   // ONE per scan — rolling windows reset with the scan (W0)
         java.util.Map<GraphKey, Double> carry = new java.util.HashMap<>();   // LOCF last-known finite value
 
         for (int row = 0; row < store.size(); row++) {
@@ -82,7 +83,7 @@ public final class SeriesExtractor {
                     else { allFinite = false; break; }   // absent or NaN → not a co-occurring numeric record
                 }
                 if (!allFinite || logTime == null) continue;
-                double v = expr.eval(vals);
+                double v = eval.eval(logTime, vals);
                 if (Double.isFinite(v)) series.add(logTime, v);
             } else {   // LOCF
                 boolean touched = false;
@@ -95,7 +96,7 @@ public final class SeriesExtractor {
                     else carry.remove(k);                 // explicit NaN / non-numeric → clear the carry
                 }
                 if (!touched || logTime == null) continue;
-                double v = expr.eval(carry);
+                double v = eval.eval(logTime, carry);
                 if (Double.isFinite(v)) series.add(logTime, v);
             }
         }

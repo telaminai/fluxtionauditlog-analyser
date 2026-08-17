@@ -69,6 +69,7 @@ public final class SeriesScan {
 
         var index = store.index();
         Set<GraphKey> refs = expr.refs();
+        Evaluator eval = expr.newEvaluator();   // ONE per scan — rolling windows reset with the scan (W0)
         Map<GraphKey, Double> carry = new HashMap<>();
 
         long count = 0;
@@ -98,7 +99,7 @@ public final class SeriesScan {
                     else { allFinite = false; break; }
                 }
                 if (allFinite) {
-                    double e = expr.eval(vals);
+                    double e = eval.eval(logTime, vals);
                     if (Double.isFinite(e)) v = e;
                 }
             } else {
@@ -112,7 +113,7 @@ public final class SeriesScan {
                     else carry.remove(k);
                 }
                 if (touched) {
-                    double e = expr.eval(carry);
+                    double e = eval.eval(logTime, carry);
                     if (Double.isFinite(e)) v = e;
                 }
             }

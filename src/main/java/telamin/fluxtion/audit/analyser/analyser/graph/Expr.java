@@ -3,7 +3,6 @@ package telamin.fluxtion.audit.analyser.analyser.graph;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -23,8 +22,14 @@ import java.util.Set;
  */
 public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Expr.Cmp, Expr.Call {
 
-    /** Evaluate; missing ref → {@code NaN}; any {@code NaN} operand propagates. */
-    double eval(Map<GraphKey, Double> refValues);
+    /**
+     * Compile a per-scan evaluator (spec M28 W0). There is deliberately NO per-record eval shortcut
+     * on the AST: create ONE evaluator per scan and feed it rows in order — a throwaway evaluator per
+     * row would silently reset every rolling window. Semantics live in {@link Evaluator}.
+     */
+    default Evaluator newEvaluator() {
+        return new Evaluator(this);
+    }
 
     /** The {@link GraphKey}s this expression references (so the extractor knows what to resolve). */
     default Set<GraphKey> refs() {
@@ -38,34 +43,18 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
     // ---- AST ------------------------------------------------------------------------------------
 
     record Num(double value) implements Expr {
-        @Override public double eval(Map<GraphKey, Double> v) { return value; }
         @Override public void collectRefs(Set<GraphKey> out) { }
     }
 
     record Ref(GraphKey key) implements Expr {
-        @Override public double eval(Map<GraphKey, Double> v) {
-            Double d = v.get(key);
-            return d == null ? Double.NaN : d;
-        }
         @Override public void collectRefs(Set<GraphKey> out) { out.add(key); }
     }
 
     record Neg(Expr e) implements Expr {
-        @Override public double eval(Map<GraphKey, Double> v) { return -e.eval(v); }
         @Override public void collectRefs(Set<GraphKey> out) { e.collectRefs(out); }
     }
 
     record Bin(char op, Expr left, Expr right) implements Expr {
-        @Override public double eval(Map<GraphKey, Double> v) {
-            double a = left.eval(v), b = right.eval(v);
-            return switch (op) {
-                case '+' -> a + b;
-                case '-' -> a - b;
-                case '*' -> a * b;
-                case '/' -> b == 0.0 ? Double.NaN : a / b;   // div-by-zero → no point (not ±Inf)
-                default -> Double.NaN;
-            };
-        }
         @Override public void collectRefs(Set<GraphKey> out) { left.collectRefs(out); right.collectRefs(out); }
     }
 
@@ -74,72 +63,10 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
      * NaN (unknown stays unknown; {@code if} then yields NaN and the point is omitted).
      */
     record Cmp(String op, Expr left, Expr right) implements Expr {
-        @Override public double eval(Map<GraphKey, Double> v) {
-            double a = left.eval(v), b = right.eval(v);
-            if (Double.isNaN(a) || Double.isNaN(b)) return Double.NaN;
-            boolean holds = switch (op) {
-                case ">"  -> a > b;
-                case "<"  -> a < b;
-                case ">=" -> a >= b;
-                case "<=" -> a <= b;
-                case "==" -> a == b;
-                case "!=" -> a != b;
-                default   -> false;
-            };
-            return holds ? 1.0 : 0.0;
-        }
         @Override public void collectRefs(Set<GraphKey> out) { left.collectRefs(out); right.collectRefs(out); }
     }
 
     record Call(String fn, List<Expr> args) implements Expr {
-        @Override public double eval(Map<GraphKey, Double> v) {
-            // EVERY argument is evaluated eagerly — including if()'s untaken branch. No side effects
-            // exist today, and rolling windows (M28.2+) must see a deterministic sample stream
-            // regardless of which branch wins: a lazily-skipped window would go cold and emit NaN
-            // for its full length after every branch switch. Do not "optimise" this to short-circuit.
-            return switch (fn) {
-                case "abs" -> Math.abs(args.get(0).eval(v));
-                case "if" -> {
-                    double c = args.get(0).eval(v);
-                    double then = args.get(1).eval(v);
-                    double els = args.size() > 2 ? args.get(2).eval(v) : Double.NaN;   // 2-arg: else = no point
-                    yield Double.isNaN(c) ? Double.NaN : (c != 0.0 ? then : els);
-                }
-                case "and" -> {
-                    double r = 1.0;
-                    for (Expr a : args) {
-                        double x = a.eval(v);
-                        if (Double.isNaN(x)) r = Double.NaN;             // NaN poisons, but keep evaluating
-                        else if (x == 0.0 && !Double.isNaN(r)) r = 0.0;
-                    }
-                    yield r;
-                }
-                case "or" -> {
-                    double r = 0.0;
-                    for (Expr a : args) {
-                        double x = a.eval(v);
-                        if (Double.isNaN(x)) r = Double.NaN;
-                        else if (x != 0.0 && !Double.isNaN(r)) r = 1.0;
-                    }
-                    yield r;
-                }
-                case "not" -> {
-                    double x = args.get(0).eval(v);
-                    yield Double.isNaN(x) ? Double.NaN : (x == 0.0 ? 1.0 : 0.0);
-                }
-                case "min" -> {
-                    double m = Double.POSITIVE_INFINITY;
-                    for (Expr a : args) m = Math.min(m, a.eval(v));
-                    yield m;
-                }
-                case "max" -> {
-                    double m = Double.NEGATIVE_INFINITY;
-                    for (Expr a : args) m = Math.max(m, a.eval(v));
-                    yield m;
-                }
-                default -> Double.NaN;
-            };
-        }
         @Override public void collectRefs(Set<GraphKey> out) { for (Expr a : args) a.collectRefs(out); }
     }
 
