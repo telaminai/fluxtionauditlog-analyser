@@ -22,10 +22,12 @@ Status: ☐ not filed · ◐ filed · ☑ landed.
 windows) and M29 (external series) — the first asks here raised from making the log's own **clock**
 load-bearing, and from putting a second clock beside it. UP-FLX-28…31 (§2c) answer the owner's
 proposal to add backward-compatible GraphML attributes, and settle which of them belong on **edges**
-rather than vertices. All six are facts the compiler or runtime
-already holds at write time. §2c opens with the **verified** backward-compatibility contract and the
-one constraint it carries; UP-FLX-26 carries a **name collision** with the owner's proposed record
-header `source` that should be settled before either is filed.
+rather than vertices. All seven are facts the compiler or runtime already holds at write time. §2c
+opens with a **probe graph compiled 2026-08-17** that measures what actually survives into the
+GraphML (answer: nothing — every edge is identical but for `id`/`source`/`target`), then the
+**verified** backward-compatibility contract and the one constraint it carries. UP-FLX-26 carries a
+**name collision** with the owner's proposed record header `source` that should be settled before
+either is filed.
 
 **Filed 2026-08-16 (round 2):** UP-FLX-20…22 are open as [telaminai/fluxtion issues 14–16](https://github.com/telaminai/fluxtion/issues). They come from the supermarket POC's *maintenance* round — injecting new subsystems upstream of working ones — and are the first asks here raised from changing a graph rather than building one.
 
@@ -475,6 +477,60 @@ Owner proposal, 2026-08-17: *"add backward compatible attributes to the graphml 
 as push edge. Maybe data only nodes."* The asks below answer that and the follow-up *"what else would
 be useful?"*.
 
+### MEASURED — a probe graph compiled 2026-08-17
+
+Rather than reason about the emitter, a throwaway processor was compiled (`Fluxtion.compile(...)` with
+`generateDescription(true)`, fluxtion-bom 1.0.64) containing one of each construct: a plain handler, a
+`filterString="ACME"` handler, a `FilterType.defaultCase` handler, an `@OnEventHandler(propagate=false)`
+handler, a node with **one trigger parent and one `@NoTriggerReference` parent**, an
+`@ExportService(propagate=false)` service with a `@NoPropagateFunction` method, and a DataFlow
+`.push(pushTarget::setPushed)`.
+
+**Result: the emitted GraphML declares exactly two keys — `vertex_label` (node) and `edge_label`
+(edge) — and EVERY edge in the file is identical but for `id`, `source` and `target`.** The
+`edge_label` payload is `<jGraph:ShapeEdge/>`: pure rendering, zero semantics. Node payload is a
+`<jGraph:label text="…">` holding `id:`/`class:` plus a stereotype, and `<jGraph:Style properties="…">`
+holding the kind.
+
+So these four edges are byte-identical in structure, though no two mean the same thing:
+
+```
+<edge id="17" source="PriceEvent" target="rawFeed">        always fires
+<edge id="19" source="PriceEvent" target="acmeFeed">       only when filterString == "ACME"
+<edge id="20" source="PriceEvent" target="fallbackFeed">   only when NOTHING else matched
+<edge id="21" source="PriceEvent" target="quietFeed">      fires, but never propagates
+```
+
+as are these two, which are the trigger/data distinction itself:
+
+```
+<edge id="2" source="rawFeed" target="consumer">           TRIGGER parent
+<edge id="3" source="dataBag" target="consumer">           @NoTriggerReference DATA parent
+```
+
+**And `.push()` is worse than unmarked — it is currently unrenderable.** The push materialises as a
+chain of three framework nodes:
+
+```
+rawFeed → nodeToFlowFunction_8 → mapRef2RefFlowFunction_9 → pushFlowFunction_10 → pushTarget
+```
+
+all three of class `com.telamin.fluxtion.runtime.flowfunction.function.*`, which matches the analyser's
+framework-package prefix. Running the real parser and `Scaffolding.authoredNodes` over the probe
+(21 nodes → 10 authored) gives:
+
+- **Scaffolding hidden (the DEFAULT):** all four push edges are dropped, because each touches a
+  framework node. `pushTarget` survives as an authored node with **zero edges** — a disconnected box on
+  the canvas, and the `rawFeed → pushTarget` relationship is *completely invisible*.
+- **Scaffolding shown:** the relationship appears as four ordinary edges through three plumbing nodes,
+  implying a propagating dependency chain — when the whole point of `.push()` is that downstream does
+  not see the effect.
+
+Neither view is correct, and the analyser has no way to produce a correct one from this file. That is
+the concrete cost behind UP-FLX-28 and UP-FLX-29 together: the marking (`propagates`) and the
+identification (`framework="true"`) are both needed, because with only the second, the push chain is
+hidden and the relationship vanishes.
+
 ### The backward-compatibility contract — VERIFIED, with one constraint
 
 **Measured against `topology/GraphmlParser.java`, 2026-08-17.** The analyser's reader takes `id` from
@@ -509,9 +565,16 @@ Two **independent** facts, and the distinction matters — they are not the same
   the data-reference case, which carries propagation-relevance but no trigger.
 
 **Verified against the runtime source, 2026-08-17** (`fluxtion-runtime/.../runtime/annotations/`):
-`@NoPropagateFunction` — *"Marks an exported function as non propagating"* — already exists at method
-level. So non-propagation is a fact the compiler **holds today** for exported functions; it simply has
-no GraphML carrier. This ask is "emit what you know", not "invent a concept".
+non-propagation is already declarable at **four** granularities, none of which reach the GraphML:
+
+| carrier | level | wording |
+|---|---|---|
+| `@ExportService(propagate = false)` | service (type-use) | *"permanently remove the event handler method from the execution path"* |
+| `@NoPropagateFunction` | exported method | *"Marks an exported function as non propagating"* |
+| `@OnEventHandler(propagate = false)` | handler method | overrides the handler's boolean return |
+| `FilterType.matched` | edge condition | *"Only matching filters allow event propagation"* |
+
+So this ask is "emit what you already know", not "invent a concept".
 
 **On "data only nodes" — the name is already taken, and means something else.** `@FluxtionDataOnly`
 exists, and it is a **lint-suppression marker**: *"The annotated type is intentionally not a Fluxtion
@@ -541,6 +604,11 @@ repo guessing at what the compiler generated, and it is wrong in both directions
 matching package is hidden, a new framework type is shown until we notice and add its name.
 
 Ask: `framework="true"` (or `role="scaffold"`) on every node the compiler generates.
+
+The probe above shows the second half of the cost: name-matching happens to *succeed* on the DataFlow
+plumbing (`…runtime.flowfunction.function.*` matches a package prefix), and succeeding is what makes
+`pushTarget` an orphan. Identification alone is not enough — it must arrive with UP-FLX-28's `propagates`,
+or hiding the plumbing silently deletes a real relationship.
 
 **Cost to us if unfixed** the **Scaffolding** checkbox — which hides 10 of 20 nodes in the demo graph,
 half the picture — is driven by a name list that must be maintained in this repo, in lockstep with a
@@ -572,8 +640,9 @@ acts like a default branch in a case statement."* `annotations/FilterId.java` *"
 default filter for all event handlers in that class"* (field-level, so a per-class default).
 
 So an event→handler edge is frequently **conditional**, and some edges are *default branches* that fire
-only when every other edge did not. The GraphML carries none of this, and the analyser draws every such
-edge as though it always fires.
+only when every other edge did not. **Confirmed by the probe above**: the unfiltered, `"ACME"`-filtered,
+`defaultCase` and `propagate=false` handler edges are byte-identical in the emitted file. The analyser
+draws all four as though they always fire.
 
 Ask: on the edge, the filter value and its `FilterType`; on the node, the class-level `@FilterId`
 default when one is declared.
