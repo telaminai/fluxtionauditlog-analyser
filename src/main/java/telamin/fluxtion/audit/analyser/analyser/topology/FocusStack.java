@@ -119,8 +119,21 @@ public final class FocusStack {
         return out;
     }
 
-    /** Transitive closure both ways, walking only edges whose BOTH ends are inside {@code world}. */
+    /**
+     * Routes = transitive ancestors ∪ transitive descendants, walking only edges whose BOTH ends are
+     * inside {@code world}. The two closures are computed SEPARATELY and each walks one direction only —
+     * a single walk that follows both edge directions from every discovered node is the undirected
+     * connected component (down to a child, up to that child's other parents, and outward until the whole
+     * graph is in), which is exactly the click-escalation bug this replaced (owner report 2026-08-17).
+     */
     private Set<String> reachWithin(Collection<String> seeds, Set<String> world) {
+        Set<String> out = closureWithin(seeds, world, true);
+        out.addAll(closureWithin(seeds, world, false));
+        return out;
+    }
+
+    /** One-directional transitive closure ({@code up} = ancestors) over in-world edges, cycle-safe. */
+    private Set<String> closureWithin(Collection<String> seeds, Set<String> world, boolean up) {
         Set<String> seen = new LinkedHashSet<>();
         Deque<String> queue = new ArrayDeque<>();
         for (String s : seeds) {
@@ -128,10 +141,7 @@ public final class FocusStack {
         }
         while (!queue.isEmpty()) {
             String id = queue.removeFirst();
-            for (String next : topology.parentsOf(id)) {
-                if (world.contains(next) && seen.add(next)) queue.addLast(next);
-            }
-            for (String next : topology.childrenOf(id)) {
+            for (String next : up ? topology.parentsOf(id) : topology.childrenOf(id)) {
                 if (world.contains(next) && seen.add(next)) queue.addLast(next);
             }
         }

@@ -114,6 +114,17 @@ M26.1 process slip, self-caught: the M26.1 commit was chained on a grep that mas
     multi-catch in the series dispatch — collapsed to RuntimeException.)
 D4  A stale "six log verbs" count in the assistant guide's setup note was corrected to "the log
     verbs" while touching adjacent lines (it predates this branch).
+POST-REPORT FIX (owner-found, this branch only — never released): click-escalation step 3
+    (routes: transitive parents + children) selected the WHOLE graph. FocusStack.reachWithin
+    (M27.1) walked BOTH edge directions in one BFS — that is the undirected connected component,
+    not routes (down to a child, up to that child's other parents, outward until everything is
+    in). TopologyFocus.expand had it right all along (two separate directional closures); the
+    in-world rewrite lost the separation, and the original confinement test could not see it
+    because its context excluded the connecting node. Fixed as ancestors-closure ∪
+    descendants-closure over in-world edges; FocusStackTest.routesAreDirectional_
+    neverTheWholeConnectedComponent pins it at the full graph, from a mid-graph node, from a
+    sibling-feeder, and inside a context. Reviewer: E1 now includes verifying the four-step click
+    cycle live (node → neighbours → routes → all → node).
 
 ================================================================================
 3. HUMAN-EYEBALL LIST (Swing is untested by design — verify on the running jar)

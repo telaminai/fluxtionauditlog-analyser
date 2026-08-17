@@ -79,6 +79,27 @@ class FocusStackTest {
     }
 
     @Test
+    void routesAreDirectional_neverTheWholeConnectedComponent() {
+        // The click-escalation bug (owner report 2026-08-17): step 3 of the cycle (transitive
+        // parents + transitive children) selected the WHOLE graph. Routes of a are its ancestors
+        // and its descendants — d feeds c but lies on no route through a; a walk that goes DOWN
+        // to c and then UP to d has changed direction and is not a route.
+        FocusStack f = new FocusStack(diamond());
+        assertEquals(Set.of("a", "b", "c", "e"),
+                f.expandInWorld(Set.of("a"), TopologyFocus.Scope.ROUTES),
+                "at the full graph: descendants of a plus a itself — never sibling-feeder d");
+        assertEquals(Set.of("d", "c", "e"),
+                f.expandInWorld(Set.of("d"), TopologyFocus.Scope.ROUTES),
+                "routes of d must not climb back up c's other parents (b, a)");
+
+        // and the same directionality INSIDE a context
+        f.push(Set.of("a", "b", "c", "d"), "abcd");
+        assertEquals(Set.of("a", "b", "c"),
+                f.expandInWorld(Set.of("a"), TopologyFocus.Scope.ROUTES),
+                "within the context: a's routes are a→b→c; d is c's other parent, not on a route of a");
+    }
+
+    @Test
     void neighboursAreConfinedToo() {
         FocusStack f = new FocusStack(diamond());
         f.push(Set.of("b", "c", "e"), "bce");
