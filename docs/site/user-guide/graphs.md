@@ -46,8 +46,10 @@ askMakerOrder.price − bidMakerOrder.price
   non-numeric sample leaves it unchanged, and it counts **samples, not time** — a quiet market makes
   a count window span more wall-clock, so for anything rate-sensitive prefer the **time-windowed
   forms**: `mean` / `sum` / `rollingMin` / `rollingMax` `(x, "5m")` (durations: `"250ms"`, `"5s"`,
-  `"2m"`, `"1h"`) and `rate(x, "1m")` — the change over the last minute. A time window needs no fill
-  (one sample answers; a `rate` needs two), and old samples age out against each record's own clock.
+  `"2m"`, `"1h"`) and `rate(x, "1m")` — the change per minute, scaled from however much of the minute
+  the samples actually cover, so a filling window and a full one both read the true rate. A time window
+  needs no fill (one sample answers; a `rate` needs two, separated in time), and old samples age out
+  against each record's own clock.
   Zooming the time slider never changes a window's contents; only changing the dimension/text filter
   re-extracts.
 

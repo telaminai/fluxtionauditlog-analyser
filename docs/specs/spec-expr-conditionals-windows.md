@@ -110,7 +110,17 @@ Time-windowed (T = duration literal: `"250ms"`, `"5s"`, `"2m"`, `"1h"`):
 | form | meaning |
 |---|---|
 | `mean(x, "5m")` etc. | over accepted samples with `logTime > now − T` (deque pruned per record) |
-| `rate(x, "1m")` | `(last − first)/window` over that pruned deque — change per T |
+| `rate(x, "1m")` | change per T: `(newest − oldest) × T / spanCovered` over that pruned deque |
+
+**`rate` normalises by the span its samples actually cover, not by T.** The raw `newest − oldest` is
+"change per T" only if the samples span T exactly, which they never do — the window is open at the old
+end, so the retained span is short by one sampling interval even in steady state, and shorter still
+during the first T or after a gap. Un-normalised, a series rising 1.0/s sampled every 10s reads 10 at
+`t=10s` and 50 for ever after instead of the true 60: a permanent low bias of `(T−Δ)/T` that never
+converges. Samples sharing one timestamp (zero elapsed time) yield NaN — a rate is then unknown, not
+infinite. *(Found in review of the M28.4 implementation; the spec's original `(last − first)/window`
+would have double-normalised, and the implementation's first correction removed normalisation
+altogether.)*
 
 The windowed forms of min/max get **distinct names** (`rollingMin`/`rollingMax`) — the overload
 first proposed here (a numeric literal in second position selects the windowed form) was REJECTED in

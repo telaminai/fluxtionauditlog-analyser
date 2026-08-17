@@ -153,11 +153,38 @@ class EvaluatorTest {
     }
 
     @Test
-    void rateIsChangeOverTheWindow_andOneSampleHasNoRate() {
+    void rateIsChangePerWindow_normalisedByTheSpanActuallyCovered() {
         double[] r = feedTimed("rate(a.x, \"1m\")", new long[]{0, 30_000, 60_500}, 100, 130, 190);
         assertTrue(Double.isNaN(r[0]), "a rate from one observation is unknown, not zero");
-        assertEquals(30.0, r[1], 1e-9, "130 - 100 within the last minute");
-        assertEquals(60.0, r[2], 1e-9, "the t=0 sample aged out; 190 - 130");
+        assertEquals(60.0, r[1], 1e-9, "+30 over the 30s actually covered = 60 per minute");
+        assertEquals(60.0 * 60_000 / 30_500, r[2], 1e-6, "t=0 aged out; +60 over the 30.5s covered");
+    }
+
+    @Test
+    void rateDoesNotUnderstateOnAPartlyCoveredWindow() {
+        // x rises exactly 1.0/s, sampled every 10s — the true rate is 60 per minute at EVERY point.
+        // Un-normalised (newest − oldest) read 10 at t=10s and never exceeded 50 in steady state,
+        // because the window is open at the old end: the retained span is always short by one
+        // sampling interval, a permanent low bias of (T−Δ)/T that never converges.
+        long[] times = new long[10];
+        double[] vals = new double[10];
+        for (int i = 0; i < 10; i++) {
+            times[i] = i * 10_000L;
+            vals[i] = i * 10.0;
+        }
+        double[] r = feedTimed("rate(a.x, \"1m\")", times, vals);
+        assertTrue(Double.isNaN(r[0]), "one observation has no rate");
+        for (int i = 1; i < 10; i++) {
+            assertEquals(60.0, r[i], 1e-9,
+                    "a constant 1.0/s must read 60 per minute at t=" + (i * 10) + "s, filling or full");
+        }
+    }
+
+    @Test
+    void rateNeedsElapsedTime() {
+        // samples sharing one timestamp: change over zero elapsed time is unknown, not infinite
+        double[] r = feedTimed("rate(a.x, \"1m\")", new long[]{5_000, 5_000, 5_000}, 1, 2, 3);
+        assertTrue(Double.isNaN(r[2]), "no elapsed time — no rate");
     }
 
     @Test

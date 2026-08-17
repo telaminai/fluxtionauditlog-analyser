@@ -289,7 +289,18 @@ public final class Evaluator {
                         samples.pollFirst();
                     }
                     if (samples.size() < 2) return Double.NaN;   // one observation has no rate
-                    return samples.peekLast()[1] - samples.peekFirst()[1];   // change over the last T
+                    // Normalise by the span the samples ACTUALLY cover, then scale to T.
+                    //
+                    // The raw (newest − oldest) is only "change per T" when the samples span T
+                    // exactly, which they never do: the window is open at the old end, so the
+                    // retained span is short by one sampling interval even in steady state, and
+                    // during the first T (or after a gap) it is shorter still. Un-normalised,
+                    // rate(x, "1m") on a series rising 1.0/s sampled every 10s reads 10 at t=10s
+                    // and 50 for ever after — a permanent low bias of (T−Δ)/T that never converges
+                    // on the true 60. Dividing by the covered span and re-scaling reads 60 at both.
+                    double span = samples.peekLast()[0] - samples.peekFirst()[0];
+                    if (span <= 0) return Double.NaN;   // no elapsed time — a rate is unknown, not infinite
+                    return (samples.peekLast()[1] - samples.peekFirst()[1]) * windowMillis / span;
                 }
             };
             default -> ctx -> Double.NaN;
