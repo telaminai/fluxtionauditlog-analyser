@@ -1,6 +1,6 @@
 # Expression Conditionals + Rolling Windows — formulas that judge and remember (Design Spec)
 
-Status: PROPOSED v1 · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M28**
+Status: ACCEPTED v2 (review: docs/handoff/review_m28_expr_conditionals_windows.txt — adopted with one rejection and three shape changes) · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M28**
 
 Companion to **[tracker.md](tracker.md)** (M28) and the shipped formula engine (`graph/Expr`,
 spec-graph-artifacts §B). Prompted by the owner: *"conditional formulas for plotting a series —
@@ -53,8 +53,15 @@ stats. Composition is the payoff of putting this in `Expr` rather than in the ch
 - `if(NaN, a, b)` → NaN (an unknowable condition never silently picks a branch).
 - Division-by-zero, missing-ref and carry rules are unchanged — conditionals sit above them.
 - Both branches are evaluated eagerly (no side effects exist, and windows — W — must see a
-  deterministic sample stream regardless of which branch wins; this is load-bearing, state it in
-  the javadoc).
+  deterministic sample stream regardless of which branch wins: a lazily-skipped window would go
+  cold and emit NaN for N samples after every branch switch. Load-bearing, state it in the javadoc).
+- **The two idioms, side by side** (the docs slice MUST carry this table — without it users write
+  the first expecting the second):
+
+  | expression | meaning |
+  |---|---|
+  | `if(c, mean(x, 10))` | mean over ALL samples, plotted only while `c` holds — gate the **output** |
+  | `mean(if(c, x), 10)` | mean over ONLY the samples where `c` held — gate the **input** |
 
 ### Effort
 
@@ -68,15 +75,25 @@ builder, `spec.md` §B grammar). No schema changes — `exprs[].expr` is already
 `Expr` nodes are immutable records shared across scans; `eval(Map<GraphKey,Double>)` is pure. State
 cannot live in the AST. Shape:
 
-- `Expr.newEvaluator()` → a per-scan `Evaluator` holding one state cell per stateful AST node
-  (identity-keyed). The AST stays immutable, serializable, shareable.
-- `Evaluator.eval(EvalContext)` where `EvalContext = {logTime, Map<GraphKey,Double> values}` —
-  time enters the signature once, for the time-windowed forms.
+- `Expr.newEvaluator()` → a per-scan `Evaluator` that **compiles a mirror** of the AST: one mirror
+  node per tree POSITION, with any window state living in the mirror node. NOT a map of state cells
+  keyed by AST node — `Expr` nodes are records with deep value equality, so `delta(x) + delta(x)`
+  is two `.equals()` sub-trees that a HashMap would give ONE shared cell (advancing twice per
+  record, silently ≠ `2*delta(x)`), and an IdentityHashMap only holds while the parser never
+  interns equal subtrees — an invariant nothing enforces. Positions are naturally distinct; no
+  identity games. A named test is owed: `delta(x) + delta(x) == 2 * delta(x)`.
+- `Evaluator.eval(EvalContext)` where `EvalContext = {long logTime, Map<GraphKey,Double> values}` —
+  time enters the signature once, for the time-windowed forms; primitive `long` is enough because
+  every call site already skips logTime-null rows before evaluating.
 - Call sites — `SeriesExtractor.extractExpr` (STRICT and LOCF arms), `SeriesScan.scan` — already
   iterate rows in order in a single pass, which is exactly what stateful evaluation requires.
   The ripple is wide but shallow: each site creates one evaluator per scan and passes context.
-- Stateless expressions take the same path (an evaluator with no state cells) — one code path,
-  not two.
+- **`Expr.eval(Map)` is DELETED in M28.2, not kept as a convenience.** A surviving shortcut invites
+  a future call site to build a throwaway evaluator per row — windows silently resetting every
+  record, a bug whose only symptom is wrong numbers. Deleting it makes the compiler enforce the
+  migration; the existing test suite is the stateless-path regression net.
+- Stateless expressions take the same path (a mirror with zero state slots) — one code path, not
+  two, and `stateSlotCount() == 0` is a checkable proof of statelessness.
 
 ### Vocabulary
 
@@ -86,7 +103,7 @@ Count-windowed (N = integer literal ≥ 1):
 |---|---|
 | `lag(x, N)` | the value N accepted samples ago (NaN until N have been seen) |
 | `delta(x)` | `x − lag(x, 1)` |
-| `mean(x, N)` / `min(x, N)` / `max(x, N)` / `sum(x, N)` | over the last N accepted samples |
+| `mean(x, N)` / `sum(x, N)` / `rollingMin(x, N)` / `rollingMax(x, N)` | over the last N accepted samples |
 
 Time-windowed (T = duration literal: `"250ms"`, `"5s"`, `"2m"`, `"1h"`):
 
@@ -95,9 +112,12 @@ Time-windowed (T = duration literal: `"250ms"`, `"5s"`, `"2m"`, `"1h"`):
 | `mean(x, "5m")` etc. | over accepted samples with `logTime > now − T` (deque pruned per record) |
 | `rate(x, "1m")` | `(last − first)/window` over that pruned deque — change per T |
 
-Two-arg `min`/`max` are currently variadic-over-args; a **numeric or duration literal in the second
-position selects the windowed form** — unambiguous at parse time, and `min(a.x, b.y)` keeps meaning
-what it means today (D-W3 below).
+The windowed forms of min/max get **distinct names** (`rollingMin`/`rollingMax`) — the overload
+first proposed here (a numeric literal in second position selects the windowed form) was REJECTED in
+review: it silently reinterprets `min(4, 2)` (a shipped test, and a real clamp idiom `min(spread,
+0.004)`), breaking the "old expressions parse unchanged" guardrail. `mean/sum/lag/delta/rate` are new
+names with no clash and stay plain. The asymmetry is the price of the guarantee; the guardrail now
+holds unqualified.
 
 ### The three semantic decisions (answers proposed, reviewer should challenge)
 
@@ -105,14 +125,27 @@ what it means today (D-W3 below).
   order, over the records the scan visits (i.e. **after** the active filter, **after** STRICT/LOCF
   resolution). The window sees exactly the points the series itself would plot — one universe, no
   second bookkeeping. Consequence, stated honestly in docs: narrowing the filter changes what a
-  window contains, because it changes what the series contains.
+  window contains, because it changes what the series contains. **The time-range slider does NOT**:
+  graph extraction passes `acrossAllTime=true` (windowing happens in the chart view), so zooming
+  never perturbs a smoothed line — only dimension/text filter changes re-extract. Say this in the
+  user guide or field the "I zoomed and the mean moved" bug report.
 - **D-W2 — NaN and windows:** a record where the argument is non-finite contributes nothing and the
   window is *unchanged* (no clear, no poison). An empty or under-filled window yields NaN → no
-  point. Rationale: a no-quote gap should not erase the book history around it; and `lag(x, N)`
-  counting only accepted samples keeps "N samples ago" meaning what it says.
+  point. This deliberately differs from LOCF's carry-clear — and is NOT an inconsistency, because
+  the two answer different questions under one invariant: **never fabricate, never erase**. The
+  carry answers "what is x *now*?" — clearing on explicit NaN prevents fabricating a present. A
+  window answers "what were the last N values of x?" — an explicit NaN says x is unknown now, not
+  that the past never happened; clearing would erase a real past. And D-W2 is what makes C and W
+  **compose**: `mean(if(spread > 0.004, spread), 10)` — the mean of the last 10 *breaching* samples
+  — works only because false-condition samples (NaN) leave the window untouched; under clear-on-NaN
+  it would be self-erasing and useless.
 - **D-W3 — resolution interaction:** windows sit **above** resolution. Under LOCF, `mean(x, 100)`
   averages carried evaluations, because carried evaluations are what the series plots. Under
-  STRICT, only co-occurring records produce samples. No third policy.
+  STRICT, only co-occurring records produce samples. No third policy. Sharp edge, documented
+  rather than solved: under LOCF a sample is produced per record touching ANY ref, so a count
+  window's span is governed by record **arrival rate**, not time — the same carried value can
+  repeat many times in it. The docs steer users toward the time-windowed forms for anything
+  rate-sensitive.
 
 ### Reset and re-extraction
 
@@ -122,8 +155,11 @@ per-scan evaluators rather than resettable AST state.
 
 ## P — adjacent plotting ideas (owner asked: "what am I missing?")
 
-Surveyed while writing this spec; **P1–P2 are proposed as a slice here** because they pair directly
-with conditionals; P3–P5 are recorded with a recommendation but NOT scheduled.
+Surveyed while writing this spec. **P1 and P2 are scheduled as their own slices** (M28.5/M28.6 —
+review moved them out of the W track: both add persisted, shared graph state and deserve the
+share-surface checklist, and P1 is independent enough to ship first); P3–P5 are recorded with a
+recommendation but NOT scheduled. Review's steer on the unscheduled set: P3 (event markers) is the
+strongest — the only one answering "what HAPPENED when this went wrong".
 
 - **P1 — threshold guide lines** (cheap, high value): `graph {guides: [{value: 0.004, label: "4bp
   limit"}]}` draws a labelled horizontal rule. Every conditional/crossing investigation wants the
@@ -172,10 +208,21 @@ two-pass scan, breaking the single-pass model — reconsider only with real dema
 
 ## Delivery slices
 
-1. **M28.1** Conditionals: lexer/parser/Call + tests + docs. Ships alone; immediately useful with
-   `series`.
-2. **M28.2** W0 evaluator refactor: `newEvaluator()`/`EvalContext`, all three call sites migrated,
-   stateless behaviour proven unchanged (existing 565-test suite is the regression net).
-3. **M28.3** Count-windowed functions (`lag/delta/mean/min/max/sum`) + D-W1/2/3 tests.
-4. **M28.4** Time-windowed forms (duration literals, `rate`) + guide lines (P1) + condition bands
-   (P2) + docs/changelog.
+P1 was pulled OUT of the W track in review: it is independent of both C and W (could ship before
+M28.1) and, like P2, adds persisted graph state — share/merge, export categories, PNG/PDF, report
+renderer — the exact surface where F1 just bit (d0f554a). Neither is a rider; each carries the
+share-surface checklist: ConfigStore round-trip · project snapshot/restore/clear · SettingsShare
+export/preview/apply · ShareDisclosureContractTest still true · PNG + report render.
+
+1. **M28.1** Conditionals: lexer/parser/Call + tests + docs (the gate-output/gate-input table).
+   Ships alone; immediately useful with `series`.
+2. **M28.2** W0 evaluator refactor: `newEvaluator()` compiling the per-scan mirror, `EvalContext`,
+   all three call sites migrated, `Expr.eval(Map)` deleted, `delta(x)+delta(x)` pinned, stateless
+   behaviour proven unchanged (the existing suite is the regression net).
+3. **M28.3** Count-windowed functions (`lag/delta/mean/sum/rollingMin/rollingMax`) + D-W1/2/3
+   tests.
+4. **M28.4** Time-windowed forms (duration literals, `rate`) + the D-W3 steer + docs/changelog.
+5. **M28.5** Guide lines (P1) — independent; schedulable any time, including first. Share-surface
+   checklist applies.
+6. **M28.6** Condition bands (P2) — after M28.1 (needs conditionals). Share-surface checklist
+   applies.

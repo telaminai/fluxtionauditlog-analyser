@@ -882,7 +882,7 @@ arithmetic; one scan should answer it). All read-only — no change to the FAQ s
 - [M26.4] ☑ **Echo hardening** — `graph` warns on a `rightAxis`/note series not in the graph; verbs
   name ignored parameters in their echoes. Docs + changelog.
 
-## M28 · Expression conditionals + rolling windows — ☐ PROPOSED (formulas that judge and remember)
+## M28 · Expression conditionals + rolling windows — ☐ ACCEPTED (formulas that judge and remember)
 _Design: **[spec-expr-conditionals-windows.md](spec-expr-conditionals-windows.md)**. Owner ask:
 `if(x−y > 10, f(x))` conditional plotting and rolling-window memory formulas. Two bounded vocabulary
 additions to `Expr` — NOT a scripting engine — landing in graphs and the `series` verb at once because
@@ -892,11 +892,16 @@ plots nothing. Windows need the one real refactor: per-scan stateful evaluators 
 enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the spec for review._
 - [M28.1] ☐ **Conditionals** — comparisons + `if(cond, then[, else])` + `and/or/not`; two-arg `if`
   defaults else to NaN = "plot only when". Stateless, no signature changes; ships alone.
-- [M28.2] ☐ **Evaluator refactor (W0)** — per-scan `Evaluator`/`EvalContext`; all three call sites
-  (extractExpr STRICT/LOCF, SeriesScan) migrated; stateless behaviour proven unchanged.
-- [M28.3] ☐ **Count windows** — `lag/delta/mean/min/max/sum(x, N)`; D-W1/2/3 semantics pinned by test.
-- [M28.4] ☐ **Time windows + plot pairings** — duration literals (`"5m"`), `rate`; threshold guide
-  lines (P1) and condition bands (P2) from the spec's plotting survey; docs + changelog.
+- [M28.2] ☐ **Evaluator refactor (W0)** — per-scan compiled MIRROR (position-keyed state, not
+  value-equal-node-keyed: `delta(x)+delta(x)` must be `2*delta(x)`); `Expr.eval(Map)` DELETED so the
+  compiler enforces migration; all three call sites (extractExpr STRICT/LOCF, SeriesScan) migrated.
+- [M28.3] ☐ **Count windows** — `lag/delta/mean/sum/rollingMin/rollingMax(x, N)` (min/max overload
+  REJECTED in review: breaks `min(4, 2)`); D-W1/2/3 semantics pinned by test.
+- [M28.4] ☐ **Time windows** — duration literals (`"5m"`), `rate`, the D-W3 arrival-rate steer;
+  docs (incl. the gate-output/gate-input table) + changelog.
+- [M28.5] ☐ **Guide lines (P1)** — independent of C/W, schedulable any time; persisted graph state
+  → share-surface checklist (the F1 lesson).
+- [M28.6] ☐ **Condition bands (P2)** — after M28.1; share-surface checklist.
 
 ## M29 · External series — ☐ PROPOSED (plot what the outside world did)
 _Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
