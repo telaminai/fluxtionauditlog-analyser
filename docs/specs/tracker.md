@@ -197,11 +197,11 @@ Design: **[completed/spec-graph-replay.md](completed/spec-graph-replay.md)**._
   config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
   topologies (elision/clustering) — defer until a real graph hurts.
 
-## M22 · Topology view usability — ◧ 36 of 41 SHIPPED (archived; 4 open)
+## M22 · Topology view usability — ◧ 36 of 41 SHIPPED (archived; 5 open)
 _The shipped 36 (and 2 superseded) are in **[completed/tracker.md](completed/tracker.md)**.
 Open: **22.3** PNG export · **22.6** alternative layouts · **22.11** re-dispatch cause (needs
 `UP-FLX-10`, see `docs/proposals/upstream-asks.md`) · **22.19** partial (chips deliberately
-not built)._
+not built) · **22.20** `.push()` targets render as orphans._
 - [M22.3] ☐ **Export the view as PNG** — reuses the offscreen render already used to verify the canvas;
   pairs with the existing graph/record exports.
 - [M22.6] ☐ **Alternative layouts** — the largest item. `LayeredLayout` is Sugiyama; candidates are
@@ -225,6 +225,27 @@ not built)._
   just made collapsible). A second one in the topology tab would be a second source of truth for which
   records are in scope — the exact failure `spec-graph-replay` §6 rules out for record selection. If chips
   are wanted, they should *render* the existing `FilterState`, not hold their own.
+
+- [M22.20] ☐ **A DataFlow `.push()` target renders as an orphan.** *Measured 2026-08-17 against a probe
+  graph compiled for the GraphML investigation (`docs/proposals/upstream-asks.md` §2c), fixture
+  `src/test/resources/topology/push-probe.graphml`, current behaviour pinned by `PushChainTest`.*
+  A `.push(target::setter)` materialises as a chain of three framework nodes —
+  `rawFeed → nodeToFlowFunction_8 → mapRef2RefFlowFunction_9 → pushFlowFunction_10 → pushTarget` — all of
+  class `com.telamin.fluxtion.runtime.flowfunction.function.*`, which **matches `Scaffolding`'s framework
+  package prefix**. So with scaffolding hidden (**the default**) all four edges drop and `pushTarget`
+  survives as an authored node with **zero edges**: a disconnected box with no explanation, the
+  `rawFeed → pushTarget` relationship gone. With scaffolding shown it reads as four ordinary edges through
+  three plumbing nodes — implying a propagating chain, when `.push()` is *defined* by downstream not
+  seeing the effect (framework reference `docs/claude.txt`). Neither view is correct.
+  **The honest fix needs `UP-FLX-28` + `UP-FLX-29` together** (marking *and* identification — with only
+  the second, hiding the plumbing is what deletes the relationship).
+  **Available now, without upstream:** stop orphaning silently. The status line should say *N nodes are
+  connected only through hidden scaffolding* — the same move M27 already makes for a cycle that ran
+  through nodes the current context cannot show. Do that first.
+  **Deliberately NOT proposed:** synthesising a direct `rawFeed → pushTarget` edge by recognising
+  `PushFlowFunction` by class name. It would draw the right picture by exactly the name-matching
+  fragility `UP-FLX-29` exists to remove, and a wrong-but-confident edge is worse here than an honest
+  gap. Revisit only if the owner rules the upstream attributes out.
 
 ## M29 · External series — ☐ ACCEPTED (plot what the outside world did)
 _Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
