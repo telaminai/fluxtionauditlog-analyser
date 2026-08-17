@@ -179,46 +179,6 @@ class ProjectProfileTest {
                 "an empty repo list is a silently broken source lookup, not a configured preference");
     }
 
-    // ---- startup -------------------------------------------------------------------------------
-
-    @Test
-    void startupAppliesTheActiveProjectOverGlobal(@TempDir Path dir) throws Exception {
-        Path file = ProjectProfile.pathFor(dir);
-        ProjectProfile.save(file, configWith("/work/a/src", "com.acme.A", "g"), share);
-
-        AppConfig global = configWith("/global/src", "com.acme.Global", "globalGraph");
-        global.activeProjectPath = file.toString();
-
-        ProjectProfile.LoadResult r = ProjectProfile.activateOnStartup(global, share);
-        assertNotNull(r);
-        assertTrue(r.loaded(), r.message());
-        assertEquals(List.of("/work/a/src"), global.sourceRoots);
-        assertEquals(file.toString(), global.activeProjectPath, "a good pointer is kept");
-    }
-
-    /** A moved repository: degrade to global-only, clear the pointer, say so — never fail to start. */
-    @Test
-    void startupWithAMovedProjectClearsThePointerAndCarriesOn(@TempDir Path dir) {
-        AppConfig global = configWith("/global/src", "com.acme.Global", "globalGraph");
-        global.activeProjectPath = dir.resolve("moved-away/project.fluxtion-settings").toString();
-
-        ProjectProfile.LoadResult r = ProjectProfile.activateOnStartup(global, share);
-
-        assertFalse(r.loaded());
-        assertTrue(r.message().contains("continuing without a project"), r.message());
-        assertEquals("", global.activeProjectPath,
-                "a stale pointer must be cleared, or the same failure is reported on every launch");
-        assertEquals(List.of("/global/src"), global.sourceRoots,
-                "the app must open exactly as it did before projects existed");
-    }
-
-    @Test
-    void noActiveProjectIsSilent() {
-        AppConfig global = new AppConfig();
-        assertNull(ProjectProfile.activateOnStartup(global, share),
-                "no project configured is not an event worth a status message");
-    }
-
     // ---- discovery ------------------------------------------------------------------------------
 
     /** The M19 zero-setup hook: a log deep inside a repo still finds the profile at its root. */

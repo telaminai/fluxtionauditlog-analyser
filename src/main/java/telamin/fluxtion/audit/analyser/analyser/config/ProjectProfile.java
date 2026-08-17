@@ -206,30 +206,6 @@ public final class ProjectProfile {
         }
     }
 
-    /**
-     * Apply the active project over a freshly-loaded global config — the startup step.
-     *
-     * <p>Order matters and is fixed: global first, then the profile over the project-scoped categories.
-     * A pointer to a file that is no longer there (a moved or renamed repository) <b>clears the
-     * pointer</b> and returns a message for the status bar. Startup never fails on a project profile;
-     * the worst case is the app opening exactly as it did before projects existed.
-     *
-     * @return {@code null} when no project is configured — nothing to say and nothing to report
-     */
-    public static LoadResult activateOnStartup(AppConfig global, SettingsShare share) {
-        if (global.activeProjectPath == null || global.activeProjectPath.isBlank()) {
-            return null;
-        }
-        Path file = Path.of(global.activeProjectPath);
-        LoadResult result = load(file, global, share);
-        if (!result.loaded()) {
-            // the pointer is stale; keeping it would re-report the same failure on every launch
-            global.activeProjectPath = "";
-            return new LoadResult(false, result.message() + " — continuing without a project");
-        }
-        return result;
-    }
-
     /** Serialise only the project-scoped categories — the API key cannot appear, by construction. */
     public static String write(AppConfig c, SettingsShare share) {
         return share.export(c, PROJECT_SCOPED);

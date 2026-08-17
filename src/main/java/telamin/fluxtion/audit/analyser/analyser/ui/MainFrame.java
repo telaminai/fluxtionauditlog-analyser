@@ -70,6 +70,17 @@ public final class MainFrame extends JFrame {
     private final JLabel status = new JLabel("Open a log — File ▸ Open (or the toolbar), drag a file in, or File ▸ Open from S3.");
     private final JMenu recentMenu = new JMenu("Open recent audit log");
     private final JMenu recentGraphmlMenu = new JMenu("Open recent GraphML");
+    private final JMenu recentProjectsMenu = new JMenu("Open recent project");
+    /** Enabled only with a project open — forking or closing nothing is not an action. */
+    private final JMenuItem saveProjectAsItem = new JMenuItem("Save project as…");
+    private final JMenuItem closeProjectItem = new JMenuItem("Close project");
+    private telamin.fluxtion.audit.analyser.analyser.config.ProjectSession project;
+    /**
+     * Coalesces project writes. A profile is often a committed file, so a burst of graph tweaks should
+     * be one diff hunk rather than fifteen — {@link ProjectSession} owns the semantics, this owns the
+     * clock.
+     */
+    private javax.swing.Timer projectSaveDebounce;
     private JTabbedPane sideTabs;
 
     private LogStore store;
@@ -112,10 +123,17 @@ public final class MainFrame extends JFrame {
     public MainFrame() {
         super("Fluxtion Audit Log Analyser");
         this.config = configStore.load();
-        // M20.1 — global first, then the active project over the project-scoped categories. A moved
-        // repository clears the pointer and says so; startup never fails on a profile.
-        this.projectLoadNote = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
-                .activateOnStartup(config, new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+        // M20 — the session is built FIRST so it can snapshot the user's own settings before the
+        // project overwrites them; then it applies the active project over the project-scoped
+        // categories. A moved repository clears the pointer and says so; startup never fails on it.
+        this.project = new telamin.fluxtion.audit.analyser.analyser.config.ProjectSession(
+                config, new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare(),
+                () -> projectSaveDebounce.restart());
+        this.projectLoadNote = project.activateOnStartup();
+        // 800ms: long enough that dragging a slider is one write, short enough that closing the laptop
+        // straight after an edit still persists it
+        this.projectSaveDebounce = new javax.swing.Timer(800, e -> flushProject());
+        this.projectSaveDebounce.setRepeats(false);
         setIconImages(AppImages.icons());
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         buildMenu();
@@ -213,6 +231,8 @@ public final class MainFrame extends JFrame {
         });
         // said after the status bar exists, and only when there is something to say: a project that
         // loaded, or a pointer that was stale and has been cleared
+        updateProjectMenuState();
+        setTitleForProject();
         if (projectLoadNote != null) {
             status.setText(projectLoadNote.message());
         }
@@ -877,6 +897,21 @@ public final class MainFrame extends JFrame {
         rebuildRecentMenu();
         file.add(recentMenu);
         file.add(recentGraphmlMenu);
+
+        // Projects are their own group: the items above open a FILE to look at, these change which
+        // project's settings are in force. Appending them to the end would file "switch my whole
+        // working set" next to "exit".
+        file.addSeparator();
+        file.add(openProjectItem());
+        file.add(recentProjectsMenu);
+        file.add(newProjectItem());
+        saveProjectAsItem.addActionListener(e -> saveProjectAs());
+        saveProjectAsItem.setToolTipText("Fork these settings to another project. There is no plain "
+                                         + "Save — project edits persist as you make them.");
+        file.add(saveProjectAsItem);
+        closeProjectItem.addActionListener(e -> closeProject());
+        file.add(closeProjectItem);
+
         file.addSeparator();
         followMenuItem = new JCheckBoxMenuItem("Follow (tail)");
         followMenuItem.setToolTipText("Poll the open local file for newly-appended records and auto-scroll");
@@ -1590,6 +1625,10 @@ public final class MainFrame extends JFrame {
         rebuildRecentMenu();
         applyRestServer();   // honour a change to the REST toggle
         saveConfigQuietly();
+        // M20.2 auto-persist. Deliberately here and nowhere else: this funnel is what `source_root` and
+        // `open {processor}` already go through, so scripted edits persist without a second code path.
+        // Hanging this off dialog-close would silently lose every verb-driven change.
+        if (project != null) project.requestSave();
     }
 
     // ---- settings export / import (M15) ---------------------------------------------------------
@@ -1637,6 +1676,23 @@ public final class MainFrame extends JFrame {
             return;
         }
 
+        // M20.2: make the two intents explicit rather than letting one verb mean both. Merge is the
+        // share-a-setup flow and stays additive; open-as-project REPLACES the project-scoped settings
+        // and makes this file the active project. Conflating them is what made switching projects pile
+        // one setup on top of the last.
+        String[] options = {"Merge (share)", "Open as project (replace)", "Cancel"};
+        int intent = JOptionPane.showOptionDialog(this,
+                "Merge adds these settings to what you have now.\n\n"
+                + "Open as project replaces your source roots, Maven repos, event processors, graphs\n"
+                + "and hidden columns with this file's, and makes it the active project.",
+                "Import settings", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, options, options[0]);
+        if (intent == 1) {
+            applyProjectResult(project.open(file.toPath()));
+            return;
+        }
+        if (intent != 0) return;   // cancelled, or the dialog was closed
+
         var selected = ImportSettingsDialog.show(this, plan, file.getName());
         if (selected == null || selected.isEmpty()) return;   // cancelled or nothing chosen
 
@@ -1663,6 +1719,129 @@ public final class MainFrame extends JFrame {
         tablePanel.reFilter();
         if (store != null) {
             showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
+        }
+    }
+
+    // ---- projects (M20.2) --------------------------------------------------------------------
+
+    private JMenuItem openProjectItem() {
+        JMenuItem item = new JMenuItem("Open project…");
+        item.setToolTipText("Switch source roots, event processors, Maven repos, graphs and columns to "
+                            + "another project. Replaces them — it does not merge.");
+        item.addActionListener(e -> chooseAndOpenProject());
+        return item;
+    }
+
+    private JMenuItem newProjectItem() {
+        JMenuItem item = new JMenuItem("New project…");
+        item.setToolTipText("Start an empty project profile. Settings you edit from here save to it.");
+        item.addActionListener(e -> chooseAndCreateProject());
+        return item;
+    }
+
+    /** Pick a project directory rather than the profile file — the file name is always the same. */
+    private void chooseAndOpenProject() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Open project");
+        fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+                "Project settings (*.fluxtion-settings)", "fluxtion-settings"));
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File chosen = fc.getSelectedFile();
+        Path file = chosen.isDirectory()
+                ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(chosen.toPath())
+                : chosen.toPath();
+        applyProjectResult(project.open(file));
+    }
+
+    private void chooseAndCreateProject() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("New project — choose the project directory");
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        Path file = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
+                .pathFor(fc.getSelectedFile().toPath());
+        if (Files.exists(file)) {
+            int keep = JOptionPane.showConfirmDialog(this,
+                    "That directory already has a project.\nOpen it instead of overwriting?",
+                    "Project exists", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (keep == JOptionPane.YES_OPTION) {
+                applyProjectResult(project.open(file));
+            }
+            return;   // never silently replace someone's project file
+        }
+        try {
+            applyProjectResult(project.create(file));
+        } catch (java.io.IOException ex) {
+            JOptionPane.showMessageDialog(this, "Could not create the project: " + ex.getMessage(),
+                    "New project", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void saveProjectAs() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Save project as — choose the new project directory");
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        try {
+            project.saveAs(telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
+                    .pathFor(fc.getSelectedFile().toPath()));
+            afterProjectChange("project forked to " + project.activeName());
+        } catch (java.io.IOException ex) {
+            JOptionPane.showMessageDialog(this, "Could not write the project: " + ex.getMessage(),
+                    "Save project as", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void closeProject() {
+        String was = project.activeName();
+        project.close();
+        afterProjectChange("closed project " + was + " — back to your own settings");
+    }
+
+    private void applyProjectResult(
+            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.LoadResult result) {
+        if (!result.loaded()) {
+            JOptionPane.showMessageDialog(this, result.message(), "Project",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        afterProjectChange(result.message());
+    }
+
+    /**
+     * Everything that has to happen when the project-scoped settings have been swapped underneath the
+     * running app: rebuild what reads them, refresh the menus, persist the pointer, and say so.
+     */
+    private void afterProjectChange(String note) {
+        onConfigChanged();          // source service, processors, menus, and the global save
+        graphTabs.restore(config.savedGraphs);
+        tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
+        updateProjectMenuState();
+        setTitleForProject();
+        status.setText(note);
+    }
+
+    private void updateProjectMenuState() {
+        saveProjectAsItem.setEnabled(project.hasProject());
+        closeProjectItem.setEnabled(project.hasProject());
+        fillRecent(recentProjectsMenu, config.recentProjects,
+                path -> applyProjectResult(project.open(Path.of(path))));
+    }
+
+    /** The window title carries the project, because "which settings am I using" is easy to lose. */
+    private void setTitleForProject() {
+        setTitle(project.hasProject()
+                ? "Fluxtion Audit Log Analyser — " + project.activeName()
+                : "Fluxtion Audit Log Analyser");
+    }
+
+    /** Write pending project edits and surface a failure once. Called by the debounce timer. */
+    private void flushProject() {
+        project.flush();
+        String err = project.takeError();
+        if (err != null) {
+            status.setText(err);
         }
     }
 
@@ -1949,6 +2128,7 @@ public final class MainFrame extends JFrame {
      * <p>So: one failing step must never cost the others, and nothing may cost the exit.
      */
     private void onExit() {
+        flushProject();   // a debounce window must not eat the last edit of a session
         try {
             step(() -> { if (followTimer != null) followTimer.stop(); });
             step(() -> { if (actionServer != null) actionServer.stop(); });
@@ -1993,7 +2173,10 @@ public final class MainFrame extends JFrame {
 
     private void saveConfigQuietly() {
         try {
-            configStore.save(config);
+            // while a project is open the live config holds BOTH tiers; the global file must keep the
+            // user's own pre-project values, or deleting a project directory would leave them with a
+            // stale project's settings as their personal ones
+            configStore.save(config, project == null ? null : project.globalTier());
         } catch (RuntimeException ignore) {
             // config persistence is best-effort
         }

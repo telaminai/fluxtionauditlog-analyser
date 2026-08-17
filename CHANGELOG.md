@@ -12,6 +12,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   processors, saved graphs and hidden columns can live in a `.analyser/project.fluxtion-settings` file
   beside the project. Switching projects **replaces** those settings instead of piling them on top of
   the last project's. A profile can never contain your API key, so a team can commit one.
+  **File ▸ Open project / New project / Save project as / Close project**, with a recent-projects list
+  and the active project in the window title. Edits save to the project as you make them (debounced, so
+  a committed profile keeps legible diffs) — including edits made by an assistant over the socket.
+  **File ▸ Import settings** now asks whether you mean *Merge* (share a setup, additive) or *Open as
+  project* (replace).
 
 ### Fixed
 - **The action manifest advertised six verbs while thirteen shipped.** `GET /manifest` hardcoded its

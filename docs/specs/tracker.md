@@ -288,6 +288,29 @@ structurally cannot have. **Swing/Java2D, no embedded browser** (tracker ▸ Dec
 
 ## M20 · Project profiles — ◐ IN PROGRESS
 _Brief: `docs/handoff/handoff_16_aug_2026_2.txt` · Spec: `spec-project-profiles.md` (O1–O4 resolved)._
+- [M20.2] ☑ **Open / New / Save-as / Close project, recent projects, and auto-persist.**
+  `config/ProjectSession` owns the lifecycle and is headless (13 tests); the File menu is a thin caller.
+  Project items are their own group after the log/graph openers — the items above open a *file to look
+  at*, these change *which project's settings are in force*, and appending them to the end would file
+  "switch my whole working set" next to "Exit".
+  - **Auto-persist rides `onConfigChanged()` and nowhere else.** That funnel is what `source_root` and
+    `open {processor}` already go through, so verb-driven edits persist with no second code path —
+    the brief's NOTE (b). Verified against a running app: three scripted `source_root` calls landed in
+    the project profile.
+  - Debounced at 800ms, and the *semantics* are tested rather than the timer: fifteen edits, one write.
+    A profile is often a committed file and a legible diff is what gets it reviewed. Leaving or closing
+    a project **flushes first** — a debounce window is exactly when the last edit would be lost.
+  - Import gains the explicit choice: **Merge (share)** stays additive, **Open as project (replace)**
+    swaps the project tier and makes the file active. Conflating the two is what made switching pile one
+    setup on the last.
+  - _Bug found by driving the app, not by a test:_ one `AppConfig` holds both tiers in memory, so
+    `saveConfigQuietly()` wrote the open project's roots into the **global** file. Delete that project
+    directory afterwards and the user is left with a stale project's settings as their own, with their
+    pre-project configuration gone — the thing the spec promises survives. `ConfigStore.save` now takes
+    the global tier to persist, and **`ProjectSession` owns startup activation** so the snapshot is taken
+    *before* the profile overwrites it. The first fix was incomplete: it was correct code in the wrong
+    order, and only re-driving the app showed it.
+
 - [M20.1] ☑ **Tier the config; load/save a profile with REPLACE semantics.** `config/ProjectProfile` is
   pure and headless; 13 tests written as the spec's two-project acceptance story, because an additive
   implementation would pass a shallower one.

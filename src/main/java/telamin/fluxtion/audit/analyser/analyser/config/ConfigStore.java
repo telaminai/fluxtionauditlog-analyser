@@ -96,19 +96,35 @@ public final class ConfigStore {
     }
 
     public void save(AppConfig c) {
+        save(c, null);
+    }
+
+    /**
+     * Persist the global config, optionally writing the project-scoped keys from {@code globalTier}
+     * instead of from the live config.
+     *
+     * <p>Needed because one {@link AppConfig} holds both tiers in memory while a project is open. Saving
+     * it wholesale writes that project's source roots into the <b>global</b> file — and then deleting the
+     * project directory leaves the user with a stale project's settings as their personal ones, with
+     * their own pre-project configuration gone. The spec promises those values survive as the "no
+     * project" defaults, so the global file must keep holding them.
+     *
+     * @param globalTier the project-scoped values to persist globally, or {@code null} for none active
+     */
+    public void save(AppConfig c, ProjectProfile.Snapshot globalTier) {
         Properties p = new Properties();
         put(p, "logFile", c.logFile);
         put(p, "graphmlFile", c.graphmlFile);
-        writeList(p, "sourceRoot", c.sourceRoots);
+        writeList(p, "sourceRoot", globalTier == null ? c.sourceRoots : globalTier.sourceRoots());
         put(p, "llmProvider", c.llmProvider);
         put(p, "llmModel", c.llmModel);
         put(p, "llmBaseUrl", c.llmBaseUrl);
         put(p, "apiKey", c.apiKey);
-        writeList(p, "eventProcessorFqn", c.eventProcessorFqns);
-        put(p, "selectedEventProcessor", c.selectedEventProcessor);
+        writeList(p, "eventProcessorFqn", globalTier == null ? c.eventProcessorFqns : globalTier.eventProcessorFqns());
+        put(p, "selectedEventProcessor", globalTier == null ? c.selectedEventProcessor : globalTier.selectedEventProcessor());
         put(p, "memoryThresholdMb", Integer.toString(c.memoryThresholdMb));
-        writeList(p, "mavenRepo", c.mavenRepos);
-        put(p, "mavenRepoSearch", Boolean.toString(c.searchMavenRepos));
+        writeList(p, "mavenRepo", globalTier == null ? c.mavenRepos : globalTier.mavenRepos());
+        put(p, "mavenRepoSearch", Boolean.toString(globalTier == null ? c.searchMavenRepos : globalTier.searchMavenRepos()));
         put(p, "eventFilterCollapsed", Boolean.toString(c.eventFilterCollapsed));
         put(p, "topologySpacing", Integer.toString(c.topologySpacingPercent));
         put(p, "topologyTextSize", Integer.toString(c.topologyTextSize));
@@ -124,10 +140,10 @@ public final class ConfigStore {
         writeList(p, "recentGraphml", c.recentGraphml);
         put(p, "activeProjectPath", c.activeProjectPath);
         writeList(p, "recentProject", c.recentProjects);
-        writeList(p, "hiddenColumn", c.hiddenColumns);
+        writeList(p, "hiddenColumn", globalTier == null ? c.hiddenColumns : globalTier.hiddenColumns());
         writeList(p, "searchHistory", c.searchHistory);
         put(p, "lastRunVersion", c.lastRunVersion);
-        writeGraphs(p, c.savedGraphs);
+        writeGraphs(p, globalTier == null ? c.savedGraphs : globalTier.savedGraphs());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
