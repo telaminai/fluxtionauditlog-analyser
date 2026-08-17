@@ -109,6 +109,40 @@ class GraphTierPersistenceTest {
     }
 
     @Test
+    void quittingWithNoLogOpenCannotWipeTheProjectsSavedGraphs() throws Exception {
+        // Session 1: a project with one saved graph, persisted properly.
+        Path projectDir = Files.createDirectory(dir.resolve("proj3"));
+        AppConfig config = new AppConfig();
+        ProjectSession session = new ProjectSession(config, share, () -> { });
+        session.create(ProjectProfile.pathFor(projectDir));
+
+        HeapLogStore store = new HeapLogStore(Samples.sample());
+        GraphTabs tabs = new GraphTabs();
+        tabs.bind(store, new FilterState());
+        wire(tabs, config, session, store);
+        tabs.graphForAction("survivor graph", true);
+        session.flush();
+        assertTrue(Files.readString(session.activeFile()).contains("survivor graph"));
+
+        // Session 2: same project reopened WITHOUT a log — the tabs are empty because nothing was
+        // loaded, not because the user closed the graphs. This is the pre-fix data-loss path: an
+        // unguarded tabs→config sync at quit replaced the restored list with the empty tab state.
+        AppConfig config2 = new AppConfig();
+        ProjectSession session2 = new ProjectSession(config2, share, () -> { });
+        session2.open(session.activeFile());
+        assertTrue(config2.savedGraphs.stream().anyMatch(g -> "survivor graph".equals(g.name())),
+                "opening the project restores the saved graph into config");
+
+        GraphTabs emptyTabs = new GraphTabs();     // never bound: no log this session
+        wire(emptyTabs, config2, session2, null);  // MainFrame's guard: sync only when a store exists
+        session2.requestSave();
+        session2.flush();                          // the quit path
+
+        assertTrue(Files.readString(session2.activeFile()).contains("survivor graph"),
+                "a quit with no log open must never wipe graphs saved by an earlier session");
+    }
+
+    @Test
     void restoreDoesNotEchoPersistedStateBackAsAnEdit() {
         HeapLogStore store = new HeapLogStore(Samples.sample());
         GraphTabs tabs = new GraphTabs();

@@ -78,6 +78,42 @@ class SeriesScanTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void locfCarriesValuesAcrossRecordsThatStrictWouldSkip() {
+        // ask and bid are logged by different nodes and do not co-occur in every record — LOCF's
+        // whole purpose. Same carry rule as graphing, so the point counts must relate the same way.
+        Map<String, Object> params = Map.of("expr", "askMakerOrder.price - bidMakerOrder.price");
+        long strict = (Long) SeriesScan.scan(store, params).get("points");
+        Map<String, Object> locf = SeriesScan.scan(store, Map.of(
+                "expr", "askMakerOrder.price - bidMakerOrder.price", "resolve", "LOCF"));
+        assertEquals("LOCF", locf.get("resolve"));
+        long carried = (Long) locf.get("points");
+        assertTrue(carried >= strict, "carrying last-known values can only ADD points: LOCF="
+                + carried + " STRICT=" + strict);
+        assertTrue(carried > 0);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void belowCrossingsAreEdgeEventsWithAnchorsToo() {
+        Map<String, Object> all = SeriesScan.scan(store, Map.of("expr", "bidMakerOrder.price"));
+        double max = (Double) ((Map<String, Object>) all.get("stats")).get("max");
+
+        // a threshold above the maximum: the FIRST sample enters the below-region — exactly one event
+        Map<String, Object> r = SeriesScan.scan(store, Map.of(
+                "expr", "bidMakerOrder.price",
+                "crossings", Map.of("below", max + 1)));
+        Map<String, Object> crossings = (Map<String, Object>) r.get("crossings");
+        List<Map<String, Object>> events = (List<Map<String, Object>>) crossings.get("belowEvents");
+        assertEquals(1, events.size(), "the value never leaves the region after entering it once");
+        Map<String, Object> e = events.get(0);
+        assertTrue((Integer) e.get("recordIndex") >= 0);
+        assertTrue((Long) e.get("byteOffset") >= 0);
+        assertNotNull(e.get("logTime"));
+        assertNull(crossings.get("aboveEvents"), "no 'above' was asked for — none is echoed");
+    }
+
+    @Test
     void textFilterIsRefusedLoudly() {
         var e = assertThrows(IllegalArgumentException.class, () -> SeriesScan.scan(store, Map.of(
                 "expr", "bidMakerOrder.price", "filter", Map.of("text", "x"))));

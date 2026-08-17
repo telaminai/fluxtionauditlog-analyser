@@ -639,8 +639,12 @@ public final class TopologyPanel extends JPanel {
      * The click cycle (M22.2). Clicking the <b>same</b> node again widens the scope one step; clicking a
      * different one starts over at that node; Cmd/Ctrl-click adds to or removes from the selection, and
      * leaves the scope where it is so a multi-node scope can be built up.
+     *
+     * <p>Package-private: this IS the mouse path (the canvas listener delegates straight here), and the
+     * escalation cycle broke once without any test able to see it — {@code TopologyClickEscalationTest}
+     * drives it headlessly.
      */
-    private void onNodeClicked(String id, boolean additive) {
+    void onNodeClicked(String id, boolean additive) {
         if (id == null) {
             clearHighlights();
             return;

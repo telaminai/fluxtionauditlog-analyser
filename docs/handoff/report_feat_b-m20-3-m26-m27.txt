@@ -125,6 +125,17 @@ POST-REPORT FIX (owner-found, this branch only — never released): click-escala
     neverTheWholeConnectedComponent pins it at the full graph, from a mid-graph node, from a
     sibling-feeder, and inside a context. Reviewer: E1 now includes verifying the four-step click
     cycle live (node → neighbours → routes → all → node).
+POST-REPORT COVERAGE PASS (owner asked "do you need to add tests for any work on this branch?"):
+    three gaps found and filled, 565 tests total.
+    - TopologyClickEscalationTest (5 tests): the escalation cycle driven through the SAME entry
+      point the mouse uses (onNodeClicked widened to package-private for it), against a diamond
+      graphml loaded from disk, asserting the canvas emphasis set at every step — the layer the
+      routes bug lived in and the pure FocusStack tests could not see. Also pins: different node
+      restarts the cycle, additive click keeps the width, canvas click clears dimming only.
+    - SeriesScanTest +2: LOCF resolution (carry can only ADD points vs STRICT) and 'below'
+      crossings carry anchors / 'above' absent when not asked — both previously untested.
+    - GraphTierPersistenceTest +1: quitting with NO log open cannot wipe a project's saved graphs
+      (the exact pre-fix data-loss path: empty tabs synced over the restored list at quit).
 
 ================================================================================
 3. HUMAN-EYEBALL LIST (Swing is untested by design — verify on the running jar)
