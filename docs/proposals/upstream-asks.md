@@ -484,33 +484,34 @@ the logging CALL, which is the wrong transport: a key's unit and meaning are **s
 the key**, not about the observation, so carrying them per call would repeat an unchanging string on
 every record (log bloat proportional to record count for zero information gain) and would let two
 call sites disagree about what the same key means. **Per-call carriage is rejected.** The metadata
-must be **declared once**; the ask is now two complementary transports:
-
-- **(a) Compile-time, via the GraphML — the primary ask.** An annotation on the node class:
+must be **declared once**. Owner's chosen shape (2026-08-17): the runtime transport, as
 
   ```java
-  @AuditKey(name = "lastQty", unit = "units",
-            desc = "shelf level AFTER the movement")
-  public class StockLedger { … }
+  auditLog.keyMap("lastQty", "units — shelf level AFTER the movement");   // in @Initialise
   ```
 
-  The compiler already walks these classes; it emits the key dictionary into the node's GraphML
-  payload (a vertex-shaped fact — joins `kind`, `framework`, lifecycle callbacks in §2c's
-  vertex list, and rides the same additive `<data>` mechanism the backward-compat probe verified).
-  **Zero log cost, versioned with the build, arrives with the topology the analyser already loads.**
-  Limit, stated honestly: annotations cannot describe keys computed at runtime (a node logging
-  dynamic key names), and a log-only session (no graphml) gets nothing.
+**with a freeze-at-init semantic: `keyMap` calls are LIVE only during the lifecycle phase
+(@Initialise/@Start); once event processing begins, further calls are ignored (no-ops).** That one
+rule is what makes the transport sound end to end:
 
-- **(b) Runtime, once per log — the optional complement.** A declare-once API,
+- the dictionary is **complete before record 1**, so the `EventLogger` can emit it as a single
+  `keyMap:` block at the head of the file — parsers read it once, no mid-file scanning;
+- a key's meaning is **constant for the run** — no call site can redefine `lastQty` between record
+  100 and 101, so a tooltip, legend or LLM prompt quoting the description is quoting something that
+  held for every record it describes;
+- log rolling re-emits the header block at the top of **each rolled file**, so every file of a set is
+  self-describing on its own (exactly what M30's rolled-set loader wants — no reaching back to file
+  1 for meanings);
+- ignored post-init calls are cheap to make debuggable (one debug-level "keyMap after init ignored"
+  line) without ever affecting the log's content.
 
-  ```java
-  auditLog.describeKey("lastQty", "units", "shelf level AFTER the movement");   // in @Initialise
-  ```
+Covers runtime-computed key names and log-only sessions by construction; costs one header line per
+described key per file, never per record.
 
-  emitted by the `EventLogger` as a one-time `keyInfo:` block (file header, or on the key's first
-  appearance). Covers dynamic keys and log-only sessions; costs one line per described key per FILE,
-  not per record. If both transports are present and disagree, the log's declaration wins for that
-  run (it is closer to what actually executed) and the analyser says so.
+*Complement, not the ask:* the same dictionary could ALSO be emitted compile-time into the GraphML
+node payload from an annotation (a vertex-shaped fact riding §2c's verified additive mechanism) —
+useful for graphml-first tooling, but secondary: it cannot cover dynamic keys, and the log-side
+declaration wins on any disagreement (it is closer to what actually executed).
 
 Surfaced by the analyser in the key picker, the series legend, marker/point tooltips (M32) and the
 LLM prompt — the places where a plausible name and a bare number currently reproduce the original
