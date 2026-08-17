@@ -67,9 +67,16 @@ selection and dimming are ephemeral *within* it; the two must never share an exi
 - A named focus stores **instanceIds**. Against a different build, missing ids are surfaced with the
   existing mismatch machinery (warn + show what resolved), never silently dropped — same rule as
   topology/log pairing.
-- **Verb surface**: `topology { focus: "<name>" }` recalls by name; `topology { saveFocusAs: "…" }`
-  is deliberately NOT added in v1 — an agent creating persistent named views mutates the user's
-  project artifacts; revisit only with a real use-case (same restraint as the no-project-switch verb).
+- **Verb surface**: `topology { focus: "<name>" }` recalls by name, and `topology
+  { saveFocusAs: "<name>", rationale: "…" }` saves the top context as a named focus (owner decision
+  2026-08-17, reversing the draft's restraint). The precedent is agent-created graphs (AV.2): an
+  agent that has isolated the subsystem behind a finding should be able to leave that view behind as
+  a durable, named artifact — same class of write as a saved graph, and governed the same way:
+  **`rationale` captions the focus** (shown in the picker) so a week later it is a finding, not an
+  unexplained view; **replace-by-name** semantics on save (like graphs on import); plain delete from
+  the picker. Not destructive-hinted — it writes project config exactly as `graph` does, no file, no
+  FAQ change (`FaqSecurityContractTest` untouched). The echo returns the saved name + node count +
+  breadcrumb so the agent can tell the user exactly what it kept.
 
 ## Verb semantics alignment
 
@@ -82,7 +89,8 @@ knows what world its next call operates in. Schemas via `VerbSchemas` as ever �
 
 - No change to what scope *computes* (H4's terminal-node bound lands independently in the same class).
 - No per-context saved layout/zoom (view prefs stay global per M22.32).
-- No agent-created named focuses (above).
+- No agent-initiated **project switching** — unchanged; saving a named focus writes into the
+  *current* project only.
 
 ## Delivery slices
 
@@ -92,7 +100,8 @@ knows what world its next call operates in. Schemas via `VerbSchemas` as ever �
 2. **M27.2** UI rewiring: canvas-click = clear-dim-only, Esc = pop, Show all = pop-to-full,
    breadcrumb, boundary indication. Human-eyeball list in the report (Swing).
 3. **M27.3** Named focus: save/picker/persist (project tier per above) + share + mismatch surfacing +
-   `topology {focus: name, pop}` verb alignment. Changelog: behaviour change of canvas-click/Show-all
-   MUST be called out — it changes a shipped gesture.
+   verb alignment — `topology {focus: name, pop}` to recall/exit and `{saveFocusAs, rationale}` to
+   save (agent-creatable, rationale-captioned, replace-by-name). Changelog: behaviour change of
+   canvas-click/Show-all MUST be called out — it changes a shipped gesture.
 4. **M27.4** Docs: topology guide's exploration section rewritten around the filter-context model
    (the drill-down mental model, breadcrumb, named focuses); screenshots via the harness.

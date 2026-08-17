@@ -854,8 +854,10 @@ in-flight H4; coordinate._
 - [M27.2] ☐ **UI rewiring** — canvas-click = clear-dim only, Esc = pop, Show all = pop-to-full,
   breadcrumb in the status line, boundary indication. (Behaviour change to a shipped gesture.)
 - [M27.3] ☐ **Named focus** — save/picker/persist (project tier; keep PROJECT_SCOPED at five pinned
-  categories — fold deliberately, say so) + SettingsShare + `topology {focus: name, pop}` verb
-  alignment (no agent-save verb in v1). Changelog must call out the gesture change.
+  categories — fold deliberately, say so) + SettingsShare + verb alignment: `topology {focus: name,
+  pop}` recalls/exits, `{saveFocusAs, rationale}` saves — **agents may create named focuses** (owner
+  decision; AV.2 graph precedent: rationale-captioned, replace-by-name, not destructive-hinted, no
+  FAQ change). Changelog must call out the gesture change.
 - [M27.4] ☐ **Docs** — exploration section rewritten around the filter-context model; harness
   screenshots.
 
