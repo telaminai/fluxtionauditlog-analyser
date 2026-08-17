@@ -822,6 +822,23 @@ design, not a port._
   …) and `applyReadingRhythm()` opens line spacing to 0.18. Swing sets lines at the font's own leading,
   which is most of why dense key/value output reads as a block next to the same content on a web page.
 
+## M26 · Agent-efficiency verbs — ☐ PROPOSED (the analyser computes, the agent concludes)
+_Design: **[spec-agent-efficiency.md](spec-agent-efficiency.md)**. The analyser is an un-metered local
+JVM holding the whole log behind the index; the agent is token-metered — so any question answerable by
+an index/series scan should be a **verb**, not a paged raw read. Every item came from a real friction
+in a production-log MCP session (finding "spread > 0.004" took five hand-anchored reads and manual
+arithmetic; one scan should answer it). All read-only — no change to the FAQ security answer, and
+`FaqSecurityContractTest` must not need touching._
+- [M26.1] ☐ **`series` scan** — stats + threshold crossings over any key or formula (STRICT/LOCF),
+  filter-scoped, edge-events with a hard cap and an explicit `truncated` flag, off the EDT. Reuses
+  `SeriesExtractor`/`Expr`; auto-publishes over MCP via `VerbSchemas`.
+- [M26.2] ☐ **Time anchors** — `read {at}` / `goto {at}` resolve epoch millis to the record
+  at-or-before (index binary search); kills records-per-minute estimation arithmetic.
+- [M26.3] ☐ **`read.fields` projection** — compact `{recordIndex, logTime, values{}}` rows for named
+  `instanceId.key`s (wildcards ok; last-occurrence semantics); raw text stays the default.
+- [M26.4] ☐ **Echo hardening** — `graph` warns on a `rightAxis`/note series not in the graph; verbs
+  name ignored parameters in their echoes. Docs + changelog.
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
