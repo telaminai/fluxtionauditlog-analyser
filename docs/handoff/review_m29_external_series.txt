@@ -1,0 +1,91 @@
+REVIEW — M29 spec: external series (plot what the outside world did)
+Spec: docs/specs/spec-external-series.md (PROPOSED v1, 17aecdb) + tracker M29 block
+Date: 2026-08-17 · Reviewed against main @ 7e24773 (post-M28 merge) · Reviewer: this session
+(roles: the other session authored; I review — the M28 arrangement, reversed again)
+
+VERDICT: adopt, with ONE structural challenge (the D-F4 allowlist reuses source roots), THREE gaps in
+the CSV contract that M29.1 must close, and ONE dated rationale (D-F3 predates M28 shipping). The
+spec's factual claims were verified against source, not accepted: Series IS (long[] xs, double[] ys,
+label) with key == null already supported for derived series (Series.java:11-26), ExportGuard IS the
+opt-in + confined write precedent D-F4 mirrors, and flags ARE record-anchored, so D-F2's "cannot be
+flagged" follows from the model rather than being a policy choice.
+
+The spec's shape is right and unusually disciplined: the principle (the analyser never learns a
+foreign format) is this repo's own ethos applied to input, the smallness is derived from the
+architecture rather than asserted, and every decision names its rejected alternative. D-F1's false-
+causality rationale and D-F4's diagnostic-echo insight (the leak vector is the ERROR MESSAGE, not the
+plot — "line 4: expected number, got 'ssh-rsa AAAAB3…'" straight into a model context) are the two
+best paragraphs; D-F2's export stamping is never-fabricate applied to provenance. §D (one loader, two
+consumers, P3's rug strip later) is the right call to make before the output type freezes.
+
+================================================================================
+1. CHALLENGE — D-F4's allowlist quietly widens what "source root" means
+================================================================================
+The proposed read allowlist is: active project directory · configured SOURCE ROOTS · files the user
+opened by hand this session. The middle item repurposes consent. A user who adds a source root
+consents to "the analyser may read .java files under here for source navigation" (that is how the FAQ
+and the source_root verb's destructive-hint describe it). Under D-F4 the same grant silently becomes
+"an MCP-connected agent may read ANY file under here as data" — the classic scope-creep this repo's
+own security story warns about, on a surface (source roots often = a whole repo checkout) that
+routinely contains .env files, keys and credentials.
+
+Options, in the order I would take them:
+  a. DROP source roots from the allowlist. Project dir + session-opened files covers the real
+     workflows (the agent writes its CSV next to the log it derived it from, or the user picks the
+     file in the dialog — the chooser IS the grant, and the spec should say so explicitly).
+  b. Keep source roots but restrict by extension (.csv) AND say it in the FAQ/security answer.
+     Weaker: extension is not a security boundary, and the FAQ grows a caveat.
+Either way the FAQ security answer needs a sentence about reads once M29.3 lands — the spec touches
+FaqSecurityContractTest for writes but is silent on whether the read rule joins the security answer.
+It should, and the contract test should pin it.
+
+================================================================================
+2. GAPS — the CSV contract is silent on three things M29.1 will hit immediately
+================================================================================
+G1  ROW ORDER. Nothing says what happens when timestamps arrive out of order — and real exports
+    (multi-session FIX captures, merged files) often are. The renderer, decimation and windowing all
+    assume ascending x. Propose: SORT on load and say so in the echo ("N rows reordered"), refusing
+    nothing — a sort is cheap, deterministic, and honest when disclosed. Refusing would bounce real
+    files for no safety gain.
+G2  DUPLICATE TIMESTAMPS. Two rows sharing a millisecond: both points? last wins? Propose: keep both
+    (the audit-log side already permits multiple records per millisecond); the echo need not mention
+    it. Whichever answer, the contract must state it — this is exactly the kind of silent choice
+    D-F1 exists to prevent.
+G3  SIZE BOUND. "Single forward pass, bounded memory" is claimed but the contract has no row cap. A
+    10 GB CSV handed over by an enthusiastic agent should be REFUSED past a cap with an explicit
+    error naming the bound (M26's cap-honesty rule: bounded output, never a silent subset). Propose a
+    generous cap (e.g. 5M rows) checked during the streaming pass.
+
+================================================================================
+3. DATED — D-F3's rationale expired the day after it was written
+================================================================================
+D-F3 defers foreign refs in formulas "before those land" — meaning M28's window semantics. M28
+SHIPPED today (7e24773). The DECISION remains right: cross-clock, cross-sampling-regime carry
+semantics deserve their own proposal, not an accident of namespace admission. But the spec's stated
+reason is now false, and a future reader will conclude the precondition is met and refs are fine.
+Reword D-F3's rationale to the durable one: two clocks and two sampling regimes inside one
+LOCF/STRICT resolution is a semantics decision nobody has made — M28 landing gives the vocabulary,
+not the answer. One sentence; prevents an accidental M30.
+
+================================================================================
+4. SMALLER NOTES (no blocking weight)
+================================================================================
+N1  D-F5 + share merge: graphs merge REPLACE-BY-NAME. A shared graph arriving with an external
+    series whose label matches a LOCAL series on the same-named graph needs a defined outcome in
+    M29.4 (the label-collision rule is stated for adding, not for merging).
+N2  `timeFormat` accepts an arbitrary DateTimeFormatter pattern from an agent — harmless
+    computationally, but a wrong pattern that still parses (US vs EU day/month) is D-F1's silent-skew
+    risk arriving through the declared path. The echo already reports the resolved time range; add
+    one line to the spec noting the range echo is the DEFENCE (an agent seeing "resolved range:
+    2019-03-04..2019-12-01" against a log from last week catches its own pattern error).
+N3  The tracker block and spec agree on slices and decisions (checked line by line — they do).
+N4  M29.5 (embed) if it ever lands needs a size cap and a staleness stamp; the spec already gestures
+    at both. Agree with deferring it.
+
+================================================================================
+5. RECOMMENDATION
+================================================================================
+Adopt after: (1) the D-F4 allowlist decision — my recommendation is option (a), drop source roots,
+name the chooser-as-grant; (2) G1–G3 answered in §A's contract table; (3) D-F3's rationale reworded.
+All are spec edits, not scope changes. The slice order is right — M29.1 headless with the full
+D-F1/D-F4 test set before any UI is the same front-loading that made M21 and M28 reviewable.
