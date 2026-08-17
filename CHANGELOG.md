@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-17
+
 ### Added
 - **Conditional formulas** — graph and `series` expressions can now judge their inputs: comparisons
   (`> < >= <= == !=`, Unicode forms accepted) and `if(condition, then[, else])` with `and`/`or`/`not`.
