@@ -1,0 +1,116 @@
+REVIEW — formula golden fixtures (spec + harness + first tranche)
+Spec: docs/specs/spec-formula-golden-fixtures.md (LANDED v1) · Harness: graph/FormulaGoldenTest
+Corpus: src/test/resources/formula-golden/01..07 · Landed in f233796
+Date: 2026-08-17 · Reviewed against main @ 2d2eaf9
+
+VERDICT: endorsed, and this is the right response to the rate() defect. **All seven fixtures
+independently re-derived — all seven correct.** Two harness gaps worth closing before the corpus grows
+(G1 a vacuous-pass hole, G2 the bigger one: half the engine's surface is untested by it), one minor.
+
+The premise is right and worth stating plainly: `rate()` shipped systematically biased low, and the
+test that should have caught it *asserted the bug* — `rateIsChangeOverTheWindow` expected 30.0 on data
+rising 1.0/s where 60.0 was always the right answer. A hand-derived corpus is the correct structural
+answer to that, and "never a snapshot of current engine output" is exactly the rule that would have
+prevented it.
+
+================================================================================
+1. THE SEVEN FIXTURES — INDEPENDENTLY RE-DERIVED
+================================================================================
+I derived each from the semantics rather than running them, then checked the expectations. Method:
+LOCF carry rules from `SeriesExtractor:87-99` (finite updates, explicit NaN CLEARS, absent leaves
+unchanged; a point only on a record that touches ≥1 ref), window behaviour from `Evaluator`.
+
+  01 locf-carry-and-nan-clears .......... CORRECT
+     t1 A=10,B=8 → 2. t2 A=12, B absent so carry 8 holds → 4. t3 A=NaN CLEARS A's carry, record is
+     still "touched", eval → NaN → no point. t4 A=14, B still 8 → 6. Expect 1⇒2, 2⇒4, 4⇒6. ✓
+     This is the fixture that matters most: it pins carry-clear, which is the rule D-W2 deliberately
+     does NOT apply to windows. Good choice for 01.
+  02 strict-requires-co-occurrence ...... CORRECT — only t1 has both refs present-and-finite. ✓
+  03 two-arg-if-gaps-when-false ......... CORRECT — 1>3 and 2>3 false → else defaults NaN → gaps;
+     only t2 (5>3) plots. ✓
+  04 single-ref-nan-omitted ............. CORRECT — explicit NaN clears and is omitted, not carried. ✓
+  05 rolling-mean-fills-before-speaking .. CORRECT — count<n returns NaN, so t1,t2 silent; t3 (1+2+3)/3=2,
+     t4 (2+3+4)/3=3, t5 (3+4+5)/3=4. I also walked the ring/running-sum evictions; they match. ✓
+  06 lag-has-no-value-until-primed ...... CORRECT — with n=1, `count >= n` first holds at the SECOND
+     sample, so t2⇒10, t3⇒20. Consistent with M28's D2 ("lag needs N+1 samples"), which is the
+     off-by-one the spec had wrong and the implementation had right. ✓
+  07 delta-is-change-since-last-sample .. CORRECT — prev starts NaN so t1 is silent; 20-10, 35-20. ✓
+
+No fixture encodes a behaviour I disagree with, and none reads like a snapshot: each `why:` states a
+derivation that is independently checkable, which is the property that makes the corpus worth having.
+
+================================================================================
+2. HARNESS — WHAT IT GETS RIGHT
+================================================================================
+The exact-count assertion is the important one and it is there:
+`assertEquals(f.expectX.size(), s.size(), …)` before the per-point loop. So an engine that emits an
+EXTRA point fails — meaning **the gaps are genuinely pinned**, not merely the values. For fixtures 01,
+03 and 04, whose whole subject is an absent point, that assertion IS the test.
+
+A key used in `expr` but missing from `keys:` fails loudly at `Expr.parse` (unknown-ref error naming
+it), so a mistyped fixture cannot quietly become a different formula. `keys:` splits on the LAST dot,
+matching M26's `read.fields` convention.
+
+================================================================================
+3. G1 — A FIXTURE THAT EXPECTS NOTHING PASSES WHEN NOTHING WORKS
+================================================================================
+`--- EXPECT ---` with no lines yields `expectX.size() == 0`, and any failure that produces an empty
+series satisfies it: a log section whose YAML did not parse into records, a `keys:` line naming an
+instanceId that appears nowhere, a filter that matched nothing. The fixture goes green while testing
+nothing.
+
+None of the current seven is affected — all expect ≥1 point. But three of the five TODO rows are
+about ABSENCE ("non-numeric sample leaves a window unchanged", "time window goes empty after the last
+sample"), and absence fixtures are exactly the ones an author is tempted to write with an empty
+EXPECT.
+
+Suggest two lines in `run()`: assert the store parsed at least one record, and require either a
+non-empty EXPECT or an explicit `expectEmpty: true` marker so "this formula legitimately plots
+nothing" is a *declared* intent rather than an indistinguishable accident. Cheap, and it keeps the
+corpus honest as it grows past the point where anyone re-derives every fixture.
+
+================================================================================
+4. G2 — THE CORPUS TESTS HALF THE ENGINE (the one worth doing)
+================================================================================
+`run()` goes through `SeriesExtractor.extractExpr` only. But M28's central claim — and its acceptance
+criterion #1 — is that the same expression means the same thing on the chart AND in the `series` verb,
+because both ride one engine. They do not share one code path: `SeriesScan` has its **own** STRICT and
+LOCF arms (`SeriesScan:102` and `:116`, structurally parallel to `SeriesExtractor:86` and `:99`).
+Duplicated logic that is supposed to agree, with nothing asserting that it does.
+
+A divergence between them — a carry rule fixed in one arm and not the other, a window evaluator
+created per-row in one — is invisible to this corpus, and it is precisely the class of defect the
+corpus exists to catch: same formula, two surfaces, different numbers, both plausible.
+
+Suggest: run every fixture through BOTH paths and assert they agree. The fixture already carries
+everything needed; it is a second call and one comparison in `run()`, and it converts M28's
+"one vocabulary, two surfaces" from a claim into a pinned property for every fixture ever added.
+This is the highest-value change in this review.
+
+================================================================================
+5. MINOR
+================================================================================
+N1  `meta` is a `HashMap`, so a duplicated metadata line (two `expr:`) silently takes the last. A
+    duplicate-key assertion would turn a confusing green into a clear failure. Trivial.
+N2  The TODO ordering is right: `rate()` normalisation first, since that is the defect that motivated
+    the corpus. Worth writing that fixture with a partially-covered window as well as a full one —
+    the bias was 6× while filling and still 17% in steady state, and only the second is surprising.
+N3  Fixtures use `logTime: 1,2,3` (millisecond epoch values). Fine for count windows; the TODO
+    time-window fixtures will need realistic spacing, since `mean(x,"5m")` over t=1..5ms exercises
+    nothing. Not a defect — a note for whoever writes them.
+N4  The `why:` line is required but nothing can validate that it was actually derived rather than
+    back-filled. That is inherent: the rule is a discipline, and REVIEW is its only enforcement. Worth
+    saying in the spec that new fixtures need a reviewer who re-derives them, because the corpus's
+    entire value rests on that and it is invisible in CI.
+
+================================================================================
+6. RECOMMENDATION
+================================================================================
+Adopt. Close G2 before the corpus grows much (every fixture added after it is free coverage of the
+second path); close G1 before the first absence-shaped fixture lands. Both are small changes to
+`run()`; neither touches a fixture.
+
+The taxonomy's remaining rows are well chosen. I would add one not on the list: **`min(4, 2)` and the
+clamp idiom `min(spread, 0.004)`** — the compatibility guarantee that the M28 review protected by
+rejecting the windowed-min overload. It is currently pinned only by `ExprTest`; a golden fixture would
+put it in the corpus that survives the next grammar change.
