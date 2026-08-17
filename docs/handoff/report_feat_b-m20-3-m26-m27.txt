@@ -1,13 +1,19 @@
 REPORT — branch feat/b-m20-3-m26-m27
-Date: 2026-08-17 · Branch tip: aa0e76f · Base: main @ 7b0f606
+Date: 2026-08-17 · Last WORK commit: 3d1d2e2 (report-file commits follow it) · Base: main @ 7b0f606
 Prompted by: owner mandate in conversation (no written brief): "start B-M20-3 and then move onto
 M27" · "we are going to keep all your dev work for B-M20-3, M27 and M26 on the same branch".
 Roles are reversed this round: this session implemented; the reviewing LLM session reviews.
 
 STATUS: complete, NOT merged — merge is the reviewing session's call.
-  9 commits · 33 files · +1870/-89 · 556 tests green · mkdocs --strict green · sweep clean
+  12 commits · 35 files · +2282/-90 · 565 tests green · mkdocs --strict green · sweep clean
+  NOT YET PUSHED at time of writing: this shell has no GitHub credential (owner pushes via
+  GitHub Desktop / `! git push -u origin feat/b-m20-3-m26-m27`). Verify you are reviewing tip
+  3d1d2e2.
   Specs implemented: B-M20-3 (bug, diagnosed with the owner live), docs/specs/spec-topology-focus.md
   (M27), docs/specs/spec-agent-efficiency.md (M26). Tracker: M27 and M26 marked ☑ ON BRANCH.
+  After the initial report, two owner-driven rounds landed on the same branch: a routes-scope fix
+  (owner found the click-escalation bug live) and a test-coverage pass (owner asked "do you need
+  to add tests for any work on this branch?"). Both are integrated below, not appended.
 
 ================================================================================
 1. WHAT SHIPPED
@@ -26,8 +32,10 @@ b40f207  B-M20-3 — graph edits persist as they happen, to the active project t
     - MainFrame: change listener -> saveConfigQuietly() + project.requestSave() (timeliness);
       ProjectSession gains a preSave hook that re-syncs tabs -> config before EVERY profile write
       (safety net); the quit sequence now syncs under guard and flushes the project session.
-  GraphTierPersistenceTest (3 tests): a dispatcher-created graph reaches the ACTIVE PROFILE file
-  and not the global tier; a stale config is re-synced by preSave; restore does not mark dirty.
+  GraphTierPersistenceTest (now 4 tests): a dispatcher-created graph reaches the ACTIVE PROFILE
+  file and not the global tier; a stale config is re-synced by preSave; restore does not mark
+  dirty; quitting with NO log open cannot wipe graphs saved by an earlier session (the exact
+  pre-fix data-loss path — empty tabs synced over the restored list at quit).
 
 b45635a  M27.1 — FocusStack (pure, headless)
   Focus modelled as a NESTING FILTER CONTEXT, not a toggle (the owner's correction, verbatim in
@@ -35,7 +43,8 @@ b45635a  M27.1 — FocusStack (pure, headless)
   recomputes neighbours/routes walking ONLY in-world edges — pruning a full-graph closure would
   keep leave-and-reenter paths that do not exist inside the context (test pins this: in {a,c,e}
   with full-graph edges a->b->c, routes of a = {a} alone); outsideWorld() supports boundary
-  honesty; breadcrumb renders "All (62) ▸ label (12)". 9 tests.
+  honesty; breadcrumb renders "All (62) ▸ label (12)". As first written this slice carried the
+  routes-direction defect fixed in 4bd1ff3 below. FocusStackTest now 10 tests.
 
 af6746c  M27.2 — the UI rewired to the filter model
   Focus button pushes (no longer toggles); F pushes, Esc pops one level; Show all = pop to full +
@@ -65,7 +74,8 @@ a395f88  M26.1 — `series` verb (spec V1: the analyser computes, the agent conc
   disagree with a plotted one). Crossing lists capped (MAX_CROSSINGS=200, 'limit' narrows) with
   an explicit truncated flag + note. filter.text REFUSED loudly (an index-speed verb must not run
   at raw-scan speed). Runs off-EDT; read-only (readOnlyHint over MCP; DESTRUCTIVE set untouched,
-  FaqSecurityContractTest untouched — the spec's own guardrail). 6 tests.
+  FaqSecurityContractTest untouched — the spec's own guardrail). SeriesScanTest now 8 tests
+  (LOCF and 'below' crossings added in the coverage pass).
 
 0cbf1f4  M26.2 — time anchors: read {at} / goto {at} (spec V2)
   One shared resolver, ReadService.rowAtOrBefore: binary search over non-decreasing log times,
@@ -85,8 +95,7 @@ aa0e76f  M26.4 — echo hardening (spec V4)
   declare — implemented at the dispatcher so it covers every transport (in-process, REST, MCP)
   and piggybacks on VerbSchemas as the single source of truth. The audit this forced found ONE
   real schema gap: aggregate accepted 'limit' undeclared — now in the manifest (behaviour
-  unchanged; the schema just tells the truth now). Every other verb's accepted params were checked
-  against its schema by hand; they match.
+  unchanged; the schema just tells the truth now).
   (b) graph echoes warnings[] when rightAxis or a note's series names a label not on the graph
   AFTER this call's additions (GraphPanel.plottedLabels = raw-key displays + formula labels).
   Still applied — the series may arrive next call: warn, don't reject, per spec.
@@ -94,74 +103,124 @@ aa0e76f  M26.4 — echo hardening (spec V4)
   (the REST manifest and MCP tool list derive from VerbSchemas and needed nothing).
   6 tests.
 
+4a9f1cb  handoff: this report (kept current since — see header).
+
+4bd1ff3  fix: routes scope is directional — never the whole connected component
+  Owner-found live: click-escalation step 3 (transitive parents + children) selected the WHOLE
+  graph. FocusStack.reachWithin (M27.1, this branch only — never released) walked BOTH edge
+  directions in one BFS: that is the undirected connected component, not routes (down to a child,
+  up to that child's other parents, outward until everything is in). TopologyFocus.expand had it
+  right all along (two separate directional closures); the in-world rewrite lost the separation,
+  and the original confinement test could not see it because its context excluded the connecting
+  node. Fixed as ancestors-closure ∪ descendants-closure over in-world edges.
+  FocusStackTest.routesAreDirectional_neverTheWholeConnectedComponent pins it at the full graph,
+  from a mid-graph node, from a sibling-feeder, and inside a context. No changelog line: the
+  defect never existed in any release.
+
+3d1d2e2  test: the branch's untested seams (owner asked; audit found three, all filled)
+  - TopologyClickEscalationTest (5 tests): the escalation cycle driven through the SAME entry
+    point the mouse uses (onNodeClicked widened private -> package-private for it), against a
+    diamond graphml loaded from disk, asserting the canvas emphasis set at every step — the layer
+    the routes bug lived in and the pure FocusStack tests could not see. Also pins: a different
+    node restarts the cycle at NODE (at the full graph), additive Cmd-click keeps the width,
+    empty-canvas click clears dimming only.
+  - SeriesScanTest +2: LOCF (carrying can only ADD points vs STRICT for a cross-node formula;
+    echo says LOCF) and 'below' crossings carry anchors / aboveEvents absent when not requested.
+  - GraphTierPersistenceTest +1: the no-log-open quit test described under B-M20-3 above.
+
 ================================================================================
 2. DECISIONS / DEVIATIONS (all within spec latitude; none silent)
 ================================================================================
 D1  Spec V1 offered "verb or aggregate extension — implementer's call". Chose a separate `series`
     verb: crossings/buckets/resolve would have tripled aggregate's schema, and the READ_ONLY /
     tool-annotation story is cleaner with one verb = one tool.
-D2  ignoredParams echoes UNKNOWN keys only (schema-diff). A known key that a particular call
-    ignores (e.g. rationale without saveFocusAs) is NOT detected — that is per-verb logic, not
-    "cheap" per the spec's "where cheap" qualifier. Recorded as the honest boundary of the rule.
+D2  ignoredParams echoes UNKNOWN top-level keys only (schema-diff). A known key that a particular
+    call ignores (e.g. rationale without saveFocusAs) is NOT detected, and typos INSIDE nested
+    objects (crossings.abvoe) are not either — both are per-verb logic, not "cheap" per the
+    spec's "where cheap" qualifier. Recorded as the honest boundary of the rule.
 D3  The three drift-guard tests (VerbSchemasTest pinned verb set, McpToolsTest count 13->14,
     ManifestVerbContractTest docs-must-name-every-tool) fired when `series` landed and were
     updated in the SAME commit — that is those guards working as designed, not a test weakening.
     McpToolsTest also gains a readOnlyHint assertion for series.
-M26.1 process slip, self-caught: the M26.1 commit was chained on a grep that masked mvn's exit
-    code, so it briefly existed with those three guards red; fixed and AMENDED before anything
-    else happened on the branch. The tip history contains no red commit, but the reviewer should
-    know the sequence. (Also fixed en route: an illegal IllegalArgumentException|RuntimeException
-    multi-catch in the series dispatch — collapsed to RuntimeException.)
 D4  A stale "six log verbs" count in the assistant guide's setup note was corrected to "the log
     verbs" while touching adjacent lines (it predates this branch).
-POST-REPORT FIX (owner-found, this branch only — never released): click-escalation step 3
-    (routes: transitive parents + children) selected the WHOLE graph. FocusStack.reachWithin
-    (M27.1) walked BOTH edge directions in one BFS — that is the undirected connected component,
-    not routes (down to a child, up to that child's other parents, outward until everything is
-    in). TopologyFocus.expand had it right all along (two separate directional closures); the
-    in-world rewrite lost the separation, and the original confinement test could not see it
-    because its context excluded the connecting node. Fixed as ancestors-closure ∪
-    descendants-closure over in-world edges; FocusStackTest.routesAreDirectional_
-    neverTheWholeConnectedComponent pins it at the full graph, from a mid-graph node, from a
-    sibling-feeder, and inside a context. Reviewer: E1 now includes verifying the four-step click
-    cycle live (node → neighbours → routes → all → node).
-POST-REPORT COVERAGE PASS (owner asked "do you need to add tests for any work on this branch?"):
-    three gaps found and filled, 565 tests total.
-    - TopologyClickEscalationTest (5 tests): the escalation cycle driven through the SAME entry
-      point the mouse uses (onNodeClicked widened to package-private for it), against a diamond
-      graphml loaded from disk, asserting the canvas emphasis set at every step — the layer the
-      routes bug lived in and the pure FocusStack tests could not see. Also pins: different node
-      restarts the cycle, additive click keeps the width, canvas click clears dimming only.
-    - SeriesScanTest +2: LOCF resolution (carry can only ADD points vs STRICT) and 'below'
-      crossings carry anchors / 'above' absent when not asked — both previously untested.
-    - GraphTierPersistenceTest +1: quitting with NO log open cannot wipe a project's saved graphs
-      (the exact pre-fix data-loss path: empty tabs synced over the restored list at quit).
+D5  Named focuses ride the existing GRAPHS project-scope category rather than adding a sixth
+    whitelist category: they are view artifacts saved/shared with the same lifecycle as saved
+    graphs, and the M20 category set is pinned by test as exactly five — widening it needs an
+    owner decision, not a side effect.
+D6  onNodeClicked widened private -> package-private so TopologyClickEscalationTest can drive the
+    real mouse path (the canvas listener delegates straight to it). Precedent: selectForDocs is
+    already a public two-click helper for the screenshot harness.
+D7  The routes fix carries NO changelog entry — the defect was introduced and fixed on this same
+    unreleased branch; the [Unreleased] focus entry already describes the correct behaviour.
+PROCESS SLIP, self-caught: the M26.1 commit was briefly chained past red guard tests (a grep
+    masked mvn's exit code); fixed and AMENDED before anything else happened on the branch. The
+    tip history contains no red commit, but the reviewer should know the sequence. (Also fixed en
+    route: an illegal IllegalArgumentException|RuntimeException multi-catch in the series
+    dispatch — collapsed to RuntimeException.)
 
 ================================================================================
-3. HUMAN-EYEBALL LIST (Swing is untested by design — verify on the running jar)
+3. ASSUMPTIONS the reviewer should challenge
+================================================================================
+A1  ROUTES semantics = (transitive ancestors of the selection) ∪ (transitive descendants), each
+    closure one-directional. This matches the owner's escalation description ("transitive parents
+    and transitive children") and TopologyFocus.expand's original implementation. It does NOT
+    include descendants-of-ancestors (a sibling fed by your parent is not on your route) — one
+    reading of the old TopologyFocus javadoc ("every route in ... and everything downstream of
+    it") could suggest otherwise; the javadoc reading was NOT implemented, before or now.
+A2  rowAtOrBefore assumes log times are NON-DECREASING in file order — true for a single-logger
+    file, the shipped read model (same assumption SeriesExtractor documents for row-order scans).
+    A merged multi-logger file with interleaved clocks would binary-search wrongly; nothing new
+    here relies on more than the existing graphing path already assumed, but 'at' makes the
+    assumption load-bearing for a verb.
+A3  read.fields splits "instanceId.key" on the LAST dot (instanceIds are Java field names and
+    contain no dots; keys must not either). A key containing a dot would mis-split silently.
+A4  ignoredParams is only as truthful as VerbSchemas is complete. Every verb's accepted top-level
+    params were audited against its schema by hand (the audit found aggregate.limit); if a future
+    verb accepts an undeclared param, the dispatcher will wrongly report it ignored. There is no
+    test that can catch that automatically — the schema IS the contract.
+A5  GraphTierPersistenceTest wires the change-listener/preSave contract the way MainFrame does
+    rather than instantiating MainFrame (full-app Swing, headless CI). It pins the contract, not
+    MainFrame's copy of the wiring — E5 below covers the live path.
+A6  Per-mutation persistence (every graph edit -> saveConfigQuietly + requestSave) assumes
+    ProjectSession.requestSave debounces/coalesces adequately; no debounce was added on this
+    branch. If an edit storm (drag-resize style interactions) proves chatty, the listener is the
+    single place to throttle.
+A7  series/read/goto additions are read-only by construction; the FAQ security answer and
+    FaqSecurityContractTest were deliberately NOT touched (the spec's own acceptance guardrail).
+
+================================================================================
+4. HUMAN-EYEBALL LIST (Swing is untested by design — verify on the running jar)
 ================================================================================
 Build: mvn package && java -jar target/fluxtion-auditlog-analyser-*.jar src/test/resources/sample.yml
 (load a graphml for topology items). The jar builds; all items below are visual.
-  E1  Focus gestures: select nodes -> Focus (or F) filters to context; click nodes INSIDE it
-      (selection cycles, never exits); click empty canvas (dimming clears, context REMAINS);
-      Esc pops one level; nested push; Show all returns to full.
+  E1  Click escalation live: node → neighbours → routes → all → back to node (the owner verified
+      steps 1-2 and found step 3 broken pre-fix; the whole cycle is now unit-tested but deserves
+      one live pass on the 309-node graph). Then the focus gestures: Focus/F filters to context;
+      clicking nodes INSIDE it cycles selection, never exits; empty canvas clears dimming, context
+      REMAINS; Esc pops one level; nested push; Show all returns to full.
   E2  Crumb bar: "All (N) ▸ label (M)" renders, crumbs clickable, updates on push/pop.
   E3  Boundary note when a shown cycle ran through out-of-context nodes.
   E4  Focuses ▾ picker: save-as dialog (name + rationale), rationale tooltips on recall items,
       delete submenu; recall from a DIFFERENT loaded topology reports partial resolution.
   E5  B-M20-3 end-to-end with a real project: create/edit/close graphs with a project active,
       quit, reopen -> graphs in <project>/.analyser/project.fluxtion-settings, NOT in the global
-      file; global settings untouched (the owner's original repro).
+      file; global settings untouched (the owner's original repro). Include the no-log variant:
+      open the project WITHOUT a log, quit, confirm saved graphs survive.
   E6  Graph annotation warnings visible over MCP: a graph call with rightAxis naming a missing
-      series returns warnings[] (checked by unit test; worth one live MCP call).
+      series returns warnings[] (unit-tested; worth one live MCP call).
 
 ================================================================================
-4. SUGGESTED REVIEW FOCUS
+5. SUGGESTED REVIEW FOCUS
 ================================================================================
-  R1  FocusStackTest.routesConfinement — the in-world-edges recomputation is the load-bearing
-      semantic decision of M27; check the test pins what the spec means.
+  R1  The routes fix + its two test layers (FocusStackTest directional test, TopologyClickEscalation
+      Test) — check they pin the OWNER's semantics (§3 A1), not just the implementation's.
   R2  ReadService.rowAtOrBefore null-handling (walk-left-over-untimed inside binary search) —
-      the trickiest code on the branch; adversarial cases welcome.
-  R3  The dispatcher-level ignoredParams: satisfy yourself no verb accepts an UNDECLARED param
-      (I audited by grep + read; a second pair of eyes is the point of this round).
-  R4  MainFrame quit sequence ordering (sync -> requestSave -> flush) vs. the no-log-open case.
+      the trickiest code on the branch; adversarial cases welcome, and weigh A2.
+  R3  The dispatcher-level ignoredParams: satisfy yourself no verb accepts an UNDECLARED top-level
+      param (A4 — I audited by grep + read; a second pair of eyes is the point of this round).
+  R4  MainFrame quit sequence ordering (sync -> requestSave -> flush) vs. the no-log-open case,
+      and whether A6 (no debounce) is acceptable.
+  R5  M27.3 tier plumbing: named focuses must never reach the global config while a project is
+      active, and must never carry the API key through SettingsShare (tested; verify the tests
+      say what they claim).
