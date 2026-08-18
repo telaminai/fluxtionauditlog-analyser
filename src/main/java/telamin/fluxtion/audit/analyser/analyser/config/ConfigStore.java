@@ -243,6 +243,16 @@ public final class ConfigStore {
                 put(p, "graph." + i + ".band." + j + ".expr", bands.get(j).expr());
                 put(p, "graph." + i + ".band." + j + ".label", bands.get(j).label());
             }
+            List<GraphSpec.MarkerSpec> mk = g.markers();
+            p.setProperty("graph." + i + ".marker.count", Integer.toString(mk.size()));
+            for (int j = 0; j < mk.size(); j++) {
+                String k = "graph." + i + ".marker." + j;
+                put(p, k + ".label", mk.get(j).label());
+                put(p, k + ".glyph", mk.get(j).glyph());
+                put(p, k + ".when", mk.get(j).when());
+                put(p, k + ".y", mk.get(j).y());
+                put(p, k + ".payload", mk.get(j).payload());
+            }
             List<GraphSpec.ExternalSpec> ext = g.external();
             p.setProperty("graph." + i + ".ext.count", Integer.toString(ext.size()));
             for (int j = 0; j < ext.size(); j++) {
@@ -331,8 +341,18 @@ public final class ConfigStore {
                         parseLongOrNull(p.getProperty(k + ".offset")) == null
                                 ? 0L : parseLongOrNull(p.getProperty(k + ".offset"))));
             }
+            List<GraphSpec.MarkerSpec> mk = new ArrayList<>();
+            int mkCount = parseInt(p.getProperty("graph." + i + ".marker.count"), 0);
+            for (int j = 0; j < mkCount; j++) {
+                String k = "graph." + i + ".marker." + j;
+                String label = p.getProperty(k + ".label");
+                String when = p.getProperty(k + ".when");
+                if (label == null || when == null) continue;
+                mk.add(new GraphSpec.MarkerSpec(label, nz(p.getProperty(k + ".glyph")), when,
+                        nz(p.getProperty(k + ".y")), nz(p.getProperty(k + ".payload"))));
+            }
             out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right,
-                    guides, bands, ext));
+                    guides, bands, ext, mk));
         }
     }
 

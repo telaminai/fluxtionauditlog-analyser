@@ -91,6 +91,9 @@ public final class VerbSchemas {
                         p("external", arr(externalObject()), "external CSV series (M29) — REPLACES the "
                                 + "set. The clock is DECLARED, never sniffed; reads are confined to the "
                                 + "exchange directory (Settings ▸ Assistant) or user-chosen files"),
+                        p("markers", arr(markerObject()), "marker series (M32) — discrete events drawn "
+                                + "as glyphs: buys/sells on a price line with per-point payloads (order "
+                                + "ids) on hover; click a marker to select its record. REPLACES the set"),
                         p("guides", arr(guideObject()), "labelled horizontal threshold rules — REPLACES "
                                 + "the set; draw the 0.004 the reader would otherwise interpolate"),
                         p("bands", arr(bandObject()), "shade the time intervals where a condition held "
@@ -323,6 +326,25 @@ public final class VerbSchemas {
                 p("value", string(), "the value column name"),
                 p("offsetMillis", integer(), "deliberate clock correction, default 0 — always displayed")));
         m.put("required", List.of("path", "label", "time", "timeFormat", "value"));
+        return m;
+    }
+
+    private static Map<String, Object> markerObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("label", string(), "legend name — one meaning, one series, one glyph"),
+                p("glyph", enumStr("triangleUp", "triangleDown", "circle", "square", "diamond", "x"),
+                        "the point shape (default circle)"),
+                p("when", string(), "a bare \"instanceId.key\" fires wherever that key was logged; "
+                        + "anything else is a condition formula, truthy fires"),
+                p("y", string(), "\"instanceId.key\" or a formula for the marker's height; "
+                        + "\"series:<label>\" rides a plotted series' value; \"axis\" (default) "
+                        + "draws ticks in a lane under the plot"),
+                p("payload", string(), "an \"instanceId.key\" whose logged text rides each point — "
+                        + "shown on hover and in exports, NEVER computable (the record is the "
+                        + "queryable form)")));
+        m.put("required", List.of("label", "when"));
         return m;
     }
 

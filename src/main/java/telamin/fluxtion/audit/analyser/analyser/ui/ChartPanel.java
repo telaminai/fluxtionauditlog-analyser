@@ -36,6 +36,11 @@ public final class ChartPanel extends JPanel {
 
     private final List<Series> series = new ArrayList<>();
     private java.util.function.LongConsumer onPlotClick = t -> { };   // click in the plot → time at cursor
+    private java.util.function.IntConsumer onMarkerClick = r -> { };  // click a MARKER → its record (M32)
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markers =
+            java.util.List.of();
+    /** columns denser than this render one count glyph — D-M3's honest middle */
+    private static final int MAX_GLYPHS_PER_COLUMN = 3;
     private Style style = Style.STEP;
 
     private double vx0 = Double.NaN, vx1, vy0, vy1;   // view bounds (data coords) — the LEFT axis
@@ -65,6 +70,11 @@ public final class ChartPanel extends JPanel {
                 // a click in the plot area → the time under the cursor (jump the table to the nearest record)
                 if (!Double.isNaN(vx0) && e.getX() >= plotX && e.getX() <= plotX + plotW
                         && e.getY() >= plotY && e.getY() <= plotY + plotH) {
+                    var mHit = markerAt(e.getX(), e.getY());
+                    if (mHit != null && mHit.recordIndex() >= 0) {
+                        onMarkerClick.accept(mHit.recordIndex());   // the marker is a signpost (D-M2)
+                        return;
+                    }
                     onPlotClick.accept((long) pxToX(e.getX()));
                 }
             }
@@ -85,6 +95,82 @@ public final class ChartPanel extends JPanel {
     /** Called with the UTC epoch-millis under the cursor when the plot (not a legend) is clicked. */
     public void setOnPlotClick(java.util.function.LongConsumer onPlotClick) {
         this.onPlotClick = onPlotClick == null ? t -> { } : onPlotClick;
+    }
+
+    public void setOnMarkerClick(java.util.function.IntConsumer onMarkerClick) {
+        this.onMarkerClick = onMarkerClick == null ? r -> { } : onMarkerClick;
+    }
+
+    /** Marker series to draw (M32.3). Replaces the set. */
+    public void setMarkers(java.util.List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markers) {
+        this.markers = markers == null ? java.util.List.of() : java.util.List.copyOf(markers);
+        repaint();
+    }
+
+    /** The marker point nearest {@code (mx,my)} within 8px, if any — hover and click share it. */
+    private telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.MarkerPoint markerAt(int mx, int my) {
+        if (Double.isNaN(vx0)) return null;
+        telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.MarkerPoint best = null;
+        long bestD2 = 9L * 9L;
+        for (var ms : markers) {
+            for (var pt : ms.points()) {
+                int px = xToPx(pt.time());
+                int py = Double.isNaN(pt.y()) ? plotY + plotH - 6 : yToPxLeft(pt.y());
+                long dx = px - mx, dy = py - my;
+                long d2 = dx * dx + dy * dy;
+                if (d2 < bestD2) { bestD2 = d2; best = pt; }
+            }
+        }
+        return best;
+    }
+
+    private int yToPxLeft(double y) {
+        return plotY + plotH - (int) Math.round((y - vy0) / (vy1 - vy0) * plotH);
+    }
+
+    /**
+     * Marker glyphs (M32.3): discrete events at (time, y), never connected; axis-lane markers tick a
+     * band above the bottom axis. A pixel column denser than the legibility bound renders ONE glyph
+     * with a count badge — the presence of hidden markers is always visible (D-M3).
+     */
+    private void paintMarkers(Graphics2D g, boolean dark) {
+        if (markers.isEmpty()) return;
+        int mi = 0;
+        for (var ms : markers) {
+            Color c = PALETTE[(mi++ + 5) % PALETTE.length];
+            g.setColor(c);
+            var agg = telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.aggregate(
+                    ms.points(), vx0, vx1, plotW, MAX_GLYPHS_PER_COLUMN);
+            for (var col : agg) {
+                int px = plotX + col.column();
+                if (col.count() <= MAX_GLYPHS_PER_COLUMN) {
+                    for (var pt : col.first()) {
+                        int py = Double.isNaN(pt.y()) ? plotY + plotH - 6 : yToPxLeft(pt.y());
+                        drawGlyph(g, ms.glyph(), px, py);
+                    }
+                } else {
+                    var head = col.first().get(0);
+                    int py = Double.isNaN(head.y()) ? plotY + plotH - 6 : yToPxLeft(head.y());
+                    drawGlyph(g, ms.glyph(), px, py);
+                    g.drawString("×" + col.count(), px + 5, py - 5);
+                }
+            }
+        }
+    }
+
+    private void drawGlyph(Graphics2D g, String glyph, int x, int y) {
+        int r = 4;
+        switch (glyph) {
+            case "triangleUp" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y + r, y + r, y - r}, 3);
+            case "triangleDown" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y - r, y - r, y + r}, 3);
+            case "square" -> g.fillRect(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
+            case "diamond" -> g.fillPolygon(new int[]{x, x + r, x, x - r}, new int[]{y - r, y, y + r, y}, 4);
+            case "x" -> {
+                g.drawLine(x - r + 1, y - r + 1, x + r - 1, y + r - 1);
+                g.drawLine(x - r + 1, y + r - 1, x + r - 1, y - r + 1);
+            }
+            default -> g.fillOval(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
+        }
     }
 
     public void setSeries(List<Series> s) {
@@ -296,6 +382,13 @@ public final class ChartPanel extends JPanel {
     public String getToolTipText(MouseEvent e) {
         if (Double.isNaN(vx0) || plotW <= 0) return null;
         if (e.getX() < plotX || e.getX() > plotX + plotW) return null;
+        var mHit = markerAt(e.getX(), e.getY());
+        if (mHit != null) {
+            String pl = mHit.payload() == null ? "" : " · " + mHit.payload();
+            String yv = Double.isNaN(mHit.y()) ? "" : " · " + formatY(mHit.y());
+            return "marker · " + TimeFormat.utc(mHit.time()) + yv + pl
+                    + (mHit.recordIndex() >= 0 ? "  (click → record " + mHit.recordIndex() + ")" : "");
+        }
         // M32.1: snap to the nearest actual sample within a small radius; a decimated series answers
         // its cursor column's min/max (one sample of it would pretend to be the truth); no candidate
         // in radius → the coordinate readout, exactly the old behaviour
@@ -393,6 +486,7 @@ public final class ChartPanel extends JPanel {
             ci++;
         }
         drawingRight = false;
+        paintMarkers(g, dark);
         paintGuides(g, dark);
         paintNotes(g, dark);
         g.setClip(null);

@@ -146,6 +146,7 @@ public final class MainFrame extends JFrame {
         wireSelection();
         sourcePanel.bind(sourceService);
         graphTabs.setTimeClickHandler(this::gotoNearestRecordByTime);
+        graphTabs.setMarkerClickHandler(row -> tablePanel.selectModelRow(row));   // the marker IS the record
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
         graphTabs.setChangeListener(this::onGraphsEdited);

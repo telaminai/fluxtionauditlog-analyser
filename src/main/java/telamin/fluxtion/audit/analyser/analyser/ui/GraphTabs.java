@@ -32,6 +32,7 @@ public final class GraphTabs extends JPanel {
     private FilterState filter;
     private int counter;
     private java.util.function.LongConsumer timeClickHandler = t -> { };   // plot click → scroll table there
+    private java.util.function.IntConsumer markerClickHandler = r -> { };  // marker click → select record (M32)
     /** Told after any persistable graph change (see B-M20-3); quiet while {@link #restore} rebuilds. */
     private Runnable changeListener = () -> { };
     private boolean restoring;
@@ -85,11 +86,16 @@ public final class GraphTabs extends JPanel {
         this.timeClickHandler = handler == null ? t -> { } : handler;
     }
 
+    public void setMarkerClickHandler(java.util.function.IntConsumer handler) {
+        this.markerClickHandler = handler == null ? r -> { } : handler;
+    }
+
     private GraphPanel newPanel() {
         if (store == null || filter == null) return null;
         GraphPanel panel = new GraphPanel();
         panel.bind(store, filter);
         panel.setOnTimeClick(timeClickHandler);
+        panel.setOnMarkerClick(markerClickHandler);
         return panel;
     }
 
@@ -227,7 +233,7 @@ public final class GraphTabs extends JPanel {
                 out.add(new GraphSpec(gp.graphName(), gp.seriesSpecs(), gp.exprSpecs(),
                         gp.pinnedFrom(), gp.pinnedTo(), gp.caption(),
                         notes.explanation(), noteSpecs, new ArrayList<>(gp.axes().rightSeries()),
-                        gp.guides(), gp.bandSpecs(), gp.externalSpecs()));
+                        gp.guides(), gp.bandSpecs(), gp.externalSpecs(), gp.markerSpecs()));
             }
         }
         return out;
@@ -259,6 +265,7 @@ public final class GraphTabs extends JPanel {
             if (!g.guides().isEmpty()) panel.setGuides(g.guides());
             if (!g.bands().isEmpty()) panel.setBands(g.bands());
             if (!g.external().isEmpty()) panel.setExternal(g.external());   // async reload; D-F5 notes on failure
+            if (!g.markers().isEmpty()) panel.setMarkers(g.markers());
             // the reading of the chart, restored with it
             var notes = new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes(
                     g.explanation(), g.notes().stream()

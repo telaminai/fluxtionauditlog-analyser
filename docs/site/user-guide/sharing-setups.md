@@ -12,7 +12,7 @@ the same source roots, event processors and **named graphs** (formulas and pins 
 | Source roots | your source directories |
 | Maven repos | local repositories + the search toggle |
 | Event processors | the FQN list and the selected one |
-| Graphs and named focuses | named graphs (series, formulas, resolve policy, pinned windows, notes, guides, condition bands, external-CSV definitions) and named topology focuses (node sets + rationale) |
+| Graphs and named focuses | named graphs (series, formulas, resolve policy, pinned windows, notes, guides, condition bands, external-CSV definitions, marker definitions — never their extracted values) and named topology focuses (node sets + rationale) |
 | View | hidden columns |
 | Assistant | round / per-reply caps |
 | LLM *(off by default)* | provider / model / base-URL — **never the API key** |

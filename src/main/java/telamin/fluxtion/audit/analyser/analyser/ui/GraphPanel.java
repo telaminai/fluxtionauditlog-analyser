@@ -470,6 +470,34 @@ public final class GraphPanel extends JPanel {
         chart.setOnPlotClick(handler);
     }
 
+    /** Forward marker clicks (a record index — the marker is a signpost, D-M2) — e.g. select that record. */
+    public void setOnMarkerClick(java.util.function.IntConsumer handler) {
+        chart.setOnMarkerClick(handler);
+    }
+
+    // ---- marker series (M32) ----------------------------------------------------------------------
+
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec>
+            markerSpecs = java.util.List.of();
+
+    /** Replace the marker series (M32). The SOURCE persists; points are data, re-extracted per scan. */
+    public void setMarkers(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec> specs) {
+        this.markerSpecs = specs == null ? java.util.List.of() : java.util.List.copyOf(specs);
+        mutated();
+        reExtract();
+    }
+
+    public java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec> markerSpecs() {
+        return markerSpecs;
+    }
+
+    /** Extraction notes per marker series (dangling pins, skipped points) — loud, never silent. */
+    private final java.util.List<String> markerNotes = new java.util.ArrayList<>();
+
+    public java.util.List<String> markerNotes() {
+        return java.util.List.copyOf(markerNotes);
+    }
+
     // ---- pinned range (spec-graph-artifacts §A) -------------------------------------------------
 
     public String graphName() { return graphName; }
@@ -640,8 +668,11 @@ public final class GraphPanel extends JPanel {
         final List<GraphKey> keys = new ArrayList<>(activeKeys);
         final List<Derived> exprs = new ArrayList<>(activeExprs);
         final var bandsWanted = this.bandSpecs;
+        final var markersWanted = this.markerSpecs;
         final int gen = ++extractGen;
-        record Extracted(List<Series> series, List<ChartPanel.Band> bands) { }
+        record Extracted(List<Series> series, List<ChartPanel.Band> bands,
+                         List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markers,
+                         List<String> markerNotes) { }
         Background.run(
                 () -> {
                     List<Series> out = new ArrayList<>();
@@ -670,7 +701,18 @@ public final class GraphPanel extends JPanel {
                             // a syntactically-bad band shades nothing (the verb echoed the error at set time)
                         }
                     }
-                    return new Extracted(out, bands);
+                    // markers ride the same pass too; series-pinned y resolves against the JUST-extracted list
+                    java.util.Map<String, Series> byLabel = new java.util.LinkedHashMap<>();
+                    for (Series se : out) byLabel.put(se.label(), se);
+                    List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markerData = new ArrayList<>();
+                    List<String> mNotes = new ArrayList<>();
+                    for (var msSpec : markersWanted) {
+                        var ms = telamin.fluxtion.audit.analyser.analyser.graph.MarkerExtractor
+                                .extract(s, f, msSpec, byLabel::get);
+                        markerData.add(ms);
+                        if (ms.note() != null) mNotes.add(ms.label() + ": " + ms.note());
+                    }
+                    return new Extracted(out, bands, markerData, mNotes);
                 },
                 out -> {
                     if (gen != extractGen) return;   // a newer extraction superseded this one
@@ -678,6 +720,9 @@ public final class GraphPanel extends JPanel {
                     merged.addAll(externalLoaded.values());   // external points ride the same chart
                     chart.setSeries(merged);
                     chart.setBands(out.bands());
+                    chart.setMarkers(out.markers());
+                    markerNotes.clear();
+                    markerNotes.addAll(out.markerNotes());
                     applyWindow();                   // pinned range if pinned, else the filter's window
                 },
                 err -> { /* best-effort */ });

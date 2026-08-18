@@ -101,6 +101,50 @@ class GraphGuidesBandsTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void markersApplyThroughTheVerb_withGlyphAndParseValidation() {
+        GraphTabs tabs = new GraphTabs();
+        var r = executor(tabs).render("graph", Map.of(
+                "newTab", true, "name", "g",
+                "series", List.of("bidMakerOrder.price"),
+                "markers", List.of(
+                        Map.of("label", "buys", "glyph", "triangleUp",
+                                "when", "bidMakerOrder.price", "y", "bidMakerOrder.price"),
+                        Map.of("label", "odd", "glyph", "starfish", "when", "bidMakerOrder.price"),
+                        Map.of("label", "bad", "when", "1 < 2 < 3"))));
+        assertTrue(r.ok(), () -> "failed: " + r);
+        assertEquals(2, r.payload().get("markers"), "the parse-failing one was skipped");
+        List<String> warnings = (List<String>) r.payload().get("warnings");
+        assertTrue(warnings.stream().anyMatch(w -> w.contains("starfish")), warnings.toString());
+        assertTrue(warnings.stream().anyMatch(w -> w.contains("does not parse")), warnings.toString());
+    }
+
+    @Test
+    void markerSpecsRoundTripThroughConfigStoreAndShare() throws Exception {
+        var dir2 = java.nio.file.Files.createTempDirectory("cfg");
+        var store = new telamin.fluxtion.audit.analyser.analyser.config.ConfigStore(dir2.resolve("config"));
+        var cfg = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        cfg.savedGraphs.add(new GraphSpec("g", List.of(), List.of(), null, null, null, null,
+                List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(new GraphSpec.MarkerSpec("buys", "triangleUp", "fills.fillPrice",
+                        "fills.fillPrice", "fills.clOrdId"))));
+        store.save(cfg);
+        var back = store.load().savedGraphs.get(0).markers().get(0);
+        assertEquals("buys", back.label());
+        assertEquals("triangleUp", back.glyph());
+        assertEquals("fills.clOrdId", back.payload());
+
+        var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare("/home/tester");
+        String text = share.export(cfg, java.util.EnumSet.of(
+                telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS));
+        var receiver = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        share.apply(share.preview(text, receiver), java.util.EnumSet.of(
+                telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS), receiver);
+        assertEquals("buys", receiver.savedGraphs.get(0).markers().get(0).label(),
+                "marker DEFINITIONS travel; extracted values never do (D-M4)");
+    }
+
+    @Test
     void restoreAppliesGuidesAndBandsWithoutEchoingAnEdit() {
         GraphTabs tabs = new GraphTabs();
         tabs.bind(store, new FilterState());

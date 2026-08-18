@@ -46,6 +46,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   its cursor column's **min/max range** rather than pretending one sample is the truth; with no
   sample in range, the coordinate readout remains as before.
 
+- **Marker series — events on a value chart.** Plot buys/sells (or any event) as glyphs on a price
+  line, each point carrying a payload (a client order id) shown on hover — and **clicking a marker
+  selects its record**, because a marker is a signpost to the evidence, never a substitute for it.
+  Three pieces: `graph {markers: [{label, glyph, when, y, payload}]}` — a bare key fires wherever it
+  was logged, a formula fires where truthy; `y` can ride a plotted series or `axis` for a rug lane
+  under the plot; dense columns render one glyph with a count badge instead of soup or silence.
+  Payloads are display cargo only — they never enter formulas or filters. Marker definitions persist
+  and share with the graph (never their extracted values), and a marker pinned to a series that
+  isn't on the graph says so instead of vanishing.
+
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same
   formula.** A record carrying no `logTime` cannot be plotted, but it has still *observed* values — and

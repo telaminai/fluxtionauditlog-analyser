@@ -332,7 +332,7 @@ Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise the
   the out-of-tree example reader lives in the playground repo and is DEFERRED to a cross-repo slice
   (this repo cannot ship it; the in-tree toy reader in ReaderSpiTest is the seam proof meanwhile).
 
-## M32 · Marker series — ◧ IN PROGRESS (ACCEPTED v2) (events on a value chart)
+## M32 · Marker series — ◧ ON BRANCH `feat/m29-external-series` (core complete; Flags rug, PDF table, external-CSV source deferred — see report) (events on a value chart)
 _Design: **[spec-marker-series.md](spec-marker-series.md)**. Owner ask: buys/sells on a price plot
 with the client order id and a distinctive point style, plus point-snapped mouseover. A marker series
 is `(time, y, payload)` drawn as glyphs — the one legitimate path for categorical/per-event data onto
@@ -350,11 +350,11 @@ for markers; min/max on a decimated column), coordinate readout as fallback._
 - [M32.2] ☑ **Model + extraction** *(shipped on `feat/m29-external-series`)* (pure) — MarkerSeries, key-triple + condition sources on the
   existing record walk, series-pinned `y` with the dangling-pin loud-degrade rule, density
   aggregation as data (headless-testable D-M3).
-- [M32.3] ☐ **Rendering** — glyphs, count badges, payload on the M32.1 tooltip, click→goto, the axis
+- [M32.3] ☑ **Rendering** *(shipped on `feat/m29-external-series`; Flags rug + PDF table deferred, see report)* — glyphs, count badges, payload on the M32.1 tooltip, click→goto, the axis
   lane + Flags rug; offscreen-PNG verification (the eyeball-heavy slice).
-- [M32.4] ☐ **Verb** — `graph {markers}`, REPLACE + warnings contract (incl. dangling-pin), M26.4
+- [M32.4] ☑ **Verb** *(shipped on `feat/m29-external-series`)* — `graph {markers}`, REPLACE + warnings contract (incl. dangling-pin), M26.4
   echoes.
-- [M32.5] ☐ **Persistence + share + exports** — D-M4 checklist, PDF markers table with cap note,
+- [M32.5] ◧ **Persistence + share** *(shipped on `feat/m29-external-series`; PDF markers table + capture screenshot deferred)* — D-M4 checklist, PDF markers table with cap note,
   capture-harness screenshot, docs + changelog; external-CSV source here iff M29 shipped.
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)

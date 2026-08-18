@@ -414,6 +414,11 @@ public final class ActionExecutor implements RenderExecutor {
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
             Map<String, Object> applied = new LinkedHashMap<>();
             if (p.containsKey("guides")) applied.put("guides", panel.guides().size());
+            if (p.containsKey("markers")) {
+                applied.put("markers", panel.markerSpecs().size());
+                // extraction is async in the reExtract pipeline; notes surface on the panel and in the
+                // NEXT call's echo — the counts here confirm what was ACCEPTED
+            }
             if (p.containsKey("bands")) applied.put("bands", panel.bandSpecs().size());
             if (extEcho != null) applied.put("external", extEcho);
             applied.put("name", name == null ? "(current)" : name);
@@ -846,6 +851,34 @@ public final class ActionExecutor implements RenderExecutor {
                 }
             }
             panel.setGuides(guides);
+        }
+        if (p.containsKey("markers")) {
+            List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec> specs = new ArrayList<>();
+            for (Object o : asList(p.get("markers"))) {
+                if (!(o instanceof Map<?, ?> m)) continue;
+                String label = asText(m.get("label"));
+                String when = asText(m.get("when"));
+                if (label == null || label.isBlank() || when == null || when.isBlank()) {
+                    warnings.add("marker entry needs 'label' and 'when' — skipped");
+                    continue;
+                }
+                try {
+                    telamin.fluxtion.audit.analyser.analyser.graph.Expr.parse(when);
+                } catch (RuntimeException ex) {
+                    warnings.add("marker '" + label + "' when '" + when + "' does not parse: " + ex.getMessage());
+                    continue;
+                }
+                String glyph = asText(m.get("glyph"));
+                if (glyph != null && !telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS.contains(glyph)) {
+                    warnings.add("marker '" + label + "': unknown glyph '" + glyph + "' — using circle (one of "
+                            + telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS + ")");
+                    glyph = "circle";
+                }
+                specs.add(new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec(
+                        label, glyph == null ? "circle" : glyph, when,
+                        asText(m.get("y")), asText(m.get("payload"))));
+            }
+            panel.setMarkers(specs);
         }
         if (p.containsKey("bands")) {
             List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec> bands = new ArrayList<>();
