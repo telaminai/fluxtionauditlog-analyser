@@ -284,7 +284,7 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 - [M31.5] ☐ *(owner decision)* **Separate `analyser-reader-spi` artifact** — needs a multi-module
   build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
-## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18 (archived; four small remnants)
+## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18 (archived; three small remnants)
 _32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
 marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
 Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
@@ -308,9 +308,12 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
   not `points().size()`, if it is to agree with what the eye sees.
   *Consequence while open:* the bands docs image only reads correctly because its caption does the
   legend's job in prose — which is the tell that the legend is doing none.)_
-- [M32.10] ☐ **Regenerate `graph-markers-dark.png`** — the shipped image predates M32.9 and shows the
-  glyphs without a key. Needs a machine with Screen Recording permission (the harness now refuses to
-  fake it and exits non-zero); the shot definition already exists.
+- [M32.10] ☑ **Docs images regenerated against the legend fix** — all 14 shots retaken natively
+  (`done — 14 captures, all native`, exit 0), so `graph-markers-dark.png` now shows the key it was
+  missing: `▲ order live (166)` and `✕ risk breach (160)` beside `quotePublisher.spread`, in the
+  marker palette, glyphs matching the plot. Every visible string re-read per rule 1. This is also the
+  first run where the harness's success signal means anything — the pre-fix version reported ✓ for
+  shots it never took.
 - [M32.6] ☐ **Flags rug** — flagged records as a built-in axis-lane rug (D-M5's second half); needs a
   flagged-rows supplier seam from MainFrame.
 - [M32.7] ☐ **PDF markers table** — glyphs already ride the painted export; the table (label, time,
