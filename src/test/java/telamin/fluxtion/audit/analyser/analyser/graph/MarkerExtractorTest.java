@@ -89,6 +89,19 @@ class MarkerExtractorTest {
         assertEquals(2, m.points().size());
         assertEquals(17.1, m.points().get(0).y(), 1e-9, "at t=2000 the pinned series' last value is 17.1");
         assertEquals(17.3, m.points().get(1).y(), 1e-9);
+        assertEquals("mid price", m.riddenSeries(),
+                "a marker that rides a series must ride its SCALE too — the chart resolves the axis (D12)");
+    }
+
+    @Test
+    void onlySeriesPinnedMarkersDeclareARiddenSeries() {
+        // a key/expr y has no declared axis — it maps to the LEFT scale, and says so by carrying no pin
+        MarkerSeries keyed = extract(new GraphSpec.MarkerSpec(
+                "buys", "triangleUp", "fills.fillPrice", "fills.fillPrice", null));
+        assertNull(keyed.riddenSeries());
+        MarkerSeries rug = extract(new GraphSpec.MarkerSpec(
+                "fills", "x", "fills.fillPrice", "axis", null));
+        assertNull(rug.riddenSeries());
     }
 
     @Test

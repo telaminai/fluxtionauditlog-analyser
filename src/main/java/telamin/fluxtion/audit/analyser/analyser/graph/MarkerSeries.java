@@ -10,7 +10,18 @@ import java.util.List;
  * the queryable form; the marker is a signpost to it, which is why log-sourced points carry their
  * {@code recordIndex}.
  */
-public record MarkerSeries(String label, String glyph, List<MarkerPoint> points, String note) {
+public record MarkerSeries(String label, String glyph, List<MarkerPoint> points, String note,
+                           String riddenSeries) {
+
+    /**
+     * The common shape: y is a key/expr or the axis lane — no series is ridden, so the LEFT scale
+     * applies. {@code riddenSeries} is set only for {@code y: series:<label>} pins, and the CHART
+     * resolves which scale that label is on at paint time — so a marker keeps the right height even
+     * when its series is later moved between axes without re-extraction (review D12).
+     */
+    public MarkerSeries(String label, String glyph, List<MarkerPoint> points, String note) {
+        this(label, glyph, points, note, null);
+    }
 
     /** {@code y} is NaN for axis-lane (rug) markers; {@code recordIndex} is -1 for external points. */
     public record MarkerPoint(long time, double y, String payload, int recordIndex) {

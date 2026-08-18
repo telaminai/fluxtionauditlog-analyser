@@ -5,7 +5,8 @@ Both specs ACCEPTED before implementation (M29 v3, M30 v2 — all review finding
 
 STATUS: M29.1–.4, M30.1–.4, M31.1–.3 (+ the author guide) and M32's core (32.1–.5 minus recorded
 deferrals) complete, NOT merged. M29.5 (embed) deferred by design.
-  18 commits · 683 tests green · mkdocs --strict green · sweep clean
+  18 work commits + review-response (§7) · suite green (exit 0, zero failures) · mkdocs --strict
+  green · sweep clean
 
 ================================================================================
 1. WHAT SHIPPED — M29 (external series)
@@ -169,10 +170,12 @@ D11 (M32) Deferred, each small and named: the built-in Flags rug (D-M5's second 
     painted export; the table is additive); the capture-harness screenshot; the external-CSV marker
     source (the M29 loader is on this branch, but the payload-column mapping deserves its own
     slice). None blocks the core; all are listed in the tracker's M32 header.
-D12 (M32) Marker hover/click distance is measured against the LEFT axis for y-valued markers —
-    right-axis-pinned marker y is not yet a concept (markers pin to series by VALUE lookup, drawn on
-    the left scale). If a marker rides a right-axis series the glyph lands mis-scaled; the honest
-    fix is scale-aware marker painting, a small follow-up the reviewer should weigh.
+D12 (M32) RESOLVED after the second review pass (the reviewer weighed it: "fix before markers are
+    advertised widely"). A marker that rides a series now rides its SCALE: MarkerSeries carries the
+    ridden label (`riddenSeries`, null for key/expr/axis markers), and ChartPanel resolves which
+    axis that label is on AT PAINT TIME — hover and paint share one markerYPx(), and moving the
+    pinned series between axes re-heights its markers without re-extraction. Key/expr markers stay
+    on the left scale by contract: an expression has no declared axis.
 
 ================================================================================
 5. HUMAN EYEBALL (Swing untested by design — the running jar)
@@ -205,7 +208,38 @@ D12 (M32) Marker hover/click distance is measured against the LEFT axis for y-va
       ≤4MB × members) — acceptable? An async offer is possible if a slow disk makes this visible.
   R6  (M31) PluginClassLoader.loadClass — the delegation order and its lock discipline; and whether
       claiming only "java./javax." for the JDK is enough (jdk.* internals?).
-  R7  (M32) D12 above — the right-axis marker scaling gap; and paintMarkers' palette offset (+5)
-      colliding with series colours on busy charts.
+  R7  (M32) D12 above — the right-axis marker scaling gap (RESOLVED, see D12); paintMarkers'
+      palette offset (+5) colliding with series colours on busy charts remains open.
   R8  (M32) markerAt() is O(points) per mouse-move; fine at forensic scales, unmeasured at 100k
       markers — weigh against D-M3's aggregation which could feed the hover path too.
+
+================================================================================
+7. RESPONSE TO THE SECOND REVIEW PASS (review_feat_m29_m31_m32.txt, 2026-08-18)
+================================================================================
+Verdict was approved-merge; every earlier finding verified applied. Three actions taken in response:
+
+7a. The capture-harness fix (the reviewer's own, commit 5b8299c) — VERIFIED, and completed. The
+    scratch-path-then-copy shape is right and the never-downgrade rule (keep a native asset over a
+    painted fallback) is the correct ordering of evils. Two residual gaps in it, both the same
+    species as the bug it fixes, closed here:
+      - capture()'s verb-failure path (screenshot act not ok) printed and returned WITHOUT recording
+        the failure — a run could still end "done — N captures, all native", exit 0, having taken
+        nothing for that shot. Now appends to _failed.
+      - menu_capture() was never counted as attempted, so one failed menu shot made the summary read
+        "-1 of 12 regenerated; 13 NOT captured". An explicit _attempted list now counts every asset
+        the run tries to produce (window and menu shots alike); the summary and exit code derive
+        from it. Its own verb-failure path now records too.
+
+7b. §4's docs ask — DONE. graphs.md now explains, where a user meets `when`, that a bare key fires
+    per EVENT (only where the key was logged) while a condition carries under LOCF and fires per
+    REGIME (once true, true until the value changes — the reviewer's own 719-of-726 surprise),
+    pointing regime-marking at condition bands instead.
+
+7c. D12 — FIXED rather than carried (the reviewer: "I would fix this before markers are advertised
+    widely"). See D12 above for the shape; MarkerExtractorTest pins that only series-pinned markers
+    declare a ridden series. Swing paint itself remains eyeball territory (E7 gains: check a marker
+    on a right-axis series sits ON its line, both themes).
+
+STILL OWED TO A HUMAN (unchanged): run tools/capture-docs.py on a machine with Screen Recording
+permission (it now refuses to pretend — exit 0 or it names every missed shot), then eyeball the
+marker shot per review §4, including the new right-axis check above.

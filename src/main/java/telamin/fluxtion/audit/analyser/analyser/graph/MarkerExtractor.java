@@ -120,7 +120,9 @@ public final class MarkerExtractor {
         }
         String note = skippedNoY > 0
                 ? skippedNoY + " marker(s) skipped — fired but had no finite y at that moment" : null;
-        return new MarkerSeries(spec.label(), glyph, List.copyOf(points), note);
+        // a marker that rides a series must ride its SCALE too (D12) — the chart resolves which axis
+        return new MarkerSeries(spec.label(), glyph, List.copyOf(points), note,
+                pinned == null ? null : pinned.label());
     }
 
     private static void updateCarry(Map<GraphKey, Double> carry, List<NodeLog> nodeLogs, GraphKey k) {

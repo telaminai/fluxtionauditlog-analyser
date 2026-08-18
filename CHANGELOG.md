@@ -54,7 +54,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   under the plot; dense columns render one glyph with a count badge instead of soup or silence.
   Payloads are display cargo only — they never enter formulas or filters. Marker definitions persist
   and share with the graph (never their extracted values), and a marker pinned to a series that
-  isn't on the graph says so instead of vanishing.
+  isn't on the graph says so instead of vanishing. A marker that rides a series rides its **scale**
+  too: pinned to a right-axis series, the glyphs draw against the right scale — and follow if the
+  series is later moved between axes.
 
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same

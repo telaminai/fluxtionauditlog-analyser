@@ -95,8 +95,10 @@ def menu_capture(ep, menu, name):
     The painted fallback cannot be used here: a Swing popup is a separate layer and never appears in the
     content pane's paint. So this shot needs the native path, and is skipped rather than faked without it.
     """
+    _attempted.append(name)
     res = act(ep, "screenshot", {"path": f"menu-{menu}.png", "scope": f"menu:{menu}"})
     if not res.get("ok"):
+        _failed.append(name)                # a verb failure produced no image either — count it
         return False
     b = res["wrote"]["windowBounds"]
     raise_window()
@@ -199,10 +201,12 @@ def capture(ep, name):
     """Native window capture — the painted fallback cannot draw the title bar."""
     # a relative name lands inside the export directory; unique per call because the guard never
     # overwrites, and this script regenerates the same asset names every run
+    _attempted.append(name)
     scratch_name = f"{len(_captured):02d}-{name}"
     res = act(ep, "screenshot", {"path": scratch_name})
     if not res.get("ok"):
         print(f"  ! {name}: {res.get('error')}")
+        _failed.append(name)                # a verb failure produced no image either — count it
         return False
     _captured.append(scratch_name)
     painted = EXPORT_DIR / scratch_name
@@ -236,8 +240,9 @@ def capture(ep, name):
     return False
 
 
-_captured = []
-_failed = []
+_captured = []      # scratch names — numbers the painted exports within a run
+_attempted = []     # every asset this run tried to produce, window and menu shots alike
+_failed = []        # the subset it could not — a failed verb call counts, not only a failed shutter
 
 
 def seed(ep):
@@ -339,11 +344,11 @@ def main():
     # actually produced, and exit non-zero when any did not, so a capture run cannot look successful
     # while leaving the assets exactly as it found them.
     if _failed:
-        print(f"done — {len(_captured) - len(_failed)} of {len(_captured)} regenerated; "
+        print(f"done — {len(_attempted) - len(_failed)} of {len(_attempted)} regenerated; "
               f"{len(_failed)} NOT captured: {', '.join(_failed)}")
         print("  grant Screen Recording permission to this terminal and re-run before committing docs")
         sys.exit(1)
-    print(f"done — {len(_captured)} captures, all native")
+    print(f"done — {len(_attempted)} captures, all native")
 
 
 if __name__ == "__main__":

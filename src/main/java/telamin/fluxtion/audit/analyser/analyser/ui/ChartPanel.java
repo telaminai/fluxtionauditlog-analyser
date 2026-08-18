@@ -115,7 +115,7 @@ public final class ChartPanel extends JPanel {
         for (var ms : markers) {
             for (var pt : ms.points()) {
                 int px = xToPx(pt.time());
-                int py = Double.isNaN(pt.y()) ? plotY + plotH - 6 : yToPxLeft(pt.y());
+                int py = markerYPx(ms, pt.y());
                 long dx = px - mx, dy = py - my;
                 long d2 = dx * dx + dy * dy;
                 if (d2 < bestD2) { bestD2 = d2; best = pt; }
@@ -124,8 +124,17 @@ public final class ChartPanel extends JPanel {
         return best;
     }
 
-    private int yToPxLeft(double y) {
-        return plotY + plotH - (int) Math.round((y - vy0) / (vy1 - vy0) * plotH);
+    /**
+     * A marker's y in pixels — hover and paint MUST share this or the tooltip lands off the glyph.
+     * A marker riding a series ({@code y: series:<label>}) rides its SCALE too (D12): resolved here,
+     * not at extraction, so moving the series between axes re-heights the markers without re-extract.
+     * Key/expr markers stay on the left scale — an expression has no declared axis.
+     */
+    private int markerYPx(telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries ms, double y) {
+        if (Double.isNaN(y)) return plotY + plotH - 6;   // axis-lane rug
+        boolean right = ms.riddenSeries() != null && axes.hasRightAxis() && axes.isRight(ms.riddenSeries());
+        double lo = right ? ry0 : vy0, hi = right ? ry1 : vy1;
+        return plotY + plotH - (int) Math.round((y - lo) / (hi - lo) * plotH);
     }
 
     /**
@@ -145,12 +154,11 @@ public final class ChartPanel extends JPanel {
                 int px = plotX + col.column();
                 if (col.count() <= MAX_GLYPHS_PER_COLUMN) {
                     for (var pt : col.first()) {
-                        int py = Double.isNaN(pt.y()) ? plotY + plotH - 6 : yToPxLeft(pt.y());
-                        drawGlyph(g, ms.glyph(), px, py);
+                        drawGlyph(g, ms.glyph(), px, markerYPx(ms, pt.y()));
                     }
                 } else {
                     var head = col.first().get(0);
-                    int py = Double.isNaN(head.y()) ? plotY + plotH - 6 : yToPxLeft(head.y());
+                    int py = markerYPx(ms, head.y());
                     drawGlyph(g, ms.glyph(), px, py);
                     g.drawString("×" + col.count(), px + 5, py - 5);
                 }

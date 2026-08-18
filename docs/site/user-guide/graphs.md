@@ -99,6 +99,13 @@ is always visible. A marker's `y` can be a key, a formula, a plotted series to r
 tick lane under the plot; and hovering **any** series now snaps to the nearest actual sample
 (`series · time · value`), with dense series answering their column's min/max range.
 
+`when` decides where a marker fires, and the two forms differ in a way that matters: a **bare key**
+(`orderTracker.orderId`) fires only on records where that key was actually logged — one marker per
+event. A **condition** (`orderTracker.live > 0`) is evaluated against carried-forward values, so once
+true it stays true on every following record until the value changes — a state, not an event, and
+usually hundreds of markers where you expected a handful. Marking *occurrences*, use the bare key;
+marking *a regime*, consider a [condition band](#thresholds-and-condition-bands) instead.
+
 ## Two scales
 
 A revenue line reaching 2,000 and a stock level oscillating around 20 share a chart where the stock line
