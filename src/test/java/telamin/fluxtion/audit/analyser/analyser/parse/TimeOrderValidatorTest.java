@@ -76,4 +76,22 @@ class TimeOrderValidatorTest {
         assertEquals(1, report.violations().size());
         assertTrue(report.violations().get(0).message().contains("m.log.3"));
     }
+
+    @Test
+    void theCapKeepsItsOwnPromise_unexaminedFilesAreCounted(@TempDir Path capDir) throws IOException {
+        // three dirty members, cap of 1: two files go unexamined and the summary SAYS so (review F1)
+        java.util.List<Path> files = new java.util.ArrayList<>();
+        for (int i = 1; i <= 3; i++) {
+            Path f = capDir.resolve("m.log." + i);
+            Files.writeString(f, records(200, 100));   // each internally out of order
+            files.add(f);
+        }
+        var store = RolledLogStore.open(files, 512);
+        var report = TimeOrderValidator.validate(store.index(), 1);
+        assertEquals(1, report.violations().size());
+        assertEquals(2, report.unexaminedFiles());
+        assertFalse(report.isClean(), "unexamined work means the report cannot claim clean");
+        String last = report.summarise().get(report.summarise().size() - 1);
+        assertTrue(last.contains("2 further file(s) not examined"), last);
+    }
 }

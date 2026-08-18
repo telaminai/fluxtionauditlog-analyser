@@ -18,8 +18,14 @@ public final class TimeOrderValidator {
     }
 
     public static TimeOrderReport validate(LogIndex idx) {
+        return validate(idx, TimeOrderReport.MAX_VIOLATIONS);
+    }
+
+    /** {@code maxViolations} parameterised for tests; production callers use the report's cap. */
+    static TimeOrderReport validate(LogIndex idx, int maxViolations) {
         List<TimeOrderReport.Violation> out = new ArrayList<>();
         int files = idx.fileCount();
+        int unexamined = 0;
         for (int f = 0; f < files; f++) {
             long prev = Long.MIN_VALUE;
             int count = 0;
@@ -42,8 +48,11 @@ public final class TimeOrderValidator {
                                 + ", first at record " + firstAt
                                 + " — time-anchored features may be approximate; records are never re-sorted"));
             }
-            if (out.size() >= TimeOrderReport.MAX_VIOLATIONS) break;
+            if (out.size() >= maxViolations) {
+                unexamined = files - f - 1;   // the cap keeps its promise: dropped work is COUNTED (F1)
+                break;
+            }
         }
-        return new TimeOrderReport(List.copyOf(out));
+        return new TimeOrderReport(List.copyOf(out), unexamined);
     }
 }

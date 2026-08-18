@@ -63,6 +63,10 @@ public final class ExportGuard {
         Path dir = Path.of(exportDir).toAbsolutePath().normalize();
         Path resolved = (Path.of(requested).isAbsolute() ? candidate : dir.resolve(requested))
                 .toAbsolutePath().normalize();
+        // containment is TEXTUAL (normalize + startsWith) by choice, matching the write side — a
+        // symlink inside the directory pointing out would pass, but creating one needs local
+        // filesystem access, which has easier options; switch both sides to toRealPath() if that
+        // trust model ever changes (review N1)
         if (!resolved.startsWith(dir)) {
             return new Resolved(null, "path is outside the exchange directory (" + dir + ") — external "
                     + "reads are confined to it (or to files the user picked in a chooser this session); "

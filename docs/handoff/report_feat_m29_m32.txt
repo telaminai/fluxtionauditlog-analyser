@@ -1,11 +1,11 @@
 REPORT — branch feat/m29-external-series (M29 + M30 + M31 + M32 — the owner extended the mandate:
 "keep going with M31 and M32 on this branch, the reviewer will tackle it all")
-Date: 2026-08-18 · Last WORK commit: 92a2533 · Base: main @ 58879d7 (post-golden-corpus)
+Date: 2026-08-18 · Last WORK commit: see git (report updated post-review) · Base: main @ 58879d7 (post-golden-corpus)
 Both specs ACCEPTED before implementation (M29 v3, M30 v2 — all review findings pre-applied).
 
 STATUS: M29.1–.4, M30.1–.4, M31.1–.3 (+ the author guide) and M32's core (32.1–.5 minus recorded
 deferrals) complete, NOT merged. M29.5 (embed) deferred by design.
-  16 commits · 682 tests green · mkdocs --strict green · sweep clean
+  18 commits · 683 tests green · mkdocs --strict green · sweep clean
 
 ================================================================================
 1. WHAT SHIPPED — M29 (external series)
@@ -92,6 +92,22 @@ f315151  M32.1 point-snapped mouseover, EVERY series (severed per review M1 — 
   graph {markers} REPLACE + parse/glyph validation in warnings[]; MarkerSpec persistence
   (ConfigStore round-trip + share ride-along tested, disclosure row names "marker definitions —
   never their extracted values"); restore-not-an-edit.
+
+================================================================================
+2d. POST-REVIEW: THE M29+M30 REVIEW (920a793) — FINDINGS APPLIED ON THIS BRANCH
+================================================================================
+The reviewer approved-merge at d7379ce (before the M31/M32 work), re-derived D-R1's convention
+independence and D-R3's overlap reporting with their own probes, and re-ran every gate. Their one
+finding and one note are now DONE here:
+  F1 (their finding, verified by reading my own code before fixing): TimeOrderReport.MAX_VIOLATIONS
+     promised "the summary names how many more exist" and nothing did. The report now carries
+     unexaminedFiles, summarise() appends "…and N further file(s) not examined", isClean() refuses
+     to claim clean over unexamined work, merged() sums the counts — pinned by a test with a
+     parameterised cap. The javadoc is true again, and the one silent bound on a branch full of
+     loud ones is loud.
+  N1: resolveRead's textual containment (normalize + startsWith) is now COMMENTED as a choice,
+     matching the write side, with toRealPath() named as the switch if the trust model changes.
+Their review predates M31/M32 — sections 2b/2c above are unreviewed as of this report.
 
 ================================================================================
 3. DEFECTS CAUGHT BY MY OWN FIRST TEST RUNS (test-first working as intended)

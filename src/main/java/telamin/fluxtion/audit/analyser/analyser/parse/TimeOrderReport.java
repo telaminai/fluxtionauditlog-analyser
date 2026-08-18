@@ -10,7 +10,12 @@ import java.util.List;
  * read {@code logTime} and only {@code logTime} — {@code eventTime} carries a {@code -1} sentinel on
  * exported-service calls and is never consulted (review R3).
  */
-public record TimeOrderReport(List<Violation> violations) {
+public record TimeOrderReport(List<Violation> violations, int unexaminedFiles) {
+
+    /** The common shape: nothing was dropped. */
+    public TimeOrderReport(List<Violation> violations) {
+        this(violations, 0);
+    }
 
     /** Bounded per report — the summary names how many more exist. */
     public static final int MAX_VIOLATIONS = 50;
@@ -29,17 +34,25 @@ public record TimeOrderReport(List<Violation> violations) {
     }
 
     public static TimeOrderReport clean() {
-        return new TimeOrderReport(List.of());
+        return new TimeOrderReport(List.of(), 0);
     }
 
     public boolean isClean() {
-        return violations.isEmpty();
+        return violations.isEmpty() && unexaminedFiles == 0;
     }
 
-    /** One line per violation, for banners / verb echoes / {@code context}. */
+    /**
+     * One line per violation, for banners / verb echoes / {@code context} — and when the cap tripped,
+     * a final line naming what went UNEXAMINED (review F1: the cap must keep its own promise; this is
+     * the report's `truncated` flag, spelled out).
+     */
     public List<String> summarise() {
         List<String> out = new ArrayList<>();
         for (Violation v : violations) out.add(v.message());
+        if (unexaminedFiles > 0) {
+            out.add("… and " + unexaminedFiles + " further file(s) not examined — the report is capped "
+                    + "at " + MAX_VIOLATIONS + " violations");
+        }
         return out;
     }
 
@@ -48,6 +61,6 @@ public record TimeOrderReport(List<Violation> violations) {
         if (isClean()) return other;
         List<Violation> all = new ArrayList<>(violations);
         all.addAll(other.violations());
-        return new TimeOrderReport(List.copyOf(all));
+        return new TimeOrderReport(List.copyOf(all), unexaminedFiles + other.unexaminedFiles());
     }
 }
