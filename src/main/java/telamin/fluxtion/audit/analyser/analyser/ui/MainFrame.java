@@ -916,6 +916,11 @@ public final class MainFrame extends JFrame {
         file.add(openS3);
         // opening lives on the File menu with the log actions, not on the Topology tab's own toolbar:
         // it is the same kind of act, and a toolbar is better spent on controls for what is already open
+        JMenuItem addCsv = new JMenuItem("Add series from CSV…");
+        addCsv.setToolTipText("Plot an external (timestamp, value) CSV — e.g. agent-parsed FIX data — "
+                + "beside the audit-derived series. The clock domain is declared, never guessed.");
+        addCsv.addActionListener(e -> addExternalSeries());
+        file.add(addCsv);
         JMenuItem openGraphml = new JMenuItem("Open GraphML…");
         openGraphml.setToolTipText("Open a processor's .graphml topology");
         openGraphml.addActionListener(e -> {
@@ -1353,6 +1358,79 @@ public final class MainFrame extends JFrame {
         if (sourceTabShowing) return SourceTarget.SOURCE_TAB;
         // neither viewer is in front: prefer the pane the user deliberately opened
         return embeddedPaneOpen ? SourceTarget.EMBEDDED : SourceTarget.SOURCE_TAB;
+    }
+
+    /**
+     * Files the user picked in a chooser THIS SESSION — the chooser IS the grant (M29 D-F4). The
+     * external verb may read from the configured export directory or from this set; nothing else.
+     */
+    private final java.util.Set<java.nio.file.Path> sessionFileGrants = new java.util.LinkedHashSet<>();
+
+    java.util.Set<java.nio.file.Path> sessionFileGrants() {
+        return sessionFileGrants;
+    }
+
+    /** File ▸ Add series from CSV… (M29.2): declared columns/clock, loaded onto the current graph tab. */
+    private void addExternalSeries() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("External series CSV");
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        java.nio.file.Path csv = fc.getSelectedFile().toPath().toAbsolutePath().normalize();
+        sessionFileGrants.add(csv);   // the chooser IS the grant (D-F4)
+
+        String[] header;
+        try (var lines = java.nio.file.Files.lines(csv)) {
+            header = lines.findFirst()
+                    .map(h -> telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader
+                            .splitCsv(h).toArray(String[]::new))
+                    .orElse(new String[0]);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Could not read " + csv.getFileName() + ": " + ex.getMessage(),
+                    "External series", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JTextField label = new JTextField(csv.getFileName().toString().replaceFirst("\\.csv$", ""), 14);
+        JComboBox<String> timeCol = new JComboBox<>(header);
+        JComboBox<String> valueCol = new JComboBox<>(header);
+        if (header.length > 1) valueCol.setSelectedIndex(1);
+        JComboBox<String> format = new JComboBox<>(new String[]{"epochMillis", "epochSeconds", "iso8601"});
+        format.setEditable(true);   // or a DateTimeFormatter pattern
+        JTextField zone = new JTextField("UTC", 10);
+        JTextField offset = new JTextField("0", 6);
+
+        JPanel form = new JPanel(new java.awt.GridLayout(0, 2, 6, 4));
+        form.add(new JLabel("Legend label:"));      form.add(label);
+        form.add(new JLabel("Time column:"));       form.add(timeCol);
+        form.add(new JLabel("Value column:"));      form.add(valueCol);
+        form.add(new JLabel("Time format:"));       form.add(format);
+        form.add(new JLabel("Zone (IANA):"));       form.add(zone);
+        form.add(new JLabel("Offset (ms):"));       form.add(offset);
+        if (JOptionPane.showConfirmDialog(this, form, "Add series from CSV — the clock is declared, never guessed",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) return;
+
+        long offsetMs;
+        try {
+            offsetMs = Long.parseLong(offset.getText().trim());
+        } catch (NumberFormatException ex) {
+            offsetMs = 0;
+        }
+        var spec = new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.ExternalSpec(
+                csv.toString(), label.getText().trim(),
+                String.valueOf(timeCol.getSelectedItem()), String.valueOf(format.getSelectedItem()),
+                zone.getText().isBlank() ? null : zone.getText().trim(),
+                String.valueOf(valueCol.getSelectedItem()), offsetMs);
+        GraphPanel panel = graphTabs.graphForAction(null, false);
+        if (panel == null) {
+            JOptionPane.showMessageDialog(this, "Open a log first — graphs live on a loaded log.",
+                    "External series", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        var merged = new java.util.ArrayList<>(panel.externalSpecs());
+        merged.removeIf(s -> s.label().equals(spec.label()));   // replace-by-label, like everything else
+        merged.add(spec);
+        panel.setExternal(merged);
+        if (sideTabs != null) sideTabs.setSelectedComponent(graphTabs);   // show the plot it landed on
     }
 
     private void chooseFile() {

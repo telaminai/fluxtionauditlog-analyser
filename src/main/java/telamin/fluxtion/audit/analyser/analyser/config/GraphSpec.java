@@ -32,6 +32,14 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
     }
 
     /**
+     * An external CSV series (M29): the declared contract — path, columns, clock domain, offset —
+     * never the points (D-F5: the data is reloaded from the file; a missing file degrades out loud).
+     */
+    public record ExternalSpec(String path, String label, String time, String timeFormat, String zone,
+                               String value, long offsetMillis) {
+    }
+
+    /**
      * A note pinned to a moment on the plot.
      *
      * <p>Persisted with the graph because a note that does not survive a restart is one nobody bothers to

@@ -139,6 +139,18 @@ public final class ChartPanel extends JPanel {
         repaint();
     }
 
+    private String externalStamp;
+
+    /**
+     * The D-F2 stamp (M29): when external series are on the chart, this line is PAINTED — so it lands
+     * in every PNG and PDF, not just the live UI. A foreign line must never look audit-derived in an
+     * export; the stamp names each external series with its declared clock and any applied offset.
+     */
+    public void setExternalStamp(String stamp) {
+        this.externalStamp = stamp == null || stamp.isBlank() ? null : stamp;
+        repaint();
+    }
+
     /** The explanation block and the pinned notes drawn over the plot. */
     public void setNotes(telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes) {
         this.notes = notes == null
@@ -362,6 +374,12 @@ public final class ChartPanel extends JPanel {
         paintGuides(g, dark);
         paintNotes(g, dark);
         g.setClip(null);
+        if (externalStamp != null) {
+            // bottom-left, inside the plot frame: visible on screen AND in every painted export
+            g.setColor(dark ? new Color(0xD29922) : new Color(0x9A6700));
+            g.setFont(getFont().deriveFont(java.awt.Font.ITALIC, 10f));
+            g.drawString(externalStamp, plotX + 4, plotY + plotH - 4);
+        }
         paintRecordMarker(g, dark);
         paintExplanation(g, dark);
         // the legend is a Swing overlay component (GraphPanel), not painted here — so labels are readable,

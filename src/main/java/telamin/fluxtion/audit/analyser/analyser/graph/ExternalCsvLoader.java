@@ -239,7 +239,7 @@ public final class ExternalCsvLoader {
     }
 
     /** RFC-4180-lite: quoted fields with doubled-quote escapes; no embedded newlines. */
-    static List<String> splitCsv(String line) {
+    public static List<String> splitCsv(String line) {
         List<String> out = new ArrayList<>();
         StringBuilder cur = new StringBuilder();
         boolean quoted = false;

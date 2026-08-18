@@ -63,7 +63,7 @@ public final class GraphPanel extends JPanel {
     private record Derived(String label, String exprText, SeriesExtractor.Resolve resolve) { }
 
     /** One row of the Series list — a raw key or a formula, in plot order (colour matches the plot). */
-    private record SeriesRow(String label, boolean formula) { }
+    private record SeriesRow(String label, boolean formula, boolean external) { }
 
     private static final int EXTRACT_DEBOUNCE_MS = 200;    // coalesce rapid dimension/text changes
 
@@ -210,6 +210,7 @@ public final class GraphPanel extends JPanel {
         int idx = 0;
         for (GraphKey k : activeKeys) legendLabels.add(legendRow(k.display(), idx++));
         for (Derived d : activeExprs) legendLabels.add(legendRow(d.label(), idx++));
+        for (var s : externalSpecs) legendLabels.add(legendRow(s.label() + "  (external)", idx++));
         legendLabels.revalidate();
         legendLabels.repaint();
         positionLegendOverlay();
@@ -381,8 +382,9 @@ public final class GraphPanel extends JPanel {
     private void seriesChanged() {
         String selected = seriesList.getSelectedValue() == null ? null : seriesList.getSelectedValue().label();
         seriesListModel.clear();
-        for (GraphKey k : activeKeys) seriesListModel.addElement(new SeriesRow(k.display(), false));
-        for (Derived d : activeExprs) seriesListModel.addElement(new SeriesRow(d.label(), true));
+        for (GraphKey k : activeKeys) seriesListModel.addElement(new SeriesRow(k.display(), false, false));
+        for (Derived d : activeExprs) seriesListModel.addElement(new SeriesRow(d.label(), true, false));
+        for (var s : externalSpecs) seriesListModel.addElement(new SeriesRow(s.label(), false, true));
         if (selected != null) {
             for (int i = 0; i < seriesListModel.size(); i++) {
                 if (seriesListModel.get(i).label().equals(selected)) { seriesList.setSelectedIndex(i); break; }
@@ -410,7 +412,8 @@ public final class GraphPanel extends JPanel {
                                                       boolean sel, boolean foc) {
             super.getListCellRendererComponent(list, value, index, sel, foc);
             if (value instanceof SeriesRow r) {
-                setText(r.formula() ? r.label() + "   ƒ(x)" : r.label());
+                setText(r.external() ? r.label() + "   (external)"
+                        : r.formula() ? r.label() + "   ƒ(x)" : r.label());
                 setIcon(swatch(ChartPanel.paletteColor(index)));
             }
             return this;
@@ -671,7 +674,9 @@ public final class GraphPanel extends JPanel {
                 },
                 out -> {
                     if (gen != extractGen) return;   // a newer extraction superseded this one
-                    chart.setSeries(out.series());
+                    List<Series> merged = new ArrayList<>(out.series());
+                    merged.addAll(externalLoaded.values());   // external points ride the same chart
+                    chart.setSeries(merged);
                     chart.setBands(out.bands());
                     applyWindow();                   // pinned range if pinned, else the filter's window
                 },
@@ -713,6 +718,13 @@ public final class GraphPanel extends JPanel {
 
     /** Remove a series (raw or derived) by its display label — the overlay's right-click "Remove". */
     private void removeSeriesByLabel(String label) {
+        // legend rows suffix external labels for display — strip before matching
+        String bare = label.endsWith("  (external)")
+                ? label.substring(0, label.length() - "  (external)".length()).trim() : label;
+        if (externalSpecs.stream().anyMatch(s -> s.label().equals(bare))) {
+            setExternal(externalSpecs.stream().filter(s -> !s.label().equals(bare)).toList());
+            return;
+        }
         boolean removed = activeKeys.removeIf(k -> k.display().equals(label));
         boolean formulaRemoved = activeExprs.removeIf(d -> d.label().equals(label));
         if (removed || formulaRemoved) {
@@ -950,6 +962,92 @@ public final class GraphPanel extends JPanel {
     private static String csv(String v) {
         if (v == null) return "";
         return (v.contains(",") || v.contains("\"")) ? "\"" + v.replace("\"", "\"\"") + "\"" : v;
+    }
+
+    // ---- external series (M29) --------------------------------------------------------------------
+
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.ExternalSpec>
+            externalSpecs = java.util.List.of();
+    private final java.util.Map<String, Series> externalLoaded = new java.util.LinkedHashMap<>();
+    private final java.util.List<String> externalNotes = new java.util.ArrayList<>();
+
+    /**
+     * Replace the external series (M29). Specs persist; points are reloaded from the files — a file
+     * that fails to load degrades OUT LOUD (D-F5): the spec is kept, the rest of the graph draws, and
+     * {@link #externalNotes()} says what did not resolve.
+     */
+    public void setExternal(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.ExternalSpec> specs) {
+        this.externalSpecs = specs == null ? java.util.List.of() : java.util.List.copyOf(specs);
+        mutated();
+        reloadExternal();
+    }
+
+    public java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.ExternalSpec> externalSpecs() {
+        return externalSpecs;
+    }
+
+    /** D-F5 honesty: load results per external series — offsets applied, rows skipped, files missing. */
+    public java.util.List<String> externalNotes() {
+        return java.util.List.copyOf(externalNotes);
+    }
+
+    private void reloadExternal() {
+        final var specs = this.externalSpecs;
+        Background.run(
+                () -> {
+                    java.util.Map<String, Series> loaded = new java.util.LinkedHashMap<>();
+                    java.util.List<String> notes = new java.util.ArrayList<>();
+                    for (var s : specs) {
+                        try {
+                            var r = telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.load(
+                                    java.nio.file.Path.of(s.path()),
+                                    new telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.Spec(
+                                            s.label(), s.time(), s.timeFormat(), s.zone(), s.value(),
+                                            s.offsetMillis()));
+                            loaded.put(s.label(), r.series());
+                            StringBuilder n = new StringBuilder(s.label()).append(": ")
+                                    .append(r.rowsLoaded()).append(" rows");
+                            if (r.rowsSkipped() > 0) n.append(", ").append(r.rowsSkipped()).append(" skipped");
+                            if (r.rowsReordered() > 0) n.append(", ").append(r.rowsReordered()).append(" reordered");
+                            if (s.offsetMillis() != 0) n.append(", offset ").append(s.offsetMillis()).append("ms");
+                            notes.add(n.toString());
+                        } catch (Exception e) {
+                            notes.add("'" + s.label() + "' not loaded from " + s.path() + " — " + e.getMessage());
+                        }
+                    }
+                    return new Object[]{loaded, notes};
+                },
+                out -> {
+                    externalLoaded.clear();
+                    @SuppressWarnings("unchecked")
+                    var loaded = (java.util.Map<String, Series>) out[0];
+                    externalLoaded.putAll(loaded);
+                    externalNotes.clear();
+                    @SuppressWarnings("unchecked")
+                    var notes = (java.util.List<String>) out[1];
+                    externalNotes.addAll(notes);
+                    chart.setExternalStamp(externalStamp());
+                    seriesChanged();
+                    reExtract();
+                },
+                err -> { /* best-effort */ });
+    }
+
+    /** The D-F2 stamp painted on the chart (and so into every PNG/PDF): externals are never covert. */
+    private String externalStamp() {
+        if (externalSpecs.isEmpty()) return null;
+        StringBuilder sb = new StringBuilder("external: ");
+        for (int i = 0; i < externalSpecs.size(); i++) {
+            var s = externalSpecs.get(i);
+            if (i > 0) sb.append(" · ");
+            sb.append(s.label());
+            String clock = s.zone() != null && !s.zone().isBlank() ? s.zone() : s.timeFormat();
+            sb.append(" (").append(clock);
+            if (s.offsetMillis() != 0) sb.append(", ").append(s.offsetMillis() >= 0 ? "+" : "")
+                    .append(s.offsetMillis()).append("ms");
+            sb.append(')');
+        }
+        return sb.toString();
     }
 
     // ---- guides + condition bands (M28.5/M28.6) --------------------------------------------------

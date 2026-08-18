@@ -281,7 +281,7 @@ also closed three contract gaps: out-of-order rows sort with an echo, duplicate 
 - [M29.1] ☑ **Loader + CSV contract** *(shipped on `feat/m29-external-series`)* — explicit time/zone/value columns, no sniffing; sort-on-load
   with reorder echo; duplicates kept; 5M-row cap; bounded sanitised parse diagnostics. Headless and
   pure; full D-F1/D-F4 tests before any UI.
-- [M29.2] ☐ **UI** — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
+- [M29.2] ☑ **UI** *(shipped on `feat/m29-external-series`)* — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
 - [M29.3] ☐ **`graph {external}` verb** — M26.4-style echo (rows loaded/skipped/reordered, range,
   offset — the range echo is the wrong-pattern defence); read confinement wired to the allowlist
   (project dir + chooser grants); FAQ security answer gains the read rule, contract-test pinned.
