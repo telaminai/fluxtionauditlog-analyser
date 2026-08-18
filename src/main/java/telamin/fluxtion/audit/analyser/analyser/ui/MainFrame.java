@@ -1469,12 +1469,15 @@ public final class MainFrame extends JFrame {
                     try {
                         Path tmp = S3Source.fetchToFile(uri, config.awsProfile, config.awsRegion);
                         LogStore s3Store = LogStores.open(tmp, config.memoryThresholdMb);
-                        return s3Store;
+                        var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
+                                .validate(s3Store.index());
+                        return new Object[]{s3Store, report};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
-                loaded -> onLoaded(loaded, uri),
+                out -> onLoaded((LogStore) out[0], uri,
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1]),
                 err -> {
                     setBusy(false);
                     status.setText("Failed to load " + uri + ": " + rootMessage(err));
