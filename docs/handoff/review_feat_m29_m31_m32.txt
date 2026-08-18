@@ -1,0 +1,151 @@
+REVIEW — feat/m29-external-series, second pass: M31 (plugins) + M32 (markers) + the F1 fix
+Date: 2026-08-18 · Reviewed at ac1fb74 · Previous pass: review_feat_m29-external-series.txt (920a793)
+Reviewer: this session (I wrote the M29 spec and the M30/M31/M32 spec review these commits answer)
+
+VERDICT: approved — merge. Every finding from both my earlier reviews is applied and verified.
+ONE NEW FINDING, and it is not in the branch's code: **the documentation capture harness has been
+reporting screenshots as regenerated when it took none.** Fixed here. Consequence for this branch:
+the new visual surfaces (markers, external series) are genuinely un-illustrated, and that is now
+visible instead of silent.
+
+================================================================================
+1. GATES
+================================================================================
+  mvn -o test ............ 683/683, exit 0, zero failures     (682 before the F1 fix commit)
+  mkdocs build --strict .. exit 0, zero warnings
+  sweep .................. clean
+  mvn package ............ fatjar builds; the app launches and serves the REST transport
+
+================================================================================
+2. EVERY EARLIER FINDING — APPLIED AND VERIFIED IN SOURCE
+================================================================================
+F1 (from my M29/M30 pass) — FIXED. `TimeOrderReport` now carries `unexaminedFiles`, `isClean()`
+   accounts for it, `merged()` sums it, and `summarise()` emits
+   "… and N further file(s) not examined — the report is capped". The javadoc's promise is now true.
+N1 — the containment comment landed: read confinement is textual by choice, stated at the site.
+
+P1 (classloader delegation) — IMPLEMENTED CORRECTLY, and it is the textbook shape:
+       if (name.startsWith("java.") || name.startsWith("javax.") || name.startsWith(SPI_PACKAGE))
+           return super.loadClass(name, resolve);   // parent-first: shared, typed hand-off
+       try { findClass(name) }                      // child-first: the plugin's own tree wins
+       catch (ClassNotFoundException) { super.loadClass(...) }
+   I went looking for the follow-on bug — model types crossing the boundary would need the same
+   treatment — and there is none to find: `AuditLogReader` exchanges only `String`, `Path`,
+   `Consumer<String>` and two records nested INSIDE the SPI package, so the one parent-first rule
+   covers everything that crosses. D-P1's "records, not stores" is what makes the delegation rule
+   sufficient rather than merely present. Worth keeping that property deliberately.
+
+P2 (S3) — resolved as D-P4b: transport, not container. The right call and the right reason (a
+   transport produces a local file; a reader turns a local file into records — orthogonal, so every
+   reader works over every transport for free).
+P3 (follow) — unified under the capability flag (D-P4c).
+
+M1 (sever the mouseover) — DONE, and done properly: `M32.1: point-snapped mouseover on every chart`
+   is its own commit, landing FIRST, with `SnapSearch` + 6 tests of its own. Markers then add payload
+   to an already-shipped tooltip rather than co-delivering it.
+M2 (dangling y-series pin) — DONE, and I verified the behaviour rather than the prose. Extracting a
+   marker whose `y` pins to a non-existent series label gives:
+       points=0  note="y pinned to 'no-such-series' — not on this graph"
+   Loud, specific, and it names the missing label — matching M28.4's warnings, M29 D-F5 and M27's
+   partial focus recall.
+
+Markers work. On the series fixture (726 records) I extracted them headlessly:
+   'order live'  triangleUp  points=166  first: MarkerPoint[time=…006000, y=0.020014,
+                                                payload=ord-0, recordIndex=1]
+   'risk breach' x           points=160  payload=ord-2
+Real text payloads and real `recordIndex` anchors — D-M2's "the marker is a signpost to the record"
+is true in the data, not just the docs.
+
+================================================================================
+3. NEW FINDING — THE CAPTURE HARNESS REPORTED SHOTS IT NEVER TOOK
+================================================================================
+Not this branch's doing; it predates it. But it came to light doing the docs pass this branch needs,
+and it silently invalidates the answer to "are the screenshots current?".
+
+`capture()` aimed `screencapture -R` **directly at the asset** and then tested success with
+`target.exists()`. The asset is already there from the previous run. So when the shutter fails —
+here, "could not create image from rect", i.e. no Screen Recording permission for the invoking
+terminal — the old file is still present, `exists()` is true, and the run prints:
+
+    ✓ topology-explore.png  (597 KB)
+
+for an image it did not take. I confirmed the shutter genuinely fails in this environment by calling
+`screencapture` directly: no file produced. Then I ran the harness twice and observed **zero** assets
+change — which I first read as evidence of the harness's reproducibility, and which actually meant
+nothing had been captured at all.
+
+`menu_capture()` had the identical bug.
+
+That is the failure mode this script exists to prevent, reproduced inside the script: the release
+screenshots once carried real venue names onto the public site because "grep cannot read a PNG", and
+the answer was to generate images rather than take them. A generator that reports success without
+generating restores exactly the blind spot it was built to close.
+
+FIXED HERE (tools/capture-docs.py):
+  - capture to a scratch path, copy onto the asset only when a file was actually produced;
+  - never replace a good native asset with a painted fallback — a painted shot has no title bar and
+    drops glyphs ("Time range" renders as "er nge"), so a silent downgrade is worse than a stale file
+    you were told about. An existing asset is KEPT and the shot is reported as not regenerated;
+  - a painted fallback is written only when no asset exists at all, and labelled
+    "NOT publication quality, do not commit as-is";
+  - failures are collected and the run **exits non-zero**, naming every shot it could not take.
+
+Same harness run, before and after the fix:
+    before:  done — 12 captures
+    after:   done — 0 of 12 regenerated; 12 NOT captured: screenshot-light.png, … (exit 1)
+
+The committed assets were never damaged: for existing shots the old code returned early without
+copying, so the painted fallback only ever reached the one NEW filename I added. I deleted that.
+
+================================================================================
+4. DOCUMENTATION — WHERE IT ACTUALLY STANDS
+================================================================================
+Prose is current and good. Six pages moved with the code — a new `plugins.md` carrying the
+arbitrary-code-execution warning in those words, `graphs.md` gaining external series and markers,
+`faq.md` and `sharing-setups.md` updated for the widened opt-in and the new share cargo, and the
+`assistant.md` verb list. The wording sweep commit (94d2854) unifying "exchange directory" everywhere
+is the kind of tidy that stops a renamed setting drifting out of the docs.
+
+Images are NOT current, and cannot be made current from here:
+  - No screenshot exists for a marker chart or an external series, though `graphs.md` now describes
+    both vividly (glyphs, ×N count badges, the painted "(external)" stamp). The page's other features
+    are illustrated, so these two read as second-class by omission.
+  - I added a `graph-markers-dark.png` shot to the harness — it drives real verbs against the series
+    fixture, plots `quotePublisher.spread`, and overlays two marker series with `orderTracker.orderId`
+    payloads. The definition is correct and committed; it will produce the image on a machine with
+    Screen Recording permission. I could not capture it here.
+  - While writing it I got the marker `when` wrong in an instructive way: `orderTracker.live > 0` is a
+    CONDITION, and a condition carries under LOCF, so it fired on 719 of 726 records. The bare-key
+    form `orderTracker.orderId` fires only where the key was logged (166). The harness now uses the
+    bare-key form. Worth a sentence in `graphs.md` — the distinction is documented in the verb schema
+    but not where a user meets it.
+
+WHAT IS OWED TO A HUMAN (unchanged by anything I could do headlessly): run
+`python3 tools/capture-docs.py` on a machine with Screen Recording permission, confirm it exits 0,
+then EYEBALL the marker shot — glyph legibility at chart scale, the ×N count badge, the external
+stamp inside the plot frame, both themes. Rule 1 applies: read every visible string before committing,
+because the sweep cannot see inside a PNG.
+
+================================================================================
+5. CARRIED FORWARD FROM THEIR OWN DEVIATIONS
+================================================================================
+D9  the separate `analyser-reader-spi` artifact deferred (needs a multi-module build — an owner
+    decision). Reasonable; parent-first delegation is unaffected either way.
+D10 acceptance 5 (two conflicting plugin jars coexisting) is untested because it needs real jars —
+    deferred to the cross-repo example reader. Honest, and it is the ONE claim in M31 that only a
+    real jar can settle. Worth scheduling rather than leaving open-ended.
+D12 right-axis marker scaling: markers are drawn against the LEFT scale, so a marker pinned to a
+    right-axis series lands mis-scaled. Self-declared, correctly. I would fix this before markers are
+    advertised widely — a marker that sits at visibly the wrong height is the kind of wrong that
+    discredits the whole overlay, and dual-scale charts are M28-era standard here.
+R8  `markerAt()` is O(points) per mouse-move. Fine at forensic scale; D-M3's aggregation already
+    computes what a faster hover would need.
+
+================================================================================
+6. RECOMMENDATION
+================================================================================
+Merge. The engine work is verified and every review finding across three passes is closed.
+
+Before the docs go out with a release: capture the marker shot on a permitted machine (the harness
+will now refuse to pretend), and decide D12 — those are the only two things standing between this and
+a release whose documentation matches what shipped.

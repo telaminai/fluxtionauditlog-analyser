@@ -102,13 +102,18 @@ def menu_capture(ep, menu, name):
     raise_window()
     time.sleep(0.8)                     # let the popup lay out before the shutter
     target = ASSETS / name
+    # scratch path, not the asset — see capture(): aiming at an existing asset makes exists() a
+    # test of the PREVIOUS run, so a failed shutter reports success and leaves the old image
+    shot = EXPORT_DIR / f"native-menu-{menu}.png"
     subprocess.run(["screencapture", "-x", "-R",
-                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(target)], check=False)
+                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(shot)], check=False)
     act(ep, "screenshot", {"path": f"menu-{menu}-close.png", "scope": "menu:close"})
-    if target.exists():
+    if shot.exists() and shot.stat().st_size > 0:
+        shutil.copy(shot, target)
         print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
         return True
     print(f"  ! {name} skipped — a menu shot needs a native capture (Screen Recording permission)")
+    _failed.append(name)
     return False
 
 
@@ -205,18 +210,34 @@ def capture(ep, name):
     b = res["wrote"]["windowBounds"]
     raise_window()
     target = ASSETS / name
+    # Capture to a SCRATCH path, never straight onto the asset. `screencapture` writes nothing when it
+    # fails (no Screen Recording permission → "could not create image from rect"), and testing
+    # `target.exists()` after aiming at the asset is not a success test at all: the asset is already
+    # there from the previous run, so a failed capture reported ✓ and left the old image in place.
+    # Every shot then looked regenerated while nothing had been taken — the silent-staleness failure
+    # this whole script exists to prevent, reproduced inside the script itself.
+    shot = EXPORT_DIR / f"native-{scratch_name}"
     subprocess.run(["screencapture", "-x", "-R",
-                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(target)], check=False)
-    if target.exists():
+                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(shot)], check=False)
+    if shot.exists() and shot.stat().st_size > 0:
+        shutil.copy(shot, target)
         print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
         return True
-    # no Screen Recording permission: fall back to the app painting itself, minus the title bar
+    # No Screen Recording permission. NEVER replace a good native asset with a painted one — the
+    # painted path cannot draw the title bar and renders some labels with dropped glyphs, so it is a
+    # downgrade, and a silent downgrade is worse than a stale file you were told about.
+    if target.exists():
+        print(f"  ! {name}  NOT REGENERATED — kept the existing image (no native capture available)")
+        _failed.append(name)
+        return False
     shutil.copy(painted, target)
-    print(f"  ~ {name}  (painted fallback — no native capture)")
-    return True
+    print(f"  ~ {name}  painted fallback only — NOT publication quality, do not commit as-is")
+    _failed.append(name)
+    return False
 
 
 _captured = []
+_failed = []
 
 
 def seed(ep):
@@ -287,6 +308,18 @@ def main():
     time.sleep(1)
     capture(ep, "graph-step-dark.png")
 
+    # markers (M32): the value line answers "what was it", the glyphs answer "what happened" —
+    # each carrying the order id that makes it a signpost back to a record
+    act(ep, "graph", {"name": "Fills on the spread", "series": ["quotePublisher.spread"],
+                      "style": "line", "newTab": True})
+    act(ep, "graph", {"name": "Fills on the spread", "markers": [
+        {"label": "order live", "glyph": "triangleUp", "when": "orderTracker.orderId",
+         "y": "series:quotePublisher.spread", "payload": "orderTracker.orderId"},
+        {"label": "risk breach", "glyph": "x", "when": "breachHandler.breachedOn",
+         "y": "series:quotePublisher.spread", "payload": "breachHandler.breachedOn"}]})
+    time.sleep(1)
+    capture(ep, "graph-markers-dark.png")
+
     # ---- project profiles (M20.4) ------------------------------------------------------------
     print("project profiles")
     profile = make_demo_project()
@@ -302,7 +335,15 @@ def main():
         subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
         shutil.rmtree(EXPORT_DIR, ignore_errors=True)
         shutil.rmtree(DEMO_PROJECT.parent, ignore_errors=True)
-    print(f"done — {len(_captured)} captures")
+    # The count of shots ATTEMPTED was never the interesting number. Say how many images this run
+    # actually produced, and exit non-zero when any did not, so a capture run cannot look successful
+    # while leaving the assets exactly as it found them.
+    if _failed:
+        print(f"done — {len(_captured) - len(_failed)} of {len(_captured)} regenerated; "
+              f"{len(_failed)} NOT captured: {', '.join(_failed)}")
+        print("  grant Screen Recording permission to this terminal and re-run before committing docs")
+        sys.exit(1)
+    print(f"done — {len(_captured)} captures, all native")
 
 
 if __name__ == "__main__":
