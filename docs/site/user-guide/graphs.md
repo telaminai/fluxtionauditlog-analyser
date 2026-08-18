@@ -88,6 +88,17 @@ the chart itself** (so every PNG/PDF says a foreign line is foreign), not clicka
 saved as their *definition* — reopening reloads the file, and a missing file is reported while the
 rest of the graph draws.
 
+## Marker series — events on the chart
+
+Values answer "what was it"; **markers** answer "what happened": fills, rejections, cancels drawn as
+glyphs (▲ buys, ▼ sells) at their price, each carrying a **payload** — a client order id — shown on
+hover. **Clicking a marker selects its record**: the marker is a signpost to the evidence, never a
+substitute for it, which is also why payloads never enter formulas or filters. A moment with many
+markers renders one glyph with a **×N count badge** rather than soup — the presence of hidden markers
+is always visible. A marker's `y` can be a key, a formula, a plotted series to ride, or `axis` for a
+tick lane under the plot; and hovering **any** series now snaps to the nearest actual sample
+(`series · time · value`), with dense series answering their column's min/max range.
+
 ## Two scales
 
 A revenue line reaching 2,000 and a stock level oscillating around 20 share a chart where the stock line

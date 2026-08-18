@@ -59,7 +59,9 @@ drive the same verbs:
   it was drawn (durable provenance). `guides` draws labelled threshold rules; `bands` shades the
   intervals where a condition held; `external` plots an agent-prepared `(timestamp, value)` CSV beside
   the audit-derived series — the clock is declared, never guessed, reads are confined to the exchange
-  directory, and the chart is stamped so a foreign line can never pass as audit evidence.
+  directory, and the chart is stamped so a foreign line can never pass as audit evidence; `markers`
+  plots discrete events as glyphs (buys ▲ / sells ▼ on a price line) with a payload — an order id —
+  on hover, and clicking a marker selects its record.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
 - **flag** — bookmark the culprit records with a `note` and an optional `fix`. This is the **one** place
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that

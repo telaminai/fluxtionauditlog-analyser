@@ -1,9 +1,11 @@
-REPORT — branch feat/m29-external-series (M29 + M30 — the owner said "start M29 then M30")
-Date: 2026-08-18 · Last WORK commit: 9f95abc · Base: main @ 58879d7 (post-golden-corpus)
+REPORT — branch feat/m29-external-series (M29 + M30 + M31 + M32 — the owner extended the mandate:
+"keep going with M31 and M32 on this branch, the reviewer will tackle it all")
+Date: 2026-08-18 · Last WORK commit: 92a2533 · Base: main @ 58879d7 (post-golden-corpus)
 Both specs ACCEPTED before implementation (M29 v3, M30 v2 — all review findings pre-applied).
 
-STATUS: M29.1–.4 and M30.1–.4 complete, NOT merged. M29.5 (embed) stays deferred by design.
-  9 commits · 662 tests green · mkdocs --strict green · sweep clean · tracker: both ☑ ON BRANCH
+STATUS: M29.1–.4, M30.1–.4, M31.1–.3 (+ the author guide) and M32's core (32.1–.5 minus recorded
+deferrals) complete, NOT merged. M29.5 (embed) deferred by design.
+  16 commits · 682 tests green · mkdocs --strict green · sweep clean
 
 ================================================================================
 1. WHAT SHIPPED — M29 (external series)
@@ -52,6 +54,46 @@ ab6fb56  M29.4 persistence + sharing — ExternalSpec in GraphSpec (definition, 
 9f95abc  the S3 single-file path validates too — every open, one rule.
 
 ================================================================================
+2b. WHAT SHIPPED — M31 (log-source plugins)
+================================================================================
+85ab649  M31.1 the SPI — AuditLogReader: identity, canOpen, a stream of CANONICAL record text in
+  container order, capability flags, and the MANDATORY timeBase declaration (refused at registration
+  without one). The core builds index/store/filters above it (SpiLogStore); the REGISTRY — not the
+  SPI — routes the built-in YAML reader to the existing thresholded Heap/Mapped stores, so the seam
+  costs the fast path nothing (pinned). YamlAuditReader claims files by CONTENT ("eventLogRecord:"
+  in the head), not extension. PluginClassLoader implements review P1: parent-first SPI+JDK,
+  child-first else. A toy line-format reader proves acceptance 2 headlessly (read/fields, series,
+  filter all work above a non-YAML container).
+7263022  M31.2+.3 — plugin loading from ~/.fluxtion-analyser/plugins (per-jar classloaders; load
+  failures + timeBase refusals surface as Settings ▸ Plugins notes, never swallowed); the Plugins
+  tab and the FAQ state the trust boundary in plain words ("arbitrary code execution", "a plugin can
+  only be a READER — it cannot add verbs"), both contract-test pinned; the open path routes through
+  the registry (canOpen claims, open {format} forces, refusals name installed readers); capabilities
+  degrade loudly — byteAnchors=false marks the INDEX and read/goto refuse offset anchoring naming
+  the capability and the alternative; follow's disabled state carries its reason. Plugin-author
+  guide on the docs site.
+
+================================================================================
+2c. WHAT SHIPPED — M32 (marker series + point-snapped mouseover)
+================================================================================
+f315151  M32.1 point-snapped mouseover, EVERY series (severed per review M1 — changes a shipped
+  surface): SnapSearch is pure (6 headless tests) — nearest finite sample in a 12px radius, distance
+  measured in each series' OWN scale, NaN gaps never snap, decimated series flagged so the tooltip
+  answers the cursor column's min/max instead of one pretending sample; no candidate → the old
+  coordinate readout.
+1b640e6  M32.2 model + extraction — MarkerSeries {label, glyph, (time, y, payload, recordIndex)};
+  MarkerExtractor rides the identical record walk (filter, acrossAllTime, last-occurrence, LOCF
+  carry). Key-triple and condition sources; y = key/expr | series:<label> (at-or-before across NaN
+  gaps) | axis; the M2 dangling rule lands loud (zero points + a note naming the missing label);
+  D-M3 density degradation is DATA, headless-tested. The motivating buys-with-order-ids chart is
+  the first test.
+92a2533  M32.3+.4+.5 core — glyph painting with ×N count badges, the axis rug lane, hover payloads
+  ahead of the sample snap, CLICK A MARKER → ITS RECORD (wired through GraphTabs to the table);
+  graph {markers} REPLACE + parse/glyph validation in warnings[]; MarkerSpec persistence
+  (ConfigStore round-trip + share ride-along tested, disclosure row names "marker definitions —
+  never their extracted values"); restore-not-an-edit.
+
+================================================================================
 3. DEFECTS CAUGHT BY MY OWN FIRST TEST RUNS (test-first working as intended)
 ================================================================================
   - M29.1 reorder count compared each row to its PREDECESSOR; 3000,1000,2000 counted 1 not 2.
@@ -60,6 +102,13 @@ ab6fb56  M29.4 persistence + sharing — ExternalSpec in GraphSpec (definition, 
   - M30.1 probe loop was INVERTED for files smaller than the window (`window/2 < size` never ran)
     — every fixture probed null. Rewritten probe-at-least-once. This is the exact bug class the
     corrected D-R6 warns about: a mechanism that defeats its own intent, caught only by running.
+  - M31.2's FAQ pin failed on a LINE-WRAP ("arbitrary code\nexecution") — the contract test now
+    whitespace-normalises the answer before matching: prose reflows; contracts must survive it.
+  - M32.1's dense-snap test aimed the cursor 40px from both alternating bands — a test bug, fixed.
+  - PROCESS: twice this branch a commit briefly chained past a red suite because a grep pipeline
+    masked mvn's exit status (the M26.1 mistake, repeated); both were amended green immediately and
+    no red commit survives in history — but the pattern is now three occurrences across two branches
+    and deserves a guard (a test-and-commit script, or CI blocking) rather than vigilance.
 
 ================================================================================
 4. DECISIONS BEYOND THE SPECS' LETTER (flag in review)
@@ -91,10 +140,31 @@ D7  (M30) Follow on a composite: unsupported (supportsFollow false), per the spe
 D8  (M29) The dialog's format combo is editable (a DateTimeFormatter pattern can be typed) but only
     the three named formats are offered — patterns are the escape hatch, not the path of least
     resistance.
+D9  (M31) The separate `analyser-reader-spi` ARTIFACT is deferred: it requires a multi-module build
+    — an owner-level decision touching the single-shaded-fatjar rule and publication. The SPI ships
+    as a package; plugin authors compile against the fatjar meanwhile. The parent-first delegation
+    is unaffected (SPI classes are app-classloader classes either way).
+D10 (M31) Settings ▸ Plugins is a LIST + the trust warning + the folder path; add/remove is done in
+    the filesystem (disclosed in the panel), not via in-app jar management. Acceptance 5 (two
+    conflicting plugin jars coexist) cannot be unit-tested without building real jars — deferred to
+    the out-of-tree example-reader work, which is itself cross-repo (playground).
+D11 (M32) Deferred, each small and named: the built-in Flags rug (D-M5's second half — needs a
+    flagged-rows supplier seam from MainFrame); the PDF markers TABLE (glyphs already ride the
+    painted export; the table is additive); the capture-harness screenshot; the external-CSV marker
+    source (the M29 loader is on this branch, but the payload-column mapping deserves its own
+    slice). None blocks the core; all are listed in the tracker's M32 header.
+D12 (M32) Marker hover/click distance is measured against the LEFT axis for y-valued markers —
+    right-axis-pinned marker y is not yet a concept (markers pin to series by VALUE lookup, drawn on
+    the left scale). If a marker rides a right-axis series the glyph lands mis-scaled; the honest
+    fix is scale-aware marker painting, a small follow-up the reviewer should weigh.
 
 ================================================================================
 5. HUMAN EYEBALL (Swing untested by design — the running jar)
 ================================================================================
+  E7  The motivating M32 chart on a real log: mid price + ▲ buys with order ids on hover, click a
+      marker → the record; the ×N badge on a dense column; the axis rug lane; BOTH themes.
+  E8  Settings ▸ Plugins renders the warning + reader list; a junk jar in the plugins dir surfaces
+      a load note instead of breaking startup.
   E1  File ▸ Add series from CSV… end-to-end: header-populated combos, the (external) legend row,
       the painted stamp (BOTH themes), offset shown, PNG/PDF carrying the stamp.
   E2  A missing external file on reopen: the graph draws, the note names what did not resolve.
@@ -117,3 +187,9 @@ D8  (M29) The dialog's format combo is editable (a DateTimeFormatter pattern can
       diagnostic third) — D-F1's no-guessing claim rests on it.
   R5  MainFrame.openFile's offer path runs resolver probes on the EDT before load (bounded reads,
       ≤4MB × members) — acceptable? An async offer is possible if a slow disk makes this visible.
+  R6  (M31) PluginClassLoader.loadClass — the delegation order and its lock discipline; and whether
+      claiming only "java./javax." for the JDK is enough (jdk.* internals?).
+  R7  (M32) D12 above — the right-axis marker scaling gap; and paintMarkers' palette offset (+5)
+      colliding with series colours on busy charts.
+  R8  (M32) markerAt() is O(points) per mouse-move; fine at forensic scales, unmeasured at 100k
+      markers — weigh against D-M3's aggregation which could feed the hover path too.
