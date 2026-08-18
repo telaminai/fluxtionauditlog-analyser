@@ -152,6 +152,11 @@ of silently showing a subset.
 something the filters are hiding. Clicking an entry selects that node and scrolls it into view;
 double-clicking opens its source.
 
+Each group is sorted alphabetically, and **numbers in a name are read as numbers**: `CHILL-2` comes
+before `CHILL-10`, not after it. That matters exactly when the index does — on a graph built from
+families of instances (chillers, tills, zones), where plain alphabetical order scatters a run of
+twenty across the list and the emission order has no meaning at all.
+
 ## Step through a cycle
 
 Select any record and the topology shows that cycle. It follows the **table's selection**, so the record

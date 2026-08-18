@@ -436,6 +436,16 @@ visible replay banner so simulated time is never silently aligned with venue tim
 (M30) compare per-file declarations and refuse a set that mixes epochs or sources louder than any
 timestamp heuristic could.
 
+**There is now exactly one place to receive it (added 2026-08-18, after M31 shipped).** The reader SPI
+makes `timeBase()` a **mandatory** declaration on every log source, and the built-in YAML reader
+answers it at `spi/YamlAuditReader.timeBase()` — today returning `TimeBase.wallClockMillisUtc()` with
+a comment saying, in as many words, that the native log declares nothing and this is the analyser's
+long-standing assumption *stated in one place instead of six*. The day this ask lands, that single
+method reads the header instead of asserting, and all five consumer behaviours above become true
+without touching anything else. A plugin reader for parquet or Chronicle already declares its epoch
+unit truthfully, so **the native format is currently the least self-describing source the analyser
+can open** — which is the sharpest form of the argument.
+
 **Cost to us if unfixed** M29 pushes the whole burden onto the user — the CSV's format and zone are
 *required* inputs (D-F1: never inferred) precisely because the analyser cannot state its own side of
 the comparison. It can show a declared offset but can never say whether the two clocks are actually

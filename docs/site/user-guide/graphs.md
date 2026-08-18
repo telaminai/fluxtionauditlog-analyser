@@ -108,6 +108,14 @@ is always visible. A marker's `y` can be a key, a formula, a plotted series to r
 tick lane under the plot; and hovering **any** series now snaps to the nearest actual sample
 (`series · time · value`), with dense series answering their column's min/max range.
 
+Each marker series gets its **own legend row** — its glyph, in its colour, with the number of events
+it holds (`▲ order live (166)`). The count is how many events there *are*, not how many glyphs fitted
+on screen: those collapse into ×N badges as you zoom out, and a key that changed its number while the
+data stood still would be its own small lie. A series that matched **nothing** still gets a row,
+reading `(0)` with the reason on hover — a `y` pinned to a series that isn't on this graph, or a
+`when` that never fired. An event type that never occurred is a finding, not something to hide.
+Right-click a row to remove that marker series.
+
 `when` decides where a marker fires, and the two forms differ in a way that matters: a **bare key**
 (`orderTracker.orderId`) fires only on records where that key was actually logged — one marker per
 event. A **condition** (`orderTracker.live > 0`) is evaluated against carried-forward values, so once
