@@ -46,9 +46,12 @@ Yes — it's built to be. The optional REST transport that lets an external agen
 Out of the box an agent can compute, filter, graph, flag and read records — **nothing outside the loaded
 log, and no file writes**. Two groups of verbs go further, honestly labelled:
 
-- **File exports — `screenshot` and `report` — are off by default.** Enabling *Allow file exports*
-  (Settings ▸ Assistant) lets them write **only inside the export directory you choose**, and they never
-  overwrite an existing file. Both are marked destructive to MCP clients so your agent asks first.
+- **File exchange — `screenshot` and `report` writes, and external-series reads — is off by
+  default.** Enabling *Allow assistant file exchange* (Settings ▸ Assistant) lets the write verbs write
+  **only inside the exchange directory you choose** (never overwriting an existing file), and lets the
+  `graph` verb's `external` series **read only from that same directory** — one opt-in, one directory,
+  both directions. A file you pick in a chooser yourself is readable for that session: the chooser is
+  the grant. `screenshot` and `report` are marked destructive to MCP clients so your agent asks first.
 - **Scripting verbs — `open` and `source_root` — can change which log, event processor or source roots
   are open**, the same things you change through the UI. Still nothing outside the analyser: no shell,
   no arbitrary file reads, and your API key is never reachable.

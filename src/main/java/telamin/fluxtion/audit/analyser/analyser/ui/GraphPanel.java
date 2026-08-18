@@ -1018,19 +1018,32 @@ public final class GraphPanel extends JPanel {
                     return new Object[]{loaded, notes};
                 },
                 out -> {
-                    externalLoaded.clear();
                     @SuppressWarnings("unchecked")
                     var loaded = (java.util.Map<String, Series>) out[0];
-                    externalLoaded.putAll(loaded);
-                    externalNotes.clear();
                     @SuppressWarnings("unchecked")
                     var notes = (java.util.List<String>) out[1];
-                    externalNotes.addAll(notes);
-                    chart.setExternalStamp(externalStamp());
-                    seriesChanged();
-                    reExtract();
+                    applyExternalLoaded(loaded, notes);
                 },
                 err -> { /* best-effort */ });
+    }
+
+    /** EDT: install already-loaded external points + notes (the verb path loads before marshalling). */
+    void applyExternalLoaded(java.util.Map<String, Series> loaded, java.util.List<String> notes) {
+        externalLoaded.clear();
+        externalLoaded.putAll(loaded);
+        externalNotes.clear();
+        externalNotes.addAll(notes);
+        chart.setExternalStamp(externalStamp());
+        seriesChanged();
+        reExtract();
+    }
+
+    /** The verb path (M29.3): specs + preloaded points in one EDT call — no async reload. */
+    void setExternalPreloaded(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.ExternalSpec> specs,
+                              java.util.Map<String, Series> loaded, java.util.List<String> notes) {
+        this.externalSpecs = specs == null ? java.util.List.of() : java.util.List.copyOf(specs);
+        mutated();
+        applyExternalLoaded(loaded, notes);
     }
 
     /** The D-F2 stamp painted on the chart (and so into every PNG/PDF): externals are never covert. */

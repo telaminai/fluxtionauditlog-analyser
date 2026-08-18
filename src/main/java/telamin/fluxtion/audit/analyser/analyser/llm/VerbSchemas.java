@@ -85,6 +85,9 @@ public final class VerbSchemas {
                         p("from", integer(), "pin window start (epoch millis) — survives filter changes"),
                         p("to", integer(), "pin window end (epoch millis)"),
                         p("newTab", bool(), "open a new graph tab"),
+                        p("external", arr(externalObject()), "external CSV series (M29) — REPLACES the "
+                                + "set. The clock is DECLARED, never sniffed; reads are confined to the "
+                                + "exchange directory (Settings ▸ Assistant) or user-chosen files"),
                         p("guides", arr(guideObject()), "labelled horizontal threshold rules — REPLACES "
                                 + "the set; draw the 0.004 the reader would otherwise interpolate"),
                         p("bands", arr(bandObject()), "shade the time intervals where a condition held "
@@ -296,6 +299,24 @@ public final class VerbSchemas {
     }
 
     /** A note pinned to a moment: when, what it says, and optionally which series it is about. */
+    private static Map<String, Object> externalObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("path", string(), "the CSV file — inside the exchange directory, or a file the user "
+                        + "opened by hand this session"),
+                p("label", string(), "legend name; replace-by-label"),
+                p("time", string(), "the timestamp column name"),
+                p("timeFormat", string(), "epochMillis | epochSeconds | iso8601 | a DateTimeFormatter "
+                        + "pattern — declared, never inferred"),
+                p("zone", string(), "IANA zone (UTC, Europe/London) — required unless the format "
+                        + "carries an offset"),
+                p("value", string(), "the value column name"),
+                p("offsetMillis", integer(), "deliberate clock correction, default 0 — always displayed")));
+        m.put("required", List.of("path", "label", "time", "timeFormat", "value"));
+        return m;
+    }
+
     private static Map<String, Object> guideObject() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("type", "object");

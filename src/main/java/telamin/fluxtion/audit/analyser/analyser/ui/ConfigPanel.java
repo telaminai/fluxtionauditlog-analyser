@@ -52,7 +52,7 @@ public final class ConfigPanel extends JDialog {
             new JSpinner(new SpinnerNumberModel(500, 0, 1_000_000, 50));
     private final JCheckBox actionsInProcess = new JCheckBox("Let the assistant build views from its replies (in-process)");
     private final JCheckBox actionsRest = new JCheckBox("Allow the assistant to drive the UI over localhost (REST)");
-    private final JCheckBox exportsToggle = new JCheckBox("Allow file exports (screenshot / report verbs)");
+    private final JCheckBox exportsToggle = new JCheckBox("Allow assistant file exchange (screenshot/report writes, external-series reads)");
     private final JTextField exportDirField = new JTextField(28);
     private final JSpinner maxRoundsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 20, 1));
     private final JSpinner maxActionsSpinner = new JSpinner(new SpinnerNumberModel(20, 1, 200, 1));

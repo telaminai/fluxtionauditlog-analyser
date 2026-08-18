@@ -282,7 +282,7 @@ also closed three contract gaps: out-of-order rows sort with an echo, duplicate 
   with reorder echo; duplicates kept; 5M-row cap; bounded sanitised parse diagnostics. Headless and
   pure; full D-F1/D-F4 tests before any UI.
 - [M29.2] ☑ **UI** *(shipped on `feat/m29-external-series`)* — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
-- [M29.3] ☐ **`graph {external}` verb** — M26.4-style echo (rows loaded/skipped/reordered, range,
+- [M29.3] ☑ **`graph {external}` verb** *(shipped on `feat/m29-external-series`)* — M26.4-style echo (rows loaded/skipped/reordered, range,
   offset — the range echo is the wrong-pattern defence); read confinement wired to the allowlist
   (project dir + chooser grants); FAQ security answer gains the read rule, contract-test pinned.
 - [M29.4] ☐ **Persistence + sharing** — project-relative paths, honest degradation, export-side disclosure;

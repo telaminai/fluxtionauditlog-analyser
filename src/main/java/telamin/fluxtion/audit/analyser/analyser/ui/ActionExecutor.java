@@ -74,6 +74,12 @@ public final class ActionExecutor implements RenderExecutor {
     }
 
     private java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.config.AppConfig> exportConfig;
+    private java.util.function.Supplier<java.util.Set<java.nio.file.Path>> readGrants = java.util.Set::of;
+
+    /** Files the user picked in a chooser this session — the D-F4 read allowlist's second half. */
+    public void setReadGrants(java.util.function.Supplier<java.util.Set<java.nio.file.Path>> readGrants) {
+        this.readGrants = readGrants == null ? java.util.Set::of : readGrants;
+    }
 
     /** Resolve a verb-supplied write path against the policy; error string when refused. */
     private telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.Resolved guardedPath(Object requested) {
@@ -315,6 +321,62 @@ public final class ActionExecutor implements RenderExecutor {
             exprEcho.add(echo);
         }
 
+        // M29.3: external CSV series — guard (D-F4), then LOAD here, off the EDT, so the echo can
+        // carry the loader's honesty report and the panel apply is a plain EDT state change.
+        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.ExternalSpec> externalSpecs = null;
+        java.util.Map<String, telamin.fluxtion.audit.analyser.analyser.graph.Series> externalLoaded = null;
+        List<String> externalNotes = null;
+        List<Map<String, Object>> externalEcho = null;
+        List<String> externalWarnings = new ArrayList<>();
+        if (p.containsKey("external")) {
+            externalSpecs = new ArrayList<>();
+            externalLoaded = new java.util.LinkedHashMap<>();
+            externalNotes = new ArrayList<>();
+            externalEcho = new ArrayList<>();
+            var cfg = exportConfig == null ? null : exportConfig.get();
+            for (Object o : asList(p.get("external"))) {
+                if (!(o instanceof Map<?, ?> m)) continue;
+                String path = asText(m.get("path"));
+                String label = asText(m.get("label"));
+                if (label == null || label.isBlank()) {
+                    externalWarnings.add("external entry has no 'label' — skipped");
+                    continue;
+                }
+                var resolved = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolveRead(
+                        path, cfg != null && cfg.assistantExports,
+                        cfg == null ? "" : cfg.assistantExportDir, readGrants.get());
+                if (resolved.error() != null) {
+                    externalWarnings.add("external '" + label + "': " + resolved.error());
+                    continue;
+                }
+                Long off = asLong(m.get("offsetMillis"));
+                var spec = new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.ExternalSpec(
+                        resolved.path().toString(), label, asText(m.get("time")),
+                        asText(m.get("timeFormat")), asText(m.get("zone")), asText(m.get("value")),
+                        off == null ? 0 : off);
+                try {
+                    var r = telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.load(
+                            resolved.path(), new telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.Spec(
+                                    label, spec.time(), spec.timeFormat(), spec.zone(), spec.value(),
+                                    spec.offsetMillis()));
+                    externalSpecs.add(spec);
+                    externalLoaded.put(label, r.series());
+                    Map<String, Object> e = new LinkedHashMap<>();
+                    e.put("label", label);
+                    e.put("rows", r.rowsLoaded());
+                    if (r.rowsSkipped() > 0) e.put("skipped", r.rowsSkipped());
+                    if (r.rowsReordered() > 0) e.put("reordered", r.rowsReordered());
+                    if (r.fromMillis() != null) { e.put("from", r.fromMillis()); e.put("to", r.toMillis()); }
+                    if (spec.offsetMillis() != 0) e.put("offsetMillis", spec.offsetMillis());
+                    if (!r.diagnostics().isEmpty()) e.put("diagnostics", r.diagnostics());
+                    externalEcho.add(e);
+                    externalNotes.add(label + ": " + r.rowsLoaded() + " rows");
+                } catch (Exception ex) {
+                    externalWarnings.add("external '" + label + "' failed to load: " + ex.getMessage());
+                }
+            }
+        }
+
         String name = asText(p.get("name"));
         String style = asText(p.get("style"));
         String rationale = asText(p.get("rationale"));   // provenance: why the agent built this graph
@@ -323,9 +385,14 @@ public final class ActionExecutor implements RenderExecutor {
         Long from = asLong(p.get("from"));
         Long to = asLong(p.get("to"));
 
+        final var extSpecs = externalSpecs;
+        final var extLoaded = externalLoaded;
+        final var extNotes = externalNotes;
+        final var extEcho = externalEcho;
         return onEdt(() -> {
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
             if (panel == null) return ActionResult.error("could not open a graph (no log loaded)");
+            if (extSpecs != null) panel.setExternalPreloaded(extSpecs, extLoaded, extNotes);   // REPLACE
             panel.addKeys(toAdd);
             for (Object[] pe : parsedExprs) panel.addExpr((String) pe[0], (String) pe[1], (SeriesExtractor.Resolve) pe[2]);
             if (style != null) panel.setStyleByName(style);
@@ -336,6 +403,7 @@ public final class ActionExecutor implements RenderExecutor {
             Map<String, Object> applied = new LinkedHashMap<>();
             if (p.containsKey("guides")) applied.put("guides", panel.guides().size());
             if (p.containsKey("bands")) applied.put("bands", panel.bandSpecs().size());
+            if (extEcho != null) applied.put("external", extEcho);
             applied.put("name", name == null ? "(current)" : name);
             applied.put("resolved", requested.stream().filter(found::contains).toList());
             applied.put("unresolved", unresolved);
@@ -352,7 +420,8 @@ public final class ActionExecutor implements RenderExecutor {
                 pinned.put("to", panel.pinnedTo());
                 applied.put("pinned", pinned);
             }
-            List<String> warnings = new ArrayList<>(annotationIssues);
+            List<String> warnings = new ArrayList<>(externalWarnings);
+            warnings.addAll(annotationIssues);
             warnings.addAll(annotationWarnings(panel, p));
             if (!warnings.isEmpty()) applied.put("warnings", warnings);
             return ActionResult.ok("graph", "applied", applied);

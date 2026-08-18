@@ -57,7 +57,9 @@ drive the same verbs:
 - **filter** — narrow every view to the records in question.
 - **graph** — plot a series or formula, with an optional `rationale` that **captions the plot** with why
   it was drawn (durable provenance). `guides` draws labelled threshold rules; `bands` shades the
-  intervals where a condition held — both persist with the graph.
+  intervals where a condition held; `external` plots an agent-prepared `(timestamp, value)` CSV beside
+  the audit-derived series — the clock is declared, never guessed, reads are confined to the exchange
+  directory, and the chart is stamped so a foreign line can never pass as audit evidence.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
 - **flag** — bookmark the culprit records with a `note` and an optional `fix`. This is the **one** place
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that
@@ -94,7 +96,7 @@ app shows are reversible and marked accordingly. Four are marked **destructive**
 before running them: `open` replaces the loaded log (taking the session's flags with it), `source_root`
 writes the persisted config, and `screenshot` and `report` write files.
 
-Those last two are **off by default**. Turning on *Allow file exports* (Settings ▸ Assistant) lets them
+Those last two are **off by default**. Turning on *Allow assistant file exchange* (Settings ▸ Assistant) lets them
 write **only inside an export directory you choose**, and they never overwrite an existing file — so a
 second export under the same name is refused rather than silently replacing the first. Exports you drive
 yourself, through a File menu chooser, are unaffected: picking a location in a dialog *is* the
@@ -338,7 +340,7 @@ The MCP door opens the **same verbs** as the other transports and nothing more �
 discovered live, so the list you see in your client is the truth. An agent can read the loaded log,
 change what the app displays, and (via `open` / `source_root`) switch which log, processor or source
 roots are open — the same things you change through the UI. **File writes are off by default**: the
-`screenshot` / `report` verbs work only after you enable *Allow file exports* (Settings ▸ Assistant),
+`screenshot` / `report` verbs work only after you enable *Allow assistant file exchange* (Settings ▸ Assistant),
 write **only inside the export directory you configure**, and never overwrite. It **cannot** touch your
 API key, run anything, or read files outside the log and sources you configured. Server control is
 deliberately not an assistant capability. The channel is loopback-only and the endpoint file is

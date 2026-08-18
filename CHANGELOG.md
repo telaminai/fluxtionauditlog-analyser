@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **External series** — plot what the outside world did. An agent (or you) adapts a FIX log, GC log
+  or venue export into a `(timestamp, value)` CSV and the analyser plots it beside the audit-derived
+  series: *File ▸ Add series from CSV…*, or `graph {external: [{path, label, time, timeFormat, zone,
+  value, offsetMillis}]}`. The clock domain is **declared, never guessed** (a wrong guess reverses
+  causality invisibly; a wrong declaration is at least visible); the chart is **stamped** with each
+  external series' clock and offset so a foreign line can never pass as audit evidence in a PNG or
+  PDF; loads report rows skipped, reordered and the resolved time range, with diagnostics that never
+  echo file contents. Verb reads are confined to the exchange directory — the renamed **Allow
+  assistant file exchange** opt-in now covers writes *and* these reads, one switch, one directory —
+  or to files you picked in a chooser yourself.
+
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same
   formula.** A record carrying no `logTime` cannot be plotted, but it has still *observed* values — and
