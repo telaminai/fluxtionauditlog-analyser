@@ -284,10 +284,23 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 - [M31.5] ☐ *(owner decision)* **Separate `analyser-reader-spi` artifact** — needs a multi-module
   build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
-## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18 (archived; three small remnants)
+## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18 (archived; four small remnants)
 _32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
 marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
 Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
+- [M32.9] ☐ **Marker series are missing from the legend — D-M1's "one meaning, one series, one glyph"
+  is unreadable without it.** *Measured 2026-08-18 against v1.5.0, and visible in the shipped docs
+  image `docs/site/assets/graph-markers-dark.png`: the chart draws orange ▲ and pink ✕ glyphs and the
+  legend lists only `quotePublisher.spread`, so nothing on screen says what either glyph means.*
+  `GraphPanel.rebuildLegendLabels()` adds a row for each of `activeKeys`, `activeExprs` and
+  `externalSpecs` — markers are never offered to it. The spec says legend rows show **glyph + label
+  with a count** (spec §C), and that half was not built.
+  Two things it needs beyond a fourth loop: `legendRow(String, int)` paints a square swatch from
+  `ChartPanel.paletteColor(idx)`, so it needs a **glyph-aware** variant drawing the marker's own shape
+  from the **marker palette** (separate since the R7 fix); and the count is per the D-M3 aggregation,
+  not `points().size()`, if it is to agree with what the eye sees.
+  *Consequence while open:* the bands docs image only reads correctly because its caption does the
+  legend's job in prose — which is the tell that the legend is doing none.
 - [M32.6] ☐ **Flags rug** — flagged records as a built-in axis-lane rug (D-M5's second half); needs a
   flagged-rows supplier seam from MainFrame.
 - [M32.7] ☐ **PDF markers table** — glyphs already ride the painted export; the table (label, time,

@@ -118,6 +118,22 @@ payload key resolution, and the M26.4 ignored-parameter rule throughout.
 **UI** — "Add markers…" on the graph panel (key-triple pickers populated from discovered keys);
 legend rows show glyph + label with a count; the flags rug is a toggle. Hover/click per D-M2/D-M3.
 
+!!! warning "NOT BUILT in the shipped core — tracked as M32.9"
+
+    The legend half of this line did not ship with v1.5.0. `GraphPanel.rebuildLegendLabels()` builds a
+    row for each of `activeKeys`, `activeExprs` and `externalSpecs`; markers are never offered to it,
+    so a chart draws glyphs with nothing on screen naming them — visible in this milestone's own docs
+    image, `graph-markers-dark.png`.
+
+    It is more than a fourth loop: `legendRow` paints a square swatch from `ChartPanel.paletteColor`,
+    so markers need a **glyph-aware** row drawing their own shape from the **marker palette** (made
+    separate by the post-review R7 fix), and the "count" must come from the D-M3 column aggregation
+    rather than raw point count if it is to match what the eye sees.
+
+    Recorded here rather than only in the tracker because D-M1's rationale — *"one meaning, one
+    series, one glyph is also what makes the legend honest"* — is load-bearing for the whole
+    no-per-point-styling decision, and that argument is only true once the legend exists.
+
 **Point mouseover (owner ask, generalised to every series — SEVERED into its own slice, review
 M1)** — today's chart tooltip reports the CURSOR's coordinates (`pxToX`/`pyToY` — wherever the mouse
 happens to be, whether or not data is there). M32.1 replaces it with a **point-snapped** hover:
