@@ -332,7 +332,7 @@ Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise the
   the out-of-tree example reader lives in the playground repo and is DEFERRED to a cross-repo slice
   (this repo cannot ship it; the in-tree toy reader in ReaderSpiTest is the seam proof meanwhile).
 
-## M32 · Marker series — ☐ ACCEPTED (events on a value chart)
+## M32 · Marker series — ◧ IN PROGRESS (ACCEPTED v2) (events on a value chart)
 _Design: **[spec-marker-series.md](spec-marker-series.md)**. Owner ask: buys/sells on a price plot
 with the client order id and a distinctive point style, plus point-snapped mouseover. A marker series
 is `(time, y, payload)` drawn as glyphs — the one legitimate path for categorical/per-event data onto
@@ -344,8 +344,9 @@ SOURCE not points (M28.6's rule); fifth artifact on the Graphs share category �
 disclosure row. Subsumes M28's P3: the rug strip is `y: "axis"`, and flagged records become a built-in
 rug. Mouseover generalises to EVERY series: snap to the nearest sample (label · time · value; payload
 for markers; min/max on a decimated column), coordinate readout as fallback._
-- [M32.1] ☐ **Point-snapped mouseover, all series** (severed in review — independent, shippable
-  first; changes a shipped surface so it gets its own changelog + acceptance).
+- [M32.1] ☑ **Point-snapped mouseover, all series** *(shipped on `feat/m29-external-series`)*
+  (severed in review — independent, shipped first; own changelog line; the snap SEARCH pure-tested,
+  right-axis scale honoured, decimated columns answer min/max).
 - [M32.2] ☐ **Model + extraction** (pure) — MarkerSeries, key-triple + condition sources on the
   existing record walk, series-pinned `y` with the dangling-pin loud-degrade rule, density
   aggregation as data (headless-testable D-M3).

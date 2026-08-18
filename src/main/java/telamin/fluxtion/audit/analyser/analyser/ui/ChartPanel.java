@@ -296,6 +296,28 @@ public final class ChartPanel extends JPanel {
     public String getToolTipText(MouseEvent e) {
         if (Double.isNaN(vx0) || plotW <= 0) return null;
         if (e.getX() < plotX || e.getX() > plotX + plotW) return null;
+        // M32.1: snap to the nearest actual sample within a small radius; a decimated series answers
+        // its cursor column's min/max (one sample of it would pretend to be the truth); no candidate
+        // in radius → the coordinate readout, exactly the old behaviour
+        var hit = telamin.fluxtion.audit.analyser.analyser.graph.SnapSearch.nearest(
+                series, axes::isRight, vx0, vx1, vy0, vy1, ry0, ry1,
+                plotX, plotY, plotW, plotH, e.getX(), e.getY(), 12);
+        if (hit != null) {
+            if (hit.decimated()) {
+                for (Series s : series) {
+                    if (!s.label().equals(hit.label())) continue;
+                    long colSpan = (long) Math.ceil((vx1 - vx0) / Math.max(1, plotW));
+                    long colX = (long) pxToX(e.getX());
+                    double[] mm = telamin.fluxtion.audit.analyser.analyser.graph.SnapSearch
+                            .columnMinMax(s, colX - colSpan / 2, colX + colSpan / 2);
+                    if (mm != null) {
+                        return s.label() + " · " + TimeFormat.utc(colX) + " · min " + formatY(mm[0])
+                                + " / max " + formatY(mm[1]) + " (dense — column range)";
+                    }
+                }
+            }
+            return hit.label() + " · " + TimeFormat.utc(hit.x()) + " · " + formatY(hit.y());
+        }
         return TimeFormat.utc((long) pxToX(e.getX())) + "  y=" + formatY(pyToY(e.getY()));
     }
 

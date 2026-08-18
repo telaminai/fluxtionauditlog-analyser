@@ -40,6 +40,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   degrade loudly (a container without byte anchors is anchored by record index and says so), and
   `open {format}` forces a specific reader. Without plugins, nothing changes.
 
+- **Point-snapped chart tooltips.** Hovering a plot now snaps to the **nearest actual sample**
+  within a small radius and reads `series · time · value` — instead of reporting the cursor's raw
+  coordinates whether or not data was there. A series dense enough to be decimated on screen answers
+  its cursor column's **min/max range** rather than pretending one sample is the truth; with no
+  sample in range, the coordinate readout remains as before.
+
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same
   formula.** A record carrying no `logTime` cannot be plotted, but it has still *observed* values — and
