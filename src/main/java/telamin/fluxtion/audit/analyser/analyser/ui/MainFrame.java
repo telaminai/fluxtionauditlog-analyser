@@ -1369,7 +1369,7 @@ public final class MainFrame extends JFrame {
 
     /**
      * Files the user picked in a chooser THIS SESSION — the chooser IS the grant (M29 D-F4). The
-     * external verb may read from the configured export directory or from this set; nothing else.
+     * external verb may read from the configured exchange directory or from this set; nothing else.
      */
     private final java.util.Set<java.nio.file.Path> sessionFileGrants = new java.util.LinkedHashSet<>();
 

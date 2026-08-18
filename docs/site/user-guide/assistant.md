@@ -102,7 +102,7 @@ before running them: `open` replaces the loaded log (taking the session's flags 
 writes the persisted config, and `screenshot` and `report` write files.
 
 Those last two are **off by default**. Turning on *Allow assistant file exchange* (Settings ▸ Assistant) lets them
-write **only inside an export directory you choose**, and they never overwrite an existing file — so a
+write **only inside the exchange directory you choose**, and they never overwrite an existing file — so a
 second export under the same name is refused rather than silently replacing the first. Exports you drive
 yourself, through a File menu chooser, are unaffected: picking a location in a dialog *is* the
 authorisation.
@@ -346,7 +346,7 @@ discovered live, so the list you see in your client is the truth. An agent can r
 change what the app displays, and (via `open` / `source_root`) switch which log, processor or source
 roots are open — the same things you change through the UI. **File writes are off by default**: the
 `screenshot` / `report` verbs work only after you enable *Allow assistant file exchange* (Settings ▸ Assistant),
-write **only inside the export directory you configure**, and never overwrite. It **cannot** touch your
+write **only inside the exchange directory you configure**, and never overwrite. It **cannot** touch your
 API key, run anything, or read files outside the log and sources you configured. Server control is
 deliberately not an assistant capability. The channel is loopback-only and the endpoint file is
 owner-readable. (The [FAQ's security answer](../faq.md#is-the-assistants-action-socket-safe-to-enable)

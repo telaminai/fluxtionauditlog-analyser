@@ -487,7 +487,7 @@ public final class ConfigPanel extends JDialog {
                 + "<b>loopback-only</b> endpoint (127.0.0.1) guarded by a per-run token, for an external agent that "
                 + "can make HTTP calls — its URL + token appear in the status bar (and console) when enabled. "
                 + "<b>File exports are off by default</b>: when allowed, the screenshot/report verbs may write "
-                + "<b>only inside the export directory</b> above, and never overwrite an existing file."), c);
+                + "<b>only inside the exchange directory</b> above; external-series reads are confined to the same directory (or files you pick in a chooser), and writes never overwrite an existing file."), c);
         c.gridy = 7; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
         p.add(Box.createGlue(), c);
         return p;

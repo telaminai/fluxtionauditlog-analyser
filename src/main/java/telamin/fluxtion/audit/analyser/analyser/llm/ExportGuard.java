@@ -7,7 +7,7 @@ import java.nio.file.Path;
  * The write-side gate for assistant verbs that produce files ({@code screenshot}, {@code report}).
  * Verb-initiated writes are <b>opt-in</b> (Settings ▸ Assistant ▸ "Allow assistant file exchange"
  * — one opt-in covers writes AND M29's external reads, deliberately) and <b>confined</b>
- * to one user-chosen export directory; existing files are never overwritten. Human-driven exports
+ * to one user-chosen exchange directory; existing files are never overwritten. Human-driven exports
  * (File ▸ choosers) are not routed through here — a person picking a location in a dialog <i>is</i> the
  * authorisation; this guard exists for the path where no person is in the loop.
  *
@@ -80,13 +80,13 @@ public final class ExportGuard {
                     + "'Allow assistant file exchange' and choose an exchange directory");
         }
         if (exportDir == null || exportDir.isBlank()) {
-            return new Resolved(null, "no export directory is configured — set one in Settings ▸ Assistant");
+            return new Resolved(null, "no exchange directory is configured — set one in Settings ▸ Assistant");
         }
         Path dir = Path.of(exportDir).toAbsolutePath().normalize();
         Path candidate = Path.of(requested);
         Path resolved = (candidate.isAbsolute() ? candidate : dir.resolve(candidate)).toAbsolutePath().normalize();
         if (!resolved.startsWith(dir)) {
-            return new Resolved(null, "path is outside the export directory (" + dir + ") — exports are "
+            return new Resolved(null, "path is outside the exchange directory (" + dir + ") — exports are "
                     + "confined to it; pass a relative name to write inside it");
         }
         if (Files.exists(resolved)) {

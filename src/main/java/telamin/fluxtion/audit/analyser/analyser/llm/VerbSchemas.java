@@ -138,8 +138,8 @@ public final class VerbSchemas {
                         + "the event, the node log, a picture of the topology as currently focused, and "
                         + "optionally a plot. Write the finding with 'flag' and set the view up with "
                         + "'goto' + 'topology' first — the report captures what is on screen. Requires "
-                        + "'Allow file exports' (Settings > Assistant); the path resolves INSIDE the "
-                        + "configured export directory and existing files are never overwritten.",
+                        + "'Allow assistant file exchange' (Settings > Assistant); the path resolves INSIDE the "
+                        + "configured exchange directory and existing files are never overwritten.",
                 props(
                         p("path", string(), "where to write the .pdf"),
                         p("recordIndex", integer(), "which record; defaults to the current selection"),
@@ -188,8 +188,8 @@ public final class VerbSchemas {
 
         s.put("screenshot", schema("Write a PNG of the app's own window to a path. Painted by the app, "
                         + "so it needs no screen-recording permission — and captures exactly the state the "
-                        + "other verbs just set up. Requires 'Allow file exports' (Settings > Assistant); "
-                        + "the path resolves INSIDE the configured export directory (pass a relative name) "
+                        + "other verbs just set up. Requires 'Allow assistant file exchange' (Settings > Assistant); "
+                        + "the path resolves INSIDE the configured exchange directory (pass a relative name) "
                         + "and existing files are never overwritten.",
                 props(
                         p("path", string(), "where to write the .png"),
