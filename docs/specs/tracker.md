@@ -290,7 +290,7 @@ also closed three contract gaps: out-of-order rows sort with an echo, duplicate 
 - [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
   for fully-portable sharing (D-F5's alternative).
 
-## M30 · Rolled log sets — ◧ IN PROGRESS (ACCEPTED v2) (one session, many files)
+## M30 · Rolled log sets — ☑ ON BRANCH `feat/m29-external-series` (all four slices) (one session, many files)
 _Design: **[spec-rolled-logs.md](spec-rolled-logs.md)**. Owner ask: open a set of same-rooted rolled
 files (date-time or index suffixes) as ONE log, with time validation catching sets that are not
 correctly ordered. Principle: **names discover; content orders; violations are reported, never
@@ -307,9 +307,9 @@ loud degradation notes instead of wrong answers._
   `TimeOrderReport`; both logrotate-convention fixtures pass without configuration.
 - [M30.2] ☑ **Composite store** *(shipped on `feat/m29-external-series`)* — per-file backends under one global index, per-record file id,
   (file, offset) anchors through read/goto/crossings/context/copy-prompt.
-- [M30.3] ☐ **Validation surfaced** — banner + go-to-violation, verb echoes, single-file
+- [M30.3] ☑ **Validation surfaced** *(shipped on `feat/m29-external-series`)* — banner + go-to-violation, verb echoes, single-file
   monotonicity check, D-R4 caveats on time-anchored features.
-- [M30.4] ☐ **Offer + `open {logs}`** — offer-never-act UI, verb + schema, docs + changelog.
+- [M30.4] ☑ **Offer + `open {logs}`** *(shipped on `feat/m29-external-series`)* — offer-never-act UI, verb + schema, docs + changelog.
 
 ## M31 · Log-source plugins — ☐ ACCEPTED (other containers, same records)
 _Design: **[spec-log-source-plugins.md](spec-log-source-plugins.md)**. Owner ask: parquet / Chronicle /

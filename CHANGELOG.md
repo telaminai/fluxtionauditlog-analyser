@@ -20,6 +20,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   travel in shared setups (the data never does — a recipient without the file sees the rest of the
   graph and a note naming what did not resolve).
 
+- **Rolled log sets open as one log.** Opening any member of a set (`maker.log.1`, date-stamped
+  siblings) offers the whole set; the load order comes from each file's **content** — its first timed
+  record — never the name, so logrotate's newest-first `.1` and an incrementing writer's oldest-first
+  `.1` both load correctly with zero configuration. Record numbering is global and gap-free; byte
+  offsets stay real per-file offsets (verbs take `file` alongside `byteOffset` on a set). Memory
+  scales with the set total, not per member. Agents: `open {logs: [...]}`.
+- **Time order is now validated on every load** — within each file and across roll boundaries — and
+  violations are reported with record anchors, never silently repaired: a backwards timestamp is a
+  finding, and re-sorting would destroy the evidence. While violations exist, time-anchored answers
+  (`at`, windows, buckets) carry a caveat; the full report is in `context` and the load dialog.
+
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same
   formula.** A record carrying no `logTime` cannot be plotted, but it has still *observed* values — and
@@ -95,6 +106,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   aren't all in the loaded topology says how many resolved instead of silently dropping the rest.
   Agents stepping out of contexts use `topology {pop: true | "all"}`.
 
+- **Rolled log sets open as one log.** Opening any member of a set (`maker.log.1`, date-stamped
+  siblings) offers the whole set; the load order comes from each file's **content** — its first timed
+  record — never the name, so logrotate's newest-first `.1` and an incrementing writer's oldest-first
+  `.1` both load correctly with zero configuration. Record numbering is global and gap-free; byte
+  offsets stay real per-file offsets (verbs take `file` alongside `byteOffset` on a set). Memory
+  scales with the set total, not per member. Agents: `open {logs: [...]}`.
+- **Time order is now validated on every load** — within each file and across roll boundaries — and
+  violations are reported with record anchors, never silently repaired: a backwards timestamp is a
+  finding, and re-sorting would destroy the evidence. While violations exist, time-anchored answers
+  (`at`, windows, buckets) carry a caveat; the full report is in `context` and the load dialog.
+
 ### Fixed
 - **The share dialog now discloses that named focuses travel with the Graphs category** — the
   checkbox reads "Graphs and named focuses" and the sharing guide's category table says what rides
@@ -127,6 +149,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   Opening a log that sits inside a project **offers to load that project** — so a downloaded bundle
   configures itself. It asks once per log, never for a project already open, and takes "no" for an
   answer for the rest of the session.
+
+- **Rolled log sets open as one log.** Opening any member of a set (`maker.log.1`, date-stamped
+  siblings) offers the whole set; the load order comes from each file's **content** — its first timed
+  record — never the name, so logrotate's newest-first `.1` and an incrementing writer's oldest-first
+  `.1` both load correctly with zero configuration. Record numbering is global and gap-free; byte
+  offsets stay real per-file offsets (verbs take `file` alongside `byteOffset` on a set). Memory
+  scales with the set total, not per member. Agents: `open {logs: [...]}`.
+- **Time order is now validated on every load** — within each file and across roll boundaries — and
+  violations are reported with record anchors, never silently repaired: a backwards timestamp is a
+  finding, and re-sorting would destroy the evidence. While violations exist, time-anchored answers
+  (`at`, windows, buckets) carry a caveat; the full report is in `context` and the load dialog.
 
 ### Fixed
 - **The action manifest advertised six verbs while thirteen shipped.** `GET /manifest` hardcoded its
@@ -234,6 +267,17 @@ opt-in.
   *"nothing outside the loaded log"*. The FAQ's security answer documents every mutating verb, and a
   test now fails the build if that ever stops being true.
 
+- **Rolled log sets open as one log.** Opening any member of a set (`maker.log.1`, date-stamped
+  siblings) offers the whole set; the load order comes from each file's **content** — its first timed
+  record — never the name, so logrotate's newest-first `.1` and an incrementing writer's oldest-first
+  `.1` both load correctly with zero configuration. Record numbering is global and gap-free; byte
+  offsets stay real per-file offsets (verbs take `file` alongside `byteOffset` on a set). Memory
+  scales with the set total, not per member. Agents: `open {logs: [...]}`.
+- **Time order is now validated on every load** — within each file and across roll boundaries — and
+  violations are reported with record anchors, never silently repaired: a backwards timestamp is a
+  finding, and re-sorting would destroy the evidence. While violations exist, time-anchored answers
+  (`at`, windows, buckets) carry a caveat; the full report is in `context` and the load dialog.
+
 ### Fixed
 - **The app could become impossible to close** — a failing step in the quit sequence escaped the
   window-closing handler before the exit call. Quitting is now step-isolated and the exit always runs
@@ -296,6 +340,17 @@ opt-in.
   surrounding panels.
 - Settings dialog no longer opens over-wide; Assistant tab fields are no longer clipped.
 - Main window layout rebalanced — the records table leaves more room for the detail panel and tabs.
+
+- **Rolled log sets open as one log.** Opening any member of a set (`maker.log.1`, date-stamped
+  siblings) offers the whole set; the load order comes from each file's **content** — its first timed
+  record — never the name, so logrotate's newest-first `.1` and an incrementing writer's oldest-first
+  `.1` both load correctly with zero configuration. Record numbering is global and gap-free; byte
+  offsets stay real per-file offsets (verbs take `file` alongside `byteOffset` on a set). Memory
+  scales with the set total, not per member. Agents: `open {logs: [...]}`.
+- **Time order is now validated on every load** — within each file and across roll boundaries — and
+  violations are reported with record anchors, never silently repaired: a backwards timestamp is a
+  finding, and re-sorting would destroy the evidence. While violations exist, time-anchored answers
+  (`at`, windows, buckets) carry a caveat; the full report is in `context` and the load dialog.
 
 ### Fixed
 - Help ▸ About now shows the analyser's own version instead of a bundled dependency's version.

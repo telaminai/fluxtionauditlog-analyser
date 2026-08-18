@@ -157,6 +157,9 @@ public final class MainFrame extends JFrame {
         actionExecutor.bind(topologyPanel, new AppControlAdapter());
         actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
+        actionExecutor.setTimeOrderNote(() -> timeOrderReport.isClean() ? null
+                : "time order is violated in this log — time-anchored answers may be approximate; "
+                        + "see 'context'.timeOrder");   // M30 D-R4
         llmPanel.bind(() -> config, () -> selectedRecords, sourceService::selectedFqn,
                 this::currentLogFileInfo, () -> store, actionExecutor, sourceService);
         applyRestServer();   // start the localhost REST transport if the profile opted in
@@ -1465,7 +1468,8 @@ public final class MainFrame extends JFrame {
                 () -> {
                     try {
                         Path tmp = S3Source.fetchToFile(uri, config.awsProfile, config.awsRegion);
-                        return LogStores.open(tmp, config.memoryThresholdMb);
+                        LogStore s3Store = LogStores.open(tmp, config.memoryThresholdMb);
+                        return s3Store;
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -1479,19 +1483,51 @@ public final class MainFrame extends JFrame {
                 });
     }
 
+    /** The active log's time-order validation (M30 D-R3) — clean until a load says otherwise. */
+    private telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrderReport =
+            telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
+
     /** Loads a log file on the background executor and swaps in the new model on the EDT. */
     public void openFile(Path path) {
+        // M30 D-R5: opening a member of a rolled set OFFERS the set — never assumes it
+        try {
+            var siblings = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.discoverSiblings(path);
+            if (siblings.size() > 1) {
+                var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(siblings);
+                StringBuilder msg = new StringBuilder("This file looks like part of a rolled set ("
+                        + siblings.size() + " files). Open the whole set, in content order?\n\n");
+                for (var s : set.ordered()) {
+                    msg.append("  ").append(s.file().getFileName());
+                    if (!s.untimed()) msg.append("   ").append(TimeFormat.utc(s.firstTime()))
+                            .append(" → ").append(TimeFormat.utc(s.lastTime() == null ? s.firstTime() : s.lastTime()));
+                    else msg.append("   (no timed records — position by name)");
+                    msg.append('\n');
+                }
+                int choice = JOptionPane.showConfirmDialog(this, msg.toString(),
+                        "Rolled log set found", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+                if (choice == JOptionPane.YES_OPTION) {
+                    openRolledSet(set);
+                    return;
+                }
+            }
+        } catch (Exception ignored) {
+            // discovery is best-effort — a failed probe must never block opening the file itself
+        }
         status.setText("Loading " + path + " …");
         setBusy(true);
         Background.run(
                 () -> {
                     try {
-                        return LogStores.open(path, config.memoryThresholdMb);
+                        LogStore s = LogStores.open(path, config.memoryThresholdMb);
+                        var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
+                                .validate(s.index());
+                        return new Object[]{s, report};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
-                loaded -> onLoaded(loaded, path.toString()),
+                out -> onLoaded((LogStore) out[0], path.toString(),
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1]),
                 err -> {
                     setBusy(false);
                     status.setText("Failed to load " + path + ": " + rootMessage(err));
@@ -1500,7 +1536,44 @@ public final class MainFrame extends JFrame {
                 });
     }
 
+    /** Open a resolved rolled set as one logical log (M30). */
+    private void openRolledSet(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.RollSet set) {
+        var files = set.ordered().stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.Sibling::file).toList();
+        status.setText("Loading rolled set (" + files.size() + " files) …");
+        setBusy(true);
+        Background.run(
+                () -> {
+                    try {
+                        var s = telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore.open(
+                                files, config.memoryThresholdMb);
+                        var report = set.report().merged(
+                                telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
+                                        .validate(s.index()));
+                        return new Object[]{s, report};
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                out -> onLoaded((LogStore) out[0],
+                        files.get(files.size() - 1).getFileName() + " (+" + (files.size() - 1) + " rolled)",
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1]),
+                err -> {
+                    setBusy(false);
+                    status.setText("Failed to load rolled set: " + rootMessage(err));
+                    JOptionPane.showMessageDialog(this, rootMessage(err), "Load failed",
+                            JOptionPane.ERROR_MESSAGE);
+                });
+    }
+
     private void onLoaded(LogStore loaded, String location) {
+        onLoaded(loaded, location, telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean());
+    }
+
+    private void onLoaded(LogStore loaded, String location,
+                          telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport report) {
+        this.timeOrderReport = report == null
+                ? telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean() : report;
         if (store != null && store != loaded) store.close();   // release the previous file's channel
         this.store = loaded;
         this.logDisplayLocation = location;
@@ -1558,7 +1631,16 @@ public final class MainFrame extends JFrame {
         setBusy(false);
         String range = loaded.minLogTime() == null ? "no timestamps"
                 : TimeFormat.utc(loaded.minLogTime()) + " → " + TimeFormat.utc(loaded.maxLogTime()) + " UTC";
-        status.setText(loaded.size() + " records · " + range + " · " + displayName(location));
+        String orderWarning = timeOrderReport.isClean() ? ""
+                : "  ·  ⚠ time-order violations (" + timeOrderReport.violations().size()
+                        + ") — ask 'context' or see the load report";
+        status.setText(loaded.size() + " records · " + range + " · " + displayName(location) + orderWarning);
+        if (!timeOrderReport.isClean()) {
+            // D-R3: the report is shown, never buried — once, at load, with the evidence lines
+            JOptionPane.showMessageDialog(this,
+                    String.join("\n", timeOrderReport.summarise()),
+                    "Time-order report", JOptionPane.WARNING_MESSAGE);
+        }
 
         // follow/tail: track this file if it's local & followable; drop follow if it isn't
         boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
@@ -2199,6 +2281,32 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths) {
+            java.util.List<java.nio.file.Path> files = new java.util.ArrayList<>();
+            for (String p : paths) {
+                java.nio.file.Path f = java.nio.file.Path.of(p);
+                if (!java.nio.file.Files.isRegularFile(f)) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "'" + p + "' is not a readable file");
+                }
+                files.add(f);
+            }
+            try {
+                var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(files);
+                openRolledSet(set);   // async load; the echo reports what was decided NOW
+                Map<String, Object> echo = new java.util.LinkedHashMap<>();
+                echo.put("files", set.ordered().stream()
+                        .map(s -> s.file().getFileName().toString()).toList());
+                echo.put("order", "by content — each file's first timed logTime (names never order)");
+                if (!set.report().isClean()) echo.put("timeOrder", set.report().summarise());
+                echo.put("loading", true);
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied", echo);
+            } catch (Exception e) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "could not resolve the set: " + e.getMessage());
+            }
+        }
+
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context() {
             Map<String, Object> out = new java.util.LinkedHashMap<>();
 
@@ -2244,6 +2352,14 @@ public final class MainFrame extends JFrame {
                 flags.add(flag);
             }
             out.put("flags", flags);
+
+            if (store != null && store.index().fileCount() > 1) {
+                out.put("files", store.index().files());   // rolled set: offsets are file-local (M30)
+            }
+            if (!timeOrderReport.isClean()) {
+                out.put("timeOrder", timeOrderReport.summarise());   // D-R3: agents must not discover
+                // disorder by getting wrong answers from 'at'
+            }
 
             if (topologyPanel.hasTopology()) out.put("topology", topologyPanel.cursorState());
 

@@ -19,6 +19,14 @@ public interface AppControl {
     /** Open an audit log from a path (or {@code s3://…}); returns the echo or a structured error. */
     ActionResult openLog(String path);
 
+    /**
+     * Open an explicit rolled set (M30 D-R5): the caller DECLARES the member list; content decides the
+     * order; the echo carries the order chosen and the TimeOrderReport. Default: not supported.
+     */
+    default ActionResult openLogs(java.util.List<String> paths) {
+        return ActionResult.error("'logs' is not enabled here");
+    }
+
     /** Open a processor {@code .graphml}. */
     ActionResult openGraphml(String path);
 

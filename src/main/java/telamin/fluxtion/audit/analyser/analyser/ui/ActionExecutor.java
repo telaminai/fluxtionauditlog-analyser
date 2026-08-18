@@ -75,6 +75,12 @@ public final class ActionExecutor implements RenderExecutor {
 
     private java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.config.AppConfig> exportConfig;
     private java.util.function.Supplier<java.util.Set<java.nio.file.Path>> readGrants = java.util.Set::of;
+    private java.util.function.Supplier<String> timeOrderNote = () -> null;
+
+    /** Non-null while the loaded log has time-order violations — appended to time-anchored echoes (D-R4). */
+    public void setTimeOrderNote(java.util.function.Supplier<String> note) {
+        this.timeOrderNote = note == null ? () -> null : note;
+    }
 
     /** Files the user picked in a chooser this session — the D-F4 read allowlist's second half. */
     public void setReadGrants(java.util.function.Supplier<java.util.Set<java.nio.file.Path>> readGrants) {
@@ -113,8 +119,14 @@ public final class ActionExecutor implements RenderExecutor {
                 LogStore sStore = store.get();
                 if (sStore == null) return ActionResult.error("no log is loaded");
                 try {
-                    return ActionResult.ok("series", "result",
-                            telamin.fluxtion.audit.analyser.analyser.graph.SeriesScan.scan(sStore, params));
+                    Map<String, Object> result =
+                            telamin.fluxtion.audit.analyser.analyser.graph.SeriesScan.scan(sStore, params);
+                    String caveat = timeOrderNote.get();
+                    if (caveat != null) {
+                        result = new LinkedHashMap<>(result);
+                        result.put("timeOrderNote", caveat);   // D-R4: loud degradation, never silence
+                    }
+                    return ActionResult.ok("series", "result", result);
                 } catch (RuntimeException e) {
                     return ActionResult.error("series failed: " + e.getMessage());
                 }
@@ -478,6 +490,10 @@ public final class ActionExecutor implements RenderExecutor {
             Map<String, Object> applied = new LinkedHashMap<>();
             applied.put("recordIndex", row);
             applied.put("byteOffset", s.index().offset(row));
+            if (s.index().fileCount() > 1) applied.put("file", s.index().files().get(s.index().fileId(row)));
+            if (p.get("at") instanceof Number && timeOrderNote.get() != null) {
+                applied.put("timeOrderNote", timeOrderNote.get());   // D-R4: 'at' may be approximate here
+            }
             if (!visible) {
                 if (reveal && f != null) {
                     revealRecord(f, s, row);
@@ -641,6 +657,11 @@ public final class ActionExecutor implements RenderExecutor {
 
     private ActionResult doOpen(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
+        if (params.get("logs") instanceof List<?> list && !list.isEmpty()) {
+            List<String> paths = new ArrayList<>();
+            for (Object o : list) if (o != null) paths.add(o.toString());
+            return app.openLogs(paths);   // M30: an explicit set — content orders it, the echo says how
+        }
         String log = str(params.get("log"));
         String graphml = str(params.get("graphml"));
         String processor = str(params.get("processor"));

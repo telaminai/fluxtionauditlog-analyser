@@ -91,6 +91,9 @@ The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open` and
 `analyser_source_root` — with full parameter schemas, so there's nothing to paste into a prompt.
 
+`open` also takes `logs: [...]` — an explicit rolled set, loaded as one log in content order, the
+echo carrying the order chosen and the time-order report (see *Records ▸ Rolled log sets*).
+
 `aggregate`, `read`, `series`, `context` and `coverage` are marked read-only. The verbs that only change what the
 app shows are reversible and marked accordingly. Four are marked **destructive**, so a client can prompt
 before running them: `open` replaces the loaded log (taking the session's flags with it), `source_root`

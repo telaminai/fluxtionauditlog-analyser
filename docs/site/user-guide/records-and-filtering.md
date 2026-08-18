@@ -108,3 +108,18 @@ changed one propagation to the next — without eyeballing two raw blocks of `no
 
 Selecting a record also drives [Topology & step-through](topology.md): the nodes that fired in that
 cycle light up on the processor graph, in dispatch order.
+
+## Rolled log sets
+
+A session that rolled across several files (`maker.log`, `maker.log.1`, … or date-stamped names) opens
+as **one log**: opening any member offers the whole set. The load order comes from each file's
+**content** — its first timed record — never from the name, because index suffixes are genuinely
+ambiguous (logrotate's `.1` is the newest rolled file; an incrementing writer's `.1` is the oldest).
+
+On load the analyser **validates time order** — within each file, and across the boundaries — and
+reports what it finds ("`maker.log.2` overlaps `maker.log.1` by 3.2s", "17 records out of order,
+first at record 3,412"). Violations are **reported, never repaired**: a backwards timestamp is a
+finding (a clock step, a mis-merge), and re-sorting records would destroy the evidence. While a
+violation exists, time-anchored answers (`at`, rolling windows, buckets) carry a caveat note; record
+anchors are unaffected. Agents open an explicit set with `open {logs: [...]}` and read the same
+report from `context`.

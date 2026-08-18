@@ -200,6 +200,9 @@ public final class VerbSchemas {
                         + "points the app at any readable path.",
                 props(
                         p("log", string(), "path to an audit log, or an s3:// URI"),
+                        p("logs", arr(string()), "an explicit ROLLED SET (M30): the member files, any "
+                                + "order — content decides the load order (each file's first timed "
+                                + "logTime); the echo reports the order and the time-order report"),
                         p("graphml", string(), "path to a processor .graphml"),
                         p("processor", string(), "fully-qualified EventProcessor class to resolve nodes "
                                 + "against; needed before source navigation works")),
