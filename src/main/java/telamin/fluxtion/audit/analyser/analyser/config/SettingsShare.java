@@ -109,6 +109,13 @@ public final class SettingsShare {
         }
         if (categories.contains(Category.GRAPHS)) {
             ConfigStore.writeGraphs(p, c.savedGraphs);
+            // external CSV paths travel like source roots: home-relative so a share survives a machine
+            // hop (M29 D-F5); the receiving side expands + resolves in preview()
+            for (String key : p.stringPropertyNames()) {
+                if (key.startsWith("graph.") && key.contains(".ext.") && key.endsWith(".path")) {
+                    p.setProperty(key, toPortable(p.getProperty(key)));
+                }
+            }
             // named focuses (M27.3) ride the GRAPHS category — same kind of named analysis artifact,
             // and folding keeps ProjectProfile.PROJECT_SCOPED at its five pinned categories
             ConfigStore.writeFocuses(p, c.namedFocuses);
@@ -209,6 +216,24 @@ public final class SettingsShare {
             present.add(Category.GRAPHS);
             graphs = new ArrayList<>();
             ConfigStore.readGraphs(p, graphs);
+            // expand ~ and resolve profile-relative external paths against the file's own directory —
+            // the same rule source roots follow (M19.2), so a committed profile works on any machine
+            for (int gi = 0; gi < graphs.size(); gi++) {
+                GraphSpec spec = graphs.get(gi);
+                if (spec.external().isEmpty()) continue;
+                java.util.List<GraphSpec.ExternalSpec> fixed = new ArrayList<>();
+                for (GraphSpec.ExternalSpec e : spec.external()) {
+                    String path = fromPortable(e.path());
+                    if (baseDir != null && !java.nio.file.Path.of(path).isAbsolute()) {
+                        path = baseDir.resolve(path).normalize().toString();
+                    }
+                    fixed.add(new GraphSpec.ExternalSpec(path, e.label(), e.time(), e.timeFormat(),
+                            e.zone(), e.value(), e.offsetMillis()));
+                }
+                graphs.set(gi, new GraphSpec(spec.name(), spec.series(), spec.exprs(), spec.from(),
+                        spec.to(), spec.note(), spec.explanation(), spec.notes(), spec.rightAxis(),
+                        spec.guides(), spec.bands(), fixed));
+            }
             focuses = new ArrayList<>();
             ConfigStore.readFocuses(p, focuses);
             String s = graphSummary(graphs, current.savedGraphs);

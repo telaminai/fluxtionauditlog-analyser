@@ -34,6 +34,61 @@ class GraphExternalSeriesTest {
     }
 
     @Test
+    void externalSpecsRoundTripThroughConfigStore() throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("cfg");
+        var store = new telamin.fluxtion.audit.analyser.analyser.config.ConfigStore(dir.resolve("config"));
+        var cfg = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        cfg.savedGraphs.add(new GraphSpec("g", List.of(), List.of(), null, null, null, null,
+                List.of(), List.of(), List.of(), List.of(),
+                List.of(new GraphSpec.ExternalSpec("/data/venue.csv", "venue mid", "ts", "iso8601",
+                        "Europe/London", "mid", 250))));
+        store.save(cfg);
+        var back = store.load();
+        GraphSpec.ExternalSpec e = back.savedGraphs.get(0).external().get(0);
+        assertEquals("/data/venue.csv", e.path());
+        assertEquals("venue mid", e.label());
+        assertEquals("iso8601", e.timeFormat());
+        assertEquals("Europe/London", e.zone());
+        assertEquals(250, e.offsetMillis());
+    }
+
+    @Test
+    void externalPathsTravelHomeRelativeThroughShares() {
+        var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare("/home/tester");
+        var sender = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        sender.savedGraphs.add(new GraphSpec("g", List.of(), List.of(), null, null, null, null,
+                List.of(), List.of(), List.of(), List.of(),
+                List.of(new GraphSpec.ExternalSpec("/home/tester/runs/venue.csv", "venue mid", "ts",
+                        "epochMillis", null, "mid", 0))));
+        String text = share.export(sender,
+                java.util.EnumSet.of(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS));
+        assertTrue(text.contains("~/runs/venue.csv"), "home paths are written portable (D-F5)");
+
+        var receiver = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        share.apply(share.preview(text, receiver),
+                java.util.EnumSet.of(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.GRAPHS),
+                receiver);
+        assertEquals("/home/tester/runs/venue.csv",
+                receiver.savedGraphs.get(0).external().get(0).path(), "expanded on the receiving side");
+    }
+
+    @Test
+    void restoreAppliesExternalSpecsWithoutEchoingAnEdit() {
+        GraphTabs tabs = new GraphTabs();
+        tabs.bind(new telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore(
+                telamin.fluxtion.audit.analyser.analyser.parse.Samples.sample()),
+                new telamin.fluxtion.audit.analyser.analyser.filter.FilterState());
+        int[] fired = {0};
+        tabs.setChangeListener(() -> fired[0]++);
+        tabs.restore(List.of(new GraphSpec("g", List.of(), List.of(), null, null, null, null,
+                List.of(), List.of(), List.of(), List.of(),
+                List.of(new GraphSpec.ExternalSpec("/nope/missing.csv", "gone", "ts", "epochMillis",
+                        null, "mid", 0)))));
+        assertEquals(0, fired[0], "restoring persisted state is not a user edit");
+        assertEquals(1, tabs.specs().get(0).external().size(), "the DEFINITION survives a missing file (D-F5)");
+    }
+
+    @Test
     void externalSpecsAreImmutableSnapshots() {
         GraphPanel panel = new GraphPanel();
         panel.setExternal(new java.util.ArrayList<>(List.of(spec("a"))));

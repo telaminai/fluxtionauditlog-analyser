@@ -243,6 +243,18 @@ public final class ConfigStore {
                 put(p, "graph." + i + ".band." + j + ".expr", bands.get(j).expr());
                 put(p, "graph." + i + ".band." + j + ".label", bands.get(j).label());
             }
+            List<GraphSpec.ExternalSpec> ext = g.external();
+            p.setProperty("graph." + i + ".ext.count", Integer.toString(ext.size()));
+            for (int j = 0; j < ext.size(); j++) {
+                String k = "graph." + i + ".ext." + j;
+                put(p, k + ".path", ext.get(j).path());
+                put(p, k + ".label", ext.get(j).label());
+                put(p, k + ".time", ext.get(j).time());
+                put(p, k + ".format", ext.get(j).timeFormat());
+                put(p, k + ".zone", ext.get(j).zone());
+                put(p, k + ".value", ext.get(j).value());
+                p.setProperty(k + ".offset", Long.toString(ext.get(j).offsetMillis()));
+            }
         }
     }
 
@@ -306,8 +318,21 @@ public final class ConfigStore {
                     bands.add(new GraphSpec.BandSpec(expr, nz(p.getProperty("graph." + i + ".band." + j + ".label"))));
                 }
             }
+            List<GraphSpec.ExternalSpec> ext = new ArrayList<>();
+            int extCount = parseInt(p.getProperty("graph." + i + ".ext.count"), 0);
+            for (int j = 0; j < extCount; j++) {
+                String k = "graph." + i + ".ext." + j;
+                String path = p.getProperty(k + ".path");
+                String label = p.getProperty(k + ".label");
+                if (path == null || label == null) continue;
+                ext.add(new GraphSpec.ExternalSpec(path, label,
+                        p.getProperty(k + ".time"), p.getProperty(k + ".format"),
+                        nz(p.getProperty(k + ".zone")), p.getProperty(k + ".value"),
+                        parseLongOrNull(p.getProperty(k + ".offset")) == null
+                                ? 0L : parseLongOrNull(p.getProperty(k + ".offset"))));
+            }
             out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right,
-                    guides, bands));
+                    guides, bands, ext));
         }
     }
 

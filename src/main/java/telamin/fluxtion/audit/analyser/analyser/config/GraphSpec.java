@@ -10,7 +10,14 @@ import java.util.List;
  */
 public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                         String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
-                        List<GuideSpec> guides, List<BandSpec> bands) {
+                        List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external) {
+
+    /** The pre-M29.4 shape (no external series). */
+    public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
+                     String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
+                     List<GuideSpec> guides, List<BandSpec> bands) {
+        this(name, series, exprs, from, to, note, explanation, notes, rightAxis, guides, bands, List.of());
+    }
 
     /** A derived (formula) series: a display {@code label}, the {@code expr} text, and a resolve policy. */
     public record ExprSpec(String label, String expr, String resolve) {
@@ -101,5 +108,9 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
 
     public List<BandSpec> bands() {
         return bands == null ? List.of() : bands;
+    }
+
+    public List<ExternalSpec> external() {
+        return external == null ? List.of() : external;
     }
 }

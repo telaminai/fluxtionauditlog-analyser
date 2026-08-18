@@ -227,7 +227,7 @@ public final class GraphTabs extends JPanel {
                 out.add(new GraphSpec(gp.graphName(), gp.seriesSpecs(), gp.exprSpecs(),
                         gp.pinnedFrom(), gp.pinnedTo(), gp.caption(),
                         notes.explanation(), noteSpecs, new ArrayList<>(gp.axes().rightSeries()),
-                        gp.guides(), gp.bandSpecs()));
+                        gp.guides(), gp.bandSpecs(), gp.externalSpecs()));
             }
         }
         return out;
@@ -258,6 +258,7 @@ public final class GraphTabs extends JPanel {
             if (g.isPinned()) panel.pin(g.from(), g.to());
             if (!g.guides().isEmpty()) panel.setGuides(g.guides());
             if (!g.bands().isEmpty()) panel.setBands(g.bands());
+            if (!g.external().isEmpty()) panel.setExternal(g.external());   // async reload; D-F5 notes on failure
             // the reading of the chart, restored with it
             var notes = new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes(
                     g.explanation(), g.notes().stream()

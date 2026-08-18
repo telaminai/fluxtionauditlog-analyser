@@ -262,7 +262,7 @@ not built) · **22.20** `.push()` targets render as orphans._
   fragility `UP-FLX-29` exists to remove, and a wrong-but-confident edge is worse here than an honest
   gap. Revisit only if the owner rules the upstream attributes out.
 
-## M29 · External series — ◧ IN PROGRESS (ACCEPTED v3) (plot what the outside world did)
+## M29 · External series — ☑ ON BRANCH `feat/m29-external-series` (M29.1–.4; M29.5 embed deferred by design) (plot what the outside world did)
 _Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
 foreign log (FIX to begin with) into a CSV, hands the analyser the file location, and the analyser plots it
 beside the audit-derived series. **The analyser never learns a foreign format** — the agent adapts, the tool
@@ -285,7 +285,7 @@ also closed three contract gaps: out-of-order rows sort with an echo, duplicate 
 - [M29.3] ☑ **`graph {external}` verb** *(shipped on `feat/m29-external-series`)* — M26.4-style echo (rows loaded/skipped/reordered, range,
   offset — the range echo is the wrong-pattern defence); read confinement wired to the allowlist
   (project dir + chooser grants); FAQ security answer gains the read rule, contract-test pinned.
-- [M29.4] ☐ **Persistence + sharing** — project-relative paths, honest degradation, export-side disclosure;
+- [M29.4] ☑ **Persistence + sharing** *(shipped on `feat/m29-external-series`)* — project-relative paths, honest degradation, export-side disclosure;
   docs + changelog.
 - [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
   for fully-portable sharing (D-F5's alternative).

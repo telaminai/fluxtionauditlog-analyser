@@ -16,7 +16,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   PDF; loads report rows skipped, reordered and the resolved time range, with diagnostics that never
   echo file contents. Verb reads are confined to the exchange directory — the renamed **Allow
   assistant file exchange** opt-in now covers writes *and* these reads, one switch, one directory —
-  or to files you picked in a chooser yourself.
+  or to files you picked in a chooser yourself. External definitions persist with the graph and
+  travel in shared setups (the data never does — a recipient without the file sees the rest of the
+  graph and a note naming what did not resolve).
 
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same

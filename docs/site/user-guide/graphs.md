@@ -75,6 +75,19 @@ gaps you infer. The *condition* is what's saved; its intervals are recomputed wi
 same extraction pass as the series, so a band can never disagree with a plotted series about when the
 condition was true. Both are agent-authorable through the `graph` verb (`guides:`/`bands:`).
 
+## External series — plotting what the outside world did
+
+The analyser never learns a foreign format: you (or an agent) adapt a FIX log, GC log or venue export
+into a `(timestamp, value)` CSV, and *File ▸ Add series from CSV…* plots it beside the audit-derived
+series. The dialog asks for the time/value **columns**, the **time format** and the **IANA zone** —
+declared, never guessed, because a silently mis-read clock turns "the venue messaged us, then our book
+moved" into its reverse. An optional **offset** applies a deliberate clock correction, always shown.
+
+External series are visibly second-class, on purpose: marked *(external)* in the legend, **stamped on
+the chart itself** (so every PNG/PDF says a foreign line is foreign), not clickable to records, and
+saved as their *definition* — reopening reloads the file, and a missing file is reported while the
+rest of the graph draws.
+
 ## Two scales
 
 A revenue line reaching 2,000 and a stock level oscillating around 20 share a chart where the stock line
