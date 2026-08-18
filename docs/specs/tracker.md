@@ -262,7 +262,7 @@ not built) · **22.20** `.push()` targets render as orphans._
   fragility `UP-FLX-29` exists to remove, and a wrong-but-confident edge is worse here than an honest
   gap. Revisit only if the owner rules the upstream attributes out.
 
-## M29 · External series — ☐ ACCEPTED (plot what the outside world did)
+## M29 · External series — ◧ IN PROGRESS (ACCEPTED v3) (plot what the outside world did)
 _Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
 foreign log (FIX to begin with) into a CSV, hands the analyser the file location, and the analyser plots it
 beside the audit-derived series. **The analyser never learns a foreign format** — the agent adapts, the tool
@@ -278,7 +278,7 @@ in review to project dir + chooser-as-grant, source roots deliberately excluded,
 (D-F4); saved graphs store project-relative paths and **degrade out loud** (D-F5, the F1 lesson). Review
 also closed three contract gaps: out-of-order rows sort with an echo, duplicate timestamps both kept,
 5M-row cap refused loudly._
-- [M29.1] ☐ **Loader + CSV contract** — explicit time/zone/value columns, no sniffing; sort-on-load
+- [M29.1] ☑ **Loader + CSV contract** *(shipped on `feat/m29-external-series`)* — explicit time/zone/value columns, no sniffing; sort-on-load
   with reorder echo; duplicates kept; 5M-row cap; bounded sanitised parse diagnostics. Headless and
   pure; full D-F1/D-F4 tests before any UI.
 - [M29.2] ☐ **UI** — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
