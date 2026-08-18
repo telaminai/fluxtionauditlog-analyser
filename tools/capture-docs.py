@@ -325,6 +325,26 @@ def main():
     time.sleep(1)
     capture(ep, "graph-markers-dark.png")
 
+    # thresholds + bands + markers + the on-plot caption, one chart (M28.5/.6, M32, notes):
+    # the band shades EXACTLY where the line is above the guide — a claim the reader can verify
+    # by eye — while the breach markers are an independent event layer (they track the order-count
+    # limit, not the spread; the explanation says so rather than letting the composition imply it)
+    act(ep, "graph", {"name": "Spread guardrails", "series": ["quotePublisher.spread"],
+                      "style": "line", "newTab": True})
+    act(ep, "graph", {"name": "Spread guardrails",
+                      "guides": [{"value": 0.02, "label": "2bp spread cap"}],
+                      "bands": [{"expr": "quotePublisher.spread > 0.02", "label": "above cap"}],
+                      "markers": [
+                          {"label": "risk breach", "glyph": "x", "when": "breachHandler.breachedOn",
+                           "y": "series:quotePublisher.spread", "payload": "breachHandler.breachedOn"}],
+                      "explanation": "Guide: the cap. Band: the regime above it. Each x: a breach "
+                                     "event (order-count limit, not the spread) — click one to open "
+                                     "its record.",
+                      "notes": [{"recordIndex": 1, "text": "session opens above the cap",
+                                 "series": "quotePublisher.spread"}]})
+    time.sleep(1)
+    capture(ep, "graph-bands-dark.png")
+
     # ---- project profiles (M20.4) ------------------------------------------------------------
     print("project profiles")
     profile = make_demo_project()

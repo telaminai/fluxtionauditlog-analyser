@@ -75,6 +75,13 @@ gaps you infer. The *condition* is what's saved; its intervals are recomputed wi
 same extraction pass as the series, so a band can never disagree with a plotted series about when the
 condition was true. Both are agent-authorable through the `graph` verb (`guides:`/`bands:`).
 
+![A guide at the spread cap, a band shading the regime above it, breach-event markers, and the chart's own explanation box and pinned note](../assets/graph-bands-dark.png)
+
+One chart, three annotation layers, each answering a different question: the **guide** marks the
+threshold, the **band** shades exactly where the line sits above it (a claim you can verify by eye),
+and each **×** is a discrete breach event — a different fact entirely, which is why the on-plot
+[explanation](#explaining-a-chart) says so instead of letting the composition imply it.
+
 ## External series — plotting what the outside world did
 
 The analyser never learns a foreign format: you (or an agent) adapt a FIX log, GC log or venue export
@@ -89,6 +96,8 @@ saved as their *definition* — reopening reloads the file, and a missing file i
 rest of the graph draws.
 
 ## Marker series — events on the chart
+
+![Order and breach events as glyphs riding the spread line, each anchored to its record](../assets/graph-markers-dark.png)
 
 Values answer "what was it"; **markers** answer "what happened": fills, rejections, cancels drawn as
 glyphs (▲ buys, ▼ sells) at their price, each carrying a **payload** — a client order id — shown on
@@ -138,7 +147,8 @@ the screenshot. Both are held with the graph and drawn **on** it, so they surviv
 ```
 
 Notes landing on the same pixel column stack rather than overprinting, and `clearNotes` drops the pins
-while keeping the write-up.
+while keeping the write-up. The [threshold chart above](#thresholds-and-condition-bands) wears both:
+its explanation box states what each layer means, and note ① pins the session's opening moment.
 
 ## Styling, zoom and pins
 
