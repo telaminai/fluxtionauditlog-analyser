@@ -6,6 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Marker series now appear in the chart legend** — each with its own glyph, in its own colour, and
+  the number of events it holds. Previously a chart could draw triangles and crosses while the key
+  named only the value series, so nothing on screen said what a glyph meant. A marker series that
+  resolved to nothing still gets a row, reading `(0)` with the reason on hover — an event type that
+  never fired is a finding, not something to hide. Right-click a row to remove that marker series.
+- **The topology index is sorted, and reads numbers as numbers.** Each of Nodes, Events and Services
+  is now alphabetical, with digit runs compared by value — so `CHILL-2` comes before `CHILL-10`
+  instead of after it. On a generated estate (chillers, tills, zones) the previous graph-emission
+  order was arbitrary, and plain alphabetical order would have been actively misleading.
+
 ## [1.5.0] - 2026-08-18
 
 ### Added

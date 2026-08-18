@@ -131,6 +131,10 @@ public final class TopologyIndex extends JPanel {
             if (wanted.contains(node.kind())) ids.add(node.id());
         }
         if (ids.isEmpty()) return;      // an always-empty heading reads as a broken feature
+        // Filed the way a reader scans, not the order the graph happened to emit: alphabetical, with
+        // digit runs compared by value so CHILL-2 precedes CHILL-10. On a generated estate (chillers,
+        // tills, zones) graph order is arbitrary and lexicographic order is actively misleading.
+        ids.sort(NaturalOrder.ID);
         Section section = new Section(title, ids);
         sections.add(section);
         body.add(section);

@@ -288,8 +288,15 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 _32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
 marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
 Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
-- [M32.9] ☐ **Marker series are missing from the legend — D-M1's "one meaning, one series, one glyph"
-  is unreadable without it.** *Measured 2026-08-18 against v1.5.0, and visible in the shipped docs
+- [M32.9] ☑ **Marker series now appear in the legend** — glyph-aware rows drawn by the chart's OWN
+  painter (`ChartPanel.paintGlyph`, made public/static so key and plot cannot drift), in the marker
+  palette, labelled with the series' event count. Rows come from the LAST EXTRACTION rather than the
+  specs, so a dangling pin shows `(0)` and its note as the tooltip instead of a phantom row. Right-click
+  removes the marker spec. Count is TOTAL points, not drawn glyphs — drawn glyphs collapse with zoom
+  under D-M3, and a legend number that changed on zoom while the data did not would be its own small
+  lie; the ×N badges already carry density on the plot. `MarkerLegendTest` pins the pure parts; the
+  overlay itself stays an eyeball item (rule 4). *Shipped after v1.5.0.*
+  _(Original finding, kept for the record:_ *Measured 2026-08-18 against v1.5.0, and visible in the shipped docs
   image `docs/site/assets/graph-markers-dark.png`: the chart draws orange ▲ and pink ✕ glyphs and the
   legend lists only `quotePublisher.spread`, so nothing on screen says what either glyph means.*
   `GraphPanel.rebuildLegendLabels()` adds a row for each of `activeKeys`, `activeExprs` and
@@ -300,7 +307,10 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
   from the **marker palette** (separate since the R7 fix); and the count is per the D-M3 aggregation,
   not `points().size()`, if it is to agree with what the eye sees.
   *Consequence while open:* the bands docs image only reads correctly because its caption does the
-  legend's job in prose — which is the tell that the legend is doing none.
+  legend's job in prose — which is the tell that the legend is doing none.)_
+- [M32.10] ☐ **Regenerate `graph-markers-dark.png`** — the shipped image predates M32.9 and shows the
+  glyphs without a key. Needs a machine with Screen Recording permission (the harness now refuses to
+  fake it and exits non-zero); the shot definition already exists.
 - [M32.6] ☐ **Flags rug** — flagged records as a built-in axis-lane rug (D-M5's second half); needs a
   flagged-rows supplier seam from MainFrame.
 - [M32.7] ☐ **PDF markers table** — glyphs already ride the painted export; the table (label, time,

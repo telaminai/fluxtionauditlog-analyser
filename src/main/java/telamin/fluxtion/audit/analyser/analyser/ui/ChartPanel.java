@@ -176,18 +176,7 @@ public final class ChartPanel extends JPanel {
     }
 
     private void drawGlyph(Graphics2D g, String glyph, int x, int y) {
-        int r = 4;
-        switch (glyph) {
-            case "triangleUp" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y + r, y + r, y - r}, 3);
-            case "triangleDown" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y - r, y - r, y + r}, 3);
-            case "square" -> g.fillRect(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
-            case "diamond" -> g.fillPolygon(new int[]{x, x + r, x, x - r}, new int[]{y - r, y, y + r, y}, 4);
-            case "x" -> {
-                g.drawLine(x - r + 1, y - r + 1, x + r - 1, y + r - 1);
-                g.drawLine(x - r + 1, y + r - 1, x + r - 1, y - r + 1);
-            }
-            default -> g.fillOval(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
-        }
+        paintGlyph(g, glyph, x, y);   // one implementation, shared with the legend (M32.9)
     }
 
     public void setSeries(List<Series> s) {
@@ -907,5 +896,35 @@ public final class ChartPanel extends JPanel {
     /** The series colour at index {@code i} — so a series list can match the plot's colours. */
     public static java.awt.Color paletteColor(int i) {
         return PALETTE[Math.floorMod(i, PALETTE.length)];
+    }
+
+    /**
+     * The MARKER colour at index {@code i} — a separate palette from the series one (R7), so the
+     * legend's swatch is the same colour the glyph is drawn in rather than a near-miss.
+     */
+    public static java.awt.Color markerPaletteColor(int i) {
+        return MARKER_PALETTE[Math.floorMod(i, MARKER_PALETTE.length)];
+    }
+
+    /**
+     * Draw one marker glyph centred on {@code (x,y)} in the current colour.
+     *
+     * <p>Public and static so the legend draws the SAME shape the plot does (M32.9). A legend that
+     * approximated the glyph would be a second implementation to keep in step, and the whole point of
+     * D-M1 ("one meaning, one series, one glyph") is that the key and the plot agree.
+     */
+    public static void paintGlyph(Graphics2D g, String glyph, int x, int y) {
+        int r = 4;
+        switch (glyph) {
+            case "triangleUp" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y + r, y + r, y - r}, 3);
+            case "triangleDown" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y - r, y - r, y + r}, 3);
+            case "square" -> g.fillRect(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
+            case "diamond" -> g.fillPolygon(new int[]{x, x + r, x, x - r}, new int[]{y - r, y, y + r, y}, 4);
+            case "x" -> {
+                g.drawLine(x - r + 1, y - r + 1, x + r - 1, y + r - 1);
+                g.drawLine(x - r + 1, y + r - 1, x + r - 1, y - r + 1);
+            }
+            default -> g.fillOval(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
+        }
     }
 }

@@ -211,9 +211,63 @@ public final class GraphPanel extends JPanel {
         for (GraphKey k : activeKeys) legendLabels.add(legendRow(k.display(), idx++));
         for (Derived d : activeExprs) legendLabels.add(legendRow(d.label(), idx++));
         for (var s : externalSpecs) legendLabels.add(legendRow(s.label() + "  (external)", idx++));
+        // Markers get rows too (M32.9). Without them a chart draws glyphs that nothing on screen
+        // names — which is also what makes D-M1's "one meaning, one series, one glyph" worth the
+        // restriction: the rule only buys an honest key if the key exists.
+        int mi = 0;
+        for (var ms : legendMarkers) legendLabels.add(markerLegendRow(ms, mi++));
         legendLabels.revalidate();
         legendLabels.repaint();
         positionLegendOverlay();
+    }
+
+    /**
+     * One marker row: the real glyph in the real marker colour, the label, and how many events it has.
+     *
+     * <p>The count is the series' TOTAL points, not the count of drawn glyphs. Drawn glyphs collapse
+     * with zoom under D-M3's column aggregation, so a zoom-dependent legend number would change while
+     * the data did not — and the ×N badges already disclose density where it matters, on the plot.
+     * "order live (166)" answers "how many of these are there", which is the question a key is asked.
+     */
+    private JComponent markerLegendRow(telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries ms,
+                                       int markerIndex) {
+        String text = markerLegendText(ms);
+        JLabel l = new JLabel(text, glyphSwatch(ms.glyph(), ChartPanel.markerPaletteColor(markerIndex)),
+                SwingConstants.LEFT);
+        l.setIconTextGap(6);
+        l.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        l.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 2));
+        String note = ms.note();
+        l.setToolTipText(note == null || note.isBlank()
+                ? "marker series — right-click to remove"
+                : note);                       // a dangling pin says so where the reader is looking
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem rm = new JMenuItem("Remove");
+        rm.addActionListener(e -> removeMarkerByLabel(ms.label()));
+        menu.add(rm);
+        l.setComponentPopupMenu(menu);
+        return l;
+    }
+
+    /**
+     * The text of one marker legend row — pure, so the decision it encodes is pinned by test while the
+     * Swing wiring around it stays an eyeball item (rule 4).
+     *
+     * <p>A series that resolved to NO points still gets a row reading {@code (0)}. That is deliberate:
+     * a dangling {@code y} pin or a {@code when} that never fired is a fact the reader needs, and a
+     * silently absent row is the failure D-M2's loud-degrade rule exists to prevent.
+     */
+    static String markerLegendText(telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries ms) {
+        return ms.label() + "  (" + ms.points().size() + ")";
+    }
+
+    /** Remove one marker series by label — the SPEC goes, and the points follow on re-extraction. */
+    private void removeMarkerByLabel(String label) {
+        var kept = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec>();
+        for (var s : markerSpecs) {
+            if (!s.label().equals(label)) kept.add(s);
+        }
+        if (kept.size() != markerSpecs.size()) setMarkers(kept);
     }
 
     /** One overlay row: a plot-colour swatch + the full label, with a right-click "Remove". */
@@ -394,6 +448,22 @@ public final class GraphPanel extends JPanel {
         rebuildExprSuggestions();
     }
 
+    /** A legend swatch that IS the glyph — same shape, same colour, drawn by the chart's own painter. */
+    private static javax.swing.Icon glyphSwatch(String glyph, java.awt.Color color) {
+        return new javax.swing.Icon() {
+            @Override public int getIconWidth() { return 11; }
+            @Override public int getIconHeight() { return 11; }
+            @Override public void paintIcon(Component comp, java.awt.Graphics g, int x, int y) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(color);
+                ChartPanel.paintGlyph(g2, glyph, x + 5, y + 6);
+                g2.dispose();
+            }
+        };
+    }
+
     private static javax.swing.Icon swatch(java.awt.Color color) {
         return new javax.swing.Icon() {
             @Override public int getIconWidth() { return 11; }
@@ -493,6 +563,10 @@ public final class GraphPanel extends JPanel {
 
     /** Extraction notes per marker series (dangling pins, skipped points) — loud, never silent. */
     private final java.util.List<String> markerNotes = new java.util.ArrayList<>();
+
+    /** The markers the plot last drew — the legend's source, so key and plot cannot disagree (M32.9). */
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> legendMarkers =
+            java.util.List.of();
 
     public java.util.List<String> markerNotes() {
         return java.util.List.copyOf(markerNotes);
@@ -723,6 +797,10 @@ public final class GraphPanel extends JPanel {
                     chart.setMarkers(out.markers());
                     markerNotes.clear();
                     markerNotes.addAll(out.markerNotes());
+                    // the legend names what the plot draws, so it is rebuilt from the SAME extraction
+                    // rather than from the specs — a dangling pin then shows (0) instead of a phantom
+                    legendMarkers = out.markers();
+                    rebuildLegendLabels();
                     applyWindow();                   // pinned range if pinned, else the filter's window
                 },
                 err -> { /* best-effort */ });
