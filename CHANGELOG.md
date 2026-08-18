@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **The `series` verb could answer from superseded data, disagreeing with the chart for the same
+  formula.** A record carrying no `logTime` cannot be plotted, but it has still *observed* values — and
+  under `locf` the carry is "last known value". The verb skipped such records outright, so a formula
+  whose inputs moved on an untimed record was evaluated afterwards from values already known to be
+  stale: on one log the chart plotted `10` where `series` reported `22`. Both looked plausible, which
+  is the dangerous kind of wrong for a forensic tool. The verb now updates the carry from every record
+  and only declines to emit a *point* where there is no time, matching the chart exactly.
+
 ## [1.4.0] - 2026-08-17
 
 ### Added

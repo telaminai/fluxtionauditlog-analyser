@@ -36,6 +36,14 @@ Two standing commitments make "plugin, not a requirement" the only acceptable sh
   *Alternative rejected:* `LogStore` as the SPI. Every core improvement (M30's file ids, a future
   column) would become a breaking plugin-API change.
 
+  **Make the time base a MANDATORY per-source declaration from day one** (`UP-FLX-25`, review X2): a
+  parquet reader *knows* its epoch unit, a DB reader knows its column type, and a Chronicle reader
+  knows what the writer stamped. Requiring `timeBase {epoch, zone, source}` of every reader costs a
+  plugin author nothing, and means plugin sources arrive **better described than the native YAML log**
+  — which declares none of it today, so the analyser assumes epoch millis in six files and hardcodes
+  UTC for bucketing. That inversion is itself worth putting in the upstream ask. Adding the field
+  later would be a breaking change to the one contract this spec exists to keep stable.
+
 - **D-P2 — every record carries a CANONICAL TEXT RENDERING.** The plugin supplies each record's text
   in the standard eventLogRecord YAML shape (for a text container, the original bytes; for parquet/DB,
   a rendering the plugin produces). The core treats it exactly like file text: the detail viewer, the

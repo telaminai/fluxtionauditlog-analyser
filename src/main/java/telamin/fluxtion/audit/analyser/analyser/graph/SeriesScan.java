@@ -85,11 +85,18 @@ public final class SeriesScan {
         for (int row = 0; row < store.size(); row++) {
             if (!filter.test(index, row)) continue;
             Long logTime = index.logTime(row);
-            if (logTime == null) continue;
             List<NodeLog> nodeLogs = store.record(row).nodeLogs();
 
+            // An UNTIMED record cannot produce a point (there is no x for it) but it did OBSERVE
+            // values, and under LOCF the carry is "last known value" — so it must still update the
+            // carry, exactly as SeriesExtractor's LOCF arm does. Skipping the whole row here made the
+            // `series` verb answer from data it already knew was superseded: on a log where an untimed
+            // record moved nodeB from 8 to 20, the chart plotted 30-20=10 and the verb reported
+            // 30-8=22 for the same formula. Caught by the golden corpus's cross-path check (G2),
+            // fixture 08.
             Double v = null;
             if (resolve == SeriesExtractor.Resolve.STRICT) {
+                if (logTime == null) continue;   // STRICT carries nothing, so an untimed row is inert
                 Map<GraphKey, Double> vals = new HashMap<>();
                 boolean allFinite = true;
                 for (GraphKey k : refs) {
@@ -112,11 +119,12 @@ public final class SeriesScan {
                     if (d.isPresent() && Double.isFinite(d.getAsDouble())) carry.put(k, d.getAsDouble());
                     else carry.remove(k);
                 }
-                if (touched) {
+                if (touched && logTime != null) {   // carry updated above either way
                     double e = eval.eval(logTime, carry);
                     if (Double.isFinite(e)) v = e;
                 }
             }
+            if (logTime == null) continue;   // nothing below here is meaningful without a time
             if (v == null) continue;
 
             count++;

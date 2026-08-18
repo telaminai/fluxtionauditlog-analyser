@@ -57,6 +57,13 @@ marker rides the named series' value at that moment (LOCF within the walk), and 
   filter. Log-sourced markers keep their `recordIndex`, so **clicking a marker is `goto`** — the
   existing click-plot-to-record affordance extended to the artifact that wants it most. External
   markers have no record and say so on click (M29 D-F2, unchanged).
+
+  **If `UP-FLX-27` lands (a unit and description carried on a logged key), this is its first consumer**
+  (review X3): the tooltip and the PDF markers table print the key's *meaning* beside the value, and
+  the key-triple picker shows it while you choose. The round-2 POC defect is the case in point —
+  `lastQty` means *shelf level after the movement*, not *units sold*, and a marker labelled with the
+  bare key name hands a reader exactly the information that produced that bug. Display only: a
+  description is cargo like any other payload, never an input (D-M2 unchanged).
   *Rationale:* the moment payloads are queryable, this tool has invented a string-typed column store.
   The record IS the queryable form; the marker is a signpost to it.
 

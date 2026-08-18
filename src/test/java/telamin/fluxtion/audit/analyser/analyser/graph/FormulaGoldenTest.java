@@ -74,7 +74,18 @@ class FormulaGoldenTest {
 
     private void run(Path file) throws IOException {
         Fixture f = Fixture.parse(Files.readString(file));
-        Series s = SeriesExtractor.extractExpr(new HeapLogStore(f.log), new FilterState(),
+        HeapLogStore store = new HeapLogStore(f.log);
+
+        // G1 — a fixture that expects nothing must not pass because nothing WORKED. An unparsed log
+        // section or an instanceId that appears nowhere also yields an empty series, and without these
+        // two guards such a fixture goes green while testing nothing.
+        assertFalse(store.size() == 0, "fixture '" + f.name + "': the LOG section parsed to zero records");
+        assertFalse(f.expectX.isEmpty() && !f.expectEmpty,
+                "fixture '" + f.name + "': empty EXPECT must be declared with 'expectEmpty: true', so "
+                        + "\"this formula legitimately plots nothing\" is stated rather than indistinguishable "
+                        + "from a broken fixture");
+
+        Series s = SeriesExtractor.extractExpr(store, new FilterState(),
                 Expr.parse(f.expr, f.keys()), f.expr, f.acrossAllTime, f.resolve);
 
         String ctx = "\n  fixture: " + f.name + "\n  why:     " + f.why + "\n  expr:    " + f.expr
@@ -84,6 +95,50 @@ class FormulaGoldenTest {
             assertEquals(f.expectX.get(i).longValue(), s.x(i), ctx + "→ x[" + i + "] (time) differs");
             assertEquals(f.expectY.get(i), s.y(i), EPS, ctx + "→ y[" + i + "] (value at t=" + s.x(i) + ") differs");
         }
+
+        assertScanAgrees(store, f, s, ctx);
+    }
+
+    /**
+     * G2 — the same formula must mean the same thing on the chart and in the {@code series} verb.
+     *
+     * <p>M28's acceptance #1 is "one vocabulary, two surfaces", but the two surfaces do not share one
+     * code path: {@link SeriesScan} carries its own STRICT and LOCF arms, structurally parallel to
+     * {@link SeriesExtractor}'s. Duplicated logic that is supposed to agree, with nothing asserting that
+     * it does — so a carry rule corrected in one arm and not the other would be invisible, and would
+     * surface as the chart and the verb quoting different numbers for one expression. Both plausible.
+     *
+     * <p>Every fixture therefore checks both paths. {@code scan} reports statistics rather than points,
+     * which is enough: point count, min, max and mean cannot all agree by accident across a divergence.
+     */
+    private void assertScanAgrees(HeapLogStore store, Fixture f, Series expected, String ctx) {
+        Map<String, Object> scan = SeriesScan.scan(store, Map.of(
+                "expr", f.expr,
+                "resolve", f.resolve.name()));
+
+        int points = ((Number) scan.get("points")).intValue();
+        assertEquals(expected.size(), points,
+                ctx + "→ SeriesScan disagrees with SeriesExtractor on the POINT COUNT (G2)");
+        if (expected.size() == 0) return;
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> stats = (Map<String, Object>) scan.get("stats");
+        assertNotNull(stats, ctx + "→ scan reported points but no stats");
+
+        double min = Double.POSITIVE_INFINITY, max = Double.NEGATIVE_INFINITY, sum = 0;
+        for (int i = 0; i < expected.size(); i++) {
+            min = Math.min(min, expected.y(i));
+            max = Math.max(max, expected.y(i));
+            sum += expected.y(i);
+        }
+        assertEquals(min, ((Number) stats.get("min")).doubleValue(), EPS, ctx + "→ scan/extract MIN differ (G2)");
+        assertEquals(max, ((Number) stats.get("max")).doubleValue(), EPS, ctx + "→ scan/extract MAX differ (G2)");
+        assertEquals(sum / expected.size(), ((Number) stats.get("mean")).doubleValue(), EPS,
+                ctx + "→ scan/extract MEAN differ (G2)");
+        assertEquals(expected.y(0), ((Number) stats.get("first")).doubleValue(), EPS,
+                ctx + "→ scan/extract FIRST differ (G2)");
+        assertEquals(expected.y(expected.size() - 1), ((Number) stats.get("last")).doubleValue(), EPS,
+                ctx + "→ scan/extract LAST differ (G2)");
     }
 
     private static String dump(Series s) {
@@ -104,8 +159,8 @@ class FormulaGoldenTest {
 
     /** A parsed fixture. Line-oriented on purpose, so a failure points straight at a file. */
     private record Fixture(String name, String why, String expr, String keysRaw,
-                           SeriesExtractor.Resolve resolve, boolean acrossAllTime, String log,
-                           List<Long> expectX, List<Double> expectY) {
+                           SeriesExtractor.Resolve resolve, boolean acrossAllTime, boolean expectEmpty,
+                           String log, List<Long> expectX, List<Double> expectY) {
 
         Set<GraphKey> keys() {
             Set<GraphKey> ks = new LinkedHashSet<>();
@@ -148,6 +203,7 @@ class FormulaGoldenTest {
                     meta.getOrDefault("keys", ""),
                     SeriesExtractor.Resolve.valueOf(meta.getOrDefault("resolve", "LOCF")),
                     Boolean.parseBoolean(meta.getOrDefault("acrossAllTime", "false")),
+                    Boolean.parseBoolean(meta.getOrDefault("expectEmpty", "false")),
                     expSplit[0], xs, ys);
         }
 

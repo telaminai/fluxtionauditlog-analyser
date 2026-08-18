@@ -69,6 +69,18 @@ part of the evidence (dispatch order within a file is exact; spec §8.7 relies o
   evidence (a backwards timestamp IS a finding: a clock step, a mis-merge, a bad transport), and
   dispatch order within a file is authoritative in ways wall-clock is not.
 
+  **Two upstream asks would let this report explain itself, and M30.1's model should reserve room for
+  both now (optional, absent until they land) —** see `docs/proposals/upstream-asks.md`:
+  - **`UP-FLX-26` (writer identity in the record header).** Today a mis-rolled set and *two different
+    processors' logs sharing a name root* are indistinguishable: both look like "time order is
+    violated". With a writer id the report upgrades to **"these files are from TWO WRITERS — this is
+    not a rolled set"**, which is a different problem with a different fix.
+  - **`UP-FLX-25` (declared time base: epoch unit, zone, clock source).** Per-file declarations can
+    *disagree across a set*, and a set mixing millis with micros, or `wallClock` with `injected`, is a
+    **louder refusal than any timestamp comparison** — the timestamps would look merely odd while the
+    real fault is that the files are not commensurable. Validation should compare declarations first
+    and only then compare times.
+
 - **D-R4 — when time order is violated, time features degrade LOUDLY, record features don't degrade
   at all.** Filtering, reading, stepping, flagging, graphs-by-record all work regardless (they walk
   record order). The time-anchored features — `read/goto {at}`, time windows, `buckets`, time-range

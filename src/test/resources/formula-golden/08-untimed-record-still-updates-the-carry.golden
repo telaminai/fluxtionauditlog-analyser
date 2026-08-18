@@ -1,0 +1,30 @@
+name: untimed-record-still-updates-the-carry
+why: A record with no logTime cannot be PLOTTED (no x) but it still observed a value, and LOCF's carry is "last known value". So t4's point must use nodeB=20 seen on the untimed record, not the stale 8 from t1. 30-20=10. Dropping the untimed record entirely would fabricate continuity from a value that had already been superseded.
+expr: nodeA.price - nodeB.price
+keys: nodeA.price, nodeB.price
+resolve: LOCF
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 10.0}
+    - nodeB: { price: 8.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  event: E
+  nodeLogs:
+    - nodeB: { price: 20.0}
+---
+#00:00:04.000 [t] INFO L
+eventLogRecord:
+  logTime: 4
+  event: E
+  nodeLogs:
+    - nodeA: { price: 30.0}
+--- EXPECT ---
+1 => 2.0
+4 => 10.0
