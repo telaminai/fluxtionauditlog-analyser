@@ -311,7 +311,7 @@ loud degradation notes instead of wrong answers._
   monotonicity check, D-R4 caveats on time-anchored features.
 - [M30.4] ☑ **Offer + `open {logs}`** *(shipped on `feat/m29-external-series`)* — offer-never-act UI, verb + schema, docs + changelog.
 
-## M31 · Log-source plugins — ☐ ACCEPTED (other containers, same records)
+## M31 · Log-source plugins — ◧ IN PROGRESS (ACCEPTED v2) (other containers, same records)
 _Design: **[spec-log-source-plugins.md](spec-log-source-plugins.md)**. Owner ask: parquet / Chronicle /
 DB audit sources as **plugins, not a requirement**. The core understands ONE thing — the Fluxtion audit
 record — and containers adapt to it: a tiny reader SPI (identity, `canOpen`, record stream in container
@@ -322,7 +322,7 @@ The fatjar stays FlatLaf-only — no format dependency ever enters this pom; the
 refactors to BE the built-in reader (the seam proven on the format that matters). Capabilities degrade
 loudly (a parquet file can't follow; a DB row has no byte offset — recordIndex anchors, per M30 D-R2).
 Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise them._
-- [M31.1] ☐ **The SPI + text parser behind it** — `analyser-reader-spi` artifact; suite green
+- [M31.1] ☑ **The SPI + text parser behind it** *(shipped on `feat/m29-external-series`)* — `analyser-reader-spi` artifact; suite green
   unchanged (M28.2-shaped inversion).
 - [M31.2] ☐ **Registry + isolation + Settings ▸ Plugins** — trust boundary in FAQ, contract-test
   pinned.
