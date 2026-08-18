@@ -466,6 +466,8 @@ public final class ActionExecutor implements RenderExecutor {
 
     private ActionResult doGoto(LogStore s, Map<String, Object> p) {
         int row = targetRow(s.index(), p, "byteOffset", "recordIndex");
+        if (row == -2) return ActionResult.error("this log is a rolled set — a byteOffset needs 'file' "
+                + "(one of " + s.index().files() + "), or anchor by recordIndex/at");
         if (row < 0) return ActionResult.error(p.get("at") instanceof Number
                 ? "'at' cannot resolve — no record carries a log time"
                 : "goto needs a byteOffset, recordIndex or at (epoch millis)");
@@ -540,6 +542,10 @@ public final class ActionExecutor implements RenderExecutor {
     private ActionResult doFlag(LogStore s, Map<String, Object> p) {
         LogIndex idx = s.index();
         Set<Integer> rows = new HashSet<>();
+        if (idx.fileCount() > 1 && !asList(p.get("byteOffsets")).isEmpty()) {
+            return ActionResult.error("this log is a rolled set — offsets are file-local; flag by "
+                    + "recordIndexes instead");
+        }
         for (Object o : asList(p.get("byteOffsets"))) {
             Long off = asLong(o);
             if (off != null) rows.add(floorRow(idx, off));
@@ -571,13 +577,44 @@ public final class ActionExecutor implements RenderExecutor {
      * (no record carries a log time).
      */
     static int targetRow(LogIndex idx, Map<String, Object> p, String offsetKey, String indexKey) {
-        if (p.get(offsetKey) instanceof Number n) return floorRow(idx, n.longValue());
+        if (p.get(offsetKey) instanceof Number n) {
+            if (idx.fileCount() > 1) {
+                Integer fid = fileIdOf(p.get("file"), idx);
+                if (fid == null) return -2;   // ambiguous: rolled set needs 'file' — caller reports it
+                return floorRowInFile(idx, n.longValue(), fid);
+            }
+            return floorRow(idx, n.longValue());
+        }
         if (p.get(indexKey) instanceof Number n) return clampRow(idx, n.intValue());
         if (p.get("at") instanceof Number n) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ReadService
                     .rowAtOrBefore(idx.size(), idx::logTime, n.longValue());
         }
         return -1;
+    }
+
+    /** {@code 'file'} (member name or id) → file id, or null. Rolled sets have file-local offsets (D-R2). */
+    static Integer fileIdOf(Object file, LogIndex idx) {
+        if (file instanceof Number n) {
+            int id = n.intValue();
+            return id >= 0 && id < idx.fileCount() ? id : null;
+        }
+        if (file != null) {
+            java.util.List<String> names = idx.files();
+            for (int i = 0; i < names.size(); i++) if (names.get(i).equals(file.toString())) return i;
+        }
+        return null;
+    }
+
+    /** Floor-resolve within ONE member file of a rolled set (offsets are file-local — D-R2). */
+    static int floorRowInFile(LogIndex idx, long byteOffset, int fid) {
+        int ans = -1;
+        for (int i = 0; i < idx.size(); i++) {
+            if (idx.fileId(i) != fid) continue;
+            if (idx.offset(i) <= byteOffset) ans = i;
+            else if (ans >= 0) break;
+        }
+        return ans;
     }
 
     /** The record whose {@code [offset, offset+len)} contains {@code byteOffset}; clamps to first/last. */

@@ -305,7 +305,7 @@ for single files — A2 (time order is load-bearing for `at`/windows/buckets) fi
 loud degradation notes instead of wrong answers._
 - [M30.1] ☑ **`RollSetResolver`** *(shipped on `feat/m29-external-series`)* (pure) — suffix grammars, head/tail time probe, content ordering,
   `TimeOrderReport`; both logrotate-convention fixtures pass without configuration.
-- [M30.2] ☐ **Composite store** — per-file backends under one global index, per-record file id,
+- [M30.2] ☑ **Composite store** *(shipped on `feat/m29-external-series`)* — per-file backends under one global index, per-record file id,
   (file, offset) anchors through read/goto/crossings/context/copy-prompt.
 - [M30.3] ☐ **Validation surfaced** — banner + go-to-violation, verb echoes, single-file
   monotonicity check, D-R4 caveats on time-anchored features.

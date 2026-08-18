@@ -46,7 +46,21 @@ public final class ReadService {
         if (recordIndex != null) {
             anchor = clamp(recordIndex, 0, size - 1);
         } else if (byteOffset != null) {
-            anchor = snap.rowForOffset(byteOffset);
+            if (snap.fileCount() > 1) {
+                // D-R2: offsets are FILE-LOCAL in a rolled set — a bare offset is ambiguous and is
+                // refused with the file list rather than guessed
+                Integer fid = fileIdOf(params.get("file"), snap);
+                if (fid == null) {
+                    throw new IllegalArgumentException("this log is a rolled set — a byteOffset needs "
+                            + "'file' (one of " + java.util.Arrays.toString(snap.fileNames())
+                            + "), or anchor by recordIndex/at");
+                }
+                anchor = snap.rowForOffsetInFile(byteOffset, fid);
+                if (anchor < 0) throw new IllegalArgumentException("no record at that offset in '"
+                        + snap.fileNames()[fid] + "'");
+            } else {
+                anchor = snap.rowForOffset(byteOffset);
+            }
         } else if (at != null) {
             anchor = rowAtOrBefore(size, snap::logTime, at);
             if (anchor < 0) throw new IllegalArgumentException("no record carries a log time — 'at' cannot resolve");
@@ -88,6 +102,7 @@ public final class ReadService {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("recordIndex", row);
             m.put("byteOffset", snap.offset(row));
+            if (snap.fileCount() > 1) m.put("file", snap.fileNames()[snap.fileId(row)]);   // offsets are file-local
             Long lt = snap.logTime(row);
             if (lt != null) m.put("logTime", lt);
             if (fields == null) {
@@ -192,6 +207,20 @@ public final class ReadService {
         // never met a timed row on the search path — scan for one (rare: mostly-untimed file)
         for (int i = 0; i < size; i++) if (logTime.apply(i) != null) return i;
         return -1;
+    }
+
+    /** Resolve a 'file' param — a member index or a member name — to a file id; null when absent/unknown. */
+    private static Integer fileIdOf(Object file, LogIndex.Snapshot snap) {
+        if (file instanceof Number n) {
+            int id = n.intValue();
+            return id >= 0 && id < snap.fileCount() ? id : null;
+        }
+        if (file != null) {
+            String name = file.toString();
+            String[] names = snap.fileNames();
+            for (int i = 0; i < names.length; i++) if (names[i].equals(name)) return i;
+        }
+        return null;
     }
 
     private static int clamp(int v, int lo, int hi) {

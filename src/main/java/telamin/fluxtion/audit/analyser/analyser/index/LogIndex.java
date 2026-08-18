@@ -33,7 +33,11 @@ public final class LogIndex {
     private int[] declaringTypeId = new int[1024];
     private int[] nodeLogsCount = new int[1024];
     private byte[] flags = new byte[1024];
+    private byte[] fileId = new byte[1024];   // 0 for single-file stores; set by a rolled composite (M30)
     private int size = 0;
+
+    /** Registered member files of a rolled set, in load order; empty for a single-file index. */
+    private final java.util.List<String> files = new java.util.ArrayList<>();
 
     /** flags bits */
     public static final int FLAG_PARSE_ERROR = 1;
@@ -107,6 +111,66 @@ public final class LogIndex {
         declaringTypeId = Arrays.copyOf(declaringTypeId, cap);
         nodeLogsCount = Arrays.copyOf(nodeLogsCount, cap);
         flags = Arrays.copyOf(flags, cap);
+        fileId = Arrays.copyOf(fileId, cap);
+    }
+
+    // ---- rolled sets (M30) --------------------------------------------------------------------------
+
+    /** Register a member file; returns its id. Only a rolled composite calls this. */
+    public synchronized int registerFile(String displayName) {
+        files.add(displayName);
+        return files.size() - 1;
+    }
+
+    /** Member-file display names, load order; empty for a single-file index. */
+    public java.util.List<String> files() {
+        return java.util.List.copyOf(files);
+    }
+
+    public int fileCount() {
+        return files.isEmpty() ? 1 : files.size();
+    }
+
+    /** The member file this record came from (0 for single-file stores). */
+    public int fileId(int i) {
+        return fileId[i];
+    }
+
+    /**
+     * Copy one row from a member file's own index into this merged index (M30.2) — column copy with
+     * re-interning, so the merge never re-parses a record. Offsets stay FILE-LOCAL (D-R2: a byte
+     * offset must remain a real offset into a real file); {@code fid} says which file.
+     */
+    public synchronized void addFrom(LogIndex src, int row, int fid) {
+        ensure(size + 1);
+        offset[size] = src.offset(row);
+        length[size] = src.length(row);
+        Long lt = src.logTime(row);
+        logTime[size] = lt == null ? NO_TIME : lt;
+        Long et = src.eventTime(row);
+        eventTime[size] = et == null ? NO_TIME : et;
+        Long en = src.endTime(row);
+        endTime[size] = en == null ? NO_TIME : en;
+        int d = dimensions.intern(src.dimension(row));
+        dimId[size] = d;
+        if (d >= dimCount.length) dimCount = Arrays.copyOf(dimCount, Math.max(d + 1, dimCount.length * 2));
+        dimCount[d]++;
+        loggerId[size] = loggers.intern(src.logger(row));
+        threadId[size] = threads.intern(src.thread(row));
+        eventId[size] = events.intern(src.event(row));
+        eventStrId[size] = eventStrings.intern(src.eventToString(row));
+        groupingId[size] = groupings.intern(src.groupingId(row));
+        callbackId[size] = callbacks.intern(src.callback(row));
+        declaringTypeId[size] = declaringTypes.intern(src.declaringType(row));
+        nodeLogsCount[size] = src.nodeLogsCount(row);
+        if (nodeLogsCount[size] > maxNodeLogs) maxNodeLogs = nodeLogsCount[size];
+        flags[size] = src.flags(row);
+        fileId[size] = (byte) fid;
+        if (lt != null) {
+            if (lt < minLog) minLog = lt;
+            if (lt > maxLog) maxLog = lt;
+        }
+        size++;
     }
 
     public int size() { return size; }
@@ -147,7 +211,8 @@ public final class LogIndex {
     public synchronized Snapshot snapshot() {
         // capture column-array refs AND defensive copies of the dictionaries under the lock, so an
         // off-EDT reader never touches the live resizable Dictionary lists that follow-mode grows
-        return new Snapshot(size, offset, logTime, dimId, threadId, flags,
+        return new Snapshot(size, offset, logTime, dimId, threadId, flags, fileId,
+                files.toArray(new String[0]),
                 dimensions.copyValues(), threads.copyValues(), minLog, maxLog);
     }
 
@@ -159,11 +224,14 @@ public final class LogIndex {
         private final int[] dimId;
         private final int[] threadId;
         private final byte[] flags;
+        private final byte[] fileId;
+        private final String[] fileNames;      // empty for single-file stores
         private final String[] dimValues;      // captured copies — no live Dictionary reference
         private final String[] threadValues;
         private final long minLog, maxLog;
 
         private Snapshot(int size, long[] offset, long[] logTime, int[] dimId, int[] threadId, byte[] flags,
+                         byte[] fileId, String[] fileNames,
                          String[] dimValues, String[] threadValues, long minLog, long maxLog) {
             this.size = size;
             this.offset = offset;
@@ -171,10 +239,32 @@ public final class LogIndex {
             this.dimId = dimId;
             this.threadId = threadId;
             this.flags = flags;
+            this.fileId = fileId;
+            this.fileNames = fileNames;
             this.dimValues = dimValues;
             this.threadValues = threadValues;
             this.minLog = minLog;
             this.maxLog = maxLog;
+        }
+
+        public int fileCount() { return fileNames.length == 0 ? 1 : fileNames.length; }
+
+        public String[] fileNames() { return fileNames.clone(); }
+
+        public int fileId(int i) { return fileId[i]; }
+
+        /**
+         * The record whose byte range contains {@code byteOffset} WITHIN member file {@code fid}
+         * (M30 D-R2: offsets are file-local, so an offset search must be file-scoped). Linear over the
+         * file's rows — member row ranges are contiguous but this stays correct even if they were not.
+         */
+        public int rowForOffsetInFile(long byteOffset, int fid) {
+            int ans = -1;
+            for (int i = 0; i < size; i++) {
+                if (fileId[i] == fid && offset[i] <= byteOffset) ans = i;
+                else if (fileId[i] == fid && offset[i] > byteOffset && ans >= 0) break;
+            }
+            return ans;
         }
 
         public int size() { return size; }

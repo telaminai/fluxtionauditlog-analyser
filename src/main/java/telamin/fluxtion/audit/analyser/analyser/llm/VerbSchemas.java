@@ -48,7 +48,10 @@ public final class VerbSchemas {
                         + " records/call.",
                 props(
                         p("recordIndex", integer(), "anchor by record index (0-based)"),
-                        p("byteOffset", integer(), "anchor by byte offset (resolves to the containing record)"),
+                        p("byteOffset", integer(), "anchor by byte offset (resolves to the containing "
+                                + "record). On a rolled set offsets are file-local — pass 'file' too"),
+                        p("file", string(), "rolled sets only: which member file a byteOffset is into "
+                                + "(name or index)"),
                         p("at", integer(), "anchor by time (epoch millis) — resolves to the record "
                                 + "at-or-before that moment; no need to estimate record indexes from times"),
                         p("count", integer(), "total records, centred on the anchor (default " + ReadService.DEFAULT_COUNT + ")"),
@@ -99,7 +102,8 @@ public final class VerbSchemas {
 
         s.put("goto", schema("Select the record containing an anchor in the table.",
                 props(
-                        p("byteOffset", integer(), "anchor by byte offset"),
+                        p("byteOffset", integer(), "anchor by byte offset (rolled sets: pass 'file' too)"),
+                        p("file", string(), "rolled sets only: the member file a byteOffset is into"),
                         p("recordIndex", integer(), "anchor by record index"),
                         p("at", integer(), "anchor by time (epoch millis) — the record at-or-before that moment"),
                         p("reveal", bool(), "if the record is filtered out, relax the filter to show it")),

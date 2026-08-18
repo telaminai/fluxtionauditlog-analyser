@@ -135,12 +135,13 @@ public final class SeriesScan {
             lastAt = logTime;
             last = v;
 
+            String file = index.fileCount() > 1 ? index.files().get(index.fileId(row)) : null;
             if (above != null && v > above && (prev == null || prev <= above)) {
-                if (aboveEvents.size() < cap) aboveEvents.add(event(row, index.offset(row), logTime, v));
+                if (aboveEvents.size() < cap) aboveEvents.add(event(row, index.offset(row), logTime, v, file));
                 else truncated = true;
             }
             if (below != null && v < below && (prev == null || prev >= below)) {
-                if (belowEvents.size() < cap) belowEvents.add(event(row, index.offset(row), logTime, v));
+                if (belowEvents.size() < cap) belowEvents.add(event(row, index.offset(row), logTime, v, file));
                 else truncated = true;
             }
             prev = v;
@@ -207,10 +208,11 @@ public final class SeriesScan {
         return out;
     }
 
-    private static Map<String, Object> event(int row, long offset, long logTime, double value) {
+    private static Map<String, Object> event(int row, long offset, long logTime, double value, String file) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("recordIndex", row);
         m.put("byteOffset", offset);
+        if (file != null) m.put("file", file);   // rolled set: offsets are file-local (M30 D-R2)
         m.put("logTime", logTime);
         m.put("value", value);
         return m;
