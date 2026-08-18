@@ -311,7 +311,7 @@ loud degradation notes instead of wrong answers._
   monotonicity check, D-R4 caveats on time-anchored features.
 - [M30.4] ☑ **Offer + `open {logs}`** *(shipped on `feat/m29-external-series`)* — offer-never-act UI, verb + schema, docs + changelog.
 
-## M31 · Log-source plugins — ◧ IN PROGRESS (ACCEPTED v2) (other containers, same records)
+## M31 · Log-source plugins — ◧ ON BRANCH `feat/m29-external-series` (31.1–.3 + guide; example reader is cross-repo) (other containers, same records)
 _Design: **[spec-log-source-plugins.md](spec-log-source-plugins.md)**. Owner ask: parquet / Chronicle /
 DB audit sources as **plugins, not a requirement**. The core understands ONE thing — the Fluxtion audit
 record — and containers adapt to it: a tiny reader SPI (identity, `canOpen`, record stream in container
@@ -328,7 +328,9 @@ Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise the
   pinned.
 - [M31.3] ☑ **Capability wiring + `open` integration** *(shipped on `feat/m29-external-series`)* — loud degradation, `format` override,
   refusal names installed plugins.
-- [M31.4] ☐ **Out-of-tree example reader + plugin-author guide** (playground repo) + changelog.
+- [M31.4] ◧ **Plugin-author guide** *(shipped on `feat/m29-external-series` — the docs-site half)*;
+  the out-of-tree example reader lives in the playground repo and is DEFERRED to a cross-repo slice
+  (this repo cannot ship it; the in-tree toy reader in ReaderSpiTest is the seam proof meanwhile).
 
 ## M32 · Marker series — ☐ ACCEPTED (events on a value chart)
 _Design: **[spec-marker-series.md](spec-marker-series.md)**. Owner ask: buys/sells on a price plot
