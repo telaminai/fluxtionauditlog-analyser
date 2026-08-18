@@ -10,7 +10,16 @@ import java.util.List;
  */
 public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                         String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
-                        List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external) {
+                        List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
+                        List<MarkerSpec> markers) {
+
+    /** The pre-M32.5 shape (no markers). */
+    public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
+                     String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
+                     List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external) {
+        this(name, series, exprs, from, to, note, explanation, notes, rightAxis, guides, bands,
+                external, List.of());
+    }
 
     /** The pre-M29.4 shape (no external series). */
     public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
@@ -44,6 +53,15 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
      */
     public record ExternalSpec(String path, String label, String time, String timeFormat, String zone,
                                String value, long offsetMillis) {
+    }
+
+    /**
+     * A marker series (M32): the SOURCE persists, never the extracted points (M28.6's rule). {@code
+     * when} is a bare key (fires where logged) or a condition expr; {@code y} is a key/expr,
+     * {@code series:<label>}, or {@code axis} (the rug lane); {@code payload} is a key whose logged
+     * text rides each point as display cargo — never computation (D-M2).
+     */
+    public record MarkerSpec(String label, String glyph, String when, String y, String payload) {
     }
 
     /**
@@ -112,5 +130,9 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
 
     public List<ExternalSpec> external() {
         return external == null ? List.of() : external;
+    }
+
+    public List<MarkerSpec> markers() {
+        return markers == null ? List.of() : markers;
     }
 }

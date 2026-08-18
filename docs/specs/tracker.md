@@ -347,7 +347,7 @@ for markers; min/max on a decimated column), coordinate readout as fallback._
 - [M32.1] ☑ **Point-snapped mouseover, all series** *(shipped on `feat/m29-external-series`)*
   (severed in review — independent, shipped first; own changelog line; the snap SEARCH pure-tested,
   right-axis scale honoured, decimated columns answer min/max).
-- [M32.2] ☐ **Model + extraction** (pure) — MarkerSeries, key-triple + condition sources on the
+- [M32.2] ☑ **Model + extraction** *(shipped on `feat/m29-external-series`)* (pure) — MarkerSeries, key-triple + condition sources on the
   existing record walk, series-pinned `y` with the dangling-pin loud-degrade rule, density
   aggregation as data (headless-testable D-M3).
 - [M32.3] ☐ **Rendering** — glyphs, count badges, payload on the M32.1 tooltip, click→goto, the axis
