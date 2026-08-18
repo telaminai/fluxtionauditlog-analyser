@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-18
+
 ### Added
 - **External series** — plot what the outside world did. An agent (or you) adapts a FIX log, GC log
   or venue export into a `(timestamp, value)` CSV and the analyser plots it beside the audit-derived
