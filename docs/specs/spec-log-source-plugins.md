@@ -1,6 +1,8 @@
 # Log-Source Plugins — other containers, same records (Design Spec)
 
-Status: PROPOSED v1 · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M31**
+Status: ACCEPTED v2 (review: docs/handoff/review_m30_m31_m32_specs.txt — classloader delegation made
+a decision [P1], S3 placed as transport-not-container [P2], follow unified under the capability flag
+[P3]) · Owner: greg.higgins · Last updated: 2026-08-18 · Milestone **M31**
 
 Companion to **[tracker.md](tracker.md)** (M31) and **[spec-rolled-logs.md](spec-rolled-logs.md)**
 (M30, which generalises the anchor model this spec relies on). Prompted by the owner: *"we should also
@@ -64,6 +66,16 @@ Two standing commitments make "plugin, not a requirement" the only acceptable sh
   per-plugin classloader** (a plugin's Chronicle version must not fight another's, or ours — we have
   none). No network fetch, no auto-install, no plugin ever bundled: the analyser without plugins is
   byte-identical to today's.
+  **The delegation policy is part of the decision** (review P1 — acceptance 5 is unachievable
+  without it, and this is the single most common way plugin isolation is got wrong): **parent-first
+  for the SPI package and the JDK; child-first for everything else.** Pure isolation would break the
+  hand-off — a plugin loading its own copy of the SPI types gives the core objects whose classes are
+  not the core's classes, and every call fails with `ClassCastException`/`LinkageError`. Parent-first
+  on the SPI keeps the record hand-off typed; child-first elsewhere is what lets one plugin's
+  Chronicle ignore another's. Consequence, stated because "tiny artifact" understates it: once
+  `analyser-reader-spi` is parent-loaded it is a **compatibility surface with real versioning
+  obligations** — additive evolution only, the same discipline the GraphML reader was measured to
+  have.
   *Rationale:* the trust model must be legible. "A jar you chose to install can do anything" is
   honest; a curated in-app marketplace is a distribution business this tool is not in.
   *Alternative rejected:* sandboxing plugin code (SecurityManager is deprecated-for-removal; a real
@@ -76,6 +88,21 @@ Two standing commitments make "plugin, not a requirement" the only acceptable sh
   *Rationale:* forcing every container to pretend to be a text file wastes Chronicle's tailing and
   fabricates offsets for DB rows; forcing every feature to the weakest container throws away what
   works today.
+
+- **D-P4b — S3 is a TRANSPORT, not a container; transports stay core** (review P2). The analyser
+  already opens `s3://` by streaming to a temp file, and that boundary generalises cleanly: a
+  transport's job is to produce a local file; a reader's job is to turn a local file into records.
+  Keeping the two orthogonal means every reader works over every transport for free — an S3-fetched
+  parquet file needs no S3-aware parquet plugin. *Alternatives rejected:* S3 as the second built-in
+  reader (would fuse fetch and parse, forcing every future transport × format pairing to be written
+  out); S3 as the reference plugin (readers should not know about networks — D-P3's trust story is
+  simpler when plugins provably never fetch).
+
+- **D-P4c — ONE follow mechanism** (review P3): the existing `LogStore.supportsFollow()` folds into
+  this spec's `follow` capability flag — one source of truth, with M30's composite reporting
+  `follow=false` through the same flag rather than its own boolean. Non-goal made explicit while
+  here: a ROLLED SET of a plugin source (M30 × M31) is out of scope for both v1s — a decision, not
+  an oversight; revisit when a real plugin source rolls.
 
 - **D-P5 — in-process SPI first; an adapter PROCESS is the recorded fallback.** If a plugin's
   dependency tree proves hostile in-process (native libs, JPMS conflicts), the same record-stream
@@ -124,9 +151,11 @@ a `parquet-reader` example lives in the playground/examples repo where its depen
 
 ## Delivery slices
 
-1. **M31.1** The SPI (`AuditLogReader`: identity, `canOpen`, record stream, capability flags) + the
-   text parser refactored behind it; suite green unchanged. The SPI published as a tiny separate
-   artifact (`analyser-reader-spi`) plugin authors compile against.
+1. **M31.1** The SPI (`AuditLogReader`: identity, `canOpen`, record stream, capability flags, the
+   mandatory `timeBase` declaration) + the text parser refactored behind it; suite green unchanged.
+   The SPI published as a separate artifact (`analyser-reader-spi`) plugin authors compile against —
+   parent-loaded per D-P3, so it is a versioned compatibility surface from its first release:
+   additive evolution only.
 2. **M31.2** Registry + isolated classloaders + Settings ▸ Plugins + the trust boundary in FAQ/docs.
 3. **M31.3** Capability wiring (follow/byteAnchors/randomAccess degrade loudly) + `open` integration
    (`canOpen` sweep, `format` override, refusal echo).

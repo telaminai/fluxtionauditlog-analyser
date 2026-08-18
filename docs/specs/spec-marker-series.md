@@ -1,6 +1,8 @@
 # Marker Series — events on a value chart (Design Spec)
 
-Status: PROPOSED v1 · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M32**
+Status: ACCEPTED v2 (review: docs/handoff/review_m30_m31_m32_specs.txt — the point-snapped mouseover
+severed into its own slice [M1], the dangling y-series rule added [M2], the label-disclosure
+half-sentence added [M3]) · Owner: greg.higgins · Last updated: 2026-08-18 · Milestone **M32**
 
 Companion to **[tracker.md](tracker.md)** (M32). Subsumes M28's unscheduled **P3** (event markers /
 rug strip) and gives M29's **D-F2** ("foreign series are visibly second-class") its natural rendering.
@@ -40,6 +42,13 @@ Extraction uses the existing last-occurrence-per-record walk and the active filt
 never disagree with a plotted series about what a record contained. `y` may also be pinned to another
 series by label (`y: {series: "mid price"}`) for events that have a time but no natural price — the
 marker rides the named series' value at that moment (LOCF within the walk), and the echo says so.
+**A dangling pin degrades loudly, never silently** (review M2): labels are mutable — series get
+removed, renamed, or arrive renamed through a share's replace-by-name merge — so a marker series
+whose pinned series is absent renders nothing, keeps its legend row with the reason ("y pinned to
+'mid price' — not on this graph"), and the verb echo names it, exactly as `rightAxis` warnings,
+M29's "2 of 3 resolved" and M27's partial focus recalls already do. D-M4 makes this load-bearing:
+the spec is persisted and SHARED, so a dangling reference arrives on someone else's machine, not
+just after a local edit.
 
 ## B — the decisions (answers proposed, reviewer should challenge)
 
@@ -89,7 +98,10 @@ marker rides the named series' value at that moment (LOCF within the walk), and 
   One new disclosure with teeth: payloads can carry **business data** (order ids). The spec's
   position: payload text is drawn from the log the recipient already has (or a CSV they must also
   have, per M29 D-F5), so sharing a marker spec shares no data the graph didn't — but the
-  sharing-setups row must say "marker definitions (not their extracted values)" explicitly.
+  sharing-setups row must say "marker definitions (not their extracted values)" explicitly. The one
+  exception is the `label` (review M3): free text authored by a human or agent, so it CAN carry
+  business content into a shared file — the same caveat notes and explanations already carry, and
+  the same answer: it is authored consciously, not extracted silently.
 
 - **D-M5 — the rug strip is a marker series with `y: "axis"`.** P3 is not a second feature: a marker
   series may declare `y: "axis"` to render as ticks in a dedicated lane under the time axis — same
@@ -106,15 +118,18 @@ payload key resolution, and the M26.4 ignored-parameter rule throughout.
 **UI** — "Add markers…" on the graph panel (key-triple pickers populated from discovered keys);
 legend rows show glyph + label with a count; the flags rug is a toggle. Hover/click per D-M2/D-M3.
 
-**Point mouseover (owner ask, generalised to every series)** — today's chart tooltip reports the
-CURSOR's coordinates (`pxToX`/`pyToY` — wherever the mouse happens to be, whether or not data is
-there). This milestone replaces it with a **point-snapped** hover: within a small radius the tooltip
-snaps to the nearest actual sample and shows `series label · time · value` — and for a marker point,
-the payload and its source ("▲ buys · 13:02:11.412 · 17.2450 · ORD-4711 · fillListener"). No snap
-candidate in radius → the coordinate readout remains as the fallback. The nearest-sample search
-already exists for click-to-record; hover reuses it rather than growing a second one. On a decimated
-column (dense series) the tooltip names the column's min/max rather than pretending one sample is
-the truth — the same honesty as the paint-side envelope.
+**Point mouseover (owner ask, generalised to every series — SEVERED into its own slice, review
+M1)** — today's chart tooltip reports the CURSOR's coordinates (`pxToX`/`pyToY` — wherever the mouse
+happens to be, whether or not data is there). M32.1 replaces it with a **point-snapped** hover:
+within a small radius the tooltip snaps to the nearest actual sample and shows
+`series label · time · value`; no snap candidate in radius → the coordinate readout remains as the
+fallback; on a decimated column the tooltip names the column's min/max rather than pretending one
+sample is the truth (the paint-side envelope's honesty). The nearest-sample search already exists
+for click-to-record; hover reuses it. **This changes a shipped surface on every existing chart and
+is independent of markers** — hence its own slice, changelog line and acceptance; the marker slices
+then ADD payload to an already-shipped snapping tooltip ("▲ buys · 13:02:11.412 · 17.2450 ·
+ORD-4711 · fillListener") instead of co-delivering it under a slice whose stated risk is glyph
+rendering.
 
 **Exports** — PNG draws what the screen shows (count glyphs included); the PDF report adds a markers
 table (time, y, payload, source) under the chart, capped with an explicit "N of M shown" note.
@@ -149,18 +164,21 @@ table (time, y, payload, source) under the chart, capped with an explicit "N of 
 
 ## Delivery slices
 
-1. **M32.1** Model + extraction (pure): `MarkerSeries`, the key-triple and condition sources over the
-   existing record walk, series-pinned `y`, density aggregation as DATA (column → count) so D-M3 is
-   testable headlessly.
-2. **M32.2** Rendering + hover: glyphs, count badges, click→goto, the axis lane (D-M5) + Flags rug,
-   and the point-snapped mouseover for ALL series (markers add payload; decimated columns answer
-   min/max). The eyeball-heavy slice — offscreen-render verification like M21.3; the snap SEARCH is
-   pure and headless-tested even though the tooltip is not.
-3. **M32.3** Verb + schema + echoes (`graph {markers}`), REPLACE + warnings contract.
-4. **M32.4** Persistence + share (D-M4 checklist) + exports (PDF table, capture-harness screenshot)
+1. **M32.1** Point-snapped mouseover for ALL series (severed per review M1 — independent of markers,
+   shippable first, own changelog line and acceptance #6): the snap SEARCH is pure and
+   headless-tested; the tooltip itself is eyeball-verified.
+2. **M32.2** Model + extraction (pure): `MarkerSeries`, the key-triple and condition sources over the
+   existing record walk, series-pinned `y` with the M2 dangling rule, density aggregation as DATA
+   (column → count) so D-M3 is testable headlessly.
+3. **M32.3** Rendering: glyphs, count badges, payload on the M32.1 tooltip, click→goto, the axis
+   lane (D-M5) + Flags rug. The eyeball-heavy slice — offscreen-render verification like M21.3.
+4. **M32.4** Verb + schema + echoes (`graph {markers}`), REPLACE + warnings contract (incl. the M2
+   dangling-pin warning).
+5. **M32.5** Persistence + share (D-M4 checklist) + exports (PDF table, capture-harness screenshot)
    + docs + changelog. External-CSV source lands here IF M29 has shipped, else it is deferred to
    M29.4 as one line ("the M29 loader is a marker source").
 
-**Effort:** M32.1/M32.3 are M28-sized mechanical slices; M32.2 is the real work and the least
-testable — budget the offscreen-PNG verification time. **Sequencing:** independent of M30/M31; the
-external-CSV source is the only M29 coupling and it is severable (see M32.4).
+**Effort:** M32.1/M32.2/M32.4 are M28-sized mechanical slices; M32.3 is the real work and the least
+testable — budget the offscreen-PNG verification time. **Sequencing:** builds on the anchor model
+M30.2 settles (review C1 — recordIndex primary; do not restart that audit here); otherwise
+independent of M30/M31, and the external-CSV source is the only M29 coupling, severable (see M32.5).

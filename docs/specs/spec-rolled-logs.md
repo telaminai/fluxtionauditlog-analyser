@@ -1,6 +1,9 @@
 # Rolled Log Sets — one session, many files (Design Spec)
 
-Status: PROPOSED v1 · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M30**
+Status: ACCEPTED v2 (review: docs/handoff/review_m30_m31_m32_specs.txt — D-R6's mechanism corrected
+[R1, confirmed defect], head-probe untimed cases specified [R2], the checked field named [R3], and
+the anchor-model sequencing rule adopted [C1]) · Owner: greg.higgins · Last updated: 2026-08-18 ·
+Milestone **M30**
 
 Companion to **[tracker.md](tracker.md)** (M30). Prompted by the owner: *"support a set of audit log
 files that have the same name root but are rolled, and the name has a date-time or an index to show the
@@ -35,8 +38,18 @@ part of the evidence (dispatch order within a file is exact; spec §8.7 relies o
 
 - **D-R1 — discovery by name, ORDER by content.** Sibling discovery matches `<root>` + a recognised
   suffix (ISO-ish date-time, or a numeric index) in the same directory. The load order is then decided
-  by each file's **first record `logTime`** (a cheap head-probe, not a full parse). The suffix is never
-  consulted for ordering.
+  by each file's **first TIMED record's `logTime`** (a cheap head-probe, not a full parse). The suffix
+  is never consulted for ordering. Two cases the probe must answer, specified here because the first
+  slice hits them (review R2 — untimed records are ordinary; `logTime` is nullable and four shipped
+  code paths guard it):
+  - the probe scans **forward to the first timed record**, never reads record 0 blindly — a file
+    whose leading records are untimed must not sort by a null;
+  - a file with **no timed record at all** has no orderable position: it is placed by its NAME suffix
+    among its siblings and the `TimeOrderReport` says so loudly ("`maker.log.3` contains no timed
+    records — positioned by name, order unverifiable"). *Alternative rejected:* refusing the whole
+    set over one such file punishes a benign case (a boundary file of untimed lifecycle records) and
+    contradicts D-R4's own rule that record features must not degrade.
+  The tail probe used for cross-file continuity follows the same two rules in reverse.
   *Rationale:* this dissolves the logrotate-vs-incrementing-writer ambiguity instead of adding a
   convention toggle someone will set wrongly, and it means a lying filename cannot mis-order the set.
   *Alternative rejected:* ordering by suffix with a newest-first/oldest-first option. A toggle whose
@@ -57,7 +70,10 @@ part of the evidence (dispatch order within a file is exact; spec §8.7 relies o
 
 - **D-R3 — time validation is a first-class result, for sets and single files alike.** On load the
   analyser checks (a) **within-file monotonicity** — `logTime` non-decreasing record to record — and
-  (b) **cross-file continuity** — each file's first time is ≥ the previous file's last time. The
+  (b) **cross-file continuity** — each file's first time is ≥ the previous file's last time. **Both
+  checks read `logTime` and ONLY `logTime`** (review R3): `eventTime` is never consulted — it carries
+  a `-1` sentinel on exported-service calls (UP-FLX-10, measured), and a check that reached for it
+  would report false violations on any graph with an exported service. The
   outcome is a `TimeOrderReport`: clean, or a bounded list of violations, each with record anchors
   ("`maker.log.2` overlaps `maker.log.1` by 3.2s — 214 records interleave", "17 records out of order
   within `maker.log`, first at record 3,412"). The report is shown in the UI (status banner), echoed
@@ -103,10 +119,16 @@ part of the evidence (dispatch order within a file is exact; spec §8.7 relies o
   *Alternative rejected:* auto-loading siblings on open. The wrong-file case corrupts an investigation
   invisibly, which is worse than one extra click on every right-file case.
 
-- **D-R6 — memory scales per file, not per set.** The composite store delegates to one backend per
-  file, each chosen by the existing size threshold (`HeapLogStore` small, `MappedLogStore` big), under
-  one global index. A 6 × 400 MB set must not need 2.4 GB of heap because each member individually
-  sat under the heap threshold.
+- **D-R6 — memory scales per file, and the heap threshold applies to the SET TOTAL.** (Corrected in
+  review — R1, a confirmed defect: the first draft said "each file chosen by the existing size
+  threshold", whose mechanism produces exactly the outcome the rationale forbids, since
+  `LogStores.open` decides from `Files.size(path)` per file: six 400 MB members under a 512 MB
+  threshold would open six heap stores and cost 2.4 GB.) The rule: sum the member sizes FIRST; if the
+  total exceeds the threshold, every member opens memory-mapped. One decision, no per-file surprises,
+  and the rationale holds: a set must never cost more heap than one file of the same total size
+  would. *Recorded follow-up, not v1:* a smarter split — spend the heap budget on members in content
+  order and map the remainder — is better behaviour and more machinery; adopt only if the all-mapped
+  set proves slow in practice.
 
 ## B — surface
 
@@ -174,3 +196,9 @@ states the (file, offset) anchor rule, so a grep-capable agent seeks in the righ
 M26.2 `targetRow` seam and `SeriesScan.event()` are the known sites); M30.3–.4 are small. The
 per-record file id adds one small column to `LogIndex` — the same pattern as the existing dimension
 and thread columns.
+
+**Anchor-model sequencing (review C1, binding on M31 and M32 too):** M30.2 **settles the anchor
+model once** — recordIndex global and primary, byte offsets as (file, offset) pairs where a real file
+exists — and M31 (capability-gated anchors) and M32 (recordIndex-anchored markers) build on the
+settled version. Three milestones each auditing `read`/`goto`/crossings/`context`/copy-prompt
+separately would leave the third to reconcile the other two.

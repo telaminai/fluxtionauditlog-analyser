@@ -179,6 +179,9 @@ silent-skew risk arriving through the declared path — an agent that sees "reso
 M28's unscheduled **P3 (event markers / rug strip)** is the same loader with a different consumer: a CSV of
 *events* rather than values becomes tick marks under the time axis. The loader should therefore return
 points, not a chart — one reader, two consumers. Worth knowing before the loader's output type is fixed.
+**That second consumer has since arrived as M29's sibling spec** (review C3):
+**[spec-marker-series.md](spec-marker-series.md)** M32 — its external-CSV marker source (M32.5) is this
+loader plus a `payload` column, and it subsumes P3 outright (`y: "axis"`).
 
 ## Non-goals / guardrails
 

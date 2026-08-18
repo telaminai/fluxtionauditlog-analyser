@@ -290,7 +290,7 @@ also closed three contract gaps: out-of-order rows sort with an echo, duplicate 
 - [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
   for fully-portable sharing (D-F5's alternative).
 
-## M30 · Rolled log sets — ☐ PROPOSED (one session, many files)
+## M30 · Rolled log sets — ☐ ACCEPTED (one session, many files)
 _Design: **[spec-rolled-logs.md](spec-rolled-logs.md)**. Owner ask: open a set of same-rooted rolled
 files (date-time or index suffixes) as ONE log, with time validation catching sets that are not
 correctly ordered. Principle: **names discover; content orders; violations are reported, never
@@ -299,7 +299,8 @@ so file order comes from each file's first `logTime`, and disordered records are
 `TimeOrderReport` (UI banner, `open` echo, `context`), never silently re-sorted. `recordIndex` stays
 the global gap-free anchor; byte offsets become (file, offset) pairs so the copy-prompt's
 grep-the-file promise stays true. Opening a set is offered, never assumed (M20.5's offer-never-act);
-memory scales per file (mixed Heap/Mapped backends under one index). Monotonicity checking also lands
+memory scales per SET — the heap threshold applies to the member-size total, all-mapped above it
+(D-R6 corrected in review: per-file thresholding was a confirmed defect). Monotonicity checking also lands
 for single files — A2 (time order is load-bearing for `at`/windows/buckets) finally checked, with
 loud degradation notes instead of wrong answers._
 - [M30.1] ☐ **`RollSetResolver`** (pure) — suffix grammars, head/tail time probe, content ordering,
@@ -310,7 +311,7 @@ loud degradation notes instead of wrong answers._
   monotonicity check, D-R4 caveats on time-anchored features.
 - [M30.4] ☐ **Offer + `open {logs}`** — offer-never-act UI, verb + schema, docs + changelog.
 
-## M31 · Log-source plugins — ☐ PROPOSED (other containers, same records)
+## M31 · Log-source plugins — ☐ ACCEPTED (other containers, same records)
 _Design: **[spec-log-source-plugins.md](spec-log-source-plugins.md)**. Owner ask: parquet / Chronicle /
 DB audit sources as **plugins, not a requirement**. The core understands ONE thing — the Fluxtion audit
 record — and containers adapt to it: a tiny reader SPI (identity, `canOpen`, record stream in container
@@ -329,7 +330,7 @@ Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise the
   refusal names installed plugins.
 - [M31.4] ☐ **Out-of-tree example reader + plugin-author guide** (playground repo) + changelog.
 
-## M32 · Marker series — ☐ PROPOSED (events on a value chart)
+## M32 · Marker series — ☐ ACCEPTED (events on a value chart)
 _Design: **[spec-marker-series.md](spec-marker-series.md)**. Owner ask: buys/sells on a price plot
 with the client order id and a distinctive point style, plus point-snapped mouseover. A marker series
 is `(time, y, payload)` drawn as glyphs — the one legitimate path for categorical/per-event data onto
@@ -341,12 +342,16 @@ SOURCE not points (M28.6's rule); fifth artifact on the Graphs share category �
 disclosure row. Subsumes M28's P3: the rug strip is `y: "axis"`, and flagged records become a built-in
 rug. Mouseover generalises to EVERY series: snap to the nearest sample (label · time · value; payload
 for markers; min/max on a decimated column), coordinate readout as fallback._
-- [M32.1] ☐ **Model + extraction** (pure) — MarkerSeries, key-triple + condition sources on the
-  existing record walk, series-pinned `y`, density aggregation as data (headless-testable D-M3).
-- [M32.2] ☐ **Rendering + hover** — glyphs, count badges, click→goto, the axis lane + Flags rug,
-  point-snapped mouseover for all series; offscreen-PNG verification (the eyeball-heavy slice).
-- [M32.3] ☐ **Verb** — `graph {markers}`, REPLACE + warnings contract, M26.4 echoes.
-- [M32.4] ☐ **Persistence + share + exports** — D-M4 checklist, PDF markers table with cap note,
+- [M32.1] ☐ **Point-snapped mouseover, all series** (severed in review — independent, shippable
+  first; changes a shipped surface so it gets its own changelog + acceptance).
+- [M32.2] ☐ **Model + extraction** (pure) — MarkerSeries, key-triple + condition sources on the
+  existing record walk, series-pinned `y` with the dangling-pin loud-degrade rule, density
+  aggregation as data (headless-testable D-M3).
+- [M32.3] ☐ **Rendering** — glyphs, count badges, payload on the M32.1 tooltip, click→goto, the axis
+  lane + Flags rug; offscreen-PNG verification (the eyeball-heavy slice).
+- [M32.4] ☐ **Verb** — `graph {markers}`, REPLACE + warnings contract (incl. dangling-pin), M26.4
+  echoes.
+- [M32.5] ☐ **Persistence + share + exports** — D-M4 checklist, PDF markers table with cap note,
   capture-harness screenshot, docs + changelog; external-CSV source here iff M29 shipped.
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
