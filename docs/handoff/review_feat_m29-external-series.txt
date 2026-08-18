@@ -1,0 +1,140 @@
+REVIEW — feat/m29-external-series (M29 external series + M30 rolled log sets)
+Date: 2026-08-18 · Reviewed at d7379ce (last work commit 9f95abc) · Base: main @ 58879d7
+Reviewer: this session (I wrote the M29 spec and the M30/M31/M32 spec review these commits answer)
+
+VERDICT: approved — merge. Every finding I raised against the specs was applied BEFORE implementation
+and I verified each in source rather than accepting the report. Two of M30's headline claims I
+re-derived with my own probes rather than reading their tests. ONE minor finding (a javadoc promise
+the code does not keep), one note.
+
+================================================================================
+1. GATES — RE-RUN HERE, NOT TAKEN ON TRUST
+================================================================================
+  mvn -o test ............ 662/662, exit 0, zero failures/errors
+  mkdocs build --strict .. exit 0, zero warnings
+  anonymisation sweep .... clean (only the two rule-text self-matches)
+  golden corpus .......... green, including the G1/G2 cross-path checks added to main this morning —
+                           so M30's index changes did not silently move the scan path off the chart path
+
+================================================================================
+2. MY SPEC FINDINGS — ALL THREE APPLIED, VERIFIED IN SOURCE
+================================================================================
+R1 — **D-R6, the confirmed defect, is correctly fixed.** `RolledLogStore.open` now sums member sizes
+     FIRST and maps every member past the threshold:
+
+         long total = 0;
+         for (Path f : orderedFiles) total += Files.size(f);
+         boolean mapAll = total > thresholdBytes;   // the SET total decides, not each member
+
+     That is option (a) from the review, the class javadoc states the corrected rule, and the
+     rationale and mechanism now agree — which was the whole problem (the spec said "per file, each
+     chosen by the existing threshold" and then gave as its reason an outcome that mechanism produces).
+     Worth noting this is no longer hypothetical: support ran multiple 200 MB files this week, and
+     under the original wording each would have taken a heap store.
+
+R2 — **The untimed head probe is handled, and better than I asked.** The probe scans to the first
+     TIMED record with a doubling window bounded by a stated max, both head and tail. A file with no
+     timed record in the probed head is positioned by NAME and raises an `UNTIMED_FILE` violation
+     reading "order unverifiable" — which is the honest wording: it does not claim the placement is
+     right. `RollSetResolverTest` covers the untimed-then-timed case, which is the one a naive
+     "read record 0" probe would have got wrong.
+
+R3 — The checks read `logTime`, and untimed rows explicitly "order nothing"
+     (`TimeOrderValidator`). The `eventTime: -1` sentinel trap is avoided.
+
+================================================================================
+3. INDEPENDENTLY RE-DERIVED (my probes, not their tests)
+================================================================================
+D-R1 — **CONVENTION-INDEPENDENCE GENUINELY WORKS.** I built the same three content chunks twice: once
+     named logrotate-style (`.1` = NEWEST) and once incrementing-style (`.1` = OLDEST), then resolved
+     both:
+
+         logrotate    order: [m.log.2@1000, m.log.1@3000, m.log@5000]
+         incrementing order: [m.log.1@1000, m.log.2@3000, m.log@5000]
+         slot 0/1/2 identical content: true / true / true      both reports clean
+
+     The names imply opposite orders and the resolved CONTENT sequence is identical, with no
+     configuration. This is the acceptance centrepiece and it holds.
+
+D-R3 — **OVERLAP IS REPORTED AND NOT REPAIRED.** A set whose second file starts inside the first's
+     span produced `FILE_OVERLAP :: 'm.log.2' overlaps 'm.log.1' by 2000ms — the files interleave in
+     time`, with the order left as-is rather than re-sorted. The measured overlap is right and the
+     evidence is preserved, which is what D-R3 exists for.
+
+D-F4 — **Read confinement matches spec v3, and is slightly stricter than I wrote.** `resolveRead`
+     checks session grants FIRST as exact FILE paths (the grant is the file, never its directory —
+     stronger than "chooser-granted files" implied), then requires the opt-in AND a configured
+     exchange directory, then `startsWith`. Refusals name the rule, the setting and the directory,
+     satisfying F1 from the earlier round; the disabled-toggle message states outright that "reads and
+     writes share the one opt-in", which was F1(a)'s decision.
+
+     The diagnostic-echo defence is pinned exactly as specified: `ExternalCsvLoaderTest` plants an
+     `ssh-rsa …` key in a cell and asserts the diagnostic starts with the ORIGINAL line number,
+     does NOT contain the secret, and is under 120 chars. That is the leak vector D-F4 named, tested.
+
+C1 — The anchor model is settled where I asked it to be settled (M30.2): offsets are file-local with
+     a `fileId` column, a bare `byteOffset` on a set is refused naming the files, and `series`
+     crossings and `read` rows carry their file. M31 and M32 can now build on a decided model rather
+     than re-deciding it.
+
+================================================================================
+4. FINDING — A CAP THAT DOES NOT KEEP ITS OWN PROMISE
+================================================================================
+F1  `TimeOrderReport.MAX_VIOLATIONS = 50` carries the javadoc:
+
+        /** Bounded per report — the summary names how many more exist. */
+
+    **It does not.** `TimeOrderValidator` breaks out of the file loop at
+    `if (out.size() >= TimeOrderReport.MAX_VIOLATIONS) break;` without recording how many files went
+    unexamined, and `summarise()` simply lists the messages it has. Nothing anywhere tracks a dropped
+    count — I grepped for one.
+
+    Severity is LOW because the trigger is narrow: violations are aggregated per FILE (all
+    out-of-order records within one file become a single violation carrying the full count), so the
+    cap only bites on a set with **more than 50 files that each have violations**. Within any one
+    file the count is complete.
+
+    But it is worth fixing for two reasons. The javadoc states a behaviour that does not exist, which
+    is worse than no javadoc. And this branch applies the cap-honesty rule correctly everywhere else —
+    the CSV loader refuses past 5M rows *naming the bound*, `series` crossings carry a `truncated`
+    flag, M28's density glyph shows a count. This is the one place a bound is silent, and D-R4's
+    "degrade loudly" makes under-reporting the violation count exactly the wrong direction to err in.
+
+    Fix: track the dropped count and have `summarise()` append "…and N further files not examined",
+    mirroring `truncated`. Small, and it makes the javadoc true.
+
+================================================================================
+5. NOTES
+================================================================================
+N1  `resolveRead` confines by `normalize()` + `startsWith`, which is TEXTUAL — a symlink inside the
+    exchange directory pointing outside it would pass. Not a live escalation path: an agent cannot
+    create a symlink through the app (writes go through the same guard and write files, not links),
+    so this needs someone with local filesystem access, who has easier options. It is also consistent
+    with the write side, so changing one without the other would be worse. Worth one comment stating
+    that containment is textual by choice; `toRealPath()` if that ever stops being acceptable.
+N2  M30.3+.4 landed as one commit and the report says so plainly rather than dressing it as two
+    slices — the same honesty as M28.5/.6. Correct call; they share the MainFrame plumbing.
+N3  The self-caught bug is worth recording: the sort-on-load reorder count originally compared each
+    row against its PREDECESSOR and under-counted; it now measures against a running maximum. Found on
+    the first test run, fixed, and reported unprompted.
+N4  M29.5 (`embed`) remains deferred, as the spec intended. Agreed — it needs the size cap and
+    staleness stamp the spec gestures at, and nothing yet demands it.
+
+================================================================================
+6. WHAT I DID NOT VERIFY
+================================================================================
+  - The Swing surfaces: the *Add series from CSV…* dialog, the painted D-F2 stamp inside the plot
+    frame, the load-time offer dialog and the status suffix. Untested by design here; these need the
+    jar and a person. The painted-stamp choice is good precisely because it cannot be forgotten by an
+    export path, but that it LOOKS right is an eyeball item.
+  - Behaviour against a real multi-hundred-MB rolled set. The unit fixtures are small by necessity;
+    D-R6's corrected threshold logic is verified by reading, not by watching heap.
+  - `open {logs: […]}` over a live MCP client.
+
+================================================================================
+7. RECOMMENDATION
+================================================================================
+Merge. F1 is a small honesty fix that can ride this branch or the next housekeeping round; it does not
+block. The specs were accepted before implementation and the implementation matches them, which is the
+first time in this sequence that has been true end to end — the review cost was paid at spec time
+instead of after the code existed, and it shows in how little there is to say here.
