@@ -5,7 +5,7 @@ Status: ACCEPTED v2 (review: docs/handoff/review_m30_m31_m32_specs.txt — D-R6'
 the anchor-model sequencing rule adopted [C1]) · Owner: greg.higgins · Last updated: 2026-08-18 ·
 Milestone **M30**
 
-Companion to **[tracker.md](tracker.md)** (M30). Prompted by the owner: *"support a set of audit log
+Companion to **[tracker.md](../tracker.md)** (M30). Prompted by the owner: *"support a set of audit log
 files that have the same name root but are rolled, and the name has a date-time or an index to show the
 relative ordering… some date/time validation would be needed as well to capture logs that are not
 correctly sorted wrt time."*

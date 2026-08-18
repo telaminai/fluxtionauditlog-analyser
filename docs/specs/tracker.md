@@ -32,6 +32,13 @@ assistant-vocabulary follow-ups.
   (derive from intended semantics, **never snapshot output**) and the TODO taxonomy — `rate()`
   span-normalisation first, the c3094ea bug class — are in
   **[spec-formula-golden-fixtures.md](spec-formula-golden-fixtures.md)**.
+  Review endorsed (all 7 re-derived correct — `review_formula_golden_fixtures.txt`), with harness
+  gaps still OPEN: **G2** (the one worth doing first — run every fixture through BOTH engine arms,
+  `SeriesExtractor.extractExpr` *and* `SeriesScan`, and assert they agree; close before the corpus
+  grows), **G1** (an empty `EXPECT` passes vacuously — require non-empty or a declared
+  `expectEmpty: true`; close before the first absence-shaped fixture), **N1** (duplicate metadata
+  key assertion), plus one taxonomy add: a `min(4, 2)` / clamp-idiom fixture pinning the M28
+  compatibility guarantee.
 
 ---
 
@@ -262,100 +269,31 @@ not built) · **22.20** `.push()` targets render as orphans._
   fragility `UP-FLX-29` exists to remove, and a wrong-but-confident edge is worse here than an honest
   gap. Revisit only if the owner rules the upstream attributes out.
 
-## M29 · External series — ☑ ON BRANCH `feat/m29-external-series` (M29.1–.4; M29.5 embed deferred by design) (plot what the outside world did)
-_Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
-foreign log (FIX to begin with) into a CSV, hands the analyser the file location, and the analyser plots it
-beside the audit-derived series. **The analyser never learns a foreign format** — the agent adapts, the tool
-stays hermetic; spec'd as external timeseries, never as "FIX support". The drawing is free: `Series` is
-`(long[], double[], label)` and `key == null` for derived series is already supported, so a foreign series
-is structurally what a formula series already is — renderer, legend, axes and exports need no change. The
-work is honesty, posed as five decisions for review: the clock domain is **declared, never inferred**
-(D-F1); foreign series are **permanently second-class** — no recordIndex, so no goto/flag/anchors, and
-stamped external in every export (D-F2); **no foreign refs in formulas** — cross-clock carry semantics
-deserve their own proposal, not namespace accident (D-F3, rationale made durable in review); reads are
-**confined and their diagnostics sanitised**, the read counterpart to `ExportGuard` — allowlist narrowed
-in review to project dir + chooser-as-grant, source roots deliberately excluded, FAQ gains the read rule
-(D-F4); saved graphs store project-relative paths and **degrade out loud** (D-F5, the F1 lesson). Review
-also closed three contract gaps: out-of-order rows sort with an echo, duplicate timestamps both kept,
-5M-row cap refused loudly._
-- [M29.1] ☑ **Loader + CSV contract** *(shipped on `feat/m29-external-series`)* — explicit time/zone/value columns, no sniffing; sort-on-load
-  with reorder echo; duplicates kept; 5M-row cap; bounded sanitised parse diagnostics. Headless and
-  pure; full D-F1/D-F4 tests before any UI.
-- [M29.2] ☑ **UI** *(shipped on `feat/m29-external-series`)* — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 export stamping.
-- [M29.3] ☑ **`graph {external}` verb** *(shipped on `feat/m29-external-series`)* — M26.4-style echo (rows loaded/skipped/reordered, range,
-  offset — the range echo is the wrong-pattern defence); read confinement wired to the allowlist
-  (project dir + chooser grants); FAQ security answer gains the read rule, contract-test pinned.
-- [M29.4] ☑ **Persistence + sharing** *(shipped on `feat/m29-external-series`)* — project-relative paths, honest degradation, export-side disclosure;
-  docs + changelog.
-- [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
+## M29 · External series — ◧ SHIPPED 2026-08-18 (archived; M29.5 optional embed open)
+_M29.1–.4 shipped, reviewed and merged — full record in **[completed/tracker.md](completed/tracker.md)**.
+Design: **[completed/spec-external-series.md](completed/spec-external-series.md)**._
+- [M29.5] ☐ *(optional, owner decides)* **`embed: true`** — carry small series inside the saved graph
   for fully-portable sharing (D-F5's alternative).
 
-## M30 · Rolled log sets — ☑ ON BRANCH `feat/m29-external-series` (all four slices) (one session, many files)
-_Design: **[spec-rolled-logs.md](spec-rolled-logs.md)**. Owner ask: open a set of same-rooted rolled
-files (date-time or index suffixes) as ONE log, with time validation catching sets that are not
-correctly ordered. Principle: **names discover; content orders; violations are reported, never
-repaired** — suffix conventions are ambiguous (logrotate's `.1` is newest, a writer's `.1` is oldest),
-so file order comes from each file's first `logTime`, and disordered records are surfaced as a
-`TimeOrderReport` (UI banner, `open` echo, `context`), never silently re-sorted. `recordIndex` stays
-the global gap-free anchor; byte offsets become (file, offset) pairs so the copy-prompt's
-grep-the-file promise stays true. Opening a set is offered, never assumed (M20.5's offer-never-act);
-memory scales per SET — the heap threshold applies to the member-size total, all-mapped above it
-(D-R6 corrected in review: per-file thresholding was a confirmed defect). Monotonicity checking also lands
-for single files — A2 (time order is load-bearing for `at`/windows/buckets) finally checked, with
-loud degradation notes instead of wrong answers._
-- [M30.1] ☑ **`RollSetResolver`** *(shipped on `feat/m29-external-series`)* (pure) — suffix grammars, head/tail time probe, content ordering,
-  `TimeOrderReport`; both logrotate-convention fixtures pass without configuration.
-- [M30.2] ☑ **Composite store** *(shipped on `feat/m29-external-series`)* — per-file backends under one global index, per-record file id,
-  (file, offset) anchors through read/goto/crossings/context/copy-prompt.
-- [M30.3] ☑ **Validation surfaced** *(shipped on `feat/m29-external-series`)* — banner + go-to-violation, verb echoes, single-file
-  monotonicity check, D-R4 caveats on time-anchored features.
-- [M30.4] ☑ **Offer + `open {logs}`** *(shipped on `feat/m29-external-series`)* — offer-never-act UI, verb + schema, docs + changelog.
+## M31 · Log-source plugins — ◧ SHIPPED 2026-08-18 (archived; example reader is cross-repo)
+_31.1–.3 + the plugin-author guide shipped, reviewed and merged — full record in
+**[completed/tracker.md](completed/tracker.md)**. Design: **[completed/spec-log-source-plugins.md](completed/spec-log-source-plugins.md)**._
+- [M31.4r] ☐ **Out-of-tree example reader** — lives in the playground repo (this repo cannot ship it);
+  also the ONE M31 acceptance only a real jar can settle (two conflicting plugin jars coexisting).
+  The in-tree toy reader in ReaderSpiTest is the seam proof meanwhile. Cross-repo slice.
+- [M31.5] ☐ *(owner decision)* **Separate `analyser-reader-spi` artifact** — needs a multi-module
+  build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
-## M31 · Log-source plugins — ◧ ON BRANCH `feat/m29-external-series` (31.1–.3 + guide; example reader is cross-repo) (other containers, same records)
-_Design: **[spec-log-source-plugins.md](spec-log-source-plugins.md)**. Owner ask: parquet / Chronicle /
-DB audit sources as **plugins, not a requirement**. The core understands ONE thing — the Fluxtion audit
-record — and containers adapt to it: a tiny reader SPI (identity, `canOpen`, record stream in container
-order, capability flags) with the CORE building index/store above it; every record carries a canonical
-text rendering so the text-shaped surfaces keep working; plugins are jars the user explicitly installs
-(isolated classloaders, arbitrary-code warning named in FAQ + Settings, nothing bundled, no network).
-The fatjar stays FlatLaf-only — no format dependency ever enters this pom; the shipped text parser
-refactors to BE the built-in reader (the seam proven on the format that matters). Capabilities degrade
-loudly (a parquet file can't follow; a DB row has no byte offset — recordIndex anchors, per M30 D-R2).
-Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise them._
-- [M31.1] ☑ **The SPI + text parser behind it** *(shipped on `feat/m29-external-series`)* — `analyser-reader-spi` artifact; suite green
-  unchanged (M28.2-shaped inversion).
-- [M31.2] ☑ **Registry + isolation + Settings ▸ Plugins** *(shipped on `feat/m29-external-series`)* — trust boundary in FAQ, contract-test
-  pinned.
-- [M31.3] ☑ **Capability wiring + `open` integration** *(shipped on `feat/m29-external-series`)* — loud degradation, `format` override,
-  refusal names installed plugins.
-- [M31.4] ◧ **Plugin-author guide** *(shipped on `feat/m29-external-series` — the docs-site half)*;
-  the out-of-tree example reader lives in the playground repo and is DEFERRED to a cross-repo slice
-  (this repo cannot ship it; the in-tree toy reader in ReaderSpiTest is the seam proof meanwhile).
-
-## M32 · Marker series — ◧ ON BRANCH `feat/m29-external-series` (core complete; Flags rug, PDF table, external-CSV source deferred — see report) (events on a value chart)
-_Design: **[spec-marker-series.md](spec-marker-series.md)**. Owner ask: buys/sells on a price plot
-with the client order id and a distinctive point style, plus point-snapped mouseover. A marker series
-is `(time, y, payload)` drawn as glyphs — the one legitimate path for categorical/per-event data onto
-a chart (text values are unplottable today by design). Three sources, one model: key triples from the
-log, M28 condition exprs, the M29 CSV loader (severable coupling). Payloads are DISPLAY CARGO — hover,
-click→goto, exports — never computable (`Expr` stays numeric; the record is the queryable form).
-Density degrades to a count glyph, never silence and never soup (cap-honesty, drawn). Persisted as
-SOURCE not points (M28.6's rule); fifth artifact on the Graphs share category — full checklist +
-disclosure row. Subsumes M28's P3: the rug strip is `y: "axis"`, and flagged records become a built-in
-rug. Mouseover generalises to EVERY series: snap to the nearest sample (label · time · value; payload
-for markers; min/max on a decimated column), coordinate readout as fallback._
-- [M32.1] ☑ **Point-snapped mouseover, all series** *(shipped on `feat/m29-external-series`)*
-  (severed in review — independent, shipped first; own changelog line; the snap SEARCH pure-tested,
-  right-axis scale honoured, decimated columns answer min/max).
-- [M32.2] ☑ **Model + extraction** *(shipped on `feat/m29-external-series`)* (pure) — MarkerSeries, key-triple + condition sources on the
-  existing record walk, series-pinned `y` with the dangling-pin loud-degrade rule, density
-  aggregation as data (headless-testable D-M3).
-- [M32.3] ☑ **Rendering** *(shipped on `feat/m29-external-series`; Flags rug + PDF table deferred, see report)* — glyphs, count badges, payload on the M32.1 tooltip, click→goto, the axis
-  lane + Flags rug; offscreen-PNG verification (the eyeball-heavy slice).
-- [M32.4] ☑ **Verb** *(shipped on `feat/m29-external-series`)* — `graph {markers}`, REPLACE + warnings contract (incl. dangling-pin), M26.4
-  echoes.
-- [M32.5] ◧ **Persistence + share** *(shipped on `feat/m29-external-series`; PDF markers table + capture screenshot deferred)* — D-M4 checklist, PDF markers table with cap note,
-  capture-harness screenshot, docs + changelog; external-CSV source here iff M29 shipped.
+## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18 (archived; three small remnants)
+_32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
+marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
+Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
+- [M32.6] ☐ **Flags rug** — flagged records as a built-in axis-lane rug (D-M5's second half); needs a
+  flagged-rows supplier seam from MainFrame.
+- [M32.7] ☐ **PDF markers table** — glyphs already ride the painted export; the table (label, time,
+  payload, record) with the D-M3 cap note is additive.
+- [M32.8] ☐ **External-CSV marker source** — the M29 loader as a `when`/payload source; the
+  payload-column mapping deserves its own slice.
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
@@ -380,7 +318,7 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 _M13 (bridge) · M20–M28 all shipped — see completed/tracker.md. What remains:_
 1. **M29.1–29.3** (external series: loader → UI → verb) — spec ACCEPTED path pending the
-   review's three spec edits (`docs/handoff/review_m29_external_series.txt`).
+   review's three spec edits (`docs/handoff/completed/review_m29_external_series.txt`).
 2. **M18.0 spike, then M18.1 → M18.2 → M18.3** (verify admin surface; server link, read-only →
    log discovery → audit level) — small slices, each immediately useful with Follow.
 3. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent

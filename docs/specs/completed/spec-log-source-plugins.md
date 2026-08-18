@@ -1,10 +1,10 @@
 # Log-Source Plugins — other containers, same records (Design Spec)
 
-Status: ACCEPTED v2 (review: docs/handoff/review_m30_m31_m32_specs.txt — classloader delegation made
+Status: ACCEPTED v2 (review: docs/handoff/completed/review_m30_m31_m32_specs.txt — classloader delegation made
 a decision [P1], S3 placed as transport-not-container [P2], follow unified under the capability flag
 [P3]) · Owner: greg.higgins · Last updated: 2026-08-18 · Milestone **M31**
 
-Companion to **[tracker.md](tracker.md)** (M31) and **[spec-rolled-logs.md](spec-rolled-logs.md)**
+Companion to **[tracker.md](../tracker.md)** (M31) and **[spec-rolled-logs.md](spec-rolled-logs.md)**
 (M30, which generalises the anchor model this spec relies on). Prompted by the owner: *"we should also
 be able to support different auditlog parsers — parquet, chronicle, db etc. These would be plugins,
 not a requirement."*

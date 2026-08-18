@@ -1,12 +1,12 @@
 # External Series — plotting what the outside world did (Design Spec)
 
-Status: ACCEPTED v3 (v2 adopted docs/handoff/review_m29_external_series.txt — D-F4 allowlist narrowed,
+Status: ACCEPTED v3 (v2 adopted docs/handoff/completed/review_m29_external_series.txt — D-F4 allowlist narrowed,
 three contract gaps closed, D-F3's rationale made durable. v3 finishes the D-F4 fix: the project
 directory is a repository root by the same argument that removed source roots, so the read root is the
 **export directory** `ExportGuard` already confines writes to; plus original-line-number diagnostics
 across the G1 sort) · Owner: greg.higgins · Last updated: 2026-08-17 · Milestone **M29**
 
-Companion to **[tracker.md](tracker.md)** (M29), the graph engine (`graph/Series`, `graph/SeriesExtractor`)
+Companion to **[tracker.md](../tracker.md)** (M29), the graph engine (`graph/Series`, `graph/SeriesExtractor`)
 and **[spec-expr-conditionals-windows.md](completed/spec-expr-conditionals-windows.md)** (M28), whose window
 semantics this spec deliberately does **not** reopen. Prompted by the owner: *"Claude could filter, parse
 and generate a series from a FIX log; pass the file location to the analyser to plot. Accept CSV to begin

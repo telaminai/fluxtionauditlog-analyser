@@ -40,20 +40,23 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-08-17 (v1.3.0 + unreleased):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-08-18 (v1.4.0 + unreleased):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
-conditionals + rolling windows + guides/bands (M28).
+conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +
+time-order validation (M30), log-source plugins (M31 core), marker series + point-snapped mouseover
+(M32 core).
 
 Open analyser-side: M22 remnants — PNG export (22.3), alternative layouts (22.6), re-dispatch cause
 (22.11, needs `UP-FLX-10` in [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the
-holding pen for anything belonging to another repo); **M20.5** (project artifact pointers); **M29**
-(external series, `docs/specs/spec-external-series.md`, PROPOSED — review in
-`docs/handoff/review_m29_external_series.txt`). Cross-repo tracks: the **M18.0** admin-surface spike
-(`docs/specs/spec-closed-loop.md`) and the **M19.1** playground bundle contract
-(`docs/specs/spec-onboarding-example.md`). Two standing design decisions (tracker ▸ Decisions): server
-verbs are **never** assistant actions; agent fixes arrive as **evidence-linked PRs**, never direct
-edits.
+holding pen for anything belonging to another repo); **M20.5** (project artifact pointers); **M29.5**
+(optional embed); **M32 remnants** (Flags rug, PDF markers table, external-CSV marker source); the
+**golden-fixture corpus** hardening (G1/G2 harness gaps); the un-started **polish round**
+(`docs/handoff/handoff_17_aug_2026_1.txt`). Cross-repo tracks: the **M31.4r** example reader
+(playground), the **M18.0** admin-surface spike (`docs/specs/spec-closed-loop.md`) and the **M19.1**
+playground bundle contract (`docs/specs/spec-onboarding-example.md`). Two standing design decisions
+(tracker ▸ Decisions): server verbs are **never** assistant actions; agent fixes arrive as
+**evidence-linked PRs**, never direct edits.
 
 ## Build & run
 

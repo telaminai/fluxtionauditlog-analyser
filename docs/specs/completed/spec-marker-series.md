@@ -1,10 +1,10 @@
 # Marker Series — events on a value chart (Design Spec)
 
-Status: ACCEPTED v2 (review: docs/handoff/review_m30_m31_m32_specs.txt — the point-snapped mouseover
+Status: ACCEPTED v2 (review: docs/handoff/completed/review_m30_m31_m32_specs.txt — the point-snapped mouseover
 severed into its own slice [M1], the dangling y-series rule added [M2], the label-disclosure
 half-sentence added [M3]) · Owner: greg.higgins · Last updated: 2026-08-18 · Milestone **M32**
 
-Companion to **[tracker.md](tracker.md)** (M32). Subsumes M28's unscheduled **P3** (event markers /
+Companion to **[tracker.md](../tracker.md)** (M32). Subsumes M28's unscheduled **P3** (event markers /
 rug strip) and gives M29's **D-F2** ("foreign series are visibly second-class") its natural rendering.
 Prompted by the owner: *"plot buys/sells on a price graph and add customer order id with a distinctive
 point style."*

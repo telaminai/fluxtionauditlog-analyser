@@ -1279,3 +1279,81 @@ enters a window / NaN handling / STRICT-LOCF interaction) are proposed in the sp
 - [M28.6] ☑ **Condition bands (P2)** — condition
   persists, intervals recompute with the series' own extraction pass; same checklist.
 
+
+## M29 · External series — ◧ shipped portion: M29.1–.4, 2026-08-18 (merged; review approved; M29.5 optional embed stays live) (plot what the outside world did)
+_Design: **[spec-external-series.md](spec-external-series.md)**. Owner ask: an agent filters and parses a
+foreign log (FIX to begin with) into a CSV, hands the analyser the file location, and the analyser plots it
+beside the audit-derived series. **The analyser never learns a foreign format** — the agent adapts, the tool
+stays hermetic. The work is honesty, posed as five decisions: the clock domain is **declared, never
+inferred** (D-F1); foreign series are **permanently second-class** — no recordIndex, stamped external in
+every export (D-F2); **no foreign refs in formulas** (D-F3); reads are **confined and their diagnostics
+sanitised** — exchange dir + chooser-as-grant, the widened "Allow assistant file exchange" opt-in (D-F4);
+saved graphs store portable paths and **degrade out loud** (D-F5). Review closed three contract gaps:
+out-of-order rows sort with a running-max reorder echo, duplicate timestamps both kept, 5M-row cap
+refused loudly._
+- [M29.1] ☑ **Loader + CSV contract** — explicit time/zone/value columns, no sniffing; sort-on-load with
+  reorder echo; duplicates kept; 5M-row cap; bounded sanitised parse diagnostics. Headless and pure.
+- [M29.2] ☑ **UI** — *File ▸ Add series from CSV…*, legend marking, offset display, D-F2 painted export stamp.
+- [M29.3] ☑ **`graph {external}` verb** — M26.4-style echo (rows/skipped/reordered, range, offset);
+  ExportGuard.resolveRead confinement; FAQ read rule contract-test pinned.
+- [M29.4] ☑ **Persistence + sharing** — portable paths, honest degradation, export-side disclosure;
+  docs + changelog.
+
+## M30 · Rolled log sets — ☑ SHIPPED 2026-08-18 (merged; review approved — F1 violation-cap promise fixed post-review) (one session, many files)
+_Design: **[spec-rolled-logs.md](spec-rolled-logs.md)**. Owner ask: open a set of same-rooted rolled
+files (date-time or index suffixes) as ONE log, with time validation catching sets that are not
+correctly ordered. Principle: **names discover; content orders; violations are reported, never
+repaired** — file order comes from each file's first `logTime`, disordered records surface as a
+`TimeOrderReport` (UI banner, `open` echo, `context`), never silently re-sorted. `recordIndex` stays
+the global gap-free anchor; byte offsets become (file, offset) pairs. Opening a set is offered, never
+assumed; memory scales per SET total (D-R6 as corrected in spec review). Monotonicity checking also
+landed for single files — A2 finally checked. Post-merge review found the violation cap not keeping
+its javadoc promise; fixed with `unexaminedFiles` counted, summarised and in `isClean()`._
+- [M30.1] ☑ **`RollSetResolver`** (pure) — suffix grammars, head/tail time probe, content ordering;
+  both logrotate-convention fixtures pass without configuration.
+- [M30.2] ☑ **Composite store** — per-file backends under one global index, per-record file id,
+  (file, offset) anchors through read/goto/crossings/context/copy-prompt.
+- [M30.3] ☑ **Validation surfaced** — banner, verb echoes, single-file monotonicity check, D-R4
+  caveats on time-anchored features.
+- [M30.4] ☑ **Offer + `open {logs}`** — offer-never-act UI, verb + schema, docs + changelog.
+
+## M31 · Log-source plugins — ◧ shipped portion: 31.1–.3 + author guide, 2026-08-18 (merged; review approved; out-of-tree example reader is cross-repo, stays live) (other containers, same records)
+_Design: **[spec-log-source-plugins.md](spec-log-source-plugins.md)**. Owner ask: parquet / Chronicle /
+DB audit sources as **plugins, not a requirement**. The core understands ONE thing — the Fluxtion audit
+record — and containers adapt: a reader SPI (identity, `canOpen` by content, canonical record text in
+container order, MANDATORY timeBase, capability flags) with the CORE building index/store above it.
+Plugins are jars the user explicitly installs (per-jar classloaders, parent-first for the SPI + JDK,
+child-first else — review P1's textbook shape; the arbitrary-code warning named in FAQ + Settings and
+contract-test pinned; a plugin can only be a READER, never verbs). The registry — not the SPI — routes
+the built-in YAML reader to the existing optimised stores, so the seam costs the fast path nothing.
+Capabilities degrade loudly (byteAnchors=false → read/goto refuse offset anchoring naming the
+capability and the alternative). The separate `analyser-reader-spi` artifact is deferred (owner
+decision on multi-module build)._
+- [M31.1] ☑ **The SPI + text parser behind it** — suite green unchanged; in-tree toy reader proves the
+  seam headlessly.
+- [M31.2] ☑ **Registry + isolation + Settings ▸ Plugins** — trust boundary in FAQ, contract-test pinned.
+- [M31.3] ☑ **Capability wiring + `open` integration** — loud degradation, `format` override, refusal
+  names installed plugins.
+- [M31.4] ◧ **Plugin-author guide** — docs-site half shipped; the out-of-tree example reader lives in
+  the playground repo (cross-repo remnant, stays in the live tracker).
+
+## M32 · Marker series — ◧ shipped portion: core 32.1–.5, 2026-08-18 (merged; review approved; Flags rug + PDF table + external-CSV source stay live) (events on a value chart)
+_Design: **[spec-marker-series.md](spec-marker-series.md)**. Owner ask: buys/sells on a price plot
+with the client order id and a distinctive point style, plus point-snapped mouseover. Markers are
+`(time, y, payload, recordIndex)` drawn as glyphs; payloads are DISPLAY CARGO — hover, click→goto,
+exports — never computable. Density degrades to a count glyph with ×N badge, never silence and never
+soup. Persisted as SOURCE not points; fifth artifact on the Graphs share category. Post-review fixes
+on the same branch: D12 (a marker riding a series rides its SCALE — `riddenSeries` resolved against
+the axis at paint time) and R7 (markers got their OWN palette after the first real capture showed
+marker colour (1+5)%6 IS series colour 0). Docs shots captured and embedded: markers + the guardrails
+composite (guide + band + markers + on-plot explanation and pinned note)._
+- [M32.1] ☑ **Point-snapped mouseover, all series** — severed in review, shipped first; pure SnapSearch,
+  own-scale distance, decimated columns answer min/max.
+- [M32.2] ☑ **Model + extraction** (pure) — key-triple + condition sources on the existing record walk,
+  series-pinned `y` with the dangling-pin loud-degrade rule, density aggregation as data.
+- [M32.3] ☑ **Rendering** — glyphs, count badges, payload on the M32.1 tooltip, click→goto, the axis
+  lane. (Flags rug deferred — live remnant.)
+- [M32.4] ☑ **Verb** — `graph {markers}`, REPLACE + warnings contract, M26.4 echoes.
+- [M32.5] ☑ **Persistence + share + docs** — D-M4 checklist, capture-harness screenshots (shipped
+  post-review), docs + changelog. (PDF markers table and the external-CSV marker source deferred —
+  live remnants.)
