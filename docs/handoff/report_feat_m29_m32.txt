@@ -208,8 +208,11 @@ D12 (M32) RESOLVED after the second review pass (the reviewer weighed it: "fix b
       ≤4MB × members) — acceptable? An async offer is possible if a slow disk makes this visible.
   R6  (M31) PluginClassLoader.loadClass — the delegation order and its lock discipline; and whether
       claiming only "java./javax." for the JDK is enough (jdk.* internals?).
-  R7  (M32) D12 above — the right-axis marker scaling gap (RESOLVED, see D12); paintMarkers'
-      palette offset (+5) colliding with series colours on busy charts remains open.
+  R7  (M32) D12 above — the right-axis marker scaling gap (RESOLVED, see D12). The palette
+      collision is also RESOLVED — and it was worse than "busy charts": PALETTE[(1+5)%6] IS
+      series colour 0, so the second marker series drew in exactly the line's blue, caught by
+      eyeballing the first real capture-harness shot. Markers now draw from a dedicated
+      4-colour MARKER_PALETTE disjoint from the series palette.
   R8  (M32) markerAt() is O(points) per mouse-move; fine at forensic scales, unmeasured at 100k
       markers — weigh against D-M3's aggregation which could feed the hover path too.
 

@@ -32,6 +32,15 @@ public final class ChartPanel extends JPanel {
             new Color(0x0969DA), new Color(0xCF222E), new Color(0x1A7F37),
             new Color(0x8250DF), new Color(0xBC4C00), new Color(0x1B7C83)
     };
+    /**
+     * Markers draw from their OWN palette (R7): the old {@code PALETTE[+5]} offset made marker
+     * series 1 the exact colour of series 0, so glyphs riding a line vanished into it — visible in
+     * the first captured docs shot. None of these four appear in {@link #PALETTE}; all hold up on
+     * both themes.
+     */
+    private static final Color[] MARKER_PALETTE = {
+            new Color(0xE8590C), new Color(0xD6409F), new Color(0x66A80F), new Color(0x7048E8)
+    };
     private static final int L = 56, R = 16, T = 14, B = 44;   // legend is a Swing overlay now, not an in-margin paint
 
     private final List<Series> series = new ArrayList<>();
@@ -146,7 +155,7 @@ public final class ChartPanel extends JPanel {
         if (markers.isEmpty()) return;
         int mi = 0;
         for (var ms : markers) {
-            Color c = PALETTE[(mi++ + 5) % PALETTE.length];
+            Color c = MARKER_PALETTE[mi++ % MARKER_PALETTE.length];
             g.setColor(c);
             var agg = telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.aggregate(
                     ms.points(), vx0, vx1, plotW, MAX_GLYPHS_PER_COLUMN);

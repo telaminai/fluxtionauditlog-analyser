@@ -56,7 +56,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   and share with the graph (never their extracted values), and a marker pinned to a series that
   isn't on the graph says so instead of vanishing. A marker that rides a series rides its **scale**
   too: pinned to a right-axis series, the glyphs draw against the right scale — and follow if the
-  series is later moved between axes.
+  series is later moved between axes. Markers draw from their own palette, distinct from every
+  series colour, so a glyph riding a line never vanishes into it.
 
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same
