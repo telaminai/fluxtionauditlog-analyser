@@ -85,6 +85,21 @@ class ReaderSpiTest {
     }
 
     @Test
+    void aSourceWithoutByteAnchorsRefusesOffsetAnchoring_loudly() throws IOException {
+        Path toy = dir.resolve("prices.toy");
+        Files.writeString(toy, "1000|book|mid|17.1\n2000|book|mid|17.5\n");
+        LogStore store = SpiLogStore.open(new ToyReader(), toy);
+        assertFalse(store.index().byteAnchors());
+        var e = assertThrows(IllegalArgumentException.class, () -> ReadService.read(
+                store.index().snapshot(), Map.of("byteOffset", 0L), store::rawText));
+        assertTrue(e.getMessage().contains("no byte anchors"), e.getMessage());
+        assertTrue(e.getMessage().contains("recordIndex"), "the refusal teaches the alternative: " + e.getMessage());
+        // recordIndex anchoring is untouched
+        assertEquals(0, ReadService.read(store.index().snapshot(),
+                Map.of("recordIndex", 0, "count", 1), store::rawText).get("anchor"));
+    }
+
+    @Test
     void aReaderWithoutATimeBaseIsRefusedAtRegistration() {
         AuditLogReader lawless = new ToyReader() {
             @Override public TimeBase timeBase() { return null; }

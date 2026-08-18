@@ -55,6 +55,10 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
 - **Scripting verbs — `open` and `source_root` — can change which log, event processor or source roots
   are open**, the same things you change through the UI. Still nothing outside the analyser: no shell,
   no arbitrary file reads, and your API key is never reachable.
+- **Log-source plugins are jars you install yourself, and installing a jar is arbitrary code
+  execution.** Nothing is bundled or downloaded — without plugins this application is byte-identical
+  to a plain build — and a plugin can only ever be a log *reader*: it cannot add verbs to the action
+  socket, so the verb list above stays complete with or without plugins.
 
 ## How do I check for updates?
 

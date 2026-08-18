@@ -39,6 +39,17 @@ public final class LogIndex {
     /** Registered member files of a rolled set, in load order; empty for a single-file index. */
     private final java.util.List<String> files = new java.util.ArrayList<>();
 
+    /** False when offsets are SYNTHETIC (an SPI container without byte anchors, M31 D-P4). */
+    private boolean byteAnchors = true;
+
+    public void setByteAnchors(boolean byteAnchors) {
+        this.byteAnchors = byteAnchors;
+    }
+
+    public boolean byteAnchors() {
+        return byteAnchors;
+    }
+
     /** flags bits */
     public static final int FLAG_PARSE_ERROR = 1;
     public static final int FLAG_NAN = 2;
@@ -212,7 +223,7 @@ public final class LogIndex {
         // capture column-array refs AND defensive copies of the dictionaries under the lock, so an
         // off-EDT reader never touches the live resizable Dictionary lists that follow-mode grows
         return new Snapshot(size, offset, logTime, dimId, threadId, flags, fileId,
-                files.toArray(new String[0]),
+                files.toArray(new String[0]), byteAnchors,
                 dimensions.copyValues(), threads.copyValues(), minLog, maxLog);
     }
 
@@ -226,13 +237,15 @@ public final class LogIndex {
         private final byte[] flags;
         private final byte[] fileId;
         private final String[] fileNames;      // empty for single-file stores
+        private final boolean byteAnchors;
         private final String[] dimValues;      // captured copies — no live Dictionary reference
         private final String[] threadValues;
         private final long minLog, maxLog;
 
         private Snapshot(int size, long[] offset, long[] logTime, int[] dimId, int[] threadId, byte[] flags,
-                         byte[] fileId, String[] fileNames,
+                         byte[] fileId, String[] fileNames, boolean byteAnchors,
                          String[] dimValues, String[] threadValues, long minLog, long maxLog) {
+            this.byteAnchors = byteAnchors;
             this.size = size;
             this.offset = offset;
             this.logTime = logTime;
@@ -246,6 +259,8 @@ public final class LogIndex {
             this.minLog = minLog;
             this.maxLog = maxLog;
         }
+
+        public boolean byteAnchors() { return byteAnchors; }
 
         public int fileCount() { return fileNames.length == 0 ? 1 : fileNames.length; }
 

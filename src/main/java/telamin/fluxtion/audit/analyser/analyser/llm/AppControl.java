@@ -19,6 +19,11 @@ public interface AppControl {
     /** Open an audit log from a path (or {@code s3://…}); returns the echo or a structured error. */
     ActionResult openLog(String path);
 
+    /** Open with an explicit reader format (M31); default falls back to sniff-free canOpen routing. */
+    default ActionResult openLog(String path, String format) {
+        return openLog(path);
+    }
+
     /**
      * Open an explicit rolled set (M30 D-R5): the caller DECLARES the member list; content decides the
      * order; the echo carries the order chosen and the TimeOrderReport. Default: not supported.

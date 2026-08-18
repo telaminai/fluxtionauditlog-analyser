@@ -31,6 +31,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   finding, and re-sorting would destroy the evidence. While violations exist, time-anchored answers
   (`at`, windows, buckets) carry a caveat; the full report is in `context` and the load dialog.
 
+- **Log-source plugins.** The analyser can read audit records from other containers — parquet,
+  Chronicle, a database — through reader plugins: jars you explicitly install in
+  `~/.fluxtion-analyser/plugins/`, listed with their declared time base and capabilities in
+  **Settings ▸ Plugins**. The trust boundary is stated plainly there and in the FAQ: installing a
+  jar is arbitrary code execution, nothing is ever bundled or downloaded, and a plugin can only be a
+  *reader* — it cannot add verbs. Every reader declares its clock domain up front, capabilities
+  degrade loudly (a container without byte anchors is anchored by record index and says so), and
+  `open {format}` forces a specific reader. Without plugins, nothing changes.
+
 ### Fixed
 - **The `series` verb could answer from superseded data, disagreeing with the chart for the same
   formula.** A record carrying no `logTime` cannot be plotted, but it has still *observed* values — and

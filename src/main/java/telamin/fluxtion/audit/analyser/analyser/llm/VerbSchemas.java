@@ -205,7 +205,9 @@ public final class VerbSchemas {
                                 + "logTime); the echo reports the order and the time-order report"),
                         p("graphml", string(), "path to a processor .graphml"),
                         p("processor", string(), "fully-qualified EventProcessor class to resolve nodes "
-                                + "against; needed before source navigation works")),
+                                + "against; needed before source navigation works"),
+                        p("format", string(), "force a specific installed reader (M31 plugins) — e.g. "
+                                + "\"yaml\"; omit to let readers claim the file by content")),
                 List.of()));
 
         s.put("source_root", schema("Inspect or change the configured Java source roots. Reaches the "

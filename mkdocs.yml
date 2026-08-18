@@ -101,6 +101,7 @@ nav:
       - Source navigation: user-guide/source-navigation.md
       - Working across projects: user-guide/projects.md
       - Sharing setups: user-guide/sharing-setups.md
+      - Log-source plugins: user-guide/plugins.md
   - The audit log:
       - Log format: log-format.md
       - Producing an audit log: producing-a-log.md

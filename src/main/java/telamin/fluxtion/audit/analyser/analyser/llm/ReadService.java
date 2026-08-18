@@ -46,6 +46,10 @@ public final class ReadService {
         if (recordIndex != null) {
             anchor = clamp(recordIndex, 0, size - 1);
         } else if (byteOffset != null) {
+            if (!snap.byteAnchors()) {
+                throw new IllegalArgumentException("this source has no byte anchors (its container is "
+                        + "not a byte-addressed file) — anchor by recordIndex or at instead");
+            }
             if (snap.fileCount() > 1) {
                 // D-R2: offsets are FILE-LOCAL in a rolled set — a bare offset is ambiguous and is
                 // refused with the file list rather than guessed

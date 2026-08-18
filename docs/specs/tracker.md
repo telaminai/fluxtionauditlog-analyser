@@ -324,9 +324,9 @@ loudly (a parquet file can't follow; a DB row has no byte offset — recordIndex
 Sequencing: M30.2 and M31.1 touch the same store-assembly seam — serialise them._
 - [M31.1] ☑ **The SPI + text parser behind it** *(shipped on `feat/m29-external-series`)* — `analyser-reader-spi` artifact; suite green
   unchanged (M28.2-shaped inversion).
-- [M31.2] ☐ **Registry + isolation + Settings ▸ Plugins** — trust boundary in FAQ, contract-test
+- [M31.2] ☑ **Registry + isolation + Settings ▸ Plugins** *(shipped on `feat/m29-external-series`)* — trust boundary in FAQ, contract-test
   pinned.
-- [M31.3] ☐ **Capability wiring + `open` integration** — loud degradation, `format` override,
+- [M31.3] ☑ **Capability wiring + `open` integration** *(shipped on `feat/m29-external-series`)* — loud degradation, `format` override,
   refusal names installed plugins.
 - [M31.4] ☐ **Out-of-tree example reader + plugin-author guide** (playground repo) + changelog.
 

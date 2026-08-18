@@ -157,6 +157,8 @@ public final class MainFrame extends JFrame {
         actionExecutor.bind(topologyPanel, new AppControlAdapter());
         actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
+        readerRegistry.loadPlugins(java.nio.file.Path.of(
+                System.getProperty("user.home"), ".fluxtion-analyser", "plugins"));
         actionExecutor.setTimeOrderNote(() -> timeOrderReport.isClean() ? null
                 : "time order is violated in this log — time-anchored answers may be approximate; "
                         + "see 'context'.timeOrder");   // M30 D-R4
@@ -965,7 +967,7 @@ public final class MainFrame extends JFrame {
         file.add(exportYaml);
         file.addSeparator();
         JMenuItem settings = new JMenuItem("Settings…");
-        settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged));
+        settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries));
         file.add(settings);
         JMenuItem exportSettings = new JMenuItem("Export settings…");
         exportSettings.setToolTipText("Share your analysis setup — roots, event processors, graphs (never your API key)");
@@ -1486,6 +1488,23 @@ public final class MainFrame extends JFrame {
                 });
     }
 
+    /** One display line per installed reader + any plugin load notes (Settings ▸ Plugins). */
+    private java.util.List<String> readerSummaries() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (var r : readerRegistry.readers()) {
+            var caps = r.capabilities();
+            out.add(r.formatId() + " — " + r.displayName() + "  (timeBase " + r.timeBase().epoch()
+                    + "/" + r.timeBase().zone() + "/" + r.timeBase().source()
+                    + (caps.follow() ? ", follow" : "") + (caps.byteAnchors() ? ", byteAnchors" : "") + ")");
+        }
+        out.addAll(readerRegistry.loadNotes());
+        return out;
+    }
+
+    /** Log-source readers: the built-in YAML reader + explicitly-installed plugin jars (M31 D-P3). */
+    private final telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry readerRegistry =
+            new telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry();
+
     /** The active log's time-order validation (M30 D-R3) — clean until a load says otherwise. */
     private telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrderReport =
             telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
@@ -1518,10 +1537,23 @@ public final class MainFrame extends JFrame {
         }
         status.setText("Loading " + path + " …");
         setBusy(true);
+        openFileWithReader(path, null);
+    }
+
+    /** Open via the reader registry (M31): explicit {@code format} wins; otherwise canOpen decides. */
+    void openFileWithReader(Path path, String format) {
         Background.run(
                 () -> {
                     try {
-                        LogStore s = LogStores.open(path, config.memoryThresholdMb);
+                        var reader = readerRegistry.readerFor(path, format);
+                        if (reader == null) {
+                            throw new RuntimeException(format != null
+                                    ? "no installed reader has format '" + format + "' — installed: "
+                                            + readerRegistry.describeReaders()
+                                    : "no installed reader recognises " + path.getFileName()
+                                            + " — installed: " + readerRegistry.describeReaders());
+                        }
+                        LogStore s = readerRegistry.open(reader, path, config.memoryThresholdMb);
                         var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                 .validate(s.index());
                         return new Object[]{s, report};
@@ -1650,7 +1682,12 @@ public final class MainFrame extends JFrame {
         followPath = followable ? location : null;
         if (following && !followable) setFollowing(false);
         else if (following && followTimer != null) followTimer.restart();   // resume after a rotation reload
-        if (followMenuItem != null) followMenuItem.setEnabled(followable);
+        if (followMenuItem != null) {
+            followMenuItem.setEnabled(followable);
+            followMenuItem.setToolTipText(followable
+                    ? "Poll the open local file for newly-appended records and auto-scroll"
+                    : "This source cannot follow (rolled sets and non-file containers do not tail)");
+        }
         if (followButton != null) followButton.setEnabled(followable);
     }
 
@@ -1806,7 +1843,7 @@ public final class MainFrame extends JFrame {
                         + "out of source navigation and the assistant — everything can be changed later\n"
                         + "via File → Settings.",
                 "First run", JOptionPane.INFORMATION_MESSAGE);
-        ConfigPanel.show(this, config, this::onConfigChanged);
+        ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries);
     }
 
     /**
@@ -2284,6 +2321,21 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path, String format) {
+            java.nio.file.Path f = java.nio.file.Path.of(path);
+            if (format != null && !format.isBlank()) {
+                if (readerRegistry.readerFor(f, format) == null) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "no installed reader has format '" + format + "' — installed: "
+                                    + readerRegistry.describeReaders());
+                }
+                openFileWithReader(f, format);
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied",
+                        java.util.Map.of("log", path, "format", format, "loading", true));
+            }
+            return openLog(path);
+        }
+
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths) {
             java.util.List<java.nio.file.Path> files = new java.util.ArrayList<>();
             for (String p : paths) {

@@ -58,7 +58,13 @@ public final class ConfigPanel extends JDialog {
     private final JSpinner maxActionsSpinner = new JSpinner(new SpinnerNumberModel(20, 1, 200, 1));
 
     private ConfigPanel(JFrame owner, AppConfig config, Runnable onSaved) {
+        this(owner, config, onSaved, null);
+    }
+
+    private ConfigPanel(JFrame owner, AppConfig config, Runnable onSaved,
+                        java.util.function.Supplier<java.util.List<String>> readerSummaries) {
         super(owner, "Settings", true);
+        this.readerSummaries = readerSummaries;
         this.config = config;
         this.onSaved = onSaved;
         buildUi();
@@ -72,6 +78,11 @@ public final class ConfigPanel extends JDialog {
         new ConfigPanel(owner, config, onSaved).setVisible(true);
     }
 
+    public static void show(JFrame owner, AppConfig config, Runnable onSaved,
+                            java.util.function.Supplier<java.util.List<String>> readerSummaries) {
+        new ConfigPanel(owner, config, onSaved, readerSummaries).setVisible(true);
+    }
+
     private void buildUi() {
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Source roots", buildRootsTab());
@@ -81,6 +92,7 @@ public final class ConfigPanel extends JDialog {
         tabs.addTab("Performance & S3", buildS3Tab());
         tabs.addTab("Assistant", buildAssistantTab());
         tabs.addTab("History", buildHistoryTab());
+        tabs.addTab("Plugins", buildPluginsTab());
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
         buttons.setBorder(BorderFactory.createEmptyBorder(0, 12, 4, 12));
@@ -147,6 +159,40 @@ public final class ConfigPanel extends JDialog {
         if (fg != null) note.setForeground(fg);
         return note;
     }
+
+    /** Log-source reader plugins (M31 D-P3) — the trust boundary stated in plain words. */
+    private JPanel buildPluginsTab() {
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        java.nio.file.Path pluginsDir = java.nio.file.Path.of(
+                System.getProperty("user.home"), ".fluxtion-analyser", "plugins");
+
+        JTextArea warning = new JTextArea(
+                "Log-source plugins let the analyser read audit records from other containers "
+                + "(parquet, Chronicle, a database).\n\n"
+                + "A plugin is a jar you place in:  " + pluginsDir + "\n\n"
+                + "Installing a jar is ARBITRARY CODE EXECUTION — a plugin can do anything this "
+                + "application can. Install only jars you trust. Nothing is ever downloaded or "
+                + "bundled; without plugins this application is byte-identical to a plain build.\n\n"
+                + "Add or remove plugins by adding/removing jars in that folder, then restart.");
+        warning.setEditable(false);
+        warning.setLineWrap(true);
+        warning.setWrapStyleWord(true);
+        warning.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        panel.add(warning, BorderLayout.NORTH);
+
+        DefaultListModel<String> model = new DefaultListModel<>();
+        if (readerSummaries != null) {
+            for (String line : readerSummaries.get()) model.addElement(line);
+        }
+        JList<String> list = new JList<>(model);
+        JScrollPane scroll = new JScrollPane(list);
+        scroll.setBorder(BorderFactory.createTitledBorder("Installed readers"));
+        panel.add(scroll, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /** Supplied at construction by MainFrame: a line per installed reader + plugin load notes. */
+    private final java.util.function.Supplier<java.util.List<String>> readerSummaries;
 
     private JPanel buildRootsTab() {
         JPanel panel = new JPanel(new BorderLayout(10, 8));

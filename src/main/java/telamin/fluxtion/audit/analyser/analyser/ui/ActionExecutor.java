@@ -478,6 +478,8 @@ public final class ActionExecutor implements RenderExecutor {
 
     private ActionResult doGoto(LogStore s, Map<String, Object> p) {
         int row = targetRow(s.index(), p, "byteOffset", "recordIndex");
+        if (row == -3) return ActionResult.error("this source has no byte anchors — anchor by "
+                + "recordIndex or at instead");
         if (row == -2) return ActionResult.error("this log is a rolled set — a byteOffset needs 'file' "
                 + "(one of " + s.index().files() + "), or anchor by recordIndex/at");
         if (row < 0) return ActionResult.error(p.get("at") instanceof Number
@@ -594,6 +596,7 @@ public final class ActionExecutor implements RenderExecutor {
      */
     static int targetRow(LogIndex idx, Map<String, Object> p, String offsetKey, String indexKey) {
         if (p.get(offsetKey) instanceof Number n) {
+            if (!idx.byteAnchors()) return -3;   // no byte anchors in this container (M31 D-P4)
             if (idx.fileCount() > 1) {
                 Integer fid = fileIdOf(p.get("file"), idx);
                 if (fid == null) return -2;   // ambiguous: rolled set needs 'file' — caller reports it
@@ -657,6 +660,9 @@ public final class ActionExecutor implements RenderExecutor {
 
     private ActionResult doOpen(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
+        if (params.get("log") != null && params.get("format") != null) {
+            return app.openLog(str(params.get("log")), str(params.get("format")));
+        }
         if (params.get("logs") instanceof List<?> list && !list.isEmpty()) {
             List<String> paths = new ArrayList<>();
             for (Object o : list) if (o != null) paths.add(o.toString());
