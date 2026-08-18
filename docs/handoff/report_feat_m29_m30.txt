@@ -1,0 +1,119 @@
+REPORT — branch feat/m29-external-series (M29 + M30 — the owner said "start M29 then M30")
+Date: 2026-08-18 · Last WORK commit: 9f95abc · Base: main @ 58879d7 (post-golden-corpus)
+Both specs ACCEPTED before implementation (M29 v3, M30 v2 — all review findings pre-applied).
+
+STATUS: M29.1–.4 and M30.1–.4 complete, NOT merged. M29.5 (embed) stays deferred by design.
+  9 commits · 662 tests green · mkdocs --strict green · sweep clean · tracker: both ☑ ON BRANCH
+
+================================================================================
+1. WHAT SHIPPED — M29 (external series)
+================================================================================
+ee31729  M29.1 loader — pure, the full D-F1/D-F4 set before any UI. Declared columns/format/zone
+  (typo'd zones fail the LOAD, not every row); unparseable times counted with ORIGINAL line numbers
+  and excerpts that never echo a cell (the ssh-key-in-the-error leak is the pinned test);
+  sort-on-load with the reorder count measured against the RUNNING MAX (the previous-row comparison
+  under-counted — caught by the first test run, see §3); duplicates kept stably; 5M-row cap refused
+  during the streaming pass. Returns points + report, not a chart (M32 is the second consumer).
+ef3e56b  M29.2 UI — File ▸ Add series from CSV… (the dialog fields ARE the D-F1 contract; the
+  chooser IS the D-F4 grant, feeding the session grant set); (external) marking in series list and
+  legend; the D-F2 stamp is PAINTED inside the plot frame so every PNG/PDF carries it by
+  construction; failures keep the spec and degrade via externalNotes() (D-F5).
+8fd43f3  M29.3 verb — graph {external}: guard → LOAD off-EDT (echo carries rows/skipped/reordered/
+  range/offset/diagnostics) → one EDT apply. Refusals ride warnings[] naming rule + setting +
+  directory (F1). ExportGuard.resolveRead is the read counterpart: exchange dir OR chooser-granted
+  exact file — the grant is the FILE, never its directory. The consent label WIDENED everywhere:
+  'Allow assistant file exchange (screenshot/report writes, external-series reads)' — Settings,
+  guard messages, FAQ (read rule now in the security answer, contract-test pinned), both guides.
+ab6fb56  M29.4 persistence + sharing — ExternalSpec in GraphSpec (definition, never points);
+  ConfigStore round-trip; restore-not-an-edit; shares write home paths ~-relative and preview()
+  expands + resolves profile-relative against the file's own directory (the source-roots rule);
+  disclosure: the category row names external-CSV definitions AND the local-file dependency.
+
+================================================================================
+2. WHAT SHIPPED — M30 (rolled log sets)
+================================================================================
+305ca60  M30.1 RollSetResolver — discovery by both suffix grammars; ORDER BY CONTENT only (the
+  acceptance centrepiece passes: identical content in logrotate and incrementing conventions loads
+  identically, zero configuration); head/tail probes scan to the first TIMED record, bounded
+  windows doubling to a 4MB cap with the bound stated in the report; wholly-untimed files place by
+  name with a loud UNTIMED_FILE violation; overlap measured, never repaired.
+1830977  M30.2 RolledLogStore — merged index via LogIndex.addFrom (column copy + re-interning,
+  never re-parsing); global gap-free recordIndex; offsets FILE-LOCAL with a fileId column +
+  registered names (D-R2 — the copy-prompt's grep promise survives); D-R6 AS CORRECTED: member
+  sizes summed FIRST, all-mapped past the threshold. The refusal rule in every offset consumer:
+  read/goto bare byteOffset on a set → refuse naming the files, {file: name|id} resolves; flag
+  redirects to recordIndexes; series crossings + read rows carry their file.
+7b1d9bd  M30.3+.4 (one commit — shared MainFrame plumbing, stated rather than dressed up):
+  TimeOrderValidator (within-file monotonicity per member AND for plain single files — A2 finally
+  checked; untimed rows order nothing; a boundary overlap is the resolver's finding, pinned);
+  report surfaced at load (status suffix + once-at-load dialog), in 'context'.timeOrder, and as
+  D-R4 caveat notes on goto {at} and series; D-R5 offer on opening a set member (content order +
+  ranges shown, never assumed); open {logs: [...]} with the order + report in the echo.
+9f95abc  the S3 single-file path validates too — every open, one rule.
+
+================================================================================
+3. DEFECTS CAUGHT BY MY OWN FIRST TEST RUNS (test-first working as intended)
+================================================================================
+  - M29.1 reorder count compared each row to its PREDECESSOR; 3000,1000,2000 counted 1 not 2.
+    Running-max is the honest metric (any row below the high-water mark is out of order). Fixed
+    before commit; the verb test then re-verified the same semantics end-to-end.
+  - M30.1 probe loop was INVERTED for files smaller than the window (`window/2 < size` never ran)
+    — every fixture probed null. Rewritten probe-at-least-once. This is the exact bug class the
+    corrected D-R6 warns about: a mechanism that defeats its own intent, caught only by running.
+
+================================================================================
+4. DECISIONS BEYOND THE SPECS' LETTER (flag in review)
+================================================================================
+D1  (M29) Refused/failed external items are WARNINGS, not call failures — the M28.5 contract
+    (apply the valid remainder, name the skipped). Acceptance 4's "refused loudly" is satisfied by
+    the warning naming rule + setting + directory; a hard fail would hold the rest hostage.
+D2  (M29) The verb LOADS before the EDT apply so the echo is the loader's own report; the UI path
+    stays async (Background). Two entry points, one applyExternalLoaded seam.
+D3  (M30) The probe bound: 256KB doubling to 4MB, then "no timed record in the probed head —
+    positioned by name, order unverifiable". A file whose first timed record sits past 4MB is
+    treated as untimed FOR ORDERING; the message names the boundary honestly. Full-scan ordering
+    was rejected: discovery must not read gigabytes before the user has even agreed to open a set.
+D4  (M30) Snapshot.rowForOffsetInFile / floorRowInFile are LINEAR over the file's rows — member
+    ranges are contiguous so a binary search per range is possible, but offsets-in-file lookups are
+    rare (one per verb call) and the linear form stays correct even if contiguity ever changes.
+D5  (M30) D-R4 caveats ride goto {at} and series. read {at} does NOT carry the note: read is
+    dispatched directly to ReadService (dispatcher-side), and threading a report supplier through
+    ActionDispatcher's three construction sites for one note was judged not worth the surface —
+    'context'.timeOrder and the load dialog carry the full report. RECORDED AS A DEVIATION from
+    D-R4's letter ("time-anchored features carry the note"), not hidden. Cheap to add if review
+    disagrees.
+D6  (M30) The "banner" is a status-line suffix plus a once-at-load WARNING DIALOG listing the
+    violations; the spec's clickable go-to-violation links are NOT built (deviation, recorded).
+    The violation lines carry record anchors, so goto reaches them today; the clickable UI is a
+    small follow-up slice if wanted.
+D7  (M30) Follow on a composite: unsupported (supportsFollow false), per the spec non-goal; the
+    single-file follow path is untouched.
+D8  (M29) The dialog's format combo is editable (a DateTimeFormatter pattern can be typed) but only
+    the three named formats are offered — patterns are the escape hatch, not the path of least
+    resistance.
+
+================================================================================
+5. HUMAN EYEBALL (Swing untested by design — the running jar)
+================================================================================
+  E1  File ▸ Add series from CSV… end-to-end: header-populated combos, the (external) legend row,
+      the painted stamp (BOTH themes), offset shown, PNG/PDF carrying the stamp.
+  E2  A missing external file on reopen: the graph draws, the note names what did not resolve.
+  E3  Open a member of a real rolled set: the offer lists content order + time ranges; Yes loads
+      one log titled "… (+N rolled)"; No opens the single file as before.
+  E4  The time-order dialog on a deliberately disordered set; the status-line ⚠ suffix.
+  E5  goto/read {byteOffset} against a set over MCP: the refusal names the member files; retry
+      with {file} lands; the echo names the file.
+  E6  The widened Settings label reads sensibly in the dialog layout.
+
+================================================================================
+6. SUGGESTED REVIEW FOCUS
+================================================================================
+  R1  LogIndex.addFrom — the column-copy merge (interning fidelity, dimCount, min/max, flags).
+      RolledLogStoreTest pins dimension totals; a second pair of eyes on the copied columns.
+  R2  ExportGuard.resolveRead — traversal normalisation, the grant-is-exact-file rule, and the
+      refusal text naming setting + directory (F1's contract).
+  R3  D5/D6 deviations — accept or direct the follow-up.
+  R4  The M29 loader's timeParser fallback chain (offset-in-text first, declared zone second,
+      diagnostic third) — D-F1's no-guessing claim rests on it.
+  R5  MainFrame.openFile's offer path runs resolver probes on the EDT before load (bounded reads,
+      ≤4MB × members) — acceptable? An async offer is possible if a slow disk makes this visible.
