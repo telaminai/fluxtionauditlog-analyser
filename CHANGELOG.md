@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-18
+
 ### Added
 - **Marker series now appear in the chart legend** — each with its own glyph, in its own colour, and
   the number of events it holds. Previously a chart could draw triangles and crosses while the key
