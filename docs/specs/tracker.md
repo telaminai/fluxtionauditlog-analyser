@@ -290,7 +290,7 @@ also closed three contract gaps: out-of-order rows sort with an echo, duplicate 
 - [M29.5] ☐ *(optional, decide after 29.4)* **`embed: true`** — carry small series inside the saved graph
   for fully-portable sharing (D-F5's alternative).
 
-## M30 · Rolled log sets — ☐ ACCEPTED (one session, many files)
+## M30 · Rolled log sets — ◧ IN PROGRESS (ACCEPTED v2) (one session, many files)
 _Design: **[spec-rolled-logs.md](spec-rolled-logs.md)**. Owner ask: open a set of same-rooted rolled
 files (date-time or index suffixes) as ONE log, with time validation catching sets that are not
 correctly ordered. Principle: **names discover; content orders; violations are reported, never
@@ -303,7 +303,7 @@ memory scales per SET — the heap threshold applies to the member-size total, a
 (D-R6 corrected in review: per-file thresholding was a confirmed defect). Monotonicity checking also lands
 for single files — A2 (time order is load-bearing for `at`/windows/buckets) finally checked, with
 loud degradation notes instead of wrong answers._
-- [M30.1] ☐ **`RollSetResolver`** (pure) — suffix grammars, head/tail time probe, content ordering,
+- [M30.1] ☑ **`RollSetResolver`** *(shipped on `feat/m29-external-series`)* (pure) — suffix grammars, head/tail time probe, content ordering,
   `TimeOrderReport`; both logrotate-convention fixtures pass without configuration.
 - [M30.2] ☐ **Composite store** — per-file backends under one global index, per-record file id,
   (file, offset) anchors through read/goto/crossings/context/copy-prompt.
