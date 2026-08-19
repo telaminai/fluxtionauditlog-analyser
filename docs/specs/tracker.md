@@ -32,13 +32,14 @@ assistant-vocabulary follow-ups.
   (derive from intended semantics, **never snapshot output**) and the TODO taxonomy — `rate()`
   span-normalisation first, the c3094ea bug class — are in
   **[spec-formula-golden-fixtures.md](spec-formula-golden-fixtures.md)**.
-  Review endorsed (all 7 re-derived correct — `review_formula_golden_fixtures.txt`), with harness
-  gaps still OPEN: **G2** (the one worth doing first — run every fixture through BOTH engine arms,
-  `SeriesExtractor.extractExpr` *and* `SeriesScan`, and assert they agree; close before the corpus
-  grows), **G1** (an empty `EXPECT` passes vacuously — require non-empty or a declared
-  `expectEmpty: true`; close before the first absence-shaped fixture), **N1** (duplicate metadata
-  key assertion), plus one taxonomy add: a `min(4, 2)` / clamp-idiom fixture pinning the M28
-  compatibility guarantee.
+  Review endorsed (all 7 re-derived correct — `review_formula_golden_fixtures.txt`). **G1 and G2
+  closed** (58879d7): an empty `EXPECT` now requires a declared `expectEmpty: true`, and every
+  fixture runs through BOTH engine arms — `SeriesExtractor.extractExpr` *and* `SeriesScan` — with
+  agreement asserted. Closing G2 immediately caught the `series` verb answering from stale carries
+  (the 1.5.0 headline fix): the corpus's first scalp, on the day the cross-path check landed.
+  Still open: **N1** (duplicate metadata key assertion — a doubled `expr:` line silently takes the
+  last), plus one taxonomy add: a `min(4, 2)` / clamp-idiom fixture pinning the M28 compatibility
+  guarantee.
 
 ---
 
@@ -100,9 +101,9 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
   out in `MongooseServerAdmin` and no restart exists → small `mongoose` PR. No `fluxtion-server-plugins`
   PR needed to unblock M18.1–18.3. _Caveat: verified by reading source, **not** against a running server
   (the M19 bench doesn't exist yet) — M18.1 must re-confirm live._
-  **⚠ Gating question raised, not answered — see [Decisions ▸ open](#open-questions): the audit-capture
-  plugin's Phase 2 is a web audit-log viewer with graph replay inside `svc-admin-web`, overlapping this
-  analyser. Settle positioning before scheduling M18.2–18.4.**
+  _The gating question the spike raised — audit-capture's Phase 2 ships a web audit-log viewer with
+  graph replay inside `svc-admin-web`, overlapping this analyser — was **resolved as complement**
+  (Decisions ▸ O5, recorded via the M21 review's F5). M18.2–18.4 are not positioning-blocked._
 - [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced;
   per-link **"development server — restarts allowed"** opt-in flag); status-bar chip
   (connected/name/uptime); Server menu scaffold.
@@ -110,8 +111,8 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
   format is **Chronicle**, which the analyser cannot read). Instead `GET /api/audit/files` → pick from the
   catalog (`path`, `sizeBytes`, `recordCount`, `startedAt`) → `GET /api/audit/file/{id}/export?format=yaml`
   → open the projected YAML the analyser already parses. `WS /ws/audit-tail/{processor}` is the candidate
-  for Follow. _One-click "point the analyser at your running system"._ **Blocked on the positioning
-  question** (tracker ▸ Open questions).
+  for Follow. _One-click "point the analyser at your running system"._ _Positioning
+  resolved (Decisions ▸ O5) — no longer blocked._
 - [M18.3a] ☐ **DECIDE before M18.3** _(review F2)_ — the audit-level endpoint is a **setter with no `GET`
   companion**, so capture-and-restore has nothing to read. Either file the small server-side `GET` ask, or
   re-spec restore to a **user-declared baseline**. Blocks M18.3 only; M18.1 is unaffected.
@@ -140,7 +141,7 @@ human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only 
   audit + level + graphml routes are already per-processor. `/api/services` enumerates something else
   entirely, and `/api/services/{name}/config` says nothing about the audit sink. · **O3** admin auth beyond localhost — **now concrete**: `svc-admin-web`
   has `POST /api/session/login` and `authMode` may not be `NONE`, so M18.1 needs auth from day one.
-  · **O5 (NEW, gating) positioning vs the server's own audit viewer** — see Open questions below.
+  · **O5 positioning vs the server's own audit viewer — RESOLVED as complement** (Decisions ▸ O5).
   _(O4 gitignore: resolved — the analyser writes it.)_
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
@@ -383,6 +384,8 @@ _M13 (bridge) · M20–M28 all shipped — see completed/tracker.md. What remain
   `jbang analyser@…` depends on. FlatLaf remains the only runtime dependency; a hand-rolled layered
   layout is the work, with pure-Java ELK as the fallback (spec-graph-replay §3).
 
+## Open questions
+
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
-- spec-closed-loop **O1–O4** (admin endpoint surface · multi-processor discovery · admin auth ·
-  brief-file gitignore).
+
+_(spec-closed-loop O1–O4 all resolved — statuses recorded in the M18 block above; O5 in Decisions.)_

@@ -14,6 +14,10 @@ architecture, conventions). This file is only the rules that must never be skipp
    Screenshots are therefore generated, not taken: `python3 tools/capture-docs.py` drives a real analyser
    loaded **only** with the demo fixture. Capture by hand only when the harness cannot reach the surface,
    and then read every visible string — title bar, status bar, paths — before committing.
+   **The sweep cannot see git metadata either.** 110 commits before 2026-08-18 carry an
+   employer-domain author email into the public history (found 2026-08-19); rewriting is ruled out by
+   rule 3, so that history is accepted and recorded here. The repo-local `user.email` is pinned to the
+   personal address — verify `git config user.email` before committing from a fresh clone.
 2. **CHANGELOG.md**: every user-visible change adds a line under `## [Unreleased]` in the same commit.
    The release workflow stamps it; it feeds the GitHub release, the in-app notes, and the docs site.
 3. **Branch**: `main` only (trunk-based, always releasable); `pull.rebase` is set — no merge bubbles.
@@ -51,7 +55,7 @@ Open analyser-side: M22 remnants — PNG export (22.3), alternative layouts (22.
 (22.11, needs `UP-FLX-10` in [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the
 holding pen for anything belonging to another repo); **M20.5** (project artifact pointers); **M29.5**
 (optional embed); **M32 remnants** (Flags rug, PDF markers table, external-CSV marker source); the
-**golden-fixture corpus** hardening (G1/G2 harness gaps); the un-started **polish round**
+golden-fixture corpus follow-ups (N1 + the clamp fixture — G1/G2 closed, `58879d7`); the un-started **polish round**
 (`docs/handoff/handoff_17_aug_2026_1.txt`). Cross-repo tracks: the **M31.4r** example reader
 (playground), the **M18.0** admin-surface spike (`docs/specs/spec-closed-loop.md`) and the **M19.1**
 playground bundle contract (`docs/specs/spec-onboarding-example.md`). Two standing design decisions
