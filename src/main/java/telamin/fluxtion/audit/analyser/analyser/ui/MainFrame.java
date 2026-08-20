@@ -808,6 +808,32 @@ public final class MainFrame extends JFrame {
         return lines;
     }
 
+    /**
+     * The Reports tab's export button (human parity with {@code report {path}}): the chooser IS the
+     * consent, exactly like the finding export — a human-picked path never rides the exchange guard.
+     */
+    private void exportReportPdfWithChooser(String name) {
+        var spec = reportByName(name);
+        if (spec == null || store == null) return;
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Export report");
+        fc.setSelectedFile(new File(name + ".pdf"));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
+                spec, store.index(), loadedLogName(), findings,
+                new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter);
+        java.util.List<String> warnings = new java.util.ArrayList<>();
+        byte[] pdf = renderReportPdf(spec, resolution, warnings);
+        try {
+            Files.write(fc.getSelectedFile().toPath(), pdf);
+            status.setText("Wrote " + fc.getSelectedFile().getName()
+                    + (warnings.isEmpty() ? "" : " — " + warnings.size() + " note(s), see the panel"));
+        } catch (java.io.IOException e) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Could not write: " + e.getMessage(),
+                    "Export report", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void exportFindingWithChooser() {
         int[] rows = tablePanel.selectedModelRows();
         if (rows.length == 0 || store == null) return;
@@ -1309,7 +1335,8 @@ public final class MainFrame extends JFrame {
                 row -> openRecordFromReport(row),
                 gname -> { sideTabs.setSelectedComponent(graphTabs); graphTabs.selectGraph(gname); },
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
-                snap -> snap.applyTo(filter));
+                snap -> snap.applyTo(filter),
+                name -> exportReportPdfWithChooser(name));
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);

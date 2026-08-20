@@ -74,6 +74,8 @@ Agents (or you, over REST) use the `report` verb:
 Re-issuing with the same `name` **replaces** the report. Add `path` to render the PDF, or
 `csv: 2, path: "rows.csv"` to export that table's rows — both write inside the exchange directory
 under the same *Allow assistant file exchange* opt-in as every other file the assistant writes.
+The Reports tab has the same door for you: **Export PDF…** renders the selected report to a file you
+choose — your chooser is the consent, so it is not confined to the exchange directory.
 
 Reports persist with your profile, travel with projects, and share under their **own category** —
 because a shared report carries narrative written about your data, which deserves its own consent
