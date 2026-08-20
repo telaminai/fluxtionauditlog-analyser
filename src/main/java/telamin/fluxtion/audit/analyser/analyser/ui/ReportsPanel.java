@@ -91,6 +91,7 @@ public final class ReportsPanel extends JPanel {
     private final Consumer<String> openGraph;
     private final Consumer<String> openFocus;
     private final Consumer<FilterSnapshot> applyFilter;
+    private final Consumer<String> exportPdf;
 
     private final DefaultListModel<String> names = new DefaultListModel<>();
     private final JList<String> list = new JList<>(names);
@@ -100,7 +101,8 @@ public final class ReportsPanel extends JPanel {
                         Function<ReportSpec, ReportResolver.Resolution> resolve,
                         Function<ReportSpec.SectionSpec, ReportVerb.AssembledTable> assembleTable,
                         IntConsumer gotoRecord, Consumer<String> openGraph,
-                        Consumer<String> openFocus, Consumer<FilterSnapshot> applyFilter) {
+                        Consumer<String> openFocus, Consumer<FilterSnapshot> applyFilter,
+                        Consumer<String> exportPdf) {
         super(new BorderLayout());
         this.reports = reports;
         this.resolve = resolve;
@@ -109,6 +111,18 @@ public final class ReportsPanel extends JPanel {
         this.openGraph = openGraph;
         this.openFocus = openFocus;
         this.applyFilter = applyFilter;
+        this.exportPdf = exportPdf;
+
+        // the agent exports with report {path}; the human gets the same door as a button — the two
+        // surfaces must stay in parity, or one side's report is not quite the other's
+        JPanel bar = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 2));
+        JButton export = new JButton("Export PDF…");
+        export.addActionListener(e -> {
+            String name = list.getSelectedValue();
+            if (name != null) exportPdf.accept(name);
+        });
+        bar.add(export);
+        add(bar, BorderLayout.NORTH);
 
         detail.setLayout(new BoxLayout(detail, BoxLayout.Y_AXIS));
         detail.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
