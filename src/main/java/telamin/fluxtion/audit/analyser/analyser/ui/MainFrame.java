@@ -54,6 +54,7 @@ public final class MainFrame extends JFrame {
     private final SourceService sourceService = new SourceService();
     private final LlmPanel llmPanel = new LlmPanel();
     private final GraphTabs graphTabs = new GraphTabs();
+    private ReportsPanel reportsPanel;   // constructed in the ctor once its collaborators exist
     private final TopologyPanel topologyPanel = new TopologyPanel();
     private final TimeRangeSlider timeSlider = new TimeRangeSlider();
     private final JComboBox<WindowSpan> windowCombo = new JComboBox<>(WindowSpan.ALL_OPTIONS);
@@ -559,9 +560,30 @@ public final class MainFrame extends JFrame {
     }
 
     /** Export the selected record's finding, asking where to put it. */
-    /** Named investigation reports (M33): definitions, name → spec; the verb REPLACES by name. */
-    private final java.util.LinkedHashMap<String, telamin.fluxtion.audit.analyser.analyser.report.ReportSpec>
-            reports = new java.util.LinkedHashMap<>();
+    /** Named investigation reports (M33.4): config.reports IS the store — one list, project-tier. */
+    private telamin.fluxtion.audit.analyser.analyser.report.ReportSpec reportByName(String name) {
+        for (var r : config.reports) if (r.name().equals(name)) return r;
+        return null;
+    }
+
+    /** Replace-by-name and persist. Loading config never comes through here: restore is not an edit. */
+    private void putReport(telamin.fluxtion.audit.analyser.analyser.report.ReportSpec spec) {
+        config.reports.removeIf(r -> r.name().equals(spec.name()));
+        config.reports.add(spec);
+        onGraphsEdited();
+        if (reportsPanel != null) reportsPanel.refresh();
+    }
+
+    private java.util.Set<String> focusNames() {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (var f : config.namedFocuses) out.add(f.name());
+        return out;
+    }
+
+    private java.util.List<String> reportNames() {
+        return config.reports.stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.report.ReportSpec::name).toList();
+    }
 
     /**
      * The {@code report {sections}} verb (M33.3): build/replace a named report, resolve it against
@@ -585,10 +607,10 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "csv export needs 'name' (an existing report) and 'csv' (a table section index)");
             }
-            var spec = reports.get(name);
+            var spec = reportByName(name);
             if (spec == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                        "no report named '" + name + "' — reports: " + reports.keySet());
+                        "no report named '" + name + "' — reports: " + reportNames());
             }
             if (sectionIdx < 0 || sectionIdx >= spec.sections().size()
                     || spec.sections().get(sectionIdx).kind()
@@ -623,14 +645,12 @@ public final class MainFrame extends JFrame {
         var parsed = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.parse(params, fp,
                 telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter));
         var spec = parsed.spec();
-        boolean replaced = reports.containsKey(spec.name());
-        reports.put(spec.name(), spec);
+        boolean replaced = reportByName(spec.name()) != null;
+        putReport(spec);
 
-        java.util.Set<String> focusNames = new java.util.HashSet<>();
-        for (var f : config.namedFocuses) focusNames.add(f.name());
         var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
                 spec, store.index(), findings, new java.util.HashSet<>(graphTabs.graphNames()),
-                focusNames, filter);
+                focusNames(), filter);
 
         java.util.List<String> warnings = new java.util.ArrayList<>(parsed.warnings());
         for (var sr : resolution.sections()) {
@@ -1223,6 +1243,24 @@ public final class MainFrame extends JFrame {
         sideTabs.addTab("Source", sourcePanel);
         sideTabs.addTab("Graph", graphTabs);
         sideTabs.addTab("Topology", topologyPanel);
+        reportsPanel = new ReportsPanel(
+                () -> java.util.List.copyOf(config.reports),
+                spec -> telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
+                        spec, store == null ? null : store.index(), findings,
+                        new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter),
+                sec -> store == null
+                        ? new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.AssembledTable(
+                                new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.TableData(
+                                        sec.columns(), java.util.List.of(), new boolean[0],
+                                        sec.rowWhen(), sec.rowWhenLabel()),
+                                java.util.List.of("no log is loaded"))
+                        : telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.assembleTable(sec, store),
+                row -> tablePanel.selectModelRow(row),
+                gname -> { sideTabs.setSelectedComponent(graphTabs); graphTabs.selectGraph(gname); },
+                fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
+                snap -> snap.applyTo(filter));
+        sideTabs.addTab("Reports", reportsPanel);
+        reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);
 
         mainSplit.setMinimumSize(new Dimension(200, 120));
@@ -2042,6 +2080,7 @@ public final class MainFrame extends JFrame {
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
         sourcePanel.showSelectedProcessor();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
+        if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too
         rebuildRecentMenu();
         applyRestServer();   // honour a change to the REST toggle
         saveConfigQuietly();

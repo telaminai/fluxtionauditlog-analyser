@@ -104,6 +104,12 @@ public final class AppConfig {
     /** Named topology focuses (M27.3) — project-tier, persisted with the saved graphs. */
     public final List<FocusSpec> namedFocuses = new ArrayList<>();
 
+    /**
+     * Investigation reports (M33.4) — project-tier, their OWN share category (D-I4): a shared report
+     * carries prose an agent wrote about your data, a different cargo from key names and formulas.
+     */
+    public final List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports = new ArrayList<>();
+
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();
 

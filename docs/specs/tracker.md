@@ -322,15 +322,28 @@ principle. **D-I3a** captures the authoring context (log fingerprint + `FilterSt
 one rule: compare, announce, offer. Same log moved on = re-verification; different log =
 misapplication, and the page says which. `rowWhen` evaluates STRICTLY against its own row, no
 carry — a highlight a reader cannot verify from the visible row is a colour, not a rule._
-- [M33.1] ☐ **Model + reference resolution** (headless) — `Report`/`Section`, resolution against a live
-  store, the unresolved-anchor report. Full D-I1/D-I3 tests before any rendering.
-- [M33.2] ☐ **Rendering** — extend `FindingReport` from its fixed `Evidence` record to a section list,
-  with D-I2's narrative treatment and D-I7's table layout (repeating header across a page break).
-  `PdfDoc` unchanged: it is already a general renderer.
-- [M33.3] ☐ **Verb + echo** — `report {sections}`; the single-record form stays as sugar; per-section
-  CSV through the existing `RecordExporter`.
-- [M33.4] ☐ **Persistence + share + Reports panel** — the F1 checklist in full; this slice is where the
-  review attention belongs, because it is the share surface.
+- [M33.1] ☑ **Model + reference resolution** *(on `feat/m33-reports`)* (headless) — ReportSpec with
+  D-I1 STRUCTURAL (a finding section has no text field; supplied text is dropped and the verb names
+  the rule), LogFingerprint + FilterSnapshot (D-I3a as data, announce lines composed once),
+  ReportResolver with the fingerprint verdict positioned before the sections. 15 tests before any
+  rendering.
+- [M33.2] ☑ **Rendering** *(on `feat/m33-reports`; deviation: ReportRenderer is a SIBLING of
+  FindingReport — the shipped sugar keeps its exact shape, both share PdfDoc)* — narrative standing
+  label, announce-first banners, unresolved sections render their reason in place, D-I7/D-I8 table
+  (declared widths/formats/emphasis, monospace tabular figures, printed highlight rule, header
+  repeated across page breaks). `PdfDoc` unchanged.
+- [M33.3] ☑ **Verb + echo** *(on `feat/m33-reports`)* — `report {name, sections}` REPLACES by name;
+  sugar untouched; M26.4 echo (skipped sections NAMED, D-I1 called out, unresolved + rowWhen
+  warnings, writtenAgainst in the echo); rowWhen STRICT per row pinned where LOCF would differ;
+  table rows via `read {fields}` (25-record cap note rides); CSV through RecordExporter (raw
+  values). Gaps stated, not hidden: aggregate/coverage/series table sources + topology/series PDF
+  images say so in place.
+- [M33.4] ☑ **Persistence + share + Reports panel** *(on `feat/m33-reports`)* — the F1 checklist
+  asserted by test: ConfigStore round-trip (incl. null-dims = ALL), project snapshot/restore/clear,
+  SettingsShare ride-along under the OWN category (D-I4 — export without the category writes no
+  report keys; the import summary counts narrative), replace-by-name apply, disclosure row in
+  sharing-setups.md same commit (contract-test enforced). Reports tab: sections clickable through
+  to record/graph/focus, fingerprint banner first, the filter offer is a BUTTON (offer-never-act).
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before.
 

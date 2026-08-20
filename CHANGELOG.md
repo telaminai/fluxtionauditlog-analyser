@@ -6,6 +6,22 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Investigation reports** — the *account* of an investigation, not just its evidence. A report is
+  an ordered list of **references** with connective prose, never a free-form document: findings,
+  records, charts, focuses, derived tables and visibly-labelled narrative, built with
+  `report {name, sections}`, rendered in the new **Reports** tab (every evidence section clicks
+  through to what it references), exported to PDF, persisted with your profile and shared under
+  their **own category** — a shared report carries prose written about your data, which deserves its
+  own consent checkbox. Two rules are enforced, not encouraged: a finding section renders what
+  `flag` wrote **byte-identically** (the verb cannot author or override a diagnosis), and narrative
+  always wears its standing label so an assertion can never pass as a record. Evidence **re-renders
+  live** — a stored report is a re-runnable claim — and the report captures the log fingerprint and
+  filter it was authored under, announcing before anything renders when either differs. Table rows
+  are **derived** from a stored query with declared presentation; a row highlight is a **rule that
+  is printed with the table** and re-evaluates strictly against each row's own record; tables export
+  to CSV.
+
 ## [1.6.0] - 2026-08-18
 
 ### Added

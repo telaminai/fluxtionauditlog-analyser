@@ -50,6 +50,10 @@ public final class SettingsShare {
         // the label must NAME everything the category carries — a user ticking the box is consenting
         // to what leaves the machine, and named focuses ride this category (M27.3 D5 / review F1)
         GRAPHS("Graphs and named focuses", true),
+        // reports get their OWN category (M33.4 D-I4), never a passenger on Graphs: a shared report
+        // carries PROSE an agent wrote about your data — a different kind of cargo from key names
+        // and formulas, deserving its own consent checkbox. The F1 lesson, applied in advance.
+        REPORTS("Investigation reports (definitions + narrative text — never log data)", true),
         VIEW("View (hidden columns)", true),
         ASSISTANT("Assistant", true),
         LLM("LLM provider/model/base-URL (never the API key)", false);
@@ -119,6 +123,9 @@ public final class SettingsShare {
             // named focuses (M27.3) ride the GRAPHS category — same kind of named analysis artifact,
             // and folding keeps ProjectProfile.PROJECT_SCOPED at its five pinned categories
             ConfigStore.writeFocuses(p, c.namedFocuses);
+        }
+        if (categories.contains(Category.REPORTS)) {
+            ConfigStore.writeReports(p, c.reports);
         }
         if (categories.contains(Category.VIEW)) {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
@@ -240,6 +247,19 @@ public final class SettingsShare {
             summary.put(Category.GRAPHS, focuses.isEmpty() ? s : s + " · " + focuses.size() + " named focus(es)");
         }
 
+        List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports = null;
+        if (p.getProperty("report.count") != null) {
+            present.add(Category.REPORTS);
+            reports = new ArrayList<>();
+            ConfigStore.readReports(p, reports);
+            long withNarrative = reports.stream().filter(r -> r.sections().stream()
+                    .anyMatch(sec -> sec.kind() == telamin.fluxtion.audit.analyser.analyser.report
+                            .ReportSpec.Kind.NARRATIVE) || !r.notes().isBlank()).count();
+            // the summary names the cargo the consent is FOR: prose written about the sender's data
+            summary.put(Category.REPORTS, reports.size() + " report(s)"
+                    + (withNarrative == 0 ? "" : " · " + withNarrative + " carrying narrative text"));
+        }
+
         List<String> hiddenColumns = null;
         if (p.getProperty("hiddenColumn.count") != null) {
             present.add(Category.VIEW);
@@ -272,7 +292,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, focuses, hiddenColumns,
+                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -303,6 +323,12 @@ public final class SettingsShare {
             for (FocusSpec f : plan.focuses()) {
                 target.namedFocuses.removeIf(existing -> existing.name().equals(f.name()));
                 target.namedFocuses.add(f);   // replace-by-name, like graphs
+            }
+        }
+        if (selected.contains(Category.REPORTS) && plan.reports() != null) {
+            for (var r : plan.reports()) {
+                target.reports.removeIf(existing -> existing.name().equals(r.name()));
+                target.reports.add(r);   // replace-by-name, like graphs and focuses
             }
         }
         if (selected.contains(Category.VIEW) && plan.hiddenColumns() != null) {
@@ -339,6 +365,7 @@ public final class SettingsShare {
             String selectedEventProcessor,
             List<GraphSpec> graphs,
             List<FocusSpec> focuses,
+            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
             List<String> hiddenColumns,
             Boolean assistantInProcess,
             Boolean assistantRest,
