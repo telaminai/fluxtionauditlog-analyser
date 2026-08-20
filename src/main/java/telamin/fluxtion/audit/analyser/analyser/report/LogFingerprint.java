@@ -1,0 +1,67 @@
+package telamin.fluxtion.audit.analyser.analyser.report;
+
+import telamin.fluxtion.audit.analyser.analyser.index.LogIndex;
+
+import java.util.Optional;
+
+/**
+ * The identity of the log a report was authored against (spec-investigation-reports D-I3a): name,
+ * record count, first and last {@code logTime}. Identity data, never evidence — a report stores
+ * REFERENCES (D-I3), and references only mean anything relative to a specific log. The dangerous
+ * failure D-I3a exists for arrives RESOLVED, not dangling: {@code recordIndex 42} resolves against
+ * any log with 43 records, so without this comparison a report opened on the wrong log renders
+ * confidently wrong evidence under narrative written about different data.
+ *
+ * @param logName   the log's display name (file name, or "name (+N rolled)" for a set)
+ * @param records   how many records the log held at authoring
+ * @param firstTime first timed record's logTime, or {@code null} when the log had none
+ * @param lastTime  last timed record's logTime, or {@code null}
+ */
+public record LogFingerprint(String logName, int records, Long firstTime, Long lastTime) {
+
+    public static LogFingerprint of(LogIndex idx, String logName) {
+        Long first = null, last = null;
+        for (int i = 0; i < idx.size(); i++) {
+            Long lt = idx.logTime(i);
+            if (lt != null) { first = lt; break; }
+        }
+        for (int i = idx.size() - 1; i >= 0; i--) {
+            Long lt = idx.logTime(i);
+            if (lt != null) { last = lt; break; }
+        }
+        return new LogFingerprint(logName == null ? "" : logName, idx.size(), first, last);
+    }
+
+    /**
+     * The D-I3a rendering rule's first half: COMPARE, and if the loaded log differs, ANNOUNCE — the
+     * message is composed here so every surface (panel, PDF, verb echo) says the same words. Returns
+     * empty when the fingerprints agree.
+     *
+     * <p>The comparison is deliberately coarse: name, count, range. It separates the two cases that
+     * matter — same log (re-verification, D-I3's best property) vs a different or moved-on log
+     * (misapplication, or evidence that the ground moved) — without pretending to a byte-level
+     * identity a references-only artefact cannot honestly claim.
+     */
+    public Optional<String> mismatch(LogFingerprint loaded) {
+        if (loaded == null) return Optional.of("written against " + describe() + "; no log is loaded");
+        if (equals(loaded)) return Optional.empty();
+        return Optional.of("written against " + describe() + "; the loaded log differs ("
+                + loaded.describe() + ")");
+    }
+
+    /** "demo.yaml · 726 records · 09:00:04.500→09:18:12.000" — the identity, human-readable. */
+    public String describe() {
+        StringBuilder sb = new StringBuilder(logName.isEmpty() ? "(unnamed log)" : logName);
+        sb.append(" · ").append(records).append(" record(s)");
+        if (firstTime != null && lastTime != null) {
+            sb.append(" · ").append(fmt(firstTime)).append("→").append(fmt(lastTime));
+        }
+        return sb.toString();
+    }
+
+    private static String fmt(long epochMillis) {
+        return java.time.Instant.ofEpochMilli(epochMillis)
+                .atZone(java.time.ZoneOffset.UTC)
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+    }
+}
