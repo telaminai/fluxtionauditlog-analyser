@@ -1,0 +1,61 @@
+HANDOFF — M33 investigation reports + the three M32 remnants
+Date: 2026-08-20 · From: main session · Branch: feat/m33-reports (THIS branch — it starts with this
+brief) · Base: main @ ad65bb0 (post-1.6.0, M33 spec ACCEPTED v2)
+Your report: docs/handoff/report_feat_m33_reports.txt — keep it current as you work, deviations
+recorded there, never silent.
+
+ORIENT FIRST: CLAUDE.md (the hard rules gate everything) · docs/ONBOARDING.md § Handoffs ·
+docs/specs/spec-investigation-reports.md (ACCEPTED v2 — the decisions are settled; D-I3a and the
+STRICT rowWhen rule came out of review and are NOT optional) · the review that shaped it:
+docs/handoff/completed/review_m33_spec_and_1_6_0.txt · tracker M33 + M32 sections.
+
+TASK — in this order, one slice per commit, mvn -o test green before every commit
+(NEVER chain `&&` after a grep-piped mvn — the pipe returns grep's exit code, and that pattern has
+masked a red suite three times in this repo; run mvn bare and read its exit code):
+
+  1  M33.1  Model + section resolution, HEADLESS. Report/Section, resolution against a live store,
+     the unresolved-anchor report — and D-I3a's authoring context: the log fingerprint (name/root,
+     record count, first/last logTime), the FilterState capture, the compare/announce/offer decision
+     AS DATA. Tests before any rendering. Pin D-I1 the strong way: the finding section renders what
+     flag wrote byte-identically and the verb CANNOT set finding text.
+  2  M33.2  Rendering. FindingReport's fixed Evidence record becomes a section list; PdfDoc stays
+     unchanged. D-I2's narrative treatment (visibly narrative, on screen and in PDF), D-I7/D-I8's
+     table layout — column spec, tabular figures right-aligned, rowWhen row highlighting WITH its
+     printed rule. rowWhen evaluates STRICT against its own row, no LOCF carry — the spec records
+     why; do not "fix" it to match bands.
+  3  M33.3  Verb + echo: report {sections, title, name} builds/replaces; the shipped single-record
+     form stays as sugar. M26.4 contract throughout — unresolved references NAMED in the echo,
+     ignored parameters named, malformed rowWhen in warnings[] with the table still rendering.
+     Per-section CSV export through RecordExporter (no second writer).
+  4  M33.4  Persistence + share + the Reports panel + docs/changelog. THE REVIEW ATTENTION GOES
+     HERE (the spec says so): reports are project-tier with their OWN share category — the full
+     F1 checklist in one commit: ConfigStore round-trip, snapshot/restore/clear,
+     SettingsShare ride-along asserted by test, restore-is-not-an-edit, and the
+     sharing-setups.md disclosure row IN THE SAME COMMIT. Acceptance 9 and 10 (fingerprint
+     mismatch named before rendering; filter context offered, the render labelled if declined)
+     are demonstrated, not documented.
+     DO NOT do M33.5 (the fix-brief fold) — it is gated on the closed-loop journal/log pairing
+     precondition, which is not resolved.
+
+  5  M32.6  Flags rug — flagged records as a built-in axis-lane rug (D-M5's second half). Needs a
+     flagged-rows supplier seam from MainFrame; the rug is a MarkerSeries on the axis lane, so the
+     drawing already exists.
+  6  M32.7  PDF markers table — label, time, payload, record per marker, with the D-M3 cap note.
+     Glyphs already ride the painted export; this is additive. If M33.2's table renderer lands
+     first, USE IT — do not build a second table layout in PdfDoc.
+  7  M32.8  External-CSV marker source — the M29 loader as a when/payload source; the
+     payload-column mapping is the design work (M29 deliberately never let text into Expr — payload
+     is display cargo, keep it that way).
+
+GATES per commit: mvn -o test (bare, exit code read) · mkdocs build --strict for any docs/site
+change · the anonymisation sweep for anything containing log data or images · CHANGELOG.md
+[Unreleased] line in the SAME commit as every user-visible change · tracker ticks as slices land.
+
+SCREENSHOTS: generated only, never by hand (rule 1) — tools/capture-docs.py. If the Reports panel
+or the rug deserves a shot, add its definition to the harness. The records-table column pin must
+stay in agreement with the committed assets: if you change what a shot shows, regenerate ALL shots
+in the same commit and read every visible string (the sweep cannot see inside a PNG).
+
+STYLE: the spec's decisions are settled — implement them, and when reality contradicts the spec,
+record the deviation in your report and choose the honest option (loud degradation over silent
+success, references over content, offer over act). Small commits, each telling its own story.
