@@ -61,7 +61,25 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
      * {@code series:<label>}, or {@code axis} (the rug lane); {@code payload} is a key whose logged
      * text rides each point as display cargo — never computation (D-M2).
      */
-    public record MarkerSpec(String label, String glyph, String when, String y, String payload) {
+    /**
+     * A marker series' SOURCE (M32, D-M4): a log-sourced key-triple/condition ({@code when}/{@code y}/
+     * {@code payload}), or — M32.8 — an external CSV ({@code extPath} non-null): the M29 loader with a
+     * payload column. External points carry no {@code recordIndex} (they are not records) and their
+     * clock is DECLARED, exactly like external series; {@code extValue} names the y column, or the
+     * markers tick the axis lane. The definition persists and shares; the data never does.
+     */
+    public record MarkerSpec(String label, String glyph, String when, String y, String payload,
+                             String extPath, String extTime, String extTimeFormat, String extZone,
+                             String extValue, String extPayload, long extOffsetMillis) {
+
+        /** The log-sourced form (pre-M32.8 shape). */
+        public MarkerSpec(String label, String glyph, String when, String y, String payload) {
+            this(label, glyph, when, y, payload, null, null, null, null, null, null, 0L);
+        }
+
+        public boolean isExternal() {
+            return extPath != null && !extPath.isBlank();
+        }
     }
 
     /**

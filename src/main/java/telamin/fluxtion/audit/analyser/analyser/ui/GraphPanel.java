@@ -553,6 +553,8 @@ public final class GraphPanel extends JPanel {
     /** Replace the marker series (M32). The SOURCE persists; points are data, re-extracted per scan. */
     public void setMarkers(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec> specs) {
         this.markerSpecs = specs == null ? java.util.List.of() : java.util.List.copyOf(specs);
+        externalMarkerCache.keySet().retainAll(this.markerSpecs);   // drop cache for removed definitions
+        chart.setExternalStamp(externalStamp());   // marker externals stamp the chart too (D-F2)
         mutated();
         reExtract();
     }
@@ -582,6 +584,42 @@ public final class GraphPanel extends JPanel {
     /** What the chart currently draws as markers (extraction + rug) — the PDF table's source (M32.7). */
     public java.util.List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> currentMarkers() {
         return legendMarkers;
+    }
+
+    /**
+     * External marker series (M32.8), cached by spec: the file is read once per definition, not once
+     * per filter change — a filter cannot change what a CSV contains. Failures degrade LOUDLY into
+     * the series' note (D-F5: a missing file on someone else's machine must say so, not vanish), and
+     * every point carries {@code recordIndex = -1}: an external row is not a record and never
+     * navigates. The chart's external stamp covers marker sources exactly as it covers series.
+     */
+    private final java.util.concurrent.ConcurrentHashMap<
+            telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec,
+            telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> externalMarkerCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries externalMarkers(
+            telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec spec) {
+        return externalMarkerCache.computeIfAbsent(spec, sp -> {
+            String glyph = telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS
+                    .contains(sp.glyph()) ? sp.glyph() : "circle";
+            try {
+                var loaded = telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.loadMarkers(
+                        java.nio.file.Path.of(sp.extPath()),
+                        new telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.Spec(
+                                sp.label(), sp.extTime(), sp.extTimeFormat(), sp.extZone(),
+                                sp.extValue(), sp.extOffsetMillis()),
+                        sp.extPayload());
+                String note = "external CSV — points are not records (no click-through); declared clock"
+                        + (loaded.rowsSkipped() > 0 ? "; " + loaded.rowsSkipped() + " row(s) skipped" : "");
+                return new telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries(
+                        sp.label(), glyph, loaded.points(), note);
+            } catch (Exception e) {
+                return new telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries(
+                        sp.label(), glyph, java.util.List.of(),
+                        "external CSV did not load: " + e.getMessage());
+            }
+        });
     }
 
     /** Flags changed: rebuild the rug from the CACHED extraction — no re-extract, flags are not data. */
@@ -821,8 +859,10 @@ public final class GraphPanel extends JPanel {
                     List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markerData = new ArrayList<>();
                     List<String> mNotes = new ArrayList<>();
                     for (var msSpec : markersWanted) {
-                        var ms = telamin.fluxtion.audit.analyser.analyser.graph.MarkerExtractor
-                                .extract(s, f, msSpec, byLabel::get);
+                        var ms = msSpec.isExternal()
+                                ? externalMarkers(msSpec)   // M32.8: file-sourced, cached — not records
+                                : telamin.fluxtion.audit.analyser.analyser.graph.MarkerExtractor
+                                        .extract(s, f, msSpec, byLabel::get);
                         markerData.add(ms);
                         if (ms.note() != null) mNotes.add(ms.label() + ": " + ms.note());
                     }
@@ -1208,11 +1248,9 @@ public final class GraphPanel extends JPanel {
 
     /** The D-F2 stamp painted on the chart (and so into every PNG/PDF): externals are never covert. */
     private String externalStamp() {
-        if (externalSpecs.isEmpty()) return null;
-        StringBuilder sb = new StringBuilder("external: ");
-        for (int i = 0; i < externalSpecs.size(); i++) {
-            var s = externalSpecs.get(i);
-            if (i > 0) sb.append(" · ");
+        StringBuilder sb = new StringBuilder();
+        for (var s : externalSpecs) {
+            if (!sb.isEmpty()) sb.append(" · ");
             sb.append(s.label());
             String clock = s.zone() != null && !s.zone().isBlank() ? s.zone() : s.timeFormat();
             sb.append(" (").append(clock);
@@ -1220,7 +1258,19 @@ public final class GraphPanel extends JPanel {
                     .append(s.offsetMillis()).append("ms");
             sb.append(')');
         }
-        return sb.toString();
+        // external MARKER sources stamp too (M32.8): a foreign event must not pass as audit evidence
+        // in a PNG any more than a foreign line may (D-F2, unchanged one artifact later)
+        for (var m : markerSpecs) {
+            if (!m.isExternal()) continue;
+            if (!sb.isEmpty()) sb.append(" · ");
+            sb.append(m.label());
+            String clock = m.extZone() != null && !m.extZone().isBlank() ? m.extZone() : m.extTimeFormat();
+            sb.append(" (").append(clock);
+            if (m.extOffsetMillis() != 0) sb.append(", ").append(m.extOffsetMillis() >= 0 ? "+" : "")
+                    .append(m.extOffsetMillis()).append("ms");
+            sb.append(')');
+        }
+        return sb.isEmpty() ? null : "external: " + sb;
     }
 
     // ---- guides + condition bands (M28.5/M28.6) --------------------------------------------------

@@ -300,8 +300,14 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
   M33.2's table (no second layout), capped at 200 rows with the cap NAMED (D-M3 in table form). The
   rug rides too, since it is a marker series. The M23 single-record sugar keeps its frozen shape —
   its charts still paint glyphs in the image; the table is the investigation form's.
-- [M32.8] ☐ **External-CSV marker source** — the M29 loader as a `when`/payload source; the
-  payload-column mapping deserves its own slice.
+- [M32.8] ☑ **External-CSV marker source** *(on `feat/m33-reports`)* — ExternalCsvLoader.loadMarkers
+  (same declared-clock/sort/refuse rules; payload column as display cargo; value column optional →
+  axis lane; recordIndex always -1 — an external row is not a record and click-through is refused by
+  contract). MarkerSpec gains the ext* definition fields (persisted + shared portable, path resolved
+  like external series); the verb takes markers[{external:{…}}] behind the SAME read confinement as
+  graph{external}; the D-F2 stamp covers marker sources; loads are cached per definition (a filter
+  change cannot change what a CSV contains). The y-pin (`series:<label>`) is NOT supported for
+  external markers in v1 — value column or axis lane; recorded here rather than half-built.
 
 ## M33 · Investigation reports — ☐ ACCEPTED v2 (the account, not just the evidence)
 _Design: **[spec-investigation-reports.md](spec-investigation-reports.md)**. Owner ask: a general
