@@ -507,6 +507,18 @@ and liked the graph"* into a one‑click production artifact. The **named series
 between the two systems; the analyser is where it is discovered, named, and validated (which is exactly
 why graphs are named and persisted, §4.3).
 
+!!! warning "Superseded in part — see tracker M11.1 (2026-08-20)"
+
+    The **allowlist** half stands. The **generated Grafana dashboard JSON** does not: it would have the
+    analyser learning a versioned foreign schema, which contradicts the rule M29 and M31 later settled —
+    *the analyser never learns a foreign format; the agent adapts it.*
+
+    `export_dashboard` becomes **`export_promotion`**, emitting a **neutral manifest** (series, allowlist,
+    thresholds, window, rationale, provenance). An agent renders that into Grafana — or Datadog, or
+    Perses — and the manifest stays a checkable contract: every metric in the dashboard must appear in
+    the allowlist. The paragraph above is otherwise unchanged, including the part that matters most:
+    **the named series definition is the contract between the two systems.**
+
 **The loop closes both ways.** A Grafana alert fires → on‑call opens the analyser on that log at that time
 window → forensic session with the LLM → root cause → maybe a new series is promoted. Known‑question
 monitoring feeds unknown‑question investigation feeds better monitoring.

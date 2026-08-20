@@ -386,9 +386,36 @@ _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
 **known, continuous** questions (dashboards, alerting). The workflow is a **promotion pipeline** — research
 a series in the analyser until it's diagnostic, then promote it to production monitoring._
-- [M11.1] ☐ **`export_dashboard`** (analyser authoring action / File export) — emit (a) the metric
-  **allowlist** and (b) a generated **Grafana dashboard JSON** from the named saved graphs. The named
-  `GraphSpec` is the contract; A10.8 built the naming/persistence it depends on.
+- [M11.1] ☐ **`export_promotion`** (analyser authoring action / File export) — emit a **neutral
+  promotion manifest** from the named saved graphs; the named `GraphSpec` is the contract, and A10.8
+  built the naming/persistence it depends on. _Renamed and rescoped 2026-08-20 by the decision below:
+  the analyser emits the manifest, **an agent renders the Grafana JSON**._
+  Manifest contents, all exactly reproducible from the `GraphSpec`: the **series** (keys/formula,
+  resolve policy, label), the **allowlist** (the precise `instanceId.key` set the tap must publish),
+  **thresholds** from the graph's guides, the pinned **window**, the **rationale** (explanation +
+  notes — why this is worth watching), and **provenance** (log fingerprint + analyser version, reusing
+  M33's D-I3a identity data).
+- _**Decision (2026-08-20) — the analyser emits a manifest; the agent renders the dashboard.** M11.1
+  as originally written had the analyser learning Grafana's dashboard schema, which contradicts the
+  rule M29 and M31 both settled: **the analyser never learns a foreign format — the agent adapts it.**
+  If it is wrong to teach the tool FIX on the way in, it is wrong to teach it Grafana on the way out,
+  and a versioned foreign schema is a permanent maintenance tax on a hermetic core.
+  The two artefacts have opposite requirements, so they split along the derived/declared seam this
+  codebase already uses everywhere (M33 D-I7 rows-derived/presentation-declared; M28.6
+  condition-persists/intervals-are-data): the **allowlist must be deterministic and analyser-generated**
+  because M11.2's tap consumes it and the bounded-cardinality guarantee only holds if it is *derived*;
+  the **dashboard JSON is presentation over a foreign schema** and is agent work.
+  What makes it safe is that the manifest is a **checkable contract**: every metric the generated
+  dashboard references must appear in the allowlist, and every promoted series must appear as a panel —
+  a mechanical round-trip. Fidelity ("the chart I validated is the chart that alerts") is preserved by
+  the series definition travelling verbatim rather than being re-derived.
+  Consequences: multi-target for free (Grafana, Datadog, Perses) with no schema version matrix; the
+  agent contributes what the analyser cannot know — dashboard conventions, folder structure, alert
+  routing; and M11.1 becomes a serialisation of state already held rather than a foreign-format
+  generator. **M11.2 is unaffected** — it consumes the allowlist either way.
+  **Validate before speccing the verb:** have an agent build one real Grafana dashboard from a
+  hand-written manifest first. If it has to ask questions the manifest cannot answer, the manifest is
+  wrong — the same spike-before-SPI logic as M34.0, for the cost of one dashboard._
 - [M11.2] ☐ **Telamin‑side tap plugin** (`serverplugin-metrics` / `-grafana`, *not* an analyser feature) —
   a `LogRecordListener` metrics sink alongside the file sink, publishing selected `instanceId.key` as
   typed time‑series (Prometheus / Influx / Kafka). Route B (tap at source), **not** Loki/LogQL re‑parsing

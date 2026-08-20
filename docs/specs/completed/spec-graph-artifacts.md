@@ -16,7 +16,7 @@ after the investigation moves on:
 Both slot into existing seams — `GraphSpec`, the `graph` verb params, and `SeriesExtractor`. No new
 architecture. Together they upgrade the action loop's endgame: an investigation can end with a **pinned,
 formula-defined, named** chart ("pick-off exposure, 02:03:40–02:05:00") that survives filter changes,
-persists in the profile, and is one `export_dashboard` (M11) away from a Grafana panel.
+persists in the profile, and is one `export_promotion` (M11) away from a Grafana panel.
 
 ---
 
@@ -76,7 +76,7 @@ tolerance avoids a whole class of one-round parse errors.
 
 This is **hermetic** (no eval), matches the project's zero-dep ethos (like the bespoke `Json` codec), is
 **trivially safe**, and — the part that matters downstream — is **serializable and portable**: a persisted
-expression string can travel through `export_dashboard` to the Grafana pipeline (M11), where the tap plugin
+expression string can travel through `export_promotion` to the Grafana pipeline (M11), where the tap plugin
 evaluates the same grammar or the dashboard JSON maps it to a Grafana transform. *Code can't make that trip;
 a little algebra can.*
 
@@ -219,6 +219,14 @@ payload** for the research→monitoring promotion: `export_dashboard` (M11) emit
 (the raw keys the exprs reference) for the tap plugin, and (b) a Grafana dashboard JSON where each expr maps
 to a **Grafana transform / expression** and the pinned range seeds the panel's default window. An
 investigation that ends in a pinned, formula-defined chart is one click from a production panel.
+
+!!! warning "Rescoped — see tracker M11.1 (2026-08-20)"
+
+    Still true, and still the reason the grammar is algebra: a `GraphSpec` with `{exprs, from, to}` is
+    the payload. What changed is who renders it. The analyser emits a **neutral promotion manifest** —
+    the allowlist, the series definitions, guide thresholds, the pinned window, the rationale — and an
+    **agent** maps the exprs onto Grafana transforms. Mapping a foreign schema is the agent's job under
+    the same rule that keeps FIX out of the loader (M29) and parquet out of the core (M31).
 
 ---
 
