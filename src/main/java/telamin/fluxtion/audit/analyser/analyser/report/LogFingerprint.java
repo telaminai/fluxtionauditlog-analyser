@@ -49,9 +49,19 @@ public record LogFingerprint(String logName, int records, Long firstTime, Long l
      */
     public Optional<String> mismatch(LogFingerprint loaded) {
         if (loaded == null) return Optional.of("written against " + describe() + "; no log is loaded");
-        if (sameContent(loaded)) return Optional.empty();
-        return Optional.of("written against " + describe() + "; the loaded log differs ("
-                + loaded.describe() + ")");
+        if (!sameContent(loaded)) {
+            return Optional.of("written against " + describe() + "; the loaded log differs ("
+                    + loaded.describe() + ")");
+        }
+        // Q1 (owner decision, review of feat/m33-reports): same content under a DIFFERENT name gets
+        // the softer announce — "same content, different file" is still a fact the reader needs, but
+        // a legitimate copy/rename must not wear the strong different-log banner. Same content, same
+        // name stays quiet.
+        if (!logName.isEmpty() && !loaded.logName().isEmpty() && !logName.equals(loaded.logName())) {
+            return Optional.of("written against '" + logName + "'; the loaded log matches on content "
+                    + "but is a different file ('" + loaded.logName() + "')");
+        }
+        return Optional.empty();
     }
 
     /** Content identity — what the verdict turns on. The display name is excluded by design. */

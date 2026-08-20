@@ -110,6 +110,11 @@ Nothing but `narrative` stores its own content.
   *Alternative rejected:* refusing to open a report against a different log. Too strict — comparing a
   finding against a later run is a legitimate and valuable thing to do. Announce, do not forbid.
 
+  **Same content, different name** (review Q1, owner-decided): announces SOFTLY — "the loaded log
+  matches on content but is a different file" — because it is still a fact the reader needs, while a
+  legitimate copy or rename must not wear the strong different-log banner. Same content under the
+  same name stays quiet; the strong banner is reserved for a content difference.
+
 - **D-I7 — a table is a QUERY plus a column spec: the rows are derived, the presentation is
   declared.** A `table` section stores the call that produces its rows — `read {fields}`
   (M26.3 already returns compact `{recordIndex, logTime, event, values{}}` rows), `series {buckets}` or
