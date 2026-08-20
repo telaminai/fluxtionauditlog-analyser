@@ -1,6 +1,8 @@
 # Investigation Reports — the account, not just the evidence (Design Spec)
 
-Status: PROPOSED v1 · Owner: greg.higgins · Last updated: 2026-08-20 · Milestone **M33**
+Status: PROPOSED v2 (review: docs/handoff/review_m33_spec_and_1_6_0.txt — F1/F2 folded into D-I3a
+as one mechanism, F3 answered in D-I8, F4 declined with a reason) · Owner: greg.higgins ·
+Last updated: 2026-08-20 · Milestone **M33**
 
 Companion to **[tracker.md](tracker.md)** (M33), the shipped finding report (`report/PdfDoc`,
 `report/FindingReport`, M23) and **[spec-closed-loop.md](spec-closed-loop.md)** §A (M12.1's fix-brief,
@@ -77,6 +79,37 @@ Nothing but `narrative` stores its own content.
   moved file — and it converts the report into a screenshot with extra steps, which cannot be
   re-verified and therefore is not evidence.
 
+  **D-I3a — the authoring CONTEXT is captured, because the dangerous failure arrives resolved
+  (review F1/F2).** Re-rendering against the live log is only safe if the report can tell whether it
+  is the *same* log and the *same* view. It cannot infer either from its references: `recordIndex 42`
+  resolves against **any** log with 43 records, a chart name resolves against project state, a series
+  call re-runs anywhere. Against the wrong log every section renders confidently — fresh, plausible,
+  wrong evidence sitting under narrative written about different data. The unresolved-anchor path
+  above catches *absence*; this failure arrives *present*.
+
+  So a report stores two pieces of **identity** at authoring — not evidence, so references-only
+  survives:
+
+  | captured | used for |
+  |---|---|
+  | log fingerprint — name/root, record count, first and last `logTime` | is this the same log? |
+  | the `FilterState` it was written under (or a named-focus reference) | is this the same view? |
+
+  and the renderer applies one rule: **compare, announce, offer.** A fingerprint mismatch is named
+  *before any section renders* — "written against `store-audit.yaml` · 582 records · 09:00→09:07; the
+  loaded log differs". A filter difference **offers** the stored context (offer-never-act, M20.5 and
+  D-R5's pattern); declining renders under the current filter with a standing line saying which filter
+  produced what is on the page.
+
+  *Rationale:* without this, the principle sentence at the top of this spec — *never renders a claim
+  that has stopped being true without saying so* — is unenforceable, because the worst case never
+  dangles. With it, the two cases separate cleanly and both become useful: **same log, moved on** is
+  re-verification, which is D-I3's best property; **different log** is misapplication, and the page
+  says which one you are looking at. It also closes the drift D-I1 guards elsewhere — narrative and
+  evidence silently describing different extractions is one document carrying two accounts of itself.
+  *Alternative rejected:* refusing to open a report against a different log. Too strict — comparing a
+  finding against a later run is a legitimate and valuable thing to do. Announce, do not forbid.
+
 - **D-I7 — a table is a QUERY plus a column spec: the rows are derived, the presentation is
   declared.** A `table` section stores the call that produces its rows — `read {fields}`
   (M26.3 already returns compact `{recordIndex, logTime, event, values{}}` rows), `series {buckets}` or
@@ -115,6 +148,13 @@ Nothing but `narrative` stores its own content.
 
   Numbers right-align in tabular figures by default, because a column of prices that does not line up
   is a column nobody reads.
+
+  **`rowWhen` evaluates STRICTLY against the row's own record — no LOCF carry** (review F3). Bands
+  carry values across the record walk because a band describes a *regime over time*; a table row is a
+  single record a reader is looking at. A row highlighted because of a value carried from an earlier
+  record that is not on the page is an emphasis the reader cannot verify from what they can see, which
+  is the precise thing this decision exists to prevent. A rule that cannot be checked against its own
+  row is not a rule, it is a colour.
 
   *Rationale:* a red row says **"this one is bad"**. If that colouring came from an agent's taste it is
   an unanchored judgement wearing evidence styling — D-I2's problem arriving through the back door,
@@ -180,8 +220,12 @@ scope for v1.
 - **No finding authorship** (D-I1). `flag` remains the one write site.
 - **No snapshotted evidence** (D-I3). References only.
 - **No new file-write surface** (D-I5).
-- **No cross-log reports in v1.** A report belongs to the log it was made against; opening it on a
-  different log is the D-I3 unresolved-anchor path, not a merge feature.
+- **No cross-log MERGING.** A report belongs to the log it was authored against. Opening it on another
+  log is allowed and useful, and is handled by D-I3a's fingerprint comparison — *not*, as an earlier
+  draft of this spec claimed, by the unresolved-anchor path, which does not catch it.
+- **No authorship attribution on narrative** (review F4, considered and declined). Chart
+  `explanation`/`notes` do not distinguish human from agent prose either, and introducing it here alone
+  would be a new inconsistency. Revisit for all three surfaces together or not at all.
 - `FaqSecurityContractTest` gains the report row only if the file rules change — they should not.
 
 ## Acceptance
@@ -203,11 +247,17 @@ scope for v1.
    (D-I8). A malformed rule is named in `warnings[]` and the table still renders.
 8. The M12.1 fix-brief is expressible as a report with a fixed section list (D-I6 demonstrated by
    building it that way, not by asserting it).
+9. A report opened against a **different log** names the fingerprint mismatch **before any section
+   renders**, and does not refuse (D-I3a).
+10. A report opened under a **different filter** offers its stored context; declining renders under the
+    current filter with the difference stated on the page (D-I3a).
 
 ## Delivery slices
 
 1. **M33.1** Model + section resolution, headless: `Report`, `Section`, reference resolution against a
-   live store, the unresolved-anchor report. Full D-I1/D-I3 tests before any rendering.
+   live store, the unresolved-anchor report, and **D-I3a's authoring context** — log fingerprint and
+   filter capture, comparison, and the announce/offer decision as data. Full D-I1/D-I3/D-I3a tests
+   before any rendering; the amendments are cheapest here and unaffordable later.
 2. **M33.2** Rendering: extend `FindingReport` from its fixed `Evidence` record to a section list, with
    D-I2's narrative treatment and D-I7/D-I8's table layout (column widths, tabular figures, row-rule highlighting with its
    printed rule, and page-breaking a long table with its header repeated). `PdfDoc` is unchanged.

@@ -129,10 +129,18 @@ def launch(theme, project=None):
     if EXPORT_DIR.exists():
         shutil.rmtree(EXPORT_DIR)
     EXPORT_DIR.mkdir(parents=True)
+    # The records table's column set is user state and persists. Left unpinned it leaks whoever ran
+    # the app last into "reproducible" images — a capture once showed `nodeLogs` where the previous one
+    # showed `thread`, with this script and the table code both untouched. Pin it the way window
+    # geometry, zoom and theme are already pinned. `hiddenColumn.count` is what marks the list as
+    # configured; without it the app applies its own defaults instead of these.
     set_config(**{"assistant.rest": "true", "theme": theme, "topologyZoom": "0",
                   "topologySpacing": "100", "topologyTextSize": "11",
                   "topologyOrientation": "TOP_DOWN", "topologySyncSource": "true",
                   "eventFilterCollapsed": "false",
+                  "hiddenColumn.count": "4",
+                  "hiddenColumn.0": "eventTime", "hiddenColumn.1": "groupingId",
+                  "hiddenColumn.2": "eventToString", "hiddenColumn.3": "endTime",
                   "assistant.exports": "true", "assistant.exportDir": str(EXPORT_DIR),
                   "activeProjectPath": str(project) if project else "",
                   # Fixed window geometry, or every run produces images of a different size and the

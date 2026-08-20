@@ -322,7 +322,7 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
 - [M32.8] ☐ **External-CSV marker source** — the M29 loader as a `when`/payload source; the
   payload-column mapping deserves its own slice.
 
-## M33 · Investigation reports — ☐ PROPOSED (the account, not just the evidence)
+## M33 · Investigation reports — ☐ ACCEPTED v2 (the account, not just the evidence)
 _Design: **[spec-investigation-reports.md](spec-investigation-reports.md)**. Owner ask: a general
 reporting mechanism — an explanation for a set of results, or an investigation, rendered and kept in
 memory or written to disk. Every surface here produces evidence; nothing produces the ACCOUNT of it,
@@ -341,7 +341,13 @@ is a judgement wearing evidence styling; per-cell painting rejected as D-M1's re
 artefact later (D-I8);
 own share category rather than a sixth passenger on Graphs (D-I4); writes ride ExportGuard unchanged
 (D-I5); and **M12.1's fix-brief becomes a report with a fixed section list** rather than a second
-document model that will drift (D-I6)._
+document model that will drift (D-I6).
+**Review amendments folded (v2):** the dangerous failure ARRIVES RESOLVED — `recordIndex 42`
+resolves against any log with 43 records — so D-I3 alone could not enforce the spec's own
+principle. **D-I3a** captures the authoring context (log fingerprint + `FilterState`) and applies
+one rule: compare, announce, offer. Same log moved on = re-verification; different log =
+misapplication, and the page says which. `rowWhen` evaluates STRICTLY against its own row, no
+carry — a highlight a reader cannot verify from the visible row is a colour, not a rule._
 - [M33.1] ☐ **Model + reference resolution** (headless) — `Report`/`Section`, resolution against a live
   store, the unresolved-anchor report. Full D-I1/D-I3 tests before any rendering.
 - [M33.2] ☐ **Rendering** — extend `FindingReport` from its fixed `Evidence` record to a section list,
