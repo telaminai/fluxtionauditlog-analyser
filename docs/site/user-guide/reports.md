@@ -50,6 +50,8 @@ wearing evidence styling. Tables export to CSV (raw values — formatting stays 
 
 ## The Reports tab
 
+![An investigation report: labelled narrative, the flagged finding with its fix, a link to the chart it cites, and a derived table with its highlight rule printed](../assets/reports-dark.png)
+
 Reports appear in the **Reports** tab: pick one and its sections render in order, each evidence
 section clickable through to the thing it references — a finding selects its record, a chart opens
 that graph, a focus applies on the topology. A report is a navigation surface, not just an output.

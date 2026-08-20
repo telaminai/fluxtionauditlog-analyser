@@ -359,6 +359,26 @@ def main():
     time.sleep(1)
     capture(ep, "graph-bands-dark.png")
 
+    # investigation report (M33): the ACCOUNT, not just the evidence — a finding, a chart, a derived
+    # table with its printed highlight rule, and narrative wearing its standing label. The flag also
+    # exercises the M32.6 rug on the charts above.
+    act(ep, "flag", {"recordIndexes": [7], "note": "liveOrders breached the limit while the spread "
+                     "sat above the cap", "fix": "review riskMonitor.limit against expected order flow"})
+    act(ep, "report", {"name": "breach-inv", "title": "Order-limit breach investigation", "sections": [
+        {"kind": "narrative", "text": "Breaches cluster while the spread holds above the cap; the "
+                                      "order count reaches its limit within the first minute."},
+        {"kind": "finding", "recordIndex": 7},
+        {"kind": "chart", "graph": "Fills on the spread"},
+        {"kind": "table", "call": {"verb": "read", "fields": "orderTracker.live, quotePublisher.spread",
+                                   "recordIndex": "0", "after": "7"},
+         "columns": [{"key": "recordIndex", "heading": "record"},
+                     {"key": "logTime", "heading": "time", "format": "time"},
+                     {"key": "orderTracker.live", "heading": "live", "format": "0"},
+                     {"key": "quotePublisher.spread", "heading": "spread", "format": "0.00000"}],
+         "rowWhen": "orderTracker.live > 0", "rowWhenLabel": "orders live"}]})
+    time.sleep(1)
+    capture(ep, "reports-dark.png")
+
     # ---- project profiles (M20.4) ------------------------------------------------------------
     print("project profiles")
     profile = make_demo_project()
