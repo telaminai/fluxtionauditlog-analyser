@@ -125,6 +125,35 @@ public final class MarkerExtractor {
                 pinned == null ? null : pinned.label());
     }
 
+    /** The rug's fixed label — one meaning, one series, one glyph (D-M1 applies to built-ins too). */
+    public static final String FLAG_RUG_LABEL = "⚑ flags";
+
+    /**
+     * The built-in Flags rug (M32.6, D-M5's second half): every flagged record as an axis-lane tick,
+     * carrying its finding note as the payload (display cargo — hover reads it, click opens the
+     * record) and honouring the same filter as every marker. DERIVED from the flags, never persisted
+     * or shared: unflagging is how a tick is removed, and the series' note says so. Returns
+     * {@code null} when nothing is flagged — an empty built-in row on every chart would be noise,
+     * and unlike a user's marker spec there is no declared intent to degrade loudly about.
+     */
+    public static MarkerSeries flagRug(telamin.fluxtion.audit.analyser.analyser.index.LogIndex index,
+                                       FilterState filter, Map<Integer, String> flaggedNotes) {
+        if (flaggedNotes == null || flaggedNotes.isEmpty()) return null;
+        List<Integer> rows = new ArrayList<>(flaggedNotes.keySet());
+        java.util.Collections.sort(rows);
+        List<MarkerSeries.MarkerPoint> points = new ArrayList<>();
+        for (int row : rows) {
+            if (row < 0 || row >= index.size()) continue;
+            if (!filter.testExceptTime(index, row)) continue;   // acrossAllTime, like every marker
+            Long lt = index.logTime(row);
+            if (lt == null) continue;
+            points.add(new MarkerSeries.MarkerPoint(lt, Double.NaN, flaggedNotes.get(row), row));
+        }
+        if (points.isEmpty()) return null;
+        return new MarkerSeries(FLAG_RUG_LABEL, "diamond", List.copyOf(points),
+                "flagged records — unflag to remove; click a tick to open its record");
+    }
+
     private static void updateCarry(Map<GraphKey, Double> carry, List<NodeLog> nodeLogs, GraphKey k) {
         KV kv = SeriesExtractor.lastMatching(nodeLogs, k);
         if (kv == null) return;

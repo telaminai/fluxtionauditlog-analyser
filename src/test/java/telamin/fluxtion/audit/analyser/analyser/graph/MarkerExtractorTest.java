@@ -134,6 +134,36 @@ class MarkerExtractorTest {
         assertEquals(1, agg.get(1).count());
     }
 
+    // ---- the built-in Flags rug (M32.6, D-M5's second half) --------------------------------------
+
+    @Test
+    void theFlagsRugTicksEveryFlaggedRecordOnTheAxisLane() {
+        java.util.Map<Integer, String> flags = new java.util.HashMap<>();
+        flags.put(1, "fill looks late");
+        flags.put(3, null);                                   // flagged without a note is still a tick
+        MarkerSeries rug = MarkerExtractor.flagRug(STORE.index(), new FilterState(), flags);
+        assertEquals(MarkerExtractor.FLAG_RUG_LABEL, rug.label());
+        assertEquals(2, rug.points().size());
+        var p = rug.points().get(0);
+        assertTrue(Double.isNaN(p.y()), "the rug lives on the axis lane");
+        assertEquals("fill looks late", p.payload(), "the finding note rides as display cargo");
+        assertEquals(1, p.recordIndex(), "click a tick, open its record");
+        assertTrue(rug.note().contains("unflag to remove"), "the tooltip says how a tick leaves");
+    }
+
+    @Test
+    void theRugHonoursTheFilterAndSkipsWhatItCannotPlace() {
+        java.util.Map<Integer, String> flags = new java.util.HashMap<>();
+        flags.put(0, null);
+        flags.put(99, "out of range");
+        FilterState f = new FilterState();
+        f.setDimensions(java.util.Set.of("nothing matches"));
+        assertNull(MarkerExtractor.flagRug(STORE.index(), f, flags),
+                "every tick filtered or unplaceable → no rug, not an empty one");
+        assertNull(MarkerExtractor.flagRug(STORE.index(), new FilterState(), java.util.Map.of()),
+                "no flags → no rug: a built-in has no declared intent to degrade loudly about");
+    }
+
     @Test
     void anUnparseableWhenIsANoteNotAnException() {
         MarkerSeries m = extract(new GraphSpec.MarkerSpec("bad", "circle", "1 < 2 < 3", "axis", null));

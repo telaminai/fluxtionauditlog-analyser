@@ -289,8 +289,12 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 _32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
 marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
 Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
-- [M32.6] ☐ **Flags rug** — flagged records as a built-in axis-lane rug (D-M5's second half); needs a
-  flagged-rows supplier seam from MainFrame.
+- [M32.6] ☑ **Flags rug** *(on `feat/m33-reports`)* — flagged records as a built-in axis-lane rug
+  (D-M5's second half): MarkerExtractor.flagRug is pure (tested — filter honoured, finding note as
+  payload, click→record, no flags → no rug), the MainFrame seam supplies row→note and every flag
+  mutation site refreshes the rug from the CACHED extraction (flags are not data; no re-extract).
+  One marker seam (GraphPanel.pushMarkers) feeds chart and legend, so the rug's legend row appears
+  exactly when its ticks do, with the unflag-to-remove tooltip.
 - [M32.7] ☐ **PDF markers table** — glyphs already ride the painted export; the table (label, time,
   payload, record) with the D-M3 cap note is additive.
 - [M32.8] ☐ **External-CSV marker source** — the M29 loader as a `when`/payload source; the
