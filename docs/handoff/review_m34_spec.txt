@@ -1,0 +1,78 @@
+REVIEW — M34 spec (source adapters), PROPOSED v1 at 1b36c58
+Date: 2026-08-20 · Reviewer: the main session (I reviewed M31, whose boundary this spec extends)
+
+VERDICT: adopt, with one substantive amendment (F1) and two smaller ones. The asymmetry section is
+the right centrepiece and D-A1's "coverage computed against an inferred denominator is not a finding,
+it is a tautology" is the best sentence in the spec. The sequencing note should be promoted from a
+suggestion to a slice. The gap: the spec generalises the RECORD and the GRAPH, but not the ORDER —
+and order is the most Fluxtion-shaped assumption in the whole data model.
+
+================================================================================
+1. WHAT IS RIGHT (verified, not just agreed with)
+================================================================================
+- The proposition's data-model claim holds against the code: nothing above the store consumes
+  anything engine-specific — filters, Expr, markers, findings all read the index and nodeLogs.
+- D-A5 is the real test and mirrors M31.1's text-parser inversion exactly; acceptance 1 phrases it
+  the strong way (suite green UNCHANGED through the new seam).
+- D-A1/D-A2's refusal to infer a declared graph is the correct extension of the tool's epistemics,
+  and the rejected alternative ("union of observed = declaration → always 100%") is the proof.
+- D-A6 open-format/hold-the-name: right, and rightly argued from where the defensibility actually
+  lives. A conformance suite plus a reference implementation is how a format wins.
+- The capability table's own confidence caveat (researched shapes, unresearched APIs, rule 6) is
+  exactly the discipline that was missing before M21.
+
+================================================================================
+2. FINDINGS
+================================================================================
+F1 (SUBSTANTIVE) — ORDER IS A CLAIM, AND THE SPEC NEVER MAKES THE ADAPTER DECLARE IT.
+  D-A3 renders each cycle as canonical record text, and the record model's nodeLogs list is ORDERED —
+  in Fluxtion that order IS the dispatch order, deterministically, and the tool's most differentiated
+  features consume it as meaning: step-through's "step 2/5", topology route escalation, the M21
+  logged/may-have-run classification. Now translate the spec's own examples: LangGraph runs parallel
+  super-steps; Temporal runs concurrent activities; OTel spans OVERLAP. An adapter forced to emit an
+  ordered list for a genuinely concurrent cycle must invent a total order — timestamps, alphabetical,
+  arrival — and the reader cannot tell invented order from real order. The feature table's
+  step-through row (✅ ✅ ✅ for "ordered components per cycle") is too generous for exactly this
+  reason: Temporal and OTel can supply timestamps, not dispatch order, and concurrent spans have no
+  order at all. This is UP-FLX-11's lesson one level up: when a property downstream features treat as
+  fact can be absent, it must be DECLARED, not defaulted.
+  AMENDMENT: the capability set gains an ordering declaration — per adapter or per cycle,
+  `ordering: TOTAL | PARTIAL` — and the consumers degrade loudly: step-through on a PARTIAL cycle
+  labels the sequence as timestamp-ordered-not-dispatch-ordered (or groups genuinely concurrent
+  components), route escalation stops implying causal sequence, and the docs say which engines give
+  which. Without this, the first foreign adapter silently converts the tool's sharpest fact —
+  "this ran, then this" — into an artifact of the adapter's sort key.
+
+F2 — ATTRIBUTION NEEDS ONE SENTENCE IN D-A3. Fluxtion nodeLogs values exist because THAT node chose
+  to log THAT key in THAT cycle. Foreign state models differ: a LangGraph state channel is SHARED
+  state, and an adapter that echoes the whole state dict under every node that touched it makes
+  `instanceId.key` series into cross-node duplicates — last-occurrence and LOCF then "work" while
+  meaning something else. Propose the rule in the spec's own voice: a value appears under a component
+  only if that component PRODUCED or CHANGED it; an adapter that cannot attribute declines to, rather
+  than broadcasting. It is the adapter author's problem, but the format spec (D-A6) is where the rule
+  has to live or every adapter answers it differently.
+
+F3 — D-A6's conformance fixtures should pin SEMANTICS, not just layout: what absence means (the
+  trace-regime question), that logTime is expected non-decreasing (and that the M30 validator will
+  say so when it is not — a foreign emitter should know it gets judged), the eventTime -1 sentinel,
+  untimed-record behaviour. A format spec that only lists fields licenses conformant-but-meaningless
+  emitters; the fixtures are the place the meaning is cheap to pin.
+
+F4 (API note) — `graphSupport()` is on the ADAPTER but graphs arrive per SOURCE: one Temporal estate
+  can have a workflow-registry export where another has none. Either `graphSupport(Path)` or fold
+  provenance into the `graph()` return (`DeclaredGraph` carries DECLARED|INFERRED). Cheap now,
+  breaking later.
+
+F5 (promote, don't just note) — the sequencing note is the best strategic paragraph in the spec and
+  should be a SLICE: **M34.0 — the LangGraph spike against CURRENT code**, no SPI, one throwaway
+  translator emitting canonical text. It answers "can a foreign run be made legible at all" for the
+  cost of one adapter, and its output is also F1's evidence: the spike will hit the ordering problem
+  in the first parallel super-step it renders.
+
+================================================================================
+3. RECOMMENDATION
+================================================================================
+Adopt with F1 folded into the capability model (it is D-A1's own logic applied to order), F2 and F3
+into D-A3/D-A6 as single paragraphs, F4 as an SPI signature choice recorded either way, and F5 as
+M34.0. Then run M34.0 before committing to M34.1 — the spike either validates the whole proposition
+cheaply or teaches the SPI what it actually needs to carry.
