@@ -17,12 +17,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `flag` wrote **byte-identically** (the verb cannot author or override a diagnosis), and narrative
   always wears its standing label so an assertion can never pass as a record. Evidence **re-renders
   live** — a stored report is a re-runnable claim — and the report captures the log fingerprint and
-  filter it was authored under, announcing before anything renders when either differs. Table rows
+  filter it was authored under, announcing before anything renders when either differs (a renamed
+  copy with identical content gets a softer "same content — a different file" notice). Clicking an
+  evidence link whose record is hidden by the filter **offers** to widen it, never fails silently. Table rows
   are **derived** from a stored query with declared presentation; a row highlight is a **rule that
   is printed with the table** and re-evaluates strictly against each row's own record; tables export
   to CSV.
 
 ### Fixed
+- **The chart's empty state no longer lies about why.** "No numeric series selected" painted
+  equally for a chart with no series and for one whose configured series matched no records under
+  the current filter — the second case now says so and names the filter as the reason.
 - **A changed external-marker CSV is re-read.** The per-definition cache now checks the
   file's modification time, so a file that changed on disk cannot leave the chart showing evidence
   that no longer exists; previously a stale read survived until the definition changed or a restart.

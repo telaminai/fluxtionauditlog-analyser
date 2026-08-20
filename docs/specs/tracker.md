@@ -305,7 +305,9 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
   axis lane; recordIndex always -1 — an external row is not a record and click-through is refused by
   contract). MarkerSpec gains the ext* definition fields (persisted + shared portable, path resolved
   like external series); the verb takes markers[{external:{…}}] behind the SAME read confinement as
-  graph{external}; the D-F2 stamp covers marker sources; loads are cached per definition (a filter
+  graph{external}; the D-F2 stamp covers marker sources; loads are cached per definition AND
+  mtime-checked (review R5 — a file changed under a cached read must not show evidence that no
+  longer exists; a filter
   change cannot change what a CSV contains). The y-pin (`series:<label>`) is NOT supported for
   external markers in v1 — value column or axis lane; recorded here rather than half-built.
 
@@ -357,6 +359,13 @@ carry — a highlight a reader cannot verify from the visible row is a colour, n
   report keys; the import summary counts narrative), replace-by-name apply, disclosure row in
   sharing-setups.md same commit (contract-test enforced). Reports tab: sections clickable through
   to record/graph/focus, fingerprint banner first, the filter offer is a BUTTON (offer-never-act).
+  **Post-review, owner-driven:** Q1 decided — same content under a different name announces SOFTLY
+  ("SAME CONTENT — A DIFFERENT FILE"), the strong banner reserved for content differences; the
+  Reports tab gained **Export PDF…** (human parity with `report {path}`, chooser-as-consent); and
+  the owner's live eyeball pass surfaced two silent failures, both made loud — the chart's
+  empty-state now distinguishes "nothing configured" from "configured but filtered to nothing"
+  (a SHIPPED surface, fixed under Fixed in the changelog), and a report's open-record click on a
+  filtered-out record now OFFERS the goto-reveal relaxation instead of doing nothing.
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before.
 
