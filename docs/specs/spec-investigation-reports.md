@@ -1,6 +1,6 @@
 # Investigation Reports — the account, not just the evidence (Design Spec)
 
-Status: PROPOSED v2 (review: docs/handoff/review_m33_spec_and_1_6_0.txt — F1/F2 folded into D-I3a
+Status: PROPOSED v2 (review: docs/handoff/completed/review_m33_spec_and_1_6_0.txt — F1/F2 folded into D-I3a
 as one mechanism, F3 answered in D-I8, F4 declined with a reason) · Owner: greg.higgins ·
 Last updated: 2026-08-20 · Milestone **M33**
 

@@ -32,7 +32,7 @@ assistant-vocabulary follow-ups.
   (derive from intended semantics, **never snapshot output**) and the TODO taxonomy — `rate()`
   span-normalisation first, the c3094ea bug class — are in
   **[spec-formula-golden-fixtures.md](spec-formula-golden-fixtures.md)**.
-  Review endorsed (all 7 re-derived correct — `review_formula_golden_fixtures.txt`). **G1 and G2
+  Review endorsed (all 7 re-derived correct — `completed/review_formula_golden_fixtures.txt`). **G1 and G2
   closed** (58879d7): an empty `EXPECT` now requires a declared `expectEmpty: true`, and every
   fixture runs through BOTH engine arms — `SeriesExtractor.extractExpr` *and* `SeriesScan` — with
   agreement asserted. Closing G2 immediately caught the `series` verb answering from stale carries
@@ -285,36 +285,10 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 - [M31.5] ☐ *(owner decision)* **Separate `analyser-reader-spi` artifact** — needs a multi-module
   build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
-## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18 (archived; three small remnants)
+## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18, legend + docs images 2026-08-18 in v1.6.0 (archived; three small remnants)
 _32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
 marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
 Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
-- [M32.9] ☑ **Marker series now appear in the legend** — glyph-aware rows drawn by the chart's OWN
-  painter (`ChartPanel.paintGlyph`, made public/static so key and plot cannot drift), in the marker
-  palette, labelled with the series' event count. Rows come from the LAST EXTRACTION rather than the
-  specs, so a dangling pin shows `(0)` and its note as the tooltip instead of a phantom row. Right-click
-  removes the marker spec. Count is TOTAL points, not drawn glyphs — drawn glyphs collapse with zoom
-  under D-M3, and a legend number that changed on zoom while the data did not would be its own small
-  lie; the ×N badges already carry density on the plot. `MarkerLegendTest` pins the pure parts; the
-  overlay itself stays an eyeball item (rule 4). *Shipped after v1.5.0.*
-  _(Original finding, kept for the record:_ *Measured 2026-08-18 against v1.5.0, and visible in the shipped docs
-  image `docs/site/assets/graph-markers-dark.png`: the chart draws orange ▲ and pink ✕ glyphs and the
-  legend lists only `quotePublisher.spread`, so nothing on screen says what either glyph means.*
-  `GraphPanel.rebuildLegendLabels()` adds a row for each of `activeKeys`, `activeExprs` and
-  `externalSpecs` — markers are never offered to it. The spec says legend rows show **glyph + label
-  with a count** (spec §C), and that half was not built.
-  Two things it needs beyond a fourth loop: `legendRow(String, int)` paints a square swatch from
-  `ChartPanel.paletteColor(idx)`, so it needs a **glyph-aware** variant drawing the marker's own shape
-  from the **marker palette** (separate since the R7 fix); and the count is per the D-M3 aggregation,
-  not `points().size()`, if it is to agree with what the eye sees.
-  *Consequence while open:* the bands docs image only reads correctly because its caption does the
-  legend's job in prose — which is the tell that the legend is doing none.)_
-- [M32.10] ☑ **Docs images regenerated against the legend fix** — all 14 shots retaken natively
-  (`done — 14 captures, all native`, exit 0), so `graph-markers-dark.png` now shows the key it was
-  missing: `▲ order live (166)` and `✕ risk breach (160)` beside `quotePublisher.spread`, in the
-  marker palette, glyphs matching the plot. Every visible string re-read per rule 1. This is also the
-  first run where the harness's success signal means anything — the pre-fix version reported ✓ for
-  shots it never took.
 - [M32.6] ☐ **Flags rug** — flagged records as a built-in axis-lane rug (D-M5's second half); needs a
   flagged-rows supplier seam from MainFrame.
 - [M32.7] ☐ **PDF markers table** — glyphs already ride the painted export; the table (label, time,

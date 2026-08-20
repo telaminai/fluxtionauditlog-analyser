@@ -44,12 +44,12 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-08-18 (v1.5.0):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-08-20 (v1.6.0):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +
 time-order validation (M30), log-source plugins (M31 core), marker series + point-snapped mouseover
-(M32 core).
+(M32 core, + the marker legend and natural-sorted topology index in 1.6.0).
 
 Open analyser-side: M22 remnants — PNG export (22.3), alternative layouts (22.6), re-dispatch cause
 (22.11, needs `UP-FLX-10` in [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the
