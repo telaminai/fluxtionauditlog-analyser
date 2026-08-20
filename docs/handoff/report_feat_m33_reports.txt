@@ -173,3 +173,49 @@ Left for the owner: Q1 (same-content-different-file policy — I lean the review
 forensic tool, with the softer banner "matches on content but is a different file"; noise on
 copy/rename is real, so perhaps only when the NAME also differs from the stored one, which is
 exactly the information F2's fix put in hand) and Q2/E1–E5 (the Swing eyeball list).
+
+================================================================================
+8. THE OWNER'S EYEBALL SESSION (Q2 answered live) — five more commits
+================================================================================
+The Q2 eyeball pass was run as a LIVE session: this session drove the app over REST (flag → graph →
+markers → report → filter), staged each E-state, and the owner clicked. It produced five commits and
+settled Q1 — and it caught two defects headless tests structurally cannot see, within minutes.
+
+Q1 DECIDED (cc5f9fa): same content under a different name announces SOFTLY — "the loaded log matches
+  on content but is a different file ('…')" — the strong banner reserved for content differences,
+  same content + same name quiet. The reviewer's renamed-copy test flipped with the policy and
+  records who decided. Spec D-I3a carries the rule.
+  · 918d6ab, found by the FIRST live render of the soft case: the soft message wore the STRONG
+    heading, contradicting itself. ReportResolver.fingerprintHeading picks the heading for panel and
+    PDF alike ("SAME CONTENT — A DIFFERENT FILE"), pinned by test.
+
+OWNER-FOUND DEFECTS (f9abf81), both silent, both believed:
+  · The chart's empty state lied about WHY. The owner applied the report's authored view
+    (RiskBreachEvent-only), opened the spread chart, and saw "No numeric series selected — pick a
+    nodeLogs key" — a SHIPPED message, wrong whenever a configured series matches no records under
+    the filter. Two absences now get two messages; the filtered case names the filter. Changelog ▸
+    Fixed (it is a released surface).
+  · "open record #7" did nothing. The record was hidden by the applied view; selectModelRow's false
+    return was swallowed. The click now OFFERS the widen ("Record 7 is filtered out… Widen the
+    filter to show it?") and accepting runs the SAME minimal relaxation as goto {reveal:true}
+    (revealRecord widened to package-private — one implementation). Still-hidden says so.
+
+EXPORT PARITY (93b8f9b), owner-asked: the Reports tab gained Export PDF… — the agent had a door
+  (report {path}) the human lacked. Same resolver, same renderer, chooser-as-consent (the finding
+  export's rule), status-line confirmation with the ride-along note count.
+
+E1–E5 STATUS after the session:
+  E1 ✓ exercised by the owner: the VIEW offer applied on click; click-throughs landed (record 7
+     after the widen offer; the graph link) — dark verified live, light verified by screenshot.
+  E2 ✓ both banners screenshot-verified: the strong different-log banner (demo-quote-audit open)
+     and the Q1 soft banner (renamed copy open), each under its own heading.
+  E3 ✓ the rug seen beside user markers in both themes, counted in the legend ("⚑ flags (4)").
+  E4 — still open: the chooser-grant path for an external MARKER CSV has no dialog (markers are
+     verb-first by design; File ▸ Add series from CSV… covers series only). Not a defect; an owner
+     call on whether markers deserve the same dialog.
+  E5 ✓ the 5-page PDF verified page by page: the markers table breaks with its header repeated,
+     formatted times, footers carrying report name + log.
+
+One observation for the polish round, not fixed here: a chart whose series exists but extracts
+empty keeps its axes hidden entirely; with the honest message that is now acceptable, but axes-with-
+no-line would make the "the filter is why" reading even faster.
