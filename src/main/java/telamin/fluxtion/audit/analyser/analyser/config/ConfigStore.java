@@ -81,6 +81,7 @@ public final class ConfigStore {
         }
         readGraphs(p, c.savedGraphs);
         readFocuses(p, c.namedFocuses);
+        readReports(p, c.reports);
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -146,6 +147,7 @@ public final class ConfigStore {
         put(p, "lastRunVersion", c.lastRunVersion);
         writeGraphs(p, globalTier == null ? c.savedGraphs : globalTier.savedGraphs());
         writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
+        writeReports(p, globalTier == null ? c.reports : globalTier.reports());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
@@ -195,6 +197,155 @@ public final class ConfigStore {
                 if (id != null && !id.isBlank()) ids.add(id);
             }
             if (!ids.isEmpty()) into.add(new FocusSpec(name, p.getProperty("focus." + i + ".rationale"), ids));
+        }
+    }
+
+    static void writeReports(Properties p,
+                             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports) {
+        p.setProperty("report.count", Integer.toString(reports.size()));
+        for (int i = 0; i < reports.size(); i++) {
+            var r = reports.get(i);
+            String base = "report." + i;
+            put(p, base + ".name", r.name());
+            put(p, base + ".title", r.title());
+            put(p, base + ".created", r.createdAt().isBlank() ? null : r.createdAt());
+            put(p, base + ".notes", r.notes().isBlank() ? null : r.notes());
+            if (r.fingerprint() != null) {
+                put(p, base + ".fp.log", r.fingerprint().logName());
+                p.setProperty(base + ".fp.records", Integer.toString(r.fingerprint().records()));
+                if (r.fingerprint().firstTime() != null)
+                    p.setProperty(base + ".fp.first", Long.toString(r.fingerprint().firstTime()));
+                if (r.fingerprint().lastTime() != null)
+                    p.setProperty(base + ".fp.last", Long.toString(r.fingerprint().lastTime()));
+            }
+            var f = r.filter();
+            if (f.fromMillis() != null) p.setProperty(base + ".filter.from", Long.toString(f.fromMillis()));
+            if (f.toMillis() != null) p.setProperty(base + ".filter.to", Long.toString(f.toMillis()));
+            put(p, base + ".filter.text", f.text().isBlank() ? null : f.text());
+            put(p, base + ".filter.mode", f.groupMode().name());
+            if (f.dimensions() != null) {                       // null = all; absence of the count says so
+                List<String> dims = new java.util.ArrayList<>(f.dimensions());
+                java.util.Collections.sort(dims);
+                writeList(p, base + ".filter.dim", dims);
+            }
+            p.setProperty(base + ".s.count", Integer.toString(r.sections().size()));
+            for (int j = 0; j < r.sections().size(); j++) {
+                var s = r.sections().get(j);
+                String k = base + ".s." + j;
+                put(p, k + ".kind", s.kind().name());
+                if (s.recordIndex() >= 0) p.setProperty(k + ".record", Integer.toString(s.recordIndex()));
+                put(p, k + ".file", s.file());
+                put(p, k + ".ref", s.ref());
+                put(p, k + ".text", s.text());
+                put(p, k + ".rowWhen", s.rowWhen());
+                put(p, k + ".rowWhenLabel", s.rowWhenLabel());
+                p.setProperty(k + ".call.count", Integer.toString(s.call().size()));
+                int ci = 0;
+                for (var e : s.call().entrySet()) {
+                    put(p, k + ".call." + ci + ".key", e.getKey());
+                    put(p, k + ".call." + ci + ".val", e.getValue());
+                    ci++;
+                }
+                p.setProperty(k + ".col.count", Integer.toString(s.columns().size()));
+                for (int m = 0; m < s.columns().size(); m++) {
+                    var col = s.columns().get(m);
+                    String ck = k + ".col." + m;
+                    put(p, ck + ".key", col.key());
+                    put(p, ck + ".heading", col.heading());
+                    put(p, ck + ".format", col.format().isBlank() ? null : col.format());
+                    put(p, ck + ".align", col.align().isBlank() ? null : col.align());
+                    put(p, ck + ".emphasis", col.emphasis().isBlank() ? null : col.emphasis());
+                    if (col.width() > 0) p.setProperty(ck + ".width", Integer.toString(col.width()));
+                }
+            }
+        }
+    }
+
+    static void readReports(Properties p,
+                            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> out) {
+        out.clear();
+        int n = parseInt(p.getProperty("report.count"), 0);
+        for (int i = 0; i < n; i++) {
+            String base = "report." + i;
+            String name = p.getProperty(base + ".name");
+            if (name == null || name.isBlank()) continue;
+            telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint fp = null;
+            if (p.getProperty(base + ".fp.records") != null) {
+                fp = new telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint(
+                        p.getProperty(base + ".fp.log", ""),
+                        parseInt(p.getProperty(base + ".fp.records"), 0),
+                        longOrNull(p.getProperty(base + ".fp.first")),
+                        longOrNull(p.getProperty(base + ".fp.last")));
+            }
+            java.util.Set<String> dims = null;
+            if (p.getProperty(base + ".filter.dim.count") != null) {
+                List<String> list = new java.util.ArrayList<>();
+                readList(p, base + ".filter.dim", list);
+                dims = new java.util.HashSet<>(list);
+            }
+            var filter = new telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot(
+                    longOrNull(p.getProperty(base + ".filter.from")),
+                    longOrNull(p.getProperty(base + ".filter.to")),
+                    dims,
+                    p.getProperty(base + ".filter.text", ""),
+                    parseGroupMode(p.getProperty(base + ".filter.mode")));
+            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.SectionSpec> sections =
+                    new java.util.ArrayList<>();
+            int sc = parseInt(p.getProperty(base + ".s.count"), 0);
+            for (int j = 0; j < sc; j++) {
+                String k = base + ".s." + j;
+                String kindStr = p.getProperty(k + ".kind");
+                telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.Kind kind;
+                try {
+                    kind = telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.Kind.valueOf(
+                            kindStr == null ? "" : kindStr);
+                } catch (IllegalArgumentException e) {
+                    continue;                                   // a kind this build does not know: skip
+                }
+                java.util.Map<String, String> call = new java.util.LinkedHashMap<>();
+                int cc = parseInt(p.getProperty(k + ".call.count"), 0);
+                for (int ci = 0; ci < cc; ci++) {
+                    String key = p.getProperty(k + ".call." + ci + ".key");
+                    String val = p.getProperty(k + ".call." + ci + ".val");
+                    if (key != null && val != null) call.put(key, val);
+                }
+                List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.ColumnSpec> cols =
+                        new java.util.ArrayList<>();
+                int colc = parseInt(p.getProperty(k + ".col.count"), 0);
+                for (int m = 0; m < colc; m++) {
+                    String ck = k + ".col." + m;
+                    cols.add(new telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.ColumnSpec(
+                            p.getProperty(ck + ".key"), p.getProperty(ck + ".heading"),
+                            p.getProperty(ck + ".format"), p.getProperty(ck + ".align"),
+                            p.getProperty(ck + ".emphasis"),
+                            parseInt(p.getProperty(ck + ".width"), 0)));
+                }
+                sections.add(new telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.SectionSpec(
+                        kind, parseInt(p.getProperty(k + ".record"), -1), p.getProperty(k + ".file"),
+                        p.getProperty(k + ".ref"), call, p.getProperty(k + ".text"), cols,
+                        p.getProperty(k + ".rowWhen"), p.getProperty(k + ".rowWhenLabel")));
+            }
+            out.add(new telamin.fluxtion.audit.analyser.analyser.report.ReportSpec(
+                    name, p.getProperty(base + ".title"), p.getProperty(base + ".created", ""),
+                    p.getProperty(base + ".notes", ""), fp, filter, sections));
+        }
+    }
+
+    private static Long longOrNull(String s) {
+        if (s == null) return null;
+        try {
+            return Long.parseLong(s.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.filter.FilterState.GroupMode parseGroupMode(String s) {
+        try {
+            return telamin.fluxtion.audit.analyser.analyser.filter.FilterState.GroupMode.valueOf(
+                    s == null ? "" : s);
+        } catch (IllegalArgumentException e) {
+            return telamin.fluxtion.audit.analyser.analyser.filter.FilterState.GroupMode.DIMENSION;
         }
     }
 

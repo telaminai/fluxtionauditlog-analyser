@@ -40,14 +40,18 @@ class ProjectProfileTest {
      * The brief calls the project tier "the M15 shareable whitelist". That shorthand is one category
      * too broad in two places, and this pins the difference: assistant caps and LLM provider are
      * shareable with a colleague but are not facts about a project.
+     *
+     * <p>Was five; REPORTS joined in M33.4 — an investigation is a fact about a project if anything
+     * is, and D-I4 gives it its own category (own consent) rather than a seat inside GRAPHS. The
+     * pin's point is unchanged: machine settings stay out.
      */
     @Test
-    void theProjectTierIsFiveCategoriesNotTheWholeShareableWhitelist() {
-        assertEquals(5, ProjectProfile.PROJECT_SCOPED.size());
+    void theProjectTierIsSixCategoriesNotTheWholeShareableWhitelist() {
+        assertEquals(6, ProjectProfile.PROJECT_SCOPED.size());
         assertTrue(ProjectProfile.PROJECT_SCOPED.containsAll(List.of(
                 SettingsShare.Category.SOURCE_ROOTS, SettingsShare.Category.MAVEN_REPOS,
                 SettingsShare.Category.EVENT_PROCESSORS, SettingsShare.Category.GRAPHS,
-                SettingsShare.Category.VIEW)));
+                SettingsShare.Category.REPORTS, SettingsShare.Category.VIEW)));
         assertFalse(ProjectProfile.PROJECT_SCOPED.contains(SettingsShare.Category.ASSISTANT),
                 "assistant caps are machine settings — the spec's tier table lists them as global");
         assertFalse(ProjectProfile.PROJECT_SCOPED.contains(SettingsShare.Category.LLM),

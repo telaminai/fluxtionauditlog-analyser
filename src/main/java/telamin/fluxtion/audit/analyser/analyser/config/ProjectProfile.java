@@ -72,6 +72,7 @@ public final class ProjectProfile {
             SettingsShare.Category.MAVEN_REPOS,
             SettingsShare.Category.EVENT_PROCESSORS,
             SettingsShare.Category.GRAPHS,
+            SettingsShare.Category.REPORTS,
             SettingsShare.Category.VIEW);
 
     private ProjectProfile() {
@@ -119,6 +120,7 @@ public final class ProjectProfile {
                            String selectedEventProcessor,
                            List<GraphSpec> savedGraphs,
                            List<FocusSpec> namedFocuses,
+                           List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
                            List<String> hiddenColumns,
                            boolean hiddenColumnsSet) {
 
@@ -128,13 +130,15 @@ public final class ProjectProfile {
             eventProcessorFqns = List.copyOf(eventProcessorFqns);
             savedGraphs = List.copyOf(savedGraphs);
             namedFocuses = List.copyOf(namedFocuses);
+            reports = List.copyOf(reports);
             hiddenColumns = List.copyOf(hiddenColumns);
         }
     }
 
     public static Snapshot snapshot(AppConfig c) {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
-                c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.hiddenColumns, c.hiddenColumnsSet);
+                c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
+                c.hiddenColumnsSet);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -147,6 +151,7 @@ public final class ProjectProfile {
         into.selectedEventProcessor = s.selectedEventProcessor();
         into.savedGraphs.addAll(s.savedGraphs());
         into.namedFocuses.addAll(s.namedFocuses());
+        into.reports.addAll(s.reports());
         into.hiddenColumns.addAll(s.hiddenColumns());
         into.hiddenColumnsSet = s.hiddenColumnsSet();
     }
@@ -161,6 +166,7 @@ public final class ProjectProfile {
         c.eventProcessorFqns.clear();
         c.savedGraphs.clear();
         c.namedFocuses.clear();
+        c.reports.clear();
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there

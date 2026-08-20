@@ -153,6 +153,16 @@ public final class GraphTabs extends JPanel {
         return tabs.getSelectedComponent() instanceof GraphPanel gp ? gp.graphName() : null;
     }
 
+    /** Select the named graph's tab (M33.4 — a report's chart section navigates here). No-op if absent. */
+    public void selectGraph(String name) {
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getComponentAt(i) instanceof GraphPanel gp && gp.graphName().equals(name)) {
+                tabs.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
     /**
      * Add a raw series to a graph: {@code name} null/blank → the currently selected graph; a known
      * name → that graph; an unknown name → a new graph with that name. Selects the target tab.

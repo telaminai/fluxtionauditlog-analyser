@@ -71,8 +71,14 @@ drive the same verbs:
   and leaves it open, so an assistant can *show you where a control is* rather than describe it
   (`menu:close` puts it back). The window is raised first: a native capture photographs a region of the
   screen, so anything sitting on top would otherwise be in the picture.
-- **report** — write one record's finding out as a PDF: the explanation, the suggested fix, the event,
-  the node log, a picture of the topology as currently focused, and optionally a plot.
+- **report** — two forms. The single-record form writes one record's finding out as a PDF: the
+  explanation, the suggested fix, the event, the node log, a picture of the topology as currently
+  focused, and optionally a plot. The **investigation form** (`report {name, sections}`) builds a
+  named, persistent report from typed sections — findings, records, charts, tables, narrative — the
+  *account* of an investigation, not just its evidence. It appears in the **Reports** tab, renders to
+  PDF with `path`, and exports a table's rows to CSV with `csv`. A finding section renders what
+  `flag` wrote and the verb **cannot** set or change that text; narrative is always visibly labelled
+  as narrative. See [Investigation reports](reports.md).
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a
   graphml, and answers the question nobody can answer by eye on a large graph: what did this run never
   exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
