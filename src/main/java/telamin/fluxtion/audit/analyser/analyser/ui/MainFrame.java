@@ -589,6 +589,26 @@ public final class MainFrame extends JFrame {
         if (reportsPanel != null) reportsPanel.refresh();
     }
 
+    /**
+     * A report's "open record" click (M33.4). A record hidden by the current filter must not fail
+     * SILENTLY — a live eyeball pass hit exactly that ("I press the button, nothing happens"). The
+     * click's intent is unambiguous, but widening the filter is a view mutation, so it is OFFERED
+     * (M20.5/D-R5), then performed with the same minimal relaxation the goto verb's reveal uses.
+     */
+    private void openRecordFromReport(int row) {
+        if (tablePanel.selectModelRow(row)) return;
+        int choice = javax.swing.JOptionPane.showConfirmDialog(this,
+                "Record " + row + " is filtered out of the current view.\nWiden the filter to show it?",
+                "Record hidden by the filter", javax.swing.JOptionPane.OK_CANCEL_OPTION);
+        if (choice != javax.swing.JOptionPane.OK_OPTION || store == null) return;
+        ActionExecutor.revealRecord(filter, store, row);
+        if (!tablePanel.selectModelRow(row)) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Relaxed the filter, but the record is still hidden (likely 'Records ▸ Show "
+                            + "flagged only').", "Still hidden", javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
     private java.util.Set<String> focusNames() {
         java.util.Set<String> out = new java.util.HashSet<>();
         for (var f : config.namedFocuses) out.add(f.name());
@@ -1286,7 +1306,7 @@ public final class MainFrame extends JFrame {
                                         sec.rowWhen(), sec.rowWhenLabel()),
                                 java.util.List.of("no log is loaded"))
                         : telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.assembleTable(sec, store),
-                row -> tablePanel.selectModelRow(row),
+                row -> openRecordFromReport(row),
                 gname -> { sideTabs.setSelectedComponent(graphTabs); graphTabs.selectGraph(gname); },
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter));
