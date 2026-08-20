@@ -605,13 +605,18 @@ public final class MainFrame extends JFrame {
      * the live log, optionally render to PDF or export one table section to CSV. The echo follows
      * M26.4 — invalid sections skipped AND named, unresolved references named, nothing silent.
      */
+    /** The log actually open, as the fingerprint names it — one source for authoring and re-opening. */
+    private String loadedLogName() {
+        return logDisplayLocation == null ? "" : new File(logDisplayLocation).getName();
+    }
+
     private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult reportVerb(
             java.util.Map<String, Object> params, String resolvedPath) {
         if (store == null) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
         }
-        var fp = telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(store.index(),
-                logDisplayLocation == null ? "" : new File(logDisplayLocation).getName());
+        var fp = telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
+                store.index(), loadedLogName());
         String name = params.get("name") == null ? null : params.get("name").toString();
 
         // ---- CSV export of one table section from an EXISTING report --------------------------------
@@ -670,8 +675,8 @@ public final class MainFrame extends JFrame {
         }
 
         var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                spec, store.index(), findings, new java.util.HashSet<>(graphTabs.graphNames()),
-                focusNames(), filter);
+                spec, store.index(), loadedLogName(), findings,
+                new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter);
 
         java.util.List<String> warnings = new java.util.ArrayList<>(parsed.warnings());
         for (var sr : resolution.sections()) {
@@ -1272,7 +1277,7 @@ public final class MainFrame extends JFrame {
         reportsPanel = new ReportsPanel(
                 () -> java.util.List.copyOf(config.reports),
                 spec -> telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                        spec, store == null ? null : store.index(), findings,
+                        spec, store == null ? null : store.index(), loadedLogName(), findings,
                         new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter),
                 sec -> store == null
                         ? new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.AssembledTable(

@@ -40,6 +40,34 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
 
     void collectRefs(Set<GraphKey> out);
 
+    /**
+     * The rolling-window functions this expression uses, in source order, or empty when it is
+     * point-wise. Makes {@link #newEvaluator()}'s standing warning CHECKABLE: a caller that can only
+     * offer one row — a table's row-highlight rule, say — must be able to ask whether the expression
+     * needs history before it evaluates one, because the failure is silent in both directions.
+     * {@code mean}/{@code sum}/{@code rollingMin}/{@code rollingMax} over a single sample return the
+     * sample (the rule degrades to the bare value and fires as if it had been computed), while
+     * {@code lag}/{@code delta}/{@code rate} return NaN (it can never fire). Neither says so.
+     */
+    default Set<String> windowFunctions() {
+        Set<String> out = new LinkedHashSet<>();
+        collectWindowFunctions(this, out);
+        return out;
+    }
+
+    private static void collectWindowFunctions(Expr e, Set<String> out) {
+        switch (e) {
+            case Neg g -> collectWindowFunctions(g.e(), out);
+            case Bin b -> { collectWindowFunctions(b.left(), out); collectWindowFunctions(b.right(), out); }
+            case Cmp c -> { collectWindowFunctions(c.left(), out); collectWindowFunctions(c.right(), out); }
+            case Call c -> {
+                if (WINDOW_FUNCTIONS.contains(c.fn())) out.add(c.fn());
+                for (Expr a : c.args()) collectWindowFunctions(a, out);
+            }
+            default -> { }
+        }
+    }
+
     // ---- AST ------------------------------------------------------------------------------------
 
     record Num(double value) implements Expr {

@@ -22,6 +22,20 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   is printed with the table** and re-evaluates strictly against each row's own record; tables export
   to CSV.
 
+### Fixed
+- **A row-highlight rule that needs history is now refused and named, never quietly applied to a
+  one-sample window.** `rowWhen` evaluates against each row's own record, so a rolling window holds a
+  single sample: `mean`, `sum`, `rollingMin` and `rollingMax` collapsed to their bare argument and
+  highlighted rows as though the window had been computed, while the label printed under the table
+  still claimed the window — a report stating a rule the analyser never applied. `lag`, `delta` and
+  `rate` failed the other way and could never fire. All seven are now rejected with the reason, in
+  the table, in the verb echo and in the parameter schema; compute the window with `series` and
+  compare on a plain value.
+- **The "different log" banner names the log you are actually on.** It described the loaded log using
+  the *report's own* stored file name, so re-opening a report against another log announced the
+  mismatch while naming the file you were not looking at. The verdict still turns on content (record
+  count and time range), so a renamed or moved file is still not a mismatch.
+
 ## [1.6.0] - 2026-08-18
 
 ### Added

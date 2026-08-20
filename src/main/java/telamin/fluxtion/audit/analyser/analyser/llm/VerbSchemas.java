@@ -398,7 +398,10 @@ public final class VerbSchemas {
                 p("columns", arr(reportColumnObject()), "table: the declared presentation"),
                 p("rowWhen", string(), "table: highlight rows where this condition is truthy — "
                         + "evaluated STRICTLY against each row's own record, no carry; the rule is "
-                        + "printed with the table"),
+                        + "printed with the table. POINT-WISE ONLY: rolling-window functions "
+                        + "(mean/sum/rollingMin/rollingMax/lag/delta/rate) need history a single row "
+                        + "does not have, so they are refused and named rather than applied to a "
+                        + "one-sample window — compute the window with 'series' and compare here"),
                 p("rowWhenLabel", string(), "table: what the highlight MEANS (e.g. \"in breach\")")));
         m.put("required", List.of("kind"));
         return m;
