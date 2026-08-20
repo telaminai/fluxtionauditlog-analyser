@@ -1,0 +1,154 @@
+REPORT — M34.0, the LangGraph spike against CURRENT code
+Date: 2026-08-20 · Spec: docs/specs/spec-source-adapters.md · Tracker: M34.0
+Code: tools/spikes/m34-langgraph/ (throwaway, out of the build — no analyser change was made)
+Analyser: v1.7.0, unmodified. LangGraph 1.2.11 / langchain-core 1.6.0, read live before writing.
+
+VERDICT: **YES — a foreign run is legible by today's tool, and M34.1–.4 are worth building.**
+Every verb worked on a LangGraph run with ZERO analyser changes. The gate opens.
+
+But the spike also did the second job it was commissioned for: it turned D-A1a from a review
+inference into an observed fact, and it produced that evidence in the FIRST parallel super-step it
+rendered, exactly as the tracker predicted. Read §3 before starting M34.1 — it changes what the SPI
+has to carry.
+
+================================================================================
+1. WHAT WAS BUILT, AND WHY THIS SUBJECT
+================================================================================
+The supermarket POC's COLD-CHAIN subsystem, rebuilt on LangGraph: TemperatureReading and
+CompressorTelemetry into fridge_monitor + compressor_health (parallel), joining at
+temperature_forecast, conditionally reaching maintenance_scheduler. Same domain, same events, same
+derived quantities as gregv12/supermarket-poc — a MATCHED PAIR rather than an arbitrary app,
+because an arbitrary app only shows whether the analyser can open something. A matched pair shows
+what the instrument LOSES on the way across, which is the finding.
+
+The run: 24 chiller units × 30 cycles = 720 events, deterministic (no RNG — reproducible log).
+Units CHILL-3, CHILL-11 and CHILL-19 drift hot and shake; the rest stay healthy.
+
+The translator is ~120 lines and does two things: `stream_mode="debug"` → canonical record text,
+and `graph.get_graph()` → GraphML. Nothing else.
+
+  Fluxtion                         LangGraph                      mapping
+  ------------------------------   ---------------------------    -------------------------------
+  one event → one dispatch cycle   one input → N super-steps      one .stream() call = one RECORD
+    = one record                     each with ≥1 task              (super-steps live inside it)
+  nodeLogs in DISPATCH order       tasks in a super-step are      *** see §3 ***
+                                     CONCURRENT
+  what each node logged            payload.result = "channel      CLEAN — D-A3's attribution rule
+    (auditLog.info(...))             names → values written by      is satisfied BY THE SOURCE,
+                                     this task"                     not invented by the adapter
+  GraphML from the AOT compiler    graph.get_graph()              CLEAN — GraphSupport.DECLARED
+
+================================================================================
+2. WHAT WORKED — every verb, unmodified analyser
+================================================================================
+  parse            720 records, 2241 tasks, 412 KB, time axis 09:00:00.000 → 09:14:58.750
+  series           stats over temperature_forecast.predicted_c: min 2.8 / max 10.483 / mean 3.618
+  series crossings above 5.0 → first breach at recordIndex 74, with anchors for a targeted read
+  aggregate        720, bucketed
+  read             raw record text AND read{fields} projection
+                     ("compressor_health.failure_p": "0.0328", "fridge_monitor.over_temp": "false")
+  open {graphml}   the declared graph loaded
+  coverage         declared 6 · covered 4 · uncovered 2 — see §4, the figure is right and the
+                     READING is wrong, which is itself a finding
+  topology         6 nodes / 7 edges / 5 layers, "logged" shading live, step-through walking
+  graph            both series resolved and plotted
+
+Screenshot (analyser's own painted export — the native grab failed, screen locked, the recurring
+`CGSSessionScreenIsLocked` cause): the topology renders __start__ → fridge_monitor +
+compressor_health → temperature_forecast → maintenance_scheduler → __end__, green where logged,
+with the record detail pane parsing every nodeLog. It looks exactly like a Fluxtion run. That IS
+the result.
+
+================================================================================
+3. THE FINDING — D-A1a CONFIRMED, AND IT IS WORSE ON SCREEN THAN ON PAPER
+================================================================================
+**All 720 records contain a concurrent super-step. Not some — all.** Every single record in this
+log carries an order that no engine ever decided.
+
+Stepping through record 74 (CHILL-3's first forecast breach) in the unmodified analyser:
+
+    step 1: row=0  current='_concurrent'            row 1 / 5
+    step 2: row=1  current='compressor_health'      row 2 / 5
+    step 3: row=2  current='fridge_monitor'         row 3 / 5
+    step 4: row=3  current='temperature_forecast'   row 4 / 5
+    step 5: row=4  current='maintenance_scheduler'  row 5 / 5
+
+The tool walks compressor_health BEFORE fridge_monitor and the topology paints dispatch-order
+badges — 2 on one, 3 on the other — as though one caused the other. They ran concurrently in
+super-step 1. That "order" is LangGraph's stream arrival order: scheduling detail, not causality.
+
+On the Fluxtion side the identical presentation is MEANING — the AOT compiler derived that order and
+step-through is reading it back. Here it is noise wearing meaning's clothes, and **nothing on screen
+distinguishes the two cases.** A user who trusts the badge on a Fluxtion log is right; the same user
+trusting the same badge on a LangGraph log is wrong, and has no way to tell.
+
+This is UP-FLX-11's lesson one level up, and it is the single most important thing the spike found.
+D-A1a (`ordering: TOTAL | PARTIAL` + a per-cycle concurrency marker) is NOT optional polish for
+M34.1 — without it the adapter's first act is to fabricate causality.
+
+**The workaround proves the point.** The translator emits a `_concurrent` marker line naming the
+nodes that ran together, because the format has no field for it. In the app that marker is parsed as
+an ordinary node: it appears in the step-through as row 1, it resolves as a data series
+(`_concurrent.nodes` returns 720 points), and its node list is mangled into keys —
+`ran: compressor_health, fridge_monitor: null` — because a comma-separated list in a value position
+is key/value syntax. Concurrency smuggled through a field meant for something else does not survive
+the trip. It needs a real representation.
+
+================================================================================
+4. THE SECOND FINDING — COVERAGE IS RIGHT AND ITS READING IS WRONG
+================================================================================
+coverage reported 4 of 6 covered, naming `__start__` and `__end__` as never-logged. Both figures are
+correct and the conclusion a reader draws is false: those are LangGraph's synthetic pseudo-nodes,
+not dead code. On the POC, "uncovered" found 54 genuinely dead nodes and that was the headline
+finding. Here the same number means nothing.
+
+So: **an adapter must not emit pseudo-nodes into the declared graph**, or must mark them as
+structural. Coverage's value depends entirely on "declared" meaning "things that were supposed to
+run", and every engine has its own scaffolding that isn't.
+
+**Credit where it is due, and it matters:** the analyser CAUGHT the translator's synthetic node
+without being asked to. coverage returned
+
+    loggedButNotInTopology: ["_concurrent"]
+    warning: "instanceIds in the log are absent from the topology — the graphml is probably from a
+              different build, which makes every other figure here suspect"
+
+It found a node the adapter invented, and rather than quietly excluding it, declared every other
+figure in the same response suspect. The honesty disciplines transfer to a foreign source with no
+modification at all. That is the strongest single argument in this report for M34 being worth
+building: what generalises is not the file format, it is the refusal to state more than is known.
+
+================================================================================
+5. WHAT THIS CHANGES FOR M34.1–.4
+================================================================================
+5.1  D-A1a moves from "amendment" to PRECONDITION. The SPI cannot ship an ordering-blind
+     `nodeLogs`; the consumers (step-through, route escalation, the M21 classification) must
+     qualify loudly when ordering is PARTIAL. Ordering is not metadata about the run — on a
+     concurrent engine it is the difference between evidence and fabrication.
+5.2  The declared graph needs a STRUCTURAL/scaffolding flag so coverage can exclude an engine's
+     own plumbing without an adapter having to lie about the node set.
+5.3  D-A3 needs nothing. LangGraph's per-task `result` IS the attribution rule. Do not build
+     machinery for a problem this source solves for free — but do check Temporal before
+     generalising, because that is the engine the spec says has no declared graph at all.
+5.4  The record↔cycle mapping is confirmed: one input invocation = one record, super-steps NESTED
+     inside it. Mapping a super-step to a record instead would shatter one event into four and take
+     goto, step-through and coverage down with it.
+
+================================================================================
+6. WHAT WAS NOT TESTED
+================================================================================
+  · Temporal, the harder half — no declared graph, so GraphSupport.NONE and coverage cannot exist.
+    This spike deliberately took LangGraph because it HAS a declared graph and so exercises the
+    hardest part of the boundary rather than the easiest (tracker M34.4's reasoning).
+  · Sub-graphs / nested LangGraph namespaces (the `ns` field on stream parts) — untouched.
+  · An LLM-in-the-loop graph, where node results are messages rather than scalars. Every derived
+    quantity here is numeric, which is the analyser's happy path; a token stream is not.
+  · Replay-diff, which the spec notes fits Temporal's native replay better than Fluxtion's.
+
+================================================================================
+7. REPRODUCE
+================================================================================
+  python3 -m venv venv && ./venv/bin/pip install langgraph
+  ./venv/bin/python tools/spikes/m34-langgraph/lg_to_audit.py out
+  java -jar target/fluxtion-auditlog-analyser-*.jar out/langgraph-coldchain.yaml
+  # then: open {graphml: out/langgraph-coldchain.graphml}, coverage, series, topology {step: 1}

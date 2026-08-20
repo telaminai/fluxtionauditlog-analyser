@@ -325,22 +325,31 @@ value appears under a component only if that component produced or changed it �
 channel is SHARED, and broadcasting it would make series into cross-component duplicates that
 still "work"). **D-A6**'s fixtures pin SEMANTICS not layout. Graph provenance moved onto the
 returned `SourceGraph` because availability is per SOURCE, not per adapter._
-- [M34.0] ☐ **The LangGraph spike, against CURRENT code** — no SPI, no refactor: one throwaway
-  translator emitting canonical record text from a real run, opened in today's analyser. **This gates
-  the rest.** It answers "can a foreign run be made legible at all" for the cost of one adapter, and
-  its output is also D-A1a's evidence — the spike meets the ordering problem in the first parallel
-  super-step it renders.
+- [M34.0] ☑ **The LangGraph spike, against CURRENT code** — **DONE 2026-08-20, the gate OPENS**
+  (`docs/handoff/report_m34_0_spike.txt`, code `tools/spikes/m34-langgraph/`). Every verb worked on a
+  LangGraph run with zero analyser changes: 720 records, series/crossings/aggregate/read/coverage/
+  topology/graph all live. **Two findings change M34.1.** (a) D-A1a is now OBSERVED, not inferred:
+  *all 720* records contain a concurrent super-step, and step-through walks them in stream-arrival
+  order while the topology paints dispatch badges — identical presentation to a Fluxtion log, where
+  the same badges are meaning. Ordering moves from amendment to **precondition**. (b) coverage's
+  figures were right and its reading was false — `__start__`/`__end__` counted as uncovered, so the
+  declared graph needs a **structural/scaffolding flag** or an adapter must not emit pseudo-nodes.
+  D-A3 needs nothing: LangGraph's per-task `result` IS the attribution rule. And the analyser caught
+  the translator's invented node unprompted (`loggedButNotInTopology`), declaring every other figure
+  suspect — the honesty disciplines transfer to a foreign source unmodified.
 - [M34.1] ☐ **`RunAdapter` SPI** — `DeclaredGraph`, `GraphSupport {NONE|INFERRED|DECLARED}`; the
   Fluxtion path refactored behind it, suite green unchanged (the M31.1 move, one level out).
 - [M34.2] ☐ **Capability degradation wired** — coverage, "did not run" shading, replay-diff: each
   disabled loudly with its reason, none silently.
 - [M34.3] ☐ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.
-- [M34.4] ☐ **First foreign adapter, out of tree — LangGraph**, chosen because it HAS a declared graph
-  and so exercises the hardest part of the boundary rather than the easiest.
-- _Sequencing: **M34.4 is the experiment that decides whether the rest is worth building**, and it is
-  the cheapest step. Consider spiking it against the CURRENT code first — if a foreign run cannot be
-  made legible by today's tool, no SPI fixes that, and the spike costs one adapter rather than a
-  re-plumbing._
+- [M34.4] ☐ **First foreign adapter, out of tree — LangGraph**, the throwaway translator of M34.0
+  rebuilt against the SPI: same engine, now a supported source rather than a hand-fed file.
+- _**Sequencing.** M34.0 is the gate and nothing else starts until it reports. It and M34.4 were two
+  descriptions of one idea at different costs — the earlier draft named M34.4 as "the experiment that
+  decides whether the rest is worth building", which is M34.0's job now that the spike is a slice of
+  its own. M34.4 is no longer an experiment: by then the question is answered and the work is
+  conformance. If M34.0 says a foreign run cannot be made legible by today's tool, no SPI fixes that
+  and M34.1–.4 do not begin._
 
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
@@ -390,22 +399,27 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_M13 (bridge) · M20–M28 all shipped — see completed/tracker.md. What remains:_
-1. **M29.1–29.3** (external series: loader → UI → verb) — spec ACCEPTED path pending the
-   review's three spec edits (`docs/handoff/completed/review_m29_external_series.txt`).
-2. **M18.0 spike, then M18.1 → M18.2 → M18.3** (verify admin surface; server link, read-only →
+_Refreshed 2026-08-20, after v1.7.0. M13 · M20–M28 · M29 · M31 · M32 · M33 core all shipped — see
+completed/tracker.md. The previous list still had M29.1–29.3 at the top; they shipped 2026-08-18._
+
+1. **M34.0** (the LangGraph spike, against current code) — the gate on the whole general-purpose
+   direction, and the cheapest thing on this list. One throwaway translator, no SPI, no refactor.
+   Everything in M34 after it is expensive; all of it is wasted if the spike says no.
+2. **M18.0 spike, then M18.1 → M18.2 → M18.3** (verify the admin surface; server link read-only →
    log discovery → audit level) — small slices, each immediately useful with Follow.
-3. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent
-   can query back while it works.
+3. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent can
+   query back while it works.
 4. **M18.4** (dev restart) — completes the local diagnose → fix → redeploy → verify demo
    (spec-closed-loop §B.7).
-5. **M12.1 / M12.2** (export_finding structure; replay-test fixture) — journal↔log pairing is
-   the precondition to resolve first.
-6. **M19** (onboarding example) — mostly docs + playground-side; M19.1's bundle contract can
-   proceed in parallel; write the tutorial against the shipped M20 auto-load flow.
-7. **M20.5** (project artifact pointers, offer-never-act) and the M22 remnants — small,
-   schedulable any time.
-8. **M11** stays vision until a real Grafana consumer appears.
+5. **M12.1 / M12.2** (export_finding structure; replay-test fixture) — journal↔log pairing is the
+   precondition to resolve first, and it also gates **M33.5**.
+6. **M19** (onboarding example) — mostly docs + playground-side; M19.1's bundle contract can proceed
+   in parallel; write the tutorial against the shipped M20 auto-load flow.
+7. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers),
+   **M29.5** (optional embed), **M13.5**, **M21.7–.9**, the **M22** five, and the un-started polish
+   round (`docs/handoff/handoff_17_aug_2026_1.txt`).
+8. **M11** stays vision until a real Grafana consumer appears — and when one does, it is now
+   `export_promotion` (a neutral manifest the agent renders), not a dashboard generator.
 
 ## Decisions (resolved)
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.
