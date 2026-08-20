@@ -162,6 +162,35 @@ class ReportVerbTest {
         assertEquals(5, lines.length);
     }
 
+    // ---- the PDF markers table (M32.7) ------------------------------------------------------------
+
+    @Test
+    void markersTableCarriesLabelGlyphTimePayloadRecord() {
+        var ms = new telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries("fills", "triangleUp",
+                List.of(new telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.MarkerPoint(
+                        2000L, 17.2, "ORD-1", 1)), null);
+        var t = ReportVerb.markersTable(List.of(ms));
+        assertTrue(t.notes().isEmpty());
+        assertEquals(List.of("fills", "triangleUp", "2000", "ORD-1", "1"), t.table().rows().get(0));
+        assertEquals("time", t.table().columns().get(2).format(),
+                "raw millis in the data; the DECLARED format renders it — one value, one rule");
+    }
+
+    @Test
+    void markersTableCapsAndNamesTheCap() {   // D-M3 in table form
+        List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.MarkerPoint> pts =
+                new java.util.ArrayList<>();
+        for (int i = 0; i < ReportVerb.MARKER_TABLE_CAP + 50; i++) {
+            pts.add(new telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.MarkerPoint(
+                    1000L + i, 1.0, null, i));
+        }
+        var t = ReportVerb.markersTable(List.of(
+                new telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries("dense", "x", pts, null)));
+        assertEquals(ReportVerb.MARKER_TABLE_CAP, t.table().rows().size());
+        assertTrue(t.notes().get(0).contains("first " + ReportVerb.MARKER_TABLE_CAP + " of "
+                + (ReportVerb.MARKER_TABLE_CAP + 50)), t.notes().toString());
+    }
+
     @Test
     void csvQuotesCommasAndQuotes() {
         String csv = RecordExporter.tableToCsv(

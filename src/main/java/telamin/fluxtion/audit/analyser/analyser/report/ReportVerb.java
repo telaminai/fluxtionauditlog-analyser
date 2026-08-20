@@ -231,6 +231,43 @@ public final class ReportVerb {
                 s.rowWhen(), s.rowWhenLabel()), notes);
     }
 
+    /** Rows per marker series the PDF table shows before capping (D-M3: the cap names the rest). */
+    public static final int MARKER_TABLE_CAP = 200;
+
+    /**
+     * The markers riding a chart as a TABLE — label, glyph, time, payload, record — so a printed
+     * report carries the events as data, not only as glyphs in a picture (M32.7). Capped with the
+     * cap NAMED (D-M3's rule in table form); the record column keeps every row a signpost.
+     */
+    public static AssembledTable markersTable(
+            List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> series) {
+        List<ReportSpec.ColumnSpec> cols = List.of(
+                new ReportSpec.ColumnSpec("series", "series", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("glyph", "glyph", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("time", "time (UTC)", "time", "", "", 0),
+                new ReportSpec.ColumnSpec("payload", "payload", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("record", "record", "", "right", "", 0));
+        List<List<String>> rows = new ArrayList<>();
+        List<String> notes = new ArrayList<>();
+        int total = 0;
+        for (var ms : series) total += ms.points().size();
+        outer:
+        for (var ms : series) {
+            for (var pt : ms.points()) {
+                if (rows.size() >= MARKER_TABLE_CAP) {
+                    notes.add("showing the first " + MARKER_TABLE_CAP + " of " + total
+                            + " marker(s) — the chart's ×N badges carry the density");
+                    break outer;
+                }
+                rows.add(List.of(ms.label(), ms.glyph(), Long.toString(pt.time()),
+                        pt.payload() == null ? "" : pt.payload(),
+                        pt.recordIndex() < 0 ? "" : Integer.toString(pt.recordIndex())));
+            }
+        }
+        return new AssembledTable(new ReportRenderer.TableData(cols, rows, new boolean[0], null, null),
+                notes);
+    }
+
     private static boolean firesOn(Expr rule, Set<GraphKey> refs, LogStore store, int recordIndex) {
         var nodeLogs = store.record(recordIndex).nodeLogs();
         Map<GraphKey, Double> values = new LinkedHashMap<>();
