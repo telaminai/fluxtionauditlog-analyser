@@ -89,7 +89,7 @@ public final class ReportRenderer {
         // D-I3a: the announce lines come BEFORE any section (acceptance 9) — a reader must know they
         // are looking at a different log or a different view before a single claim renders
         if (resolution.fingerprintMismatch() != null) {
-            callout(doc, c, "THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST",
+            callout(doc, c, ReportResolver.fingerprintHeading(resolution.fingerprintMismatch()),
                     resolution.fingerprintMismatch(), WARN, WARN_BG);
         }
         if (resolution.filterDifference() != null) {

@@ -174,6 +174,9 @@ class ReportModelTest {
                 "the loaded file is named: " + r.fingerprintMismatch());
         assertFalse(r.fingerprintMismatch().contains("the loaded log differs"),
                 "the strong banner stays reserved for a CONTENT difference");
+        assertEquals("SAME CONTENT — A DIFFERENT FILE",
+                ReportResolver.fingerprintHeading(r.fingerprintMismatch()),
+                "a soft message under the strong heading contradicts itself");
     }
 
     @Test
