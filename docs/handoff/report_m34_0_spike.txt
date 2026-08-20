@@ -152,3 +152,112 @@ building: what generalises is not the file format, it is the refusal to state mo
   ./venv/bin/python tools/spikes/m34-langgraph/lg_to_audit.py out
   java -jar target/fluxtion-auditlog-analyser-*.jar out/langgraph-coldchain.yaml
   # then: open {graphml: out/langgraph-coldchain.graphml}, coverage, series, topology {step: 1}
+
+================================================================================
+8. GLITCH-FREEDOM — LangGraph is NOT; Fluxtion is, and it is why the loop count differs
+================================================================================
+A *glitch* (the reactive-programming term) is a derived node observing inputs from different
+generations — the diamond problem. The spike settles it for both engines by experiment, not by
+reading marketing.
+
+LANGGRAPH: NOT GLITCH-FREE. An unbalanced diamond (JOIN reads A one hop away and B three hops away):
+
+    trace : ['A', 'B1', 'B2', 'JOIN(a=1.0, b=0.0)', 'B3', 'JOIN(a=1.0, b=9.0)']
+    JOIN fired: 2 times
+
+The first firing is a textbook glitch: a=1.0 is this generation, b=0.0 is the initial value. Pregel
+schedules a node whenever ANY predecessor wrote in the previous super-step, so unequal path lengths
+make a join run early on partial state, then again. The first result is wrong, and if the node has a
+side effect (raising a maintenance job) it happens twice.
+
+FLUXTION: GLITCH-FREE BY CONSTRUCTION. Three independent confirmations, in increasing strength:
+  · docs/claude.txt states the compiler emits "a flat dispatch tree in topological order" — but
+    stops short of a join-node contract, so this alone would be inference (rule 6).
+  · The POC's log: 0 of 581 records has any node firing twice in one cycle.
+  · DECISIVE — the generated source. handleEvent(TemperatureReading) touches 47 distinct nodes and
+    invokes NONE of them more than once; every unbalanced join on that path (coldChainRisk,
+    complianceLedger, costLedger, coldChainInTransit) appears exactly 1x, placed in topological
+    order. The straight-line emission makes exactly-once structural: there is no scheduler to get
+    it wrong at runtime.
+
+================================================================================
+9. THE LOOP COUNT — what "correct dispatch order" costs on each engine
+================================================================================
+Computed over the POC's real declared graph (311 nodes / 504 edges, longest-path layering):
+
+    max depth (super-steps)              13
+    join nodes (>1 predecessor)          59
+    UNBALANCED joins                     37   <- each glitches, per §8
+    extra firings per event              47
+      on paths the full day exercises    34   <- findable by testing
+      on paths that never ran             3   <- ship undetected
+    hot examples: categoryPnl, coldChainInTransit, coldChainRisk, complianceLedger,
+                  costLedger, dailyReport
+
+37 sites, each silently computing a plausible number from incomplete input. The FIXING is cheap; the
+DISCOVERY is the cost, because the symptom (a wrong aggregate) is far from the cause (a depth
+mismatch several hops upstream) and there is no exception to grep for — §3's InvalidUpdateError only
+fires on same-step channel collisions, not on stale reads across steps.
+
+And the fixes INTERACT: padding a short branch to equalise depth changes every downstream depth and
+can manufacture new unbalanced joins. It is iterate-to-fixpoint, not a checklist.
+
+Estimate: 20-40 loops. On Fluxtion the number is ZERO — not small, absent, because the compiler
+resolved it before the program ran.
+
+================================================================================
+10. RUNTIME — measured, same machine, same event type
+================================================================================
+                                            ns/event      events/sec
+    Fluxtion  TemperatureRdg, no audit           424       2,359,837
+    Fluxtion  TemperatureRdg, full audit       1,510         662,119
+    LangGraph 4-node cold chain               483,000           2,072
+
+~1,100x on the untraced comparison, and Fluxtion is traversing 309 nodes to LangGraph's 4 — roughly
+44 ns/node against 121,000 ns/node, ~2,750x.
+
+DO NOT read this as "LangGraph is slow." It is built for graphs whose nodes are LLM calls taking ~1
+second, where 121 us of framework overhead is 0.01% and invisible. It becomes catastrophic only when
+the node is arithmetic, which is the POC's shape. The two engines are sized for different node
+costs, and that is the strategically useful reading: M34's adapters do not make agent graphs fast.
+They give agent graphs the forensic instrument they currently lack.
+
+(Fluxtion's own audit logging costs 3.6x on this path and 11.9x on SaleLine — the real price of the
+log the analyser reads, still leaving 662k events/sec.)
+
+================================================================================
+11. TOKEN COST TO BUILD A CORRECT GRAPH OF COMPLEX DEPENDENCIES
+================================================================================
+Only engine-specific authoring counts. Domain logic (a node's arithmetic) is identical either way
+and is NOT a Fluxtion cost — an earlier draft of this analysis wrongly included it.
+
+    FLUXTION (measured)
+      StoreGraphBuilder, code only            24,342 chars    ~7,400 tokens
+      markup in domain classes                14,050 chars    ~4,300 tokens
+        (82 @OnTrigger, 31 @OnEventHandler, 111 extends EventLogNode, 146 auditLog.)
+      artifact total                          38,392 chars   ~11,600 tokens
+      authoring spend (blog: 200->500 nodes)                 ~19,000 tokens  (1.6x artifact)
+      dispatch-order correctness loops                                0
+      ---------------------------------------------------------------------
+      TOTAL                                                  ~20,000 tokens
+
+    LANGGRAPH (projected from the spike's measured per-construct costs)
+      State schema, 670 channels, ~1/3 needing reducers      ~7,000 tokens
+      add_node x311 + add_edge x422                          ~8,200 tokens
+      82 routers + add_conditional_edges                     ~5,800 tokens
+      artifact total                          69,230 chars   ~21,000 tokens   (1.8x Fluxtion)
+      correctness surcharge, 37 unbalanced joins:
+        finding the PATTERN (first 1-3 sites)                ~50-100k tokens
+        remaining ~34 sites at ~5k each                        ~170k tokens
+        fixpoint re-checks after depth changes                  ~50k tokens
+      ---------------------------------------------------------------------
+      TOTAL                                                  ~250-300k tokens
+
+    RATIO: roughly 15x, and the artifact is only 1.8x of it. The gap is not typing, it is the
+    37 correctness loops that exist on one engine and not the other.
+
+THE QUALIFIER THAT MATTERS: this assumes correctness to Fluxtion's standard — exactly-once,
+glitch-free. Many agent workflows do not need it. If a node is an LLM call, firing it twice costs
+money and is otherwise harmless, and a stale first read is often corrected by the second pass. For
+that shape the surcharge is near zero and LangGraph is entirely reasonable. The 15x is the price of
+a guarantee, and it is only worth paying where the guarantee is worth having.
