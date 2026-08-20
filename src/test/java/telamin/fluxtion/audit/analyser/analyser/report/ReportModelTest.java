@@ -160,13 +160,20 @@ class ReportModelTest {
     }
 
     @Test
-    void aRenamedOrMovedFileIsNotAMismatch_theVerdictIsContentOnly() {
+    void aRenamedCopyGetsTheSofterAnnounce_notTheDifferentLogBanner() {
+        // Q1, decided by the owner after review: same content + different name announces SOFTLY —
+        // the reader learns it is a different file without the strong banner a content change earns
         LogFingerprint authored = LogFingerprint.of(STORE.index(), "demo.yaml");
         var r = ReportResolver.resolve(
                 new ReportSpec("inv", "t", "", "", authored, FilterSnapshot.all(), List.of()),
                 STORE.index(), "demo-copy.yaml", Map.of(), Set.of(), Set.of(), new FilterState());
-        assertNull(r.fingerprintMismatch(),
-                "count and range identify the content; the display name is not the verdict");
+        assertNotNull(r.fingerprintMismatch());
+        assertTrue(r.fingerprintMismatch().contains("matches on content but is a different file"),
+                r.fingerprintMismatch());
+        assertTrue(r.fingerprintMismatch().contains("'demo-copy.yaml'"),
+                "the loaded file is named: " + r.fingerprintMismatch());
+        assertFalse(r.fingerprintMismatch().contains("the loaded log differs"),
+                "the strong banner stays reserved for a CONTENT difference");
     }
 
     @Test
