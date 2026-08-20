@@ -14,10 +14,18 @@ architecture, conventions). This file is only the rules that must never be skipp
    Screenshots are therefore generated, not taken: `python3 tools/capture-docs.py` drives a real analyser
    loaded **only** with the demo fixture. Capture by hand only when the harness cannot reach the surface,
    and then read every visible string — title bar, status bar, paths — before committing.
-   **The sweep cannot see git metadata either.** 110 commits before 2026-08-18 carry an
-   employer-domain author email into the public history (found 2026-08-19); rewriting is ruled out by
-   rule 3, so that history is accepted and recorded here. The repo-local `user.email` is pinned to the
-   personal address — verify `git config user.email` before committing from a fresh clone.
+   **The sweep cannot see git metadata either.** **213** commits carry an employer-domain author
+   email into the public history — 132 `@nonco.com` (a string rule 1's own sweep exists to keep out
+   of this repo) and 81 `@v12technology.com`, against 35 personal. Rewriting is ruled out by rule 3,
+   so that history is accepted and recorded here.
+   **This paragraph previously claimed 110 commits and that the repo-local `user.email` was pinned.
+   Both were wrong** (found 2026-08-20, during the M33 release check): the config was never pinned,
+   so the leak kept growing — every commit made on 2026-08-20 before that check carries `@nonco.com`.
+   The config is pinned now. Verify it, and do not take this file's word for it:
+   `git config user.email` must print the personal address, and
+   `git log --format='%ae' | sort | uniq -c` must show no new employer-domain commits. **Run both
+   before every release**, because a recorded mitigation that stopped being true reads exactly like
+   one that is.
 2. **CHANGELOG.md**: every user-visible change adds a line under `## [Unreleased]` in the same commit.
    The release workflow stamps it; it feeds the GitHub release, the in-app notes, and the docs site.
 3. **Branch**: `main` only (trunk-based, always releasable); `pull.rebase` is set — no merge bubbles.
