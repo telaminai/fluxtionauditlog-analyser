@@ -69,6 +69,17 @@ public final class ReportResolver {
     }
 
     /**
+     * The banner heading for a fingerprint announce line — ONE definition for the panel and the PDF,
+     * because a soft message under the strong heading contradicts itself (found by eyeball, Q1's
+     * first live render): a renamed copy must not be headlined "this is not the log".
+     */
+    public static String fingerprintHeading(String mismatchLine) {
+        return mismatchLine != null && mismatchLine.contains("matches on content")
+                ? "SAME CONTENT — A DIFFERENT FILE"
+                : "THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST";
+    }
+
+    /**
      * @param loadedLogName the name of the log ACTUALLY open, which is the caller's to know. The
      *                      verdict still compares content identity only (count, range) — that
      *                      coarseness is deliberate (see {@link LogFingerprint#mismatch}) — but the

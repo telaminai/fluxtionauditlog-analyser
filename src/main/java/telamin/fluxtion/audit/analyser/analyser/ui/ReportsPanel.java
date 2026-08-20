@@ -172,7 +172,7 @@ public final class ReportsPanel extends JPanel {
 
         // D-I3a: announce FIRST, and the filter difference is an OFFER
         if (res.fingerprintMismatch() != null) {
-            detail.add(banner("THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST",
+            detail.add(banner(ReportResolver.fingerprintHeading(res.fingerprintMismatch()),
                     res.fingerprintMismatch(), null, null));
         }
         if (res.filterDifference() != null) {
