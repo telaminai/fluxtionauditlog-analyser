@@ -44,10 +44,45 @@ import java.util.function.Supplier;
  */
 public final class ReportsPanel extends JPanel {
 
-    private static final Color NARRATIVE = new Color(0x6741D9);
-    private static final Color WARN = new Color(0xB45309);
-    private static final Color WARN_BG = new Color(0xFFF4E2);
-    private static final Color HIGHLIGHT_BG = new Color(0xFFE9E6);
+    /**
+     * Theme-derived colours, computed at render time so a theme switch re-renders correctly. The PDF
+     * stays deliberately light (a document prints); the PANEL lives inside a themed app, and a light
+     * "paper" block under the dark theme's light-gray text is unreadable — accents keep their hue,
+     * backgrounds are a tint of the accent over the theme's own panel colour, and body text is always
+     * the theme's foreground.
+     */
+    private record Theme(boolean dark, Color panelBg, Color fg, Color mutedFg,
+                         Color warn, Color narrative, Color problem, Color fix, Color highlightBg) {
+        static Theme current() {
+            Color bg = javax.swing.UIManager.getColor("Panel.background");
+            if (bg == null) bg = Color.WHITE;
+            boolean dark = (bg.getRed() * 0.299 + bg.getGreen() * 0.587 + bg.getBlue() * 0.114) < 128;
+            Color fg = javax.swing.UIManager.getColor("Label.foreground");
+            if (fg == null) fg = dark ? new Color(0xDDE1E6) : new Color(0x1F2A44);
+            return new Theme(dark, bg, fg,
+                    dark ? new Color(0x9AA4AE) : new Color(0x57606A),
+                    dark ? new Color(0xE8A657) : new Color(0xB45309),
+                    dark ? new Color(0xB197FC) : new Color(0x6741D9),
+                    dark ? new Color(0xE8A657) : new Color(0xB45309),
+                    dark ? new Color(0x69DB7C) : new Color(0x15803D),
+                    dark ? mix(new Color(0xE03131), bg, 0.75f) : new Color(0xFFE9E6));
+        }
+
+        /** A callout background: mostly the theme's own panel, a whiff of the accent. */
+        Color tint(Color accent) {
+            return mix(accent, panelBg, dark ? 0.82f : 0.88f);
+        }
+    }
+
+    private static Color mix(Color a, Color b, float towardB) {
+        float t = Math.max(0f, Math.min(1f, towardB));
+        return new Color(
+                Math.round(a.getRed() * (1 - t) + b.getRed() * t),
+                Math.round(a.getGreen() * (1 - t) + b.getGreen() * t),
+                Math.round(a.getBlue() * (1 - t) + b.getBlue() * t));
+    }
+
+    private Theme theme = Theme.current();
 
     private final Supplier<List<ReportSpec>> reports;
     private final Function<ReportSpec, ReportResolver.Resolution> resolve;
@@ -105,7 +140,13 @@ public final class ReportsPanel extends JPanel {
         renderSelected();
     }
 
+    /** Select one report by name (the verb reveals what it just built, like the graph verb does). */
+    public void select(String name) {
+        if (names.contains(name)) list.setSelectedValue(name, true);
+    }
+
     private void renderSelected() {
+        theme = Theme.current();                   // the theme can change between renders
         detail.removeAll();
         String name = list.getSelectedValue();
         ReportSpec spec = null;
@@ -167,11 +208,15 @@ public final class ReportsPanel extends JPanel {
             case NARRATIVE -> detail.add(narrative(s.text()));
             case FINDING -> {
                 var f = r.finding();
-                JPanel box = calloutBox(new Color(0xB45309), new Color(0xFFF8EC));
-                box.add(bold("What is wrong — record #" + f.recordIndex()));
+                JPanel box = calloutBox(theme.problem(), theme.tint(theme.problem()));
+                JLabel wrong = bold("What is wrong — record #" + f.recordIndex());
+                wrong.setForeground(theme.problem());
+                box.add(wrong);
                 box.add(wrapped(f.note()));
                 if (f.hasFix()) {
-                    box.add(bold("Suggested fix"));
+                    JLabel fixHeading = bold("Suggested fix");
+                    fixHeading.setForeground(theme.fix());
+                    box.add(fixHeading);
                     box.add(wrapped(f.fix()));
                 }
                 box.add(link("open record #" + f.recordIndex(),
@@ -201,7 +246,16 @@ public final class ReportsPanel extends JPanel {
         DefaultTableModel model = new DefaultTableModel(headings, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        for (List<String> row : a.table().rows()) model.addRow(row.toArray());
+        for (List<String> row : a.table().rows()) {
+            // the DECLARED formats apply on screen exactly as in the PDF (D-I8, one rule): a raw
+            // epoch in a column declared "time" would be two renderings of one declaration
+            Object[] cells = new Object[cols.size()];
+            for (int i = 0; i < cols.size(); i++) {
+                cells[i] = ReportRenderer.formatCell(i < row.size() ? row.get(i) : "",
+                        cols.get(i).format());
+            }
+            model.addRow(cells);
+        }
         JTable t = new JTable(model);
         boolean[] hot = a.table().highlighted();
         t.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
@@ -210,7 +264,7 @@ public final class ReportsPanel extends JPanel {
                 Component c = super.getTableCellRendererComponent(tb, v, sel, foc, row, col);
                 if (!sel) {
                     c.setBackground(hot != null && row < hot.length && hot[row]
-                            ? HIGHLIGHT_BG : tb.getBackground());
+                            ? theme.highlightBg() : tb.getBackground());
                 }
                 return c;
             }
@@ -232,8 +286,10 @@ public final class ReportsPanel extends JPanel {
     // ---- small pieces --------------------------------------------------------------------------
 
     private JPanel banner(String heading, String body, String actionLabel, Runnable action) {
-        JPanel box = calloutBox(WARN, WARN_BG);
-        box.add(bold(heading));
+        JPanel box = calloutBox(theme.warn(), theme.tint(theme.warn()));
+        JLabel h = bold(heading);
+        h.setForeground(theme.warn());
+        box.add(h);
         box.add(wrapped(body));
         if (actionLabel != null) {
             JButton b = new JButton(actionLabel);
@@ -245,9 +301,9 @@ public final class ReportsPanel extends JPanel {
     }
 
     private JPanel narrative(String text) {
-        JPanel box = calloutBox(NARRATIVE, new Color(0xF6F3FE));
+        JPanel box = calloutBox(theme.narrative(), theme.tint(theme.narrative()));
         JLabel label = bold(ReportRenderer.NARRATIVE_LABEL);
-        label.setForeground(NARRATIVE);
+        label.setForeground(theme.narrative());
         box.add(label);
         box.add(wrapped(text));
         return box;
@@ -272,19 +328,20 @@ public final class ReportsPanel extends JPanel {
         return l;
     }
 
-    private static JTextArea wrapped(String s) {
+    private JTextArea wrapped(String s) {
         JTextArea t = new JTextArea(s);
         t.setLineWrap(true);
         t.setWrapStyleWord(true);
         t.setEditable(false);
         t.setOpaque(false);
+        t.setForeground(theme.fg());
         t.setAlignmentX(Component.LEFT_ALIGNMENT);
         return t;
     }
 
-    private static JLabel muted(String s) {
+    private JLabel muted(String s) {
         JLabel l = new JLabel("<html>" + s.replace("<", "&lt;") + "</html>");
-        l.setForeground(new Color(0x707880));
+        l.setForeground(theme.mutedFg());
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         return l;
     }
