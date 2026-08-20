@@ -66,6 +66,15 @@ public interface AppControl {
     ActionResult screenshot(String path, String scope);
 
     /**
+     * Build or replace a named investigation report from typed sections (M33.3), assemble a table
+     * section to CSV, or render the report to PDF — {@code resolvedPath} is non-null only when the
+     * caller already passed the path through the export guard. Default: not supported.
+     */
+    default ActionResult report(java.util.Map<String, Object> params, String resolvedPath) {
+        return ActionResult.error("'report' sections are not enabled here");
+    }
+
+    /**
      * What the user is currently looking at, as data.
      *
      * <p>The other verbs let an assistant <b>change</b> the view; none of them let it <b>see</b> one. That

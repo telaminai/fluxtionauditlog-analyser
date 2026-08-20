@@ -149,8 +149,12 @@ public final class SeriesExtractor {
                 .toList();
     }
 
-    /** Package-private: {@link SeriesScan} (M26.1) shares the exact last-occurrence match rule. */
-    static KV lastMatching(List<NodeLog> nodeLogs, GraphKey key) {
+    /**
+     * THE last-occurrence-per-record rule, shared by every consumer so no two surfaces can disagree
+     * about what a record contained: {@link SeriesScan} (M26.1), {@link MarkerExtractor} (M32.2) and
+     * the report table's row rule (M33.3, evaluated strictly against this one record).
+     */
+    public static KV lastMatching(List<NodeLog> nodeLogs, GraphKey key) {
         KV chosen = null;
         for (NodeLog nl : nodeLogs) {
             if (nl.instanceId().equals(key.instanceId())) {

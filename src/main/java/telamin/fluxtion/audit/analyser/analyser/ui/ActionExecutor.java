@@ -144,6 +144,21 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.screenshot(out.path().toString(), str(params.get("scope"))));
             }
             case "report" -> {
+                // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
+                // CSV when given); the shipped single-record form stays below as sugar
+                if (params.containsKey("sections") || params.containsKey("name")
+                        || params.containsKey("csv")) {
+                    String resolved = null;
+                    if (params.get("path") != null) {
+                        var out = guardedPath(params.get("path"));   // B1: same guard, same directory
+                        if (!out.ok()) return ActionResult.error(out.error());
+                        resolved = out.path().toString();
+                    }
+                    final String rp = resolved;
+                    return onEdt(() -> app == null
+                            ? ActionResult.error("'report' is not enabled here")
+                            : app.report(params, rp));
+                }
                 var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere
                 if (!out.ok()) return ActionResult.error(out.error());
                 return onEdt(() -> app == null

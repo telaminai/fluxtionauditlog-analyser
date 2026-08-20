@@ -559,6 +559,184 @@ public final class MainFrame extends JFrame {
     }
 
     /** Export the selected record's finding, asking where to put it. */
+    /** Named investigation reports (M33): definitions, name → spec; the verb REPLACES by name. */
+    private final java.util.LinkedHashMap<String, telamin.fluxtion.audit.analyser.analyser.report.ReportSpec>
+            reports = new java.util.LinkedHashMap<>();
+
+    /**
+     * The {@code report {sections}} verb (M33.3): build/replace a named report, resolve it against
+     * the live log, optionally render to PDF or export one table section to CSV. The echo follows
+     * M26.4 — invalid sections skipped AND named, unresolved references named, nothing silent.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult reportVerb(
+            java.util.Map<String, Object> params, String resolvedPath) {
+        if (store == null) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
+        }
+        var fp = telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(store.index(),
+                logDisplayLocation == null ? "" : new File(logDisplayLocation).getName());
+        String name = params.get("name") == null ? null : params.get("name").toString();
+
+        // ---- CSV export of one table section from an EXISTING report --------------------------------
+        Object csv = params.get("csv");
+        if (csv != null) {
+            Integer sectionIdx = csv instanceof Number n ? n.intValue() : null;
+            if (sectionIdx == null || name == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "csv export needs 'name' (an existing report) and 'csv' (a table section index)");
+            }
+            var spec = reports.get(name);
+            if (spec == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "no report named '" + name + "' — reports: " + reports.keySet());
+            }
+            if (sectionIdx < 0 || sectionIdx >= spec.sections().size()
+                    || spec.sections().get(sectionIdx).kind()
+                       != telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.Kind.TABLE) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "section " + sectionIdx + " of '" + name + "' is not a table");
+            }
+            if (resolvedPath == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "csv export needs 'path'");
+            }
+            var assembled = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
+                    .assembleTable(spec.sections().get(sectionIdx), store);
+            try {
+                Path out = Path.of(resolvedPath);
+                if (out.getParent() != null) Files.createDirectories(out.getParent());
+                Files.writeString(out, telamin.fluxtion.audit.analyser.analyser.export.RecordExporter
+                        .tableToCsv(assembled.table().columns(), assembled.table().rows()));
+                Map<String, Object> echo = new java.util.LinkedHashMap<>();
+                echo.put("path", out.toAbsolutePath().toString());
+                echo.put("rows", assembled.table().rows().size());
+                echo.put("columns", assembled.table().columns().size());
+                if (!assembled.notes().isEmpty()) echo.put("warnings", assembled.notes());
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "wrote", echo);
+            } catch (java.io.IOException e) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "could not write " + resolvedPath + ": " + e.getMessage());
+            }
+        }
+
+        // ---- build/replace the named report ---------------------------------------------------------
+        var parsed = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.parse(params, fp,
+                telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter));
+        var spec = parsed.spec();
+        boolean replaced = reports.containsKey(spec.name());
+        reports.put(spec.name(), spec);
+
+        java.util.Set<String> focusNames = new java.util.HashSet<>();
+        for (var f : config.namedFocuses) focusNames.add(f.name());
+        var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
+                spec, store.index(), findings, new java.util.HashSet<>(graphTabs.graphNames()),
+                focusNames, filter);
+
+        java.util.List<String> warnings = new java.util.ArrayList<>(parsed.warnings());
+        for (var sr : resolution.sections()) {
+            if (!sr.resolved()) warnings.add("section " + sr.index() + ": " + sr.reason());
+            if (sr.warning() != null) warnings.add("section " + sr.index() + ": " + sr.warning());
+        }
+
+        Map<String, Object> echo = new java.util.LinkedHashMap<>();
+        echo.put("name", spec.name());
+        echo.put("title", spec.title());
+        echo.put(replaced ? "replaced" : "created", true);
+        echo.put("sections", spec.sections().size());
+        echo.put("writtenAgainst", fp.describe());
+        if (resolution.summary() != null) echo.put("unresolved", resolution.summary());
+        if (resolution.filterDifference() != null) echo.put("view", resolution.filterDifference());
+
+        if (resolvedPath != null) {
+            var render = renderReportPdf(spec, resolution, warnings);
+            if (render != null) {
+                try {
+                    Path out = Path.of(resolvedPath);
+                    if (out.getParent() != null) Files.createDirectories(out.getParent());
+                    Files.write(out, render);
+                    echo.put("path", out.toAbsolutePath().toString());
+                } catch (java.io.IOException e) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "could not write " + resolvedPath + ": " + e.getMessage());
+                }
+            }
+        }
+        if (!warnings.isEmpty()) echo.put("warnings", warnings);
+        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
+    }
+
+    /** Assemble what each section can show headlessly, and render (M33.3 — see recorded deviations). */
+    private byte[] renderReportPdf(telamin.fluxtion.audit.analyser.analyser.report.ReportSpec spec,
+                                   telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.Resolution resolution,
+                                   java.util.List<String> warnings) {
+        var content = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent>();
+        for (int i = 0; i < spec.sections().size(); i++) {
+            var s = spec.sections().get(i);
+            if (!resolution.sections().get(i).resolved()) {
+                content.add(telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent.EMPTY);
+                continue;
+            }
+            content.add(switch (s.kind()) {
+                case FINDING, RECORD -> new telamin.fluxtion.audit.analyser.analyser.report
+                        .ReportRenderer.SectionContent(null, recordLines(s.recordIndex()), null, null);
+                case CHART -> {
+                    GraphPanel panel = graphTabs.graphNamed(s.ref());
+                    yield panel == null
+                            ? telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent.EMPTY
+                            : new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                    null, null,
+                                    new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                                            "Trend · " + s.ref(), null, paintOf(panel)),
+                                    null);
+                }
+                case TOPOLOGY ->
+                        // recorded deviation: no per-focus offscreen render exists yet; the PDF states
+                        // the gap instead of silently omitting the section it resolved
+                        new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                "Focus · " + s.ref(),
+                                java.util.List.of("(the focus renders in the app's Topology tab; "
+                                        + "image export for focus sections is a recorded gap)"),
+                                null, null);
+                case SERIES ->
+                        new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                "Series",
+                                java.util.List.of("(series sections render as charts in the app; "
+                                        + "PDF assembly for them is a recorded gap)"),
+                                null, null);
+                case TABLE -> {
+                    var assembled = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
+                            .assembleTable(s, store);
+                    warnings.addAll(assembled.notes());
+                    yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                            "Table", null, null, assembled.table());
+                }
+                case NARRATIVE ->
+                        telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent.EMPTY;
+            });
+        }
+        return telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.render(
+                spec, resolution, content,
+                logDisplayLocation == null ? null : new File(logDisplayLocation).getName(),
+                TimeFormat.utc(System.currentTimeMillis()));
+    }
+
+    /** One record as evidence lines: the numbered node log, the same shape the finding report uses. */
+    private java.util.List<String> recordLines(int row) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        LogRecord record = store.record(row);
+        int n = 0;
+        for (var nodeLog : record.nodeLogs()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("%3d. %s", ++n, nodeLog.instanceId()));
+            for (var kv : nodeLog.entries()) {
+                sb.append("  ").append(kv.key()).append('=').append(kv.rawValue());
+            }
+            lines.add(sb.toString());
+        }
+        if (record.eventToString() != null) lines.add(0, "event: " + record.eventToString());
+        return lines;
+    }
+
     private void exportFindingWithChooser() {
         int[] rows = tablePanel.selectedModelRows();
         if (rows.length == 0 || store == null) return;
@@ -2319,6 +2497,12 @@ public final class MainFrame extends JFrame {
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult exportFinding(
                 String path, Integer recordIndex, String title, String graph, boolean withTopology) {
             return MainFrame.this.exportFinding(path, recordIndex, title, graph, withTopology);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult report(
+                java.util.Map<String, Object> params, String resolvedPath) {
+            return MainFrame.this.reportVerb(params, resolvedPath);
         }
 
         @Override
