@@ -134,19 +134,31 @@ public final class VerbSchemas {
                         p("limit", integer(), "how many never-logged nodes to list (default 100)")),
                 List.of()));
 
-        s.put("report", schema("Export one record's finding as a PDF: the explanation and suggested fix, "
-                        + "the event, the node log, a picture of the topology as currently focused, and "
-                        + "optionally a plot. Write the finding with 'flag' and set the view up with "
-                        + "'goto' + 'topology' first — the report captures what is on screen. Requires "
-                        + "'Allow assistant file exchange' (Settings > Assistant); the path resolves INSIDE the "
-                        + "configured exchange directory and existing files are never overwritten.",
+        s.put("report", schema("Two forms. SINGLE RECORD (sugar): pass 'path' + 'recordIndex' to export "
+                        + "one record's finding as a PDF — write the finding with 'flag' first. "
+                        + "INVESTIGATION (M33): pass 'name' + 'sections' to build or REPLACE a named "
+                        + "report — an ordered list of REFERENCES with connective prose, never a "
+                        + "free-form document. A finding section renders what 'flag' wrote and this "
+                        + "verb CANNOT set or change that text. Evidence re-renders live against the "
+                        + "loaded log; the report stores the authoring context (log fingerprint + "
+                        + "filter) and announces when either differs. Add 'path' to also render the "
+                        + "PDF, or 'csv' (a table section index) + 'path' to export that table's rows. "
+                        + "Any 'path' requires 'Allow assistant file exchange' and resolves INSIDE the "
+                        + "exchange directory; existing files are never overwritten.",
                 props(
-                        p("path", string(), "where to write the .pdf"),
-                        p("recordIndex", integer(), "which record; defaults to the current selection"),
-                        p("title", string(), "the headline; defaults to the event and record index"),
-                        p("graph", string(), "name of an open graph to include, when the problem is a trend"),
-                        p("topology", bool(), "include the graph picture (default true)")),
-                req("path")));
+                        p("name", string(), "the report's identity — building again with the same name REPLACES it"),
+                        p("title", string(), "the headline"),
+                        p("notes", string(), "prose about the report — rendered visibly as narrative"),
+                        p("sections", arr(reportSectionObject()), "the ordered sections; invalid ones "
+                                + "are skipped and named in warnings[]"),
+                        p("csv", integer(), "export this table section's rows as CSV (needs 'name' of "
+                                + "an existing report + 'path')"),
+                        p("path", string(), "where to write the .pdf (or .csv with 'csv')"),
+                        p("recordIndex", integer(), "single-record form: which record; defaults to the "
+                                + "current selection"),
+                        p("graph", string(), "single-record form: an open graph to include"),
+                        p("topology", bool(), "single-record form: include the graph picture (default true)")),
+                List.of()));
 
         s.put("context", schema("Read-only: what the user is currently looking at — the active filter, "
                         + "their selection and flags, the topology cursor, the open graphs, and the source "
@@ -345,6 +357,43 @@ public final class VerbSchemas {
                         + "shown on hover and in exports, NEVER computable (the record is the "
                         + "queryable form)")));
         m.put("required", List.of("label", "when"));
+        return m;
+    }
+
+    private static Map<String, Object> reportSectionObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("kind", string(), "finding | record | chart | topology | series | table | narrative"),
+                p("recordIndex", integer(), "finding/record: the anchor. A finding renders what "
+                        + "'flag' wrote for that record — there is no way to supply finding text here"),
+                p("file", string(), "record on a rolled set: the member file"),
+                p("graph", string(), "chart: the open graph's name"),
+                p("focus", string(), "topology: the named focus"),
+                p("call", type("object"), "series/table: the parameters that DERIVE the data — for a "
+                        + "table: {verb: \"read\", fields: \"a.x, b.y\", recordIndex, count, …}"),
+                p("text", string(), "narrative ONLY: the prose — rendered visibly as narrative, never "
+                        + "styled as evidence"),
+                p("columns", arr(reportColumnObject()), "table: the declared presentation"),
+                p("rowWhen", string(), "table: highlight rows where this condition is truthy — "
+                        + "evaluated STRICTLY against each row's own record, no carry; the rule is "
+                        + "printed with the table"),
+                p("rowWhenLabel", string(), "table: what the highlight MEANS (e.g. \"in breach\")")));
+        m.put("required", List.of("kind"));
+        return m;
+    }
+
+    private static Map<String, Object> reportColumnObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("key", string(), "recordIndex | logTime | event | an instanceId.key from the call's fields"),
+                p("heading", string(), "printed heading; defaults to the key"),
+                p("format", string(), "\"0\"/\"0.00\" decimals · percent · duration · time (epoch→UTC)"),
+                p("align", string(), "left | right (default: numbers right, text left)"),
+                p("emphasis", string(), "bold | muted"),
+                p("width", integer(), "declared width in points; omit to size from content")));
+        m.put("required", List.of("key"));
         return m;
     }
 

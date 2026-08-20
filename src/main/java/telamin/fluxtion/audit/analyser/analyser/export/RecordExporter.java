@@ -52,6 +52,30 @@ public final class RecordExporter {
         return sb.toString();
     }
 
+    /**
+     * A report table section as CSV (M33.3, D-I7): the DECLARED headings over the DERIVED rows —
+     * raw values, not the page's number formatting, because a CSV is data leaving for a spreadsheet
+     * and formatting is presentation. Lives here so the analyser keeps exactly one CSV writer.
+     */
+    public static String tableToCsv(
+            java.util.List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.ColumnSpec> columns,
+            java.util.List<java.util.List<String>> rows) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) sb.append(',');
+            append(sb, columns.get(i).heading());
+        }
+        sb.append('\n');
+        for (java.util.List<String> row : rows) {
+            for (int i = 0; i < columns.size(); i++) {
+                if (i > 0) sb.append(',');
+                append(sb, i < row.size() ? nz(row.get(i)) : "");
+            }
+            sb.append('\n');
+        }
+        return sb.toString();
+    }
+
     private static void append(StringBuilder sb, String value) {
         if (value.indexOf(',') >= 0 || value.indexOf('"') >= 0 || value.indexOf('\n') >= 0) {
             sb.append('"').append(value.replace("\"", "\"\"")).append('"');
