@@ -156,6 +156,14 @@ Nothing but `narrative` stores its own content.
   is the precise thing this decision exists to prevent. A rule that cannot be checked against its own
   row is not a rule, it is a colour.
 
+  Two absences, two behaviours, deliberately (review R2 + F1): a ref the row did not log makes the
+  rule NOT FIRE on that row, quietly — even under negation, because a highlight is a positive claim
+  about a row and a row with no `x` supports no claim, not a vacuous one. A WINDOW function in the
+  rule is refused loudly and named, because that absence is a fact about the RULE, not the row: a
+  row rule is evaluated against its own record alone, so the window would hold one sample and report
+  a value it never computed. One is data honestly absent; the other is a rule that cannot mean what
+  it says anywhere.
+
   *Rationale:* a red row says **"this one is bad"**. If that colouring came from an agent's taste it is
   an unanchored judgement wearing evidence styling — D-I2's problem arriving through the back door,
   and harder to spot because it looks like formatting rather than a claim. Making the highlight a

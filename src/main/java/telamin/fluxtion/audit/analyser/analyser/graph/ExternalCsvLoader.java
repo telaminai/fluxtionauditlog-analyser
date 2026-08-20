@@ -68,70 +68,29 @@ public final class ExternalCsvLoader {
         return load(file, spec, MAX_ROWS);
     }
 
-    /** {@code maxRows} is parameterised for tests; production callers use {@link #MAX_ROWS}. */
+    /**
+     * {@code maxRows} is parameterised for tests; production callers use {@link #MAX_ROWS}.
+     *
+     * <p>One streaming pass serves both consumers (review T1): {@code loadMarkers} is the general
+     * form — nullable value column, optional payload — and this SERIES form is its caller, so M29's
+     * honesty rules (the bound refusal, the diagnostics cap, the reorder count, the sanitised
+     * excerpt) exist in exactly one place and cannot drift apart. A series REQUIRES its value
+     * column, checked here with the same message the shared pass would raise.
+     */
     public static Result load(Path file, Spec spec, int maxRows) throws IOException {
-        TimeParser timeParser = timeParser(spec);
-
-        List<long[]> lineAndTime = new ArrayList<>();   // {originalLine, epochMillis}
-        List<Double> values = new ArrayList<>();
-        List<String> diagnostics = new ArrayList<>();
-        int skipped = 0;
-        int reordered = 0;
-        long maxTimeSeen = Long.MIN_VALUE;   // a row is out of order if ANY earlier row was later
-
-        try (BufferedReader in = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            String headerLine = in.readLine();
-            if (headerLine == null) throw new IllegalArgumentException("'" + file.getFileName() + "' is empty");
-            Map<String, Integer> header = headerIndex(headerLine);
-            int timeIdx = column(header, spec.timeColumn(), "time", file);
-            int valueIdx = column(header, spec.valueColumn(), "value", file);
-
-            String line;
-            int lineNo = 1;                              // the header was line 1
-            while ((line = in.readLine()) != null) {
-                lineNo++;
-                if (line.isBlank()) continue;
-                if (lineAndTime.size() >= maxRows) {
-                    throw new IllegalArgumentException("'" + file.getFileName() + "' exceeds the "
-                            + maxRows + "-row bound at line " + lineNo + " — the loader refuses rather "
-                            + "than silently truncating; narrow the export");
-                }
-                List<String> cells = splitCsv(line);
-                String timeCell = cell(cells, timeIdx);
-                Long t = timeParser.parse(timeCell);
-                if (t == null) {
-                    skipped++;
-                    if (diagnostics.size() < MAX_DIAGNOSTICS) {
-                        diagnostics.add("line " + lineNo + ": '" + spec.timeColumn() + "' did not parse as "
-                                + spec.timeFormat() + " (" + excerpt(timeCell) + ")");
-                    }
-                    continue;
-                }
-                long time = t + spec.offsetMillis();
-                if (time < maxTimeSeen) reordered++;     // observed during the pass, before the sort
-                else maxTimeSeen = time;
-                lineAndTime.add(new long[]{lineNo, time});
-                values.add(parseValue(cell(cells, valueIdx)));   // blank/non-numeric → NaN → gap
-            }
+        if (spec.valueColumn() == null || spec.valueColumn().isBlank()) {
+            // the shared pass treats a null value column as "axis-lane markers"; a SERIES has no
+            // such reading — surface the missing declaration the way the header check always has
+            throw new IllegalArgumentException("no 'null' column (value) in '" + file.getFileName()
+                    + "' — an external series must declare its value column (D-F1)");
         }
-        if (skipped > MAX_DIAGNOSTICS) {
-            diagnostics.add("… and " + (skipped - MAX_DIAGNOSTICS) + " more rows with unparseable times");
-        }
-
-        // sort by time, stably (duplicates keep file order); values follow their rows
-        Integer[] order = new Integer[lineAndTime.size()];
-        for (int i = 0; i < order.length; i++) order[i] = i;
-        java.util.Arrays.sort(order, (a, b) -> Long.compare(lineAndTime.get(a)[1], lineAndTime.get(b)[1]));
-
+        MarkerLoad pass = loadMarkers(file, spec, null, maxRows);
         Series series = new Series(spec.label());
-        Long from = null, to = null;
-        for (int i : order) {
-            long time = lineAndTime.get(i)[1];
-            series.add(time, values.get(i));
-            if (from == null) from = time;
-            to = time;
+        for (MarkerSeries.MarkerPoint pt : pass.points()) {
+            series.add(pt.time(), pt.y());
         }
-        return new Result(series, series.size(), skipped, reordered, from, to, List.copyOf(diagnostics));
+        return new Result(series, series.size(), pass.rowsSkipped(), pass.rowsReordered(),
+                pass.fromMillis(), pass.toMillis(), pass.diagnostics());
     }
 
     /**

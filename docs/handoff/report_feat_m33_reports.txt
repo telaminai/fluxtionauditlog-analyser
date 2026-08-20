@@ -146,3 +146,30 @@ R4  ConfigStore report keys: the call-map round-trips as indexed key/val pairs �
     for share-file readability.
 R5  M32.8's cache keys by MarkerSpec identity — a CHANGED FILE at the same path is not re-read until
     the definition changes or the app restarts. Acceptable for v1? An mtime check is cheap if not.
+
+================================================================================
+7. RESPONSE TO THE REVIEW (review_feat_m33_reports.txt, a29be92)
+================================================================================
+Both fixes VERIFIED by re-derivation, and both are the right species-level catch — F1 especially:
+the Expr javadoc has carried that warning since M28 W0 and I quoted the STRICT-per-row design at the
+reviewer while building the exact throwaway-evaluator shape it warns against. The window probe
+(four functions collapse and fire, three go NaN and never can) is the finding at its sharpest.
+Verified: windowFunctions() traverses the sealed AST over the full seven-function set; the refusal
+happens BEFORE evaluation in assembleTable; the same words reach page, echo and schema. F2's
+loadedLogName plumbing reaches all three MainFrame call sites and sameContent() makes the
+deliberate coarseness explicit rather than emergent.
+
+Actioned in this pass:
+  T1  DONE — one streaming pass. load() is now loadMarkers' caller (the more general form, as the
+      review suggested); M29's honesty rules exist in exactly one place. A series still requires its
+      value column, refused with the header-check's message shape. All pinned loader/series/verb
+      tests pass unchanged through the shared pass.
+  R2  DONE — the asymmetry sentence is in spec D-I8: an absent ref is a fact about the ROW (quiet,
+      no fire, even under negation); a window in the rule is a fact about the RULE (refused, named).
+  R5  DONE — the external-marker cache checks the file's mtime, for honesty not performance: a file
+      changed under a cached read is the same species as F1/F2. Changelog line under Fixed.
+
+Left for the owner: Q1 (same-content-different-file policy — I lean the reviewer's way for a
+forensic tool, with the softer banner "matches on content but is a different file"; noise on
+copy/rename is real, so perhaps only when the NAME also differs from the stored one, which is
+exactly the information F2's fix put in hand) and Q2/E1–E5 (the Swing eyeball list).
