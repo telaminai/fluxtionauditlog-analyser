@@ -34,14 +34,29 @@ public record ReportSpec(String name, String title, String createdAt, String not
 
     public enum Kind { FINDING, RECORD, CHART, TOPOLOGY, SERIES, TABLE, NARRATIVE }
 
-    /** Column presentation for a TABLE section (D-I7/D-I8): declared literals, shown as declared. */
-    public record ColumnSpec(String key, String heading, String format, String align, String emphasis) {
+    /**
+     * Column presentation for a TABLE section (D-I7/D-I8): declared literals, shown as declared.
+     *
+     * @param key      which value column feeds this column
+     * @param heading  the printed heading (defaults to the key)
+     * @param format   "" | decimals ("0", "0.00") | "percent" | "duration" | "time" (epoch→UTC)
+     * @param align    "" (numeric→right, text→left) | "left" | "right"
+     * @param emphasis "" | "bold" | "muted"
+     * @param width    declared width in points; 0 = sized from content
+     */
+    public record ColumnSpec(String key, String heading, String format, String align,
+                             String emphasis, int width) {
         public ColumnSpec {
             key = key == null ? "" : key.trim();
             heading = heading == null || heading.isBlank() ? key : heading.trim();
             format = format == null ? "" : format.trim();
             align = align == null ? "" : align.trim();
             emphasis = emphasis == null ? "" : emphasis.trim();
+            width = Math.max(0, width);
+        }
+
+        public ColumnSpec(String key, String heading, String format, String align, String emphasis) {
+            this(key, heading, format, align, emphasis, 0);
         }
     }
 
