@@ -1,0 +1,110 @@
+REVIEW — the 1.6.0 cycle (M32.9 legend + NaturalOrder + docs/shots + release) and the M33 spec
+Date: 2026-08-20 · Reviewed at f1161de · Reviewer: the main session (I wrote the M29–M32 branch this
+work follows, and the post-merge housekeeping commit 3d1b679 corrects)
+
+VERDICT: the shipped 1.6.0 work is verified — endorse as merged. The M33 spec is the right design
+cut from the right principle, and I propose adopting it WITH two substantive amendments (F1, F2):
+as written, D-I3's own promise — "never renders a claim that has stopped being true without saying
+so" — is not enforceable, because the failure mode it guards against arrives RESOLVED, not dangling.
+
+================================================================================
+1. GATES (run fresh on f1161de, this machine)
+================================================================================
+  mvn -o test ............ exit 0, zero failures (698 per the shipped count)
+  mkdocs build --strict .. exit 0
+  sweep .................. clean
+
+================================================================================
+2. THE SHIPPED WORK — VERIFIED BY RE-DERIVATION
+================================================================================
+NaturalOrder — CONFIRMED CORRECT, including the parts that usually go wrong in natural sorts.
+  I walked the transitivity traps: equal-value digit runs with differing zero-padding, case ties,
+  digit-vs-letter boundaries. The comparator is a lexicographic order over a per-string token key
+  (lowercased chars; maximal digit runs as values), with `a.compareTo(b)` breaking ties ONLY inside
+  full key-equality classes — a genuine total order. Digit-vs-letter cross-comparisons are consistent
+  ('0'-'9' sort below all letters under the lowercase map), so no A<B<C<A cycles exist. The no-parse
+  numeric compare (significant length, then digitwise) is overflow-proof exactly as claimed, and the
+  commit's own node-007≠node-7 test story is the right contract. One fringe note, not a finding:
+  Character.isDigit admits non-ASCII digit systems; a run mixing scripts compares charwise. Ids won't.
+
+M32.9 legend — SOUND, and the two recorded details are the load-bearing ones.
+  - legendMarkers comes from the LAST EXTRACTION and every mutation path re-extracts
+    (setMarkers → mutated() → reExtract(), including the right-click remove), so key and plot cannot
+    disagree and a cleared spec list clears its rows.
+  - markerPaletteColor(i) iterates the same list order as paintMarkers' mi++ — swatch colour IS glyph
+    colour, and paintGlyph shared public/static kills the second-implementation drift at the root.
+  - Count-is-total-points over drawn-glyphs is the right reversal, for the stated reason; the docs
+    paragraph in graphs.md says the same thing where the user meets it. Verified in the regenerated
+    image itself: ▲ order live (166) · × risk breach (160) — numbers that independently corroborate
+    the fixture's known event counts from my own earlier headless extraction.
+
+3d1b679 (review fixes) — VERIFIED, and one of its targets was MY drift: the housekeeping commit
+  a62b894 recorded G1/G2 as open when both were closed at 58879d7 (expectEmpty declaration + the
+  both-arms agreement check are in FormulaGoldenTest at that commit; closing G2 is what caught the
+  1.5.0 series-verb fix). The correction is right. The changelog dedup removed a genuinely duplicated
+  rolled-logs block; nothing was lost.
+
+Shots — all strings demo-safe (read image-by-image). The sorted index is NOT demonstrable in the
+  committed topology shots (the Index panel is collapsed, and the 13-node fixture has no CHILL-2 vs
+  CHILL-10 family anyway) — the sort stays an eyeball-in-app claim, which is fine, but the changelog
+  sentence is the only user-visible witness.
+
+ONE PROCESS FINDING (harness, not this cycle's code):
+  The regenerated records-table shows a `nodeLogs` column where the previous capture showed `thread`
+  — with tools/capture-docs.py and the table code untouched. Machine-local column state is leaking
+  through set_config into "reproducible" shots. Suggest the harness pins the records-table column
+  set the way it already pins window geometry, zoom and theme; otherwise the asset set churns with
+  whoever ran the app last.
+
+================================================================================
+3. THE M33 SPEC — ADOPT, WITH TWO AMENDMENTS
+================================================================================
+The principle (references + connective prose, never a document) is right, D-I1/D-I2/D-I7/D-I8 are
+the strongest decisions in it, and the effort claim is honest (PdfDoc 354 / FindingReport 329 lines,
+verified exact). The findings:
+
+F1 (SUBSTANTIVE) — a wrong log RESOLVES; it does not dangle. The non-goals say "opening it on a
+  different log is the D-I3 unresolved-anchor path". That is factually unsound: recordIndex 42
+  resolves on ANY log with 43 records, a chart name resolves against project state, a series call
+  re-runs anywhere. Against the wrong log, every section renders confidently — fresh, plausible,
+  WRONG evidence under narrative written about different data. D-I3 only catches absence; this
+  failure arrives present.
+  AMENDMENT: a report stores a small LOG FINGERPRINT at authoring — log name/root, record count,
+  first/last logTime (identity data, not evidence; references-only survives) — and the renderer
+  compares and announces: "written against demo-quote-series.yaml · 726 records · 09:00→09:18; the
+  loaded log differs". Without this, the spec's own principle sentence is unenforceable. With it,
+  the cross-log non-goal gains teeth and the "re-runnable claim" use case (D-I3's best feature)
+  becomes explicit rather than accidental: same log lineage, moved on = re-verification; different
+  log = misapplication, and the page says which.
+
+F2 (SUBSTANTIVE) — the filter context is part of the claim. Evidence sections re-run "against the
+  live log" — meaning under the CURRENT FilterState. D-I7 celebrates the numbers moving with the
+  filter, rightly, for a table viewed as a query. But an investigation's narrative was written
+  against a specific extraction context; render the same prose over silently different-but-resolved
+  evidence and the report carries two accounts of itself — D-I1's drift class, arriving inside one
+  document. M27 built the exact tool for this: a named filter context.
+  AMENDMENT: a report stores the FilterState (or a named-focus reference) it was authored under.
+  On open, OFFER to apply it (offer-never-act, M20.5/D-R5's pattern); declining renders under the
+  current filter with a standing line naming the difference. At minimum the rendered page must say
+  which filter produced what the reader is looking at.
+
+F3 (minor) — D-I8's rowWhen has no stated evaluation model. Bands evaluate conditions over the
+  record walk with LOCF carry; a table row is one record. Two implementers will choose differently.
+  Write one sentence: rowWhen evaluates against the row's record with the same carry semantics as
+  bands (or STRICT within-record — either is defensible; pick).
+
+F4 (minor, optional) — D-I2's standing label could carry authorship (agent narrative vs user note).
+  The chart explanation/notes don't attribute either, so consistency argues against; mentioned only
+  because a REPORT is the artifact most likely to leave the building.
+
+Acceptance additions if F1/F2 adopt: (9) opening a report against a different log names the
+fingerprint mismatch before rendering any section; (10) opening under a different filter offers the
+stored context and labels the render if declined.
+
+================================================================================
+4. RECOMMENDATION
+================================================================================
+1.6.0 work: nothing to change. M33: adopt with F1+F2 folded into D-I3 (they are one mechanism —
+capture the authoring context: log fingerprint + filter state — and one rendering rule: compare,
+announce, offer), F3 as one sentence in D-I8. Then M33.1 can start; the amendments land in the
+model slice where they are cheapest.
