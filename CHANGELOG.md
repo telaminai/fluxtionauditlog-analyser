@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-20
+
 ### Added
 - **Investigation reports** — the *account* of an investigation, not just its evidence. A report is
   an ordered list of **references** with connective prose, never a free-form document: findings,
