@@ -593,14 +593,36 @@ public final class GraphPanel extends JPanel {
      * every point carries {@code recordIndex = -1}: an external row is not a record and never
      * navigates. The chart's external stamp covers marker sources exactly as it covers series.
      */
+    private record CachedExternalMarkers(long mtime,
+            telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries series) {
+    }
+
     private final java.util.concurrent.ConcurrentHashMap<
             telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec,
-            telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> externalMarkerCache =
-            new java.util.concurrent.ConcurrentHashMap<>();
+            CachedExternalMarkers> externalMarkerCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     private telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries externalMarkers(
             telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec spec) {
-        return externalMarkerCache.computeIfAbsent(spec, sp -> {
+        // review R5: the cache checks the file's mtime, for honesty rather than performance — a file
+        // that changed under a cached read makes the chart show evidence that no longer exists,
+        // silently, which is the same species as the two defects this branch's review caught
+        long mtime;
+        try {
+            mtime = java.nio.file.Files.getLastModifiedTime(
+                    java.nio.file.Path.of(spec.extPath())).toMillis();
+        } catch (Exception e) {
+            mtime = -1;                                        // unreadable: the load below says why
+        }
+        CachedExternalMarkers hit = externalMarkerCache.get(spec);
+        if (hit != null && hit.mtime() == mtime) return hit.series();
+        final long stamp = mtime;
+        return externalMarkerCache.compute(spec, (sp, ignored) -> new CachedExternalMarkers(stamp,
+                loadExternalMarkers(sp))).series();
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries loadExternalMarkers(
+            telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec sp) {
+        {
             String glyph = telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS
                     .contains(sp.glyph()) ? sp.glyph() : "circle";
             try {
@@ -619,7 +641,7 @@ public final class GraphPanel extends JPanel {
                         sp.label(), glyph, java.util.List.of(),
                         "external CSV did not load: " + e.getMessage());
             }
-        });
+        }
     }
 
     /** Flags changed: rebuild the rug from the CACHED extraction — no re-extract, flags are not data. */

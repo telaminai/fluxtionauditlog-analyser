@@ -23,6 +23,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   to CSV.
 
 ### Fixed
+- **A changed external-marker CSV is re-read.** The per-definition cache now checks the
+  file's modification time, so a file that changed on disk cannot leave the chart showing evidence
+  that no longer exists; previously a stale read survived until the definition changed or a restart.
 - **A row-highlight rule that needs history is now refused and named, never quietly applied to a
   one-sample window.** `rowWhen` evaluates against each row's own record, so a rolling window holds a
   single sample: `mean`, `sum`, `rollingMin` and `rollingMax` collapsed to their bare argument and
