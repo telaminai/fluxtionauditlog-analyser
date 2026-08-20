@@ -579,6 +579,11 @@ public final class GraphPanel extends JPanel {
         this.flagRugSource = source;
     }
 
+    /** What the chart currently draws as markers (extraction + rug) — the PDF table's source (M32.7). */
+    public java.util.List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> currentMarkers() {
+        return legendMarkers;
+    }
+
     /** Flags changed: rebuild the rug from the CACHED extraction — no re-extract, flags are not data. */
     public void refreshFlagRug() {
         pushMarkers();

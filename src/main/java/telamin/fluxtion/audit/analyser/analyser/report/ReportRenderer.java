@@ -149,6 +149,11 @@ public final class ReportRenderer {
             }
             case CHART, TOPOLOGY -> {
                 if (body.picture() != null) picture(doc, c, body.picture());
+                if (body.table() != null && !body.table().rows().isEmpty()) {
+                    // M32.7: the chart's markers as DATA under the picture — glyphs show where,
+                    // the table says what, and the record column keeps each row a signpost
+                    table(doc, c, "Markers · " + (s.ref() == null ? "" : s.ref()), body.table());
+                }
             }
             case TABLE -> {
                 if (body.table() != null) {

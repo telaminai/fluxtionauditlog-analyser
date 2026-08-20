@@ -722,13 +722,18 @@ public final class MainFrame extends JFrame {
                         .ReportRenderer.SectionContent(null, recordLines(s.recordIndex()), null, null);
                 case CHART -> {
                     GraphPanel panel = graphTabs.graphNamed(s.ref());
-                    yield panel == null
-                            ? telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent.EMPTY
-                            : new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                                    null, null,
-                                    new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
-                                            "Trend · " + s.ref(), null, paintOf(panel)),
-                                    null);
+                    if (panel == null) {
+                        yield telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent.EMPTY;
+                    }
+                    // M32.7: the chart's markers ride the PDF as a table under the picture
+                    var mk = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
+                            .markersTable(panel.currentMarkers());
+                    warnings.addAll(mk.notes());
+                    yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                            null, null,
+                            new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                                    "Trend · " + s.ref(), null, paintOf(panel)),
+                            mk.table().rows().isEmpty() ? null : mk.table());
                 }
                 case TOPOLOGY ->
                         // recorded deviation: no per-focus offscreen render exists yet; the PDF states

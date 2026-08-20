@@ -295,8 +295,11 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
   mutation site refreshes the rug from the CACHED extraction (flags are not data; no re-extract).
   One marker seam (GraphPanel.pushMarkers) feeds chart and legend, so the rug's legend row appears
   exactly when its ticks do, with the unflag-to-remove tooltip.
-- [M32.7] ☐ **PDF markers table** — glyphs already ride the painted export; the table (label, time,
-  payload, record) with the D-M3 cap note is additive.
+- [M32.7] ☑ **PDF markers table** *(on `feat/m33-reports`)* — a report's chart section now carries
+  its markers as DATA under the picture: label · glyph · time · payload · record, rendered through
+  M33.2's table (no second layout), capped at 200 rows with the cap NAMED (D-M3 in table form). The
+  rug rides too, since it is a marker series. The M23 single-record sugar keeps its frozen shape —
+  its charts still paint glyphs in the image; the table is the investigation form's.
 - [M32.8] ☐ **External-CSV marker source** — the M29 loader as a `when`/payload source; the
   payload-column mapping deserves its own slice.
 
