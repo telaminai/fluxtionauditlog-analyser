@@ -355,8 +355,29 @@ public final class VerbSchemas {
                         + "draws ticks in a lane under the plot"),
                 p("payload", string(), "an \"instanceId.key\" whose logged text rides each point — "
                         + "shown on hover and in exports, NEVER computable (the record is the "
-                        + "queryable form)")));
+                        + "queryable form)"),
+                p("external", markerExternalObject(), "M32.8: source the markers from a CSV instead "
+                        + "of the log — the M29 loader plus a payload column. Points are NOT records "
+                        + "(no click-through), the clock is declared, the chart is stamped, and reads "
+                        + "are confined to the exchange directory or a chooser grant")));
         m.put("required", List.of("label", "when"));
+        return m;
+    }
+
+    private static Map<String, Object> markerExternalObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("path", string(), "the CSV file (inside the exchange directory, or chooser-granted)"),
+                p("time", string(), "the timestamp column"),
+                p("timeFormat", string(), "epochMillis | epochSeconds | iso8601 | a DateTimeFormatter "
+                        + "pattern — declared, never inferred"),
+                p("zone", string(), "IANA zone, required unless the format carries an offset"),
+                p("value", string(), "optional numeric column for the marker's height; omit for the "
+                        + "axis lane"),
+                p("payload", string(), "optional column whose text rides each point (an order id)"),
+                p("offsetMillis", integer(), "deliberate clock correction, always shown on the stamp")));
+        m.put("required", List.of("path", "time", "timeFormat"));
         return m;
     }
 

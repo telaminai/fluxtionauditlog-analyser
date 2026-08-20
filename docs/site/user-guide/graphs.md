@@ -116,6 +116,13 @@ reading `(0)` with the reason on hover — a `y` pinned to a series that isn't o
 `when` that never fired. An event type that never occurred is a finding, not something to hide.
 Right-click a row to remove that marker series.
 
+Markers can also come **from outside the log**: the same CSV contract as external series
+(`markers: [{label, glyph, external: {path, time, timeFormat, zone, value, payload}}]`) with a
+**payload column** — agent-parsed FIX fills with an order id per row. The clock is declared, never
+guessed; the chart is **stamped** exactly as for external series; and the points are **not records**
+— no click-through, because an external row must never pretend to be audit evidence. Omit `value`
+and the markers tick the axis lane.
+
 **Flagged records join every chart automatically** as a built-in `⚑ flags` rug on the axis lane —
 each tick carries its finding note on hover and clicks through to its record, the legend row counts
 them, and unflagging is how a tick is removed (the rug derives from the flags; it is never persisted

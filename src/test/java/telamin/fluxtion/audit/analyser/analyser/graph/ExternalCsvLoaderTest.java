@@ -155,6 +155,31 @@ class ExternalCsvLoaderTest {
                 "the header is offered so the caller can fix the column name: " + e.getMessage());
     }
 
+    // ---- the marker source (M32.8): same rules, payload rides, points are never records ----------
+
+    @Test
+    void markerLoadCarriesPayloadAndNeverARecordIndex() throws IOException {
+        Path f = csv("fills.csv", "ts,px,ordId\n2000,17.2,ORD-1\n1000,17.1,ORD-0\n3000,,ORD-2\n");
+        var r = ExternalCsvLoader.loadMarkers(f,
+                new ExternalCsvLoader.Spec("fills", "ts", "epochMillis", null, "px", 0), "ordId");
+        assertEquals(3, r.rowsLoaded());
+        assertEquals(1, r.rowsReordered(), "sorted on load, the reorder counted — G1 unchanged");
+        assertEquals(1000L, r.points().get(0).time());
+        assertEquals("ORD-0", r.points().get(0).payload(), "the payload column rides as display cargo");
+        assertEquals(-1, r.points().get(0).recordIndex(),
+                "an external row is NOT a record and never pretends to be one");
+        assertTrue(Double.isNaN(r.points().get(2).y()), "a blank value cell is a NaN, like any series");
+    }
+
+    @Test
+    void markerLoadWithoutAValueColumnTicksTheAxisLane() throws IOException {
+        Path f = csv("events.csv", "ts,ordId\n1000,A\n2000,B\n");
+        var r = ExternalCsvLoader.loadMarkers(f,
+                new ExternalCsvLoader.Spec("events", "ts", "epochMillis", null, null, 0), "ordId");
+        assertEquals(2, r.rowsLoaded());
+        assertTrue(Double.isNaN(r.points().get(0).y()), "no value column → the axis lane (y = NaN)");
+    }
+
     @Test
     void quotedCellsWithCommasParse() throws IOException {
         Path f = csv("a.csv", "ts,mid,note\n1000,\"1,5\",x\n");

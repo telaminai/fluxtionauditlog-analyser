@@ -850,7 +850,8 @@ public final class ActionExecutor implements RenderExecutor {
      * Malformed items are skipped and NAMED in the returned warnings (never silently dropped); a band
      * whose expression does not parse is rejected here, at set time, where the caller can still react.
      */
-    private static List<String> applyGuidesAndBands(GraphPanel panel, Map<String, Object> p) {
+    private List<String> applyGuidesAndBands(GraphPanel panel, Map<String, Object> p) {
+        var cfg = exportConfig == null ? null : exportConfig.get();
         List<String> warnings = new ArrayList<>();
         if (p.containsKey("guides")) {
             List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.GuideSpec> guides = new ArrayList<>();
@@ -872,9 +873,39 @@ public final class ActionExecutor implements RenderExecutor {
             for (Object o : asList(p.get("markers"))) {
                 if (!(o instanceof Map<?, ?> m)) continue;
                 String label = asText(m.get("label"));
+                String glyph = asText(m.get("glyph"));
+                if (glyph != null && !telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS.contains(glyph)) {
+                    warnings.add("marker '" + label + "': unknown glyph '" + glyph + "' — using circle (one of "
+                            + telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS + ")");
+                    glyph = "circle";
+                }
+                // M32.8: an external CSV source — the M29 loader + a payload column. Reads ride the
+                // SAME confinement as graph {external}: exchange directory or a chooser grant.
+                if (m.get("external") instanceof Map<?, ?> ext) {
+                    if (label == null || label.isBlank()) {
+                        warnings.add("marker entry needs 'label' — skipped");
+                        continue;
+                    }
+                    String path = asText(ext.get("path"));
+                    var resolved = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolveRead(
+                            path, cfg != null && cfg.assistantExports,
+                            cfg == null ? "" : cfg.assistantExportDir, readGrants.get());
+                    if (resolved.error() != null) {
+                        warnings.add("marker '" + label + "': " + resolved.error());
+                        continue;
+                    }
+                    Long off = asLong(ext.get("offsetMillis"));
+                    specs.add(new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec(
+                            label, glyph == null ? "circle" : glyph, null, null, null,
+                            resolved.path().toString(), asText(ext.get("time")),
+                            asText(ext.get("timeFormat")), asText(ext.get("zone")),
+                            asText(ext.get("value")), asText(ext.get("payload")),
+                            off == null ? 0 : off));
+                    continue;
+                }
                 String when = asText(m.get("when"));
                 if (label == null || label.isBlank() || when == null || when.isBlank()) {
-                    warnings.add("marker entry needs 'label' and 'when' — skipped");
+                    warnings.add("marker entry needs 'label' and 'when' (or 'external') — skipped");
                     continue;
                 }
                 try {
@@ -882,12 +913,6 @@ public final class ActionExecutor implements RenderExecutor {
                 } catch (RuntimeException ex) {
                     warnings.add("marker '" + label + "' when '" + when + "' does not parse: " + ex.getMessage());
                     continue;
-                }
-                String glyph = asText(m.get("glyph"));
-                if (glyph != null && !telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS.contains(glyph)) {
-                    warnings.add("marker '" + label + "': unknown glyph '" + glyph + "' — using circle (one of "
-                            + telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries.GLYPHS + ")");
-                    glyph = "circle";
                 }
                 specs.add(new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec(
                         label, glyph == null ? "circle" : glyph, when,

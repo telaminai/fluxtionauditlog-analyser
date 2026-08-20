@@ -116,6 +116,8 @@ public final class SettingsShare {
             // external CSV paths travel like source roots: home-relative so a share survives a machine
             // hop (M29 D-F5); the receiving side expands + resolves in preview()
             for (String key : p.stringPropertyNames()) {
+                // covers both external series (graph.i.ext.j.path) and external MARKER sources
+                // (graph.i.marker.j.ext.path, M32.8) — one rule, every foreign path portable
                 if (key.startsWith("graph.") && key.contains(".ext.") && key.endsWith(".path")) {
                     p.setProperty(key, toPortable(p.getProperty(key)));
                 }
@@ -227,7 +229,8 @@ public final class SettingsShare {
             // the same rule source roots follow (M19.2), so a committed profile works on any machine
             for (int gi = 0; gi < graphs.size(); gi++) {
                 GraphSpec spec = graphs.get(gi);
-                if (spec.external().isEmpty()) continue;
+                boolean extMarkers = spec.markers().stream().anyMatch(GraphSpec.MarkerSpec::isExternal);
+                if (spec.external().isEmpty() && !extMarkers) continue;
                 java.util.List<GraphSpec.ExternalSpec> fixed = new ArrayList<>();
                 for (GraphSpec.ExternalSpec e : spec.external()) {
                     String path = fromPortable(e.path());
@@ -237,9 +240,24 @@ public final class SettingsShare {
                     fixed.add(new GraphSpec.ExternalSpec(path, e.label(), e.time(), e.timeFormat(),
                             e.zone(), e.value(), e.offsetMillis()));
                 }
+                // external MARKER sources travel by the same rule (M32.8)
+                java.util.List<GraphSpec.MarkerSpec> fixedMarkers = new ArrayList<>();
+                for (GraphSpec.MarkerSpec mk : spec.markers()) {
+                    if (!mk.isExternal()) {
+                        fixedMarkers.add(mk);
+                        continue;
+                    }
+                    String path = fromPortable(mk.extPath());
+                    if (baseDir != null && !java.nio.file.Path.of(path).isAbsolute()) {
+                        path = baseDir.resolve(path).normalize().toString();
+                    }
+                    fixedMarkers.add(new GraphSpec.MarkerSpec(mk.label(), mk.glyph(), mk.when(),
+                            mk.y(), mk.payload(), path, mk.extTime(), mk.extTimeFormat(),
+                            mk.extZone(), mk.extValue(), mk.extPayload(), mk.extOffsetMillis()));
+                }
                 graphs.set(gi, new GraphSpec(spec.name(), spec.series(), spec.exprs(), spec.from(),
                         spec.to(), spec.note(), spec.explanation(), spec.notes(), spec.rightAxis(),
-                        spec.guides(), spec.bands(), fixed));
+                        spec.guides(), spec.bands(), fixed, fixedMarkers));
             }
             focuses = new ArrayList<>();
             ConfigStore.readFocuses(p, focuses);

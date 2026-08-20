@@ -403,6 +403,15 @@ public final class ConfigStore {
                 put(p, k + ".when", mk.get(j).when());
                 put(p, k + ".y", mk.get(j).y());
                 put(p, k + ".payload", mk.get(j).payload());
+                if (mk.get(j).isExternal()) {                     // M32.8: the CSV source persists as
+                    put(p, k + ".ext.path", mk.get(j).extPath()); // its DEFINITION, never its points
+                    put(p, k + ".ext.time", mk.get(j).extTime());
+                    put(p, k + ".ext.format", mk.get(j).extTimeFormat());
+                    put(p, k + ".ext.zone", mk.get(j).extZone());
+                    put(p, k + ".ext.value", mk.get(j).extValue());
+                    put(p, k + ".ext.payload", mk.get(j).extPayload());
+                    p.setProperty(k + ".ext.offset", Long.toString(mk.get(j).extOffsetMillis()));
+                }
             }
             List<GraphSpec.ExternalSpec> ext = g.external();
             p.setProperty("graph." + i + ".ext.count", Integer.toString(ext.size()));
@@ -498,9 +507,15 @@ public final class ConfigStore {
                 String k = "graph." + i + ".marker." + j;
                 String label = p.getProperty(k + ".label");
                 String when = p.getProperty(k + ".when");
-                if (label == null || when == null) continue;
+                String extPath = p.getProperty(k + ".ext.path");    // M32.8: the CSV-sourced form
+                if (label == null || (when == null && extPath == null)) continue;
                 mk.add(new GraphSpec.MarkerSpec(label, nz(p.getProperty(k + ".glyph")), when,
-                        nz(p.getProperty(k + ".y")), nz(p.getProperty(k + ".payload"))));
+                        nz(p.getProperty(k + ".y")), nz(p.getProperty(k + ".payload")),
+                        extPath, p.getProperty(k + ".ext.time"), p.getProperty(k + ".ext.format"),
+                        p.getProperty(k + ".ext.zone"), p.getProperty(k + ".ext.value"),
+                        p.getProperty(k + ".ext.payload"),
+                        longOrNull(p.getProperty(k + ".ext.offset")) == null
+                                ? 0L : longOrNull(p.getProperty(k + ".ext.offset"))));
             }
             out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right,
                     guides, bands, ext, mk));

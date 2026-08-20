@@ -300,4 +300,21 @@ class ConfigStoreTest {
         assertTrue(g.notes().isEmpty());
         assertTrue(g.rightAxis().isEmpty());
     }
+
+    @Test
+    void externalMarkerSourcesRoundTrip(@org.junit.jupiter.api.io.TempDir Path dir) {
+        // M32.8: the CSV-sourced marker persists as its DEFINITION — path, columns, declared clock —
+        // never its points, exactly like external series (M28.6's rule, third artifact)
+        ConfigStore store = new ConfigStore(dir.resolve("config"));
+        AppConfig c = new AppConfig();
+        var mk = new GraphSpec.MarkerSpec("venue fills", "triangleUp", null, null, null,
+                "/data/fills.csv", "ts", "epochMillis", "UTC", "px", "ordId", 250L);
+        c.savedGraphs.add(new GraphSpec("g", java.util.List.of("a.b"), java.util.List.of(), null, null,
+                null, null, java.util.List.of(), java.util.List.of(), java.util.List.of(),
+                java.util.List.of(), java.util.List.of(), java.util.List.of(mk)));
+        store.save(c);
+        AppConfig back = store.load();
+        assertEquals(java.util.List.of(mk), back.savedGraphs.get(0).markers());
+        assertTrue(back.savedGraphs.get(0).markers().get(0).isExternal());
+    }
 }

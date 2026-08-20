@@ -134,6 +134,97 @@ public final class ExternalCsvLoader {
         return new Result(series, series.size(), skipped, reordered, from, to, List.copyOf(diagnostics));
     }
 
+    /**
+     * Marker points plus the honesty report (M32.8) — the marker-source flavour of {@link Result}:
+     * the same declared-clock, sort-on-load, refuse-past-the-bound rules, with a PAYLOAD column
+     * riding as display cargo and {@code recordIndex = -1} on every point, because an external row is
+     * not a record and must never pretend to be one (clicking it navigates nowhere, by contract).
+     */
+    public record MarkerLoad(List<MarkerSeries.MarkerPoint> points, int rowsLoaded, int rowsSkipped,
+                             int rowsReordered, Long fromMillis, Long toMillis,
+                             List<String> diagnostics) {
+    }
+
+    /**
+     * Load marker points: {@code spec.valueColumn} may be NULL for axis-lane markers (no y), and
+     * {@code payloadColumn} may be null when the rows carry no cargo. Everything else is
+     * {@link #load}'s contract unchanged.
+     */
+    public static MarkerLoad loadMarkers(Path file, Spec spec, String payloadColumn) throws IOException {
+        return loadMarkers(file, spec, payloadColumn, MAX_ROWS);
+    }
+
+    static MarkerLoad loadMarkers(Path file, Spec spec, String payloadColumn, int maxRows)
+            throws IOException {
+        TimeParser timeParser = timeParser(spec);
+        List<long[]> lineAndTime = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+        List<String> payloads = new ArrayList<>();
+        List<String> diagnostics = new ArrayList<>();
+        int skipped = 0;
+        int reordered = 0;
+        long maxTimeSeen = Long.MIN_VALUE;
+
+        try (BufferedReader in = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            String headerLine = in.readLine();
+            if (headerLine == null) throw new IllegalArgumentException("'" + file.getFileName() + "' is empty");
+            Map<String, Integer> header = headerIndex(headerLine);
+            int timeIdx = column(header, spec.timeColumn(), "time", file);
+            int valueIdx = spec.valueColumn() == null || spec.valueColumn().isBlank()
+                    ? -1 : column(header, spec.valueColumn(), "value", file);
+            int payloadIdx = payloadColumn == null || payloadColumn.isBlank()
+                    ? -1 : column(header, payloadColumn, "payload", file);
+
+            String line;
+            int lineNo = 1;
+            while ((line = in.readLine()) != null) {
+                lineNo++;
+                if (line.isBlank()) continue;
+                if (lineAndTime.size() >= maxRows) {
+                    throw new IllegalArgumentException("'" + file.getFileName() + "' exceeds the "
+                            + maxRows + "-row bound at line " + lineNo + " — the loader refuses rather "
+                            + "than silently truncating; narrow the export");
+                }
+                List<String> cells = splitCsv(line);
+                String timeCell = cell(cells, timeIdx);
+                Long t = timeParser.parse(timeCell);
+                if (t == null) {
+                    skipped++;
+                    if (diagnostics.size() < MAX_DIAGNOSTICS) {
+                        diagnostics.add("line " + lineNo + ": '" + spec.timeColumn() + "' did not parse as "
+                                + spec.timeFormat() + " (" + excerpt(timeCell) + ")");
+                    }
+                    continue;
+                }
+                long time = t + spec.offsetMillis();
+                if (time < maxTimeSeen) reordered++;
+                else maxTimeSeen = time;
+                lineAndTime.add(new long[]{lineNo, time});
+                values.add(valueIdx < 0 ? Double.NaN : parseValue(cell(cells, valueIdx)));
+                String payload = payloadIdx < 0 ? null : cell(cells, payloadIdx);
+                payloads.add(payload == null || payload.isBlank() ? null : payload);
+            }
+        }
+        if (skipped > MAX_DIAGNOSTICS) {
+            diagnostics.add("… and " + (skipped - MAX_DIAGNOSTICS) + " more rows with unparseable times");
+        }
+
+        Integer[] order = new Integer[lineAndTime.size()];
+        for (int i = 0; i < order.length; i++) order[i] = i;
+        java.util.Arrays.sort(order, (a, b) -> Long.compare(lineAndTime.get(a)[1], lineAndTime.get(b)[1]));
+
+        List<MarkerSeries.MarkerPoint> points = new ArrayList<>();
+        Long from = null, to = null;
+        for (int i : order) {
+            long time = lineAndTime.get(i)[1];
+            points.add(new MarkerSeries.MarkerPoint(time, values.get(i), payloads.get(i), -1));
+            if (from == null) from = time;
+            to = time;
+        }
+        return new MarkerLoad(List.copyOf(points), points.size(), skipped, reordered, from, to,
+                List.copyOf(diagnostics));
+    }
+
     // ---- time formats (D-F1: declared, never inferred) --------------------------------------------
 
     private interface TimeParser {
