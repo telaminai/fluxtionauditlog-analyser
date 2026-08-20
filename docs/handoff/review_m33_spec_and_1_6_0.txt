@@ -108,3 +108,31 @@ stored context and labels the render if declined.
 capture the authoring context: log fingerprint + filter state — and one rendering rule: compare,
 announce, offer), F3 as one sentence in D-I8. Then M33.1 can start; the amendments land in the
 model slice where they are cheapest.
+
+================================================================================
+5. SECOND PASS — v2 (a39962f) VERIFIED
+================================================================================
+D-I3a is a faithful fold of F1+F2, and twice improves on the review that asked for it:
+  - "Announce, do not forbid" (the rejected refuse-to-open alternative) is the right extra step —
+    comparing a finding against a later run is the feature, not the accident.
+  - F3's answer REVERSES my lean, correctly: I offered LOCF-like-bands or STRICT as equally
+    defensible; the spec picks STRICT with a reason that settles it — a row highlighted by a value
+    carried from a record not on the page cannot be verified from what the reader sees. "A rule that
+    cannot be checked against its own row is a colour, not a rule" is the better principle; endorsed.
+F4 declined WITH the reason recorded as a non-goal — consistent-or-not-at-all across all three prose
+surfaces. Right call, and recording the decline is what keeps it from being re-litigated.
+Acceptance 9/10 and the M33.1 ownership land as asked. The corrected non-goal (cross-log MERGING,
+opening handled by fingerprint) is honest about the earlier draft's wrong claim.
+
+Harness pin — VERIFIED REAL: `hiddenColumn.count`/`hiddenColumn.N` are ConfigStore's actual keys, and
+count-marks-configured matches ConfigStore:78 exactly. ONE RESIDUAL, fixed in this pass rather than
+filed: the full column set is NINE (eventTime, logTime, groupingId, event, callback, eventToString,
+thread, nodeLogs, endTime — LogTableModel:33), so hiding four leaves BOTH thread and nodeLogs
+visible — a THIRD layout matching neither the original shots (thread, no nodeLogs) nor the released
+1.6.0 assets (nodeLogs, no thread). Deterministic, but the next capture run would have churned every
+records shot to a state nobody chose. `thread` added to the hidden list (count=5) so the pin agrees
+with the RELEASED baseline; if the owner prefers thread visible on the docs instead, flip the entry
+and regenerate all shots in the same commit — the rule is only that the pin and the committed assets
+agree.
+
+M33.1 is clear to start.

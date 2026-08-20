@@ -138,9 +138,15 @@ def launch(theme, project=None):
                   "topologySpacing": "100", "topologyTextSize": "11",
                   "topologyOrientation": "TOP_DOWN", "topologySyncSource": "true",
                   "eventFilterCollapsed": "false",
-                  "hiddenColumn.count": "4",
+                  # `thread` hidden too: the full set is 9 columns, and hiding only four leaves BOTH
+                  # `thread` and `nodeLogs` visible — a third layout matching neither the original
+                  # shots (thread, no nodeLogs) nor the released 1.6.0 assets (nodeLogs, no thread).
+                  # The pin's value must agree with the committed baseline or the next run churns
+                  # every records shot to a state nobody chose. The released site shows nodeLogs.
+                  "hiddenColumn.count": "5",
                   "hiddenColumn.0": "eventTime", "hiddenColumn.1": "groupingId",
                   "hiddenColumn.2": "eventToString", "hiddenColumn.3": "endTime",
+                  "hiddenColumn.4": "thread",
                   "assistant.exports": "true", "assistant.exportDir": str(EXPORT_DIR),
                   "activeProjectPath": str(project) if project else "",
                   # Fixed window geometry, or every run produces images of a different size and the
