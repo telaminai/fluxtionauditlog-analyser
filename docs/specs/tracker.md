@@ -285,89 +285,15 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 - [M31.5] ☐ *(owner decision)* **Separate `analyser-reader-spi` artifact** — needs a multi-module
   build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
-## M32 · Marker series — ◧ CORE SHIPPED 2026-08-18, legend + docs images 2026-08-18 in v1.6.0 (archived; three small remnants)
-_32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
-marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
-Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
-- [M32.6] ☑ **Flags rug** *(on `feat/m33-reports`)* — flagged records as a built-in axis-lane rug
-  (D-M5's second half): MarkerExtractor.flagRug is pure (tested — filter honoured, finding note as
-  payload, click→record, no flags → no rug), the MainFrame seam supplies row→note and every flag
-  mutation site refreshes the rug from the CACHED extraction (flags are not data; no re-extract).
-  One marker seam (GraphPanel.pushMarkers) feeds chart and legend, so the rug's legend row appears
-  exactly when its ticks do, with the unflag-to-remove tooltip.
-- [M32.7] ☑ **PDF markers table** *(on `feat/m33-reports`)* — a report's chart section now carries
-  its markers as DATA under the picture: label · glyph · time · payload · record, rendered through
-  M33.2's table (no second layout), capped at 200 rows with the cap NAMED (D-M3 in table form). The
-  rug rides too, since it is a marker series. The M23 single-record sugar keeps its frozen shape —
-  its charts still paint glyphs in the image; the table is the investigation form's.
-- [M32.8] ☑ **External-CSV marker source** *(on `feat/m33-reports`)* — ExternalCsvLoader.loadMarkers
-  (same declared-clock/sort/refuse rules; payload column as display cargo; value column optional →
-  axis lane; recordIndex always -1 — an external row is not a record and click-through is refused by
-  contract). MarkerSpec gains the ext* definition fields (persisted + shared portable, path resolved
-  like external series); the verb takes markers[{external:{…}}] behind the SAME read confinement as
-  graph{external}; the D-F2 stamp covers marker sources; loads are cached per definition AND
-  mtime-checked (review R5 — a file changed under a cached read must not show evidence that no
-  longer exists; a filter
-  change cannot change what a CSV contains). The y-pin (`series:<label>`) is NOT supported for
-  external markers in v1 — value column or axis lane; recorded here rather than half-built.
-
-## M33 · Investigation reports — ◧ M33.1–.4 ON BRANCH `feat/m33-reports` (M33.5 gated) (the account, not just the evidence)
-_Design: **[spec-investigation-reports.md](spec-investigation-reports.md)**. Owner ask: a general
-reporting mechanism — an explanation for a set of results, or an investigation, rendered and kept in
-memory or written to disk. Every surface here produces evidence; nothing produces the ACCOUNT of it,
-and a real investigation is never one record. The principle is the whole design: **a report is an
-ordered list of REFERENCES with connective prose, never a free-form document** — which is what keeps
-it a forensic instrument rather than a word processor with a database attached. Sections are typed
-(finding · record · chart · topology · series · table · narrative) and only `narrative` stores its own
-content. Seven decisions posed for review: a report **includes** findings and never authors them, so
-`flag` stays the one write site (D-I1); narrative renders **visibly** as narrative, M29 D-F2 applied one
-level up (D-I2); evidence persists as its REFERENCE and re-renders live, so a report is a re-runnable
-claim that degrades out loud (D-I3); a **table is a query plus a column spec** — rows derived,
-presentation declared, CSV per section, and an agent-authored table is narrative not evidence (D-I7);
-table **formatting is a declared rule that is shown** — a highlighted row prints the `Expr` condition
-that selected it, reusing M28 rather than inventing a rule language, because an unexplained red row
-is a judgement wearing evidence styling; per-cell painting rejected as D-M1's rendering DSL one
-artefact later (D-I8);
-own share category rather than a sixth passenger on Graphs (D-I4); writes ride ExportGuard unchanged
-(D-I5); and **M12.1's fix-brief becomes a report with a fixed section list** rather than a second
-document model that will drift (D-I6).
-**Review amendments folded (v2):** the dangerous failure ARRIVES RESOLVED — `recordIndex 42`
-resolves against any log with 43 records — so D-I3 alone could not enforce the spec's own
-principle. **D-I3a** captures the authoring context (log fingerprint + `FilterState`) and applies
-one rule: compare, announce, offer. Same log moved on = re-verification; different log =
-misapplication, and the page says which. `rowWhen` evaluates STRICTLY against its own row, no
-carry — a highlight a reader cannot verify from the visible row is a colour, not a rule._
-- [M33.1] ☑ **Model + reference resolution** *(on `feat/m33-reports`)* (headless) — ReportSpec with
-  D-I1 STRUCTURAL (a finding section has no text field; supplied text is dropped and the verb names
-  the rule), LogFingerprint + FilterSnapshot (D-I3a as data, announce lines composed once),
-  ReportResolver with the fingerprint verdict positioned before the sections. 15 tests before any
-  rendering.
-- [M33.2] ☑ **Rendering** *(on `feat/m33-reports`; deviation: ReportRenderer is a SIBLING of
-  FindingReport — the shipped sugar keeps its exact shape, both share PdfDoc)* — narrative standing
-  label, announce-first banners, unresolved sections render their reason in place, D-I7/D-I8 table
-  (declared widths/formats/emphasis, monospace tabular figures, printed highlight rule, header
-  repeated across page breaks). `PdfDoc` unchanged.
-- [M33.3] ☑ **Verb + echo** *(on `feat/m33-reports`)* — `report {name, sections}` REPLACES by name;
-  sugar untouched; M26.4 echo (skipped sections NAMED, D-I1 called out, unresolved + rowWhen
-  warnings, writtenAgainst in the echo); rowWhen STRICT per row pinned where LOCF would differ;
-  table rows via `read {fields}` (25-record cap note rides); CSV through RecordExporter (raw
-  values). Gaps stated, not hidden: aggregate/coverage/series table sources + topology/series PDF
-  images say so in place.
-- [M33.4] ☑ **Persistence + share + Reports panel** *(on `feat/m33-reports`)* — the F1 checklist
-  asserted by test: ConfigStore round-trip (incl. null-dims = ALL), project snapshot/restore/clear,
-  SettingsShare ride-along under the OWN category (D-I4 — export without the category writes no
-  report keys; the import summary counts narrative), replace-by-name apply, disclosure row in
-  sharing-setups.md same commit (contract-test enforced). Reports tab: sections clickable through
-  to record/graph/focus, fingerprint banner first, the filter offer is a BUTTON (offer-never-act).
-  **Post-review, owner-driven:** Q1 decided — same content under a different name announces SOFTLY
-  ("SAME CONTENT — A DIFFERENT FILE"), the strong banner reserved for content differences; the
-  Reports tab gained **Export PDF…** (human parity with `report {path}`, chooser-as-consent); and
-  the owner's live eyeball pass surfaced two silent failures, both made loud — the chart's
-  empty-state now distinguishes "nothing configured" from "configured but filtered to nothing"
-  (a SHIPPED surface, fixed under Fixed in the changelog), and a report's open-record click on a
-  filtered-out record now OFFERS the goto-reveal relaxation instead of doing nothing.
+## M33 · Investigation reports — ◧ CORE SHIPPED 2026-08-20 (archived; M33.5 gated)
+_M33.1–.4 shipped, twice-reviewed, owner-eyeballed and merged — full record in
+**[completed/tracker.md](completed/tracker.md)**.
+Design: **[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md)**._
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
-  (journal ↔ audit-log pairing) resolves, not before.
+  (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
+- [M33.6] ☐ *(owner call, from the eyeball pass — E4)* **chooser dialog for external marker CSVs** —
+  markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
+  markers deserve the same dialog before advertising the CSV source to non-agent users.
 
 ## M34 · Source adapters — ☐ ACCEPTED v2 (the same instrument over other execution engines)
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general

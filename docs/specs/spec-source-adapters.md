@@ -1,6 +1,6 @@
 # Source Adapters — the same instrument over other execution engines (Design Spec)
 
-Status: ACCEPTED v2 (review: docs/handoff/review_m34_spec.txt — F1 folded as D-A1a, F2 into D-A3,
+Status: ACCEPTED v2 (review: docs/handoff/completed/review_m34_spec.txt — F1 folded as D-A1a, F2 into D-A3,
 F3 into D-A6, F4 as a signature change, F5 promoted to slice M34.0) · Owner: greg.higgins ·
 Last updated: 2026-08-20 · Milestone **M34**
 

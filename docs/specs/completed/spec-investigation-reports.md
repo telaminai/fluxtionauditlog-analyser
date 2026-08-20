@@ -4,7 +4,7 @@ Status: PROPOSED v2 (review: docs/handoff/completed/review_m33_spec_and_1_6_0.tx
 as one mechanism, F3 answered in D-I8, F4 declined with a reason) · Owner: greg.higgins ·
 Last updated: 2026-08-20 · Milestone **M33**
 
-Companion to **[tracker.md](tracker.md)** (M33), the shipped finding report (`report/PdfDoc`,
+Companion to **[tracker.md](../tracker.md)** (M33), the shipped finding report (`report/PdfDoc`,
 `report/FindingReport`, M23) and **[spec-closed-loop.md](spec-closed-loop.md)** §A (M12.1's fix-brief,
 which this spec proposes to absorb — see D-I6). Prompted by the owner: *"an explanation for a set of
 results or an investigation that the analyser can render and keep in memory or store to disk — a more

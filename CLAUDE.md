@@ -52,18 +52,19 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-08-20 (v1.6.0):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-08-20 (v1.6.0 + unreleased M33/M32-completion):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +
 time-order validation (M30), log-source plugins (M31 core), marker series + point-snapped mouseover
-(M32 core, + the marker legend and natural-sorted topology index in 1.6.0).
+(M32, now COMPLETE: legend, rug, PDF markers table, external-CSV source), investigation reports
+(M33 core: typed sections, D-I3a authoring context, Reports tab, own share category).
 
 Open analyser-side: M22 remnants — PNG export (22.3), alternative layouts (22.6), re-dispatch cause
 (22.11, needs `UP-FLX-10` in [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the
 holding pen for anything belonging to another repo); **M20.5** (project artifact pointers); **M29.5**
-(optional embed); **M32 remnants** (Flags rug, PDF markers table, external-CSV marker source); the
-golden-fixture corpus follow-ups (N1 + the clamp fixture — G1/G2 closed, `58879d7`); the un-started **polish round**
+(optional embed); **M33.5** (fix-brief fold, gated on journal↔log pairing) and **M33.6** (marker-CSV
+chooser dialog, owner call); the golden-fixture corpus follow-ups (N1 + the clamp fixture — G1/G2 closed, `58879d7`); the un-started **polish round**
 (`docs/handoff/handoff_17_aug_2026_1.txt`). Cross-repo tracks: the **M31.4r** example reader
 (playground), the **M18.0** admin-surface spike (`docs/specs/spec-closed-loop.md`) and the **M19.1**
 playground bundle contract (`docs/specs/spec-onboarding-example.md`). Two standing design decisions
