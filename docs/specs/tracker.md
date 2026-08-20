@@ -360,6 +360,37 @@ carry — a highlight a reader cannot verify from the visible row is a colour, n
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before.
 
+## M34 · Source adapters — ☐ PROPOSED (the same instrument over other execution engines)
+_Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
+purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
+that transform LangGraph/Temporal runs into the audit-log format and get the whole toolset for free.
+The model is not Fluxtion-shaped: *an ordered sequence of cycles, each triggered by an event, each
+recording which components ran in what order and what each logged, with a static graph alongside*.
+M31 made CONTAINERS pluggable; M34 makes the **engine** pluggable._
+
+_**The asymmetry is the finding, and it is a first-class decision.** The audit log generalises cleanly;
+the topology does not. Some engines can hand over a **declared** graph (LangGraph); others only what
+was **observed** (Temporal has no static workflow structure — but has native replay, which fits
+replay-diff better than Fluxtion does). **Coverage is "declared minus observed"** — with no declared
+set there is nothing to subtract from, so the feature that found the POC's 54 dead nodes cannot exist
+on such a source. D-A1: adapters declare what they can supply and the core degrades LOUDLY per
+capability; inferring a declaration from observed history is rejected because it always reports 100%.
+D-A2: a graph is DECLARED or INFERRED and the view says which. D-A5 is the real test — GraphML moves
+out of the core and becomes what the Fluxtion adapter uses, because an SPI its own built-in cannot use
+is decoration. D-A6: publish the format openly and hold the NAME; the defensibility was never the
+schema — it is the reference tool and the disciplines in it._
+- [M34.1] ☐ **`RunAdapter` SPI** — `DeclaredGraph`, `GraphSupport {NONE|INFERRED|DECLARED}`; the
+  Fluxtion path refactored behind it, suite green unchanged (the M31.1 move, one level out).
+- [M34.2] ☐ **Capability degradation wired** — coverage, "did not run" shading, replay-diff: each
+  disabled loudly with its reason, none silently.
+- [M34.3] ☐ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.
+- [M34.4] ☐ **First foreign adapter, out of tree — LangGraph**, chosen because it HAS a declared graph
+  and so exercises the hardest part of the boundary rather than the easiest.
+- _Sequencing: **M34.4 is the experiment that decides whether the rest is worth building**, and it is
+  the cheapest step. Consider spiking it against the CURRENT code first — if a foreign run cannot be
+  made legible by today's tool, no SPI fixes that, and the spike costs one adapter rather than a
+  re-plumbing._
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
