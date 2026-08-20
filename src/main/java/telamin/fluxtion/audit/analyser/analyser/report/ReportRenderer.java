@@ -286,7 +286,8 @@ public final class ReportRenderer {
         return w;
     }
 
-    static String formatCell(String raw, String format) {
+    /** Public: the Reports tab applies the same declared formats on screen (D-I8, one rule). */
+    public static String formatCell(String raw, String format) {
         if (raw == null) return "";
         if (format.isEmpty() || !isNumeric(raw)) return raw;
         double v = Double.parseDouble(raw.trim());

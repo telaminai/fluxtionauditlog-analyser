@@ -647,6 +647,12 @@ public final class MainFrame extends JFrame {
         var spec = parsed.spec();
         boolean replaced = reportByName(spec.name()) != null;
         putReport(spec);
+        // reveal what was just built, exactly as the graph verb reveals the Graph tab: the report is
+        // a navigation surface and the human should see what the agent assembled
+        if (reportsPanel != null) {
+            sideTabs.setSelectedComponent(reportsPanel);
+            reportsPanel.select(spec.name());
+        }
 
         var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
                 spec, store.index(), findings, new java.util.HashSet<>(graphTabs.graphNames()),
