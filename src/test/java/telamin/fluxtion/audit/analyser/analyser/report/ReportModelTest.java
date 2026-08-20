@@ -145,6 +145,31 @@ class ReportModelTest {
     }
 
     @Test
+    void theAnnounceLineNamesTheLogYOUAREON_notTheOneTheReportRemembers() {
+        // the announce line's whole job is "you are looking at a different log" — naming the report's
+        // own file as the loaded one makes it point at the log you are NOT looking at
+        LogFingerprint authored = new LogFingerprint("demo.yaml", 582, 100L, 900L);
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", authored, FilterSnapshot.all(),
+                        List.of(SectionSpec.record(1, null))),
+                STORE.index(), "other.yaml", Map.of(), Set.of(), Set.of(), new FilterState());
+        assertTrue(r.fingerprintMismatch().contains("written against demo.yaml"),
+                r.fingerprintMismatch());
+        assertTrue(r.fingerprintMismatch().contains("differs (other.yaml"),
+                "the file actually open is named: " + r.fingerprintMismatch());
+    }
+
+    @Test
+    void aRenamedOrMovedFileIsNotAMismatch_theVerdictIsContentOnly() {
+        LogFingerprint authored = LogFingerprint.of(STORE.index(), "demo.yaml");
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", authored, FilterSnapshot.all(), List.of()),
+                STORE.index(), "demo-copy.yaml", Map.of(), Set.of(), Set.of(), new FilterState());
+        assertNull(r.fingerprintMismatch(),
+                "count and range identify the content; the display name is not the verdict");
+    }
+
+    @Test
     void theSameLogAnnouncesNothing() {
         LogFingerprint authored = LogFingerprint.of(STORE.index(), "demo.yaml");
         var r = ReportResolver.resolve(

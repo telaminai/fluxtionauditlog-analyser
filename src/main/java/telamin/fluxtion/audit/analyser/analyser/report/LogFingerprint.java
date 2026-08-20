@@ -37,16 +37,28 @@ public record LogFingerprint(String logName, int records, Long firstTime, Long l
      * message is composed here so every surface (panel, PDF, verb echo) says the same words. Returns
      * empty when the fingerprints agree.
      *
-     * <p>The comparison is deliberately coarse: name, count, range. It separates the two cases that
-     * matter — same log (re-verification, D-I3's best property) vs a different or moved-on log
-     * (misapplication, or evidence that the ground moved) — without pretending to a byte-level
-     * identity a references-only artefact cannot honestly claim.
+     * <p>The VERDICT is deliberately coarse and compares CONTENT only — record count and time range.
+     * It separates the two cases that matter — same log (re-verification, D-I3's best property) vs a
+     * different or moved-on log (misapplication, or evidence that the ground moved) — without
+     * pretending to a byte-level identity a references-only artefact cannot honestly claim. A file
+     * renamed or re-opened from another directory is therefore not a mismatch, which is intended.
+     *
+     * <p>The name is not part of the verdict, but it IS part of the message: {@code loaded} must
+     * carry the name of the log actually open, because the announce line's whole job is to say which
+     * log you are looking at instead.
      */
     public Optional<String> mismatch(LogFingerprint loaded) {
         if (loaded == null) return Optional.of("written against " + describe() + "; no log is loaded");
-        if (equals(loaded)) return Optional.empty();
+        if (sameContent(loaded)) return Optional.empty();
         return Optional.of("written against " + describe() + "; the loaded log differs ("
                 + loaded.describe() + ")");
+    }
+
+    /** Content identity — what the verdict turns on. The display name is excluded by design. */
+    public boolean sameContent(LogFingerprint other) {
+        return other != null && records == other.records
+                && java.util.Objects.equals(firstTime, other.firstTime)
+                && java.util.Objects.equals(lastTime, other.lastTime);
     }
 
     /** "demo.yaml · 726 records · 09:00:04.500→09:18:12.000" — the identity, human-readable. */

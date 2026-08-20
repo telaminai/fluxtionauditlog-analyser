@@ -142,6 +142,39 @@ class ReportVerbTest {
     }
 
     @Test
+    void aWindowedRuleIsRefusedAndNamed_neverAppliedToAOneSampleWindow() {
+        // Every mid here is under 17.25, so a genuine 5-minute mean cannot exceed it. Evaluated one
+        // row at a time the window holds a single sample and mean() returns that sample, so records
+        // 2 and 3 would highlight under a label still reading "mean(book.mid,"5m") > 17.25" — the
+        // report would state a rule the analyser never applied.
+        var a = ReportVerb.assembleTable(tableOverMid("mean(book.mid, \"5m\") > 17.25"), STORE);
+        assertArrayEquals(new boolean[]{false, false, false, false}, a.table().highlighted(),
+                "a rule needing history is refused, not silently collapsed to its bare argument");
+        assertTrue(a.notes().stream().anyMatch(n -> n.contains("mean") && n.contains("history")),
+                "and the refusal is NAMED on the page: " + a.notes());
+    }
+
+    @Test
+    void theSameRefusalReachesTheEchoThroughResolution() {
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", null, FilterSnapshot.all(),
+                        List.of(tableOverMid("rate(book.mid, \"1s\") > 0"))),
+                STORE.index(), Map.of(), java.util.Set.of(), java.util.Set.of(), null);
+        assertTrue(r.sections().get(0).resolved(), "acceptance 7: the table still renders");
+        assertTrue(r.sections().get(0).warning().contains("rate"),
+                "the verb echo names it too: " + r.sections().get(0).warning());
+    }
+
+    @Test
+    void aPointwiseRuleIsUnaffectedByTheWindowCheck() {
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", null, FilterSnapshot.all(),
+                        List.of(tableOverMid("if(book.mid > 17.25, 1, 0)"))),
+                STORE.index(), Map.of(), java.util.Set.of(), java.util.Set.of(), null);
+        assertNull(r.sections().get(0).warning(), "if/and/or/not are point-wise — nothing to refuse");
+    }
+
+    @Test
     void aNonReadSourceStatesTheGapInsteadOfAnEmptyAnswer() {
         var s = ReportSpec.SectionSpec.table(Map.of("verb", "aggregate"), List.of(), null, null);
         var a = ReportVerb.assembleTable(s, STORE);

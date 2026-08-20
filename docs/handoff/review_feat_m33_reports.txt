@@ -1,0 +1,159 @@
+REVIEW — branch feat/m33-reports (M33.1–.4 + M32.6/.7/.8)
+Date: 2026-08-20 · Reviewer: second session · Reviewed at 377f986 · Author's report:
+docs/handoff/report_feat_m33_reports.txt
+
+VERDICT: MERGE, after the two fixes in §2, which are committed on this branch.
+
+The branch does what it says. 44 new tests, suite green at 742 before my changes and 747 after,
+mkdocs --strict green, sweep clean. The author's own report is accurate — I checked its load-bearing
+claims rather than taking them, and the two that mattered most hold structurally, not by convention:
+
+  · D-I1 ("the verb cannot author a finding") is REAL. SectionSpec's compact constructor sets
+    text = kind == NARRATIVE ? text : null, so no parameter shape can carry a second account of a
+    finding, and the drop survives the persistence round-trip because readReports rebuilds through
+    the same constructor. A hand-edited config claiming FINDING + text still loses the text.
+  · D-I7 ("rows are derived") holds: the table stores a call, not rows, and the panel and the PDF
+    both run it. Assembly notes reach BOTH surfaces (ReportsPanel:283, and the renderer) — I checked,
+    because a gap stated only in the PDF would be a gap hidden from the human.
+
+Both defects below are the same species and it is the species this tool exists to prevent: an
+artefact that STATES something the analyser did not do. Neither is a crash, both are silent, and
+both would have been believed.
+
+================================================================================
+1. HOW THE TWO DEFECTS WERE FOUND
+================================================================================
+Not by reading for style. By asking, of each honesty claim in the author's report, "what would have
+to be true, and is it?" — then running the thing.
+
+Both were confirmed with a throwaway probe against target/classes before a line was changed, because
+a review finding asserted rather than executed is exactly the failure mode being reviewed.
+
+================================================================================
+2. DEFECTS FOUND AND FIXED (both on this branch)
+================================================================================
+
+F1  A ROW RULE NEEDING HISTORY WAS APPLIED TO A ONE-SAMPLE WINDOW — SEVERITY: HIGH
+    ReportVerb.firesOn built a FRESH Evaluator per row (its own comment: "fresh per row: STRICT, no
+    carry"). Expr.newEvaluator()'s javadoc has warned against exactly this since M28 W0:
+
+        "There is deliberately NO per-record eval shortcut on the AST: create ONE evaluator per scan
+         and feed it rows in order — a throwaway evaluator per row would silently reset every rolling
+         window."
+
+    Nothing in the resolver or the verb rejected a window function in rowWhen; ReportResolver only
+    checked that Expr.parse succeeded. Probed against a single row holding 150.0:
+
+        mean(n.v, "5m") > 100        -> 1.0    HIGHLIGHTS
+        sum(n.v, "5m") > 100         -> 1.0    HIGHLIGHTS
+        rollingMax(n.v, "5m") > 100  -> 1.0    HIGHLIGHTS
+        rollingMin(n.v, "5m") > 100  -> 1.0    HIGHLIGHTS
+        delta(n.v) > 100             -> NaN    no
+        lag(n.v, 3) > 100            -> NaN    no
+        rate(n.v, "1s") > 100        -> NaN    no
+
+    Four of seven collapse to the BARE ARGUMENT and fire. So `rowWhen: mean(latency,"5m") > 100`
+    highlighted every row whose instantaneous latency exceeded 100, and D-I8 then printed
+    "in breach — rows where mean(latency, "5m") > 100" underneath. The report asserts a five-minute
+    mean; the analyser evaluated a point value; nothing anywhere says so. The other three never fire
+    and are equally silent — an author sees no highlights and concludes nothing breached.
+
+    This is worse than the malformed-rule case the spec already handles (acceptance 7), because a
+    malformed rule is announced and this one is not.
+
+    FIX  Expr.windowFunctions() — a traversal over the sealed AST, modelled on rejectStrayDurations,
+         turning the standing warning into something a caller can ASK. ReportResolver.rowWhenProblem
+         refuses a windowed rule and names it; ReportVerb.assembleTable checks before evaluating, so
+         the rule is not applied at all rather than applied and disclaimed; the note rides onto the
+         page and into the verb echo via the existing warnings[] path; VerbSchemas tells the agent up
+         front, with the alternative (compute the window with `series`, compare on a plain value).
+         Point-wise conditionals — if/and/or/not, M28's other half — are untouched, pinned by test.
+         3 tests: refusal + naming, echo path, and the no-false-positive case.
+
+    VERIFIED IN THE RUNNING JAR (rule 4), report verb over REST on sample.yml:
+        "section 1: rowWhen 'mean(book.mid, "5m") > 0' uses [mean], which need history — a row rule
+         is evaluated against its own record alone, so the window would hold one sample and report a
+         value it never computed; the table renders without highlighting. Compute the window with the
+         'series' verb and highlight on a plain comparison."
+
+F2  THE "DIFFERENT LOG" BANNER NAMED THE WRONG LOG — SEVERITY: HIGH
+    ReportResolver built the LOADED log's fingerprint with the STORED report's name:
+
+        LogFingerprint.of(idx, spec.fingerprint().logName())
+
+    so the announce line described the log on screen using the name of the log it isn't. Probe:
+
+        written against demo.yaml · 726 record(s) · …; the loaded log differs (demo.yaml · 800
+        record(s) · …)
+        (the file actually open: other.yaml)
+
+    The one message whose entire job is "you are looking at a different log" printed the name of the
+    log you are not looking at, twice. D-I3a is the branch's sharpest idea — the dangerous failure
+    arrives RESOLVED, recordIndex 42 resolving against any log with 43 records — and this is its
+    delivery mechanism.
+
+    It survived because the test used "demo.yaml" on both sides and asserted only on the record
+    count, so the name could not vary. The name was also inert in the comparison: same-by-
+    construction, it could never itself trigger a mismatch.
+
+    FIX  resolve() takes the loaded name (the caller's to know; MainFrame already had it for the
+         status bar, now via one loadedLogName() used by authoring and re-opening alike). The old
+         6-arg overload is kept and delegates. LogFingerprint.mismatch now compares sameContent()
+         explicitly — count and range — so the deliberate coarseness is preserved and stated rather
+         than being an accident of the caller passing its own name back. 2 tests: the announce line
+         names the loaded file; a renamed/moved copy is still not a mismatch.
+
+    NOT CHANGED, deliberately — see Q1: a DIFFERENT file with identical count and range still
+    announces nothing. That is the shipped policy and it is now explicit; whether it is the right one
+    is the owner's call, not a reviewer's.
+
+================================================================================
+3. ONE THING TO TIDY (not a defect, not fixed — the author's call)
+================================================================================
+T1  ExternalCsvLoader.load and .loadMarkers are ~60 lines of near-identical streaming: the bound
+    refusal, the diagnostics cap, the reorder count, the sanitised excerpt — M29's honesty contract,
+    now in two copies. Nothing is wrong with either. The risk is future: a fix to one silently misses
+    the other, and these are precisely the rules that must not drift. One shared pass yielding
+    (time, value, payload) with two thin adapters would collapse it; loadMarkers is already the more
+    general of the two (null value column, optional payload), so load could become its caller.
+
+================================================================================
+4. THE AUTHOR'S REVIEW-FOCUS LIST, ANSWERED
+================================================================================
+R1  Fingerprint coarseness — see F2 and Q1. The comparison is now explicit rather than emergent.
+    On lazier re-assembly: leave it. Tables cap at 25 records and assembly is a read; the cost is not
+    there yet, and caching derived rows is the first step towards a report that shows stale evidence.
+R2  STRICT rowWhen on negations — the shipped reading is right and I would not change it. "not(x>3)"
+    over an absent x is "cannot check", not "vacuously true"; a highlight is a positive claim about a
+    row, and a row with no x supports no claim. It IS worth the explicit sentence they ask for, in
+    spec D-I8 rather than in code. Note F1 makes the neighbouring case louder, so the asymmetry
+    (absent ref: quiet; absent history: named) now deserves one line saying why they differ: an
+    absent ref is a fact about that row, a missing window is a fact about the RULE.
+R3  Theme derivation — the UIManager luminance test is fine and self-contained; no FlatLaf-native
+    signal is used elsewhere in the app, so sharing one would mean inventing it here. Leave it.
+R4  ConfigStore report keys — read the writer; verbose but consistent with the GraphSpec precedent,
+    and Properties handles the escaping. Readability of the share file is not worth a bespoke format.
+R5  Marker cache keyed by definition — acceptable for v1 AND worth the mtime check, for the same
+    reason as F1/F2 rather than for performance: a file that changed under a cached read makes the
+    chart show evidence that no longer exists, silently. Cheap; put it in the M32 remnants.
+
+================================================================================
+5. OPEN QUESTIONS FOR THE OWNER
+================================================================================
+Q1  Should a DIFFERENT file with the same record count and time range announce? Today: no. For a
+    forensic tool I lean yes — "same content, different file" is exactly the misapplication D-I3a
+    exists to catch, and the honest banner is "the loaded log matches on content but is a different
+    file". Against: noise on every legitimate copy/rename, which is a real workflow. It is a policy
+    call and I have left it as shipped.
+Q2  E1–E5 in the author's report are still unticked; I exercised the verb path and the headless
+    halves only. The Swing surfaces (the filter-offer button, click-throughs, table highlight in both
+    themes, the CSV chooser-grant path) remain eyeball items.
+
+================================================================================
+6. GATE
+================================================================================
+mvn test            747 tests, 0 failures, 0 errors   (742 before this review's 5)
+mkdocs --strict     green
+sweep               clean
+running jar         report verb over REST — F1's refusal confirmed in the echo (§2)
+CHANGELOG           both fixes under [Unreleased] ▸ Fixed, in the same commit

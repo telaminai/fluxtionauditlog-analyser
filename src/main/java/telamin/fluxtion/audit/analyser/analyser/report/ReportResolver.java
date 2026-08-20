@@ -65,11 +65,24 @@ public final class ReportResolver {
     public static Resolution resolve(ReportSpec spec, LogIndex idx, Map<Integer, Finding> findings,
                                      Set<String> graphNames, Set<String> focusNames,
                                      FilterState currentFilter) {
+        return resolve(spec, idx, null, findings, graphNames, focusNames, currentFilter);
+    }
+
+    /**
+     * @param loadedLogName the name of the log ACTUALLY open, which is the caller's to know. The
+     *                      verdict still compares content identity only (count, range) — that
+     *                      coarseness is deliberate (see {@link LogFingerprint#mismatch}) — but the
+     *                      announce line must name the file on screen. Passing the stored name here
+     *                      makes the one message whose job is "you are looking at a different log"
+     *                      print the name of the log you are NOT looking at.
+     */
+    public static Resolution resolve(ReportSpec spec, LogIndex idx, String loadedLogName,
+                                     Map<Integer, Finding> findings,
+                                     Set<String> graphNames, Set<String> focusNames,
+                                     FilterState currentFilter) {
         String fp = spec.fingerprint() == null ? null
                 : spec.fingerprint().mismatch(idx == null ? null
-                        : LogFingerprint.of(idx, spec.fingerprint().logName())).orElse(null);
-        // the fingerprint compares content identity (count, range); the stored name rides along so
-        // the announce line can say what the report was written against even when nothing is loaded
+                        : LogFingerprint.of(idx, loadedLogName)).orElse(null);
         String filterLine = currentFilter == null ? null
                 : spec.filter().difference(currentFilter).orElse(null);
 
@@ -144,7 +157,7 @@ public final class ReportResolver {
                 String warning = null;
                 if (s.rowWhen() != null) {
                     try {
-                        Expr.parse(s.rowWhen());
+                        warning = rowWhenProblem(Expr.parse(s.rowWhen()), s.rowWhen());
                     } catch (RuntimeException e) {
                         warning = "rowWhen '" + s.rowWhen() + "' does not parse (" + e.getMessage()
                                 + ") — the table renders without highlighting";
@@ -153,6 +166,25 @@ public final class ReportResolver {
                 yield new SectionResolution(i, s.kind(), true, null, null, warning);
             }
         };
+    }
+
+    /**
+     * D-I8's rule made enforceable: a row rule is evaluated against its OWN record and nothing else,
+     * so a rolling window would see exactly one sample. Left alone that is worse than a parse error —
+     * {@code mean(x,"5m") > 100} silently degrades to {@code x > 100} and highlights, while the label
+     * printed under the table still says the rule was a five-minute mean. The report would then state
+     * a rule the analyser never applied, which is the one thing a forensic artefact may not do. So the
+     * rule is REFUSED and named, and the table renders un-highlighted (acceptance 7's shape).
+     *
+     * @return the warning, or null when the rule is point-wise and can honestly be applied per row
+     */
+    static String rowWhenProblem(Expr rule, String source) {
+        Set<String> windows = rule.windowFunctions();
+        if (windows.isEmpty()) return null;
+        return "rowWhen '" + source + "' uses " + windows + ", which need history — a row rule is "
+                + "evaluated against its own record alone, so the window would hold one sample and "
+                + "report a value it never computed; the table renders without highlighting. Compute "
+                + "the window with the 'series' verb and highlight on a plain comparison.";
     }
 
     private static boolean inRange(LogIndex idx, int recordIndex) {

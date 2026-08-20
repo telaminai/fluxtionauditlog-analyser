@@ -219,9 +219,18 @@ public final class ReportVerb {
         if (s.rowWhen() != null) {
             try {
                 Expr rule = Expr.parse(s.rowWhen());
-                Set<GraphKey> refs = rule.refs();
-                for (int i = 0; i < rowRecords.size(); i++) {
-                    hot[i] = firesOn(rule, refs, store, rowRecords.get(i));
+                // A rule needing history cannot be applied one row at a time, and applying it anyway
+                // is worse than refusing: the windowed forms that DON'T return NaN quietly collapse to
+                // their bare argument and highlight, under a label still claiming the window. Refuse,
+                // and say so on the page — resolution carries the same words into the echo.
+                String problem = ReportResolver.rowWhenProblem(rule, s.rowWhen());
+                if (problem != null) {
+                    notes.add(problem);
+                } else {
+                    Set<GraphKey> refs = rule.refs();
+                    for (int i = 0; i < rowRecords.size(); i++) {
+                        hot[i] = firesOn(rule, refs, store, rowRecords.get(i));
+                    }
                 }
             } catch (RuntimeException e) {
                 // resolution already carries this as a warning (acceptance 7); render un-highlighted
