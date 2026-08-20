@@ -1,0 +1,148 @@
+REPORT — branch feat/m33-reports (M33.1–.4 investigation reports + M32.6/.7/.8 remnants)
+Date: 2026-08-20 · Brief: docs/handoff/handoff_20_aug_2026_1.txt · Base: main @ ad65bb0
+Worker: the main session (the same one that wrote the brief — the owner commissioned the work
+directly rather than handing it across).
+
+STATUS: all seven commissioned slices COMPLETE, not merged. M33.5 NOT touched, per the brief (gated
+on the closed-loop pairing precondition).
+  11 commits (brief + 9 work/docs + this report) · suite green at every commit (final: exit 0) · mkdocs --strict green · sweep clean ·
+  UI verified in the RUNNING JAR in BOTH themes (rule 4) · one new docs image, harness-captured and
+  string-read.
+
+================================================================================
+1. WHAT SHIPPED — M33 (investigation reports)
+================================================================================
+M33.1  Model + resolution, headless. ReportSpec {name, title, notes, fingerprint, filter,
+  sections[]}; sections typed FINDING/RECORD/CHART/TOPOLOGY/SERIES/TABLE/NARRATIVE and only
+  narrative stores content. D-I1 is STRUCTURAL: a finding section has no text field — the compact
+  constructor DROPS text on any non-narrative kind, so no parameter shape can author a finding.
+  D-I3a lands here as the spec directs: LogFingerprint (name · records · first/last logTime) and
+  FilterSnapshot (with applyTo for the accepted offer), each composing its own announce line so
+  every surface says the same words. ReportResolver returns the verdict AS DATA with the
+  fingerprint mismatch positioned before the sections (acceptance 9: announce, never forbid);
+  unresolved anchors counted and named; narrative is not an anchor; a malformed rowWhen is a
+  WARNING and the table still renders (acceptance 7). 15 tests before any rendering existed.
+
+M33.2  Rendering. ReportRenderer lays the resolved spec out through the UNCHANGED PdfDoc in
+  FindingReport's visual language. Narrative wears its standing label ("NARRATIVE — the author's
+  account, not log evidence") in its own accent — the distinction survives being read out of order.
+  Announce-first banners; unresolved sections render their reason IN PLACE and their siblings render
+  regardless (acceptance 3). Tables: declared headings/widths/alignment/formats/emphasis over
+  derived rows, numbers in the monospace face (honestly tabular figures), percent/duration/time/
+  decimal formats, header repeated on every page a long table touches, and a highlighted row's RULE
+  printed with the table (D-I8). 8 renderer tests assert through the PDF byte stream.
+
+M33.3  Verb + echo. report {name, sections} builds or REPLACES a named report; the M23 single-record
+  form is untouched sugar. M26.4 throughout: invalid sections skipped AND named, D-I1 called out in
+  words when text arrives on a finding section, unresolved references and rowWhen problems in
+  warnings[], writtenAgainst in the echo. Tables derive via read {fields} through ReadService (the
+  25-record cap note rides into warnings); rowWhen evaluates STRICTLY per row — fresh evaluator,
+  refs from that record's nodeLogs only — pinned by the test where LOCF would have carried a fill
+  price through a quote record and STRICT does not. CSV rides RecordExporter (one writer; raw
+  values — formatting is presentation). SeriesExtractor.lastMatching widened public: it IS the
+  shared what-did-this-record-contain rule, three consumers named.
+
+M33.4  Persistence + share + the Reports tab. The F1 checklist ASSERTED: ConfigStore round-trip
+  (incl. null-dimensions = ALL), project snapshot/restore/clear, SettingsShare ride-along under the
+  OWN category (D-I4) — export without the category writes no report keys, the import summary counts
+  reports carrying narrative, apply replaces by name — and the sharing-setups.md row in the same
+  commit, enforced by ShareDisclosureContractTest. An unknown section kind from a newer build drops
+  without killing the report. The Reports tab is a NAVIGATION SURFACE: finding→record, chart→graph,
+  focus→topology, tables with the rule printed beneath; the fingerprint banner renders first; the
+  filter difference is a BUTTON (offer-never-act). config.reports is the one store; the verb's
+  earlier private map was deleted; restore-is-not-an-edit holds by construction (loading never
+  passes through putReport). New user-guide page reports.md (in nav) with a harness-captured shot;
+  assistant.md's report entry grew the investigation form; changelog entry.
+
+================================================================================
+2. WHAT SHIPPED — M32 remnants
+================================================================================
+M32.6  Flags rug. MarkerExtractor.flagRug is pure and tested: one axis-lane tick per flagged
+  record, finding note as payload, same filter as every marker, no rug when nothing is flagged.
+  MainFrame supplies row→note; every flag mutation site (toggle, verb, explain-dialog, clear-all)
+  refreshes the rug from the CACHED extraction — flags are annotations, not data. One marker seam
+  (GraphPanel.pushMarkers) feeds chart AND legend, so the rug's legend row appears exactly when its
+  ticks do, counted, with an unflag-to-remove tooltip.
+
+M32.7  PDF markers table. A report's chart section carries its markers as DATA under the picture —
+  series · glyph · time · payload · record — through M33.2's table renderer (the brief's "no second
+  layout" honoured), capped at 200 rows with the cap NAMED (D-M3 in table form). The rug rides too.
+
+M32.8  External-CSV marker source. ExternalCsvLoader.loadMarkers: the M29 contract (declared clock,
+  sort-on-load with reorder count, refuse past the bound, sanitised diagnostics) plus a payload
+  column as display cargo; value column optional → axis lane; recordIndex = -1 always — an external
+  row is not a record, and the chart's existing click guard makes no-navigation structural.
+  MarkerSpec grew the ext* definition fields (old shape delegates); ConfigStore round-trip pinned;
+  shares write the path portable and preview resolves it against the share's directory, exactly
+  like external series. Verb: markers[{label, glyph, external:{…}}] behind the SAME read confinement
+  as graph {external}, refusals named per marker. The D-F2 stamp covers marker sources. Loads cached
+  per definition; a failed load degrades into the legend note.
+
+================================================================================
+3. VERIFIED IN THE RUNNING JAR (rule 4)
+================================================================================
+Drove the full loop over REST against the series fixture: flag → graph → report {sections} →
+screenshot → csv → PDF. The echo carried writtenAgainst, the unresolved focus was named, the CSV
+held raw values under declared headings, and the PDF rendered the meta strip, labelled narrative,
+byte-identical finding callouts, record evidence and the chart. Screenshot-verified the Reports tab
+in BOTH themes after the owner caught the first cut unreadable under dark (see deviations D7).
+The docs image reports-dark.png was then captured by the HARNESS (a new definition driving the same
+verbs), read string-by-string, and embedded in reports.md.
+
+================================================================================
+4. DEVIATIONS (recorded, never silent)
+================================================================================
+D1  ReportRenderer is a SIBLING of FindingReport, not a mutation of it — the shipped single-record
+    sugar keeps its exact Evidence shape; both share PdfDoc and the Picture type. The spec's
+    "extend FindingReport" is satisfied in capability, not by editing the class.
+D2  The verb-path PDF states two assembly gaps IN PLACE rather than omitting sections that resolved:
+    topology sections (no per-focus offscreen render exists yet) and series sections render a named
+    placeholder line. The PANEL renders both as navigation links, which is their primary surface.
+D3  Table sources: read {fields} assembles; aggregate/coverage/series resolve (M33.1) but state
+    "not assembled yet" instead of returning an empty table that looks like an answer.
+D4  Tables sourced from read inherit its 25-record cap; the cap note rides into warnings and onto
+    the page. Lifting it means paging inside the assembler — deferred until a real table needs it.
+D5  ADDITION not in the spec: report {sections} reveals the Reports tab with the new report
+    selected, mirroring how the graph verb reveals the Graph tab. Small, reversible, and it makes
+    the verb's effect visible to the human watching.
+D6  ProjectProfileTest's five-category pin became six (REPORTS joined PROJECT_SCOPED per D-I4); the
+    pin's point — machine settings stay out — is restated in the updated test.
+D7  The PDF stays deliberately always-light (a document prints); the PANEL derives its colours from
+    the theme at render time. The first cut hardcoded the paper palette and was unreadable under
+    dark — the OWNER caught it in live use; fixed and screenshot-verified in both themes.
+D8  External markers take their height from the value column or the axis lane; the series:<label>
+    y-pin stays log-sourced-only in v1 (tracker records it) — external times ride a declared clock
+    and pinning them onto an audit-clock series deserves its own decision, not a default.
+D9  The rug is ABSENT when nothing is flagged (no "(0)" row): a built-in has no declared intent to
+    degrade loudly about, unlike a user's marker spec. The asymmetry is argued in the code.
+D10 The M32.7 markers table lives in the investigation form's PDF only; the M23 sugar's charts still
+    carry glyphs in the image, table-less, by its frozen-shape contract.
+D11 M33.5 untouched, per the brief.
+
+================================================================================
+5. HUMAN EYEBALL (Swing untested by design)
+================================================================================
+E1  The Reports tab on a real investigation: banners, the filter-offer button actually applying,
+    click-throughs landing (record/graph/focus), table highlight colours in both themes.
+E2  A rolled-set / different-log open of a saved report: the fingerprint banner wording.
+E3  The rug on a busy chart: tick legibility beside user markers in the axis lane.
+E4  An external marker CSV end-to-end through the chooser-grant path (the verb path is exercised;
+    the File-picker grant path is UI).
+E5  The PDF of a long report: table page-breaks with repeated headers on real data volumes.
+
+================================================================================
+6. SUGGESTED REVIEW FOCUS
+================================================================================
+R1  ReportResolver + D-I3a: is the fingerprint comparison's coarseness (name·count·range) right, and
+    should the panel's re-render-on-filter-change re-run table assembly more lazily?
+R2  ReportVerb.assembleTable's STRICT rowWhen: refs from the row's record only — confirm the NaN
+    (absent ref) → not-highlighted reading matches D-I8's intent in edge shapes (NEGATIONS): a rule
+    like "not(x > 3)" over an ABSENT x evaluates NaN → not truthy → unhighlighted, which is "cannot
+    check → does not fire"; a reader might expect an absent x to satisfy a negation. The spec's
+    principle backs the shipped behaviour; worth an explicit sentence somewhere.
+R3  The theme derivation in ReportsPanel (UIManager luminance test) — is there a FlatLaf-native
+    signal the app already uses elsewhere that should be shared instead?
+R4  ConfigStore report keys: the call-map round-trips as indexed key/val pairs — eyeball the format
+    for share-file readability.
+R5  M32.8's cache keys by MarkerSpec identity — a CHANGED FILE at the same path is not re-read until
+    the definition changes or the app restarts. Acceptable for v1? An mtime check is cheap if not.

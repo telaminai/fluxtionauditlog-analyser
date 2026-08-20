@@ -309,7 +309,7 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
   change cannot change what a CSV contains). The y-pin (`series:<label>`) is NOT supported for
   external markers in v1 — value column or axis lane; recorded here rather than half-built.
 
-## M33 · Investigation reports — ☐ ACCEPTED v2 (the account, not just the evidence)
+## M33 · Investigation reports — ◧ M33.1–.4 ON BRANCH `feat/m33-reports` (M33.5 gated) (the account, not just the evidence)
 _Design: **[spec-investigation-reports.md](spec-investigation-reports.md)**. Owner ask: a general
 reporting mechanism — an explanation for a set of results, or an investigation, rendered and kept in
 memory or written to disk. Every surface here produces evidence; nothing produces the ACCOUNT of it,
