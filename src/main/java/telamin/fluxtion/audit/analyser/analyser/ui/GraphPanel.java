@@ -568,6 +568,41 @@ public final class GraphPanel extends JPanel {
     private java.util.List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> legendMarkers =
             java.util.List.of();
 
+    /** The last extraction's marker series, cached so the rug can refresh without re-extracting. */
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> extractedMarkers =
+            java.util.List.of();
+
+    /** Flagged rows → finding note (or null), supplied by MainFrame — the M32.6 seam. Null = off. */
+    private java.util.function.Supplier<java.util.Map<Integer, String>> flagRugSource;
+
+    public void setFlagRugSource(java.util.function.Supplier<java.util.Map<Integer, String>> source) {
+        this.flagRugSource = source;
+    }
+
+    /** Flags changed: rebuild the rug from the CACHED extraction — no re-extract, flags are not data. */
+    public void refreshFlagRug() {
+        pushMarkers();
+    }
+
+    /**
+     * The one seam through which markers reach the chart and the legend (M32.6): the extraction's
+     * series plus the built-in Flags rug, so the two can never disagree about what is drawn — and the
+     * rug gets its legend row (with count and its unflag-to-remove tooltip) for free.
+     */
+    private void pushMarkers() {
+        var all = new java.util.ArrayList<>(extractedMarkers);
+        if (flagRugSource != null && store != null) {
+            var rug = telamin.fluxtion.audit.analyser.analyser.graph.MarkerExtractor.flagRug(
+                    store.index(), filter, flagRugSource.get());
+            if (rug != null) all.add(rug);
+        }
+        chart.setMarkers(all);
+        // the legend names what the plot draws, so it is rebuilt from the SAME list — a dangling pin
+        // shows (0) instead of a phantom, and the rug row appears exactly when its ticks do
+        legendMarkers = java.util.List.copyOf(all);
+        rebuildLegendLabels();
+    }
+
     public java.util.List<String> markerNotes() {
         return java.util.List.copyOf(markerNotes);
     }
@@ -794,13 +829,10 @@ public final class GraphPanel extends JPanel {
                     merged.addAll(externalLoaded.values());   // external points ride the same chart
                     chart.setSeries(merged);
                     chart.setBands(out.bands());
-                    chart.setMarkers(out.markers());
+                    extractedMarkers = out.markers();
                     markerNotes.clear();
                     markerNotes.addAll(out.markerNotes());
-                    // the legend names what the plot draws, so it is rebuilt from the SAME extraction
-                    // rather than from the specs — a dangling pin then shows (0) instead of a phantom
-                    legendMarkers = out.markers();
-                    rebuildLegendLabels();
+                    pushMarkers();   // extracted markers + the built-in Flags rug, one seam (M32.6)
                     applyWindow();                   // pinned range if pinned, else the filter's window
                 },
                 err -> { /* best-effort */ });

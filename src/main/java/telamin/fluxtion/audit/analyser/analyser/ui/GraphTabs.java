@@ -96,7 +96,25 @@ public final class GraphTabs extends JPanel {
         panel.bind(store, filter);
         panel.setOnTimeClick(timeClickHandler);
         panel.setOnMarkerClick(markerClickHandler);
+        panel.setFlagRugSource(flagRugSource);
         return panel;
+    }
+
+    /** Flagged rows → note, from MainFrame (M32.6); fanned to every panel, current and future. */
+    private java.util.function.Supplier<java.util.Map<Integer, String>> flagRugSource;
+
+    public void setFlagRugSource(java.util.function.Supplier<java.util.Map<Integer, String>> source) {
+        this.flagRugSource = source;
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.setFlagRugSource(source);
+        }
+    }
+
+    /** Flags changed: every chart's rug refreshes from its cached extraction. */
+    public void refreshFlagRug() {
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.refreshFlagRug();
+        }
     }
 
     private GraphPanel addGraph() {

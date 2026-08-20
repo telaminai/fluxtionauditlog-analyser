@@ -116,6 +116,11 @@ reading `(0)` with the reason on hover — a `y` pinned to a series that isn't o
 `when` that never fired. An event type that never occurred is a finding, not something to hide.
 Right-click a row to remove that marker series.
 
+**Flagged records join every chart automatically** as a built-in `⚑ flags` rug on the axis lane —
+each tick carries its finding note on hover and clicks through to its record, the legend row counts
+them, and unflagging is how a tick is removed (the rug derives from the flags; it is never persisted
+or shared).
+
 `when` decides where a marker fires, and the two forms differ in a way that matters: a **bare key**
 (`orderTracker.orderId`) fires only on records where that key was actually logged — one marker per
 event. A **condition** (`orderTracker.live > 0`) is evaluated against carried-forward values, so once

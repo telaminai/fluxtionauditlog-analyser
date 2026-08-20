@@ -148,6 +148,7 @@ public final class MainFrame extends JFrame {
         sourcePanel.bind(sourceService);
         graphTabs.setTimeClickHandler(this::gotoNearestRecordByTime);
         graphTabs.setMarkerClickHandler(row -> tablePanel.selectModelRow(row));   // the marker IS the record
+        graphTabs.setFlagRugSource(this::flagRugMap);                              // M32.6: the rug's seam
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
         graphTabs.setChangeListener(this::onGraphsEdited);
@@ -361,6 +362,7 @@ public final class MainFrame extends JFrame {
             tablePanel.reFilter();
             tablePanel.repaintRows();
             topologyPanel.refreshFinding();
+            graphTabs.refreshFlagRug();
         });
         into.add(clearFlags);
 
@@ -488,7 +490,18 @@ public final class MainFrame extends JFrame {
         }
         tablePanel.repaintRows();
         topologyPanel.refreshFinding();
+        graphTabs.refreshFlagRug();   // the rug is DERIVED from the flags (M32.6)
         if (flaggedOnly) tablePanel.reFilter();
+    }
+
+    /** Flagged rows -> finding note (or null): the rug's payload map, snapshotted per refresh. */
+    private java.util.Map<Integer, String> flagRugMap() {
+        java.util.Map<Integer, String> out = new java.util.HashMap<>();
+        for (int r : flaggedRows) {
+            var f = findings.get(r);
+            out.put(r, f == null || !f.hasNote() ? null : f.note());
+        }
+        return out;
     }
 
     /**
@@ -508,6 +521,7 @@ public final class MainFrame extends JFrame {
         }
         tablePanel.repaintRows();
         topologyPanel.refreshFinding();
+        graphTabs.refreshFlagRug();
         if (flaggedOnly) tablePanel.reFilter();
     }
 
@@ -556,6 +570,7 @@ public final class MainFrame extends JFrame {
         }
         tablePanel.repaintRows();
         topologyPanel.refreshFinding();
+        graphTabs.refreshFlagRug();
         if (flaggedOnly) tablePanel.reFilter();
     }
 
@@ -2185,6 +2200,9 @@ public final class MainFrame extends JFrame {
         if (store != null) {
             showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
         }
+        // a report's evidence is LIVE (D-I3): the view banner, the filter offer and the table rows
+        // must move with the filter, not wait for a reselect
+        if (reportsPanel != null) reportsPanel.rerender();
     }
 
     /**
