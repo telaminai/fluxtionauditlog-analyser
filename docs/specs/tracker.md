@@ -334,7 +334,7 @@ carry — a highlight a reader cannot verify from the visible row is a colour, n
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before.
 
-## M34 · Source adapters — ☐ PROPOSED (the same instrument over other execution engines)
+## M34 · Source adapters — ☐ ACCEPTED v2 (the same instrument over other execution engines)
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
 purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
 that transform LangGraph/Temporal runs into the audit-log format and get the whole toolset for free.
@@ -353,6 +353,22 @@ D-A2: a graph is DECLARED or INFERRED and the view says which. D-A5 is the real 
 out of the core and becomes what the Fluxtion adapter uses, because an SPI its own built-in cannot use
 is decoration. D-A6: publish the format openly and hold the NAME; the defensibility was never the
 schema — it is the reference tool and the disciplines in it._
+
+_**Review amendments (v2):** the spec generalised the record and the graph but **not the ORDER** —
+and `nodeLogs` order IS dispatch order in Fluxtion, consumed as meaning by step-through, route
+escalation and the M21 classification. LangGraph super-steps, Temporal activities and OTel spans
+are concurrent, so an adapter would have to INVENT a total order with nothing on screen marking it
+as invented. **D-A1a** adds `ordering: TOTAL | PARTIAL` plus a per-cycle concurrency marker, and
+consumers qualify loudly — UP-FLX-11's lesson one level up. **D-A3** gains the attribution rule (a
+value appears under a component only if that component produced or changed it — a LangGraph state
+channel is SHARED, and broadcasting it would make series into cross-component duplicates that
+still "work"). **D-A6**'s fixtures pin SEMANTICS not layout. Graph provenance moved onto the
+returned `SourceGraph` because availability is per SOURCE, not per adapter._
+- [M34.0] ☐ **The LangGraph spike, against CURRENT code** — no SPI, no refactor: one throwaway
+  translator emitting canonical record text from a real run, opened in today's analyser. **This gates
+  the rest.** It answers "can a foreign run be made legible at all" for the cost of one adapter, and
+  its output is also D-A1a's evidence — the spike meets the ordering problem in the first parallel
+  super-step it renders.
 - [M34.1] ☐ **`RunAdapter` SPI** — `DeclaredGraph`, `GraphSupport {NONE|INFERRED|DECLARED}`; the
   Fluxtion path refactored behind it, suite green unchanged (the M31.1 move, one level out).
 - [M34.2] ☐ **Capability degradation wired** — coverage, "did not run" shading, replay-diff: each
