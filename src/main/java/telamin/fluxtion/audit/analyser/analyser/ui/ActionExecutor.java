@@ -534,7 +534,7 @@ public final class ActionExecutor implements RenderExecutor {
     }
 
     /** Relax the filter minimally so record {@code row} passes: widen the window, add its dimension, drop text. */
-    private void revealRecord(FilterState f, LogStore s, int row) {
+    static void revealRecord(FilterState f, LogStore s, int row) {
         LogIndex idx = s.index();
         Long lt = idx.logTime(row);
         if (lt != null) {

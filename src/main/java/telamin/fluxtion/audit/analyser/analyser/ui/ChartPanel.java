@@ -447,7 +447,14 @@ public final class ChartPanel extends JPanel {
         }
         if (plotW <= 10 || plotH <= 10 || Double.isNaN(vx0)) {
             g.setColor(text);
-            g.drawString("No numeric series selected — pick a nodeLogs key and Add.", L, h / 2);
+            // two different absences, two different messages: "nothing configured" invites adding a
+            // key; "configured but filtered to nothing" must say the FILTER is why, or the reader
+            // concludes the chart is broken (a live user did, minutes into the Reports eyeball pass)
+            g.drawString(series.isEmpty()
+                            ? "No numeric series selected — pick a nodeLogs key and Add."
+                            : "No data under the current filter — the configured series matched no "
+                                    + "records in view. Widen the filter to see them.",
+                    L, h / 2);
             g.dispose();
             return;
         }
