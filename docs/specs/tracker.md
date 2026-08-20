@@ -322,6 +322,38 @@ Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
 - [M32.8] ☐ **External-CSV marker source** — the M29 loader as a `when`/payload source; the
   payload-column mapping deserves its own slice.
 
+## M33 · Investigation reports — ☐ PROPOSED (the account, not just the evidence)
+_Design: **[spec-investigation-reports.md](spec-investigation-reports.md)**. Owner ask: a general
+reporting mechanism — an explanation for a set of results, or an investigation, rendered and kept in
+memory or written to disk. Every surface here produces evidence; nothing produces the ACCOUNT of it,
+and a real investigation is never one record. The principle is the whole design: **a report is an
+ordered list of REFERENCES with connective prose, never a free-form document** — which is what keeps
+it a forensic instrument rather than a word processor with a database attached. Sections are typed
+(finding · record · chart · topology · series · table · narrative) and only `narrative` stores its own
+content. Seven decisions posed for review: a report **includes** findings and never authors them, so
+`flag` stays the one write site (D-I1); narrative renders **visibly** as narrative, M29 D-F2 applied one
+level up (D-I2); evidence persists as its REFERENCE and re-renders live, so a report is a re-runnable
+claim that degrades out loud (D-I3); a **table is a query plus a column spec** — rows derived,
+presentation declared, CSV per section, and an agent-authored table is narrative not evidence (D-I7);
+table **formatting is a declared rule that is shown** — a highlighted row prints the `Expr` condition
+that selected it, reusing M28 rather than inventing a rule language, because an unexplained red row
+is a judgement wearing evidence styling; per-cell painting rejected as D-M1's rendering DSL one
+artefact later (D-I8);
+own share category rather than a sixth passenger on Graphs (D-I4); writes ride ExportGuard unchanged
+(D-I5); and **M12.1's fix-brief becomes a report with a fixed section list** rather than a second
+document model that will drift (D-I6)._
+- [M33.1] ☐ **Model + reference resolution** (headless) — `Report`/`Section`, resolution against a live
+  store, the unresolved-anchor report. Full D-I1/D-I3 tests before any rendering.
+- [M33.2] ☐ **Rendering** — extend `FindingReport` from its fixed `Evidence` record to a section list,
+  with D-I2's narrative treatment and D-I7's table layout (repeating header across a page break).
+  `PdfDoc` unchanged: it is already a general renderer.
+- [M33.3] ☐ **Verb + echo** — `report {sections}`; the single-record form stays as sugar; per-section
+  CSV through the existing `RecordExporter`.
+- [M33.4] ☐ **Persistence + share + Reports panel** — the F1 checklist in full; this slice is where the
+  review attention belongs, because it is the share surface.
+- [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
+  (journal ↔ audit-log pairing) resolves, not before.
+
 ## M11 · Research → monitoring promotion (Grafana) — ☐ FUTURE (vision)
 _Design: **[spec-assistant-actions.md](completed/spec-assistant-actions.md) §12**. Two complementary systems: the
 analyser answers **unknown, one‑off** questions (forensic, source‑linked, LLM‑assisted); Grafana answers
