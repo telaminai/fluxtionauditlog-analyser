@@ -86,6 +86,13 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
   approves, never autonomous merge** (review the diff of **behaviour**, not just code)._
 
 ## M18 · Mongoose server link — ☐ PROPOSED (instrument gains a control plane, carefully)
+_**⚠ An ALTERNATIVE design is open for assessment (2026-08-21):
+[spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md).** It deletes M18.1/.2/.6, moves
+M18.3/.4 to a Mongoose-side MCP tool, dissolves M18.3a/M18.4a and O3, and adds one analyser slice
+(`provenance`). Scope precondition: **developer-only, agent always present** — no no-agent path.
+The deciding argument is internal consistency: **M34 exists to remove engine-specific knowledge from
+the analyser; M18 as specced adds Mongoose-specific knowledge in the same quarter.** Do not start
+M18.1 until this is assessed — the two designs disagree about whether M18.1 should exist._
 _Design: **[spec-closed-loop.md](spec-closed-loop.md)** Part B. The analyser connects to a **locally
 running** Mongoose server's admin REST (`serverplugin-rest`; nodes already register
 `AdminCommandRegistry` commands) to discover the log, control audit verbosity at runtime, and (dev)
