@@ -123,57 +123,73 @@ rather than being designed in: N servers cost nothing; a dead server is a stale 
 check; the binding survives the agent session that created it; and the discovery code on both ends
 is a file read.
 
-### C2 · The template catalogue — a static JSON on the playground
+### C2 · The template catalogue — it already exists; this is an additive ask
 
-Friction at the front is the other half. A developer with no Mongoose server has nothing to link to,
-and M19.1's bundle is a full Maven project the agent should be able to find, check and instantiate
-without a human reading a tutorial first.
+**Corrected 2026-08-21 after reading the live site (rule 6).** An earlier draft of this section
+invented a catalogue format. It did not need to: the playground already publishes one, and the real
+shape is better than the invention because it separates *listing* from *generation*.
 
-Proposal: a **static, versioned JSON** served from the playground site — data, not an API.
+**The index — `https://fluxtion-playground.dev/starter-templates/index.json`:**
 
 ```json
-{
-  "catalogue": 1,
-  "generatedAt": "2026-08-21T00:00:00Z",
-  "templates": [{
-    "id": "market-maker-quickstart",
-    "title": "Market maker — quickstart",
-    "summary": "Two-sided quoting with a risk monitor. 24 nodes, audit on, admin REST on.",
-    "tags": ["trading", "quickstart"],
-    "nodes": 24,
-    "download": "https://fluxtion-playground.dev/templates/market-maker-quickstart.zip",
-    "repo": "https://github.com/telaminai/fluxtion-playground/tree/main/templates/market-maker-quickstart",
-    "requires": { "java": "21+", "maven": "3.9+", "compilerKey": true },
-    "provides": { "auditLog": true, "adminRest": true, "graphml": true },
-    "run": "mvn package && java -jar target/market-maker-quickstart.jar",
-    "analyser": {
-      "graphml":    "src/main/resources/com/example/generated/MarketMaker.graphml",
-      "sourceRoot": "src/main/java",
-      "logHint":    "the server publishes ~/.mongoose/servers/market-maker on start"
-    },
-    "agentBootstrap": "CLAUDE.md"
-  }]
-}
+{"templates": [
+  {"name": "Fluxtion embedded",
+   "description": "The graph inline in your app — flow.onEvent(...), no server. Interpreted + keyless; the fastest way to feel the model in the Playground.",
+   "file": "fluxtion-embedded.starter.json",
+   "type": "fluxtion",
+   "mode": "interpreted"}
+]}
 ```
 
-Why each part earns its place:
+Fields: `name`, `description`, `file`, `type`, `mode`, and `tags` on some entries. Referenced from
+[`/build-with-ai`](https://fluxtion-playground.dev/build-with-ai) as *"the template menu tells the
+model which shape to pick and whether it needs a key"* — so **it is already designed to be read by
+an agent**, which is the premise of this spec.
 
-- **`requires`** lets the agent check preconditions *before* spending the user's time — the
-  `compilerKey` flag in particular, since a missing subscription key fails late and confusingly.
-- **`analyser`** makes wiring mechanical: the agent knows the graphml path and source root without
-  guessing, so `open {graphml}` + `source_root {add}` need no search.
-- **`agentBootstrap`** points at M19.1's layered prompt stack rather than duplicating it.
-- **Static file, not an endpoint** — cacheable, diffable, reviewable in a PR, works offline once
-  fetched, and cannot develop a version-negotiation protocol by accident.
+**Each `file` is a generator config, not a downloadable project** —
+`/starter-templates/fluxtion-embedded.starter.json`:
 
-**D-B4 (below) governs its evolution**, because a published JSON that agents parse is a contract with
-the same rule-6 hazard as any other — in the other direction.
+```
+build "maven" · group · artifact · version · javaRelease 21 · basePackage · versions {} · type {…}
+fluxtion { processorName, nodeClassName, builderStyle, compileMode, auditLogging: true,
+           addTestShell: true, events: [...] }
+```
+
+It is input to [`/start`](https://fluxtion-playground.dev/start), which emits the Maven skeleton.
+That is a better factoring than a zip: the template is a *shape*, and the project is generated to
+the user's package and artifact names.
+
+**Two things it already gives the dev loop for free, which the invented version duplicated:**
+
+- **`mode` is the key indicator.** `interpreted` is keyless and runs in the Playground; anything else
+  is AOT and needs a subscribed compiler key. An invented `requires.compilerKey` flag would have
+  been a second source of truth for a fact already encoded.
+- **`fluxtion.auditLogging`** is already a template concern, already `true`. The audit log — the
+  thing this entire product depends on existing — is on by default at the front door.
+
+**What the dev loop actually needs added.** Additive only, per D-B4, and each is a small ask on the
+playground rather than analyser work:
+
+| Field | Why | Derivable today? |
+|---|---|---|
+| `mongoose.adminRest: true` | no starter appears to host a Mongoose server with admin REST on; without it there is nothing for step 3 to publish | no — must be declared |
+| `analyser.graphml` | so the agent calls `open {graphml}` without searching | *partly* — `basePackage` + `processorName` implies `.../generated/<Processor>.graphml`, but inference is exactly what D-A2 forbids elsewhere |
+| `analyser.sourceRoot` | `source_root {add}` | conventionally `src/main/java`; declare it rather than assume |
+| `run` | the command that starts the server | no |
+| `agentBootstrap` | pointer to M19.1's layered `CLAUDE.md` stack | no |
+
+**Open — Q-B6:** does `type` already admit a `mongoose` value? The index carries `type: "fluxtion"`
+on the entries read, which implies other types exist or are planned. If a Mongoose-server template
+type is already contemplated, most of the table above may be a naming exercise rather than a new
+concept. **The assessor should check the playground repo rather than the rendered site** — this
+section was written from the published JSON only, and the M18.0 spike's lesson was precisely that a
+published surface can lag its source.
 
 ### C3 · The loop, end to end
 
 ```
-1  agent GETs the catalogue, checks `requires` against the machine
-2  agent instantiates the template (download/clone), builds it
+1  agent GETs /starter-templates/index.json, picks a shape; `mode` says whether a key is needed
+2  agent feeds the starter config to /start, gets a Maven project, builds it
 3  server starts, publishes ~/.mongoose/servers/<name>
 4  agent globs the registry, picks the server
 5  agent exports:  GET /api/audit/file/{id}/export?format=yaml   -> /tmp/<name>-<ts>.yaml
@@ -209,6 +225,25 @@ outside the analyser.
   performs is journaled by **Mongoose**, not by the agent transcript. *Rationale: "who restarted
   this and why" is an audit question. A chat log is not an audit trail, and this design would
   otherwise silently delete a capability M18 had.*
+- **D-B7 · The dev MCP is free; production control is a paid MCP — and the line is enforced by the
+  SERVER, not by the tool.** _(owner decision, 2026-08-21)_ This resolves the enforcement problem a
+  source-available analyser cannot solve on its own: a licence check inside a readable client is an
+  `if` statement anyone can delete, but a **server that refuses admin control outside dev mode
+  without a licence token** has nothing to patch on the customer's side. Consequences the assessor
+  should test:
+  - **The free/paid boundary must be self-declared by the deployment, not by the client.** Otherwise
+    the free dev MCP can simply be pointed at production and the line evaporates. Mongoose knows
+    whether it is a dev instance; the client does not, and cannot be trusted to.
+  - **It fits the funnel rather than gating it.** Dev is where evaluation happens and stays free;
+    production is where incidents cost money and budget exists. Contrast the current analyser
+    licence, where *processing real operational data* — the only convincing evaluation of a forensics
+    tool — is Production Use.
+  - **It gives D-B5 a home.** A paid production MCP is a service, so journaling every mutation
+    server-side stops being an unfunded requirement and becomes part of what is bought.
+  - **Open:** what makes a deployment "production"? Non-loopback is the obvious signal and is
+    probably too crude — a developer on a remote box is not production. A declared environment in
+    the server's own config is more honest and matches D-A2's declared-never-inferred rule.
+
 - **D-B6 · Developer-only is a stated precondition, not an assumption to discover.** There is no
   no-agent path. If production support ever needs one, it is a **different design**, and this spec
   is not it. *Rationale: recorded so the constraint is falsifiable rather than implicit — this is the
@@ -285,6 +320,11 @@ The assessor should attack this section first.
 10. **The ops journal survives only if D-B5 is honoured**, and it lives in a repo the analyser team
     does not control. That is a real transfer of risk.
 
+11. **It creates a paid surface M18 did not have.** Under D-B7 the production control plane is a
+    licensed MCP service — enforceable because it is a server, not a patchable local check. M18's
+    control plane lived inside a source-available desktop app, where the same capability could not
+    have been charged for at all. That is a strategic gain the slice-count table does not show.
+
 ### Verdict
 
 **Materially better for the analyser: yes, decisively.** Six slices to one, and the deleted ones
@@ -311,8 +351,9 @@ between servers, so the honesty is in place before the workflow that needs it.
 - **Q-B2** Who owns `~/.mongoose/servers/`? It is proposed here but must be implemented in the
   mongoose repo. Is that an `upstream-asks.md` item, and is it acceptable to depend on another
   repo's release for the whole loop to function?
-- **Q-B3** Does the catalogue belong on the playground site or in the playground **repo** (raw
-  GitHub)? The site is nicer; the repo is diffable and versioned for free.
+- **Q-B3** ~~Where should the catalogue live?~~ **Resolved — it already lives at
+  `/starter-templates/index.json` and is already agent-facing.** The live question is narrower:
+  the additive fields in §C2, and whether `mode` should stay the sole key indicator.
 - **Q-B4** Should `provenance` be free text (proposed) or structured (`{server, url, home, exportedAt}`)?
   Free text renders anywhere and never lies; structured enables the M33 mismatch comparison to
   reason about *systems* rather than strings. The spec chose free text for honesty; the assessor
