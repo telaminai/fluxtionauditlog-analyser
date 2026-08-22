@@ -1,0 +1,93 @@
+HANDOFF — M35 log + graph lifecycle (close / reset / re-pair)
+Date: 2026-08-22 · From: main session · Branch: feat/m35-lifecycle (THIS branch — it starts with
+this brief) · Base: main @ 149faf4 (post-1.7.0, after M34.1's ordering slice)
+Your report: docs/handoff/report_feat_m35_lifecycle.txt — create it in the first work commit and keep
+it current; deviations recorded there, never silent.
+
+ORIENT FIRST: CLAUDE.md (the hard rules gate everything) · docs/ONBOARDING.md § Handoffs ·
+tracker ▸ M35 (the six slices, recorded from the owner's requirements 2026-08-22) ·
+docs/specs/spec-agent-brokered-dev-loop.md (the M18 ALTERNATIVE — it is why M35 matters now:
+one analyser + many servers + many processors turns every one of these into a per-minute operation) ·
+docs/handoff/completed/review_feat_m33_reports.txt (the defect class M35 exists to prevent, with
+two worked examples).
+
+WHY THIS IS A DEFECT, NOT A FEATURE
+  TopologyPanel.load() sets the graph and NOTHING clears it. The File menu has "Close project" but
+  no "Close log". onLoaded() rebinds the table, filter, slider, summary, events and graphs — and
+  never touches the topology. So opening a second log leaves the FIRST log's graph on screen, and
+  coverage, "did not run" shading and step-through then describe a graph that does not belong to the
+  records on screen.
+  This is the M33 defect class exactly: a confident answer computed from mismatched inputs. coverage
+  already knows how to say it — loggedButNotInTopology warns "the graphml is probably from a
+  different build, which makes every other figure here suspect" — but that warning only arrives if
+  somebody runs coverage. The lifecycle that would stop you needing it is what is missing.
+
+THE OWNER'S DECISION, SETTLED — do not relitigate:
+  **Derived state CLEARS. Profile state SURVIVES and degrades LOUDLY.**
+    derived (must clear)   store, table model, filter, search, time slider + histogram, event
+                           checklist, summary, detail pane, flags/findings (per-file, model row
+                           indices), topology execution shading + step cursor, follow state,
+                           time-order report, status line
+    profile (must survive) named graphs (GraphSpec), named focuses, source roots, saved reports,
+                           project settings — these belong to the PROFILE, not the log
+  A profile-owned thing that no longer resolves SAYS SO rather than vanishing (announce-never-forbid,
+  M33's D-I3a pattern). Reports already do this for free: ReportResolver with idx == null yields
+  "written against X; no log is loaded" and every anchor unresolved — VERIFY that, do not rebuild it.
+
+TASK — one slice per commit, suite green before every commit.
+  ⚠ NEVER chain `&&` after a grep-piped mvn, and NEVER trust `$?` after a pipe — it is the LAST
+  command's status, not mvn's. This has masked a red suite three times in this repo. Run mvn bare and
+  read its exit code, or parse target/surefire-reports/*.txt for the real counts.
+
+  1  M35.1  CLOSE / RESET — the missing capability; everything else depends on it.
+     · closeLog(), closeGraph(), reset() in MainFrame; File menu items for each.
+     · The panels have bind(...) but NO unbind — add explicit clear()/unbind() per panel rather than
+       binding to a fake empty store. `store == null` is the "no log" sentinel used widely
+       (ActionResult.error("no log is loaded")), so an empty store would make the app believe a log
+       is loaded. Explicit clearing also makes each panel own what it clears, which is the point:
+       A HALF-CLEARED APP IS WORSE THAN AN UNCLEARED ONE.
+     · Agents need it too — M18-alt switches servers constantly. Add it to the `open` verb rather
+       than inventing a verb: `open {close: "log" | "graph" | "all"}`, echoed like every other verb.
+     · Acceptance: after closeLog the app is in the same state as a fresh start with no file — no
+       stale records, no stale shading, no stale status line — and every profile-owned artefact is
+       still listed, each saying why it cannot resolve.
+
+  2  M35.2  Opening a log CLEARS THE PREVIOUS GRAPH unless it still applies. Offer-never-act: keep it
+     and say so when the instanceIds still match; otherwise close it and say why. The scoring exists
+     already — Decisions ▸ EventProcessor inference scores candidate processors' instanceId→field
+     sets against the log's observed instanceIds. Reuse it; do not invent a second scorer.
+
+  3  M35.5  New/switched project closes log + graph. "Close project" today leaves both loaded.
+
+  4  M35.6  STATE THE PAIRING before anything is derived from it — status bar and `context` name
+     which graph is paired with which log and whether they match. coverage's warning is too late by
+     construction; this is the same fact, earlier.
+
+  5  M35.3  Switch graph without reopening the log (multi-processor servers emit one GraphML per
+     processor).
+
+  6  M35.4  Scan source roots for GraphML and OFFER candidates. **Never auto-select silently** —
+     N candidates, named, with their match scores. A wrong graph auto-picked is precisely the
+     confidently-wrong reading M35 exists to prevent. This is the slice most likely to be got wrong
+     by being helpful.
+
+  DO NOT do M34.1's remaining scope (graph(Path) on the RunAdapter SPI). It needs M35's answer to
+  "how does an adapter-supplied graph reconcile with open {graphml}" and doing it first means
+  designing that reconciliation twice. M34.1 is marked ◧ in the tracker for this reason.
+
+TESTING
+  Swing is not unit-tested here (headless CI, rule 4) — the headless parts ARE: the close/clear
+  decision logic, the re-pair scoring, the `open {close}` echo, and reports degrading with no log.
+  Everything visual is verified by BUILDING AND RUNNING THE JAR, in both themes, and the report
+  records what was eyeballed. Drive it over REST the way tools/ scripts do
+  (~/.fluxtion-analyser/rest-endpoint) rather than clicking, so the check is repeatable.
+
+CHANGELOG
+  Every user-visible change gets its line under [Unreleased] IN THE SAME COMMIT (rule 2). M35.1 is
+  squarely user-visible.
+
+NOTE ON PROCESS (recorded because it went wrong here)
+  M34.1's ordering slice was committed directly to main (149faf4) instead of going through a branch
+  and this protocol. It is small, additive, suite-green and released-safe, and rule 3 forbids the
+  force-push that unwinding would need — so it stays. Milestone work belongs on a branch with a
+  brief and a report; that is what this document restores.
