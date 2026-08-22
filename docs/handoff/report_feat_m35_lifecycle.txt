@@ -91,6 +91,8 @@ E2  Both themes after a close — the summary, event checklist and graph tabs ge
     than stale-but-dimmed.
 E3  The Reports tab with no log: banners readable, anchors visibly unresolved rather than empty.
 E4  Close while FOLLOW is running (the code stops it first; worth seeing).
+E5  Open by hand (chooser + recent menu) still shows the project dialog — the agent path must not
+    have suppressed it for everyone.
 
 ================================================================================
 7. NEXT
@@ -141,3 +143,34 @@ in the load path strands an agent-driven open, and every verb after it blocks on
 reproduce on the final run only because projectDetect remembers a declined offer for that log.
 Recommend a slice (M20 or M35.7): the project offer must be non-blocking, or suppressed when the
 open came from the action socket rather than a human.
+
+================================================================================
+9. M35.7 — COMPLETE (the defect M35.2 uncovered)
+================================================================================
+Opens that arrive from the ACTION SOCKET no longer show the modal project offer. They record it and
+report it as data: `context.projectOffer` names the settings file and states plainly that loading a
+project replaces source roots, event processors, graphs and hidden columns — so it is offered and
+never applied. The status bar names it too. Opening by hand is UNCHANGED and still gets the dialog.
+
+Mechanism: openLocation(location, fromActionSocket). The flag is CONSUMED AND RESET in
+maybeOfferProject, so a human chooser following an agent open cannot inherit "do not ask" — the
+default has to be the interactive one, and defaulting the other way is the class of bug this whole
+milestone is about.
+
+VERIFIED with a fixture that makes the offer genuinely fire (a log inside a directory carrying
+.analyser/project.fluxtion-settings — the first attempt proved nothing because the offer never
+triggered, and a test that cannot fail is not a test):
+    open {log: <inside a project>}   -> ok
+    context.records                  -> 21
+    context.projectOffer             -> {"settings": ".../project.fluxtion-settings", "note": "..."}
+    filter verb 4s later             -> ok, no human present
+Before this change that sequence left the app behind an invisible dialog with every verb blocked.
+
+D5 · ACCEPTING the offer still needs a verb. There is no project verb today, so an agent can see the
+offer and cannot act on it. That is deliberate scope: opening a project is a large mutation
+(source roots, processors, graphs, hidden columns) and deserves its own decision about confirmation
+rather than being smuggled in here. Recommend it as M20.6 — `open {project: path}` with the echo
+naming everything it replaced.
+D6 · The human path is unchanged BY CONSTRUCTION rather than by test: openLocation(String) delegates
+with false, the recent menu goes through it, and the flag consumes to false. Swing, so eyeballed
+reasoning rather than an assertion — added to the eyeball list as E5.

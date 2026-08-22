@@ -1768,7 +1768,29 @@ public final class MainFrame extends JFrame {
     }
 
     /** Opens a local path or an s3:// URI. */
+    /**
+     * True while an open initiated by the ACTION SOCKET is in flight (M35.7). Set immediately before
+     * the load starts and consumed in {@code onLoaded}; opens serialise on the EDT, so the value that
+     * arrives at the callback is the one that started it.
+     */
+    private boolean openFromActionSocket;
+
+    /** A project offer the agent path declined to show as a dialog — reported as DATA instead. */
+    private Path pendingProjectOffer;
+
     public void openLocation(String location) {
+        openLocation(location, false);
+    }
+
+    /**
+     * @param fromActionSocket when true the project offer is RECORDED rather than shown (M35.7).
+     *                         {@code maybeOfferProject} is modal, and a modal in the load path
+     *                         strands an agent-driven open: everything after it waits for a click
+     *                         that will never come, while {@code store} is already assigned and
+     *                         answerable. An offer nobody can answer is not an offer.
+     */
+    public void openLocation(String location, boolean fromActionSocket) {
+        openFromActionSocket = fromActionSocket;
         if (S3Source.isS3(location)) openS3(location);
         else openFile(Path.of(location));
     }
@@ -2409,9 +2431,23 @@ public final class MainFrame extends JFrame {
      * source roots and graphs, which is not something to do to someone because they opened a file.
      */
     private void maybeOfferProject() {
+        // consume-and-reset: the flag belongs to THIS open. A human chooser after an agent open must
+        // not inherit "do not ask" — the default has to be the interactive one.
+        boolean fromSocket = openFromActionSocket;
+        openFromActionSocket = false;
+
         Path log = logLocalPath == null ? null : Path.of(logLocalPath);
         Path offer = projectDetect.offerFor(log, project.activeFile());
+        pendingProjectOffer = offer;
         if (offer == null) {
+            return;
+        }
+        if (fromSocket) {
+            // M35.7 — never block a socket-driven open on a human. The offer becomes DATA: it rides
+            // the open echo and sits in `context`, so the agent (and the human reading over its
+            // shoulder) know a project is available without the app freezing behind a dialog.
+            status.setText(status.getText() + "  ·  project available: "
+                    + (offer.getParent() == null ? offer : offer.getParent().getParent()));
             return;
         }
         Path root = offer.getParent() == null ? offer : offer.getParent().getParent();
@@ -2608,9 +2644,10 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "cannot read log '" + path + "'");
             }
-            openLocation(path);
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
-                    "open", "log", Map.of("path", path));
+            openLocation(path, true);       // M35.7: no modal on this path — nobody can answer it
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("path", path);
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "log", echo);
         }
 
         @Override
@@ -2855,6 +2892,16 @@ public final class MainFrame extends JFrame {
                     pair.put("verdict", lastPairing.reason());
                 }
                 out.put("graphPairing", pair);
+                if (pendingProjectOffer != null) {
+                    // M35.7: the offer the agent path did not show as a dialog. Reported, never applied
+                    // — loading a project replaces source roots, graphs and hidden columns, which is a
+                    // human's decision (File ▸ Open project).
+                    out.put("projectOffer", Map.of(
+                            "settings", pendingProjectOffer.toString(),
+                            "note", "this log sits inside a project with analyser settings; loading "
+                                    + "them replaces source roots, event processors, graphs and hidden "
+                                    + "columns, so it is offered and never applied automatically"));
+                }
                 out.put("dispatchOrder", store.index().totalOrder()
                         ? "total — position in nodeLogs IS dispatch order (derived); safe to read "
                                 + "as causality"
