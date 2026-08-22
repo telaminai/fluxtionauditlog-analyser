@@ -232,3 +232,59 @@ the PAID production MCP sells — journaled, licensed, server-enforced. The flag
 cycle; its production extension is the business model. The spec's non-goals (production posture
 deferred) stand — the point is that the flagship and the paid surface are the SAME loop at two
 trust tiers, which is a cleaner pitch than either alone.
+
+--------------------------------------------------------------------------------
+7d. THE EXTENDED STACK (owner, 2026-08-21) — the strategic frame for the adoption
+--------------------------------------------------------------------------------
+THE POSITIONING LINE, given the prominence it deserves: **we do not compete with unit tests; we
+compete with INTEGRATION tests.** The enemy is named precisely: testcontainers, staging
+environments, the flaky E2E suite, the 40-minute CI run. That layer exists because conventional
+systems are non-deterministic at the seams, so teams pay for repeated empirical SAMPLING of
+behaviour. A deterministic-by-construction graph does not need sampling: **replay IS the
+integration test** — one recorded journal driven through the processor is the environment, exactly,
+every time. The loop covers the rest of what integration tests exist to answer: coverage says what
+never ran; the report-as-oracle says whether the finding still holds; M12.2 turns incidents into
+red tests. Claude authors the unit tests in-loop (the starters already ship addTestShell: true) —
+the cheap layer stays cheap and authored; the expensive layer is REPLACED, not accelerated.
+Determinism is the licence to delete it, and no sampling-based competitor can claim that.
+
+NATIVE COMPILATION sharpens the Temporal contrast at both ends: their durable execution buys
+auditability at network-hop-per-step cost; a Fluxtion AOT graph compiled to a native image is an
+instant-start, tiny-footprint binary doing audited dispatch in-process — auditable AND deployable
+to edges, sidecars and lambdas a cluster cannot follow. It also part-answers the JVM-only flank:
+the ARTIFACT stops being a JVM story even where the toolchain remains one.
+
+The stack, each named piece in its seat:
+
+  1. AXIOM (business-rules ingestion) — the DESIGN-SIDE plugin. EXPLORATORY TRACK. Rules in, graph
+     design out — made safe by the standing rule applied at the front: DECLARED, never inferred.
+     The ingestion emits the Spring-XML design IR (the reviewable artifact the playground's
+     contract.md already specifies), so a human reviews the design-level delta between the rules
+     and the graph, never generated Java. This is why the Spring-XML starter being the tutorial
+     tiebreaker matters more now: it is the seam this plugs into.
+  2. /build-with-ai — the AUTHORING leg, already live and layered (orientation → skill → contract →
+     worked example → generated build). Joins §7a's preamble as the cycle's "design" verb.
+  3. THE FLAGSHIP LOOP — deploy / analyse / commit, as §7a–7c.
+  4. ANTITHESIS — the PROVING-SIDE plugin. EXPLORATORY TRACK. Fluxtion is unusually good substrate
+     for exhaustive-search testing: the closed world GENERATES the workload drivers (it knows every
+     event type and shape), declared invariants ride as the oracles, and M34 D-A6's conformance
+     fixtures are already the right artifact family. The closing property: when the search finds a
+     violation, the audit log IS the repro — a journal slice, replayable on a laptop, openable in
+     this analyser. A fault found by exhaustive search, delivered as evidence a human can read.
+     (Scope note: the invariant/oracle/conformance-fixture side is public-roadmap material; the
+     deeper family stays private until counsel advises.)
+  5. Production under D-B7's paid control plane — journaled, licensed, server-enforced.
+
+THE FULL PITCH, one sentence: business rules → AI-authored design (reviewable IR) → compiled,
+audited, NATIVE binary → unit tests authored in-loop → integration testing REPLACED by
+deterministic replay + coverage → correctness PROVEN by exhaustive search → pushed to prod under a
+paid control plane — every step leaving evidence in one identity space.
+
+Against that, "can anything compete" resolves per layer: Temporal competes with layer 3's runtime
+(step-granular, network-cost, no declared graph, no coverage); LangGraph/LangSmith with layer 3's
+FEEL (and M34 converts them from competitor to data source); OTel with nothing here; the true
+incumbent is developer habit, which is beaten by the live-tail demo (§7b). Nobody is attempting
+layers 1 or 4, the integration-test replacement claim, or the seam where a prover's counterexample
+arrives as a human-readable audit log. Each competitor covers one seam; the composition is the
+moat, and each layer depends on the one below it — copying the top without the compiler-up stack
+yields approximate replay and tautological coverage.
