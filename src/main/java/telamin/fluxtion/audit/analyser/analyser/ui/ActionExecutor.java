@@ -707,7 +707,11 @@ public final class ActionExecutor implements RenderExecutor {
         if (graphml != null) {
             ActionResult r = app.openGraphml(graphml);
             if (!r.ok()) return r;
-            echo.put("graphml", graphml);
+            // carry the inner echo up rather than replacing it with the path we already knew:
+            // openGraphml answers "does this graph fit the open log?" (M35.3) and that verdict is
+            // the useful half — an agent switching processors must not have to call context to get it
+            Object payload = r.toMap().get("graphml");
+            echo.put("graphml", payload instanceof Map<?, ?> m && !m.isEmpty() ? m : graphml);
         }
         if (processor != null) {
             ActionResult r = app.selectProcessor(processor);

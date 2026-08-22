@@ -22,6 +22,8 @@ class GraphPairingTest {
         assertEquals(3, p.logged());
         assertEquals(0, p.matched());
         assertTrue(p.reason().contains("different system or build"), p.reason());
+        assertFalse(p.reason().contains("closed"), "the reason states the FACT; the ACTION "
+                + "is the caller's word, because log-open closes and graph-open keeps: " + p.reason());
         assertTrue(p.reason().contains("0 of the 3"), "the numbers travel with the verdict: " + p.reason());
     }
 
@@ -33,7 +35,7 @@ class GraphPairingTest {
                 Set.of("bidMakerOrder", "askMakerOrder", "positionNode", "newlyAdded"));
         assertTrue(p.applies(), p.reason());
         assertEquals(3, p.matched());
-        assertTrue(p.reason().startsWith("kept"), p.reason());
+        assertTrue(p.reason().startsWith("the graph declares"), p.reason());
     }
 
     @Test
