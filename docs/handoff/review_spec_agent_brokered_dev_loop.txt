@@ -143,3 +143,92 @@ Adopt, in this order:
      analyser's questions" per acceptance 5.
   5. Name the conformance harness's home before any cross-repo work starts (the M19 bench).
 M18 as specced should be closed in favour of this document once those land.
+
+================================================================================
+7. ADDENDUM (owner-requested, 2026-08-21) — THE FLAGSHIP CYCLE
+================================================================================
+The owner's framing, recorded verbatim in intent: this is the WOW loop — design, deploy, analyse,
+commit, push to prod in almost zero time. The flagship. The spec should carry both halves below;
+§C3's server-centric loop is the mechanism, this is the experience it exists to produce.
+
+--------------------------------------------------------------------------------
+7a. FROM THE DEVELOPER'S CHAIR — the session-centric preamble the spec should open with
+--------------------------------------------------------------------------------
+The true per-session friction, in Claude Code, is ONE action: `claude`.
+
+  · The two MCP entries (analyser bridge, mongoose tool) are one-time CONFIG, not per-session
+    starts. They are simply there, every session.
+  · The analyser app needs no manual start where the agent has a shell: Claude launches the jar,
+    waits for ~/.fluxtion-analyser/rest-endpoint, and the bridge connects — a flow this repo's own
+    tooling exercises daily. (Shell-less clients: the human double-clicks the app; everything else
+    is unchanged.)
+  · Mongoose servers publish themselves into ~/.mongoose/servers/ whenever they run. Nothing
+    "starts" the registry; discovery is a glob at the moment of need.
+
+Two entry paths, both agent-driven end to end:
+  · NEW: index.json → pick a shape (`mode` says whether the compiler key is needed; `web-admin`
+    tags mark admin-REST starters) → /start → build → the generated run script. Audit logging is on
+    by default at the front door.
+  · EXISTING: glob the registry, pick the server, export, open.
+
+Then Claude sets the analyser's context with SHIPPED verbs — open {log, graphml, provenance},
+source_root {add}, processor selection — and, the compounding move: writes the M20 project profile,
+so the context it set PERSISTS. Setting context is a one-time act per project, not a per-session
+ritual. The next session — human or agent — opens the log and the graphs, reports, focuses and
+roots are already there.
+
+--------------------------------------------------------------------------------
+7b. THE CYCLE — dev → deploy → analyse → commit, one turn
+--------------------------------------------------------------------------------
+DEV      Edit with Claude in the project. Build; a graph change regenerates the graphml at build.
+DEPLOY   Claude calls the mongoose MCP restart; the human approves the call (the MCP client's own
+         prompt — the confirm dialog M18 would have hand-built). The server republishes its
+         endpoint file. RULE, not an accident of step ordering: EXPORT BEFORE RESTART — the old
+         log is the baseline evidence and a restart can roll it.
+ANALYSE  Claude re-exports and re-opens. Here the M33 machinery turns out to have been built for
+         this loop before the loop existed:
+           · THE REPORT IS THE REGRESSION ORACLE. Run N's report opens against run N+1; the D-I3a
+             banner announces the newer log (comparing a finding against a later run is D-I3's
+             stated best property); the narrative account survives verbatim; the TABLES RE-DERIVE —
+             the rowWhen highlights move, or vanish, which is the fix working, visible as rows that
+             no longer light up. Coverage re-runs: did the new path finally log?
+           · EVERYTHING CONFIGURED PERSISTS AS DEFINITIONS — graphs, formulas, guides, bands,
+             markers, focuses, reports (M28.6's rule, applied five times since). The instrument
+             stays configured while the data refreshes. This is what makes an iteration cost
+             seconds, not a re-setup.
+COMMIT   The M12 guardrail unchanged: the agent proposes an evidence-linked PR citing the records,
+         the report, the coverage delta. (In the developer's own sandbox the human reviews in situ;
+         the guardrail's force is for real systems.)
+
+Per-iteration cost: one build, one approved click, agent-seconds.
+
+Two honest gaps, both already tracked, stated so the flagship claim is never oversold:
+  · FLAGS DO NOT CROSS RUNS — by design: run N+1's record 7 is a different record, and carrying a
+    finding to it would fabricate. The report's finding sections unresolve loudly on the fresh log
+    while the narrative carries the account. The rigorous closure is M12.2 (export_test_fixture:
+    run N's incident becomes a red test run N+1 must turn green) — the dev-loop spec and the M12
+    flywheel are one investigation seen from two ends, which is also why M33.5 waits on the
+    pairing question.
+  · "FOLLOW" IS SNAPSHOT-FOLLOW — an export is a moment. The elegant fix is not a server API: the
+    starters already write auditBackend: chronicle into ./audit, so an out-of-tree CHRONICLE READER
+    (M31's SPI, supportsFollow: true) tails the live audit store directly — no export step, no
+    server involvement, through machinery shipped in 1.5.0. That one reader upgrades the whole
+    cycle from a loop with an export beat into: edit → approve restart → WATCH THE LIVE LOG MOVE
+    IN THE ANALYSER. That version is the demo that sells the product.
+
+--------------------------------------------------------------------------------
+7c. WHAT THE FLAGSHIP NEEDS, priority-ordered by what it buys
+--------------------------------------------------------------------------------
+  1. provenance (§E) — three servers' runs must never blur; first, as the spec already says.
+  2. the mongoose MCP + registry files — the deploy leg and the discovery glob.
+  3. THE CHRONICLE READER — the sleeper: it deletes the export beat and makes the analyse leg
+     live. Promote it from "M31.4r's sibling" to a named flagship dependency.
+  4. agentBootstrap + catalogue version — the two real catalogue asks (§2).
+  5. the conformance harness with a named home — the cycle is a three-repo contract; the flagship
+     cannot be allowed to rot silently (§1 point 7).
+
+The push-to-prod leg the owner names is the D-B7 story: the same cycle against production is what
+the PAID production MCP sells — journaled, licensed, server-enforced. The flagship is the free dev
+cycle; its production extension is the business model. The spec's non-goals (production posture
+deferred) stand — the point is that the flagship and the paid surface are the SAME loop at two
+trust tiers, which is a cleaner pitch than either alone.
