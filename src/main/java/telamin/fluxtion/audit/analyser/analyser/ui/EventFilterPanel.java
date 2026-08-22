@@ -67,6 +67,13 @@ public final class EventFilterPanel extends JPanel {
         rebuildChecklist();
     }
 
+    /** Unbind and blank (M35.1). rebuildChecklist already empties itself when the index is null. */
+    public void clear() {
+        this.index = null;
+        this.filter = null;
+        rebuildChecklist();
+    }
+
     private void rebuildChecklist() {
         checks.removeAll();
         boxes.clear();

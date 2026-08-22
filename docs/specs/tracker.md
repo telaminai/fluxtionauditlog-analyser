@@ -314,7 +314,7 @@ would prevent needing it does not._
 _Sharpened by the M18 alternative ([spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md)):
 one analyser + many servers + many processors makes every one of these a per-minute operation rather
 than a per-session one._
-- [M35.1] ☐ **Close / reset** — close the log, close the graph, or reset both. The absent capability;
+- [M35.1] ☑ **Close / reset** *(on `feat/m35-lifecycle`)* — close the log, close the graph, or reset both. The absent capability;
   everything else here depends on it. Clearing must reach the derived state too (topology shading,
   step cursor, coverage, focus contexts) — a half-cleared app is worse than an uncleared one.
 - [M35.2] ☐ **Opening a log clears the previous graph unless it still applies** — offer-never-act:

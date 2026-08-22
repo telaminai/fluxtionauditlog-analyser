@@ -36,6 +36,15 @@ public interface AppControl {
     ActionResult openGraphml(String path);
 
     /**
+     * Close what is open (M35.1): {@code "log"}, {@code "graph"} or {@code "all"}. Agents switching
+     * between servers need this as much as a human does — under the M18 alternative it is a
+     * per-minute operation, and without it a second log inherits the first log's topology.
+     */
+    default ActionResult close(String what) {
+        return ActionResult.error("'close' is not enabled here");
+    }
+
+    /**
      * Select the EventProcessor whose source backs node → class resolution.
      *
      * <p>Needed because inference only runs over candidates found in the package of the

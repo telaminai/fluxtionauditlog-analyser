@@ -1,0 +1,100 @@
+REPORT — branch feat/m35-lifecycle (M35 log + graph lifecycle)
+Date: 2026-08-22 · Brief: docs/handoff/handoff_22_aug_2026_1.txt · Base: main @ 149faf4
+Worker: the main session (owner commissioned directly).
+
+STATUS: M35.1 COMPLETE, not merged. M35.2/.3/.4/.5/.6 NOT started.
+  suite 756 green (BUILD SUCCESS read from Maven, not from a pipe) · mkdocs --strict green ·
+  sweep clean · verified in the RUNNING JAR over REST (rule 4).
+
+================================================================================
+1. THE DEFECT, REPRODUCED BEFORE IT WAS FIXED
+================================================================================
+Driving the shipped app: open sample.yml (21 records), then open the supermarket POC's
+StoreProcessor.graphml (301 nodes, an entirely unrelated system). The app holds both happily and
+`coverage` reports 301 declared nodes against a 21-record log that shares nothing with it. There was
+no way back short of restarting: File had "Close project" but no "Close log", and onLoaded() never
+touched the topology.
+
+That is the M33 defect class — a confident answer computed from mismatched inputs.
+
+================================================================================
+2. WHAT SHIPPED — M35.1
+================================================================================
+closeLog() / closeGraph() / resetAll() in MainFrame, File menu items enabled only when there is
+something to close, and `open {close: "log"|"graph"|"all"}` for agents — on the EXISTING verb
+rather than a 15th one, pinned by test, because closing is the same lifecycle concept as opening.
+
+THE RULE (owner's, from the brief) is implemented as written:
+  DERIVED clears   store · table model · filter · search · time slider + histogram · event
+                   checklist · summary · detail · flags + findings (per-file row indices) ·
+                   topology execution shading + step cursor · follow · time-order report · status
+  PROFILE survives named graph specs · named focuses · source roots · saved reports · project
+                   settings. closeLog() deliberately does not go near `config`.
+
+The panels had bind(...) and no unbind, so explicit clear()/unbind() were added to SummaryPanel,
+EventFilterPanel and GraphTabs, plus clearGraph()/clearExecution() on TopologyPanel. Deliberately
+NOT done by binding a fake empty store: `store == null` is the "no log is loaded" sentinel used
+across the verb surface, so an empty store would make the app believe a log was open. Explicit
+clearing also makes each panel own what it clears — the brief's "a half-cleared app is worse than
+an uncleared one".
+
+SummaryPanel needed real work: rebuild() returns early on a null store, which would have left the
+previous log's rows on screen. clear() blanks the model rather than relying on the guard.
+
+The LOADED GRAPH is not touched by closeLog(). It is a separate artefact the user opened
+deliberately; only its shading goes. closeGraph() is its counterpart, and the status line names a
+graph still loaded after the log closes so the pairing is never silent.
+
+================================================================================
+3. VERIFIED IN THE RUNNING JAR (rule 4)
+================================================================================
+  1 log + foreign graph open together  -> 21 records, coverage claims 301 declared nodes (the defect)
+  2 open {close: log}                  -> log gone, GRAPH KEPT, coverage now "no log is loaded";
+                                          echo: {"closed":"log","logWasOpen":true,"graphWasOpen":true,
+                                          "kept":"...profile state and survive..."}
+  3 open {close: graph}                -> graph gone
+  4 open {close: all}, nothing open    -> ok, with "note":"nothing was open" — a no-op does not read
+                                          as having done something (M26.4)
+  5 open {close: "everything"}         -> refused by name: "close takes 'log', 'graph' or 'all'"
+  6 reopen after a full close          -> 21 records; the app is usable again, not merely emptied
+
+================================================================================
+4. TESTS (4 new, 756 total)
+================================================================================
+Headless only, per rule 4 — what clears is Swing and is covered by §3.
+  · the schema publishes `close` AND states what is not destroyed (an agent must be able to close
+    without fear); the verb count stays 14, pinned, because the surface is a compatibility surface
+  · a saved report SURVIVES the log and degrades loudly: fingerprint announces "no log is loaded",
+    the record anchor is unresolved and NAMED, narrative still renders, summary counts it
+  · closing never silently resolves an anchor it cannot check
+The report behaviour was VERIFIED, not rebuilt — ReportResolver already did the right thing with a
+null index, exactly as the brief said it would.
+
+================================================================================
+5. DEVIATIONS
+================================================================================
+D1  A planned test of AppControl.close()'s default refusal was DROPPED: AppControl has 10 abstract
+    methods and the stub was ~20 lines of noise for one assertion about a one-line default. The
+    behaviour is verified live instead (§3 step 5 exercises the real implementation's refusal).
+D2  `close` is ignored when combined with log/graphml/processor rather than being an error — it is
+    checked first and returns. Documented in the schema. An "open and close at once" request is
+    incoherent and the useful reading is the close.
+D3  The status line after closeLog names a still-loaded graph ("No log open · graph X still
+    loaded"). Not in the brief; it is M35.6's principle (state the pairing) arriving early where it
+    was one string, and it stops the most confusing half-state being silent.
+
+================================================================================
+6. HUMAN EYEBALL (Swing untested by design)
+================================================================================
+E1  File menu enablement: Close log / Close graph / Reset greying correctly as things open and close.
+E2  Both themes after a close — the summary, event checklist and graph tabs genuinely blank rather
+    than stale-but-dimmed.
+E3  The Reports tab with no log: banners readable, anchors visibly unresolved rather than empty.
+E4  Close while FOLLOW is running (the code stops it first; worth seeing).
+
+================================================================================
+7. NEXT
+================================================================================
+M35.2 (opening a log clears the previous graph unless it still applies) is the natural next slice
+and now has everything it needs: closeGraph() exists, and the EventProcessor inference scoring is
+the re-pair test the brief points at. M34.1's remaining scope stays blocked on M35 by design.
