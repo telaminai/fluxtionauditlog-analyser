@@ -288,7 +288,7 @@ than a per-session one._
 - [M35.4] ☑ **Scan source roots for GraphML** *(on `feat/m35-lifecycle`)* — discover candidates under the configured roots and
   offer them. **Never auto-select silently**: N candidates → name them and their match scores; a
   wrong graph auto-picked is precisely the confidently-wrong reading M35 exists to prevent.
-- [M35.5] ☐ **New/switched project closes log + graph** — the profile is the session boundary; today
+- [M35.5] ☑ **New/switched project closes log + graph** *(on `feat/m35-lifecycle`)* — the profile is the session boundary; today
   "Close project" leaves both loaded.
 - [M35.7] ☑ **No modal in the load path** *(on `feat/m35-lifecycle`)* _(found by M35.2, 2026-08-22)_ — `onLoaded` assigns
   `store` and then calls `maybeOfferProject()`, which shows a MODAL dialog; everything after it waits

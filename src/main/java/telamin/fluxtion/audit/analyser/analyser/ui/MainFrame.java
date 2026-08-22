@@ -2551,7 +2551,9 @@ public final class MainFrame extends JFrame {
             projectDetect.decline(log);      // asked and answered; do not ask again for this log
             return;
         }
-        applyProjectResult(project.open(offer));
+        // M35.5's exception, and the only one: here the project is being adopted BECAUSE this log was
+        // opened. Ending the session would close the log that just arrived.
+        applyProjectResult(project.open(offer), false);
     }
 
     // ---- projects (M20.2) --------------------------------------------------------------------
@@ -2633,12 +2635,24 @@ public final class MainFrame extends JFrame {
 
     private void applyProjectResult(
             telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.LoadResult result) {
+        applyProjectResult(result, true);
+    }
+
+    /**
+     * @param endsSession true for an EXPLICIT project switch — the profile is the session boundary
+     *                    (M35.5), so the log and graph go with it. False for the one path where the
+     *                    project is adopted as PART of opening a log ({@link #maybeOfferProject}):
+     *                    closing there would destroy the log that just arrived.
+     */
+    private void applyProjectResult(
+            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.LoadResult result,
+            boolean endsSession) {
         if (!result.loaded()) {
             JOptionPane.showMessageDialog(this, result.message(), "Project",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
-        afterProjectChange(result.message());
+        afterProjectChange(result.message(), endsSession);
     }
 
     /**
@@ -2646,12 +2660,38 @@ public final class MainFrame extends JFrame {
      * running app: rebuild what reads them, refresh the menus, persist the pointer, and say so.
      */
     private void afterProjectChange(String note) {
+        afterProjectChange(note, true);
+    }
+
+    /**
+     * @param endsSession M35.5 — a project owns the source roots, event processors, named graphs,
+     *                    focuses and reports. Swap it and every one of those changes underneath the
+     *                    open log, so the log and graph are CLOSED with it: the profile is the
+     *                    session boundary. Leaving them would mean looking at one project's log
+     *                    through another's settings, with focuses pointing at nodes from a graph
+     *                    that is no longer the right one — the M35 defect at profile scope, and
+     *                    worse than the others because nothing re-checks anything when a profile
+     *                    changes.
+     */
+    private void afterProjectChange(String note, boolean endsSession) {
+        String closedNote = "";
+        if (endsSession) {
+            boolean hadLog = store != null;
+            boolean hadGraph = topologyPanel.loadedGraphFile() != null;
+            if (hadLog) closeLog();
+            if (hadGraph) closeGraph();
+            if (hadLog || hadGraph) {
+                closedNote = "  ·  closed the " + (hadLog && hadGraph ? "log and graph"
+                        : hadLog ? "log" : "graph") + " — a project is a session boundary";
+            }
+        }
         onConfigChanged();          // source service, processors, menus, and the global save
         graphTabs.restore(config.savedGraphs);
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
-        status.setText(note);
+        updateLifecycleMenu();
+        status.setText(note + closedNote);
     }
 
     private void updateProjectMenuState() {

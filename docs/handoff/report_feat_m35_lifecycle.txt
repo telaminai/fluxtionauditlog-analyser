@@ -248,3 +248,43 @@ D9 · context reported a pairing verdict beside "graph": null — the tool asser
      this report.
 
 E6 (eyeball) · the picker dialog in both themes, and Cancel genuinely loading nothing.
+
+================================================================================
+12. M35.5 — COMPLETE (the profile is the session boundary)
+================================================================================
+An explicit project switch, create, or close now closes the log AND the graph. afterProjectChange()
+is the single shared hook for every project change, so the behaviour lands once rather than at six
+call sites (chooser, recent menu, create, close, and the auto-detect path).
+
+WHY UNCONDITIONAL, and not the M35.2 re-pair treatment: a project owns source roots, event
+processors, named graphs, focuses and reports. Swap it and all of them change underneath the open
+log. Unlike M35.3's graph-open there is no surviving "I meant to compare them" case — nobody
+switches profile in order to keep looking at the same investigation through the wrong settings. And
+this is the WORST of the M35 holes, because nothing re-checks anything when a profile changes: the
+log-open re-pair (M35.2) does not run, so a stale graph would simply persist with new focuses
+pointing into it.
+
+THE ONE EXCEPTION, and it is a real bug avoided rather than a nicety: applyProjectResult is also
+reached from maybeOfferProject DURING a log load. Ending the session there would close the log that
+had just arrived. That path passes endsSession=false and says why in a comment.
+
+--------------------------------------------------------------------------------
+D10 · HONESTY ABOUT VERIFICATION — this slice is NOT driven over REST, and cannot be
+--------------------------------------------------------------------------------
+There is no project verb, so neither the switch nor the adoption path is reachable from the action
+socket. The check I ran proves less than it looks:
+  · opening a log inside a project and seeing 21 records survive did NOT exercise the exception —
+    M35.7 means a socket-driven open RECORDS the offer instead of applying it, so
+    applyProjectResult(..., false) was never called. The same "a test that cannot fail is not a
+    test" trap as M35.7's first attempt, caught by asking what the assertion actually touched.
+  · the switch path (close/open project -> both close) has no socket route at all.
+Both are therefore verified by READING plus the eyeball list below, and stated as such rather than
+dressed up. This is a second, independent argument for M20.6 (`open {project: path}`): it would make
+M35.5 testable as well as making M35.7's offer actionable.
+
+E7  Open a log, load its graph, then File ▸ Open project… — both must close, and the status line
+    must say "closed the log and graph — a project is a session boundary".
+E8  File ▸ Close project with both loaded — same.
+E9  Open a log that sits inside a project BY HAND and click Yes on the offer — the log must SURVIVE
+    (this is the exception, and it is the one that would be a bug if it regressed).
+E10 Recent-projects menu — same as E7.

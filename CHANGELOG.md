@@ -15,6 +15,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   offer instead: it appears in `context` as `projectOffer`, and in the status bar. Opening by hand is
   unchanged — you still get the dialog. Loading a project is still never automatic, because it
   replaces your source roots, event processors, graphs and hidden columns.
+- **Switching or closing a project now closes the log and graph with it** (M35.5). A project owns
+  your source roots, event processors, named graphs, focuses and reports — swap it and all of those
+  change underneath the open log, so keeping it meant viewing one project's log through another's
+  settings, with focuses pointing at nodes from a graph that was no longer the right one. The one
+  exception: accepting the *"this log sits inside a project"* offer adopts the settings and **keeps
+  the log**, because there the project is being adopted precisely because that log was opened.
 - **Find the GraphML for the log you have open** (M35.4). *File ▸ Find GraphML in source roots…*
   lists every `.graphml` under your configured roots, **ranked by how well each fits the open log** —
   node count, and how many of the log's nodes it declares. Agents get the same list from
