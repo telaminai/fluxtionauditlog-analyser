@@ -1,0 +1,145 @@
+REVIEW — spec-agent-brokered-dev-loop.md (the M18 alternative), PROPOSED at f96228e/8f5aa26
+Date: 2026-08-21 · Assessor: the main session (I reviewed M31 and M34, wrote the M33 provenance
+machinery §E extends, and ran the M18-adjacent housekeeping this spec deletes into)
+
+VERDICT: ADOPT — the spec's own verdict survives attack, and one of its arguments is now STRONGER
+than it claims: point 6's contradiction is no longer between two specs, it is between a spec and
+SHIPPED CODE (M34.0's gate opened and M34.1's ordering slice landed before this assessment ran).
+Adopt with §E first as the spec asks, plus the amendments below — the largest of which is that the
+assessor checked the live playground as §C2/Q-B6 directed, and the additive-ask table shrinks from
+five fields to two.
+
+================================================================================
+1. §F ATTACKED FIRST, AS INSTRUCTED
+================================================================================
+Point 1 (six slices → one field) — VERIFIED against the tracker. And the deletion is better than the
+  count shows: 18.3a and 18.4a were not slices but BLOCKING QUESTIONS on another team's calendar.
+  The alternative does not answer them faster; it makes them not ours. That is schedule risk
+  removed, not just scope.
+
+Point 2 (breakage class leaves the fatjar) — VERIFIED from this repo's own history: M18.0 found two
+  of its three gaps already closed upstream because the local checkout was stale. That is the
+  version-drift failure happening BEFORE the integration was even built.
+
+Point 6 (the M34 contradiction) — the deciding argument, and UNDERSTATED. Since the spec was
+  written, M34.0 ran (the LangGraph spike passed its gate) and M34.1 shipped (ordering declared).
+  The engine-agnostic direction is no longer an accepted spec; it is merged code. Shipping M18 as
+  specced would now contradict the codebase, not a plan.
+
+Point 7 (complexity moves and fragments — three repos) — the honest cost, and it hides one hazard
+  the spec does not name: FAILURE ATTRIBUTION. When the loop breaks, the user experiences "the
+  analyser doesn't work with my server", and the fix may live in any of three repos on three
+  cadences. M18's one-repo failure was diagnosable in one place. AMENDMENT (F3 below): the loop is
+  a cross-repo CONTRACT, and contracts here get conformance suites (M34 D-A6's own move) — a
+  scripted end-to-end of steps 3–7 must live somewhere CI-run (the M19 bench is the natural home)
+  so a break is caught by the owning repo, not by a user. Name that home in the adoption; without
+  it, point 7's risk is unbounded.
+
+Point 8 (hard agent dependency) — accept, WITH the D-B6 falsifiability the spec already provides.
+  See Q-B1 below for the one slice I would park rather than delete.
+
+Point 9 (creates the provenance defect, patches it with §E) — the self-criticism is correct and the
+  patch is right. I built LogFingerprint: the field fits exactly where logName sits, renders
+  everywhere logName renders, and rides the D-I3a mismatch line for free. Two additions the spec
+  missed, both one-liners:
+    - SHARE DISCLOSURE: provenance strings name internal systems ("risk-engine · localhost:8081 ·
+      ~/dev/risk"). M33 reports share under their own category whose row promises "definitions +
+      narrative — never log data"; a provenance string is business-context cargo and the row must
+      name it in the same commit that adds the field (the F1/ShareDisclosureContractTest rule).
+    - The Q1 soft-banner logic must treat provenance like the name, not like content: same content +
+      different provenance = the SOFT announce naming both systems. That is §E's whole payoff.
+
+Point 11 (D-B7, the paid production MCP) — sound, and the enforcement reasoning (server-side refusal
+  beats a patchable client check) is the only version of this that works for a source-available
+  client. The open question inside it (what makes a deployment "production") has a ready answer in
+  the house rule the spec itself cites: DECLARED, never inferred — an environment field in the
+  server's own config, with non-loopback as a warning heuristic, never the verdict.
+
+================================================================================
+2. Q-B6 ANSWERED — the live catalogue was checked, and §C2 shrinks
+================================================================================
+Fetched https://fluxtion-playground.dev/starter-templates/index.json and the
+fluxtion-spring-mongoose starter (rule 6, as the spec directed). Findings:
+
+  · `type` already admits `mongoose` AND `hosted` — five of thirteen entries. Three carry a
+    `web-admin` tag. "No starter appears to host a Mongoose server with admin REST on" is FALSE as
+    of this reading.
+  · The starter's own config already declares most of the proposed table:
+      - admin REST: `mongoose.services.adminWebService` (WebAdminService, host, listenPort) +
+        `serverAdmin` + `adminCommandRegistry` — and the `web-admin` tag marks it at index level.
+        A `mongoose.adminRest: true` field would be a SECOND SOURCE OF TRUTH for a fact the
+        services block and tag already encode — the exact mistake §C2's own correction avoided
+        for `mode`.
+      - source roots: `adminWebService.config.sourceRoots: ["src/main/java"]` — DECLARED already.
+      - run command: `mongoose.addRunScript: true` — the command is a generated-project artifact,
+        not a catalogue field.
+      - graphml: genuinely absent from the starter — but §C1's registry file already carries
+        `processors[].graphml`, which is the better home (it is a runtime fact about a running
+        server, not a template fact). The catalogue ask dissolves into the registry design.
+  · The REMAINING genuine asks are TWO: `agentBootstrap` (the M19.1 CLAUDE.md-stack pointer), and
+    the top-level `catalogue` version integer that D-B4's additive-only rule references but which
+    DOES NOT EXIST in the live index. D-B4 currently governs a field nobody ships.
+  · Bonus finding: the starter sets `auditBackend: "chronicle"` — confirming the spike's projection
+    (step 5's yaml export is required), AND opening a second path the spec should note: once an
+    out-of-tree chronicle reader exists (M31.4r's sibling), the agent can open ./audit DIRECTLY
+    through the reader SPI and step 5 disappears. The alternative gets stronger over time through
+    a mechanism the analyser already shipped; M18 could never inherit that.
+
+================================================================================
+3. THE MISSING ARGUMENT FOR: this proposal RESOLVES O5
+================================================================================
+M18.0 raised O5 as gating: the audit-capture plugin's Phase 2 puts a web audit viewer with graph
+replay inside svc-admin-web, overlapping this analyser. Under M18 the overlap is a positioning
+problem — two tools linked to one server, competing on the same surface. Under THIS proposal the
+split becomes natural and complementary: the server's web viewer is the LIVE, glanceable, in-situ
+surface; the analyser is the deep forensic instrument fed by exports — reports, coverage, replay,
+the agent surface. The adoption should answer O5 explicitly on these terms and close it; the spec
+leaves its strongest positioning consequence unstated.
+
+================================================================================
+4. THE OPEN QUESTIONS, ANSWERED
+================================================================================
+Q-B1 (developer-only safe? does M18.2 deserve to survive?) — D-B6 is safe TODAY: the product's
+  actual funnel is agent-first (the playground's /build-with-ai is the front door; the compiler key
+  precedes any of this). But delete-forever is more finality than the evidence supports. PARK
+  M18.2 with its revival trigger STATED: "revive as an onboarding affordance only if evidence shows
+  no-agent developers bouncing off the export step". Falsifiable, like D-B6 itself. Everything else
+  deletes cleanly.
+Q-B2 (who owns ~/.mongoose/servers/) — an upstream-asks item, yes; and the dependency is acceptable
+  BECAUSE the loop gets a conformance harness (F3/§1 point 7). Without the harness, no.
+Q-B4 (provenance free text vs structured) — free text for v1, exactly as specced: it renders
+  anywhere and never lies. The structured comparison earns its complexity only when someone needs
+  the mismatch line to reason about systems, and nobody does yet. Revisit with evidence. Add the
+  two one-liners from §1 point 9 (share disclosure; Q1-soft-banner treatment).
+Q-B5 (does this weaken M12?) — no; it strengthens the restart leg (native per-call approval). One
+  ordering rule worth writing down: NEVER restart before exporting — a restart can roll or truncate
+  the very log that is the evidence. The loop in §C3 happens to order correctly (export at 5,
+  restart at 9); make it a stated rule, not an accident of the example.
+
+================================================================================
+5. SMALLER FINDINGS
+================================================================================
+F4  D-B5's journal has a funding gap the spec half-closes: D-B7 gives journaling a paid home in the
+    production MCP, but D-B5 says EVERY mutation is journaled — including by the free dev MCP. Say
+    which: is dev-tier journaling a requirement of the free tool, or does the free tier journal
+    nothing and the paid tier journal everything? Either is defensible; silence is not.
+F5  C1's registry files hold ADMIN tokens, mode 600, glob-read by any local process. That is the
+    same posture as the analyser's rest-endpoint file, but those tokens gate render verbs; these
+    gate restarts. One sentence stating the trust model (local user boundary, dev-mode servers
+    refuse non-loopback per D-B7's open) belongs in C1.
+F6  D-B4 references a catalogue version integer that does not exist in the live index (§2). The
+    rule is right; the ask to ADD `catalogue: 1` to index.json is part of the adoption.
+
+================================================================================
+6. RECOMMENDATION
+================================================================================
+Adopt, in this order:
+  1. §E provenance first (with the share-disclosure and soft-banner one-liners) — before any agent
+     swaps logs between servers.
+  2. Rewrite §C2's ask table per §2 above: two asks (agentBootstrap, catalogue version), not five;
+     the registry file owns graphml; note the chronicle-reader convergence.
+  3. Answer O5 in the adoption (§3) and close it in the tracker.
+  4. Park M18.2 with its stated trigger; close 18.1/18.3/18.3a/18.4/18.4a/18.6/O3 as "not the
+     analyser's questions" per acceptance 5.
+  5. Name the conformance harness's home before any cross-repo work starts (the M19 bench).
+M18 as specced should be closed in favour of this document once those land.
