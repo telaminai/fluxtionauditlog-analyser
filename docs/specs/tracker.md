@@ -428,6 +428,11 @@ spec-agent-brokered-dev-loop; its old slices are gone from this list._
 8. **Cross-repo, gated on §H:** the Mongoose **MCP admin tool** + `~/.mongoose/servers/` endpoint
    files, and the playground's two catalogue asks (`agentBootstrap`, the `catalogue` version
    integer). All belong in [upstream-asks.md](../proposals/upstream-asks.md).
+   _Alongside them, and promoted from a footnote: **the out-of-tree Chronicle reader**. The Mongoose
+   starters already write `auditBackend: "chronicle"`, so a reader on M31's shipped SPI
+   (`supportsFollow: true`) tails the live audit store and **deletes the export beat entirely** —
+   turning the dev cycle into edit → approve restart → watch the live log move. It is the cheapest
+   large upgrade on this list, because the SPI it needs shipped in 1.5.0._
 9. **M11** stays vision until a real Grafana consumer appears — and when one does it is
    `export_promotion` (a neutral manifest the agent renders), not a dashboard generator.
 
