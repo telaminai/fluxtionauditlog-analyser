@@ -683,6 +683,9 @@ public final class ActionExecutor implements RenderExecutor {
         if (params.get("log") != null && params.get("format") != null) {
             return app.openLog(str(params.get("log")), str(params.get("format")));
         }
+        if (params.get("discover") != null) {
+            return app.discoverGraphs();   // lists, never opens — M35.4
+        }
         if (params.get("close") != null) {
             // the counterpart of open, on the same verb: closing is a lifecycle act, not a new concept
             return app.close(str(params.get("close")));
@@ -696,7 +699,8 @@ public final class ActionExecutor implements RenderExecutor {
         String graphml = str(params.get("graphml"));
         String processor = str(params.get("processor"));
         if (log == null && graphml == null && processor == null) {
-            return ActionResult.error("'open' needs 'log', 'graphml', 'processor' or 'close'");
+            return ActionResult.error(
+                    "'open' needs 'log', 'graphml', 'processor', 'close' or 'discover'");
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         if (log != null) {
