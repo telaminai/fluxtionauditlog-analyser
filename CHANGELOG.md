@@ -6,6 +6,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **A log now says whether its order means anything** (M34.1, first slice). Fluxtion's `nodeLogs`
+  order is derived by the AOT compiler, so step-through and the topology's order badges are reading
+  back real causality. A source whose components run concurrently has no such order to report — and
+  the M34.0 spike found the on-screen presentation identical either way. Readers now declare
+  `ordering: TOTAL | PARTIAL`, the claim reaches the index, `context` reports it before anything is
+  derived from position, and Settings ▸ Plugins marks a partial-order reader. **Nothing changes for
+  an audit log**: text containers are totally ordered and say so. Readers published against 1.5.0
+  keep compiling — the capability is additive and defaults to `TOTAL`.
+
 ## [1.7.0] - 2026-08-20
 
 ### Added

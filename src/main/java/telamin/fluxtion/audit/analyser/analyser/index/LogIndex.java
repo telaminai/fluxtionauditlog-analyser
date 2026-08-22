@@ -50,6 +50,23 @@ public final class LogIndex {
         return byteAnchors;
     }
 
+    /**
+     * False when the source could not supply a dispatch order within a cycle (M34 D-A1a) — the
+     * position of a node in {@code nodeLogs} is then ARRIVAL order, not causality. True for every
+     * text container and for Fluxtion, whose order the AOT compiler derives; consumers that read
+     * position as meaning (step-through, the topology's dispatch badges, route escalation) must
+     * qualify loudly when this is false rather than presenting an invented order as an observed one.
+     */
+    private boolean totalOrder = true;
+
+    public void setTotalOrder(boolean totalOrder) {
+        this.totalOrder = totalOrder;
+    }
+
+    public boolean totalOrder() {
+        return totalOrder;
+    }
+
     /** flags bits */
     public static final int FLAG_PARSE_ERROR = 1;
     public static final int FLAG_NAN = 2;

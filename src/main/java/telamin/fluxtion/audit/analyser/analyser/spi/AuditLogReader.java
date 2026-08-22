@@ -53,7 +53,40 @@ public interface AuditLogReader {
         }
     }
 
+    /**
+     * Whether the source can say what ran BEFORE what, within one cycle (M34 D-A1a).
+     *
+     * <p>This is not metadata about a run — on a concurrent engine it is the difference between
+     * evidence and fabrication. A Fluxtion cycle's {@code nodeLogs} order is DERIVED by the AOT
+     * compiler and consumed as meaning: step-through reads it back, the topology paints dispatch
+     * badges from it, route escalation and the M21 classification depend on it. A source whose
+     * components run concurrently has no such order to report, so anything it emits is arrival
+     * order — and the M34.0 spike found the presentation identical either way, with nothing on
+     * screen distinguishing a compiler-derived order from an invented one.
+     */
+    enum Ordering {
+        /** Within a cycle, position IS dispatch order. Safe to read as causality. */
+        TOTAL,
+        /** The source could not supply an order. Position is arrival, and consumers must say so. */
+        PARTIAL
+    }
+
     /** Capability flags — checked by the core, degraded loudly, never assumed (D-P4). */
-    record Capabilities(boolean follow, boolean byteAnchors, boolean randomAccess) {
+    record Capabilities(boolean follow, boolean byteAnchors, boolean randomAccess,
+                        Ordering ordering) {
+
+        public Capabilities {
+            ordering = ordering == null ? Ordering.TOTAL : ordering;
+        }
+
+        /**
+         * The pre-M34 shape, kept so readers published against 1.5.0 keep compiling — this is a
+         * published compatibility surface and evolves additively only (see the class javadoc).
+         * Defaulting to {@link Ordering#TOTAL} is correct for every container that existed when
+         * this constructor was the only one: a byte stream of records is totally ordered.
+         */
+        public Capabilities(boolean follow, boolean byteAnchors, boolean randomAccess) {
+            this(follow, byteAnchors, randomAccess, Ordering.TOTAL);
+        }
     }
 }

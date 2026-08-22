@@ -1790,7 +1790,9 @@ public final class MainFrame extends JFrame {
             var caps = r.capabilities();
             out.add(r.formatId() + " — " + r.displayName() + "  (timeBase " + r.timeBase().epoch()
                     + "/" + r.timeBase().zone() + "/" + r.timeBase().source()
-                    + (caps.follow() ? ", follow" : "") + (caps.byteAnchors() ? ", byteAnchors" : "") + ")");
+                    + (caps.follow() ? ", follow" : "") + (caps.byteAnchors() ? ", byteAnchors" : "")
+                    + (caps.ordering() == telamin.fluxtion.audit.analyser.analyser.spi
+                            .AuditLogReader.Ordering.TOTAL ? "" : ", PARTIAL ORDER") + ")");
         }
         out.addAll(readerRegistry.loadNotes());
         return out;
@@ -2678,6 +2680,17 @@ public final class MainFrame extends JFrame {
                                     selectedRecords, sourceService));
             Map<String, Object> log = facts.logAsMap();
             if (!log.isEmpty()) out.put("log", log);
+            if (store != null) {
+                // D-A1a: state it BEFORE anything is derived from position. An agent stepping a
+                // cycle, or reading the topology's dispatch badges, is entitled to know whether
+                // that order was derived or merely observed — and must not have to infer it.
+                out.put("dispatchOrder", store.index().totalOrder()
+                        ? "total — position in nodeLogs IS dispatch order (derived); safe to read "
+                                + "as causality"
+                        : "PARTIAL — this source could not supply an order within a cycle. Position "
+                                + "is arrival order, not cause. Do not read step-through or the "
+                                + "topology's order badges as causality on this log.");
+            }
 
             // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
             Map<String, Object> f = new java.util.LinkedHashMap<>();

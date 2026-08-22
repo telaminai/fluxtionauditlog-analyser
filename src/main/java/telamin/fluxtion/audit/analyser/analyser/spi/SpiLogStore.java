@@ -29,6 +29,8 @@ public final class SpiLogStore implements LogStore {
     public static SpiLogStore open(AuditLogReader reader, Path source) throws IOException {
         SpiLogStore store = new SpiLogStore(reader);
         store.index.setByteAnchors(reader.capabilities().byteAnchors());   // synthetic offsets refuse anchoring
+        store.index.setTotalOrder(reader.capabilities().ordering()          // D-A1a: an invented order
+                == AuditLogReader.Ordering.TOTAL);                          // must never read as causality
         long[] offset = {0};
         reader.read(source, text -> {
             LogRecord rec = RecordParser.parse(text, offset[0]);

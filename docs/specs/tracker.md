@@ -302,6 +302,35 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
+## M35 · Log + graph lifecycle — ☐ PROPOSED (owner, 2026-08-22; the pairing is evidence, not decoration)
+_Today a log and a GraphML are opened independently and **neither can be closed**. `TopologyPanel.load()`
+sets the graph; nothing clears it, and the File menu has "Close project" but no "Close log". So opening a
+second log leaves the FIRST log's topology on screen, and every figure derived from it — coverage,
+"did not run" shading, step-through — is then about a graph that does not belong to the records.
+**This is the M33 defect class** (a confident answer computed from mismatched inputs), and `coverage`
+already knows how to say it: `loggedButNotInTopology` warns that "the graphml is probably from a
+different build, which makes every other figure here suspect". The warning exists; the lifecycle that
+would prevent needing it does not._
+_Sharpened by the M18 alternative ([spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md)):
+one analyser + many servers + many processors makes every one of these a per-minute operation rather
+than a per-session one._
+- [M35.1] ☐ **Close / reset** — close the log, close the graph, or reset both. The absent capability;
+  everything else here depends on it. Clearing must reach the derived state too (topology shading,
+  step cursor, coverage, focus contexts) — a half-cleared app is worse than an uncleared one.
+- [M35.2] ☐ **Opening a log clears the previous graph unless it still applies** — offer-never-act:
+  keep it and say so when the instanceIds still match, otherwise close it and say why. The scoring
+  already exists (Decisions ▸ EventProcessor inference).
+- [M35.3] ☐ **Switch graph without reopening the log** — multi-processor servers emit one GraphML per
+  processor; analysing a second processor against the same log must not mean starting over.
+- [M35.4] ☐ **Scan source roots for GraphML** — discover candidates under the configured roots and
+  offer them. **Never auto-select silently**: N candidates → name them and their match scores; a
+  wrong graph auto-picked is precisely the confidently-wrong reading M35 exists to prevent.
+- [M35.5] ☐ **New/switched project closes log + graph** — the profile is the session boundary; today
+  "Close project" leaves both loaded.
+- [M35.6] ☐ **State the pairing before anything is derived from it** — status bar and `context` name
+  which graph is paired with which log, and whether they match. Coverage's warning arrives only if
+  someone runs coverage; the mismatch should be visible before that.
+
 ## M34 · Source adapters — ☐ ACCEPTED v2 (the same instrument over other execution engines)
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
 purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
@@ -344,8 +373,13 @@ returned `SourceGraph` because availability is per SOURCE, not per adapter._
   D-A3 needs nothing: LangGraph's per-task `result` IS the attribution rule. And the analyser caught
   the translator's invented node unprompted (`loggedButNotInTopology`), declaring every other figure
   suspect — the honesty disciplines transfer to a foreign source unmodified.
-- [M34.1] ☐ **`RunAdapter` SPI** — `DeclaredGraph`, `GraphSupport {NONE|INFERRED|DECLARED}`; the
-  Fluxtion path refactored behind it, suite green unchanged (the M31.1 move, one level out).
+- [M34.1] ◧ **`RunAdapter` SPI** — _ordering slice DONE 2026-08-22_: `Capabilities` gained
+  `Ordering {TOTAL|PARTIAL}` **additively** (the 3-arg constructor kept — it is a published surface
+  since 1.5.0, and TOTAL is correct for every container that existed then); the claim is carried to
+  `LogIndex.totalOrder()` beside `byteAnchors`, reported by `context` before anything is derived from
+  position, and marked in Settings ▸ Plugins. Native path verified unchanged in the running jar.
+  **Remaining:** `graph(Path)` on the SPI, and reconciling an adapter-supplied graph with
+  `open {graphml}` — which is now entangled with **M35** and should follow it.
 - [M34.2] ☐ **Capability degradation wired** — coverage, "did not run" shading, replay-diff: each
   disabled loudly with its reason, none silently.
 - [M34.3] ☐ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.
