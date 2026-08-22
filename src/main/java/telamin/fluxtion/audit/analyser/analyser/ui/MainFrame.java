@@ -2123,24 +2123,53 @@ public final class MainFrame extends JFrame {
      * every open. The first {@value #PAIRING_SAMPLE} records name the recurring nodes of any real
      * run, and the verdict carries its counts so a caller can see what was actually compared.
      */
+    /** The loaded graph judged against a log — one comparison, used by both open directions. */
+    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing pairingAgainst(LogStore log) {
+        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
+        int scan = Math.min(log.size(), PAIRING_SAMPLE);
+        for (int row = 0; row < scan; row++) {
+            for (var nodeLog : log.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
+        }
+        return telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
+                topologyPanel.authoredNodeIds(), logged);
+    }
+
+    /**
+     * M35.3 — a graph the user OPENED is judged but never closed. The asymmetry with
+     * {@link #repairLoadedGraph} is the point: when a log arrives, a mismatched graph is RESIDUE
+     * from the previous investigation and closing it is the safe default; when a graph arrives, it
+     * is INTENT — someone asked for this processor — so a mismatch is announced and left alone.
+     * Announce-never-forbid applies where there is intent to respect.
+     *
+     * @return the verdict, or null when there is nothing to compare
+     */
+    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing judgeOpenedGraph() {
+        if (store == null || topologyPanel.loadedGraphFile() == null) {
+            lastPairing = null;
+            return null;
+        }
+        var pairing = pairingAgainst(store);
+        lastPairing = pairing;
+        String name = topologyPanel.loadedGraphFile().getFileName().toString();
+        status.setText(store.size() + " records · graph " + name + (pairing.applies()
+                ? " · " + pairing.reason()
+                : "  ·  ⚠ " + pairing.reason() + " — kept, you opened it deliberately"));
+        return pairing;
+    }
+
     private void repairLoadedGraph(LogStore loaded) {
         if (topologyPanel.loadedGraphFile() == null) return;
-        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        int scan = Math.min(loaded.size(), PAIRING_SAMPLE);
-        for (int row = 0; row < scan; row++) {
-            for (var nodeLog : loaded.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
-        }
-        var pairing = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
-                topologyPanel.authoredNodeIds(), logged);
+        var pairing = pairingAgainst(loaded);
         lastPairing = pairing;
         if (pairing.applies()) {
             status.setText(status.getText() + "  ·  graph "
-                    + topologyPanel.loadedGraphFile().getFileName() + " " + pairing.reason());
+                    + topologyPanel.loadedGraphFile().getFileName() + " kept — " + pairing.reason());
             return;
         }
         String closed = topologyPanel.loadedGraphFile().getFileName().toString();
         topologyPanel.clearGraph();
-        status.setText(status.getText() + "  ·  ⚠ graph " + closed + " " + pairing.reason());
+        status.setText(status.getText() + "  ·  ⚠ graph " + closed + " closed — " + pairing.reason()
+                + ". Reopen it deliberately if you meant to compare them.");
     }
 
     /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
@@ -2690,8 +2719,25 @@ public final class MainFrame extends JFrame {
                         "not a readable Fluxtion .graphml: " + path);
             }
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+            var pairing = judgeOpenedGraph();      // M35.3 — say at once whether it fits this log
+            updateLifecycleMenu();
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("path", path);
+            echo.put("nodes", topologyPanel.authoredNodeIds().size());
+            if (pairing == null) {
+                echo.put("pairing", store == null
+                        ? "no log is open — nothing to check this graph against"
+                        : "no graph loaded");
+            } else {
+                echo.put("appliesToOpenLog", pairing.applies());
+                echo.put("loggedNodes", pairing.logged());
+                echo.put("declaredByGraph", pairing.matched());
+                echo.put("verdict", pairing.reason() + (pairing.applies() ? ""
+                        : " — kept anyway, because you opened it deliberately (M35.3). A stale "
+                                + "graph is only closed when a LOG arrives and finds it there."));
+            }
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
-                    "open", "graphml", Map.of("path", path));
+                    "open", "graphml", echo);
         }
 
         @Override

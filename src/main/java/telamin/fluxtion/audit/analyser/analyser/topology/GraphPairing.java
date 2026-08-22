@@ -17,21 +17,28 @@ import java.util.Set;
  * which makes every other number on screen suspect". A second scorer would be a second answer to one
  * question, and they would drift.
  *
- * <p><b>Why this ACTS rather than offers.</b> The rest of this codebase prefers announce-never-forbid
- * (D-I3a), and an offer was considered. It loses on two counts. A modal question on every log open is
- * friction on the path people actually use; and on the AGENT path there is nobody to answer it, so an
- * offer would either hang an automated open or be silently defaulted — and silently defaulting to
- * "keep" is exactly the defect. Closing is safe, cheap to undo (reopen the graphml), and the reason
- * is always stated with its numbers, so the decision is checkable rather than magic. The one case
- * this costs — deliberately comparing build A's graph against build B's log — is served by reopening
- * the graph after the log, which is an explicit act rather than an accident.
+ * <p><b>The verdict is the same; the ACTION depends on which artefact just arrived.</b>
+ * <ul>
+ *   <li><b>A log arrives</b> and finds a graph already there (M35.2): that graph is <i>residue</i>
+ *       from the previous investigation, nobody asked for it here, and it is CLOSED. An offer was
+ *       considered and loses twice over — a modal on every open is friction for a human, and on the
+ *       agent path there is nobody to answer it, so it would be silently defaulted; defaulting to
+ *       "keep" is precisely the defect.</li>
+ *   <li><b>A graph arrives</b> against an open log (M35.3): that graph is <i>intent</i> — someone
+ *       named this processor — so a mismatch is announced and the graph is KEPT. Announce-never-forbid
+ *       (D-I3a) applies where there is an intention to respect, and comparing build A's graph with
+ *       build B's log is a real forensic act.</li>
+ * </ul>
+ * Which is why {@link #reason} states the FACT and never the action: one comparison, two verbs.
  *
  * <p>Pure: no log, no Swing, no IO.
  *
  * @param logged   distinct instanceIds seen in the sampled records
  * @param matched  how many of those the graph declares
  * @param applies  whether the graph should be kept
- * @param reason   why — always populated, and always carrying the numbers
+ * @param reason   the FACT, always populated and always carrying the numbers. Deliberately not the
+ *                 ACTION: the same verdict closes a stale graph on log-open and merely warns about a
+ *                 deliberately-opened one (M35.3), so each caller supplies its own verb
  */
 public record GraphPairing(int logged, int matched, boolean applies, String reason) {
 
@@ -52,19 +59,18 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
         if (logged == null || logged.isEmpty()) {
             // nothing logged says nothing about the graph — a log with no nodeLogs cannot convict it
             return new GraphPairing(0, 0, true,
-                    "kept — this log records no node output, so it cannot say whether the graph applies");
+                    "this log records no node output, so it cannot say whether the graph applies");
         }
         NodeCoverage cov = NodeCoverage.of(declared, logged, Set.of());
         int matched = logged.size() - cov.loggedButNotInTopology().size();
         double share = (double) matched / logged.size();
         if (share > KEEP_ABOVE) {
             return new GraphPairing(logged.size(), matched, true,
-                    "kept — the graph declares " + matched + " of the " + logged.size()
+                    "the graph declares " + matched + " of the " + logged.size()
                             + " node(s) this log writes");
         }
         return new GraphPairing(logged.size(), matched, false,
-                "closed — the graph declares only " + matched + " of the " + logged.size()
-                        + " node(s) this log writes, so it describes a different system or build. "
-                        + "Reopen it deliberately if you meant to compare them.");
+                "the graph declares only " + matched + " of the " + logged.size()
+                        + " node(s) this log writes, so it describes a different system or build");
     }
 }

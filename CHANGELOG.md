@@ -15,6 +15,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   offer instead: it appears in `context` as `projectOffer`, and in the status bar. Opening by hand is
   unchanged — you still get the dialog. Loading a project is still never automatic, because it
   replaces your source roots, event processors, graphs and hidden columns.
+- **Switch processor without reopening the log** (M35.3). A multi-processor server emits one GraphML
+  per processor; opening a second one now judges it against the log you already have and says so
+  immediately — `open {graphml}` returns the node count, how many of the log's nodes the graph
+  declares, and the verdict. A graph you opened **deliberately is kept even when it does not fit**,
+  because comparing one build's graph with another build's log is a real thing to want; only a
+  *stale* graph, found sitting there when a new log arrives, is closed.
 - **A graph loaded for one log no longer survives into another** (M35.2). Opening a log now
   re-checks the loaded topology against it: kept when it still declares the nodes the log writes,
   otherwise **closed, with the reason and its counts** — *"the graph declares only 0 of the 17

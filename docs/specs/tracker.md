@@ -320,7 +320,7 @@ than a per-session one._
 - [M35.2] ☑ **Opening a log clears the previous graph unless it still applies** *(on `feat/m35-lifecycle`)* — offer-never-act:
   keep it and say so when the instanceIds still match, otherwise close it and say why. The scoring
   already exists (Decisions ▸ EventProcessor inference).
-- [M35.3] ☐ **Switch graph without reopening the log** — multi-processor servers emit one GraphML per
+- [M35.3] ☑ **Switch graph without reopening the log** *(on `feat/m35-lifecycle`)* — multi-processor servers emit one GraphML per
   processor; analysing a second processor against the same log must not mean starting over.
 - [M35.4] ☐ **Scan source roots for GraphML** — discover candidates under the configured roots and
   offer them. **Never auto-select silently**: N candidates → name them and their match scores; a

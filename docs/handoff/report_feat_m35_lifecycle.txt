@@ -174,3 +174,42 @@ naming everything it replaced.
 D6 · The human path is unchanged BY CONSTRUCTION rather than by test: openLocation(String) delegates
 with false, the recent menu goes through it, and the flag consumes to false. Swing, so eyeballed
 reasoning rather than an assertion — added to the eyeball list as E5.
+
+================================================================================
+10. M35.3 — COMPLETE (switch processor without reopening the log)
+================================================================================
+Opening a graph against an already-open log now judges the pair immediately and reports it in the
+verb echo, so an agent switching processors does not have to call `context` to learn whether what it
+just opened fits.
+
+THE ASYMMETRY IS THE DESIGN, and it took a wrong first cut to see it. One comparison, two verbs:
+  a LOG arrives and finds a graph  -> that graph is RESIDUE. Nobody asked for it here. CLOSED (M35.2).
+  a GRAPH arrives against a log    -> that graph is INTENT. Someone named this processor. KEPT, with
+                                      the mismatch announced (M35.3).
+Announce-never-forbid (D-I3a) applies where there is an intention to respect; comparing build A's
+graph against build B's log is a real forensic act and closing it would destroy the request.
+
+Consequence, and the bug this caught: GraphPairing.reason() now states the FACT and never the
+action. The first cut baked "closed — ..." into the reason, so `context.graphPairing.verdict` said
+a deliberately-opened graph had been closed when it plainly had not — the tool asserting something
+untrue about its own behaviour, which is the defect class this milestone exists for. The callers
+supply the verb; the class javadoc was corrected in the same pass, because a doc that contradicts
+the code is the same failure one level up.
+
+ALSO FIXED: ActionExecutor.doOpen was discarding the inner result's payload and echoing back only
+the path the caller already knew. The pairing verdict never reached the caller. It now carries the
+inner echo up.
+
+VERIFIED IN THE RUNNING JAR (POC log open throughout):
+  open matching graph  -> {"nodes": 301, "appliesToOpenLog": true, "loggedNodes": 211,
+                           "declaredByGraph": 211, "verdict": "the graph declares 211 of the 211..."}
+  open unrelated graph -> {"nodes": 10, "appliesToOpenLog": false, "declaredByGraph": 0,
+                           "verdict": "...different system or build — kept anyway, because you
+                           opened it deliberately (M35.3). A stale graph is only closed when a LOG
+                           arrives and finds it there."}
+                          still loaded afterwards; coverage answers against the graph the user chose.
+
+D7 · The supermarket POC has only ONE .graphml (StoreProcessorFast is .java only), so the genuine
+multi-processor case — two graphs from one server, same log — was exercised with an unrelated graph
+standing in for the second processor. The code path is identical; the realistic fixture is not
+available in-tree and would come from M18-alt's server work.
