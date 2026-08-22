@@ -85,71 +85,34 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
   gates**; **AOT regeneration** when an edit adds a handler/node; guardrail **propose → prove → human
   approves, never autonomous merge** (review the diff of **behaviour**, not just code)._
 
-## M18 · Mongoose server link — ☐ PROPOSED (instrument gains a control plane, carefully)
-_**⚠ An ALTERNATIVE design is open for assessment (2026-08-21):
-[spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md).** It deletes M18.1/.2/.6, moves
-M18.3/.4 to a Mongoose-side MCP tool, dissolves M18.3a/M18.4a and O3, and adds one analyser slice
-(`provenance`). Scope precondition: **developer-only, agent always present** — no no-agent path.
-The deciding argument is internal consistency: **M34 exists to remove engine-specific knowledge from
-the analyser; M18 as specced adds Mongoose-specific knowledge in the same quarter.** Do not start
-M18.1 until this is assessed — the two designs disagree about whether M18.1 should exist._
-_Design: **[spec-closed-loop.md](spec-closed-loop.md)** Part B. The analyser connects to a **locally
-running** Mongoose server's admin REST (`serverplugin-rest`; nodes already register
-`AdminCommandRegistry` commands) to discover the log, control audit verbosity at runtime, and (dev)
-restart to pick up a fix. Capabilities tiered by risk; **server verbs are never assistant actions**
-(the FAQ's "nothing outside the loaded log" guarantee stays true for agents); every mutation is
-human-confirmed and journaled to `~/.fluxtion-analyser/ops-log`. Localhost-only in v1._
-- [M18.0] ☑ **Spike — verify the admin surface (gates all of Part B)** — **done; O1 resolved.** Findings:
-  **[spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md)**. Two of the three "gaps" are already
-  **closed** on `mongoose-plugins@origin/develop` (the local checkout was stale): **audit level** is a
-  REST endpoint (`POST /api/processors/{group}/{name}/audit/level`), not a registry command; **log
-  discovery** is `GET /api/audit/files` + `/api/audit/file/{id}/export?format=yaml`, which returns the
-  exact YAML the analyser parses. **Lifecycle is the only real gap** — service start/stop are commented
-  out in `MongooseServerAdmin` and no restart exists → small `mongoose` PR. No `fluxtion-server-plugins`
-  PR needed to unblock M18.1–18.3. _Caveat: verified by reading source, **not** against a running server
-  (the M19 bench doesn't exist yet) — M18.1 must re-confirm live._
-  _The gating question the spike raised — audit-capture's Phase 2 ships a web audit-log viewer with
-  graph replay inside `svc-admin-web`, overlapping this analyser — was **resolved as complement**
-  (Decisions ▸ O5, recorded via the M21 review's F5). M18.2–18.4 are not positioning-blocked._
-- [M18.1] ☐ **Link + status (read-only)** — Settings ▸ Server link (admin base URL, loopback-enforced;
-  per-link **"development server — restarts allowed"** opt-in flag); status-bar chip
-  (connected/name/uptime); Server menu scaffold.
-- [M18.2] ☐ **Log discovery** — **redesigned by M18.0**: not "resolve a path from config" (the on-disk
-  format is **Chronicle**, which the analyser cannot read). Instead `GET /api/audit/files` → pick from the
-  catalog (`path`, `sizeBytes`, `recordCount`, `startedAt`) → `GET /api/audit/file/{id}/export?format=yaml`
-  → open the projected YAML the analyser already parses. `WS /ws/audit-tail/{processor}` is the candidate
-  for Follow. _One-click "point the analyser at your running system"._ _Positioning
-  resolved (Decisions ▸ O5) — no longer blocked._
-- [M18.3a] ☐ **DECIDE before M18.3** _(review F2)_ — the audit-level endpoint is a **setter with no `GET`
-  companion**, so capture-and-restore has nothing to read. Either file the small server-side `GET` ask, or
-  re-spec restore to a **user-declared baseline**. Blocks M18.3 only; M18.1 is unaffected.
-- [M18.4a] ☐ **ASK mongoose before M18.4** _(review F3)_ — `server.service.start`/`stop` exist but are
-  **commented out** in `MongooseServerAdmin`. Find out **why** before sending the uncomment-plus-restart
-  PR; the reason may be load-bearing.
-- [M18.6] ☐ _(post-M18.1, review F4)_ **Free wins from the spike** — `GET /api/source?fqn=` and
-  `/api/processors/{group}/{name}/graphml` let a linked server resolve **source** and **topology**,
-  complementing local source roots (and feeding M21.7).
-- [M18.3] ☐ **Audit level control** — raise/lower the processor's audit level
-  (`EventLogControlEvent`) while tailing, with **capture-and-restore** (record the found level,
-  auto-restore on disconnect/exit — never strand a server at TRACE); confirm dialog names the
-  volume/latency/disk cost; ops-journal entry. _Diagnosis-grade telemetry on demand, no restart._
-- [M18.4] ☐ **Dev restart** — stop/start/restart the linked server, **only where the per-link dev
-  opt-in is set** (localhost ≠ disposable); confirm dialog carries live context from the log
-  ("published quotes 2s ago — restart?"). Composes with M12: fix lands → restart → Follow verifies on
-  the fresh log.
-- [M18.5] ☐ _(deferred)_ deploy-jar-and-restart; non-loopback/production posture (only alongside the
-  regulated-tier approvals/attestation story); agent-initiated server actions behind per-action human
-  approval.
-- Open questions: **O1 admin endpoint surface — RESOLVED by M18.0** (audit level + log discovery served;
-  only lifecycle gapped — see [spike-m18.0-admin-surface.md](spike-m18.0-admin-surface.md)) ·
-  **O2** multi-processor servers — **largely answered**, and a terminology fix: **event processors**
-  (the DataFlow graphs that emit `nodeLogs`) are *not* **services** (environmental deps Mongoose manages —
-  DB, Kafka). Processors come from `server.processors.list` / `/api/processors/{group}/{name}/…`, and the
-  audit + level + graphml routes are already per-processor. `/api/services` enumerates something else
-  entirely, and `/api/services/{name}/config` says nothing about the audit sink. · **O3** admin auth beyond localhost — **now concrete**: `svc-admin-web`
-  has `POST /api/session/login` and `authMode` may not be `NONE`, so M18.1 needs auth from day one.
-  · **O5 positioning vs the server's own audit viewer — RESOLVED as complement** (Decisions ▸ O5).
-  _(O4 gitignore: resolved — the analyser writes it.)_
+## M18 · Mongoose server link — ☒ **CLOSED 2026-08-22 in favour of the agent-brokered dev loop**
+_Superseded by **[spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md)** (ACCEPTED v2),
+assessed in [review_spec_agent_brokered_dev_loop.txt](../handoff/review_spec_agent_brokered_dev_loop.txt).
+The deciding argument is no longer between two specs: **M34.0 passed its gate and M34.1's ordering
+slice shipped**, so M18 as specced would contradict merged code — the analyser cannot be made
+engine-agnostic and taught one server's REST API in the same quarter._
+
+_**Closed as "not the analyser's questions"** (acceptance 5): **M18.1** link/status · **M18.3**
+audit level · **M18.3a** the missing `GET` companion · **M18.4** dev restart · **M18.4a** why
+`start`/`stop` are commented out · **M18.6** source+graphml over REST · **O3** admin auth. They move
+to a Mongoose-side MCP tool, in the repo whose release cadence owns them._
+
+- [M18.2] ⏸ **PARKED, not deleted** — log discovery (*point the analyser at your running system*).
+  **Revival trigger, stated so it is falsifiable:** revive as an onboarding affordance only if
+  evidence shows no-agent developers bouncing off the export step. Until then the agent exports and
+  calls `open {log}`, which shipped.
+- [M18.5] ☐ _(unchanged, still deferred)_ deploy-jar-and-restart; non-loopback/production posture.
+  Now the natural home of **D-B7's paid production MCP** — enforcement server-side, since a licence
+  check inside a source-available client is an `if` anyone can delete.
+- **O5 — RESOLVED 2026-08-22 and CLOSED** (spec §G). Under M18 the overlap with `svc-admin-web`'s
+  audit viewer was a positioning problem settled by assertion. Under the adopted design it is
+  structural: the server's viewer is the **live, in-situ, one-server** surface; the analyser is the
+  **deep** one, fed by exports and adapters across many logs and systems. They are not fed by the
+  same thing, so they do not compete.
+- **Before any cross-repo work starts:** the loop is a contract and gets a **conformance harness**
+  (spec §H) — a scripted end-to-end of steps 3–7, homed in the **M19 bench**, so a break fails in the
+  owning repo rather than in a user's session. The three-repo dependency is acceptable *because* of
+  this and not otherwise.
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
@@ -440,26 +403,32 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-08-20, after v1.7.0. M13 · M20–M28 · M29 · M31 · M32 · M33 core all shipped — see
-completed/tracker.md. The previous list still had M29.1–29.3 at the top; they shipped 2026-08-18._
+_Refreshed 2026-08-22. Shipped since the last refresh: **M34.0** (spike, gate opened), **M34.1**
+ordering slice, **M35.1/.2/.3/.4/.7** (on `feat/m35-lifecycle`). **M18 is closed** in favour of
+spec-agent-brokered-dev-loop; its old slices are gone from this list._
 
-1. **M34.0** (the LangGraph spike, against current code) — the gate on the whole general-purpose
-   direction, and the cheapest thing on this list. One throwaway translator, no SPI, no refactor.
-   Everything in M34 after it is expensive; all of it is wasted if the spike says no.
-2. **M18.0 spike, then M18.1 → M18.2 → M18.3** (verify the admin surface; server link read-only →
-   log discovery → audit level) — small slices, each immediately useful with Follow.
-3. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent can
+1. **M35 remnants** — **M35.5** (project switch closes log + graph) and **M35.6** (state the pairing
+   up front, largely delivered already by `context.graphPairing` and the status line). Finish the
+   branch and merge.
+2. **§E provenance** (spec-agent-brokered-dev-loop) — **before any agent swaps logs between
+   servers.** One field on `LogFingerprint`, plus the share-disclosure row and the Q1 soft-banner
+   treatment, in the same commit. The design creates the hole; this closes it first.
+3. **M34.1 remainder** — `graph(Path)` on the SPI, and reconciling an adapter-supplied graph with
+   `open {graphml}`. Deliberately after M35, which is where that reconciliation is being designed.
+4. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent can
    query back while it works.
-4. **M18.4** (dev restart) — completes the local diagnose → fix → redeploy → verify demo
-   (spec-closed-loop §B.7).
 5. **M12.1 / M12.2** (export_finding structure; replay-test fixture) — journal↔log pairing is the
    precondition to resolve first, and it also gates **M33.5**.
-6. **M19** (onboarding example) — mostly docs + playground-side; M19.1's bundle contract can proceed
-   in parallel; write the tutorial against the shipped M20 auto-load flow.
-7. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers),
-   **M29.5** (optional embed), **M13.5**, **M21.7–.9**, the **M22** five, and the un-started polish
-   round (`docs/handoff/handoff_17_aug_2026_1.txt`).
-8. **M11** stays vision until a real Grafana consumer appears — and when one does, it is now
+6. **M19** (onboarding example) — and it now carries the **§H conformance harness**, which must have
+   a home before any cross-repo work starts.
+7. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers), **M20.6**
+   (`open {project}` so an agent can accept the offer M35.7 reports), **M29.5**, **M13.5**,
+   **M21.7–.9**, the **M22** five, and the un-started polish round
+   (`docs/handoff/handoff_17_aug_2026_1.txt`).
+8. **Cross-repo, gated on §H:** the Mongoose **MCP admin tool** + `~/.mongoose/servers/` endpoint
+   files, and the playground's two catalogue asks (`agentBootstrap`, the `catalogue` version
+   integer). All belong in [upstream-asks.md](../proposals/upstream-asks.md).
+9. **M11** stays vision until a real Grafana consumer appears — and when one does it is
    `export_promotion` (a neutral manifest the agent renders), not a dashboard generator.
 
 ## Decisions (resolved)
