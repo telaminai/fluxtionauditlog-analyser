@@ -317,7 +317,7 @@ than a per-session one._
 - [M35.1] ☑ **Close / reset** *(on `feat/m35-lifecycle`)* — close the log, close the graph, or reset both. The absent capability;
   everything else here depends on it. Clearing must reach the derived state too (topology shading,
   step cursor, coverage, focus contexts) — a half-cleared app is worse than an uncleared one.
-- [M35.2] ☐ **Opening a log clears the previous graph unless it still applies** — offer-never-act:
+- [M35.2] ☑ **Opening a log clears the previous graph unless it still applies** *(on `feat/m35-lifecycle`)* — offer-never-act:
   keep it and say so when the instanceIds still match, otherwise close it and say why. The scoring
   already exists (Decisions ▸ EventProcessor inference).
 - [M35.3] ☐ **Switch graph without reopening the log** — multi-processor servers emit one GraphML per
@@ -327,6 +327,13 @@ than a per-session one._
   wrong graph auto-picked is precisely the confidently-wrong reading M35 exists to prevent.
 - [M35.5] ☐ **New/switched project closes log + graph** — the profile is the session boundary; today
   "Close project" leaves both loaded.
+- [M35.7] ☐ **No modal in the load path** _(found by M35.2, 2026-08-22)_ — `onLoaded` assigns
+  `store` and then calls `maybeOfferProject()`, which shows a MODAL dialog; everything after it waits
+  for a human, and on the agent path there is nobody. Worse, the new log is already live behind it,
+  so it is answerable against the OLD graph — the M35 defect happening inside the code meant to
+  prevent it (report §8 D4 has the REST transcript). M35.2 sidestepped it by re-pairing first; the
+  hazard is untouched. The offer must be non-blocking, or suppressed when the open came from the
+  action socket rather than a human.
 - [M35.6] ☐ **State the pairing before anything is derived from it** — status bar and `context` name
   which graph is paired with which log, and whether they match. Coverage's warning arrives only if
   someone runs coverage; the mismatch should be visible before that.
