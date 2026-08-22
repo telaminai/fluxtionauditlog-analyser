@@ -7,6 +7,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **An agent-driven open can no longer strand the app on a dialog** (M35.7). Opening a log that sits
+  inside a project popped a **modal** "load this project's settings?" question from inside the load
+  path — fine for a human, fatal over the action socket, where nobody can answer it and every later
+  verb blocks behind it. Worse, the new log was already live behind the invisible dialog, so it was
+  answerable against the *previous* log's graph. Opens that come from the socket now **report** the
+  offer instead: it appears in `context` as `projectOffer`, and in the status bar. Opening by hand is
+  unchanged — you still get the dialog. Loading a project is still never automatic, because it
+  replaces your source roots, event processors, graphs and hidden columns.
 - **A graph loaded for one log no longer survives into another** (M35.2). Opening a log now
   re-checks the loaded topology against it: kept when it still declares the nodes the log writes,
   otherwise **closed, with the reason and its counts** — *"the graph declares only 0 of the 17
