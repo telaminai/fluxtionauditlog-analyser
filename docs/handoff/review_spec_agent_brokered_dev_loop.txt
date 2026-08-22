@@ -271,8 +271,6 @@ The stack, each named piece in its seat:
      fixtures are already the right artifact family. The closing property: when the search finds a
      violation, the audit log IS the repro — a journal slice, replayable on a laptop, openable in
      this analyser. A fault found by exhaustive search, delivered as evidence a human can read.
-     (Scope note: the invariant/oracle/conformance-fixture side is public-roadmap material; the
-     deeper family stays private until counsel advises.)
   5. Production under D-B7's paid control plane — journaled, licensed, server-enforced.
 
 THE FULL PITCH, one sentence: business rules → AI-authored design (reviewable IR) → compiled,
