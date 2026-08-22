@@ -256,12 +256,10 @@ the ARTIFACT stops being a JVM story even where the toolchain remains one.
 
 The stack, each named piece in its seat:
 
-  1. AXIOM (business-rules ingestion) — the DESIGN-SIDE plugin. EXPLORATORY TRACK. Rules in, graph
-     design out — made safe by the standing rule applied at the front: DECLARED, never inferred.
-     The ingestion emits the Spring-XML design IR (the reviewable artifact the playground's
-     contract.md already specifies), so a human reviews the design-level delta between the rules
-     and the graph, never generated Java. This is why the Spring-XML starter being the tutorial
-     tiebreaker matters more now: it is the seam this plugs into.
+  1. AXIOM — a design-side integration, EXPLORATORY TRACK; scope to be specced by the owner. The
+     seam it would plug into is the Spring-XML design IR (the reviewable artifact the playground's
+     contract.md already specifies) — which is why the Spring-XML starter being the tutorial
+     tiebreaker matters more now.
   2. /build-with-ai — the AUTHORING leg, already live and layered (orientation → skill → contract →
      worked example → generated build). Joins §7a's preamble as the cycle's "design" verb.
   3. THE FLAGSHIP LOOP — deploy / analyse / commit, as §7a–7c.
