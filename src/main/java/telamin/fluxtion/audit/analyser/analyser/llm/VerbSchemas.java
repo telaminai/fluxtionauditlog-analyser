@@ -223,6 +223,12 @@ public final class VerbSchemas {
                                 + "against; needed before source navigation works"),
                         p("format", string(), "force a specific installed reader (M31 plugins) — e.g. "
                                 + "\"yaml\"; omit to let readers claim the file by content"),
+                        p("discover", enumStr("graphml"), "list the .graphml files under the "
+                                + "configured source roots, RANKED against the open log (M35.4) — "
+                                + "each with its node count and how many of the log's nodes it "
+                                + "declares. Opens NOTHING: pick one and pass it as 'graphml'. "
+                                + "Auto-selecting would be the convenience that reintroduces the "
+                                + "defect M35 exists to prevent"),
                         p("close", enumStr("log", "graph", "all"), "close what is open (M35.1) — the "
                                 + "counterpart of opening, and the way to switch cleanly between "
                                 + "systems. Log-DERIVED state clears (records, filter, shading, step "

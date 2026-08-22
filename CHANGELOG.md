@@ -15,6 +15,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   offer instead: it appears in `context` as `projectOffer`, and in the status bar. Opening by hand is
   unchanged — you still get the dialog. Loading a project is still never automatic, because it
   replaces your source roots, event processors, graphs and hidden columns.
+- **Find the GraphML for the log you have open** (M35.4). *File ▸ Find GraphML in source roots…*
+  lists every `.graphml` under your configured roots, **ranked by how well each fits the open log** —
+  node count, and how many of the log's nodes it declares. Agents get the same list from
+  `open {discover: "graphml"}`. **Nothing is opened until you pick one**: an auto-selected graph is a
+  graph nobody chose, and the moment it is wrong the analyser is confidently describing a system it
+  is not looking at. Unreadable files are listed with the reason rather than silently dropped, and a
+  scan that hit its bound says so instead of presenting a partial list as the whole answer.
 - **Switch processor without reopening the log** (M35.3). A multi-processor server emits one GraphML
   per processor; opening a second one now judges it against the log you already have and says so
   immediately — `open {graphml}` returns the node count, how many of the log's nodes the graph

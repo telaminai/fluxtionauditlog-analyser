@@ -322,7 +322,7 @@ than a per-session one._
   already exists (Decisions ▸ EventProcessor inference).
 - [M35.3] ☑ **Switch graph without reopening the log** *(on `feat/m35-lifecycle`)* — multi-processor servers emit one GraphML per
   processor; analysing a second processor against the same log must not mean starting over.
-- [M35.4] ☐ **Scan source roots for GraphML** — discover candidates under the configured roots and
+- [M35.4] ☑ **Scan source roots for GraphML** *(on `feat/m35-lifecycle`)* — discover candidates under the configured roots and
   offer them. **Never auto-select silently**: N candidates → name them and their match scores; a
   wrong graph auto-picked is precisely the confidently-wrong reading M35 exists to prevent.
 - [M35.5] ☐ **New/switched project closes log + graph** — the profile is the session boundary; today

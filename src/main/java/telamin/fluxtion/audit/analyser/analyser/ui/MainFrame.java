@@ -1213,6 +1213,11 @@ public final class MainFrame extends JFrame {
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
         });
         file.add(openGraphml);
+        JMenuItem findGraphml = new JMenuItem("Find GraphML in source roots\u2026");
+        findGraphml.setToolTipText("List the .graphml files under your source roots, ranked by how "
+                + "well each fits the open log. Nothing is opened until you pick one.");
+        findGraphml.addActionListener(e -> chooseDiscoveredGraph());
+        file.add(findGraphml);
         file.addSeparator();
         // M35.1 — the counterparts the File menu never had. Until now the only way back to a clean
         // app was to restart it, and opening a second log left the first log's graph on screen.
@@ -2123,6 +2128,62 @@ public final class MainFrame extends JFrame {
      * every open. The first {@value #PAIRING_SAMPLE} records name the recurring nodes of any real
      * run, and the verdict carries its counts so a caller can see what was actually compared.
      */
+    /**
+     * M35.4 — the .graphml files under the source roots, ranked against the open log. On demand
+     * only: a walk of a monorepo is not something to do on every {@code context} call, and a
+     * ranking nobody asked for is a recommendation nobody can see the cost of.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Result discoverGraphs0() {
+        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
+        if (store != null) {
+            int scan = Math.min(store.size(), PAIRING_SAMPLE);
+            for (int row = 0; row < scan; row++) {
+                for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
+            }
+        }
+        return telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
+                config.sourceRoots, logged);
+    }
+
+    /**
+     * The human half of M35.4 — list the candidates and let the user pick. A dialog, deliberately:
+     * the whole point of the slice is that nothing is chosen automatically, and a menu item that
+     * silently loaded the best match would be the convenience that reintroduces the defect.
+     */
+    private void chooseDiscoveredGraph() {
+        var result = discoverGraphs0();
+        if (result.candidates().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    config.sourceRoots.isEmpty()
+                            ? "No source roots are configured — add one in Settings, or use "
+                                    + "File \u25b8 Open GraphML\u2026"
+                            : "No .graphml found under the configured source roots."
+                                    + (result.notes().isEmpty() ? ""
+                                            : "\n\n" + String.join("\n", result.notes())),
+                    "Find GraphML", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        String[] options = result.candidates().stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Candidate::describe)
+                .toArray(String[]::new);
+        Object picked = JOptionPane.showInputDialog(this,
+                (store == null ? "No log is open, so these are unranked.\n\n"
+                        : "Ranked against the open log \u2014 best fit first.\n\n")
+                        + "Pick a topology to open:",
+                "Find GraphML in source roots", JOptionPane.QUESTION_MESSAGE, null,
+                options, options[0]);
+        if (picked == null) return;                       // offered, declined — nothing loaded
+        for (var c : result.candidates()) {
+            if (c.describe().equals(picked)) {
+                topologyPanel.load(c.file());
+                judgeOpenedGraph();
+                updateLifecycleMenu();
+                if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+                return;
+            }
+        }
+    }
+
     /** The loaded graph judged against a log — one comparison, used by both open directions. */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing pairingAgainst(LogStore log) {
         java.util.Set<String> logged = new java.util.LinkedHashSet<>();
@@ -2680,6 +2741,36 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult discoverGraphs() {
+            var result = discoverGraphs0();
+            java.util.List<Map<String, Object>> found = new java.util.ArrayList<>();
+            for (var c : result.candidates()) {
+                Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("path", c.file().toString());
+                m.put("nodes", c.nodes());
+                if (c.pairing() != null) {
+                    m.put("appliesToOpenLog", c.pairing().applies());
+                    m.put("declaredByGraph", c.pairing().matched());
+                    m.put("loggedNodes", c.pairing().logged());
+                }
+                found.add(m);
+            }
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("roots", java.util.List.copyOf(config.sourceRoots));
+            echo.put("candidates", found);
+            echo.put("ranked", store != null);
+            if (store == null) {
+                echo.put("note", "no log is open, so these are listed but NOT ranked — there is "
+                        + "nothing to judge fit against");
+            }
+            if (result.truncated()) echo.put("truncated", true);
+            if (!result.notes().isEmpty()) echo.put("warnings", result.notes());
+            // M35.4's whole point, said where an agent will read it
+            echo.put("opened", "nothing — this lists candidates; open one with open {graphml}");
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "discover", echo);
+        }
+
+        @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult close(String what) {
             String w = what == null ? "" : what.trim().toLowerCase(java.util.Locale.ROOT);
             boolean hadLog = store != null;
@@ -2931,7 +3022,10 @@ public final class MainFrame extends JFrame {
                 var gf = topologyPanel.loadedGraphFile();
                 Map<String, Object> pair = new java.util.LinkedHashMap<>();
                 pair.put("graph", gf == null ? null : gf.getFileName().toString());
-                if (lastPairing != null) {
+                // only describe a graph that is actually there: a verdict beside "graph": null is
+                // the tool asserting something about an artefact it does not have, which is the
+                // defect class this milestone is about
+                if (gf != null && lastPairing != null) {
                     pair.put("applies", lastPairing.applies());
                     pair.put("loggedNodes", lastPairing.logged());
                     pair.put("declaredByGraph", lastPairing.matched());

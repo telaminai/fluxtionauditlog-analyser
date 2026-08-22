@@ -213,3 +213,38 @@ D7 · The supermarket POC has only ONE .graphml (StoreProcessorFast is .java onl
 multi-processor case — two graphs from one server, same log — was exercised with an unrelated graph
 standing in for the second processor. The code path is identical; the realistic fixture is not
 available in-tree and would come from M18-alt's server work.
+
+================================================================================
+11. M35.4 — COMPLETE (find the graph, never choose it)
+================================================================================
+GraphmlDiscovery walks the configured source roots, parses each .graphml, and ranks the candidates
+against the open log — reusing GraphPairing, which reuses NodeCoverage. One comparison now serves
+four callers (M35.2 re-pair, M35.3 switch, M35.4 ranking, coverage), which is what the brief meant
+by "do not invent a second scorer".
+
+IT OFFERS AND NEVER SELECTS, which is the whole slice and the thing most easily lost by being
+helpful. The best candidate is FIRST, not loaded. Both surfaces say so:
+  · File ▸ Find GraphML in source roots… — a picker. Cancel loads nothing.
+  · open {discover: "graphml"} — returns candidates and echoes
+    "opened": "nothing — this lists candidates; open one with open {graphml}"
+
+Bounded on purpose (depth 12, 25 candidates, 32 MB/file): source trees contain build output and an
+unbounded walk of a monorepo is a hang. A truncated scan SAYS SO rather than presenting a partial
+list as the whole answer.
+
+VERIFIED IN THE RUNNING JAR, roots pointed at both projects so there was a right and a wrong answer:
+  StoreProcessor.graphml        301 nodes  appliesToOpenLog true   211 of 211   <- ranked first
+  demo-quote-processor.graphml   10 nodes  appliesToOpenLog false    0 of 211
+  ...and context.graphPairing.graph stayed null: nothing was opened.
+
+TWO DEFECTS FOUND BY THE TESTS AND FIXED:
+D8 · GraphMlParser returns an EMPTY topology rather than throwing on a non-graph file, so a broken
+     .graphml was being offered as "0 node(s)" with no reason — a candidate the caller cannot tell
+     from a real but empty processor. It is now named in the notes. Found by a test asserting the
+     bad file is "listed, not silently dropped"; the test was right and the code was wrong.
+D9 · context reported a pairing verdict beside "graph": null — the tool asserting something about an
+     artefact it does not have. Guarded. Same defect class as the rest of this milestone, found by
+     reading the live output rather than by a test, which is why §3-style REST transcripts stay in
+     this report.
+
+E6 (eyeball) · the picker dialog in both themes, and Cancel genuinely loading nothing.
