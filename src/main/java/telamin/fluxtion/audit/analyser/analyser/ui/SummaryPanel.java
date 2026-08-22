@@ -48,6 +48,16 @@ public final class SummaryPanel extends JPanel {
         rebuild();
     }
 
+    /**
+     * Unbind and blank (M35.1). {@code rebuild()} returns early on a null store, which would leave
+     * the PREVIOUS log's rows on screen — the half-cleared state this milestone exists to prevent.
+     */
+    public void clear() {
+        this.store = null;
+        this.filter = null;
+        model.setRows(java.util.List.of());
+    }
+
     private void rebuild() {
         if (store == null || filter == null) return;
         model.setRows(SummaryBuilder.build(store.index(), filter));

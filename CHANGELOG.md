@@ -7,6 +7,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Close a log, close a graph, or reset** (M35.1) — *File ▸ Close log / Close graph / Reset*, and
+  `open {close: "log"|"graph"|"all"}` for agents. Until now the app could only ever load: there was
+  a "Close project" but no "Close log", and opening a second log left the **first** log's topology
+  on screen, so coverage, "did not run" shading and step-through described a graph that had nothing
+  to do with the records. Closing clears everything **derived** from the log — records, filter,
+  search, time slider, event checklist, summary, detail, flags, execution shading, the step cursor,
+  follow — while **profile state survives**: named graphs, focuses, source roots and saved reports
+  are yours, not the log's. Anything that can no longer resolve says so instead of vanishing, so a
+  saved report with no log reads "written against risk.yaml · 726 records; no log is loaded" with
+  every anchor named.
 - **A log now says whether its order means anything** (M34.1, first slice). Fluxtion's `nodeLogs`
   order is derived by the AOT compiler, so step-through and the topology's order badges are reading
   back real causality. A source whose components run concurrently has no such order to report — and

@@ -610,6 +610,39 @@ public final class TopologyPanel extends JPanel {
     }
 
     /** Load a topology from a {@code .graphml}; a bad file reports rather than throwing. */
+    /**
+     * Drop the loaded graph entirely (M35.1) — the counterpart {@link #load} never had. Also clears
+     * everything DERIVED from it, because a graph-shaped hole with live shading in it is exactly the
+     * half-cleared state this milestone exists to prevent.
+     */
+    public void clearGraph() {
+        loadedFrom = null;
+        fullTopology = telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.empty();
+        focusStack = new FocusStack(fullTopology);
+        selection.clear();
+        scope = TopologyFocus.Scope.NODE;
+        cursor = StepCursor.over(java.util.List.of());
+        canvas.setClassificationTopology(fullTopology);
+        index.setTopology(fullTopology);
+        refreshCrumbs();
+        applyView(false);
+        setStatus("No graph loaded — open a .graphml to see the topology.");
+    }
+
+    /**
+     * Drop only what the LOG contributed (M35.1): the per-record execution shading and the step
+     * cursor. The graph itself is a separate artefact with its own lifetime — closing a log must not
+     * silently discard a topology the user opened deliberately.
+     */
+    public void clearExecution() {
+        cursor = StepCursor.over(java.util.List.of());
+        applyView(true);
+    }
+
+    public Path loadedGraphFile() {
+        return loadedFrom;
+    }
+
     public void load(Path file) {
         ProcessorTopology topology = GraphMlParser.parse(file);
         if (topology.isEmpty()) {

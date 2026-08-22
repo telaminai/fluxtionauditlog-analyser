@@ -211,8 +211,8 @@ public final class VerbSchemas {
                                 + "painted PNG never contains a popup; a Swing menu is a separate layer.")),
                 req("path")));
 
-        s.put("open", schema("Open an audit log and/or a processor .graphml. Reaches the FILESYSTEM: it "
-                        + "points the app at any readable path.",
+        s.put("open", schema("Open an audit log and/or a processor .graphml — or CLOSE what is open. "
+                        + "Reaches the FILESYSTEM: it points the app at any readable path.",
                 props(
                         p("log", string(), "path to an audit log, or an s3:// URI"),
                         p("logs", arr(string()), "an explicit ROLLED SET (M30): the member files, any "
@@ -222,7 +222,13 @@ public final class VerbSchemas {
                         p("processor", string(), "fully-qualified EventProcessor class to resolve nodes "
                                 + "against; needed before source navigation works"),
                         p("format", string(), "force a specific installed reader (M31 plugins) — e.g. "
-                                + "\"yaml\"; omit to let readers claim the file by content")),
+                                + "\"yaml\"; omit to let readers claim the file by content"),
+                        p("close", enumStr("log", "graph", "all"), "close what is open (M35.1) — the "
+                                + "counterpart of opening, and the way to switch cleanly between "
+                                + "systems. Log-DERIVED state clears (records, filter, shading, step "
+                                + "cursor, flags); named graphs, focuses, source roots and reports are "
+                                + "PROFILE state and survive, each saying why it cannot resolve rather "
+                                + "than vanishing. Ignored when combined with log/graphml/processor")),
                 List.of()));
 
         s.put("source_root", schema("Inspect or change the configured Java source roots. Reaches the "

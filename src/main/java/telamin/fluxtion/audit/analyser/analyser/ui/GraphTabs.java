@@ -317,6 +317,18 @@ public final class GraphTabs extends JPanel {
         }
     }
 
+    /**
+     * Drop the log-derived plots (M35.1). The graph SPECS are profile state and live in the config —
+     * they are restored by {@link #restore} on the next load, so closing a log loses no definition,
+     * only the data that was extracted from it.
+     */
+    public void unbind() {
+        clearGraphs();
+        this.store = null;
+        this.filter = null;
+        counter = 0;
+    }
+
     private void clearGraphs() {
         for (int i = 0; i < tabs.getTabCount(); i++) {
             if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.unbind();

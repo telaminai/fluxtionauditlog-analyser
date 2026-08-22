@@ -75,6 +75,9 @@ public final class MainFrame extends JFrame {
     /** Enabled only with a project open — forking or closing nothing is not an action. */
     private final JMenuItem saveProjectAsItem = new JMenuItem("Save project as…");
     private final JMenuItem closeProjectItem = new JMenuItem("Close project");
+    private final JMenuItem closeLogItem = new JMenuItem("Close log");
+    private final JMenuItem closeGraphItem = new JMenuItem("Close graph");
+    private final JMenuItem resetItem = new JMenuItem("Reset (close log + graph)");
     private telamin.fluxtion.audit.analyser.analyser.config.ProjectSession project;
     /**
      * Coalesces project writes. A profile is often a committed file, so a burst of graph tweaks should
@@ -1210,6 +1213,19 @@ public final class MainFrame extends JFrame {
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
         });
         file.add(openGraphml);
+        file.addSeparator();
+        // M35.1 — the counterparts the File menu never had. Until now the only way back to a clean
+        // app was to restart it, and opening a second log left the first log's graph on screen.
+        closeLogItem.setToolTipText("Close the log and everything derived from it. Named graphs, "
+                + "focuses and reports are profile state and stay — they will say why they cannot resolve.");
+        closeLogItem.addActionListener(e -> closeLog());
+        file.add(closeLogItem);
+        closeGraphItem.setToolTipText("Close the loaded .graphml topology, leaving the log open");
+        closeGraphItem.addActionListener(e -> closeGraph());
+        file.add(closeGraphItem);
+        resetItem.setToolTipText("Close both — back to a fresh start (the project profile is kept)");
+        resetItem.addActionListener(e -> resetAll());
+        file.add(resetItem);
         rebuildRecentMenu();
         file.add(recentMenu);
         file.add(recentGraphmlMenu);
@@ -1898,6 +1914,86 @@ public final class MainFrame extends JFrame {
                 });
     }
 
+    // ---- M35.1 · lifecycle -----------------------------------------------------------------------
+
+    /**
+     * Close the log and everything DERIVED from it (M35.1). The owner's rule, settled in the brief:
+     * <b>derived state clears, profile state survives and degrades loudly.</b>
+     *
+     * <p>Derived and cleared here: the store, table, filter, search, slider, event checklist,
+     * summary, detail pane, flags and findings (per-file — they are model row indices), the
+     * topology's execution shading and step cursor, follow, and the time-order report.
+     *
+     * <p>Profile state deliberately UNTOUCHED: named graph specs, named focuses, source roots,
+     * saved reports, project settings. A report that can no longer resolve says so on its own —
+     * {@code ReportResolver} with a null index already yields "written against X; no log is loaded"
+     * and marks every anchor unresolved. That is announce-never-forbid (D-I3a), and it is why this
+     * method does not go near {@code config}.
+     *
+     * <p>The LOADED GRAPH is not touched either: it is a separate artefact the user opened
+     * deliberately, and {@link #closeGraph} is its counterpart. Only its shading goes.
+     */
+    private void closeLog() {
+        setFollowing(false);
+        followPath = null;
+        if (store != null) store.close();
+        store = null;
+        tableModel = null;
+        logDisplayLocation = null;
+        logLocalPath = null;
+        timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
+        flaggedRows.clear();
+        findings.clear();
+        flaggedOnly = false;
+
+        filter = new FilterState();          // a fresh, unbound filter — listeners on the old one die with it
+        tablePanel.setRowFilter(null);
+        tablePanel.setModel(new LogTableModel(new telamin.fluxtion.audit.analyser.analyser.parse
+                .HeapLogStore("")));         // an empty model, not a stale one
+        detailPanel.clear();
+        summaryPanel.clear();
+        eventFilterPanel.clear();
+        graphTabs.unbind();
+        topologyPanel.clearExecution();
+        if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
+
+        searchField.setText("");
+        searchField.setEnabled(false);
+        timeSlider.setRange(null, null);
+        timeSlider.setHistogram(new int[0]);
+        syncingWindow = true;
+        windowCombo.setSelectedIndex(0);
+        syncingWindow = false;
+        windowCombo.setEnabled(false);
+        if (followMenuItem != null) followMenuItem.setEnabled(false);
+        if (followButton != null) followButton.setEnabled(false);
+
+        status.setText("No log open" + (topologyPanel.loadedGraphFile() == null ? ""
+                : " · graph " + topologyPanel.loadedGraphFile().getFileName() + " still loaded"));
+        updateLifecycleMenu();
+    }
+
+    /** Close the loaded topology, leaving the log alone (M35.1). */
+    private void closeGraph() {
+        topologyPanel.clearGraph();
+        status.setText(store == null ? "No log open" : "Graph closed · " + store.size() + " records");
+        updateLifecycleMenu();
+    }
+
+    /** Both — back to a fresh start (M35.1). Profile state still survives; this is not "new project". */
+    private void resetAll() {
+        closeLog();
+        closeGraph();
+        status.setText("Reset — no log, no graph");
+    }
+
+    /** Close items are enabled only when there is something to close. */
+    private void updateLifecycleMenu() {
+        if (closeLogItem != null) closeLogItem.setEnabled(store != null);
+        if (closeGraphItem != null) closeGraphItem.setEnabled(topologyPanel.loadedGraphFile() != null);
+        if (resetItem != null) resetItem.setEnabled(store != null || topologyPanel.loadedGraphFile() != null);
+    }
+
     private void onLoaded(LogStore loaded, String location) {
         onLoaded(loaded, location, telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean());
     }
@@ -1986,6 +2082,7 @@ public final class MainFrame extends JFrame {
                     : "This source cannot follow (rolled sets and non-file containers do not tail)");
         }
         if (followButton != null) followButton.setEnabled(followable);
+        updateLifecycleMenu();
     }
 
     /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
@@ -2395,6 +2492,7 @@ public final class MainFrame extends JFrame {
     private void updateProjectMenuState() {
         saveProjectAsItem.setEnabled(project.hasProject());
         closeProjectItem.setEnabled(project.hasProject());
+        updateLifecycleMenu();
         fillRecent(recentProjectsMenu, config.recentProjects,
                 path -> applyProjectResult(project.open(Path.of(path))));
     }
@@ -2474,6 +2572,30 @@ public final class MainFrame extends JFrame {
             openLocation(path);
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
                     "open", "log", Map.of("path", path));
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult close(String what) {
+            String w = what == null ? "" : what.trim().toLowerCase(java.util.Locale.ROOT);
+            boolean hadLog = store != null;
+            boolean hadGraph = topologyPanel.loadedGraphFile() != null;
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            switch (w) {
+                case "log" -> { closeLog(); echo.put("closed", "log"); }
+                case "graph", "graphml" -> { closeGraph(); echo.put("closed", "graph"); }
+                case "all", "both" -> { resetAll(); echo.put("closed", "all"); }
+                default -> {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "close takes 'log', 'graph' or 'all', got '" + what + "'");
+                }
+            }
+            // M26.4: say what was actually there, so a no-op close does not read as a success
+            echo.put("logWasOpen", hadLog);
+            echo.put("graphWasOpen", hadGraph);
+            if (!hadLog && !hadGraph) echo.put("note", "nothing was open");
+            echo.put("kept", "named graphs, focuses, source roots and reports are profile state and "
+                    + "survive; anything that can no longer resolve says so rather than vanishing");
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied", echo);
         }
 
         @Override
