@@ -98,3 +98,46 @@ E4  Close while FOLLOW is running (the code stops it first; worth seeing).
 M35.2 (opening a log clears the previous graph unless it still applies) is the natural next slice
 and now has everything it needs: closeGraph() exists, and the EventProcessor inference scoring is
 the re-pair test the brief points at. M34.1's remaining scope stays blocked on M35 by design.
+
+================================================================================
+8. M35.2 — COMPLETE, and it uncovered a second defect
+================================================================================
+GraphPairing (pure, 7 tests) reuses NodeCoverage.of() as the brief required — the comparison
+"which logged instanceIds does this graph declare?" already existed, and a second scorer would be a
+second answer to one question. Verdict: keep when a majority of what the log writes is declared;
+otherwise close, ALWAYS with the counts, so the decision is checkable rather than magic.
+
+IT ACTS RATHER THAN OFFERS, and the reason is the agent path. An offer was considered — it matches
+D-I3a's announce-never-forbid — but a modal question on every log open is friction for humans and
+UNANSWERABLE for an agent, so it would be silently defaulted, and silently defaulting to "keep" IS
+the defect. Closing is safe, one action to undo, and the comparison use case (build A's graph against
+build B's log) is served by reopening the graph after the log — an explicit act rather than an
+accident. Recorded here because it departs from the codebase's usual preference.
+
+VERIFIED IN THE RUNNING JAR:
+  POC log + its own graph      -> kept, "211 of the 211 node(s)"; coverage 217 of 301 (the real
+                                  dead-node finding still works)
+  then open sample.yml         -> pairing {"applies": false, "loggedNodes": 17, "declaredByGraph": 0,
+                                  "verdict": "closed — ... describes a different system or build"}
+                                  graph null; coverage now REFUSES rather than answering from a
+                                  foreign graph
+
+--------------------------------------------------------------------------------
+D4 · FINDING — a modal dialog inside onLoaded can strand an agent-driven open
+--------------------------------------------------------------------------------
+The first cut of M35.2 did not fire, and the reason is worth more than the fix. onLoaded() assigns
+`this.store = loaded` and then calls maybeOfferProject() (M20.3), which shows a MODAL
+JOptionPane. Everything after it — the table, filter, slider, and my re-pair — waits for a human
+click. On the agent path there is nobody to click.
+
+The dangerous part is the ORDER: `store` is already assigned, so while the app sits behind a dialog
+nobody can see, the NEW log is live and answerable against the OLD graph. Driving it over REST
+produced exactly that: 21 records reported, coverage answering "301 declared, 0 covered" — the M35
+defect, occurring inside the code meant to prevent it.
+
+FIXED HERE only by moving repairLoadedGraph() ahead of maybeOfferProject(), so the pairing is
+settled before anything can block. THE UNDERLYING HAZARD REMAINS and is not M35's to fix: any modal
+in the load path strands an agent-driven open, and every verb after it blocks on the EDT. It did not
+reproduce on the final run only because projectDetect remembers a declined offer for that log.
+Recommend a slice (M20 or M35.7): the project offer must be non-blocking, or suppressed when the
+open came from the action socket rather than a human.

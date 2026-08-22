@@ -7,6 +7,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **A graph loaded for one log no longer survives into another** (M35.2). Opening a log now
+  re-checks the loaded topology against it: kept when it still declares the nodes the log writes,
+  otherwise **closed, with the reason and its counts** — *"the graph declares only 0 of the 17
+  node(s) this log writes, so it describes a different system or build. Reopen it deliberately if
+  you meant to compare them."* Previously the first log's graph stayed silently, and coverage,
+  "did not run" shading and step-through all answered from it. The verdict is in `context` as
+  `graphPairing`, so an agent can see the pairing before deriving anything from it.
 - **Close a log, close a graph, or reset** (M35.1) — *File ▸ Close log / Close graph / Reset*, and
   `open {close: "log"|"graph"|"all"}` for agents. Until now the app could only ever load: there was
   a "Close project" but no "Close log", and opening a second log left the **first** log's topology

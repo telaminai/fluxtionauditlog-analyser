@@ -1976,6 +1976,7 @@ public final class MainFrame extends JFrame {
     /** Close the loaded topology, leaving the log alone (M35.1). */
     private void closeGraph() {
         topologyPanel.clearGraph();
+        lastPairing = null;
         status.setText(store == null ? "No log open" : "Graph closed · " + store.size() + " records");
         updateLifecycleMenu();
     }
@@ -2006,6 +2007,11 @@ public final class MainFrame extends JFrame {
         this.store = loaded;
         this.logDisplayLocation = location;
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
+        // M35.2 FIRST, and deliberately before maybeOfferProject(): that offer is a MODAL dialog, and
+        // everything after it waits for a human — which on the agent path is nobody. `store` is
+        // already assigned above, so a stale graph would otherwise be live and answerable (coverage,
+        // shading, step-through) while the app sat behind a dialog nobody could see.
+        repairLoadedGraph(loaded);
         maybeOfferProject();       // M20.3 — the log may sit inside a project we could configure from
         flaggedRows.clear();       // flags are per-file (model row indices)
         findings.clear();
@@ -2084,6 +2090,39 @@ public final class MainFrame extends JFrame {
         if (followButton != null) followButton.setEnabled(followable);
         updateLifecycleMenu();
     }
+
+    /** How many records to sample when deciding whether a loaded graph still applies (M35.2). */
+    private static final int PAIRING_SAMPLE = 500;
+
+    /**
+     * M35.2 — a graph loaded for the PREVIOUS log must not silently survive into this one.
+     *
+     * <p>Sampled rather than exhaustive: a full scan is what {@code coverage} is for, and this runs on
+     * every open. The first {@value #PAIRING_SAMPLE} records name the recurring nodes of any real
+     * run, and the verdict carries its counts so a caller can see what was actually compared.
+     */
+    private void repairLoadedGraph(LogStore loaded) {
+        if (topologyPanel.loadedGraphFile() == null) return;
+        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
+        int scan = Math.min(loaded.size(), PAIRING_SAMPLE);
+        for (int row = 0; row < scan; row++) {
+            for (var nodeLog : loaded.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
+        }
+        var pairing = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
+                topologyPanel.authoredNodeIds(), logged);
+        lastPairing = pairing;
+        if (pairing.applies()) {
+            status.setText(status.getText() + "  ·  graph "
+                    + topologyPanel.loadedGraphFile().getFileName() + " " + pairing.reason());
+            return;
+        }
+        String closed = topologyPanel.loadedGraphFile().getFileName().toString();
+        topologyPanel.clearGraph();
+        status.setText(status.getText() + "  ·  ⚠ graph " + closed + " " + pairing.reason());
+    }
+
+    /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
+    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing lastPairing;
 
     /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
     private void setFollowing(boolean on) {
@@ -2806,6 +2845,16 @@ public final class MainFrame extends JFrame {
                 // D-A1a: state it BEFORE anything is derived from position. An agent stepping a
                 // cycle, or reading the topology's dispatch badges, is entitled to know whether
                 // that order was derived or merely observed — and must not have to infer it.
+                var gf = topologyPanel.loadedGraphFile();
+                Map<String, Object> pair = new java.util.LinkedHashMap<>();
+                pair.put("graph", gf == null ? null : gf.getFileName().toString());
+                if (lastPairing != null) {
+                    pair.put("applies", lastPairing.applies());
+                    pair.put("loggedNodes", lastPairing.logged());
+                    pair.put("declaredByGraph", lastPairing.matched());
+                    pair.put("verdict", lastPairing.reason());
+                }
+                out.put("graphPairing", pair);
                 out.put("dispatchOrder", store.index().totalOrder()
                         ? "total — position in nodeLogs IS dispatch order (derived); safe to read "
                                 + "as causality"
