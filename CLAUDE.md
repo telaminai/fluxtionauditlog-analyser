@@ -14,10 +14,15 @@ architecture, conventions). This file is only the rules that must never be skipp
    Screenshots are therefore generated, not taken: `python3 tools/capture-docs.py` drives a real analyser
    loaded **only** with the demo fixture. Capture by hand only when the harness cannot reach the surface,
    and then read every visible string — title bar, status bar, paths — before committing.
-   **The sweep cannot see git metadata either.** **213** commits carry an employer-domain author
+   **The sweep cannot see git metadata either.** **214** commits carry an employer-domain author
    email into the public history — 132 `@nonco.com` (a string rule 1's own sweep exists to keep out
-   of this repo) and 81 `@v12technology.com`, against 35 personal. Rewriting is ruled out by rule 3,
-   so that history is accepted and recorded here.
+   of this repo) and 82 `@v12technology.com`. Rewriting is ruled out by rule 3, so that history is
+   accepted and recorded here.
+   **Counted again 2026-08-25** (M36/M19 release check): the `@nonco.com` total has not moved since
+   the config was pinned, so the mitigation is holding; `@v12technology.com` is 82, not the 81 this
+   paragraph claimed, and the newest such commit is still dated 2026-08-20 — a miscount, not a new
+   leak. The personal-address count is deliberately no longer recorded here: it climbs with every
+   commit, so a fixed number is guaranteed to rot, and it was never the number that mattered.
    **This paragraph previously claimed 110 commits and that the repo-local `user.email` was pinned.
    Both were wrong** (found 2026-08-20, during the M33 release check): the config was never pinned,
    so the leak kept growing — every commit made on 2026-08-20 before that check carries `@nonco.com`.
