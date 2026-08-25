@@ -9,6 +9,8 @@ New here? Start with **[Getting started](../getting-started.md)**.
 
 ## In this section
 
+- [Answering questions about a running system](support.md) — you were handed a log and a question
+  about an incident you were not there for. Start here if you did not choose this tool.
 - [Records, detail & filtering](records-and-filtering.md) — the core lenses: the records table, the
   detail viewer, search, the shared filter, summary and diff.
 - [Graphs](graphs.md) — plot node values and formulas over time.

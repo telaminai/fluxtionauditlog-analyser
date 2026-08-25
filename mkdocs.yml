@@ -96,6 +96,7 @@ nav:
       - Connecting an LLM to the analyser: connect-an-llm.md
   - User guide:
       - user-guide/index.md
+      - Answering questions about a running system: user-guide/support.md
       - Records, detail & filtering: user-guide/records-and-filtering.md
       - Graphs: user-guide/graphs.md
       - Topology & step-through: user-guide/topology.md

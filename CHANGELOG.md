@@ -7,6 +7,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **A guide for answering questions about a running system** — the support path, written round the
+  questions rather than the features: what to check in the first two minutes, how to tell a quiet
+  system from an incomplete log, the four questions that actually get asked (including "the check
+  never fired — is that true?", which is the one a log alone cannot answer), and how to hand an
+  answer back so someone who was not watching your screen can review it. It is marked as a draft to
+  be corrected by the people doing the work.
 - **The analyser now says what the PRODUCER got wrong**, instead of opening a broken log without
   comment. Three mistakes, all of which used to fail in silence:
     - **missing `---` separators** — the whole file is read as one record, so the count is wrong and
