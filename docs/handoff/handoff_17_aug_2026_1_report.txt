@@ -1,0 +1,44 @@
+REPORT — the polish round (brief: docs/handoff/handoff_17_aug_2026_1.txt, written 2026-08-17)
+From: the second session · Branch: feat/polish-round · Base: main @ 174edd4 · Started 2026-08-25
+Status: (filled in at the end)
+
+The brief is eight days old and the repo moved under it. Each item below says what was found on
+arrival, what was done, and what was NOT — deviations authorised by the brief's own process line
+("never silent"), not by me.
+
+================================================================================
+H1 · TRACKER ARCHAEOLOGY — already done by the per-merge tidies; verified, one line added
+================================================================================
+On arrival the live tracker was 498 lines (the brief said ~900), and a section-by-section count
+showed NO block with only ☑ items left in it: every remaining section carries open work (M13.5,
+M12.x, M19.x, M21.7–9, M22 five, M29.5, M31.4r/.5, M33.5/.6, M34.4/.5, M36, M11). M35 was moved to
+completed/ earlier today. The only thing missing was the "Shipped — archived" summary line, which
+stopped at M28; it now lists M29–M35. Nothing moved; nothing to move.
+
+================================================================================
+H2 · SPEC ARCHIVING — already done; verified
+================================================================================
+spec-project-profiles.md and spec-graph-replay.md are both in docs/specs/completed/. The three
+remaining mentions outside docs/handoff/ are textual (tracker §M22 wording, spec-closed-loop, the
+completed tracker) and one link (tracker:165) that already points at completed/. mkdocs --strict is
+green. Nothing to do.
+
+================================================================================
+H3 · WINDOW-ID SCREENSHOT CAPTURE
+================================================================================
+(filled in)
+
+================================================================================
+H4 · ROUTES SCOPE AT A TERMINAL NODE
+================================================================================
+(filled in)
+
+================================================================================
+H5 · LABEL TRUNCATION IN EXPORTED PICTURES
+================================================================================
+(filled in)
+
+================================================================================
+H6 · THE WHOLE-GRAPH REPORT VIEW AT SCALE
+================================================================================
+(filled in)

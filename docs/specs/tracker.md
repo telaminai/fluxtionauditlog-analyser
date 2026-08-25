@@ -15,8 +15,12 @@ M13.1–13.4 MCP bridge · M14 graph artifacts · M15 settings export/import · 
 distribution · **M17 docs site** · M20 project profiles · M21 topology + step-through (core +
 intra-record cursor) · M22 usability (36 of 41) · M23 explaining-what-you-found + charts ·
 M24 coverage · M25 drift fixes · M26 agent-efficiency verbs · M27 focus as a filter context +
-named focuses · M28 conditionals + rolling windows + guides/bands · refinement rounds 2–13 ·
-assistant-vocabulary follow-ups.
+named focuses · M28 conditionals + rolling windows + guides/bands · M29 external series (core) ·
+M30 rolled log sets · M31 log-source plugins (core) · M32 marker series · M33 investigation reports
+(core) · M34.0–.3 source adapters (SPI, degradation, format spec + conformance suite) · M35 log +
+graph lifecycle (all eleven) + §E provenance · refinement rounds 2–13 · assistant-vocabulary
+follow-ups. _(Polish H1, 2026-08-25: verified every section left in this file has open items; the
+archaeology the 2026-08-17 brief asked for had been done by the per-merge tidies.)_
 
 ---
 
