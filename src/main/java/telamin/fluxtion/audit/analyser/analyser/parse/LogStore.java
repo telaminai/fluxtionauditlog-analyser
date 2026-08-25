@@ -21,6 +21,16 @@ public interface LogStore extends AutoCloseable {
     /** Cheap raw text of a row (no parsing) — used for full-text search incl. node-logs. */
     String rawText(int row);
 
+    /**
+     * The graph this source declared, when it had one (M34.1). Default empty: a text container is a
+     * stream of records and knows nothing about structure, which is why the GraphML has always been
+     * a separate file. Only an SPI reader can answer differently.
+     */
+    default java.util.Optional<telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.SourceGraph>
+            sourceGraph() {
+        return java.util.Optional.empty();
+    }
+
     Long minLogTime();
 
     Long maxLogTime();

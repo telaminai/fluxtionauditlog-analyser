@@ -404,13 +404,18 @@ returned `SourceGraph` because availability is per SOURCE, not per adapter._
   D-A3 needs nothing: LangGraph's per-task `result` IS the attribution rule. And the analyser caught
   the translator's invented node unprompted (`loggedButNotInTopology`), declaring every other figure
   suspect — the honesty disciplines transfer to a foreign source unmodified.
-- [M34.1] ◧ **`RunAdapter` SPI** — _ordering slice DONE 2026-08-22_: `Capabilities` gained
+- [M34.1] ☑ **`RunAdapter` SPI** *(COMPLETE on `feat/m34-adapters`)* — _ordering slice DONE 2026-08-22_: `Capabilities` gained
   `Ordering {TOTAL|PARTIAL}` **additively** (the 3-arg constructor kept — it is a published surface
   since 1.5.0, and TOTAL is correct for every container that existed then); the claim is carried to
   `LogIndex.totalOrder()` beside `byteAnchors`, reported by `context` before anything is derived from
   position, and marked in Settings ▸ Plugins. Native path verified unchanged in the running jar.
-  **Remaining:** `graph(Path)` on the SPI, and reconciling an adapter-supplied graph with
-  `open {graphml}` — which is now entangled with **M35** and should follow it.
+  **Second slice, 2026-08-25:** `graph(Path)` added as a DEFAULT returning empty (published surface
+  since 1.5.0 — every existing reader keeps compiling); `SourceGraph {nodes, edges, provenance}` in
+  the core's own vocabulary, with provenance riding the RETURNED graph because availability is per
+  SOURCE (review F4). Reconciliation settled as **`GraphSource`**, which is M35.3's asymmetry one
+  level out: a graph someone OPENED is intent and wins; one an adapter SUPPLIED is convenience and
+  yields. `coverage` now REFUSES on an INFERRED graph rather than printing the 100% it gets by
+  construction — the M34.0 spike's §4 finding turned into a guard.
 - [M34.2] ☐ **Capability degradation wired** — coverage, "did not run" shading, replay-diff: each
   disabled loudly with its reason, none silently.
 - [M34.3] ☐ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.

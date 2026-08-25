@@ -201,6 +201,18 @@ public final class ActionExecutor implements RenderExecutor {
 
         Set<String> declared = onEdt(() -> Set.copyOf(topology.authoredNodeIds()));
 
+        // M34.1 — coverage is "declared minus observed". Over a graph INFERRED from what ran, that
+        // subtraction is empty by construction: the answer is always 100% and the feature that found
+        // 54 dead nodes in the POC becomes a tautology that still prints a number. Refuse instead.
+        var graphSource = onEdt(topology::graphSource);
+        if (graphSource != null && !graphSource.supportsCoverage()
+                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
+            return ActionResult.error("this graph was " + graphSource.describe
+                    + ", so coverage cannot mean anything: it subtracts what ran from what was "
+                    + "declared, and here the declared set IS what ran. Open a declared graph "
+                    + "(open {graphml}) to get a real answer.");
+        }
+
         // one pass, honouring the active filter only if asked: coverage over "the records I am looking
         // at" and coverage over "the whole run" are different questions and the caller must pick
         boolean filtered = Boolean.TRUE.equals(p.get("filtered"));

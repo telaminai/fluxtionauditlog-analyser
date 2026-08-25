@@ -172,6 +172,23 @@ public final class ProcessorTopology {
     }
 
     /** A topology with nothing in it — what a failed or absent parse yields, so callers never see null. */
+    /**
+     * Build from the SPI's vocabulary (M34.1) — a reader hands over LISTS, because a list is the
+     * shape a foreign engine's own API returns and forcing every adapter to build the id-keyed map
+     * would push a core implementation detail across the boundary.
+     *
+     * <p>A duplicate id is the adapter's bug and is dropped with the FIRST node kept, because the
+     * id is the join key to {@code nodeLogs} and two nodes claiming one id would make step-through
+     * ambiguous in a way nothing downstream could detect.
+     */
+    public static ProcessorTopology of(List<Node> nodes, List<Edge> edges) {
+        java.util.Map<String, Node> byId = new java.util.LinkedHashMap<>();
+        for (Node n : nodes) {
+            if (n != null && n.id() != null) byId.putIfAbsent(n.id(), n);
+        }
+        return new ProcessorTopology(byId, List.copyOf(edges));
+    }
+
     public static ProcessorTopology empty() {
         return new ProcessorTopology(Map.of(), List.of());
     }

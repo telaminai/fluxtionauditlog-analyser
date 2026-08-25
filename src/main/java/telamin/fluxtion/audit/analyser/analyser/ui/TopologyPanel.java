@@ -617,6 +617,7 @@ public final class TopologyPanel extends JPanel {
      */
     public void clearGraph() {
         loadedFrom = null;
+        graphSource = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
         pairingPart = null;
         fullTopology = telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.empty();
         focusStack = new FocusStack(fullTopology);
@@ -644,6 +645,43 @@ public final class TopologyPanel extends JPanel {
         return loadedFrom;
     }
 
+    /** Where the loaded graph came from (M34.1) — NONE until something loads one. */
+    private telamin.fluxtion.audit.analyser.analyser.topology.GraphSource graphSource =
+            telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
+
+    public telamin.fluxtion.audit.analyser.analyser.topology.GraphSource graphSource() {
+        return graphSource;
+    }
+
+    /**
+     * Load a graph the SOURCE supplied (M34.1). Yields to anything a person or agent opened — the
+     * precedence lives in {@link telamin.fluxtion.audit.analyser.analyser.topology.GraphSource}, and
+     * the asymmetry is M35.3's: intent beats convenience.
+     *
+     * @return true if it took the slot
+     */
+    public boolean loadFromSource(telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.SourceGraph g) {
+        var candidate = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.of(g.provenance());
+        if (!graphSource.replacedBy(candidate)) return false;
+        fullTopology = telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.of(
+                g.nodes(), g.edges());
+        loadedFrom = null;                       // it came from the log, not a file the user can point at
+        graphSource = candidate;
+        focusStack = new FocusStack(fullTopology);
+        selection.clear();
+        scope = TopologyFocus.Scope.NODE;
+        cursor = StepCursor.over(java.util.List.of());
+        canvas.setClassificationTopology(fullTopology);
+        index.setTopology(fullTopology);
+        refreshCrumbs();
+        applyView(false);
+        setStatus(fullTopology.nodeCount() + " nodes, " + fullTopology.edgeCount() + " edges · "
+                + candidate.describe
+                + (candidate.supportsCoverage() ? ""
+                        : " — coverage cannot find a dead node in a graph built from what ran"));
+        return true;
+    }
+
     public void load(Path file) {
         ProcessorTopology topology = GraphMlParser.parse(file);
         if (topology.isEmpty()) {
@@ -652,6 +690,7 @@ public final class TopologyPanel extends JPanel {
             return;
         }
         loadedFrom = file;
+        graphSource = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
         fullTopology = topology;
         focusStack = new FocusStack(topology);
         refreshCrumbs();

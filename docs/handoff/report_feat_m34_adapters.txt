@@ -75,3 +75,44 @@ R3  SourceGraph throws on a null provenance rather than defaulting to INFERRED. 
     author choose. Same call as Capabilities' non-null ordering, opposite conclusion — Capabilities
     DEFAULTS because every pre-existing container really was totally ordered, whereas no such
     default is true of provenance.
+
+================================================================================
+4. SLICE 3 — the wiring (added 2026-08-25, after M35 merged)
+================================================================================
+Done now that the branch sits on a merged main rather than a stack.
+
+  LogStore.sourceGraph()          default empty — a text container is a stream of records and knows
+                                  nothing about structure, which is why the GraphML has always been
+                                  a separate file. Only an SPI reader answers differently.
+  SpiLogStore                     asks the reader ONCE at open (a reader that scans a registry must
+                                  not be re-invoked per query) and, if it THROWS, keeps the log and
+                                  records why: an unreadable graph is a missing graph, and the log
+                                  is still evidence. graphNote() carries the reason so the source
+                                  does not look like one that simply had no graph.
+  ProcessorTopology.of(list,list) the SPI speaks LISTS because that is the shape a foreign engine's
+                                  API returns; forcing every adapter to build the id-keyed map would
+                                  push a core implementation detail across the boundary. A duplicate
+                                  id keeps the FIRST — the id is the join key to nodeLogs, and two
+                                  nodes claiming one would make step-through ambiguous with nothing
+                                  downstream able to detect it.
+  TopologyPanel.loadFromSource    honours GraphSource precedence and returns whether it took the
+                                  slot. loadedFrom stays null — it came from the log, not a file the
+                                  user can point at — and the status names the source, adding the
+                                  coverage caveat when the graph was inferred.
+  MainFrame.offerSourceGraph      runs AFTER repairLoadedGraph, so a stale graph is closed before
+                                  the new source is offered its slot. Order matters here: the other
+                                  way round, the source's graph would be judged against the old log.
+  coverage                        REFUSES on an inferred graph, naming why, instead of returning a
+                                  ratio that is 100% by construction. This is the M34.0 spike's §4
+                                  finding turned into a guard.
+
+5 new tests (791 total): a declared graph reaches the store; no graph is not a failure; a THROWING
+reader loses its graph and keeps its log, with the reason recorded; a native store offers nothing;
+duplicate ids keep the first.
+
+STILL NOT DONE, deliberately
+  · M34.2 proper — "did not run" shading and replay-diff degrading loudly. Only coverage is guarded.
+  · M34.3 conformance fixtures, M34.4 a real foreign adapter. The spike's translator stays throwaway.
+  · A test that drives a source-supplied graph through the UI: it needs a reader PLUGIN on the
+    classpath, which means an out-of-tree jar. The store-level plumbing is unit-tested; the panel
+    path is read-verified. Recorded rather than glossed.

@@ -17,6 +17,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   columns), what it closed and where those were (the log and graph — a project is a session
   boundary), the project that was active before, and the one call that puts it back. Re-opening the
   already-active project changes nothing and says so. `context` now names the project in force.
+- **A log source can now supply its own graph** (M34.1). A reader plugin that knows its engine's
+  structure — a workflow registry, a compiler's output — can hand it over with the log, so the
+  topology is there without hunting for a `.graphml`. **A graph you opened is never displaced by
+  one that merely arrived**: the source's graph fills an empty slot, and `open {graphml}` replaces
+  anything. The view always names which it is, because a graph is evidence and evidence has a
+  source. And when a graph was **inferred from what ran**, `coverage` refuses to answer rather than
+  printing 100% — it subtracts what ran from what was declared, and there the two are the same set.
 - **A log can say which *system* it came from** — `open {log, provenance: "risk-engine ·
   localhost:8081 · ~/dev/risk"}`. A file name is not a system: export three servers' logs and you get
   three artefacts nobody can tell apart, and a report headed *"written against export-1.yaml"* tells

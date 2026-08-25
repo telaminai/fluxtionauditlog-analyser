@@ -2072,6 +2072,7 @@ public final class MainFrame extends JFrame {
         // already assigned above, so a stale graph would otherwise be live and answerable (coverage,
         // shading, step-through) while the app sat behind a dialog nobody could see.
         repairLoadedGraph(loaded);
+        offerSourceGraph(loaded);      // M34.1 — after the re-pair, so a stale graph is gone first
         maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
         flaggedRows.clear();       // flags are per-file (model row indices)
         findings.clear();
@@ -2158,6 +2159,23 @@ public final class MainFrame extends JFrame {
         }
         if (followButton != null) followButton.setEnabled(followable);
         updateLifecycleMenu();
+    }
+
+    /**
+     * M34.1 — a source that declares its own graph offers it. It YIELDS to anything a person or agent
+     * opened (GraphSource's precedence, which is M35.3's asymmetry: intent beats convenience), so a
+     * chosen graph is never silently displaced by one that merely arrived with the log.
+     */
+    private void offerSourceGraph(LogStore loaded) {
+        loaded.sourceGraph().ifPresent(g -> {
+            if (topologyPanel.loadFromSource(g)) {
+                status.setText(status.getText() + "  ·  graph supplied by the source ("
+                        + g.nodes().size() + " nodes, " + g.provenance().name().toLowerCase(
+                                java.util.Locale.ROOT) + ")");
+                judgeOpenedGraph();
+                updateLifecycleMenu();
+            }
+        });
     }
 
     /** How many records to sample when deciding whether a loaded graph still applies (M35.2). */
