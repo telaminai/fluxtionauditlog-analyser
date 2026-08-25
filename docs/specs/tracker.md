@@ -265,7 +265,7 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
-## M35 · Log + graph lifecycle — ☑ **COMPLETE on `feat/m35-lifecycle`** (owner, 2026-08-22; the pairing is evidence, not decoration)
+## M35 · Log + graph lifecycle — ◧ **.1-.7 COMPLETE on `feat/m35-lifecycle`; M35.8 deferred by design** (owner, 2026-08-22; the pairing is evidence, not decoration)
 _Today a log and a GraphML are opened independently and **neither can be closed**. `TopologyPanel.load()`
 sets the graph; nothing clears it, and the File menu has "Close project" but no "Close log". So opening a
 second log leaves the FIRST log's topology on screen, and every figure derived from it — coverage,
@@ -290,6 +290,21 @@ than a per-session one._
   wrong graph auto-picked is precisely the confidently-wrong reading M35 exists to prevent.
 - [M35.5] ☑ **New/switched project closes log + graph** *(on `feat/m35-lifecycle`)* — the profile is the session boundary; today
   "Close project" leaves both loaded.
+- [M35.8] ☐ **`open {project: path}`** — the lifecycle surface's missing half. _(Deferred out of M35
+  deliberately: this is the largest single mutation any verb would perform — it replaces source
+  roots, event processors, graphs and hidden columns in one call — so it needs its own decision about
+  confirmation rather than being smuggled in beside a lifecycle fix. Not started on
+  `feat/m35-lifecycle`; build it on its own branch after M35 merges. Previously floated as "M20.6",
+  which had no home since M20 is archived; it belongs here because the project IS the session
+  boundary M35.5 established.)_ Three arguments accumulated during M35, none of them speculative:
+    1. **M35.7's `projectOffer` is currently unactionable.** An agent is told a project is available
+       and has no way to accept it — an offer with no accept button.
+    2. **M35.5 is read-verified only** (report D10). There is no socket route to a project switch, so
+       E7–E10 cannot be driven; this verb turns four eyeball items into a scripted check.
+    3. **The surface is asymmetric.** An agent can open and close a log, and open and close a graph,
+       but cannot touch the thing that owns both.
+  Design note for whoever takes it: the echo must NAME everything it replaced — the same rule the
+  close verb follows — and the M20 auto-detect path must keep its `endsSession=false` behaviour.
 - [M35.7] ☑ **No modal in the load path** *(on `feat/m35-lifecycle`)* _(found by M35.2, 2026-08-22)_ — `onLoaded` assigns
   `store` and then calls `maybeOfferProject()`, which shows a MODAL dialog; everything after it waits
   for a human, and on the agent path there is nobody. Worse, the new log is already live behind it,
@@ -428,8 +443,8 @@ spec-agent-brokered-dev-loop; its old slices are gone from this list._
    precondition to resolve first, and it also gates **M33.5**.
 6. **M19** (onboarding example) — and it now carries the **§H conformance harness**, which must have
    a home before any cross-repo work starts.
-7. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers), **M20.6**
-   (`open {project}` so an agent can accept the offer M35.7 reports), **M29.5**, **M13.5**,
+7. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers), **M35.8**
+   (`open {project}` — so an agent can accept the offer M35.7 reports, and E7-E10 become drivable), **M29.5**, **M13.5**,
    **M21.7–.9**, the **M22** five, and the un-started polish round
    (`docs/handoff/handoff_17_aug_2026_1.txt`).
 8. **Cross-repo, gated on §H:** the Mongoose **MCP admin tool** + `~/.mongoose/servers/` endpoint
