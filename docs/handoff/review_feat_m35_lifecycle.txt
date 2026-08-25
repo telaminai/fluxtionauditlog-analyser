@@ -1,0 +1,146 @@
+REVIEW — feat/m35-lifecycle (M35.1–M35.7 + §E provenance)
+Reviewer: the second session · 2026-08-25
+Inputs: docs/handoff/handoff_22_aug_2026_1.txt (brief), docs/handoff/report_feat_m35_lifecycle.txt
+(the branch's own report, 17 sections), the 12 commits 85978e8..810052e, tracker ▸ M35.
+
+VERDICT: MERGE — after the five fixes below, which are applied ON THIS BRANCH (one commit, this
+review's). Nothing found argues against the design; everything found is the report's own species
+("half-cleared state" / "a surface asserting something that is no longer true"), which the branch
+hunted on the log↔graph axis and missed on three smaller ones. That is a compliment to the hunt and
+a note on where the next one should look.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+1. GATES (run here, not taken from the report)
+
+  mvn -o -q test           exit 0 — 780 run, 0 failures, 0 errors (branch as handed over);
+                           re-run after the fixes: see §7.
+  mkdocs build --strict    exit 0
+  rule-1 sweep             clean (the standing baseline only)
+  git config user.email    personal address — this checkout's commits carry it
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+2. CLAIMS VERIFIED BY READING (the report's, checked against the code)
+
+  ✓ GraphPairing reuses NodeCoverage rather than re-deriving the match. matched = logged −
+    loggedButNotInTopology; KEEP_ABOVE = 0.5 is a strict >. The reason is a FACT ("the graph declares
+    N of M node(s) this log writes"), never an action — the caller (repair vs judge) supplies the
+    action. This is the right split and it is what lets the same verdict close a stale graph on
+    log-open but keep a deliberately-opened one.
+  ✓ GraphmlDiscovery is bounded (depth 12, 25 candidates, 32 MB), ranks, and opens NOTHING. Files
+    that do not parse are listed in notes, not dropped silently.
+  ✓ repairLoadedGraph runs BEFORE maybeOfferProject on load — a stale graph is gone before the
+    project question is asked, so the offer never sits on top of a wrong picture.
+  ✓ M35.7 consume-and-reset: openFromActionSocket is read once, in maybeOfferProject, and cleared
+    there. A human chooser after an agent open gets the interactive default. Correct — and it is the
+    shape two of the fixes below borrow.
+  ✓ §E provenance is checked FIRST in LogFingerprint.mismatch, absent means absent (blank
+    normalised to null in the compact ctor), the heading "SAME CONTENT — A DIFFERENT SYSTEM" is the
+    strong heading, and the Reports share row discloses .fp.prov (ShareDisclosureContractTest).
+  ✓ D10/D11 are honest: M35.5 has no socket route and the report says so instead of dressing up a
+    read-through as a drive.
+
+  NON-FINDING, recorded so nobody re-opens it: onLoaded builds a NEW FilterState per load and
+  re-registers listeners. I suspected closeLog()'s `filter = new FilterState()` orphaned the
+  ActionExecutor's reference — it does not: the executor is constructed with suppliers
+  (() -> store, () -> filter) and always reads the live field.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+3. FINDINGS — all fixed on the branch in this review's commit
+
+  F2 · closeLog() left the PAIRING in place.
+      lastPairing and the Topology panel's persistent note ("⚠ DOES NOT FIT THIS LOG …" or
+      "fits this log (N/N)") survived the log they were about. With no log open the graph makes
+      no claim, and the panel was asserting one. closeGraph() reset it; closeLog() did not.
+      FIX: closeLog() now does lastPairing = null; publishPairing().
+      LIVE: opened sample.yml + demo-quote-processor.graphml over REST → Topology status carried the
+      verdict; open {close: "log"} → status shows only the graph's own facts; context.graphPairing
+      gone. (Two painted screenshots, read, not committed — they show the 0/17 verdict, which is
+      CORRECT: that graph pairs with demo-quote-audit.yaml, not sample.yml. The positive path was
+      driven too: demo-quote-audit.yaml + its graph → applies: true, 5/5.)
+
+  F3 · pendingProjectOffer was never cleared.
+      Set in maybeOfferProject on EVERY open — including the human path, where the dialog is shown
+      and answered — and read by 'context'.projectOffer. So context reported an offer the human had
+      already declined or accepted, and kept reporting it after closeLog().
+      FIX: cleared after the human answers (both branches) and in closeLog(). A socket open still
+      records it, which is M35.7's point.
+      LIVE: socket open of a log under a fixture project (.analyser/project.fluxtion-settings) →
+      context.projectOffer present with settings path + note; open {close: "log"} → absent.
+
+  F4 · logProvenance INHERITED across human opens.
+      The verb set the field and only closeLog() cleared it. A chooser / drag-drop / S3 / recent open
+      after an agent's open {log, provenance} therefore showed the previous system's name against
+      the new log — not guessed, which §E forbids, but inherited, which is worse: a confident
+      statement with a source that was never about this log. The verb path itself was fine
+      (ActionExecutor calls setProvenance(null) when the param is absent); the human routes never
+      pass through openLocation(String, boolean), so a fix there would have missed three of them.
+      FIX: the M35.7 shape. setProvenance declares `pendingProvenance` for the NEXT open; onLoaded
+      consumes it into logProvenance and nulls it. Every route that declares nothing arrives with
+      nothing. Two edges: a failed pre-load check in the openLog adapter clears the declaration
+      (it belonged to an open that never happened), and the follow re-open re-declares the current
+      value (same log, same system — the declaration survives the reload).
+      LIVE (verb path only — the human routes are read-verified, there is no socket into a chooser):
+      open with provenance → context.provenance set; open the same log again without it → null.
+
+  F1 · the pairing reason claimed the whole log; the method judged 500 records.
+      pairingAgainst samples PAIRING_SAMPLE = 500 (rightly — it runs on the EDT at load) but the
+      sentence read "the N node(s) this log writes". Minor, but it is a number a person will quote.
+      FIX: when log.size() > 500 the reason ends "(judged on the first 500 of N records)".
+      LIVE: on a 6,467-record log the echo and context verdict carry the suffix; on 21-record
+      fixtures they do not.
+
+  F5 · the M30 time-order report was a MODAL on socket-driven opens  (seen live by the owner, who
+      watched the screen while this review drove the app — the same defect M35.7 fixed for the
+      project offer, one dialog over).
+      Nobody at the socket can answer it; a human finds it later, stale, about a log that may be
+      closed by then. The socket audience already gets the report where it reads — the status-bar
+      warning, 'context'.timeOrder, and the timeOrderNote caveat on every time-anchored verb (D-R4);
+      the single-log open is asynchronous, so its echo cannot carry it and does not need to.
+      FIX: the dialog is gated on !openFromActionSocket. maybeOfferProject consumes the flag later
+      in the same onLoaded, so it is still set at that point. Human opens are unchanged (D-R3).
+
+  Cosmetic, also fixed: AppControl had three javadocs stacked above setProvenance — the close() and
+  discoverGraphs() docs were orphaned. Each is now above its method.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+4. NOTES — not fixed, recorded
+
+  R1 · openFromActionSocket is a single field consumed at load. Two loads in flight (a verb open
+      racing a human drag-drop) could cross it. Loads are rare and serialised in practice; noting,
+      not fixing — a per-load token would be the fix if it ever bites.
+  R2 · D2: open {close: "log", log: …} closes and ignores the other params. Fine, but the echo does
+      not SAY it ignored them. A one-line "ignored: [log]" would close that gap.
+  R3 · The F4/F5 pattern now appears three times (project offer, provenance, time-order dialog):
+      "a load-time side effect whose audience differs by who asked for the load". If a fourth turns
+      up, an OpenRequest record (path, fromSocket, provenance) passed through the load would replace
+      the three fields and remove the race in R1 as well.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+5. WHAT STAYS HUMAN (the report's E-items)
+
+  E1–E10 are the owner's eyeball pass and this review does not claim them. This review drove:
+  close log / close graph / close all via the verb (echo, context, Topology status), discovery was
+  NOT driven (no source roots configured on this machine's profile for the fixtures), the project
+  offer via socket (F3), provenance via verb (F4), time-order on the fixture logs (F5 observed by
+  the owner). Menu items (File ▸ Close log / Close graph / Reset) are read-verified only.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+6. STRENGTHS (so they survive the next refactor)
+
+  · GraphPairing's reason is a fact and the action lives in the caller. Keep it that way.
+  · "derived state CLEARS, profile state SURVIVES and degrades loudly" is now enforced by code
+    (closeLog vs afterProjectChange) and by the close echo's `kept` sentence. That sentence is the
+    contract; if a future close stops honouring it, the echo will lie before the code does.
+  · Discovery offers and never selects. The verdict on a candidate is the same GraphPairing.
+  · §E's "absent means absent" — no provenance is a fact about what was declared, not a defect.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+7. AFTER THE FIXES
+
+  mvn -o -q test  → see the commit message for the count (run bare, exit code read).
+  Diff: MainFrame.java, AppControl.java only. No docs changed by this review — the behaviours fixed
+  are the branch's own unreleased ones and the user guide already describes the intended state.
+  CHANGELOG: no new line; M35's Unreleased entries describe what now actually happens.
+
+  Merge order unchanged: this branch, then M34's remaining scope (blocked on it), then M35.8
+  (open {project}) which the tracker already records.

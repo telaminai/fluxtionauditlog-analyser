@@ -635,6 +635,15 @@ public final class MainFrame extends JFrame {
      */
     private String logProvenance;
 
+    /**
+     * Provenance declared for the NEXT open, consumed by {@code onLoaded} (§E, review F4). The verb
+     * declares it immediately before its open; every other route — chooser, drag-drop, S3, recent —
+     * declares nothing and so arrives with nothing. Without this, a human open after an agent's
+     * {@code open {log, provenance}} inherited the previous system's name: not guessed, which §E
+     * forbids, but INHERITED, which is worse.
+     */
+    private String pendingProvenance;
+
     /** The log actually open, as the fingerprint names it — one source for authoring and re-opening. */
     private String loadedLogName() {
         return logDisplayLocation == null ? "" : new File(logDisplayLocation).getName();
@@ -1991,6 +2000,9 @@ public final class MainFrame extends JFrame {
         eventFilterPanel.clear();
         graphTabs.unbind();
         topologyPanel.clearExecution();
+        lastPairing = null;                // review F2: the verdict was about THIS log — with it gone the
+        publishPairing();                  // graph makes no claim, and the panel's note must not keep one
+        pendingProjectOffer = null;        // review F3: an offer made for a log that is no longer open
         if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
 
         showingLabel.setText(" ");
@@ -2045,6 +2057,8 @@ public final class MainFrame extends JFrame {
         this.store = loaded;
         this.logDisplayLocation = location;
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
+        logProvenance = pendingProvenance;                      // §E: consumed by THIS load, then gone
+        pendingProvenance = null;
         // M35.2 FIRST, and deliberately before maybeOfferProject(): that offer is a MODAL dialog, and
         // everything after it waits for a human — which on the agent path is nobody. `store` is
         // already assigned above, so a stale graph would otherwise be live and answerable (coverage,
@@ -2109,8 +2123,14 @@ public final class MainFrame extends JFrame {
         status.setText(loaded.size() + " records · " + range + " · "
                 + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
                         : displayName(location)) + orderWarning);
-        if (!timeOrderReport.isClean()) {
-            // D-R3: the report is shown, never buried — once, at load, with the evidence lines
+        if (!timeOrderReport.isClean() && !openFromActionSocket) {
+            // D-R3: the report is shown, never buried — once, at load, with the evidence lines.
+            // Review F5 (M35.7's species, seen live by the owner): on a socket-driven open nobody at the
+            // screen asked for this log, so a modal here waits for an answer that cannot come and greets
+            // whoever walks past later with a verdict about a log that may already be closed. That
+            // audience gets the report where it reads: the status bar (above), 'context'.timeOrder and
+            // the timeOrderNote caveat on every time-anchored verb (D-R4). maybeOfferProject() consumes
+            // the flag further down, so it is still set here.
             JOptionPane.showMessageDialog(this,
                     String.join("\n", timeOrderReport.summarise()),
                     "Time-order report", JOptionPane.WARNING_MESSAGE);
@@ -2204,8 +2224,16 @@ public final class MainFrame extends JFrame {
         for (int row = 0; row < scan; row++) {
             for (var nodeLog : log.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
         }
-        return telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
+        var p = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
                 topologyPanel.authoredNodeIds(), logged);
+        if (log.size() > PAIRING_SAMPLE) {
+            // review F1: the numbers describe the SAMPLE, and the sentence must say so — "the N node(s)
+            // this log writes" is a whole-log claim this method never checked
+            p = new telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing(
+                    p.logged(), p.matched(), p.applies(),
+                    p.reason() + " (judged on the first " + PAIRING_SAMPLE + " of " + log.size() + " records)");
+        }
+        return p;
     }
 
     /**
@@ -2299,6 +2327,7 @@ public final class MainFrame extends JFrame {
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
             followTimer.stop();          // avoid re-entrant reloads while the async load runs
+            pendingProvenance = logProvenance;   // same log, same system — the declaration survives the reload
             openFile(Path.of(followPath));
             return;
         }
@@ -2582,6 +2611,7 @@ public final class MainFrame extends JFrame {
                 + "Load them? Your source roots, Maven repos, event processors, graphs and hidden\n"
                 + "columns will be replaced by that project\u2019s.",
                 "Load this project?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        pendingProjectOffer = null;          // review F3: asked and answered either way — no longer an offer
         if (answer != JOptionPane.YES_OPTION) {
             projectDetect.decline(log);      // asked and answered; do not ask again for this log
             return;
@@ -2806,6 +2836,7 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'log' is empty");
             }
             if (!S3Source.isS3(path) && !Files.isReadable(Path.of(path))) {
+                pendingProvenance = null;   // the declaration belonged to an open that never happened
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "cannot read log '" + path + "'");
             }
@@ -2817,7 +2848,8 @@ public final class MainFrame extends JFrame {
 
         @Override
         public void setProvenance(String provenance) {
-            logProvenance = provenance == null || provenance.isBlank() ? null : provenance.trim();
+            // declared for the open that follows; the load consumes it (see pendingProvenance)
+            pendingProvenance = provenance == null || provenance.isBlank() ? null : provenance.trim();
         }
 
         @Override

@@ -36,25 +36,26 @@ public interface AppControl {
     ActionResult openGraphml(String path);
 
     /**
-     * Close what is open (M35.1): {@code "log"}, {@code "graph"} or {@code "all"}. Agents switching
-     * between servers need this as much as a human does — under the M18 alternative it is a
-     * per-minute operation, and without it a second log inherits the first log's topology.
-     */
-    /**
-     * List the .graphml files under the source roots, ranked against the open log (M35.4).
-     * Returns candidates and opens NOTHING — picking is the caller's act.
-     */
-    /**
      * Declare WHERE the log about to be opened came from (§E). Free text; called before
-     * {@link #openLog}. Never inferred — a guessed system name is worse than none.
+     * {@link #openLog}, consumed by that one load. Never inferred — a guessed system name is worse
+     * than none.
      */
     default void setProvenance(String provenance) {
     }
 
+    /**
+     * List the .graphml files under the source roots, ranked against the open log (M35.4).
+     * Returns candidates and opens NOTHING — picking is the caller's act.
+     */
     default ActionResult discoverGraphs() {
         return ActionResult.error("'discover' is not enabled here");
     }
 
+    /**
+     * Close what is open (M35.1): {@code "log"}, {@code "graph"} or {@code "all"}. Agents switching
+     * between servers need this as much as a human does — under the M18 alternative it is a
+     * per-minute operation, and without it a second log inherits the first log's topology.
+     */
     default ActionResult close(String what) {
         return ActionResult.error("'close' is not enabled here");
     }
