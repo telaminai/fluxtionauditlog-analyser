@@ -67,4 +67,12 @@ class CloseVerbTest {
         assertFalse(r.sections().get(0).resolved());
         assertNotNull(r.sections().get(0).reason(), "and it says WHY: " + r.sections().get(0).reason());
     }
+
+    @Test
+    void theSchemaSaysCloseIgnoresTheOtherParams_soTheEchoHasSomethingToBeConsistentWith() {
+        String rendered = VerbSchemas.all().get("open").toString();
+        assertTrue(rendered.contains("Ignored when combined with log/graphml/processor"),
+                "the manifest states the precedence; review R2 made the ECHO say it too, and the "
+                        + "two must not drift: " + rendered.substring(0, Math.min(400, rendered.length())));
+    }
 }

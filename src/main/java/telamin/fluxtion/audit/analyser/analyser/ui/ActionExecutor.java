@@ -678,6 +678,12 @@ public final class ActionExecutor implements RenderExecutor {
 
     // ---- environment and topology verbs -----------------------------------------------------------
 
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asMap(Object o) {
+        return o instanceof Map<?, ?> m ? new LinkedHashMap<>((Map<String, Object>) m)
+                : new LinkedHashMap<>();
+    }
+
     private ActionResult doOpen(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
         if (params.get("log") != null && params.get("format") != null) {
@@ -689,7 +695,22 @@ public final class ActionExecutor implements RenderExecutor {
         }
         if (params.get("close") != null) {
             // the counterpart of open, on the same verb: closing is a lifecycle act, not a new concept
-            return app.close(str(params.get("close")));
+            ActionResult r = app.close(str(params.get("close")));
+            // review R2 / M26.4: "open and close at once" is incoherent and the useful reading is the
+            // close — but a param that was silently dropped reads to the caller as one that was
+            // honoured, so name them. Every verb in this surface owes the caller that.
+            List<String> ignored = new ArrayList<>();
+            for (String k : List.of("log", "logs", "graphml", "processor", "format", "provenance",
+                    "discover")) {
+                if (params.get(k) != null) ignored.add(k);
+            }
+            if (r.ok() && !ignored.isEmpty()) {
+                Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("applied")));
+                echo.put("ignored", ignored);
+                echo.put("ignoredWhy", "'close' was also given, and closing is what the request means");
+                return ActionResult.ok("open", "applied", echo);
+            }
+            return r;
         }
         if (params.get("logs") instanceof List<?> list && !list.isEmpty()) {
             List<String> paths = new ArrayList<>();

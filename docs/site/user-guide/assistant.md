@@ -106,7 +106,9 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
 
 - `open {close: "log" | "graph" | "all"}` — the counterpart of opening, and the way to switch cleanly
   between systems. Log-derived state clears; your named graphs, focuses, source roots and reports are
-  profile state and survive, each saying why it cannot resolve rather than vanishing.
+  profile state and survive, each saying why it cannot resolve rather than vanishing. Combining it
+  with `log`/`graphml` closes and **names what it ignored**, rather than leaving you to guess which
+  half of an incoherent request was honoured.
 - `open {discover: "graphml"}` — lists every `.graphml` under the source roots, ranked against the
   open log, with each one's node count and how many of the log's nodes it declares. **It opens
   nothing**: pick one and pass it as `graphml`.

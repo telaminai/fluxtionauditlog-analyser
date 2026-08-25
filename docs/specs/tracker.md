@@ -298,6 +298,15 @@ than a per-session one._
   under identical names, so provenance is checked FIRST and gets its own banner heading, **SAME
   CONTENT — A DIFFERENT SYSTEM**. Absent means absent — never inferred. Share-disclosure row moved in
   the same commit with a contract test, per review §1.9.
+- [M35.9] ☐ **An `OpenRequest` for load-time side effects** _(review R1 + R3, 2026-08-25)_ — the
+  same shape has now appeared **three times**: the project offer (M35.7), `provenance` (§E) and the
+  time-order dialog (review F5) are each "a load-time side effect whose audience differs by who asked
+  for the load", and each is currently a field on MainFrame consumed during `onLoaded`. A record
+  threaded through the load — `OpenRequest {path, fromSocket, provenance}` — replaces all three and
+  removes **R1** with them: today `openFromActionSocket` is a single field, so two loads in flight (a
+  verb open racing a drag-drop) could cross it. Rare and serialised in practice, which is why the
+  review noted rather than fixed it. _Do this when a fourth appears, or when R1 bites — not before:
+  it is a refactor of code that has just been reviewed._
 - [M35.8] ☐ **`open {project: path}`** — the lifecycle surface's missing half. _(Deferred out of M35
   deliberately: this is the largest single mutation any verb would perform — it replaces source
   roots, event processors, graphs and hidden columns in one call — so it needs its own decision about
