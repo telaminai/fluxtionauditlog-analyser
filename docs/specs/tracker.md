@@ -265,7 +265,7 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
-## M35 · Log + graph lifecycle — ◧ **.1-.8, .10, .11 + §E MERGED to main 2026-08-25** (archived; .9 open — trigger fired)
+## M35 · Log + graph lifecycle — ☑ **.1-.11 + §E ALL MERGED to main 2026-08-25** (archived; nothing open — move to completed/ at the next tidy)
 _Shipped work in [completed/tracker.md](completed/tracker.md)._
 - [M35.10] ☑ **Relative profile roots resolve against `.analyser/`, not the project root** _(found driving
   M35.8, report_feat_m35_project O1; DONE 2026-08-25, merged to main)_ — `ProjectProfile.load`
@@ -283,8 +283,7 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   (checked before the `~` rule — a project inside home must not come out `~/…`), omits the timestamp and
   strips the date line; `ProjectProfile.save` returns false and touches nothing when the file already
   holds that text. Round-trip is byte-identical (tests). One-off share exports unchanged.
-- [M35.9] ☑ **An `OpenRequest` for load-time side effects** — **DONE 2026-08-25 on
-  `feat/m35-open-request`** (report `docs/handoff/report_feat_m35_open_request.txt`): `OpenRequest
+- [M35.9] ☑ **An `OpenRequest` for load-time side effects** — **DONE 2026-08-25, merged to main** (review F1: a follow rotation had rebuilt the request as human — fixed by the reviewer; `reload(original, provenance)` keeps who asked) (report `docs/handoff/completed/report_feat_m35_open_request.txt`): `OpenRequest
   {fromActionSocket, provenance}` is built where the open starts (verb adapter → `socket(provenance)`;
   chooser/drag/recent/S3 → `HUMAN`; follow rotation → `reload(provenance)`), carried through the async
   load and read once in `onLoaded`. `openFromActionSocket` and `pendingProvenance` are gone; provenance

@@ -61,16 +61,16 @@ time-order validation (M30), log-source plugins (M31 core), marker series + poin
 (M33 core: typed sections, D-I3a authoring context, Reports tab, own share category), **log + graph
 lifecycle (M35.1–.8: close/reset, re-pair on open, switch processor, discovery that offers and never
 selects, project-as-session-boundary, no modal in the load path, the pairing stated persistently,
-`open {project}` / `open {close: "project"}`; .10/.11 committed profiles are project-relative and
-never rewritten by a no-op open)**, **§E provenance** (a log declares which SYSTEM it came from, not
+`open {project}` / `open {close: "project"}`; .9 an `OpenRequest` travels with every load so no dialog ever
+fires at an empty screen — six such modals found and closed across the milestone; .10/.11 committed profiles
+are project-relative and never rewritten by a no-op open)**, **§E provenance** (a log declares which SYSTEM it came from, not
 just which file) and **source adapters M34.1–.2** (`graph(Path)` on the reader SPI, DECLARED/INFERRED
 provenance, `GraphSource` precedence — opened beats supplied, a reader's graph clears with its log —
 ordering claim honoured by the view, coverage refusing an inferred graph) and **M34.3** (the record format's
 normative specification — *The audit log ▸ Format specification* — with a conformance suite the built-in
 reader and the SPI both pass).
 
-Open analyser-side: **M35.9** (an `OpenRequest` for load-time side effects — **trigger fired**: the
-same field consumed twice let a suppressed modal fire; schedule it); **M34.4/.5** (first foreign adapter;
+Open analyser-side: **M34.4/.5** (first foreign adapter;
 per-cycle concurrency marker); **M36** start page (spec'd, `feat/m36-start-page`); M22 remnants — PNG export (22.3), alternative layouts
 (22.6), re-dispatch cause (22.11, needs `UP-FLX-10` in
 [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the holding pen for anything
