@@ -6,6 +6,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **"All routes" from a node everything feeds is bounded, and says so.** Focusing scope=routes on a
+  sink — a publisher, a P&L aggregate — used to select most of the graph (198 of 309 in the case that
+  raised it), because every route into a sink *is* the graph. On a large graph where routes would cover
+  more than half, the scope now stops at 3 hops each way and the status line says exactly that — how
+  many nodes "all routes" would have been, and that the **≤3 hops** checkbox in the Topology toolbar
+  lifts the bound. Small graphs and mid-graph nodes are unchanged; the `topology` echo carries
+  `scopeBounded` so an agent is told too.
+- **A finding PDF's "where it sits" picture is readable on a large processor.** Above 60 nodes the
+  whole-estate view rendered as a grey band — checked at 309 nodes: 8% zoom, the lit path reduced to
+  specks. The second picture now shows the cycle's nodes and their immediate neighbours, and its caption
+  counts what was left out ("+249 nodes not shown"), so the reader sees the unlit nodes *next to* the
+  path — where "the check never fired" is actually visible. Small processors are unchanged.
+- **Report pictures fit their labels.** In a finding PDF, node boxes now widen to the longest label
+  instead of eliding to "Category…" — on screen hover reveals the rest; on a page nothing does. The
+  on-screen view is unchanged.
+
 ## [1.8.0] - 2026-08-25
 
 ### Added

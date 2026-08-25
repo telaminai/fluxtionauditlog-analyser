@@ -120,6 +120,20 @@ public final class FocusStack {
     }
 
     /**
+     * {@link TopologyFocus#routes} confined to the current world (H4): the same hop bound, the same
+     * degeneracy rule measured against the WORLD's size, edges walked only inside it.
+     */
+    public TopologyFocus.RouteScope routesInWorld(Collection<String> seeds, boolean allowBound) {
+        Set<String> world = world();
+        Set<String> unbounded = reachWithin(seeds, world, Integer.MAX_VALUE);
+        if (!allowBound || !TopologyFocus.degenerate(unbounded.size(), world.size())) {
+            return new TopologyFocus.RouteScope(unbounded, false, 0, unbounded.size());
+        }
+        return new TopologyFocus.RouteScope(reachWithin(seeds, world, TopologyFocus.ROUTE_HOP_BOUND),
+                true, TopologyFocus.ROUTE_HOP_BOUND, unbounded.size());
+    }
+
+    /**
      * Routes = transitive ancestors ∪ transitive descendants, walking only edges whose BOTH ends are
      * inside {@code world}. The two closures are computed SEPARATELY and each walks one direction only —
      * a single walk that follows both edge directions from every discovered node is the undirected
@@ -127,22 +141,35 @@ public final class FocusStack {
      * graph is in), which is exactly the click-escalation bug this replaced (owner report 2026-08-17).
      */
     private Set<String> reachWithin(Collection<String> seeds, Set<String> world) {
-        Set<String> out = closureWithin(seeds, world, true);
-        out.addAll(closureWithin(seeds, world, false));
+        return reachWithin(seeds, world, Integer.MAX_VALUE);
+    }
+
+    private Set<String> reachWithin(Collection<String> seeds, Set<String> world, int maxHops) {
+        Set<String> out = closureWithin(seeds, world, true, maxHops);
+        out.addAll(closureWithin(seeds, world, false, maxHops));
         return out;
     }
 
-    /** One-directional transitive closure ({@code up} = ancestors) over in-world edges, cycle-safe. */
-    private Set<String> closureWithin(Collection<String> seeds, Set<String> world, boolean up) {
+    /** One-directional transitive closure ({@code up} = ancestors) over in-world edges, cycle-safe, hop-bounded. */
+    private Set<String> closureWithin(Collection<String> seeds, Set<String> world, boolean up, int maxHops) {
         Set<String> seen = new LinkedHashSet<>();
         Deque<String> queue = new ArrayDeque<>();
+        java.util.Map<String, Integer> depth = new java.util.HashMap<>();
         for (String s : seeds) {
-            if (s != null && world.contains(s) && topology.contains(s) && seen.add(s)) queue.add(s);
+            if (s != null && world.contains(s) && topology.contains(s) && seen.add(s)) {
+                queue.add(s);
+                depth.put(s, 0);
+            }
         }
         while (!queue.isEmpty()) {
             String id = queue.removeFirst();
+            int d = depth.getOrDefault(id, 0);
+            if (d >= maxHops) continue;
             for (String next : up ? topology.parentsOf(id) : topology.childrenOf(id)) {
-                if (world.contains(next) && seen.add(next)) queue.addLast(next);
+                if (world.contains(next) && seen.add(next)) {
+                    depth.put(next, d + 1);
+                    queue.addLast(next);
+                }
             }
         }
         return seen;

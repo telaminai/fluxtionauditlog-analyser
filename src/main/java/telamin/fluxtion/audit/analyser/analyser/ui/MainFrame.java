@@ -996,12 +996,17 @@ public final class MainFrame extends JFrame {
                         views.trace()));
             }
             if (views.wholeGraph() != null) {
-                pictures.add(new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
-                        "Where it sits in the processor",
-                        "The whole graph with that cycle lit. What stayed grey is what this event did "
+                // H6: on a large processor the picture is the neighbourhood, not the estate, and the
+                // caption says so and counts what it left out — a picture that quietly showed less than
+                // its heading promised would be evidence of the wrong thing
+                String caption = views.wholeNote() != null ? views.wholeNote()
+                        : "The whole graph with that cycle lit. What stayed grey is what this event did "
                                 + "not reach — which is the evidence for anything of the form "
-                                + "\"the check never fired\".",
-                        views.wholeGraph()));
+                                + "\"the check never fired\".";
+                pictures.add(new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                        views.wholeNote() != null ? "Where it sits in the processor (neighbourhood)"
+                                : "Where it sits in the processor",
+                        caption, views.wholeGraph()));
             }
         }
         if (graphName != null && !graphName.isBlank()) {

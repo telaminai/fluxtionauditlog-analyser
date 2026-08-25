@@ -57,6 +57,15 @@ public final class TopologyPanel extends JPanel {
     private final TopologyIndex index = new TopologyIndex(null, null);
     private final javax.swing.JCheckBox scaffoldingBox = new javax.swing.JCheckBox("Scaffolding", false);
     private final javax.swing.JButton focusButton = new javax.swing.JButton("Focus");
+    /**
+     * H4: bound "all routes" to {@link TopologyFocus#ROUTE_HOP_BOUND} hops when it would otherwise be
+     * most of the graph. On by default; unticking gives the unbounded answer. A checkbox rather than a
+     * fifth scope so the verb surface (scope: node|neighbours|routes|all) stays as published.
+     */
+    private final javax.swing.JCheckBox boundRoutesBox =
+            new javax.swing.JCheckBox("≤" + TopologyFocus.ROUTE_HOP_BOUND + " hops", true);
+    /** The last routes answer, when the current scope is ROUTES — so the status can say if it was bounded. */
+    private TopologyFocus.RouteScope lastRoutes;
     private SourcePanel embeddedSource;
     private final javax.swing.JToggleButton sourceButton = new javax.swing.JToggleButton("Source");
     private final javax.swing.JToggleButton syncButton = new javax.swing.JToggleButton("Sync", true);
@@ -132,6 +141,11 @@ public final class TopologyPanel extends JPanel {
                 + "Show all returns to the full graph.");
         focusButton.addActionListener(e -> pushFocus());
         bar.add(focusButton);
+        boundRoutesBox.setToolTipText("When 'all routes' from a node would cover more than half of a large "
+                + "graph — a sink everything feeds — keep it to " + TopologyFocus.ROUTE_HOP_BOUND
+                + " hops each way. Untick for every route, however many.");
+        boundRoutesBox.addActionListener(e -> applyView());
+        bar.add(boundRoutesBox);
         focusPicker.setToolTipText("Named focuses — saved filter contexts for this project. Recalling one "
                 + "replaces the current context stack; the rationale says why the view exists.");
         focusPicker.addActionListener(e -> showFocusPicker());
@@ -291,7 +305,7 @@ public final class TopologyPanel extends JPanel {
     /** Filter the view to the current selection's scope: the context becomes the whole graph (M27). */
     private void pushFocus() {
         if (selection.isEmpty()) return;
-        java.util.Set<String> ids = focusStack.expandInWorld(selection, scope);
+        java.util.Set<String> ids = scopedIds();
         String label = (selection.size() == 1 ? selection.iterator().next() : selection.size() + " nodes")
                 + " · " + scope.label();
         if (!focusStack.push(ids, label)) return;
@@ -796,9 +810,7 @@ public final class TopologyPanel extends JPanel {
      * is on screen.
      */
     private void applyView(boolean keepView) {
-        java.util.Set<String> scoped = selection.isEmpty()
-                ? null
-                : focusStack.expandInWorld(selection, scope);
+        java.util.Set<String> scoped = selection.isEmpty() ? null : scopedIds();
 
         // the WORLD is the focus context (M27): hiding comes from the filter stack, dimming from the
         // selection's scope — two different statements, never conflated again
@@ -895,6 +907,20 @@ public final class TopologyPanel extends JPanel {
     private String stepPart = "";
     private String scopePart = "";
 
+    /**
+     * The selection's scope in the current world, honouring the routes bound (H4). ROUTES goes through
+     * {@link FocusStack#routesInWorld} so the answer carries WHETHER it was bounded; the other scopes are
+     * unchanged.
+     */
+    private java.util.Set<String> scopedIds() {
+        if (scope == TopologyFocus.Scope.ROUTES) {
+            lastRoutes = focusStack.routesInWorld(selection, boundRoutesBox.isSelected());
+            return lastRoutes.ids();
+        }
+        lastRoutes = null;
+        return focusStack.expandInWorld(selection, scope);
+    }
+
     private void updateScopeLabel(java.util.Set<String> scoped) {
         if (selection.isEmpty()) {
             scopePart = "";
@@ -903,8 +929,15 @@ public final class TopologyPanel extends JPanel {
         StringBuilder sb = new StringBuilder();
         sb.append(selection.size() == 1 ? selection.iterator().next()
                         : selection.size() + " selected")
-          .append(" · ").append(scope.label())
-          .append(" · ").append(scoped == null ? 0 : scoped.size()).append(" node(s)");
+          .append(" · ").append(scope.label());
+        if (lastRoutes != null && lastRoutes.bounded()) {
+            // H4: say that the answer was bounded, by how much, and what the unbounded one would be —
+            // a scope that quietly showed less than its name promised would be the opposite of a focus
+            sb.append(" within ").append(lastRoutes.hops()).append(" hops — all routes would be ")
+              .append(lastRoutes.unboundedSize()).append(" of ").append(focusStack.world().size())
+              .append(" nodes; untick '≤").append(TopologyFocus.ROUTE_HOP_BOUND).append(" hops' for all");
+        }
+        sb.append(" · ").append(scoped == null ? 0 : scoped.size()).append(" node(s)");
         sb.append(" · click again to widen");
         if (!focusStack.atFull()) sb.append(" · within ").append(focusStack.world().size()).append("-node context");
         scopePart = sb.toString();
@@ -1179,6 +1212,15 @@ public final class TopologyPanel extends JPanel {
         out.put("currentNode", cursor.currentInstanceId());
         out.put("selected", List.copyOf(selection));
         out.put("scope", scope.name().toLowerCase(java.util.Locale.ROOT));
+        if (lastRoutes != null && lastRoutes.bounded()) {
+            // H4: an agent reads the echo, not the checkbox — a scope that covers less than its name
+            // says must say so in the data too
+            out.put("scopeBounded", lastRoutes.hops());
+            out.put("scopeNote", "'routes' was bounded to " + lastRoutes.hops() + " hops because all routes "
+                    + "would cover " + lastRoutes.unboundedSize() + " of " + focusStack.world().size()
+                    + " nodes — a sink's routes are the graph; the unbounded answer is one untick away "
+                    + "('≤" + TopologyFocus.ROUTE_HOP_BOUND + " hops' in the Topology toolbar)");
+        }
         out.put("focus", !focusStack.atFull());
         out.put("context", focusStack.breadcrumb());
         out.put("contextDepth", focusStack.depth());
@@ -1546,7 +1588,21 @@ public final class TopologyPanel extends JPanel {
      * @param wholeGraph the entire processor with those nodes lit — the answer to "and what didn't?"
      */
     public record CycleViews(java.awt.image.BufferedImage trace,
-                             java.awt.image.BufferedImage wholeGraph) { }
+                             java.awt.image.BufferedImage wholeGraph,
+                             String wholeNote) {
+        public CycleViews(java.awt.image.BufferedImage trace, java.awt.image.BufferedImage wholeGraph) {
+            this(trace, wholeGraph, null);
+        }
+    }
+
+    /**
+     * Above this many nodes the "whole graph" report picture is not a picture of anything (polish H6):
+     * checked against a 309-node graph, the estate fitted to a 1200×800 frame rendered at 8% zoom as
+     * a grey horizontal band with the lit nodes as specks. So beyond this size the second view shows the
+     * cycle's nodes AND THEIR NEIGHBOURS — the unlit nodes adjacent to the path, which is where "the
+     * check never fired" is actually visible — and the caption counts what was left out.
+     */
+    static final int REPORT_WHOLE_GRAPH_MAX = 60;
 
     /**
      * Render the cycle for a report, <b>offscreen</b>.
@@ -1589,10 +1645,24 @@ public final class TopologyPanel extends JPanel {
         // and the user has already said whether they want to see them
         java.util.Set<String> all =
                 TopologyFocus.visible(fullTopology, scaffoldingBox.isSelected(), null);
+        java.util.Set<String> shown = all;
+        String note = null;
+        if (all.size() > REPORT_WHOLE_GRAPH_MAX && !touched.isEmpty()) {
+            // H6: the estate would be a grey band. Show the path and what sits beside it instead.
+            shown = new java.util.LinkedHashSet<>();
+            for (String id : TopologyFocus.expand(fullTopology, touched, TopologyFocus.Scope.NEIGHBOURS)) {
+                if (all.contains(id)) shown.add(id);
+            }
+            int hidden = all.size() - shown.size();
+            note = "The processor has " + all.size() + " nodes — too many to read in one picture — so this "
+                    + "shows the cycle's nodes and their immediate neighbours (" + shown.size() + " nodes); "
+                    + "+" + hidden + " nodes not shown. Grey nodes here are the ones next to the path "
+                    + "that this event did not reach.";
+        }
         java.awt.image.BufferedImage whole = paintOffscreen(
-                fullTopology.subgraph(all), order, entries, traced, touched, width, height);
+                fullTopology.subgraph(shown), order, entries, traced, touched, width, height);
 
-        return new CycleViews(trace, whole);
+        return new CycleViews(trace, whole, note);
     }
 
     /**
@@ -1614,6 +1684,9 @@ public final class TopologyPanel extends JPanel {
         // about a node must not change with how much of the graph a picture happens to show
         off.setClassificationTopology(fullTopology);
         off.setTopology(shown);
+        // H5: the page has no hover. A label that elides to "Category…" on screen is recoverable there
+        // and meaningless in a PDF, so the exported picture's boxes grow to fit their labels.
+        off.fitNodeWidthToLabels();
         off.setDispatch(order, entries, traced);
         off.setEmphasis(emphasis);
         off.setSize(width, height);

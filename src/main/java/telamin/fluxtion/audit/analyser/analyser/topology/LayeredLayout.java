@@ -84,6 +84,11 @@ public final class LayeredLayout {
             return new Config(nodeWidth, nodeHeight, siblingGap, layerGap, o, sweeps);
         }
 
+        /** A wider box, everything else as it was — for a picture that has no hover to fall back on (H5). */
+        public Config withNodeWidth(double width) {
+            return new Config(Math.max(nodeWidth, width), nodeHeight, siblingGap, layerGap, orientation, sweeps);
+        }
+
         /**
          * Scale the gaps, leaving box size alone. Separation and node size are different questions: a
          * user asking for more room wants the graph to breathe, not the boxes to grow — growing the

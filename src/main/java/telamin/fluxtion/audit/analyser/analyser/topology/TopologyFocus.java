@@ -57,6 +57,56 @@ public final class TopologyFocus {
     }
 
     /**
+     * How far a BOUNDED routes scope reaches in each direction (polish H4). Small and stated in the UI:
+     * three hops is "what feeds the thing that feeds this", which is the question a terminal node's
+     * neighbourhood actually answers.
+     */
+    public static final int ROUTE_HOP_BOUND = 3;
+
+    /** Above this share of the graph, "all routes" has stopped being a focus and become the graph. */
+    public static final double DEGENERATE_SHARE = 0.5;
+
+    /** Below this many nodes the whole graph is readable anyway, and bounding would only confuse. */
+    public static final int BOUND_MIN_GRAPH = 40;
+
+    /**
+     * The answer to a routes request, with WHETHER it was bounded said out loud (H4). The M24 finding:
+     * focusing scope=routes on a node everything feeds — a P&amp;L aggregate, a publisher — selected
+     * 198 of 309 nodes. Focus works mid-graph and degenerates at its edges, because every route into a
+     * sink IS the graph. So a terminal-ish node gets a hop-bounded default, and the unbounded answer stays
+     * one untick away.
+     *
+     * @param ids           what the scope covers
+     * @param bounded       true when the hop bound was applied
+     * @param hops          the bound applied (0 when unbounded)
+     * @param unboundedSize how many nodes "all routes" would have covered — the number to show the user
+     */
+    public record RouteScope(Set<String> ids, boolean bounded, int hops, int unboundedSize) { }
+
+    /**
+     * Routes around {@code seeds}, bounded to {@link #ROUTE_HOP_BOUND} hops when the unbounded answer is
+     * degenerate (more than {@link #DEGENERATE_SHARE} of a graph of at least {@link #BOUND_MIN_GRAPH}
+     * nodes) and {@code allowBound} is on. Pure; the caller decides what to hide or dim.
+     */
+    public static RouteScope routes(ProcessorTopology topology, Collection<String> seeds, boolean allowBound) {
+        Set<String> unbounded = expand(topology, seeds, Scope.ROUTES);
+        if (!allowBound || !degenerate(unbounded.size(), topology == null ? 0 : topology.nodeCount())) {
+            return new RouteScope(unbounded, false, 0, unbounded.size());
+        }
+        Set<String> known = new LinkedHashSet<>();
+        for (String seed : seeds) if (seed != null && topology.contains(seed)) known.add(seed);
+        Set<String> bounded = new LinkedHashSet<>(known);
+        bounded.addAll(reach(topology, known, true, ROUTE_HOP_BOUND));
+        bounded.addAll(reach(topology, known, false, ROUTE_HOP_BOUND));
+        return new RouteScope(bounded, true, ROUTE_HOP_BOUND, unbounded.size());
+    }
+
+    /** The rule, exposed so a context-confined caller ({@code FocusStack}) applies the same one. */
+    public static boolean degenerate(int routesSize, int graphSize) {
+        return graphSize >= BOUND_MIN_GRAPH && routesSize > DEGENERATE_SHARE * graphSize;
+    }
+
+    /**
      * The node ids this scope covers around {@code seeds}. An empty or unknown selection yields an empty
      * set — <b>not</b> the whole graph, so a caller filtering by it cannot accidentally show everything
      * when it meant to show one thing.
@@ -96,14 +146,26 @@ public final class TopologyFocus {
 
     /** Transitive closure upstream ({@code up}) or downstream, cycle-safe. */
     private static Set<String> reach(ProcessorTopology topology, Set<String> seeds, boolean up) {
+        return reach(topology, seeds, up, Integer.MAX_VALUE);
+    }
+
+    /** As {@link #reach(ProcessorTopology, Set, boolean)}, stopping after {@code maxHops} levels (H4). */
+    static Set<String> reach(ProcessorTopology topology, Set<String> seeds, boolean up, int maxHops) {
         Set<String> seen = new LinkedHashSet<>(seeds);
         Deque<String> queue = new ArrayDeque<>(seeds);
+        java.util.Map<String, Integer> depth = new java.util.HashMap<>();
+        for (String s : seeds) depth.put(s, 0);
         while (!queue.isEmpty()) {
             String id = queue.removeFirst();
+            int d = depth.getOrDefault(id, 0);
+            if (d >= maxHops) continue;
             for (String next : up ? topology.parentsOf(id) : topology.childrenOf(id)) {
                 // a processor graph is acyclic by construction, but a hand-edited or partial graphml
                 // need not be, and a stack overflow is a poor way to report that
-                if (seen.add(next)) queue.addLast(next);
+                if (seen.add(next)) {
+                    depth.put(next, d + 1);
+                    queue.addLast(next);
+                }
             }
         }
         return seen;

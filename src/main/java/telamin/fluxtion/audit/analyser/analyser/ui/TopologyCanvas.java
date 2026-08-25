@@ -250,6 +250,31 @@ public final class TopologyCanvas extends JPanel {
         return topology;
     }
 
+    /**
+     * Widen the node box until every label on the shown topology fits at scale 1 (polish H5). For
+     * pictures that leave the screen — a report PDF — where there is no hover to reveal what "Category…"
+     * was. On screen the box stays its size and labels elide, because there the truncation is
+     * recoverable. Re-runs the layout; the caller fits the view afterwards.
+     *
+     * @return the width chosen, so a caller can say whether anything changed
+     */
+    public double fitNodeWidthToLabels() {
+        java.awt.Font base = getFont();
+        if (base == null) return config.nodeWidth();
+        FontMetrics fm = getFontMetrics(base.deriveFont(labelPoints));
+        double need = 0;
+        for (ProcessorTopology.Node node : topology.nodes()) {
+            need = Math.max(need, fm.stringWidth(node.simpleName()));
+            need = Math.max(need, fm.stringWidth(node.id()));
+        }
+        double width = Math.max(config.nodeWidth(), need + 16);   // the 8px inset each side drawClipped uses
+        if (width != config.nodeWidth()) {
+            config = config.withNodeWidth(width);
+            layout = LayeredLayout.layout(topology, config);
+        }
+        return config.nodeWidth();
+    }
+
     /** Re-space the layout. Re-runs the layout, keeping zoom and pan so the view does not jump. */
     public void setSpacing(double factor) {
         double scale0 = scale;

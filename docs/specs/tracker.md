@@ -468,6 +468,13 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ---
 
+## Polish round (brief 2026-08-17) — ◧ H1–H5 DONE 2026-08-25 on `feat/polish-round`; H6 (see report)
+_Report: `docs/handoff/handoff_17_aug_2026_1_report.txt`. H1/H2 were found already done by the per-merge
+tidies and verified. H3 window-id capture (`screencapture -l` via a JXA `CGWindowListCopyWindowInfo`
+lookup; menu shots stay region captures, stated). H4 bounded routes at a terminal node
+(`TopologyFocus.routes`, `≤3 hops` toggle, echo `scopeBounded`). H5 offscreen boxes fit their labels
+(`TopologyCanvas.fitNodeWidthToLabels`). H6: the whole-graph report view at scale — result in the report._
+
 ## Suggested delivery order
 
 _Refreshed 2026-08-22. Shipped since the last refresh: **M34.0** (spike, gate opened), **M34.1**
