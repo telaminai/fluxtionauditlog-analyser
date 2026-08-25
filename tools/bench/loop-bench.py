@@ -37,6 +37,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import urllib.error
 import urllib.request
 
@@ -70,11 +71,9 @@ class Analyser:
             if self.endpoint_file.exists():
                 ep = json.loads(self.endpoint_file.read_text())
                 self.url, self.token = ep["url"], ep["token"]
-                try:
-                    self.act("context")
+                r = self.act("context")
+                if r.get("ok") or "context" in r:
                     return True
-                except Exception:
-                    pass
             time.sleep(0.5)
         return False
 
@@ -88,6 +87,13 @@ class Analyser:
                 return json.loads(r.read())
         except urllib.error.HTTPError as e:
             return json.loads(e.read())
+        except OSError as e:
+            # The analyser died, or was never reachable. HTTPError was the only case handled, and a
+            # refused connection raises URLError, which is NOT an HTTPError — so this escaped main()
+            # and, with no working cleanup, orphaned the JVM and the stub this bench started. Return a
+            # failure the caller can name instead: a conformance bench must fail by step, not by
+            # traceback.
+            return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
 
 def main():
@@ -222,8 +228,17 @@ def main():
         step("topology answers", topo.get("ok", False), topo.get("error", ""))
         step("no time-order dialog blocked the load (the app kept answering)", True, "weak evidence on its own; the structural proof is M35.9")
         return finish(procs, a.keep, work)
-    finally:
-        pass
+    except KeyboardInterrupt:
+        step("the bench ran to completion", False, "interrupted")
+        return finish(procs, a.keep, work)
+    except Exception as ex:
+        # `finally: pass` used to sit here, which cleans up nothing: any escaping exception skipped
+        # finish(), so the summary never printed AND the analyser JVM and the stub were left running
+        # with the temp dir behind them. On CI that is worse than a red build — it is a red build plus
+        # a process holding a port.
+        traceback.print_exc()
+        step("the bench ran to completion", False, f"{type(ex).__name__}: {ex}")
+        return finish(procs, a.keep, work)
 
 
 def finish(procs, keep, work):

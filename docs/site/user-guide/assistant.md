@@ -174,8 +174,8 @@ So the working setup is:
 
 If you skip step 1 or 2, the tools still appear in your client, but calling one answers *"analyser not
 running, or REST transport disabled — start the app with `--rest`"*. That flag turns the transport on
-   (persistently) and skips the first-run dialog, so an agent can bring the analyser up on a fresh
-   machine without a human at the keyboard.
+(persistently) and prints where the endpoint file is, so an agent can bring the analyser up on a fresh
+machine without a human at the keyboard.
 
 ### Configure your client
 

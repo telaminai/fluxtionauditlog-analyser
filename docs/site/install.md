@@ -28,11 +28,12 @@ The JBang alias points at the latest release's stable-name asset, so it always f
 java -jar fluxtion-auditlog-analyser.jar --rest        # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest
 ```
 
-`--rest` opens the app with the **localhost REST transport on** and, on a machine that has never run the
-analyser, **without the first-run Settings dialog** — a process asked for this launch and a process cannot
-answer a dialog. The setting persists (Settings ▸ Assistant shows it on; turn it off there) and the
-console says so. It is what an agent runs on a fresh machine before its MCP client connects; a human
-launch without the flag is unchanged.
+`--rest` opens the app with the **localhost REST transport on**, so a process can drive it on a machine
+that has never run the analyser. On a first run it prints where the REST endpoint file is, rather than
+expecting anyone to read the screen. The setting persists (Settings ▸ Assistant shows it on; turn it off
+there) and the console says so. It is what an agent runs on a fresh machine before its MCP client
+connects; a human launch without the flag is unchanged — and neither one opens a dialog before you can
+use the app.
 
 ## Plain download
 

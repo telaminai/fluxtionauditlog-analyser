@@ -136,6 +136,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   someone who had not yet seen a single record. The start page does that job now, and Settings is
   where it always was (File ▸ Settings, and one click from the start page).
 ### Fixed
+- **The loop bench cleans up after itself when a run fails.** If the analyser died mid-run the bench
+  printed a traceback instead of a named failure and left the analyser and the stub server running.
 - **Reports no longer run off the right-hand edge.** A report's widest line — usually the
   *"written against … · N record(s) · <range>"* provenance header — was drawn on a single
   unwrappable line, and because it set the preferred width of the whole detail pane, every section

@@ -1,0 +1,140 @@
+REVIEW — feat/m19-bench (M19.6 the loop's conformance bench · M19.7 `--rest`, an agent-driven fresh start)
+Reviewer: the first session · Date: 2026-08-25 · Branch: feat/m19-bench @ 49d37b8
+Brief: docs/handoff/handoff_25_aug_2026_4.txt · Report: docs/handoff/report_feat_m19_bench.txt
+Reviewed from: feat/m36-start-page, which is rebased onto this branch (the two changed the same
+method — see §4 of report_feat_m36_start_page.txt).
+
+VERDICT: **MERGE**, with F1 fixed on the reviewing branch (a defect in the bench's own failure path)
+and F2 corrected (doc drift the M36 merge caused). F3–F7 are recorded; none blocks.
+
+The design is right, and one thing about it is better than right: the stub is not a mock, it is the
+contract in executable form, so "make the real server pass this" is a COMPLETE statement of the
+mongoose-side work for UP-MNG-01 and the export half of UP-MNG-02. That is the difference between an
+ask and a specification, and it is what makes the cross-repo dependency acceptable.
+
+================================================================================
+1. WHAT I VERIFIED, RATHER THAN READ
+================================================================================
+The brief's own premise ("REST is off by default; a fresh install shows a modal") is load-bearing for
+the whole slice, so I tested it instead of trusting either of us — I had a screenshot that appeared to
+show REST already listening on a fresh home, and it was worth resolving before reviewing a fix for it.
+
+  · fresh home, NO flag        → no ~/.fluxtion-analyser at all, no endpoint file, nothing on stdout.
+                                 AppConfig.assistantActionsRest = false. Premise confirmed.
+  · fresh home, `--rest`       → endpoint file published, mode 0600 (verified with stat, not assumed);
+                                 assistant.rest=true persisted to the config; BOTH stdout notes printed
+                                 (the "enabled and saved" line and the first-run "no Settings dialog"
+                                 line); no dialog.
+  · loop-bench --stub --launch → 20 passed, 0 failed, exit 0 (exit code read directly, NOT through a
+                                 pipeline — `cmd | tail; echo $?` reports tail, which is the trap
+                                 CLAUDE.md's own brief warns about).
+  · registry file              → mode 600 and every UP-MNG-01 field, checked against §5 of
+                                 upstream-asks.md rather than against the bench's own list.
+  · McpBridge's new message    → names `fluxtion-auditlog-analyser.jar`, which IS the stable-name
+                                 release asset (install.md line 40). Correct as written; I checked
+                                 because a versioned name would have made the printed command a lie.
+
+================================================================================
+2. FINDINGS
+================================================================================
+F1 · **THE BENCH'S CLEANUP WAS UNREACHABLE, AND ITS FAILURE PATH ORPHANED PROCESSES.** — FIXED HERE
+     main() ended `try: … finally: pass`. `finally: pass` cleans up nothing, so ANY escaping exception
+     skipped finish() entirely: no summary, no PASS/FAIL accounting, and — the part that matters — the
+     analyser JVM and the mongoose stub left RUNNING with the temp dir behind them.
+
+     It was reachable. Analyser.act() caught `urllib.error.HTTPError` only, and a dead or unreachable
+     analyser raises `URLError`, which is not an HTTPError. Verified by importing the module and
+     calling act() against a closed port:
+
+         UNCAUGHT by act(): URLError - <urlopen error [Errno 61] Connection refused>
+
+     So "the analyser dies mid-run" — the single most likely real failure, and the one a conformance
+     bench exists to catch — produced a traceback and an orphaned JVM holding a port instead of a
+     named FAIL. On CI that is worse than a red build; it is a red build plus a stuck port.
+
+     FIXED: act() returns a named failure on OSError (URLError's parent); wait() no longer reads that
+     shape as "it answered"; the dead `finally` is now a real except-guard that reports and calls
+     finish(). VERIFIED BOTH WAYS: --stub --launch still 20/20 exit 0; --stub with no analyser now
+     prints "FAIL the analyser answers on its REST endpoint", exits 1, and leaves no stray process.
+
+F2 · **DOC DRIFT — MINE, FROM THE MERGE, NOT THIS BRANCH'S FAULT.** — FIXED HERE
+     install.md and assistant.md said `--rest` starts "without the first-run Settings dialog" /
+     "skips the first-run dialog". True when written; false after M36, which removed that dialog for
+     everyone. As merged they implied a human still gets one. Reworded to what both changes now do
+     together. (The CHANGELOG entry had the same problem and was corrected during the merge.)
+
+F3 · **NO TESTS WERE ADDED, AND THE BRIEF ASKED FOR THEM.** — recorded, not fixed
+     The brief says: "Headless: the flag parse, the registry-file shape the stub writes (fields,
+     mode)." The branch adds none — the suite went 834 → 841 across the merge, and all seven are my
+     CardFlowTest. Main's argument handling is now pure logic with three distinct behaviours (strip
+     `--rest`; reject an unknown flag AFTER stripping; let a log path fall through), which is exactly
+     what rule 4 means by "pure logic gets unit tests". The bench covers this end-to-end, but only
+     when a jar, a JVM and a window are available — CI headless would not catch a regression here.
+     Suggested: a small MainArgsTest. Recorded as **M19.9**.
+
+F4 · **A STEP THAT CANNOT FAIL IS COUNTED AS A PASS.** — recorded
+     "no time-order dialog blocked the load" is `step(…, True, …)` — hardcoded. D5 is honest about it
+     ("weak evidence on its own"), and the reasoning for having a named place in the output is sound.
+     But it makes the headline "20 passed" contain one check that could never have failed. Either
+     assert something real (context still answers AFTER the load, which is the claim) or print it as
+     a NOTE outside the pass count. A conformance bench's number should count only falsifiable checks.
+
+F5 · **`--mcp --rest` SILENTLY IGNORES `--rest`.** — recorded, one line
+     `--mcp` returns before the strip loop. Harmless today (the bridge is headless and wants no GUI),
+     but this repo already added an unknown-flag guard because "a flag that is silently ignored" had
+     bitten it once. Either reject the combination or say in usage() that --mcp takes no other flags.
+
+F6 · **THE STUB PUBLISHES A FIELD UP-MNG-01 DOES NOT SPECIFY.** — recorded, doc-only
+     `processors[].className` is in the stub's record but not in the ask. The bench does not require
+     it (the `required` list is right, and it reads only `name`/`graphml`). But the stub is explicitly
+     billed as "the contract in executable form", so a mongoose-side reader could reasonably implement
+     it as required. One comment marking it non-normative closes this.
+
+F7 · **TWO SMALLER THINGS.** — recorded
+     (a) `analyser.act("open", {"close": "all"})` is the one verb call whose result is not a step; if
+         it fails the run continues against whatever state was there.
+     (b) `p.stdout.readline()` on the stub has no timeout. EOF makes the common failure safe (the step
+         fails), so this only hangs if the stub starts, prints nothing and does not exit. Low risk,
+         worth a deadline.
+
+================================================================================
+3. WHAT IS GOOD, AND WORTH KEEPING DELIBERATELY
+================================================================================
+  · **The stub as contract, not mock** (D1). It implements the ask and nothing more, from the in-tree
+    demo set, so the bench doubles as the acceptance test for UP-MNG-01/02 the moment a real server
+    publishes a registry file. This is the strongest thing on the branch.
+  · **Assumptions flagged in three places rather than baked in** (D4) — the Bearer header shape and
+    the audit-files listing shape are marked as the bench's guesses, in the module doc, the README and
+    the step's own detail. For a contract spanning three repos that is exactly right: the bench states
+    what it assumed, so the other side can correct it instead of silently diverging.
+  · **`--launch` makes the bench the live test of M19.7 on every run** (D3) — a never-configured
+    isolated home, so the fresh-install claim is re-proved continuously rather than once by hand.
+  · **The report records a defect the bench found in its own slice** (§4 of the report: the `--rest`
+    save made configStore.exists() true before the splash timer asked, so the dialog was suppressed by
+    accident of ordering and the promised stdout note never printed). Finding that on the harness's
+    first outing, and writing it down rather than quietly fixing it, is the behaviour that makes the
+    rest of the report credible.
+  · Persisting the REST setting is defensible and I checked the objection rather than assuming it: a
+    launch flag that permanently opens a localhost socket deserves scrutiny, but it is token-guarded,
+    bound to 127.0.0.1, announced on stdout, shown in Settings ▸ Assistant, and the status bar names
+    the listening URL on every subsequent launch. The next human is told. Agreed as designed.
+
+================================================================================
+4. THE COLLISION WITH M36 (already resolved on feat/m36-start-page)
+================================================================================
+Both branches changed showFirstRunSettingsIfNeeded, both answering review_feat_m35_project N2. M19.7
+suppressed the modal under `--rest`; M36 removed it outright. Resolved keeping both halves: no dialog
+for anybody, and M19.7's `--rest` stdout note retained — the loop bench asserts it, and it is the one
+thing an agent actually needed from that method. M19.7's `firstRunAtStart` is kept and still required,
+because `--rest` still saves the config in the constructor. N2 is now closed on both paths, which
+neither branch achieved alone. Bench re-run after the reconciliation: 20/20, exit 0.
+
+================================================================================
+5. NOT REVIEWED
+================================================================================
+  · `mkdocs build --strict` — mkdocs is not installed in my environment. The branch's report claims it
+    green, and my F2 edits are prose-only inside existing pages (no new links, files or nav entries),
+    but the gate has NOT been re-run since those edits. Someone with the toolchain should confirm
+    before this reaches the docs site.
+  · M19.8 (the bench in CI, needs xvfb) is correctly recorded as ☐ and not claimed.
+  · The bench against a REAL registry — no Mongoose exists yet, which is the point of the stub.

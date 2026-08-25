@@ -171,6 +171,11 @@ analyser (reverse funnel)._
 - [M19.8] ☐ **The bench in CI** — the analyser is Swing, so the job needs a display (`xvfb-run` on the
   Linux runner) plus the stub; not verified from a Mac, so recorded rather than claimed. Until then the
   bench is run locally before any of the three repos' loop code changes.
+- [M19.9] ☐ **A headless test for the launch arguments** — `Main` now strips `--rest`, rejects an
+  unknown flag AFTER stripping, and lets a log path fall through. That is pure logic with three
+  behaviours and no unit test (rule 4). The loop bench covers it end-to-end, but only where a jar, a
+  JVM and a window exist, so a headless CI run would not catch a regression. From
+  `review_feat_m19_bench.txt` F3.
 - Open: O2 which example — **tiebreaker: prefer Spring-XML-defined** (design-IR edit variant in the
   tutorial + the design→graph→record provenance chain; spec §Contract notes). _(O1: Maven project · O3: bundles generated at Download time, nothing to
   regenerate · O4: committed as M19.2 — all resolved.)_
