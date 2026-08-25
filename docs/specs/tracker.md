@@ -416,7 +416,7 @@ returned `SourceGraph` because availability is per SOURCE, not per adapter._
   level out: a graph someone OPENED is intent and wins; one an adapter SUPPLIED is convenience and
   yields. `coverage` now REFUSES on an INFERRED graph rather than printing the 100% it gets by
   construction — the M34.0 spike's §4 finding turned into a guard.
-- [M34.2] ◧ **Capability degradation wired** — _ordering half DONE 2026-08-25 on
+- [M34.2] ☑ **Capability degradation wired** — _ordering half DONE 2026-08-25 on
   `feat/m34-adapters`_: the ordinal badge is not painted on a PARTIAL source, step-through says
   "logged N / M" not "step N / M", the Topology status carries a standing warning, and the echo
   carries `orderMeaningful` + `orderCaveat` because an agent reads the data, not the picture.
@@ -424,6 +424,11 @@ returned `SourceGraph` because availability is per SOURCE, not per adapter._
   ServiceLoader path end to end for the first time since it shipped. `coverage` already refuses an
   INFERRED graph (M34.1). **Remaining:** "did not run" shading and replay-diff, each to degrade
   loudly with its reason rather than silently.
+  _**Shading half DONE 2026-08-25:** an INFERRED graph's execution categories are hollow by
+  construction — every node in it ran — so the status and the `topology` echo say that an absence of
+  "did not run" nodes proves nothing. **Replay-diff has nothing to degrade: the feature does not
+  exist yet** (the spec names it as something Temporal's native replay would fit better than
+  Fluxtion). M34.2 is therefore complete against what is built; revisit when replay-diff lands._
 - [M34.3] ☐ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.
 - [M34.4] ☐ **First foreign adapter, out of tree — LangGraph**, the throwaway translator of M34.0
   rebuilt against the SPI: same engine, now a supported source rather than a hand-fed file.

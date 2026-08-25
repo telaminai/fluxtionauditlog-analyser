@@ -824,6 +824,15 @@ public final class TopologyPanel extends JPanel {
             appendPart(sb, "⚠ ARRIVAL ORDER, NOT DISPATCH ORDER — this source declares no order "
                     + "within a cycle, so position here is not causality");
         }
+        if (!graphSource.supportsCoverage()
+                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
+            // M34.2: on a graph INFERRED from what ran, every node logged by construction, so
+            // "did not run" and "not on this path" can never appear — and their absence reads as
+            // "nothing was missed". That is coverage's 100% wearing a different hat.
+            appendPart(sb, "⚠ this graph was " + graphSource.describe
+                    + " — every node here ran by construction, so \"did not run\" and \"not on this "
+                    + "path\" cannot appear and their absence proves nothing");
+        }
         sb.append(viewNote());
         status.setText(sb.toString());
     }
@@ -1136,6 +1145,13 @@ public final class TopologyPanel extends JPanel {
         // M34.2 — an agent reads the echo, not the canvas. The suppressed badge is invisible to it,
         // so the qualification has to travel in the data or the agent will read rowIndex as order.
         out.put("orderMeaningful", orderMeaningful);
+        out.put("graphSource", graphSource.name());
+        if (!graphSource.supportsCoverage()
+                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
+            out.put("executionCaveat", "this graph was " + graphSource.describe + ": every node in "
+                    + "it ran by construction, so an absence of \"did not run\" nodes is not "
+                    + "evidence that nothing was missed");
+        }
         if (!orderMeaningful) {
             out.put("orderCaveat", "this source declares no order within a cycle: rowIndex is "
                     + "ARRIVAL order, not dispatch order. Do not read it as causality.");

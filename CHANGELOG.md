@@ -7,6 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **A graph built from what ran no longer implies nothing was missed** (M34.2). On a topology a
+  source *inferred* from its own run, every node logged by construction — so "did not run" and "not
+  on this path" can never appear, and their absence reads as a clean bill of health. The Topology
+  status now says so outright, and the `topology` echo carries the same caveat for agents. `coverage`
+  already refuses such a graph; this is the shading half of the same argument.
 - **A source that cannot promise an order no longer gets one drawn for it** (M34.2). The topology's
   ordinal badge — the small number saying "this ran third" — is the most confident thing the canvas
   draws, and on a concurrent engine that number is arrival order, not causality. When a reader

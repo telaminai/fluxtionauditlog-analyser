@@ -158,3 +158,34 @@ and migrating all nine call sites. Migrating them uncovered a live NPE on the wa
 judgeOpenedGraph() passed the guard and then dereferenced loadedGraphFile(), which is null for
 exactly the graphs M34.1 had just made possible. It would have thrown on the first source-supplied
 graph anyone opened. Found by changing the question, not by a test.
+
+================================================================================
+6. M34.2 COMPLETE — the shading half, and what it turned out NOT to include
+================================================================================
+On a graph INFERRED from its own run, every node logged by construction, so "did not run" and "not
+on this path" can never appear. Their absence then reads as "nothing was missed" — coverage's 100%
+wearing a different hat, on a surface where nobody thinks to be suspicious. The Topology status now
+says so as a persistent part (the M35.6 mechanism), and the `topology` echo carries the same words
+plus `graphSource`, because an agent reads the data and never sees the picture.
+
+REPLAY-DIFF: NOTHING TO DEGRADE. The slice names it, but the feature does not exist — the spec
+itself observes that Temporal's native replay fits it better than Fluxtion's does. Recorded rather
+than invented: M34.2 is complete against what is built, and the tracker says to revisit when
+replay-diff lands. Writing a degradation path for an absent feature would be a guess dressed as work.
+
+VERIFIED, both directions, against real sources:
+    INFERRED   graphSource READER_INFERRED · executionCaveat present · coverage REFUSED (HTTP 400)
+    DECLARED   graphSource READER_DECLARED · no caveat               · coverage answers (ratio 1.0)
+The contrast is the test: a caveat that fires on everything is not a caveat.
+
+THE PROBES ARE NOW IN THE TREE — tools/spikes/m34-probe/. They had to be built because NO SOURCE IN
+THIS REPO CAN EXERCISE M34.2: the native reader is TOTAL-ordered and has no graph, so every
+degradation path had nothing to degrade against and would have shipped read-verified only. Two
+readers, one PARTIAL+DECLARED and one PARTIAL+INFERRED, with build-and-install steps in the README
+and a note to delete the jar afterwards — a probe claiming capabilities nothing else claims is not
+something to leave in a real profile.
+
+  A DEBUGGING NOTE worth keeping, because it cost a cycle: the first inferred run reported
+  graphSource "None" and I began hunting the precedence logic. The jar was stale — `mvn test`
+  compiles but does not repackage, so the running app predated the change and "None" was Python's
+  missing key, not the enum. Rebuild before driving.
