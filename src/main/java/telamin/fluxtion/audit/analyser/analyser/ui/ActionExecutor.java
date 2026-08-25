@@ -684,8 +684,36 @@ public final class ActionExecutor implements RenderExecutor {
                 : new LinkedHashMap<>();
     }
 
+    /** Every 'open' param; used to name the ones a lifecycle act (project, close) leaves unhonoured. */
+    private static final List<String> OPEN_PARAMS = List.of("log", "logs", "graphml", "processor",
+            "format", "provenance", "discover", "close", "project");
+
+    private static List<String> otherOpenParams(Map<String, Object> params, String honoured) {
+        List<String> ignored = new ArrayList<>();
+        for (String k : OPEN_PARAMS) {
+            if (!k.equals(honoured) && params.get(k) != null) ignored.add(k);
+        }
+        return ignored;
+    }
+
     private ActionResult doOpen(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
+        if (params.get("project") != null) {
+            // M35.8: the largest act on this verb goes first. A project switch is a session boundary
+            // (M35.5) — the log and graph close with it — so "open a project and a log" in one call
+            // has no coherent reading: whatever the log arrived into would be swept away by the switch.
+            // Sequence the calls instead; the ignored params are NAMED (M26.4, review R2).
+            ActionResult r = app.openProject(str(params.get("project")));
+            List<String> ignored = otherOpenParams(params, "project");
+            if (r.ok() && !ignored.isEmpty()) {
+                Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("opened")));
+                echo.put("ignored", ignored);
+                echo.put("ignoredWhy", "'project' was also given; a project switch is a session boundary, "
+                        + "so open the log and graph in a second call, inside the new project");
+                return ActionResult.ok("open", "opened", echo);
+            }
+            return r;
+        }
         if (params.get("log") != null && params.get("format") != null) {
             app.setProvenance(str(params.get("provenance")));
             return app.openLog(str(params.get("log")), str(params.get("format")));
@@ -699,11 +727,7 @@ public final class ActionExecutor implements RenderExecutor {
             // review R2 / M26.4: "open and close at once" is incoherent and the useful reading is the
             // close — but a param that was silently dropped reads to the caller as one that was
             // honoured, so name them. Every verb in this surface owes the caller that.
-            List<String> ignored = new ArrayList<>();
-            for (String k : List.of("log", "logs", "graphml", "processor", "format", "provenance",
-                    "discover")) {
-                if (params.get(k) != null) ignored.add(k);
-            }
+            List<String> ignored = otherOpenParams(params, "close");
             if (r.ok() && !ignored.isEmpty()) {
                 Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("applied")));
                 echo.put("ignored", ignored);
@@ -725,7 +749,7 @@ public final class ActionExecutor implements RenderExecutor {
         String processor = str(params.get("processor"));
         if (log == null && graphml == null && processor == null) {
             return ActionResult.error(
-                    "'open' needs 'log', 'graphml', 'processor', 'close' or 'discover'");
+                    "'open' needs 'log', 'graphml', 'processor', 'project', 'close' or 'discover'");
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         if (log != null) {

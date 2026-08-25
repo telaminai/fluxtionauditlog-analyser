@@ -108,6 +108,20 @@ It asks **once per log**, never for a project that's already open, and takes "no
 rest of the session. Opening a log from `s3://` never triggers it: the object is streamed to a temporary
 file, and a temp directory isn't a project.
 
+## From an agent
+
+An assistant working over the [action socket](assistant.md) sees the same offer as data —
+`context` reports `projectOffer` with the settings path — and accepts it with
+`open {project: "<that path>"}`; the same call opens any project by directory. It also reads which
+project is in force (`context.project`) and leaves one with `open {close: "project"}`.
+
+The verb **applies rather than asks**, because a question nobody can answer over the socket would
+freeze the app. What makes that safe is the answer it gives back: every project-owned category with
+its count before and after the switch, the log and graph it closed and where they were (an explicit
+switch is a session boundary, exactly as it is from the File menu), the project that was active before,
+and the one call that undoes it. Your MCP client's own approval prompt on `open` is where a human says
+yes or no.
+
 ## Import: merge or open?
 
 **File ▸ Import settings…** now asks which of two different things you mean:

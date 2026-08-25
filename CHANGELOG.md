@@ -7,6 +7,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **An agent can open a project — and close one** (M35.8): `open {project: "<dir or its
+  .analyser/project.fluxtion-settings>"}` and `open {close: "project"}`. Until now `context` could
+  report *"this log sits inside a project"* and nothing at the socket could accept it — an offer with
+  no accept button — and an agent could open and close a log and a graph but not the thing that owns
+  both. The verb **applies; it does not ask**: a dialog cannot be answered over the socket, so the
+  safety lives in the **echo**, which names every category the switch replaced with before/after
+  counts (source roots, Maven repos, event processors, named graphs, focuses, reports, hidden
+  columns), what it closed and where those were (the log and graph — a project is a session
+  boundary), the project that was active before, and the one call that puts it back. Re-opening the
+  already-active project changes nothing and says so. `context` now names the project in force.
 - **A log can say which *system* it came from** — `open {log, provenance: "risk-engine ·
   localhost:8081 · ~/dev/risk"}`. A file name is not a system: export three servers' logs and you get
   three artefacts nobody can tell apart, and a report headed *"written against export-1.yaml"* tells

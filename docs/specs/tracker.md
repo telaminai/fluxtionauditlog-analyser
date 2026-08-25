@@ -265,7 +265,7 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
-## M35 · Log + graph lifecycle — ◧ **.1-.7 + §E SHIPPED 2026-08-25** (archived; .8/.9 open)
+## M35 · Log + graph lifecycle — ◧ **.1-.7 + §E SHIPPED 2026-08-25; .8 DONE on `feat/m35-project`** (archived; .9–.11 open)
 _Shipped work in [completed/tracker.md](completed/tracker.md)._
 - [M35.10] ☑ **Relative profile roots resolve against `.analyser/`, not the project root** _(found driving
   M35.8, report_feat_m35_project O1; DONE 2026-08-25 on `feat/m35-relative-roots`)_ — `ProjectProfile.load`
@@ -274,7 +274,7 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   relative roots, so nothing shipped was hit — but the **M19.2 bundle contract** is built on exactly
   this. Fix: `ProjectProfile.baseDirFor(file)` — the project root for the canonical profile, the file's
   own directory for a loose `.fluxtion-settings`; used by `load` and the Import dialog. Spec-onboarding
-  §Contract notes corrected. _(Also recorded on `feat/m35-project`; one line to reconcile at merge.)_
+  §Contract notes corrected.
 - [M35.11] ☑ **Auto-persist rewrites a committed profile's relative roots as absolute** _(found driving
   M35.8, report O2; DONE 2026-08-25 on `feat/m35-relative-roots`)_ — open a project, do nothing, switch
   away: the flush wrote the in-memory config back and the writer knew only `~`-relative and absolute
@@ -292,7 +292,7 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   verb open racing a drag-drop) could cross it. Rare and serialised in practice, which is why the
   review noted rather than fixed it. _Do this when a fourth appears, or when R1 bites — not before:
   it is a refactor of code that has just been reviewed._
-- [M35.8] ☐ **`open {project: path}`** — the lifecycle surface's missing half. **Brief ready: `docs/handoff/handoff_25_aug_2026_2.txt`** (branch `feat/m35-project`). _(Deferred out of M35
+- [M35.8] ☑ **`open {project: path}`** — the lifecycle surface's missing half. **DONE 2026-08-25 on `feat/m35-project`** (report `docs/handoff/report_feat_m35_project.txt`): the verb applies, the echo names every replaced category with before/after counts, what it closed WITH PATHS, the previous project and the one call back; `open {close: "project"}` added so "your own settings" is reachable in one call too (report D1); `context.project` names the settings in force (D5). E7/E8/E10 driven over REST, E9's offer half proven, its keep half stays human (report §6). Brief was `docs/handoff/handoff_25_aug_2026_2.txt`. _(Deferred out of M35
   deliberately: this is the largest single mutation any verb would perform — it replaces source
   roots, event processors, graphs and hidden columns in one call — so it needs its own decision about
   confirmation rather than being smuggled in beside a lifecycle fix. Not started on

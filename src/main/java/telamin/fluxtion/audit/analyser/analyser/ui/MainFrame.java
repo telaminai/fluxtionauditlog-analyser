@@ -2894,9 +2894,33 @@ public final class MainFrame extends JFrame {
                 case "log" -> { closeLog(); echo.put("closed", "log"); }
                 case "graph", "graphml" -> { closeGraph(); echo.put("closed", "graph"); }
                 case "all", "both" -> { resetAll(); echo.put("closed", "all"); }
+                case "project" -> {
+                    // M35.8: the way back from open {project} when what was in force before it was
+                    // "your own settings" — there is no path to name for that, so it needs a verb.
+                    // Its echo is its own: the `kept` sentence below is FALSE here, because leaving a
+                    // project is exactly the act that swaps the profile-state categories.
+                    if (!project.hasProject()) {
+                        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                                "no project is open — these are already your own settings");
+                    }
+                    String was = project.activeName();
+                    String wasPath = project.activeFile().toString();
+                    var before = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+                    Map<String, Object> closedEcho = sessionEndEcho();
+                    project.close();
+                    afterProjectChange("closed project " + was + " — back to your own settings", true);
+                    var after = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+                    echo.put("closed", "project");
+                    echo.put("project", was);
+                    echo.put("now", "your own settings — the ones in force before any project was opened");
+                    echo.put("replaced", replacedCounts(before, after));
+                    echo.putAll(closedEcho);
+                    echo.put("reversible", "open {project: \"" + wasPath + "\"} puts it back");
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied", echo);
+                }
                 default -> {
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                            "close takes 'log', 'graph' or 'all', got '" + what + "'");
+                            "close takes 'log', 'graph', 'all' or 'project', got '" + what + "'");
                 }
             }
             // M26.4: say what was actually there, so a no-op close does not read as a success
@@ -2906,6 +2930,120 @@ public final class MainFrame extends JFrame {
             echo.put("kept", "named graphs, focuses, source roots and reports are profile state and "
                     + "survive; anything that can no longer resolve says so rather than vanishing");
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied", echo);
+        }
+
+        /**
+         * M35.8 — a route to machinery that exists: {@code project.open} never throws and
+         * {@code afterProjectChange(…, true)} already closes the log and graph. What is NEW is the echo,
+         * and the echo is the whole safety story: this verb APPLIES (a modal cannot be answered at the
+         * socket — M35.7), so what it replaced, what it closed and how to undo it must all be in the
+         * answer. {@link #applyProjectResult} is deliberately NOT used: its failure path is a dialog.
+         */
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openProject(String path) {
+            if (path == null || path.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'project' is empty");
+            }
+            Path given = Path.of(path.trim());
+            Path file = Files.isDirectory(given)
+                    ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(given)
+                    : given;
+            if (!Files.isRegularFile(file)) {
+                // named, not thrown: the same degradation ProjectProfile.load promises, one step earlier
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "project settings not found: " + file
+                                + (Files.isDirectory(given) ? " (a project directory carries "
+                                + telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.CANONICAL_RELATIVE
+                                + ")" : ""));
+            }
+            Path active = project.activeFile();
+            Path target = file.toAbsolutePath().normalize();
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            if (active != null && active.toAbsolutePath().normalize().equals(target)) {
+                // Re-opening the active project would flush its in-memory state OVER the file and read
+                // it back — nothing changes, but the session would end for nothing. Say so instead.
+                echo.put("project", project.activeName());
+                echo.put("settings", active.toString());
+                echo.put("alreadyActive", true);
+                echo.put("note", "nothing replaced and nothing closed — this project is already in force, "
+                        + "and its edits auto-save, so a reload would only read back what is live");
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
+            }
+            String previousName = project.hasProject() ? project.activeName() : null;
+            String previousPath = active == null ? null : active.toString();
+            var before = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+            Map<String, Object> closedEcho = sessionEndEcho();   // captured BEFORE the switch closes them
+
+            var result = project.open(file);
+            if (!result.loaded()) {
+                // ProjectProfile.load never throws; the reason is the answer. No dialog on this path.
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(result.message());
+            }
+            afterProjectChange(result.message(), true);   // M35.5: an explicit switch ends the session
+            var after = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+
+            echo.put("project", project.activeName());
+            echo.put("settings", file.toString());
+            echo.put("replaced", replacedCounts(before, after));
+            echo.putAll(closedEcho);
+            echo.put("previous", previousName == null ? "your own settings" : previousName);
+            echo.put("reversible", previousPath != null
+                    ? "open {project: \"" + previousPath + "\"} puts it back"
+                    : "open {close: \"project\"} puts your own settings back");
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
+        }
+
+        /**
+         * What a session boundary is about to close, WITH paths — so the answer carries what is needed
+         * to reopen them, not just the fact that they went (M35.5 made the closing a rule; this makes
+         * it reversible from the echo).
+         */
+        private Map<String, Object> sessionEndEcho() {
+            Map<String, Object> closed = new java.util.LinkedHashMap<>();
+            if (store != null) closed.put("log", logDisplayLocation);
+            var gf = topologyPanel.loadedGraphFile();
+            if (gf != null) closed.put("graph", gf.toString());
+            Map<String, Object> out = new java.util.LinkedHashMap<>();
+            out.put("closed", closed);
+            out.put("closedWhy", closed.isEmpty()
+                    ? "nothing was open"
+                    : "a project is a session boundary (M35.5): its settings change underneath the log, "
+                            + "so the log and graph go with it — reopen them inside the new project");
+            return out;
+        }
+
+        /**
+         * Before/after counts for every category a project owns — {@code ProjectProfile.PROJECT_SCOPED},
+         * spelled out. A switch that says "project loaded" and nothing else leaves the caller to
+         * discover from a failing source lookup that its three roots became one.
+         */
+        private Map<String, Object> replacedCounts(
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.Snapshot before,
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.Snapshot after) {
+            Map<String, Object> r = new java.util.LinkedHashMap<>();
+            r.put("sourceRoots", counts(before.sourceRoots().size(), after.sourceRoots().size()));
+            r.put("mavenRepos", counts(before.mavenRepos().size(), after.mavenRepos().size()));
+            r.put("eventProcessors", counts(before.eventProcessorFqns().size(), after.eventProcessorFqns().size()));
+            Map<String, Object> sel = new java.util.LinkedHashMap<>();
+            sel.put("before", blankToNull(before.selectedEventProcessor()));
+            sel.put("after", blankToNull(after.selectedEventProcessor()));
+            r.put("selectedEventProcessor", sel);
+            r.put("namedGraphs", counts(before.savedGraphs().size(), after.savedGraphs().size()));
+            r.put("namedFocuses", counts(before.namedFocuses().size(), after.namedFocuses().size()));
+            r.put("reports", counts(before.reports().size(), after.reports().size()));
+            r.put("hiddenColumns", counts(before.hiddenColumns().size(), after.hiddenColumns().size()));
+            return r;
+        }
+
+        private static Map<String, Object> counts(int before, int after) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("before", before);
+            m.put("after", after);
+            return m;
+        }
+
+        private static String blankToNull(String s) {
+            return s == null || s.isBlank() ? null : s;
         }
 
         @Override
@@ -3131,6 +3269,17 @@ public final class MainFrame extends JFrame {
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance != null) out.put("provenance", logProvenance);
+            // M35.8: which settings are in force. Outside the store block — a project is open (or
+            // not) whether or not a log is, and "which settings am I using" must never be a guess.
+            Map<String, Object> proj = new java.util.LinkedHashMap<>();
+            proj.put("active", project.hasProject());
+            if (project.hasProject()) {
+                proj.put("name", project.activeName());
+                proj.put("settings", project.activeFile().toString());
+            } else {
+                proj.put("note", "your own settings — no project is open");
+            }
+            out.put("project", proj);
             if (store != null) {
                 // D-A1a: state it BEFORE anything is derived from position. An agent stepping a
                 // cycle, or reading the topology's dispatch badges, is entitled to know whether

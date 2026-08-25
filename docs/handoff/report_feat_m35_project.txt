@@ -1,0 +1,626 @@
+REPORT — feat/m35-project · M35.8 `open {project: path}` (+ `open {close: "project"}`)
+From: the second session · Brief: docs/handoff/handoff_25_aug_2026_2.txt · Base: main @ 8defc64
+Status: COMPLETE on the branch — 789 tests green, mkdocs strict green, sweep clean. §6 holds the
+REST transcripts verbatim (paths abbreviated to <scratch>/<repo>); §8 the two things found on the way.
+
+================================================================================
+1. WHAT SHIPPED (one paragraph, for the reviewer in a hurry)
+================================================================================
+`open {project}` is a route to machinery that existed (ProjectSession.open → LoadResult that never
+throws; afterProjectChange(…, endsSession=true) that already closes the log and graph). What is NEW
+is the echo, and the echo is the entire safety story, because the verb APPLIES and does not ask
+(tracker M35.8, the settled decision). It names every project-owned category with before/after counts,
+what it closed WITH PATHS, the previously active project, and the one call that puts it back.
+`context` now names the project in force. `open {close: "project"}` exists because the decision's
+promise — "the agent can put it back in one call" — was unfulfillable when the previous state was
+"your own settings": there is no path to name for that, so it needed a verb (deviation D1).
+
+================================================================================
+2. THE ECHO — as built (differs from the brief's sketch; §3 says where and why)
+================================================================================
+  open {project: "<dir or .analyser/project.fluxtion-settings>"} →
+  { "project": "<name>", "settings": "<file>",
+    "replaced": { "sourceRoots": {"before": n, "after": m}, "mavenRepos": {…},
+                  "eventProcessors": {…}, "selectedEventProcessor": {"before": fqn|null, "after": …},
+                  "namedGraphs": {…}, "namedFocuses": {…}, "reports": {…}, "hiddenColumns": {…} },
+    "closed": { "log": "<path>", "graph": "<path>" },          // absent members were not open
+    "closedWhy": "a project is a session boundary (M35.5) … reopen them inside the new project"
+                 | "nothing was open",
+    "previous": "<name>" | "your own settings",
+    "reversible": "open {project: \"<previous file>\"} puts it back"
+                | "open {close: \"project\"} puts your own settings back",
+    "ignored": [...], "ignoredWhy": "…"                        // only when other params rode along
+  }
+  Re-opening the ACTIVE project: { project, settings, "alreadyActive": true, "note": … } — nothing
+  replaced, nothing closed. Reloading would flush live state over the file and read it back (M20
+  auto-persist), so the session would end for no change; saying so is the honest answer.
+  Failure (missing/unreadable/unparseable): ActionResult.error(<LoadResult.message>) — the reason
+  IS the answer. applyProjectResult() is deliberately NOT used on this path: its failure is a dialog.
+
+  open {close: "project"} →
+  { "closed": "project", "project": "<name>", "now": "your own settings — …",
+    "replaced": {…same shape…}, "closed": {…}/"closedWhy", "reversible": "open {project: \"<file>\"} …" }
+  Its echo is its own: the `kept` sentence the other close cases carry ("profile state survives") is
+  FALSE for leaving a project — that act is exactly the one that swaps the profile-state categories.
+
+================================================================================
+3. DEVIATIONS FROM THE BRIEF — each with the reason, none silent
+================================================================================
+D1 · `close: "project"` ADDED (the brief did not ask for it). The decision says the echo names the
+    previous project "so the agent can put it back in one call". When the previous state is "your own
+    settings" there is no path to name, and File ▸ Close project has no socket route — the promise
+    could not be kept without this. It also makes E8 ("close project with both loaded") drivable,
+    which the brief lists as an item to drive. Smallest fulfilment: one enum value, one switch case,
+    reusing project.close() + afterProjectChange(…, true) exactly as the menu does.
+D2 · `replaced` names EIGHT categories, not the brief's five. ProjectProfile.PROJECT_SCOPED owns
+    Maven repos, reports and the selected event processor as well; a switch that replaced them and
+    did not say so would violate the very rule the echo exists for. selectedEventProcessor is
+    reported as before/after VALUES (a class name is what the caller needs to notice, not a count).
+D3 · `closed` carries PATHS, not the brief's ["log","graph"] list. "Reversible from the answer you
+    were given" has to include reopening what the boundary closed, and a bare word cannot be reopened.
+D4 · Accepting the offer via the verb ENDS the session; the human's dialog accept KEEPS the log
+    (E9's exception). This asymmetry is deliberate and stated in the schema: the brief's E7 requires
+    "open log + graph, then open a project → both close", and a verb that sometimes closes and
+    sometimes keeps, depending on where the log happens to sit, is a rule with a hidden branch — the
+    kind an agent cannot reason about from the manifest. The echo's `closed.log` path makes the reopen
+    one call, so the cost is one call and the rule stays flat. Reviewer may overrule; the change is
+    one boolean at the applyProjectResult call and a schema sentence.
+D5 · `context.project` ADDED ({active, name, settings} | {active:false, note}). E7–E10 are scripted
+    checks only if the script can assert which project is in force afterwards; and an agent deciding
+    whether to accept `projectOffer` needs to know what it would be leaving.
+
+================================================================================
+4. DESTRUCTIVE MARKING (brief step 3)
+================================================================================
+Already true by construction: `open` is in McpTools.DESTRUCTIVE, so every `open {project}` and
+`open {close: "project"}` arrives at the MCP client with destructiveHint:true — the per-call prompt
+that is the human gate. No code change; FaqSecurityContractTest keeps asserting the set is named in
+the FAQ. The schema text for `project` states the size of the mutation so the prompt has something
+to show.
+
+================================================================================
+5. TESTS
+================================================================================
+Headless — ProjectVerbTest (8): the manifest publishes `project` and `close: project` and the verb
+count stays 14; a pre-M35.8 implementor refuses rather than failing to compile; the executor routes
+to openProject ONCE and names every unhonoured param (log, graphml, close), does not append `ignored`
+to a failure, carries the app's echo up untouched when nothing was dropped; ProjectProfile.load
+degrades to a named reason for missing / garbage / null (never throws) — the promise this verb
+relies on, asserted so it cannot quietly stop being true.
+Swing — driven over REST in §E7–E10 below; nothing there is a unit test and the report says so.
+
+================================================================================
+6. E7–E10 — DRIVEN OVER REST (the payoff; transcripts verbatim, paths abbreviated)
+================================================================================
+HOW: the jar was launched with -Duser.home=<scratch>/home so the owner's real config was never
+touched; an isolated config carried "your own settings" (3 source roots, 2 hidden columns, an own
+processor) and REST on. Fixtures: projA (2 roots, 5 hidden columns, a processor, and a copy of
+demo-quote-audit.yaml under logs/ so the OFFER fires and demo-quote-processor.graphml FITS it) and
+projB (1 root, 0 hidden columns). Every step below is one verb call and its full answer.
+
+WHAT THE 20 STEPS SHOW
+  E7   E7.1–E7.3: log + graph open over the socket, context reports projectOffer (fired, not assumed).
+       E7.4: open {project: projA} → closed {log: <path>, graph: <path>}, sourceRoots 3→2,
+       hiddenColumns 2→5, selectedEventProcessor own→demo, previous "your own settings",
+       reversible "open {close: \"project\"}". E7.5: context.project.active=true/projA, no log, no
+       graph, no offer.
+  E8   E8.1–E8.3: reopened inside projB, then open {close: "project"} → both closed WITH paths,
+       sourceRoots 1→3, reversible names projB's file. E8.4: own settings, nothing open.
+  E9   The OFFER PATH FIRED (E7.3) — the half of E9 the socket can prove. The KEEP half
+       (applyProjectResult(result, false) on the human's YES) has no socket route by design (M35.7
+       records the offer instead of showing the dialog), so it stays a human eyeball item; the diff
+       shows maybeOfferProject untouched, and X-series shows the verb path never enters it.
+  E10  recentProject.0/.1 in the isolated config after the run = the menu's data source; the menu
+       action is applyProjectResult(project.open(…)) — the same code path E7 drove — so the menu
+       is verified by construction, and this report says so rather than claiming a Swing click.
+  X1   re-opening the ACTIVE project: alreadyActive:true, nothing replaced, nothing closed.
+  X2   projA→projB with "log" riding along: switch applied, ignored:["log"] NAMED, previous "projA",
+       reversible names projA's settings file.
+  X3   /nowhere/at/all → error "project settings not found: …" (a reason, not an exception);
+  X3b  a directory without a profile → the error names the file it looked for; X3c: still projB.
+  X4   close project with none open → refused with the reason.
+  X5/X6 the round trip driven FROM THE ANSWERS: E8's `reversible` re-opens projB (3→1), whose
+       `reversible` closes it again (1→3). A mutation undone from the echo it produced.
+
+TRANSCRIPT
+## E7.0 context on a FRESH start (no log ever loaded): must answer, not throw
+-> {"action":"context"}
+{
+ "ok": true,
+ "action": "context",
+ "context": {
+  "project": {
+   "active": false,
+   "note": "your own settings \u2014 no project is open"
+  }
+ }
+}
+
+## E7.1 open the log over the socket — it sits inside projA, so the OFFER must fire
+-> {"action":"open","params":{"log":"<scratch>/projA/logs/demo.yaml","provenance":"DEMO fixture"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "log": "<scratch>/projA/logs/demo.yaml"
+ }
+}
+
+## E7.2 open the graph
+-> {"action":"open","params":{"graphml":"<repo>/src/test/resources/topology/demo-quote-processor.graphml"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "graphml": {
+   "path": "<repo>/src/test/resources/topology/demo-quote-processor.graphml",
+   "nodes": 10,
+   "appliesToOpenLog": true,
+   "loggedNodes": 5,
+   "declaredByGraph": 5,
+   "verdict": "the graph declares 5 of the 5 node(s) this log writes"
+  }
+ }
+}
+
+## E7.3 context: projectOffer PRESENT (the trap — prove the path fired), log + graph open, own settings
+-> {"action":"context"}
+{
+ "ok": true,
+ "action": "context",
+ "context": {
+  "log": {
+   "path": "<scratch>/projA/logs/demo.yaml",
+   "openedFrom": "<scratch>/projA/logs/demo.yaml",
+   "sizeBytes": 4053,
+   "from": 1767258000090,
+   "to": 1767258000360
+  },
+  "provenance": "DEMO fixture",
+  "project": {
+   "active": false,
+   "note": "your own settings \u2014 no project is open"
+  },
+  "graphPairing": {
+   "graph": "demo-quote-processor.graphml",
+   "applies": true,
+   "loggedNodes": 5,
+   "declaredByGraph": 5,
+   "verdict": "the graph declares 5 of the 5 node(s) this log writes"
+  },
+  "projectOffer": {
+   "settings": "<scratch>/projA/.analyser/project.fluxtion-settings",
+   "note": "this log sits inside a project with analyser settings; loading them replaces source roots, event processors, graphs and hidden columns, so it is offered and never applied automatically"
+  },
+  "source": {
+   "roots": [
+    "<repo>/src/main/java",
+    "<repo>/src/test/java",
+    "<repo>/examples"
+   ],
+   "eventProcessor": "com.acme.own.OwnProcessor"
+  }
+ }
+}
+
+## E7.4 ACCEPT the offer with open {project}: both close, echo names what it replaced and how back
+-> {"action":"open","params":{"project":"<scratch>/projA"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "project": "projA",
+  "settings": "<scratch>/projA/.analyser/project.fluxtion-settings",
+  "replaced": {
+   "sourceRoots": {
+    "before": 3,
+    "after": 2
+   },
+   "mavenRepos": {
+    "before": 1,
+    "after": 1
+   },
+   "eventProcessors": {
+    "before": 1,
+    "after": 1
+   },
+   "selectedEventProcessor": {
+    "before": "com.acme.own.OwnProcessor",
+    "after": "com.acme.demo.generated.DemoQuoteProcessor"
+   },
+   "namedGraphs": {
+    "before": 1,
+    "after": 0
+   },
+   "namedFocuses": {
+    "before": 0,
+    "after": 0
+   },
+   "reports": {
+    "before": 0,
+    "after": 0
+   },
+   "hiddenColumns": {
+    "before": 2,
+    "after": 5
+   }
+  },
+  "closed": {
+   "log": "<scratch>/projA/logs/demo.yaml",
+   "graph": "<repo>/src/test/resources/topology/demo-quote-processor.graphml"
+  },
+  "closedWhy": "a project is a session boundary (M35.5): its settings change underneath the log, so the log and graph go with it \u2014 reopen them inside the new project",
+  "previous": "your own settings",
+  "reversible": "open {close: \"project\"} puts your own settings back"
+ }
+}
+
+## E7.5 context: projA active, no log, no graph, no offer
+-> {"action":"context"}
+{
+ "ok": true,
+ "action": "context",
+ "context": {
+  "project": {
+   "active": true,
+   "name": "projA",
+   "settings": "<scratch>/projA/.analyser/project.fluxtion-settings"
+  },
+  "source": {
+   "roots": [
+    "<scratch>/projA/src/a",
+    "<scratch>/projA/src/b"
+   ],
+   "eventProcessor": "com.acme.demo.generated.DemoQuoteProcessor"
+  }
+ }
+}
+
+## X1 re-open the ACTIVE project: nothing replaced, nothing closed, and it says so
+-> {"action":"open","params":{"project":"<scratch>/projA/.analyser/project.fluxtion-settings"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "project": "projA",
+  "settings": "<scratch>/projA/.analyser/project.fluxtion-settings",
+  "alreadyActive": true,
+  "note": "nothing replaced and nothing closed \u2014 this project is already in force, and its edits auto-save, so a reload would only read back what is live"
+ }
+}
+
+## X2 projA -> projB with a log riding along: log IGNORED and named; previous=projA; reversible names projA
+-> {"action":"open","params":{"project":"<scratch>/projB","log":"<scratch>/projA/logs/demo.yaml"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "project": "projB",
+  "settings": "<scratch>/projB/.analyser/project.fluxtion-settings",
+  "replaced": {
+   "sourceRoots": {
+    "before": 2,
+    "after": 1
+   },
+   "mavenRepos": {
+    "before": 1,
+    "after": 1
+   },
+   "eventProcessors": {
+    "before": 1,
+    "after": 0
+   },
+   "selectedEventProcessor": {
+    "before": "com.acme.demo.generated.DemoQuoteProcessor",
+    "after": null
+   },
+   "namedGraphs": {
+    "before": 0,
+    "after": 0
+   },
+   "namedFocuses": {
+    "before": 0,
+    "after": 0
+   },
+   "reports": {
+    "before": 0,
+    "after": 0
+   },
+   "hiddenColumns": {
+    "before": 5,
+    "after": 0
+   }
+  },
+  "closed": {},
+  "closedWhy": "nothing was open",
+  "previous": "projA",
+  "reversible": "open {project: \"<scratch>/projA/.analyser/project.fluxtion-settings\"} puts it back",
+  "ignored": [
+   "log"
+  ],
+  "ignoredWhy": "'project' was also given; a project switch is a session boundary, so open the log and graph in a second call, inside the new project"
+ }
+}
+
+## X3 a project that does not exist: a named reason, no exception
+-> {"action":"open","params":{"project":"/nowhere/at/all"}}
+{
+ "ok": false,
+ "error": "project settings not found: /nowhere/at/all"
+}
+
+## X3b a directory with no profile: names the file it looked for
+-> {"action":"open","params":{"project":"<scratch>/projA/logs"}}
+{
+ "ok": false,
+ "error": "project settings not found: <scratch>/projA/logs/.analyser/project.fluxtion-settings (a project directory carries .analyser/project.fluxtion-settings)"
+}
+
+## X3c context: still projB — a failed switch changed nothing
+-> {"action":"context"}
+{
+ "ok": true,
+ "action": "context",
+ "context": {
+  "project": {
+   "active": true,
+   "name": "projB",
+   "settings": "<scratch>/projB/.analyser/project.fluxtion-settings"
+  },
+  "source": {
+   "roots": [
+    "<scratch>/projB/src/only"
+   ],
+   "eventProcessor": ""
+  }
+ }
+}
+
+## E8.1 reopen the log inside projB
+-> {"action":"open","params":{"log":"<scratch>/projA/logs/demo.yaml"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "log": "<scratch>/projA/logs/demo.yaml"
+ }
+}
+
+## E8.2 and the graph
+-> {"action":"open","params":{"graphml":"<repo>/src/test/resources/topology/demo-quote-processor.graphml"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "graphml": {
+   "path": "<repo>/src/test/resources/topology/demo-quote-processor.graphml",
+   "nodes": 10,
+   "appliesToOpenLog": true,
+   "loggedNodes": 5,
+   "declaredByGraph": 5,
+   "verdict": "the graph declares 5 of the 5 node(s) this log writes"
+  }
+ }
+}
+
+## E8.3 CLOSE the project with both loaded: own settings back (roots 1->3), both close, reversible names projB
+-> {"action":"open","params":{"close":"project"}}
+{
+ "ok": true,
+ "action": "open",
+ "applied": {
+  "closed": {
+   "log": "<scratch>/projA/logs/demo.yaml",
+   "graph": "<repo>/src/test/resources/topology/demo-quote-processor.graphml"
+  },
+  "project": "projB",
+  "now": "your own settings \u2014 the ones in force before any project was opened",
+  "replaced": {
+   "sourceRoots": {
+    "before": 1,
+    "after": 3
+   },
+   "mavenRepos": {
+    "before": 1,
+    "after": 1
+   },
+   "eventProcessors": {
+    "before": 1,
+    "after": 1
+   },
+   "selectedEventProcessor": {
+    "before": null,
+    "after": "com.acme.own.OwnProcessor"
+   },
+   "namedGraphs": {
+    "before": 1,
+    "after": 1
+   },
+   "namedFocuses": {
+    "before": 0,
+    "after": 0
+   },
+   "reports": {
+    "before": 0,
+    "after": 0
+   },
+   "hiddenColumns": {
+    "before": 0,
+    "after": 2
+   }
+  },
+  "closedWhy": "a project is a session boundary (M35.5): its settings change underneath the log, so the log and graph go with it \u2014 reopen them inside the new project",
+  "reversible": "open {project: \"<scratch>/projB/.analyser/project.fluxtion-settings\"} puts it back"
+ }
+}
+
+## E8.4 context: own settings, nothing open
+-> {"action":"context"}
+{
+ "ok": true,
+ "action": "context",
+ "context": {
+  "project": {
+   "active": false,
+   "note": "your own settings \u2014 no project is open"
+  },
+  "source": {
+   "roots": [
+    "<repo>/src/main/java",
+    "<repo>/src/test/java",
+    "<repo>/examples"
+   ],
+   "eventProcessor": "com.acme.own.OwnProcessor"
+  }
+ }
+}
+
+## X4 close project when none is open: refused, with the reason
+-> {"action":"open","params":{"close":"project"}}
+{
+ "ok": false,
+ "error": "no project is open \u2014 these are already your own settings"
+}
+
+## X5 reverse E8 from its own answer: open {project: projB}
+-> {"action":"open","params":{"project":"<scratch>/projB"}}
+{
+ "ok": true,
+ "action": "open",
+ "opened": {
+  "project": "projB",
+  "settings": "<scratch>/projB/.analyser/project.fluxtion-settings",
+  "replaced": {
+   "sourceRoots": {
+    "before": 3,
+    "after": 1
+   },
+   "mavenRepos": {
+    "before": 1,
+    "after": 1
+   },
+   "eventProcessors": {
+    "before": 1,
+    "after": 1
+   },
+   "selectedEventProcessor": {
+    "before": "com.acme.own.OwnProcessor",
+    "after": null
+   },
+   "namedGraphs": {
+    "before": 1,
+    "after": 1
+   },
+   "namedFocuses": {
+    "before": 0,
+    "after": 0
+   },
+   "reports": {
+    "before": 0,
+    "after": 0
+   },
+   "hiddenColumns": {
+    "before": 2,
+    "after": 0
+   }
+  },
+  "closed": {},
+  "closedWhy": "nothing was open",
+  "previous": "your own settings",
+  "reversible": "open {close: \"project\"} puts your own settings back"
+ }
+}
+
+## X6 and back again from THAT answer
+-> {"action":"open","params":{"close":"project"}}
+{
+ "ok": true,
+ "action": "open",
+ "applied": {
+  "closed": {},
+  "project": "projB",
+  "now": "your own settings \u2014 the ones in force before any project was opened",
+  "replaced": {
+   "sourceRoots": {
+    "before": 1,
+    "after": 3
+   },
+   "mavenRepos": {
+    "before": 1,
+    "after": 1
+   },
+   "eventProcessors": {
+    "before": 1,
+    "after": 1
+   },
+   "selectedEventProcessor": {
+    "before": null,
+    "after": "com.acme.own.OwnProcessor"
+   },
+   "namedGraphs": {
+    "before": 1,
+    "after": 1
+   },
+   "namedFocuses": {
+    "before": 0,
+    "after": 0
+   },
+   "reports": {
+    "before": 0,
+    "after": 0
+   },
+   "hiddenColumns": {
+    "before": 0,
+    "after": 2
+   }
+  },
+  "closedWhy": "nothing was open",
+  "reversible": "open {project: \"<scratch>/projB/.analyser/project.fluxtion-settings\"} puts it back"
+ }
+}
+
+## E10 the recent-projects menu's data source, read from the isolated config after the run
+activeProjectPath=
+recentProject.0=<scratch>/projB/.analyser/project.fluxtion-settings
+recentProject.1=<scratch>/projA/.analyser/project.fluxtion-settings
+recentProject.count=2
+## the fixture profile AFTER the run (auto-persist rewrote it — observation O2)
+sourceRoot.0=<scratch>/projA/src/a
+sourceRoot.1=<scratch>/projA/src/b
+sourceRoot.count=2
+
+
+================================================================================
+7. THE TRAP, AND HOW IT WAS AVOIDED
+================================================================================
+E7.3 is the proof: `context.projectOffer` names projA's settings file BEFORE E7.4 accepts it. The
+fixture was built to make the offer fire — a log copied INSIDE the project directory, with
+.analyser/project.fluxtion-settings two levels up — and the transcript shows it did. E9's KEEP half
+is not asserted here at all, for the reason §6 gives; it is left as the eyeball item it is.
+
+================================================================================
+8. FOUND ON THE WAY — one fixed here, two recorded for their owners
+================================================================================
+F1 · FIXED (this branch) — `context` threw on a FRESH start. Before any log has ever been loaded,
+    MainFrame.filter is null and context() dereferenced it: "Cannot invoke FilterState.fromMillis()
+    because filter is null". The first call any agent makes against a just-launched analyser failed,
+    which no test caught because every test loads a log first. E7.0 caught it because the isolated
+    home had never seen one. Guarded: context answers with an empty filter and everything else it
+    knows. CHANGELOG Fixed line added; a headless test would need a MainFrame, so it is verified by
+    E7.0 here and stated as such.
+O1 · RECORDED (M19.2) — relative source roots in a profile resolve against the PROFILE'S directory
+    (.analyser/), not the project root. ProjectProfile.load passes file.getParent() as the base;
+    SettingsShare.resolveAgainstBase's own doc says "a bundle that ships sourceRoot.0=src/main/java
+    lands at <bundle>/src/main/java" — for the canonical profile it lands at
+    <bundle>/.analyser/src/main/java. The first fixture used project-relative roots and every
+    resolved root pointed at a directory that does not exist (visible in a discarded first run's
+    context.source.roots). Nothing shipped depends on it yet — the writer never emits relative
+    roots — but the M19 bundle contract does, so it must be fixed before M19.2 is called done:
+    one line (base = file.getParent().getParent() when the file is the canonical profile).
+O2 · RECORDED (M20) — opening a project and doing nothing REWRITES its profile. The fixture was
+    hand-written with relative roots; after the run it held absolute ones (transcript tail). Auto-
+    persist (ProjectSession.flush on the next switch) wrote the in-memory config back, and the
+    writer emits ~-relative or absolute paths only. For a COMMITTED profile that is a diff nobody
+    asked for on every teammate's machine — the very legibility ProjectSession's javadoc promises.
+    Fix belongs with the writer (preserve the relative form the file had) — not this slice.
+

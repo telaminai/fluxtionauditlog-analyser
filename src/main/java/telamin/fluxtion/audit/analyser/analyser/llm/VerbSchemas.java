@@ -237,12 +237,27 @@ public final class VerbSchemas {
                                 + "the mismatch banner name a SYSTEM rather than a temp file. Never "
                                 + "inferred — omit it and the analyser says nothing rather than "
                                 + "guessing"),
-                        p("close", enumStr("log", "graph", "all"), "close what is open (M35.1) — the "
-                                + "counterpart of opening, and the way to switch cleanly between "
-                                + "systems. Log-DERIVED state clears (records, filter, shading, step "
-                                + "cursor, flags); named graphs, focuses, source roots and reports are "
-                                + "PROFILE state and survive, each saying why it cannot resolve rather "
-                                + "than vanishing. Ignored when combined with log/graphml/processor")),
+                        p("close", enumStr("log", "graph", "all", "project"), "close what is open "
+                                + "(M35.1) — the counterpart of opening, and the way to switch cleanly "
+                                + "between systems. Log-DERIVED state clears (records, filter, shading, "
+                                + "step cursor, flags); named graphs, focuses, source roots and reports "
+                                + "are PROFILE state and survive, each saying why it cannot resolve "
+                                + "rather than vanishing. 'project' (M35.8) leaves the active project "
+                                + "and restores YOUR OWN settings — the ones in force before any project "
+                                + "was opened — which is a session boundary too: the log and graph "
+                                + "close with it, and the echo says so. Ignored when combined with "
+                                + "log/graphml/processor"),
+                        p("project", string(), "path to a project's .analyser/project.fluxtion-settings, "
+                                + "or the project directory (M35.8). APPLIES the project — it does not "
+                                + "ask: source roots, Maven repos, event processors, named graphs, "
+                                + "focuses, reports and hidden columns are REPLACED by the project's, "
+                                + "and the open log and graph are CLOSED, because a project is a "
+                                + "session boundary. The echo names everything it replaced with "
+                                + "before/after counts, what it closed, the previously active project, "
+                                + "and the one call that puts it back — so the mutation is reversible "
+                                + "from the answer you were given. This is how to ACCEPT the "
+                                + "projectOffer that context reports. Any other param in the same call "
+                                + "is ignored and named")),
                 List.of()));
 
         s.put("source_root", schema("Inspect or change the configured Java source roots. Reaches the "

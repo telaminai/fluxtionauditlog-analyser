@@ -115,6 +115,14 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
 - `open {graphml: …}` now answers *does this fit?* in the same call — `appliesToOpenLog`, the counts,
   and the verdict — so switching processor needs no follow-up `context`.
 
+- `open {project: "<project dir, or its .analyser/project.fluxtion-settings>"}` — switch to a
+  project, the same act as **File ▸ Open project…**, and the way to *accept* the `projectOffer` that
+  `context` reports. It **applies rather than asks** — a dialog cannot be answered over the socket —
+  so its echo carries the safety: every category the switch replaced with before/after counts, what
+  it closed and where those files were (the log and graph — a project is a session boundary), which
+  project was active before, and the one call that puts it back. `open {close: "project"}` is that
+  call when the answer was *your own settings*. Re-opening the project already in force changes
+  nothing and says so. Your MCP client's per-call approval on `open` is the human gate.
 - `open {log, provenance: "…"}` — say WHERE the log came from. A file name is not a system: an agent
   exporting three servers' logs to `/tmp` produces three artefacts nobody can tell apart. Provenance
   rides the status bar, `context`, report headers and PDFs, and lets the mismatch banner name a

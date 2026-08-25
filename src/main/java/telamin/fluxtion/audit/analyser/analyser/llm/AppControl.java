@@ -61,6 +61,17 @@ public interface AppControl {
     }
 
     /**
+     * Open a project (M35.8) — {@code path} is its {@code .analyser/project.fluxtion-settings} or the
+     * project directory. APPLIES, never asks: a modal cannot be answered at the socket (M35.7), so the
+     * safety is the ECHO, which names everything the switch replaced (before/after counts), what it
+     * closed (M35.5 — a project is a session boundary) and how to put the previous settings back.
+     * The MCP client's per-call approval is the human gate. Default: not supported.
+     */
+    default ActionResult openProject(String path) {
+        return ActionResult.error("'project' is not enabled here");
+    }
+
+    /**
      * Select the EventProcessor whose source backs node → class resolution.
      *
      * <p>Needed because inference only runs over candidates found in the package of the
