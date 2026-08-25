@@ -10,8 +10,8 @@ questions — in minutes, with evidence** — whether it's you asking or an AI.
 
 ## Run it now
 
-No build needed — just **JDK 21+**. No log to hand? Grab the
-[sample audit log](assets/sample-audit-log.yaml) and open it. With [JBang](https://jbang.dev):
+No build needed — just **JDK 21+**. **No log to hand is fine**: the analyser opens on a page whose
+first button loads a recorded run and its topology from inside the jar. With [JBang](https://jbang.dev):
 
 ```bash
 jbang analyser@telaminai/fluxtionauditlog-analyser

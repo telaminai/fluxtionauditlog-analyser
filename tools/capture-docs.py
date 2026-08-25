@@ -315,6 +315,26 @@ def main():
     ep = launch("Light")
     seed(ep)
 
+    # M36.5: the START PAGE — what the analyser opens on with no log. Taken FIRST, before seed()'s log
+    # is showing, by closing it: the page is a state, so the only way to photograph it is to be in that
+    # state. `open {close: "all"}` is the same door File ▸ Close log uses, so this shoots the real
+    # thing rather than a mode built for the camera.
+    act(ep, "open", {"close": "all"})
+    time.sleep(1)
+    capture(ep, "start-page.png")
+    # Put the log BACK explicitly. launch() opens it from the command line and seed() only adds the
+    # source root, processor and graph — so closing it here and calling seed() left every light-theme
+    # shot below photographing an empty analyser ("goto failed: no log is loaded", caught by reading
+    # the run's own output). The load is asynchronous, so wait for context to show records.
+    act(ep, "open", {"log": str(LOG)})
+    for _ in range(20):
+        time.sleep(0.5)
+        if (act(ep, "context").get("context", {}).get("log") or {}).get("records"):
+            break
+    else:
+        sys.exit("the demo log did not reload after the start-page capture")
+    seed(ep)
+
     # the front page: the whole tool at work — records, the logical detail, and the graph of the cycle
     act(ep, "goto", {"recordIndex": 5, "reveal": True})
     act(ep, "topology", {"select": "quotePublisher", "scope": "neighbours"})

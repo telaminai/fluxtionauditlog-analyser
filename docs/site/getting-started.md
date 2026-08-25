@@ -1,25 +1,45 @@
 # Getting started
 
-From zero to a graphed, explained log in a few minutes. If it's your **first run**, the analyser opens
-**Settings** automatically so you can point it at your sources up front.
+Two minutes to something worth looking at, and **nothing to configure first**. The analyser ships with
+a recorded run and its topology inside the jar, so you can see what the tool does before you have a log
+of your own.
 
-## Quick start (~5 minutes)
+## Two minutes, no setup
 
 1. **Run it** — `jbang analyser@telaminai/fluxtionauditlog-analyser`, or download the jar and
-   `java -jar …`. See [Install & run](install.md).
-2. **Open a log** — **File ▸ Open log…**, or just drag a log file onto the window. No log yet? Download
-   the [sample audit log](assets/sample-audit-log.yaml) and open it, or see
-   [Producing an audit log](producing-a-log.md).
-3. **Add your source roots** — **File ▸ Settings… ▸ Source roots** → *Add* the source folders for your
-   processor and its node classes. This is what lets you click a log line straight to its code, and what
-   grounds the assistant's explanations in real source.
-4. **Pick your event processor** — **Settings ▸ Event processor** → add its fully-qualified class name
-   and mark it active. The analyser uses it to map each `instanceId` in the log to a source file.
-5. **(Optional) Add an LLM key** — **Settings ▸ LLM** if you want in-app explanations. No key? Skip it
-   and use **Copy prompt** with any agent (see [Assistant](user-guide/assistant.md)).
+   `java -jar …`. See [Install & run](install.md). You need **JDK 21+** and nothing else.
+2. **Click "Open the demo log"** on the page the analyser opens on.
 
-That's it — now [filter](user-guide/records-and-filtering.md#the-shared-filter),
-[graph](user-guide/graphs.md), and [explain](user-guide/assistant.md).
+That is the whole path. No log to find, no source roots, no server, no API key. You get a real
+investigation — 10 events, the processor's graph, the cycle shaded onto it — opened through exactly the
+same door your own log will use.
+
+![The analyser with no log open: what it does, three questions a log alone will not answer, where it
+sits in the cycle, and three ways in](assets/start-page.png)
+
+The page is a **state, not a splash**: opening a log replaces it, **File ▸ Close log** brings it back,
+and **Help ▸ Start page** recalls it without closing what you are working on. The three questions each
+open a different demo log, because one log cannot answer all three — coverage needs a *traced* run, and
+a chart needs a series.
+
+## Then: your own log
+
+When you have a log from your own processor — see [Producing an audit log](producing-a-log.md) — open it
+with **File ▸ Open log…** or by dragging it onto the window. Everything below is optional and none of it
+blocks you from reading records:
+
+1. **Source roots** — **File ▸ Settings… ▸ Source roots** → *Add* the source folders for your processor
+   and its node classes. This is what turns a log line into a click through to its code, and what
+   grounds the assistant's explanations in real source.
+2. **Your event processor** — **Settings ▸ Event processor** → its fully-qualified class name, marked
+   active. The analyser uses it to map each `instanceId` in the log to a source file.
+3. **The topology** — **File ▸ Open GraphML…**, or **File ▸ Find GraphML in source roots…** to see which
+   of your compiled graphs actually fits the log you have open, ranked.
+4. **An LLM key (optional)** — **Settings ▸ LLM** for in-app explanations. No key? Skip it and use
+   **Copy prompt** with any agent (see [Assistant](user-guide/assistant.md)).
+
+Now [filter](user-guide/records-and-filtering.md#the-shared-filter), [graph](user-guide/graphs.md), and
+[explain](user-guide/assistant.md).
 
 ---
 

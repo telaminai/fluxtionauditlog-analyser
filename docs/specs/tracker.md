@@ -329,8 +329,13 @@ a log from the command line means never seeing it._
   entirely"), together with M19.7. M19.7 suppressed the modal for `--rest`; M36 removed it outright,
   because the same three objections apply to the human at a fresh install. The `--rest` stdout note
   M19.7 added stays — see `MainFrame.showFirstRunSettingsIfNeeded`.
-- Follow-up: **M36.5** ☐ the docs-site page for the start page, and a generated screenshot via
-  `tools/capture-docs.py` (rule 1 — never captured by hand).
+- [M36.5] ☑ **The start page is documented, with a generated screenshot** _(2026-08-25)_ —
+  `getting-started.md` is rebuilt around it: the Quick start is now "run it, click Open the demo log",
+  and the sentence promising that a first run opens Settings is gone (it had been false since M36).
+  `capture-docs.py` takes the shot by CLOSING the log — the page is a state, so the only honest way to
+  photograph it is to be in that state. Doing so exposed that `launch()` opens the log from the command
+  line while `seed()` does not, so the first run of the new step photographed an empty analyser for five
+  light-theme shots; the harness now reopens the log and waits for it.
 
 ### Rule 1 — owner decisions (raised M36, sharpened by the polish round)
 - ☑ **The sweep is extended to four terms, and its exemption is written down** _(2026-08-25)_ — run

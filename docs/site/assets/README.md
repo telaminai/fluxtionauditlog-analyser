@@ -65,3 +65,5 @@ real alt text, e.g. from a `user-guide/` page:
 
 ```markdown
 ```
+
+- `start-page.png` — the start page (M36): what the analyser shows with no log open. Captured by closing the log (`open {close: "all"}`) so the shot is the real state, not a mode built for the camera.

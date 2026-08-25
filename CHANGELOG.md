@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **Getting started is two minutes and needs no configuration.** The Quick start told you the analyser
+  opens Settings on a first run — it hasn't since the start page shipped — and sent you off to download
+  a sample log, which the jar now contains. It is now: run it, click **Open the demo log**. Source
+  roots, the event processor and the topology moved below, where they belong: things you do when you
+  bring your own log, none of which block you from reading records. The start page is documented and
+  has a generated screenshot (M36.5).
+
 ## [1.9.0] - 2026-08-25
 
 ### Added
