@@ -313,6 +313,32 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   ConfigStore's project tier) — this verb is a route to it, not a new mechanism, which is why the
   slice is small once the decision above is made.
 
+## M36 · Start page — ☐ PROPOSED (owner, 2026-08-25; the empty state, doing a job)
+_Design: **[spec-start-page.md](spec-start-page.md)**. The owner's four sections — what it does, how
+it helps, where it fits in the cycle, who you are — placed where they cost a returning user nothing._
+_The framing that shaped it: **the analyser already HAS a start page**, and it reads "No log loaded —
+File ▸ Open, drag a file in, or File ▸ Open from S3". Honest and useless. Meanwhile "what is this
+for" lives in HelpPanel, a static page nobody opens before they have a problem. So this is not a new
+surface; it is the empty state finally earning its keep, and the test of the design is that opening
+a log from the command line means never seeing it._
+- [M36.1] ☐ **The state, not a screen** (D-S1) — occupies the main area whenever no log is open;
+  a log replaces it, closing one brings it back, `Help ▸ Start page` recalls it. No splash, no modal,
+  no dismissal to remember.
+- [M36.2] ☐ **Every section ends in an ACTION** (D-S2) — each of the four sections links into the
+  BUNDLED DEMO LOG, so every button works with no configuration, no server and no API key. A start
+  page whose buttons need setup first is one that lies on first contact.
+- [M36.3] ☐ **Three audience lanes, phrased as the user's own sentence** (D-S3) — "I am writing the
+  graph", "something is wrong in production", "I want the numbers out". **Never a question the app
+  asks**: people recognise their situation faster than they classify themselves, and nothing is
+  remembered or personalised.
+- [M36.4] ☐ **No feature list** (D-S4) — a page that enumerates capabilities is stale the release
+  after it is written, and it is the first thing a new user reads, so its errors are the ones they
+  carry. Three problems and three lanes; anything version-specific belongs in the release notes.
+- Open: **O-S1** bundle the demo log or generate it · **O-S2** replace the whole main area or only
+  the records pane (leaning to the latter — the tabs ARE the product's structure) · **O-S3** rule 1
+  applies hardest here: this is the most-seen surface and the likeliest to carry a real name onto the
+  docs site.
+
 ## M34 · Source adapters — ☐ ACCEPTED v2 (the same instrument over other execution engines)
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
 purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
