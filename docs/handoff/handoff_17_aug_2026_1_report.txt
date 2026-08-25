@@ -1,6 +1,6 @@
 REPORT — the polish round (brief: docs/handoff/handoff_17_aug_2026_1.txt, written 2026-08-17)
 From: the second session · Branch: feat/polish-round · Base: main @ 174edd4 · Started 2026-08-25
-Status: (filled in at the end)
+Status: COMPLETE on the branch — H1/H2 verified done, H3–H6 shipped; 838 tests green; mkdocs strict green; sweep clean; all 15 regenerated screenshots READ.
 
 The brief is eight days old and the repo moved under it. Each item below says what was found on
 arrival, what was done, and what was NOT — deviations authorised by the brief's own process line
@@ -26,19 +26,79 @@ green. Nothing to do.
 ================================================================================
 H3 · WINDOW-ID SCREENSHOT CAPTURE
 ================================================================================
-(filled in)
+Mechanism chosen: `screencapture -l <CGWindowID> -o`, the id obtained by a JXA one-liner over
+CGWindowListCopyWindowInfo (osascript -l JavaScript — ships with macOS; pyobjc does not). Why not the
+app printing its own id: the JVM has no public API for a CGWindowID, so that route is an internal-class
+hack. Why not osascript/System Events: it hands out AX window ids, not CG ones.
+THE FIRST CUT FAILED, and the log said so for every shot ("no window id found — falling back to a
+REGION capture"): it matched owner name /java/ and a title prefix. A `java -jar` window's owner name is
+the MAIN CLASS ("Main"), and kCGWindowName is only populated for callers holding Screen Recording
+permission. Neither is stable. Second cut matches on kCGWindowOwnerPID == the pid the app publishes in
+its own rest-endpoint file, plus layer 0 (a normal window, not a popup), largest wins. That is the one
+identity both processes agree on, and it needs nothing the capture did not already need.
+14 of 15 shots are now window captures; the log prints the mode per shot as evidence. The MENU shot
+stays a region capture and says why in the code: a Swing popup is its own window and `-l` takes one
+id — so raise_window() remains its mitigation, and the overlap risk is still live for that ONE image.
+All 15 regenerated images were READ (rule 1): demo names only (com.acme.demo, DEMO-A), no foreign
+window in any frame, title bars present. The "≤3 hops" checkbox (H4) is visible in the Topology
+toolbar of every topology shot — a real UI change, not a capture artefact.
+Note: capture-docs.py writes to the REAL ~/.fluxtion-analyser/config (theme, hidden columns, REST) as
+it always has; this run left it as the script leaves it.
 
 ================================================================================
 H4 · ROUTES SCOPE AT A TERMINAL NODE
 ================================================================================
-(filled in)
+Mechanism: TopologyFocus.routes(topology, seeds, allowBound) → RouteScope {ids, bounded, hops,
+unboundedSize}. The rule is stated as constants: bound to ROUTE_HOP_BOUND=3 hops each way when the
+unbounded answer exceeds DEGENERATE_SHARE=0.5 of a graph of at least BOUND_MIN_GRAPH=40 nodes.
+FocusStack.routesInWorld applies the same rule measured against the WORLD, edges walked in-world only.
+UI: a "≤3 hops" checkbox beside Focus (on by default) — a checkbox rather than a fifth scope so the
+verb surface (scope: node|neighbours|routes|all) stays as published; the brief froze that surface.
+The status line, when bounded: "+ all routes within 3 hops — all routes would be N of M nodes; untick
+'≤3 hops' for all". The `topology` echo carries scopeBounded + scopeNote — an agent reads data.
+Tests (TopologyFocusRoutesBoundTest, 5): bounded on a 65-node fan-in from the sink (sink + three
+layers = 25, not 65; layer 4 excluded); untick → 65; mid-graph node bounded exactly when the rule
+says; a 13-node graph never bounded; the world-confined version agrees at full graph and does not
+bound inside a 17-node context.
+LIVE: on a random 309-node graph, routes from the sink were 111 of 309 (36%) → NOT bounded —
+correct, and a reminder that the M24 graph was denser than a random one. On a dense 51-node fan-in
+(every node feeds the next layer): scopeBounded=3, note "all routes would cover 51 of 51 nodes";
+focusing the bounded scope shows 31 of 51 (sink + 3 layers of 10). Screenshot read: the checkbox
+sits at the right of the toolbar, the status carries the note.
 
 ================================================================================
 H5 · LABEL TRUNCATION IN EXPORTED PICTURES
 ================================================================================
-(filled in)
+TopologyCanvas.fitNodeWidthToLabels(): measures every shown node's simpleName and id at the label
+font, widens LayeredLayout.Config.nodeWidth (new withNodeWidth — never shrinks) to the widest + the
+16px inset drawClipped assumes, re-lays out. Called ONLY from paintOffscreen (the report render); the
+screen is untouched, because there the ellipsis is recoverable by hover. Tests (3): a long id widens
+the box; short labels leave the default; the width is widest-label + 16.
 
 ================================================================================
-H6 · THE WHOLE-GRAPH REPORT VIEW AT SCALE
+H6 · THE WHOLE-GRAPH REPORT VIEW AT SCALE — the check FAILED, so the cheap fix was implemented
 ================================================================================
-(filled in)
+The 309-node POC graph is private; a stand-in of the same shape (nine layers 40→1, random 1–3
+parents per node, com.acme.big.*, rule-1 clean) was generated and a 12-cycle log written against it.
+Exported a finding PDF with topology and READ IT: page 2, "Where it sits in the processor" — a grey
+horizontal band at 8% zoom, the five lit nodes reduced to specks. Not legible. P3.12 fails.
+FIX (the brief's cheap one): above REPORT_WHOLE_GRAPH_MAX=60 visible nodes, the second picture is the
+cycle's nodes AND THEIR IMMEDIATE NEIGHBOURS (TopologyFocus NEIGHBOURS over the touched set), and the
+caption — carried as CycleViews.wholeNote — counts what was left out. Re-exported and READ IT: an
+18-node picture at 105%, the path lit, the adjacent unlit nodes grey, heading "(neighbourhood)",
+caption "The processor has 309 nodes … (18 nodes); +291 nodes not shown. Grey nodes here are the ones
+next to the path that this event did not reach." That is the evidence the estate view was meant to
+give and could not. Small processors unchanged (the demo's 20-node graph still renders whole).
+Tests (TopologyReportViewsAtScaleTest, 3): 120-node graph → note present, shown+hidden=120, shown a
+neighbourhood; 20-node graph → no note; a cycle touching nothing known → the estate, not an empty box.
+CHANGELOG line added (user-visible). P3.12: closed by fix, not by verification.
+
+================================================================================
+DEVIATIONS
+================================================================================
+D1  H4, H5 and H6 are one commit, not three: they share TopologyPanel.java, CHANGELOG.md and the
+    tracker's polish section, and splitting them by hunk would have manufactured three partial states
+    none of which compiles cleanly on its own. H3 is its own commit (tools + assets + this report).
+D2  H6 was CHECKED against a generated 309-node graph, not the private POC graph the brief names —
+    the POC is not in this repo. Same shape (deep fan-in, one sink), rule-1 clean by construction.
+D3  H1/H2 were not done here; they were found done and verified. Recorded above rather than redone.

@@ -107,6 +107,9 @@ def menu_capture(ep, menu, name):
     # scratch path, not the asset — see capture(): aiming at an existing asset makes exists() a
     # test of the PREVIOUS run, so a failed shutter reports success and leaves the old image
     shot = EXPORT_DIR / f"native-menu-{menu}.png"
+    # A menu shot MUST stay a region capture (H3): the popup is a separate window and `-l` takes one id,
+    # so a window-id shot of the frame would show the frame with the menu missing. The overlap risk is
+    # therefore still live for this one shot — raise_window() above is the mitigation, and READ THE IMAGE.
     subprocess.run(["screencapture", "-x", "-R",
                     f"{b['x']},{b['y']},{b['width']},{b['height']}", str(shot)], check=False)
     act(ep, "screenshot", {"path": f"menu-{menu}-close.png", "scope": "menu:close"})
@@ -195,6 +198,46 @@ def act(ep, verb, params=None):
     return out
 
 
+def window_id(pid):
+    """The CGWindowID of the analyser's main window, or None.
+
+    Polish H3: `screencapture -R` photographs a REGION OF THE SCREEN, so anything overlapping the window
+    lands in a public docs image — a browser with personal bookmarks nearly shipped that way (B-M20-2).
+    `screencapture -l <id>` photographs ONE WINDOW, whatever is in front of it. The id comes from
+    CGWindowListCopyWindowInfo via JXA, which ships with macOS (pyobjc does not).
+
+    Matched on the OWNER PID — the pid the app itself publishes in its rest-endpoint file — plus layer 0
+    (a normal window, not a popup); the largest such window wins. Not on owner name or title: the first
+    cut matched owner /java/ and a title prefix, and found nothing, because a `java -jar` window's owner
+    name is the main class ("Main") and window titles are only visible to callers holding Screen
+    Recording permission. The pid is the one identity the two processes agree on.
+    """
+    js = ('ObjC.import("CoreGraphics");'
+          'var l=$.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly|$.kCGWindowListExcludeDesktopElements,0);'
+          'var a=ObjC.deepUnwrap(ObjC.castRefToObject(l));var best=null;'
+          'for (var w of a){'
+          ' if(w.kCGWindowOwnerPID!==%d)continue;'
+          ' if(w.kCGWindowLayer!==0)continue;'
+          ' var area=w.kCGWindowBounds.Width*w.kCGWindowBounds.Height;'
+          ' if(!best||area>best.area)best={id:w.kCGWindowNumber,area:area};}'
+          'best?String(best.id):""') % int(pid)
+    out = subprocess.run(["osascript", "-l", "JavaScript", "-e", js], capture_output=True, text=True).stdout.strip()
+    return int(out) if out.isdigit() else None
+
+
+def native_capture(ep, bounds, shot):
+    """Capture the analyser window to `shot`: by window id when we can get one, by region otherwise."""
+    wid = window_id(ep.get("pid", -1))
+    if wid is not None:
+        # -o omits the window shadow so the image is the window's own bounds, as the region shot was
+        subprocess.run(["screencapture", "-x", "-o", "-l", str(wid), str(shot)], check=False)
+        return "window"
+    print("  ! no window id found — falling back to a REGION capture; check the image for overlaps (H3)")
+    subprocess.run(["screencapture", "-x", "-R",
+                    f"{bounds['x']},{bounds['y']},{bounds['width']},{bounds['height']}", str(shot)], check=False)
+    return "region"
+
+
 def raise_window():
     """Bring the analyser to the front before a native capture.
 
@@ -235,11 +278,10 @@ def capture(ep, name):
     # Every shot then looked regenerated while nothing had been taken — the silent-staleness failure
     # this whole script exists to prevent, reproduced inside the script itself.
     shot = EXPORT_DIR / f"native-{scratch_name}"
-    subprocess.run(["screencapture", "-x", "-R",
-                    f"{b['x']},{b['y']},{b['width']},{b['height']}", str(shot)], check=False)
+    mode = native_capture(ep, b, shot)   # H3: one WINDOW, not a screen region
     if shot.exists() and shot.stat().st_size > 0:
         shutil.copy(shot, target)
-        print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
+        print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB, {mode} capture)")
         return True
     # No Screen Recording permission. NEVER replace a good native asset with a painted one — the
     # painted path cannot draw the title bar and renders some labels with dropped glyphs, so it is a
