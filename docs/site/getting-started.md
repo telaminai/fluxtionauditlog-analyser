@@ -23,6 +23,9 @@ That's it — now [filter](user-guide/records-and-filtering.md#the-shared-filter
 
 ---
 
+Working with an AI? [Connecting an LLM to the analyser](connect-an-llm.md) is the third step — the
+agent drives this same window through MCP, and you review what it renders.
+
 ## Opening logs
 
 - **Local file** — **File ▸ Open log…**, drag a file onto the window, or pass a path as the first

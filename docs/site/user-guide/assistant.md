@@ -89,6 +89,10 @@ instead of trial-and-erroring against the structured errors.
 
 ## Connect an MCP client
 
+!!! tip "Step-by-step, with a working check"
+    [Connecting an LLM to the analyser](../connect-an-llm.md) walks the connection through in order and
+    shows how to confirm each link works before relying on it. This section is the reference.
+
 If your agent speaks **MCP** (Model Context Protocol), it can drive the analyser with **no prompting and
 no copied token**. The same jar doubles as an MCP server — your client runs it as
 `java -jar fluxtion-auditlog-analyser.jar --mcp` (you don't type that yourself; it goes in the client's
