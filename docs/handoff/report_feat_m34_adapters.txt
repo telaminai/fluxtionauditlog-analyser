@@ -1,0 +1,77 @@
+REPORT — branch feat/m34-adapters (M34.1 remainder)
+Date: 2026-08-25 · Brief: docs/handoff/handoff_25_aug_2026_1.txt
+Base: feat/m35-lifecycle @ 810052e — **NOT main.** Diff with:
+    git diff feat/m35-lifecycle...feat/m34-adapters
+
+STATUS: slices 1 and 2 COMPLETE (SPI + the reconciliation rule). Slice 3 (wiring it into the app,
+and M34.2's coverage half) NOT started. 785 tests green · mkdocs --strict green · sweep clean.
+
+================================================================================
+1. graph(Path) ON THE SPI
+================================================================================
+    default Optional<SourceGraph> graph(Path source) throws IOException   // empty
+    record SourceGraph(List<Node> nodes, List<Edge> edges, Provenance provenance)
+    enum Provenance { DECLARED, INFERRED }
+
+DEFAULT, deliberately — Capabilities' lesson from M34.1's first slice: this is a published surface
+since 1.5.0 and every reader written against it must keep compiling. Pinned by a test that
+implements the bare interface and asserts graph() is empty.
+
+PROVENANCE RIDES THE RETURNED GRAPH, not the reader (spec review F4): availability is per SOURCE,
+so a fixed graphSupport() on the adapter would be wrong for half its users — one estate has a
+registry export where another has none. Returning EMPTY is the honest answer for a source that
+cannot say, and it is a DIFFERENT statement from returning an INFERRED graph. The record REFUSES to
+be built without a provenance, because an unmarked graph is the one thing coverage cannot safely
+consume.
+
+The core's own vocabulary (D-A4) — ProcessorTopology.Node/Edge, already engine-neutral. A richer
+engine-specific model would force every consumer above to know which engine it was looking at,
+which is the coupling this SPI exists to remove.
+
+================================================================================
+2. THE RECONCILIATION RULE — GraphSource
+================================================================================
+Two things can now supply a graph: a reader, and a person or agent via open {graphml}. Quietly
+preferring either is how the analyser ends up confidently describing a system it is not looking at.
+
+THE RULE IS M35.3's ASYMMETRY, ONE LEVEL OUT. That milestone settled it for logs and graphs: a
+thing someone OPENED is intent and is respected; a thing that merely arrived is residue or
+convenience and yields.
+
+    NONE            -> anything may fill it
+    OPENED          -> a reader NEVER displaces it
+    READER_DECLARED -> replaced only by OPENED
+    READER_INFERRED -> replaced only by OPENED
+
+and the view always says WHICH, because D-A2 is not satisfied by loading the right graph — only by
+saying which one was loaded and where it came from.
+
+supportsCoverage() carries the finding the M34.0 spike paid for: coverage is "declared minus
+observed", so against an INFERRED graph the subtraction is always 100% and the feature that found
+the POC's 54 dead nodes becomes a tautology that still prints a number. INFERRED therefore returns
+false, and the consumer must say so rather than show a ratio.
+
+================================================================================
+3. NOT DONE — and why it is a good place to stop
+================================================================================
+Slice 3 is the app wiring: SpiLogStore surfacing the reader's graph, MainFrame honouring
+GraphSource precedence, the Topology panel naming the source beside M35.6's pairing note, and
+coverage refusing a ratio on an inferred graph.
+
+The two slices done here are PURE and fully tested. The wiring is Swing-side, sits on top of M35's
+judgeOpenedGraph()/clearGraph(), and would be rewritten if M35 changes in review. Stopping at the
+seam means this branch is reviewable on its own terms — the SPI shape and the precedence rule are
+the decisions worth arguing about, and neither needs the wiring to be judged.
+
+REVIEW FOCUS
+R1  Is the precedence right? The alternative — a reader graph winning because it "came from the
+    source itself" — is defensible and I rejected it: someone naming a file is a stronger signal
+    than a default, and M35.3 already settled that shape for the same reason.
+R2  supportsCoverage() returns a boolean; should it instead return the SENTENCE to show? The
+    boolean puts the wording at each call site, which is how the coverage warning drifted apart
+    from the panel before (M35.6 §13). Deliberate for now, worth challenging.
+R3  SourceGraph throws on a null provenance rather than defaulting to INFERRED. Defaulting would be
+    friendlier and would let a careless adapter ship a graph nobody can trust; throwing makes the
+    author choose. Same call as Capabilities' non-null ordering, opposite conclusion — Capabilities
+    DEFAULTS because every pre-existing container really was totally ordered, whereas no such
+    default is true of provenance.

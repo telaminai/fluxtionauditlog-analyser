@@ -2,7 +2,11 @@ package telamin.fluxtion.audit.analyser.analyser.spi;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+
+import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
 
 /**
  * The log-source plugin SPI (spec-log-source-plugins M31.1, D-P1): a reader identifies itself, says
@@ -51,6 +55,58 @@ public interface AuditLogReader {
         public static TimeBase wallClockMillisUtc() {
             return new TimeBase("millis", "UTC", "wallClock");
         }
+    }
+
+    /**
+     * The graph this source declares, when it has one (M34.1, spec-source-adapters §B).
+     *
+     * <p><b>Default: empty.</b> This is a published surface — a reader written against 1.5.0 must
+     * keep compiling, the same discipline {@link Capabilities} follows.
+     *
+     * <p><b>Provenance rides the RETURNED graph, not the reader</b> (spec review F4). Availability is
+     * per SOURCE, not per adapter: one estate has a workflow-registry export where another has none,
+     * so a fixed {@code graphSupport()} on the reader would be wrong for half its users. Returning
+     * empty is the honest answer for a source that cannot say, and it is a different statement from
+     * returning an INFERRED graph.
+     *
+     * <p>The graph is handed over in the CORE's vocabulary (D-A4) — {@link ProcessorTopology.Node}
+     * and {@link ProcessorTopology.Edge} — because a richer engine-specific model would force every
+     * consumer above to know which engine it was looking at, which is the coupling this SPI exists
+     * to remove. A reader maps its concepts onto the existing kinds or declines a kind.
+     */
+    default Optional<SourceGraph> graph(Path source) throws IOException {
+        return Optional.empty();
+    }
+
+    /**
+     * A graph and where it came from.
+     *
+     * @param provenance DECLARED when the source states its own structure (a compiler emitted it, a
+     *                   registry holds it); INFERRED when it was reconstructed from what was
+     *                   observed. The distinction is not decoration: <b>coverage is
+     *                   "declared minus observed"</b>, so subtracting from an inferred set always
+     *                   reports 100% and the feature that found the POC's 54 dead nodes silently
+     *                   becomes a tautology. D-A2: the view says which.
+     */
+    record SourceGraph(List<ProcessorTopology.Node> nodes, List<ProcessorTopology.Edge> edges,
+                       Provenance provenance) {
+
+        public SourceGraph {
+            nodes = List.copyOf(nodes);
+            edges = List.copyOf(edges);
+            if (provenance == null) {
+                throw new IllegalArgumentException(
+                        "a SourceGraph must say whether it is DECLARED or INFERRED — an unmarked "
+                                + "graph is the one thing coverage cannot safely consume (D-A2)");
+            }
+        }
+    }
+
+    enum Provenance {
+        /** The source states its own structure — safe to subtract observed from. */
+        DECLARED,
+        /** Reconstructed from what ran. Coverage against this is a tautology and must say so. */
+        INFERRED
     }
 
     /**
