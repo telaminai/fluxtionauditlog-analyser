@@ -1984,6 +1984,7 @@ public final class MainFrame extends JFrame {
         topologyPanel.clearExecution();
         if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
 
+        showingLabel.setText(" ");
         searchField.setText("");
         searchField.setEnabled(false);
         timeSlider.setRange(null, null);
@@ -2524,6 +2525,11 @@ public final class MainFrame extends JFrame {
         tablePanel.reFilter();
         if (store != null) {
             showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
+        } else {
+            // M35.1, found by eyeballing E2/E3: the guard stopped the UPDATE but not the STALENESS,
+            // so after a close this label went on claiming "showing 582 of 582" with no log open —
+            // a half-cleared state, which is the one thing this milestone said must not happen
+            showingLabel.setText(" ");
         }
         // a report's evidence is LIVE (D-I3): the view banner, the filter offer and the table rows
         // must move with the filter, not wait for a reselect

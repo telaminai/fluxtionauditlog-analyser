@@ -347,3 +347,47 @@ with the feature. Fixed:
                   rather than as a dialog.
 
 mkdocs --strict green.
+
+================================================================================
+16. THE EYEBALL PASS — DRIVEN, and it found a defect
+================================================================================
+Driven over REST with the analyser's own painted screenshot export, in BOTH themes, and the images
+read rather than assumed. 2 of the 10 items are reachable this way; the other 8 are menus and modal
+dialogs with no socket route, and saying so is the point of listing them.
+
+DRIVEN AND PASSED
+  E2 · after Close log, in Dark and Light: the Graph tab is genuinely BLANK (no plot, no tabs — just
+       New graph / Rename / Close graph), the records table shows its proper empty state
+       ("No log loaded — File ▸ Open, drag a file in, or File ▸ Open from S3") rather than stale
+       rows, the time slider reads "(no timestamps to range)", and the detail pane is reset.
+       Not stale-but-dimmed. Actually empty.
+  E3 · the Reports tab with NO log, in both themes. The report SURVIVES the close and degrades
+       loudly, exactly as designed:
+         THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST
+           written against store-audit.yaml · 582 record(s) · …; no log is loaded
+         UNRESOLVED   2 of 2 anchor(s) did not resolve against this log
+         NARRATIVE — the author's account, not log evidence   (verbatim, still labelled)
+         DID NOT RESOLVE   record 7 is out of range
+         DID NOT RESOLVE   record 9 is out of range
+       Readable in both palettes; the status bar carries "No log open · graph
+       StoreProcessor.graphml still loaded" (M35.1's D3), so the half-state is never silent.
+
+DEFECT FOUND AND FIXED — D11
+  Both dark screenshots showed the time-range header still reading "showing 582 of 582" with NO log
+  open. onFilterChanged guarded the label with `if (store != null)`, which stops the UPDATE but not
+  the STALENESS, so it went on asserting a record count for a log that was gone. A half-cleared
+  state — the one thing M35.1 said must not happen — inside M35.1 itself. Fixed in two places (the
+  else branch, and closeLog directly, since the close path does not route through onFilterChanged)
+  and confirmed absent in the Light re-run.
+  Worth noting HOW it was found: not by a test and not by reading, but by looking at the picture.
+  The unit tests were green throughout, and would have stayed green.
+
+NOT DRIVABLE — human, or a UI-automation harness
+  E1  File-menu enablement (Close log / Close graph / Reset greying) — menus do not appear in a
+      window capture.
+  E4  Close while Follow is running.
+  E5  Open by hand still shows the project dialog (the agent path must not have suppressed it for
+      everyone).
+  E6  The Find-GraphML picker in both themes, and Cancel loading nothing.
+  E7-E10  The project paths (open / close / recent), and the in-load offer keeping its log — the
+      same D10 gap: no project verb, so no socket route.
