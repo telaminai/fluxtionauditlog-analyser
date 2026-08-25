@@ -32,6 +32,11 @@ public final class SpiLogStore implements LogStore {
         return graphNote;
     }
 
+    @Override
+    public String sourceGraphNote() {
+        return graphNote;
+    }
+
     private SpiLogStore(AuditLogReader reader) {
         this.reader = reader;
     }

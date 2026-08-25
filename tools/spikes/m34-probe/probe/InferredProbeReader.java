@@ -7,7 +7,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.function.Consumer;
 
-/** Throwaway M34.2 probe: claims PARTIAL order and supplies a DECLARED graph. */
+/** Throwaway M34.2 probe: claims PARTIAL order and supplies an INFERRED graph. */
 public final class InferredProbeReader implements AuditLogReader {
     @Override public String formatId() { return "inferred-probe"; }
     @Override public String displayName() { return "partial-order probe"; }

@@ -661,12 +661,41 @@ public final class TopologyPanel extends JPanel {
         return hasGraph() ? graphSource.describe : null;
     }
 
+    /**
+     * M34.2 — tell the view whether position within a cycle means anything. Drives the ordinal badge
+     * and the step-through wording together, so the picture and the words cannot disagree. Reset to
+     * true when the log closes: the caveat described THAT source (review M34 F3).
+     */
+    public void setOrderMeaningful(boolean meaningful) {
+        this.orderMeaningful = meaningful;
+        canvas.setOrderMeaningful(meaningful);
+        renderStatus();
+    }
+
+    private boolean orderMeaningful = true;
+
     /** Where the loaded graph came from (M34.1) — NONE until something loads one. */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphSource graphSource =
             telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
 
     public telamin.fluxtion.audit.analyser.analyser.topology.GraphSource graphSource() {
         return graphSource;
+    }
+
+    /**
+     * Drop a graph the SOURCE supplied, leaving one somebody OPENED alone (review M34 F1). A reader's
+     * graph is derived from its log — when that log closes or another arrives, keeping it is the app
+     * describing the previous log's structure over the current one's records.
+     *
+     * @return true if a source-supplied graph was cleared
+     */
+    public boolean clearSourceGraph() {
+        if (graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.READER_DECLARED
+                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.READER_INFERRED) {
+            return false;
+        }
+        clearGraph();
+        return true;
     }
 
     /**
@@ -849,18 +878,6 @@ public final class TopologyPanel extends JPanel {
      *
      * <p>Null or blank clears it — a graph with no log to judge against makes no claim either way.
      */
-    /**
-     * M34.2 — tell the view whether position within a cycle means anything. Drives the ordinal badge
-     * and the step-through wording together, so the picture and the words cannot disagree.
-     */
-    public void setOrderMeaningful(boolean meaningful) {
-        this.orderMeaningful = meaningful;
-        canvas.setOrderMeaningful(meaningful);
-        renderStatus();
-    }
-
-    private boolean orderMeaningful = true;
-
     public void setPairingNote(String note) {
         this.pairingPart = note == null || note.isBlank() ? null : note;
         renderStatus();

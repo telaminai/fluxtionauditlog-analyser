@@ -1,0 +1,129 @@
+REVIEW — feat/m34-adapters (M34.1 remainder: graph(Path) + GraphSource + wiring; M34.2 both halves)
+Reviewer: the second session · 2026-08-25
+Inputs: docs/handoff/handoff_25_aug_2026_1.txt (brief), docs/handoff/report_feat_m34_adapters.txt,
+the 5 commits a2e0c62..e89d90e on top of main @ 8defc64 (the branch was re-based off the M35 stack
+once M35 merged, so `main...feat/m34-adapters` is exactly this work), tracker ▸ M34, spec-source-
+adapters §B / D-A1a / D-A2 / D-A4.
+
+VERDICT: MERGE — after the five fixes below, applied ON THIS BRANCH in this review's commit. The
+two decisions the report asked to have argued (R1 precedence, R3 provenance-must-be-declared) are
+right and I would not change either. What was missing is the LIFECYCLE half of the precedence rule:
+GraphSource answers "who wins the slot while this log is open" and nothing answered "what happens
+to a reader's graph when the log goes" — so a reader's graph outlived its log and outranked the
+next log's own. Same species as every M35 finding; found the same way (drive it, close it, look).
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+1. GATES (run here)
+  mvn -o -q test        exit 0 — 802 run / 0 fail as handed over; 803 / 0 after the fixes
+  mkdocs build --strict exit 0 (no site pages changed by this branch or this review)
+  rule-1 sweep          clean (CLAUDE.md baseline only) · git config user.email personal
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+2. THE REPORT'S DECISIONS — verified, and my answers to R1–R3
+  R1 precedence: RIGHT. OPENED beats READER_*; a reader fills only an empty slot. This is M35.3's
+     asymmetry and it is the one rule an agent can predict from the manifest. Live: S5 — a FITTING
+     opened graph is not displaced when a log with its own INFERRED graph opens over it, and it
+     survives closeLog. (My first S5 attempt used a graph that did NOT fit; M35.2's repair closed
+     it as residue and the reader filled the empty slot — correct, and a reminder that precedence
+     only applies to a graph that survives the pairing.)
+  R2 boolean vs sentence on supportsCoverage(): keep the boolean. Three call sites, three different
+     sentences — the executor's refusal, the panel's status part, the echo's caveat — each says the
+     same fact in the register its reader needs. A shared sentence would flatten that. The drift
+     risk is real but the fix is a test that all three mention "inferred", not a shared string.
+  R3 throw on null provenance: RIGHT, and the contrast with Capabilities' default is argued
+     correctly in the report — a default is only honest when it is true of everything that
+     predates it. No pre-existing graph exists, so no default is true.
+  Also verified: graph() is a DEFAULT (pinned by test); SourceGraph is in the core's vocabulary
+  (D-A4); SpiLogStore asks ONCE at open and a throwing reader keeps the log; the ordering flag
+  reaches the canvas (badge suppressed), the step wording, the status part and the echo; coverage
+  refuses INFERRED and answers DECLARED (live: S1.3 ratio 1.0, S3.3 refused). D1 (hasGraph vs
+  loadedGraphFile) is a real find and the nine-site migration is complete — I grepped for
+  `loadedGraphFile() != null` / `== null` on the branch: none left.
+  Rule 6: nothing here re-models Fluxtion dispatch; the order claim is the ADAPTER's declaration
+  and the native reader still declares TOTAL. No source-of-truth read was owed.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+3. FINDINGS — all fixed here
+  F1 · A reader's graph outlived its log and outranked the next log's own.
+      closeLog() left a READER_* graph loaded ("No log open · graph supplied by the source …
+      still loaded" — describing a log that is gone), and on the next log-open repairLoadedGraph()
+      JUDGED it like an opened graph: whenever two systems are similar enough to pass the 0.5
+      pairing, log B was read through log A's structure and — because READER_DECLARED.replacedBy
+      (READER_*) is false — log B's OWN source graph could never take the slot. The rule in
+      GraphSource is about the slot WHILE a log is open; nothing said a reader's graph is that
+      log's DERIVED state.
+      FIX: TopologyPanel.clearSourceGraph() (clears READER_*, leaves OPENED); called in closeLog()
+      and in onLoaded() BEFORE repairLoadedGraph — a previous log's reader graph is residue, not
+      intent, so it is not judged, it is cleared, and the status says so. GraphSource javadoc now
+      carries the lifecycle sentence. Only an OPENED graph is judged and kept (M35.3, unchanged).
+      LIVE: S2.1 close run.probe → graph gone (S2.2/S2.3). S4 run.iprobe (INFERRED) then run.probe
+      (DECLARED) → READER_DECLARED, i.e. the NEW log's graph — before the fix it stayed INFERRED.
+  F2 · The reader's failure reason was recorded and never shown.
+      SpiLogStore.graphNote() is set when graph() throws — the report says "so the source does not
+      look like one that simply had no graph" — but the method exists only on SpiLogStore, MainFrame
+      holds a LogStore, and nothing called it. Loud degradation promised, silent in practice.
+      FIX: LogStore.sourceGraphNote() (default null; SpiLogStore overrides); offerSourceGraph()
+      appends "⚠ <note>" to the status; context.graphPairing carries sourceGraphNote. A third probe
+      (BrokenProbeReader, .bprobe, graph() throws) is added to tools/spikes/m34-probe so the path
+      has a source to drive against.  LIVE: S6.3 — sourceGraphNote names "workflow registry
+      unreachable (probe)", graph NONE, log open with 3 records.
+  F3 · The "ARRIVAL ORDER, NOT DISPATCH ORDER" part outlived its source.
+      setOrderMeaningful(false) is set on load and reset by nothing; close a PARTIAL log and the
+      Topology status keeps warning about a source that is no longer open (my own M35 F2, one field
+      over). FIX: closeLog() resets it to true.  LIVE: S2 — no orderCaveat after close.
+  F4 · A dangling edge from an adapter reached the adjacency maps.
+      ProcessorTopology.of() dedups nodes but passed every edge through; LayeredLayout skips an
+      edge whose endpoint is unknown (I first wrote "NPE on first paint" — WRONG, checked and
+      corrected), but the children/parents maps the focus scopes walk would carry an id node()
+      cannot resolve. GraphMlParser already skips such edges for hand-written files. FIX: of()
+      drops edges with an undeclared endpoint. Test added (SourceGraphTest).
+  F5 · "kept, you opened it deliberately" said of a graph nobody opened.
+      judgeOpenedGraph()'s non-fit wording is M35.3's, written when every graph was opened. A
+      source-supplied graph that does not fit its own log now reads "kept, the source supplied it
+      with this log". Wording only; the keep is right (it is the source's own claim).
+  Cosmetic, fixed: ProcessorTopology's "A topology with nothing in it" javadoc was orphaned above
+  of() (re-homed on empty()); TopologyPanel's setPairingNote javadoc was above setOrderMeaningful
+  (both re-homed); InferredProbeReader's javadoc said DECLARED; the report's STATUS header still
+  said "slice 3 NOT started · 785 tests" over sections describing slice 3 done (header updated,
+  nothing else in the report touched).
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+4. NOTES — recorded, not fixed
+  N1 · When a reader's graph is DECLINED (an OPENED graph holds the slot), nothing says so. The
+      view names the graph it has (D-A2 satisfied) but the caller is not told "the source also
+      offered one; yours was kept". context.graphPairing could carry sourceGraphOffered. Small;
+      belongs with N2.
+  N2 · The single-log open is asynchronous, so the open echo cannot carry graphSource/ordering;
+      an agent must call topology/context afterwards. Already true of provenance and the time-
+      order report — a documented pattern, not a defect — but the assistant.md verb notes should
+      say "then read topology" once for all three.
+  N3 · The probes are the only PARTIAL/INFERRED/throwing sources in the tree and live outside the
+      build. M34.3's conformance fixtures are where these belong permanently; until then anyone
+      changing GraphSource or the badge logic has to build the jar by hand (README is correct).
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+5. LIVE DRIVE (isolated -Duser.home, probe plugin installed there — the owner's config untouched)
+  S1  run.probe (PARTIAL+DECLARED): topology orderMeaningful=false + orderCaveat, READER_DECLARED;
+      coverage 4/4 ratio 1.0 (declared → answers)
+  S2  close log → topology refuses "no topology is loaded"; context graph null; no caveats   [F1,F3]
+  S3  run.iprobe (PARTIAL+INFERRED): READER_INFERRED + executionCaveat; coverage REFUSED
+  S4  run.probe over it → READER_DECLARED: the new log's graph took the slot                  [F1]
+  S5  run.probe + fits.graphml (4 declared / 4 logged → OPENED, applies) → run.iprobe over it →
+      STILL OPENED → close log → OPENED graph survives (M35.1)                               [R1]
+  S6  close graph; run.bprobe (graph() throws) → context.sourceGraphNote names the reason     [F2]
+  Transcripts in the review session only (scratch paths); nothing here needed committing.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+6. STRENGTHS (so they survive)
+  · Provenance rides the graph, not the adapter, and the record refuses to exist without it.
+  · Precedence is one rule with no hidden branch, and its javadoc now states both halves.
+  · Every degradation is stated THREE ways — canvas, status, echo — because an agent reads data.
+  · D1 was found by changing the question ("is there a graph" vs "is there a file") — the report
+    says so plainly, and the same move found F1 here.
+  · "Replay-diff has nothing to degrade: the feature does not exist yet" — recorded, not invented.
+
+Merge order: either branch first. feat/m35-project overlaps this one in four files — CHANGELOG.md
+and tracker.md (both add under Unreleased / M35, textual conflicts certain and trivial),
+ActionExecutor.java (doOpen vs doCoverage — different methods) and MainFrame.java (the context()
+block: M35.8 adds `project`, this branch adds graphSource/sourceGraphNote to graphPairing — same
+method, adjacent lines). Whoever merges second resolves; nothing semantic collides.

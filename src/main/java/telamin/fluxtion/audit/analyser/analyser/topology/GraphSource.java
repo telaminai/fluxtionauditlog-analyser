@@ -23,6 +23,14 @@ import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
  *       only by saying which one was loaded and where it came from.</li>
  * </ul>
  *
+ * <p><b>And a reader's graph belongs to its LOG</b> (review M34 F1). {@link #replacedBy} answers
+ * "who wins the slot while this log is open" — a re-read of the same source must not churn a
+ * declared graph for an inferred one. It does not answer what happens when the log goes: a
+ * READER_* graph is log-DERIVED state, so it clears with the log ({@code closeLog}) and is cleared
+ * before the next log is offered its own — otherwise log B is read through the graph that arrived
+ * with log A, which is the M35 defect at the reader's level. An OPENED graph is intent and is
+ * judged and kept exactly as M35.3 says.
+ *
  * <p>The last point is the one that is easy to skip and expensive to skip. {@code coverage} is
  * "declared minus observed": against an INFERRED graph that subtraction always yields 100%, so the
  * feature that found 54 dead nodes in the POC becomes a tautology that still prints a number.

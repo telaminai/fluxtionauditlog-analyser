@@ -11,6 +11,7 @@ Two readers, each claiming something the built-in path cannot:
 |---|---|---|---|
 | `PartialProbeReader` | `.probe` | **PARTIAL** | DECLARED |
 | `InferredProbeReader` | `.iprobe` | PARTIAL | **INFERRED** |
+| `BrokenProbeReader` | `.bprobe` | TOTAL | **`graph()` throws** — the unreachable-registry case |
 
 Between them they reach: the suppressed ordinal badge, the step-through wording, the standing
 order caveat, `coverage`'s refusal on an inferred graph, and the execution-shading caveat.
@@ -19,11 +20,11 @@ order caveat, `coverage`'s refusal on an inferred graph, and the execution-shadi
 JAR=$(ls ../../../target/fluxtion-auditlog-analyser-*.jar | grep -v original | head -1)
 mkdir -p out/META-INF/services
 javac -cp "$JAR" -d out probe/*.java
-printf 'probe.PartialProbeReader\nprobe.InferredProbeReader\n' \
+printf 'probe.PartialProbeReader\nprobe.InferredProbeReader\nprobe.BrokenProbeReader\n' \
   > out/META-INF/services/telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader
 (cd out && jar cf ../m34-probe.jar .)
 mkdir -p ~/.fluxtion-analyser/plugins && cp m34-probe.jar ~/.fluxtion-analyser/plugins/
-printf 'x\n' > run.probe && printf 'x\n' > run.iprobe
+printf 'x\n' > run.probe && printf 'x\n' > run.iprobe && printf 'x\n' > run.bprobe
 ```
 
 Then, with the analyser running: `open {log: "…/run.iprobe", format: "inferred-probe"}` and read

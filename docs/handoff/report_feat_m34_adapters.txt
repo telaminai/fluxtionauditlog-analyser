@@ -3,8 +3,10 @@ Date: 2026-08-25 · Brief: docs/handoff/handoff_25_aug_2026_1.txt
 Base: feat/m35-lifecycle @ 810052e — **NOT main.** Diff with:
     git diff feat/m35-lifecycle...feat/m34-adapters
 
-STATUS: slices 1 and 2 COMPLETE (SPI + the reconciliation rule). Slice 3 (wiring it into the app,
-and M34.2's coverage half) NOT started. 785 tests green · mkdocs --strict green · sweep clean.
+STATUS: ALL slices COMPLETE — SPI + reconciliation rule (§1–2), the wiring (§4), M34.2 both halves
+(§5–6). 802 tests green · mkdocs --strict green · sweep clean. [Header brought current by the
+review, 2026-08-25 — it still described the first two slices over sections describing all of them.
+Review: docs/handoff/review_feat_m34_adapters.txt.]
 
 ================================================================================
 1. graph(Path) ON THE SPI

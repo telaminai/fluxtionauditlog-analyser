@@ -89,6 +89,21 @@ class SourceGraphTest {
     }
 
     @Test
+    void aDanglingEdgeCostsTheAdapterAnEdge_notTheView() {
+        // review M34 F4: the layout skips an edge to a node the adapter forgot to declare, but the
+        // adjacency (childrenOf/parentsOf, walked by focus scopes) would still carry the ghost id.
+        // GraphMlParser already skips such edges for hand-written files; same tolerance here.
+        var t = ProcessorTopology.of(List.of(node("a"), node("b")), List.of(
+                new ProcessorTopology.Edge("ok", "a", "b"),
+                new ProcessorTopology.Edge("dangling", "a", "ghost"),
+                new ProcessorTopology.Edge("dangling2", "ghost", "b")));
+        assertEquals(1, t.edgeCount());
+        assertEquals("ok", t.edges().get(0).id());
+        assertTrue(t.childrenOf("a").contains("b"));
+        assertFalse(t.childrenOf("a").contains("ghost"), "and the adjacency never learned the ghost");
+    }
+
+    @Test
     void duplicateIdsKeepTheFirst_becauseTheIdIsTheJoinKey() {
         var t = ProcessorTopology.of(
                 List.of(node("dup"), new ProcessorTopology.Node("dup", "second", "com.acme.Other",

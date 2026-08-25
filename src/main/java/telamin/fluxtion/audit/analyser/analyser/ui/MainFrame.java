@@ -1974,8 +1974,10 @@ public final class MainFrame extends JFrame {
      * and marks every anchor unresolved. That is announce-never-forbid (D-I3a), and it is why this
      * method does not go near {@code config}.
      *
-     * <p>The LOADED GRAPH is not touched either: it is a separate artefact the user opened
-     * deliberately, and {@link #closeGraph} is its counterpart. Only its shading goes.
+     * <p>A graph the user OPENED is not touched either: it is a separate artefact they chose, and
+     * {@link #closeGraph} is its counterpart. Only its shading goes. A graph the SOURCE supplied
+     * (M34.1) is different — it arrived with this log and describes this log, so it goes with it
+     * (review M34 F1); so does the ordering caveat, which described this source (F3).
      */
     private void closeLog() {
         setFollowing(false);
@@ -2000,6 +2002,8 @@ public final class MainFrame extends JFrame {
         eventFilterPanel.clear();
         graphTabs.unbind();
         topologyPanel.clearExecution();
+        topologyPanel.setOrderMeaningful(true);   // M34 review F3: "ARRIVAL ORDER" described THAT source
+        topologyPanel.clearSourceGraph();         // M34 review F1: a reader's graph is log-derived state
         lastPairing = null;                // review F2: the verdict was about THIS log — with it gone the
         publishPairing();                  // graph makes no claim, and the panel's note must not keep one
         pendingProjectOffer = null;        // review F3: an offer made for a log that is no longer open
@@ -2075,6 +2079,13 @@ public final class MainFrame extends JFrame {
         // the flag and nothing consumed it, so the topology went on painting ordinal badges over a
         // source that never decided an order: the spike's §3 finding, still live.
         topologyPanel.setOrderMeaningful(loaded.index().totalOrder());
+        // M34 review F1: a graph the PREVIOUS log's reader supplied is that log's residue, not intent —
+        // judging it against this log (repairLoadedGraph) would keep it whenever the two systems are
+        // similar enough, and then THIS log's own source graph could never take the slot. Only an
+        // OPENED graph is judged and kept.
+        if (topologyPanel.clearSourceGraph()) {
+            status.setText(status.getText() + "  ·  the previous log's source-supplied graph closed with it");
+        }
         repairLoadedGraph(loaded);
         offerSourceGraph(loaded);      // M34.1 — after the re-pair, so a stale graph is gone first
         maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
@@ -2171,6 +2182,11 @@ public final class MainFrame extends JFrame {
      * chosen graph is never silently displaced by one that merely arrived with the log.
      */
     private void offerSourceGraph(LogStore loaded) {
+        if (loaded.sourceGraphNote() != null) {
+            // review M34 F2: the reader TRIED and failed. Recorded by the store since slice 3, read by
+            // nobody until now — so an unreachable registry looked exactly like a source with no graph.
+            status.setText(status.getText() + "  ·  ⚠ " + loaded.sourceGraphNote());
+        }
         loaded.sourceGraph().ifPresent(g -> {
             if (topologyPanel.loadFromSource(g)) {
                 status.setText(status.getText() + "  ·  graph supplied by the source ("
@@ -2286,9 +2302,15 @@ public final class MainFrame extends JFrame {
         lastPairing = pairing;
         publishPairing();
         String name = topologyPanel.graphLabel();     // may have no FILE — a source can supply one
+        // review M34 F5: "you opened it deliberately" is false for a graph the SOURCE supplied — nobody
+        // opened it. It is kept because it arrived with this log and is the source's own claim.
+        boolean opened = topologyPanel.graphSource()
+                == telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
         status.setText(store.size() + " records · graph " + name + (pairing.applies()
                 ? " · " + pairing.reason()
-                : "  ·  ⚠ " + pairing.reason() + " — kept, you opened it deliberately"));
+                : "  ·  ⚠ " + pairing.reason() + (opened
+                        ? " — kept, you opened it deliberately"
+                        : " — kept, the source supplied it with this log")));
         return pairing;
     }
 
@@ -3325,6 +3347,9 @@ public final class MainFrame extends JFrame {
                 boolean gf = topologyPanel.hasGraph();
                 pair.put("graph", topologyPanel.graphLabel());
                 pair.put("graphSource", topologyPanel.graphSource().name());
+                if (store.sourceGraphNote() != null) {
+                    pair.put("sourceGraphNote", store.sourceGraphNote());   // review M34 F2
+                }
                 // only describe a graph that is actually there: a verdict beside "graph": null is
                 // the tool asserting something about an artefact it does not have, which is the
                 // defect class this milestone is about

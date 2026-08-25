@@ -171,7 +171,6 @@ public final class ProcessorTopology {
         this.parents = Collections.unmodifiableMap(dads);
     }
 
-    /** A topology with nothing in it — what a failed or absent parse yields, so callers never see null. */
     /**
      * Build from the SPI's vocabulary (M34.1) — a reader hands over LISTS, because a list is the
      * shape a foreign engine's own API returns and forcing every adapter to build the id-keyed map
@@ -180,15 +179,26 @@ public final class ProcessorTopology {
      * <p>A duplicate id is the adapter's bug and is dropped with the FIRST node kept, because the
      * id is the join key to {@code nodeLogs} and two nodes claiming one id would make step-through
      * ambiguous in a way nothing downstream could detect.
+     *
+     * <p>An edge whose endpoint is not a node is dropped too (review M34 F4) — the same tolerance
+     * {@link GraphMlParser} extends to a hand-written file. The layout already skips such an edge,
+     * but the adjacency this constructor builds ({@link #childrenOf}/{@link #parentsOf}, which the
+     * focus scopes walk) would otherwise carry ids that {@link #node} cannot resolve. A foreign
+     * engine's bug must cost it an edge, not a scope.
      */
     public static ProcessorTopology of(List<Node> nodes, List<Edge> edges) {
         java.util.Map<String, Node> byId = new java.util.LinkedHashMap<>();
         for (Node n : nodes) {
             if (n != null && n.id() != null) byId.putIfAbsent(n.id(), n);
         }
-        return new ProcessorTopology(byId, List.copyOf(edges));
+        List<Edge> sound = new java.util.ArrayList<>();
+        for (Edge e : edges) {
+            if (e != null && byId.containsKey(e.source()) && byId.containsKey(e.target())) sound.add(e);
+        }
+        return new ProcessorTopology(byId, sound);
     }
 
+    /** A topology with nothing in it — what a failed or absent parse yields, so callers never see null. */
     public static ProcessorTopology empty() {
         return new ProcessorTopology(Map.of(), List.of());
     }

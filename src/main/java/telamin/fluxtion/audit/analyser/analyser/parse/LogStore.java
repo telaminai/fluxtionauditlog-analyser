@@ -31,6 +31,15 @@ public interface LogStore extends AutoCloseable {
         return java.util.Optional.empty();
     }
 
+    /**
+     * Why {@link #sourceGraph} is empty when the source TRIED and failed — null when it simply had
+     * none (review M34 F2). Without this on the store surface the reason SpiLogStore records has no
+     * reader: a source whose registry was unreachable looked exactly like one with no graph.
+     */
+    default String sourceGraphNote() {
+        return null;
+    }
+
     Long minLogTime();
 
     Long maxLogTime();
