@@ -283,7 +283,14 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   (checked before the `~` rule — a project inside home must not come out `~/…`), omits the timestamp and
   strips the date line; `ProjectProfile.save` returns false and touches nothing when the file already
   holds that text. Round-trip is byte-identical (tests). One-off share exports unchanged.
-- [M35.9] ☐ **An `OpenRequest` for load-time side effects** _(review R1 + R3, 2026-08-25)_ — the
+- [M35.9] ☐ **An `OpenRequest` for load-time side effects** — **TRIGGER FIRED 2026-08-25, schedule
+  it.** The condition recorded below was "when a fourth appears, or when R1 bites". A fourth
+  appeared, and it was not hypothetical: the M35 review's F5 fix (suppressing the time-order modal
+  on socket-driven opens) NEVER WORKED, because `maybeOfferProject` consumes `openFromActionSocket`
+  59 lines before the time-order gate tests it — and the gate's own comment asserted the opposite
+  ordering, which is why it passed review. Fixed tactically on `feat/m35-project` by capturing the
+  flag once into a local; this record is the structural fix and is no longer optional._Original
+  rationale:_ _(review R1 + R3, 2026-08-25)_ — the
   same shape has now appeared **three times**: the project offer (M35.7), `provenance` (§E) and the
   time-order dialog (review F5) are each "a load-time side effect whose audience differs by who asked
   for the load", and each is currently a field on MainFrame consumed during `onLoaded`. A record

@@ -98,6 +98,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   no timestamp, no date comment — and a write that would change nothing does not happen. A diff in
   `.analyser/project.fluxtion-settings` now means a setting changed. One-off share exports are
   unchanged and keep their timestamp.
+- **The time-order report no longer interrupts an agent.** Opening a log with out-of-order records
+  from an assistant or MCP client put a modal dialog on screen that nobody at the keyboard had asked
+  for — and which a later passer-by would find describing a log that might already be closed. The
+  suppression added for this was reading a flag another step in the same load had already consumed,
+  so it never took effect. The report still reaches the status bar, `context`, and the caveat on
+  every time-anchored verb; opening by hand is unchanged.
 - **`context` no longer fails on a fresh start.** Before any log had ever been loaded, the first
   `context` call an agent makes against a just-launched analyser threw instead of answering "nothing
   is open" — found driving M35.8 against an isolated, never-used config. It now answers with what it

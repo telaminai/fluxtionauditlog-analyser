@@ -2059,12 +2059,20 @@ public final class MainFrame extends JFrame {
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
         logProvenance = pendingProvenance;                      // §E: consumed by THIS load, then gone
         pendingProvenance = null;
+        // Read the socket flag ONCE, here, and let every load-time side effect below share the local.
+        // Two consumers reading a mutable field in sequence is what broke review F5: maybeOfferProject
+        // consumes it 59 lines before the time-order gate tests it, so the gate always saw false and
+        // the dialog it was meant to suppress fired on every agent-driven open. (M35.9's OpenRequest
+        // is the structural version of this line; its "when a fourth appears" trigger has now fired.)
+        final boolean loadFromSocket = openFromActionSocket;
+        openFromActionSocket = false;
+
         // M35.2 FIRST, and deliberately before maybeOfferProject(): that offer is a MODAL dialog, and
         // everything after it waits for a human — which on the agent path is nobody. `store` is
         // already assigned above, so a stale graph would otherwise be live and answerable (coverage,
         // shading, step-through) while the app sat behind a dialog nobody could see.
         repairLoadedGraph(loaded);
-        maybeOfferProject();       // M20.3 — the log may sit inside a project we could configure from
+        maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
         flaggedRows.clear();       // flags are per-file (model row indices)
         findings.clear();
         flaggedOnly = false;
@@ -2123,14 +2131,15 @@ public final class MainFrame extends JFrame {
         status.setText(loaded.size() + " records · " + range + " · "
                 + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
                         : displayName(location)) + orderWarning);
-        if (!timeOrderReport.isClean() && !openFromActionSocket) {
+        if (!timeOrderReport.isClean() && !loadFromSocket) {
             // D-R3: the report is shown, never buried — once, at load, with the evidence lines.
             // Review F5 (M35.7's species, seen live by the owner): on a socket-driven open nobody at the
             // screen asked for this log, so a modal here waits for an answer that cannot come and greets
             // whoever walks past later with a verdict about a log that may already be closed. That
             // audience gets the report where it reads: the status bar (above), 'context'.timeOrder and
-            // the timeOrderNote caveat on every time-anchored verb (D-R4). maybeOfferProject() consumes
-            // the flag further down, so it is still set here.
+            // the timeOrderNote caveat on every time-anchored verb (D-R4). Both this gate and the
+            // project offer read the SAME local, captured once at the top of the load — the field
+            // they used to share was already consumed by the time this line ran.
             JOptionPane.showMessageDialog(this,
                     String.join("\n", timeOrderReport.summarise()),
                     "Time-order report", JOptionPane.WARNING_MESSAGE);
@@ -2586,11 +2595,9 @@ public final class MainFrame extends JFrame {
      * without a dialog. Deliberately a question rather than an action: loading a project replaces your
      * source roots and graphs, which is not something to do to someone because they opened a file.
      */
-    private void maybeOfferProject() {
-        // consume-and-reset: the flag belongs to THIS open. A human chooser after an agent open must
-        // not inherit "do not ask" — the default has to be the interactive one.
-        boolean fromSocket = openFromActionSocket;
-        openFromActionSocket = false;
+    private void maybeOfferProject(boolean fromSocket) {
+        // the flag belongs to THIS open and is captured once by the caller, so a human chooser after
+        // an agent open cannot inherit "do not ask" — and no second consumer can find it spent.
 
         Path log = logLocalPath == null ? null : Path.of(logLocalPath);
         Path offer = projectDetect.offerFor(log, project.activeFile());

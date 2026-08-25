@@ -1,0 +1,110 @@
+REVIEW — feat/m35-project (M35.8 `open {project}` + `open {close: "project"}`)
+Reviewer: the main session · 2026-08-25
+Inputs: docs/handoff/handoff_25_aug_2026_2.txt (the brief, which I wrote), the branch's own report,
+the 2 commits 6459b55..bb47776 on main @ 8defc64, tracker ▸ M35.8 and its confirmation decision.
+
+VERDICT: MERGE — after the one fix below, applied on this branch in this review's commit.
+
+The slice is right and the report is honest. What I found is not in M35.8 at all: it is a fix from
+the PREVIOUS review that never worked, whose justifying comment states the opposite of what the code
+does, and which is live on main right now. This branch is where it surfaced, so this is where it is
+fixed.
+
+────────────────────────────────────────────────────────────────────────────────
+1. GATES (run here, not taken from the report)
+  mvn -o test            786 run / 0 fail / 0 skipped — as handed over AND after the fix
+  mkdocs build --strict  exit 0
+  rule-1 sweep           clean (CLAUDE.md baseline only)
+  git config user.email  personal address
+
+  NOTE ON COUNTS: the report says 789, the M34 review said 802/803, I measure 786 here and 792 on
+  feat/m34-adapters. Same commits, same tests present — so the absolute number differs by
+  environment, not by content. Nobody should quote another session's total as verification; quote
+  "green, 0 skipped" and the class count instead.
+
+────────────────────────────────────────────────────────────────────────────────
+2. VERIFIED — the brief's two hazards, and the settled decision
+  ✓ E9 SURVIVES. `applyProjectResult(project.open(offer), false)` is intact: accepting the in-load
+    offer still KEEPS the log. This was the regression risk the brief named, and it holds.
+  ✓ The verb APPLIES and does not ask, per the tracker decision. No dialog on the socket path —
+    `applyProjectResult()` is deliberately bypassed on failure because its failure IS a dialog, and
+    the report says so.
+  ✓ MARKED DESTRUCTIVE — by construction rather than by change: `open` is already in McpTools'
+    DESTRUCTIVE set, so the param inherits the client's per-call prompt. The brief's task 3 was
+    moot and the branch was right not to touch it.
+  ✓ The echo names what it replaced with before/after counts over eight categories, names the
+    previous project, and names the one call that returns. `alreadyActive` is a good call: reloading
+    the active project would flush live state over the file and read it back, so saying "nothing
+    changed" is the honest answer rather than performing a no-op switch.
+  ✓ `open {close: "project"}` (deviation D1) earns itself: the decision promised "put it back in one
+    call", and there is no path to name for "your own settings". Its echo correctly does NOT carry
+    the `kept` sentence the other close cases use — leaving a project is exactly the act that swaps
+    the profile-state categories, so "profile state survives" would be false there. Good catch.
+  ✓ Their F1 (context threw on a fresh start) is real and fixed — verified live: `context` answers
+    on a just-launched analyser with no log ever loaded.
+
+────────────────────────────────────────────────────────────────────────────────
+3. FINDING — fixed here
+F1 · THE TIME-ORDER MODAL STILL FIRES ON AGENT-DRIVEN OPENS. The previous review's F5 fix does not
+     work, and has never worked.
+
+     Seen live: driving `open {log}` over REST during this review put a "Time-order report" dialog
+     on the owner's screen — the second time the owner has watched this same dialog appear from an
+     agent-driven open, the first being how F5 was found.
+
+     The cause is a mutable field with two consumers in sequence:
+         line 2075   maybeOfferProject()   ← consumes and resets openFromActionSocket = false
+         line 2126   if (!timeOrderReport.isClean() && !openFromActionSocket)   ← always true by now
+     The gate's own comment reads "maybeOfferProject() consumes the flag further down, so it is
+     still set here." It is called 59 lines EARLIER. The comment asserts an ordering the file
+     contradicts, which is why the fix looked correct in review: the justification was checked, the
+     line numbers were not.
+
+     It is identical on main, so this ships today.
+
+     FIX: read the flag ONCE at the top of onLoaded into a final local; maybeOfferProject takes it
+     as a parameter; the time-order gate tests the local. No consumer can now find it spent.
+     LIVE: socket-open of a log with 2 time-order violations → no dialog; context.timeOrder carries
+     the report; the app answers a `filter` call 6s later.
+
+     THIS IS M35.9's TRIGGER FIRING. The tracker records M35.9 (an OpenRequest for load-time side
+     effects) with "do it when a fourth appears, or when R1 bites". The project offer, provenance
+     and the time-order dialog were three; this is the same root cause producing a real defect in
+     the fourth place. The local is the tactical fix; M35.9 is the structural one and should now be
+     scheduled rather than deferred.
+
+────────────────────────────────────────────────────────────────────────────────
+4. NOTES — recorded, not fixed
+N1 · `reversible` and `closed` are individually true and jointly misleading. The echo says
+     `"reversible": "open {close: \"project\"} puts your own settings back"` beside
+     `"closed": {"log": "…"}`. The settings do come back in one call; the LOG does not — proved by
+     driving A → B → A, after which context.log is null. `closedWhy` does say "reopen them inside
+     the new project", so the information is present in the adjacent field — but an agent reading
+     `reversible` alone would believe the session is restorable. One clause fixes it: name what
+     comes back and what does not.
+N2 · THE FIRST-RUN MODAL BLOCKS AN AGENT-DRIVEN START ENTIRELY. A profile with no config file shows
+     "Welcome! No configuration was found…" before anything else, so a fresh install driven by an
+     agent never reaches the REST socket — the app simply does not finish starting. This is M35.7's
+     species one step earlier: not in the load path, in the STARTUP path. Out of scope here, but it
+     is the reason an isolated-home drive needs a seeded config, and it will bite the M19 onboarding
+     bundle, whose whole premise is an agent starting a fresh install.
+N3 · McpTools' DESTRUCTIVE javadoc says "`open` replaces the loaded log". It now also replaces the
+     whole project context. Doc drift, one sentence.
+
+────────────────────────────────────────────────────────────────────────────────
+5. WHAT I DROVE
+  isolated -Duser.home, seeded config (see N2), two fixture projects pA/pB with real profiles
+  · context on a fresh start (their F1)                                       → ok
+  · open log → open {project: pA} → echo's closed/closedWhy/reversible/replaced → as specified
+  · pA → pB → pA following the echo's own `reversible` instruction            → settings back, LOG NOT [N1]
+  · socket open of a time-order-violating log, before and after the fix       → dialog, then none [F1]
+
+────────────────────────────────────────────────────────────────────────────────
+6. STRENGTHS
+  · The echo is genuinely the safety story: eight categories with before/after, closed paths named,
+    the previous project named, and one call to return. That is what makes "applies, does not ask"
+    defensible rather than reckless.
+  · `alreadyActive` refuses to perform a switch that would end the session for no change.
+  · The close-project echo deliberately drops the `kept` sentence, because it would be false there.
+  · O1 and O2 were found, recorded against their owners, and NOT fixed in this slice — and they
+    became their own branch. That is the discipline working.
