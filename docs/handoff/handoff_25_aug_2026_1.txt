@@ -1,0 +1,65 @@
+HANDOFF — M34.1 remainder: graph() on the RunAdapter SPI
+Date: 2026-08-25 · From: main session · Branch: feat/m34-adapters (THIS branch)
+Base: feat/m35-lifecycle @ 810052e — **NOT main**
+Your report: docs/handoff/report_feat_m34_adapters.txt — create it in the first work commit.
+
+⚠ THIS BRANCH IS STACKED ON feat/m35-lifecycle, WHICH IS ITSELF UNDER REVIEW.
+  Diff against `feat/m35-lifecycle`, not `main`, or you will see 14 commits of M35 that are not
+  this branch's work:  git diff feat/m35-lifecycle...feat/m34-adapters
+  It is stacked because the remainder genuinely depends on M35: GraphPairing, TopologyPanel
+  .clearGraph(), MainFrame.judgeOpenedGraph() and the open{graphml} echo are all M35 code, and the
+  reconciliation this slice must design is the question M35 spent seven slices answering.
+  If M35 is rejected or reworked, this branch reworks with it.
+
+ORIENT FIRST: CLAUDE.md · docs/specs/spec-source-adapters.md (ACCEPTED v2 — §B is the SPI shape) ·
+docs/handoff/report_m34_0_spike.txt (the spike that opened the gate; §3 changed what the SPI must
+carry) · docs/handoff/report_feat_m35_lifecycle.txt §§8-13 (the reconciliation precedent).
+
+WHAT IS ALREADY DONE (M34.1, ordering slice, on main @ 149faf4)
+  AuditLogReader.Capabilities gained Ordering {TOTAL | PARTIAL}, additively; the claim reaches
+  LogIndex.totalOrder(); context reports it before anything is derived from position. Native path
+  unchanged. THAT SLICE IS SHIPPED — do not redo it.
+
+TASK — the remainder, one slice per commit, suite green before every commit.
+  ⚠ Never trust `$?` after a pipe — it is the last command's status, not mvn's. Run mvn bare.
+
+  1  `graph(Path)` ON THE SPI. Per spec §B:
+         Optional<SourceGraph> graph(Path source) throws IOException;   // default: empty
+         record SourceGraph(List<Node> nodes, List<Edge> edges, Provenance provenance)
+         enum Provenance { DECLARED, INFERRED }
+     · DEFAULT METHOD returning empty — Capabilities' lesson: this is a published surface since
+       1.5.0 and every existing reader must keep compiling.
+     · Provenance rides the RETURNED GRAPH, not the adapter (spec review F4): availability is per
+       SOURCE, not per adapter — one Temporal estate has a registry export where another has none,
+       so a fixed graphSupport() on the adapter would be wrong for half its users.
+     · The graph is handed over in the CORE's vocabulary (D-A4): {id, label, className, kind} and
+       {id, source, target} — the existing ProcessorTopology shape, already engine-neutral. An
+       adapter maps its concepts onto NODE/EVENT/EVENT_HANDLER/EXPORT_SERVICE or declines a kind.
+
+  2  RECONCILIATION with open {graphml} — the question M35 answered in a different key.
+     THE RULE, and it is M35.3's asymmetry applied one level out:
+         a graph the USER/AGENT opened is INTENT and wins;
+         a graph the ADAPTER supplied is AUTOMATIC and yields.
+     So: an adapter-supplied graph loads when nothing else is open; opening a graphml REPLACES it
+     and says so; and the view states WHICH IT IS — D-A2's declared-or-inferred rule is not
+     satisfied by loading the right graph, only by saying which one it loaded and where it came
+     from. Reuse M35's machinery: judgeOpenedGraph() already states the pairing, and §E's
+     `provenance` already carries "where did this come from" for the LOG — the graph needs the
+     same courtesy.
+
+  3  M34.2's first half if time allows: coverage must know DECLARED from INFERRED. The spike's §4
+     finding is the acceptance test — __start__/__end__ counted as uncovered, so a structural flag
+     or an adapter that does not emit pseudo-nodes. Coverage's value depends entirely on "declared"
+     meaning "things that were supposed to run".
+
+  DO NOT build a foreign adapter here (M34.4). The LangGraph translator in tools/spikes/ is
+  throwaway by design and stays that way until the SPI is proven by the BUILT-IN path first — the
+  M31.1 move, and the spike's own sequencing note.
+
+TESTING
+  The SPI and the reconciliation decision are pure and MUST be unit-tested. What the topology panel
+  shows is Swing: build and run the jar (rule 4), and drive it over REST the way tools/ does.
+  The spike's LangGraph log (tools/spikes/m34-langgraph/) is the only foreign fixture in the tree —
+  regenerate it with lg_to_audit.py if you need a PARTIAL-order source to test against.
+
+CHANGELOG — rule 2, same commit, for anything user-visible.
