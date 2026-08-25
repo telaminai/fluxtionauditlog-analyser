@@ -155,7 +155,7 @@ analyser (reverse funnel)._
   the toy.
 - [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
   (import + open + Follow).
-- [M19.6] ☑ **The loop's conformance bench — §H's home** _(DONE 2026-08-25 on `feat/m19-bench`)_ —
+- [M19.6] ☑ **The loop's conformance bench — §H's home** _(DONE 2026-08-25, merged to main)_ —
   `tools/bench/loop-bench.py` plays the agent of dev-loop §C3 steps 3–7 (glob the registry → pick →
   export log + GraphML → `open {log, graphml, provenance}` + `source_root` → assert from `context` /
   `coverage` / `topology` that the loop closed), PASS/FAIL per step, non-zero exit on failure.
@@ -163,7 +163,7 @@ analyser (reverse funnel)._
   endpoints) from the in-tree demo set, so the bench runs today with no Mongoose — and pointed at a real
   `~/.mongoose/servers/` it is the acceptance test for UP-MNG-01/02. Assumptions (auth header, files
   listing shape) flagged in its README, not baked in.
-- [M19.7] ☑ **An agent-driven fresh start** _(DONE 2026-08-25 on `feat/m19-bench`; review_feat_m35_project N2)_
+- [M19.7] ☑ **An agent-driven fresh start** _(DONE 2026-08-25, merged to main; review_feat_m35_project N2)_
   — `analyser --rest` starts with the REST transport on (persisted, and stdout says so) and skips the
   first-run modal that otherwise blocked an agent on a never-configured machine before the socket existed;
   the MCP bridge's "not running" error names the command. Exercised by the bench's `--launch`, which
@@ -289,7 +289,7 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
 ## M35 · Log + graph lifecycle — ☑ SHIPPED 2026-08-25, all eleven slices + §E (archived)
 _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing open._
 
-## M36 · Start page — ◧ **.1–.4 COMPLETE on `feat/m36-start-page`** (owner, 2026-08-25; the empty state, doing a job)
+## M36 · Start page — ◧ **.1–.4 MERGED to main 2026-08-25** (the empty state, doing a job); .5 docs page open
 _Design: **[spec-start-page.md](spec-start-page.md)**. The owner's four sections — what it does, how
 it helps, where it fits in the cycle, who you are — placed where they cost a returning user nothing._
 _The framing that shaped it: **the analyser already HAS a start page**, and it reads "No log loaded —

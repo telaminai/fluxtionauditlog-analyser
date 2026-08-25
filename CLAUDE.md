@@ -75,7 +75,11 @@ ordering claim honoured by the view, coverage refusing an inferred graph) and **
 normative specification — *The audit log ▸ Format specification* — with a conformance suite the built-in
 reader and the SPI both pass).
 
-Open analyser-side: **M34.4/.5** (first foreign adapter;
+Also merged: **M19.6/.7** (`tools/bench/` — the dev loop's conformance bench, §H's home, runnable today
+against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.4** (the start page: the
+no-log STATE, four sections each ending in an action against a demo set that ships in the jar; the
+first-run dialog is gone for everyone). Open analyser-side: **M36.5** (docs page + generated shot),
+**M19.3/.4** (tutorial, publish-gated on the playground Download), **M19.8** (bench in CI), **M34.4/.5** (first foreign adapter;
 per-cycle concurrency marker); **M36** start page (spec'd, `feat/m36-start-page`); M22 remnants — PNG export (22.3), alternative layouts
 (22.6), re-dispatch cause (22.11, needs `UP-FLX-10` in
 [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the holding pen for anything
