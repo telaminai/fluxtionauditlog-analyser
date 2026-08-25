@@ -658,6 +658,22 @@ public final class MainFrame extends JFrame {
     }
 
     /**
+     * Show the start page on demand (Help ▸ Start page, M36.1) without closing the open log.
+     *
+     * <p>The page normally appears by itself, because it IS the no-log state. That leaves it
+     * unreachable for the people most likely to want it: anyone whose last log reopens at launch
+     * never sees it, and closing a perfectly good log to read an introduction is a bad trade. So the
+     * card can be raised directly — and the page then offers its own way back, which is what keeps
+     * this a place you visit rather than a mode you have to escape. The next lifecycle change
+     * (opening, closing, switching) calls {@link #syncRecordsCard()} and puts the right card back.
+     */
+    private void showStartPage() {
+        if (startPanel == null) return;
+        startPanel.showReturnToRecords(store != null);
+        recordsLayout.show(recordsCards, "start");
+    }
+
+    /**
      * Open one of the bundled demo logs (M36). Deliberately an ORDINARY open — the same verb path a
      * user or agent takes — so the demo exercises the product rather than a special case that proves
      * nothing about it.
@@ -1330,6 +1346,14 @@ public final class MainFrame extends JFrame {
         bar.add(buildThemeMenu());
 
         JMenu help = new JMenu("Help");
+        // M36.1: the start page is a STATE, and the state is "no log open" — so anyone who has ever
+        // opened a log reaches it only by closing one, and a returning user whose last log reopens at
+        // launch never sees it at all. This recalls it without closing anything; the page shows its own
+        // way back while a log is loaded, so it stays a place you visit rather than a mode you are in.
+        JMenuItem startPage = new JMenuItem("Start page");
+        startPage.addActionListener(e -> showStartPage());
+        help.add(startPage);
+        help.addSeparator();
         JMenuItem guide = new JMenuItem("User guide");
         guide.addActionListener(e -> showHelp());
         help.add(guide);
@@ -1432,6 +1456,7 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries);
             }
+            @Override public void backToRecords() { syncRecordsCard(); }
         }, text -> status.setText(text));
         recordsCards.add(startPanel, "start");
         recordsCards.add(mainSplit, "table");

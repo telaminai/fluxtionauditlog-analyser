@@ -19,7 +19,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   production* / *I want the numbers out of this*. Every action on it runs against a demo log that
   ships inside the jar, so nothing on the page needs a server, a source root or an API key first. It
   is a **state, not a screen**: opening a log replaces it, closing one (File ▸ Close log) brings it
-  back, and there is nothing to dismiss.
+  back, and there is nothing to dismiss. **Help ▸ Start page** recalls it at any time without closing
+  the log you are working on — the page offers its own way back.
 - **The audit record format has a published specification** (M34.3) — *The audit log ▸ Format
   specification* on the docs site: Format 1, normative, with MUST/SHOULD rules for framing, every
   field, `nodeLogs` values and attribution, what order means under a `TOTAL` or `PARTIAL` reader, what

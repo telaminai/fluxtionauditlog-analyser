@@ -58,6 +58,9 @@ public final class StartPanel extends JPanel {
          * to insist.
          */
         void openSettings();
+
+        /** Back to the records table, for a page raised over an open log (Help ▸ Start page). */
+        void backToRecords();
     }
 
     private final Actions actions;
@@ -65,6 +68,9 @@ public final class StartPanel extends JPanel {
 
     /** Components whose colour is theme-derived, re-resolved on a theme switch. */
     private final List<Runnable> recolour = new ArrayList<>();
+
+    /** The "back to the records" row — present always, visible only over an open log. */
+    private final JComponent returnRow;
 
     public StartPanel(Actions actions, Consumer<String> status) {
         super(new BorderLayout());
@@ -75,6 +81,8 @@ public final class StartPanel extends JPanel {
         Box col = Box.createVerticalBox();
         col.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
 
+        returnRow = returnToRecords();
+        col.add(returnRow);
         col.add(hero());
 
         col.add(Box.createVerticalStrut(20));
@@ -196,6 +204,30 @@ public final class StartPanel extends JPanel {
         recolour.add(() -> lead.setForeground(UiTheme.mutedForeground()));
         p.add(lead);
         p.add(link("Set up source roots and an assistant", actions::openSettings));
+        return p;
+    }
+
+    /**
+     * The way back, shown ONLY when there is something to go back to.
+     *
+     * <p>Raised over an open log (Help ▸ Start page) the page would otherwise be a one-way door: the
+     * records are still loaded but the table is behind the card, and nothing on screen says how to
+     * return. Hidden when no log is open, because an exit that leads nowhere is worse than none —
+     * it implies the reader has lost something they never had.
+     */
+    public void showReturnToRecords(boolean logOpen) {
+        returnRow.setVisible(logOpen);
+        revalidate();
+        repaint();
+    }
+
+    private JComponent returnToRecords() {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        p.setOpaque(false);
+        p.setAlignmentX(LEFT_ALIGNMENT);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        p.add(link("\u2190 Back to the records", actions::backToRecords));
+        p.setVisible(false);        // no log open is the common case, and then there is no way back
         return p;
     }
 

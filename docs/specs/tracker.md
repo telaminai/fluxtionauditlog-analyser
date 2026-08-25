@@ -284,7 +284,7 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
 ## M35 · Log + graph lifecycle — ☑ SHIPPED 2026-08-25, all eleven slices + §E (archived)
 _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing open._
 
-## M36 · Start page — ☐ PROPOSED (owner, 2026-08-25; the empty state, doing a job)
+## M36 · Start page — ◧ **.1–.4 COMPLETE on `feat/m36-start-page`** (owner, 2026-08-25; the empty state, doing a job)
 _Design: **[spec-start-page.md](spec-start-page.md)**. The owner's four sections — what it does, how
 it helps, where it fits in the cycle, who you are — placed where they cost a returning user nothing._
 _The framing that shaped it: **the analyser already HAS a start page**, and it reads "No log loaded —
@@ -292,23 +292,36 @@ File ▸ Open, drag a file in, or File ▸ Open from S3". Honest and useless. Me
 for" lives in HelpPanel, a static page nobody opens before they have a problem. So this is not a new
 surface; it is the empty state finally earning its keep, and the test of the design is that opening
 a log from the command line means never seeing it._
-- [M36.1] ☐ **The state, not a screen** (D-S1) — occupies the main area whenever no log is open;
+- [M36.1] ☑ **The state, not a screen** (D-S1) — occupies the main area whenever no log is open;
   a log replaces it, closing one brings it back, `Help ▸ Start page` recalls it. No splash, no modal,
   no dismissal to remember.
-- [M36.2] ☐ **Every section ends in an ACTION** (D-S2) — each of the four sections links into the
+- [M36.2] ☑ **Every section ends in an ACTION** (D-S2) — each of the four sections links into the
   BUNDLED DEMO LOG, so every button works with no configuration, no server and no API key. A start
   page whose buttons need setup first is one that lies on first contact.
-- [M36.3] ☐ **Three audience lanes, phrased as the user's own sentence** (D-S3) — "I am writing the
+- [M36.3] ☑ **Three audience lanes, phrased as the user's own sentence** (D-S3) — "I am writing the
   graph", "something is wrong in production", "I want the numbers out". **Never a question the app
   asks**: people recognise their situation faster than they classify themselves, and nothing is
   remembered or personalised.
-- [M36.4] ☐ **No feature list** (D-S4) — a page that enumerates capabilities is stale the release
+- [M36.4] ☑ **No feature list** (D-S4) — a page that enumerates capabilities is stale the release
   after it is written, and it is the first thing a new user reads, so its errors are the ones they
   carry. Three problems and three lanes; anything version-specific belongs in the release notes.
-- Open: **O-S1** bundle the demo log or generate it · **O-S2** replace the whole main area or only
-  the records pane (leaning to the latter — the tabs ARE the product's structure) · **O-S3** rule 1
-  applies hardest here: this is the most-seen surface and the likeliest to carry a real name onto the
-  docs site.
+- **O-S1 RESOLVED — bundle a demo SET, not a log.** `DemoAssets` ships the walkthrough log, a traced
+  log, a series log and the GraphML in the jar and unpacks them to `~/.fluxtion-analyser/demo`. One
+  log was the wrong answer: three of the four sections ask a question one log cannot answer (coverage
+  needs a TRACED run; a chart needs a series; step-through needs the graph).
+- **O-S2 RESOLVED — the whole LEFT COLUMN, tabs kept.** "Records pane only" was tried first and
+  failed its own acceptance: the page was clipped and a scrollbar appeared, because the detail pane
+  below it has nothing to say with no log and was still holding half the height. The right-hand tabs
+  stay, so the product's structure is still visible.
+- **O-S3 HELD, and it bit.** `DemoAssetsTest` asserts the shipped demo carries no real names — and
+  caught a `v12technology` copyright header in generated source on its way into the jar. Note for the
+  owner: **CLAUDE.md's sweep is `aquis|talos|nonco` and does not look for `v12technology`.**
+- Closes **review_feat_m35_project N2** ("the first-run modal blocks an agent-driven start
+  entirely"), together with M19.7. M19.7 suppressed the modal for `--rest`; M36 removed it outright,
+  because the same three objections apply to the human at a fresh install. The `--rest` stdout note
+  M19.7 added stays — see `MainFrame.showFirstRunSettingsIfNeeded`.
+- Follow-up: **M36.5** ☐ the docs-site page for the start page, and a generated screenshot via
+  `tools/capture-docs.py` (rule 1 — never captured by hand).
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general

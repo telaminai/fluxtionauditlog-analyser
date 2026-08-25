@@ -1,6 +1,9 @@
 REPORT — branch feat/m36-start-page (M36: the start page)
-Date: 2026-08-25 · Brief: docs/handoff/handoff_25_aug_2026_3.txt · Base: main @ 8f58614
-Status: IN PROGRESS — slice 1 (the demo set) complete; the StartPanel itself not started.
+Date: 2026-08-25 · Brief: docs/handoff/handoff_25_aug_2026_3.txt
+Base: REBASED onto feat/m19-bench @ 49d37b8 (which is main @ 174edd4 + M19.6/M19.7) — see §4, the
+two branches changed the same method from opposite directions.
+Status: COMPLETE — demo set, StartPanel (M36.1–.4), Help ▸ Start page, and the Reports-tab sizing
+fix the same primitives exposed. Suite 841 green; loop-bench 20/20 exit 0; sweep clean.
 
 ================================================================================
 1. SLICE 1 — the bundled demo set, and the claims it makes checkable
@@ -57,7 +60,80 @@ NOT DONE — OWNER'S CALL, because it is a rule-1 policy matter and pre-existing
      processor in every user's repo carries it too. That is an upstream ask, not an analyser one.
 
 ================================================================================
-3. NEXT
+3. SLICE 2 — the page, and the layout it took three tries to get right
 ================================================================================
-Slice 2: the StartPanel in the records pane (D-S1), with the four sections each ending in an action
-against the set above. Nothing of the page itself exists yet.
+Four sections, each ending in an action against the demo set. Colour is UiTheme.accent(), PROMOTED
+from the blue the topology already paints a hot edge with rather than invented — one filled primary
+action, a rule per section heading, and the lifecycle strip highlighting the single stage this app
+occupies. The page is tinted, not branded.
+
+THE LAYOUT FAILED TWICE, AND BOTH FAILURES WERE INVISIBLE ON A WIDE SCREEN:
+  · FlowLayout keeps each card's preferred width and runs the last one past the right edge — the
+    third action, "What did this cycle do?", was simply not on the page.
+  · GridLayout fixes the count at three, so a narrow pane divides the width into slivers.
+Neither shows at 1200px, so both survived a screenshot; the second was caught by the owner resizing
+the window. CardFlow states the rule instead — no card below a legible width, whatever fits shares
+the row, the rest wrap, height follows — and CardFlowTest pins it at nine widths. That is NOT an
+exception to "Swing is not unit-tested": a LayoutManager is arithmetic over a width, needs no
+display, and is tested precisely because a wide screen cannot ask the question that failed.
+
+O-S2 RESOLVED AGAINST THE FIRST ANSWER: "records pane only" was implemented, and clipped. The card
+now owns the whole left column (records + detail); the right-hand tabs stay.
+
+M36.1's `Help ▸ Start page` is implemented and matters more than it looks: the page is the no-log
+STATE, so anyone whose last log reopens at launch never sees it. It raises the card without closing
+the log, and the page then shows its own way back.
+
+TWO THINGS THE PAGE'S OWN VERIFICATION FOUND:
+  · The page opened SCROLLED DOWN at narrow widths — the cards are real buttons, focus landed on one
+    and the scroll pane chased it, pushing the title off the top.
+  · My offscreen capture harness lied: it laid the page out at pack()'s 742px and BoxLayout reused
+    those cached heights at 1100px, showing a phantom gap I nearly "fixed" in the product. Capturing
+    from a REALISED window is the only sequence that lays out the way the app does. Recorded because
+    the next person to screenshot a panel will hit it.
+
+================================================================================
+4. THE COLLISION WITH M19.7 — same method, opposite directions, and how it was resolved
+================================================================================
+feat/m19-bench (M19.7) and this branch both changed showFirstRunSettingsIfNeeded, both answering
+review_feat_m35_project N2:
+  · M19.7 suppressed the modal UNDER `--rest` and printed the endpoint file instead, because a
+    process cannot answer a Settings dialog.
+  · M36 removed the modal for EVERYONE: it reports the ordinary condition of a first launch as a
+    fault, demands source roots and an API key from someone who has not yet seen a record, and is a
+    modal on exactly the surface D-S1 says must have nothing to dismiss.
+
+RESOLVED, keeping both halves: no dialog for anybody, and the `--rest` stdout note stays. Keeping
+only the narrow fix would have left the human still gated; keeping only the wide one would have
+dropped the note the loop bench asserts. VERIFIED: tools/bench/loop-bench.py --stub --launch is
+20/20, exit 0 — including "a fresh install started with --rest shows no first-run dialog (it said so
+on stdout)". N2 is now closed on both paths.
+
+`firstRunAtStart` (M19.7's fix for its own ordering defect) is kept and still needed: `--rest` saves
+the config in the constructor, so configStore.exists() is true by the time the splash timer asks.
+
+================================================================================
+5. THE REPORTS TAB — the same defect, found by the same primitives
+================================================================================
+Reported by the owner as "some reports are very wide — do line breaks need adding?". It was sizing,
+not text: measured, the detail pane laid out 824px wide inside a 713px viewport. muted() built the
+"written against <provenance> · N record(s) · <range>" line as an <html> JLabel, which does not wrap
+— it lays the string on one line and reports that width as preferred, and JScrollPane honours it, so
+every section below was widened to match and the tab grew a horizontal scrollbar.
+
+Adding line breaks would have been the wrong fix: it breaks at whatever width the author had and
+re-breaks wrongly on the next resize. Two more surfaced alongside: callout boxes had an unbounded
+maximum height (a two-line narrative drawn as a tinted block half the pane deep) and table sections
+declared a preferred height but no maximum.
+
+The primitives are now SHARED — ui/Fluid.java (column/text/Panel), lifted out of the start page.
+Two surfaces got the same sizing wrong independently, which is the argument for one implementation.
+WORTH A SWEEP, NOT DONE HERE: other panels using <html> JLabels or un-Scrollable scroll views.
+
+================================================================================
+6. FOR THE REVIEWER
+================================================================================
+  · §4 is the part to check first — it changes a behaviour M19.7 shipped, deliberately.
+  · The rule-1 items in §2 (a/b/c) are still the OWNER's call and still open.
+  · M36.5 (docs-site page + a generated screenshot) is recorded on the tracker, not done: rule 1
+    says screenshots are generated by tools/capture-docs.py, never captured by hand.
