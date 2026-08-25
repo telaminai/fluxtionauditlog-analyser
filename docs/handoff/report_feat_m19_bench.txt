@@ -1,0 +1,86 @@
+REPORT — feat/m19-bench · M19 analyser-side: the loop's conformance bench (M19.6) + an agent-driven
+fresh start (M19.7) · spec alignment
+From: the second session · Brief: docs/handoff/handoff_25_aug_2026_4.txt · Base: main @ 174edd4
+Status: COMPLETE on the branch — bench 20/20 against the stub + a fresh --rest analyser; suite green; mkdocs strict green; sweep clean.
+
+================================================================================
+1. M19.7 — `--rest`, and no first-run modal for a process
+================================================================================
+  Main                  `--rest` is a launch mode: stripped from the args, remembered as the system
+                        property analyser.rest; an optional log path still falls through. usage() says
+                        what it does AND that it persists.
+  MainFrame             before applyRestServer(): if the property is set and REST is off, turn it on,
+                        SAVE, and print that it was saved and where to turn it off. Persisting is
+                        deliberate — the next human launch must still be agent-reachable — and saying
+                        so is what makes it not a silent settings change.
+                        showFirstRunSettingsIfNeeded(): under the property, no modal; stdout names the
+                        endpoint file and how to configure over the socket. Human launches unchanged.
+  McpBridge             NOT_RUNNING names the command.
+  Why not auto-launch the GUI from the bridge: a decision the owner has not made (brief DO NOT).
+
+================================================================================
+2. M19.6 — the bench
+================================================================================
+(see tools/bench/README.md for the operator view; the design notes are here)
+  D1  The stub is the contract, not a mock of a Mongoose. It does what UP-MNG-01 and the export half
+      of UP-MNG-02 ask, from the demo set, and nothing else — so "make the real server pass the bench"
+      is a complete statement of the mongoose-side work for those two asks.
+  D2  Every step is named and asserted; the exit code is the result. A bench that prints and exits 0
+      is a demo.
+  D3  --launch starts a NEVER-configured analyser (isolated -Duser.home) with --rest. That makes the
+      bench also the live test of M19.7 — the brief's N2 — on every run.
+  D4  Assumptions are flagged in three places (module doc, README, the step's own detail text) rather
+      than baked in: the Bearer header for authMode TOKEN, the audit-files listing shape.
+  D5  The "no time-order dialog" step passes unconditionally with the detail "weak evidence on its
+      own" — a modal does not stop REST answering. It is there so the structural proof (M35.9) has a
+      named place in the bench's output, not to claim what it cannot check.
+
+================================================================================
+3. SPEC ALIGNMENT
+================================================================================
+spec-onboarding-example.md: the contract table's admin-REST row now also requires the registry file
+(UP-MNG-01) and the M18 wording is gone; the file-sink row records that the live starters default to
+Chronicle and the bundle must override until UP-RDR-01; the Synergy section is retitled to the loop's
+bench, with the M18-era text kept for the gaps it records (each mapped to its UP id); tutorial part 4
+notes what it becomes once UP-MNG-02 exists. NOT done: the tutorial page (M19.3) — publish-gated on
+a Download nobody can download; stated in the brief.
+
+================================================================================
+4. RUN
+================================================================================
+`tools/bench/loop-bench.py --stub --launch` — the second run, after the fix below. Exit 0.
+
+  PASS  stub published its registry file  — <tmp>/loop-bench-ldsl3pp1/servers/demo-quote
+registry: <tmp>/loop-bench-ldsl3pp1/servers
+  PASS  registry directory has at least one server file  — <tmp>/loop-bench-ldsl3pp1/servers
+  PASS  a server was picked  — (the only one)
+  PASS  registry file is mode 600  — 0o600
+  PASS  registry file carries the UP-MNG-01 fields
+  PASS  the server's pid is alive  — pid 36450
+  PASS  environment is declared (UP-MNG-03)  — dev
+  PASS  GET /api/audit/files lists the audit files  — 3 file(s)
+  PASS  export?format=yaml delivered the log  — 4053 bytes
+  PASS  processors[].graphml delivered the GraphML  — DemoQuoteProcessor
+  PASS  the analyser answers on its REST endpoint  — <tmp>/loop-bench-ldsl3pp1/home/.fluxtion-analyser/rest-endpoint
+  PASS  a fresh install started with --rest shows no first-run dialog (it said so on stdout)  — M19.7 / review N2
+  PASS  open {log, graphml, provenance} accepted
+  PASS  source_root {add} accepted the server's home  — <repo>/examples/fixture-generator/src/main/java
+  PASS  context: the log loaded  — records=10
+  PASS  context: provenance is the SERVER's name (§E)  — 'demo-quote'
+  PASS  context: the graph FITS the log  — the graph declares 5 of the 5 node(s) this log writes
+  PASS  coverage answers  — {"declared": 10, "covered": 5, "uncovered": 5, "ratio": 0.5, "recordsScanned": 10, "scope": "whole l
+  PASS  topology answers
+  PASS  no time-order dialog blocked the load (the app kept answering)  — weak evidence on its own; the structural proof is M35.9
+
+20 passed, 0 failed
+
+THE FIRST RUN FAILED ONE STEP, AND THE FAILURE WAS IN MY SLICE, NOT THE BENCH: "a fresh install started
+with --rest shows no first-run dialog (it said so on stdout)". The --rest branch in the constructor SAVES
+the config (to persist the transport), so by the time the splash timer called
+showFirstRunSettingsIfNeeded(), configStore.exists() was true and the method returned before it ever
+reached the property check. The dialog was suppressed by an accident of ordering, and the stdout note
+the slice promised never printed. Fix: `firstRunAtStart` captured in the constructor BEFORE the save;
+the method reads that. The bench also now polls stdout briefly — the first-run check fires from the
+splash timer ~0.7 s after the window shows, which can be after the socket first answers.
+Recorded because it is the bench doing its job on its first outing: the slice it was built beside
+had a defect that reading the code would not have shown.

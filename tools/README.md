@@ -1,5 +1,11 @@
 # tools
 
+## `bench/` — the loop's conformance bench
+
+`tools/bench/loop-bench.py` runs the agent-brokered dev loop end to end (registry file → export → drive
+the analyser → assert) against either `mongoose-stub.py` (no Mongoose needed — the contract as a fixture)
+or a real `~/.mongoose/servers/` directory. See [`bench/README.md`](bench/README.md).
+
 ## `drive-analyser.sh`
 
 Drives a **running** analyser over its localhost REST transport, for scripted UI setup and screenshots.

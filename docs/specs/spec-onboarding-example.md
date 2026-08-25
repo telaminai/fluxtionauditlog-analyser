@@ -1,6 +1,6 @@
 # Onboarding Example — Playground Download → Running Mongoose → Analyser (Design Spec)
 
-Status: DRAFT v1 · Owner: greg.higgins · Last updated: 2026-08-15
+Status: DRAFT v1 · Owner: greg.higgins · Last updated: 2026-08-25 (aligned with the agent-brokered dev loop; M18 closed)
 
 Companion to **[tracker.md](tracker.md)** (milestone **M19**) and
 **[../admin/docs-site.md](../admin/docs-site.md)** (the site this lands on). Touches the
@@ -67,11 +67,11 @@ The Download bundle MUST contain:
 | Item | Why |
 |---|---|
 | runnable Mongoose example (source + build, or jar + config — O1) | the thing that runs |
-| **audit logging pre-enabled** — `EventLogManager` → **text file sink** at `./logs/audit-<name>.yaml`, level INFO | no configuration step; deliberately the file sink (not Chronicle/binary) because that's the sink the analyser reads |
+| **audit logging pre-enabled** — `EventLogManager` → **text file sink** at `./logs/audit-<name>.yaml`, level INFO | no configuration step; deliberately the file sink because that is the sink the analyser reads today. **Note (2026-08-25):** the playground's `mongoose` starters default to `auditBackend: "chronicle"` (live read, dev-loop spec §C2) — the bundle must override that to the file sink until the out-of-tree Chronicle reader (**UP-RDR-01**) exists, at which point the default becomes the better choice and the export beat disappears |
 | the **generated EventProcessor source** + the example's node sources | source navigation works out of the box |
 | **`.analyser/project.fluxtion-settings`** — relative source roots + EP FQN, at **M20's canonical project-profile path** so the bundle *is* a project profile (not a separately-named file the detector also accepts) | zero-setup: M20 auto-detects it; M15 import until then |
 | **`README.md`** — run command, the log path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser |
-| **admin REST enabled** (`svc-admin-web` / `serverplugin-rest` — default `127.0.0.1:8181`, named in the README and the settings file) | the example doubles as **M18's validation bench** (below) — `svc-admin-web` is the concrete surface M18.0 spikes against |
+| **admin REST enabled**, and the server **publishes its registry file** `~/.mongoose/servers/<name>` (upstream-asks **UP-MNG-01**; the M18 admin link is closed in favour of the agent-brokered loop) | the example doubles as the **loop's conformance bench** (below): an agent globs the registry, exports, and drives the analyser — `tools/bench/` runs exactly that, today against a stub |
 | **agent bootstrap — `CLAUDE.md` (+ `AGENTS.md` mirror), layered** (see below) | the user opens the project in their IDE and **their own LLM already knows Fluxtion** — the edit loop needs zero prompting |
 
 **The agent-bootstrap prompt stack — embed a snapshot, reference the canon.** Hosted canonicals
@@ -144,7 +144,9 @@ Contract notes:
        round trip: watch the assistant plot/flag/filter its findings into the views you're reading.
     4. **Edit with your IDE's AI** — open the Maven project in the IDE; the bundled `CLAUDE.md` means
        the IDE agent knows Fluxtion; change a node, re-run, watch Follow pick it up. (Explicitly *not*
-       the in-app assistant's job.)
+       the in-app assistant's job.) _Once the Mongoose MCP tool exists (UP-MNG-02) this part becomes the
+       full loop of the dev-loop spec: the agent restarts the server through the client's approval
+       prompt and the analyser's Follow picks up the fresh log — the tutorial should then say so._
 
   **The tutorial must end with a bridge, not a full stop.** After the demo the user's real question is
   *"now, my processor?"* — the closing section is **"Do this on your own system →"** linking
@@ -166,7 +168,17 @@ Contract notes:
   folder and does import + open + Follow in one action (defer unless the tutorial reads clunky
   without it).
 
-## Synergy: this example is M18's validation bench
+## Synergy: this example is the loop's conformance bench (was: M18's validation bench)
+
+_**Updated 2026-08-25.** M18 is closed (tracker); the server link is now the agent-brokered dev loop
+(`spec-agent-brokered-dev-loop.md`), whose §H names a conformance harness "homed in the M19 bench". That
+harness exists: `tools/bench/loop-bench.py` plays the agent (registry → export → drive → assert) and
+`tools/bench/mongoose-stub.py` plays a server reduced to the contract, so it runs today with no Mongoose.
+When this bundle ships, the bundle's server is the real thing the bench points at — and UP-MNG-01/02 are
+done when the bench passes against it. The paragraphs below are the M18-era text, kept for the gaps they
+record (sink descriptor → UP-MNG-04, `EventLogControlEvent` → UP-MNG-02, lifecycle → UP-MNG-02)._
+
+### The M18-era text
 
 The same bundle validates the **Mongoose server link** (spec-closed-loop Part B) end to end: a
 known-good local server with the admin REST on, a predictable log, restart-safe (it's disposably

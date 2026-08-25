@@ -24,6 +24,14 @@ public class Main {
     /** Launch flag for the MCP stdio bridge — an MCP client runs {@code java -jar analyser.jar --mcp}. */
     static final String MCP_FLAG = "--mcp";
 
+    /**
+     * Start with the REST transport ON and no first-run dialog (M19.7). A process asked for this
+     * launch — an agent on a fresh machine — and a process cannot answer Settings. Read by
+     * {@code MainFrame} as the system property {@value #REST_PROPERTY}.
+     */
+    static final String REST_FLAG = "--rest";
+    public static final String REST_PROPERTY = "analyser.rest";
+
     public static void main(String[] args) {
         // BEFORE anything else: the bridge is headless and must touch no Swing/AWT class, so this has to
         // come ahead of the theme/taskbar/frame bootstrap below (spec-assistant-actions-mcp §9)
@@ -37,10 +45,18 @@ public class Main {
             System.out.println(usage());
             return;
         }
+        // M19.7: `--rest` is a launch mode, not a file. Strip it, remember it, and let the rest of the
+        // args (an optional log path) fall through unchanged.
+        java.util.List<String> rest = new java.util.ArrayList<>();
+        for (String arg : args) {
+            if (REST_FLAG.equals(arg)) System.setProperty(REST_PROPERTY, "true");
+            else rest.add(arg);
+        }
+        final String[] fileArgs = rest.toArray(new String[0]);
         // An unrecognised flag used to fall through and be opened as a *log file*, so running an older
         // build with `--mcp` silently launched the GUI trying to load a file called "--mcp". Fail loudly.
-        if (args.length > 0 && looksLikeFlag(args[0])) {
-            System.err.println("unknown option: " + args[0] + System.lineSeparator() + System.lineSeparator() + usage());
+        if (fileArgs.length > 0 && looksLikeFlag(fileArgs[0])) {
+            System.err.println("unknown option: " + fileArgs[0] + System.lineSeparator() + System.lineSeparator() + usage());
             System.exit(2);
         }
 
@@ -64,7 +80,7 @@ public class Main {
 
             MainFrame frame = new MainFrame();
             frame.setVisible(true);
-            String toOpen = args.length > 0 ? args[0] : frame.config().logFile;
+            String toOpen = fileArgs.length > 0 ? fileArgs[0] : frame.config().logFile;
             if (toOpen != null && !toOpen.isBlank()) {
                 frame.openFile(Path.of(toOpen));
             }
@@ -105,6 +121,9 @@ public class Main {
                   analyser [log-file]   open the desktop app, optionally on a log
                   analyser --mcp        run as an MCP server on stdio, for an MCP client to launch
                                         (needs the app running separately with the REST transport on)
+                  analyser --rest [log] open the desktop app with the REST transport ON and no first-run
+                                        dialog — for an agent starting the analyser on a fresh machine.
+                                        The setting persists (Settings ▸ Assistant) and stdout says so.
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

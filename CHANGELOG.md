@@ -7,6 +7,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **`analyser --rest` — start it for an agent** (M19.7). Opens the app with the localhost REST transport
+  on and, on a machine that has never run the analyser, without the first-run Settings dialog: a process
+  asked for this launch and a process cannot answer a dialog, so until now an agent on a fresh machine
+  could never reach the socket at all. The setting persists (Settings ▸ Assistant shows it on) and the
+  console says so. The MCP bridge's "analyser not running" error now names this command. Human
+  launches are unchanged.
 - **The audit record format has a published specification** (M34.3) — *The audit log ▸ Format
   specification* on the docs site: Format 1, normative, with MUST/SHOULD rules for framing, every
   field, `nodeLogs` values and attribution, what order means under a `TOTAL` or `PARTIAL` reader, what

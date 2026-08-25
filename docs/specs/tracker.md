@@ -155,6 +155,22 @@ analyser (reverse funnel)._
   the toy.
 - [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
   (import + open + Follow).
+- [M19.6] ☑ **The loop's conformance bench — §H's home** _(DONE 2026-08-25 on `feat/m19-bench`)_ —
+  `tools/bench/loop-bench.py` plays the agent of dev-loop §C3 steps 3–7 (glob the registry → pick →
+  export log + GraphML → `open {log, graphml, provenance}` + `source_root` → assert from `context` /
+  `coverage` / `topology` that the loop closed), PASS/FAIL per step, non-zero exit on failure.
+  `mongoose-stub.py` plays a server reduced to the contract (UP-MNG-01 registry file, mode 600; the export
+  endpoints) from the in-tree demo set, so the bench runs today with no Mongoose — and pointed at a real
+  `~/.mongoose/servers/` it is the acceptance test for UP-MNG-01/02. Assumptions (auth header, files
+  listing shape) flagged in its README, not baked in.
+- [M19.7] ☑ **An agent-driven fresh start** _(DONE 2026-08-25 on `feat/m19-bench`; review_feat_m35_project N2)_
+  — `analyser --rest` starts with the REST transport on (persisted, and stdout says so) and skips the
+  first-run modal that otherwise blocked an agent on a never-configured machine before the socket existed;
+  the MCP bridge's "not running" error names the command. Exercised by the bench's `--launch`, which
+  starts a fresh install in an isolated home.
+- [M19.8] ☐ **The bench in CI** — the analyser is Swing, so the job needs a display (`xvfb-run` on the
+  Linux runner) plus the stub; not verified from a Mac, so recorded rather than claimed. Until then the
+  bench is run locally before any of the three repos' loop code changes.
 - Open: O2 which example — **tiebreaker: prefer Spring-XML-defined** (design-IR edit variant in the
   tutorial + the design→graph→record provenance chain; spec §Contract notes). _(O1: Maven project · O3: bundles generated at Download time, nothing to
   regenerate · O4: committed as M19.2 — all resolved.)_

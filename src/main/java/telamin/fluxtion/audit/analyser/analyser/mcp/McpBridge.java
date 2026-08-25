@@ -76,7 +76,9 @@ public final class McpBridge {
     static final int ERR_ANALYSER_UNREACHABLE = -32001;
 
     static final String NOT_RUNNING =
-            "analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant";
+            "analyser not running, or REST transport disabled — enable it in Settings ▸ Assistant, or start "
+                    + "the app with `java -jar fluxtion-auditlog-analyser.jar --rest` (REST on, no first-run "
+                    + "dialog; the setting persists)";
 
     /** An aggregate over a multi-GB log can take a while; a hung call must still eventually fail. */
     private static final Duration CALL_TIMEOUT = Duration.ofSeconds(60);

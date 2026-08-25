@@ -170,6 +170,16 @@ public final class MainFrame extends JFrame {
                         + "see 'context'.timeOrder");   // M30 D-R4
         llmPanel.bind(() -> config, () -> selectedRecords, sourceService::selectedFqn,
                 this::currentLogFileInfo, () -> store, actionExecutor, sourceService);
+        // M19.7: `--rest` turns the transport on for this launch AND persists it, and says so — an
+        // agent-enabled setting that survives is what the next human launch needs; the sin would be
+        // persisting it silently, not persisting it
+        firstRunAtStart = !configStore.exists();   // decided BEFORE the save below can create the file
+        if (Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY) && !config.assistantActionsRest) {
+            config.assistantActionsRest = true;
+            saveConfigQuietly();
+            System.out.println("[analyser] --rest: REST transport enabled and saved (Settings ▸ Assistant ▸ "
+                    + "localhost REST); turn it off there if this machine should not offer it");
+        }
         applyRestServer();   // start the localhost REST transport if the profile opted in
         detailPanel.setInstanceSourceOpener(this::openNodeSource);
         detailPanel.setEventHandlerOpener(rec -> {
@@ -2520,8 +2530,26 @@ public final class MainFrame extends JFrame {
      * source roots, an EventProcessor and an LLM before anything else. Saving creates the file, so
      * this shows exactly once.
      */
+    /**
+     * Whether no config file existed when this frame was constructed. Captured then, because `--rest`
+     * SAVES the config in the constructor (it persists the transport setting) and would otherwise make
+     * the first run look like a second one by the time the splash timer asks — the first bench run found
+     * exactly that: the dialog was suppressed by accident of ordering and the stdout note never printed.
+     */
+    private boolean firstRunAtStart;
+
     public void showFirstRunSettingsIfNeeded() {
-        if (configStore.exists()) return;
+        if (!firstRunAtStart) return;
+        if (Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY)) {
+            // M19.7 (review N2): a PROCESS asked for this launch. A modal here means the analyser never
+            // finishes starting for an agent on a fresh machine — M35.7's species one step earlier, in
+            // the startup path. Say where the socket is instead; a human gets Settings via File ▸ Settings.
+            System.out.println("[analyser] first run, started with --rest: no configuration yet and no "
+                    + "Settings dialog (nobody is at the screen). The REST endpoint is published in "
+                    + telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown().path()
+                    + "; source roots and processors can be set over it (source_root, open {processor}).");
+            return;
+        }
         JOptionPane.showMessageDialog(this,
                 "Welcome! No configuration was found, so Settings will open now.\n"
                         + "Set your Java source roots (and optionally an LLM API key) to get the most\n"

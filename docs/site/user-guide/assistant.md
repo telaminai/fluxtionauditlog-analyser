@@ -173,7 +173,9 @@ So the working setup is:
 3. **Your client** starts the bridge on its own, whenever it needs a tool.
 
 If you skip step 1 or 2, the tools still appear in your client, but calling one answers *"analyser not
-running, or REST transport disabled"*.
+running, or REST transport disabled — start the app with `--rest`"*. That flag turns the transport on
+   (persistently) and skips the first-run dialog, so an agent can bring the analyser up on a fresh
+   machine without a human at the keyboard.
 
 ### Configure your client
 

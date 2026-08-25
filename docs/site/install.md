@@ -22,6 +22,18 @@ The JBang alias points at the latest release's stable-name asset, so it always f
     or **3** (trust the org) and it won't ask again. To pick up a **newer release** later, run with
     `--fresh` (or `jbang cache clear`) — JBang otherwise keeps using its cached jar.
 
+## Starting it for an agent
+
+```bash
+java -jar fluxtion-auditlog-analyser.jar --rest        # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest
+```
+
+`--rest` opens the app with the **localhost REST transport on** and, on a machine that has never run the
+analyser, **without the first-run Settings dialog** — a process asked for this launch and a process cannot
+answer a dialog. The setting persists (Settings ▸ Assistant shows it on; turn it off there) and the
+console says so. It is what an agent runs on a fresh machine before its MCP client connects; a human
+launch without the flag is unchanged.
+
 ## Plain download
 
 ```bash
