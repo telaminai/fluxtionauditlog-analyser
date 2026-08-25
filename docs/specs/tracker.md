@@ -265,39 +265,8 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
-## M35 · Log + graph lifecycle — ◧ **.1-.7 COMPLETE on `feat/m35-lifecycle`; M35.8 deferred by design** (owner, 2026-08-22; the pairing is evidence, not decoration)
-_Today a log and a GraphML are opened independently and **neither can be closed**. `TopologyPanel.load()`
-sets the graph; nothing clears it, and the File menu has "Close project" but no "Close log". So opening a
-second log leaves the FIRST log's topology on screen, and every figure derived from it — coverage,
-"did not run" shading, step-through — is then about a graph that does not belong to the records.
-**This is the M33 defect class** (a confident answer computed from mismatched inputs), and `coverage`
-already knows how to say it: `loggedButNotInTopology` warns that "the graphml is probably from a
-different build, which makes every other figure here suspect". The warning exists; the lifecycle that
-would prevent needing it does not._
-_Sharpened by the M18 alternative ([spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md)):
-one analyser + many servers + many processors makes every one of these a per-minute operation rather
-than a per-session one._
-- [M35.1] ☑ **Close / reset** *(on `feat/m35-lifecycle`)* — close the log, close the graph, or reset both. The absent capability;
-  everything else here depends on it. Clearing must reach the derived state too (topology shading,
-  step cursor, coverage, focus contexts) — a half-cleared app is worse than an uncleared one.
-- [M35.2] ☑ **Opening a log clears the previous graph unless it still applies** *(on `feat/m35-lifecycle`)* — offer-never-act:
-  keep it and say so when the instanceIds still match, otherwise close it and say why. The scoring
-  already exists (Decisions ▸ EventProcessor inference).
-- [M35.3] ☑ **Switch graph without reopening the log** *(on `feat/m35-lifecycle`)* — multi-processor servers emit one GraphML per
-  processor; analysing a second processor against the same log must not mean starting over.
-- [M35.4] ☑ **Scan source roots for GraphML** *(on `feat/m35-lifecycle`)* — discover candidates under the configured roots and
-  offer them. **Never auto-select silently**: N candidates → name them and their match scores; a
-  wrong graph auto-picked is precisely the confidently-wrong reading M35 exists to prevent.
-- [M35.5] ☑ **New/switched project closes log + graph** *(on `feat/m35-lifecycle`)* — the profile is the session boundary; today
-  "Close project" leaves both loaded.
-- [§E] ☑ **`provenance` — which SYSTEM this log came from** *(on `feat/m35-lifecycle`, 2026-08-25)*
-  — spec-agent-brokered-dev-loop §E, delivery-order item 2, landed here at the owner's call because
-  it is the same subject as M35.6 (which graph) one level out (which system), and small enough to
-  review in one pass. `LogFingerprint.provenance` added additively; `open {log, provenance}`; rides
-  every surface `describe()` already reached. Two servers on the same build produce identical content
-  under identical names, so provenance is checked FIRST and gets its own banner heading, **SAME
-  CONTENT — A DIFFERENT SYSTEM**. Absent means absent — never inferred. Share-disclosure row moved in
-  the same commit with a contract test, per review §1.9.
+## M35 · Log + graph lifecycle — ◧ **.1-.7 + §E SHIPPED 2026-08-25** (archived; .8/.9 open)
+_Shipped work in [completed/tracker.md](completed/tracker.md)._
 - [M35.9] ☐ **An `OpenRequest` for load-time side effects** _(review R1 + R3, 2026-08-25)_ — the
   same shape has now appeared **three times**: the project offer (M35.7), `provenance` (§E) and the
   time-order dialog (review F5) are each "a load-time side effect whose audience differs by who asked
@@ -322,16 +291,6 @@ than a per-session one._
        but cannot touch the thing that owns both.
   Design note for whoever takes it: the echo must NAME everything it replaced — the same rule the
   close verb follows — and the M20 auto-detect path must keep its `endsSession=false` behaviour.
-- [M35.7] ☑ **No modal in the load path** *(on `feat/m35-lifecycle`)* _(found by M35.2, 2026-08-22)_ — `onLoaded` assigns
-  `store` and then calls `maybeOfferProject()`, which shows a MODAL dialog; everything after it waits
-  for a human, and on the agent path there is nobody. Worse, the new log is already live behind it,
-  so it is answerable against the OLD graph — the M35 defect happening inside the code meant to
-  prevent it (report §8 D4 has the REST transcript). M35.2 sidestepped it by re-pairing first; the
-  hazard is untouched. The offer must be non-blocking, or suppressed when the open came from the
-  action socket rather than a human.
-- [M35.6] ☑ **State the pairing before anything is derived from it** *(on `feat/m35-lifecycle`)* — status bar and `context` name
-  which graph is paired with which log, and whether they match. Coverage's warning arrives only if
-  someone runs coverage; the mismatch should be visible before that.
 
 ## M34 · Source adapters — ☐ ACCEPTED v2 (the same instrument over other execution engines)
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
@@ -364,7 +323,7 @@ channel is SHARED, and broadcasting it would make series into cross-component du
 still "work"). **D-A6**'s fixtures pin SEMANTICS not layout. Graph provenance moved onto the
 returned `SourceGraph` because availability is per SOURCE, not per adapter._
 - [M34.0] ☑ **The LangGraph spike, against CURRENT code** — **DONE 2026-08-20, the gate OPENS**
-  (`docs/handoff/report_m34_0_spike.txt`, code `tools/spikes/m34-langgraph/`). Every verb worked on a
+  (`docs/handoff/completed/report_m34_0_spike.txt`, code `tools/spikes/m34-langgraph/`). Every verb worked on a
   LangGraph run with zero analyser changes: 720 records, series/crossings/aggregate/read/coverage/
   topology/graph all live. **Two findings change M34.1.** (a) D-A1a is now OBSERVED, not inferred:
   *all 720* records contain a concurrent super-step, and step-through walks them in stream-arrival

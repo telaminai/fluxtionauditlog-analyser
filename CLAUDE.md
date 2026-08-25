@@ -52,24 +52,34 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-08-20 (v1.7.0):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-08-25 (v1.7.0 released; M34.1 ordering + M35 lifecycle merged, unreleased):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +
 time-order validation (M30), log-source plugins (M31 core), marker series + point-snapped mouseover
 (M32, now COMPLETE: legend, rug, PDF markers table, external-CSV source), investigation reports
-(M33 core: typed sections, D-I3a authoring context, Reports tab, own share category).
+(M33 core: typed sections, D-I3a authoring context, Reports tab, own share category), **log + graph
+lifecycle (M35.1–.7: close/reset, re-pair on open, switch processor, discovery that offers and never
+selects, project-as-session-boundary, no modal in the load path, the pairing stated persistently)**
+and **§E provenance** (a log declares which SYSTEM it came from, not just which file).
 
-Open analyser-side: M22 remnants — PNG export (22.3), alternative layouts (22.6), re-dispatch cause
-(22.11, needs `UP-FLX-10` in [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the
-holding pen for anything belonging to another repo); **M20.5** (project artifact pointers); **M29.5**
-(optional embed); **M33.5** (fix-brief fold, gated on journal↔log pairing) and **M33.6** (marker-CSV
-chooser dialog, owner call); the golden-fixture corpus follow-ups (N1 + the clamp fixture — G1/G2 closed, `58879d7`); the un-started **polish round**
-(`docs/handoff/handoff_17_aug_2026_1.txt`). Cross-repo tracks: the **M31.4r** example reader
-(playground), the **M18.0** admin-surface spike (`docs/specs/spec-closed-loop.md`) and the **M19.1**
-playground bundle contract (`docs/specs/spec-onboarding-example.md`). Two standing design decisions
-(tracker ▸ Decisions): server verbs are **never** assistant actions; agent fixes arrive as
-**evidence-linked PRs**, never direct edits.
+Open analyser-side: **M35.8** (`open {project}`) and **M35.9** (an `OpenRequest` for load-time side
+effects — the pattern has appeared three times); **M34's remainder** on `feat/m34-adapters`
+(stacked — diff against its base, not main); M22 remnants — PNG export (22.3), alternative layouts
+(22.6), re-dispatch cause (22.11, needs `UP-FLX-10` in
+[`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the holding pen for anything
+belonging to another repo); **M20.5** (project artifact pointers); **M29.5** (optional embed);
+**M33.5** (fix-brief fold, gated on journal↔log pairing) and **M33.6** (marker-CSV chooser dialog,
+owner call); the golden-fixture corpus follow-ups (N1 + the clamp fixture); the un-started **polish
+round** (`docs/handoff/handoff_17_aug_2026_1.txt`). **M18 is CLOSED** in favour of
+[`spec-agent-brokered-dev-loop.md`](docs/specs/spec-agent-brokered-dev-loop.md) (ACCEPTED v2) —
+its cross-repo asks (Mongoose MCP + `~/.mongoose/servers/`, two playground catalogue fields, the
+Chronicle reader) are gated on that spec's §H conformance harness having a home. Cross-repo tracks:
+the **M31.4r** example reader (playground) and the **M19.1** playground bundle contract
+(`docs/specs/spec-onboarding-example.md`). Two standing design decisions (tracker ▸ Decisions), both intact after M18's closure: server verbs
+never appear on **the analyser's** action socket — the adopted design *strengthens* this by moving
+server control to a Mongoose-side MCP tool, so the analyser gains no server-mutating code at all;
+and agent fixes arrive as **evidence-linked PRs**, never direct edits.
 
 ## Build & run
 
