@@ -21,7 +21,9 @@ flowchart LR
 
 The loop turns the trust model of AI-written software from **generate → review → hope** into
 **generate → prove**. Each stage runs on the same deterministic substrate, and each stage produces
-evidence.
+evidence. And the analyser is where the two parties in the loop meet: it is the **shared research
+canvas** the human and the AI work on together — the AI investigates and renders, the human reviews
+(see [the canvas](#the-shared-research-canvas) below).
 
 ## ① Author — with AI
 
@@ -32,7 +34,7 @@ to hold the full topology in its head or worry whether the code is "deterministi
 owns dispatch order and change propagation. Compile errors are directive (`use @AssignToField`,
 `add @FluxtionIgnore`), so the model self-corrects in a tight compile/run loop instead of guessing.
 
-See [Fluxtion — Build with AI](https://fluxtion-web.greg-higgins.workers.dev/build-with-ai).
+See [Fluxtion — Build with AI](https://fluxtion-playground.dev/build-with-ai).
 
 ## ② Guarantee — the compiler
 
@@ -68,6 +70,46 @@ the analyser turns it into an answer **with evidence**:
 Crucially, this runs on the **deployed** runtime's audit, and a replay of that audit is **byte-identical**
 — so the proof and the production run are the same execution. That is what makes a change an AI made
 *proven*, not merely reviewed.
+
+## The shared research canvas
+
+The analyser is not a tool the AI uses *instead of* you, or one you use *instead of* the AI. It is the
+surface both of you work on — a **shared research canvas**, with the human in the loop by construction.
+
+```mermaid
+flowchart LR
+  H["Human<br/>asks, reviews, decides"] <-->|conversation| AI["AI agent"]
+  AI -->|MCP| AN["Analyser<br/>the shared canvas"]
+  AI -->|MCP| M["Deployed app<br/>on Mongoose"]
+  M -->|audit log + graph| AN
+  AN -->|rendered investigation:<br/>filters, flags, charts, topology, report| H
+  classDef here fill:#ff5722,stroke:#bf360c,color:#fff;
+  class AN here;
+```
+
+- **The AI connects to the analyser through MCP** — the same verbs a person has, and nothing a person
+  does not: open a log, filter, flag, chart, step the topology, write a report. Every one of them is a
+  render into the canvas, and every one is reversible. See [the assistant](user-guide/assistant.md).
+- **The AI connects to the deployed app on Mongoose** to fetch what the canvas needs — the audit log
+  and the processor's graph — and, on a development server, to act on what was found (turn audit
+  detail up, restart after a fix). Today that is an export the agent fetches and opens; it arrives as
+  Mongoose's own MCP tool, so the server is driven through the client's per-call approval rather than
+  from inside the analyser.
+- **You interrogate the running system through the AI**, in your own words — *why is this number what
+  it is? which nodes never ran? what changed between these two runs?* — and the AI does not answer
+  with a paragraph. It answers **on the canvas**: it plots the offending series, flags the culprit
+  records with its reasoning attached, filters the view to the window that matters, steps the cycle
+  in the topology, and writes the account up as a report.
+- **You review the investigation in the analyser, not in a chat log.** Everything the AI rendered is
+  there to be clicked into and checked against the bytes the processor wrote — a flagged record opens,
+  a plotted point resolves to its cycle, a coverage claim names the nodes. The AI's conclusion is a
+  proposal on a shared surface; the human's judgement is what turns it into a decision.
+
+Two disciplines keep that honest. The analyser **computes; the agent concludes** — the numbers come
+from the log, never from the model. And the canvas **refuses to state more than is known**: a graph
+that does not fit the log says so, an inferred order is never drawn as causality, and "did not run" is
+only claimed when the log can prove it. An AI working on a canvas with those properties cannot quietly
+overstate, because the surface it renders into will not let it.
 
 !!! note "The instrument generalises"
     The same analyser has been pointed at a log from a **different engine** (a LangGraph trace translated
