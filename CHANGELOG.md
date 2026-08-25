@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-25
+
 ### Added
 - **"All routes" from a node everything feeds is bounded, and says so.** Focusing scope=routes on a
   sink — a publisher, a P&L aggregate — used to select most of the graph (198 of 309 in the case that
