@@ -1,0 +1,78 @@
+REVIEW — feat/m35-relative-roots (M35.10 relative-path anchor · M35.11 no-churn profile writes)
+Reviewer: the main session · 2026-08-25
+Inputs: the 2 commits acc84df, 23f16ea on main @ 8defc64; the M35.8 report's O1/O2 (where these were
+found); spec-onboarding-example §Contract; tracker ▸ M35.10/.11.
+
+VERDICT: MERGE. **I found no defects.** Both fixes are correct, the reasoning is right, and the
+edges I expected to be missed turned out to be handled. Two tests added here to lock in the two
+shapes their tests do not reach — not because either is broken, but because both are SILENT when
+wrong, and a profile that points at a directory which does not exist is the exact failure M35.10 was
+raised to fix.
+
+────────────────────────────────────────────────────────────────────────────────
+1. GATES (run here)
+  mvn -o test            784 as handed over · 786 after the two tests added here · 0 fail / 0 skipped
+  mkdocs build --strict  exit 0
+  rule-1 sweep           clean (CLAUDE.md baseline only) · git config user.email personal
+
+────────────────────────────────────────────────────────────────────────────────
+2. WHAT I TRIED TO BREAK, AND COULD NOT
+The obvious way to get project-relative paths wrong is a path that is not under the project. I
+expected `../../elsewhere/lib/src` — fragile, and it leaks one machine's layout into a committed
+file. It is handled: `toPortable(path, projectRoot)` falls back to the `~` rule when
+`!abs.startsWith(root)`, so an outside root is written as itself.
+
+  · a root OUTSIDE the project → round-trips unchanged                        [test added]
+  · a root that IS the project root → written ".", resolves back to the root  [test added]
+  · the `Properties.store` date line is genuinely stripped — and if the regex ever stopped
+    matching, their own `writingWhatTheFileAlreadySaysIsNotAWrite` would fail, because two writes
+    would then differ. Transitively covered; I wrote an explicit test, then deleted it as redundant.
+
+Also verified by reading: `baseDirFor` requires BOTH the `.analyser` directory name and the
+canonical file name, so `.analyser/other.fluxtion-settings` correctly anchors at `.analyser` (they
+test this); project-relative is tried BEFORE the `~` rule, which is the point — a project inside
+the home directory must not come out `~/work/proj/src` on a teammate's clone; forward slashes are
+forced, which is right for a committed file.
+
+────────────────────────────────────────────────────────────────────────────────
+3. WHY THESE TWO MATTER MORE THAN THEIR SIZE
+M35.10 · nothing shipped was hit, because the writer never emitted relative roots. But the M19
+  bundle contract is built on exactly this, and the SPEC'S OWN WORDING ("the import file's parent")
+  had baked the mistake in — so the bug would have been discovered by the first person to follow the
+  documented contract, and the document would have agreed with the bug. Correcting the spec in the
+  same change is what stops that.
+M35.11 · a project you merely OPENED produced a diff on every teammate's machine. That is the
+  legibility ProjectSession's javadoc promises, lost on the first open — and it is invisible until
+  someone runs `git status` and wonders what they changed. Making `save` byte-identical is the fix;
+  making it SKIP the write when nothing changed is what makes the fix observable.
+
+────────────────────────────────────────────────────────────────────────────────
+4. FINDINGS — none in the code. One about the process.
+P1 · NO BRIEF AND NO REPORT. The repo's protocol is brief → branch → report, and this branch has
+     neither. The commit messages are unusually good — they carry the rationale, the mechanism, the
+     test list and the tracker/CHANGELOG bookkeeping — so nothing was lost, and I could review from
+     them. But that is the reviewer doing the reconstruction, and it only worked because the commits
+     were exceptional. Two commits found DURING another slice's drive is exactly the case where a
+     one-paragraph report is cheapest: what was found, where, what was NOT fixed, and why this is
+     its own branch.
+     Not a request to write one retrospectively — a note for the next branch spun out of a finding.
+
+────────────────────────────────────────────────────────────────────────────────
+5. MERGE ORDER — four files collide with feat/m35-project, none semantically
+  CHANGELOG.md · docs/specs/tracker.md          both add under [Unreleased] / M35 — textual, trivial
+  docs/site/user-guide/projects.md              both add a sentence to the same page
+  MainFrame.java                                M35.8 adds the project verb; this branch changes the
+                                                two ProjectProfile call sites — different lines
+  Whoever merges second resolves. I would merge THIS branch first: it is smaller, it is a pure fix,
+  and M35.8's own report records O1/O2 as belonging to it — so merging the fix first means M35.8
+  lands on a tree where its own recorded defects are already gone.
+
+────────────────────────────────────────────────────────────────────────────────
+6. STRENGTHS
+  · The spec was corrected in the same change as the code. A document that agrees with a bug is
+    worse than the bug.
+  · Project-relative BEFORE ~-relative, argued in the javadoc rather than left to be rediscovered.
+  · `save` returning boolean — "no write, no mtime" — makes a no-op observable instead of merely
+    harmless.
+  · O1 and O2 were recorded against their owners during another slice and spun out rather than
+    smuggled in. That is the discipline this milestone keeps rewarding.
