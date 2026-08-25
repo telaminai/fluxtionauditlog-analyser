@@ -1,0 +1,156 @@
+REVIEW — feat/polish-round (H1/H2 verified · H3 window-id capture · H4 routes bound · H5 label fit · H6 report view at scale)
+Reviewer: the first session · Date: 2026-08-25 · Branch: feat/polish-round @ 1f10bf4 · Base: main @ 174edd4
+Brief: docs/handoff/handoff_17_aug_2026_1.txt · Report: docs/handoff/handoff_17_aug_2026_1_report.txt
+
+VERDICT: **MERGE after P1 and P2** — two small changes, both in the same file, neither touching the
+design. P3 is an owner decision this branch makes materially more urgent. P4/P5 are notes.
+
+The judgement behind H4 and H6 is right, and H6 is right for the reason that matters: the check was
+RUN, it FAILED, and the fix was implemented rather than the check being quietly restated as a pass.
+"P3.12: closed by fix, not by verification" is the sentence I most wanted to find in the report.
+
+================================================================================
+1. WHAT I VERIFIED INDEPENDENTLY
+================================================================================
+  · **All 15 regenerated screenshots READ**, not spot-checked — this is the one claim on the branch
+    that nothing automated can confirm, and rule 1 exists because these exact files carried real names
+    onto the public docs site for the life of the repo. Every one: single window, title bar present,
+    `com.acme.demo` / `DEMO-A` / `demo-quote-*.yaml` only, no foreign window in any frame, no real
+    filesystem path. The `≤3 hops` checkbox is present in every topology shot, so H4 is a real UI
+    change and not a caption. The File-menu shot (the one still captured by region) shows the menu
+    over the app alone, with "Open recent audit log" and "Open recent project" COLLAPSED — worth
+    keeping that way deliberately, since expanding either would photograph the operator's real paths.
+  · **838 tests green.** I checked the arithmetic because the number looked wrong against my own
+    branch: main is 827, +11 new here = 838. The report is exactly right; my subtraction was not.
+  · **`mkdocs build --strict` exit 0** (I built a venv; the toolchain is not installed by default).
+  · **H5's "the screen is untouched" claim**: `fitNodeWidthToLabels()` permanently mutates `config`
+    and `layout`, so this only holds if the export uses a different canvas. It does —
+    `paintOffscreen` constructs `TopologyCanvas off = new TopologyCanvas()` (line 1679). Claim good.
+  · **The hop-bounded BFS is correct.** FIFO queue (`removeFirst`/`addLast`) with depth stamped at
+    first discovery, so `depth` is true shortest-hop and the cap means what it says. Both directions
+    are still walked SEPARATELY, so the sideways-leak fix from the 2026-08-17 owner report survives.
+
+================================================================================
+2. FINDINGS
+================================================================================
+P1 · **AN AGENT CANNOT REACH THE UNBOUNDED ANSWER, AND IS TOLD TO CLICK A CHECKBOX.** — blocking
+     `topology {scope: "routes"}` reaches `TopologyPanel.setScope` → `applyView` → `scopedIds()` →
+     `routesInWorld(selection, boundRoutesBox.isSelected())`, and the box defaults to ON. So:
+
+       (a) a SILENT BEHAVIOUR CHANGE at the socket — an agent that used to get all routes now gets
+           three hops on any large graph, with no version marker; and
+       (b) the echo's own remedy is unactionable for its reader. `scopeNote` says the unbounded answer
+           is "one untick away ('≤3 hops' in the Topology toolbar)" — a Swing checkbox, over REST.
+
+     This is the species this repo keeps rediscovering and naming: M35.7, and review_feat_m35_project
+     N2, both "a remedy only a human at the keyboard can perform, offered to a process". The echo is
+     commendably honest that the answer was bounded; it just cannot be acted on. The verb surface is
+     the only way out and it has no lever.
+
+     ON THE BRIEF'S FREEZE: the brief froze `scope: node|neighbours|routes|all`, and the report is
+     right to have refused a fifth scope value. That freeze is not in tension with the fix — an
+     OPTIONAL SIBLING parameter on the same verb (`routeBound: false`, or `hops: <n>`) leaves the
+     scope enum exactly as published. Suggested: wire it to the same `allowBound` argument that
+     already exists, default it to the checkbox's value so the UI and the socket agree, and change
+     `scopeNote` to name the parameter rather than the toolbar.
+
+P2 · **`lastRoutes` GOES STALE WHEN THE SELECTION EMPTIES, AND ONLY THE ECHO REPORTS IT.** — blocking, one line
+     `applyView` short-circuits: `scoped = selection.isEmpty() ? null : scopedIds()`. `scopedIds()` is
+     the only writer of `lastRoutes`, so clearing the selection leaves the previous bounded value in
+     place. `updateScopeLabel` happens to be safe (it returns early on an empty selection), but the
+     `topology` echo (~line 1215) has no such guard, so it will emit
+
+         "selected": [],  "scopeBounded": 3,  "scopeNote": "'routes' was bounded to 3 hops …"
+
+     describing a bound for a selection that no longer exists. Same class as the defect the branch
+     itself fixes — a data surface saying more than is true — and the same audience reads it. Fix:
+     clear `lastRoutes` when the selection empties, or guard the echo on `!selection.isEmpty()`.
+
+P3 · **THE CAPTURE HARNESS'S SOURCE ROOT CONTAINS AN EMPLOYER EMAIL, AND ONE SHOT RENDERS THAT FILE.** — owner's call, now urgent
+     Not introduced here, but this branch is the reason it matters: `capture-docs.py` adds
+     `examples/fixture-generator/src/main/java` as a source root (line 306), and
+     `DemoQuoteProcessor.java` line 2 reads
+
+         Copyright: © 2025.  Gregory Higgins <greg.higgins@v12technology.com> - All Rights Reserved
+
+     inside a block that also declares the file confidential and not to be distributed — in a public
+     repo. `source-navigation.png` renders exactly that file in the Source pane. THIS RUN IS SAFE: the
+     pane happens to be scrolled past the header, and I read the image to confirm. Nothing pins the
+     scroll position, so any future regeneration can publish it, and **rule 1's standing sweep lists
+     three strings and does not include this one** — the sweep would stay green.
+
+     M36 slice 1 already strips this header from the copies bundled into the jar and has a test
+     guarding them. Doing the same to the four `examples/` files closes this permanently and makes the
+     capture harness safe by construction rather than by scroll position. It is item (b) of the three
+     rule-1 decisions already sitting with the owner (report_feat_m36_start_page §2).
+
+P4 · **H6 GUARDS ON THE WRONG CONDITION.** — minor
+     `if (all.size() > REPORT_WHOLE_GRAPH_MAX && !touched.isEmpty())`. What the branch actually needs
+     is that `touched ∩ all` is non-empty: `shown` is built by intersecting the neighbourhood with
+     `all`, so if every touched node is filtered out of `all` (all-scaffolding cycle with scaffolding
+     hidden), `shown` becomes neighbours WITHOUT the path, under a caption promising "the cycle's
+     nodes and their immediate neighbours". Test 3 covers `touched.isEmpty()` and not this. Corner
+     case; one condition change, or an explicit fallback to the estate when the intersection is empty.
+
+P5 · **TWO NITS.**
+     (a) `fitNodeWidthToLabels()` measures `simpleName()` and `id()` only. If anything else is drawn
+         inside the box at label size (an ordinal badge), it is not in the fit.
+     (b) It returns the chosen width "so a caller can say whether anything changed" — no caller does.
+
+P6 · **THE SWEEP AS WRITTEN CANNOT PASS, AND EVERYONE IS QUIETLY EXEMPTING THE SAME TWO FILES.** — owner
+     Rule 1 says the sweep "must be empty". Run literally against tracked files it is not, and cannot
+     be: CLAUDE.md states the rule (4 hits) and ONBOARDING.md restates it (1). Removing those means
+     deleting the rule's own text. So the working definition in use is "empty apart from the two files
+     that define the rule" — an unwritten exemption both sessions have been applying silently and
+     phrasing as "sweep clean".
+
+     I say this having got it wrong twice in two days. On the M36 release check I ran the sweep, saw
+     the hits, filtered them with `grep -v` and reported "clean"; the second session's review of that
+     branch found the sweep genuinely red for a DIFFERENT reason (prose and a test literal spelling the
+     terms) and had to fix it as a release blocker. And the first draft of THIS review reintroduced the
+     same defect in its own §2 P3 — corrected before this commit. A gate whose pass condition is
+     unstated gets a different answer from every person who runs it.
+
+     Worth one sentence in rule 1 naming the exemption, so "sweep clean" means one thing. The
+     mechanical form that has no exemption is the one main now uses in DemoAssetsTest: read the terms
+     from CLAUDE.md at runtime and never spell them anywhere else.
+
+================================================================================
+3. WHAT IS GOOD
+================================================================================
+  · **H3 genuinely shrinks the leak surface**, and by the only identity the two processes share: the
+    pid the app publishes in its own rest-endpoint file. Matching on owner name or window title was
+    the obvious route and would have failed silently — the report records that it DID fail, and why
+    (`java -jar`'s owner name is the main class; titles need Screen Recording permission). 14 of 15
+    shots are now single-window; the mode is printed per shot, so a silent fallback to a region
+    capture is visible in the log rather than only in the image.
+  · **The menu shot's residual risk is stated in the code, at the call site**, not just in the report —
+    "`-l` takes one id, so a window-id shot of the frame would show the frame with the menu missing".
+    That is the right place for it: the next person to "fix" this inconsistency reads it first.
+  · **H4's rule is named constants shared between `TopologyFocus` and `FocusStack`**, with
+    `degenerate()` exposed precisely so the world-confined path cannot drift from the global one. The
+    live check is honest in both directions — a random 309-node graph came out at 36% and was NOT
+    bounded, and the report says so rather than only reporting the case that fired.
+  · **H6 was checked by exporting a PDF and reading it, twice** — before and after. The stand-in graph
+    for the private POC is rule-1 clean by construction (`com.acme.big.*`), and D2 declares the
+    substitution instead of implying the POC was used.
+  · Tests are real, not ceremonial: `shown + hidden == 120` is an invariant that would catch
+    double-counting or loss, which is the actual risk in a "show a subset and count the rest" change.
+
+================================================================================
+4. MERGE-ORDER NOTE (not a defect on this branch)
+================================================================================
+`reports-dark.png` VISIBLY SHOWS a defect fixed on feat/m36-start-page: the report pane is wider than
+its viewport, so the provenance line reads "… · view: all eve" and the narrative is cut mid-sentence
+at the right edge. That is the Reports sizing bug (an `<html>` JLabel that cannot wrap setting the
+column width). Whichever branch lands second, this asset wants regenerating afterwards — otherwise
+the docs site ships a screenshot of a bug that no longer exists.
+
+================================================================================
+5. NOT REVIEWED
+================================================================================
+  · The bench/loop and M19 surfaces — untouched here.
+  · H1/H2 are archaeology I did not redo; the report's account (498 lines, no all-☑ section, both
+    specs already in completed/) is consistent with what is on the branch.
+  · `capture-docs.py` writes to the REAL `~/.fluxtion-analyser/config` as it always has. The report
+    flags it. Out of scope for this branch, but it means a docs run mutates the operator's settings.
