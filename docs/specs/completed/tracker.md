@@ -1,3 +1,41 @@
+## Polish round (brief 2026-08-17) — ☑ SHIPPED 2026-08-25 (H1–H6 complete)
+_Merged from `feat/polish-round`. Brief `docs/handoff/handoff_17_aug_2026_1.txt`, report
+`docs/handoff/handoff_17_aug_2026_1_report.txt`, review `docs/handoff/review_feat_polish_round.txt`._
+- [H1] ☑ **Tracker archaeology** — found already done by the per-merge tidies and verified section by
+  section: no block was left all-☑. Only the "Shipped — archived" summary line was stale (stopped at
+  M28); it now lists M29–M35.
+- [H2] ☑ **Spec archiving** — verified: `spec-project-profiles.md` and `spec-graph-replay.md` were
+  already in `completed/`; the remaining mentions are textual and one link already points there.
+- [H3] ☑ **Screenshots capture ONE WINDOW, not a screen region** — `screencapture -l <CGWindowID>`,
+  the id found via a JXA `CGWindowListCopyWindowInfo` lookup matched on the OWNER PID the app
+  publishes in its own rest-endpoint file (owner name and window title both proved unusable: a
+  `java -jar` window's owner is the main class, and titles need Screen Recording permission). 14 of 15
+  shots are window captures and the mode is printed per shot, so a silent fall back to a region
+  capture shows up in the log. The MENU shot stays a region capture — a Swing popup is its own window
+  and `-l` takes one id — with the residual risk stated at the call site.
+- [H4] ☑ **"All routes" is bounded at a sink, and says so** — `TopologyFocus.routes` +
+  `FocusStack.routesInWorld` share one rule (`ROUTE_HOP_BOUND=3`, `DEGENERATE_SHARE=0.5`,
+  `BOUND_MIN_GRAPH=40`), a `≤3 hops` toolbar checkbox, the status line naming what the unbounded
+  answer would have been, and `scopeBounded`/`scopeNote` in the echo. **Review P1 fixed before merge:**
+  the bound was reachable only from the checkbox, so `topology {scope:"routes"}` narrowed an agent's
+  answer while the echo told it to untick a control it cannot reach — the M35.7 / N2 shape again. Now
+  `topology {routeBound: false}` lifts it, `routeBound` is echoed as state, and the checkbox remains the
+  single source of truth so screen and socket cannot disagree. The frozen `scope` enum is untouched.
+- [H5] ☑ **Exported pictures fit their labels** — `TopologyCanvas.fitNodeWidthToLabels()` widens the box
+  to the longest label before an offscreen render, so a PDF never shows `Category…` with no hover to
+  recover it. Screen unchanged: the export uses its own canvas instance.
+- [H6] ☑ **The whole-graph report view is readable at scale** — the check FAILED (a 309-node estate
+  rendered as a grey band at 8% zoom, the lit path reduced to specks) and was fixed rather than
+  restated: above 60 visible nodes the second picture is the cycle's nodes and their immediate
+  neighbours, headed "(neighbourhood)", with a caption counting what was left out. Closed by fix, not
+  by verification.
+- **Review P2 fixed before merge:** `lastRoutes` was written only by `scopedIds()`, which `applyView`
+  skips when nothing is selected, so the echo went on reporting a bound for a selection that no longer
+  existed. The status line was already safe; the agent-facing surface was not.
+- Recorded, not fixed — **P4** H6 guards on `!touched.isEmpty()` where the operative condition is
+  `touched ∩ all` non-empty; **P5** `fitNodeWidthToLabels` measures name and id only, and its return
+  value has no caller. Neither is reachable in a shipped configuration.
+
 ## M35 · Log + graph lifecycle — ☑ SHIPPED 2026-08-25 (the pairing is evidence, not decoration)
 _Merged from `feat/m35-lifecycle`. Reviewed by the second session, which found five more
 half-cleared states on the log's SMALLER axes and fixed them on the branch — the branch

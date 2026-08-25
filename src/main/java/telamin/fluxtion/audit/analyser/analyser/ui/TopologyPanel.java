@@ -810,6 +810,11 @@ public final class TopologyPanel extends JPanel {
      * is on screen.
      */
     private void applyView(boolean keepView) {
+        // P2 (review): scopedIds() is the ONLY writer of lastRoutes, and it is skipped when nothing is
+        // selected — so without this the topology echo goes on reporting scopeBounded/scopeNote for a
+        // selection that no longer exists. The status line was already safe (it returns early on an
+        // empty selection); the agent-facing surface was not, which is the half that matters.
+        if (selection.isEmpty()) lastRoutes = null;
         java.util.Set<String> scoped = selection.isEmpty() ? null : scopedIds();
 
         // the WORLD is the focus context (M27): hiding comes from the filter stack, dimming from the
@@ -1101,6 +1106,25 @@ public final class TopologyPanel extends JPanel {
         applyView();
     }
 
+    /**
+     * Lift or restore the routes hop bound from the action socket (review P1).
+     *
+     * <p>The bound shipped as a checkbox, on by default, and the verb path runs through it — so
+     * {@code topology {scope: "routes"}} started returning a three-hop answer with no way for the
+     * caller to ask for the whole thing. The echo said the unbounded answer was "one untick away in
+     * the Topology toolbar", which is a remedy only a human at a keyboard can perform; offering it to
+     * a process is the defect M35.7 and review N2 both name.
+     *
+     * <p>The CHECKBOX stays the single source of truth rather than a parallel field, so the two
+     * surfaces cannot disagree about what is being shown — and a human watching the screen sees the
+     * box change when an agent lifts the bound, which is the honest outcome.
+     */
+    public void setRouteBound(boolean bounded) {
+        if (boundRoutesBox.isSelected() == bounded) return;
+        boundRoutesBox.setSelected(bounded);
+        applyView();
+    }
+
     public void setFocus(boolean on) {
         if (on) {
             pushFocus();
@@ -1212,14 +1236,16 @@ public final class TopologyPanel extends JPanel {
         out.put("currentNode", cursor.currentInstanceId());
         out.put("selected", List.copyOf(selection));
         out.put("scope", scope.name().toLowerCase(java.util.Locale.ROOT));
+        out.put("routeBound", boundRoutesBox.isSelected());   // readable state, not only a consequence
         if (lastRoutes != null && lastRoutes.bounded()) {
             // H4: an agent reads the echo, not the checkbox — a scope that covers less than its name
             // says must say so in the data too
             out.put("scopeBounded", lastRoutes.hops());
             out.put("scopeNote", "'routes' was bounded to " + lastRoutes.hops() + " hops because all routes "
                     + "would cover " + lastRoutes.unboundedSize() + " of " + focusStack.world().size()
-                    + " nodes — a sink's routes are the graph; the unbounded answer is one untick away "
-                    + "('≤" + TopologyFocus.ROUTE_HOP_BOUND + " hops' in the Topology toolbar)");
+                    + " nodes — a sink's routes are the graph. For every route, call again with "
+                    + "topology {routeBound: false}; the '≤" + TopologyFocus.ROUTE_HOP_BOUND
+                    + " hops' box in the Topology toolbar is the same switch.");
         }
         out.put("focus", !focusStack.atFull());
         out.put("context", focusStack.breadcrumb());

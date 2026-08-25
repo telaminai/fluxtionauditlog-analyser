@@ -175,6 +175,11 @@ public final class VerbSchemas {
                         p("select", string(), "instanceId to select (null clears the selection)"),
                         p("scope", enumStr("node", "neighbours", "routes", "all"),
                                 "how far around the selection to reach; default keeps the current scope"),
+                        p("routeBound", bool(), "with scope 'routes': on a large graph where every route "
+                                + "would cover more than half of it — a sink, where the routes ARE the "
+                                + "graph — the answer stops at 3 hops each way and the echo says so in "
+                                + "scopeBounded/scopeNote. Pass false for every route, however many. "
+                                + "Default true, matching the toolbar checkbox"),
                         pAny("focus", "boolean or string. TRUE filters the view to the selection's "
                                 + "scope — that context becomes the whole graph and later calls operate "
                                 + "inside it (contexts nest); FALSE exits every context. A STRING recalls "

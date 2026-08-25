@@ -153,6 +153,17 @@ node  →  + neighbours  →  + all routes  →  whole graph  →  node
 and what it can affect. The status line names the current width and how many nodes it covers.
 **Cmd/Ctrl-click** (Cmd on macOS) adds nodes to the selection to build a wider scope.
 
+!!! note "Why 'all routes' from a sink stops at three hops"
+
+    Point *all routes* at a node everything feeds — a publisher, a P&L aggregate — and the honest
+    answer is most of the processor: every route into a sink **is** the graph. Focus works mid-graph
+    and degenerates at its edges. So on a graph of 40 nodes or more, where all routes would cover more
+    than half of it, the scope stops at **3 hops each way** and the status line says exactly that,
+    including how many nodes the unbounded answer would have been.
+
+    The **≤3 hops** checkbox in the toolbar lifts the bound. Small graphs and mid-graph nodes are never
+    bounded, so nothing changes for them.
+
 The selection is ringed heavily, its scope ringed lightly, and everything else dimmed — **dimmed, not
 hidden**, because a node you can't see reads as a node that isn't there, and telling those two apart is
 this tab's whole job.

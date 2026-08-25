@@ -828,6 +828,15 @@ public final class ActionExecutor implements RenderExecutor {
             }
             topology.selectNode(id);
         }
+        // review P1: the routes hop bound was reachable only from a Swing checkbox, so an agent was
+        // told in the echo that the unbounded answer was "one untick away" and had no way to untick it.
+        // Read BEFORE scope, so a single call can set both and get the answer it asked for.
+        Object routeBound = params.get("routeBound");
+        if (routeBound instanceof Boolean b) {
+            topology.setRouteBound(b);
+        } else if (routeBound != null) {
+            return ActionResult.error("routeBound must be true or false, got '" + routeBound + "'");
+        }
         String scope = str(params.get("scope"));
         if (scope != null) {
             try {

@@ -332,6 +332,25 @@ a log from the command line means never seeing it._
 - Follow-up: **M36.5** ☐ the docs-site page for the start page, and a generated screenshot via
   `tools/capture-docs.py` (rule 1 — never captured by hand).
 
+### Rule 1 — three open OWNER decisions (raised M36, sharpened by the polish round)
+_All three are policy, not code, and none is blocking. Recorded here because each has now been hit
+twice._
+- ☐ **Extend the sweep, or state its exemption.** Run literally against tracked files the sweep is
+  NOT empty and cannot be: `CLAUDE.md` states the rule and `ONBOARDING.md` restates it, so the terms
+  are necessarily present. The working definition in use — "empty apart from the two files that define
+  the rule" — is unwritten, and both sessions have reported "sweep clean" under different implicit
+  exemptions. One sentence in rule 1 makes the phrase mean one thing. (review_feat_polish_round P6;
+  the mechanical form that needs no exemption is the one `DemoAssetsTest` now uses — read the terms
+  from CLAUDE.md at runtime and never spell them elsewhere.)
+- ☐ **Clean the four `examples/fixture-generator` files.** They carry a compiler-emitted
+  `Copyright … <…@v12technology.com>` header inside a notice declaring the file confidential, in a
+  public repo. The polish round makes this urgent rather than tidy: `tools/capture-docs.py` adds that
+  directory as a source root, and `source-navigation.png` renders one of those files in the Source
+  pane. The current asset is scrolled past the header — nothing pins the scroll, and the standing
+  sweep would not catch it. (review_feat_polish_round P3.)
+- ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
+  user's repo carries it. An upstream ask, not an analyser one.
+
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
 purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
@@ -468,13 +487,6 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ---
 
-## Polish round (brief 2026-08-17) — ◧ H1–H5 DONE 2026-08-25 on `feat/polish-round`; H6 (see report)
-_Report: `docs/handoff/handoff_17_aug_2026_1_report.txt`. H1/H2 were found already done by the per-merge
-tidies and verified. H3 window-id capture (`screencapture -l` via a JXA `CGWindowListCopyWindowInfo`
-lookup; menu shots stay region captures, stated). H4 bounded routes at a terminal node
-(`TopologyFocus.routes`, `≤3 hops` toggle, echo `scopeBounded`). H5 offscreen boxes fit their labels
-(`TopologyCanvas.fitNodeWidthToLabels`). H6: the whole-graph report view at scale — result in the report._
-
 ## Suggested delivery order
 
 _Refreshed 2026-08-22. Shipped since the last refresh: **M34.0** (spike, gate opened), **M34.1**
@@ -497,7 +509,7 @@ spec-agent-brokered-dev-loop; its old slices are gone from this list._
    a home before any cross-repo work starts.
 7. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers), **M35.8**
    (`open {project}` — so an agent can accept the offer M35.7 reports, and E7-E10 become drivable), **M29.5**, **M13.5**,
-   **M21.7–.9**, the **M22** five, and the un-started polish round
+   **M21.7–.9**, and the **M22** five
    (`docs/handoff/handoff_17_aug_2026_1.txt`).
 8. **Cross-repo, gated on §H — now DRAFTED as asks (2026-08-25): UP-MNG-01…04, UP-PG-01…02, UP-RDR-01 in
    [upstream-asks.md](../proposals/upstream-asks.md) §5–§7, each with evidence and acceptance, so a session

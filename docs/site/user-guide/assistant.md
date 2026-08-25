@@ -338,6 +338,19 @@ explanation next to the event, the node log, the graph and the plot it rests on.
 The `topology` verb's `callout` field is a **visibility** switch and nothing more — the text always comes
 from the record's flag. One place to write, several to read.
 
+**`scope: "routes"` on a sink comes back bounded, and says so.** Every route into a node that everything
+feeds *is* the graph, so on a large graph where all routes would cover more than half of it the answer
+stops at three hops each way. The echo is explicit rather than quietly returning less than the scope's
+name promises:
+
+```json
+{"scope": "routes", "routeBound": true, "scopeBounded": 3,
+ "scopeNote": "'routes' was bounded to 3 hops because all routes would cover 198 of 309 nodes …"}
+```
+
+Pass `routeBound: false` for every route, however many — the same switch as the **≤3 hops** checkbox in
+the toolbar, so the screen and the socket never disagree about what is being shown.
+
 ### Let your agent set it up
 
 Every step above is an ordinary shell command, so you can hand the whole setup to the agent you're

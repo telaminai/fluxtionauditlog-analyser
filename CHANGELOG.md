@@ -12,8 +12,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   raised it), because every route into a sink *is* the graph. On a large graph where routes would cover
   more than half, the scope now stops at 3 hops each way and the status line says exactly that — how
   many nodes "all routes" would have been, and that the **≤3 hops** checkbox in the Topology toolbar
-  lifts the bound. Small graphs and mid-graph nodes are unchanged; the `topology` echo carries
-  `scopeBounded` so an agent is told too.
+  lifts the bound. Small graphs and mid-graph nodes are unchanged. An agent gets the same switch:
+  `topology {routeBound: false}` returns every route, and the echo carries `routeBound`,
+  `scopeBounded` and a note naming the parameter — being *told* the answer was narrowed is no use
+  without a way to widen it.
 - **A finding PDF's "where it sits" picture is readable on a large processor.** Above 60 nodes the
   whole-estate view rendered as a grey band — checked at 309 nodes: 8% zoom, the lit path reduced to
   specks. The second picture now shows the cycle's nodes and their immediate neighbours, and its caption
