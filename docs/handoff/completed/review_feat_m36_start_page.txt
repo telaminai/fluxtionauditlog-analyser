@@ -31,7 +31,7 @@ failed only off a wide screen, a capture harness that lied). Fit for the release
   A4 nothing needs a key/server/root: every action is an ordinary open against DemoAssets; the
      source root is added for the demo (see F3 for HOW). ✓
   A5 no feature list, no version claim: three questions, three lanes, a lifecycle strip. ✓
-  A6 every string passes rule 1: the shipped demo has the v12technology header stripped and
+  A6 every string passes rule 1: the shipped demo has the vendor header stripped and
      DemoAssetsTest guards it; the PAGE strings are clean; the BRANCH was not — F1.
   Both themes painted: light (s1) and dark (s5); colours are UiTheme tokens re-resolved on updateUI.
   First run: no dialog for anyone; the --rest note prints (stdout read). The M19.7 collision is
@@ -64,7 +64,7 @@ failed only off a wide screen, a capture harness that lied). Fit for the release
       slack) or accept and amend D-S4 to name the size it means. Owner's call; not blocking.
   N2 · showFirstRunSettingsIfNeeded() no longer shows Settings or a dialog; the name now describes
       what it used to do. Cosmetic; touching it means touching Main.
-  N3 · The owner-decision items in the report §2 (extend the sweep with v12technology; clean the
+  N3 · The owner-decision items in the report §2 (extend the sweep with the 4th term; clean the
       four examples/ files; the compiler header upstream) are STILL OPEN and still the owner's.
       This review did not extend the sweep — that is policy, and F1 shows the mechanical cost of
       every term added: the term may not be spelled anywhere in the tree, including in prose about
@@ -82,7 +82,7 @@ failed only off a wide screen, a capture harness that lied). Fit for the release
     that failed. That is the right reading of rule 4, argued in the test's own javadoc.
   · Fluid: two surfaces got the same sizing wrong independently, so the fix became a shared
     primitive rather than two patches. The Reports tab benefits without a line of its own logic.
-  · The rule-1 hole (v12technology in the compiler's generated header) was found by a TEST written
+  · The rule-1 hole (a vendor domain in the compiler's generated header) was found by a TEST written
     to assert the page's own claims, not by the sweep — and the report says so plainly.
   · The report records what did not work (FlowLayout, GridLayout, "records pane only", the
     offscreen harness that lied) with the reason each failed. That is what makes the rest credible.

@@ -323,8 +323,8 @@ a log from the command line means never seeing it._
   below it has nothing to say with no log and was still holding half the height. The right-hand tabs
   stay, so the product's structure is still visible.
 - **O-S3 HELD, and it bit.** `DemoAssetsTest` asserts the shipped demo carries no real names — and
-  caught a `v12technology` copyright header in generated source on its way into the jar. Note for the
-  owner: **CLAUDE.md's sweep lists three strings and does not look for `v12technology`.**
+  caught a vendor-domain copyright header in generated source on its way into the jar. That term is
+  now the FOURTH in rule 1's sweep, and the four `examples/` files carrying it are clean.
 - Closes **review_feat_m35_project N2** ("the first-run modal blocks an agent-driven start
   entirely"), together with M19.7. M19.7 suppressed the modal for `--rest`; M36 removed it outright,
   because the same three objections apply to the human at a fresh install. The `--rest` stdout note
@@ -332,22 +332,22 @@ a log from the command line means never seeing it._
 - Follow-up: **M36.5** ☐ the docs-site page for the start page, and a generated screenshot via
   `tools/capture-docs.py` (rule 1 — never captured by hand).
 
-### Rule 1 — three open OWNER decisions (raised M36, sharpened by the polish round)
-_All three are policy, not code, and none is blocking. Recorded here because each has now been hit
-twice._
-- ☐ **Extend the sweep, or state its exemption.** Run literally against tracked files the sweep is
-  NOT empty and cannot be: `CLAUDE.md` states the rule and `ONBOARDING.md` restates it, so the terms
-  are necessarily present. The working definition in use — "empty apart from the two files that define
-  the rule" — is unwritten, and both sessions have reported "sweep clean" under different implicit
-  exemptions. One sentence in rule 1 makes the phrase mean one thing. (review_feat_polish_round P6;
-  the mechanical form that needs no exemption is the one `DemoAssetsTest` now uses — read the terms
-  from CLAUDE.md at runtime and never spell them elsewhere.)
-- ☐ **Clean the four `examples/fixture-generator` files.** They carry a compiler-emitted
-  `Copyright … <…@v12technology.com>` header inside a notice declaring the file confidential, in a
-  public repo. The polish round makes this urgent rather than tidy: `tools/capture-docs.py` adds that
-  directory as a source root, and `source-navigation.png` renders one of those files in the Source
-  pane. The current asset is scrolled past the header — nothing pins the scroll, and the standing
-  sweep would not catch it. (review_feat_polish_round P3.)
+### Rule 1 — owner decisions (raised M36, sharpened by the polish round)
+- ☑ **The sweep is extended to four terms, and its exemption is written down** _(2026-08-25)_ — run
+  literally the sweep can never be empty: `CLAUDE.md` states the rule and `ONBOARDING.md` restates it,
+  so both must spell the terms. Two sessions had been reporting "sweep clean" under different unwritten
+  exemptions. Rule 1 now says the exemption out loud and gives the form that needs no remembering —
+  `git ls-files | xargs grep -ril …` minus those two paths — which must print nothing. The mechanical
+  cost is real and is stated with it: a swept term may not be spelled anywhere else, **including in
+  prose about the rule**, so five documents were reworded to describe the fourth term rather than
+  print it, and `DemoAssetsTest` now parses all four from the sweep line at runtime instead of
+  concatenating one locally.
+- ☑ **The four `examples/fixture-generator` files are clean** _(2026-08-25)_ — the compiler-emitted
+  block carried a personal address on a vendor domain inside an "all rights reserved / confidential,
+  delete this file" notice, on files published in a public repo, where the notice was both a leak and
+  untrue. Header removed from all four. This also closes the live hazard the polish round exposed:
+  `tools/capture-docs.py` adds that directory as a source root and `source-navigation.png` renders one
+  of those files, so the docs screenshots were one scroll position away from publishing it.
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 

@@ -71,7 +71,7 @@ P3 · **THE CAPTURE HARNESS'S SOURCE ROOT CONTAINS AN EMPLOYER EMAIL, AND ONE SH
      `examples/fixture-generator/src/main/java` as a source root (line 306), and
      `DemoQuoteProcessor.java` line 2 reads
 
-         Copyright: © 2025.  Gregory Higgins <greg.higgins@v12technology.com> - All Rights Reserved
+         Copyright: © 2025.  <a personal address on the fourth sweep term's domain> - All Rights Reserved
 
      inside a block that also declares the file confidential and not to be distributed — in a public
      repo. `source-navigation.png` renders exactly that file in the Source pane. THIS RUN IS SAFE: the

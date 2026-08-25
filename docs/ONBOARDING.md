@@ -90,7 +90,9 @@ behave, and to produce a paired graph + log to test against.
   world-readable. **Anonymisation is policy**: no real venue / vendor / book / thread / logger /
   account names anywhere — samples, fixtures, screenshots, javadoc examples all use neutral
   placeholders (`DEMO`, `marketMaker-DEMO`, `com.acme…`). Sweep before committing:
-  `grep -ri "aquis\|talos\|nonco" --exclude-dir=target .` must return nothing.
+  `grep -ri "aquis\|talos\|nonco\|v12technology" --exclude-dir=target .` — four terms. It matches
+  this file and CLAUDE.md by necessity (they name the terms); "clean" means no OTHER file. CLAUDE.md
+  rule 1 has the exemption-free form of the check.
 - **Trunk-based**: `main` is the only long-lived branch and is always releasable; short-lived feature
   branches optional (see `docs/admin/release-process.md`). `pull.rebase` is on — keep history linear.
 - **Changelog is the one manual habit**: add a line under `[Unreleased]` in `CHANGELOG.md` with any

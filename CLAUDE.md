@@ -7,25 +7,38 @@ architecture, conventions). This file is only the rules that must never be skipp
 
 1. **This repo is PUBLIC.** Never commit real venue/vendor/book/thread/logger/account names — use
    `DEMO` / `marketMaker-DEMO` / `com.acme…` placeholders. Before committing anything containing log
-   data, fixtures, screenshots or examples: `grep -ri "aquis\|talos\|nonco" --exclude-dir=target .`
-   must be empty.
+   data, fixtures, screenshots or examples, run the sweep — four terms:
+   `grep -ri "aquis\|talos\|nonco\|v12technology" --exclude-dir=target .`
+   **It necessarily matches the two files that STATE the rule** — this one and `docs/ONBOARDING.md` —
+   because they have to spell the terms to name them. "Clean" therefore means *no other file*, and the
+   check that has no exemption to remember is:
+   ```
+   git ls-files -z | xargs -0 grep -ril "aquis\|talos\|nonco\|v12technology" \
+     | grep -vE '^(CLAUDE\.md|docs/ONBOARDING\.md)$'
+   ```
+   That must print nothing. The unwritten version of this exemption was applied silently and
+   differently by two sessions, each reporting "sweep clean" (2026-08-25); it is written down now so
+   the phrase means one thing.
+   **The cost of a term is that it may not be spelled anywhere else — including in prose ABOUT the
+   rule.** A mechanical rule cannot tell a mention from a leak. Describe the term ("the fourth sweep
+   term", "a vendor-domain header") or, in code, read it: `DemoAssetsTest` parses the sweep line above
+   at runtime, so it follows the rule when the rule changes.
    **The sweep cannot see inside images.** It passed for the whole life of the repo while the release
    screenshots carried real venue, vendor and project names onto the public docs site (found 2026-08-16).
    Screenshots are therefore generated, not taken: `python3 tools/capture-docs.py` drives a real analyser
    loaded **only** with the demo fixture. Capture by hand only when the harness cannot reach the surface,
    and then read every visible string — title bar, status bar, paths — before committing.
    **The sweep cannot see git metadata either.** **214** commits carry an employer-domain author
-   email into the public history — 132 `@nonco.com` (a string rule 1's own sweep exists to keep out
-   of this repo) and 82 `@v12technology.com`. Rewriting is ruled out by rule 3, so that history is
-   accepted and recorded here.
-   **Counted again 2026-08-25** (M36/M19 release check): the `@nonco.com` total has not moved since
-   the config was pinned, so the mitigation is holding; `@v12technology.com` is 82, not the 81 this
-   paragraph claimed, and the newest such commit is still dated 2026-08-20 — a miscount, not a new
-   leak. The personal-address count is deliberately no longer recorded here: it climbs with every
-   commit, so a fixed number is guaranteed to rot, and it was never the number that mattered.
+   email into the public history — 132 on the third sweep term's domain, 82 on the fourth's. Rewriting
+   is ruled out by rule 3, so that history is accepted and recorded here.
+   **Counted again 2026-08-25** (M36/M19 release check): the third-term total has not moved since the
+   config was pinned, so the mitigation is holding; the fourth is 82, not the 81 this paragraph
+   claimed, and the newest such commit is still dated 2026-08-20 — a miscount, not a new leak. The
+   personal-address count is deliberately no longer recorded here: it climbs with every commit, so a
+   fixed number is guaranteed to rot, and it was never the number that mattered.
    **This paragraph previously claimed 110 commits and that the repo-local `user.email` was pinned.
    Both were wrong** (found 2026-08-20, during the M33 release check): the config was never pinned,
-   so the leak kept growing — every commit made on 2026-08-20 before that check carries `@nonco.com`.
+   so the leak kept growing — every commit made on 2026-08-20 before that check carries it.
    The config is pinned now. Verify it, and do not take this file's word for it:
    `git config user.email` must print the personal address, and
    `git log --format='%ae' | sort | uniq -c` must show no new employer-domain commits. **Run both

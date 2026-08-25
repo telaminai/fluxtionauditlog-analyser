@@ -99,9 +99,11 @@ class DemoAssetsTest {
         // The banned strings are READ FROM CLAUDE.md's own sweep line rather than spelled here: a test
         // that spells them is itself a sweep hit (the M36 review found exactly that), and reading them
         // means this test follows the rule when the rule changes.
-        java.util.List<String> banned = new java.util.ArrayList<>(rule1SweepTerms());
-        banned.add("v12" + "technology");   // the term the report asks the owner to add; concatenated so this file stays clean
-        assertTrue(banned.size() >= 4, "rule 1's sweep line was not found in CLAUDE.md: " + banned);
+        // all four terms now come from CLAUDE.md: the fourth was added to the sweep on 2026-08-25, so
+        // the local concatenation that stood in for it is gone. Nothing here spells a banned term.
+        java.util.List<String> banned = rule1SweepTerms();
+        assertTrue(banned.size() >= 4, "rule 1's sweep line was not found in CLAUDE.md, or has fewer "
+                + "than the four terms this test expects: " + banned);
         for (String name : DemoAssets.files()) {
             String body = resource(name).toLowerCase(java.util.Locale.ROOT);
             for (String term : banned) {
