@@ -1958,6 +1958,14 @@ public final class MainFrame extends JFrame {
             new telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry();
 
     /** The active log's time-order validation (M30 D-R3) — clean until a load says otherwise. */
+    /**
+     * What the loaded log says about the producer that wrote it. Reported like the time-order report —
+     * status bar and {@code context}, never a dialog: opens arrive from the socket as often as from a
+     * human, and a modal in the load path is the defect M35.7 closed.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerDiagnostics =
+            telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.clean();
+
     private telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrderReport =
             telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
 
@@ -2099,6 +2107,7 @@ public final class MainFrame extends JFrame {
         logProvenance = null;          // §E: it described THAT log, not the next one
         declinedSourceGraph = null;    // review N1: that offer came with the log that just closed
         timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
+        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.clean();
         flaggedRows.clear();
         findings.clear();
         flaggedOnly = false;
@@ -2255,9 +2264,19 @@ public final class MainFrame extends JFrame {
         String orderWarning = timeOrderReport.isClean() ? ""
                 : "  ·  ⚠ time-order violations (" + timeOrderReport.violations().size()
                         + ") — ask 'context' or see the load report";
+        // What the log says about its EMITTER. Computed here, after the index is built, because two of
+        // the three checks read the index and the third reads a record's text.
+        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                .of(loaded.index(), loaded::rawText);
+        String producerWarning = producerDiagnostics.isClean() ? ""
+                : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
+                        java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
         status.setText(loaded.size() + " records · " + range + " · "
                 + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
-                        : displayName(location)) + orderWarning);
+                        : displayName(location)) + orderWarning + producerWarning);
+        // the full sentence, where there is room for it — the status bar has none
+        status.setToolTipText(producerDiagnostics.isClean() ? null
+                : String.join("\n\n", producerDiagnostics.messages()));
         if (!timeOrderReport.isClean() && !loadFromSocket) {
             // D-R3: the report is shown, never buried — once, at load, with the evidence lines.
             // Review F5 (M35.7's species, seen live by the owner): on a socket-driven open nobody at the
@@ -3605,6 +3624,11 @@ public final class MainFrame extends JFrame {
             if (!timeOrderReport.isClean()) {
                 out.put("timeOrder", timeOrderReport.summarise());   // D-R3: agents must not discover
                 // disorder by getting wrong answers from 'at'
+            }
+            if (!producerDiagnostics.isClean()) {
+                // an agent reads the count and believes it; these are the cases where the count is a
+                // lie about the file rather than a fact about the run
+                out.put("producer", producerDiagnostics.messages());
             }
 
             if (topologyPanel.hasTopology()) out.put("topology", topologyPanel.cursorState());

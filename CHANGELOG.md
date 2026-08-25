@@ -6,6 +6,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **The analyser now says what the PRODUCER got wrong**, instead of opening a broken log without
+  comment. Three mistakes, all of which used to fail in silence:
+    - **missing `---` separators** — the whole file is read as one record, so the count is wrong and
+      every record after the first is invisible. Nothing errored; the log just looked short.
+    - **no `nodeLogs` in any record** — usually a graph built without `addEventAudit()`, so there is
+      nothing to read, filter or plot.
+    - **nothing but `EventLogControlEvent`** — the sink was attached before the audit level was set,
+      so the log holds the logging configuration and none of the run.
+  Each names the cause *and* the fix. They appear in the status bar, in full on its tooltip, and as
+  `producer` in the `context` echo — reported, never repaired, and never as a dialog: an open arrives
+  from an agent as often as from a person.
+
 ### Changed
 - **"Producing an audit log" can now be followed to a working log.** The page explained the ideas and
   then handed the one thing you need — how to actually turn it on — to another project's

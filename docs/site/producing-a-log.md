@@ -98,12 +98,18 @@ That is the whole contract: `thermostat` is the name the graph gave the node, an
 and `heating` are the keys it logged — so in the analyser you filter on `thermostat` and plot
 `thermostat.celsius` over time. Open the file with **File ▸ Open log…**, or drag it onto the window.
 
+!!! success "If you get one of these wrong, the analyser tells you"
+    Opening a log runs three checks on the file and reports what it finds in the status bar and in
+    `context`: records run together with no `---` between them, no `nodeLogs` anywhere, or a log
+    containing nothing but the framework's own control event. Each names the cause and the fix. They
+    are *reported*, never repaired — a mis-written log is a finding about the emitter.
+
 !!! danger "Write the `---` separator, or the analyser silently reads fewer records"
     A text audit log is a **sequence of YAML documents separated by lines consisting of `---`**
     ([Format specification §1](format-spec.md)). `record.toString()` does **not** include the
     separator — the sink adds it. Omit it and the file still opens, still looks like a log, and is
-    read as **one record** however many it contains. Nothing errors. The example above writes it in
-    the sink for exactly this reason.
+    read as **one record** however many it contains — which is why the analyser now checks for it.
+    The example above writes it in the sink for exactly this reason.
 
 !!! warning "Set the level before you attach the sink"
     `setAuditLogLevel(...)` dispatches an `EventLogControlEvent` **through the graph**, so it produces
