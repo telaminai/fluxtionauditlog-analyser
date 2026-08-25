@@ -1,0 +1,65 @@
+HANDOFF — M19 analyser-side: the loop's conformance bench, and an agent-driven fresh start
+Date: 2026-08-25 · From: the second session (self-briefed — the P1 note on feat/m35-relative-roots
+was "no brief and no report"; this branch has both) · Branch: feat/m19-bench · Base: main @ 174edd4
+Report: docs/handoff/report_feat_m19_bench.txt (first work commit)
+
+ORIENT FIRST: CLAUDE.md · docs/specs/spec-onboarding-example.md (M19) · spec-agent-brokered-dev-loop
+§C1/§C3/§H (the loop, and the harness that bounds a three-repo contract) · upstream-asks.md §5–§7
+(UP-MNG-01…04, UP-PG-01/02, UP-RDR-01 — the other repos' halves, all gated on §H having a home) ·
+review_feat_m35_project.txt N2 (the first-run modal blocks an agent-driven fresh start).
+
+WHY THIS BRANCH, AND WHY NOW
+  M19's bundle (M19.1) and tutorial (M19.3) are gated on the playground shipping a Download. The
+  seven upstream asks are gated on "§H has a home in the M19 bench". Nothing in either gate is this
+  repo's work — except the bench itself, and the one analyser behaviour that breaks the loop's first
+  minute. Both can be built today against the demo set that already exists in-tree, and both must
+  exist BEFORE a mongoose-repo session starts, or that session has a spec but nothing to run against.
+
+TASK — one slice per commit, suite green before each. Run mvn bare; repackage before driving.
+
+  1  AN AGENT-DRIVEN FRESH START (review N2 — M35.7's species one step earlier).
+     Facts: REST is off by default and enabled only in Settings; a fresh install shows a MODAL
+     "Welcome! No configuration was found" then the Settings dialog. So "fresh machine, only a JDK,
+     an agent starts the analyser" — M19's own premise — cannot reach the socket at all.
+     · `analyser --rest`: start with the REST transport ON. It persists (Settings ▸ Assistant shows
+       it on) and SAYS so on stdout — an agent-enabled setting that survives is what the next human
+       launch needs; silently persisting would be the sin, saying it is not.
+     · Under `--rest` the first-run modal is NOT shown: a process asked, and a process cannot answer
+       Settings. Print where the endpoint file is instead. Human launches are unchanged.
+     · The MCP bridge's "analyser not running" error names the command that fixes it.
+     · usage(), install.md, assistant.md updated in the same commit. CHANGELOG (user-visible).
+
+  2  THE BENCH — tools/bench/, the §H harness, runnable TODAY with no Mongoose.
+     · mongoose-stub.py: a fake server admin surface that does exactly what UP-MNG-01/02 ask of the
+       real one and nothing more — writes the registry file (~/.mongoose/servers/<name> shape, mode
+       600), serves GET /api/audit/files, GET /api/audit/file/{id}/export?format=yaml and
+       GET /api/processors/{g}/{n}/graphml from the in-tree demo set. It is the CONTRACT in
+       executable form: the mongoose-side work is "make the real server pass what the stub passes".
+     · loop-bench.py: the AGENT of §C3 steps 3–7 as a script. Glob the registry → pick the server →
+       check pid → export log + graphml → drive the analyser over REST: open {log, graphml,
+       provenance: <name>}, source_root {add}, then ASSERT from context/coverage/topology that the
+       loop closed (provenance = the server's name; records loaded; the graph fits; coverage
+       answers). Every step PASS/FAIL by name; non-zero exit on any failure — "a break fails in the
+       owning repo rather than in a user's session".
+     · `--launch` starts the analyser itself from target/ with `--rest` into an ISOLATED home
+       (-Duser.home), which also exercises slice 1 end to end on a never-configured install.
+     · Pointed at a REAL registry directory it is the acceptance test for UP-MNG-01/02. Say so in
+       the README. Where the bench must ASSUME something the real server has not decided (auth
+       header shape), flag it as an assumption, never bake it in silently.
+
+  3  SPEC + TRACKER ALIGNMENT. spec-onboarding-example.md still says "M18's validation bench",
+     "admin REST on", "file sink at ./logs/audit-<name>.yaml". M18 is closed; the loop is the
+     dev-loop spec; the mongoose starters write auditBackend: chronicle (live read, §C2). Correct
+     the contract table and the Synergy section to what is decided now, and cross-reference the
+     UP ids. Tracker: M19.6 (bench), M19.7 (fresh start) ☑; M19.8 (bench in CI — needs xvfb, not
+     verified from a Mac) ☐ recorded, not claimed.
+
+  DO NOT write the tutorial page (M19.3) — it is publish-gated on the Download shipping, and a page
+  written against a bundle nobody can download would need screenshots that cannot be taken. Say so.
+  DO NOT make the bridge auto-launch the GUI: spawning a window from an MCP server is a decision the
+  owner has not made. Name the command instead.
+
+TESTING
+  Headless: the flag parse, the registry-file shape the stub writes (fields, mode). Swing: build the
+  jar and run `tools/bench/loop-bench.py --launch --stub` against a temp home — the bench IS the
+  test. Read the exit code, not the last line.
