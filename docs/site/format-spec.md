@@ -210,6 +210,8 @@ author: *emit these records and you get exactly what the native log gets.*
 | C11 attribution | the core attributes by position and never merges — broadcast makes duplicates; a component-less key is not even expressible |
 | C12 traced regime | absence is *did not run* only when every entry is traced; one `method` key proves nothing |
 | C13 exported call | dimension is the callback; declaring type captured; `eventTime` absent |
+| C14 synthesised text | text an adapter *constructs* (no trailing newline, a leading `---`, CRLF) reads exactly as sliced file text |
+| C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture
 through `SpiLogStore` with your reader), and compare against the table. To propose a fixture, add the

@@ -12,6 +12,7 @@ import telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport;
 import telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator;
 import telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser;
+import telamin.fluxtion.audit.analyser.analyser.topology.GraphSource;
 import telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology;
 
 import java.io.IOException;
@@ -276,6 +277,33 @@ class FormatConformanceTest {
         assertEquals("orderVenueConnected", r.eventDimension(), "the filter/group key is the callback, not the event class");
         assertNull(r.groupingId(), "the literal null is null");
         assertTrue(r.hasNaN());
+    }
+
+    /**
+     * C15 — §7's own clauses, which could not be asserted until M34.1 merged (review F1: a normative
+     * clause nobody can write a test for has nothing to conform to yet). No fixture: the subject is
+     * the graph a READER hands over, not a record.
+     */
+    @Test
+    void c15_aSourceGraphMustDeclareProvenance_andProvenanceDecidesWhatCoverageMayClaim() {
+        // "It MUST say whether the graph is DECLARED or INFERRED. A graph without a provenance cannot be constructed."
+        var ex = assertThrows(IllegalArgumentException.class,
+                () -> new AuditLogReader.SourceGraph(List.of(), List.of(), null));
+        assertTrue(ex.getMessage().contains("DECLARED or INFERRED"), ex.getMessage());
+        // "coverage is declared minus observed" — meaningful against DECLARED, a tautology against INFERRED
+        assertTrue(GraphSource.of(AuditLogReader.Provenance.DECLARED).supportsCoverage());
+        assertFalse(GraphSource.of(AuditLogReader.Provenance.INFERRED).supportsCoverage(),
+                "against a graph built from what ran, the subtraction is empty by construction");
+        // "A graph the user opened by hand always wins over one the source supplied"
+        assertFalse(GraphSource.OPENED.replacedBy(GraphSource.READER_DECLARED));
+        assertTrue(GraphSource.READER_INFERRED.replacedBy(GraphSource.OPENED));
+        // "An edge to an undeclared node is dropped."
+        var a = new ProcessorTopology.Node("a", "a", "com.acme.a", ProcessorTopology.Kind.NODE);
+        var b = new ProcessorTopology.Node("b", "b", "com.acme.b", ProcessorTopology.Kind.NODE);
+        var t = ProcessorTopology.of(List.of(a, b), List.of(
+                new ProcessorTopology.Edge("ok", "a", "b"), new ProcessorTopology.Edge("dangling", "a", "ghost")));
+        assertEquals(1, t.edgeCount());
+        assertEquals(2, t.nodeCount(), "and the ids are the join key — declared as given");
     }
 
     // ---- the set as a whole -----------------------------------------------------------------------------

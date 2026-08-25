@@ -93,3 +93,17 @@ D5 · The M34 probes stay in tools/spikes/. They are reader PLUGINS (PARTIAL/INF
   mkdocs build --strict   exit 0 (new page in nav; two pointer edits)
   rule-1 sweep            clean — fixture content uses DEMO/com.acme names only
   git config user.email   personal
+
+================================================================================
+6. RESPONSE TO THE REVIEW (2026-08-25, before merge)
+================================================================================
+F1 · RIGHT, and the ordering held: feat/m34-adapters merged first (main @ d3dcebf), so §7 and the
+     `graph(source)` row now describe an SPI that exists on main. No text change needed. The
+     mechanical proof the review asked for — a C15 asserting §7's own clauses — is added here: a
+     SourceGraph refuses a null provenance; DECLARED permits coverage and INFERRED forbids it; an
+     OPENED graph outranks a supplied one; a dangling edge is dropped. It compiles and passes on the
+     rebased branch, which is the statement that §7 now has something to conform to.
+C14 · Accepted with thanks — the ".strip() would hide exactly the difference a real adapter
+     introduces" observation is correct and the test closes it. Spec table and README updated to
+     list C14 and C15 as the two further no-file tests beside C10.
+N1 · Agreed; the three-place cost is the guarantee. Left as is.

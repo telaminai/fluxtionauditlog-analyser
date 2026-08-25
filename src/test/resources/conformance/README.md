@@ -24,5 +24,5 @@ that a leading comment block is skipped was wrong. The fixtures corrected the sp
 | `c12-traced-regime.yaml` | What ABSENCE means (UP-FLX-11). Record 0 is TRACED: every entry carries a method key, which only invocation tracing adds, so an unlogged declared node DID NOT RUN. Record 1 is untraced: absence says nothing, and the analyser must say 'may have run', never 'did not'. |
 | `c13-exported-call.yaml` | An exported service call: eventToString is a Java method signature, so the record's dimension is the CALLBACK name and the declaring type is captured; eventTime is -1 because no event drove it. |
 
-C10 (the ordering claim) has no file: the claim belongs to the reader, not the record — the test opens
-`c01-minimal.yaml` under `TOTAL` and `PARTIAL` declarations and reads the index.
+C10 (the ordering claim), C14 (synthesised text) and C15 (graph provenance) have no file: their subject is
+the reader — its declaration, its constructed text, the graph it hands over — not a record.
