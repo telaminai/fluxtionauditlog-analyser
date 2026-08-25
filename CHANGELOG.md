@@ -7,12 +7,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
-- **`analyser --rest` — start it for an agent** (M19.7). Opens the app with the localhost REST transport
-  on and, on a machine that has never run the analyser, without the first-run Settings dialog: a process
-  asked for this launch and a process cannot answer a dialog, so until now an agent on a fresh machine
-  could never reach the socket at all. The setting persists (Settings ▸ Assistant shows it on) and the
-  console says so. The MCP bridge's "analyser not running" error now names this command. Human
-  launches are unchanged.
+- **`analyser --rest` — start it for an agent** (M19.7). Opens the app with the localhost REST
+  transport on, so a process can drive it on a machine that has never run the analyser; on a first
+  run it prints where the REST endpoint file is, rather than expecting anyone to read a dialog. The
+  setting persists (Settings ▸ Assistant shows it on) and the console says so. The MCP bridge's
+  "analyser not running" error now names this command. Human launches are unchanged.
+- **The analyser opens on something you can use** (M36). With no log loaded, the records pane now
+  shows a start page instead of an empty table: what the tool does, three questions a log alone will
+  not answer, where it sits in the cycle (build → deploy → **ANALYSE** → commit), and three ways in
+  phrased as the sentence you would say — *I am building a processor* / *Something is wrong in
+  production* / *I want the numbers out of this*. Every action on it runs against a demo log that
+  ships inside the jar, so nothing on the page needs a server, a source root or an API key first. It
+  is a **state, not a screen**: opening a log replaces it, closing one (File ▸ Close log) brings it
+  back, and there is nothing to dismiss.
 - **The audit record format has a published specification** (M34.3) — *The audit log ▸ Format
   specification* on the docs site: Format 1, normative, with MUST/SHOULD rules for framing, every
   field, `nodeLogs` values and attribution, what order means under a `TOTAL` or `PARTIAL` reader, what
@@ -120,6 +127,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   an audit log**: text containers are totally ordered and say so. Readers published against 1.5.0
   keep compiling — the capability is additive and defaults to `TOTAL`.
 
+
+### Changed
+- **First run no longer opens a dialog before you can use the app.** Launching without a saved
+  configuration used to announce "No configuration was found" and force Settings open — reporting the
+  ordinary condition of a first launch as a fault, and demanding source roots and an API key from
+  someone who had not yet seen a single record. The start page does that job now, and Settings is
+  where it always was (File ▸ Settings, and one click from the start page).
 ### Fixed
 - **A rotating log no longer starts interrupting an agent.** With *Follow* on, a log an assistant had
   opened would re-open as though a person had asked for it when the file rotated — so every dialog

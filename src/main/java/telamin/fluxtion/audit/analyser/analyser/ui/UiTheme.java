@@ -145,6 +145,52 @@ public final class UiTheme {
         panel.setBackground(controlSurface());
     }
 
+    // ---- accent -----------------------------------------------------------------------------------
+
+    /**
+     * The product accent. This is <b>not a new colour</b>: it is the exact blue the topology already
+     * paints a hot edge and a selected node with, promoted to a shared token. A start page that
+     * introduced its own brand blue would be the one surface in the app that looked like a different
+     * product, which is the opposite of what an accent is for.
+     */
+    public static Color accent() {
+        return ThemeManager.isDark() ? new Color(0x6CB6FF) : new Color(0x1F6FEB);
+    }
+
+    /**
+     * The accent as <b>text</b> on a {@link #surface()}. Deliberately not {@link #accent()}: the same
+     * hue that reads well as a 2px stroke is thin and low-contrast as a run of characters, so each
+     * theme moves it the way that theme needs — lighter on dark, deeper on light.
+     */
+    public static Color accentText() {
+        return ThemeManager.isDark() ? new Color(0x8FC8FF) : new Color(0x0B4FB8);
+    }
+
+    /** Readable ink ON an accent-filled shape. */
+    public static Color onAccent() {
+        return ThemeManager.isDark() ? new Color(0x0D1117) : Color.WHITE;
+    }
+
+    /**
+     * A wash of {@link #accent()} MIXED INTO the current surface, {@code strength} in 0..1.
+     *
+     * <p>Mixing rather than naming a pastel is what keeps this honest across themes: a fixed
+     * {@code 0xEAF2FF} is a pleasant tint on the light theme and a glowing panel on the dark one. The
+     * mix lands a proportional distance from whatever the surface actually is.
+     */
+    public static Color accentWash(float strength) {
+        return mix(surface(), accent(), strength);
+    }
+
+    /** Linear blend, {@code amount} of {@code b} into {@code a}. */
+    public static Color mix(Color a, Color b, float amount) {
+        float t = Math.max(0f, Math.min(1f, amount));
+        return new Color(
+                Math.round(a.getRed() + (b.getRed() - a.getRed()) * t),
+                Math.round(a.getGreen() + (b.getGreen() - a.getGreen()) * t),
+                Math.round(a.getBlue() + (b.getBlue() - a.getBlue()) * t));
+    }
+
     /** A hairline for the edge of a {@link #surface()}, so the pane reads as a pane at any zoom. */
     public static Color surfaceEdge() {
         return ThemeManager.isDark() ? new Color(0x3A4149) : new Color(0xD6DBE1);

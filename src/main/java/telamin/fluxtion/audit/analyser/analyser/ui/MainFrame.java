@@ -47,6 +47,10 @@ public final class MainFrame extends JFrame {
     private final AppConfig config;
 
     private final LogTablePanel tablePanel = new LogTablePanel();
+    /** M36: the LEFT COLUMN holds the start page or the records+detail pair, never both. */
+    private final java.awt.CardLayout recordsLayout = new java.awt.CardLayout();
+    private final JPanel recordsCards = new JPanel(recordsLayout);
+    private StartPanel startPanel;
     private final DetailPanel detailPanel = new DetailPanel();
     private final EventFilterPanel eventFilterPanel = new EventFilterPanel();
     private final SummaryPanel summaryPanel = new SummaryPanel();
@@ -644,6 +648,29 @@ public final class MainFrame extends JFrame {
      * Set by {@code open {provenance}} and cleared with the log.
      */
     private String logProvenance;
+
+    /**
+     * M36 — show the start page exactly when there is no log, and the table exactly when there is.
+     * One call site for the decision, so the two can never both be right.
+     */
+    private void syncRecordsCard() {
+        if (startPanel != null) recordsLayout.show(recordsCards, store == null ? "start" : "table");
+    }
+
+    /**
+     * Open one of the bundled demo logs (M36). Deliberately an ORDINARY open — the same verb path a
+     * user or agent takes — so the demo exercises the product rather than a special case that proves
+     * nothing about it.
+     */
+    private void openDemoLog(Path log, boolean withGraph) {
+        Path root = DemoAssets.install();
+        if (!config.sourceRoots.contains(root.toString())) {
+            config.sourceRoots.add(root.toString());   // so a node in the topology opens its source
+            saveConfigQuietly();
+        }
+        if (withGraph) topologyPanel.load(DemoAssets.graphml());
+        openFile(log, OpenRequest.HUMAN);
+    }
 
     /** The log actually open, as the fingerprint names it — one source for authoring and re-opening. */
     private String loadedLogName() {
@@ -1347,6 +1374,13 @@ public final class MainFrame extends JFrame {
         tableArea.setMinimumSize(new Dimension(100, 80));
 
         // the records table shouldn't dominate: give the detail panel and right-hand tabs real space
+        // M36 D-S1 / O-S2: the start page takes the LEFT COLUMN — records AND detail — while the
+        // right-hand tabs stay visible, because they are the product's structure and hiding them on
+        // first contact teaches nothing. Taking only the records pane was tried first and failed its
+        // own acceptance test: at a normal window width the body text clipped mid-word, the third
+        // action fell off the edge, and a whole section sat below a scrollbar. The detail pane has
+        // nothing to say with no log either ("select a record in the table above"), so the honest
+        // unit to replace is the pair.
         JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableArea, detailPanel);
         mainSplit.setResizeWeight(0.45);
         mainSplit.setDividerLocation(330);
@@ -1390,7 +1424,19 @@ public final class MainFrame extends JFrame {
                 summaryPanel, sourcePanel, graphTabs, topologyPanel, llmPanel}) {
             if (tab instanceof JComponent c) c.setMinimumSize(new Dimension(200, 120));
         }
-        JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainSplit, sideTabs);
+        startPanel = new StartPanel(new StartPanel.Actions() {
+            @Override public void openDemo(Path log, boolean withGraph) { openDemoLog(log, withGraph); }
+            @Override public void showTab(String name) { selectTab(name); }
+            @Override public void openOwnLog() { chooseFile(); }
+            @Override public void openSettings() {
+                ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
+                        MainFrame.this::readerSummaries);
+            }
+        }, text -> status.setText(text));
+        recordsCards.add(startPanel, "start");
+        recordsCards.add(mainSplit, "table");
+
+        JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, recordsCards, sideTabs);
         center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
         sideTabs.addChangeListener(e -> {
             // read now, restore after the tab change has re-laid out
@@ -2064,6 +2110,7 @@ public final class MainFrame extends JFrame {
 
     /** Close items are enabled only when there is something to close. */
     private void updateLifecycleMenu() {
+        syncRecordsCard();          // M36: the start page shows exactly when there is no log
         if (closeLogItem != null) closeLogItem.setEnabled(store != null);
         if (closeGraphItem != null) closeGraphItem.setEnabled(topologyPanel.hasGraph());
         if (resetItem != null) resetItem.setEnabled(store != null || topologyPanel.hasGraph());
@@ -2526,37 +2573,42 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * First run (no config file saved yet): open the Settings dialog so the user can point the app at
-     * source roots, an EventProcessor and an LLM before anything else. Saving creates the file, so
-     * this shows exactly once.
-     */
-    /**
-     * Whether no config file existed when this frame was constructed. Captured then, because `--rest`
-     * SAVES the config in the constructor (it persists the transport setting) and would otherwise make
-     * the first run look like a second one by the time the splash timer asks — the first bench run found
-     * exactly that: the dialog was suppressed by accident of ordering and the stdout note never printed.
+     * Whether no config file existed when this frame was constructed. Captured THEN, because
+     * {@code --rest} saves the config in the constructor (it persists the transport setting) and would
+     * otherwise make the first run look like a second one by the time the splash timer asks — the
+     * first bench run found exactly that: the note below never printed.
      */
     private boolean firstRunAtStart;
 
+    /**
+     * First run. <b>No dialog, for anybody</b> — but a process that asked for {@code --rest} is told
+     * where its socket is.
+     *
+     * <p>Two changes met here, from opposite directions, and both were fixing the same thing. M19.7
+     * suppressed the modal for {@code --rest} because a PROCESS cannot answer a Settings dialog, so an
+     * agent on a fresh machine never finished starting — M35.7's species one step earlier, in the
+     * startup path. M36 removed the modal outright: it announced "No configuration was found", which
+     * reports the ordinary condition of a first launch as a fault; it demanded source roots and an API
+     * key from someone who had not yet seen a single record; and it was a modal on exactly the surface
+     * D-S1 says must have nothing to dismiss, because {@link StartPanel} — the start page — IS the
+     * first run now.
+     *
+     * <p>So the modal is gone for the human too, and what M19.7 added stays: under {@code --rest} the
+     * endpoint file is named on stdout, which is the one thing an agent actually needed from this
+     * method. Keeping only the narrower fix would have left the human case still gated; keeping only
+     * the wider one would have dropped the note the loop bench asserts. Settings is on the File menu
+     * and one click from the start page's footer, for when there is a reason to want it.
+     */
     public void showFirstRunSettingsIfNeeded() {
         if (!firstRunAtStart) return;
         if (Boolean.getBoolean(telamin.fluxtion.audit.analyser.Main.REST_PROPERTY)) {
-            // M19.7 (review N2): a PROCESS asked for this launch. A modal here means the analyser never
-            // finishes starting for an agent on a fresh machine — M35.7's species one step earlier, in
-            // the startup path. Say where the socket is instead; a human gets Settings via File ▸ Settings.
+            // M19.7 (review N2): nobody is at the screen — say where the socket is instead
             System.out.println("[analyser] first run, started with --rest: no configuration yet and no "
                     + "Settings dialog (nobody is at the screen). The REST endpoint is published in "
                     + telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown().path()
                     + "; source roots and processors can be set over it (source_root, open {processor}).");
-            return;
         }
-        JOptionPane.showMessageDialog(this,
-                "Welcome! No configuration was found, so Settings will open now.\n"
-                        + "Set your Java source roots (and optionally an LLM API key) to get the most\n"
-                        + "out of source navigation and the assistant — everything can be changed later\n"
-                        + "via File → Settings.",
-                "First run", JOptionPane.INFORMATION_MESSAGE);
-        ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries);
+        // and no dialog for a human either — the start page is the first run (M36 D-S1)
     }
 
     /**
@@ -3522,15 +3574,20 @@ public final class MainFrame extends JFrame {
 
         @Override
         public boolean showTab(String name) {
-            if (sideTabs == null || name == null) return false;
-            for (int i = 0; i < sideTabs.getTabCount(); i++) {
-                if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)) {
-                    sideTabs.setSelectedIndex(i);
-                    return true;
-                }
-            }
-            return false;
+            return selectTab(name);
         }
+    }
+
+    /** Bring a right-hand tab forward by title. One implementation, used by the verb and by M36. */
+    private boolean selectTab(String name) {
+        if (sideTabs == null || name == null) return false;
+        for (int i = 0; i < sideTabs.getTabCount(); i++) {
+            if (sideTabs.getTitleAt(i).equalsIgnoreCase(name)) {
+                sideTabs.setSelectedIndex(i);
+                return true;
+            }
+        }
+        return false;
     }
 
     private void rememberGraphml(java.nio.file.Path file) {
