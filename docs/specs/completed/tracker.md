@@ -2,7 +2,84 @@
 _Merged from `feat/m35-lifecycle`. Reviewed by the second session, which found five more
 half-cleared states on the log's SMALLER axes and fixed them on the branch — the branch
 hunted the log↔graph axis and stopped there. Brief, report and review:
-`docs/handoff/completed/`. M35.8 and M35.9 remain OPEN in the live tracker._
+`docs/handoff/completed/`. **Second half, merged 2026-08-25 the same day:** M35.8 `open {project}` (feat/m35-project), M35.10/.11 project-relative committed profiles (feat/m35-relative-roots), M35.9 the `OpenRequest` (feat/m35-open-request) — each reviewed by the other session; their entries follow the original section below._
+
+### M35 second half — .8, .9, .10, .11 (moved from the live tracker 2026-08-25)
+- [M35.10] ☑ **Relative profile roots resolve against `.analyser/`, not the project root** _(found driving
+  M35.8, report_feat_m35_project O1; DONE 2026-08-25, merged to main)_ — `ProjectProfile.load`
+  handed `SettingsShare.preview` the profile's own directory as the base, so a bundle's
+  `sourceRoot.0=src/main/java` landed at `<bundle>/.analyser/src/main/java`. The writer never emits
+  relative roots, so nothing shipped was hit — but the **M19.2 bundle contract** is built on exactly
+  this. Fix: `ProjectProfile.baseDirFor(file)` — the project root for the canonical profile, the file's
+  own directory for a loose `.fluxtion-settings`; used by `load` and the Import dialog. Spec-onboarding
+  §Contract notes corrected.
+- [M35.11] ☑ **Auto-persist rewrites a committed profile's relative roots as absolute** _(found driving
+  M35.8, report O2; DONE 2026-08-25, merged to main)_ — open a project, do nothing, switch
+  away: the flush wrote the in-memory config back and the writer knew only `~`-relative and absolute
+  forms — plus `share.exportedAt` and `Properties.store`'s date comment, two more diffs per write. Fix:
+  `SettingsShare.export(c, categories, projectRoot)` writes paths under the project project-relative
+  (checked before the `~` rule — a project inside home must not come out `~/…`), omits the timestamp and
+  strips the date line; `ProjectProfile.save` returns false and touches nothing when the file already
+  holds that text. Round-trip is byte-identical (tests). One-off share exports unchanged.
+- [M35.9] ☑ **An `OpenRequest` for load-time side effects** — **DONE 2026-08-25, merged to main** (review F1: a follow rotation had rebuilt the request as human — fixed by the reviewer; `reload(original, provenance)` keeps who asked) (report `docs/handoff/completed/report_feat_m35_open_request.txt`): `OpenRequest
+  {fromActionSocket, provenance}` is built where the open starts (verb adapter → `socket(provenance)`;
+  chooser/drag/recent/S3 → `HUMAN`; follow rotation → `reload(provenance)`), carried through the async
+  load and read once in `onLoaded`. `openFromActionSocket` and `pendingProvenance` are gone; provenance
+  arrives WITH the open (`AppControl.openLog(path, format, provenance)`, defaults keep old implementors
+  working). Threading it found the FIFTH and SIXTH instances: `open {logs}` never set the flag (its
+  time-order modal fired on agents) and `open {log}` on a rolled-set member hit the "open the whole
+  set?" confirm — now `context.rolledSetOffer`. R1 (two loads crossing a field) is gone with the field.
+  _Original entry:_ **TRIGGER FIRED 2026-08-25, schedule it.** The condition recorded below was "when a fourth appears, or when R1 bites". A fourth
+  appeared, and it was not hypothetical: the M35 review's F5 fix (suppressing the time-order modal
+  on socket-driven opens) NEVER WORKED, because `maybeOfferProject` consumes `openFromActionSocket`
+  59 lines before the time-order gate tests it — and the gate's own comment asserted the opposite
+  ordering, which is why it passed review. Fixed tactically on `feat/m35-project` by capturing the
+  flag once into a local; this record is the structural fix and is no longer optional._Original
+  rationale:_ _(review R1 + R3, 2026-08-25)_ — the
+  same shape has now appeared **three times**: the project offer (M35.7), `provenance` (§E) and the
+  time-order dialog (review F5) are each "a load-time side effect whose audience differs by who asked
+  for the load", and each is currently a field on MainFrame consumed during `onLoaded`. A record
+  threaded through the load — `OpenRequest {path, fromSocket, provenance}` — replaces all three and
+  removes **R1** with them: today `openFromActionSocket` is a single field, so two loads in flight (a
+  verb open racing a drag-drop) could cross it. Rare and serialised in practice, which is why the
+  review noted rather than fixed it. _Do this when a fourth appears, or when R1 bites — not before:
+  it is a refactor of code that has just been reviewed._
+- [M35.8] ☑ **`open {project: path}`** — the lifecycle surface's missing half. **DONE 2026-08-25, merged to main** (report `docs/handoff/completed/report_feat_m35_project.txt`): the verb applies, the echo names every replaced category with before/after counts, what it closed WITH PATHS, the previous project and the one call back; `open {close: "project"}` added so "your own settings" is reachable in one call too (report D1); `context.project` names the settings in force (D5). E7/E8/E10 driven over REST, E9's offer half proven, its keep half stays human (report §6). Brief was `docs/handoff/completed/handoff_25_aug_2026_2.txt`. _(Deferred out of M35
+  deliberately: this is the largest single mutation any verb would perform — it replaces source
+  roots, event processors, graphs and hidden columns in one call — so it needs its own decision about
+  confirmation rather than being smuggled in beside a lifecycle fix. Not started on
+  `feat/m35-lifecycle`; build it on its own branch after M35 merges. Previously floated as "M20.6",
+  which had no home since M20 is archived; it belongs here because the project IS the session
+  boundary M35.5 established.)_ Three arguments accumulated during M35, none of them speculative:
+    1. **M35.7's `projectOffer` is currently unactionable.** An agent is told a project is available
+       and has no way to accept it — an offer with no accept button.
+    2. **M35.5 is read-verified only** (report D10). There is no socket route to a project switch, so
+       E7–E10 cannot be driven; this verb turns four eyeball items into a scripted check.
+    3. **The surface is asymmetric.** An agent can open and close a log, and open and close a graph,
+       but cannot touch the thing that owns both.
+  **THE CONFIRMATION DECISION, settled 2026-08-25 so this is workable cold** — the entry above
+  deferred M35.8 *for* this question and then left it unanswered, which is the worst kind of handoff.
+  The answer follows the rule the rest of the surface already uses rather than inventing a new one:
+
+  · **The verb APPLIES; it does not ask.** A modal cannot be answered at the socket — that is M35.7's
+    whole finding, one dialog over — so an "are you sure?" would either hang the call or be silently
+    defaulted, and silently defaulting a mutation this size is worse than performing it openly.
+  · **What makes it safe is the ECHO, not a prompt.** `open {project}` must name **everything it
+    replaced**, with before/after counts: source roots, event processors, named graphs, hidden
+    columns, and whether a log and graph were closed (M35.5 — a project switch is a session
+    boundary). The close verb's `kept` sentence is the precedent; this is its mirror.
+  · **It is reversible and must say so.** The echo names the previously-active project (or "your own
+    settings"), so the agent can put it back in one call. A mutation you can undo from the answer you
+    were given is a different risk from one you cannot.
+  · **The MCP client's own per-call approval is the human gate.** Declaring the verb destructive —
+    as `open`, `source_root`, `screenshot` and `report` already are — puts the prompt where a human
+    can actually see it, instead of behind a Swing dialog nobody is looking at.
+  · **The auto-detect path is unaffected**: `applyProjectResult(result, endsSession=false)` still
+    keeps the log when a project is adopted *because* that log was opened.
+
+  Design note: the M20 project-tier snapshot/restore machinery already exists (ProjectProfile,
+  ConfigStore's project tier) — this verb is a route to it, not a new mechanism, which is why the
+  slice is small once the decision above is made.
 ## M35 · Log + graph lifecycle — ◧ **.1-.7 COMPLETE on `feat/m35-lifecycle`; M35.8 deferred by design** (owner, 2026-08-22; the pairing is evidence, not decoration)
 _Today a log and a GraphML are opened independently and **neither can be closed**. `TopologyPanel.load()`
 sets the graph; nothing clears it, and the File menu has "Close project" but no "Close log". So opening a
