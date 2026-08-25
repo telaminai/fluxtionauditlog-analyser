@@ -1,0 +1,86 @@
+REVIEW — feat/m34-conformance (M34.3: the format specification + conformance suite)
+Reviewer: the main session · 2026-08-25
+Inputs: the single commit 50aa283 on main @ 8defc64, docs/handoff/report_feat_m34_conformance.txt,
+docs/site/format-spec.md, the 12 fixtures + FormatConformanceTest, spec-source-adapters D-A6.
+
+VERDICT: MERGE — but **NOT BEFORE feat/m34-adapters**, and that ordering is a hard dependency
+rather than a preference. See F1. One test added here (C14). Everything else I attacked held.
+
+────────────────────────────────────────────────────────────────────────────────
+1. GATES (run here)
+  mvn -o test            792 as handed over · 793 with C14 · 0 fail / 0 skipped
+  mkdocs build --strict  exit 0 (format-spec.md is in the nav and link-checks clean)
+  rule-1 sweep           clean · git config user.email personal
+
+────────────────────────────────────────────────────────────────────────────────
+2. FINDING — F1: THE SPEC DOCUMENTS AN SPI THAT DOES NOT EXIST ON THIS BRANCH
+docs/site/format-spec.md is normative (RFC 2119), published in the nav, and its §7 plus the reader
+table specify:
+
+    | graph(source) | MAY return the source's own graph, §7. Empty is an answer. |
+    §7  nodes {id,label,className,kind} · edges {id,source,target} · kind one of NODE / EVENT /
+        EVENT_HANDLER / EXPORT_SERVICE · "It MUST say whether the graph is DECLARED or INFERRED" ·
+        "A graph without a provenance cannot be constructed."
+
+None of it exists here. On this branch:
+    grep -c "SourceGraph\|Provenance" …/spi/AuditLogReader.java   →  0
+    …/topology/GraphSource.java                                   →  ABSENT
+They are on **feat/m34-adapters**, which is unmerged. The branch is based on main @ 8defc64, which
+predates M34.1's graph() slice. (`capabilities.ordering` IS fine — that half merged to main as
+149faf4 and the table is right about it.)
+
+WHY THIS MATTERS MORE THAN A DOC NIT. The page's entire purpose is to be the contract an adapter
+author codes against. Merge this branch alone and the docs site publishes a normative specification
+for a method the shipped interface does not have — an author would implement `graph(source)` against
+an SPI that has no such member. It is the mirror of what M35.10's review praised: not a document
+that agrees with a bug, but a document that describes code which does not exist.
+
+I DID NOT FIX IT, deliberately: the fix is merge ORDER, not text. §7 is correct and M34.1 is real
+work. Removing §7 to make this branch self-consistent would delete a specification that is right and
+about to be true.
+  → merge feat/m34-adapters FIRST, then this.
+  → if that order cannot hold, §7 and the `graph(source)` row must be marked "Format 1 draft — the
+    SPI lands with M34.1" before publication, not after.
+  PROOF, and it is mechanical: I wrote a C15 asserting §7's own clauses (a SourceGraph refuses a null
+  provenance; DECLARED/INFERRED decide what coverage may claim). IT DOES NOT COMPILE ON THIS BRANCH.
+  A conformance test for a normative clause that cannot be written is the clearest possible statement
+  that the clause has nothing to conform to yet. C15 is written and should be added by whoever merges
+  second — it is four assertions and it closes §7.
+
+────────────────────────────────────────────────────────────────────────────────
+3. WHAT I ATTACKED AND COULD NOT BREAK
+  · C10 has no fixture. I assumed an accidental gap; it is deliberate, explained in THREE places
+    (README, the spec table, the test's own message) — "the claim belongs to the reader, not the
+    record". There is even a guard test pinning the fixture list so a file and a test cannot drift
+    apart. Better than I expected.
+  · "Both paths agree" looked near-tautological: the pass-through reader uses the SAME RecordFramer
+    the built-in does, so the suite compares the framer with itself, and `rawText` is compared with
+    `.strip()` — which would hide exactly the difference a real adapter introduces. So I probed the
+    shapes a generator actually emits: no trailing newline, a leading `---`, CRLF. ALL FOUR PARSE
+    IDENTICALLY. The hypothesis was wrong and the tolerance is real, not accidental.
+    Contributed as **C14** anyway, because the suite could not previously have told the difference:
+    an adapter that CONSTRUCTS text is now covered, not just one that slices a file. No fixture —
+    the subject is the reader's output, same reason as C10.
+  · The claim that the suite corrected the spec before it shipped (the leading-comment-block rule)
+    checks out and is the strongest thing in the report: a specification whose first draft was
+    falsified by its own conformance suite is a specification worth trusting.
+
+────────────────────────────────────────────────────────────────────────────────
+4. NOTES
+N1 · The fixture guard hard-codes the twelve names. Correct and deliberate, but it means adding a
+     fixture requires editing three places (file, test, guard list). That is the cost of the
+     guarantee and I would keep it — noting it so nobody "simplifies" the guard later.
+N2 · The spec names two things the design specifies that the record does not yet carry (D-A1a's
+     per-cycle concurrency marker → tracker M34.5). Naming an absent field in a normative document
+     is exactly right: it stops an emitter inventing one. Same treatment would suit §7 if F1's merge
+     order cannot be held.
+
+────────────────────────────────────────────────────────────────────────────────
+5. STRENGTHS
+  · Every fixture runs through BOTH engines and they must agree field-by-field. That agreement is
+    the promise to an adapter author, made executable.
+  · The suite falsified the spec's first draft. That is the whole argument for conformance fixtures,
+    demonstrated on the document they accompany.
+  · "A fixture nobody asserts on is a promise nobody keeps" — the guard test enforces it. F1 is that
+    same principle one document up: a normative clause nobody can assert on is a promise nobody
+    keeps either.

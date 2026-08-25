@@ -280,6 +280,34 @@ class FormatConformanceTest {
 
     // ---- the set as a whole -----------------------------------------------------------------------------
 
+    /**
+     * C14 — an adapter that CONSTRUCTS record text, which is what every real one does. The suite's
+     * pass-through reader slices a file with the same framer the built-in uses, so it proves the two
+     * STORES agree; it cannot prove that text an adapter synthesised is read the same way. The shapes
+     * below are the ones a generator actually produces, and the `.strip()` in the agreement check
+     * would have hidden a difference in any of them. No fixture: the subject is the reader's output,
+     * not a file (same reason as C10).
+     */
+    @Test
+    void c14_textAnAdapterSYNTHESISEDreadsTheSameAsTextSlicedFromAFile() throws IOException {
+        String body = "eventLogRecord:\n  logTime: 1000\n  event: E\n  nodeLogs:\n    - n: { v: 1}\n";
+        record Emitter(String text) implements AuditLogReader {
+            @Override public String formatId() { return "emit"; }
+            @Override public String displayName() { return "emit"; }
+            @Override public boolean canOpen(Path s) { return true; }
+            @Override public TimeBase timeBase() { return TimeBase.wallClockMillisUtc(); }
+            @Override public Capabilities capabilities() { return new Capabilities(false, false, true); }
+            @Override public void read(Path s, Consumer<String> out) { out.accept(text); }
+        }
+        for (String shape : List.of(body, body.stripTrailing(), "---\n" + body,
+                body.replace("\n", "\r\n"))) {
+            LogStore st = SpiLogStore.open(new Emitter(shape), dir.resolve("emitted"));
+            assertEquals(1, st.size(), () -> "record count for " + shape.replace("\n", "\\n"));
+            assertEquals(1000L, st.record(0).logTime(), () -> "logTime for " + shape.replace("\n", "\\n"));
+            assertEquals(1, st.record(0).nodeLogsCount(), () -> "nodeLogs for " + shape.replace("\n", "\\n"));
+        }
+    }
+
     @Test
     void everyFixtureInTheSetIsExercised() throws IOException {
         // the set is the published artefact; a fixture nobody asserts on is a promise nobody keeps
