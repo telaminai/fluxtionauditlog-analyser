@@ -116,3 +116,45 @@ STILL NOT DONE, deliberately
   · A test that drives a source-supplied graph through the UI: it needs a reader PLUGIN on the
     classpath, which means an out-of-tree jar. The store-level plumbing is unit-tested; the panel
     path is read-verified. Recorded rather than glossed.
+
+================================================================================
+5. M34.2 (first half) — the ordering claim reaches the VIEW
+================================================================================
+M34.1's ordering slice plumbed `ordering: TOTAL | PARTIAL` to LogIndex and reported it in `context`
+— and NOTHING CONSUMED IT. The topology went on painting ordinal badges over a source that never
+decided an order, which is the M34.0 spike's §3 finding still live in the shipped code. This closes
+it.
+
+  · the ordinal badge is NOT PAINTED when the source declares PARTIAL. The node keeps its "logged"
+    ring — that it ran is true — and stops claiming when. A number that asserts a position the
+    source never decided is worse than no number.
+  · step-through says "logged 3 / 5" instead of "step 3 / 5". "Step" implies a sequence.
+  · the Topology status carries a STANDING warning ("⚠ ARRIVAL ORDER, NOT DISPATCH ORDER"), composed
+    as a persistent part exactly as M35.6's pairing note is, so it survives every other status write.
+  · the `topology` echo carries `orderMeaningful` + `orderCaveat`. An agent reads the ECHO, not the
+    canvas — a suppressed badge is invisible to it, so the qualification has to travel in the data.
+
+VERIFIED AGAINST A REAL PARTIAL SOURCE, which needed building: no such source exists in-tree, so a
+throwaway reader PLUGIN (declaring Ordering.PARTIAL and a DECLARED SourceGraph) was compiled against
+the shipped jar and installed in ~/.fluxtion-analyser/plugins/. That also exercised M31's
+ServiceLoader path end to end for the first time since it shipped.
+    context.dispatchOrder      "PARTIAL — this source could not supply an order within a cycle…"
+    topology.orderMeaningful   false, with the caveat
+    coverage                   4 declared / 4 covered — still works, because the source graph is
+                               DECLARED; the guard is on INFERRED, not on foreign
+    screenshot                 the four nodes carry "logged" rings and NO ordinal badges. Compare
+                               the M34.0 spike shot, where concurrent nodes wore badges 2 and 3.
+
+--------------------------------------------------------------------------------
+D1 · A DEFECT THIS SLICE EXPOSED, and it was mine
+--------------------------------------------------------------------------------
+`context.graphPairing` reported "graph": null while a graph WAS loaded. Every caller asked
+`loadedGraphFile() != null` to mean "is there a graph", and a source-supplied graph deliberately has
+no file. That is the mirror of the defect M35 spent itself on: not claiming a graph it lacks, but
+DISOWNING one it has.
+
+Fixed with `hasGraph()` and `graphLabel()` — ask whether a graph exists, not whether a FILE does —
+and migrating all nine call sites. Migrating them uncovered a live NPE on the way:
+judgeOpenedGraph() passed the guard and then dereferenced loadedGraphFile(), which is null for
+exactly the graphs M34.1 had just made possible. It would have thrown on the first source-supplied
+graph anyone opened. Found by changing the question, not by a test.

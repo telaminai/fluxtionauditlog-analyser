@@ -7,6 +7,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **A source that cannot promise an order no longer gets one drawn for it** (M34.2). The topology's
+  ordinal badge — the small number saying "this ran third" — is the most confident thing the canvas
+  draws, and on a concurrent engine that number is arrival order, not causality. When a reader
+  declares `ordering: PARTIAL` the badge is **not painted** (the node still shows that it ran, which
+  is true, and stops claiming *when*), step-through says "logged 3 / 5" rather than "step 3 / 5", the
+  Topology status carries a standing warning, and the `topology` echo carries `orderMeaningful` with
+  its caveat so an agent reading the data rather than the picture is told too.
 - **An agent can open a project — and close one** (M35.8): `open {project: "<dir or its
   .analyser/project.fluxtion-settings>"}` and `open {close: "project"}`. Until now `context` could
   report *"this log sits inside a project"* and nothing at the socket could accept it — an offer with

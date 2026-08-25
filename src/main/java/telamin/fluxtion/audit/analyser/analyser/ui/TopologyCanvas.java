@@ -60,6 +60,25 @@ public final class TopologyCanvas extends JPanel {
     private List<String> dispatch = List.of();
     /** id → its first position in {@link #dispatch}, for the ordinal badge. */
     private java.util.Map<String, Integer> firedAt = java.util.Map.of();
+    /**
+     * Whether position in {@link #dispatch} MEANS anything (M34.2, from the M34.0 spike's §3).
+     *
+     * <p>False when the source declared {@code ordering: PARTIAL}. The ordinal badge is the most
+     * confident thing this canvas draws — a small number beside a node saying "this ran third" — and
+     * on a concurrent engine that number is stream-arrival order, not causality. The spike found the
+     * presentation identical either way, with nothing on screen distinguishing a compiler-derived
+     * order from an invented one. So when the source cannot promise an order, <b>no number is
+     * painted</b>: the node still shows that it ran, because that is true, and stops claiming when.
+     */
+    private boolean orderMeaningful = true;
+
+    public void setOrderMeaningful(boolean meaningful) {
+        if (this.orderMeaningful != meaningful) {
+            this.orderMeaningful = meaningful;
+            repaint();
+        }
+    }
+
     /** Where this cycle entered the graph, if the record says. */
     private List<String> entryPoints = List.of();
     /** id → what the log lets us claim about it this cycle. Empty when no record is shown. */
@@ -909,7 +928,9 @@ public final class TopologyCanvas extends JPanel {
                             : isHovered ? 1.8f : 1f));
             g.draw(shape);
 
-            if (fired && labels) paintOrdinal(g, x, y, ordinal + 1, dark);
+            // M34.2: a number that claims a position the source never decided is worse than no
+            // number — the ring still says it ran, which is the part that is true
+            if (fired && labels && orderMeaningful) paintOrdinal(g, x, y, ordinal + 1, dark);
             if (inScope) paintHalo(g, x, y, w, h, dark, HaloStyle.SCOPE);
             if (isSelected) paintHalo(g, x, y, w, h, dark, HaloStyle.SELECTION);
             if (isEntry) paintHalo(g, x, y, w, h, dark, HaloStyle.ENTRY);

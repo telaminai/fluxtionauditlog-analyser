@@ -2017,8 +2017,8 @@ public final class MainFrame extends JFrame {
         if (followMenuItem != null) followMenuItem.setEnabled(false);
         if (followButton != null) followButton.setEnabled(false);
 
-        status.setText("No log open" + (topologyPanel.loadedGraphFile() == null ? ""
-                : " · graph " + topologyPanel.loadedGraphFile().getFileName() + " still loaded"));
+        status.setText("No log open" + (topologyPanel.hasGraph()
+                ? " · graph " + topologyPanel.graphLabel() + " still loaded" : ""));
         updateLifecycleMenu();
     }
 
@@ -2041,8 +2041,8 @@ public final class MainFrame extends JFrame {
     /** Close items are enabled only when there is something to close. */
     private void updateLifecycleMenu() {
         if (closeLogItem != null) closeLogItem.setEnabled(store != null);
-        if (closeGraphItem != null) closeGraphItem.setEnabled(topologyPanel.loadedGraphFile() != null);
-        if (resetItem != null) resetItem.setEnabled(store != null || topologyPanel.loadedGraphFile() != null);
+        if (closeGraphItem != null) closeGraphItem.setEnabled(topologyPanel.hasGraph());
+        if (resetItem != null) resetItem.setEnabled(store != null || topologyPanel.hasGraph());
     }
 
     private void onLoaded(LogStore loaded, String location) {
@@ -2071,6 +2071,10 @@ public final class MainFrame extends JFrame {
         // everything after it waits for a human — which on the agent path is nobody. `store` is
         // already assigned above, so a stale graph would otherwise be live and answerable (coverage,
         // shading, step-through) while the app sat behind a dialog nobody could see.
+        // M34.2 — the ordering claim reaches the VIEW, not just `context`. Until now M34.1 plumbed
+        // the flag and nothing consumed it, so the topology went on painting ordinal badges over a
+        // source that never decided an order: the spike's §3 finding, still live.
+        topologyPanel.setOrderMeaningful(loaded.index().totalOrder());
         repairLoadedGraph(loaded);
         offerSourceGraph(loaded);      // M34.1 — after the re-pair, so a stale graph is gone first
         maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
@@ -2273,7 +2277,7 @@ public final class MainFrame extends JFrame {
      * @return the verdict, or null when there is nothing to compare
      */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing judgeOpenedGraph() {
-        if (store == null || topologyPanel.loadedGraphFile() == null) {
+        if (store == null || !topologyPanel.hasGraph()) {
             lastPairing = null;
             publishPairing();
             return null;
@@ -2281,7 +2285,7 @@ public final class MainFrame extends JFrame {
         var pairing = pairingAgainst(store);
         lastPairing = pairing;
         publishPairing();
-        String name = topologyPanel.loadedGraphFile().getFileName().toString();
+        String name = topologyPanel.graphLabel();     // may have no FILE — a source can supply one
         status.setText(store.size() + " records · graph " + name + (pairing.applies()
                 ? " · " + pairing.reason()
                 : "  ·  ⚠ " + pairing.reason() + " — kept, you opened it deliberately"));
@@ -2289,16 +2293,16 @@ public final class MainFrame extends JFrame {
     }
 
     private void repairLoadedGraph(LogStore loaded) {
-        if (topologyPanel.loadedGraphFile() == null) return;
+        if (!topologyPanel.hasGraph()) return;
         var pairing = pairingAgainst(loaded);
         lastPairing = pairing;
         publishPairing();
         if (pairing.applies()) {
-            status.setText(status.getText() + "  ·  graph "
-                    + topologyPanel.loadedGraphFile().getFileName() + " kept — " + pairing.reason());
+            status.setText(status.getText() + "  ·  graph " + topologyPanel.graphLabel()
+                    + " kept — " + pairing.reason());
             return;
         }
-        String closed = topologyPanel.loadedGraphFile().getFileName().toString();
+        String closed = topologyPanel.graphLabel();
         topologyPanel.clearGraph();
         status.setText(status.getText() + "  ·  ⚠ graph " + closed + " closed — " + pairing.reason()
                 + ". Reopen it deliberately if you meant to compare them.");
@@ -2309,7 +2313,7 @@ public final class MainFrame extends JFrame {
      * {@code lastPairing} changes, so the panel and {@code context} can never disagree.
      */
     private void publishPairing() {
-        if (topologyPanel.loadedGraphFile() == null || lastPairing == null) {
+        if (!topologyPanel.hasGraph() || lastPairing == null) {
             topologyPanel.setPairingNote(null);
         } else {
             topologyPanel.setPairingNote(lastPairing.applies()
@@ -2769,7 +2773,7 @@ public final class MainFrame extends JFrame {
         String closedNote = "";
         if (endsSession) {
             boolean hadLog = store != null;
-            boolean hadGraph = topologyPanel.loadedGraphFile() != null;
+            boolean hadGraph = topologyPanel.hasGraph();
             if (hadLog) closeLog();
             if (hadGraph) closeGraph();
             if (hadLog || hadGraph) {
@@ -2913,7 +2917,7 @@ public final class MainFrame extends JFrame {
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult close(String what) {
             String w = what == null ? "" : what.trim().toLowerCase(java.util.Locale.ROOT);
             boolean hadLog = store != null;
-            boolean hadGraph = topologyPanel.loadedGraphFile() != null;
+            boolean hadGraph = topologyPanel.hasGraph();
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             switch (w) {
                 case "log" -> { closeLog(); echo.put("closed", "log"); }
@@ -3315,13 +3319,16 @@ public final class MainFrame extends JFrame {
                 // D-A1a: state it BEFORE anything is derived from position. An agent stepping a
                 // cycle, or reading the topology's dispatch badges, is entitled to know whether
                 // that order was derived or merely observed — and must not have to infer it.
-                var gf = topologyPanel.loadedGraphFile();
                 Map<String, Object> pair = new java.util.LinkedHashMap<>();
-                pair.put("graph", gf == null ? null : gf.getFileName().toString());
+                // M34.2: ask "is there a graph", not "is there a graph FILE" — a source-supplied
+                // graph has no file, and reporting null for it disowns a graph the app is holding
+                boolean gf = topologyPanel.hasGraph();
+                pair.put("graph", topologyPanel.graphLabel());
+                pair.put("graphSource", topologyPanel.graphSource().name());
                 // only describe a graph that is actually there: a verdict beside "graph": null is
                 // the tool asserting something about an artefact it does not have, which is the
                 // defect class this milestone is about
-                if (gf != null && lastPairing != null) {
+                if (gf && lastPairing != null) {
                     pair.put("applies", lastPairing.applies());
                     pair.put("loggedNodes", lastPairing.logged());
                     pair.put("declaredByGraph", lastPairing.matched());

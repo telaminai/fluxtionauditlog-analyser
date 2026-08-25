@@ -645,6 +645,22 @@ public final class TopologyPanel extends JPanel {
         return loadedFrom;
     }
 
+    /**
+     * Is a graph loaded AT ALL? (M34.2) — {@link #loadedGraphFile} answers "from which file", and a
+     * source-supplied graph has none by design, so callers that ask the file question to mean
+     * "is there a graph" understate what the app is holding. That is the mirror of the defect M35
+     * spent itself on: not claiming a graph it lacks, but disowning one it has.
+     */
+    public boolean hasGraph() {
+        return graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
+    }
+
+    /** How to name the loaded graph — its file, or where the source said it came from. */
+    public String graphLabel() {
+        if (loadedFrom != null) return loadedFrom.getFileName().toString();
+        return hasGraph() ? graphSource.describe : null;
+    }
+
     /** Where the loaded graph came from (M34.1) — NONE until something loads one. */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphSource graphSource =
             telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
@@ -804,6 +820,10 @@ public final class TopologyPanel extends JPanel {
         appendPart(sb, stepPart);
         appendPart(sb, scopePart);
         appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
+        if (!orderMeaningful) {
+            appendPart(sb, "⚠ ARRIVAL ORDER, NOT DISPATCH ORDER — this source declares no order "
+                    + "within a cycle, so position here is not causality");
+        }
         sb.append(viewNote());
         status.setText(sb.toString());
     }
@@ -820,6 +840,18 @@ public final class TopologyPanel extends JPanel {
      *
      * <p>Null or blank clears it — a graph with no log to judge against makes no claim either way.
      */
+    /**
+     * M34.2 — tell the view whether position within a cycle means anything. Drives the ordinal badge
+     * and the step-through wording together, so the picture and the words cannot disagree.
+     */
+    public void setOrderMeaningful(boolean meaningful) {
+        this.orderMeaningful = meaningful;
+        canvas.setOrderMeaningful(meaningful);
+        renderStatus();
+    }
+
+    private boolean orderMeaningful = true;
+
     public void setPairingNote(String note) {
         this.pairingPart = note == null || note.isBlank() ? null : note;
         renderStatus();
@@ -1101,6 +1133,13 @@ public final class TopologyPanel extends JPanel {
         java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
         out.put("recordIndex", cursor.recordIndex());
         out.put("rowIndex", cursor.rowIndex());
+        // M34.2 — an agent reads the echo, not the canvas. The suppressed badge is invisible to it,
+        // so the qualification has to travel in the data or the agent will read rowIndex as order.
+        out.put("orderMeaningful", orderMeaningful);
+        if (!orderMeaningful) {
+            out.put("orderCaveat", "this source declares no order within a cycle: rowIndex is "
+                    + "ARRIVAL order, not dispatch order. Do not read it as causality.");
+        }
         out.put("atEntry", cursor.atEntry());
         out.put("rowCount", cursor.rowCount());
         out.put("position", cursor.positionLabel());
@@ -1629,7 +1668,8 @@ public final class TopologyPanel extends JPanel {
             sb.append("entry");
             if (rows > 0) sb.append("  ·  ").append(rows).append(rows == 1 ? " row" : " rows");
         } else {
-            sb.append("step ").append(cursor.rowIndex() + 1).append(" / ").append(rows);
+            sb.append(orderMeaningful ? "step " : "logged ")
+                    .append(cursor.rowIndex() + 1).append(" / ").append(rows);
         }
         return sb.toString();
     }
