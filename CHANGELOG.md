@@ -12,6 +12,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   on this path" can never appear, and their absence reads as a clean bill of health. The Topology
   status now says so outright, and the `topology` echo carries the same caveat for agents. `coverage`
   already refuses such a graph; this is the shading half of the same argument.
+- **When a log's source offers a graph you already have one open, the analyser says so.** The graph
+  you opened still wins — a graph someone named outranks one that merely arrived — but the offer is
+  no longer silent, so you know a second, possibly better-matched topology came with this log.
 - **A source that cannot promise an order no longer gets one drawn for it** (M34.2). The topology's
   ordinal badge — the small number saying "this ran third" — is the most confident thing the canvas
   draws, and on a concurrent engine that number is arrival order, not causality. When a reader

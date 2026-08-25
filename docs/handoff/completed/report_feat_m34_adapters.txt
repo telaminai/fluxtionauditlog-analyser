@@ -191,3 +191,40 @@ something to leave in a real profile.
   graphSource "None" and I began hunting the precedence logic. The jar was stale — `mvn test`
   compiles but does not repackage, so the running app predated the change and "None" was Python's
   missing key, not the enum. Rebuild before driving.
+
+================================================================================
+7. RESPONSE TO THE REVIEW (review_feat_m34_adapters.txt, e25566b)
+================================================================================
+All five findings verified by re-derivation and all five are right. F1 is the one I should have
+found: I designed GraphSource to answer "who wins the slot WHILE a log is open" and never asked what
+happens to a reader's graph when the log goes. It is the log's DERIVED state — M35's own rule,
+applied to a thing I had just created, and I missed it in the milestone that exists to enforce it.
+The reviewer found it the way M35's findings were found: drive it, close it, look.
+
+F2 is worse in a specific way and worth naming. I wrote `graphNote()` with a javadoc saying "so the
+source does not look like one that simply had no graph" — and nothing ever called it. Loud
+degradation promised in the comment, silent in the code, in the same commit. That is the defect
+class this branch is about, committed while describing the intent.
+
+F3, F4, F5 all correct. F4's self-correction in the review ("I first wrote NPE on first paint —
+WRONG, checked and corrected") is the right instinct: the finding stands on the adjacency maps
+without the crash claim.
+
+THE THREE NOTES — disposition:
+  N1  DONE HERE. A declined source graph is now reported: the status says "the source also offered a
+      graph (4 nodes, declared) — yours was kept", and context.graphPairing carries
+      sourceGraphOffered + sourceGraphDeclined. The precedence was right; the silence was not — the
+      app knew a second, possibly better-matched graph had arrived with this log and said nothing.
+      It clears with the log, because the offer belonged to that log.
+      LIVE: fits.graphml opened → run.probe (whose reader offers its own) → graphSource OPENED,
+      sourceGraphOffered "4 nodes, declared"; after close {log} → null.
+  N2  DONE HERE, as ONE note rather than three. assistant.md now says once that `open {log}` is
+      asynchronous, so its echo cannot carry what the load discovers — ordering, the source graph,
+      the time-order report and the project offer are all read from `context` afterwards. Four
+      exceptions were three too many; it is one pattern.
+  N3  NOT DONE — it belongs to M34.3 and is already tracked there. The probes are the only
+      PARTIAL/INFERRED/throwing sources in the tree and live outside the build; conformance fixtures
+      are where they become permanent. Moving them now would be building M34.3 inside M34.2.
+
+M34.1 and M34.2 are complete. M34.3 (format spec + conformance fixtures) is the next slice and
+inherits N3.

@@ -1988,6 +1988,7 @@ public final class MainFrame extends JFrame {
         logDisplayLocation = null;
         logLocalPath = null;
         logProvenance = null;          // §E: it described THAT log, not the next one
+        declinedSourceGraph = null;    // review N1: that offer came with the log that just closed
         timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
         flaggedRows.clear();
         findings.clear();
@@ -2194,9 +2195,21 @@ public final class MainFrame extends JFrame {
                                 java.util.Locale.ROOT) + ")");
                 judgeOpenedGraph();
                 updateLifecycleMenu();
+            } else {
+                // review N1: the offer was DECLINED because an opened graph holds the slot. The
+                // precedence is right, but saying nothing means the app knows something the user
+                // does not — that a second, possibly better-matched graph came with this log and
+                // was passed over. D-A2 asks which graph is shown; this says which was not.
+                declinedSourceGraph = g.nodes().size() + " nodes, "
+                        + g.provenance().name().toLowerCase(java.util.Locale.ROOT);
+                status.setText(status.getText() + "  ·  the source also offered a graph ("
+                        + declinedSourceGraph + ") — yours was kept");
             }
         });
     }
+
+    /** A source graph this log offered that an OPENED graph outranked, or null (review N1). */
+    private String declinedSourceGraph;
 
     /** How many records to sample when deciding whether a loaded graph still applies (M35.2). */
     private static final int PAIRING_SAMPLE = 500;
@@ -3347,6 +3360,11 @@ public final class MainFrame extends JFrame {
                 boolean gf = topologyPanel.hasGraph();
                 pair.put("graph", topologyPanel.graphLabel());
                 pair.put("graphSource", topologyPanel.graphSource().name());
+                if (declinedSourceGraph != null) {
+                    pair.put("sourceGraphOffered", declinedSourceGraph);
+                    pair.put("sourceGraphDeclined", "an OPENED graph holds the slot — a graph someone "
+                            + "named outranks one that arrived with the log (M34.1 precedence)");
+                }
                 if (store.sourceGraphNote() != null) {
                     pair.put("sourceGraphNote", store.sourceGraphNote());   // review M34 F2
                 }

@@ -129,6 +129,13 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
   *system* rather than a temp file. Omit it and the analyser says nothing — it is never inferred from
   the path, because a guessed system name is worse than none.
 
+!!! note "Opening a log is asynchronous — read `context` or `topology` after it"
+
+    `open {log}` returns as soon as the load *starts*, so its echo cannot carry what the load
+    discovers: the declared ordering, the graph the source supplied, the time-order report, or the
+    project offer. All four are reported by `context` (and `topology`) once the load lands. This is
+    one pattern, not four exceptions — if you need any of them, call `context` after opening.
+
 `context` carries `graphPairing` for the same reason: whether the loaded graph belongs to the loaded
 log is something to know **before** deriving anything from it, not after `coverage` returns a
 suspicious number. It also reports `projectOffer` when the log sits inside a project — the offer a
