@@ -27,7 +27,9 @@ public class Thermostat extends EventLogNode {          // (1) the node can audi
     @OnEventHandler
     public boolean onTemperature(Temperature t) {
         heating = t.celsius() < 18.0;
-        auditLog.info("sensor", t.sensor()).info("celsius", t.celsius()).info("heating", heating);
+        auditLog.info("sensor", t.sensor())
+                .info("celsius", t.celsius())
+                .info("heating", heating);
         return true;
     }
 }
@@ -64,8 +66,37 @@ public class AuditLogHello {
 }
 ```
 
-Open `thermostat-audit.yaml` in the analyser and you have two records, each with a `thermostat` entry
-under `nodeLogs`.
+Running it writes `thermostat-audit.yaml` — two events in, two records out, each carrying the three
+keys the node logged under its `instanceId`:
+
+```yaml
+---
+eventLogRecord: 
+    eventTime: 1787696934848
+    logTime: 1787696934848
+    groupingId: null
+    event: Temperature
+    eventToString: Temperature[sensor=hall, celsius=21.5]
+    thread: main
+    nodeLogs: 
+        - thermostat: { sensor: hall, celsius: 21.5, heating: false}
+    endTime: 1787696934849
+---
+eventLogRecord: 
+    eventTime: 1787696934849
+    logTime: 1787696934849
+    groupingId: null
+    event: Temperature
+    eventToString: Temperature[sensor=hall, celsius=16.0]
+    thread: main
+    nodeLogs: 
+        - thermostat: { sensor: hall, celsius: 16.0, heating: true}
+    endTime: 1787696934849
+```
+
+That is the whole contract: `thermostat` is the name the graph gave the node, and `sensor`, `celsius`
+and `heating` are the keys it logged — so in the analyser you filter on `thermostat` and plot
+`thermostat.celsius` over time. Open the file with **File ▸ Open log…**, or drag it onto the window.
 
 !!! danger "Write the `---` separator, or the analyser silently reads fewer records"
     A text audit log is a **sequence of YAML documents separated by lines consisting of `---`**
