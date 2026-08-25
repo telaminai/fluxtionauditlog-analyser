@@ -283,8 +283,16 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   (checked before the `~` rule — a project inside home must not come out `~/…`), omits the timestamp and
   strips the date line; `ProjectProfile.save` returns false and touches nothing when the file already
   holds that text. Round-trip is byte-identical (tests). One-off share exports unchanged.
-- [M35.9] ☐ **An `OpenRequest` for load-time side effects** — **TRIGGER FIRED 2026-08-25, schedule
-  it.** The condition recorded below was "when a fourth appears, or when R1 bites". A fourth
+- [M35.9] ☑ **An `OpenRequest` for load-time side effects** — **DONE 2026-08-25 on
+  `feat/m35-open-request`** (report `docs/handoff/report_feat_m35_open_request.txt`): `OpenRequest
+  {fromActionSocket, provenance}` is built where the open starts (verb adapter → `socket(provenance)`;
+  chooser/drag/recent/S3 → `HUMAN`; follow rotation → `reload(provenance)`), carried through the async
+  load and read once in `onLoaded`. `openFromActionSocket` and `pendingProvenance` are gone; provenance
+  arrives WITH the open (`AppControl.openLog(path, format, provenance)`, defaults keep old implementors
+  working). Threading it found the FIFTH and SIXTH instances: `open {logs}` never set the flag (its
+  time-order modal fired on agents) and `open {log}` on a rolled-set member hit the "open the whole
+  set?" confirm — now `context.rolledSetOffer`. R1 (two loads crossing a field) is gone with the field.
+  _Original entry:_ **TRIGGER FIRED 2026-08-25, schedule it.** The condition recorded below was "when a fourth appears, or when R1 bites". A fourth
   appeared, and it was not hypothetical: the M35 review's F5 fix (suppressing the time-order modal
   on socket-driven opens) NEVER WORKED, because `maybeOfferProject` consumes `openFromActionSocket`
   59 lines before the time-order gate tests it — and the gate's own comment asserted the opposite

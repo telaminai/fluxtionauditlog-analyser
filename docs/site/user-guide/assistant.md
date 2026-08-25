@@ -132,8 +132,10 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
 !!! note "Opening a log is asynchronous — read `context` or `topology` after it"
 
     `open {log}` returns as soon as the load *starts*, so its echo cannot carry what the load
-    discovers: the declared ordering, the graph the source supplied, the time-order report, or the
-    project offer. All four are reported by `context` (and `topology`) once the load lands. This is
+    discovers: the declared ordering, the graph the source supplied, the time-order report, the
+    project offer, or — when the file is one member of a rolled set — the set offer
+    (`rolledSetOffer`, with the member files; `open {logs: [...]}` loads them). All are reported by
+    `context` (and `topology`) once the load lands, and none of them is ever a dialog on this path. This is
     one pattern, not four exceptions — if you need any of them, call `context` after opening.
 
 `context` carries `graphPairing` for the same reason: whether the loaded graph belongs to the loaded

@@ -115,6 +115,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   keep compiling — the capability is additive and defaults to `TOTAL`.
 
 ### Fixed
+- **Two more dialogs no longer hang an agent-driven open** (M35.9). `open {logs: [...]}` — the
+  rolled-set verb — never carried the "this came from the socket" fact, so a set with out-of-order
+  records put the time-order report on screen as a modal; and `open {log}` on one *member* of a
+  rolled set stopped at the "open the whole set?" question that only a person can answer. Both are
+  now data: the report reaches `context` as before, and the set offer appears as
+  `context.rolledSetOffer` with the member files, so the agent decides. Under the hood the
+  who-asked-and-what-they-declared facts now travel *with* each load (`OpenRequest`) instead of
+  sitting in fields that one step could consume before another read them — the shape behind four
+  earlier defects in this area, including a suppression that had never worked.
 - **Relative paths in a committed project profile are relative to the project, not to `.analyser/`.**
   A profile that said `sourceRoot.0=src/main/java` was resolved against the folder the file sits in,
   landing at `<project>/.analyser/src/main/java` — a directory that does not exist — so the playground

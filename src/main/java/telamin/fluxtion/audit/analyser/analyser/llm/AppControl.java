@@ -25,6 +25,18 @@ public interface AppControl {
     }
 
     /**
+     * Open with a declared provenance (§E) in the SAME call (M35.9). The executor calls this form;
+     * the default routes through {@link #setProvenance} + {@link #openLog(String, String)} so an
+     * implementor written before M35.9 sees exactly what it used to. Passing the declaration with
+     * the request is what lets an implementation carry it through an asynchronous load without a
+     * field set beforehand and consumed afterwards — the shape that failed four times in M35.
+     */
+    default ActionResult openLog(String path, String format, String provenance) {
+        setProvenance(provenance);
+        return openLog(path, format);
+    }
+
+    /**
      * Open an explicit rolled set (M30 D-R5): the caller DECLARES the member list; content decides the
      * order; the echo carries the order chosen and the TimeOrderReport. Default: not supported.
      */
@@ -32,13 +44,20 @@ public interface AppControl {
         return ActionResult.error("'logs' is not enabled here");
     }
 
+    /** As {@link #openLogs(java.util.List)} with the provenance in the same call (M35.9). */
+    default ActionResult openLogs(java.util.List<String> paths, String provenance) {
+        setProvenance(provenance);
+        return openLogs(paths);
+    }
+
     /** Open a processor {@code .graphml}. */
     ActionResult openGraphml(String path);
 
     /**
-     * Declare WHERE the log about to be opened came from (§E). Free text; called before
-     * {@link #openLog}, consumed by that one load. Never inferred — a guessed system name is worse
-     * than none.
+     * Declare WHERE the log about to be opened came from (§E). Free text. Since M35.9 the executor
+     * passes provenance WITH the open ({@link #openLog(String, String, String)}); this remains on the
+     * published surface so implementors written against the earlier protocol keep receiving it via
+     * the defaults. Never inferred — a guessed system name is worse than none.
      */
     default void setProvenance(String provenance) {
     }

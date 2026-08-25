@@ -1,0 +1,92 @@
+REPORT — feat/m35-open-request · M35.9 an OpenRequest for load-time side effects
+From: the second session · 2026-08-25 · Base: main @ 8f58614 (M34.3 merged)
+Trigger: the M35.8 review's F1 — the M35 review's F5 fix had never worked; M35.9's own condition
+("when a fourth appears, or when R1 bites") was met and the tracker said schedule it.
+
+================================================================================
+1. WHAT CHANGED
+================================================================================
+  ui/OpenRequest.java                record {fromActionSocket, provenance}; HUMAN, socket(p), reload(p).
+                                     Built where an open STARTS, carried through Background.run,
+                                     read ONCE in onLoaded. Dead after that.
+  MainFrame                          openLocation/openS3/openFile/openFileWithReader/openRolledSet
+                                     all take the request; the 1-arg human forms delegate to HUMAN.
+                                     onLoaded(loaded, location, report, request). The fields
+                                     openFromActionSocket and pendingProvenance are DELETED, with
+                                     the consume-and-reset choreography around them.
+  AppControl                         openLog(path, format, provenance) and openLogs(paths, provenance)
+                                     as DEFAULTS routing through setProvenance + the old forms, so an
+                                     implementor written against 1.5.0 still receives provenance.
+                                     setProvenance stays on the surface (published), documented as
+                                     the legacy protocol.
+  ActionExecutor                     calls the 3-arg forms — one call, nothing set beforehand.
+  MainFrame adapter                  builds OpenRequest.socket(provenance) from the verb's own params.
+                                     A failed pre-check never builds a request, so there is nothing
+                                     to clear — the "declaration belonged to an open that never
+                                     happened" branch is gone because the hazard is gone.
+
+================================================================================
+2. WHAT THREADING THE REQUEST FOUND — the fifth and sixth instances
+================================================================================
+Following every path that reaches onLoaded and asking "where does this one learn who asked?":
+  5 · open {logs: [...]} (the M30 rolled-set verb) called openRolledSet directly and NEVER set the
+      socket flag. Its time-order modal — rolled sets are where violations happen — fired on every
+      agent-driven set open. Nobody had driven that path from the socket with a bad set.
+  6 · open {log} on one MEMBER of a rolled set: openFile's "Open the whole set?" confirm is a modal
+      BEFORE the load even starts. M35.7 fixed the offer after the load; this one sat in front of it.
+      Now: on the socket path the set is recorded as `context.rolledSetOffer` {files, note} and the
+      single file opens; the agent decides with open {logs}. Cleared with the log and on the next open.
+Neither needed a new mechanism: once every entry point had to state who asked, the two that could
+not were the two that were wrong. That is the argument for the refactor over a fifth local.
+
+================================================================================
+3. WHAT DID NOT CHANGE, deliberately
+================================================================================
+  · pendingProjectOffer, declinedSourceGraph, logProvenance stay as FIELDS. They describe the LOG
+    that is open (its offer, its source's declined graph, its declared origin), not the request;
+    they clear in closeLog. The record's javadoc draws that line so nobody moves them into it.
+  · The human path shows every dialog it showed before: rolled-set confirm, project offer,
+    time-order report. HUMAN is the default for every non-verb entry point.
+  · The follow-rotation reload uses reload(logProvenance): same log, same system — replacing the
+    `pendingProvenance = logProvenance` hack with an explicit statement.
+
+================================================================================
+4. VERIFICATION
+================================================================================
+Headless — OpenRequestTest (3): the record normalises; the executor hands provenance to the app IN
+THE SAME CALL for open {log}, {log, format}, {logs} and an undeclared open (setProvenance is not
+called at all); a pre-M35.9 implementor still receives provenance through the defaults.
+ProjectVerbTest/CloseVerbTest unchanged and green (their fakes use the old surface).
+Swing — driven over REST against an isolated -Duser.home (§5).
+
+================================================================================
+5. LIVE DRIVE
+================================================================================
+Isolated -Duser.home; two identical copies of sample.yml (2 out-of-order records each) named
+maker.log.1 / maker.log.2 (INDEX_SUFFIX — digits LAST; my first fixture, maker.1.yaml, was not a
+rolled name and proved nothing, which the missing rolledSetOffer made obvious). Each step is a verb
+call and its answer; "screen" is a full-screen capture read by the reviewer, kept out of the repo.
+
+  S1' open {log: maker.log.1, provenance}   → ok. The screen capture for this step caught another
+                                              window in front and proves NOTHING — said plainly.
+                                              The stronger evidence is structural: the "open the
+                                              whole set?" confirm sits BEFORE the load starts in
+                                              openFile, so had it been shown the file could not have
+                                              loaded until answered — and context shows it loaded:
+                                              provenance carried, rolledSetOffer {files: [maker.log.1,
+                                              maker.log.2], note}, timeOrder as data.
+                                              (A modal JOptionPane does not stop REST answering —
+                                              it pumps events — so "the app still answers" is weak
+                                              evidence on its own; it is listed as S3 for what it
+                                              is worth, not as proof.)
+  S2  open {logs: [m.1, m.2], provenance}   → ok; SCREEN CAPTURE READ: the analyser window with 42
+                                              records and the status-bar warning, NO dialog (this path fired it
+                                              before — it never carried the socket fact); context:
+                                              provenance "DEMO roll set", 3 timeOrder lines
+                                              (overlap + two within-file), rolledSetOffer GONE.
+  S3  filter                                → answers: nothing is blocked behind a dialog.
+  S4  close log → context                   → no provenance, no offer, no timeOrder.
+  S5  open {log} with NO provenance         → context has no provenance: not inherited from S2.
+  S6  accept the S1' offer with open {logs} → offer gone; the set loads.
+The human path (chooser/drag/recent/S3 dialog) is unchanged by construction — every non-verb entry
+point passes OpenRequest.HUMAN — and is read-verified, not driven: there is no socket into a chooser.

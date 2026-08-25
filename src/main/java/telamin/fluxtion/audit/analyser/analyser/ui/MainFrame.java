@@ -635,15 +635,6 @@ public final class MainFrame extends JFrame {
      */
     private String logProvenance;
 
-    /**
-     * Provenance declared for the NEXT open, consumed by {@code onLoaded} (§E, review F4). The verb
-     * declares it immediately before its open; every other route — chooser, drag-drop, S3, recent —
-     * declares nothing and so arrives with nothing. Without this, a human open after an agent's
-     * {@code open {log, provenance}} inherited the previous system's name: not guessed, which §E
-     * forbids, but INHERITED, which is worse.
-     */
-    private String pendingProvenance;
-
     /** The log actually open, as the fingerprint names it — one source for authoring and re-opening. */
     private String loadedLogName() {
         return logDisplayLocation == null ? "" : new File(logDisplayLocation).getName();
@@ -1789,36 +1780,39 @@ public final class MainFrame extends JFrame {
         if (uri != null && S3Source.isS3(uri.trim())) openS3(uri.trim());
     }
 
-    /** Opens a local path or an s3:// URI. */
-    /**
-     * True while an open initiated by the ACTION SOCKET is in flight (M35.7). Set immediately before
-     * the load starts and consumed in {@code onLoaded}; opens serialise on the EDT, so the value that
-     * arrives at the callback is the one that started it.
-     */
-    private boolean openFromActionSocket;
-
     /** A project offer the agent path declined to show as a dialog — reported as DATA instead. */
     private Path pendingProjectOffer;
 
+    /**
+     * A rolled-set offer the agent path declined to show as a dialog (M35.9, the fifth instance of
+     * the load-path modal): the member files, most recent last. Reported in {@code context} as
+     * {@code rolledSetOffer}; cleared with the log. Opening the set is {@code open {logs: [...]}}.
+     */
+    private java.util.List<String> pendingRolledSetOffer;
+
+    /** Opens a local path or an s3:// URI for a PERSON — dialogs are shown. */
     public void openLocation(String location) {
-        openLocation(location, false);
+        openLocation(location, OpenRequest.HUMAN);
     }
 
     /**
-     * @param fromActionSocket when true the project offer is RECORDED rather than shown (M35.7).
-     *                         {@code maybeOfferProject} is modal, and a modal in the load path
-     *                         strands an agent-driven open: everything after it waits for a click
-     *                         that will never come, while {@code store} is already assigned and
-     *                         answerable. An offer nobody can answer is not an offer.
+     * Opens a local path or an s3:// URI on behalf of whoever {@code request} says asked (M35.9).
+     * The request travels with the load and is read once, in {@code onLoaded}: on the socket path
+     * every dialog the load would show becomes data instead, because nobody is at the screen to
+     * answer it, and {@code store} would already be live behind the dialog.
      */
-    public void openLocation(String location, boolean fromActionSocket) {
-        openFromActionSocket = fromActionSocket;
-        if (S3Source.isS3(location)) openS3(location);
-        else openFile(Path.of(location));
+    public void openLocation(String location, OpenRequest request) {
+        if (S3Source.isS3(location)) openS3(location, request);
+        else openFile(Path.of(location), request);
     }
 
-    /** Loads an s3:// log via the aws CLI on the background executor. */
+    /** Loads an s3:// log via the aws CLI on the background executor, for a person. */
     public void openS3(String uri) {
+        openS3(uri, OpenRequest.HUMAN);
+    }
+
+    public void openS3(String uri, OpenRequest request) {
+        pendingRolledSetOffer = null;   // any offer belonged to the previous open
         status.setText("Loading " + uri + " …");
         setBusy(true);
         Background.run(
@@ -1834,7 +1828,7 @@ public final class MainFrame extends JFrame {
                     }
                 },
                 out -> onLoaded((LogStore) out[0], uri,
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1]),
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request),
                 err -> {
                     setBusy(false);
                     status.setText("Failed to load " + uri + ": " + rootMessage(err));
@@ -1866,12 +1860,24 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrderReport =
             telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
 
-    /** Loads a log file on the background executor and swaps in the new model on the EDT. */
+    /** Loads a log file on the background executor and swaps in the new model on the EDT, for a person. */
     public void openFile(Path path) {
+        openFile(path, OpenRequest.HUMAN);
+    }
+
+    public void openFile(Path path, OpenRequest request) {
+        pendingRolledSetOffer = null;   // any offer belonged to the previous open
         // M30 D-R5: opening a member of a rolled set OFFERS the set — never assumes it
         try {
             var siblings = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.discoverSiblings(path);
-            if (siblings.size() > 1) {
+            if (siblings.size() > 1 && request.fromActionSocket()) {
+                // M35.9: the fifth load-path modal, found by threading the request. An agent opening
+                // one member of a set would have hung on "Open the whole set?" — recorded as data
+                // instead; the set is one `open {logs: [...]}` away and context names the files.
+                var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(siblings);
+                pendingRolledSetOffer = set.ordered().stream()
+                        .map(s -> s.file().toString()).toList();
+            } else if (siblings.size() > 1) {
                 var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(siblings);
                 StringBuilder msg = new StringBuilder("This file looks like part of a rolled set ("
                         + siblings.size() + " files). Open the whole set, in content order?\n\n");
@@ -1885,7 +1891,7 @@ public final class MainFrame extends JFrame {
                 int choice = JOptionPane.showConfirmDialog(this, msg.toString(),
                         "Rolled log set found", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
                 if (choice == JOptionPane.YES_OPTION) {
-                    openRolledSet(set);
+                    openRolledSet(set, request);
                     return;
                 }
             }
@@ -1894,11 +1900,11 @@ public final class MainFrame extends JFrame {
         }
         status.setText("Loading " + path + " …");
         setBusy(true);
-        openFileWithReader(path, null);
+        openFileWithReader(path, null, request);
     }
 
     /** Open via the reader registry (M31): explicit {@code format} wins; otherwise canOpen decides. */
-    void openFileWithReader(Path path, String format) {
+    void openFileWithReader(Path path, String format, OpenRequest request) {
         Background.run(
                 () -> {
                     try {
@@ -1919,7 +1925,7 @@ public final class MainFrame extends JFrame {
                     }
                 },
                 out -> onLoaded((LogStore) out[0], path.toString(),
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1]),
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request),
                 err -> {
                     setBusy(false);
                     status.setText("Failed to load " + path + ": " + rootMessage(err));
@@ -1929,9 +1935,11 @@ public final class MainFrame extends JFrame {
     }
 
     /** Open a resolved rolled set as one logical log (M30). */
-    private void openRolledSet(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.RollSet set) {
+    private void openRolledSet(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.RollSet set,
+                               OpenRequest request) {
         var files = set.ordered().stream()
                 .map(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.Sibling::file).toList();
+        pendingRolledSetOffer = null;   // the set IS the answer to any offer that was pending
         status.setText("Loading rolled set (" + files.size() + " files) …");
         setBusy(true);
         Background.run(
@@ -1949,7 +1957,7 @@ public final class MainFrame extends JFrame {
                 },
                 out -> onLoaded((LogStore) out[0],
                         files.get(files.size() - 1).getFileName() + " (+" + (files.size() - 1) + " rolled)",
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1]),
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request),
                 err -> {
                     setBusy(false);
                     status.setText("Failed to load rolled set: " + rootMessage(err));
@@ -2008,6 +2016,7 @@ public final class MainFrame extends JFrame {
         lastPairing = null;                // review F2: the verdict was about THIS log — with it gone the
         publishPairing();                  // graph makes no claim, and the panel's note must not keep one
         pendingProjectOffer = null;        // review F3: an offer made for a log that is no longer open
+        pendingRolledSetOffer = null;      // M35.9: likewise
         if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
 
         showingLabel.setText(" ");
@@ -2050,27 +2059,25 @@ public final class MainFrame extends JFrame {
         if (resetItem != null) resetItem.setEnabled(store != null || topologyPanel.hasGraph());
     }
 
-    private void onLoaded(LogStore loaded, String location) {
-        onLoaded(loaded, location, telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean());
-    }
-
+    /**
+     * @param request who asked and what they declared (M35.9) — read here and nowhere else. Every
+     *                load-time side effect below takes its answer from this one immutable value, so
+     *                no step can find it spent and no concurrent load can cross it.
+     */
     private void onLoaded(LogStore loaded, String location,
-                          telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport report) {
+                          telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport report,
+                          OpenRequest request) {
         this.timeOrderReport = report == null
                 ? telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean() : report;
         if (store != null && store != loaded) store.close();   // release the previous file's channel
         this.store = loaded;
         this.logDisplayLocation = location;
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
-        logProvenance = pendingProvenance;                      // §E: consumed by THIS load, then gone
-        pendingProvenance = null;
-        // Read the socket flag ONCE, here, and let every load-time side effect below share the local.
-        // Two consumers reading a mutable field in sequence is what broke review F5: maybeOfferProject
-        // consumes it 59 lines before the time-order gate tests it, so the gate always saw false and
-        // the dialog it was meant to suppress fired on every agent-driven open. (M35.9's OpenRequest
-        // is the structural version of this line; its "when a fourth appears" trigger has now fired.)
-        final boolean loadFromSocket = openFromActionSocket;
-        openFromActionSocket = false;
+        logProvenance = request.provenance();                   // §E: what THIS request declared
+        // M35.9: every load-time side effect reads the request, not a field. The field version failed
+        // four times — the last when maybeOfferProject consumed the socket flag 59 lines before the
+        // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
+        final boolean loadFromSocket = request.fromActionSocket();
 
         // M35.2 FIRST, and deliberately before maybeOfferProject(): that offer is a MODAL dialog, and
         // everything after it waits for a human — which on the agent path is nobody. `store` is
@@ -2393,8 +2400,7 @@ public final class MainFrame extends JFrame {
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
             followTimer.stop();          // avoid re-entrant reloads while the async load runs
-            pendingProvenance = logProvenance;   // same log, same system — the declaration survives the reload
-            openFile(Path.of(followPath));
+            openFile(Path.of(followPath), OpenRequest.reload(logProvenance));   // same log, same system
             return;
         }
         if (added == 0) return;
@@ -2898,24 +2904,44 @@ public final class MainFrame extends JFrame {
 
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path) {
-            if (path == null || path.isBlank()) {
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'log' is empty");
-            }
-            if (!S3Source.isS3(path) && !Files.isReadable(Path.of(path))) {
-                pendingProvenance = null;   // the declaration belonged to an open that never happened
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                        "cannot read log '" + path + "'");
-            }
-            openLocation(path, true);       // M35.7: no modal on this path — nobody can answer it
-            Map<String, Object> echo = new java.util.LinkedHashMap<>();
-            echo.put("path", path);
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "log", echo);
+            return openLog(path, null, null);
         }
 
         @Override
-        public void setProvenance(String provenance) {
-            // declared for the open that follows; the load consumes it (see pendingProvenance)
-            pendingProvenance = provenance == null || provenance.isBlank() ? null : provenance.trim();
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path, String format) {
+            return openLog(path, format, null);
+        }
+
+        /**
+         * M35.9: the request is built HERE, from the verb's own params, and travels with the load.
+         * There is no field to set before or clear after — a failed pre-check simply never builds it.
+         */
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path, String format,
+                                                                               String provenance) {
+            if (path == null || path.isBlank()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'log' is empty");
+            }
+            OpenRequest request = OpenRequest.socket(provenance);   // M35.7: no modal on this path
+            if (format != null && !format.isBlank()) {
+                java.nio.file.Path f = java.nio.file.Path.of(path);
+                if (readerRegistry.readerFor(f, format) == null) {
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                            "no installed reader has format '" + format + "' — installed: "
+                                    + readerRegistry.describeReaders());
+                }
+                openFileWithReader(f, format, request);
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied",
+                        java.util.Map.of("log", path, "format", format, "loading", true));
+            }
+            if (!S3Source.isS3(path) && !Files.isReadable(Path.of(path))) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "cannot read log '" + path + "'");
+            }
+            openLocation(path, request);
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("path", path);
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "log", echo);
         }
 
         @Override
@@ -3285,22 +3311,14 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
-        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path, String format) {
-            java.nio.file.Path f = java.nio.file.Path.of(path);
-            if (format != null && !format.isBlank()) {
-                if (readerRegistry.readerFor(f, format) == null) {
-                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                            "no installed reader has format '" + format + "' — installed: "
-                                    + readerRegistry.describeReaders());
-                }
-                openFileWithReader(f, format);
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied",
-                        java.util.Map.of("log", path, "format", format, "loading", true));
-            }
-            return openLog(path);
-        }
 
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths) {
+            return openLogs(paths, null);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths,
+                                                                                String provenance) {
             java.util.List<java.nio.file.Path> files = new java.util.ArrayList<>();
             for (String p : paths) {
                 java.nio.file.Path f = java.nio.file.Path.of(p);
@@ -3312,7 +3330,8 @@ public final class MainFrame extends JFrame {
             }
             try {
                 var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(files);
-                openRolledSet(set);   // async load; the echo reports what was decided NOW
+                // M35.9: this path never set the socket flag, so its time-order modal fired on agents
+                openRolledSet(set, OpenRequest.socket(provenance));   // async; the echo reports what was decided NOW
                 Map<String, Object> echo = new java.util.LinkedHashMap<>();
                 echo.put("files", set.ordered().stream()
                         .map(s -> s.file().getFileName().toString()).toList());
@@ -3378,6 +3397,15 @@ public final class MainFrame extends JFrame {
                     pair.put("verdict", lastPairing.reason());
                 }
                 out.put("graphPairing", pair);
+                if (pendingRolledSetOffer != null) {
+                    // M35.9: the dialog the socket path did not show. The member files are named so
+                    // the set is one call away — open {logs: [...]} — and the agent decides, not the app.
+                    out.put("rolledSetOffer", Map.of(
+                            "files", pendingRolledSetOffer,
+                            "note", "this log is one member of a rolled set; opening the set is a decision, "
+                                    + "so it is offered — open {logs: [...]} with these files loads it in "
+                                    + "content order"));
+                }
                 if (pendingProjectOffer != null) {
                     // M35.7: the offer the agent path did not show as a dialog. Reported, never applied
                     // — loading a project replaces source roots, graphs and hidden columns, which is a
