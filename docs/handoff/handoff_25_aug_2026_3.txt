@@ -1,0 +1,48 @@
+HANDOFF — M36: the start page (the empty state, doing a job)
+Date: 2026-08-25 · From: main session · Branch: feat/m36-start-page (opened by this brief)
+Base: main @ 2f46cf5 · Report: docs/handoff/report_feat_m36_start_page.txt (first work commit)
+
+ORIENT FIRST: CLAUDE.md · **docs/specs/spec-start-page.md** (the design; D-S1…D-S5 are the argument,
+not decoration) · tracker ▸ M36.
+
+TWO OPEN QUESTIONS, DECIDED so the slice can start. Flagged to the owner; overrule at any time.
+  O-S2 → **replace only the RECORDS pane**, not the whole main area. The tabs ARE the product's
+         structure; hiding them on first contact teaches nothing, and someone who has never seen the
+         app should learn its shape before using it.
+  O-S1 → **bundle the demo log**. Every action must work with no configuration, no server and no API
+         key (D-S2), and generating one on first click is an action that can FAIL on first contact.
+         src/test/resources/sample.yml is 23 KB, rule-1 clean (DEMO / acme / MAKER_USDMXN_DEMO,
+         checked), and must be COPIED to src/main/resources — it is not in the shipped jar today.
+  O-S3 → not a decision: rule 1 applies hardest here. This is the most-seen surface in the app and
+         the likeliest to carry a name onto the docs site. Every string, every screenshot.
+
+⚠ COLLISION: M35.9 (the OpenRequest refactor, whose trigger has fired) rewrites onLoaded's
+  load-time side effects. This slice touches the OTHER end of the same lifecycle — what is shown
+  when store == null, i.e. closeLog() and startup. Adjacent lines in MainFrame, not the same ones.
+  Whoever merges second should expect a trivial resolution rather than a surprise.
+
+TASK — one slice per commit, suite green before each.
+  ⚠ Never trust `$?` after a pipe. Run mvn bare. And REPACKAGE before driving the jar: `mvn test`
+  compiles but does not build the fatjar, and a stale jar has already cost this milestone a cycle.
+
+  1  THE STATE. A StartPanel shown in the records pane whenever store == null; the log replaces it,
+     closeLog() brings it back, `Help ▸ Start page` recalls it deliberately. No splash, no modal, no
+     remembered dismissal — there is nothing to dismiss, it is what the pane shows when empty.
+     The single line it replaces is LogTablePanel:61.
+  2  THE FOUR SECTIONS, each ending in an ACTION against the bundled demo (spec D-S2). What it does ·
+     how it helps (three questions: why is this number what it is / which nodes never ran / what
+     changed between runs) · where it fits (dev → deploy → ANALYSE → commit) · three lanes.
+  3  THE LANES (D-S3) phrased as the user's own sentence, never as a question the app asks. Nothing
+     remembered, nothing personalised: picking one is navigation, and a wrong pick costs a click.
+  4  DOCS + CHANGELOG in the same commits. A screenshot only via tools/capture-docs.py, never by hand.
+
+  DO NOT: list features (D-S4 — stale the release after it is written, and it is the first thing a
+  new user reads, so its errors are the ones they carry); duplicate HelpPanel (D-S5 — a sentence
+  that would serve someone who already has a log open belongs in Help); add telemetry or a
+  "was this helpful?".
+
+TESTING
+  The page is Swing. What IS headless: that the bundled demo resource exists and parses; that the
+  page's action targets resolve. Everything visual is build-and-run, BOTH THEMES, driven over REST
+  the way tools/ does. Acceptance 1 is the real test — launch to a rendered topology and a stepped
+  cycle on the demo, in two clicks, with no configuration.
