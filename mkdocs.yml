@@ -89,6 +89,7 @@ copyright: Copyright &copy; 2026 Telamin Limited
 
 nav:
   - Home: index.md
+  - The build-with-AI loop: the-loop.md
   - Getting started:
       - Quick start: getting-started.md
       - Install & run: install.md

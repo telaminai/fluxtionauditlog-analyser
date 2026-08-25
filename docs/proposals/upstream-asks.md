@@ -18,6 +18,16 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
+**Raised 2026-08-25 (round 4), NOT yet filed — and gated:** §5–§7 are the server, playground and
+reader halves of the **agent-brokered dev loop** (`spec-agent-brokered-dev-loop.md`, ACCEPTED v2, M18
+closed in its favour): **UP-MNG-01…04** (`telaminai/mongoose` — endpoint registry file, MCP admin
+tool, declared dev/prod environment, audit-sink descriptor), **UP-PG-01…02** (the two catalogue fields
+that survived reading the live index; four were withdrawn and are recorded so they stay withdrawn),
+**UP-RDR-01** (the Chronicle reader). None starts before the spec's §H conformance harness has a home
+in the M19 bench — the dependency on another repo is acceptable because of that harness and not
+otherwise. Until now the tracker said these asks "belong in upstream-asks.md" and none was here; a
+session opened in the mongoose repo had the spec but no brief.
+
 **Raised 2026-08-17 (round 3), NOT yet filed:** UP-FLX-25…27 (§2b) come from specifying M28 (rolling
 windows) and M29 (external series) — the first asks here raised from making the log's own **clock**
 load-bearing, and from putting a second clock beside it. UP-FLX-28…31 (§2c) answer the owner's
@@ -829,3 +839,193 @@ _Filed: https://github.com/telaminai/fluxtion/issues/8_
 Every rejection code should carry a stable URL (`fluxtion.dev/errors/FLX-1001`). That is what makes the
 semantics in `claude.txt` reachable **at the moment of failure**, rather than requiring an agent to have
 read them up front — which is precisely where inference creeps in.
+
+---
+
+## 5 · Mongoose — the agent-brokered dev loop
+
+_Raised 2026-08-25 from [`spec-agent-brokered-dev-loop.md`](../specs/spec-agent-brokered-dev-loop.md)
+(ACCEPTED v2). M18 — the analyser linking to a server itself — is **closed**; the adopted design puts
+every server-side capability in **Mongoose's own repo**, reached by an agent over MCP, and the
+analyser opens files. These four asks are that design's server half. **None of them starts until the
+§H conformance harness has a home in the M19 bench** — the spec makes the cross-repo dependency
+acceptable *because* of that harness, and not otherwise._
+
+_Target repo for all four: `telaminai/mongoose` (the server runtime and its admin web service plugin —
+the owner decides which module). Evidence throughout is **measured**: the `svc-admin-web` capability
+check recorded in `spec-closed-loop.md` §B.2, the live playground read of 2026-08-21 (spec §C2), and
+the analyser's own endpoint-file mechanism, in daily use by every script in `tools/`._
+
+### UP-MNG-01 ☐ Each running server publishes an endpoint file — `~/.mongoose/servers/<name>`
+
+**Target** `mongoose` (runtime or admin web service) · **Priority** highest — this is the discovery
+glob; without it every other leg of the loop needs hand configuration, which is the M18 shape again
+
+**The ask.** On startup, when the admin web service is enabled, write one file per server, mode 600:
+
+```
+~/.mongoose/servers/<name>
+{
+  "name":        "risk-engine",
+  "home":        "/Users/dev/work/risk-engine",
+  "url":         "http://127.0.0.1:8081",
+  "token":       "…",
+  "authMode":    "TOKEN",
+  "environment": "dev",                                   ← UP-MNG-03
+  "pid":         41221,
+  "startedAt":   "2026-08-21T09:14:02Z",
+  "processors":  [{"group":"main","name":"RiskProcessor",
+                   "graphml":"/api/processors/main/RiskProcessor/graphml"}]
+}
+```
+
+Remove it on clean shutdown; on a crash it stays, and `pid` is how a reader tells a stale file from a
+live one — document that, do not build a cleaner. `processors[].graphml` is the **runtime** home of the
+"where is this server's GraphML" fact (the catalogue field that was withdrawn in favour of this, §C2).
+
+**Evidence.** The analyser publishes `~/.fluxtion-analyser/rest-endpoint` (`{url, token, pid,
+startedAt}`, mode 600 via `PosixFilePermissions`) and every capture and drive script in `tools/` finds
+the app that way with zero configuration — this is the same mechanism, one directory over. The
+alternatives were rejected in the spec: a registry *inside the analyser* re-acquires the coupling M18
+was closed to remove; MCP client config is static and cannot absorb a server deployed mid-session.
+
+**Trust model, stated because these tokens gate restarts, not renders (spec review F5).** Mode 600,
+readable by any process running as the user — the same posture as the analyser's file. It is only
+sufficient because UP-MNG-03 puts the real refusal server-side: a non-dev deployment declines admin
+control regardless of who holds the file.
+
+**Acceptance.** A server generated from a `mongoose` starter and run with its `addRunScript` writes
+the file before the admin port answers; two servers → two files; `kill -9` → a file whose `pid` is
+dead; the §H harness reads it at step 3–4 with no configuration. **Cost to us if unfixed:** step 4 of
+the loop is a human typing a URL, and the "deploy a second server, it just appears" property is gone.
+
+### UP-MNG-02 ☐ An MCP admin tool, in the Mongoose repo — audit level, export, restart
+
+**Target** `mongoose` (a new module, or the admin web service plugin) · **Priority** high — it is the
+deploy leg (§C3 step 9) and the moved M18.3/18.4
+
+**The ask.** An MCP server (stdio, like the analyser's bridge) whose tools address a server by the
+`name` in its registry file (UP-MNG-01), each mutation approved per call by the MCP client — the
+transport's own permission model, not a hand-built dialog (D-B3):
+
+| tool | does | notes |
+|---|---|---|
+| `mongoose_servers` | lists the registry — name, url, environment, pid liveness, processors | read-only |
+| `mongoose_audit_level {server, level}` | sets the audit level **and returns the previous one** | today `EventLogControlEvent` is not a REST endpoint and has **no GET companion** (M18.3a) — the tool needs a read-back to record a baseline and to restore it. Capture-and-restore was M18.3's whole point |
+| `mongoose_export_audit {server, format, path}` | writes the audit log to a file the analyser can open | `format: yaml` today; the analyser then does `open {log, provenance}` with the server's `name` as provenance (§E) |
+| `mongoose_restart {server}` | dev restart | **its description must say, in its own words, "export the audit log first — a restart can roll or truncate the evidence" (D-B8)**, because the agent reads the tool, not the spec. `destructiveHint: true` |
+
+Every mutation is **journaled by the server** to its own log (D-B5, free tier): who, what, when,
+from which tool. A chat transcript is not an audit trail.
+
+**Evidence.** The `svc-admin-web` check (spec-closed-loop §B.2) found three gaps a client cannot
+paper over: no lifecycle endpoint (stop/start commented out), audit level reachable only through a
+registered command with no read-back, and no audit-sink discovery (UP-MNG-04). The analyser's MCP
+bridge (`McpTools`, 14 verbs, destructive hints on `open`/`source_root`/`screenshot`/`report`) is the
+in-house precedent for the shape.
+
+**Acceptance.** From a fresh Claude Code session with both MCP entries configured: `mongoose_servers`
+→ the server; `mongoose_audit_level` up, investigate, restore → the server's log shows three
+journal lines; `mongoose_restart` prompts in the client and its description mentions export-first;
+the analyser's Follow picks up the fresh log. **Cost to us if unfixed:** the flagship cycle's deploy
+leg does not exist and M18.3/18.4 stay deleted rather than moved.
+
+### UP-MNG-03 ☐ The server declares whether it is a dev instance
+
+**Target** `mongoose` (server config) · **Priority** high — it is what makes the free/paid line
+enforceable (D-B7) and it is the open question that decision left
+
+**The ask.** A declared `environment` in the server's own configuration (`dev` | `prod` — the owner
+names the values), carried into the endpoint file (UP-MNG-01) and honoured by the admin surface:
+**outside `dev`, admin control (level changes, restart) is refused without a licence token — by the
+server.** A licence check inside a readable client is an `if` anyone can delete; a server that
+refuses has nothing to patch on the customer's side.
+
+**Why declared and not inferred.** Non-loopback is the obvious signal and is too crude — a developer
+on a remote box is not production. Declared-never-inferred is the rule this codebase applies to
+graphs (D-A2), order (D-A1a) and provenance (§E); the environment is the same kind of fact.
+
+**Acceptance.** A starter-generated server declares `dev` by default; flipping it to `prod` makes
+`mongoose_restart` return a refusal that names the reason; the free dev MCP pointed at a `prod` server
+gets the same refusal. **Cost to us if unfixed:** the free dev MCP can be pointed at production and
+the paid line evaporates — or the line is drawn client-side, where it cannot hold.
+
+### UP-MNG-04 ☐ Describe the audit sink — its type and location — instead of assuming a file
+
+**Target** `mongoose` (admin web service) · **Priority** medium — the export path (UP-MNG-02) covers
+today's need; this is what lets UP-RDR-01 delete the export beat
+
+**The ask.** `GET /api/audit/sink` (or a field in the endpoint file) → `{"type": "file" | "chronicle" |
+"kafka" | "jdbc", "location": "…"}`. The audit writer is pluggable and **typed** (the `LogRecordListener`
+seam): a file sink has a path a reader can open; a Chronicle sink has a directory; kafka and jdbc have
+neither. Discovery that assumes a file path is wrong for three of the four.
+
+**Evidence.** spec-closed-loop §B.2: "no audit-sink endpoint … the sink is pluggable and typed";
+the `mongoose` starters already write `auditBackend: "chronicle"` (live read, spec §C2).
+
+**Acceptance.** A chronicle-backed server answers `{type: chronicle, location: ./audit}`; a reader
+that cannot open that type says so rather than failing on a path. **Cost to us if unfixed:** the
+Chronicle reader (UP-RDR-01) has to guess where the store is.
+
+---
+
+## 6 · Playground — two catalogue fields, and four that were withdrawn
+
+_The catalogue at <https://fluxtion-playground.dev/starter-templates/index.json> already exists and
+is already agent-readable; spec §C2 was corrected twice by reading it. **Recorded here so nobody
+re-raises the four that were withdrawn**: `mongoose.adminRest` (encoded by `type: mongoose` + the
+`web-admin` tag + the generated services block), `analyser.sourceRoot` (already
+`adminWebService.config.sourceRoots`), `run` (`addRunScript: true`), `analyser.graphml` (a runtime
+fact — moved into UP-MNG-01's `processors[].graphml`). Two stand._
+
+### UP-PG-01 ☐ `catalogue: 1` — a version integer on the index
+
+**Target** `fluxtion-playground` (starter-templates) · **Priority** high — D-B4 governs additive
+evolution *of a field that does not exist*
+
+**The ask.** Add a top-level `"catalogue": 1` to `index.json`. Fields may then be added within a
+version; none removed or retyped; a breaking change increments the integer and the old file stays
+served. **Evidence (live, 2026-08-21):** the only top-level key today is `templates`. Agents parse
+this file — the playground's own `/build-with-ai` says so — and an unversioned schema read by agents
+is rule 6 pointed outward: we would be the party shipping the breaking revision. **Cost to us if
+unfixed:** D-B4 is a rule about nothing.
+
+### UP-PG-02 ☐ `agentBootstrap` — where the generated project's agent instructions live
+
+**Target** `fluxtion-playground` (starter-templates + `/start`) · **Priority** medium
+
+**The ask.** One field per template naming the `CLAUDE.md` (+ `AGENTS.md` mirror) stack the generated
+project ships — the layered bootstrap M19.1 specifies (`spec-onboarding-example.md`: thin
+example-specific file at generation, over the maintained
+<https://fluxtion-playground.dev/CLAUDE.md>). It is the one M19.1 need with no equivalent in the
+live catalogue. **Cost to us if unfixed:** step 1 of the loop cannot tell an agent whether the project
+it is about to generate will know Fluxtion.
+
+---
+
+## 7 · Out-of-tree readers on the shipped SPI
+
+### UP-RDR-01 ☐ A Chronicle audit reader — open `./audit` directly, and delete the export beat
+
+**Target** wherever Chronicle already is a dependency — `mongoose` or `mongoose-plugins` (not this
+repo: it must not add Chronicle to the analyser's classpath; M31 D-P3 is the plugin directory for
+exactly this) · **Priority** high — the spec calls it "the sleeper": it makes the analyse leg *live*
+
+**The ask.** An `AuditLogReader` plugin: `formatId "chronicle"`, `canOpen` by the store directory,
+`capabilities {follow: true, byteAnchors: false, randomAccess: …, ordering: TOTAL}` (a Fluxtion
+processor's order is compiler-derived), `timeBase` declared from Chronicle's clock — never sniffed
+(review X2), `graph(source)` optional (the registry's `processors[].graphml` is the better source).
+Records are handed over as canonical text; **it passes the M34.3 conformance suite**
+(`docs/site/format-spec.md`, `src/test/resources/conformance/`) — that suite is the contract, and
+"passes it" is what conformant means.
+
+**What it buys.** §C3 step 5 (`export?format=yaml` → temp file → open) disappears: the agent opens
+`./audit` through the reader and **Follow tails the live store**. Edit → approve restart → watch the
+log move. The spec notes this is a design that gets *simpler* over time through a mechanism the
+analyser shipped in 1.5.0 — M18 could never have inherited that.
+
+**Evidence.** The `mongoose` starters write `auditBackend: "chronicle"` (live read); the SPI shipped
+in 1.5.0 and its `ServiceLoader` path was exercised end to end by the M34.2 probes; `M31.4r` (the
+playground example reader) is the same kind of artefact and the two should share a build recipe.
+**Cost to us if unfixed:** every cycle carries an export beat and a temp file, and the analyse leg is
+a snapshot rather than a tail.

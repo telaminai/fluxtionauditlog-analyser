@@ -153,6 +153,10 @@ not).
 
 ### C1 · The registry is a directory of endpoint files, owned by nobody
 
+_Drafted as asks 2026-08-25: **UP-MNG-01** (this file), **UP-MNG-02** (the MCP tool, §C3 step 9),
+**UP-MNG-03** (D-B7's declared environment), **UP-MNG-04** (sink descriptor), **UP-PG-01/02** (§C2's
+two surviving fields), **UP-RDR-01** (the Chronicle reader) — [upstream-asks.md](../proposals/upstream-asks.md) §5–§7._
+
 **Do not put the server registry in the analyser** (it re-acquires the coupling this spec removes)
 **and do not put it in MCP client config** (which is static — a server deployed mid-session cannot
 register itself there).
