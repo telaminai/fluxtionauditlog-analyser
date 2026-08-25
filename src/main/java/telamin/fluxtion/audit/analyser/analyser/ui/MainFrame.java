@@ -680,12 +680,27 @@ public final class MainFrame extends JFrame {
      */
     private void openDemoLog(Path log, boolean withGraph) {
         Path root = DemoAssets.install();
-        if (!config.sourceRoots.contains(root.toString())) {
-            config.sourceRoots.add(root.toString());   // so a node in the topology opens its source
-            saveConfigQuietly();
+        // M36 review F3: the demo's source root is TRANSIENT. Adding it to config persisted a source
+        // root into the user's own settings — and, with a project open, into that project's committed
+        // profile — from a button whose contract is "nothing remembered, nothing personalised" (D-S3).
+        // It lives in demoRoots and is appended at configure time; a restart forgets it, as it should.
+        if (demoRoots.add(root.toString())) {
+            sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
+                    config.mavenRepos, config.searchMavenRepos);
         }
         if (withGraph) topologyPanel.load(DemoAssets.graphml());
         openFile(log, OpenRequest.HUMAN);
+    }
+
+    /** Source roots the demo added for this session only — never written to any config tier. */
+    private final java.util.Set<String> demoRoots = new java.util.LinkedHashSet<>();
+
+    /** The configured roots plus the session's demo root(s), for the source service — config stays clean. */
+    private List<String> effectiveSourceRoots() {
+        if (demoRoots.isEmpty()) return config.sourceRoots;
+        List<String> all = new java.util.ArrayList<>(config.sourceRoots);
+        for (String r : demoRoots) if (!all.contains(r)) all.add(r);
+        return all;
     }
 
     /** The log actually open, as the fingerprint names it — one source for authoring and re-opening. */
@@ -2219,7 +2234,7 @@ public final class MainFrame extends JFrame {
         onFilterChanged();
 
         // source navigation: configure roots, then infer the EventProcessor in the background
-        sourceService.configure(config.sourceRoots, config.selectedEventProcessor,
+        sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
@@ -2647,7 +2662,7 @@ public final class MainFrame extends JFrame {
     }
 
     private void onConfigChanged() {
-        sourceService.configure(config.sourceRoots, config.selectedEventProcessor,
+        sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);

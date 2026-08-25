@@ -43,7 +43,7 @@ FOUR files under examples/fixture-generator carry it, and slice 1 was about to b
 INTO THE SHIPPED JAR, where an employer-domain email would go out with every release and onto any
 screenshot of the demo's source pane.
 
-THE REASON IT WAS INVISIBLE: **CLAUDE.md's standing sweep is `aquis|talos|nonco`. It does not look
+THE REASON IT WAS INVISIBLE: **CLAUDE.md's standing sweep lists three strings. It does not look
 for `v12technology`** — although the same document discusses `@v12technology.com` at length in the
 commit-metadata paragraph. The sweep has never been able to catch this class, so "sweep clean" has
 been true and incomplete on every commit in this repo, including all of mine.
@@ -52,7 +52,7 @@ DONE HERE: the header line is stripped from the two bundled copies; the test now
 set against all four terms, permanently and automatically, because this is content that ships.
 
 NOT DONE — OWNER'S CALL, because it is a rule-1 policy matter and pre-existing:
-  a) extend rule 1's sweep to `aquis|talos|nonco|v12technology`. It will then FAIL on the four
+  a) extend rule 1's sweep with `v12technology`. It will then FAIL on the four
      examples/ files until they are cleaned, which is the point of extending it.
   b) decide about those four files. They are already public. The header is compiler boilerplate
      carrying a personal address, not project content — stripping it changes nothing but the leak.

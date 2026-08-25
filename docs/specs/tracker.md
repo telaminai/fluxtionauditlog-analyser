@@ -320,7 +320,7 @@ a log from the command line means never seeing it._
   stay, so the product's structure is still visible.
 - **O-S3 HELD, and it bit.** `DemoAssetsTest` asserts the shipped demo carries no real names — and
   caught a `v12technology` copyright header in generated source on its way into the jar. Note for the
-  owner: **CLAUDE.md's sweep is `aquis|talos|nonco` and does not look for `v12technology`.**
+  owner: **CLAUDE.md's sweep lists three strings and does not look for `v12technology`.**
 - Closes **review_feat_m35_project N2** ("the first-run modal blocks an agent-driven start
   entirely"), together with M19.7. M19.7 suppressed the modal for `--rest`; M36 removed it outright,
   because the same three objections apply to the human at a fresh install. The `--rest` stdout note

@@ -1,0 +1,92 @@
+REVIEW — feat/m36-start-page (M36: the start page · Help ▸ Start page · Reports sizing · bundled demo set)
+Reviewer: the second session · 2026-08-25
+Inputs: docs/specs/spec-start-page.md (D-S1…D-S5, acceptance 1–6), docs/handoff/handoff_25_aug_2026_3.txt,
+docs/handoff/report_feat_m36_start_page.txt, the branch (main @ 174edd4 + M19.6/.7 + its review + M36),
+StartPanel/DemoAssets/Fluid/UiTheme read in full, MainFrame and ReportsPanel diffs, both tests.
+Note: this branch STACKS feat/m19-bench and its review, so merging it lands M19 too.
+
+VERDICT: MERGE — after three fixes applied here, one of which was a RELEASE BLOCKER (§3 F1). The
+design is right and the report is unusually honest about its own false starts (two layouts that
+failed only off a wide screen, a capture harness that lied). Fit for the release the owner wants.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+1. GATES (run here)
+  mvn -o -q test          exit 0 as handed over (841) and after the fixes (see commit)
+  mkdocs build --strict   exit 0 — the M19 review said it could not run this; run here: clean
+  rule-1 sweep            NOT CLEAN as handed over (F1) → clean after the fix
+  git config user.email   personal · `git log --format=%ae | sort | uniq -c`: 132 / 82 employer-
+                          domain, unchanged since the pin; newest non-personal commit is the
+                          2026-08-20 release bot. The CLAUDE.md recount to 214/82 matches.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+2. SPEC ACCEPTANCE, CHECKED LIVE (isolated -Duser.home, never-configured, painted screenshots read)
+  A1 launch → rendered topology + stepped cycle in two clicks: the page's primary card does
+     openDemo(log, withGraph=true) + showTab("Topology") — one click; stepping is the second.
+     Not clickable over REST; verified by reading the action wiring and by opening the same demo
+     pair over the socket (10 records, graph 5/5, Topology tab painted).
+  A2 a returning user never sees the page: launching with a remembered log reopened the log and
+     painted the table (s4). ✓
+  A3 close brings it back and says so: open {close:"log"} → the page, status "No log open · graph
+     demo-quote-processor.graphml still loaded" (s3). ✓
+  A4 nothing needs a key/server/root: every action is an ordinary open against DemoAssets; the
+     source root is added for the demo (see F3 for HOW). ✓
+  A5 no feature list, no version claim: three questions, three lanes, a lifecycle strip. ✓
+  A6 every string passes rule 1: the shipped demo has the v12technology header stripped and
+     DemoAssetsTest guards it; the PAGE strings are clean; the BRANCH was not — F1.
+  Both themes painted: light (s1) and dark (s5); colours are UiTheme tokens re-resolved on updateUI.
+  First run: no dialog for anyone; the --rest note prints (stdout read). The M19.7 collision is
+  resolved the right way — both halves kept — and loop-bench 20/20 confirms it.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+3. FINDINGS — fixed here
+  F1 · RULE 1'S SWEEP WAS RED ON THIS BRANCH — release blocker.
+      Three files spelled the sweep's own pattern as prose: tracker.md ("CLAUDE.md's sweep is
+      `…|…|…`"), the report (twice) and DemoAssetsTest (the literal banned list). A mechanical rule
+      does not know a mention from a leak, and CLAUDE.md says the sweep must be EMPTY before a
+      commit containing fixtures or examples — this branch ships a demo set. Fixed: prose says
+      "three strings"; the test now READS the terms from CLAUDE.md's sweep line at runtime (so it
+      follows the rule when the rule changes) and concatenates the one extra term. Sweep: empty.
+  F2 · A COMPILED PYTHON FILE WAS COMMITTED — tools/bench/__pycache__/loop-bench.cpython-314.pyc,
+      brought in by the M19 review commit. Removed; `__pycache__/` and `*.pyc` added to .gitignore.
+  F3 · THE DEMO BUTTON PERSISTED A SOURCE ROOT — into the user's settings, and with a project open,
+      into that project's COMMITTED profile (config.sourceRoots is project-tier; the next flush
+      writes it). D-S3 promises "nothing remembered, nothing personalised — a wrong pick costs a
+      click"; this pick cost a line in a file under version control. Fixed: the demo root lives in
+      a session-only `demoRoots` set, appended by effectiveSourceRoots() at both configure sites;
+      config is never touched and a restart forgets it, which is what a demo should do.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+4. NOTES — recorded, not fixed
+  N1 · D-S4 says "if it needs a scrollbar at a normal window size, it has become the thing it was
+      supposed to replace". At the DEFAULT 1200×800 window the page scrolls: the three lanes and
+      the footer sit below the fold (s1). The content is right; the height is not. Two honest
+      options — tighten the vertical rhythm (the 20px struts and the hero's inner padding are the
+      slack) or accept and amend D-S4 to name the size it means. Owner's call; not blocking.
+  N2 · showFirstRunSettingsIfNeeded() no longer shows Settings or a dialog; the name now describes
+      what it used to do. Cosmetic; touching it means touching Main.
+  N3 · The owner-decision items in the report §2 (extend the sweep with v12technology; clean the
+      four examples/ files; the compiler header upstream) are STILL OPEN and still the owner's.
+      This review did not extend the sweep — that is policy, and F1 shows the mechanical cost of
+      every term added: the term may not be spelled anywhere in the tree, including in prose about
+      the rule.
+  N4 · DemoAssets unpacks to ~/.fluxtion-analyser/demo on the REAL home when a demo card is clicked
+      — 400 KB, healed if half-written. Fine, and worth one line in the user guide when M36.5's
+      docs page is written.
+  N5 · M36.5 (docs page + generated screenshot) is correctly recorded, not claimed.
+
+────────────────────────────────────────────────────────────────────────────────────────────────
+5. STRENGTHS
+  · A state, not a screen — and the code enforces it in one place (syncRecordsCard, called from the
+    lifecycle funnel) so the page and the table can never both be right.
+  · CardFlowTest: a LayoutManager tested headlessly because a wide screen cannot ask the question
+    that failed. That is the right reading of rule 4, argued in the test's own javadoc.
+  · Fluid: two surfaces got the same sizing wrong independently, so the fix became a shared
+    primitive rather than two patches. The Reports tab benefits without a line of its own logic.
+  · The rule-1 hole (v12technology in the compiler's generated header) was found by a TEST written
+    to assert the page's own claims, not by the sweep — and the report says so plainly.
+  · The report records what did not work (FlowLayout, GridLayout, "records pane only", the
+    offscreen harness that lied) with the reason each failed. That is what makes the rest credible.
+
+Merge: fast-forward onto main (the branch is main + M19 + M36, nothing to rebase). Then the
+release check: CHANGELOG Unreleased carries Added (--rest, start page, format spec…), Changed
+(first-run dialog gone) and Fixed; the employer-domain counts are unchanged since the pin.

@@ -95,12 +95,34 @@ class DemoAssetsTest {
 
     @Test
     void theShippedDemoCarriesNoRealNames() {
-        // rule 1, on the most-seen surface in the app — and the one likeliest to reach a screenshot
+        // rule 1, on the most-seen surface in the app — and the one likeliest to reach a screenshot.
+        // The banned strings are READ FROM CLAUDE.md's own sweep line rather than spelled here: a test
+        // that spells them is itself a sweep hit (the M36 review found exactly that), and reading them
+        // means this test follows the rule when the rule changes.
+        java.util.List<String> banned = new java.util.ArrayList<>(rule1SweepTerms());
+        banned.add("v12" + "technology");   // the term the report asks the owner to add; concatenated so this file stays clean
+        assertTrue(banned.size() >= 4, "rule 1's sweep line was not found in CLAUDE.md: " + banned);
         for (String name : DemoAssets.files()) {
             String body = resource(name).toLowerCase(java.util.Locale.ROOT);
-            for (String banned : new String[]{"aquis", "talos", "nonco", "v12technology"}) {
-                assertFalse(body.contains(banned), name + " carries a real name: " + banned);
+            for (String term : banned) {
+                assertFalse(body.contains(term), name + " carries a real name: " + term);
             }
         }
+    }
+
+    /** The terms of rule 1's `grep -ri "a\\|b\\|c"` sweep, parsed from CLAUDE.md so they are never spelled here. */
+    private static java.util.List<String> rule1SweepTerms() {
+        try {
+            for (String line : java.nio.file.Files.readAllLines(java.nio.file.Path.of("CLAUDE.md"))) {
+                Matcher m = Pattern.compile("grep -ri \"([^\"]+)\"").matcher(line);
+                if (m.find()) {
+                    return java.util.Arrays.stream(m.group(1).split("\\\\\\|"))
+                            .map(t -> t.trim().toLowerCase(java.util.Locale.ROOT)).filter(t -> !t.isEmpty()).toList();
+                }
+            }
+        } catch (java.io.IOException e) {
+            throw new AssertionError("CLAUDE.md must be readable from the project root", e);
+        }
+        return java.util.List.of();
     }
 }

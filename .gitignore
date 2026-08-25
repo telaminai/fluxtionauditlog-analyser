@@ -48,3 +48,7 @@ build/
 
 # fixture generator build output (the generated processor is a build artefact, not source)
 examples/*/target/
+
+# Python bytecode (tools/bench, tools/spikes)
+__pycache__/
+*.pyc
