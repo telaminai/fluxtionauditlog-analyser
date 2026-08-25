@@ -43,7 +43,7 @@ reports what it finds in the status bar — hover it for the full sentence, whic
 
 All three are faults in how the log was *produced*, not in what the system did. Send the message
 back to whoever owns the export — it names the cause and the fix — rather than debugging a shortage of
-evidence. See [Producing an audit log](../producing-a-log.md).
+evidence. See [Producing an audit log](producing-a-log.md).
 
 ## The four questions you will actually be asked
 
@@ -51,7 +51,7 @@ evidence. See [Producing an audit log](../producing-a-log.md).
 
 Search and filter, then read the count. The filter is **shared** — narrow it once and the table, the
 summary, the graphs and the topology all follow, so a count you see in one place is the same
-population everywhere. See [Records, detail & filtering](records-and-filtering.md).
+population everywhere. See [Records, detail & filtering](user-guide/records-and-filtering.md).
 
 An empty result is a real answer here, but be careful how you phrase it: it means *nothing was
 logged*, which is not the same as *nothing ran*. A node can run, decide nothing changed, and say
@@ -76,7 +76,7 @@ each node that reacted, and what each one computed. Then **step through** the cy
 tab to watch it propagate node by node, in the order it actually executed.
 
 For a value over time rather than one moment, plot it: `node.key` becomes a series you can chart and
-export. See [Graphs](graphs.md).
+export. See [Graphs](user-guide/graphs.md).
 
 ### "Is it happening again / is it still happening?"
 
@@ -98,7 +98,7 @@ and in any report you export.
 chart, this focus — rather than a copy of what you saw, so it re-renders against the live log instead
 of going stale. Export it as a PDF for the person who asked. Crucially, it carries the log's identity
 in the header: reopen it later against a different log and it says so, up front, before showing you
-anything. See [Investigation reports](reports.md).
+anything. See [Investigation reports](user-guide/reports.md).
 
 !!! warning "Reports about a live system contain real names"
     A report is evidence about your production estate — hosts, services, instruments, accounts. Treat
@@ -110,7 +110,7 @@ anything. See [Investigation reports](reports.md).
 If your team connects an assistant, it drives **this** analyser through the same actions you use — it
 opens the log, moves the selection, focuses the graph, and you watch it happen. You are both looking at
 one state, and neither of you wrote the evidence you are reading. See
-[Connecting an LLM to the analyser](../connect-an-llm.md) and [Assistant](assistant.md).
+[Connecting an LLM to the analyser](connect-an-llm.md) and [Assistant](user-guide/assistant.md).
 
 ---
 

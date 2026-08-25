@@ -89,14 +89,15 @@ copyright: Copyright &copy; 2026 Telamin Limited
 
 nav:
   - Home: index.md
-  - The build-with-AI loop: the-loop.md
+  - Working with AI:
+      - The build-with-AI loop: the-loop.md
+      - Connecting an LLM to the analyser: connect-an-llm.md
+      - Answering questions about a running system: support.md
   - Getting started:
       - Quick start: getting-started.md
       - Install & run: install.md
-      - Connecting an LLM to the analyser: connect-an-llm.md
   - User guide:
       - user-guide/index.md
-      - Answering questions about a running system: user-guide/support.md
       - Records, detail & filtering: user-guide/records-and-filtering.md
       - Graphs: user-guide/graphs.md
       - Topology & step-through: user-guide/topology.md

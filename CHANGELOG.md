@@ -13,6 +13,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   never fired — is that true?", which is the one a log alone cannot answer), and how to hand an
   answer back so someone who was not watching your screen can review it. It is marked as a draft to
   be corrected by the people doing the work.
+- **A "Working with AI" section on the docs site**, replacing the lone *The build-with-AI loop* page:
+  the loop, connecting an assistant (moved out of Getting started, so the AI story is in one place),
+  and the support guide above. Getting started is now just install and open a log. The support guide
+  is also linked from the top of the User guide, because most of it needs no assistant at all.
 - **The analyser now says what the PRODUCER got wrong**, instead of opening a broken log without
   comment. Three mistakes, all of which used to fail in silence:
     - **missing `---` separators** — the whole file is read as one record, so the count is wrong and
