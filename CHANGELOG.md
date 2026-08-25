@@ -74,6 +74,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   an audit log**: text containers are totally ordered and say so. Readers published against 1.5.0
   keep compiling — the capability is additive and defaults to `TOTAL`.
 
+### Fixed
+- **Relative paths in a committed project profile are relative to the project, not to `.analyser/`.**
+  A profile that said `sourceRoot.0=src/main/java` was resolved against the folder the file sits in,
+  landing at `<project>/.analyser/src/main/java` — a directory that does not exist — so the playground
+  bundle contract's "open the log and everything is configured" could not have worked. The canonical
+  `.analyser/project.fluxtion-settings` now anchors at the project root; a loose `.fluxtion-settings`
+  file imported from elsewhere still anchors at its own directory.
+
 ## [1.7.0] - 2026-08-20
 
 ### Added

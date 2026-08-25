@@ -84,6 +84,32 @@ public final class ProjectProfile {
     }
 
     /**
+     * What a RELATIVE path inside {@code file} is relative to (M35.10).
+     *
+     * <p>For the canonical profile — {@code <project>/.analyser/project.fluxtion-settings} — it is the
+     * <b>project root</b>, not the {@code .analyser/} directory the file happens to sit in: a committed
+     * profile is {@code .vscode/settings.json}'s kind of file, and nobody writes {@code ../src} in one
+     * of those. The M19 bundle contract says {@code sourceRoot.0=src/main/java} lands at
+     * {@code <bundle>/src/main/java}; until this method, {@link #load} handed the importer the file's
+     * own directory and it landed at {@code <bundle>/.analyser/src/main/java} — a directory that does
+     * not exist, found by opening a hand-written fixture during M35.8.
+     *
+     * <p>For any other {@code .fluxtion-settings} file — one exported and imported by hand from
+     * wherever it was saved — it stays the file's own directory, which is the only sensible anchor a
+     * loose file has. {@code null} when the file has no parent.
+     */
+    public static Path baseDirFor(Path file) {
+        if (file == null) return null;
+        Path dir = file.toAbsolutePath().normalize().getParent();
+        if (dir == null) return null;
+        Path dirName = dir.getFileName();
+        boolean canonical = dirName != null && dirName.toString().equals(".analyser")
+                && file.getFileName() != null
+                && file.getFileName().toString().equals(Path.of(CANONICAL_RELATIVE).getFileName().toString());
+        return canonical && dir.getParent() != null ? dir.getParent() : dir;
+    }
+
+    /**
      * The nearest project profile at or above {@code start}, or {@code null}.
      *
      * <p>Walks upwards so opening a log deep inside a repo still finds the profile at its root — which
@@ -198,9 +224,10 @@ public final class ProjectProfile {
             return new LoadResult(false, "could not read " + file + ": " + e.getMessage());
         }
         try {
-            // relative roots resolve against the profile's own directory (M19.2), which is what lets a
-            // committed profile use repo-relative paths and still work on a teammate's machine
-            SettingsShare.ImportPlan plan = share.preview(text, target, file.getParent());
+            // relative roots resolve against the PROJECT ROOT for the canonical profile (M19.2 as the
+            // bundle contract meant it; M35.10 made it so) — which is what lets a committed profile use
+            // repo-relative paths and still work on a teammate's machine
+            SettingsShare.ImportPlan plan = share.preview(text, target, baseDirFor(file));
             clearProjectScoped(target);
             share.apply(plan, PROJECT_SCOPED, target);
             // A profile that names no Maven repo means "I did not say", not "never search one" — and an

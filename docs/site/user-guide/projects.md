@@ -88,6 +88,10 @@ already configured.
     written to a profile. And paths under your home directory are stored `~`-relative, so a teammate's
     checkout resolves them on their own machine.
 
+    A path that is neither absolute nor `~`-prefixed is **relative to the project root** — the directory
+    that holds `.analyser/` — so a hand-written `sourceRoot.0=src/main/java` means what it says, the way
+    it would in `.vscode/settings.json`.
+
 Treat a committed profile as config-as-code: it evolves, and the diffs are worth reviewing like any
 other change.
 

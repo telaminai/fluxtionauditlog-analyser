@@ -80,6 +80,55 @@ class ProjectProfileTest {
     // ---- switching ------------------------------------------------------------------------------
 
     /** The acceptance story: B's settings replace A's rather than piling on top of them. */
+    // ---- M35.10: what "relative" is relative to ---------------------------------------------------
+
+    @Test
+    void aCanonicalProfilesRelativeRootsAnchorAtTheProjectRoot_notAtDotAnalyser(@TempDir Path dir)
+            throws Exception {
+        // the M19 bundle contract: sourceRoot.0=src/main/java lands at <bundle>/src/main/java. Before
+        // M35.10 load() handed the importer the file's OWN directory, so it landed at
+        // <bundle>/.analyser/src/main/java — a directory that does not exist.
+        Path project = dir.resolve("bundle");
+        Path file = ProjectProfile.pathFor(project);
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, "share.version=1\nsourceRoot.count=2\nsourceRoot.0=src/main/java\n"
+                + "sourceRoot.1=/opt/abs/src\nmavenRepo.count=1\nmavenRepo.0=libs\n");
+        AppConfig config = new AppConfig();
+
+        assertTrue(ProjectProfile.load(file, config, new SettingsShare()).loaded());
+
+        assertEquals(List.of(project.resolve("src/main/java").toString(), "/opt/abs/src"), config.sourceRoots,
+                "project-relative, and the absolute one untouched");
+        assertEquals(List.of(project.resolve("libs").toString()), config.mavenRepos);
+    }
+
+    @Test
+    void aLooseSettingsFileStaysRelativeToItsOwnDirectory(@TempDir Path dir) throws Exception {
+        // an exported file imported from wherever it was saved has no project root to speak of; its own
+        // directory is the only anchor it has — the pre-M35.10 behaviour, kept for exactly that case
+        Path file = dir.resolve("team.fluxtion-settings");
+        Files.writeString(file, "share.version=1\nsourceRoot.count=1\nsourceRoot.0=src\n");
+        AppConfig config = new AppConfig();
+
+        assertTrue(ProjectProfile.load(file, config, new SettingsShare()).loaded());
+
+        assertEquals(List.of(dir.resolve("src").toString()), config.sourceRoots);
+    }
+
+    @Test
+    void baseDirForDistinguishesTheCanonicalProfileFromALookalike(@TempDir Path dir) {
+        Path project = dir.resolve("p");
+        assertEquals(project.toAbsolutePath().normalize(),
+                ProjectProfile.baseDirFor(ProjectProfile.pathFor(project)));
+        // a differently named file inside .analyser/ is not the profile — its own directory, as for any
+        // loose file; the rule is about the canonical path, not the folder name alone
+        assertEquals(project.resolve(".analyser").toAbsolutePath().normalize(),
+                ProjectProfile.baseDirFor(project.resolve(".analyser/other.fluxtion-settings")));
+        assertEquals(dir.toAbsolutePath().normalize(),
+                ProjectProfile.baseDirFor(dir.resolve("loose.fluxtion-settings")));
+        assertNull(ProjectProfile.baseDirFor(null));
+    }
+
     @Test
     void switchingProjectsReplacesRatherThanMerges(@TempDir Path dir) throws Exception {
         Path aFile = ProjectProfile.pathFor(dir.resolve("projectA"));

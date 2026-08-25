@@ -109,8 +109,11 @@ Contract notes:
 - Paths in the settings file are **bundle-relative** — and this is a **committed analyser precondition,
   not a "verify"**: `SettingsShare` as shipped expands only `~`-prefixed paths ("anything else is
   verbatim" — a bare `src/main/java` would resolve against the CWD and break unless the analyser is
-  launched from the bundle dir). Fix: `SettingsShare.fromPortable` resolves relative roots against the
-  **import file's parent directory**. This fix is what makes "one dialog, everything configured" true.
+  launched from the bundle dir). Fix: relative roots resolve against the **project root** — the parent
+  of `.analyser/` — for the canonical profile, and against the file's own directory for a loose
+  `.fluxtion-settings` file (`ProjectProfile.baseDirFor`, M35.10; the first cut anchored at the file's
+  own directory, so a canonical profile's `src/main/java` landed at `<bundle>/.analyser/src/main/java`).
+  This fix is what makes "one dialog, everything configured" true.
 - **Bundles are generated at Download time** by the playground service — never pre-built artifacts —
   so every bundle (code, settings, embedded prompt snapshot) is pinned to the playground's
   then-current Mongoose version at the moment of download. There is no regeneration cadence to own and
@@ -198,5 +201,5 @@ grounded answer. Timed under 10 minutes by someone who isn't us.
   time, pinned to the playground's current Mongoose version; no pre-built artifacts, no cadence to own
   (§Contract notes).
 - ~~**O4** — relative source roots~~ **resolved as a committed precondition**: verified `SettingsShare`
-  expands only `~`-prefixed paths; the fix (resolve relative roots against the import file's parent)
-  is tracker item **M19.2** and gates the tutorial's "zero manual setup" claim.
+  expands only `~`-prefixed paths; the fix (resolve relative roots against the project root for the
+  canonical profile — **M19.2**, corrected by **M35.10**) gates the tutorial's "zero manual setup" claim.
