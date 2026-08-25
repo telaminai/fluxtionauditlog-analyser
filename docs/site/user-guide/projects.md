@@ -47,6 +47,15 @@ never a guess.
     A profile that mentions no graphs leaves you with no graphs — the replace covers every project
     category, not just the ones the file happens to contain.
 
+!!! note "Switching a project closes the log and graph"
+
+    A profile owns your source roots, event processors, named graphs, focuses and reports. Swap it
+    and all of those change underneath whatever you were looking at, so the log and its topology are
+    closed with it — otherwise you'd be reading one project's log through another's settings.
+
+    The exception is accepting the *"this log sits inside a project"* offer: there the project is
+    adopted **because** you opened that log, so the log stays.
+
 ## Your own settings are kept
 
 The first time you open a project, the source roots and graphs you had are **not** deleted. They become

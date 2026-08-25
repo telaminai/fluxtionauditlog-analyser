@@ -323,3 +323,27 @@ hazard, which became M35.7), D7 (no second .graphml in-tree, so the true multi-p
 untested), D10 (M35.5 is read-verified only, and why that argues for M20.6).
 
 Ready to rebase onto main and merge.
+
+================================================================================
+15. DOCS — the gap the branch had until now
+================================================================================
+Seven slices changed user-visible behaviour and the branch touched ZERO user-guide pages. The
+CHANGELOG was current (rule 2) but the guide was not, and the M33 precedent is that the page ships
+with the feature. Fixed:
+
+  topology.md   · "Find GraphML in source roots…" added to the ways in
+                · the old "Check it's the same build" warning REPLACED. It described the weaker
+                  behaviour that used to exist ("the status line tells you what it found") and would
+                  have read as stale the moment a reviewer compared it with the app. The new section
+                  states the three rules that now hold: the verdict is always on the Topology status
+                  line and stays put; opening a LOG closes a graph that no longer fits; opening a
+                  GRAPH keeps it with a warning, because you asked for it.
+                · new "Close and switch" section — Close log / Close graph / Reset, what survives,
+                  and switching processor without starting over.
+  projects.md   · a note that switching or closing a project closes the log and graph, with the one
+                  exception (accepting the in-log project offer keeps the log).
+  assistant.md  · open {close}, open {discover}, and the pairing answer now riding open {graphml};
+                  context's graphPairing and projectOffer, with WHY an agent gets the offer as data
+                  rather than as a dialog.
+
+mkdocs --strict green.

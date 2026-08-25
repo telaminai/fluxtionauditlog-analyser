@@ -57,6 +57,10 @@ source in your build output. Three ways in:
   to find a graph
 - **drag the `.graphml` onto the window** — it routes to the Topology tab by extension, and dropping a
   log and a graphml *together* opens both: the cycle and the graph it ran on, in one gesture
+- **File ▸ Find GraphML in source roots…** — when you don't know where the build put it. Every
+  `.graphml` under your configured source roots is listed, **ranked by how well each fits the open
+  log**: node count, and how many of the log's nodes that graph declares. Nothing opens until you
+  pick one — a graph chosen for you is a graph nobody checked.
 
 Whatever was open when you quit is reopened next time, alongside the log — as are the zoom, pan,
 orientation, spacing and label size. (**Settings ▸ History ▸ Reset topology view** puts those back.)
@@ -65,12 +69,36 @@ You don't need a server for any of this. The graph is a file, the log is a file,
 on both offline — which is the point when you're supporting a system whose logs were shipped somewhere
 else days ago.
 
-!!! warning "Check it's the same build"
+### Does this graph belong to this log?
 
-    A topology from a *different* build of the processor renders perfectly and misleads silently. The
-    status line tells you what it found — `topology matches the log (8 nodes)`, or a warning naming the
-    instance ids that appear in the log but not in the graph. **Treat that warning as a version
-    mismatch**, not a curiosity: the picture is wrong in ways you can't see.
+A topology from a *different* build renders perfectly and misleads silently — the shading, the step
+order and the coverage figures are all derived from it. So the analyser checks, and says so where you
+can see it:
+
+- **the Topology status line always carries the verdict** — `fits this log (211/211)`, or
+  `⚠ DOES NOT FIT THIS LOG — the graph declares only 0 of the 211 node(s) this log writes`. It stays
+  put; it is not a message that scrolls away on your next filter change.
+- **opening a log closes a graph that no longer fits.** That graph belonged to the previous
+  investigation and nobody asked for it here, so it goes, and the status line says why.
+- **opening a graph *keeps* it even when it doesn't fit** — you asked for that processor, and
+  comparing one build's graph against another build's log is a real thing to want. You get the
+  warning, not a refusal.
+
+**Treat the warning as a version mismatch**, not a curiosity: the picture is wrong in ways you can't
+see from the picture.
+
+## Close and switch
+
+- **File ▸ Close graph** drops the topology and leaves the log alone.
+- **File ▸ Close log** does the reverse — records, filters, flags and shading go; your named graphs,
+  focuses and reports stay, because those are yours, not the log's.
+- **File ▸ Reset** does both.
+- Opening a *different* processor's `.graphml` switches straight to it. A multi-processor server
+  emits one graph each, and analysing the second one against the same log doesn't mean starting over.
+
+Switching or closing a **project** closes the log and graph too — a profile owns your source roots,
+processors, graphs and focuses, so it is the boundary of an investigation rather than a setting
+inside one.
 
 ## Read the graph
 

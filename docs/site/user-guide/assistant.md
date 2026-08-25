@@ -102,6 +102,23 @@ The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`
 `open` also takes `logs: [...]` — an explicit rolled set, loaded as one log in content order, the
 echo carrying the order chosen and the time-order report (see *Records ▸ Rolled log sets*).
 
+Three more on `open`, so an agent can manage what is loaded rather than only add to it:
+
+- `open {close: "log" | "graph" | "all"}` — the counterpart of opening, and the way to switch cleanly
+  between systems. Log-derived state clears; your named graphs, focuses, source roots and reports are
+  profile state and survive, each saying why it cannot resolve rather than vanishing.
+- `open {discover: "graphml"}` — lists every `.graphml` under the source roots, ranked against the
+  open log, with each one's node count and how many of the log's nodes it declares. **It opens
+  nothing**: pick one and pass it as `graphml`.
+- `open {graphml: …}` now answers *does this fit?* in the same call — `appliesToOpenLog`, the counts,
+  and the verdict — so switching processor needs no follow-up `context`.
+
+`context` carries `graphPairing` for the same reason: whether the loaded graph belongs to the loaded
+log is something to know **before** deriving anything from it, not after `coverage` returns a
+suspicious number. It also reports `projectOffer` when the log sits inside a project — the offer a
+human would see as a dialog, which an agent gets as data instead, because a dialog nobody can answer
+would simply stall the session.
+
 `aggregate`, `read`, `series`, `context` and `coverage` are marked read-only. The verbs that only change what the
 app shows are reversible and marked accordingly. Four are marked **destructive**, so a client can prompt
 before running them: `open` replaces the loaded log (taking the session's flags with it), `source_root`
