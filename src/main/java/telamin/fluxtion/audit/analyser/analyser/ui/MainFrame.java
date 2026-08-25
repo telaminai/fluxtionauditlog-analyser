@@ -2922,7 +2922,9 @@ public final class MainFrame extends JFrame {
                     echo.put("now", "your own settings — the ones in force before any project was opened");
                     echo.put("replaced", replacedCounts(before, after));
                     echo.putAll(closedEcho);
-                    echo.put("reversible", "open {project: \"" + wasPath + "\"} puts it back");
+                    echo.put("reversible", "open {project: \"" + wasPath + "\"} puts it back"
+                            + (closedEcho.get("closed") instanceof Map<?, ?> c && !c.isEmpty()
+                                    ? " — the settings, not the session: reopen what `closed` names" : ""));
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied", echo);
                 }
                 default -> {
@@ -2994,9 +2996,13 @@ public final class MainFrame extends JFrame {
             echo.put("replaced", replacedCounts(before, after));
             echo.putAll(closedEcho);
             echo.put("previous", previousName == null ? "your own settings" : previousName);
-            echo.put("reversible", previousPath != null
+            // review N1: "reversible" and "closed" are individually true and jointly misleading — the
+            // SETTINGS come back in one call, the log and graph do not (they are named in `closed`)
+            String notTheSession = closedEcho.get("closed") instanceof Map<?, ?> c && !c.isEmpty()
+                    ? " — the settings, not the session: reopen what `closed` names" : "";
+            echo.put("reversible", (previousPath != null
                     ? "open {project: \"" + previousPath + "\"} puts it back"
-                    : "open {close: \"project\"} puts your own settings back");
+                    : "open {close: \"project\"} puts your own settings back") + notTheSession);
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", echo);
         }
 

@@ -60,7 +60,8 @@ public final class McpTools {
 
     /**
      * Verbs whose effect is <b>not</b> reversible from the UI: {@code open} replaces the loaded log, and
-     * anything held only in the session — flags, their notes — goes with it; {@code source_root} writes
+     * anything held only in the session — flags, their notes — goes with it; since M35.8 it can also
+     * replace the whole PROJECT context ({@code open {project}}); {@code source_root} writes
      * the persisted config. Marking them {@code destructiveHint:true} is what lets a client prompt before
      * running them, which is the whole point of the hint. Calling them reversible because "no file is
      * deleted" would be true and useless.
