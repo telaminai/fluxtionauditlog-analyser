@@ -58,6 +58,11 @@ public interface AppControl {
      * passes provenance WITH the open ({@link #openLog(String, String, String)}); this remains on the
      * published surface so implementors written against the earlier protocol keep receiving it via
      * the defaults. Never inferred — a guessed system name is worse than none.
+     *
+     * <p><b>The analyser's own implementation does not override this and keeps no state for it</b>
+     * (M35.9 review N1): {@code MainFrame} implements the three-argument form directly and builds
+     * its {@code OpenRequest} from the call. Do not look for the field this used to set — there is
+     * none; the method exists only so foreign implementors written before M35.9 keep working.
      */
     default void setProvenance(String provenance) {
     }
