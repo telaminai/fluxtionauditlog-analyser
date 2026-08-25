@@ -114,7 +114,7 @@ public final class StartPanel extends JPanel {
         col.add(footer());
         col.add(Box.createVerticalGlue());
 
-        JScrollPane scroll = new JScrollPane(new Column(col),
+        JScrollPane scroll = new JScrollPane(Fluid.column(col),
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -148,7 +148,7 @@ public final class StartPanel extends JPanel {
      * thing a reader will accept as the summary, so it should be visibly the summary.
      */
     private JComponent hero() {
-        JPanel band = new Fluid(new BorderLayout()) {
+        JPanel band = new Fluid.Panel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g0) {
                 Graphics2D g = (Graphics2D) g0.create();
@@ -227,7 +227,7 @@ public final class StartPanel extends JPanel {
 
     /** Section heading with a short accent rule, so the four sections are countable at a glance. */
     private JComponent heading(String text) {
-        JPanel p = new Fluid(new BorderLayout(8, 0)) {
+        JPanel p = new Fluid.Panel(new BorderLayout(8, 0)) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
@@ -257,40 +257,9 @@ public final class StartPanel extends JPanel {
         return l;
     }
 
-    /**
-     * Text that wraps to the width it is GIVEN and is exactly as tall as that wrap needs.
-     *
-     * <p>Both halves matter. The fixed-pixel {@code <html><body style='width:640px'>} the first cut
-     * used clipped mid-word as soon as the pane was narrower than the guessed number, and a plain
-     * {@link JLabel} does not wrap at all — it ellipsises, silently deleting the end of the sentence.
-     */
+    /** This page's wrapped text — {@link Fluid#text}, shared with the Reports tab. */
     private static JTextArea wrapping(String text) {
-        JTextArea l = new JTextArea(text) {
-            @Override
-            public Dimension getMaximumSize() {
-                // as tall as the wrap CURRENTLY needs; a constant here truncates the last line the
-                // moment a narrower pane turns two lines into three
-                return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
-            }
-        };
-        l.setLineWrap(true);
-        l.setWrapStyleWord(true);
-        l.setEditable(false);
-        l.setFocusable(false);
-        l.setOpaque(false);
-        l.setBorder(null);
-        l.setAlignmentX(LEFT_ALIGNMENT);
-        l.addComponentListener(new java.awt.event.ComponentAdapter() {
-            private int lastWidth = -1;
-
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                if (l.getWidth() == lastWidth) return;
-                lastWidth = l.getWidth();
-                l.revalidate();
-            }
-        });
-        return l;
+        return Fluid.text(text);
     }
 
     /**
@@ -306,90 +275,11 @@ public final class StartPanel extends JPanel {
      * sideways.
      */
     private static JComponent row(JComponent... items) {
-        JPanel p = new Fluid(new CardFlow());
+        JPanel p = new Fluid.Panel(new CardFlow());
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
         for (JComponent c : items) p.add(c);
         return p;
-    }
-
-    /**
-     * The scrolled column, bound to the viewport's WIDTH.
-     *
-     * <p>Without this the wrapping does not work at all, and hides the fact convincingly. A
-     * {@link JScrollPane} sizes an ordinary view to the view's own PREFERRED width; the column's
-     * preferred width is whatever its widest row wants, which for a row of three cards is far more
-     * than a narrow pane has. So the column is laid out wide and the pane shows the left-hand part of
-     * it — and because {@code HORIZONTAL_SCROLLBAR_NEVER} removes the scrollbar that would have
-     * admitted this, the result looks exactly like cards being cut off, which is the bug this whole
-     * layout exists to prevent. Reporting {@code true} from
-     * {@link #getScrollableTracksViewportWidth()} makes the viewport's width the real constraint, so
-     * {@link CardFlow} is asked to fit the space that actually exists.
-     */
-    private static final class Column extends JPanel implements Scrollable {
-        Column(JComponent content) {
-            super(new BorderLayout());
-            setOpaque(false);
-            add(content, BorderLayout.NORTH);
-        }
-
-        @Override
-        public Dimension getPreferredScrollableViewportSize() {
-            return getPreferredSize();
-        }
-
-        @Override
-        public int getScrollableUnitIncrement(Rectangle r, int orientation, int direction) {
-            return 16;
-        }
-
-        @Override
-        public int getScrollableBlockIncrement(Rectangle r, int orientation, int direction) {
-            return orientation == SwingConstants.VERTICAL ? r.height : r.width;
-        }
-
-        @Override
-        public boolean getScrollableTracksViewportWidth() {
-            return true;      // never scroll sideways — reflow instead
-        }
-
-        @Override
-        public boolean getScrollableTracksViewportHeight() {
-            return false;     // but do scroll down when the content genuinely does not fit
-        }
-    }
-
-    /**
-     * A panel that takes all the width it is offered but only the height it needs — <b>recomputed</b>,
-     * not fixed.
-     *
-     * <p>A vertical {@link Box} gives a child everything up to its MAXIMUM height, and the default
-     * maximum is unbounded, so one flexible child absorbs the spare space and pushes what follows off
-     * the bottom. The usual fix is a constant maximum, and that is exactly wrong here: these heights
-     * are supposed to change with the width. Deriving the maximum from the CURRENT preferred height
-     * keeps both properties — and the resize hook re-asks the parent, because a reflow that changes
-     * the height is otherwise laid out correctly and then clipped to the height from before it
-     * wrapped.
-     */
-    private static class Fluid extends JPanel {
-        Fluid(LayoutManager lm) {
-            super(lm);
-            addComponentListener(new java.awt.event.ComponentAdapter() {
-                private int lastWidth = -1;
-
-                @Override
-                public void componentResized(java.awt.event.ComponentEvent e) {
-                    if (getWidth() == lastWidth) return;      // height-only changes are our own doing
-                    lastWidth = getWidth();
-                    revalidate();
-                }
-            });
-        }
-
-        @Override
-        public Dimension getMaximumSize() {
-            return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
-        }
     }
 
     /**

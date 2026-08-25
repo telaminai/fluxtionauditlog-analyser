@@ -135,6 +135,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   someone who had not yet seen a single record. The start page does that job now, and Settings is
   where it always was (File ▸ Settings, and one click from the start page).
 ### Fixed
+- **Reports no longer run off the right-hand edge.** A report's widest line — usually the
+  *"written against … · N record(s) · <range>"* provenance header — was drawn on a single
+  unwrappable line, and because it set the preferred width of the whole detail pane, every section
+  under it was laid out to match and the tab grew a horizontal scrollbar. Report text now wraps to
+  the pane at any width, and callout boxes and tables are as tall as their content instead of
+  stretching to fill the pane.
 - **A rotating log no longer starts interrupting an agent.** With *Follow* on, a log an assistant had
   opened would re-open as though a person had asked for it when the file rotated — so every dialog
   the assistant path suppresses came back, on the one workflow where nobody is watching the screen.

@@ -129,8 +129,15 @@ public final class ReportsPanel extends JPanel {
         list.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) renderSelected();
         });
+        // Fluid.column: the detail pane reflows to the width it is GIVEN. Without it the scroll pane
+        // sizes this view to its own preferred width, so one long unwrapped line — the "written
+        // against …" provenance line is the usual culprit — widens the entire report and everything
+        // below it is laid out to match, off the right-hand edge and behind a horizontal scrollbar.
+        JScrollPane detailScroll = new JScrollPane(Fluid.column(detail),
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(list), new JScrollPane(detail));
+                new JScrollPane(list), detailScroll);
         split.setDividerLocation(180);
         add(split, BorderLayout.CENTER);
     }
@@ -174,9 +181,8 @@ public final class ReportsPanel extends JPanel {
         }
         ReportResolver.Resolution res = resolve.apply(spec);
 
-        JLabel title = new JLabel(spec.title());
+        JTextArea title = Fluid.text(spec.title());
         title.setFont(title.getFont().deriveFont(Font.BOLD, 15f));
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
         detail.add(title);
         if (spec.fingerprint() != null) {
             detail.add(muted("written against " + spec.fingerprint().describe()
@@ -223,12 +229,12 @@ public final class ReportsPanel extends JPanel {
             case FINDING -> {
                 var f = r.finding();
                 JPanel box = calloutBox(theme.problem(), theme.tint(theme.problem()));
-                JLabel wrong = bold("What is wrong — record #" + f.recordIndex());
+                JTextArea wrong = bold("What is wrong — record #" + f.recordIndex());
                 wrong.setForeground(theme.problem());
                 box.add(wrong);
                 box.add(wrapped(f.note()));
                 if (f.hasFix()) {
-                    JLabel fixHeading = bold("Suggested fix");
+                    JTextArea fixHeading = bold("Suggested fix");
                     fixHeading.setForeground(theme.fix());
                     box.add(fixHeading);
                     box.add(wrapped(f.fix()));
@@ -286,8 +292,13 @@ public final class ReportsPanel extends JPanel {
         t.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         JScrollPane sp = new JScrollPane(t);
         sp.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sp.setPreferredSize(new java.awt.Dimension(10,
-                Math.min(260, 40 + a.table().rows().size() * t.getRowHeight())));
+        java.awt.Dimension size = new java.awt.Dimension(10,
+                Math.min(260, 40 + a.table().rows().size() * t.getRowHeight()));
+        sp.setPreferredSize(size);
+        // a preferred height alone is only half the instruction: the maximum is still unbounded, so a
+        // vertical BoxLayout hands the table whatever space is spare and a three-row table is drawn
+        // with a screenful of empty grid under it
+        sp.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, size.height));
         detail.add(sp);
         if (s.rowWhen() != null) {
             // D-I8 on screen exactly as on the page: the emphasis carries its reason
@@ -301,7 +312,7 @@ public final class ReportsPanel extends JPanel {
 
     private JPanel banner(String heading, String body, String actionLabel, Runnable action) {
         JPanel box = calloutBox(theme.warn(), theme.tint(theme.warn()));
-        JLabel h = bold(heading);
+        JTextArea h = bold(heading);
         h.setForeground(theme.warn());
         box.add(h);
         box.add(wrapped(body));
@@ -316,7 +327,7 @@ public final class ReportsPanel extends JPanel {
 
     private JPanel narrative(String text) {
         JPanel box = calloutBox(theme.narrative(), theme.tint(theme.narrative()));
-        JLabel label = bold(ReportRenderer.NARRATIVE_LABEL);
+        JTextArea label = bold(ReportRenderer.NARRATIVE_LABEL);
         label.setForeground(theme.narrative());
         box.add(label);
         box.add(wrapped(text));
@@ -324,7 +335,10 @@ public final class ReportsPanel extends JPanel {
     }
 
     private JPanel calloutBox(Color accent, Color bg) {
-        JPanel box = new JPanel();
+        // Fluid.Panel: as tall as its content, no taller. A plain JPanel has an unbounded maximum
+        // height, and a vertical BoxLayout hands spare space to whatever will take it — which turned
+        // a two-line narrative into a tinted block half the pane deep
+        JPanel box = new Fluid.Panel();
         box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
         box.setBackground(bg);
         box.setOpaque(true);
@@ -335,29 +349,35 @@ public final class ReportsPanel extends JPanel {
         return box;
     }
 
-    private static JLabel bold(String s) {
-        JLabel l = new JLabel(s);
-        l.setFont(l.getFont().deriveFont(Font.BOLD, 11f));
-        l.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return l;
-    }
-
-    private JTextArea wrapped(String s) {
-        JTextArea t = new JTextArea(s);
-        t.setLineWrap(true);
-        t.setWrapStyleWord(true);
-        t.setEditable(false);
-        t.setOpaque(false);
-        t.setForeground(theme.fg());
-        t.setAlignmentX(Component.LEFT_ALIGNMENT);
+    /**
+     * A small bold heading — wrapping, for the same reason {@link #muted} does. The longest string
+     * this panel draws is a heading: "THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST".
+     */
+    private static JTextArea bold(String s) {
+        JTextArea t = Fluid.text(s);
+        t.setFont(t.getFont().deriveFont(Font.BOLD, 11f));
         return t;
     }
 
-    private JLabel muted(String s) {
-        JLabel l = new JLabel("<html>" + s.replace("<", "&lt;") + "</html>");
-        l.setForeground(theme.mutedFg());
-        l.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return l;
+    private JTextArea wrapped(String s) {
+        JTextArea t = Fluid.text(s);
+        t.setForeground(theme.fg());
+        return t;
+    }
+
+    /**
+     * Secondary text — and it WRAPS.
+     *
+     * <p>This was a {@code <html>} {@link JLabel}, which does not: it lays the whole string on one
+     * line and reports that line's full width as its preferred size. A report's muted lines are its
+     * longest — the "written against <provenance> · N record(s) · <range>" header, a {@code rowWhen}
+     * rule quoted back, an unresolved-anchor reason naming a file — so the single widest of them set
+     * the width of the entire report.
+     */
+    private JTextArea muted(String s) {
+        JTextArea t = Fluid.text(s);
+        t.setForeground(theme.mutedFg());
+        return t;
     }
 
     private JButton link(String label, Runnable go) {
