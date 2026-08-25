@@ -98,6 +98,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   no timestamp, no date comment — and a write that would change nothing does not happen. A diff in
   `.analyser/project.fluxtion-settings` now means a setting changed. One-off share exports are
   unchanged and keep their timestamp.
+- **`context` no longer fails on a fresh start.** Before any log had ever been loaded, the first
+  `context` call an agent makes against a just-launched analyser threw instead of answering "nothing
+  is open" — found driving M35.8 against an isolated, never-used config. It now answers with what it
+  knows: which project is in force, the source roots, and an empty filter.
 
 ## [1.7.0] - 2026-08-20
 

@@ -3317,6 +3317,13 @@ public final class MainFrame extends JFrame {
 
             // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
             Map<String, Object> f = new java.util.LinkedHashMap<>();
+            // Found driving M35.8 E7.0: on a FRESH start no log has ever been loaded, `filter` is still
+            // null, and `context` — the first call any agent makes — threw. An app that cannot describe
+            // "nothing is open" cannot be bootstrapped from the socket at all.
+            if (filter == null) {
+                out.put("filter", f);
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
+            }
             if (filter.fromMillis() != null) f.put("from", filter.fromMillis());
             if (filter.toMillis() != null) f.put("to", filter.toMillis());
             if (filter.dimensions() != null && !filter.dimensions().isEmpty()) {
