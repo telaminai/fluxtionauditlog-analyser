@@ -54,6 +54,21 @@ class ShareDisclosureContractTest {
                         + "disclose an artifact in the same change that makes it shareable");
     }
 
+    /**
+     * §E — a report's fingerprint can now carry a PROVENANCE string, and provenance names internal
+     * systems ("risk-engine · localhost:8081 · ~/dev/risk"). That is business-context cargo riding a
+     * category whose row promises "definitions + narrative — never log data", so the row has to say
+     * so. Asserted here for the same reason focuses are: disclose an artifact in the change that
+     * makes it shareable, not in the one that gets caught.
+     */
+    @Test
+    void theReportsRowDisclosesProvenance() throws Exception {
+        String doc = Files.readString(DOC).toLowerCase(java.util.Locale.ROOT);
+        assertTrue(doc.contains("provenance"),
+                DOC + " never mentions provenance, but a shared report's fingerprint carries it — "
+                        + "and it names internal systems, which a recipient's checkbox must warn about");
+    }
+
     /** The one promise stronger than disclosure: the key never travels, and the page must keep saying so. */
     @Test
     void theApiKeyPromiseStaysOnThePage() throws Exception {

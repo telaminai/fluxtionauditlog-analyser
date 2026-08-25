@@ -681,6 +681,7 @@ public final class ActionExecutor implements RenderExecutor {
     private ActionResult doOpen(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
         if (params.get("log") != null && params.get("format") != null) {
+            app.setProvenance(str(params.get("provenance")));
             return app.openLog(str(params.get("log")), str(params.get("format")));
         }
         if (params.get("discover") != null) {
@@ -693,10 +694,13 @@ public final class ActionExecutor implements RenderExecutor {
         if (params.get("logs") instanceof List<?> list && !list.isEmpty()) {
             List<String> paths = new ArrayList<>();
             for (Object o : list) if (o != null) paths.add(o.toString());
+            app.setProvenance(str(params.get("provenance")));
             return app.openLogs(paths);   // M30: an explicit set — content orders it, the echo says how
         }
         String log = str(params.get("log"));
         String graphml = str(params.get("graphml"));
+        // §E: declared BEFORE the load, so the fingerprint built during onLoaded carries it
+        if (log != null) app.setProvenance(str(params.get("provenance")));
         String processor = str(params.get("processor"));
         if (log == null && graphml == null && processor == null) {
             return ActionResult.error(

@@ -74,9 +74,10 @@ public final class ReportResolver {
      * first live render): a renamed copy must not be headlined "this is not the log".
      */
     public static String fingerprintHeading(String mismatchLine) {
-        return mismatchLine != null && mismatchLine.contains("matches on content")
-                ? "SAME CONTENT — A DIFFERENT FILE"
-                : "THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST";
+        if (mismatchLine == null) return "THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST";
+        if (mismatchLine.contains("a different system")) return "SAME CONTENT — A DIFFERENT SYSTEM";
+        if (mismatchLine.contains("matches on content")) return "SAME CONTENT — A DIFFERENT FILE";
+        return "THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST";
     }
 
     /**
@@ -91,9 +92,22 @@ public final class ReportResolver {
                                      Map<Integer, Finding> findings,
                                      Set<String> graphNames, Set<String> focusNames,
                                      FilterState currentFilter) {
+        return resolve(spec, idx, loadedLogName, null, findings, graphNames, focusNames, currentFilter);
+    }
+
+    /**
+     * @param loadedProvenance where the OPEN log came from (§E), or null when nobody declared it.
+     *                         Needed here because two servers running the same build produce
+     *                         identical content under identical file names — the only thing that can
+     *                         separate them is what someone declared.
+     */
+    public static Resolution resolve(ReportSpec spec, LogIndex idx, String loadedLogName,
+                                     String loadedProvenance, Map<Integer, Finding> findings,
+                                     Set<String> graphNames, Set<String> focusNames,
+                                     FilterState currentFilter) {
         String fp = spec.fingerprint() == null ? null
                 : spec.fingerprint().mismatch(idx == null ? null
-                        : LogFingerprint.of(idx, loadedLogName)).orElse(null);
+                        : LogFingerprint.of(idx, loadedLogName, loadedProvenance)).orElse(null);
         String filterLine = currentFilter == null ? null
                 : spec.filter().difference(currentFilter).orElse(null);
 

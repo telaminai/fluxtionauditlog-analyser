@@ -113,6 +113,12 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
 - `open {graphml: …}` now answers *does this fit?* in the same call — `appliesToOpenLog`, the counts,
   and the verdict — so switching processor needs no follow-up `context`.
 
+- `open {log, provenance: "…"}` — say WHERE the log came from. A file name is not a system: an agent
+  exporting three servers' logs to `/tmp` produces three artefacts nobody can tell apart. Provenance
+  rides the status bar, `context`, report headers and PDFs, and lets the mismatch banner name a
+  *system* rather than a temp file. Omit it and the analyser says nothing — it is never inferred from
+  the path, because a guessed system name is worse than none.
+
 `context` carries `graphPairing` for the same reason: whether the loaded graph belongs to the loaded
 log is something to know **before** deriving anything from it, not after `coverage` returns a
 suspicious number. It also reports `projectOffer` when the log sits inside a project — the offer a

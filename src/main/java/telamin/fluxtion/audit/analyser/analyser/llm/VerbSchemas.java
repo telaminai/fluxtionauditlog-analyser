@@ -229,6 +229,14 @@ public final class VerbSchemas {
                                 + "declares. Opens NOTHING: pick one and pass it as 'graphml'. "
                                 + "Auto-selecting would be the convenience that reintroduces the "
                                 + "defect M35 exists to prevent"),
+                        p("provenance", string(), "WHERE this log came from — free text, declared "
+                                + "alongside 'log' (e.g. \"risk-engine · localhost:8081 · ~/dev/risk "
+                                + "· exported 09:14Z\"). A file name is not a system: exporting three "
+                                + "servers' logs to /tmp gives three artefacts nobody can tell apart. "
+                                + "It rides the status bar, context, report headers and PDFs, and lets "
+                                + "the mismatch banner name a SYSTEM rather than a temp file. Never "
+                                + "inferred — omit it and the analyser says nothing rather than "
+                                + "guessing"),
                         p("close", enumStr("log", "graph", "all"), "close what is open (M35.1) — the "
                                 + "counterpart of opening, and the way to switch cleanly between "
                                 + "systems. Log-DERIVED state clears (records, filter, shading, step "

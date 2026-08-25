@@ -13,7 +13,7 @@ the same source roots, event processors and **named graphs** (formulas and pins 
 | Maven repos | local repositories + the search toggle |
 | Event processors | the FQN list and the selected one |
 | Graphs and named focuses | named graphs (series, formulas, resolve policy, pinned windows, notes, guides, condition bands, external-CSV definitions, marker definitions — never their extracted values) and named topology focuses (node sets + rationale) |
-| Investigation reports | report **definitions** — section references, table column specs, the authoring context (log fingerprint + filter), and any **narrative text the author (often an agent) wrote about your data**. Never log records: evidence re-renders from the recipient's own log, and unresolved references say so. Narrative is the reason this is its own checkbox rather than a passenger on Graphs |
+| Investigation reports | report **definitions** — section references, table column specs, the authoring context (log fingerprint + filter, **including any `provenance` string naming the system the log came from** — e.g. `risk-engine · localhost:8081 · ~/dev/risk`), and any **narrative text the author (often an agent) wrote about your data**. Never log records: evidence re-renders from the recipient's own log, and unresolved references say so. Narrative is the reason this is its own checkbox rather than a passenger on Graphs |
 | View | hidden columns |
 | Assistant | round / per-reply caps |
 | LLM *(off by default)* | provider / model / base-URL — **never the API key** |

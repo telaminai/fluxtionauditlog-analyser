@@ -7,6 +7,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **A log can say which *system* it came from** — `open {log, provenance: "risk-engine ·
+  localhost:8081 · ~/dev/risk"}`. A file name is not a system: export three servers' logs and you get
+  three artefacts nobody can tell apart, and a report headed *"written against export-1.yaml"* tells
+  a reader nothing. Provenance rides the status bar, `context`, report headers and PDFs, and lets the
+  mismatch banner say **"same content but a different system"** — the case two servers running the
+  same build produce, where the file name never could. **Never inferred**: omit it and the analyser
+  says nothing rather than guessing. Shared reports carry it, so the Reports sharing row now names it.
 - **An agent-driven open can no longer strand the app on a dialog** (M35.7). Opening a log that sits
   inside a project popped a **modal** "load this project's settings?" question from inside the load
   path — fine for a human, fatal over the action socket, where nobody can answer it and every later

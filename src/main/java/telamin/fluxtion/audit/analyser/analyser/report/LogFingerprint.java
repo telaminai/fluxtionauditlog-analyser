@@ -16,10 +16,31 @@ import java.util.Optional;
  * @param records   how many records the log held at authoring
  * @param firstTime first timed record's logTime, or {@code null} when the log had none
  * @param lastTime  last timed record's logTime, or {@code null}
+ * @param provenance WHERE this log came from, declared by whoever opened it — free text, or
+ *                   {@code null} when nobody said (spec-agent-brokered-dev-loop §E). A file name is
+ *                   not a system: an agent exporting a server's log writes {@code /tmp/export-1.yaml},
+ *                   and with one analyser and three servers, "written against export-1.yaml" tells
+ *                   the reader nothing about which estate the evidence came from. <b>Absent means
+ *                   absent</b> — never inferred from the path, because a guessed system name is worse
+ *                   than none.
  */
-public record LogFingerprint(String logName, int records, Long firstTime, Long lastTime) {
+public record LogFingerprint(String logName, int records, Long firstTime, Long lastTime,
+                             String provenance) {
+
+    public LogFingerprint {
+        provenance = provenance == null || provenance.isBlank() ? null : provenance.trim();
+    }
+
+    /** The pre-§E shape, kept so existing callers compile unchanged; provenance is then absent. */
+    public LogFingerprint(String logName, int records, Long firstTime, Long lastTime) {
+        this(logName, records, firstTime, lastTime, null);
+    }
 
     public static LogFingerprint of(LogIndex idx, String logName) {
+        return of(idx, logName, null);
+    }
+
+    public static LogFingerprint of(LogIndex idx, String logName, String provenance) {
         Long first = null, last = null;
         for (int i = 0; i < idx.size(); i++) {
             Long lt = idx.logTime(i);
@@ -29,7 +50,7 @@ public record LogFingerprint(String logName, int records, Long firstTime, Long l
             Long lt = idx.logTime(i);
             if (lt != null) { last = lt; break; }
         }
-        return new LogFingerprint(logName == null ? "" : logName, idx.size(), first, last);
+        return new LogFingerprint(logName == null ? "" : logName, idx.size(), first, last, provenance);
     }
 
     /**
@@ -53,6 +74,14 @@ public record LogFingerprint(String logName, int records, Long firstTime, Long l
             return Optional.of("written against " + describe() + "; the loaded log differs ("
                     + loaded.describe() + ")");
         }
+        // §E's payoff: two servers running the SAME BUILD produce identical content under identical
+        // file names, so the name can never separate them. Provenance can, and is therefore checked
+        // FIRST — "a different system" is a stronger fact than "a different file".
+        if (provenance != null && loaded.provenance() != null
+                && !provenance.equals(loaded.provenance())) {
+            return Optional.of("written against " + provenance + "; the loaded log matches on content "
+                    + "but came from a different system (" + loaded.provenance() + ")");
+        }
         // Q1 (owner decision, review of feat/m33-reports): same content under a DIFFERENT name gets
         // the softer announce — "same content, different file" is still a fact the reader needs, but
         // a legitimate copy/rename must not wear the strong different-log banner. Same content, same
@@ -73,7 +102,8 @@ public record LogFingerprint(String logName, int records, Long firstTime, Long l
 
     /** "demo.yaml · 726 records · 09:00:04.500→09:18:12.000" — the identity, human-readable. */
     public String describe() {
-        StringBuilder sb = new StringBuilder(logName.isEmpty() ? "(unnamed log)" : logName);
+        StringBuilder sb = new StringBuilder(provenance != null ? provenance
+                : logName.isEmpty() ? "(unnamed log)" : logName);
         sb.append(" · ").append(records).append(" record(s)");
         if (firstTime != null && lastTime != null) {
             sb.append(" · ").append(fmt(firstTime)).append("→").append(fmt(lastTime));

@@ -44,6 +44,13 @@ public interface AppControl {
      * List the .graphml files under the source roots, ranked against the open log (M35.4).
      * Returns candidates and opens NOTHING — picking is the caller's act.
      */
+    /**
+     * Declare WHERE the log about to be opened came from (§E). Free text; called before
+     * {@link #openLog}. Never inferred — a guessed system name is worse than none.
+     */
+    default void setProvenance(String provenance) {
+    }
+
     default ActionResult discoverGraphs() {
         return ActionResult.error("'discover' is not enabled here");
     }

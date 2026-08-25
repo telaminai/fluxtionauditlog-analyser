@@ -290,6 +290,14 @@ than a per-session one._
   wrong graph auto-picked is precisely the confidently-wrong reading M35 exists to prevent.
 - [M35.5] ☑ **New/switched project closes log + graph** *(on `feat/m35-lifecycle`)* — the profile is the session boundary; today
   "Close project" leaves both loaded.
+- [§E] ☑ **`provenance` — which SYSTEM this log came from** *(on `feat/m35-lifecycle`, 2026-08-25)*
+  — spec-agent-brokered-dev-loop §E, delivery-order item 2, landed here at the owner's call because
+  it is the same subject as M35.6 (which graph) one level out (which system), and small enough to
+  review in one pass. `LogFingerprint.provenance` added additively; `open {log, provenance}`; rides
+  every surface `describe()` already reached. Two servers on the same build produce identical content
+  under identical names, so provenance is checked FIRST and gets its own banner heading, **SAME
+  CONTENT — A DIFFERENT SYSTEM**. Absent means absent — never inferred. Share-disclosure row moved in
+  the same commit with a contract test, per review §1.9.
 - [M35.8] ☐ **`open {project: path}`** — the lifecycle surface's missing half. _(Deferred out of M35
   deliberately: this is the largest single mutation any verb would perform — it replaces source
   roots, event processors, graphs and hidden columns in one call — so it needs its own decision about

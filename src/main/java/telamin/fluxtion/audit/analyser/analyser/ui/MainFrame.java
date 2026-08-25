@@ -628,6 +628,13 @@ public final class MainFrame extends JFrame {
      * the live log, optionally render to PDF or export one table section to CSV. The echo follows
      * M26.4 — invalid sections skipped AND named, unresolved references named, nothing silent.
      */
+    /**
+     * WHERE the open log came from, as declared by whoever opened it (§E). Free text, null when
+     * nobody said, and NEVER inferred from the path — a guessed system name is worse than none.
+     * Set by {@code open {provenance}} and cleared with the log.
+     */
+    private String logProvenance;
+
     /** The log actually open, as the fingerprint names it — one source for authoring and re-opening. */
     private String loadedLogName() {
         return logDisplayLocation == null ? "" : new File(logDisplayLocation).getName();
@@ -639,7 +646,7 @@ public final class MainFrame extends JFrame {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
         }
         var fp = telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
-                store.index(), loadedLogName());
+                store.index(), loadedLogName(), logProvenance);
         String name = params.get("name") == null ? null : params.get("name").toString();
 
         // ---- CSV export of one table section from an EXISTING report --------------------------------
@@ -698,7 +705,7 @@ public final class MainFrame extends JFrame {
         }
 
         var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                spec, store.index(), loadedLogName(), findings,
+                spec, store.index(), loadedLogName(), logProvenance, findings,
                 new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter);
 
         java.util.List<String> warnings = new java.util.ArrayList<>(parsed.warnings());
@@ -823,7 +830,7 @@ public final class MainFrame extends JFrame {
         fc.setSelectedFile(new File(name + ".pdf"));
         if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
         var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                spec, store.index(), loadedLogName(), findings,
+                spec, store.index(), loadedLogName(), logProvenance, findings,
                 new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter);
         java.util.List<String> warnings = new java.util.ArrayList<>();
         byte[] pdf = renderReportPdf(spec, resolution, warnings);
@@ -1344,8 +1351,9 @@ public final class MainFrame extends JFrame {
         reportsPanel = new ReportsPanel(
                 () -> java.util.List.copyOf(config.reports),
                 spec -> telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                        spec, store == null ? null : store.index(), loadedLogName(), findings,
-                        new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter),
+                        spec, store == null ? null : store.index(), loadedLogName(), logProvenance,
+                        findings, new java.util.HashSet<>(graphTabs.graphNames()), focusNames(),
+                        filter),
                 sec -> store == null
                         ? new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.AssembledTable(
                                 new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.TableData(
@@ -1968,6 +1976,7 @@ public final class MainFrame extends JFrame {
         tableModel = null;
         logDisplayLocation = null;
         logLocalPath = null;
+        logProvenance = null;          // §E: it described THAT log, not the next one
         timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
         flaggedRows.clear();
         findings.clear();
@@ -2097,7 +2106,9 @@ public final class MainFrame extends JFrame {
         String orderWarning = timeOrderReport.isClean() ? ""
                 : "  ·  ⚠ time-order violations (" + timeOrderReport.violations().size()
                         + ") — ask 'context' or see the load report";
-        status.setText(loaded.size() + " records · " + range + " · " + displayName(location) + orderWarning);
+        status.setText(loaded.size() + " records · " + range + " · "
+                + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
+                        : displayName(location)) + orderWarning);
         if (!timeOrderReport.isClean()) {
             // D-R3: the report is shown, never buried — once, at load, with the evidence lines
             JOptionPane.showMessageDialog(this,
@@ -2805,6 +2816,11 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public void setProvenance(String provenance) {
+            logProvenance = provenance == null || provenance.isBlank() ? null : provenance.trim();
+        }
+
+        @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult discoverGraphs() {
             var result = discoverGraphs0();
             java.util.List<Map<String, Object>> found = new java.util.ArrayList<>();
@@ -3079,6 +3095,8 @@ public final class MainFrame extends JFrame {
                                     selectedRecords, sourceService));
             Map<String, Object> log = facts.logAsMap();
             if (!log.isEmpty()) out.put("log", log);
+            // §E: absent means absent. No key at all rather than a null an agent might read as ""
+            if (logProvenance != null) out.put("provenance", logProvenance);
             if (store != null) {
                 // D-A1a: state it BEFORE anything is derived from position. An agent stepping a
                 // cycle, or reading the topology's dispatch badges, is entitled to know whether

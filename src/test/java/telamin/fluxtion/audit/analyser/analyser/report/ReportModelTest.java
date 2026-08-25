@@ -225,4 +225,80 @@ class ReportModelTest {
     private static ReportSpec spec(SectionSpec... sections) {
         return new ReportSpec("inv", "title", "", "", null, FilterSnapshot.all(), List.of(sections));
     }
+
+    // ---- §E provenance: a file name is not a system ----------------------------------------------
+
+    @Test
+    void twoServersRunningTheSameBuildAreDistinguishedByProvenance_theCaseTheFieldExistsFor() {
+        // identical content AND identical file name — an agent exported both to the same temp name.
+        // Nothing but the declared system can separate them, which is the whole point of §E.
+        LogFingerprint authored = new LogFingerprint("export.yaml", 4, 100L, 400L,
+                "risk-engine · localhost:8081");
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", authored, FilterSnapshot.all(), List.of()),
+                STORE.index(), "export.yaml", "pricing-engine · localhost:8082",
+                Map.of(), Set.of(), Set.of(), new FilterState());
+
+        assertNotNull(r.fingerprintMismatch());
+        assertTrue(r.fingerprintMismatch().contains("a different system"), r.fingerprintMismatch());
+        assertTrue(r.fingerprintMismatch().contains("risk-engine"), r.fingerprintMismatch());
+        assertTrue(r.fingerprintMismatch().contains("pricing-engine"),
+                "it must name BOTH, or the reader cannot tell which way round: " + r.fingerprintMismatch());
+        assertEquals("SAME CONTENT — A DIFFERENT SYSTEM",
+                ReportResolver.fingerprintHeading(r.fingerprintMismatch()),
+                "its own heading — a different SYSTEM is not the same fact as a different file");
+    }
+
+    @Test
+    void theSameSystemAnnouncesNothing() {
+        LogFingerprint authored = new LogFingerprint("export.yaml", 4, 100L, 400L, "risk-engine");
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", authored, FilterSnapshot.all(), List.of()),
+                STORE.index(), "export.yaml", "risk-engine",
+                Map.of(), Set.of(), Set.of(), new FilterState());
+        assertNull(r.fingerprintMismatch());
+    }
+
+    @Test
+    void absentProvenanceMeansAbsent_neverInferredAndNeverACcusation() {
+        // one side declared, the other did not. That is not evidence of a different system, and
+        // announcing one would be inventing a fact — D-A2's rule: declared or nothing.
+        LogFingerprint authored = new LogFingerprint("export.yaml", 4, 100L, 400L, "risk-engine");
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", authored, FilterSnapshot.all(), List.of()),
+                STORE.index(), "export.yaml", null, Map.of(), Set.of(), Set.of(), new FilterState());
+        assertNull(r.fingerprintMismatch(),
+                "silence from one side is not a mismatch — it is silence");
+    }
+
+    @Test
+    void aContentDifferenceStillOutranksProvenance() {
+        // the strong banner is about the EVIDENCE being different, which matters more than where
+        // it came from; provenance must not downgrade it to the soft one
+        LogFingerprint authored = new LogFingerprint("a.yaml", 999, 1L, 2L, "risk-engine");
+        var r = ReportResolver.resolve(
+                new ReportSpec("inv", "t", "", "", authored, FilterSnapshot.all(), List.of()),
+                STORE.index(), "b.yaml", "pricing-engine",
+                Map.of(), Set.of(), Set.of(), new FilterState());
+        assertTrue(r.fingerprintMismatch().contains("the loaded log differs"), r.fingerprintMismatch());
+        assertEquals("THIS IS NOT THE LOG THE REPORT WAS WRITTEN AGAINST",
+                ReportResolver.fingerprintHeading(r.fingerprintMismatch()));
+    }
+
+    @Test
+    void describeNamesTheSystemWhenOneWasDeclared_andTheFileWhenNot() {
+        assertTrue(new LogFingerprint("export-1.yaml", 4, 100L, 400L, "risk-engine · localhost:8081")
+                .describe().startsWith("risk-engine · localhost:8081"),
+                "a report headed 'written against export-1.yaml' tells the reader nothing");
+        assertTrue(new LogFingerprint("demo.yaml", 4, 100L, 400L, null)
+                .describe().startsWith("demo.yaml"));
+    }
+
+    @Test
+    void blankProvenanceIsNormalisedToAbsent() {
+        assertNull(new LogFingerprint("a.yaml", 1, null, null, "   ").provenance(),
+                "an empty declaration is not a declaration");
+        assertNull(new LogFingerprint("a.yaml", 1, null, null).provenance(),
+                "and the pre-§E constructor still compiles, with provenance absent");
+    }
 }

@@ -391,3 +391,44 @@ NOT DRIVABLE — human, or a UI-automation harness
   E6  The Find-GraphML picker in both themes, and Cancel loading nothing.
   E7-E10  The project paths (open / close / recent), and the in-load offer keeping its log — the
       same D10 gap: no project verb, so no socket route.
+
+================================================================================
+17. §E PROVENANCE — added on this branch at the owner's call
+================================================================================
+Not an M35 slice: it is §E of spec-agent-brokered-dev-loop (ACCEPTED v2), item 2 of the delivery
+order. Added here because it is the same subject as the rest of the branch — M35.6 states WHICH
+GRAPH, §E states WHICH SYSTEM — and because it is small enough for the reviewer to take in one pass.
+
+  LogFingerprint gains `provenance`, ADDITIVELY (4-arg constructor kept and delegating, exactly as
+  Capabilities did in M34.1). ConfigStore writes `.fp.prov`; pre-§E configs simply have none.
+  open {log, provenance} declares it BEFORE the load, so the fingerprint built in onLoaded carries
+  it. Cleared with the log — it described THAT log, not the next one.
+
+  describe() names the SYSTEM when one was declared and falls back to the file name, so every
+  surface that already rendered the fingerprint — status bar, context, report header, PDF footer —
+  gets it with no further wiring.
+
+THE PAYOFF, and the reason free text is enough: two servers running the SAME BUILD produce identical
+content under identical file names, so neither the content check nor the name check can separate
+them. Provenance can, and is therefore tested FIRST — "a different system" is a stronger fact than
+"a different file" — with its own banner heading, SAME CONTENT — A DIFFERENT SYSTEM, because it is
+not the same fact as a renamed copy.
+
+ABSENT MEANS ABSENT. One side declared and the other not is NOT a mismatch: silence is silence, and
+announcing one would invent a fact (D-A2). A content difference still outranks provenance, so the
+strong banner is never downgraded. Both pinned by test.
+
+SHARE DISCLOSURE moved in the SAME commit, as the review required (§1.9). A provenance string names
+internal systems, and the Reports category promises "definitions + narrative — never log data", so
+the row now names it — and ShareDisclosureContractTest asserts the page mentions it, for the same
+reason it asserts focuses: disclose an artifact in the change that makes it shareable, not in the
+one that gets caught.
+
+VERIFIED IN THE RUNNING JAR:
+  open {log, provenance}          -> context.provenance carries it
+  reopen the same file as another system, then author a report:
+    writtenAgainst = "pricing-engine · localhost:8082 · ~/dev/pricing · 582 record(s) · 09:00:09.750→…"
+    — the SYSTEM, where before it would have read the temp file's name
+  open {log} with no provenance   -> the key is absent from context; nothing guessed
+6 new tests (777 total), covering the same-build case, the same-system quiet case, absent-means-
+absent, content-outranks-provenance, describe()'s fallback, and blank normalising to absent.
