@@ -617,6 +617,7 @@ public final class TopologyPanel extends JPanel {
      */
     public void clearGraph() {
         loadedFrom = null;
+        pairingPart = null;
         fullTopology = telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.empty();
         focusStack = new FocusStack(fullTopology);
         selection.clear();
@@ -763,9 +764,29 @@ public final class TopologyPanel extends JPanel {
         StringBuilder sb = new StringBuilder(statusBase == null ? " " : statusBase);
         appendPart(sb, stepPart);
         appendPart(sb, scopePart);
+        appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
         sb.append(viewNote());
         status.setText(sb.toString());
     }
+
+    /**
+     * M35.6 — whether this graph fits the open log, stated HERE and permanently.
+     *
+     * <p>The main window's status bar already says it at load time, and that was not enough: it is
+     * written by 32 call sites, so the pairing evaporates on the next filter change. Yet this panel
+     * is exactly where a mismatched graph does its damage — the execution shading, the step-through
+     * order and the coverage figures are all derived from it. So the qualification lives beside the
+     * thing it qualifies, and it survives every other status update because {@link #renderStatus}
+     * composes it in rather than overwriting.
+     *
+     * <p>Null or blank clears it — a graph with no log to judge against makes no claim either way.
+     */
+    public void setPairingNote(String note) {
+        this.pairingPart = note == null || note.isBlank() ? null : note;
+        renderStatus();
+    }
+
+    private String pairingPart;
 
     private static void appendPart(StringBuilder sb, String part) {
         if (part == null || part.isBlank()) return;

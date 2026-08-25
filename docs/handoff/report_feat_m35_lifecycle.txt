@@ -288,3 +288,38 @@ E8  File ▸ Close project with both loaded — same.
 E9  Open a log that sits inside a project BY HAND and click Yes on the offer — the log must SURVIVE
     (this is the exception, and it is the one that would be a bug if it regressed).
 E10 Recent-projects menu — same as E7.
+
+================================================================================
+13. M35.6 — COMPLETE (the pairing is stated where it is needed, and it STAYS)
+================================================================================
+The first reading of this slice was "largely delivered already" — context.graphPairing, the status
+line, the discovery echo. Looking properly found two real gaps:
+
+  1. The TOPOLOGY PANEL said nothing about fit. Its status read "file — N nodes, M edges, R roots",
+     and that panel is exactly where a mismatched graph does its damage: the execution shading, the
+     step-through order and the coverage figures are all derived from the graph.
+  2. The main status bar is written by 32 call sites, so the pairing message set at load time
+     EVAPORATED on the next filter change — while everything it qualified stayed on screen. A
+     qualification with a shorter life than the claim it qualifies is not a qualification.
+
+Fixed at the right seam: TopologyPanel.renderStatus() already composes from persistent parts
+(statusBase + step + scope + view), so the pairing became another part rather than another writer.
+MainFrame.publishPairing() pushes it from the four places lastPairing changes, so the panel and
+`context` cannot disagree.
+
+VERIFIED IN THE RUNNING JAR, by screenshot, after hammering the status bar with six filter changes:
+    push-probe.graphml — 21 nodes, 22 edges, 8 roots  ·  ⚠ DOES NOT FIT THIS LOG — the graph
+    declares only 0 of the 211 node(s) this log writes, so it describes a different system or build
+and the main bar carrying the M35.3 wording alongside ("— kept, you opened it deliberately").
+
+================================================================================
+14. BRANCH COMPLETE — M35.1 .2 .3 .4 .5 .6 .7
+================================================================================
+770 tests green · mkdocs --strict green · sweep clean · every slice verified in the running jar
+except M35.5, whose paths have no socket route (D10 — stated, not dressed up).
+
+Ten eyeball items stand (E1-E10). Three deviations worth the reviewer's attention: D4 (the modal
+hazard, which became M35.7), D7 (no second .graphml in-tree, so the true multi-processor case is
+untested), D10 (M35.5 is read-verified only, and why that argues for M20.6).
+
+Ready to rebase onto main and merge.

@@ -15,6 +15,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   offer instead: it appears in `context` as `projectOffer`, and in the status bar. Opening by hand is
   unchanged — you still get the dialog. Loading a project is still never automatic, because it
   replaces your source roots, event processors, graphs and hidden columns.
+- **The Topology tab now says whether its graph fits the open log** (M35.6) — permanently, beside
+  the thing it qualifies: *"⚠ DOES NOT FIT THIS LOG — the graph declares only 0 of the 211 node(s)
+  this log writes"*. The main status bar said it at load time, but 32 other things write that line,
+  so the warning vanished on the next filter change — while the shading, step order and coverage
+  figures it qualifies stayed on screen.
 - **Switching or closing a project now closes the log and graph with it** (M35.5). A project owns
   your source roots, event processors, named graphs, focuses and reports — swap it and all of those
   change underneath the open log, so keeping it meant viewing one project's log through another's

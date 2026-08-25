@@ -265,7 +265,7 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
-## M35 · Log + graph lifecycle — ☐ PROPOSED (owner, 2026-08-22; the pairing is evidence, not decoration)
+## M35 · Log + graph lifecycle — ☑ **COMPLETE on `feat/m35-lifecycle`** (owner, 2026-08-22; the pairing is evidence, not decoration)
 _Today a log and a GraphML are opened independently and **neither can be closed**. `TopologyPanel.load()`
 sets the graph; nothing clears it, and the File menu has "Close project" but no "Close log". So opening a
 second log leaves the FIRST log's topology on screen, and every figure derived from it — coverage,
@@ -297,7 +297,7 @@ than a per-session one._
   prevent it (report §8 D4 has the REST transcript). M35.2 sidestepped it by re-pairing first; the
   hazard is untouched. The offer must be non-blocking, or suppressed when the open came from the
   action socket rather than a human.
-- [M35.6] ☐ **State the pairing before anything is derived from it** — status bar and `context` name
+- [M35.6] ☑ **State the pairing before anything is derived from it** *(on `feat/m35-lifecycle`)* — status bar and `context` name
   which graph is paired with which log, and whether they match. Coverage's warning arrives only if
   someone runs coverage; the mismatch should be visible before that.
 

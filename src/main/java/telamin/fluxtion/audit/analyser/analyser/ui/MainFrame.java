@@ -2004,6 +2004,7 @@ public final class MainFrame extends JFrame {
     private void closeGraph() {
         topologyPanel.clearGraph();
         lastPairing = null;
+        publishPairing();
         status.setText(store == null ? "No log open" : "Graph closed · " + store.size() + " records");
         updateLifecycleMenu();
     }
@@ -2207,10 +2208,12 @@ public final class MainFrame extends JFrame {
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing judgeOpenedGraph() {
         if (store == null || topologyPanel.loadedGraphFile() == null) {
             lastPairing = null;
+            publishPairing();
             return null;
         }
         var pairing = pairingAgainst(store);
         lastPairing = pairing;
+        publishPairing();
         String name = topologyPanel.loadedGraphFile().getFileName().toString();
         status.setText(store.size() + " records · graph " + name + (pairing.applies()
                 ? " · " + pairing.reason()
@@ -2222,6 +2225,7 @@ public final class MainFrame extends JFrame {
         if (topologyPanel.loadedGraphFile() == null) return;
         var pairing = pairingAgainst(loaded);
         lastPairing = pairing;
+        publishPairing();
         if (pairing.applies()) {
             status.setText(status.getText() + "  ·  graph "
                     + topologyPanel.loadedGraphFile().getFileName() + " kept — " + pairing.reason());
@@ -2231,6 +2235,20 @@ public final class MainFrame extends JFrame {
         topologyPanel.clearGraph();
         status.setText(status.getText() + "  ·  ⚠ graph " + closed + " closed — " + pairing.reason()
                 + ". Reopen it deliberately if you meant to compare them.");
+    }
+
+    /**
+     * M35.6 — push the verdict onto the Topology panel, where it stays. Called wherever
+     * {@code lastPairing} changes, so the panel and {@code context} can never disagree.
+     */
+    private void publishPairing() {
+        if (topologyPanel.loadedGraphFile() == null || lastPairing == null) {
+            topologyPanel.setPairingNote(null);
+        } else {
+            topologyPanel.setPairingNote(lastPairing.applies()
+                    ? "fits this log (" + lastPairing.matched() + "/" + lastPairing.logged() + ")"
+                    : "\u26a0 DOES NOT FIT THIS LOG \u2014 " + lastPairing.reason());
+        }
     }
 
     /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
