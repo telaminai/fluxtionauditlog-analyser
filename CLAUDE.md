@@ -52,20 +52,25 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-08-25 (v1.7.0 released; M34.1 ordering + M35 lifecycle merged, unreleased):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-08-25 (v1.7.0 released; M34.0–.2, M35.1–.8/.10/.11 and §E merged to main, unreleased):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +
 time-order validation (M30), log-source plugins (M31 core), marker series + point-snapped mouseover
 (M32, now COMPLETE: legend, rug, PDF markers table, external-CSV source), investigation reports
 (M33 core: typed sections, D-I3a authoring context, Reports tab, own share category), **log + graph
-lifecycle (M35.1–.7: close/reset, re-pair on open, switch processor, discovery that offers and never
-selects, project-as-session-boundary, no modal in the load path, the pairing stated persistently)**
-and **§E provenance** (a log declares which SYSTEM it came from, not just which file).
+lifecycle (M35.1–.8: close/reset, re-pair on open, switch processor, discovery that offers and never
+selects, project-as-session-boundary, no modal in the load path, the pairing stated persistently,
+`open {project}` / `open {close: "project"}`; .10/.11 committed profiles are project-relative and
+never rewritten by a no-op open)**, **§E provenance** (a log declares which SYSTEM it came from, not
+just which file) and **source adapters M34.1–.2** (`graph(Path)` on the reader SPI, DECLARED/INFERRED
+provenance, `GraphSource` precedence — opened beats supplied, a reader's graph clears with its log —
+ordering claim honoured by the view, coverage refusing an inferred graph).
 
-Open analyser-side: **M35.8** (`open {project}`) and **M35.9** (an `OpenRequest` for load-time side
-effects — the pattern has appeared three times); **M34's remainder** on `feat/m34-adapters`
-(stacked — diff against its base, not main); M22 remnants — PNG export (22.3), alternative layouts
+Open analyser-side: **M35.9** (an `OpenRequest` for load-time side effects — **trigger fired**: the
+same field consumed twice let a suppressed modal fire; schedule it); **M34.3** (format spec +
+conformance fixtures, on `feat/m34-conformance`, in review), **M34.4/.5** (first foreign adapter;
+per-cycle concurrency marker); **M36** start page (spec'd, `feat/m36-start-page`); M22 remnants — PNG export (22.3), alternative layouts
 (22.6), re-dispatch cause (22.11, needs `UP-FLX-10` in
 [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the holding pen for anything
 belonging to another repo); **M20.5** (project artifact pointers); **M29.5** (optional embed);

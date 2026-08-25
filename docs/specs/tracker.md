@@ -265,10 +265,10 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
-## M35 · Log + graph lifecycle — ◧ **.1-.7 + §E SHIPPED 2026-08-25; .8 DONE on `feat/m35-project`** (archived; .9–.11 open)
+## M35 · Log + graph lifecycle — ◧ **.1-.8, .10, .11 + §E MERGED to main 2026-08-25** (archived; .9 open — trigger fired)
 _Shipped work in [completed/tracker.md](completed/tracker.md)._
 - [M35.10] ☑ **Relative profile roots resolve against `.analyser/`, not the project root** _(found driving
-  M35.8, report_feat_m35_project O1; DONE 2026-08-25 on `feat/m35-relative-roots`)_ — `ProjectProfile.load`
+  M35.8, report_feat_m35_project O1; DONE 2026-08-25, merged to main)_ — `ProjectProfile.load`
   handed `SettingsShare.preview` the profile's own directory as the base, so a bundle's
   `sourceRoot.0=src/main/java` landed at `<bundle>/.analyser/src/main/java`. The writer never emits
   relative roots, so nothing shipped was hit — but the **M19.2 bundle contract** is built on exactly
@@ -276,7 +276,7 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   own directory for a loose `.fluxtion-settings`; used by `load` and the Import dialog. Spec-onboarding
   §Contract notes corrected.
 - [M35.11] ☑ **Auto-persist rewrites a committed profile's relative roots as absolute** _(found driving
-  M35.8, report O2; DONE 2026-08-25 on `feat/m35-relative-roots`)_ — open a project, do nothing, switch
+  M35.8, report O2; DONE 2026-08-25, merged to main)_ — open a project, do nothing, switch
   away: the flush wrote the in-memory config back and the writer knew only `~`-relative and absolute
   forms — plus `share.exportedAt` and `Properties.store`'s date comment, two more diffs per write. Fix:
   `SettingsShare.export(c, categories, projectRoot)` writes paths under the project project-relative
@@ -299,7 +299,7 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   verb open racing a drag-drop) could cross it. Rare and serialised in practice, which is why the
   review noted rather than fixed it. _Do this when a fourth appears, or when R1 bites — not before:
   it is a refactor of code that has just been reviewed._
-- [M35.8] ☑ **`open {project: path}`** — the lifecycle surface's missing half. **DONE 2026-08-25 on `feat/m35-project`** (report `docs/handoff/report_feat_m35_project.txt`): the verb applies, the echo names every replaced category with before/after counts, what it closed WITH PATHS, the previous project and the one call back; `open {close: "project"}` added so "your own settings" is reachable in one call too (report D1); `context.project` names the settings in force (D5). E7/E8/E10 driven over REST, E9's offer half proven, its keep half stays human (report §6). Brief was `docs/handoff/handoff_25_aug_2026_2.txt`. _(Deferred out of M35
+- [M35.8] ☑ **`open {project: path}`** — the lifecycle surface's missing half. **DONE 2026-08-25, merged to main** (report `docs/handoff/completed/report_feat_m35_project.txt`): the verb applies, the echo names every replaced category with before/after counts, what it closed WITH PATHS, the previous project and the one call back; `open {close: "project"}` added so "your own settings" is reachable in one call too (report D1); `context.project` names the settings in force (D5). E7/E8/E10 driven over REST, E9's offer half proven, its keep half stays human (report §6). Brief was `docs/handoff/completed/handoff_25_aug_2026_2.txt`. _(Deferred out of M35
   deliberately: this is the largest single mutation any verb would perform — it replaces source
   roots, event processors, graphs and hidden columns in one call — so it needs its own decision about
   confirmation rather than being smuggled in beside a lifecycle fix. Not started on
@@ -362,7 +362,7 @@ a log from the command line means never seeing it._
   applies hardest here: this is the most-seen surface and the likeliest to carry a real name onto the
   docs site.
 
-## M34 · Source adapters — ☐ ACCEPTED v2 (the same instrument over other execution engines)
+## M34 · Source adapters — ◧ **.0–.2 MERGED to main 2026-08-25; .3 on `feat/m34-conformance` (in review)**; .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
 purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
 that transform LangGraph/Temporal runs into the audit-log format and get the whole toolset for free.
@@ -404,7 +404,7 @@ returned `SourceGraph` because availability is per SOURCE, not per adapter._
   D-A3 needs nothing: LangGraph's per-task `result` IS the attribution rule. And the analyser caught
   the translator's invented node unprompted (`loggedButNotInTopology`), declaring every other figure
   suspect — the honesty disciplines transfer to a foreign source unmodified.
-- [M34.1] ☑ **`RunAdapter` SPI** *(COMPLETE on `feat/m34-adapters`)* — _ordering slice DONE 2026-08-22_: `Capabilities` gained
+- [M34.1] ☑ **`RunAdapter` SPI** *(MERGED to main 2026-08-25)* — _ordering slice DONE 2026-08-22_: `Capabilities` gained
   `Ordering {TOTAL|PARTIAL}` **additively** (the 3-arg constructor kept — it is a published surface
   since 1.5.0, and TOTAL is correct for every container that existed then); the claim is carried to
   `LogIndex.totalOrder()` beside `byteAnchors`, reported by `context` before anything is derived from
