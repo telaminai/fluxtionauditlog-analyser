@@ -1,0 +1,95 @@
+REPORT — feat/m34-conformance · M34.3 format specification + conformance fixtures (D-A6)
+From: the second session · 2026-08-25 · Base: main @ 8defc64
+Status: COMPLETE on the branch — see §5 for gates.
+
+================================================================================
+1. WHAT SHIPPED
+================================================================================
+  docs/site/format-spec.md            Format 1, normative. Eight sections: container/framing; the
+                                      record (field table, MUST/SHOULD, "every record is kept");
+                                      time order as a checked claim; nodeLogs values + attribution
+                                      (D-A3) + no pseudo-nodes; order as the reader's claim (D-A1a);
+                                      exported calls; what a reader declares; graph provenance
+                                      (D-A2/D-A4); what absence means (UP-FLX-11). Plus the
+                                      conformance table and how to check an emitter.
+  src/test/resources/conformance/     12 fixture files + README.md (the table of what each pins).
+                                      Each fixture is a plain log starting with ---. See §3a for why
+                                      the descriptions are NOT in the files.
+  FormatConformanceTest (14)          C01–C13 + "every fixture in the set is exercised". EVERY fixture
+                                      runs through HeapLogStore (the reference implementation) AND
+                                      SpiLogStore over a pass-through reader, and the two are compared
+                                      record for record: kind, logTime, eventTime, event, thread,
+                                      dimension, nodeLogs count, canonical text, timeline bounds.
+  Nav + pointers                      mkdocs nav under "The audit log"; log-format.md ▸ Versions and
+                                      plugins.md point at the spec. spec-source-adapters D-A6 records
+                                      the delivery. Tracker M34.3 ☑, M34.5 recorded. CHANGELOG Added.
+
+================================================================================
+2. WHAT THE FIXTURES PIN, AND WHY THESE
+================================================================================
+Review F3 on the M34 spec: "a spec that lists fields licenses emitters that are conformant and
+meaningless". So each fixture is a MEANING, chosen from what the tool actually does with a record:
+  C01 minimal            logTime + one entry is a whole record and is already graphable
+  C02 unknown fields     ignored, never rejected — and kept in the text
+  C03 header             optional, lenient; the thread scalar beats the header
+  C04 times              -1 is a sentinel; endTime optional; eventTime never orders (validator clean)
+  C05 untimed            kept, OFF the timeline, orders nothing — three separate facts, three asserts
+  C06 out of order       OUT_OF_ORDER with recordIndex 2; index positions unchanged (never re-sorted)
+  C07 duplicate id       3 entries kept in order; last occurrence is the value; ONE series point
+  C08 lenient values     4 entries survive inner commas/brackets/= runs; NaN detected, not choked on
+  C09 garbage            PARSE_ERROR with its raw text; neighbours OK; count 3
+  C10 ordering claim     built-in TOTAL; SPI TOTAL→true, PARTIAL→false at the index; old ctor = TOTAL
+  C11 attribution        producer.price 1 point, consumer.price 1 point, bare "price" 0 — never merged
+  C12 traced regime      AuditTrace true only when EVERY entry has method; classifyCycle gives
+                         DID_NOT_RUN under tracing and never does without it
+  C13 exported call      callback + declaringType captured; dimension = callback; eventTime absent
+There is no C10 file: the ordering claim belongs to the READER, not the record, so the test opens the
+minimal fixture under three declarations instead. The "every fixture exercised" test pins the file
+list, so adding a file without an assertion fails.
+
+================================================================================
+3. HONESTY ITEMS — what the spec page says Format 1 does NOT carry
+================================================================================
+Writing a normative page forces the question "is this in the record or only in the design?" twice:
+  · the per-cycle concurrency marker (D-A1a). Specified; the parser has no field; the spike showed
+    what happens when it is smuggled through nodeLogs. Recorded as tracker M34.5.
+  · the traced-regime marker (UP-FLX-11). Upstream ask; Format 1 infers tracing from `method` on
+    every entry. The page says so and says what an emitter SHOULD do meanwhile.
+Both are stated on the page under "Open in Format 1" so that no emitter invents a field for either.
+A spec that hid them would license exactly the fabrication D-A1a exists to prevent.
+
+3a. THE FIXTURES CORRECTED THE SPEC BEFORE IT SHIPPED
+--------------------------------------------------------------------------------
+The first draft of format-spec.md said "a file MAY start with a comment block that will be skipped",
+and the first draft of every fixture opened with such a block. Eleven of thirteen tests failed:
+record counts one too high, record 0 a PARSE_ERROR, c06's anchor off by one, c12's traced record
+not at index 0. RecordFramer skips BLANK leading segments only — a non-blank one is a record, which
+is also exactly what c09 asserts for garbage. The spec now states the real rule (§1) and the
+descriptions moved to README.md. Recorded because it is the point of the exercise: a spec written
+from reading code was wrong on its first claim, and the fixtures — run through the code — said so.
+A "leading banner" position is a possible Format 1.1 nicety; not added here, because a format
+change deserves its own line and its own fixture.
+
+================================================================================
+4. DECISIONS TAKEN HERE (reviewer may overrule)
+================================================================================
+D1 · Fixtures are FILES, not strings in the test. D-A6 publishes the set; a string inside a JUnit
+     class is not published. The cost is one extra test pinning the file list.
+D2 · The pass-through reader is the SPI path. It adds nothing, which is the point: the promise to an
+     adapter author is "emit these records and you get what the native log gets", and a reader that
+     transforms would be testing itself.
+D3 · The page is on the DOCS SITE (user-facing), not in docs/specs. An emitter author is a user of the
+     format, not a maintainer of this repo. docs/specs/spec-source-adapters.md D-A6 links to it.
+D4 · RFC 2119 words. The log-format.md page stays as the tour; this one is the contract. Two pages
+     with two jobs rather than one page trying to do both.
+D5 · The M34 probes stay in tools/spikes/. They are reader PLUGINS (PARTIAL/INFERRED/throwing) and the
+     conformance suite tests RECORDS; C10 covers the ordering claim at the index without needing a
+     plugin jar. Moving the probes in-tree is a separate question about test-time plugin loading.
+
+================================================================================
+5. GATES
+================================================================================
+  mvn -o -q test          exit 0 (count in the commit message, read bare)
+  mkdocs build --strict   exit 0 (new page in nav; two pointer edits)
+  rule-1 sweep            clean — fixture content uses DEMO/com.acme names only
+  git config user.email   personal

@@ -1,0 +1,16 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 100
+  event: e
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 300
+  event: e
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 200
+  event: e
+---

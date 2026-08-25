@@ -1,0 +1,17 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - a: { thread: t, method: handleEvent, v: 1}
+    - b: { thread: t, method: onTrigger}
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  nodeLogs:
+    - a: { v: 2}
+    - b: { method: aBusinessKeyThatHappensToBeCalledMethod}
+---

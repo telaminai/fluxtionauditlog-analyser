@@ -1,0 +1,18 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  eventTime: -1
+  logTime: 1000
+  event: ScheduledTriggerNode
+  nodeLogs:
+    - timer: { fired: true}
+  endTime: 1003
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  eventTime: 999
+  logTime: 1005
+  event: Tick
+  nodeLogs:
+    - book: { mid: 1}
+---

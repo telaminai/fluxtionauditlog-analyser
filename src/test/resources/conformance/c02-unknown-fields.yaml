@@ -1,0 +1,11 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  eventLogRecordVersion: 3
+  logTime: 1000
+  futureField: 42
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.1}
+  anotherFutureField: { nested: true }
+---

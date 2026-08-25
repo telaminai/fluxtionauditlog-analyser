@@ -1,5 +1,10 @@
 # Log-source plugins
 
+!!! info "Writing a reader?"
+    The records a reader hands over are defined by the **[format specification](../format-spec.md)**,
+    and the conformance fixtures there are what the analyser will do with them. Run your reader through
+    them before anything else.
+
 The analyser understands one thing — the Fluxtion audit record — and **containers are plugins**. A
 parquet file, a Chronicle queue or a database table holding audit records differs only in how bytes
 become records; everything above that (index, filters, topology, graphs, the verbs, MCP) is

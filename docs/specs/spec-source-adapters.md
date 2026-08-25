@@ -190,6 +190,12 @@ not it is published as one.
   emitter knows it gets judged; the `eventTime: -1` sentinel for exported calls; untimed-record
   behaviour; and D-A1a's ordering and D-A3's attribution rules. Meaning is cheap to pin in a fixture
   and expensive to retrofit across adapters.
+  _**Delivered (M34.3, 2026-08-25):** `docs/site/format-spec.md` (Format 1, normative) and
+  `src/test/resources/conformance/` + `FormatConformanceTest` — thirteen pinned semantics, every fixture
+  run through the built-in path AND the SPI pass-through path, which must agree record for record. The
+  page names two things this spec specifies that Format 1 does not carry — the per-cycle concurrency
+  marker (D-A1a) and the traced-regime marker (UP-FLX-11) — so no emitter fills either gap with an
+  invention._
 
 ## Non-goals / guardrails
 

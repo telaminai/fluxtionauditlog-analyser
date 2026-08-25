@@ -7,6 +7,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **The audit record format has a published specification** (M34.3) — *The audit log ▸ Format
+  specification* on the docs site: Format 1, normative, with MUST/SHOULD rules for framing, every
+  field, `nodeLogs` values and attribution, what order means under a `TOTAL` or `PARTIAL` reader, what
+  absence means, and what a reader declares. It is honest about the two things the design specifies
+  that the record does not yet carry. Alongside it, a **conformance fixture set** (`src/test/resources/
+  conformance/`) pins thirteen semantics, and every fixture is run through both the built-in reader and
+  the plugin SPI — the two must agree record for record, which is the guarantee to anyone writing an
+  emitter or an adapter: emit these records and you get exactly what a native log gets.
 - **A graph built from what ran no longer implies nothing was missed** (M34.2). On a topology a
   source *inferred* from its own run, every node logged by construction — so "did not run" and "not
   on this path" can never appear, and their absence reads as a clean bill of health. The Topology

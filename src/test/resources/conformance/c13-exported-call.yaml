@@ -1,0 +1,13 @@
+---
+#10:57:37.431 [marketMaker-DEMO] INFO  MAKER_DEMO
+eventLogRecord:
+  eventTime: -1
+  logTime: 1786355857430
+  groupingId: null
+  event: ExportFunctionAuditEvent
+  eventToString: public boolean com.acme.demo.VenueHedgeMonitor.orderVenueConnected(com.acme.demo.OrderVenueConnectedEvent)
+  thread: marketMaker-DEMO
+  nodeLogs:
+    - hedgeConnectionMonitor: { status: CLOSED, hedgeQuantity: NaN}
+  endTime: 1786355857431
+---

@@ -105,6 +105,7 @@ nav:
       - Log-source plugins: user-guide/plugins.md
   - The audit log:
       - Log format: log-format.md
+      - Format specification: format-spec.md
       - Producing an audit log: producing-a-log.md
   - FAQ: faq.md
   - Release notes: release-notes.md

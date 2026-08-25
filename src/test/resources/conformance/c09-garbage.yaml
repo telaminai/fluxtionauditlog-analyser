@@ -1,0 +1,18 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - book: { mid: 1}
+---
+this is not a record at all
+just some text somebody pasted
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 2000
+  event: Tick
+  nodeLogs:
+    - book: { mid: 2}
+---

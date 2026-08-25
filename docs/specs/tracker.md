@@ -429,7 +429,20 @@ returned `SourceGraph` because availability is per SOURCE, not per adapter._
   "did not run" nodes proves nothing. **Replay-diff has nothing to degrade: the feature does not
   exist yet** (the spec names it as something Temporal's native replay would fit better than
   Fluxtion). M34.2 is therefore complete against what is built; revisit when replay-diff lands._
-- [M34.3] ☐ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.
+- [M34.3] ☑ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.
+  _DONE 2026-08-25 on `feat/m34-conformance`_ — `docs/site/format-spec.md` (Format 1, MUST/SHOULD, in the
+  site nav under *The audit log*) and `src/test/resources/conformance/` (12 files) + `FormatConformanceTest`
+  (14 tests): C01–C13 pin the minimal record, forward tolerance, the header, the `-1` sentinel, untimed
+  records, out-of-order reporting, duplicate ids, lenient values, garbage retention, the ordering claim,
+  attribution-by-position, the traced regime and exported calls. **Every fixture runs through the built-in
+  text path and the SPI pass-through path, and the two must agree** — that agreement is the promise to an
+  adapter author. Report: `docs/handoff/report_feat_m34_conformance.txt`.
+- [M34.5] ☐ **Per-cycle concurrency marker — specified in D-A1a, absent from Format 1** _(surfaced by
+  writing the spec page, 2026-08-25)_ — a mostly-sequential engine cannot be honest about the cycles that
+  were concurrent without declaring the whole source PARTIAL. The M34.0 spike smuggled one through a
+  `nodeLogs` item and it resolved as a data series with a mangled value (report §3). Needs a real field,
+  a parser change, and the badge/step logic honouring it per record. The spec page says "not in Format 1"
+  until it lands; the traced-regime marker (UP-FLX-11) is the other gap it names, and is upstream.
 - [M34.4] ☐ **First foreign adapter, out of tree — LangGraph**, the throwaway translator of M34.0
   rebuilt against the SPI: same engine, now a supported source rather than a hand-fed file.
 - _**Sequencing.** M34.0 is the gate and nothing else starts until it reports. It and M34.4 were two

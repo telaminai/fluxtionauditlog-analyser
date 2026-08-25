@@ -1,0 +1,6 @@
+---
+eventLogRecord:
+  logTime: 1000
+  nodeLogs:
+    - book: { mid: 17.1}
+---

@@ -1,0 +1,8 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - order: { upd: MutableOrder(clOrdId=1, venue=null), qty: NaN, venues: [a, b], status: connected=true required=[x]}
+---

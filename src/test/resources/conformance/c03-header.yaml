@@ -1,0 +1,16 @@
+---
+#10:57:37.431 [worker-1] INFO  DEMO_LOGGER
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - book: { mid: 1}
+---
+#10:57:37.432 [worker-1] WARN  DEMO_LOGGER
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  thread: scalar-wins
+  nodeLogs:
+    - book: { mid: 2}
+---

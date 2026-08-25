@@ -75,6 +75,10 @@ The analyser reads the audit-log format emitted by current Fluxtion / Mongoose s
 is intentionally lenient and forward-tolerant — unknown fields are ignored rather than rejected — so a
 newer producer won't break an older analyser.
 
+Writing an emitter or an adapter for another engine? The **[format specification](format-spec.md)** is
+the normative version of this page — MUST/SHOULD rules, what absence and order mean, and the
+conformance fixtures the analyser itself passes.
+
 ## Performance model
 
 Browsing, filtering and summarising run off a compact in-memory **index**; node-logs are parsed only for

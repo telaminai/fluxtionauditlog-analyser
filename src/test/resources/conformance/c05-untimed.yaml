@@ -1,0 +1,21 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - book: { mid: 1}
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  event: LifecycleEvent
+  nodeLogs:
+    - book: { state: STARTED}
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 3000
+  event: Tick
+  nodeLogs:
+    - book: { mid: 3}
+---

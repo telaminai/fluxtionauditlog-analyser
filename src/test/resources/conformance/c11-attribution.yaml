@@ -1,0 +1,9 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - producer: { price: 10}
+    - consumer: { price: 10}
+---
