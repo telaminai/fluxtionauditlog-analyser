@@ -276,7 +276,7 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   verb open racing a drag-drop) could cross it. Rare and serialised in practice, which is why the
   review noted rather than fixed it. _Do this when a fourth appears, or when R1 bites — not before:
   it is a refactor of code that has just been reviewed._
-- [M35.8] ☐ **`open {project: path}`** — the lifecycle surface's missing half. _(Deferred out of M35
+- [M35.8] ☐ **`open {project: path}`** — the lifecycle surface's missing half. **Brief ready: `docs/handoff/handoff_25_aug_2026_2.txt`** (branch `feat/m35-project`). _(Deferred out of M35
   deliberately: this is the largest single mutation any verb would perform — it replaces source
   roots, event processors, graphs and hidden columns in one call — so it needs its own decision about
   confirmation rather than being smuggled in beside a lifecycle fix. Not started on

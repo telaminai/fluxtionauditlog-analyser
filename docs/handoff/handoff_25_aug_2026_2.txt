@@ -1,0 +1,85 @@
+HANDOFF — M35.8: `open {project: path}`, the lifecycle surface's missing half
+Date: 2026-08-25 · From: main session · Branch: feat/m35-project (open it from this brief)
+Base: main @ 8448d14 (M35.1–.7 + §E merged; M34.1 complete on feat/m34-adapters, unmerged)
+Your report: docs/handoff/report_feat_m35_project.txt — create it in the first work commit.
+
+ORIENT FIRST: CLAUDE.md (the hard rules gate everything) · tracker ▸ M35.8, which carries the
+rationale AND the confirmation decision — it is settled, do not relitigate it · the shipped context
+in docs/specs/completed/tracker.md ▸ M35 · docs/handoff/completed/report_feat_m35_lifecycle.txt
+(D10 is the reason this slice exists) · docs/handoff/completed/review_feat_m35_lifecycle.txt.
+
+WHY THIS EXISTS — three arguments, none speculative, all earned during M35
+  1. M35.7's `projectOffer` is UNACTIONABLE. An agent is told a project is available and has no way
+     to accept it. An offer with no accept button.
+  2. M35.5 is READ-VERIFIED ONLY (report D10). There is no socket route to a project switch, so
+     eyeball items E7–E10 cannot be driven. This verb turns four eyeball items into a scripted check
+     — which is the second reason to build it and the reason to build it BEFORE anything else that
+     touches the project lifecycle.
+  3. The surface is ASYMMETRIC. An agent can open and close a log, and open and close a graph, but
+     cannot touch the thing that owns both.
+
+THE DECISION IS ALREADY MADE — tracker M35.8 records it in full. In short: the verb APPLIES, it does
+not ask; the ECHO is what makes it safe, not a prompt; it is reversible and says so; the MCP client's
+per-call approval is the human gate. A modal cannot be answered at the socket — that is M35.7's whole
+finding, one dialog over — so an "are you sure?" would either hang the call or be silently defaulted.
+
+TASK — one slice per commit, suite green before every commit.
+  ⚠ Never trust `$?` after a pipe; it is the last command's status, not mvn's. Run mvn bare.
+
+  1  THE VERB. `open {project: "<path to .analyser/project.fluxtion-settings, or its directory>"}`.
+     · Route it in ActionExecutor.doOpen the way `close` and `discover` are routed, and add it to
+       VerbSchemas — the manifest is the single source of truth, and an agent that cannot discover
+       the param cannot use it.
+     · AppControl gains `default ActionResult openProject(String path)` returning a refusal, as
+       close/discoverGraphs/setProvenance do: this is a published surface and every implementor must
+       keep compiling.
+     · MainFrame already has everything: `project.open(Path)` returns a `LoadResult {loaded,
+       message}` that NEVER throws (a missing or unparseable profile degrades to "global only, and
+       here is why"), and `applyProjectResult(result)` already closes the log and graph via
+       afterProjectChange(note, endsSession=true). **This verb is a route to machinery that exists,
+       not a new mechanism** — which is why the slice is small.
+
+  2  THE ECHO, which is the whole safety story. It must NAME WHAT IT REPLACED, with before/after
+     counts, because nothing else will:
+         { "project": "<name>", "settings": "<path>",
+           "replaced": { "sourceRoots": {"before": 3, "after": 1},
+                         "eventProcessors": {...}, "namedGraphs": {...},
+                         "namedFocuses": {...}, "hiddenColumns": {...} },
+           "closed": ["log", "graph"],            // M35.5 — a project is a session boundary
+           "previous": "<the project that was active, or 'your own settings'>",
+           "reversible": "open {project: '<previous path>'} puts it back" }
+     The close verb's `kept` sentence is the precedent. A mutation you can undo FROM THE ANSWER YOU
+     WERE GIVEN is a different risk from one you cannot, so `previous` is not decoration.
+     Follow M26.4 throughout: a refusal names why; ignored params are named (review R2's rule).
+
+  3  MARK IT DESTRUCTIVE alongside `open`, `source_root`, `screenshot`, `report` so the MCP client
+     prompts per call. That prompt is the human gate — putting it there rather than in a Swing dialog
+     is the point.
+
+  4  DRIVE E7–E10 and retire them from the report. This is the payoff:
+         E7  open log + graph, then open a project -> both close, echo says so
+         E8  close project with both loaded -> same
+         E9  the in-load OFFER path still KEEPS the log (applyProjectResult(result, false)) —
+             REGRESSION RISK: it is the one exception to "a project switch ends the session", and
+             this verb must not break it
+         E10 recent-projects menu -> same as E7
+     Fixtures: a directory with `.analyser/project.fluxtion-settings` beside a log. The M35.7 probe
+     built one; report §9 has the shape.
+
+  DO NOT do M35.9 (the OpenRequest refactor). It is recorded with an explicit "when a fourth appears
+  or when R1 bites" trigger, and it would rewrite code that has just been reviewed.
+
+TESTING
+  Headless: the echo's shape and its refusals; that a bad path degrades to a named reason rather
+  than an exception (ProjectProfile.open never throws — assert it stays that way through the verb).
+  Swing: build and run the jar and drive it over REST (~/.fluxtion-analyser/rest-endpoint), which is
+  how E7–E10 finally become checks rather than eyeball items.
+
+CHANGELOG — rule 2, same commit. This is squarely user-visible: it is a new verb param that
+replaces a user's working context.
+
+ONE TRAP, RECORDED BECAUSE IT COST TIME TWICE ON THIS MILESTONE
+  A "test" that never enters the branch it claims to test proves nothing. M35.7's first check passed
+  while the project offer never fired, and M35.5's looked stronger than it was for the same reason.
+  Before asserting that E9 keeps the log, PROVE the offer path actually ran — the fixture must
+  trigger it, not merely exist.
