@@ -1,0 +1,76 @@
+REVIEW — feat/m35-open-request (M35.9: an OpenRequest travels with every load)
+Reviewer: the main session · 2026-08-25
+Inputs: the single commit d18b46b on main @ 8f58614, docs/handoff/report_feat_m35_open_request.txt,
+tracker ▸ M35.9, and the review that fired its trigger (review_feat_m35_project.txt F1).
+
+VERDICT: MERGE — after the one fix below, applied here. This is the right refactor, done the right
+way, and it earned its keep twice over by finding two more modals while being written. The finding
+is the same root cause surviving in the one place the new record deliberately threw it away.
+
+────────────────────────────────────────────────────────────────────────────────
+1. GATES (run here)
+  mvn -o test            827 as handed over AND after the fix · 0 fail / 0 skipped
+  mkdocs build --strict  exit 0 · rule-1 sweep clean · git config user.email personal
+
+────────────────────────────────────────────────────────────────────────────────
+2. THE REFACTOR IS COMPLETE, AND STRUCTURALLY SO
+`openFromActionSocket` and `pendingProvenance` are GONE — grep returns 0. That matters more than it
+reads: with the fields deleted, a path that failed to supply an OpenRequest does not compile. The
+refactor cannot be half-done, which is exactly the property the three-symptom history asked for.
+R1 (two loads crossing a mutable field) is gone with the field rather than guarded around.
+
+And asking every path "where does this one learn who asked?" found two that could not answer — the
+fifth and sixth modals in this family:
+  · `open {logs}` never set the socket flag, so its time-order dialog fired on every agent set-open
+  · `open {log}` on a rolled-set MEMBER stopped at "open the whole set?" BEFORE the load
+Both are data now, and the second is the better fix: the offer becomes `context.rolledSetOffer` and
+the set is one `open {logs}` away, so the agent decides instead of being asked. That is the M35.7
+shape applied without being told to.
+
+────────────────────────────────────────────────────────────────────────────────
+3. FINDING — F1: A FOLLOW ROTATION THROWS AWAY WHO ASKED
+`OpenRequest.reload(provenance)` returned `new OpenRequest(false, provenance)` — human-context by
+construction — and the follow rotation used it:
+
+    openFile(Path.of(followPath), OpenRequest.reload(logProvenance));   // same log, same system
+
+`onLoaded` reads `request.fromActionSocket()` into `loadFromSocket`, which gates the time-order
+dialog, `maybeOfferProject` and the rolled-set offer. So:
+
+  an agent opens a log over the socket → Follow is on → the file rotates → the reload re-opens as
+  HUMAN → every dialog the socket path suppressed fires, with nobody at the screen.
+
+This is not a corner. It is the flagship path in spec-agent-brokered-dev-loop: *edit → approve
+restart → watch the live log move in the analyser*. A restart rotates the log; the rotation is where
+the modal lands; and a modal on that path is guaranteed to go unanswered. The record built to route
+load-time side effects by audience discards the audience on the one open the product's headline
+demo performs.
+
+THE TEST PINNED IT. OpenRequestTest asserted `assertFalse(OpenRequest.reload("risk")
+.fromActionSocket(), "a follow reload is human-context")`. A test asserting the wrong thing is worse
+than no test: it makes the behaviour look deliberate and reviewed, and it would have failed the fix.
+
+FIX (here): `reload(OpenRequest original, String provenance)` keeps BOTH answers — what was declared
+and who asked. MainFrame remembers `currentRequest` when a load LANDS and the rotation reuses it.
+That field re-introduces nothing of R1: it is written at the end of a completed load and read only
+by the follow timer, never consumed mid-load. Test corrected to assert both directions plus the
+null-original case.
+
+────────────────────────────────────────────────────────────────────────────────
+4. NOTES
+N1 · `AppControl.openLog(path, format, provenance)` defaults route through `setProvenance` so
+     pre-M35.9 implementors keep receiving it. Correct and kind. But `setProvenance` is now a shim
+     with no field behind it in MainFrame — it exists only for foreign implementors. Worth a javadoc
+     line saying so, or the next reader will look for the state it sets.
+N2 · The rolled-set offer is the third thing `context` reports that a human sees as a dialog
+     (project offer, time-order, now this). assistant.md lists all of them in the async-open note,
+     which is right — and is now the place where a fourth would be noticed rather than accumulated.
+
+────────────────────────────────────────────────────────────────────────────────
+5. STRENGTHS
+  · Deleting the fields is what makes the refactor safe: the compiler now enforces what a convention
+    used to. Every future entry point must answer "who asked" before it can call the load.
+  · The two new modals were found by asking the question the record forces, not by luck. That is the
+    argument for structural fixes over tactical ones, demonstrated on the tactical fix's own family.
+  · Turning the rolled-set confirm into data rather than suppressing it: the agent gets the choice a
+    human got, instead of losing it.

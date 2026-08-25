@@ -115,6 +115,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   keep compiling — the capability is additive and defaults to `TOTAL`.
 
 ### Fixed
+- **A rotating log no longer starts interrupting an agent.** With *Follow* on, a log an assistant had
+  opened would re-open as though a person had asked for it when the file rotated — so every dialog
+  the assistant path suppresses came back, on the one workflow where nobody is watching the screen.
+  A reload now keeps both facts about the open that started it: what it declared, and who asked.
 - **Two more dialogs no longer hang an agent-driven open** (M35.9). `open {logs: [...]}` — the
   rolled-set verb — never carried the "this came from the socket" fact, so a set with out-of-order
   records put the time-order report on screen as a modal; and `open {log}` on one *member* of a

@@ -2078,6 +2078,7 @@ public final class MainFrame extends JFrame {
         // four times — the last when maybeOfferProject consumed the socket flag 59 lines before the
         // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
         final boolean loadFromSocket = request.fromActionSocket();
+        currentRequest = request;      // review F1: a follow rotation reloads with the SAME audience
 
         // M35.2 FIRST, and deliberately before maybeOfferProject(): that offer is a MODAL dialog, and
         // everything after it waits for a human — which on the agent path is nobody. `store` is
@@ -2214,6 +2215,12 @@ public final class MainFrame extends JFrame {
             }
         });
     }
+
+    /**
+     * The request that opened the log in force (review F1). Set when a load LANDS and read only by
+     * the follow timer, so it re-introduces none of R1's race: nothing consumes it mid-load.
+     */
+    private OpenRequest currentRequest = OpenRequest.HUMAN;
 
     /** A source graph this log offered that an OPENED graph outranked, or null (review N1). */
     private String declinedSourceGraph;
@@ -2400,7 +2407,9 @@ public final class MainFrame extends JFrame {
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
             followTimer.stop();          // avoid re-entrant reloads while the async load runs
-            openFile(Path.of(followPath), OpenRequest.reload(logProvenance));   // same log, same system
+            // review F1: carry WHO ASKED, not just what was declared — a rotation's audience is
+            // whoever was there for the open that started it
+            openFile(Path.of(followPath), OpenRequest.reload(currentRequest, logProvenance));
             return;
         }
         if (added == 0) return;

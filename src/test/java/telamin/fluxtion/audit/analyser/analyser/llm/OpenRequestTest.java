@@ -29,8 +29,17 @@ class OpenRequestTest {
         assertTrue(OpenRequest.socket("risk · uat").fromActionSocket());
         assertEquals("risk · uat", OpenRequest.socket("  risk · uat  ").provenance(), "trimmed");
         assertNull(OpenRequest.socket("   ").provenance(), "blank is not a declaration");
-        assertFalse(OpenRequest.reload("risk").fromActionSocket(), "a follow reload is human-context");
-        assertEquals("risk", OpenRequest.reload("risk").provenance(), "and keeps what the log declared");
+        // review F1: a rotation keeps BOTH answers — what was declared AND who asked. Its audience is
+        // whoever was there for the open that started it, and for an agent-opened log that is nobody.
+        assertFalse(OpenRequest.reload(OpenRequest.HUMAN, "risk").fromActionSocket(),
+                "a rotation of a HUMAN open stays human — the dialogs are for them");
+        assertTrue(OpenRequest.reload(OpenRequest.socket("risk"), "risk").fromActionSocket(),
+                "a rotation of an AGENT open stays agent-context, or every dialog the socket path "
+                        + "suppressed returns on the first rotation — on the flagship path (watch the "
+                        + "live log move) where a modal is guaranteed to go unanswered");
+        assertEquals("risk", OpenRequest.reload(OpenRequest.HUMAN, "risk").provenance(),
+                "and keeps what the log declared");
+        assertFalse(OpenRequest.reload(null, "risk").fromActionSocket(), "no original: assume human");
     }
 
     @Test

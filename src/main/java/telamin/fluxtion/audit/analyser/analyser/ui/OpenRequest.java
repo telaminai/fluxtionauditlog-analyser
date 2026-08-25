@@ -40,8 +40,17 @@ public record OpenRequest(boolean fromActionSocket, String provenance) {
         return new OpenRequest(true, provenance);
     }
 
-    /** A human-context reload of the SAME log (follow rotation) — what it declared still holds. */
-    public static OpenRequest reload(String provenance) {
-        return new OpenRequest(false, provenance);
+    /**
+     * A reload of the SAME log (follow rotation). It keeps BOTH of the original request's answers:
+     * what it declared, and <b>who asked</b>.
+     *
+     * <p>The audience of a rotation is whoever was there for the open that started it. A rotation of
+     * an agent-opened log has nobody at the screen either — and this is not hypothetical, it is the
+     * flagship path in spec-agent-brokered-dev-loop: <i>edit → approve restart → watch the live log
+     * move</i>. Rebuilding the request as human-context would return every dialog this record exists
+     * to route, on the one path where a modal is guaranteed to be unanswered.
+     */
+    public static OpenRequest reload(OpenRequest original, String provenance) {
+        return new OpenRequest(original != null && original.fromActionSocket(), provenance);
     }
 }
