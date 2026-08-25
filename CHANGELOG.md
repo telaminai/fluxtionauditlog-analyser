@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-25
+
 ### Added
 - **`analyser --rest` — start it for an agent** (M19.7). Opens the app with the localhost REST
   transport on, so a process can drive it on a machine that has never run the analyser; on a first
