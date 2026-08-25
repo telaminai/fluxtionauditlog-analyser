@@ -81,6 +81,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   bundle contract's "open the log and everything is configured" could not have worked. The canonical
   `.analyser/project.fluxtion-settings` now anchors at the project root; a loose `.fluxtion-settings`
   file imported from elsewhere still anchors at its own directory.
+- **Opening a project no longer rewrites its committed profile.** Every flush wrote the profile back
+  with absolute paths and a fresh `share.exportedAt`, so a project you merely opened produced a diff
+  on every teammate's machine. A project profile is now written the way it is read — paths under the
+  project are project-relative (before the `~` rule, so a project inside your home still travels),
+  no timestamp, no date comment — and a write that would change nothing does not happen. A diff in
+  `.analyser/project.fluxtion-settings` now means a setting changed. One-off share exports are
+  unchanged and keep their timestamp.
 
 ## [1.7.0] - 2026-08-20
 

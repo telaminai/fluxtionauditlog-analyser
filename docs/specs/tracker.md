@@ -275,11 +275,14 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
   this. Fix: `ProjectProfile.baseDirFor(file)` — the project root for the canonical profile, the file's
   own directory for a loose `.fluxtion-settings`; used by `load` and the Import dialog. Spec-onboarding
   §Contract notes corrected. _(Also recorded on `feat/m35-project`; one line to reconcile at merge.)_
-- [M35.11] ☐ **Auto-persist rewrites a committed profile's relative roots as absolute** _(found driving
-  M35.8, report O2)_ — open a project, do nothing, switch away: the flush writes the in-memory config
-  back and the writer knows only `~`-relative and absolute forms. A committed profile then diffs on
-  every teammate's machine — the legibility `ProjectSession`'s javadoc promises, lost. Belongs with the
-  writer (keep the form the file had); M35.10 has now settled what "relative" is relative to.
+- [M35.11] ☑ **Auto-persist rewrites a committed profile's relative roots as absolute** _(found driving
+  M35.8, report O2; DONE 2026-08-25 on `feat/m35-relative-roots`)_ — open a project, do nothing, switch
+  away: the flush wrote the in-memory config back and the writer knew only `~`-relative and absolute
+  forms — plus `share.exportedAt` and `Properties.store`'s date comment, two more diffs per write. Fix:
+  `SettingsShare.export(c, categories, projectRoot)` writes paths under the project project-relative
+  (checked before the `~` rule — a project inside home must not come out `~/…`), omits the timestamp and
+  strips the date line; `ProjectProfile.save` returns false and touches nothing when the file already
+  holds that text. Round-trip is byte-identical (tests). One-off share exports unchanged.
 - [M35.9] ☐ **An `OpenRequest` for load-time side effects** _(review R1 + R3, 2026-08-25)_ — the
   same shape has now appeared **three times**: the project offer (M35.7), `provenance` (§E) and the
   time-order dialog (review F5) are each "a load-time side effect whose audience differs by who asked

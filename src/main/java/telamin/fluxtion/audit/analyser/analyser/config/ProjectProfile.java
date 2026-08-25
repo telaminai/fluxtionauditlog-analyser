@@ -243,17 +243,38 @@ public final class ProjectProfile {
         }
     }
 
-    /** Serialise only the project-scoped categories — the API key cannot appear, by construction. */
-    public static String write(AppConfig c, SettingsShare share) {
-        return share.export(c, PROJECT_SCOPED);
+    /**
+     * Serialise only the project-scoped categories — the API key cannot appear, by construction — in
+     * the form a COMMITTED file needs (M35.11): paths under the project written project-relative
+     * against {@link #baseDirFor}, no timestamp, no date comment. Loading this text and writing it
+     * back yields the same bytes.
+     */
+    public static String write(AppConfig c, SettingsShare share, Path file) {
+        return share.export(c, PROJECT_SCOPED, baseDirFor(file));
     }
 
-    /** Write a profile, creating {@code .analyser/} if needed. */
-    public static void save(Path file, AppConfig c, SettingsShare share) throws IOException {
+    /**
+     * Write a profile, creating {@code .analyser/} if needed — and NOT writing at all when the file
+     * already holds exactly this text (M35.11). Opening a project and switching away used to rewrite
+     * its committed profile with absolute paths and a fresh timestamp: a diff on every teammate's
+     * machine, asked for by nobody. Now a no-op edit is a no-op write, and mtime is left alone too.
+     *
+     * @return true if the file was written, false if it already held this content
+     */
+    public static boolean save(Path file, AppConfig c, SettingsShare share) throws IOException {
+        String text = write(c, share, file);
+        if (Files.isRegularFile(file)) {
+            try {
+                if (Files.readString(file).equals(text)) return false;
+            } catch (IOException ignored) {
+                // unreadable: fall through and write — the write will report its own failure
+            }
+        }
         if (file.getParent() != null) {
             Files.createDirectories(file.getParent());
         }
-        Files.writeString(file, write(c, share));
+        Files.writeString(file, text);
+        return true;
     }
 
     /** Most-recent-first, de-duplicated, capped — the recent-projects index (spec O2). */

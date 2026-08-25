@@ -96,15 +96,37 @@ public final class SettingsShare {
 
     /** Serialize the selected categories of {@code c} to share-file text (properties). */
     public String export(AppConfig c, Set<Category> categories) {
+        return export(c, categories, null);
+    }
+
+    /**
+     * As {@link #export(AppConfig, Set)}, but written to be COMMITTED at {@code projectRoot}
+     * (M35.11). Three things that are provenance on a one-off share file are churn on a file in git:
+     * <ul>
+     *   <li>paths under the project are written <b>project-relative</b> — checked BEFORE the {@code ~}
+     *       rule, because a project under your home must not come out as {@code ~/work/proj/src}: a
+     *       teammate's clone lives somewhere else, and the whole point of committing the file is that
+     *       it reads the same on both machines;</li>
+     *   <li>no {@code share.exportedAt} — a timestamp that changes on every write is a diff on every
+     *       write;</li>
+     *   <li>no {@code #<date>} comment line from {@link Properties#store}, for the same reason.</li>
+     * </ul>
+     * The result is that loading a profile and writing it back yields the same bytes, which is what
+     * lets {@code ProjectProfile.save} skip a write that would change nothing. {@code null} means an
+     * ordinary share export, unchanged.
+     */
+    public String export(AppConfig c, Set<Category> categories, Path projectRoot) {
         Properties p = sortedProps();
         p.setProperty("share.version", Integer.toString(SHARE_VERSION));
-        p.setProperty("share.exportedAt", Instant.now().toString());
+        if (projectRoot == null) {
+            p.setProperty("share.exportedAt", Instant.now().toString());
+        }
 
         if (categories.contains(Category.SOURCE_ROOTS)) {
-            ConfigStore.writeList(p, "sourceRoot", toPortable(c.sourceRoots));
+            ConfigStore.writeList(p, "sourceRoot", toPortable(c.sourceRoots, projectRoot));
         }
         if (categories.contains(Category.MAVEN_REPOS)) {
-            ConfigStore.writeList(p, "mavenRepo", toPortable(c.mavenRepos));
+            ConfigStore.writeList(p, "mavenRepo", toPortable(c.mavenRepos, projectRoot));
             ConfigStore.put(p, "mavenRepoSearch", Boolean.toString(c.searchMavenRepos));
         }
         if (categories.contains(Category.EVENT_PROCESSORS)) {
@@ -119,7 +141,7 @@ public final class SettingsShare {
                 // covers both external series (graph.i.ext.j.path) and external MARKER sources
                 // (graph.i.marker.j.ext.path, M32.8) — one rule, every foreign path portable
                 if (key.startsWith("graph.") && key.contains(".ext.") && key.endsWith(".path")) {
-                    p.setProperty(key, toPortable(p.getProperty(key)));
+                    p.setProperty(key, toPortable(p.getProperty(key), projectRoot));
                 }
             }
             // named focuses (M27.3) ride the GRAPHS category — same kind of named analysis artifact,
@@ -146,12 +168,20 @@ public final class SettingsShare {
 
         StringWriter sw = new StringWriter();
         try {
-            p.store(sw, "fluxtion-analyser shared settings — API keys and machine-local settings are never included");
+            p.store(sw, projectRoot == null
+                    ? "fluxtion-analyser shared settings — API keys and machine-local settings are never included"
+                    : "fluxtion-analyser project profile — paths are project-relative; API keys and "
+                            + "machine-local settings are never included");
         } catch (IOException e) {
             throw new UncheckedIOException(e);   // StringWriter can't do IO — defensive only
         }
-        return sw.toString();
+        String text = sw.toString();
+        return projectRoot == null ? text : STORE_DATE_LINE.matcher(text).replaceFirst("");
     }
+
+    /** The {@code #Mon Aug 25 09:00:00 BST 2026} line {@link Properties#store} always emits. */
+    private static final java.util.regex.Pattern STORE_DATE_LINE = java.util.regex.Pattern.compile(
+            "(?m)^#[A-Z][a-z]{2} [A-Z][a-z]{2} \\d{2} \\d{2}:\\d{2}:\\d{2} \\S+ \\d{4}\\R");
 
     // ---- preview --------------------------------------------------------------------------------
 
@@ -413,10 +443,27 @@ public final class SettingsShare {
         }
     }
 
-    private List<String> toPortable(List<String> paths) {
+    private List<String> toPortable(List<String> paths, Path projectRoot) {
         List<String> out = new ArrayList<>(paths.size());
-        for (String s : paths) out.add(toPortable(s));
+        for (String s : paths) out.add(toPortable(s, projectRoot));
         return out;
+    }
+
+    /**
+     * Project-relative when the path is under {@code projectRoot} (M35.11) — tried first, so a project
+     * inside the home directory is not written {@code ~}-relative; otherwise {@link #toPortable(String)}.
+     * Forward slashes regardless of platform: the file is read by {@code Path.resolve}, which accepts
+     * them everywhere, and a committed file must not carry one machine's separator.
+     */
+    String toPortable(String path, Path projectRoot) {
+        if (path == null || projectRoot == null || path.isBlank()) return toPortable(path);
+        Path p = Path.of(path);
+        if (!p.isAbsolute()) return path;                      // already relative: leave it as written
+        Path root = projectRoot.toAbsolutePath().normalize();
+        Path abs = p.normalize();
+        if (abs.equals(root)) return ".";
+        if (!abs.startsWith(root)) return toPortable(path);
+        return root.relativize(abs).toString().replace(java.io.File.separatorChar, '/');
     }
 
     /** A path under the user's home becomes {@code ~/…} (or {@code ~}); anything else is verbatim. */

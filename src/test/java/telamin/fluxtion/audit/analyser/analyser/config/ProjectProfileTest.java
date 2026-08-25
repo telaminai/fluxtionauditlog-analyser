@@ -129,6 +129,64 @@ class ProjectProfileTest {
         assertNull(ProjectProfile.baseDirFor(null));
     }
 
+    // ---- M35.11: a committed profile round-trips byte-for-byte ------------------------------------
+
+    @Test
+    void pathsUnderTheProjectAreWrittenProjectRelative_andReadBackWhereTheyWere(@TempDir Path dir)
+            throws Exception {
+        Path project = dir.resolve("home/work/proj");
+        Path file = ProjectProfile.pathFor(project);
+        // the project sits INSIDE the home directory: project-relative must win over ~-relative, or a
+        // teammate whose clone lives elsewhere reads ~/work/proj/src and finds nothing
+        SettingsShare share = new SettingsShare(dir.resolve("home").toString());
+        AppConfig c = new AppConfig();
+        c.sourceRoots.clear();
+        c.sourceRoots.addAll(List.of(project.resolve("src/main/java").toString(),
+                dir.resolve("home/lib").toString(), "/opt/abs/src"));
+
+        assertTrue(ProjectProfile.save(file, c, share));
+        String text = Files.readString(file);
+
+        assertTrue(text.contains("sourceRoot.0=src/main/java"), text);
+        assertTrue(text.contains("sourceRoot.1=~/lib"), "outside the project, under home: still ~-relative");
+        assertTrue(text.contains("sourceRoot.2=/opt/abs/src"), "outside both: verbatim");
+        assertFalse(text.contains("exportedAt"), "a timestamp is a diff on every write");
+        assertFalse(text.lines().anyMatch(l -> l.matches("#[A-Z][a-z]{2} [A-Z][a-z]{2} \\d{2} .*\\d{4}")),
+                "and so is Properties.store's date comment: " + text);
+
+        AppConfig back = new AppConfig();
+        assertTrue(ProjectProfile.load(file, back, share).loaded());
+        assertEquals(c.sourceRoots, back.sourceRoots, "what was written is what is read, on this machine");
+    }
+
+    @Test
+    void writingWhatTheFileAlreadySaysIsNotAWrite(@TempDir Path dir) throws Exception {
+        Path project = dir.resolve("proj");
+        Path file = ProjectProfile.pathFor(project);
+        SettingsShare share = new SettingsShare();
+        AppConfig c = new AppConfig();
+        c.sourceRoots.clear();
+        c.sourceRoots.add(project.resolve("src").toString());
+
+        assertTrue(ProjectProfile.save(file, c, share), "first write happens");
+        String first = Files.readString(file);
+        var mtime = Files.getLastModifiedTime(file);
+
+        // the O2 sequence: load it, change nothing, save it back
+        AppConfig again = new AppConfig();
+        assertTrue(ProjectProfile.load(file, again, share).loaded());
+        assertFalse(ProjectProfile.save(file, again, share), "identical content: no write");
+        assertEquals(first, Files.readString(file));
+        assertEquals(mtime, Files.getLastModifiedTime(file), "and the file was not even touched");
+    }
+
+    @Test
+    void aShareExportIsUnchanged_itStillCarriesItsProvenance() {
+        // the committed-profile rules are for committed profiles; a one-off share keeps its timestamp
+        String text = new SettingsShare("/home/tester").export(new AppConfig(), ProjectProfile.PROJECT_SCOPED);
+        assertTrue(text.contains("share.exportedAt="), text);
+    }
+
     @Test
     void switchingProjectsReplacesRatherThanMerges(@TempDir Path dir) throws Exception {
         Path aFile = ProjectProfile.pathFor(dir.resolve("projectA"));

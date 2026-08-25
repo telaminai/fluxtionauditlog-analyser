@@ -90,7 +90,10 @@ already configured.
 
     A path that is neither absolute nor `~`-prefixed is **relative to the project root** — the directory
     that holds `.analyser/` — so a hand-written `sourceRoot.0=src/main/java` means what it says, the way
-    it would in `.vscode/settings.json`.
+    it would in `.vscode/settings.json`. The analyser writes the file the same way: paths under the
+    project come out project-relative, and there is no timestamp, so opening a project and changing
+    nothing leaves the committed file **byte-for-byte as it was**. A diff in that file means a setting
+    changed.
 
 Treat a committed profile as config-as-code: it evolves, and the diffs are worth reviewing like any
 other change.
