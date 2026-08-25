@@ -7,6 +7,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Changed
+- **"Producing an audit log" can now be followed to a working log.** The page explained the ideas and
+  then handed the one thing you need — how to actually turn it on — to another project's
+  documentation. It now carries a complete, runnable example, and names the three things that must all
+  be true: the node extends `EventLogNode`, the graph calls `addEventAudit()`, and something is
+  attached as the sink. It also documents the trap found by following it: `record.toString()` does
+  **not** write the `---` document separator, and a file without it opens fine and is read as **one
+  record** however many it holds — silently. Setting the audit level dispatches a control event
+  through the graph, so the page says to set the level before attaching the sink.
 - **Getting started is two minutes and needs no configuration.** The Quick start told you the analyser
   opens Settings on a first run — it hasn't since the start page shipped — and sent you off to download
   a sample log, which the jar now contains. It is now: run it, click **Open the demo log**. Source

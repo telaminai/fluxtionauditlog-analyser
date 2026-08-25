@@ -1,8 +1,88 @@
 # Producing an audit log
 
-The analyser reads the **event-audit log** a Fluxtion `EventProcessor` emits. If you don't have one yet,
-here's how a processor produces it — and you can always start with the
-[sample log](assets/sample-audit-log.yaml) to explore the tool first.
+The analyser reads the **event-audit log** a Fluxtion `EventProcessor` emits. This page is the whole
+path from "my processor logs nothing" to a file the analyser opens. In a hurry, or just evaluating?
+The analyser ships a recorded run inside the jar — see [Getting started](getting-started.md).
+
+## The shortest complete example
+
+Three things have to be true, and missing any one of them produces a log that is empty, or short, or
+full of the wrong thing. This example is complete and runs:
+
+```java
+package com.acme.hello;
+
+public record Temperature(String sensor, double celsius) { }
+```
+
+```java
+package com.acme.hello;
+
+import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
+import com.telamin.fluxtion.runtime.audit.EventLogNode;
+
+public class Thermostat extends EventLogNode {          // (1) the node can audit
+    private boolean heating;
+
+    @OnEventHandler
+    public boolean onTemperature(Temperature t) {
+        heating = t.celsius() < 18.0;
+        auditLog.info("sensor", t.sensor()).info("celsius", t.celsius()).info("heating", heating);
+        return true;
+    }
+}
+```
+
+```java
+package com.acme.hello;
+
+import com.telamin.fluxtion.Fluxtion;
+import com.telamin.fluxtion.runtime.DataFlow;
+import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class AuditLogHello {
+    public static void main(String[] args) throws Exception {
+        StringBuilder log = new StringBuilder();
+
+        DataFlow flow = Fluxtion.compile(cfg -> {
+            cfg.addNode(new Thermostat(), "thermostat");   // the name becomes the instanceId
+            cfg.addEventAudit();                           // (2) install the audit auditor
+        });
+        flow.init();
+        flow.setAuditLogLevel(EventLogControlEvent.LogLevel.INFO);
+        // (3) the sink — and it writes the `---` separator itself
+        flow.setAuditLogProcessor(r -> log.append("---").append(System.lineSeparator())
+                .append(r.toString()).append(System.lineSeparator()));
+
+        flow.onEvent(new Temperature("hall", 21.5));
+        flow.onEvent(new Temperature("hall", 16.0));
+
+        Files.writeString(Path.of("thermostat-audit.yaml"), log.toString());
+    }
+}
+```
+
+Open `thermostat-audit.yaml` in the analyser and you have two records, each with a `thermostat` entry
+under `nodeLogs`.
+
+!!! danger "Write the `---` separator, or the analyser silently reads fewer records"
+    A text audit log is a **sequence of YAML documents separated by lines consisting of `---`**
+    ([Format specification §1](format-spec.md)). `record.toString()` does **not** include the
+    separator — the sink adds it. Omit it and the file still opens, still looks like a log, and is
+    read as **one record** however many it contains. Nothing errors. The example above writes it in
+    the sink for exactly this reason.
+
+!!! warning "Set the level before you attach the sink"
+    `setAuditLogLevel(...)` dispatches an `EventLogControlEvent` **through the graph**, so it produces
+    a record of its own. Set the level first, as above, and the sink never sees it. If your code
+    attaches the sink first, drop the control record explicitly:
+    `if (record.toString().contains("event: EventLogControlEvent")) return;`
+
+The three numbered pieces are each load-bearing: without **(1)** the node has no `auditLog`; without
+**(2)** the `EventLogManager` auditor is never installed and `nodeLogs` is empty for every record;
+without **(3)** the records are produced and thrown away.
 
 ## How a node appears in the log
 
@@ -53,8 +133,10 @@ sink; that file is the one you open here.
     for performance, add a text file sink alongside it to feed the analyser. (A file sink and a
     high-performance sink can run side by side on the same processor.)
 
-The exact configuration lives with the producer — see the **Fluxtion / Mongoose server documentation**
-for enabling the `EventLogManager` auditor, setting the level, and wiring the file sink.
+In an **embedded processor** the three pieces above are the whole configuration. In a **Mongoose
+server** the level and the sink are server configuration rather than code — see the Mongoose server
+documentation — but the same three things must be true, and the same `---` rule applies to whatever
+writes the file.
 
 ## What you get
 
