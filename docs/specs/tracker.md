@@ -289,8 +289,29 @@ _Shipped work in [completed/tracker.md](completed/tracker.md)._
        E7–E10 cannot be driven; this verb turns four eyeball items into a scripted check.
     3. **The surface is asymmetric.** An agent can open and close a log, and open and close a graph,
        but cannot touch the thing that owns both.
-  Design note for whoever takes it: the echo must NAME everything it replaced — the same rule the
-  close verb follows — and the M20 auto-detect path must keep its `endsSession=false` behaviour.
+  **THE CONFIRMATION DECISION, settled 2026-08-25 so this is workable cold** — the entry above
+  deferred M35.8 *for* this question and then left it unanswered, which is the worst kind of handoff.
+  The answer follows the rule the rest of the surface already uses rather than inventing a new one:
+
+  · **The verb APPLIES; it does not ask.** A modal cannot be answered at the socket — that is M35.7's
+    whole finding, one dialog over — so an "are you sure?" would either hang the call or be silently
+    defaulted, and silently defaulting a mutation this size is worse than performing it openly.
+  · **What makes it safe is the ECHO, not a prompt.** `open {project}` must name **everything it
+    replaced**, with before/after counts: source roots, event processors, named graphs, hidden
+    columns, and whether a log and graph were closed (M35.5 — a project switch is a session
+    boundary). The close verb's `kept` sentence is the precedent; this is its mirror.
+  · **It is reversible and must say so.** The echo names the previously-active project (or "your own
+    settings"), so the agent can put it back in one call. A mutation you can undo from the answer you
+    were given is a different risk from one you cannot.
+  · **The MCP client's own per-call approval is the human gate.** Declaring the verb destructive —
+    as `open`, `source_root`, `screenshot` and `report` already are — puts the prompt where a human
+    can actually see it, instead of behind a Swing dialog nobody is looking at.
+  · **The auto-detect path is unaffected**: `applyProjectResult(result, endsSession=false)` still
+    keeps the log when a project is adopted *because* that log was opened.
+
+  Design note: the M20 project-tier snapshot/restore machinery already exists (ProjectProfile,
+  ConfigStore's project tier) — this verb is a route to it, not a new mechanism, which is why the
+  slice is small once the decision above is made.
 
 ## M34 · Source adapters — ☐ ACCEPTED v2 (the same instrument over other execution engines)
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
