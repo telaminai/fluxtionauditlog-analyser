@@ -51,31 +51,34 @@ whether the same mirroring belongs anywhere else `sourcePanel` state is pushed.
 Not changes to review — defects surfaced while working, logged here so the next puller can pick them up and
 fix them properly. Promote to a tracker item / spec when triaged.
 
-## ☐ 2026-08-26 · Saved graphs are destroyed when a project is opened without a log
+## ☑ 2026-08-26 · RETRACTED — "saved graphs destroyed on project open" was a MISDIAGNOSIS
 
-**Symptom.** Open a project that has ≥1 saved graph. The graph tabs collapse to the empty default
-"Graph 1" and the profile's saved graphs are lost — `graph.count` in the profile drops to 1 on the next
-autosave. Reproduced repeatedly: a profile with `graph.count=6`, opened in the GUI, becomes
-`graph.count=1`.
+An earlier revision of this file logged a graph-loss bug claiming
+`syncOpenGraphsIntoConfig()` rewrites `savedGraphs` from the open tabs **with no guard**, so opening a
+project with no log clobbers the profile's graphs. **That root cause was wrong.** The diagnosis grep
+matched only lines containing `savedGraphs`, so it never surfaced the guard on the line directly above:
 
-**Root cause.** `MainFrame.saveConfigQuietly()` calls `syncOpenGraphsIntoConfig()` (~line 2780), which does
-`config.savedGraphs.clear(); config.savedGraphs.addAll(graphTabs.specs())` — it rewrites the saved-graph
-list from the **currently-open tabs**. On project open the profile's graphs only reopen as tabs via
-`graphTabs.restore(config.savedGraphs)`, and that restore is gated on a bound log (e.g. the `store != null`
-guard, ~line 2791; the log-bind path at ~2238). Opening/switching a project **closes the log** (session
-boundary), so `restore` produces no tabs; the next `saveConfigQuietly()` (fired via `onConfigChanged` /
-`onGraphsEdited`) then syncs `savedGraphs` down to the lone default tab — **permanently clobbering the
-saved graphs**. There is no manual save to avoid it (auto-persist only).
+```java
+private void syncOpenGraphsIntoConfig() {
+    if (store == null) return;   // no log → tabs are empty; config already holds the profile's graphs
+    config.savedGraphs.clear();
+    config.savedGraphs.addAll(graphTabs.specs());
+}
+```
 
-**Repro (clean).** 1) Start the app with a profile that has several saved graphs, **no log open**.
-2) `File ▸ Open project`. 3) Tabs show only "Graph 1"; the profile's `graph.count` is now 1.
+That guard has been present since the initial public release (`e965afa`). **Verified 2026-08-26** by
+driving the running build over MCP: `close project` → reopen the project **with no log** → the profile's
+`graph.count` stayed **5**, not clobbered (md5 changed only where expected). Single-instance
+open-project-without-log is safe. No code change made — there is nothing to fix here.
 
-**Suggested fix (reviewer picks one).** (a) Don't shrink `config.savedGraphs` in
-`syncOpenGraphsIntoConfig()` when the tabs weren't (re)instantiated — skip the sync when no log is bound,
-or diff against the last-loaded set; or (b) restore saved graphs as tab *definitions* even with no log,
-plotting lazily when a log arrives; or (c) treat the loaded saved-graph definitions as authoritative and
-only fold in additive edits. Add a regression test around *open project → autosave with no log*.
+**What actually happened.** The 6→1 graph loss observed earlier was a **two-instance auto-save race**: two
+analyser GUIs (the jbang/MCP-driven one and an IntelliJ-launched local build) were open on the *same*
+project profile at once, and project auto-save has no multi-instance merge, so one overwrote the other's
+graph set. That is the known **one-instance-per-project** operational hazard, not a defect.
 
-**Workaround today.** Keep a backup of the profile and restore it with the app closed; or recreate the
-graphs live once a log is open. **Impact:** a project profile's saved graphs are wiped the first time the
-project is opened without a log — silent data loss.
+**Possible future hardening (design question, not a bug):** multi-instance protection on the project file
+— a lock, or last-writer/mtime detection that warns instead of silently overwriting. Flagged for
+consideration only.
+
+**Lesson for this ledger:** a grep that matched the payload lines but not the guard produced a confident,
+wrong bug report that was committed. Read the whole method, not the matching lines.
