@@ -3,8 +3,14 @@
 A fast desktop tool for **Fluxtion event-audit logs** — browse, filter, graph and explain the event
 history of a Mongoose/Fluxtion `EventProcessor`. Index-first, so it stays responsive on multi-GB logs.
 
-Your processor already writes down everything it does. The analyser is what makes that record **answer
+The processor already writes down everything it does. The analyser is what makes that record **answer
 questions — in minutes, with evidence** — whether it's you asking or an AI.
+
+**You do not have to have written the system.** That is the point most easily missed: the log is not
+anyone's account of what happened, it is what the processor emitted as it ran. So it answers to a
+support engineer on their first week as readily as to the person who built the graph — which is why
+teams report questions that took hours being answered in minutes by people who were not there when it
+happened. See [Answering questions about a running system](support.md).
 
 ![The analyser on a demo log: the records table, one cycle read out logically, and the processor's own graph with that cycle shaded](assets/screenshot-dark.png)
 
@@ -60,6 +66,11 @@ time that reading raw logs normally takes. Every feature below is a lens on that
   compliance answer (*prove why this order was amended — replayable, per-cycle, traceable to source*),
   and a shared team artifact — [export your setup](user-guide/sharing-setups.md) so everyone
   investigates from the same roots, graphs and formulas.
+- **It answers to someone who did not build it.** Diagnosing an unfamiliar system normally means
+  finding the person who knows it, and waiting. Here the system explains itself: every cycle names the
+  nodes that ran, in order, with what each computed, and each one opens the source that wrote it. The
+  knowledge you would otherwise have to borrow from an author is in the record — which makes this as
+  much a **support** tool as a development one.
 - **Only possible here.** A Fluxtion processor is deterministic and its graph is generated from source —
   so a record isn't just a log line, it's a **replayable trace with a code address**. That's what lets
   the analyser (and the assistant) explain *why*, not just *what*.

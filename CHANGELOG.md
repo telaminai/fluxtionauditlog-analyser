@@ -13,6 +13,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   never fired — is that true?", which is the one a log alone cannot answer), and how to hand an
   answer back so someone who was not watching your screen can review it. It is marked as a draft to
   be corrected by the people doing the work.
+- **The docs say the analyser answers to people who did not build the system.** Both top-level pages
+  assumed you wrote it — the home page opened "*Your* processor…", and the loop reads
+  Author → Guarantee → Deploy → Prove → Assure, which is the builder's path and easy to mistake for a
+  prerequisite. Support and on-call arrive cold at *Prove*, and the record answers them anyway,
+  because it was emitted by the processor rather than written by whoever built it. Named on the home
+  page, in *Why it matters*, and at the point in the loop where you can join it.
 - **A "Working with AI" section on the docs site**, replacing the lone *The build-with-AI loop* page:
   the loop, connecting an assistant (moved out of Getting started, so the AI story is in one place),
   and the support guide above. Getting started is now just install and open a log. The support guide

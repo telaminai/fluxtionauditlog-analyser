@@ -76,6 +76,13 @@ Crucially, this runs on the **deployed** runtime's audit, and a replay of that a
 The analyser is not a tool the AI uses *instead of* you, or one you use *instead of* the AI. It is the
 surface both of you work on — a **shared research canvas**, with the human in the loop by construction.
 
+!!! tip "You can join this loop at ④, knowing nothing about the system"
+    The stages above are the *builder's* path, and it is easy to read them as a prerequisite. They are
+    not. Support and on-call arrive cold at **④ Prove** — an unfamiliar system, someone else's graph, a
+    log from a night they were not working — and the same canvas answers, because the evidence was
+    emitted by the processor rather than written by whoever built it. That path has its own guide:
+    [Answering questions about a running system](support.md).
+
 ```mermaid
 flowchart LR
   H["Human<br/>asks, reviews, decides"] <-->|conversation| AI["AI agent"]
