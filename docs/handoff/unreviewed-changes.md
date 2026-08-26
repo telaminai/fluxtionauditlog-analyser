@@ -16,7 +16,15 @@ still check**.
 
 ---
 
-## ☐ 2026-08-26 · `881b047` · fix(topology): populate the split-view EventProcessor dropdown
+## ☑ reviewed 2026-08-26 (the second session) · `881b047` · fix(topology): populate the split-view EventProcessor dropdown
+
+**Verdict.** Correct and minimal: a second `SourcePanel` instance that was never handed the processor
+list, now mirrored at the three `setProcessors` sites. `mvn test` green on main (865); the fixed jar
+renders the embedded source pane in the Topology split view (painted shot read; the combo's contents are
+not legible at the split's width, so the author's live confirmation of all five stands). Follow-up, not
+blocking: `setProcessors` now has two consumers kept in step by hand — a `Runnable`/listener on the
+Source tab's panel would remove the mirroring. Recorded here rather than filed.
+
 
 **What.** The Topology tab embeds its own `SourcePanel` (`TopologyPanel.embeddedSource`), separate from
 the Source tab's `MainFrame.sourcePanel`. `SourcePanel.setProcessors(...)` — the only thing that fills the
@@ -46,12 +54,58 @@ whether the same mirroring belongs anywhere else `sourcePanel` state is pushed.
 
 ---
 
+## ☐ 2026-08-26 · (this branch) · fix(graphs): a project's saved graphs survive the first log opened under it
+
+**What.** `GraphTabs.bind()` opened its placeholder tab through `addGraph()`, which fires the change
+listener; since B-M20-3 that listener persists the open tabs, and `MainFrame.onLoaded` assigns the store
+before binding, so the profile's graphs were overwritten with `["Graph 1"]` a line before
+`restore(config.savedGraphs)` read them. Fix: the placeholder is opened under the `restoring` guard, and
+`onLoaded` restores from a snapshot taken before binding. See the bug entry below for the three write-ups.
+
+**Files.** `GraphTabs.java` (bind), `MainFrame.java` (onLoaded), `GraphTabsBindIsNotAnEditTest.java` (2),
+`CHANGELOG.md`.
+
+**Verified.** `mvn test` 867 green; sweep clean (four-term form). Live, one JVM, isolated home: project
+with 4 saved graphs → open a log → `graph.count` stays 4 through the open and a forced save (was 1 on
+the unfixed jar, same script).
+
+**Reviewer must still check.** That the placeholder tab still appears on a fresh log with NO saved graphs
+(the `restoring` guard suppresses the edit, not the tab — `addGraph()` still runs); and that a graph
+edited by hand still auto-persists (pinned by the second test, but Swing-side confirmation is cheap).
+
 # Bugs found (not yet fixed) — for the next session
 
 Not changes to review — defects surfaced while working, logged here so the next puller can pick them up and
 fix them properly. Promote to a tracker item / spec when triaged.
 
-## ☑ 2026-08-26 · RETRACTED — "saved graphs destroyed on project open" was a MISDIAGNOSIS
+## ☑ 2026-08-26 · Saved graphs destroyed — misdiagnosed, retracted, then REPRODUCED single-instance on a LOG open; FIXED on `fix/graphs-lost-on-log-open`
+
+**Third write-up (the second session, reviewing both earlier ones).** The retraction below is right that
+the first mechanism was wrong and that *open project with no log* is safe — reproduced here too, one JVM,
+isolated `-Duser.home`, a project with 4 saved graphs: `graph.count` stayed 4 through the open and two
+forced saves. It is wrong that there is nothing to fix. Continuing the same single-instance run:
+**with the project active, opening a log dropped the profile to `graph.count=1` ("Graph 1")**. No second
+instance was involved.
+
+Mechanism, read from the whole method this time: `onLoaded` assigns `store`, then calls
+`graphTabs.bind()`, which opens its placeholder tab through `addGraph()` — and `addGraph()` fires the
+change listener. Since B-M20-3 (`b40f207`, 2026-08-17) that listener is `onGraphsEdited` →
+`saveConfigQuietly` → `syncOpenGraphsIntoConfig()`, whose `store == null` guard no longer applies
+because the store was assigned two lines earlier. So `config.savedGraphs` became `["Graph 1"]` one
+line before `graphTabs.restore(config.savedGraphs)` read it back. Every release since 1.1 has done this
+on the first log opened under a project with saved graphs. The two-instance race described below may
+also be real, but it was not needed to lose the graphs.
+
+Fixed: `GraphTabs.bind()` opens its placeholder under the `restoring` guard (structure is not an edit),
+and `onLoaded` snapshots the saved graphs before binding. `GraphTabsBindIsNotAnEditTest` plays
+MainFrame's exact sequence with MainFrame's exact listener shape, headless; a second test pins that a
+real edit still persists. Live on the fixed jar: 4 stays 4 through the log open and a forced save.
+CHANGELOG ▸ Fixed. Lesson for this ledger, added to the one below: a retraction needs the same
+reproduction discipline as a report — the retraction tested the path the report named, not the
+path the user had actually taken (they opened a log).
+
+### Second write-up (retraction, as committed in 61e8952)
+
 
 An earlier revision of this file logged a graph-loss bug claiming
 `syncOpenGraphsIntoConfig()` rewrites `savedGraphs` from the open tabs **with no guard**, so opening a

@@ -78,7 +78,17 @@ public final class GraphTabs extends JPanel {
         this.filter = filter;
         clearGraphs();
         counter = 0;
-        addGraph();
+        // The placeholder tab a fresh binding opens is STRUCTURAL, not a user edit — so it must not be
+        // echoed to the change listener. Since B-M20-3 that listener persists the open tabs into the
+        // profile, and MainFrame.onLoaded assigns the store BEFORE binding, so this one fireChanged()
+        // overwrote a project's saved graphs with ["Graph 1"] a line before restore() read them back.
+        // Every release since 1.1 lost a project's graphs on the first log open (ledger, 2026-08-26).
+        restoring = true;
+        try {
+            addGraph();
+        } finally {
+            restoring = false;
+        }
     }
 
     /** Handler invoked with the UTC time under a plot click (wired to scroll the table to the nearest record). */

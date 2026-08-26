@@ -7,6 +7,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **A project's saved graphs are no longer wiped when you open a log.** With a project active, the
+  first log opened under it replaced the profile's graphs with a single empty "Graph 1" — silently, on
+  the next auto-save, and on every release since 1.1. Binding a log opened a placeholder tab and that
+  counted as an edit, so the profile was rewritten from the one placeholder a moment before the saved
+  graphs were restored from it. A placeholder is structure, not an edit; the saved graphs are also
+  snapshotted before the log binds. Reported as "opening a project with no log destroys the graphs" —
+  that path was checked and is fine; the loss happens on the log open that follows.
 - **The Topology tab's split-view *EventProcessor* dropdown is now populated.** It is a separate
   `SourcePanel` instance from the Source tab and was never handed the processor list, so it stayed
   empty even when the Source tab's dropdown was full — the topology's selected processor still

@@ -2234,8 +2234,12 @@ public final class MainFrame extends JFrame {
         syncWindowScroll();
         eventFilterPanel.bind(index, filter);
         summaryPanel.bind(loaded, filter);
+        // Snapshot BEFORE binding: bind() must not fire an edit (fixed in GraphTabs), but the graphs to
+        // restore are the profile's, and nothing in the bind/restore sequence may be allowed to rewrite
+        // config.savedGraphs in between — belt to GraphTabs' braces.
+        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> savedGraphs = List.copyOf(config.savedGraphs);
         graphTabs.bind(loaded, filter);
-        graphTabs.restore(config.savedGraphs);   // reopen graphs saved in the profile
+        graphTabs.restore(savedGraphs);          // reopen graphs saved in the profile
         tablePanel.setRowFilter(new RowFilter<LogTableModel, Integer>() {
             @Override
             public boolean include(Entry<? extends LogTableModel, ? extends Integer> entry) {
