@@ -136,6 +136,21 @@ The paired brief/report trail makes every delegated work block auditable from th
 When a cycle is fully done (merged/shipped, review answered), its brief/report/review files move to
 `docs/handoff/completed/` — the live directory holds only in-flight correspondence.
 
+### Ad-hoc un-reviewed changes
+Sometimes a session working primarily in **another repo** (a downstream consumer of the analyser) hits an
+analyser-side bug and fixes it in passing — too small for a full brief, but it still lands on `main`
+without a review. Log
+every such change in **`docs/handoff/unreviewed-changes.md`**: one entry with the commit SHA, what & why,
+files, what was verified, and — the load-bearing part — **what the reviewer must still check** (Swing UI
+is not unit-tested, so "build and run the jar and confirm X" belongs here). The change still obeys the
+normal gates (`mvn test` green, CHANGELOG line, leak sweep, `main`); the only thing it skips is
+*pre*-merge review.
+
+The next session to pull **reviews the open (`☐`) entries first**: read the commit, run `mvn test`,
+verify what the entry flagged, then tick it `☑ reviewed <date>` with a verdict (or file a follow-up).
+This keeps ad-hoc fixes moving without losing the second-pair-of-eyes guarantee — the review just happens
+after the fact, and the ledger makes the debt explicit rather than silent.
+
 ## Tracker discipline
 
 When you finish work: mark items ☑ in `docs/specs/tracker.md`; when a whole milestone/round is done,
