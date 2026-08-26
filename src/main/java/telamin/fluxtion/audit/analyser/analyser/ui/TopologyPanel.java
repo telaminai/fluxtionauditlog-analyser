@@ -67,6 +67,10 @@ public final class TopologyPanel extends JPanel {
     /** The last routes answer, when the current scope is ROUTES — so the status can say if it was bounded. */
     private TopologyFocus.RouteScope lastRoutes;
     private SourcePanel embeddedSource;
+    // Processor choices mirrored into the embedded (split-view) source pane, remembered so a pane
+    // bound before the first refresh is still seeded (its dropdown is otherwise never populated).
+    private java.util.List<String> lastProcessorFqns = java.util.List.of();
+    private String lastSelectedProcessor;
     private final javax.swing.JToggleButton sourceButton = new javax.swing.JToggleButton("Source");
     private final javax.swing.JToggleButton syncButton = new javax.swing.JToggleButton("Sync", true);
     private final javax.swing.JSplitPane graphSplit =
@@ -1335,7 +1339,21 @@ public final class TopologyPanel extends JPanel {
         embeddedSource = new SourcePanel();
         embeddedSource.bind(service);
         embeddedSource.setMinimumSize(new java.awt.Dimension(220, 80));
+        // Seed the dropdown if choices were already published before the pane existed.
+        if (!lastProcessorFqns.isEmpty()) embeddedSource.setProcessors(lastProcessorFqns, lastSelectedProcessor);
         sourceButton.setEnabled(true);
+    }
+
+    /**
+     * Mirror the event-processor choices into the embedded split-view source pane's dropdown. The main
+     * Source tab and this pane are separate {@link SourcePanel} instances; without this call the
+     * embedded dropdown is never populated (its selected processor still works via the shared
+     * SourceService, but the list to switch between them stays empty).
+     */
+    public void setEmbeddedProcessors(java.util.List<String> fqns, String selected) {
+        lastProcessorFqns = fqns == null ? java.util.List.of() : fqns;
+        lastSelectedProcessor = selected;
+        if (embeddedSource != null) embeddedSource.setProcessors(lastProcessorFqns, selected);
     }
 
     private void showSourcePane(boolean show) {

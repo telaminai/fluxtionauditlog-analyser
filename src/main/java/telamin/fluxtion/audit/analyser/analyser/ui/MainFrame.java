@@ -2252,6 +2252,7 @@ public final class MainFrame extends JFrame {
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
+        topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
         inferAndPopulateSource();
 
         config.logFile = location;
@@ -2630,6 +2631,7 @@ public final class MainFrame extends JFrame {
                         config.eventProcessorFqns.add(inferred);
                     }
                     sourcePanel.setProcessors(candidates, inferred);
+                    topologyPanel.setEmbeddedProcessors(candidates, inferred);
                     sourcePanel.showSelectedProcessor();
                     saveConfigQuietly();
                 },
@@ -2690,6 +2692,7 @@ public final class MainFrame extends JFrame {
                 config.mavenRepos, config.searchMavenRepos);
         Background.run(() -> { sourceService.warmMavenIndex(); return null; }, r -> { }, err -> { });
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
+        topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
         sourcePanel.showSelectedProcessor();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
         if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too

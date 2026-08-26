@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **The Topology tab's split-view *EventProcessor* dropdown is now populated.** It is a separate
+  `SourcePanel` instance from the Source tab and was never handed the processor list, so it stayed
+  empty even when the Source tab's dropdown was full — the topology's selected processor still
+  navigated (it shares the `SourceService`), but you could not switch processors from the split view.
+  The choices are now mirrored into it whenever the Source tab's are refreshed.
+
 ### Added
 - **A guide for answering questions about a running system** — the support path, written round the
   questions rather than the features: what to check in the first two minutes, how to tell a quiet
