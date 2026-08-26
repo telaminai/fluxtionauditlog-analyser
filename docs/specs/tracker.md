@@ -356,6 +356,30 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
+## M37 · Loaded panel — what is in force, stated in one place — ☐ SPEC'D 2026-08-26 (owner-requested)
+_Design: **[spec-loaded-panel.md](spec-loaded-panel.md)**. The owner's ask: a tab on the west rail that
+shows the loaded graphml(s), the event processors (Java classes), the audit logs, and the project's name
+and file location — "currently it is not clear what is loaded in the current project"._
+_The framing that shaped it: the app already knows all of this and says it to **agents** (`context`), while
+the human gets five scattered fragments (title, status line, Topology header, two dialogs). So the panel
+is `context` rendered for the human — one model, two readers — and it goes **before M20.5**, whose
+project pointers are invisible without it. The 2026-08-26 graph-loss defect is the motivating case:
+saved graphs fell 6 → 1 and no surface showed the count._
+
+- [M37.1] ☐ **`context` parity** — add the facts the panel needs that `context` lacks (project file
+  location, source-root tiers, rolled-set members, per-processor source resolution); parity test scaffold.
+- [M37.2] ☐ **The panel** — `NavRail` toggle "Loaded" beside *Event types*, persisted, default shown once;
+  five sections (Project · Audit log · Graph · Processors · Source roots), every empty state a sentence.
+- [M37.3] ☐ **Provenance + reveal actions** — per-row where-from (`OpenRequest` provenance, the tiers);
+  actions are copy-path / show-in-folder / go-to only — a test proves nothing on the panel mutates.
+  The pairing verdict is a row (applies · declared/inferred · opened beats supplied).
+- [M37.4] ☐ **Lifecycle wiring** — re-renders on the M35 events, no polling; the open→graph→project→close
+  sequence test.
+- [M37.5] ☐ **Docs page + generated shot**; CHANGELOG; spec → SHIPPED.
+
+**Owner calls before .2:** the name (*Loaded* / *Session* / *In force*); stacked with Event types or
+exclusive; whether the start page shows the PROJECT section inline (proposed: no).
+
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
 purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
