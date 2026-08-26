@@ -102,7 +102,9 @@ owner call); the golden-fixture corpus follow-ups (N1 + the clamp fixture); the 
 round** (`docs/handoff/handoff_17_aug_2026_1.txt`). **M18 is CLOSED** in favour of
 [`spec-agent-brokered-dev-loop.md`](docs/specs/spec-agent-brokered-dev-loop.md) (ACCEPTED v2) —
 its cross-repo asks (Mongoose MCP + `~/.mongoose/servers/`, two playground catalogue fields, the
-Chronicle reader) are gated on that spec's §H conformance harness having a home. Cross-repo tracks:
+Chronicle reader) **were** gated on that spec's §H conformance harness having a home — **that gate is
+met** (M19.6, `tools/bench/loop-bench.py`, merged 2026-08-25), so they are ready to file and are not
+yet filed. Cross-repo tracks:
 the **M31.4r** example reader (playground) and the **M19.1** playground bundle contract
 (`docs/specs/spec-onboarding-example.md`). Two standing design decisions (tracker ▸ Decisions), both intact after M18's closure: server verbs
 never appear on **the analyser's** action socket — the adopted design *strengthens* this by moving

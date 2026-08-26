@@ -847,9 +847,28 @@ read them up front — which is precisely where inference creeps in.
 _Raised 2026-08-25 from [`spec-agent-brokered-dev-loop.md`](../specs/spec-agent-brokered-dev-loop.md)
 (ACCEPTED v2). M18 — the analyser linking to a server itself — is **closed**; the adopted design puts
 every server-side capability in **Mongoose's own repo**, reached by an agent over MCP, and the
-analyser opens files. These four asks are that design's server half. **None of them starts until the
-§H conformance harness has a home in the M19 bench** — the spec makes the cross-repo dependency
-acceptable *because* of that harness, and not otherwise._
+analyser opens files. These four asks are that design's server half._
+
+**THE GATE IS MET — these are ready to file (2026-08-26).** This section previously read "none of them
+starts until the §H conformance harness has a home in the M19 bench". That harness shipped:
+`tools/bench/loop-bench.py` (M19.6, merged 2026-08-25) plays §C3 steps 3–7 and asserts every one by
+name, and `tools/bench/mongoose-stub.py` implements UP-MNG-01 and the export half of UP-MNG-02 **and
+nothing else**. So the mongoose-side work has an executable definition of done that exists today:
+*make the real server pass what the stub passes.* Pointed at a real `~/.mongoose/servers/`,
+`loop-bench.py --registry <dir> --server <name>` **is** the acceptance test for UP-MNG-01/02 — no new
+harness, no new agreement about what "done" means.
+
+**These are no longer speculative.** The loop described here is in **daily use debugging a live trading
+application**: an agent starts, stops and deploys across environments, pulls logs from remote sites,
+drives the analyser, and a fix is proved by re-running and re-reading the record — hours of work
+becoming minutes. A **support team** uses the same path to answer questions about a deployed system
+they did not build, and reports the same collapse in time-to-answer. Everything below is already being
+done; what is missing is that the server half is glued together with bespoke scripting per site
+instead of being a capability of the server. That is the gap these asks close, and it is why the
+priorities below are ordered by *what the humans are currently working around*.
+
+_Still **NOT FILED** as issues in `telaminai/mongoose`. The nine fluxtion-owned asks were filed as
+issues 8–16 and moved; these have a spec, a bench and now production evidence, and no issue._
 
 _Target repo for all four: `telaminai/mongoose` (the server runtime and its admin web service plugin —
 the owner decides which module). Evidence throughout is **measured**: the `svc-admin-web` capability
@@ -899,10 +918,17 @@ the file before the admin port answers; two servers → two files; `kill -9` →
 dead; the §H harness reads it at step 3–4 with no configuration. **Cost to us if unfixed:** step 4 of
 the loop is a human typing a URL, and the "deploy a second server, it just appears" property is gone.
 
+**Measured cost, 2026-08-26.** Teams already run this loop; without the file, each site hand-maintains
+its own answer to "which servers are running and where" — the coupling M18 was closed to remove,
+rebuilt per site in shell. The first thing support does with an unfamiliar system is find its log, and
+that is exactly the step no one can automate portably today.
+
 ### UP-MNG-02 ☐ An MCP admin tool, in the Mongoose repo — audit level, export, restart
 
 **Target** `mongoose` (a new module, or the admin web service plugin) · **Priority** high — it is the
-deploy leg (§C3 step 9) and the moved M18.3/18.4
+deploy leg (§C3 step 9) and the moved M18.3/18.4. **`mongoose_export_audit` is the single most valuable
+tool here**: it is the first move of every support investigation and every agent-driven diagnosis, and
+it is the one currently done by hand
 
 **The ask.** An MCP server (stdio, like the analyser's bridge) whose tools address a server by the
 `name` in its registry file (UP-MNG-01), each mutation approved per call by the MCP client — the
@@ -932,8 +958,9 @@ leg does not exist and M18.3/18.4 stay deleted rather than moved.
 
 ### UP-MNG-03 ☐ The server declares whether it is a dev instance
 
-**Target** `mongoose` (server config) · **Priority** high — it is what makes the free/paid line
-enforceable (D-B7) and it is the open question that decision left
+**Target** `mongoose` (server config) · **Priority** high — two independent reasons now: it makes the
+free/paid line enforceable (D-B7), **and it is a correctness requirement for anyone answering questions
+across environments**
 
 **The ask.** A declared `environment` in the server's own configuration (`dev` | `prod` — the owner
 names the values), carried into the endpoint file (UP-MNG-01) and honoured by the admin surface:
@@ -944,6 +971,21 @@ refuses has nothing to patch on the customer's side.
 **Why declared and not inferred.** Non-loopback is the obvious signal and is too crude — a developer
 on a remote box is not production. Declared-never-inferred is the rule this codebase applies to
 graphs (D-A2), order (D-A1a) and provenance (§E); the environment is the same kind of fact.
+
+**The correctness half, added 2026-08-26 from production use.** Support answer questions about live
+systems from exported logs, across several environments. **Two environments running the same build
+emit logs that are identical in shape and usually identical in filename** — the only thing that can
+separate them is something a human or a script *declared* at export time. The analyser already carries
+this the whole way (§E provenance in the status bar, report headers, and a mismatch banner that can say
+*"same content — a different system"*), but it can only report what it was told. With `environment` in
+the endpoint file, the exporting agent has an authoritative value to pass instead of a hand-typed one,
+and it comes from the server rather than from whoever wrote the script.
+
+Without it the failure is silent and expensive in exactly the way this project cares about: an answer
+that is correct about UAT, read as production. Nothing errors, the log looks right, and the report
+names a filename. This is the same class as the producer diagnostics the analyser added on 2026-08-25 —
+a wrong answer with no symptom — and unlike those, the analyser cannot detect it, because both logs
+are perfectly well-formed.
 
 **Acceptance.** A starter-generated server declares `dev` by default; flipping it to `prod` makes
 `mongoose_restart` return a refusal that names the reason; the free dev MCP pointed at a `prod` server

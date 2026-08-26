@@ -516,7 +516,8 @@ spec-agent-brokered-dev-loop; its old slices are gone from this list._
    (`open {project}` — so an agent can accept the offer M35.7 reports, and E7-E10 become drivable), **M29.5**, **M13.5**,
    **M21.7–.9**, and the **M22** five
    (`docs/handoff/handoff_17_aug_2026_1.txt`).
-8. **Cross-repo, gated on §H — now DRAFTED as asks (2026-08-25): UP-MNG-01…04, UP-PG-01…02, UP-RDR-01 in
+8. **Cross-repo — the §H gate is MET (M19.6 shipped the bench 2026-08-25); DRAFTED and READY TO FILE,
+   still unfiled: UP-MNG-01…04, UP-PG-01…02, UP-RDR-01 in
    [upstream-asks.md](../proposals/upstream-asks.md) §5–§7, each with evidence and acceptance, so a session
    opened in the mongoose or playground repo has a brief.** The Mongoose **MCP admin tool** + `~/.mongoose/servers/` endpoint
    files, and the playground's two catalogue asks (`agentBootstrap`, the `catalogue` version
