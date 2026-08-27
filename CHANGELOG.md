@@ -20,6 +20,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   instead of a different home directory’s stale or absent one.
 - **Long bridge commands are now readable.** MCP setup renders the resolved command in a selectable,
   word-wrapping multi-line field instead of clipping an absolute Java or jar path at the window edge.
+- **Codex can now receive a confirmed local MCP registration.** Setup detects the local CLI without
+  launching it; an explicit check, add, replace, or remove names only `fluxtion-analyser`, shows the
+  exact no-token command, and uses the Codex CLI rather than editing its configuration file. A command
+  success is kept distinct from a connected client session or approved tool call.
 
 ## [1.10.0] - 2026-08-27
 

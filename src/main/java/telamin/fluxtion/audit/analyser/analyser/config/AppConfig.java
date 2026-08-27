@@ -88,6 +88,12 @@ public final class AppConfig {
     public int maxActionRounds = 3;
     public int maxActionsPerReply = 20;
 
+    // M42: machine-local setup reminders only. They intentionally hold neither the endpoint/token nor an
+    // absolute launch path: a client re-discovers this app's fresh loopback endpoint through the bridge.
+    public String mcpSetupTarget = "";
+    public String mcpLauncherIdentity = "";
+    public boolean mcpCodexRegistrationInstalled = false;
+
     // B1 (review_handoff_16_aug_2026): verb-initiated file writes (screenshot/report) are OPT-IN and
     // confined to one directory — the socket's out-of-box promise stays "nothing outside the loaded log".
     // Machine-scoped (like display prefs): stays GLOBAL under M20 tiering, excluded from SettingsShare.

@@ -161,18 +161,23 @@ they are not a licence to infer a protocol that has changed.
 
 ### Codex CLI
 
-The setup pane detects the `codex` executable and asks it whether `fluxtion-analyser` is already
-registered. If it is absent or the user selects **Replace**, the confirmation screen shows an equivalent
-of:
+The setup pane detects the `codex` executable without starting it. An explicit **Check Codex
+registration** asks the current CLI only whether `fluxtion-analyser` is already registered, using
+`codex mcp get fluxtion-analyser --json`. [Live Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+and the installed CLI were verified on 2026-08-27: the current STDIO registration shape is:
 
 ```text
 codex mcp add fluxtion-analyser -- <absolute-launcher> --mcp
 ```
 
-On confirm, the analyser invokes the Codex CLI directly and displays stdout/stderr as a bounded,
-copyable result. A non-zero exit does not change the analyser's own settings and gives the person the
-same command to run in a terminal. **Remove Codex connection** removes only the named
-`fluxtion-analyser` registration after confirmation.
+On confirm, the analyser invokes the Codex CLI directly with an argument vector; it never edits
+`config.toml` or invokes a shell. It drains combined stdout/stderr with a strict bound and redacts
+token-looking values before any diagnostic can escape to the UI or log. A non-zero exit does not change
+the analyser's own successful-registration record and gives the person the same command to run in a
+terminal. **Replace** is explicitly a confirmed remove of only `fluxtion-analyser`, followed by the
+confirmed add; if the add fails after removal, the screen says so rather than pretending the old entry
+remains. **Remove Codex connection** removes only the named `fluxtion-analyser` registration after
+confirmation.
 
 The setup records that the registration command succeeded; it does not claim Codex is connected until
 the loopback probe succeeds, and never claims it has observed a model call.

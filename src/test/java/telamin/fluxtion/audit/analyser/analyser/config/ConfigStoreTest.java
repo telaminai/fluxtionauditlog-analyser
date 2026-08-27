@@ -26,6 +26,9 @@ class ConfigStoreTest {
         c.sourceRoots.add("/src/trade-calculator-impl-lib");
         c.eventProcessorFqns.add("com.acme.marketmaker.strategy.DemoMarketMakerStrategy");
         c.memoryThresholdMb = 250;
+        c.mcpSetupTarget = "CODEX";
+        c.mcpLauncherIdentity = "packaged application";
+        c.mcpCodexRegistrationInstalled = true;
         c.windowW = 1000;
         c.addRecent("/logs/audit.yaml");
 
@@ -38,6 +41,9 @@ class ConfigStoreTest {
         assertEquals("gpt-x", d.llmModel);
         assertEquals(List.of("/src/market-maker-lib", "/src/trade-calculator-impl-lib"), d.sourceRoots);
         assertEquals(250, d.memoryThresholdMb);
+        assertEquals("CODEX", d.mcpSetupTarget);
+        assertEquals("packaged application", d.mcpLauncherIdentity);
+        assertTrue(d.mcpCodexRegistrationInstalled);
         assertEquals(1000, d.windowW);
         assertTrue(d.recentFiles.contains("/logs/audit.yaml"));
         assertEquals(List.of("com.acme.marketmaker.strategy.DemoMarketMakerStrategy"), d.eventProcessorFqns);

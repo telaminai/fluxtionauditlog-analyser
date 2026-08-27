@@ -98,6 +98,10 @@ public final class ConfigStore {
         c.assistantExportDir = p.getProperty("assistant.exportDir", c.assistantExportDir);
         c.maxActionRounds = parseInt(p.getProperty("assistant.maxRounds"), c.maxActionRounds);
         c.maxActionsPerReply = parseInt(p.getProperty("assistant.maxActionsPerReply"), c.maxActionsPerReply);
+        c.mcpSetupTarget = p.getProperty("mcp.target", c.mcpSetupTarget);
+        c.mcpLauncherIdentity = p.getProperty("mcp.launcherIdentity", c.mcpLauncherIdentity);
+        c.mcpCodexRegistrationInstalled = parseBool(p.getProperty("mcp.codexRegistrationInstalled"),
+                c.mcpCodexRegistrationInstalled);
         readList(p, "searchHistory", c.searchHistory);
         c.lastRunVersion = p.getProperty("lastRunVersion", c.lastRunVersion);
         c.windowX = parseInt(p.getProperty("windowX"), c.windowX);
@@ -174,6 +178,9 @@ public final class ConfigStore {
         put(p, "assistant.exportDir", c.assistantExportDir);
         put(p, "assistant.maxRounds", Integer.toString(c.maxActionRounds));
         put(p, "assistant.maxActionsPerReply", Integer.toString(c.maxActionsPerReply));
+        put(p, "mcp.target", c.mcpSetupTarget);
+        put(p, "mcp.launcherIdentity", c.mcpLauncherIdentity);
+        put(p, "mcp.codexRegistrationInstalled", Boolean.toString(c.mcpCodexRegistrationInstalled));
         put(p, "windowX", Integer.toString(c.windowX));
         put(p, "windowY", Integer.toString(c.windowY));
         put(p, "windowW", Integer.toString(c.windowW));

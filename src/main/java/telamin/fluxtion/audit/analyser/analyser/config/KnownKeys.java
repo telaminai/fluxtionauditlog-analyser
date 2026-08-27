@@ -40,7 +40,7 @@ public final class KnownKeys {
         Set<String> all = new java.util.HashSet<>(PROFILE_FAMILIES);
         all.addAll(Set.of("activeProjectPath", "apiKey", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
                 "lastRunVersion", "logFile", "memoryThresholdMb", "projectPanelCollapsed", "recentFile", "recentGraphml",
-                "recentProject", "searchHistory", "theme", "topologyOrientation", "topologyPanX", "topologyPanY",
+                "recentProject", "searchHistory", "theme", "mcp", "topologyOrientation", "topologyPanX", "topologyPanY",
                 "topologySpacing", "topologySyncSource", "topologyTextSize", "topologyZoom", "westDivider", "westWidth",
                 "windowH", "windowW", "windowX", "windowY"));
         CONFIG_FAMILIES = Set.copyOf(all);

@@ -482,7 +482,7 @@ public final class ConfigPanel extends JDialog {
             // still-open Settings form, or a later OK would write its stale unchecked value back over it.
             actionsRest.setSelected(config.assistantActionsRest);
             if (onSaved != null) onSaved.run();
-        }, McpSetupDialog.Target.GENERIC, true));
+        }, McpSetupDialog.Target.fromPersisted(config.mcpSetupTarget, McpSetupDialog.Target.GENERIC), true));
         c.gridy = 0; p.add(connect, c);
         c.gridy = 1; p.add(actionsInProcess, c);
         c.gridy = 2; p.add(actionsRest, c);

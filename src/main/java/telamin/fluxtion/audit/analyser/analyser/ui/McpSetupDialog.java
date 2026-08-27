@@ -2,6 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 
 import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.core.Background;
+import telamin.fluxtion.audit.analyser.analyser.mcp.CodexMcpClient;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbe;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState;
@@ -26,17 +27,20 @@ import java.awt.BorderLayout;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Toolkit;
 import java.awt.Window;
+import java.awt.datatransfer.StringSelection;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * The local, client-neutral MCP readiness surface (M42.2).
+ * The local MCP readiness and confirmed-client-setup surface (M42.2–.3).
  *
- * <p>It never edits a third-party configuration. Opening it only reads the current local state and the
- * documented JBang launcher; enabling local transport has its own confirmation, and bridge probing is a
- * background, read-only {@code analyser_context} call through the actual child command.
+ * <p>Opening it only reads the current local state and the documented JBang launcher. Third-party
+ * configuration changes have their own confirmation; enabling local transport has another. Bridge
+ * probing is a background, read-only {@code analyser_context} call through the actual child command.
  */
 public final class McpSetupDialog extends JDialog {
 
@@ -56,26 +60,43 @@ public final class McpSetupDialog extends JDialog {
         public String toString() {
             return label;
         }
+
+        static Target fromPersisted(String value, Target fallback) {
+            try {
+                return value == null || value.isBlank() ? fallback : Target.valueOf(value);
+            } catch (IllegalArgumentException ignored) {
+                return fallback;
+            }
+        }
     }
 
     private final AppConfig config;
-    private final Runnable onTransportEnabled;
+    /** Persists a deliberate local setup choice and applies REST if its checkbox was explicitly enabled. */
+    private final Runnable onConfigurationChanged;
     private final RestEndpointFile endpointFile = RestEndpointFile.wellKnown();
     private final JLabel localStatus = new JLabel();
     /** A real field rather than a clipped label: absolute Java/jar paths are routinely wider than a dialog. */
     private final JTextArea commandStatus = commandBox();
     private final JLabel bridgeStatus = new JLabel("Bridge: not checked in this session.");
     private final JLabel clientStatus = new JLabel();
+    private final JPanel clientActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
     private final JButton enableTransport = new JButton("Enable local transport…");
     private final JButton checkBridge = new JButton("Check connection");
     private final JComboBox<Target> target;
     private McpLaunchCommand command;
+    private String launcherIdentity = "";
+    private CodexMcpClient codex;
+    private boolean codexChecked;
+    /** The last explicit add/replace/remove result is more specific than a later passive re-render. */
+    private boolean codexJustChanged;
+    private CodexMcpClient.RegistrationStatus codexRegistration = CodexMcpClient.RegistrationStatus.INDETERMINATE;
+    private String codexOutcome = "";
 
-    private McpSetupDialog(Window owner, AppConfig config, Runnable onTransportEnabled, Target initial,
+    private McpSetupDialog(Window owner, AppConfig config, Runnable onConfigurationChanged, Target initial,
                            Dialog.ModalityType modality) {
         super(owner, "Connect an AI client", modality);
         this.config = config;
-        this.onTransportEnabled = onTransportEnabled == null ? () -> { } : onTransportEnabled;
+        this.onConfigurationChanged = onConfigurationChanged == null ? () -> { } : onConfigurationChanged;
         this.target = new JComboBox<>(Target.values());
         this.target.setSelectedItem(initial == null ? Target.GENERIC : initial);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -87,10 +108,10 @@ public final class McpSetupDialog extends JDialog {
     }
 
     /** Open from the Start Page (modeless) or Settings ▸ Assistant (document-modal over Settings only). */
-    public static void show(Window owner, AppConfig config, Runnable onTransportEnabled, Target initial,
+    public static void show(Window owner, AppConfig config, Runnable onConfigurationChanged, Target initial,
                             boolean modalOverOwner) {
         Dialog.ModalityType modality = modalOverOwner ? Dialog.ModalityType.DOCUMENT_MODAL : Dialog.ModalityType.MODELESS;
-        new McpSetupDialog(owner, config, onTransportEnabled, initial, modality).setVisible(true);
+        new McpSetupDialog(owner, config, onConfigurationChanged, initial, modality).setVisible(true);
     }
 
     private void buildUi() {
@@ -109,7 +130,10 @@ public final class McpSetupDialog extends JDialog {
         targetRow.setOpaque(false);
         targetRow.add(new JLabel("Set up:  "));
         targetRow.add(target);
-        target.addActionListener(e -> refreshClientStatus());
+        target.addActionListener(e -> {
+            rememberSetup();
+            refreshClientStatus();
+        });
         body.add(targetRow);
         body.add(Box.createVerticalStrut(12));
 
@@ -134,6 +158,10 @@ public final class McpSetupDialog extends JDialog {
         body.add(Box.createVerticalStrut(10));
 
         body.add(section("3. Client registration", clientStatus));
+        clientActions.setOpaque(false);
+        clientActions.setAlignmentX(LEFT_ALIGNMENT);
+        body.add(clientActions);
+        body.add(Box.createVerticalStrut(4));
         body.add(Box.createVerticalStrut(8));
         body.add(note("The registration label will be <b>fluxtion-analyser</b>. The bridge protocol identifies "
                 + "itself as <b>fluxtion-audit-log-analyser</b>; those are the two existing names, not a third "
@@ -218,6 +246,7 @@ public final class McpSetupDialog extends JDialog {
         Optional<McpLaunchCommand> jbang = McpLaunchCommand.installedJbang(Path.of(System.getProperty("user.home")));
         Optional<McpLaunchCommand> found = jbang.isPresent() ? jbang : McpLaunchCommand.runningJar();
         command = found.orElse(null);
+        launcherIdentity = command == null ? "" : jbang.isPresent() ? "installed JBang launcher" : "packaged application";
         if (command == null) {
             commandStatus.setText("No supported local launcher was found. Install with JBang, then reopen this setup.");
         } else {
@@ -233,9 +262,181 @@ public final class McpSetupDialog extends JDialog {
 
     private void refreshClientStatus() {
         Target selected = (Target) target.getSelectedItem();
-        clientStatus.setText((selected == null ? "This client" : selected) + " is not registered by the analyser yet. "
-                + "Registration or configuration is an explicit later step, never a side effect of opening this screen.");
+        clientActions.removeAll();
+        if (selected == Target.CODEX) {
+            refreshCodexStatus();
+        } else if (selected == Target.CLAUDE) {
+            clientStatus.setText("Claude configuration is not supplied by the analyser yet. Its explicit setup arrives "
+                    + "in the next MCP slice; opening this screen has not changed Claude.");
+        } else {
+            clientStatus.setText("No generic MCP configuration has been supplied. Its location and approval model belong "
+                    + "to your client; opening this screen has not changed it.");
+        }
+        clientActions.revalidate();
+        clientActions.repaint();
     }
+
+    private void refreshCodexStatus() {
+        codex = CodexMcpClient.detect().orElse(null); // PATH inspection only: no Codex process starts on screen open.
+        if (codex == null) {
+            clientStatus.setText("Codex CLI was not found on PATH. Install Codex, then use the copyable registration "
+                    + "command; this analyser has not changed Codex.");
+            if (command != null) clientActions.add(action("Copy Codex command", this::copyCodexCommand));
+            return;
+        }
+
+        if (codexChecked) {
+            clientStatus.setText(codexJustChanged && !codexOutcome.isBlank() ? codexOutcome : switch (codexRegistration) {
+                case PRESENT -> "Codex lists the named registration. This proves its configuration only—not a connected "
+                        + "client session or an approved tool call.";
+                case ABSENT -> "Codex has no registration named fluxtion-analyser.";
+                case INDETERMINATE -> codexOutcome.isBlank()
+                        ? "Codex has not been checked in this setup session."
+                        : codexOutcome;
+            });
+        } else if (config.mcpCodexRegistrationInstalled) {
+            clientStatus.setText("This analyser last recorded a successful Codex registration. Check Codex to confirm "
+                    + "what it has now; a past command cannot prove a current client session.");
+        } else {
+            clientStatus.setText("Codex CLI is available. Check its named registration or explicitly add one; opening this "
+                    + "screen has not run Codex.");
+        }
+
+        clientActions.add(action("Check Codex registration", this::checkCodexRegistration));
+        if (command != null) {
+            boolean replace = codexChecked && codexRegistration == CodexMcpClient.RegistrationStatus.PRESENT;
+            clientActions.add(Box.createHorizontalStrut(8));
+            clientActions.add(action(replace ? "Replace Codex registration…" : "Register with Codex…",
+                    () -> confirmCodexChange(replace ? CodexChange.REPLACE : CodexChange.ADD)));
+            if (replace || config.mcpCodexRegistrationInstalled) {
+                clientActions.add(Box.createHorizontalStrut(8));
+                clientActions.add(action("Remove Codex registration…", () -> confirmCodexChange(CodexChange.REMOVE)));
+            }
+            if (codexChecked && codexRegistration == CodexMcpClient.RegistrationStatus.INDETERMINATE) {
+                clientActions.add(Box.createHorizontalStrut(8));
+                clientActions.add(action("Copy Codex command", this::copyCodexCommand));
+            }
+        }
+    }
+
+    private static JButton action(String text, Runnable run) {
+        JButton button = new JButton(text);
+        button.addActionListener(e -> run.run());
+        return button;
+    }
+
+    private void checkCodexRegistration() {
+        if (codex == null) return;
+        rememberSetup();
+        setClientActionsEnabled(false);
+        clientStatus.setText("Checking only Codex's named registration…");
+        CodexMcpClient toCheck = codex;
+        Background.run(toCheck::registration, this::showCodexRegistration,
+                error -> showCodexResult(new CodexMcpClient.Result(CodexMcpClient.Status.LAUNCH_FAILED,
+                        "Codex could not be checked; its configuration was not changed."), false));
+    }
+
+    private void showCodexRegistration(CodexMcpClient.Registration registration) {
+        codexChecked = true;
+        codexJustChanged = false;
+        codexRegistration = registration.status();
+        codexOutcome = registration.detail();
+        if (registration.status() != CodexMcpClient.RegistrationStatus.INDETERMINATE) {
+            boolean installed = registration.present();
+            if (config.mcpCodexRegistrationInstalled != installed) {
+                config.mcpCodexRegistrationInstalled = installed;
+                onConfigurationChanged.run();
+            }
+        }
+        refreshClientStatus();
+    }
+
+    private void confirmCodexChange(CodexChange change) {
+        if (codex == null || (command == null && change != CodexChange.REMOVE)) return;
+        List<String> commands = new ArrayList<>();
+        String verb;
+        if (change == CodexChange.ADD) {
+            commands.add(CodexMcpClient.shellDisplay(codex.addCommand(command)));
+            verb = "add";
+        } else if (change == CodexChange.REPLACE) {
+            commands.add("1. " + CodexMcpClient.shellDisplay(codex.removeCommand()));
+            commands.add("2. " + CodexMcpClient.shellDisplay(codex.addCommand(command)));
+            verb = "replace";
+        } else {
+            commands.add(CodexMcpClient.shellDisplay(codex.removeCommand()));
+            verb = "remove";
+        }
+        JTextArea exact = commandBox();
+        exact.setText(String.join("\n", commands));
+        int choice = JOptionPane.showConfirmDialog(this, new Object[]{
+                        "Codex will " + verb + " only the registration named fluxtion-analyser in its shared local "
+                                + "configuration. The bridge discovers the per-run endpoint and token itself; neither is in this command.",
+                        "Cancel means Codex is not started and no configuration is written.", exact},
+                "Confirm Codex registration", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (choice != JOptionPane.OK_OPTION) return;
+        rememberSetup();
+        setClientActionsEnabled(false);
+        clientStatus.setText("Codex is applying the confirmed registration change…");
+        CodexMcpClient client = codex;
+        Background.run(() -> switch (change) {
+                    case ADD -> client.add(command);
+                    case REPLACE -> client.replace(command);
+                    case REMOVE -> client.remove();
+                }, result -> showCodexResult(result, change != CodexChange.REMOVE),
+                error -> showCodexResult(new CodexMcpClient.Result(CodexMcpClient.Status.LAUNCH_FAILED,
+                        "Codex could not start; its configuration was not changed."), false));
+    }
+
+    private void showCodexResult(CodexMcpClient.Result result, boolean installedOnSuccess) {
+        codexChecked = true;
+        codexJustChanged = true;
+        if (result.successful()) {
+            codexRegistration = installedOnSuccess ? CodexMcpClient.RegistrationStatus.PRESENT
+                    : CodexMcpClient.RegistrationStatus.ABSENT;
+            codexOutcome = installedOnSuccess
+                    ? "Codex registration installed. This analyser has not observed a connected client or tool call."
+                    : "Codex registration removed. This analyser has not changed any other Codex server.";
+            if (config.mcpCodexRegistrationInstalled != installedOnSuccess) {
+                config.mcpCodexRegistrationInstalled = installedOnSuccess;
+                onConfigurationChanged.run();
+            }
+        } else {
+            codexRegistration = CodexMcpClient.RegistrationStatus.INDETERMINATE;
+            codexOutcome = result.detail() + " Copy the command and inspect it in a terminal if you need to diagnose it.";
+        }
+        refreshClientStatus();
+    }
+
+    private void copyCodexCommand() {
+        if (command == null) return;
+        List<String> copy = codex == null ? CodexMcpClient.addCommandForCopy(command) : codex.addCommand(command);
+        try {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new StringSelection(CodexMcpClient.shellDisplay(copy)), null);
+            clientStatus.setText("Copied the Codex registration command. Running it is your explicit choice.");
+        } catch (IllegalStateException | java.awt.HeadlessException e) {
+            clientStatus.setText("Could not reach the clipboard. The exact command is shown when you choose Register with Codex.");
+        }
+    }
+
+    private void setClientActionsEnabled(boolean enabled) {
+        for (java.awt.Component component : clientActions.getComponents()) component.setEnabled(enabled);
+    }
+
+    /** Returns whether this explicit setup action changed the small, redacted local reminder. */
+    private boolean rememberSetup() {
+        Target selected = (Target) target.getSelectedItem();
+        String chosen = selected == null ? "" : selected.name();
+        if (!chosen.equals(config.mcpSetupTarget) || !launcherIdentity.equals(config.mcpLauncherIdentity)) {
+            config.mcpSetupTarget = chosen;
+            config.mcpLauncherIdentity = launcherIdentity;
+            onConfigurationChanged.run();
+            return true;
+        }
+        return false;
+    }
+
+    private enum CodexChange { ADD, REPLACE, REMOVE }
 
     private void confirmEnableTransport() {
         int choice = JOptionPane.showConfirmDialog(this,
@@ -245,7 +446,7 @@ public final class McpSetupDialog extends JDialog {
                 "Enable local transport", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (choice != JOptionPane.OK_OPTION) return;
         config.assistantActionsRest = true;
-        onTransportEnabled.run();
+        if (!rememberSetup()) onConfigurationChanged.run();
         bridgeStatus.setText("Bridge: local transport enabled; waiting for this analyser's endpoint.");
         refreshReadiness();
     }
