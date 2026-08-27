@@ -4005,11 +4005,24 @@ public final class MainFrame extends JFrame {
             // each root with its tier — a flat list cannot say which roots a project brought, which are the
             // user's own, and which is the demo's transient root that a restart forgets
             List<Map<String, Object>> tiers = new ArrayList<>();
+            Path projRoot = project.hasProject()
+                    ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
             for (String r : effectiveSourceRoots()) {
-                tiers.add(Map.of("path", r, "tier", demoRoots.contains(r) ? "demo (transient)"
-                        : project.hasProject() ? "project" : "own settings"));
+                Map<String, Object> one = new java.util.LinkedHashMap<>();
+                one.put("path", r);
+                one.put("tier", demoRoots.contains(r) ? "demo (transient)" : project.hasProject() ? "project" : "own settings");
+                // M38.6 D-C9: the FORM the profile stores it in — "absolute" on a row you are about to share is
+                // the whole warning, delivered before a colleague's machine delivers it as a failure
+                one.put("form", telamin.fluxtion.audit.analyser.analyser.config.PathForm
+                        .of(r, projRoot, config.workspaceRoot, System.getProperty("user.home")).label);
+                tiers.add(one);
             }
             source.put("rootTiers", tiers);
+            if (config.workspaceRoot != null && !config.workspaceRoot.isBlank()) {
+                source.put("workspaceRoot", config.workspaceRoot);
+                Path ws = telamin.fluxtion.audit.analyser.analyser.config.PathForm.workspaceDir(projRoot, config.workspaceRoot);
+                if (ws != null) source.put("workspaceDir", ws.toString());
+            }
             out.put("source", source);
 
             // M40.1 review F1: the topology BEFORE the fresh-start early return below. It sat after it, so with a

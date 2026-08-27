@@ -91,6 +91,7 @@ public final class ConfigStore {
         c.defaultEnvironment = p.getProperty("environment.default", c.defaultEnvironment);
         readAnalyses(p, c.analyses);
         readDestinations(p, c.reportDestinations);
+        c.workspaceRoot = PathForm.refuseWorkspaceRoot(p.getProperty("workspaceRoot", "")).isPresent() ? "" : p.getProperty("workspaceRoot", "");
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -166,6 +167,7 @@ public final class ConfigStore {
                 globalTier == null ? c.defaultEnvironment : globalTier.defaultEnvironment());
         writeAnalyses(p, globalTier == null ? c.analyses : globalTier.analyses());
         writeDestinations(p, globalTier == null ? c.reportDestinations : globalTier.reportDestinations());
+        put(p, "workspaceRoot", globalTier == null ? c.workspaceRoot : globalTier.workspaceRoot());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));

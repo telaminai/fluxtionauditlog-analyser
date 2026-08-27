@@ -133,10 +133,15 @@ public final class SettingsShare {
         }
 
         if (categories.contains(Category.SOURCE_ROOTS)) {
-            ConfigStore.writeList(p, "sourceRoot", toPortable(c.sourceRoots, projectRoot));
+            // M38.6: the anchor rides with the roots it makes portable, and applies to Maven repos too
+            ConfigStore.writeList(p, "sourceRoot", toPortable(c.sourceRoots, projectRoot, c.workspaceRoot));
+            if (projectRoot != null && c.workspaceRoot != null && !c.workspaceRoot.isBlank()
+                    && PathForm.refuseWorkspaceRoot(c.workspaceRoot).isEmpty()) {
+                ConfigStore.put(p, "workspaceRoot", c.workspaceRoot.trim());
+            }
         }
         if (categories.contains(Category.MAVEN_REPOS)) {
-            ConfigStore.writeList(p, "mavenRepo", toPortable(c.mavenRepos, projectRoot));
+            ConfigStore.writeList(p, "mavenRepo", toPortable(c.mavenRepos, projectRoot, c.workspaceRoot));
             ConfigStore.put(p, "mavenRepoSearch", Boolean.toString(c.searchMavenRepos));
         }
         if (categories.contains(Category.EVENT_PROCESSORS)) {
@@ -244,11 +249,19 @@ public final class SettingsShare {
         Map<Category, String> summary = new LinkedHashMap<>();
 
         // --- lists (paths expanded from ~) ---
+        String workspaceRoot = null;
+        String workspaceRootRefused = null;
+        if (p.getProperty("workspaceRoot") != null && !p.getProperty("workspaceRoot").isBlank()) {
+            workspaceRootRefused = PathForm.refuseWorkspaceRoot(p.getProperty("workspaceRoot")).orElse(null);
+            if (workspaceRootRefused == null) workspaceRoot = p.getProperty("workspaceRoot").trim();
+        }
         List<String> sourceRoots = null;
         if (p.getProperty("sourceRoot.count") != null) {
             present.add(Category.SOURCE_ROOTS);
             sourceRoots = resolveAgainstBase(fromPortable(readList(p, "sourceRoot")), baseDir);
-            summary.put(Category.SOURCE_ROOTS, listSummary(sourceRoots, current.sourceRoots));
+            summary.put(Category.SOURCE_ROOTS, listSummary(sourceRoots, current.sourceRoots)
+                    + (workspaceRoot != null ? " · workspace anchor " + workspaceRoot : "")
+                    + (workspaceRootRefused != null ? " · REFUSED: " + workspaceRootRefused : ""));
         }
 
         List<String> mavenRepos = null;
@@ -417,7 +430,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations,
+                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -432,6 +445,7 @@ public final class SettingsShare {
     public void apply(ImportPlan plan, Set<Category> selected, AppConfig target) {
         if (selected.contains(Category.SOURCE_ROOTS) && plan.sourceRoots() != null) {
             addAllMissing(target.sourceRoots, plan.sourceRoots());
+            if (plan.workspaceRoot() != null) target.workspaceRoot = plan.workspaceRoot();   // M38.6
         }
         if (selected.contains(Category.MAVEN_REPOS) && plan.present().contains(Category.MAVEN_REPOS)) {
             if (plan.mavenRepos() != null) addAllMissing(target.mavenRepos, plan.mavenRepos());
@@ -525,6 +539,7 @@ public final class SettingsShare {
             String defaultEnvironment,
             List<AnalysisSpec> analyses,
             List<ReportDestination> destinations,
+            String workspaceRoot,
             Boolean assistantInProcess,
             Boolean assistantRest,
             Integer maxRounds,
@@ -553,10 +568,31 @@ public final class SettingsShare {
         }
     }
 
-    private List<String> toPortable(List<String> paths, Path projectRoot) {
+    private List<String> toPortable(List<String> paths, Path projectRoot, String workspaceRoot) {
         List<String> out = new ArrayList<>(paths.size());
-        for (String s : paths) out.add(toPortable(s, projectRoot));
+        for (String s : paths) out.add(toPortable(s, projectRoot, workspaceRoot));
         return out;
+    }
+
+    /**
+     * M38.6 D-C9 — project-relative first; then, when the project declares a workspace anchor and the path
+     * sits under it, relative to the project root WITH {@code ..} steps (bounded by the anchor: a sibling
+     * checkout becomes {@code ../shared-lib/src/main/java}, which resolves against the profile's own
+     * directory on every machine); then {@code ~}; then absolute. One rule, applied consistently — never a
+     * per-path choice — because portability that varies row by row fails on somebody else's machine.
+     */
+    String toPortable(String path, Path projectRoot, String workspaceRoot) {
+        if (path == null || projectRoot == null || path.isBlank()) return toPortable(path, projectRoot);
+        Path p = Path.of(path);
+        if (!p.isAbsolute()) return path;
+        Path root = projectRoot.toAbsolutePath().normalize();
+        Path abs = p.normalize();
+        if (abs.equals(root) || abs.startsWith(root)) return toPortable(path, projectRoot);
+        Path ws = PathForm.workspaceDir(projectRoot, workspaceRoot);
+        if (ws != null && abs.startsWith(ws)) {
+            return root.relativize(abs).toString().replace(java.io.File.separatorChar, '/');
+        }
+        return toPortable(path, projectRoot);
     }
 
     /**

@@ -43,7 +43,8 @@ public record ProjectModel(List<Section> sections) {
             "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
             "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default",
             "analyses.name", "analyses.rationale", "analyses.parameters", "analyses.steps", "analyses.from",
-            "reportDestinations.name", "reportDestinations.location", "reportDestinations.kind", "reportDestinations.from");
+            "reportDestinations.name", "reportDestinations.location", "reportDestinations.kind", "reportDestinations.from",
+            "source.rootTiers.form", "source.workspaceRoot", "source.workspaceDir");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
             PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports", ANALYSES = "Analyses";
@@ -199,11 +200,24 @@ public record ProjectModel(List<Section> sections) {
         // ---- roots -----------------------------------------------------------------------------------
         rows = new ArrayList<>();
         Map<String, Object> source = map(ctx.get("source"));
+        boolean inProject = Boolean.TRUE.equals(proj.get("active"));
         for (Object o : list(source.get("rootTiers"))) {
             Map<String, Object> r = map(o);
             String tier = str(r.get("tier"));
-            rows.add(new Row(str(r.get("path")), null, str(r.get("path")), tier,
-                    tier != null && tier.startsWith("demo") ? Tone.MUTED : Tone.NORMAL, Target.SETTINGS_SOURCE));
+            String form = str(r.get("form"));
+            // M38.6 D-C9: the stored form is the badge. Under a project, "absolute" means this profile is
+            // correct on this machine and no other; "~" means correct for this person and no other.
+            boolean notPortable = inProject && form != null && (form.equals("absolute") || form.equals("~"))
+                    && !(tier != null && tier.startsWith("demo"));
+            String detail = form == null ? null : "stored as " + form
+                    + (notPortable ? " — this profile will not resolve it on a colleague's machine; declare a workspace anchor or move it under the project" : "");
+            rows.add(new Row(str(r.get("path")), detail, str(r.get("path")), tier,
+                    tier != null && tier.startsWith("demo") ? Tone.MUTED : notPortable ? Tone.WARN : Tone.NORMAL, Target.SETTINGS_SOURCE));
+        }
+        if (source.get("workspaceRoot") != null) {
+            rows.add(new Row("workspace anchor " + source.get("workspaceRoot"),
+                    "roots under it are stored relative to the project (with '..'), so a sibling checkout travels",
+                    str(source.get("workspaceDir")), "project", Tone.MUTED, Target.NONE));
         }
         if (rows.isEmpty()) {
             rows.add(new Row("No source roots", "Settings ▸ Source — without one, no log line can reach its code",

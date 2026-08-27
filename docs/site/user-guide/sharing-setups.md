@@ -9,7 +9,7 @@ the same source roots, event processors and **named graphs** (formulas and pins 
 
 | Category | Contents |
 |---|---|
-| Source roots | your source directories |
+| Source roots | your source directories — and the project's **workspace anchor** (`workspaceRoot=..`), which lets a sibling checkout travel as `../shared-lib/…` ([Portable context](portable-context.md)) |
 | Maven repos | local repositories + the search toggle |
 | Event processors | the FQN list and the selected one |
 | Graphs and named focuses | named graphs (series, formulas, resolve policy, pinned windows, notes, guides, condition bands, external-CSV definitions, marker definitions — never their extracted values) and named topology focuses (node sets + rationale) |

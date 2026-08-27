@@ -159,7 +159,8 @@ public final class ProjectProfile {
                            List<Environment> environments,
                            String defaultEnvironment,
                            List<AnalysisSpec> analyses,
-                           List<ReportDestination> reportDestinations) {
+                           List<ReportDestination> reportDestinations,
+                           String workspaceRoot) {
 
         public Snapshot {
             sourceRoots = List.copyOf(sourceRoots);
@@ -175,6 +176,7 @@ public final class ProjectProfile {
             defaultEnvironment = defaultEnvironment == null ? "" : defaultEnvironment;
             analyses = List.copyOf(analyses == null ? List.of() : analyses);
             reportDestinations = List.copyOf(reportDestinations == null ? List.of() : reportDestinations);
+            workspaceRoot = workspaceRoot == null ? "" : workspaceRoot;
         }
     }
 
@@ -182,7 +184,7 @@ public final class ProjectProfile {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
                 c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
                 c.hiddenColumnsSet, c.runbooks, c.vocabularyPath, c.environments, c.defaultEnvironment, c.analyses,
-                c.reportDestinations);
+                c.reportDestinations, c.workspaceRoot);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -204,6 +206,7 @@ public final class ProjectProfile {
         into.defaultEnvironment = s.defaultEnvironment();
         into.analyses.addAll(s.analyses());
         into.reportDestinations.addAll(s.reportDestinations());
+        into.workspaceRoot = s.workspaceRoot();
     }
 
     /**
@@ -223,6 +226,7 @@ public final class ProjectProfile {
         c.defaultEnvironment = "";
         c.analyses.clear();
         c.reportDestinations.clear();
+        c.workspaceRoot = "";
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there
@@ -280,6 +284,8 @@ public final class ProjectProfile {
             if (an != null && an.contains("REFUSED")) warn += "  ·  ⚠ analyses: " + an;
             String de = plan.summary().get(SettingsShare.Category.DESTINATIONS);
             if (de != null && de.contains("REFUSED")) warn += "  ·  ⚠ destinations: " + de;
+            String sr = plan.summary().get(SettingsShare.Category.SOURCE_ROOTS);
+            if (sr != null && sr.contains("REFUSED")) warn += "  ·  ⚠ source roots: " + sr;
             return new LoadResult(true, "project loaded: " + file + warn);
         } catch (RuntimeException e) {
             return new LoadResult(false, "could not load " + file + ": " + e.getMessage());

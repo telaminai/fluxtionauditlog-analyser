@@ -127,6 +127,8 @@ public final class AppConfig {
     public final List<AnalysisSpec> analyses = new ArrayList<>();
     /** M38.5: where reports are PUBLISHED — a place, never a credential (D-C6). The analyser states it; the publisher acts. */
     public final List<ReportDestination> reportDestinations = new ArrayList<>();
+    /** M38.6 D-C9: the workspace anchor — '..', '../..' — at or above the project root; blank = none. Project-scoped, rides SOURCE_ROOTS. */
+    public String workspaceRoot = "";
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();

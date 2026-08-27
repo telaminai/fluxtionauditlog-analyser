@@ -229,10 +229,43 @@ closure rests on.
 Destinations **travel by default** under **Report destinations (where reports are published — a bucket,
 directory or base URL; never a credential)**.
 
+## Path anchors — one rule, and the anchor that was missing
+
+Three forms of path already exist in a profile and are chosen automatically, most specific first:
+**project-relative** when the path is under the project root; **`~/…`** when it is under your home;
+**absolute** otherwise. There is deliberately no per-path toggle: a profile whose paths were each chosen
+by hand is one where portability varies row by row, nobody remembers why, and the failure appears on a
+colleague's machine.
+
+The gap was an **anchor**. A sibling checkout — `../shared-lib/src/main/java`, the monorepo neighbour —
+is outside the project root, so it was written `~/work/shared-lib/…`: portable for *you* on another
+machine, silently wrong for a colleague who checks out somewhere else. Declare once, per project, where
+the workspace is:
+
+```properties
+workspaceRoot=..
+```
+
+A root under that anchor (and not under the project) is then written relative to the project with `..`
+steps — `sourceRoot.0=../shared-lib/src/main/java` — and resolves against the profile's own directory on
+every machine. The anchor must be `.`, `..`, `../..` … (at or above the project root, at most six up);
+anything else is refused and announced. It rides the **Source roots** share category and applies to Maven
+repos too.
+
+**This does not weaken the pointer rule.** Runbook and vocabulary pointers stay project-relative with no
+`..` — those are things an agent acts on, and the trust boundary is the repository you cloned. Source roots
+and Maven repos are inert lists the analyser resolves, and may use the wider anchor.
+
+**And it is visible.** The Project panel's *Source roots* section shows each root's **stored form** —
+*project-relative*, *workspace-relative*, *~*, *absolute* — and, under a project, marks *absolute* and *~*
+roots as a warning: this profile will not resolve them on a colleague's machine. That badge, on a row in a
+profile you are about to share, is the whole warning, delivered before the failure.
+
 ## The share categories, complete
 
 | Category | Tier | Default | What leaves |
 |---|---|---|---|
+| Source roots (existing) | 1 | on | roots and the **workspace anchor** (`..`) that makes a sibling checkout portable |
 | Runbook LOCATIONS | 1 | off | project-relative paths — never contents |
 | Domain glossary LOCATION | 1 | on | one project-relative path — never contents |
 | Environments | 1 | on | names, provenance strings (may name systems and hosts), log directories |

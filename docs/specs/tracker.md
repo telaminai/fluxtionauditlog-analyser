@@ -357,7 +357,7 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M38 · Portable context — the project as a shared workspace — ◧ **.1–.5 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`** (.6 path anchors open) (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
+## M38 · Portable context — the project as a shared workspace — ◧ **.1–.6 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`**, awaiting review of .5–.6 (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
 _Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
 human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
 on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
@@ -385,7 +385,7 @@ the asymmetry M37 exists to end._
   one rule for pointed-at content, not two); environments **travel by default**, label naming the cargo;
   prior findings are **links only**; **baselines become M39** — "what does normal look like here" is the
   question support cannot answer about an unfamiliar system and deserves its own design.
-- [M38.6] ☐ **Path anchors (D-C9)** _(owner question 2026-08-27: "relative or absolute?")_ — three forms
+- [M38.6] ☑ **Path anchors (D-C9)** _(2026-08-27: `workspaceRoot` anchor, validated; roots/repos under it written `../…`; `context.source.rootTiers[].form` + the Project panel's stored-form badge with a WARN for absolute/~ under a project; pointers unchanged)_ _(owner question 2026-08-27: "relative or absolute?")_ — three forms
   already exist and are chosen automatically (project-relative → `~` → absolute). Keep the rule, add the
   missing **anchor**: an optional project-declared `workspaceRoot` so a SIBLING checkout
   (`../shared-lib`) can be expressed — today it is written `~/…`, portable for you and silently wrong

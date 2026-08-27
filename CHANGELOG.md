@@ -7,6 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Path anchors — a sibling checkout travels.** A project may declare `workspaceRoot=..` (or `../..`): a
+  source root or Maven repo under that anchor is written relative to the project with `..` steps instead of
+  `~/…`, so `../shared-lib/src/main/java` resolves on a colleague's checkout. One automatic rule, no per-path
+  toggle. Runbook and glossary pointers keep refusing `..`. The Project panel shows each root's **stored form**
+  and warns when a root under a project is *absolute* or *~* — before the profile is shared, not after it fails.
 - **Environments — which system a log came from, declared once per project.** `environment.N.name`,
   `.provenance` and optional `.logDir` (plus `environment.default`) in the profile. A log opened without a
   declared provenance takes the environment whose log directory contains it, else the default — never a

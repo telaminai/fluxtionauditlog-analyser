@@ -64,6 +64,21 @@ M38.5 — report destinations (D-C6) + share categories completed (D-C8)
   Docs: portable-context.md ▸ Report destinations + "The share categories, complete" table; sharing-setups
   row; project-panel. Tests: ReportDestinationTest (3), ProjectModelTest.aReportDestinationIsStated….
 
+M38.6 — path anchors (D-C9)
+  config/PathForm            Form {PROJECT, WORKSPACE, HOME, ABSOLUTE, RELATIVE} = of(path, projectRoot, anchor, home), most
+                             specific first. refuseWorkspaceRoot: ".", "..", "../.." … at most six up — an anchor, not a path.
+  AppConfig.workspaceRoot    project-scoped; rides SOURCE_ROOTS (no new category: '..' is not new cargo); written only
+                             with a project root; refused values announced by the loader.
+  SettingsShare.toPortable   (path, projectRoot, workspaceRoot): project-relative → under the anchor: relative to the
+                             project WITH '..' steps (resolves against the profile's own directory anywhere; no new
+                             syntax, older versions read it as project-relative and resolve it too) → ~ → absolute.
+                             Applies to source roots AND Maven repos. Pointers untouched (refusePointer still refuses '..').
+  context                    source.rootTiers[].form; source.workspaceRoot + workspaceDir.
+  Project panel              "stored as <form>" per root; WARN for absolute/~ under a project with the fix named; a
+                             muted "workspace anchor .." row. No per-root override in Settings (D-C9 called it a
+                             correction, not the mechanism) — not built.
+  Tests                      PathFormTest (3); ProjectModelTest.theStoredFormIsABadge….
+
 FOUND LIVE — a hazard for shared profiles, recorded for the owner (not fixed here)
   An OLDER analyser that opens a profile written by a NEWER one drops the keys it does not know on its next
   save: ProjectProfile.write rebuilds the file from the categories it understands. Seen here by accident (a

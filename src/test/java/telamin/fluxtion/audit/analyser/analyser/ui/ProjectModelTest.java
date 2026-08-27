@@ -42,7 +42,7 @@ class ProjectModelTest {
                 Map.of("class", "com.acme.demo.generated.DemoQuoteProcessor", "selected", true, "source", "found", "from", "project"),
                 Map.of("class", "com.acme.demo.generated.HedgeProcessor", "selected", false, "source", "not found", "from", "project")));
         ctx.put("source", Map.of("roots", List.of("/work/demo/src/main/java"),
-                "rootTiers", List.of(Map.of("path", "/work/demo/src/main/java", "tier", "project"))));
+                "rootTiers", List.of(Map.of("path", "/work/demo/src/main/java", "tier", "project", "form", "project-relative"))));
         return ctx;
     }
 
@@ -260,6 +260,29 @@ class ProjectModelTest {
         assertTrue(d.secondary().startsWith("s3://acme-incident-reports/quotes · s3 · the analyser states it"), d.secondary());
         assertEquals("s3://acme-incident-reports/quotes", d.path(), "Copy gives the place");
         assertEquals(ProjectModel.Target.NONE, d.target(), "no publish button: the analyser never publishes");
+    }
+
+    @Test
+    void theStoredFormIsABadge_andAbsoluteUnderAProjectIsTheWarning() {
+        Map<String, Object> ctx = full();
+        ctx.put("source", Map.of("roots", List.of("a", "b", "c"), "workspaceRoot", "..", "workspaceDir", "/work",
+                "rootTiers", List.of(
+                        Map.of("path", "/work/demo/src/main/java", "tier", "project", "form", "project-relative"),
+                        Map.of("path", "/work/shared-lib/src/main/java", "tier", "project", "form", "workspace-relative"),
+                        Map.of("path", "/opt/vendor/src", "tier", "project", "form", "absolute"))));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.ROOTS).rows();
+        assertEquals(4, rows.size(), "three roots and the anchor");
+        assertEquals("stored as project-relative", rows.get(0).secondary());
+        assertEquals(ProjectModel.Tone.NORMAL, rows.get(1).tone());
+        assertEquals("stored as workspace-relative", rows.get(1).secondary());
+        assertEquals(ProjectModel.Tone.WARN, rows.get(2).tone(), "absolute under a project: correct here and nowhere else");
+        assertTrue(rows.get(2).secondary().contains("will not resolve it on a colleague's machine"), rows.get(2).secondary());
+        assertEquals("workspace anchor ..", rows.get(3).primary());
+        assertEquals("/work", rows.get(3).path());
+        // no project: an absolute own-settings root is just where the code is — no warning
+        Map<String, Object> own = new java.util.LinkedHashMap<>(ctx);
+        own.put("project", Map.of("active", false));
+        assertEquals(ProjectModel.Tone.NORMAL, ProjectModel.from(own).section(ProjectModel.ROOTS).rows().get(2).tone());
     }
 
     @Test
