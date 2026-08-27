@@ -83,6 +83,15 @@ behave, and to produce a paired graph + log to test against.
   inside a Java `toString()` (e.g. `price=` in `QuoteLadder(price=…)`) is text, not a key — not graphable.
 - **Config** persists to `~/.fluxtion-analyser/config` (cleartext, single-user). The API key lives there
   and is never exported by `SettingsShare`.
+- **A new `context` key names its human surface and its docs page IN THE SAME COMMIT.** The socket is
+  usually the easiest surface to build, so features ship agent-first and the human half lags — which
+  reads to a user as a capability the tool does not have. It has now bitten three times in two
+  milestones: M40 shipped a verdict to `context` while the CHANGELOG and docs promised a Topology tab
+  that showed nothing (caught in review), M40 again with three site pages unmentioning a shipped row,
+  and M38.3's report header dropping a qualification `context` and the panel both carried. So when you
+  add a key, answer three questions in the commit: **which panel shows it, which page says so, and does
+  a report that outlives the session carry it?** "Agents only, for now" is a decision worth making
+  deliberately — it is just never worth making by accident.
 
 ## Process
 
