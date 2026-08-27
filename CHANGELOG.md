@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-27
+
 ### Fixed
 - **A direct-JAR MCP registration now refuses debug and instrumentation JVM flags.** Setup will not
   copy a JDWP or Java-agent option into the client bridge command, where it could bind an occupied
