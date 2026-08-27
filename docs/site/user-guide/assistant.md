@@ -401,6 +401,10 @@ claude mcp add fluxtion-analyser -- ~/.jbang/bin/analyser --mcp   # 3. register 
 Order matters, and step 2 in particular has a trap:
 
     The denominator counts only what **could** log. Event classes and exported service interfaces appear in a graph because the processor handles them, not because they run, so counting them as "never logged" reports a category error as a low score — on the demo that alone read 50% where the honest figure is 100% of what can log. Anything left out is named in `excludedFromDenominator` with its reason, and summarised in `excludedNote`: a denominator that quietly shrinks is the same dishonesty as one that quietly includes.
+
+    With source roots configured, a node whose class **cannot reach an audit logger at all** is left out too — but read that exclusion carefully, because it is not reassurance. Such a node is not observable in *any* audit log, so the ratio is silent about whether it ran rather than vouching for it, and `excludedNote` says so by name. Exclusion requires proof: a node whose source is missing, or whose supertype the analyser does not recognise, stays counted. Assuming silence is the one error you cannot spot from the output.
+
+    When nodes *are* uncovered, the answer also carries `auditLevels` / `auditLevelFinest` / `auditLevelNote`. A gap can be the **level** rather than a silence: if the log was captured at INFO, any `debug()` or `trace()` call wrote nothing, so a missing node may have run and logged below the threshold. The note states the levels present and what they would have discarded, and stops there — the log cannot distinguish "the threshold excluded them" from "nothing called `debug()`", so neither does the analyser.
 - **Edit the config only while the analyser is closed.** The running app holds settings in memory and
   writes the file on exit, so an edit made while it's open is overwritten. Toggling it in
   Settings ▸ Assistant is always safe.

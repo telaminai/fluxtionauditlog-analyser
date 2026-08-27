@@ -1105,6 +1105,17 @@ public final class TopologyPanel extends JPanel {
      * author's code and reporting them as uncovered would be noise in the one report whose value depends
      * on people reading every line of it.
      */
+    private java.util.function.Function<String, java.util.Optional<String>> sourceResolver;
+
+    /**
+     * FQN → source text, or null when no source is configured. M40.2b's coverage denominator needs it
+     * to prove a node cannot log; with no resolver every node stays counted, which is the safe way to
+     * be wrong.
+     */
+    public java.util.function.Function<String, java.util.Optional<String>> sourceResolver() {
+        return sourceResolver;
+    }
+
     /** The whole graph, for callers that need node KINDS as well as ids (M40.2's coverage denominator). */
     public telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology fullTopology() {
         return fullTopology;
@@ -1855,6 +1866,7 @@ public final class TopologyPanel extends JPanel {
      * moving the mouse across a graph do filesystem work.
      */
     public void setSourceResolver(java.util.function.Function<String, java.util.Optional<String>> resolver) {
+        this.sourceResolver = resolver;
         java.util.Map<String, String> cache = new java.util.HashMap<>();
         canvas.setDocLookup(node -> {
             String fqn = node.className();

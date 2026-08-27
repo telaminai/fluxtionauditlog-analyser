@@ -376,7 +376,7 @@ a log from the command line means never seeing it._
   things that fire at load), and it carries no log data. Slices M39.1–.5; four open questions for the
   owner, the first being where a baseline lives.
 
-## M40 · Audit readiness — will this processor log at all? — ◧ **.1 DONE 2026-08-27** on `feat/audit-readiness`
+## M40 · Audit readiness — will this processor log at all? — ☑ **COMPLETE 2026-08-27** (.1/.2a/.2b/.3; .2c optional)
 _Brief `docs/handoff/completed/handoff_27_aug_2026_1.txt`, report `docs/handoff/completed/report_feat_audit_readiness.txt`.
 The owner's redirect: the authoring side belongs to the LLM writing the processor; the ANALYSER side can
 diagnose the graph. Every other producer check needs a log to examine, and the worst case produces no log._
@@ -393,11 +393,25 @@ diagnose the graph. Every other producer check needs a log to examine, and the w
   every exclusion is reported with its reason. Demo now `declared 6 · covered 5 · ratio 0.833`, the
   remainder being the one real case. An UNKNOWN kind is KEPT: dropping what we cannot classify would
   flatter the score, which is this defect pointing the other way.
-- [M40.2b] ☐ **Which NODES can log** — a node that does not extend `EventLogNode` is silent by
-  construction, so its coverage gap is not evidence of anything. Needs source resolution per node; a
-  different evidence source with a different failure mode when source is missing.
-- [M40.3] ☐ **The audit LEVEL** (INFO vs TRACE) — only if the graph distinguishes them, and only after
-  measuring it the way M40.1 was measured. Do not claim it otherwise.
+- [M40.2b] ☑ **Which NODES can log** _(2026-08-27)_ — `NodeLogging` over the node's own source.
+  **The premise recorded here was WRONG and rule 6 caught it**: "does not extend `EventLogNode`" would
+  have excluded `RiskMonitor`, which extends `SingleNamedNode` and logs on line 108 of the demo — a
+  false exclusion, the direction that flatters the score. Read from the runtime jar: the contract is the
+  `EventLogSource` interface, `EventLogNode` is a convenience base, and nine further framework classes
+  reach it transitively (that list is measured, and a test asserts each is recognised). Exclusion needs
+  PROOF — source in hand and no supertype at all; missing source or an unrecognised supertype stays
+  counted. Demo 0.833 → 1.000 with `spreadCalculator` named as **unobservable**, not as fine.
+- [M40.2c] ☐ **Follow the supertype chain** — a node extending a project-local base that itself extends
+  `EventLogNode` currently lands in UNKNOWN and stays counted. Correct but conservative; resolving one
+  more hop needs the file's imports (`EventProcessorModel.resolveSimpleType`).
+- [M40.3] ☑ **The audit LEVEL** _(2026-08-27)_ — **the gate was answered NO, and the slice moved.** The
+  graph does not distinguish INFO from TRACE: the compiler's GraphML carries id, class and style per node
+  and no level string at all. And a build-time `addEventAudit(LogLevel.INFO)` would be the wrong fact
+  anyway, because `DataFlow.setAuditLogLevel` resets it at runtime — the M40.1 harness does exactly that.
+  So the level is read from the artefact in hand: every record header carries it. `AuditLevel` states the
+  levels present and names what they would have discarded, surfaced on `coverage` only when there IS a
+  gap the level could explain. Two facts, no verdict — the log genuinely cannot tell "the threshold
+  excluded them" from "nothing called `debug()`", so it does not pretend to.
 
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open

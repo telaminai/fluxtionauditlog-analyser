@@ -204,8 +204,10 @@ public final class ActionExecutor implements RenderExecutor {
         // M40.2: the denominator is what could LOG, not what appears in the graph. An event class in a
         // "which nodes never ran" answer is a category error, and on the demo three of them plus a
         // service interface turned 100%-of-what-can-log into a reported 50%.
+        // M40.2b: with source configured, a node that cannot reach an audit logger is dropped too —
+        // proven from its own source, never assumed. Without source everything stays counted.
         var scope = onEdt(() -> telamin.fluxtion.audit.analyser.analyser.topology.CoverageScope
-                .of(topology.fullTopology(), authored));
+                .of(topology.fullTopology(), authored, topology.sourceResolver()));
         Set<String> declared = scope.loggable();
 
         // M34.1 — coverage is "declared minus observed". Over a graph INFERRED from what ran, that
@@ -225,14 +227,20 @@ public final class ActionExecutor implements RenderExecutor {
         boolean filtered = Boolean.TRUE.equals(p.get("filtered"));
         FilterState f = filtered ? filter.get() : null;
         Set<String> logged = new java.util.LinkedHashSet<>();
+        List<String> levels = new ArrayList<>();
         int scanned = 0;
         for (int row = 0; row < s.size(); row++) {
             if (f != null && !f.test(s.index(), row)) continue;
             scanned++;
+            levels.add(s.record(row).level());
             for (var nodeLog : s.record(row).nodeLogs()) {
                 logged.add(nodeLog.instanceId());
             }
         }
+        // M40.3 — the level in force is a FOURTH cause of a coverage gap: a node may have run, logged,
+        // and had its output discarded for being below the captured level. Read from the records, not
+        // the graph: the graph carries no level, and a build-time default is overridden at runtime.
+        var auditLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels);
 
         telamin.fluxtion.audit.analyser.analyser.topology.NodeCoverage cov =
                 telamin.fluxtion.audit.analyser.analyser.topology.NodeCoverage.of(
@@ -251,6 +259,9 @@ public final class ActionExecutor implements RenderExecutor {
         out.put("ratio", Math.round(cov.ratio() * 1000) / 1000.0);
         out.put("recordsScanned", scanned);
         out.put("scope", filtered ? "current filter" : "whole log");
+        // only when there is actually a gap the level could explain — a caveat attached to a perfect
+        // score is noise, and noise is how a caveat that matters gets skimmed past
+        if (!cov.uncovered().isEmpty()) out.putAll(auditLevel.echo());
 
         int limit = p.get("limit") instanceof Number n ? Math.max(1, n.intValue()) : 100;
         List<Map<String, Object>> never = new ArrayList<>();

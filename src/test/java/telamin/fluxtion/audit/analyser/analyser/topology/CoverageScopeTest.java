@@ -48,6 +48,55 @@ class CoverageScopeTest {
                 Files.readString(Path.of("src/test/resources/topology/demo-quote-processor.graphml")));
     }
 
+    /** The demo sources ship in the jar; this is the same text the resolver hands the panel. */
+    private static final java.util.function.Function<String, java.util.Optional<String>> DEMO_SRC = fqn -> {
+        java.nio.file.Path p = java.nio.file.Path.of("src/main/resources/demo", fqn.replace('.', '/') + ".java");
+        try {
+            return java.nio.file.Files.exists(p)
+                    ? java.util.Optional.of(java.nio.file.Files.readString(p)) : java.util.Optional.empty();
+        } catch (Exception e) {
+            return java.util.Optional.empty();
+        }
+    };
+
+    @Test
+    void withSourceTheDemosLastGapIsProvenUnobservableRatherThanSuspicious() throws Exception {
+        // M40.2b, measured on the shipped fixture: spreadCalculator was the one id still counted as
+        // "never logged" after .2a. Its source declares no supertype and never mentions auditLog, so it
+        // cannot write audit output at all — its absence is not evidence of anything.
+        var authored = Scaffolding.authoredNodes(demo());
+        CoverageScope.Scope withSource = CoverageScope.of(demo(), authored, DEMO_SRC);
+
+        assertEquals(java.util.List.of("spreadCalculator"),
+                withSource.excludedFor(CoverageScope.Reason.SILENT_BY_CONSTRUCTION));
+        assertFalse(withSource.loggable().contains("spreadCalculator"));
+
+        // riskMonitor extends SingleNamedNode, NOT EventLogNode — the false-exclusion case. It logs,
+        // and it must still be scored.
+        assertTrue(withSource.loggable().contains("riskMonitor"),
+                "a node that logs through a framework base must stay in the denominator");
+    }
+
+    @Test
+    void withNoSourceNothingIsDroppedForSilence_theSafeDirection() throws Exception {
+        var authored = Scaffolding.authoredNodes(demo());
+        CoverageScope.Scope none = CoverageScope.of(demo(), authored, null);
+        assertTrue(none.excludedFor(CoverageScope.Reason.SILENT_BY_CONSTRUCTION).isEmpty());
+        assertTrue(none.loggable().contains("spreadCalculator"),
+                "with no evidence the node stays counted — never assume silence");
+    }
+
+    @Test
+    void theNoteNamesTheUnobservableNodeInsteadOfQuietlyImprovingTheScore() throws Exception {
+        String note = CoverageScope.of(demo(), Scaffolding.authoredNodes(demo()), DEMO_SRC).note();
+        assertTrue(note.contains("spreadCalculator"), note);
+        assertTrue(note.contains("says nothing about whether it ran"),
+                "excluding it is not a clean bill of health — it is unobservable: " + note);
+        assertTrue(note.contains("1 node(s) that cannot log at all"), note);
+        assertTrue(note.contains("3 event class(es)") && note.contains("1 exported service(s)"),
+                "counted by reason, not by string containment (review N3): " + note);
+    }
+
     @Test
     void bothSetsComeBackInGRAPHorder_notWhateverTheHashGave() {
         // review N2: the javadoc promised graph order and the record's own Set.copyOf/Map.copyOf threw

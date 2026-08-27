@@ -27,6 +27,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   and answers are authored; every tool call and echo is recorded from a real run by `tools/capture-conversations.py`
   (the transcript counterpart of the screenshot harness), so the page regenerates with the verbs instead of going stale.
   The compiler-generated no-audit graph is now a checked-in fixture and a real-negative test for M40.1.
+- **Coverage no longer counts nodes that cannot log, and says which.** A class with no way to reach an
+  audit logger is silent by construction, so its absence from a log is not evidence of anything. With
+  source configured, coverage proves this from the class itself — and the note is careful not to sound
+  like a clean bill of health: such a node **cannot be observed in any audit log**, so the ratio is
+  silent about whether it ran rather than vouching for it. On the shipped demo this is the last
+  remaining gap, taking it from 83% to 100% of what can log with the unobservable node named. Proof is
+  required to exclude: no source, or a supertype the analyser cannot recognise, leaves the node counted.
+- **A coverage gap can be the audit LEVEL, not a silence — and the answer now says so.** When nodes are
+  uncovered, the echo carries the levels the log was actually captured at and names what that would have
+  discarded: *"every record in this log was written at INFO; if any node logs at debug or trace, those
+  calls wrote nothing here."* It states the two facts and renders no verdict — the log genuinely cannot
+  distinguish "the threshold excluded them" from "nothing called debug()", so it does not pretend to.
 - **Docs: Working with AI ▸ Runbooks, glossary and saved analyses with an AI** — how the in-app assistant or an
   LLM over MCP finds them in `context`, uses them (read the file yourself; the analyser never runs one), and
   creates them (write the file and the pointer into the repository, show the diff — there is no verb, by design).

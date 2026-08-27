@@ -44,11 +44,29 @@ public final class CoverageScope {
     private CoverageScope() {
     }
 
+    /** Why an id left the denominator. Bucketed by REASON, never by matching on the reason TEXT. */
+    public enum Reason {
+        EVENT("an event class — data entering the graph, not code that runs", "event class(es)"),
+        EXPORT_SERVICE("an exported service interface — an entry point, not a node that logs",
+                "exported service(s)"),
+        SILENT_BY_CONSTRUCTION("this class cannot reach an audit logger at all — it declares no "
+                + "supertype, so it has no auditLog to write with", "node(s) that cannot log at all");
+
+        public final String why;
+        final String plural;
+
+        Reason(String why, String plural) {
+            this.why = why;
+            this.plural = plural;
+        }
+    }
+
     /**
      * @param loggable the ids coverage should score — nodes that could have written audit output
      * @param excluded id → why it was left out, in graph order; never empty-but-unreported
+     * @param reasons  id → the same verdict as DATA, so callers bucket on the enum rather than the prose
      */
-    public record Scope(Set<String> loggable, Map<String, String> excluded) {
+    public record Scope(Set<String> loggable, Map<String, String> excluded, Map<String, Reason> reasons) {
 
         public Scope {
             // NOT Set.copyOf/Map.copyOf: both return unordered immutables, so the graph order this
@@ -57,27 +75,48 @@ public final class CoverageScope {
             // is worse than none, because callers rely on it.
             loggable = java.util.Collections.unmodifiableSet(new LinkedHashSet<>(loggable));
             excluded = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(excluded));
+            reasons = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(reasons));
+        }
+
+        /** The ids dropped for one reason, in graph order. */
+        public java.util.List<String> excludedFor(Reason r) {
+            return reasons.entrySet().stream().filter(e -> e.getValue() == r)
+                    .map(Map.Entry::getKey).toList();
         }
 
         /**
          * The one-line statement a caller owes the reader when anything was dropped.
          *
-         * <p>M40.2b WILL BREAK THIS COUNT (review N3): it derives "services" as everything that is not
-         * an event class, which is true while there are exactly two reasons and false the moment a
-         * third — "silent by construction" — arrives. Bucket by REASON then, not by string containment
-         * on the reason text.
+         * <p>Counted by {@link Reason}, not by string containment on the prose (review N3 predicted the
+         * exact break: the old code derived "services" as everything-not-an-event, which was true with
+         * two reasons and wrong the moment M40.2b added a third).
          */
         public String note() {
             if (excluded.isEmpty()) return null;
-            long events = excluded.values().stream().filter(v -> v.contains("event class")).count();
-            long services = excluded.size() - events;
             StringBuilder sb = new StringBuilder("excluded ").append(excluded.size())
                     .append(" declared item(s) that can never write audit output: ");
-            if (events > 0) sb.append(events).append(" event class(es)");
-            if (events > 0 && services > 0) sb.append(", ");
-            if (services > 0) sb.append(services).append(" exported service(s)");
+            java.util.List<String> parts = new java.util.ArrayList<>();
+            for (Reason r : Reason.values()) {
+                int n = excludedFor(r).size();
+                if (n > 0) parts.add(n + " " + r.plural);
+            }
+            sb.append(String.join(", ", parts));
             sb.append(". They appear in the graph because the processor handles them, not because they "
                     + "run — counting them as 'never logged' would report a category error as a low score.");
+
+            // A node that CANNOT log is not the same reassurance as one that merely is not scored: its
+            // execution is unobservable in ANY audit log, so the ratio is silent about it rather than
+            // vouching for it. Say that, or the improved number reads as better news than it is.
+            java.util.List<String> silent = excludedFor(Reason.SILENT_BY_CONSTRUCTION);
+            if (!silent.isEmpty()) {
+                sb.append(" Note that ").append(String.join(", ", silent))
+                        .append(silent.size() == 1 ? " cannot write audit output at all, so this ratio "
+                                + "says nothing about whether it ran — it is not observable in any log, "
+                                + "not merely absent from this one."
+                                : " cannot write audit output at all, so this ratio says nothing about "
+                                + "whether they ran — they are not observable in any log, not merely "
+                                + "absent from this one.");
+            }
             return sb.toString();
         }
     }
@@ -89,9 +128,23 @@ public final class CoverageScope {
      * @param authored the ids already filtered of framework scaffolding ({@link Scaffolding#authoredNodes})
      */
     public static Scope of(ProcessorTopology topology, Set<String> authored) {
+        return of(topology, authored, null);
+    }
+
+    /**
+     * As above, plus M40.2b: a node whose class cannot reach an audit logger is silent by construction,
+     * so its coverage gap is not evidence of anything.
+     *
+     * @param source fqn → source text ({@code SourceService::sourceForFqn}), or null when no source is
+     *               configured. Without it every node stays counted — the safe direction, and the
+     *               reason this parameter is optional rather than required.
+     */
+    public static Scope of(ProcessorTopology topology, Set<String> authored,
+                           java.util.function.Function<String, java.util.Optional<String>> source) {
         Set<String> loggable = new LinkedHashSet<>();
         Map<String, String> excluded = new LinkedHashMap<>();
-        if (authored == null) return new Scope(loggable, excluded);
+        Map<String, Reason> reasons = new LinkedHashMap<>();
+        if (authored == null) return new Scope(loggable, excluded, reasons);
 
         // Walk the GRAPH's own order, keeping only ids in `authored` — `authored` itself arrives as an
         // unordered set, so iterating it would produce whatever order the hash gave us. The graph's node
@@ -111,15 +164,27 @@ public final class CoverageScope {
             ProcessorTopology.Node node = topology == null ? null : topology.node(id);
             ProcessorTopology.Kind kind = node == null ? null : node.kind();
             if (kind == ProcessorTopology.Kind.EVENT) {
-                excluded.put(id, "an event class — data entering the graph, not code that runs");
+                drop(excluded, reasons, id, Reason.EVENT);
             } else if (kind == ProcessorTopology.Kind.EXPORT_SERVICE) {
-                excluded.put(id, "an exported service interface — an entry point, not a node that logs");
+                drop(excluded, reasons, id, Reason.EXPORT_SERVICE);
+            } else if (source != null && node != null
+                    && NodeLogging.of(node.className(), source)
+                       == NodeLogging.Capability.SILENT_BY_CONSTRUCTION) {
+                // M40.2b — proven, not assumed: source in hand and the class declares no supertype, so
+                // there is nowhere an auditLog could come from. UNKNOWN never lands here.
+                drop(excluded, reasons, id, Reason.SILENT_BY_CONSTRUCTION);
             } else {
                 // NODE, EVENT_HANDLER, UNKNOWN: a node, or something we cannot rule out. Both stay —
                 // dropping an UNKNOWN would be assuming silence, which flatters the score.
                 loggable.add(id);
             }
         }
-        return new Scope(loggable, excluded);
+        return new Scope(loggable, excluded, reasons);
+    }
+
+    private static void drop(Map<String, String> excluded, Map<String, Reason> reasons,
+                             String id, Reason r) {
+        excluded.put(id, r.why);
+        reasons.put(id, r);
     }
 }
