@@ -1,0 +1,64 @@
+REVIEW — feat/m40-2-coverage (M40.2a: coverage counts only what could log)
+Reviewer: the second session · Date: 2026-08-27 · Branch @ ed3f7b4 · Base: main @ 6dfebee
+Brief: docs/handoff/handoff_27_aug_2026_2.txt · Report: docs/handoff/report_feat_m40_2_coverage.txt
+
+VERDICT: **MERGE.** No blocking findings. The three checks the brief asked the reviewer to hold the author
+to all pass, measured on the built jar rather than read.
+
+================================================================================
+1. MEASURED — main and this branch, same demo, same verb
+================================================================================
+  main   @ 73e4751:  coverage → declared 10 · covered 5 · uncovered 5 · ratio 0.5
+  branch @ ed3f7b4:  coverage → declared 6  · covered 5 · uncovered 1 · ratio 0.833
+                     excludedFromDenominator = { RiskBreachEvent, MarketDataEvent, OrderUpdateEvent: "an event
+                     class — data entering the graph, not code that runs"; QuoteControl: "an exported service
+                     interface — an entry point, not a node that logs" }
+                     excludedNote = "excluded 4 declared item(s) that can never write audit output: 3 event
+                     class(es), 1 exported service(s). They appear in the graph because …"
+  The one remaining uncovered id is spreadCalculator — the deliberately silent node, M40.2b's case. The
+  report's numbers are the jar's numbers.
+
+The brief's three checks:
+  · Nothing leaves silently — every dropped id carries a reason, the note summarises, both are in the echo
+    and on the assistant page. Confirmed in the echo above; pinned by everyExclusionCarriesItsReason.
+  · An UNKNOWN kind is KEPT — anUNKNOWNkindIsKeptRatherThanAssumedSilent; and an id with no node in the
+    graph is kept too (anIdWithNoNodeInTheGraphIsKept). Dropping either would be the same defect inverted.
+  · The demo numbers in the docs — no page quoted the old 0.5 (checked getting-started, support, the-loop,
+    topology, connect-an-llm, assistant), so nothing went stale; the assistant page now explains the new
+    denominator. 898 green on the branch; mkdocs strict and the sweep clean here.
+
+The design is the right size: exclusion by the KIND the graph already declares needs no source and no new
+evidence, and it refuses to guess about the one case that would (spreadCalculator stays counted). "Wrong in
+the alarming direction about its own showcase fixture" was the right thing to fix first.
+
+================================================================================
+2. NOTES — none blocking
+================================================================================
+N1 · **The one human surface that renders coverage is the M33 report's table, not the Topology tab.**
+     The report worries about "the Topology tab's coverage view"; there is no such view — TopologyPanel
+     mentions coverage only in the inferred-graph refusal. But `coverage` IS a TABLE_VERB
+     (ReportResolver): a report section can embed the verb's table. Worth checking that a report's coverage
+     section renders excludedNote (or at least the excluded count) beside the ratio — otherwise the PDF, the
+     surface that leaves the session, prints 0.833 with no hint that four items were set aside. Same shape
+     as M38.3's F1; the ONBOARDING convention now names it.
+N2 · **"in graph order" is not what the code does.** Scope.excluded's javadoc promises graph order, but
+     `authored` arrives as Set.copyOf(...) — unordered — and the live echo shows it (RiskBreachEvent,
+     QuoteControl, MarketDataEvent, OrderUpdateEvent). Either keep the promise (LinkedHashSet in the
+     executor) or drop the word. Cosmetic, but a documented order nobody delivers gets relied on.
+N3 · **note() derives the service count as "everything that is not an event class".** True with two
+     reasons; false the moment M40.2b adds a third ("silent by construction"). Bucket by reason when that
+     lands rather than by string containment.
+N4 · GraphPairing's NodeCoverage.of(declared, logged, Set.of()) is correctly untouched — its denominator
+     is the LOGGED set, so events never entered it.
+N5 · The branch is based on 6dfebee; main has since taken M38.2–.7 (73e4751), which touched
+     ActionExecutor in another region (doOpenAnalysis). Rebase before merge; no overlap expected.
+
+================================================================================
+3. WHAT I CHECKED
+================================================================================
+  · Built the branch in a worktree; 898 green. Ran `coverage` over the socket on main's jar and the
+    branch's jar against the checked-in demo log + graph (table above).
+  · Read CoverageScope, its five tests, the executor and TopologyPanel diffs, the docs/CHANGELOG/tracker
+    diffs; grepped every UI class and the report package for a coverage surface; grepped the site for the
+    demo's old figure.
+  · NOT re-run: the UNKNOWN-kind case live (a graph with a node lacking a style) — the test covers it.
