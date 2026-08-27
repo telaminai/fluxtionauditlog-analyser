@@ -25,15 +25,46 @@ import java.util.Optional;
  *                   than none.
  */
 public record LogFingerprint(String logName, int records, Long firstTime, Long lastTime,
-                             String provenance) {
+                             String provenance, String provenanceSource) {
 
     public LogFingerprint {
         provenance = provenance == null || provenance.isBlank() ? null : provenance.trim();
+        provenanceSource = provenanceSource == null || provenanceSource.isBlank() ? null : provenanceSource.trim();
+    }
+
+    /** The §E shape without a source (M38.3 review F1 added the sixth component); kept so callers compile. */
+    public LogFingerprint(String logName, int records, Long firstTime, Long lastTime, String provenance) {
+        this(logName, records, firstTime, lastTime, provenance, null);
     }
 
     /** The pre-§E shape, kept so existing callers compile unchanged; provenance is then absent. */
     public LogFingerprint(String logName, int records, Long firstTime, Long lastTime) {
-        this(logName, records, firstTime, lastTime, null);
+        this(logName, records, firstTime, lastTime, null, null);
+    }
+
+    /**
+     * M38.3 review F1 — HOW the provenance was obtained, as {@code context.provenanceSource} says it:
+     * "declared by the opener", or the project environment that matched a directory or applied as the
+     * default. Carried here because the report is the one surface that leaves the session and is read by
+     * someone who was not there — and directory matching is a heuristic about the filesystem standing in
+     * for a claim about a system (a prod log copied into logs/uat/ matches honestly and wrongly).
+     */
+    public static LogFingerprint of(LogIndex idx, String logName, String provenance, String provenanceSource) {
+        LogFingerprint fp = of(idx, logName, provenance);
+        return new LogFingerprint(fp.logName(), fp.records(), fp.firstTime(), fp.lastTime(), provenance, provenanceSource);
+    }
+
+    /** True when the provenance was supplied by the project's environments rather than declared by whoever opened the log. */
+    public boolean provenanceMatched() {
+        return provenance != null && provenanceSource != null && !provenanceSource.startsWith("declared");
+    }
+
+    /** The qualification a report prints after a matched provenance, or null for a declared one. */
+    public String provenanceQualification() {
+        if (!provenanceMatched()) return null;
+        return provenanceSource.startsWith("project default")
+                ? "project default environment, not declared"
+                : "matched by directory, not declared";
     }
 
     public static LogFingerprint of(LogIndex idx, String logName) {
@@ -104,6 +135,7 @@ public record LogFingerprint(String logName, int records, Long firstTime, Long l
     public String describe() {
         StringBuilder sb = new StringBuilder(provenance != null ? provenance
                 : logName.isEmpty() ? "(unnamed log)" : logName);
+        if (provenanceQualification() != null) sb.append(" (").append(provenanceQualification()).append(')');
         sb.append(" · ").append(records).append(" record(s)");
         if (firstTime != null && lastTime != null) {
             sb.append(" · ").append(fmt(firstTime)).append("→").append(fmt(lastTime));

@@ -137,6 +137,14 @@ environment it is (UP-MNG-03) — beats the project's environments, and `context
 which answered: *declared by the opener*, *project environment 'prod' — the log is under logs/prod*, or
 *project default environment 'uat'*. The Project panel's log row carries the same words.
 
+A matched provenance is **qualified wherever it leaves the session**: a report's header reads *"risk-engine ·
+prod (matched by directory, not declared) · 5821 record(s)"*, because directory matching is a heuristic
+about the filesystem standing in for a claim about a system — a prod log copied into `logs/uat/` to be
+looked at matches honestly and wrongly, and the report is read by someone who was not there. Two rules
+worth knowing: with nested log directories the environment declared **first** wins, so declare the more
+specific one first; and a remote open (S3) with no local copy takes only the **default**, which is then
+reported as exactly that — a project that does not want remote logs stamped declares no default.
+
 Environments **travel by default** in a shared profile, under **Environments (names, the provenance
 string each stamps — which may name systems and hosts — and their log directories; never log data)**:
 the label says exactly what leaves, because a provenance string is estate detail even if it is not a

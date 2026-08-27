@@ -31,7 +31,8 @@ find out whether it still holds.
 
 Because the dangerous failure arrives *resolved* rather than dangling (record #42 exists in any log
 with 43 records), a report also captures its **authoring context**: a fingerprint of the log it was
-written against (name, record count, time range) and the filter it was written under. Opening it
+written against (name, record count, time range — and, where the log's provenance came from a project
+environment rather than a declaration, *matched by directory, not declared*) and the filter it was written under. Opening it
 against a different log names the mismatch **before any section renders** — announced, never
 refused, because comparing a finding against a later run is legitimate and valuable. Opening it
 under a different filter **offers** the stored view; declining renders under the current filter and

@@ -56,6 +56,13 @@ public record Environment(String name, String provenance, String logDir) {
      * The environment a log falls under when nobody declared one: the first whose {@code logDir} contains
      * the log, else the project's default. Pure, so it is tested without a frame.
      *
+     * <p><b>Declaration order decides nested directories</b> (review N1): with {@code logs/} and
+     * {@code logs/prod/} both declared, a log under {@code logs/prod/} takes whichever is declared FIRST.
+     * Declare the more specific directory first. <b>A remote open with no local copy takes only the
+     * default</b> (review N2): that is a confident answer derived from nothing about the log, so the
+     * default is reported as exactly that — "project default environment" — everywhere it appears, and a
+     * project that does not want S3 logs stamped declares no default.
+     *
      * @param projectRoot the project's directory (logDirs resolve against it); null when no project is open
      * @param logFile     the local file, or null (a remote open with no local copy matches only the default)
      */

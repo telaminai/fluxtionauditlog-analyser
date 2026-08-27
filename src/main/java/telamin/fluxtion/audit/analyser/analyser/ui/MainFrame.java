@@ -852,7 +852,7 @@ public final class MainFrame extends JFrame {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
         }
         var fp = telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
-                store.index(), loadedLogName(), logProvenance);
+                store.index(), loadedLogName(), logProvenance, logProvenanceSource);   // M38.3 F1: how it was obtained
         String name = params.get("name") == null ? null : params.get("name").toString();
 
         // ---- CSV export of one table section from an EXISTING report --------------------------------

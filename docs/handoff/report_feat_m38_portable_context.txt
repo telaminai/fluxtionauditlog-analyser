@@ -72,6 +72,14 @@ M38.3 — environments + the §E provenance each stamps (D-C4; owner decision 2:
   tests                      EnvironmentTest (3): matcher precedence incl. S3 (no local file → default only) and the
                              prefix trap; the refusal table; loader drop + share default/label/export/import/round-trip
                              + loader announcement. ProjectModelTest.environmentsAreRows…
+  Review of .3 (review_feat_m38_3_environments.txt) — F1 taken: LogFingerprint gains provenanceSource (sixth
+                             component, additive; the 5-arg shape kept as the 4-arg one was for §E); describe()
+                             prints "(matched by directory, not declared)" / "(project default environment, not
+                             declared)" after a matched provenance, so the report header — the surface that
+                             leaves the session — carries the qualification context and the panel already had.
+                             Persisted as .fp.provSource. N1/N2 recorded as decisions in Environment.match's
+                             javadoc and the docs page: declaration order wins for nested dirs (declare the
+                             specific one first); S3 takes only the default, reported as the default.
   NOT done                   a Settings editor for environments (the profile file is the writer, as for the other
                              pointers); UP-MNG-03's server-supplied value arrives as a declaration and therefore already wins.
 

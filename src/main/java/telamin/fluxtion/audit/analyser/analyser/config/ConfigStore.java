@@ -227,6 +227,7 @@ public final class ConfigStore {
             if (r.fingerprint() != null) {
                 put(p, base + ".fp.log", r.fingerprint().logName());
                 put(p, base + ".fp.prov", r.fingerprint().provenance());   // §E; absent when nobody said
+                put(p, base + ".fp.provSource", r.fingerprint().provenanceSource());   // M38.3 F1: declared, or matched
                 p.setProperty(base + ".fp.records", Integer.toString(r.fingerprint().records()));
                 if (r.fingerprint().firstTime() != null)
                     p.setProperty(base + ".fp.first", Long.toString(r.fingerprint().firstTime()));
@@ -291,7 +292,8 @@ public final class ConfigStore {
                         parseInt(p.getProperty(base + ".fp.records"), 0),
                         longOrNull(p.getProperty(base + ".fp.first")),
                         longOrNull(p.getProperty(base + ".fp.last")),
-                        p.getProperty(base + ".fp.prov"));   // pre-§E configs simply have none
+                        p.getProperty(base + ".fp.prov"),    // pre-§E configs simply have none
+                        p.getProperty(base + ".fp.provSource"));
             }
             java.util.Set<String> dims = null;
             if (p.getProperty(base + ".filter.dim.count") != null) {

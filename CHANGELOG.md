@@ -11,7 +11,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `.provenance` and optional `.logDir` (plus `environment.default`) in the profile. A log opened without a
   declared provenance takes the environment whose log directory contains it, else the default — never a
   guess — and `context.provenanceSource` (and the Project panel) say who supplied it: *declared by the
-  opener* always wins. Travels by default under an **Environments** share checkbox whose label names the
+  opener* always wins. A report written against a matched provenance says so in its header — *matched by
+  directory, not declared* — so the qualification survives the session. Travels by default under an **Environments** share checkbox whose label names the
   cargo.
 - **Vocabulary — the project's glossary reaches the assistant.** `vocabulary=docs/glossary.md` in the
   profile points at a markdown file in the repository (the same pointer rules as a runbook). Its text is
