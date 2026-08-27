@@ -145,16 +145,33 @@ public final class ReportVerb {
         return out;
     }
 
+    /**
+     * A section's call is kept as strings (it is re-issued to the verb at assembly time). JSON
+     * numbers arrive as doubles, so an integral one is rendered without its fraction: an agent that
+     * sends {@code recordIndex: 0} must not have it re-issued as {@code "0.0"}, which {@code read}
+     * cannot parse as an anchor — the table then failed with "read needs a recordIndex" although the
+     * author had given one (found 2026-08-27, recording the sample conversations).
+     */
     private static Map<String, String> callMap(Object raw) {
         Map<String, String> out = new LinkedHashMap<>();
         if (raw instanceof Map<?, ?> m) {
             for (var e : m.entrySet()) {
                 if (e.getKey() != null && e.getValue() != null) {
-                    out.put(e.getKey().toString(), e.getValue().toString());
+                    out.put(e.getKey().toString(), callValue(e.getValue()));
                 }
             }
         }
         return out;
+    }
+
+    private static String callValue(Object v) {
+        if (v instanceof Number n && !(v instanceof Integer || v instanceof Long)) {
+            double d = n.doubleValue();
+            if (Double.isFinite(d) && d == Math.rint(d) && Math.abs(d) < 1e15) {
+                return Long.toString((long) d);
+            }
+        }
+        return v.toString();
     }
 
     // ---- table assembly (D-I7: rows are DERIVED) --------------------------------------------------

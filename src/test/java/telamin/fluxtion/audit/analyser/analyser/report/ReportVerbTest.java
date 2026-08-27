@@ -116,6 +116,20 @@ class ReportVerbTest {
     }
 
     @Test
+    void numericCallParametersSurviveAsIntegers_aJsonDoubleAnchorStillAnchors() {
+        // JSON numbers arrive as doubles; recordIndex 0.0 re-issued as "0.0" is no anchor at all
+        var parsed = parse(List.of(Map.of("kind", "table", "call",
+                Map.of("verb", "read", "fields", "book.mid", "recordIndex", 0.0, "after", 3.0))));
+        assertEquals(List.of(), parsed.warnings());
+        var section = parsed.spec().sections().get(0);
+        assertEquals("0", section.call().get("recordIndex"));
+        assertEquals("3", section.call().get("after"));
+        var a = ReportVerb.assembleTable(section, STORE);
+        assertEquals(4, a.table().rows().size());
+        assertEquals(List.of(), a.notes());
+    }
+
+    @Test
     void tableRowsAreDerivedFromTheCall_defaultColumnsCoverTheFields() {
         var a = ReportVerb.assembleTable(tableOverMid(null), STORE);
         assertEquals(4, a.table().rows().size());
