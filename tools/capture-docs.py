@@ -90,12 +90,36 @@ def make_demo_project():
     """A project profile pointing at the demo fixture — anonymous by construction, like every other shot."""
     profile = DEMO_PROJECT / ".analyser" / "project.fluxtion-settings"
     profile.parent.mkdir(parents=True, exist_ok=True)
+    # M38: the profile is portable context — a skill-shaped runbook, a glossary and a saved analysis, all demo
+    ops = DEMO_PROJECT / "ops"
+    ops.mkdir(parents=True, exist_ok=True)
+    (ops / "restart-quote-service.md").write_text(
+        "---\nname: restart-quote-service\n"
+        "description: Restart the DEMO quote service after a config change; what to check first, how to verify.\n---\n"
+        "1. Confirm no live orders: `quotePublisher.liveOrders` must read 0 in the latest cycle.\n"
+        "2. Restart the service through the deployment tool.\n"
+        "3. Verify: the next audit log opens with a MarketDataEvent within 5s and `spread` is back near 0.01.\n")
+    docs = DEMO_PROJECT / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    (docs / "glossary.md").write_text(
+        "# Glossary\n\n- **live**: an order the venue has acknowledged and not yet filled or cancelled\n"
+        "- **spread**: quotePublisher ask minus bid, in price units; 0.01 is normal here\n"
+        "- **breach**: liveOrders above the risk limit; the RiskBreachEvent that follows is routine, not an outage\n")
     profile.write_text(
         "share.version=1\n"
         f"sourceRoot.count=1\nsourceRoot.0={ROOT}\n"
         f"eventProcessorFqn.count=1\neventProcessorFqn.0={PROCESSOR}\n"
         f"selectedEventProcessor={PROCESSOR}\n"
-        "mavenRepo.count=0\nmavenRepoSearch=true\n")
+        "mavenRepo.count=0\nmavenRepoSearch=true\n"
+        "runbook.count=1\nrunbook.0.name=restart\nrunbook.0.path=ops/restart-quote-service.md\n"
+        "vocabulary=docs/glossary.md\n"
+        "analysis.count=1\nanalysis.0.name=spread breach\n"
+        "analysis.0.rationale=every breach incident starts the same way: the spread before it\n"
+        "analysis.0.param.count=1\nanalysis.0.param.0.name=log\n"
+        "analysis.0.step.count=2\n"
+        "analysis.0.step.0.action=open\nanalysis.0.step.0.params={\"log\": \"{log}\"}\n"
+        "analysis.0.step.1.action=graph\n"
+        "analysis.0.step.1.params={\"name\": \"Spread before the breach\", \"series\": [\"quotePublisher.spread\"]}\n")
     return profile
 
 
@@ -469,6 +493,9 @@ def main():
     seed(ep)
     act(ep, "goto", {"recordIndex": 3, "reveal": True})
     capture(ep, "projects-active.png")
+    # Working with AI ▸ runbooks: the Project panel's Project section with the runbook pointer, the glossary and
+    # the saved analysis's offer — the human-facing half of context.runbooks / vocabulary / analyses
+    capture(ep, "ai-runbooks-panel.png")
 
     if "--keep" not in sys.argv:
         subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)

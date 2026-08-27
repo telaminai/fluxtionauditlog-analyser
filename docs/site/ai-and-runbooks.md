@@ -5,6 +5,18 @@ A project profile carries three things an AI acts on: **runbook pointers**, a **
 how the in-app assistant or an LLM connected over MCP **finds** them, **uses** them, and **creates or
 updates** them — and the one thing it never does.
 
+```mermaid
+flowchart LR
+  R["Repository<br/>ops/restart.md · docs/glossary.md<br/>.analyser/project.fluxtion-settings (pointers)"] -->|"opened as a project"| AN["Analyser<br/>serves the POINTERS in context<br/>never opens or runs a runbook"]
+  AN -->|"MCP: analyser_context<br/>runbooks · vocabulary · analyses"| AI["AI agent"]
+  R -->|"reads the file itself"| AI
+  AI -->|"acts with its own tools /<br/>the deployment side's MCP"| M["Deployed app<br/>on Mongoose"]
+  AI -->|"writes a new runbook + pointer,<br/>shows the diff"| R
+  H["Human<br/>reviews the diff, approves the commit"] --- R
+  classDef here fill:#ff5722,stroke:#bf360c,color:#fff;
+  class AN here;
+```
+
 ## The rule that shapes everything here
 
 > anything in a profile that an agent will act on must be inert, or a pointer to something under
@@ -34,6 +46,72 @@ through `analyser_context`. With a project open it carries:
 `exists: false` is a fact, not a failure: the profile points at a file this checkout does not have. An
 agent should say so rather than guess at the contents. The Project panel shows the same rows to the
 person — a warning where the file is missing — so both parties are looking at one set of facts.
+
+![The Project panel: the runbook pointer, the glossary and the saved analysis as the person sees them](assets/ai-runbooks-panel.png)
+
+## What the conversation looks like — LLM → MCP → analyser
+
+The same facts, from the agent's side. This is a real shape, on the demo project: the client discovers
+one tool per verb, the agent calls `analyser_context` first, and everything after that is the agent
+deciding what to read and what to run.
+
+> **You:** The quote service looked wrong around 09:00. Use the fluxtion-analyser tools. Tell me what
+> happened, and if there is a restart runbook, what we would do next — but don't run anything.
+
+```json
+→ analyser_context {}
+← { "project": {"name": "demo-quote-project", "root": "…/demo-quote-project"},
+    "log": {"openedFrom": "…/demo-quote-audit.yaml", "records": 10, "openedBy": "you"},
+    "graphPairing": {"graph": "demo-quote-processor.graphml", "applies": true, "auditLogging": "enabled"},
+    "runbooks": [{"name": "restart", "path": "ops/restart-quote-service.md", "exists": true, "from": "project",
+                  "note": "a pointer — read the file from the repository; the analyser stores no instructions and executes nothing"}],
+    "vocabulary": {"path": "docs/glossary.md", "exists": true, "text": "# Glossary\n- **live**: …\n- **spread**: … 0.01 is normal here\n- **breach**: …"},
+    "analyses": [{"name": "spread breach", "rationale": "every breach incident starts the same way: the spread before it",
+                  "parameters": [{"name": "log"}], "steps": ["open", "graph"]}] }
+```
+
+The agent now knows three things it did not have to guess: what `spread` and `breach` mean *here*,
+that there is a saved analysis for exactly this kind of incident, and that a restart runbook exists.
+
+```json
+→ analyser_open {"analysis": "spread breach", "bind": {"log": "…/demo-quote-audit.yaml"}}
+← { "analysis": "spread breach", "completed": "2/2 steps",
+    "steps": [{"step": 1, "action": "open", "ok": true}, {"step": 2, "action": "graph", "ok": true}] }
+
+→ analyser_read {"recordIndex": 7}
+← { "event": "RiskBreachEvent", "nodeLogs": {"breachHandler": {"breachedOn": "ord-2", "liveOrders": 2, "breachesToday": 1}} }
+```
+
+Then — with its **own** file tool, not the analyser — it reads `ops/restart-quote-service.md`, because the
+analyser handed it the path and nothing else.
+
+> **Agent:** At 09:00:00.300 the risk limit was breached on `ord-2` with two live orders — a *breach* in
+> this system's vocabulary is the RiskBreachEvent that follows liveOrders exceeding the limit, and the
+> glossary says it's routine, not an outage. I ran the saved *spread breach* analysis; the chart of
+> `quotePublisher.spread` is in your Graph tab — it widened from 0.011 to 0.020 in the two cycles before
+> the breach, so the spread moved first. The `restart` runbook says: confirm `liveOrders` reads 0 before
+> restarting, restart through the deployment tool, then verify the next log opens with a MarketDataEvent
+> within 5 s and spread back near 0.01. I have not run anything.
+
+Every claim in that answer has a source the person can check: the record is in the table, the chart is on
+the Graph tab, the glossary and the runbook are files in the repository, and `context` said which of them
+the project declares.
+
+```mermaid
+sequenceDiagram
+  participant H as Human
+  participant AI as AI agent
+  participant AN as Analyser (MCP)
+  participant R as Repository
+  H->>AI: what happened; what would we do next?
+  AI->>AN: analyser_context
+  AN-->>AI: runbooks (pointers), vocabulary (text), analyses (offer)
+  AI->>AN: analyser_open {analysis, bind}
+  AN-->>AI: 2/2 steps — chart drawn for the human
+  AI->>R: read ops/restart-quote-service.md (own file tool)
+  AI-->>H: answer, every claim pointing at something on screen or in the repo
+  Note over AN: never opens, renders or runs a runbook
+```
 
 ## Using a runbook
 
