@@ -1,0 +1,68 @@
+REVIEW — M38.7 (D-C10: rewrite what you own, preserve what you do not understand)
+Reviewer: the first session · Date: 2026-08-27 · Commit 6e2802d, reviewed on main @ 73e4751
+Context: merged unreviewed by agreement — my end-to-end verdict was written at 96769a1, before .7.
+
+VERDICT: **NO FINDINGS.** The design is right, the risk I went looking for is already handled, and I
+verified the one property the whole thing rests on mechanically rather than by reading. One test added
+here so that property cannot drift.
+
+================================================================================
+1. THE DESIGN
+================================================================================
+A family is the key up to its first dot. Families this version owns are rewritten wholesale — which is
+what lets a list SHRINK, so a stale `sourceRoot.2` is correctly dropped rather than preserved forever.
+Everything else is carried over byte-for-byte.
+
+That split is the part worth praising: "preserve unknown keys" sounds simple until you realise a naive
+merge makes lists un-shrinkable, and a naive rewrite makes newer versions' facts vanish. Owning by
+FAMILY gets both, and the reasoning is stated where the next reader will find it.
+
+The framing is also right, and matches the house rule: dropping a key you do not understand is a
+**silent repair**, and the format spec already asks readers to ignore-never-reject. A writer owing the
+same courtesy is the same principle one layer up.
+
+================================================================================
+2. WHAT I WENT LOOKING FOR, AND DID NOT FIND
+================================================================================
+The obvious failure of a hand-maintained owned-families list is that a family gets forgotten, and the
+preserved old value then CLOBBERS the freshly written one — a setting that silently refuses to change.
+
+`KnownKeys.preserve` guards it: `if (fresh.getProperty(key) == null)`. Preserved entries only fill gaps,
+never overwrite. So a forgotten family cannot corrupt a value the writer set.
+
+The residual is narrower and worth one line in the javadoc rather than a fix: a forgotten family's
+setting could not be **cleared**, because the new file omits it and the old value is preserved each
+time. Recorded, not blocking — and the test below makes the precondition enforceable.
+
+The commit's own claim, "the failure direction is safe: a family this list forgets is carried over
+unchanged, never lost", is accurate as written.
+
+================================================================================
+3. THE PROPERTY IT ALL RESTS ON, VERIFIED
+================================================================================
+D-C10 is only sound if the owned-family lists actually cover what the writers write. I extracted every
+literal key written by `ConfigStore` and `SettingsShare` from their source — `put(p, "…")`,
+`writeList(p, "…")`, `p.setProperty("…")` — reduced each to its family, and diffed against the lists:
+
+    ConfigStore     58 keys written · families not in CONFIG_FAMILIES  : none
+    SettingsShare   16 keys written · families not in PROFILE_FAMILIES : none
+
+Complete today. But it is a hand-maintained list, and it drifts the moment someone adds a key and
+forgets its family — silently, because nothing fails.
+
+**So I have turned the audit into a test** (`KnownKeysCoverTheWritersTest`, 3 tests, added here): it
+reads the writers' own source and fails if a family is written but unowned. Same shape as M37's parity
+test, which reads `context()`'s source to prove the panel consumes nothing that method does not put.
+This codebase's habit is to enforce constraints rather than remember them, and this is a constraint
+that was being remembered. It also asserts the profile families are a subset of the config families,
+and refuses to pass if the regexes stop matching — a test that silently matches nothing proves nothing.
+
+================================================================================
+4. THE MERGE ITSELF
+================================================================================
+Checked the restore claims rather than taking them: M40's tracker block is present (7 mentions), the
+Project panel page's audit-row clause survived, the duplicated M38 heading is collapsed to one in
+`completed/`, `AuditReadiness` is intact, 921 green on main.
+
+Given two rebases in this project have now dropped content — the owner decisions, and these two — the
+habit of checking main's contributions by marker after a big replay is doing real work. Worth keeping.
