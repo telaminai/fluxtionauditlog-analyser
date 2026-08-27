@@ -93,11 +93,14 @@ public final class NodeLogging {
             // following the chain needs the supertype's own source. Unknown, therefore counted.
             return Capability.UNKNOWN;
         }
-        // No superclass and no interface: there is nowhere an inherited auditLog could come from. If
-        // the body mentions one anyway, our reading of the file is wrong — prefer unknown to a wrong
-        // exclusion.
-        return bodyOf(text.get(), simple).contains("auditLog")
-                ? Capability.UNKNOWN : Capability.SILENT_BY_CONSTRUCTION;
+        // No superclass and no interface: there is nowhere an INHERITED logger could come from. But a
+        // logger can still be handed in or held under any field name — review 2026-08-27 probed
+        // `private EventLogger log; log.info(…)` and the first cut excluded it, a false exclusion, the
+        // direction that flatters the score. So any mention of the logger TYPE or the contract in the
+        // body, not just the conventional field name, is evidence enough to stay counted.
+        String body = bodyOf(text.get(), simple);
+        boolean mentionsLogging = body.contains("auditLog") || body.contains("EventLogger") || body.contains(EVENT_LOG_SOURCE);
+        return mentionsLogging ? Capability.UNKNOWN : Capability.SILENT_BY_CONSTRUCTION;
     }
 
     /** The text from {@code class Name} up to its opening brace — the extends/implements clause. */

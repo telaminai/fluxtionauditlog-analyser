@@ -106,6 +106,20 @@ class NodeLoggingTest {
                 NodeLogging.of("com.acme.A", src("package com.acme; class A { void f(){ auditLog.info(\"x\", 1); } }")));
     }
 
+    /**
+     * Review 2026-08-27 (the second session probed the gate): a logger held under ANY field name, or handed in,
+     * must not be excluded. The first cut looked for the literal `auditLog` and dropped this class — a false
+     * exclusion, the direction that flatters the score.
+     */
+    @Test
+    void aLoggerUnderAnotherFieldNameIsUnknown_neverSilent() {
+        assertEquals(NodeLogging.Capability.UNKNOWN, NodeLogging.of("com.acme.A", src(
+                "package com.acme; import com.telamin.fluxtion.runtime.audit.EventLogger; class A { private EventLogger log; void f(){ log.info(\"x\", 1); } }")));
+        assertEquals(NodeLogging.Capability.UNKNOWN, NodeLogging.of("com.acme.A", src(
+                "package com.acme; class A { void f(Object o){ ((EventLogSource) o).setLogger(null); } }")),
+                "naming the contract anywhere in the body is enough to stay counted");
+    }
+
     @Test
     void aPlainClassWithNoSupertypeAndNoLoggingIsSilent() {
         assertEquals(NodeLogging.Capability.SILENT_BY_CONSTRUCTION,

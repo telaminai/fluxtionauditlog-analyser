@@ -1,0 +1,75 @@
+REVIEW — main @ 80091f7: M40.2b (which nodes can log) and M40.3 (the audit level)
+Reviewer: the second session · Date: 2026-08-27 · Post-merge review, requested by the author ("the .2b
+exclusion is the one I'd most want challenged, because it improves the headline number").
+
+VERDICT: **GOOD — one fix applied here (F1), a false exclusion the gate's own rule allowed.** The design
+is right in both slices, the rule-6 correction of the tracker's premise is the most valuable thing in them,
+and the judgement the author was most worried about — excluding on source evidence — is sound *once* the
+belt-and-braces check looks for the logger type rather than a field name.
+
+================================================================================
+1. HOW IT WAS CHALLENGED — thirteen source shapes fired at NodeLogging.of, then the live socket
+================================================================================
+  implements EventLogSource directly            CAN_LOG   ✓
+  extends com.telamin…node.EventLogNode (FQN)   CAN_LOG   ✓
+  record A(int x) implements EventLogSource      CAN_LOG   ✓
+  extends Base<Foo> (unrecognised, generic)      UNKNOWN   ✓  counted
+  comment mentions auditLog only                 UNKNOWN   ✓  safe direction
+  nested Inner of an EventLogNode outer          SILENT    ✓  the inner class inherits nothing
+  @Annotation({…}) before `class`                SILENT    ✓  header regex unconfused
+  abstract class / interface / enum, no supertype SILENT   — irrelevant as node instances; excluded by kind first
+  private EventLogger log; log.info(…)           SILENT    ✗  F1 — see below
+  Loggers.forNode(this).info(…) (helper)         SILENT    —  see N1
+
+Live (the shipped jar, demo log + graph over the socket):
+  no source root:   declared 6 · covered 5 · uncovered 1 · ratio 0.833   (UNKNOWN stays counted ✓)
+  with source root: declared 5 · covered 5 · uncovered 0 · ratio 1.0, spreadCalculator excluded with
+                    "this class cannot reach an audit logger at all — it declares no supertype …" ✓
+  The sample-conversations page regenerated with the author's `cites` harness now reads 5/5 and names
+  spreadCalculator's exclusion — the page and the echo agree.
+
+================================================================================
+2. F1 — A LOGGER UNDER ANY OTHER NAME WAS EXCLUDED — fixed here
+================================================================================
+The rule "no supertype ⇒ nowhere an inherited auditLog could come from" is right about INHERITANCE and
+silent about the other way a class holds a logger: a field, handed in or built. The belt-and-braces
+check protected against that only when the field was literally named `auditLog`:
+
+    class A { private EventLogger log; void f(){ log.info("x", 1); } }   →  SILENT_BY_CONSTRUCTION
+
+That is a node that demonstrably logs, dropped from the denominator — the false exclusion the class's own
+javadoc calls "the harder error to notice", and exactly the direction the author asked to have challenged.
+Fix, one condition: any mention of the logger TYPE (`EventLogger`) or the contract (`EventLogSource`) in
+the body, not just the field name, keeps the node counted (UNKNOWN). Pinned by
+aLoggerUnderAnotherFieldNameIsUnknown_neverSilent. The demo's spreadCalculator still excludes (its body
+names neither), so the 1.0 stands on the shipped fixture.
+
+================================================================================
+3. NOTES — not blocking
+================================================================================
+N1 · A class that logs through a HELPER without naming the type (`Loggers.forNode(this).info(…)`) is still
+     excluded. No text check catches that; only following the helper would. It is an unusual shape and the
+     residual risk should be stated in the javadoc as the boundary of what "silent by construction" can
+     prove from one file — the honest claim is "this file gives no way to reach a logger", not "this class
+     cannot log".
+N2 · declarationHeaderOf finds the FIRST `class <Simple>` in the file. For `p.B$A` with a top-level `A` in
+     the same file, it reads the wrong class. Rare; a nested lookup that prefers the path through `$` would
+     close it. Recorded, not fixed.
+N3 · M40.3's choice — read the level from records, not the graph — is right and well argued: the GraphML
+     carries no level and a build-time default is overridden at runtime. The lower-bound discipline
+     ("nothing finer than INFO appears; the log cannot tell threshold from silence") is the correct claim,
+     and attaching the note only when a gap exists is the right restraint: a caveat on a perfect score would
+     teach people to ignore it.
+N4 · The tracker's "COMPLETE" is honest about M40.2c (a project-local base that itself extends
+     EventLogNode → UNKNOWN, counted). Correct-but-conservative is the right default here; close it when
+     someone hits it.
+
+================================================================================
+4. WHAT I CHECKED
+================================================================================
+  · Thirteen probes against NodeLogging.of (scratch test, discarded); live coverage with and without a
+    source root on the shipped jar; the regenerated sample-conversations prose against the echo.
+  · Read NodeLogging, AuditLevel, the coverage wiring in ActionExecutor, and both test classes.
+  · 955 green after F1 (one new test). NOT re-run: the jar-walk that produced AUDIT_CAPABLE — the test
+    everyKnownBaseWasMeasuredFromTheRuntimeJar_notInvented asserts each name is recognised, which is the
+    check that matters.
