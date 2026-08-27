@@ -89,6 +89,25 @@ the unfixed jar, same script).
 (the `restoring` guard suppresses the edit, not the tab — `addGraph()` still runs); and that a graph
 edited by hand still auto-persists (pinned by the second test, but Swing-side confirmation is cheap).
 
+## ☐ 2026-08-27 · `5e73bae` · fix(project-panel): Show file / Open; runbook + glossary open read-only in the app
+
+**What.** Owner-requested naming: *Show* → *Show file*, *Go* → *Open*. New: *Open* on a runbook or vocabulary row
+opens a read-only viewer (plain text as written, 256K cap announced, Show file / Copy path / Close, modeless).
+D-C2 wording sharpened in the spec and both docs pages: the analyser never executes a runbook and never serves
+its contents to an agent; a person reading it in the app is neither.
+
+**Files.** `ProjectPanel` (labels, `viewFile`), `ProjectModel` (`Target.VIEW_FILE` for runbook/glossary rows when
+the file exists), `ProjectModelTest`, docs (project-panel, portable-context, ai-and-runbooks, spec-portable-
+context D-C2), CHANGELOG, regenerated shots + conversations.
+
+**Verified.** 933 green; reveal-only bytecode test holds (no MainFrame reference; Navigator unchanged); mkdocs
+strict; sweep; screenshots regenerated and read.
+
+**Reviewer must still check (Swing, not unit-tested).** Click *Open* on the `restart runbook` row of the demo
+project: a modeless dialog titled with the path, monospace text of `ops/restart-quote-service.md`, *Show file*
+opens Finder, *Copy path* copies, *Close* closes; the row for a MISSING runbook has no *Open*. Check the Graph
+row's *Open* still lands on the Topology tab and a processor's *Open* on the Source tab.
+
 # Bugs found (not yet fixed) — for the next session
 
 Not changes to review — defects surfaced while working, logged here so the next puller can pick them up and
