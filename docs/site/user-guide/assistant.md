@@ -147,6 +147,12 @@ readers. It reports the graph whether or not a log is open, `log.openedBy` (you 
 `graphPairing.graphPath`, `processors` as a list with `selected` and whether `source` was `found`, and
 `source.rootTiers` — each root with the tier that supplied it (`project`, `own settings`, `demo (transient)`).
 
+`graphPairing` also carries **`auditLogging`** (`enabled` / `not_enabled` / `unknown`) with an
+`auditLoggingNote`. That is read from the graph, not the log, so it answers **before a log exists** — a
+processor built without `addEventAudit()` writes no audit log at all, and an agent told that up front
+does not open an empty file and conclude the system was quiet. `unknown` with no graph loaded: with no
+evidence the answer is "unknown", never "probably fine".
+
 `context` carries `graphPairing` for the same reason: whether the loaded graph belongs to the loaded
 log is something to know **before** deriving anything from it, not after `coverage` returns a
 suspicious number. It also reports `projectOffer` when the log sits inside a project — the offer a

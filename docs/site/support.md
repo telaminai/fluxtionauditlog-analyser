@@ -45,6 +45,13 @@ All three are faults in how the log was *produced*, not in what the system did. 
 back to whoever owns the export — it names the cause and the fix — rather than debugging a shortage of
 evidence. See [Producing an audit log](producing-a-log.md).
 
+!!! tip "A fourth case, which leaves no log to examine at all"
+    If the processor was built **without audit logging installed**, it writes nothing — so there is no
+    file to inspect and none of the checks above can fire. Open the processor's `.graphml` and the
+    **Project panel's Graph section** says so outright: *⚠ audit logging NOT installed*. Worth doing
+    first when you have been handed "the log is empty" and no log, because it is the one failure that
+    leaves no evidence behind.
+
 ## The four questions you will actually be asked
 
 ### "Did *X* happen at all?"

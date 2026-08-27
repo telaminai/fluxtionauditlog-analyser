@@ -14,7 +14,7 @@ on the left rail under *Event types*, states all five at once.
 |---|---|---|
 | **Project** | the profile's name and directory; *Copy* / *Show* the settings file; one row per **runbook pointer** (`deploy runbook: ops/deploy.md`, warning if the file is missing — see [Portable context](portable-context.md)) | *project settings in force* — or *No project — using your own settings* |
 | **Audit log** | the file you opened, as you named it (`s3://…` stays `s3://…`), records | *opened by you* / *opened by the action socket*, and the system it declared |
-| **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
+| **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log. Above it, if the processor was built without audit logging: *⚠ audit logging NOT installed — this processor writes no audit log at all*, which outranks the pairing because pairing a log that will never exist is a question about nothing | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root | *project* / *own settings* / *discovered under a root* |
 | **Source roots** | each root | *project* / *own settings* / *demo (transient)* |
 | **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — and each **saved report** by title with its section count | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
@@ -39,7 +39,7 @@ else. So when you and an agent connected over MCP look at the same session, you 
 facts, and a fact the panel lacks is added to `context` first. The keys it draws are `project`
 (`name`, `root`, `settings`), `log` (`openedFrom`, `openedBy`, `records`), `provenance`,
 `graphPairing` (`graph`, `graphSource`, `graphPath`, `applies`, `declaredByGraph`, `loggedNodes`,
-`verdict`, `sourceGraphOffered`, `sourceGraphNote`), `processors` (`class`, `selected`, `source`,
+`verdict`, `sourceGraphOffered`, `sourceGraphNote`, `auditLogging`, `auditLoggingNote`), `processors` (`class`, `selected`, `source`,
 `from`), `source.rootTiers` (`path`, `tier`), `exports` (`enabled`, `dir`) and `reports` (`name`, `title`,
 `sections`, `from`).
 
