@@ -203,6 +203,22 @@ class ProjectModelTest {
     }
 
     @Test
+    void theVocabularyPointerIsARowOfTheProjectSection() {
+        Map<String, Object> ctx = full();
+        ctx.put("vocabulary", Map.of("path", "docs/glossary.md", "resolved", "/work/demo/docs/glossary.md", "exists", true,
+                "from", "project", "text", "live: an order the venue has acknowledged"));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows();
+        assertEquals(2, rows.size());
+        assertEquals("vocabulary", rows.get(1).primary());
+        assertTrue(rows.get(1).secondary().startsWith("docs/glossary.md — the domain glossary"), rows.get(1).secondary());
+        assertEquals("/work/demo/docs/glossary.md", rows.get(1).path());
+        ctx.put("vocabulary", Map.of("path", "docs/glossary.md", "resolved", "/work/demo/docs/glossary.md", "exists", false, "from", "project"));
+        rows = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows();
+        assertEquals(ProjectModel.Tone.WARN, rows.get(1).tone());
+        assertTrue(rows.get(1).secondary().contains("NOT found"));
+    }
+
+    @Test
     void abbreviationKeepsHeadAndTail_andNeverTouchesWhatIsCopied() {
         assertEquals("~/projects/demo/logs/a.yaml", ProjectModel.abbreviate("/Users/someone/projects/demo/logs/a.yaml", "/Users/someone", 44));
         String longPath = "/Users/someone/very/deep/directory/structure/for/a/project/build/generated/x.graphml";

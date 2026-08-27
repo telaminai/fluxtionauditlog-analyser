@@ -44,15 +44,40 @@ public final class PromptBuilder {
         return recordContext(records, epFqn, source, null);
     }
 
+    static void appendVocabulary(StringBuilder sb, String vocabulary) {
+        if (vocabulary == null || vocabulary.isBlank()) return;
+        String v = vocabulary.strip();
+        boolean cut = v.length() > MAX_VOCABULARY_CHARS;
+        if (cut) v = v.substring(0, MAX_VOCABULARY_CHARS);
+        sb.append("Domain vocabulary — what this system's terms mean, from the project's glossary. Use these "
+                + "meanings over general ones:\n").append(v);
+        if (cut) sb.append("\n… [glossary truncated to ").append(MAX_VOCABULARY_CHARS).append(" chars]");
+        sb.append("\n\n");
+    }
+
     /**
      * Context block for the selected record(s). When {@code file} is provided the prompt is seeded with
      * the log's location, shape and framing plus each selected record's byte offset, so an agentic model
      * can read/grep the file (in both directions) to answer follow-ups.
      */
     public static String recordContext(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file) {
+        return recordContext(records, epFqn, source, file, null);
+    }
+
+    /** Longest glossary the prompt carries — a team's vocabulary, not a manual. */
+    public static final int MAX_VOCABULARY_CHARS = 16_000;
+
+    /**
+     * M38.2 (D-C3) — {@code vocabulary} is the text of the project's glossary file, when the project points
+     * at one. It goes FIRST: what {@code live} means in this system decides how every number below reads,
+     * and a model that learns the vocabulary after the record has already guessed.
+     */
+    public static String recordContext(List<LogRecord> records, String epFqn, SourceService source, LogFileInfo file,
+                                       String vocabulary) {
         StringBuilder sb = new StringBuilder();
         Map<String, String> nodeTypes = source == null ? Map.of() : nodeTypes(records, source);
         SessionFacts facts = SessionFacts.of(file, epFqn, source, nodeTypes);
+        appendVocabulary(sb, vocabulary);
         facts.appendLogFraming(sb);
         appendRecordAnchors(sb, file, records);
         if (epFqn != null) sb.append("EventProcessor: ").append(epFqn).append("\n\n");

@@ -74,7 +74,8 @@ public final class ProjectProfile {
             SettingsShare.Category.GRAPHS,
             SettingsShare.Category.REPORTS,
             SettingsShare.Category.VIEW,
-            SettingsShare.Category.RUNBOOKS);      // M38.1: pointers are project context (D-C1 tier 1)
+            SettingsShare.Category.RUNBOOKS,       // M38.1: pointers are project context (D-C1 tier 1)
+            SettingsShare.Category.VOCABULARY);    // M38.2: the glossary pointer, same rule
 
     private ProjectProfile() {
     }
@@ -150,7 +151,8 @@ public final class ProjectProfile {
                            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
                            List<String> hiddenColumns,
                            boolean hiddenColumnsSet,
-                           java.util.Map<String, String> runbooks) {
+                           java.util.Map<String, String> runbooks,
+                           String vocabularyPath) {
 
         public Snapshot {
             sourceRoots = List.copyOf(sourceRoots);
@@ -161,13 +163,14 @@ public final class ProjectProfile {
             reports = List.copyOf(reports);
             hiddenColumns = List.copyOf(hiddenColumns);
             runbooks = java.util.Map.copyOf(runbooks == null ? java.util.Map.of() : runbooks);
+            vocabularyPath = vocabularyPath == null ? "" : vocabularyPath;
         }
     }
 
     public static Snapshot snapshot(AppConfig c) {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
                 c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
-                c.hiddenColumnsSet, c.runbooks);
+                c.hiddenColumnsSet, c.runbooks, c.vocabularyPath);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -184,6 +187,7 @@ public final class ProjectProfile {
         into.hiddenColumns.addAll(s.hiddenColumns());
         into.hiddenColumnsSet = s.hiddenColumnsSet();
         into.runbooks.putAll(s.runbooks());
+        into.vocabularyPath = s.vocabularyPath();
     }
 
     /**
@@ -198,6 +202,7 @@ public final class ProjectProfile {
         c.namedFocuses.clear();
         c.reports.clear();
         c.runbooks.clear();
+        c.vocabularyPath = "";
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there
@@ -247,6 +252,8 @@ public final class ProjectProfile {
             // here is why" in front of the person who opened the project
             String rb = plan.summary().get(SettingsShare.Category.RUNBOOKS);
             String warn = rb != null && rb.contains("REFUSED") ? "  ·  ⚠ runbooks: " + rb : "";
+            String vb = plan.summary().get(SettingsShare.Category.VOCABULARY);
+            if (vb != null && vb.contains("REFUSED")) warn += "  ·  ⚠ vocabulary: " + vb;
             return new LoadResult(true, "project loaded: " + file + warn);
         } catch (RuntimeException e) {
             return new LoadResult(false, "could not load " + file + ": " + e.getMessage());

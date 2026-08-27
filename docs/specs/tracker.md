@@ -357,24 +357,7 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M38 · Portable context — the project as a shared workspace — ◧ **.1 IMPLEMENTED 2026-08-27** (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
-## M40 · Audit readiness — will this processor log at all? — ◧ **.1 DONE 2026-08-27** on `feat/audit-readiness`
-_Brief `docs/handoff/handoff_27_aug_2026_1.txt`, report `docs/handoff/report_feat_audit_readiness.txt`.
-The owner's redirect: the authoring side belongs to the LLM writing the processor; the ANALYSER side can
-diagnose the graph. Every other producer check needs a log to examine, and the worst case produces no log._
-- [M40.1] ☑ **The verdict, from the graph** — `AuditReadiness.of(topology)` → ENABLED / NOT_ENABLED /
-  UNKNOWN. The compiler installs `EventLogManager` as a node when `addEventAudit()` was called; absent,
-  the processor writes nothing. **Measured** (rule 6): same program, one call removed → 613 bytes became
-  0. UNKNOWN with no graph — with no evidence the answer is "unknown", never "probably fine". Surfaced
-  in `context.topology.auditLogging`, verified live with a graph and NO log open. 7 tests, the real demo
-  fixture as the positive control.
-- [M40.2] ☐ **Which NODES can log** — a node that does not extend `EventLogNode` is silent by
-  construction, so its coverage gap is not evidence of anything. Needs source resolution per node; a
-  different evidence source with a different failure mode when source is missing.
-- [M40.3] ☐ **The audit LEVEL** (INFO vs TRACE) — only if the graph distinguishes them, and only after
-  measuring it the way M40.1 was measured. Do not claim it otherwise.
-
-## M38 · Portable context — the project as a shared workspace — ☐ SPEC'D 2026-08-27 (owner-requested)
+## M38 · Portable context — the project as a shared workspace — ◧ **.1–.2 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`** (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
 _Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
 human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
 on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
@@ -388,7 +371,7 @@ the asymmetry M37 exists to end._
   execution stays with the agent / UP-MNG-02, the trust boundary becomes "you cloned this repo" rather
   than "you opened a file someone sent you". Write-time validation, import refusal of contents, a
   Loaded-panel row. Security first, before anything wants to bend it.
-- [M38.2] ☐ **Vocabulary** — what `live` means in THIS system. The cheapest large win in the milestone:
+- [M38.2] ☑ **Vocabulary** _(2026-08-27: `vocabulary=` pointer in the profile; `context.vocabulary` with the file's text; first block of the Explain prompt; `VOCABULARY` share category default-on; panel row)_ — what `live` means in THIS system. The cheapest large win in the milestone:
   an LLM on an unseen processor and a first-week support engineer need the identical thing, and neither
   has it. Inert, shareable, no execution.
 - [M38.3] ☐ **Environments + the §E provenance each stamps** — correctness, not convenience: two

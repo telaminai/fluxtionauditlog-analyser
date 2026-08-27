@@ -58,7 +58,9 @@ public final class SettingsShare {
         ASSISTANT("Assistant", true),
         LLM("LLM provider/model/base-URL (never the API key)", false),
         /** M38.1 D-C8: off by default, and the exporter refuses any value that is not a project-relative path. */
-        RUNBOOKS("Runbook LOCATIONS (paths in your repository — never their contents)", false);
+        RUNBOOKS("Runbook LOCATIONS (paths in your repository — never their contents)", false),
+        /** M38.2 D-C3/D-C8: a pointer to the glossary file — inert, so it travels by default. */
+        VOCABULARY("Domain glossary LOCATION (a markdown file in your repository — never its contents)", true);
 
         public final String label;
         public final boolean defaultOn;
@@ -155,6 +157,9 @@ public final class SettingsShare {
         }
         if (categories.contains(Category.RUNBOOKS) && !c.runbooks.isEmpty()) {
             ConfigStore.writeRunbooks(p, c.runbooks);      // D-C2: pointers only; refused values never leave
+        }
+        if (categories.contains(Category.VOCABULARY) && c.vocabularyPath != null && !c.vocabularyPath.isBlank()) {
+            ConfigStore.writeVocabulary(p, c.vocabularyPath);
         }
         if (categories.contains(Category.VIEW)) {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
@@ -325,6 +330,14 @@ public final class SettingsShare {
                     + String.join("; ", refused)));
         }
 
+        String vocabulary = null;
+        if (p.getProperty("vocabulary") != null) {
+            present.add(Category.VOCABULARY);
+            vocabulary = ConfigStore.readVocabulary(p).orElse(null);
+            summary.put(Category.VOCABULARY, vocabulary != null ? "glossary at " + vocabulary
+                    : "REFUSED — " + ConfigStore.vocabularyRefusal(p).orElse("not a project-relative path"));
+        }
+
         List<String> hiddenColumns = null;
         if (p.getProperty("hiddenColumn.count") != null) {
             present.add(Category.VIEW);
@@ -357,7 +370,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks,
+                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -401,6 +414,9 @@ public final class SettingsShare {
                 if (Runbooks.refuse(name, path).isEmpty()) target.runbooks.put(name, path);   // replace-by-name
             });
         }
+        if (selected.contains(Category.VOCABULARY) && plan.vocabulary() != null) {
+            target.vocabularyPath = plan.vocabulary();          // already gated in preview
+        }
         if (selected.contains(Category.VIEW) && plan.hiddenColumns() != null) {
             // View is the sender's column layout — replace the set wholesale (not additive)
             target.hiddenColumns.clear();
@@ -438,6 +454,7 @@ public final class SettingsShare {
             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
             List<String> hiddenColumns,
             Map<String, String> runbooks,
+            String vocabulary,
             Boolean assistantInProcess,
             Boolean assistantRest,
             Integer maxRounds,

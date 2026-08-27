@@ -7,6 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Vocabulary — the project's glossary reaches the assistant.** `vocabulary=docs/glossary.md` in the
+  profile points at a markdown file in the repository (the same pointer rules as a runbook). Its text is
+  served in `context.vocabulary.text` and placed first in every *Explain* prompt, so `live` is read the way
+  this system means it — for an LLM on an unseen processor and for a support engineer in their first week.
+  Travels by default under a new **Domain glossary LOCATION** share checkbox; shown in the Project panel.
 - **Runbook pointers — the first slice of portable context.** A project can now record *where* its
   runbooks live — `runbook.0.name=deploy` / `runbook.0.path=ops/deploy.md` in the committed profile — a
   pointer into the repository, never the commands, and the analyser never executes it. Absolute paths, `..`,

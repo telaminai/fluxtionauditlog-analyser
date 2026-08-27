@@ -42,6 +42,12 @@ public final class LlmPanel extends JPanel {
     private Supplier<AppConfig> configSupplier = () -> null;
     private Supplier<List<LogRecord>> selectionSupplier = List::of;
     private Supplier<String> epFqnSupplier = () -> null;
+    /** M38.2: the project's glossary text, or null — set by the frame, read at prompt time. */
+    private Supplier<String> vocabularySupplier = () -> null;
+
+    public void setVocabularySupplier(Supplier<String> vocabularySupplier) {
+        this.vocabularySupplier = vocabularySupplier == null ? () -> null : vocabularySupplier;
+    }
     private Supplier<LogFileInfo> fileInfoSupplier = () -> null;
     private Supplier<LogStore> storeSupplier = () -> null;
     private RenderExecutor renderExecutor;   // render verbs (filter/graph/goto/flag); null → not enabled
@@ -112,7 +118,8 @@ public final class LlmPanel extends JPanel {
     private String buildContext() {
         List<LogRecord> records = selectionSupplier.get();
         if (records == null || records.isEmpty()) return "";
-        return PromptBuilder.recordContext(records, epFqnSupplier.get(), sourceService, fileInfoSupplier.get());
+        return PromptBuilder.recordContext(records, epFqnSupplier.get(), sourceService, fileInfoSupplier.get(),
+                vocabularySupplier.get());
     }
 
     private void onSend() {

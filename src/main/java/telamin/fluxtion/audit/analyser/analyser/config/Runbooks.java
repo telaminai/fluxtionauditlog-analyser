@@ -36,28 +36,36 @@ public final class Runbooks {
             return Optional.of("runbook name must be 1–40 letters, digits, '-' or '_' (got "
                     + (name == null ? "nothing" : "'" + abbreviate(name) + "'") + ")");
         }
-        if (path == null || path.isBlank()) return Optional.of("runbook '" + name + "': no path given");
+        return refusePointer("runbook '" + name + "'", path);
+    }
+
+    /**
+     * M38.2 — the same gate for ANY pointer the profile holds (a runbook, the vocabulary file): one rule for
+     * pointed-at content, not two. {@code label} names the entry in the reason.
+     */
+    public static Optional<String> refusePointer(String label, String path) {
+        if (path == null || path.isBlank()) return Optional.of(label + ": no path given");
         if (path.length() > MAX_PATH) {
-            return Optional.of("runbook '" + name + "': path longer than " + MAX_PATH + " characters — that is not a path");
+            return Optional.of(label + ": path longer than " + MAX_PATH + " characters — that is not a path");
         }
         if (path.chars().anyMatch(ch -> ch == '\n' || ch == '\r' || ch == '\t')) {
-            return Optional.of("runbook '" + name + "': contains a line break or tab — a runbook is a LOCATION, never its contents");
+            return Optional.of(label + ": contains a line break or tab — a pointer is a LOCATION, never its contents");
         }
         if (path.startsWith("/") || path.startsWith("\\") || path.matches("^[A-Za-z]:.*")) {
-            return Optional.of("runbook '" + name + "': '" + abbreviate(path) + "' is absolute — it must be relative to the project root");
+            return Optional.of(label + ": '" + abbreviate(path) + "' is absolute — it must be relative to the project root");
         }
         if (path.contains("://") || path.startsWith("~")) {
-            return Optional.of("runbook '" + name + "': '" + abbreviate(path) + "' is a URL or a home-relative path — it must be a file in this repository");
+            return Optional.of(label + ": '" + abbreviate(path) + "' is a URL or a home-relative path — it must be a file in this repository");
         }
         String[] segments = path.split("[/\\\\]");
         for (String seg : segments) {
             if (seg.equals("..")) {
-                return Optional.of("runbook '" + name + "': '" + abbreviate(path) + "' escapes the project root ('..')");
+                return Optional.of(label + ": '" + abbreviate(path) + "' escapes the project root ('..')");
             }
             if (seg.isEmpty() || !SEGMENT.matcher(seg).matches()) {
-                return Optional.of("runbook '" + name + "': '" + abbreviate(path) + "' is not a plain relative path — spaces, "
+                return Optional.of(label + ": '" + abbreviate(path) + "' is not a plain relative path — spaces, "
                         + "quotes, '$', ';', '|', '&', '<', '>', '*', '?' and backticks are refused because a "
-                        + "runbook entry is a location, never a command");
+                        + "pointer is a location, never a command");
             }
         }
         return Optional.empty();

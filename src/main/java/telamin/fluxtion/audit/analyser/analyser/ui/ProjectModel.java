@@ -39,7 +39,8 @@ public record ProjectModel(List<Section> sections) {
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
             "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
-            "runbooks.name", "runbooks.path", "runbooks.resolved", "runbooks.exists", "runbooks.from");
+            "runbooks.name", "runbooks.path", "runbooks.resolved", "runbooks.exists", "runbooks.from",
+            "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
             PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports";
@@ -70,6 +71,15 @@ public record ProjectModel(List<Section> sections) {
             rows.add(new Row(r.get("name") + " runbook",
                     r.get("path") + (known && !exists ? " — file NOT found under the project root" : " — a pointer into the repository, never contents"),
                     str(r.get("resolved")), str(r.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL, Target.NONE));
+        }
+        // M38.2: the glossary pointer — the same shape as a runbook row, because it is the same kind of thing
+        Map<String, Object> vocab = map(ctx.get("vocabulary"));
+        if (vocab.get("path") != null) {
+            boolean known = vocab.get("exists") != null, exists = Boolean.TRUE.equals(vocab.get("exists"));
+            rows.add(new Row("vocabulary", vocab.get("path") + (known && !exists
+                    ? " — file NOT found under the project root"
+                    : " — the domain glossary; its text is served to the assistant and in `context`"),
+                    str(vocab.get("resolved")), str(vocab.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL, Target.NONE));
         }
         out.add(new Section(PROJECT, rows));
 

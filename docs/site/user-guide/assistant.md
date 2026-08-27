@@ -142,6 +142,9 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
     `context` (and `topology`) once the load lands, and none of them is ever a dialog on this path. This is
     one pattern, not four exceptions — if you need any of them, call `context` after opening.
 
+When the project points at a glossary (*Portable context ▸ Vocabulary*), its text leads every *Explain*
+prompt and is served as `context.vocabulary.text`, so the assistant reads `live` the way this system means it.
+
 `context` is also what the **Project panel** draws (*User guide ▸ The Project panel*): one payload, two
 readers. It reports the graph whether or not a log is open, `log.openedBy` (you or the action socket),
 `graphPairing.graphPath`, `processors` as a list with `selected` and whether `source` was `found`, and

@@ -78,8 +78,38 @@ so an agent and a person read one set of facts.
 checkbox. It is **off by default**: a path such as `ops/deploy.md` says something about how your
 repository is laid out, so it leaves only when you tick it.
 
+## Vocabulary — what `live` means *here*
+
+Two readers need exactly the same thing and neither has it: an **LLM** answering about a processor it has
+never seen, and a **support engineer in their first week** answering about a system they did not build.
+The node is called `spreadCalculator`; what the number means is in somebody's head.
+
+The project points at a glossary — a markdown file in the repository, the same rule as a runbook (owner
+decision, 2026-08-27: one rule for pointed-at content, not two):
+
+```properties
+vocabulary=docs/glossary.md
+```
+
+The file is yours to shape. What earns its place: what each domain term means in *this* system (`live`,
+`suspended`, `breach`), what a normal value looks like (a typical spread, an unusual one), which nodes
+matter and which are plumbing, which events are routine and which never are.
+
+**What the analyser does with it — this is the one pointer whose contents it reads.** A glossary is
+tier-1 fact: inert, read, never acted on. So its text is served in `context` (`vocabulary.text`, capped at
+16 000 characters) and placed **first** in the assistant's prompt for *Explain* — before the record, because
+what `live` means decides how every number in the record reads. A runbook's contents are never read; a
+glossary's are the point.
+
+The pointer is validated at every entrance like a runbook's; a refused value is announced in the status
+bar on project open. It travels by default under **Domain glossary LOCATION (a markdown file in your
+repository — never its contents)** — inert, so there is nothing to consent to beyond a path.
+
+The Project panel shows it under the project row — *`vocabulary · docs/glossary.md`*, warning when the
+file is missing.
+
 ## What comes next
 
-Vocabulary (what `live` means in *this* system), declared environments and the provenance each stamps,
-repeatable analyses, and report destinations — each a `context` fact first and a Project-panel row, so
+Declared environments and the provenance each stamps, repeatable analyses, report destinations, and path
+anchors — each a `context` fact first and a Project-panel row, so
 it is visible to both parties by construction. See the tracker's M38 for the order.

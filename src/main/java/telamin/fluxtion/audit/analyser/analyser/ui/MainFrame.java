@@ -164,6 +164,7 @@ public final class MainFrame extends JFrame {
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
+        llmPanel.setVocabularySupplier(this::vocabularyText);   // M38.2: the glossary reaches the assistant's prompt
         actionControl = new AppControlAdapter();
         actionExecutor.bind(topologyPanel, actionControl);
         refreshProjectPanel();                       // M37: state the empty session too
@@ -324,6 +325,43 @@ public final class MainFrame extends JFrame {
         west.add(rail, BorderLayout.WEST);
         layoutWest(west);
         return west;
+    }
+
+    /** M38.2: the glossary pointer as context reports it — path, where it lands, whether it exists, its text. */
+    private Map<String, Object> vocabularyForContext() {
+        Map<String, Object> v = new java.util.LinkedHashMap<>();
+        if (config.vocabularyPath == null || config.vocabularyPath.isBlank()) return v;
+        Path root = project.hasProject()
+                ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
+        v.put("path", config.vocabularyPath);
+        Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, config.vocabularyPath);
+        if (abs != null) {
+            v.put("resolved", abs.toString());
+            boolean exists = java.nio.file.Files.isRegularFile(abs);
+            v.put("exists", exists);
+            if (exists) {
+                String text = vocabularyText();
+                if (text != null) {
+                    v.put("text", text.length() > telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.MAX_VOCABULARY_CHARS
+                            ? text.substring(0, telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.MAX_VOCABULARY_CHARS) : text);
+                    if (text.length() > telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.MAX_VOCABULARY_CHARS) v.put("truncated", true);
+                }
+            }
+        }
+        v.put("from", project.hasProject() ? "project" : "own settings");
+        return v;
+    }
+
+    /** The glossary file's text, or null when there is no pointer, no project root, or no file. */
+    private String vocabularyText() {
+        if (config.vocabularyPath == null || config.vocabularyPath.isBlank() || !project.hasProject()) return null;
+        Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()), config.vocabularyPath);
+        try {
+            return abs != null && java.nio.file.Files.isRegularFile(abs) ? java.nio.file.Files.readString(abs) : null;
+        } catch (java.io.IOException | RuntimeException e) {
+            return null;                    // a glossary that cannot be read is absent, and the panel says "NOT found"
+        }
     }
 
     /** M38.1: each pointer with where it lands on THIS machine and whether the file is there. */
@@ -3714,6 +3752,13 @@ public final class MainFrame extends JFrame {
             {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
+            }
+            // M38.2: the glossary pointer — and, when the file is there, its text (D-C3: served in context).
+            // Tier 1 and inert, which is why serving the CONTENT here is right where serving a runbook's
+            // would be wrong: a glossary is read, a runbook is acted on.
+            {
+                Map<String, Object> v = vocabularyForContext();
+                if (!v.isEmpty()) out.put("vocabulary", v);
             }
             // M37.6: where files LEAVE, and the reports the project holds. The exchange directory is
             // machine-tier (a path on this disk, never shared); the reports are project-tier. Both were

@@ -86,6 +86,7 @@ public final class ConfigStore {
         readFocuses(p, c.namedFocuses);
         readReports(p, c.reports);
         readRunbooks(p, c.runbooks);
+        c.vocabularyPath = readVocabulary(p).orElse("");
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -156,6 +157,7 @@ public final class ConfigStore {
         writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
         writeReports(p, globalTier == null ? c.reports : globalTier.reports());
         writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
+        writeVocabulary(p, globalTier == null ? c.vocabularyPath : globalTier.vocabularyPath());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
@@ -546,6 +548,25 @@ public final class ConfigStore {
             i++;
         }
         p.setProperty("runbook.count", Integer.toString(i));
+    }
+
+    /** M38.2: the vocabulary pointer — written only when it passes the gate. */
+    static void writeVocabulary(Properties p, String path) {
+        if (path == null || path.isBlank() || Runbooks.refusePointer("vocabulary", path).isPresent()) return;
+        p.setProperty("vocabulary", path);
+    }
+
+    /** @return the stored pointer, or empty when absent OR refused (the reason is in {@link #vocabularyRefusal}). */
+    static java.util.Optional<String> readVocabulary(Properties p) {
+        String v = p.getProperty("vocabulary");
+        if (v == null || v.isBlank()) return java.util.Optional.empty();
+        return Runbooks.refusePointer("vocabulary", v).isPresent() ? java.util.Optional.empty() : java.util.Optional.of(v);
+    }
+
+    static java.util.Optional<String> vocabularyRefusal(Properties p) {
+        String v = p.getProperty("vocabulary");
+        if (v == null || v.isBlank()) return java.util.Optional.empty();
+        return Runbooks.refusePointer("vocabulary", v);
     }
 
     /** @return the reasons for every entry refused (empty when all were plain relative paths) */

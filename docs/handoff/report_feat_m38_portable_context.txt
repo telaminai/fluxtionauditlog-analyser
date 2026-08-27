@@ -35,6 +35,23 @@ M38.1 — the tier model + runbook POINTERS (D-C1, D-C2, D-C7, D-C8)
   file anywhere in the analyser — that would make the analyser a runbook reader, which is a step toward the
   thing D-C2 forbids.
 
-OPEN QUESTIONS (owner) — untouched by .1, needed before .2/.3:
+M38.2 — vocabulary (D-C3; owner decision 1: a pointed-at markdown file) · branch feat/m38-portable-context
+  AppConfig.vocabularyPath   one pointer, project-scoped; profile key `vocabulary=docs/glossary.md`.
+  Runbooks.refusePointer     the M38.1 gate generalised with a label — runbook and vocabulary share one rule;
+                             refused at the loader (announced in the status bar), share import and export.
+  Category.VOCABULARY        "Domain glossary LOCATION (a markdown file in your repository — never its contents)",
+                             default ON (inert, D-C8).
+  context.vocabulary         {path, resolved, exists, from, text (≤16 000 chars), truncated}. The one pointer whose
+                             CONTENTS the analyser reads: a glossary is read, a runbook is acted on.
+  Explain prompt             PromptBuilder.recordContext(…, vocabulary) puts the glossary FIRST — what `live` means
+                             decides how the record reads. LlmPanel.setVocabularySupplier wires it.
+  Project panel              a `vocabulary` row under the project row, WARN when the file is missing.
+  tests                      RunbooksTest.theVocabularyPointerUsesTheSameGate… (gate, category, export/import,
+                             profile round-trip, loader refusal announced); VocabularyPromptTest (3);
+                             ProjectModelTest.theVocabularyPointerIsARowOfTheProjectSection.
+  docs                       portable-context.md ▸ Vocabulary; sharing-setups row; project-panel; assistant.md.
+
+DECIDED (owner, 2026-08-27, on main 20628ab): 1 pointer file · 2 environments travel · 3 links only · 4 baselines → M39.
+Previously listed here as open:
   1 vocabulary: profile vs pointed-at file (proposed pointer + small inline fallback)
   2 environments travel by default?   3 prior findings as links only?   4 baselines → M39?
