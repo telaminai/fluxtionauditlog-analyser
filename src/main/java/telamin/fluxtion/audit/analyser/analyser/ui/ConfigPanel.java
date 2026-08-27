@@ -476,14 +476,22 @@ public final class ConfigPanel extends JDialog {
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.NONE;
         c.gridwidth = 2; c.insets = new Insets(3, 0, 3, 0);
-        c.gridy = 0; p.add(actionsInProcess, c);
-        c.gridy = 1; p.add(actionsRest, c);
-        c.gridy = 2; p.add(exportsToggle, c);
+        JButton connect = new JButton("Connect an AI client…");
+        connect.addActionListener(e -> McpSetupDialog.show(this, config, () -> {
+            // The nested setup may persistently enable REST. Mirror that direct state change into this
+            // still-open Settings form, or a later OK would write its stale unchecked value back over it.
+            actionsRest.setSelected(config.assistantActionsRest);
+            if (onSaved != null) onSaved.run();
+        }, McpSetupDialog.Target.GENERIC, true));
+        c.gridy = 0; p.add(connect, c);
+        c.gridy = 1; p.add(actionsInProcess, c);
+        c.gridy = 2; p.add(actionsRest, c);
+        c.gridy = 3; p.add(exportsToggle, c);
 
         // label column stays at preferred width; the value column takes all spare width so the
         // spinners keep their preferred size instead of being squeezed / clipped on the right
         c.gridwidth = 1; c.insets = new Insets(6, 0, 3, 8);
-        c.gridy = 3; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Export directory:"), c);
+        c.gridy = 4; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Export directory:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; c.fill = GridBagConstraints.HORIZONTAL;
         JPanel dirRow = new JPanel(new BorderLayout(6, 0));
         dirRow.setOpaque(false);
@@ -499,13 +507,13 @@ public final class ConfigPanel extends JDialog {
         dirRow.add(browseExport, BorderLayout.EAST);
         p.add(dirRow, c);
         c.fill = GridBagConstraints.NONE;
-        c.gridy = 4; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
+        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxRoundsSpinner), c);
-        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
+        c.gridy = 6; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxActionsSpinner), c);
         c.weightx = 0;
 
-        c.gridx = 0; c.gridy = 6; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridx = 0; c.gridy = 7; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(14, 0, 4, 0);
         p.add(mutedNote("The assistant can <b>compute over the index</b> and <b>build curation</b> (filter / "
                 + "graph / goto / flag) as it answers. <b>In-process</b> opens no port. <b>REST</b> exposes a "
@@ -513,7 +521,7 @@ public final class ConfigPanel extends JDialog {
                 + "can make HTTP calls — its URL + token appear in the status bar (and console) when enabled. "
                 + "<b>File exports are off by default</b>: when allowed, the screenshot/report verbs may write "
                 + "<b>only inside the exchange directory</b> above; external-series reads are confined to the same directory (or files you pick in a chooser), and writes never overwrite an existing file."), c);
-        c.gridy = 7; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
+        c.gridy = 8; c.weighty = 1; c.fill = GridBagConstraints.BOTH;
         p.add(Box.createGlue(), c);
         return p;
     }

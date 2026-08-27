@@ -1618,6 +1618,9 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries);
             }
+            @Override public void openMcpSetup(McpSetupDialog.Target target) {
+                McpSetupDialog.show(MainFrame.this, config, MainFrame.this::enableMcpLocalTransport, target, false);
+            }
             @Override public void backToRecords() { syncRecordsCard(); }
         }, text -> status.setText(text));
         recordsCards.add(startPanel, "start");
@@ -1760,6 +1763,12 @@ public final class MainFrame extends JFrame {
             llmPanel.setRestEndpoint(null, null);
             status.setText("Assistant REST transport stopped.");
         }
+    }
+
+    /** M42.2's explicit setup confirmation reaches this narrow state change, then the normal save/start funnel. */
+    private void enableMcpLocalTransport() {
+        config.assistantActionsRest = true;
+        onConfigChanged();
     }
 
     /** Describes the loaded log so the LLM prompt can seed file access (path, shape, byte anchors). */

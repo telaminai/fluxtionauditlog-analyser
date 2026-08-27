@@ -350,7 +350,7 @@ green check never pretends it has observed a foreign client or model._
   redaction, `OTHER_INSTANCE` protection, and a real bridge → REST → `context` test under isolated home. The M19
   isolated-home bench now launches the packaged `--mcp` child and proves modern discovery, `analyser_context`
   discovery and its read-only call back into that exact analyser (2026-08-27).
-- [M42.2] ☐ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
+- [M42.2] ◧ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
   transport enablement; distinct app/bridge/client state.
 - [M42.3] ☐ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
 - [M42.4] ☐ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,

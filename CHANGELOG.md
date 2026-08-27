@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Connect an AI client, without a first-run pop-up.** The Start page now offers Codex, Claude and
+  generic MCP setup, with the same entry under Settings ▸ Assistant. It explains which current analyser
+  window an agent can operate, asks before it persistently enables local transport, and can check the
+  exact local bridge command without exposing the endpoint token. Its status distinguishes this app,
+  the bridge, and a third-party client registration instead of calling a local check “connected”.
+
 ## [1.10.0] - 2026-08-27
 
 ### Fixed

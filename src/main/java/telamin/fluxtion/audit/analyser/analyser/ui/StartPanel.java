@@ -59,6 +59,9 @@ public final class StartPanel extends JPanel {
          */
         void openSettings();
 
+        /** Open local AI-client setup; each card is a normal navigation action, never a first-run modal. */
+        void openMcpSetup(McpSetupDialog.Target target);
+
         /** Back to the records table, for a page raised over an open log (Help ▸ Start page). */
         void backToRecords();
     }
@@ -71,6 +74,9 @@ public final class StartPanel extends JPanel {
 
     /** The "back to the records" row — present always, visible only over an open log. */
     private final JComponent returnRow;
+
+    /** The optional AI-client offer; dismissal is deliberately only for this rendered Start Page. */
+    private final JComponent aiClientOffer;
 
     public StartPanel(Actions actions, Consumer<String> status) {
         super(new BorderLayout());
@@ -117,6 +123,9 @@ public final class StartPanel extends JPanel {
                 card("I want the numbers out of this",
                         "Chart a value over time and export it.", false,
                         () -> open(DemoAssets.seriesLog(), false, "Graph"))));
+
+        aiClientOffer = aiClientOffer();
+        col.add(aiClientOffer);
 
         col.add(Box.createVerticalStrut(18));
         col.add(footer());
@@ -205,6 +214,33 @@ public final class StartPanel extends JPanel {
         p.add(lead);
         p.add(link("Set up source roots and an assistant", actions::openSettings));
         return p;
+    }
+
+    /**
+     * M42.2's Start Page offer. "Not now" is only a page-level dismissal: there is no remembered
+     * opt-out, because declining an offer while reading a log says nothing about a later investigation.
+     */
+    private JComponent aiClientOffer() {
+        Box offer = Box.createVerticalBox();
+        offer.setAlignmentX(LEFT_ALIGNMENT);
+        offer.add(Box.createVerticalStrut(20));
+        offer.add(heading("Work with an AI client"));
+        offer.add(body("Let an approved client query and render into this running analyser window. The connection stays on this machine."));
+        offer.add(Box.createVerticalStrut(8));
+        offer.add(row(
+                card("Connect Codex", "Set up the local bridge Codex will use.", false,
+                        () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
+                card("Connect Claude", "Set up the local bridge for Claude.", false,
+                        () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE)),
+                card("Generic MCP setup", "Prepare this analyser for another MCP client.", false,
+                        () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
+        offer.add(Box.createVerticalStrut(6));
+        offer.add(link("Not now", () -> {
+            aiClientOffer.setVisible(false);
+            revalidate();
+            repaint();
+        }));
+        return offer;
     }
 
     /**
