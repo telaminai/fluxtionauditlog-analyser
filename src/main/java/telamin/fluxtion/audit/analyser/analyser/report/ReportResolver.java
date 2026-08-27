@@ -156,8 +156,8 @@ public final class ReportResolver {
                     ? new SectionResolution(i, s.kind(), true, null, null, null)
                     : unresolved(i, s, "focus '" + s.ref() + "' is not defined");
             case SERIES -> {
-                String expr = s.call().get("expr");
-                String key = s.call().get("key");
+                String expr = callText(s.call().get("expr"));
+                String key = callText(s.call().get("key"));
                 if (expr == null && key == null) {
                     yield unresolved(i, s, "a series section's call names neither 'key' nor 'expr'");
                 }
@@ -172,7 +172,7 @@ public final class ReportResolver {
                 yield new SectionResolution(i, s.kind(), true, null, null, null);
             }
             case TABLE -> {
-                String verb = s.call().get("verb");
+                String verb = callText(s.call().get("verb"));
                 if (verb == null || !TABLE_VERBS.contains(verb)) {
                     yield unresolved(i, s, "a table's rows are DERIVED (D-I7): its call must name one "
                             + "of " + TABLE_VERBS + ", got '" + verb + "'");
@@ -214,6 +214,10 @@ public final class ReportResolver {
 
     private static boolean inRange(LogIndex idx, int recordIndex) {
         return idx != null && recordIndex >= 0 && recordIndex < idx.size();
+    }
+
+    private static String callText(Object value) {
+        return value == null ? null : value.toString();
     }
 
     private static SectionResolution unresolved(int i, ReportSpec.SectionSpec s, String reason) {

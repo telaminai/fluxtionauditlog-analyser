@@ -286,7 +286,7 @@ public final class ConfigStore {
                 int ci = 0;
                 for (var e : s.call().entrySet()) {
                     put(p, k + ".call." + ci + ".key", e.getKey());
-                    put(p, k + ".call." + ci + ".val", e.getValue());
+                    put(p, k + ".call." + ci + ".val", callValueForStore(e.getValue()));
                     ci++;
                 }
                 p.setProperty(k + ".col.count", Integer.toString(s.columns().size()));
@@ -347,12 +347,12 @@ public final class ConfigStore {
                 } catch (IllegalArgumentException e) {
                     continue;                                   // a kind this build does not know: skip
                 }
-                java.util.Map<String, String> call = new java.util.LinkedHashMap<>();
+                java.util.Map<String, Object> call = new java.util.LinkedHashMap<>();
                 int cc = parseInt(p.getProperty(k + ".call.count"), 0);
                 for (int ci = 0; ci < cc; ci++) {
                     String key = p.getProperty(k + ".call." + ci + ".key");
                     String val = p.getProperty(k + ".call." + ci + ".val");
-                    if (key != null && val != null) call.put(key, val);
+                    if (key != null && val != null) call.put(key, callValueFromStore(val));
                 }
                 List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.ColumnSpec> cols =
                         new java.util.ArrayList<>();
@@ -373,6 +373,30 @@ public final class ConfigStore {
             out.add(new telamin.fluxtion.audit.analyser.analyser.report.ReportSpec(
                     name, p.getProperty(base + ".title"), p.getProperty(base + ".created", ""),
                     p.getProperty(base + ".notes", ""), fp, filter, sections));
+        }
+    }
+
+    /**
+     * Report calls retain the flat, portable properties layout. Only values that cannot be represented
+     * as a scalar property are JSON encoded; scalar-only reports from older releases therefore read
+     * exactly as they did before M33.7.
+     */
+    private static String callValueForStore(Object value) {
+        return value instanceof java.util.Map<?, ?> || value instanceof java.util.List<?>
+                ? telamin.fluxtion.audit.analyser.analyser.llm.Json.write(value)
+                : value == null ? null : value.toString();
+    }
+
+    private static Object callValueFromStore(String value) {
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return value;
+        try {
+            Object parsed = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(value);
+            return parsed instanceof java.util.Map<?, ?> || parsed instanceof java.util.List<?> ? parsed : value;
+        } catch (RuntimeException ignored) {
+            // A hand-edited, malformed legacy property is still a scalar call value, not a reason to
+            // discard an otherwise usable report.
+            return value;
         }
     }
 

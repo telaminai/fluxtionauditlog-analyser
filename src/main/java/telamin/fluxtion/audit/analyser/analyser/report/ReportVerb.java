@@ -102,7 +102,7 @@ public final class ReportVerb {
                 return ReportSpec.SectionSpec.topology(f);
             }
             case SERIES -> {
-                Map<String, String> call = callMap(m.get("call"));
+                Map<String, Object> call = callMap(m.get("call"));
                 if (call.isEmpty()) {
                     warnings.add("section " + i + ": a series section needs 'call' — skipped");
                     return null;
@@ -110,7 +110,7 @@ public final class ReportVerb {
                 return ReportSpec.SectionSpec.series(call);
             }
             case TABLE -> {
-                Map<String, String> call = callMap(m.get("call"));
+                Map<String, Object> call = callMap(m.get("call"));
                 if (call.isEmpty()) {
                     warnings.add("section " + i + ": a table's rows are derived — it needs 'call' "
                             + "naming a verb (read/series/aggregate/coverage) — skipped");
@@ -146,25 +146,42 @@ public final class ReportVerb {
     }
 
     /**
-     * A section's call is kept as strings (it is re-issued to the verb at assembly time). JSON
-     * numbers arrive as doubles, so an integral one is rendered without its fraction: an agent that
-     * sends {@code recordIndex: 0} must not have it re-issued as {@code "0.0"}, which {@code read}
-     * cannot parse as an anchor — the table then failed with "read needs a recordIndex" although the
-     * author had given one (found 2026-08-27, recording the sample conversations).
+     * Preserve a report call in the form the action received. Nested maps and arrays must remain
+     * structured: {@code aggregate {filter: {...}}} and {@code series {crossings: {...}}} are reissued
+     * verbatim after a restart. Top-level scalars retain their historical string form, including the
+     * integral-number spelling that makes a JSON {@code recordIndex: 0} reissue as {@code "0"}, not
+     * {@code "0.0"}.
      */
-    private static Map<String, String> callMap(Object raw) {
-        Map<String, String> out = new LinkedHashMap<>();
+    private static Map<String, Object> callMap(Object raw) {
+        Map<String, Object> out = new LinkedHashMap<>();
         if (raw instanceof Map<?, ?> m) {
             for (var e : m.entrySet()) {
                 if (e.getKey() != null && e.getValue() != null) {
-                    out.put(e.getKey().toString(), callValue(e.getValue()));
+                    out.put(e.getKey().toString(), e.getValue() instanceof Map<?, ?> || e.getValue() instanceof List<?>
+                            ? structured(e.getValue()) : scalar(e.getValue()));
                 }
             }
         }
         return out;
     }
 
-    private static String callValue(Object v) {
+    private static Object structured(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> copy = new LinkedHashMap<>();
+            for (var e : map.entrySet()) {
+                if (e.getKey() != null) copy.put(e.getKey().toString(), structured(e.getValue()));
+            }
+            return copy;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> copy = new ArrayList<>(list.size());
+            for (Object item : list) copy.add(structured(item));
+            return copy;
+        }
+        return value;
+    }
+
+    private static String scalar(Object v) {
         if (v instanceof Number n && !(v instanceof Integer || v instanceof Long)) {
             double d = n.doubleValue();
             if (Double.isFinite(d) && d == Math.rint(d) && Math.abs(d) < 1e15) {
@@ -191,7 +208,7 @@ public final class ReportVerb {
      */
     public static AssembledTable assembleTable(ReportSpec.SectionSpec s, LogStore store) {
         List<String> notes = new ArrayList<>();
-        String verb = s.call().get("verb");
+        String verb = text(s.call().get("verb"));
         if (!"read".equals(verb)) {
             notes.add("table source '" + verb + "' is not assembled yet — v1 derives rows from "
                     + "read {fields}; the section resolves and the gap is stated rather than hidden");
@@ -202,7 +219,7 @@ public final class ReportVerb {
         for (var e : s.call().entrySet()) {
             if (e.getKey().equals("verb")) continue;
             if (e.getKey().equals("fields")) {
-                callParams.put("fields", List.of(e.getValue().split("\\s*,\\s*")));
+                callParams.put("fields", fields(e.getValue()));
             } else {
                 callParams.put(e.getKey(), e.getValue());   // ReadService parses numerics itself
             }
@@ -310,15 +327,21 @@ public final class ReportVerb {
         return Double.isFinite(v) && v != 0.0;
     }
 
-    private static List<ReportSpec.ColumnSpec> defaultColumns(String fields) {
+    private static List<String> fields(Object value) {
+        if (value instanceof List<?> list) {
+            return list.stream().filter(java.util.Objects::nonNull).map(Object::toString).toList();
+        }
+        String fields = text(value);
+        return fields == null || fields.isBlank() ? List.of() : List.of(fields.split("\\s*,\\s*"));
+    }
+
+    private static List<ReportSpec.ColumnSpec> defaultColumns(Object value) {
         List<ReportSpec.ColumnSpec> cols = new ArrayList<>();
         cols.add(new ReportSpec.ColumnSpec("recordIndex", "record", "", "right", "", 0));
         cols.add(new ReportSpec.ColumnSpec("logTime", "time (UTC)", "time", "", "", 0));
         cols.add(new ReportSpec.ColumnSpec("event", "event", "", "left", "", 0));
-        if (fields != null) {
-            for (String f : fields.split("\\s*,\\s*")) {
-                if (!f.isBlank()) cols.add(new ReportSpec.ColumnSpec(f, f, "", "", "", 0));
-            }
+        for (String f : fields(value)) {
+            if (!f.isBlank()) cols.add(new ReportSpec.ColumnSpec(f, f, "", "", "", 0));
         }
         return cols;
     }
@@ -337,6 +360,10 @@ public final class ReportVerb {
 
     private static String str(Object o) {
         return o == null || o.toString().isBlank() ? null : o.toString();
+    }
+
+    private static String text(Object o) {
+        return o == null ? null : o.toString();
     }
 
     private static Integer asInt(Object o) {

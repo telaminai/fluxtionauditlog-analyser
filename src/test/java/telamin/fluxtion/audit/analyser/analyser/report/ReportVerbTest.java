@@ -129,6 +129,17 @@ class ReportVerbTest {
     }
 
     @Test
+    void nestedCallValuesStayStructuredRatherThanBeingFlattenedToJavaText() {
+        Map<String, Object> filter = Map.of("from", 1_000.0, "dimensions", List.of("Quote", "Fill"));
+        var parsed = parse(List.of(Map.of("kind", "table", "call",
+                Map.of("verb", "aggregate", "groupBy", "dimension", "filter", filter))));
+
+        Object actual = parsed.spec().sections().get(0).call().get("filter");
+        assertInstanceOf(Map.class, actual);
+        assertEquals(filter, actual);
+    }
+
+    @Test
     void aGenuINELYfractionalParameterKeepsItsFraction() {
         // the fix must not turn every number into an integer: a threshold is not an anchor
         var parsed = parse(List.of(Map.of("kind", "table", "call",

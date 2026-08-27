@@ -43,6 +43,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   user may sync or commit. Credential-shaped options are now refused by the same gate that already
   guards report destinations, using one shared definition rather than a second copy.
 
+- **Report table calls now retain nested parameters after restart.** A report can store and reissue
+  structured `filter`, `crossings`, and similar call values without flattening them into Java display
+  text; existing scalar-only report settings remain compatible.
+
 ## [1.11.0] - 2026-08-27
 
 ### Fixed

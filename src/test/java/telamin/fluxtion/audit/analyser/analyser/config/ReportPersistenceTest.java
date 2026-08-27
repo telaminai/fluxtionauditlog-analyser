@@ -51,6 +51,62 @@ class ReportPersistenceTest {
     }
 
     @Test
+    void aNestedReportCallRoundTripsAsStructuredData() {
+        Map<String, Object> filter = Map.of(
+                "from", 1_000.0,
+                "to", 2_000.0,
+                "dimensions", List.of("Quote", "Fill"));
+        ReportSpec report = new ReportSpec("scoped", "Scoped", "", "", null, FilterSnapshot.all(),
+                List.of(SectionSpec.table(Map.of(
+                        "verb", "aggregate", "groupBy", "dimension", "filter", filter),
+                        List.of(), null, null)));
+        Properties p = new Properties();
+
+        ConfigStore.writeReports(p, List.of(report));
+
+        String savedFilter = null;
+        for (int i = 0; i < 4; i++) {
+            if ("filter".equals(p.getProperty("report.0.s.0.call." + i + ".key"))) {
+                savedFilter = p.getProperty("report.0.s.0.call." + i + ".val");
+                break;
+            }
+        }
+        assertNotNull(savedFilter);
+        assertTrue(savedFilter.startsWith("{") && savedFilter.endsWith("}"),
+                "the existing flat call.N.val slot carries compact JSON only for a structured value");
+        java.util.List<ReportSpec> back = new java.util.ArrayList<>();
+        ConfigStore.readReports(p, back);
+
+        Object restored = back.get(0).sections().get(0).call().get("filter");
+        assertInstanceOf(Map.class, restored);
+        assertEquals(filter, restored, "the verb can receive its nested filter again after a restart");
+    }
+
+    @Test
+    void aPreM337ScalarOnlyReportStillReadsAsBareStrings() {
+        Properties p = new Properties();
+        p.setProperty("report.count", "1");
+        p.setProperty("report.0.name", "old-report");
+        p.setProperty("report.0.s.count", "1");
+        p.setProperty("report.0.s.0.kind", "TABLE");
+        p.setProperty("report.0.s.0.call.count", "3");
+        p.setProperty("report.0.s.0.call.0.key", "verb");
+        p.setProperty("report.0.s.0.call.0.val", "read");
+        p.setProperty("report.0.s.0.call.1.key", "recordIndex");
+        p.setProperty("report.0.s.0.call.1.val", "0");
+        p.setProperty("report.0.s.0.call.2.key", "fields");
+        p.setProperty("report.0.s.0.call.2.val", "book.mid");
+        p.setProperty("report.0.s.0.col.count", "0");
+        java.util.List<ReportSpec> back = new java.util.ArrayList<>();
+
+        ConfigStore.readReports(p, back);
+
+        assertEquals(Map.of("verb", "read", "recordIndex", "0", "fields", "book.mid"),
+                back.get(0).sections().get(0).call(),
+                "old scalar values keep their old spelling instead of being guessed as JSON");
+    }
+
+    @Test
     void aNullDimensionSetSurvives_theAllMeaning() {
         ReportSpec allDims = new ReportSpec("r", "t", "", "", null, FilterSnapshot.all(),
                 List.of(SectionSpec.narrative("x")));

@@ -83,7 +83,7 @@ public record ReportSpec(String name, String title, String createdAt, String not
      * @param rowWhenLabel TABLE: what the highlight MEANS — printed with the table (D-I8)
      */
     public record SectionSpec(Kind kind, int recordIndex, String file, String ref,
-                              Map<String, String> call, String text,
+                              Map<String, Object> call, String text,
                               List<ColumnSpec> columns, String rowWhen, String rowWhenLabel) {
 
         public SectionSpec {
@@ -119,17 +119,24 @@ public record ReportSpec(String name, String title, String createdAt, String not
             return new SectionSpec(Kind.TOPOLOGY, -1, null, focusName, null, null, null, null, null);
         }
 
-        public static SectionSpec series(Map<String, String> call) {
-            return new SectionSpec(Kind.SERIES, -1, null, null, call, null, null, null, null);
+        public static SectionSpec series(Map<String, ?> call) {
+            return new SectionSpec(Kind.SERIES, -1, null, null, copyCall(call), null, null, null, null);
         }
 
-        public static SectionSpec table(Map<String, String> call, List<ColumnSpec> columns,
+        public static SectionSpec table(Map<String, ?> call, List<ColumnSpec> columns,
                                         String rowWhen, String rowWhenLabel) {
-            return new SectionSpec(Kind.TABLE, -1, null, null, call, null, columns, rowWhen, rowWhenLabel);
+            return new SectionSpec(Kind.TABLE, -1, null, null, copyCall(call), null, columns, rowWhen, rowWhenLabel);
         }
 
         public static SectionSpec narrative(String text) {
             return new SectionSpec(Kind.NARRATIVE, -1, null, null, null, text, null, null, null);
+        }
+
+        private static Map<String, Object> copyCall(Map<String, ?> call) {
+            if (call == null || call.isEmpty()) return Map.of();
+            Map<String, Object> copy = new LinkedHashMap<>();
+            call.forEach(copy::put);
+            return copy;
         }
     }
 }
