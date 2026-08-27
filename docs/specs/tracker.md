@@ -277,7 +277,7 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 - [M31.4r] ☐ **Out-of-tree example reader** — lives in the playground repo (this repo cannot ship it);
   also the ONE M31 acceptance only a real jar can settle (two conflicting plugin jars coexisting).
   The in-tree toy reader in ReaderSpiTest is the seam proof meanwhile. Cross-repo slice.
-- [M31.5] ☐ *(owner decision)* **Separate `analyser-reader-spi` artifact** — needs a multi-module
+- [M31.5] ☐ **NOT YET** _(owner, 2026-08-27)_ · **Separate `analyser-reader-spi` artifact** — needs a multi-module
   build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
 ## M33 · Investigation reports — ◧ CORE SHIPPED 2026-08-20 (archived; M33.5 gated)
@@ -286,7 +286,8 @@ _M33.1–.4 shipped, twice-reviewed, owner-eyeballed and merged — full record 
 Design: **[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md)**._
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
-- [M33.6] ☐ *(owner call, from the eyeball pass — E4)* **chooser dialog for external marker CSVs** —
+- [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
+  otherwise verb-only)_ · **chooser dialog for external marker CSVs** —
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
@@ -356,7 +357,7 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M38 · Portable context — the project as a shared workspace — ◧ **.1 IMPLEMENTED on `feat/m37-loaded-panel` 2026-08-27** (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
+## M38 · Portable context — the project as a shared workspace — ◧ **.1 IMPLEMENTED 2026-08-27** (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
 _Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
 human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
 on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
@@ -394,8 +395,7 @@ the asymmetry M37 exists to end._
 - [M39] ☐ **Baselines** _(spec to write)_ — a reference healthy log and/or expected coverage set bound to
   the project, so "is this normal here?" is answerable by someone who never saw the system before.
 
-
-## M37 · Project panel — what is in force, stated in one place — ◧ **IMPLEMENTED on `feat/m37-loaded-panel` 2026-08-27**, awaiting review (spec ACCEPTED; report `docs/handoff/report_feat_m37_loaded_panel.txt`)
+## M37 · Project panel — what is in force, stated in one place — ☑ **SHIPPED 2026-08-27** (.1–.6; review `docs/handoff/review_feat_m37_loaded_panel.txt` MERGE, F1 fixed by the reviewer, F2 taken)
 _Design: **[spec-loaded-panel.md](spec-loaded-panel.md)**. The owner's ask: a tab on the west rail that
 shows the loaded graphml(s), the event processors (Java classes), the audit logs, and the project's name
 and file location — "currently it is not clear what is loaded in the current project"._
@@ -429,8 +429,10 @@ saved graphs fell 6 → 1 and no surface showed the count._
   reports by title. `context` gains `exports` and `reports`; M38.5's published destination is a further row
   on this section (D-C6).
 
-**Owner calls, decided 2026-08-26/27:** name **Project** (was "Loaded" until seen live); **stacked** with Event types; the start page does
-**not** show the PROJECT section inline. Work: `feat/m37-loaded-panel` (brief `docs/handoff/handoff_26_aug_2026_1.txt`).
+**Owner calls, decided 2026-08-26/27:** name **Project** (was "Loaded" until seen live); **stacked** with Event
+types; the start page does **not** show the PROJECT section inline. Review F2 taken: sentences wrap, paths
+elide, default column 340px. Brief `docs/handoff/handoff_26_aug_2026_1.txt`, report
+`docs/handoff/report_feat_m37_loaded_panel.txt`.
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
