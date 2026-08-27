@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.io.File;
+import java.nio.file.Files;
 
 /**
  * M37 — the Project panel: five sections stating what is in force, rendered from a {@link ProjectModel}
@@ -106,13 +107,15 @@ public final class ProjectPanel extends JPanel {
         if (r.path() != null) {
             actions.add(small("Copy", "Copy the full path: " + r.path(), () -> copy(r.path())));
             if (!r.path().contains("://")) {                 // a remote origin has nothing to show locally
-                actions.add(small("Show", "Show in " + fileManagerName(), () -> reveal(r.path())));
+                // owner, 2026-08-27: the buttons say what they do — "Show file" opens the file manager, "Open" opens the thing
+                actions.add(small("Show file", "Show in " + fileManagerName(), () -> reveal(r.path())));
             }
         }
         switch (r.target()) {
-            case TOPOLOGY -> actions.add(small("Go", "Go to the Topology tab", () -> navigator.showTab("Topology")));
-            case SOURCE -> actions.add(small("Go", "Go to the Source tab", () -> navigator.showTab("Source")));
-            case REPORTS -> actions.add(small("Go", "Go to the Reports tab", () -> navigator.showTab("Reports")));
+            case TOPOLOGY -> actions.add(small("Open", "Open in the Topology tab", () -> navigator.showTab("Topology")));
+            case SOURCE -> actions.add(small("Open", "Open in the Source tab", () -> navigator.showTab("Source")));
+            case REPORTS -> actions.add(small("Open", "Open in the Reports tab", () -> navigator.showTab("Reports")));
+            case VIEW_FILE -> actions.add(small("Open", "Read the file here, as written — nothing is run", () -> viewFile(r.path(), r.primary())));
             case SETTINGS_SOURCE -> actions.add(small("Settings…", "Settings ▸ Source roots", () -> navigator.openSettings("Source roots")));
             case SETTINGS_PROCESSORS -> actions.add(small("Settings…", "Settings ▸ Event processor", () -> navigator.openSettings("Event processor")));
             case ADD_SOURCE -> actions.add(small("Add source", "Settings ▸ Source roots — add the root that holds this class", () -> navigator.openSettings("Source roots")));
@@ -171,6 +174,58 @@ public final class ProjectPanel extends JPanel {
         b.putClientProperty("JButton.buttonType", "toolBarButton");
         b.addActionListener(e -> action.run());
         return b;
+    }
+
+    /** Longest file the viewer shows whole; a runbook or glossary is a page, not a dump. */
+    static final int VIEWER_MAX_CHARS = 256_000;
+
+    /**
+     * A read-only viewer for a file the profile points at (owner, 2026-08-27). Plain text, as written — not
+     * rendered markdown, which would need a dependency and would be a second reading of something a person
+     * may act on. This is a HUMAN surface: D-C2 forbids the analyser executing a runbook or serving its contents
+     * to an agent with the analyser's authority, and a person reading the file in the app is neither. Reveal only.
+     */
+    private void viewFile(String path, String title) {
+        String text;
+        try {
+            java.nio.file.Path p = java.nio.file.Path.of(path);
+            if (!Files.isRegularFile(p)) { text = "(no file at " + path + ")"; }
+            else {
+                text = Files.readString(p);
+                if (text.length() > VIEWER_MAX_CHARS) {
+                    text = text.substring(0, VIEWER_MAX_CHARS) + "\n\n… [" + (text.length() - VIEWER_MAX_CHARS) + " more characters not shown — Show file to read the rest]";
+                }
+            }
+        } catch (Exception e) {
+            text = "(could not read " + path + ": " + e.getMessage() + ")";
+        }
+        JTextArea area = new JTextArea(text);
+        area.setEditable(false);
+        area.setFont(UiTheme.mono(12));
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setCaretPosition(0);
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setPreferredSize(new Dimension(720, 480));
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), title + " — " + path, java.awt.Dialog.ModalityType.MODELESS);
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
+        JButton showFile = new JButton("Show file");
+        showFile.addActionListener(e -> reveal(path));
+        JButton copyPath = new JButton("Copy path");
+        copyPath.addActionListener(e -> copy(path));
+        JButton close = new JButton("Close");
+        close.addActionListener(e -> dialog.dispose());
+        buttons.add(showFile); buttons.add(copyPath); buttons.add(close);
+        JLabel note = new JLabel("Read-only. The analyser shows this file for you; it never runs it and never hands its contents to an agent.");
+        UiTheme.status(note);
+        note.setBorder(BorderFactory.createEmptyBorder(6, 8, 0, 8));
+        dialog.getContentPane().setLayout(new BorderLayout());
+        dialog.getContentPane().add(note, BorderLayout.NORTH);
+        dialog.getContentPane().add(scroll, BorderLayout.CENTER);
+        dialog.getContentPane().add(buttons, BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     private static void copy(String path) {

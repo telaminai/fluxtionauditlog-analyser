@@ -27,7 +27,9 @@ public record ProjectModel(List<Section> sections) {
     /** Where a row's "go to" leads — navigation only (D-L3). */
     public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, SETTINGS_PROCESSORS, SETTINGS_ASSISTANT, PROJECT, REPORTS,
         /** A processor whose source was not found: the remedy is a root, so the button says so and opens Settings ▸ Source roots. */
-        ADD_SOURCE }
+        ADD_SOURCE,
+        /** A pointed-at file a PERSON may read in the app (runbook, glossary): a read-only viewer — never executed, never served to an agent. */
+        VIEW_FILE }
 
     public record Section(String title, List<Row> rows) { }
 
@@ -74,9 +76,12 @@ public record ProjectModel(List<Section> sections) {
             boolean known = r.get("exists") != null;
             boolean exists = Boolean.TRUE.equals(r.get("exists"));
             // the pointer goes on the WRAPPING line, where it is read whole; the eliding first line holds the name
+            // owner, 2026-08-27: Open shows the file read-only IN the app for the person — D-C2 forbids executing
+            // it and serving its contents to an agent; a person reading what the profile points at is neither
             rows.add(new Row(r.get("name") + " runbook",
                     r.get("path") + (known && !exists ? " — file NOT found under the project root" : " — a pointer into the repository, never contents"),
-                    str(r.get("resolved")), str(r.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL, Target.NONE));
+                    str(r.get("resolved")), str(r.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL,
+                    exists ? Target.VIEW_FILE : Target.NONE));
         }
         // M38.2: the glossary pointer — the same shape as a runbook row, because it is the same kind of thing
         Map<String, Object> vocab = map(ctx.get("vocabulary"));
@@ -85,7 +90,8 @@ public record ProjectModel(List<Section> sections) {
             rows.add(new Row("vocabulary", vocab.get("path") + (known && !exists
                     ? " — file NOT found under the project root"
                     : " — the domain glossary; its text is served to the assistant and in `context`"),
-                    str(vocab.get("resolved")), str(vocab.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL, Target.NONE));
+                    str(vocab.get("resolved")), str(vocab.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL,
+                    exists ? Target.VIEW_FILE : Target.NONE));
         }
         // M38.3: the environments the project declares — one row each, the default marked
         for (Object o : list(ctx.get("environments"))) {

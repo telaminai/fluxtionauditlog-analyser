@@ -33,9 +33,10 @@ whoever sent the file. With a pointer, the executable content stays in your repo
 diffed, attributable, revertible — and the trust boundary becomes *"you cloned this repo"*, which every
 developer already evaluates, instead of *"you opened a file someone sent you"*, which nobody does.
 
-**What the analyser does with a pointer: shows it.** It never opens, renders or runs the runbook. An
-agent that wants to deploy reads the file from the repository with its own tools; the analyser only says
-where it is.
+**What the analyser does with a pointer: shows it — to you.** *Open* on the Project panel's runbook row
+reads the file in a read-only viewer, as written; *Show file* opens it in the file manager. The analyser
+never **executes** a runbook and never **serves its contents to an agent** — an agent that wants to deploy
+reads the file from the repository with its own tools; the analyser only tells it where.
 
 ### Recording one
 
@@ -79,8 +80,8 @@ surface in `context` so a model can pick the right runbook without opening all o
 ### Where you see it
 
 The **Project panel** lists each pointer under the project row — *`deploy runbook: ops/deploy.md ·
-project`* — with *Copy* / *Show* acting on where it lands on your machine, and a warning when the file
-is not there. `context` reports the same under `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
+project`* — with *Open* (read it here), *Copy* and *Show file* acting on where it lands on your machine,
+and a warning when the file is not there. `context` reports the same under `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
 so an agent and a person read one set of facts.
 
 ### Sharing it

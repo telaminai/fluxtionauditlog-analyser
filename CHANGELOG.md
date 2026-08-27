@@ -17,6 +17,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   The excluded list and the scored list now come back in **graph order**, as documented, so a reader can
   line them up against the Topology tab — previously both were scrambled by an unordered copy.
 
+### Changed
+- **Project panel buttons say what they do**: *Show* → **Show file** (the file manager), *Go* → **Open** (the
+  thing in its tab). A runbook or glossary row's **Open** now reads the file in a read-only viewer inside the
+  app — as written, nothing run, nothing handed to an agent — with *Show file* and *Copy path* beside it.
+
 ### Added
 - **Docs: Working with AI ▸ Sample conversations** — six LLM → MCP → analyser conversations on the demo set. The asks
   and answers are authored; every tool call and echo is recorded from a real run by `tools/capture-conversations.py`

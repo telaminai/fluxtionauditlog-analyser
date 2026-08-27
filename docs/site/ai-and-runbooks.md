@@ -22,9 +22,11 @@ flowchart LR
 > anything in a profile that an agent will act on must be inert, or a pointer to something under
 > version control — never an instruction the profile itself carries.
 
-So the analyser stores **where** a runbook is (`ops/deploy.md`), never what it says, and it **never
-opens, renders or runs** one. The AI does the reading and the doing, with its own tools and its own
-permissions, from the repository it has cloned. That is also why there is deliberately **no action-socket
+So the analyser stores **where** a runbook is (`ops/deploy.md`), never what it says; it **never executes**
+one and **never hands its contents to an agent** — the pointer is all `context` carries. (A person can read
+the file in the app: *Open* on the Project panel row is a read-only viewer. That is a human surface, not a
+channel.) The AI does the reading and the doing, with its own tools and its own permissions, from the
+repository it has cloned. That is also why there is deliberately **no action-socket
 verb** to write a runbook: an agent that could both record a pointer and act on it is a loop with no human
 in it. The pointer lives in a committed file, so it goes through the same review as the runbook.
 

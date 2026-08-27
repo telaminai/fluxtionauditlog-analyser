@@ -12,10 +12,10 @@ on the left rail under *Event types*, states all five at once.
 
 | Section | Row | Where it came from (the right-hand column) |
 |---|---|---|
-| **Project** | the profile's name and directory; *Copy* / *Show* the settings file; one row per **runbook pointer**, one for the **vocabulary** file (warning if missing), one per declared **environment** — see [Portable context](portable-context.md) | *project settings in force* — or *No project — using your own settings* |
+| **Project** | the profile's name and directory; *Copy* / *Show file* the settings file; one row per **runbook pointer** and one for the **vocabulary** file — *Open* reads the file here, read-only (warning if missing); one per declared **environment** — see [Portable context](portable-context.md) | *project settings in force* — or *No project — using your own settings* |
 | **Audit log** | the file you opened, as you named it (`s3://…` stays `s3://…`), records | *opened by you* / *opened by the action socket*, the system it came from, and **who said so** — *declared by the opener*, or the project environment that supplied it |
 | **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log. Above it, if the processor was built without audit logging: *⚠ audit logging NOT installed — this processor writes no audit log at all*, which outranks the pairing because pairing a log that will never exist is a question about nothing | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
-| **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root — *Go* opens it in the Source tab; when it was not found there is no *Go*, and **Add source** opens Settings ▸ Source roots | *project* / *own settings* / *discovered under a root* |
+| **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root — *Open* opens it in the Source tab; when it was not found there is no *Open*, and **Add source** opens Settings ▸ Source roots | *project* / *own settings* / *discovered under a root* |
 | **Source roots** | each root with its **stored form** — *project-relative*, *workspace-relative*, *~*, *absolute*; under a project, *absolute* and *~* are a warning that the profile will not resolve on a colleague's machine — and the workspace anchor if declared | *project* / *own settings* / *demo (transient)* |
 | **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *File ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
 | **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
@@ -25,9 +25,11 @@ supply one with its log"* — so you never have to go elsewhere to learn why it 
 
 ## What it will and will not do
 
-Every button on the panel **reveals or navigates**: *Copy* the full path, *Show* it in the file
-manager, *Go* to the Topology or Source tab, *Settings…* for roots and processors. Nothing on it closes,
-switches or edits — those stay in the File menu and Settings, so the panel is a display you can trust.
+Every button on the panel **reveals or navigates**: *Copy* the full path, *Show file* in the file
+manager, *Open* the thing in its tab (Topology, Source, Reports) or — for a runbook or the glossary — in a
+read-only viewer, *Settings…* for roots, processors and the exchange directory, *Add source* when a
+processor's source was not found. Nothing on it closes, switches, edits or runs — those stay in the File
+menu and Settings, so the panel is a display you can trust.
 
 Paths are drawn abbreviated (`~/…/build/x.graphml`); the full value is the tooltip and what *Copy*
 copies. That keeps the column readable, and it keeps an incidental screenshot from carrying every path

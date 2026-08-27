@@ -69,7 +69,11 @@ or a pointer to something under version control — never an instruction the pro
 
 **Execution stays where M18's closure put it.** The analyser gains no server-mutating code: the agent
 runs the runbook with its own tools, or through a Mongoose-side MCP tool (UP-MNG-02). The profile says
-*where the knowledge is*, never *do this*.
+*where the knowledge is*, never *do this*. **Precisely what the analyser will not do with a runbook** (owner,
+2026-08-27): execute it, or serve its contents to an agent — `context` carries the pointer only. What it
+will do: show the file read-only to the *person* who clicks *Open* on the Project panel, exactly as *Show
+file* does through the file manager. A human reading what the profile points at is neither of the two
+hazards this decision exists for.
 
 ## D-C3 — vocabulary, and it is first because it is the cheapest large win
 

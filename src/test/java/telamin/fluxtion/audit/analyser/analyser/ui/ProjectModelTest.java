@@ -199,9 +199,10 @@ class ProjectModelTest {
         assertEquals("/work/demo/ops/deploy.md", rows.get(1).path(), "Copy/Show act on where it lands here");
         assertEquals("ops/deploy.md — a pointer into the repository, never contents", rows.get(1).secondary(),
                 "the pointer is drawn as the profile holds it, on the line that wraps rather than elides");
-        assertEquals(ProjectModel.Target.NONE, rows.get(1).target(), "nothing on the panel runs it");
+        assertEquals(ProjectModel.Target.VIEW_FILE, rows.get(1).target(), "owner 2026-08-27: Open reads the file in the app, for the person — nothing runs it");
         assertEquals(ProjectModel.Tone.WARN, rows.get(2).tone());
         assertEquals("ops/restart.md — file NOT found under the project root", rows.get(2).secondary());
+        assertEquals(ProjectModel.Target.NONE, rows.get(2).target(), "a missing file has nothing to open");
     }
 
     @Test
@@ -214,6 +215,7 @@ class ProjectModelTest {
         assertEquals("vocabulary", rows.get(1).primary());
         assertTrue(rows.get(1).secondary().startsWith("docs/glossary.md — the domain glossary"), rows.get(1).secondary());
         assertEquals("/work/demo/docs/glossary.md", rows.get(1).path());
+        assertEquals(ProjectModel.Target.VIEW_FILE, rows.get(1).target(), "the glossary opens in the read-only viewer too");
         ctx.put("vocabulary", Map.of("path", "docs/glossary.md", "resolved", "/work/demo/docs/glossary.md", "exists", false, "from", "project"));
         rows = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows();
         assertEquals(ProjectModel.Tone.WARN, rows.get(1).tone());
