@@ -89,7 +89,9 @@ just which file) and **source adapters M34.1–.2** (`graph(Path)` on the reader
 provenance, `GraphSource` precedence — opened beats supplied, a reader's graph clears with its log —
 ordering claim honoured by the view, coverage refusing an inferred graph) and **M34.3** (the record format's
 normative specification — *The audit log ▸ Format specification* — with a conformance suite the built-in
-reader and the SPI both pass).
+reader and the SPI both pass). **M37 the Project panel** (shipped 2026-08-27: what is in force — project, log, graph, processors,
+roots, reports — rendered from `context` for people; the west column is draggable) and **M38.1** (runbook
+POINTERS — the profile records a location, never contents; `docs/specs/spec-portable-context.md`).
 
 Also merged: **M19.6/.7** (`tools/bench/` — the dev loop's conformance bench, §H's home, runnable today
 against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.4** (the start page: the

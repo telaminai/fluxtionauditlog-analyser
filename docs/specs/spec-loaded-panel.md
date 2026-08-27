@@ -1,6 +1,6 @@
 # Spec — the Project panel: what is in force, stated in one place
 
-**Status:** SHIPPED 2026-08-27 (.1–.6; spec review `docs/handoff/review_spec_loaded_panel.txt` C1–C4 folded in; branch review `docs/handoff/review_feat_m37_loaded_panel.txt` MERGE, F2 taken; report `docs/handoff/report_feat_m37_loaded_panel.txt`). **Milestone:** M37. **Tracker:** [tracker.md](tracker.md) ▸ M37.
+**Status:** SHIPPED 2026-08-27 (.1–.6; spec review `docs/handoff/completed/review_spec_loaded_panel.txt` C1–C4 folded in; branch review `docs/handoff/completed/review_feat_m37_loaded_panel.txt` MERGE, F2 taken; report `docs/handoff/completed/report_feat_m37_loaded_panel.txt`). **Milestone:** M37. **Tracker:** [tracker.md](tracker.md) ▸ M37.
 
 ## The proposition
 
