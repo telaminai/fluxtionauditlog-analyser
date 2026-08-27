@@ -133,6 +133,15 @@ export **and** on import, so a stray `apiKey=` in a shared file is ignored rathe
 `LLM` category deliberately shares provider/model/base-URL while never sharing the key. Credentials
 continue to come from the environment the agent already runs in.
 
+**What the gate can and cannot promise** (M38.5 review F1, 2026-08-27). For a bucket, a directory or a
+base URL the invariant is inspectable: user info, a query, a fragment, an access-key shape or a
+`token=`/`password=`/`Authorization` shape are refused with the reason. For a **webhook** the place *is*
+the credential — anyone holding `https://hooks.slack.com/services/…` can post there — and no inspection
+separates the two. So the known webhook hosts are refused by name (Slack, Teams, Discord, Zapier,
+Telegram, Google Chat), and the `DESTINATIONS` share category defaults **off**, the LLM precedent: a field
+that *can* hold a secret is shared knowingly or not at all. The analyser never publishes, so the blast
+radius of a leaked destination is a secret in a shared file, not an action.
+
 ## D-C7 — every new fact is a `context` fact first, and appears in the Loaded panel
 
 Directly inherited from M37's D-L1 and its corollary: a fact the human panel needs that `context` lacks
@@ -197,6 +206,14 @@ thesis applied to M38's problem, and it is a label, not a feature.
 
 An override remains available for the rare deliberate case — a per-root choice in Settings, defaulting
 to automatic — but it is a correction, not the mechanism.
+
+**As built (M38.6, review 2026-08-27) the anchor is stricter than "at most six up":** only a pure `..`
+sequence is accepted — `../../../etc` (an ancestor plus a named segment) and `../ok/../..` (normalisation
+trickery) are both refused — so the anchor can only ever be an ancestor *directory*, never a sideways
+path. That is the property that makes "one rule, no per-path toggle" safe rather than merely convenient.
+Consequence, recorded so nobody rediscovers it as a surprise: six levels up from a deep checkout can
+reach a home directory or the filesystem root; source roots are inert lists the analyser resolves, the
+wider set was chosen deliberately, and the stored-form badge is the mitigation.
 
 ## Non-goals
 

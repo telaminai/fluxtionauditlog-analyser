@@ -379,7 +379,7 @@ the asymmetry M37 exists to end._
   production has no symptom the analyser can detect. Pairs with UP-MNG-03 (server wins where both exist).
 - [M38.4] ☑ **Repeatable analyses** _(2026-08-27: `analysis.N.*` in the profile; gate = analyser verbs only, no project switch; `context.analyses` is the offer; recall via `open {analysis, bind}` and File ▸ Run analysis; stops at first failure; `ANALYSES` share category default-on; panel section)_ — a named sequence of analyser verbs with its rationale and bound
   parameters; an offer, never automatic.
-- [M38.5] ☑ **Report destinations** _(2026-08-27: `destination.N.*`; gate refuses credential shapes; `context.reportDestinations`; Reports-section rows; `DESTINATIONS` share category default-on; the category table completed on the docs page)_ (a place, never a credential — the `LLM`-category precedent), share
+- [M38.5] ☑ **Report destinations** _(2026-08-27: `destination.N.*`; gate refuses credential shapes; `context.reportDestinations`; Reports-section rows; `DESTINATIONS` share category — default OFF after review F1: a webhook URL is a credential in path form, known hosts refused by name; the category table completed on the docs page)_ (a place, never a credential — the `LLM`-category precedent), share
   categories completed, docs + CHANGELOG.
 - **Owner decisions, 2026-08-27:** vocabulary is a **pointed-at markdown file** (same rule as a runbook —
   one rule for pointed-at content, not two); environments **travel by default**, label naming the cargo;

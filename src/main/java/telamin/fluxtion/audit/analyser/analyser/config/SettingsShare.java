@@ -65,8 +65,13 @@ public final class SettingsShare {
         ENVIRONMENTS("Environments (names, the provenance string each stamps — which may name systems and hosts — and their log directories; never log data)", true),
         /** M38.4 D-C5/D-C8: tier 2 — analyser verb sequences; they can only drive this viewer. */
         ANALYSES("Saved analyses (named analyser-verb sequences with their rationale — they can only drive this viewer, never a server)", true),
-        /** M38.5 D-C6/D-C8: places only — the gate refuses anything shaped like a credential. */
-        DESTINATIONS("Report destinations (where reports are published — a bucket, directory or base URL; never a credential)", true);
+        /**
+         * M38.5 D-C6/D-C8. OFF by default (review F1): the gate refuses every credential SHAPE it knows, but a
+         * webhook URL is a credential in path form and cannot be told from a place by inspection — the same
+         * reason the LLM category exists and does not travel. The field can hold a secret even though it usually
+         * does not, so the person sharing ticks it knowingly.
+         */
+        DESTINATIONS("Report destinations (where reports are published — a bucket, directory or base URL; may hold a webhook URL, which is a secret)", false);
 
         public final String label;
         public final boolean defaultOn;

@@ -79,6 +79,12 @@ M38.6 — path anchors (D-C9)
                              correction, not the mechanism) — not built.
   Tests                      PathFormTest (3); ProjectModelTest.theStoredFormIsABadge….
 
+REVIEW OF .5/.6 (review_feat_m38_5_6.txt) — .6 no findings; .5 F1 TAKEN, both remedies
+  (a) Category.DESTINATIONS default OFF; label names the risk ("may hold a webhook URL, which is a secret").
+  (b) known webhook hosts refused by name with the reason (Slack, Teams incl. *.webhook.office.com, Discord,
+      Zapier, Telegram bot API, Google Chat). D-C6 now states what the gate can and cannot promise; D-C9 records
+      the stronger "pure .. sequence" claim and the six-levels consequence the reviewer noted.
+
 FOUND LIVE — a hazard for shared profiles, recorded for the owner (not fixed here)
   An OLDER analyser that opens a profile written by a NEWER one drops the keys it does not know on its next
   save: ProjectProfile.write rebuilds the file from the categories it understands. Seen here by accident (a

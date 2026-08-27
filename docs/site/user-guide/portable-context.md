@@ -226,8 +226,12 @@ report knows where it belongs and publishes with its own credentials. File-writi
 exchange directory, and the analyser gains no server-side code, which is the standing decision M18's
 closure rests on.
 
-Destinations **travel by default** under **Report destinations (where reports are published — a bucket,
-directory or base URL; never a credential)**.
+**One shape no inspection can catch: a webhook.** `https://hooks.slack.com/services/…` is a credential
+in path form — anyone holding it can post to the channel — and "publish the incident report to the team's
+channel" is the first thing a support team would paste. The known webhook hosts (Slack, Teams, Discord,
+Zapier, Telegram, Google Chat) are refused by name, and the **Report destinations** share checkbox is
+**off by default**, like *LLM*: a field that can hold a secret is shared knowingly or not at all. Publish
+to a channel through the agent's own configured integration; record the *place* the report belongs.
 
 ## Path anchors — one rule, and the anchor that was missing
 
@@ -269,7 +273,7 @@ profile you are about to share, is the whole warning, delivered before the failu
 | Runbook LOCATIONS | 1 | off | project-relative paths — never contents |
 | Domain glossary LOCATION | 1 | on | one project-relative path — never contents |
 | Environments | 1 | on | names, provenance strings (may name systems and hosts), log directories |
-| Report destinations | 1 | on | places — never credentials |
+| Report destinations | 1 | **off** | places — bucket, directory, base URL; a webhook URL is a secret in path form, refused when recognised, and the reason the box is off |
 | Saved analyses | 2 | on | analyser-verb sequences with their rationale — they can only drive this viewer |
 
 Every label names its cargo (D-C8): ticking the box is consenting to exactly what it says.

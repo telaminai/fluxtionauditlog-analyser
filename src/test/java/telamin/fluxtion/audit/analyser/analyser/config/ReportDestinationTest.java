@@ -40,6 +40,12 @@ class ReportDestinationTest {
         bad.put("/mnt/../etc", "'..'");
         bad.put("ftp://host/reports", "not a plain directory path");   // no scheme allowlist for ftp → falls to directory rules and fails on ':'
         bad.put("password=hunter2", "CREDENTIAL");
+        // review F1: a webhook's secret is its PATH — the shape people will actually paste
+        bad.put("https://hooks.slack.com/services/T0000/B0000/XXXXXXXXXXXXXXXX", "webhook");
+        bad.put("https://outlook.office.com/webhook/abc-def/IncomingWebhook/dead", "webhook");
+        bad.put("https://acme.webhook.office.com/webhookb2/abc/IncomingWebhook/x", "webhook");
+        bad.put("https://discord.com/api/webhooks/1234/abcdef", "webhook");
+        bad.put("https://hooks.zapier.com/hooks/catch/1/abc/", "webhook");
         bad.forEach((loc, why) -> {
             var r = ReportDestination.refuse(new ReportDestination("d", loc));
             assertTrue(r.isPresent(), "must refuse: " + loc);
@@ -64,9 +70,9 @@ class ReportDestinationTest {
         assertEquals(1, refused.size());
         assertTrue(refused.get(0).contains("credential"), refused.get(0));
 
-        assertTrue(SettingsShare.Category.DESTINATIONS.defaultOn, "a place is inert; it travels");
+        assertFalse(SettingsShare.Category.DESTINATIONS.defaultOn, "review F1: a webhook URL cannot be told from a place, so the box is off — the LLM precedent");
         String label = SettingsShare.Category.DESTINATIONS.label.toLowerCase();
-        assertTrue(label.contains("never a credential") && label.contains("published"), label);
+        assertTrue(label.contains("webhook") && label.contains("secret") && label.contains("published"), "the label names the risk: " + label);
         assertTrue(ProjectProfile.PROJECT_SCOPED.contains(SettingsShare.Category.DESTINATIONS));
 
         SettingsShare share = new SettingsShare();

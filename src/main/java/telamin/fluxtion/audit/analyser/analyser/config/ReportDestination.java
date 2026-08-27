@@ -29,6 +29,16 @@ public record ReportDestination(String name, String location) {
     private static final Pattern CREDENTIAL = Pattern.compile(
             "(?i)(AKIA[0-9A-Z]{16}|(token|secret|password|passwd|api[_-]?key|authorization|bearer|sig(nature)?)\\s*[=:])");
     public static final int MAX_LOCATION = 300;
+    /**
+     * Review F1 (2026-08-27): a webhook's secret is its PATH — anyone holding the URL can post to the channel —
+     * so no inspection of user info, query or fragment separates the place from the credential. The realistic
+     * shapes are refused by host, with the reason named, because "publish the incident report to the team's
+     * channel" is the first thing a support team would paste here. Everything this list does not know is
+     * bounded by the category defaulting OFF (D-C8, the LLM precedent).
+     */
+    private static final Pattern WEBHOOK = Pattern.compile(
+            "(?i)^https?://(hooks\\.slack\\.com/|[a-z0-9.-]*\\.?webhook\\.office\\.com/|outlook\\.office\\.com/webhook/"
+            + "|discord(app)?\\.com/api/webhooks/|hooks\\.zapier\\.com/|api\\.telegram\\.org/bot|chat\\.googleapis\\.com/v1/spaces/)");
 
     public ReportDestination {
         name = name == null ? "" : name.trim();
@@ -61,6 +71,10 @@ public record ReportDestination(String name, String location) {
                 if (!S3.matcher(loc).matches()) return Optional.of(label + ": '" + loc + "' is not s3://bucket[/prefix]");
             }
             case URL -> {
+                if (WEBHOOK.matcher(loc).find()) {
+                    return Optional.of(label + ": a webhook URL is a CREDENTIAL in path form — anyone holding it can post "
+                            + "there — so it is not a place; publish through the agent's own configured integration instead");
+                }
                 if (loc.contains("@")) return Optional.of(label + ": a URL with user info is a credential, not a place");
                 if (loc.contains("?") || loc.contains("#")) {
                     return Optional.of(label + ": a URL with a query or fragment is refused — tokens travel there; give the base URL");
