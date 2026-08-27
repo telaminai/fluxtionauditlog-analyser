@@ -209,21 +209,25 @@ implementation time (the protocol is an external contract, so rule 6 applies).
 
 ### Claude Desktop
 
-Ship a versioned `fluxtion-analyser.mcpb` desktop extension whose only capability is to launch the
-same local stdio bridge. It receives the explicit, validated command selected by D-I3; it must not
-duplicate launcher discovery, bundle/download a runtime, or start a duplicate GUI. If the documented
-extension contract cannot carry that explicit command portably, the safe v1 fallback is **Copy Claude
-Desktop configuration** — do not invent a second launcher with its own resolution rules.
+Claude Desktop's current [local-server guidance](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop)
+and [MCPB build guidance](https://claude.com/docs/connectors/building/mcpb) were verified on 2026-08-27.
+An `.mcpb` is a bundle with a manifest and a local Node/Python/binary entry point. The analyser has no
+such portable entry point: its validated bridge is a per-machine JBang launcher or an exact Java-plus-jar
+vector. Packaging an extension that re-discovers or re-parses that command would duplicate D-I3's
+resolution rules, while shipping a runtime is outside M42's containment boundary.
 
-The analyser's flow is **Reveal/install extension…**: it prepares or reveals the package, shows the
-command it will run, then opens the client-directed install instructions. Claude Desktop owns extension
-installation, enterprise allowlists and enablement; the analyser must not write its private
-configuration database. The follow-up screen says **Installed in Claude Desktop — check connection**,
-not "connected", until the bridge probe passes.
+Therefore v1 retains the documented generic-config fallback rather than producing a plausible but
+untestable extension: **Claude Desktop** in setup explains that there is no bundled extension and directs
+the person to **Generic MCP setup**, which supplies the resolved no-token stdio configuration. The
+analyser never writes Claude Desktop's private configuration database, opens the client, or claims an
+extension is installed. Claude Desktop owns installation, enterprise allowlists and enablement; after a
+person configures it, the app can still run its own bridge probe but cannot claim a connected desktop
+client or observed model call.
 
-Before implementation, read the current Claude Desktop extension/manifest source of truth and test the
-package on macOS, Windows and Linux. The extension's launch-command conformance tests must reuse the
-D-I3 resolution fixtures; a launcher mismatch is a failed package, not a platform quirk.
+If the application later ships a cross-platform bundled bridge executable, revisit the extension route
+only with a live MCPB manifest validation and macOS/Windows/Linux launch-command conformance tests. On
+non-POSIX platforms the endpoint-file permission is best-effort, while loopback plus the fresh token
+remain the security boundary.
 
 ### Generic MCP
 

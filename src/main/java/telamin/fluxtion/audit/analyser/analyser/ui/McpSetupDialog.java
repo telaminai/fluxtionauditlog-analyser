@@ -48,7 +48,8 @@ public final class McpSetupDialog extends JDialog {
     /** The requested client only tailors the explanation; client registration lands in later M42 slices. */
     public enum Target {
         CODEX("Codex"),
-        CLAUDE("Claude"),
+        CLAUDE_CODE("Claude Code"),
+        CLAUDE_DESKTOP("Claude Desktop"),
         GENERIC("another MCP client");
 
         private final String label;
@@ -64,6 +65,7 @@ public final class McpSetupDialog extends JDialog {
 
         static Target fromPersisted(String value, Target fallback) {
             try {
+                if ("CLAUDE".equals(value)) return CLAUDE_CODE; // M42.2's generic Claude choice keeps its useful route.
                 return value == null || value.isBlank() ? fallback : Target.valueOf(value);
             } catch (IllegalArgumentException ignored) {
                 return fallback;
@@ -271,8 +273,10 @@ public final class McpSetupDialog extends JDialog {
         clientActions.removeAll();
         if (selected == Target.CODEX) {
             refreshCodexStatus();
-        } else if (selected == Target.CLAUDE) {
+        } else if (selected == Target.CLAUDE_CODE) {
             refreshClaudeStatus();
+        } else if (selected == Target.CLAUDE_DESKTOP) {
+            refreshClaudeDesktopStatus();
         } else {
             clientStatus.setText("No generic MCP configuration has been supplied. Its location and approval model belong "
                     + "to your client; opening this screen has not changed it.");
@@ -588,6 +592,13 @@ public final class McpSetupDialog extends JDialog {
     }
 
     private enum ClaudeChange { ADD, REPLACE, REMOVE }
+
+    private void refreshClaudeDesktopStatus() {
+        clientStatus.setText("Claude Desktop extensions need a portable bundled server. This analyser's safe bridge is "
+                + "the exact JBang or Java command on this machine, so no extension is offered that guesses or duplicates "
+                + "that launcher. Use Generic MCP setup to copy the resolved no-token configuration instead.");
+        clientActions.add(action("Use Generic MCP setup", () -> target.setSelectedItem(Target.GENERIC)));
+    }
 
     private void confirmEnableTransport() {
         int choice = JOptionPane.showConfirmDialog(this,

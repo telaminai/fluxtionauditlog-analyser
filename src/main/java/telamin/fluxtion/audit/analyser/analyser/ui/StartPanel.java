@@ -231,7 +231,7 @@ public final class StartPanel extends JPanel {
                 card("Connect Codex", "Set up the local bridge Codex will use.", false,
                         () -> actions.openMcpSetup(McpSetupDialog.Target.CODEX)),
                 card("Connect Claude", "Set up the local bridge for Claude.", false,
-                        () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE)),
+                        () -> actions.openMcpSetup(McpSetupDialog.Target.CLAUDE_CODE)),
                 card("Generic MCP setup", "Prepare this analyser for another MCP client.", false,
                         () -> actions.openMcpSetup(McpSetupDialog.Target.GENERIC))));
         offer.add(Box.createVerticalStrut(6));

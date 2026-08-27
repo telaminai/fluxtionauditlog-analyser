@@ -28,6 +28,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   CLI with an explicit `--scope user`; a project-scope command is copy-only, so the analyser never
   creates or modifies a repository’s `.mcp.json`. A check makes clear that Claude Code may start its
   configured bridge, and a client scope can override another one.
+- **Claude Desktop now has an explicit, honest path.** Setup distinguishes it from Claude Code and
+  explains why no portable `.mcpb` package is shipped for a per-machine JBang/Java bridge. It directs
+  to Generic MCP setup instead of inventing a second launcher or writing Claude Desktop configuration.
 
 ## [1.10.0] - 2026-08-27
 
