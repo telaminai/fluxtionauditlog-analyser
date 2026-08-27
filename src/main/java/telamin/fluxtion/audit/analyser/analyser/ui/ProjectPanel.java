@@ -115,6 +115,7 @@ public final class ProjectPanel extends JPanel {
             case REPORTS -> actions.add(small("Go", "Go to the Reports tab", () -> navigator.showTab("Reports")));
             case SETTINGS_SOURCE -> actions.add(small("Settings…", "Settings ▸ Source roots", () -> navigator.openSettings("Source roots")));
             case SETTINGS_PROCESSORS -> actions.add(small("Settings…", "Settings ▸ Event processor", () -> navigator.openSettings("Event processor")));
+            case ADD_SOURCE -> actions.add(small("Add source", "Settings ▸ Source roots — add the root that holds this class", () -> navigator.openSettings("Source roots")));
             case SETTINGS_ASSISTANT -> actions.add(small("Settings…", "Settings ▸ Assistant", () -> navigator.openSettings("Assistant")));
             default -> { }
         }

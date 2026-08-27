@@ -51,7 +51,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   named it, the graph and its pairing verdict, every configured event processor with whether its source
   was found, and each source root with the tier that supplied it. Every empty section is a sentence saying
   what would fill it. Every button reveals or navigates — copy a path, show it in the file manager, go to
-  the tab — nothing on it changes state. It is drawn from the same `context` payload the assistant reads,
+  the tab — nothing on it changes state; a processor whose source was not found offers *Add source* (Settings ▸
+  Source roots) instead of a *Go* with nowhere to go. It is drawn from the same `context` payload the assistant reads,
   so a person and an agent see one set of facts. Paths are abbreviated on screen; *Copy* gives the full
   value. The left column is now draggable and its width persists. A sixth section, **Reports**, shows
   where files leave — the assistant's exchange directory, or *File exchange off* and where to turn it on

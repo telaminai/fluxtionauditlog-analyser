@@ -93,6 +93,8 @@ class ProjectModelTest {
         assertEquals("selected · source found · com.acme.demo.generated", procs.get(0).secondary());
         assertEquals("source NOT found under any root · com.acme.demo.generated", procs.get(1).secondary());
         assertEquals(ProjectModel.Tone.WARN, procs.get(1).tone(), "a processor whose source cannot be found is a warning, not a muted fact");
+        assertEquals(ProjectModel.Target.SOURCE, procs.get(0).target(), "source found: Go to the Source tab");
+        assertEquals(ProjectModel.Target.ADD_SOURCE, procs.get(1).target(), "owner 2026-08-27: no source → no Go; 'Add source' opens Settings ▸ Source roots");
         assertEquals("project", procs.get(0).provenance());
 
         ProjectModel.Row root = m.section(ProjectModel.ROOTS).rows().get(0);

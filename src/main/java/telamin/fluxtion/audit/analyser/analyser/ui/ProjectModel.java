@@ -25,7 +25,9 @@ public record ProjectModel(List<Section> sections) {
     public enum Tone { NORMAL, MUTED, WARN }
 
     /** Where a row's "go to" leads — navigation only (D-L3). */
-    public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, SETTINGS_PROCESSORS, SETTINGS_ASSISTANT, PROJECT, REPORTS }
+    public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, SETTINGS_PROCESSORS, SETTINGS_ASSISTANT, PROJECT, REPORTS,
+        /** A processor whose source was not found: the remedy is a root, so the button says so and opens Settings ▸ Source roots. */
+        ADD_SOURCE }
 
     public record Section(String title, List<Row> rows) { }
 
@@ -189,7 +191,9 @@ public record ProjectModel(List<Section> sections) {
             String simple = dot < 0 ? fqn : fqn.substring(dot + 1);
             if (dot > 0) detail += " · " + fqn.substring(0, dot);
             rows.add(new Row(simple, detail, null, str(p.get("from")),
-                    found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN, found ? Target.SOURCE : Target.SETTINGS_PROCESSORS));
+                    // owner, 2026-08-27: no source → no "Go" (there is nowhere to go); "Add source" instead, which
+                    // opens the Source roots page — the remedy is a root, not a processor setting
+                    found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN, found ? Target.SOURCE : Target.ADD_SOURCE));
         }
         if (rows.isEmpty()) {
             rows.add(new Row("No event processors", "Settings ▸ Event processor, or open a log and one is inferred",
