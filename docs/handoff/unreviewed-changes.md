@@ -108,6 +108,23 @@ project: a modeless dialog titled with the path, monospace text of `ops/restart-
 opens Finder, *Copy path* copies, *Close* closes; the row for a MISSING runbook has no *Open*. Check the Graph
 row's *Open* still lands on the Topology tab and a processor's *Open* on the Source tab.
 
+## ☐ 2026-08-27 · `3d27f3d` · fix(ui): Project panel + Event types panel follow a theme switch
+
+**What.** Both panels painted colours/fonts/borders from UiTheme at build time and kept them across Theme ▸ …
+(updateComponentTreeUI leaves explicit values alone). `ProjectPanel.refreshTheme()` re-applies the surface and
+re-renders; `EventFilterPanel.refreshTheme()` rebuilds its section border and group-header colours; `applyTheme`
+calls both. New `UiTheme.warnForeground()` is theme-aware.
+
+**Files.** `ProjectPanel`, `EventFilterPanel`, `UiTheme`, `MainFrame.applyTheme`, CHANGELOG.
+
+**Verified.** 954 green; mkdocs strict; sweep; screenshots regenerated. NOT verified live: the runtime theme
+switch is a menu action with no socket verb, so it could not be driven from here.
+
+**Reviewer must still check (Swing).** With the demo project open and the Project panel showing: Theme ▸ Dark —
+the panel background, row text, muted second lines, section titles, the ⚠ rows (should be salmon, readable) and
+the Event types header/border all take the dark palette immediately; Theme ▸ Light reverses it. Also check the
+open runbook viewer dialog is not expected to follow (it is modeless and built once — close/reopen).
+
 # Bugs found (not yet fixed) — for the next session
 
 Not changes to review — defects surfaced while working, logged here so the next puller can pick them up and
