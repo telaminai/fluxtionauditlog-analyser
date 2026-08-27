@@ -43,6 +43,22 @@ public record AnalysisSpec(String name, String rationale, List<String> parameter
     }
 
     private static final Pattern NAME = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_ -]{0,59}");
+    /**
+     * Review F1 — the params of the shipped verbs that name a PATH. "step.action is an analyser verb" is
+     * necessary and not sufficient for "a saved analysis can only drive this viewer": report and screenshot
+     * write files, source_root mutates the recipient's config, open reads any file. So every value here is
+     * gated like every other path in the profile ({@link Runbooks#refusePointer}: project-relative, no
+     * {@code ..}, no command shapes) — or is exactly a declared {@code {parameter}}, bound at run time by the
+     * person recalling the analysis, who sees the value. The recipient of a shared analysis sees a name and a
+     * rationale, not the paths; this is what makes that acceptable.
+     */
+    static final Map<String, List<String>> PATH_PARAMS = Map.of(
+            "open", List.of("log", "logs", "graphml"),
+            "source_root", List.of("add", "remove"),
+            "report", List.of("path"),
+            "screenshot", List.of("path"));
+    /** Path params resolved against the PROJECT ROOT at run time. report/screenshot are not: the export policy confines them to the exchange directory, relative to it. */
+    static final Set<String> PROJECT_RELATIVE_ACTIONS = Set.of("open", "source_root");
     private static final Pattern PARAM = Pattern.compile("[A-Za-z][A-Za-z0-9_]{0,39}");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z][A-Za-z0-9_]*)}");
 
@@ -55,8 +71,9 @@ public record AnalysisSpec(String name, String rationale, List<String> parameter
     }
 
     /**
-     * Why this analysis may NOT be stored, or empty when it is sound. {@code knownVerbs} is the shipped
-     * verb surface ({@code VerbSchemas.all().keySet()}) — the whole tier-2 argument rests on it.
+     * Why this analysis may NOT be stored, or empty when it is sound. {@code knownVerbs} MUST be the shipped
+     * verb surface, {@code VerbSchemas.all().keySet()}, and nothing wider (review N1) — the whole tier-2
+     * argument rests on it; the parameter exists for testability, not for choice.
      */
     public static Optional<String> refuse(AnalysisSpec a, Set<String> knownVerbs) {
         if (a == null) return Optional.of("no analysis");
@@ -86,8 +103,55 @@ public record AnalysisSpec(String name, String rationale, List<String> parameter
                     return Optional.of("analysis '" + a.name() + "' step " + i + ": {" + ph + "} is not a declared parameter");
                 }
             }
+            for (String param : PATH_PARAMS.getOrDefault(s.action(), List.of())) {
+                Object v = s.params().get(param);
+                if (v == null) continue;
+                List<Object> values = v instanceof List<?> l ? new ArrayList<>(l) : List.of(v);
+                for (Object o : values) {
+                    String path = String.valueOf(o);
+                    if (PLACEHOLDER.matcher(path).matches()) continue;      // a declared parameter, bound by the recaller
+                    Optional<String> r = Runbooks.refusePointer("analysis '" + a.name() + "' step " + i + " " + s.action() + "." + param, path);
+                    if (r.isPresent()) {
+                        return Optional.of(r.get() + " — a shared analysis may only reach inside the project; "
+                                + "a path elsewhere must be a {parameter} bound when it is run");
+                    }
+                }
+            }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Run-time: a project-relative path in an {@code open} or {@code source_root} step resolves against the
+     * project root, so the same analysis works from any checkout. {@code report}/{@code screenshot} paths are
+     * left alone — the export policy confines them to the exchange directory, relative to it. A value bound at
+     * run time that is already absolute is left as it is: the person recalling chose it, and sees it.
+     */
+    public static List<Step> resolvePaths(List<Step> bound, java.nio.file.Path projectRoot) {
+        if (projectRoot == null) return bound;
+        List<Step> out = new ArrayList<>();
+        for (Step s : bound) {
+            if (!PROJECT_RELATIVE_ACTIONS.contains(s.action())) { out.add(s); continue; }
+            Map<String, Object> params = new LinkedHashMap<>(s.params());
+            for (String param : PATH_PARAMS.getOrDefault(s.action(), List.of())) {
+                Object v = params.get(param);
+                if (v == null) continue;
+                if (v instanceof List<?> l) {
+                    List<Object> resolved = new ArrayList<>();
+                    for (Object o : l) resolved.add(resolveOne(String.valueOf(o), projectRoot));
+                    params.put(param, resolved);
+                } else {
+                    params.put(param, resolveOne(String.valueOf(v), projectRoot));
+                }
+            }
+            out.add(new Step(s.action(), params));
+        }
+        return out;
+    }
+
+    private static String resolveOne(String path, java.nio.file.Path root) {
+        if (path.isBlank() || path.contains("://") || path.startsWith("~") || java.nio.file.Path.of(path).isAbsolute()) return path;
+        return root.resolve(path).normalize().toString();
     }
 
     /** Every {@code {name}} referenced anywhere in a step's params. */

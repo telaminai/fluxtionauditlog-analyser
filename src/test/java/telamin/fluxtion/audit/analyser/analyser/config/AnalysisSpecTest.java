@@ -47,6 +47,41 @@ class AnalysisSpecTest {
     }
 
     @Test
+    void everyPathAStepNamesMustBeInsideTheProject_orAParameterBoundAtRunTime() {
+        // review F1: the four shapes the reviewer got past the first gate
+        Map<AnalysisSpec.Step, String> outside = new LinkedHashMap<>();
+        outside.put(new AnalysisSpec.Step("report", Map.of("path", "/tmp/anything.pdf")), "report.path");
+        outside.put(new AnalysisSpec.Step("screenshot", Map.of("path", "/Users/someone/Desktop/x.png")), "screenshot.path");
+        outside.put(new AnalysisSpec.Step("source_root", Map.of("add", List.of("/etc"))), "source_root.add");
+        outside.put(new AnalysisSpec.Step("open", Map.of("log", "/var/log/anything.yaml")), "open.log");
+        outside.put(new AnalysisSpec.Step("open", Map.of("logs", List.of("logs/a.yaml", "../../other/b.yaml"))), "open.logs");
+        outside.forEach((step, where) -> {
+            var r = AnalysisSpec.refuse(new AnalysisSpec("x", "", List.of(), Map.of(), List.of(step)), VERBS);
+            assertTrue(r.isPresent(), "must refuse: " + where);
+            assertTrue(r.get().contains(where) && r.get().contains("inside the project"), where + " -> " + r.get());
+        });
+        // inside the project, or bound at run time: accepted
+        var ok = new AnalysisSpec("x", "", List.of("log"), Map.of(), List.of(
+                new AnalysisSpec.Step("open", Map.of("log", "{log}", "graphml", "build/processor.graphml")),
+                new AnalysisSpec.Step("source_root", Map.of("add", List.of("src/main/java"))),
+                new AnalysisSpec.Step("report", Map.of("path", "incident.pdf")),
+                new AnalysisSpec.Step("screenshot", Map.of("path", "shots/after.png"))));
+        assertTrue(AnalysisSpec.refuse(ok, VERBS).isEmpty(), AnalysisSpec.refuse(ok, VERBS).orElse(""));
+
+        // run time: open/source_root resolve against the project root; report/screenshot stay exchange-relative;
+        // a value bound absolute by the recaller is left alone (they chose it, and see it)
+        var bound = AnalysisSpec.resolvePaths(ok.bind(Map.of("log", "/data/prod/audit.yaml")), java.nio.file.Path.of("/work/proj"));
+        assertEquals("/data/prod/audit.yaml", bound.get(0).params().get("log"));
+        assertEquals("/work/proj/build/processor.graphml", bound.get(0).params().get("graphml"));
+        assertEquals(List.of("/work/proj/src/main/java"), bound.get(1).params().get("add"));
+        assertEquals("incident.pdf", bound.get(2).params().get("path"), "exchange-relative, untouched");
+        assertEquals("shots/after.png", bound.get(3).params().get("path"));
+        assertEquals(bound.get(0).params().get("graphml"), AnalysisSpec.resolvePaths(bound, java.nio.file.Path.of("/elsewhere")).get(0).params().get("graphml"),
+                "already absolute stays put");
+        assertSame(ok.steps(), AnalysisSpec.resolvePaths(ok.steps(), null), "no project root: nothing to resolve against");
+    }
+
+    @Test
     void bindingSubstitutesEverywhere_andNamesWhatIsStillMissing() {
         AnalysisSpec a = breach();
         assertEquals(List.of("log"), a.unbound(Map.of()), "node has a default; log does not");

@@ -176,11 +176,16 @@ analysis.0.step.2.params={"name": "Spread — {node}", "series": ["{node}.spread
 Each step is an action-socket verb with its params exactly as the socket would receive them; `{name}`
 anywhere in a value is replaced by the bound parameter.
 
-**Tier 2, by construction.** A step can only be a verb on the analyser's action socket, and that surface
-never carries a server verb — so a saved analysis can drive this viewer and nothing else, which is what
-makes it safe to share. The gate refuses a step naming a verb this build does not know, and refuses the
-two lifecycle acts that belong to a person even though they are analyser verbs: **opening or closing a
-project** (a session boundary). Closing a log or a graph is a legitimate step.
+**Tier 2, by construction — and by enumeration.** A saved analysis can drive this viewer; open a log or
+graph **inside the project** (or one you bind at run time as a `{parameter}`); add source roots inside
+the project; and write a report or screenshot **only into the exchange directory**. It cannot switch or
+close a project (a session boundary is a person's act — refused as a step), cannot name a path outside
+the project (every path in a step — `open.log/logs/graphml`, `source_root.add/remove`, `report.path`,
+`screenshot.path` — passes the same gate as a runbook pointer: project-relative, no `..`, no command
+shapes), and cannot reach a server, because server verbs never appear on the action socket. Project-
+relative paths in `open` and `source_root` steps resolve against the project root when the analysis runs,
+so the same analysis works from any checkout; report and screenshot paths are relative to the exchange
+directory. Closing a log or a graph is a legitimate step.
 
 **Recall is an offer.** `context.analyses` lists each analysis with its rationale and the parameters it
 declares; nothing runs by itself. To run one:

@@ -3599,7 +3599,9 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("analysis '" + name + "' needs "
                         + missing + " — pass bind: {" + String.join(": …, ", missing) + ": …}; these parameters have no default");
             }
-            var bound = spec.bind(bindings);
+            // review F1: project-relative paths in open/source_root steps resolve against THIS project's root
+            var bound = telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec.resolvePaths(spec.bind(bindings),
+                    project.hasProject() ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null);
             var run = telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec.run(bound, step -> {
                 telamin.fluxtion.audit.analyser.analyser.llm.ActionResult r =
                         actionExecutor.render(step.action(), new java.util.LinkedHashMap<>(step.params()));
@@ -3638,7 +3640,11 @@ public final class MainFrame extends JFrame {
             echo.put("steps", steps);
             echo.put("completed", run.steps().stream().filter(telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec.StepResult::ok).count()
                     + "/" + bound.size() + " steps");
-            if (!run.completed()) echo.put("stoppedAt", run.stoppedAt());
+            if (!run.completed()) {
+                echo.put("stoppedAt", run.stoppedAt());                       // review N2: which step failed…
+                echo.put("skipped", bound.size() - run.steps().size());     // …and how many never ran, so the
+                echo.put("note", "the steps before " + run.stoppedAt() + " HAVE changed the view; the rest did not run");   // viewer's state is knowable
+            }
             refreshProjectPanel();
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "analysis", echo);
         }

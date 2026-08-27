@@ -30,6 +30,16 @@ THE SLICE
   Docs                    portable-context.md ▸ Repeatable analyses; sharing-setups row; project-panel; assistant.md
                           (open params). CHANGELOG. Tracker M38.4 ☑.
 
+REVIEW OF .4 (review_feat_m38_analyses.txt) — F1 TAKEN, N1–N3 TAKEN
+  F1  The predicate was "action ∈ VerbSchemas.all()" — necessary, not sufficient (report/screenshot write, source_root
+      mutates, open reads anywhere). Now every path-bearing step param (open.log/logs/graphml, source_root.add/remove,
+      report.path, screenshot.path) passes Runbooks.refusePointer or is exactly a declared {parameter}; at run time
+      open/source_root paths resolve against the project root (report/screenshot stay exchange-relative — the export
+      policy confines them). D-C1 rewritten to ENUMERATE what an analysis can do, with the review's table as evidence.
+  N1  refuse()'s javadoc now says knownVerbs MUST be VerbSchemas.all().keySet().
+  N2  the echo of a stopped run adds `skipped` and a note that the earlier steps HAVE changed the view.
+  N3  the rationale stays required.
+
 FOUND LIVE, FIXED BEFORE COMMIT (both would have been invisible to the unit tests)
   1 `open {log}` is ASYNCHRONOUS. The first live run reported 1/3 — step 2 (`filter`) ran before the log had
     landed and failed "no log is loaded". The runner now waits for an open step's load to settle (success or

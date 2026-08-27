@@ -29,20 +29,25 @@ is stored, shared and consented to. **This is the first decision and every later
 | **2 · Analyses** | Sequences of **analyser** verbs | saved graphs, focuses, reports, repeatable analyses | **Yes** — see why below |
 | **3 · Runbooks** | Knowledge that causes something to happen elsewhere | build, deploy, restart, pull-logs | **Never as payload** (D-C2) |
 
-**Why tier 2 is safe, stated because it is not obvious and must not be eroded.** A saved analysis can
-only drive a viewer. That is guaranteed by a standing design decision, not by good behaviour: **server
-verbs never appear on the analyser's action socket** (tracker ▸ Decisions, reaffirmed when M18 closed).
-A saved analysis therefore cannot deploy, restart, or write anywhere outside the analyser. The decision
-was taken for decoupling; it is what makes analyser macros safe to email, and anyone proposing to relax
-it is also proposing to make every shared profile executable.
+**Why tier 2 is safe, stated because it is not obvious and must not be eroded — and stated by
+enumeration, not by slogan (M38.4 review F1).** A saved analysis can:
 
-**Evidence that the surface defends itself** (review of M38.1, 2026-08-27). The first cut of M38.1 added a
-`runbook {name, path}` verb; `assertEquals(14, VerbSchemas.all().size())` in `CloseVerbTest` and
-`ProjectVerbTest` refused it, and the verb was dropped in favour of the profile file as the writer. A
-decision taken long before this spec — the verb surface is a published compatibility surface, and
-server-shaped verbs never join it — mechanically stopped a later, plausible-looking addition. That is the
-tier-2 safety argument enforced by tests rather than memory; the next convenient verb will meet the same
-test, and it should.
+- drive this viewer — filter, graph, goto, flag, topology, focus, series, aggregate, coverage, read, context;
+- open a log or a graph **inside the project** (a project-relative path), or one the person recalling
+  it binds at run time as a `{parameter}` — and sees;
+- add or remove source roots **inside the project**, under the same rule;
+- write a report or a screenshot **only into the exchange directory** — the run-time export policy
+  confines those verbs there whatever path a step names, and the stored path itself must be relative.
+
+It cannot switch or close a project (a session boundary is a person's act — refused as a step), cannot
+name a path outside the project (every path-bearing step param passes the same gate every other pointer
+in the profile passes: `Runbooks.refusePointer`), and cannot reach a server, because **server verbs never
+appear on the analyser's action socket** — the standing decision (tracker ▸ Decisions, reaffirmed when M18
+closed) that a pinned test enforces (`assertEquals(14, VerbSchemas.all().size())`). The first cut of
+M38.4 enforced only "the action is an analyser verb", which is necessary and not sufficient: `report`
+to an absolute path, `source_root` adding any directory and `open` of any file were all accepted (review,
+2026-08-27). The recipient of a shared analysis sees a name and a rationale, not the paths — which is why
+the paths are gated rather than disclosed.
 
 ## D-C2 — a runbook is stored as a POINTER; the payload lives in version control
 
