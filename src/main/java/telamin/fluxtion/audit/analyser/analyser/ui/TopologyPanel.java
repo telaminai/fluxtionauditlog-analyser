@@ -1239,9 +1239,11 @@ public final class TopologyPanel extends JPanel {
         // so the qualification has to travel in the data or the agent will read rowIndex as order.
         out.put("orderMeaningful", orderMeaningful);
         out.put("graphSource", graphSource.name());
-        // M40: read from the GRAPH, so an agent is told a processor writes nothing BEFORE it opens a
-        // log and finds it empty. UNKNOWN with no graph — never guessed from the log's contents.
-        out.putAll(auditReadiness().echo());
+        // M40: the audit verdict lives beside graphPairing in `context`, NOT here — it is a fact about
+        // the loaded graph rather than about the step cursor, and one fact deserves one home. It was
+        // briefly in both after two sessions fixed review F1 from different ends.
+        //   (the reviewer's half of that fix — hoisting this whole block above context()'s fresh-start
+        //    early return — is kept: it repairs every topology fact on a fresh start, not just this one)
         if (!graphSource.supportsCoverage()
                 && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
             out.put("executionCaveat", "this graph was " + graphSource.describe + ": every node in "

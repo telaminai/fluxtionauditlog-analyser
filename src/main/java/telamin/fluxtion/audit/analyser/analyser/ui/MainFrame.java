@@ -3680,6 +3680,16 @@ public final class MainFrame extends JFrame {
                     pair.put("declaredByGraph", lastPairing.matched());
                     pair.put("verdict", lastPairing.reason());
                 }
+                // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs
+                // beside the pairing, not inside the topology block — that block sits below a
+                // fresh-start early return, so with only a graph open the verdict never appeared. The
+                // case where it matters most is exactly that one: a graph open, no log, nothing yet run.
+                var audit = topologyPanel.auditReadiness();
+                // put the keys LITERALLY, not via putAll: the M37 parity test reads context()'s source
+                // to prove every key the Project panel consumes is one this method puts, and a putAll
+                // hides them from that check — and from anyone reading this method to learn the shape.
+                pair.put("auditLogging", audit.verdict().name().toLowerCase(java.util.Locale.ROOT));
+                if (audit.message() != null) pair.put("auditLoggingNote", audit.message());
                 out.put("graphPairing", pair);
             }
             // M37: the processors as a LIST — configured, selected, and whether each resolves to source.

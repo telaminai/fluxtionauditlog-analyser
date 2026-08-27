@@ -34,8 +34,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `EventLogManager` node on the graph when `addEventAudit()` was called, and leaves it out when it was
   not. Without it a processor writes **nothing** — not a sparse log, none — however carefully its nodes
   call `auditLog.info(…)`. Measured, not assumed: the same program with and without that one call
-  produced two records and an empty file. The verdict shows on the Topology tab and rides `context` as
-  `auditLogging`, so an agent is told before it opens an empty log and concludes the system was quiet.
+  produced two records and an empty file. The **Project panel's Graph section** says so outright, and
+  the verdict rides `context.graphPairing.auditLogging`, so a person and an agent are both told before
+  opening an empty log and concluding the system was quiet.
 
 ### Fixed
 - **A project's saved graphs are no longer wiped when you open a log.** With a project active, the

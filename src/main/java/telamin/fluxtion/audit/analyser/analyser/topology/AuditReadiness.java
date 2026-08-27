@@ -19,11 +19,16 @@ import java.util.List;
  * <b>an empty file</b>. Not degraded, not partial: nothing. That is why the verdict below is phrased
  * flatly instead of hedged.
  *
+ * <p><b>Limit, stated (review N1).</b> The evidence is the presence of Fluxtion's own
+ * {@code EventLogManager}. A processor using a CUSTOM auditor that writes the same record format
+ * would be reported NOT_ENABLED although it logs perfectly well. That is the safe direction for a
+ * warning to be wrong in, but it is wrong, so a reader who has one should know why.
+ *
  * <p>This is the earliest point at which the mistake is catchable: open the GraphML your build emitted
  * and the analyser can tell you that the run you are about to do will record nothing — before the run,
  * before the export, before someone opens an empty log and concludes the system was quiet.
  */
-public record AuditReadiness(Verdict verdict, String message, int loggingCapable, int nodeCount) {
+public record AuditReadiness(Verdict verdict, String message, int nodeCount) {
 
     /** The class the Fluxtion compiler installs when {@code addEventAudit()} is on the graph. */
     private static final String AUDITOR = "EventLogManager";
@@ -50,7 +55,7 @@ public record AuditReadiness(Verdict verdict, String message, int loggingCapable
     }
 
     public static AuditReadiness unknown() {
-        return new AuditReadiness(Verdict.UNKNOWN, null, 0, 0);
+        return new AuditReadiness(Verdict.UNKNOWN, null, 0);
     }
 
     public static AuditReadiness of(ProcessorTopology topology) {
@@ -71,7 +76,7 @@ public record AuditReadiness(Verdict verdict, String message, int loggingCapable
                             + "so a run can produce a log. Whether a given NODE appears in it is a "
                             + "separate question — a node logs only if it has an audit logger and "
                             + "calls it, which is why 'did not log' is never by itself 'did not run'.",
-                    0, total);
+                    total);
         }
         // The corroborating half: the control event without its handler would be strange, and saying so
         // is cheaper than being quietly wrong about an unfamiliar producer.
@@ -85,7 +90,7 @@ public record AuditReadiness(Verdict verdict, String message, int loggingCapable
                         + ". Nodes extending EventLogNode and calling auditLog.info(…) change nothing "
                         + "on their own; the auditor that collects them is installed by addEventAudit() "
                         + "on the graph builder. Add it and rebuild.",
-                0, total);
+                total);
     }
 
     /** The one-line form for a status bar or a panel row. */

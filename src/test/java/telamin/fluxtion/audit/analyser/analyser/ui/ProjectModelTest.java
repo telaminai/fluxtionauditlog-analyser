@@ -212,4 +212,36 @@ class ProjectModelTest {
         assertEquals("s3://bucket/key.yaml", ProjectModel.abbreviate("s3://bucket/key.yaml", "/Users/someone", 44), "short stays as is");
         assertNull(ProjectModel.abbreviate(null, "/h", 44));
     }
+
+    /**
+     * M40 review F2: the CHANGELOG and the docs page promised a human surface for the audit verdict and
+     * the milestone had not built one — the verdict existed only in `context`, for agents. A processor
+     * that writes no log at all outranks the pairing verdict above it, because pairing a log that will
+     * never exist is a question about nothing.
+     */
+    @org.junit.jupiter.api.Test
+    void aProcessorWithNoAuditLoggingIsStatedInTheGraphSection() {
+        java.util.Map<String, Object> ctx = new java.util.LinkedHashMap<>();
+        ctx.put("graphPairing", new java.util.LinkedHashMap<>(java.util.Map.of(
+                "graph", "demo.graphml", "graphSource", "OPENED",
+                "auditLogging", "not_enabled",
+                "auditLoggingNote", "…addEventAudit() on the graph builder. Add it and rebuild.")));
+        ProjectModel m = ProjectModel.from(ctx);
+
+        String rendered = m.sections().toString();
+        org.junit.jupiter.api.Assertions.assertTrue(rendered.contains("audit logging NOT installed"),
+                "the Graph section must state it: " + rendered);
+        org.junit.jupiter.api.Assertions.assertTrue(rendered.contains("addEventAudit()"),
+                "and name the fix: " + rendered);
+    }
+
+    @org.junit.jupiter.api.Test
+    void aHealthyProcessorAddsNoSuchRow() {
+        java.util.Map<String, Object> ctx = new java.util.LinkedHashMap<>();
+        ctx.put("graphPairing", new java.util.LinkedHashMap<>(java.util.Map.of(
+                "graph", "demo.graphml", "graphSource", "OPENED", "auditLogging", "enabled")));
+        org.junit.jupiter.api.Assertions.assertFalse(
+                ProjectModel.from(ctx).sections().toString().contains("NOT installed"),
+                "a false positive here trains people to ignore the true one");
+    }
 }

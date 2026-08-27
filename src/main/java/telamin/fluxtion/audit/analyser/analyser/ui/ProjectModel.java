@@ -35,6 +35,7 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
+            "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
             "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
@@ -128,6 +129,15 @@ public record ProjectModel(List<Section> sections) {
                 tone = Tone.WARN;
             }
             rows.add(new Row(str(pair.get("graph")), verdict, str(pair.get("graphPath")), prov, tone, Target.TOPOLOGY));
+            // M40 (review F2): the human surface the CHANGELOG and the docs page already promised and
+            // this milestone had not built. A processor with no audit logging installed writes nothing
+            // at all, so this outranks the pairing verdict above it — pairing a log that will never
+            // exist is a question about nothing.
+            if ("not_enabled".equals(str(pair.get("auditLogging")))) {
+                rows.add(new Row("⚠ audit logging NOT installed",
+                        "this processor writes no audit log at all — addEventAudit() is missing from the "
+                                + "graph builder", null, "read from the graph", Tone.WARN, Target.NONE));
+            }
             if (pair.get("sourceGraphOffered") != null) {
                 rows.add(new Row(str(pair.get("sourceGraphOffered")), "the reader's graph — not shown: opened beats supplied",
                         null, "supplied by the reader", Tone.MUTED, Target.NONE));
