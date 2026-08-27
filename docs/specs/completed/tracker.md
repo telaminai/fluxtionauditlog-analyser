@@ -1810,3 +1810,42 @@ diagnose the graph. Every other producer check needs a log to examine, and the w
   levels present and names what they would have discarded, surfaced on `coverage` only when there IS a
   gap the level could explain. Two facts, no verdict — the log genuinely cannot tell "the threshold
   excluded them" from "nothing called `debug()`", so it does not pretend to.
+
+## M42 · Connect an AI client — ☑ COMPLETE 2026-08-28
+_Design: **[spec-mcp-client-install.md](spec-mcp-client-install.md)**. Acceptance record:
+`docs/handoff/completed/report_m42_client_install.txt`; final review:
+`docs/handoff/completed/review_m42_milestone.txt`._
+
+M41 installed the application; M42 is the separate, client-specific last mile: a Start-page/Assistant
+setup flow registers the existing `--mcp` bridge with **Codex** and **Claude Code**, and supplies a
+generic MCP record (including the Claude Desktop fallback). It does not add another protocol server,
+start a duplicate GUI, copy a per-run token, or edit unknown foreign configuration files silently. The
+analyser proves its own side with a loopback invocation of the exact bridge command and read-only
+`analyser_context`; it refuses `OTHER_INSTANCE` when another analyser owns the last-writer-wins endpoint,
+and a green check never pretends it has observed a foreign client or model.
+
+- [M42.1] ☑ **Launch command + loopback probe** — resolved absolute launcher, argument-vector process handling,
+  redaction, `OTHER_INSTANCE` protection, and a real bridge → REST → `context` test under isolated home. The M19
+  isolated-home bench launches the packaged `--mcp` child and proves modern discovery, `analyser_context`
+  discovery and its read-only call back into that exact analyser (2026-08-27). The direct-JAR fallback now
+  refuses debug/instrumentation JVM options rather than enrolling a bridge that could suspend or bind a
+  debugger port when a client launches it (final review F1, 2026-08-28).
+- [M42.2] ☑ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
+  transport enablement; distinct app/bridge/client state. The packaged-launch bridge check and its wrapped,
+  copyable command field were manually reviewed in the running UI (2026-08-27).
+- [M42.3] ☑ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
+  Codex discovered the `fluxtion-analyser` registration and its 14 tools (2026-08-27); the product owner's
+  final read-only `analyser_context` acceptance is recorded in `report_m42_client_install.txt` (2026-08-28).
+- [M42.4] ☑ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
+  copy/diff-only, never a default side effect. Its shared confirmation disclosure uses a readable desktop-width
+  command field (2026-08-27); the product owner's final acceptance is recorded in
+  `report_m42_client_install.txt` (2026-08-28).
+- [M42.5] ☑ **Claude Desktop route** — the live MCPB contract was verified at its first-party sources (named in
+  `report_m42_client_install.txt`); the documented generic-config fallback is retained because the per-machine
+  JBang/Java bridge has no portable bundled entry point (2026-08-27).
+- [M42.6] ☑ **Generic configuration + docs** — exact argument-vector JSON can be copied or saved only to a
+  user-chosen file (with overwrite confirmation); connection, Assistant, Start-page and FAQ guidance cover the
+  in-app path, including the Working-with-AI connection and loop pages. Isolated native setup and confirmation
+  captures are published and visually inspected; the install and MCP guides explicitly distinguish the
+  `analyser` JBang executable, `fluxtion-analyser` client registration, and bridge protocol name. The final
+  generic capture shows the complete naming disclosure (final review F4, 2026-08-28).

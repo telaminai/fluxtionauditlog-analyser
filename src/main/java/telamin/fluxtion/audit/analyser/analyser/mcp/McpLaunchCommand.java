@@ -56,11 +56,12 @@ public final class McpLaunchCommand {
 
     /**
      * A safe form-2 resolver for an app launched directly from one shaded jar. It retains the current
-     * JVM's options through {@code -jar} (notably an isolated {@code -Duser.home}) and discards only the
-     * app arguments after the jar before adding {@code --mcp}. A classpath with more than one entry is
-     * deliberately refused: reconstructing an IDE or arbitrary Java launch would be a plausible-looking
-     * guess, not the exact bridge command a client should inherit. JBang wins whenever its documented
-     * launcher exists; this is the useful fallback for {@code java -jar} and release smoke tests.
+     * JVM's safe options through {@code -jar} (notably an isolated {@code -Duser.home}) and discards only the
+     * app arguments after the jar before adding {@code --mcp}. A classpath with more than one entry, or a
+     * debug/instrumentation JVM option, is deliberately refused: reconstructing an IDE or arbitrary Java launch
+     * would be a plausible-looking guess, not a bridge command a client can safely inherit. JBang wins whenever
+     * its documented launcher exists; this is the useful fallback for a plain {@code java -jar} launch and
+     * release smoke tests.
      */
     public static Optional<McpLaunchCommand> runningJar() {
         String classPath = System.getProperty("java.class.path", "");
@@ -99,6 +100,9 @@ public final class McpLaunchCommand {
             }
             if (jarFlag >= 0) {
                 // Everything after the jar is an app argument (log path, --rest, …), not a JVM option.
+                for (int i = 0; i < jarFlag; i++) {
+                    if (unsafeForClientBridge(currentArguments[i])) return Optional.empty();
+                }
                 for (int i = 0; i <= jarFlag; i++) launcher.add(currentArguments[i]);
                 launcher.add(jar.toString());
             } else {
@@ -113,6 +117,16 @@ public final class McpLaunchCommand {
         } catch (RuntimeException e) {
             return Optional.empty();
         }
+    }
+
+    /** Debug agents can bind an occupied port or suspend a client-launched bridge before it reads stdin. */
+    private static boolean unsafeForClientBridge(String argument) {
+        return argument.startsWith("-agentlib:")
+                || argument.startsWith("-agentpath:")
+                || argument.startsWith("-javaagent:")
+                || "-Xdebug".equals(argument)
+                || argument.startsWith("-Xrunjdwp:")
+                || (argument.startsWith("-XX:") && argument.contains("Debugger"));
     }
 
     /** A selected shaded jar, launched by the selected absolute Java executable. */

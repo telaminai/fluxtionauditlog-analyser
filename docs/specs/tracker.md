@@ -19,9 +19,10 @@ named focuses · M28 conditionals + rolling windows + guides/bands · M29 extern
 M30 rolled log sets · M31 log-source plugins (core) · M32 marker series · M33 investigation reports
 (core) · M34.0–.3 source adapters (SPI, degradation, format spec + conformance suite) · M35 log +
 graph lifecycle (all eleven) + §E provenance · **M36 start page (.1–.5) · M37 Project panel · M38 portable
-context (.1–.7) · M40 audit readiness (.1/.2a/.2b/.3)** · refinement rounds 2–13 · assistant-vocabulary
-follow-ups. _(Polish H1, 2026-08-25: verified every section left in this file has open items; the
-archaeology the 2026-08-17 brief asked for had been done by the per-merge tidies.)_
+context (.1–.7) · M40 audit readiness (.1/.2a/.2b/.3) · M42 Connect an AI client** · refinement rounds
+2–13 · assistant-vocabulary follow-ups. _(Polish H1, 2026-08-25: verified every section left in this
+file has open items; the archaeology the 2026-08-17 brief asked for had been done by the per-merge
+tidies.)_
 
 ---
 
@@ -337,36 +338,6 @@ premise was wrong: `jbang app install analyser@telaminai/fluxtionauditlog-analys
 fetches a JDK itself), `~/.jbang/bin/analyser` is the stable launcher path the MCP recipe already uses, and `--rest`
 already turns the transport on without editing `config`. Native bundles would have added a Dock icon and a signing
 bill. Recorded under Decisions so it is not re-raised; reopen only when a user who cannot run JBang actually appears._
-
-## M42 · Connect an AI client — ☑ COMPLETE 2026-08-28
-_Design: **[spec-mcp-client-install.md](spec-mcp-client-install.md)**. M41 installed the application; this is the
-separate, client-specific last mile: a Start-page/Assistant setup flow registers the existing `--mcp` bridge with
-**Codex** and **Claude Code**, and supplies a generic MCP record (including the Claude Desktop fallback). It does not
-add another protocol server, start a duplicate GUI, copy a per-run token, or edit unknown foreign configuration files
-silently. The analyser proves its own side with a loopback invocation of the exact bridge command and read-only
-`analyser_context`; it refuses `OTHER_INSTANCE` when another analyser owns the last-writer-wins endpoint, and a
-green check never pretends it has observed a foreign client or model._
-- [M42.1] ☑ **Launch command + loopback probe** — resolved absolute launcher, argument-vector process handling,
-  redaction, `OTHER_INSTANCE` protection, and a real bridge → REST → `context` test under isolated home. The M19
-  isolated-home bench now launches the packaged `--mcp` child and proves modern discovery, `analyser_context`
-  discovery and its read-only call back into that exact analyser (2026-08-27).
-- [M42.2] ☑ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
-  transport enablement; distinct app/bridge/client state. The packaged-launch bridge check and its wrapped,
-  copyable command field were manually reviewed in the running UI (2026-08-27).
-- [M42.3] ☑ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
-  Codex discovered the `fluxtion-analyser` registration and its 14 tools (2026-08-27); human acceptance of the
-  final read-only `analyser_context` check is recorded (2026-08-28).
-- [M42.4] ☑ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
-  copy/diff-only, never a default side effect. Its shared confirmation disclosure uses a readable desktop-width
-  command field (2026-08-27); human acceptance is recorded (2026-08-28).
-- [M42.5] ☑ **Claude Desktop route** — live MCPB contract verified; the documented generic-config fallback is
-  retained because the per-machine JBang/Java bridge has no portable bundled entry point (2026-08-27).
-- [M42.6] ☑ **Generic configuration + docs** — exact argument-vector JSON can be copied or saved only to a
-  user-chosen file (with overwrite confirmation); connection, Assistant, Start-page and FAQ guidance now cover
-  the in-app path, including the Working-with-AI connection and loop pages. Isolated native setup and confirmation
-  captures are published and visually inspected; the install and MCP guides now explicitly distinguish the
-  `analyser` JBang executable, `fluxtion-analyser` client registration, and bridge protocol name;
-  `mvn test` and `mkdocs build --strict` are green (2026-08-27).
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general

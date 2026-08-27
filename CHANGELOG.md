@@ -7,6 +7,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **A direct-JAR MCP registration now refuses debug and instrumentation JVM flags.** Setup will not
+  copy a JDWP or Java-agent option into the client bridge command, where it could bind an occupied
+  debug port or suspend before the client can talk to it.
+- **Generic MCP setup shows its complete identity disclosure immediately.** The JSON field is more
+  compact and the dialog opens tall enough on ordinary screens to show the JBang, registration, and
+  bridge names without clipping the final explanation.
 - **Client-registration confirmations no longer squeeze the command.** Codex and Claude Code now use
   a wider confirmation window and command field, so the exact Java/JBang bridge vector is readable
   before either client CLI is allowed to run.

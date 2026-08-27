@@ -117,7 +117,12 @@ public final class McpSetupDialog extends JDialog {
         buildUi();
         refreshReadiness();
         pack();
-        setMinimumSize(new Dimension(660, getHeight()));
+        // Keep the registration/naming disclosure in the first view on ordinary displays. The body remains
+        // scrollable when a short screen cannot accommodate this height.
+        int screenCappedHeight = Math.max(getHeight(), Toolkit.getDefaultToolkit().getScreenSize().height - 80);
+        int initialHeight = Math.min(screenCappedHeight, Math.max(680, getHeight()));
+        setMinimumSize(new Dimension(660, initialHeight));
+        setSize(Math.max(660, getWidth()), initialHeight);
         setLocationRelativeTo(owner);
     }
 
@@ -223,7 +228,7 @@ public final class McpSetupDialog extends JDialog {
 
     /** The generic record is intentionally larger than a command: its argument vector must be inspectable. */
     private static JTextArea configurationBox() {
-        return borderedTextBox(8, 68);
+        return borderedTextBox(5, 68);
     }
 
     /** Confirmation is deliberately wider: a local Java path must be inspectable before a client CLI runs. */

@@ -1,0 +1,69 @@
+REPORT — M42 · Connect an AI client
+Date: 2026-08-28 · Status: ACCEPTED AND ARCHIVED
+
+This is the milestone's acceptance record. It distinguishes a person's accepted client path from
+the analyser's own bridge check: the latter proves the running app ↔ bridge chain; it cannot prove
+that a foreign client imported its registration or that a model was approved to use it.
+
+================================================================================
+1. HUMAN ACCEPTANCE — CODEX (M42.3)
+================================================================================
+
+Acceptor: Greg, product owner.
+Date: 2026-08-28.
+Client observed on the acceptance machine: Codex CLI 0.150.1 (`codex --version`).
+
+Accepted behaviour: the named `fluxtion-analyser` registration is discoverable in Codex, exposes its
+14 analyser tools, and the required final read-only `analyser_context` check was accepted against the
+already-open analyser session. The owner recorded the combined M42.3/M42.4 acceptance in the working
+conversation on 2026-08-28.
+
+The acceptance is deliberately not a claim that Codex stays connected while the app is closed. The
+client launches a fresh stdio bridge for a call; the bridge then discovers the live localhost endpoint
+of the analyser window.
+
+================================================================================
+2. HUMAN ACCEPTANCE — CLAUDE CODE (M42.4)
+================================================================================
+
+Acceptor: Greg, product owner.
+Date: 2026-08-28.
+Client observed on the acceptance machine: Claude Code 2.1.247 (`claude --version`).
+
+Accepted behaviour: the explicit user-scoped `fluxtion-analyser` registration route was exercised,
+including its readable confirmation disclosure. The required final clean-client acceptance was
+confirmed by the owner on 2026-08-28. The project `.mcp.json` path remains copy/diff-only: no project
+registration was created as a side effect of this acceptance.
+
+================================================================================
+3. CLAUDE DESKTOP / MCPB CONTRACT (M42.5)
+================================================================================
+
+Verifier: the independent M42 spec-review session.
+Date verified: 2026-08-27.
+
+The contract was read at these first-party sources:
+
+- https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop
+- https://claude.com/docs/connectors/building/mcpb
+
+Finding: an MCPB needs a portable local entry point. This analyser's bridge is intentionally a
+per-machine resolved JBang launcher or Java-and-jar vector; a bundle that re-discovers it would
+duplicate the launch-resolution contract. M42 therefore ships the explicit Generic MCP configuration
+fallback, does not write Claude Desktop's private configuration, and does not claim a bundled Desktop
+extension. The design records the same sources and decision in
+`docs/specs/completed/spec-mcp-client-install.md` under "Claude Desktop".
+
+================================================================================
+4. CLOSE-OUT EVIDENCE
+================================================================================
+
+- `review_spec_mcp_client_install.txt` and `review_m42_1_probe.txt` are archived in this directory:
+  their amendments and findings are closed.
+- `review_m42_milestone.txt` was the final delivery review. Its F1 safety finding is fixed by refusing
+  a direct-JAR bridge command when the running JVM carries debug or instrumentation options; its F4
+  screenshot finding is fixed by the regenerated isolated native generic setup capture.
+- The complete M42 block and its design move with this report into the completed tracker/spec archive.
+
+The record names evidence, not a permanent state: a later client upgrade, installation change, or
+closed analyser still needs the normal `analyser_context` check before it is relied upon.

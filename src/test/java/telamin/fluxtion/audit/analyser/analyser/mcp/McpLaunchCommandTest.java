@@ -75,4 +75,21 @@ class McpLaunchCommandTest {
         assertEquals(List.of(java.toAbsolutePath().toString(), "-Duser.home=" + dir.resolve("isolated-home").toAbsolutePath(),
                 "-jar", jar.toAbsolutePath().toString(), "--mcp"), command.command());
     }
+
+    @Test
+    void refusesDebugOrInstrumentationOptionsForTheDirectJarFallback() throws Exception {
+        Path java = dir.resolve("java");
+        Path jar = dir.resolve("analyser.jar");
+        Files.createFile(java);
+        Files.createFile(jar);
+
+        for (String unsafe : List.of("-agentlib:jdwp=transport=dt_socket,address=5005,suspend=y",
+                "-agentpath:/tmp/instrument.dylib", "-javaagent:/tmp/instrument.jar", "-Xdebug",
+                "-Xrunjdwp:transport=dt_socket,address=5005", "-XX:+UseDebugger")) {
+            assertTrue(McpLaunchCommand.fromRunningJar(java,
+                            new String[]{"-Duser.home=/tmp/isolated-analyser", unsafe, "-jar", jar.toString()},
+                            jar.toString(), ":", "/ignored-fallback").isEmpty(),
+                    "a client must not inherit " + unsafe);
+        }
+    }
 }
