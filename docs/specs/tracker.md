@@ -386,7 +386,14 @@ diagnose the graph. Every other producer check needs a log to examine, and the w
   0. UNKNOWN with no graph — with no evidence the answer is "unknown", never "probably fine". Surfaced
   in `context.topology.auditLogging`, verified live with a graph and NO log open. 7 tests, the real demo
   fixture as the positive control.
-- [M40.2] ☐ **Which NODES can log** — a node that does not extend `EventLogNode` is silent by
+- [M40.2a] ☑ **The denominator counts only what could log** _(2026-08-27)_ — measured first: the shipped
+  demo reported `declared 10 · covered 5 · ratio 0.5`, and all five "uncovered" were things that can
+  never write audit output (three event classes, an exported service, and the deliberately-silent
+  `spreadCalculator`). `CoverageScope` excludes by KIND — from the graph alone, no source needed — and
+  every exclusion is reported with its reason. Demo now `declared 6 · covered 5 · ratio 0.833`, the
+  remainder being the one real case. An UNKNOWN kind is KEPT: dropping what we cannot classify would
+  flatter the score, which is this defect pointing the other way.
+- [M40.2b] ☐ **Which NODES can log** — a node that does not extend `EventLogNode` is silent by
   construction, so its coverage gap is not evidence of anything. Needs source resolution per node; a
   different evidence source with a different failure mode when source is missing.
 - [M40.3] ☐ **The audit LEVEL** (INFO vs TRACE) — only if the graph distinguishes them, and only after

@@ -1105,6 +1105,11 @@ public final class TopologyPanel extends JPanel {
      * author's code and reporting them as uncovered would be noise in the one report whose value depends
      * on people reading every line of it.
      */
+    /** The whole graph, for callers that need node KINDS as well as ids (M40.2's coverage denominator). */
+    public telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology fullTopology() {
+        return fullTopology;
+    }
+
     public java.util.Set<String> authoredNodeIds() {
         return telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding.authoredNodes(fullTopology);
     }

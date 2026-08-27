@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **Coverage no longer counts event classes as nodes that never ran.** The denominator included things
+  that can never write audit output — event classes (data entering the graph, not code that runs) and
+  exported service interfaces — so a gap that is a **category error** was reported as a low score. On
+  the shipped demo that alone read **50%** where the honest figure is 100% of what can log; it now
+  reads 83% with the one genuinely silent node remaining. Anything left out is named, with its reason,
+  in `excludedFromDenominator` and summarised in `excludedNote` — a denominator that quietly shrinks
+  is the same dishonesty as one that quietly includes, and harder to notice because the number improves.
+
 ### Added
 - **Docs: Working with AI ▸ Runbooks, glossary and saved analyses with an AI** — how the in-app assistant or an
   LLM over MCP finds them in `context`, uses them (read the file yourself; the analyser never runs one), and

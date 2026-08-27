@@ -1,0 +1,46 @@
+REPORT — feat/m40-2-coverage · M40.2a: coverage's denominator counts only what could log
+From: the first session · Brief: docs/handoff/handoff_27_aug_2026_2.txt · Base: main @ 6dfebee
+Status: M40.2a COMPLETE — 898 green (5 new), mkdocs strict green, sweep clean, verified live.
+
+1. THE MEASUREMENT, TAKEN BEFORE ANYTHING WAS DESIGNED
+   `coverage` on the shipped demo — the fixture on the docs site — reported
+       declared 10 · covered 5 · uncovered 5 · ratio 0.5
+   and named its five uncovered nodes. Every one can never write audit output: three EVENT classes,
+   one EXPORTED SERVICE interface, and `spreadCalculator`, which the fixture makes silent on purpose
+   and documents as such.
+
+   So the tool was wrong in the ALARMING direction about its own showcase fixture, on the number a
+   support engineer reads first. And `NodeCoverage` has modelled the distinction since it shipped —
+   it takes `neverLogs` and reports `silentByDesign` — with both call sites passing `Set.of()`.
+
+2. WHAT CHANGED
+   `CoverageScope.of(topology, authored)` narrows the denominator by node KIND, which the graph already
+   declares — so this half needs no source, no new evidence and no configuration. EVENT and
+   EXPORT_SERVICE leave; NODE, EVENT_HANDLER and UNKNOWN stay.
+
+   Demo after: declared 6 · covered 5 · uncovered 1 · ratio 0.833, the remainder being
+   `spreadCalculator` — the one genuine case, and M40.2b's job.
+
+3. THE RULE THE BRIEF ASKED THE REVIEWER TO HOLD ME TO
+   Nothing leaves the denominator silently. `excludedFromDenominator` names every dropped id with its
+   reason and `excludedNote` summarises; both are in the echo and documented on the assistant page. A
+   denominator that quietly shrinks is the same dishonesty as one that quietly includes — and harder to
+   notice, because the number improves.
+
+   The same instinct decided the UNKNOWN case: a node whose kind we cannot classify is KEPT. Dropping
+   it would flatter the score, which is this defect pointing the other way.
+
+4. DELIBERATELY NOT DONE
+   M40.2b — a node that IS a node and still cannot log. That needs the class, which needs source
+   resolution, which fails in its own way when source is missing; it carries a third state (unknown)
+   rather than assuming silence. Counting `spreadCalculator` meanwhile is the honest answer: it IS a
+   node and it DID never log.
+   M40.3 — the audit LEVEL, still unmeasured and still not to be claimed.
+
+5. REVIEWER, PLEASE CHECK
+   · That no exclusion is silent — every id dropped carries a reason, and the note is in the echo.
+   · That an UNKNOWN kind is still counted (assume-silence would be the same bug inverted).
+   · The demo figures, which this slice changes: 0.5 → 0.833.
+   · Whether the Topology tab's coverage view needs the same exclusion note the echo now carries — I
+     did the agent surface and the assistant docs; the panel is the surface I have NOT touched, which
+     is precisely the pattern ONBOARDING now warns about.

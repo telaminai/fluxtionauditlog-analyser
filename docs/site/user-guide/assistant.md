@@ -400,6 +400,7 @@ claude mcp add fluxtion-analyser -- ~/.jbang/bin/analyser --mcp   # 3. register 
 
 Order matters, and step 2 in particular has a trap:
 
+    The denominator counts only what **could** log. Event classes and exported service interfaces appear in a graph because the processor handles them, not because they run, so counting them as "never logged" reports a category error as a low score — on the demo that alone read 50% where the honest figure is 100% of what can log. Anything left out is named in `excludedFromDenominator` with its reason, and summarised in `excludedNote`: a denominator that quietly shrinks is the same dishonesty as one that quietly includes.
 - **Edit the config only while the analyser is closed.** The running app holds settings in memory and
   writes the file on exit, so an edit made while it's open is overwritten. Toggling it in
   Settings ▸ Assistant is always safe.

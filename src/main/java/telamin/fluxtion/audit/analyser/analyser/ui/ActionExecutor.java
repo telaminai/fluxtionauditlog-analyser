@@ -200,7 +200,13 @@ public final class ActionExecutor implements RenderExecutor {
         LogStore s = store.get();
         if (s == null) return ActionResult.error("no log is loaded");
 
-        Set<String> declared = onEdt(() -> Set.copyOf(topology.authoredNodeIds()));
+        Set<String> authored = onEdt(() -> Set.copyOf(topology.authoredNodeIds()));
+        // M40.2: the denominator is what could LOG, not what appears in the graph. An event class in a
+        // "which nodes never ran" answer is a category error, and on the demo three of them plus a
+        // service interface turned 100%-of-what-can-log into a reported 50%.
+        var scope = onEdt(() -> telamin.fluxtion.audit.analyser.analyser.topology.CoverageScope
+                .of(topology.fullTopology(), authored));
+        Set<String> declared = scope.loggable();
 
         // M34.1 — coverage is "declared minus observed". Over a graph INFERRED from what ran, that
         // subtraction is empty by construction: the answer is always 100% and the feature that found
@@ -234,6 +240,12 @@ public final class ActionExecutor implements RenderExecutor {
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("declared", cov.declaredCount());
+        // nothing leaves the denominator silently (M40.2): a number that quietly shrinks is the same
+        // dishonesty as one that quietly includes, and harder to notice because it improves
+        if (!scope.excluded().isEmpty()) {
+            out.put("excludedFromDenominator", scope.excluded());
+            out.put("excludedNote", scope.note());
+        }
         out.put("covered", cov.covered().size());
         out.put("uncovered", cov.uncovered().size());
         out.put("ratio", Math.round(cov.ratio() * 1000) / 1000.0);
