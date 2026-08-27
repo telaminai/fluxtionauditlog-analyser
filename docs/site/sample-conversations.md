@@ -122,21 +122,24 @@ Ten records, and the graph applies to this log — so a node's absence would be 
 ```json
 → analyser_coverage {}
 ← {
-  "declared": 6,
+  "declared": 5,
   "covered": 5,
-  "uncovered": 1,
-  "ratio": 0.833,
+  "uncovered": 0,
+  "ratio": 1.0,
   "excludedFromDenominator": {
+    "spreadCalculator": "this class cannot reach an audit logger at all — it declares no supertype, so it has no auditLog to write with",
     "MarketDataEvent": "an event class — data entering the graph, not code that runs",
     "QuoteControl": "an exported service interface — an entry point, not a node that logs",
     "OrderUpdateEvent": "an event class — data entering the graph, not code that runs",
     "RiskBreachEvent": "an event class — data entering the graph, not code that runs"
   },
-  "excludedNote": "excluded 4 declared item(s) that can never write audit output: 3 event class(es), 1 exported service(s). Th…"
+  "excludedNote": "excluded 5 declared item(s) that can never write audit output: 3 event class(es), 1 exported service(s), 1 …"
 }
 ```
 
-> **Agent:** Five of the six nodes that *can* log did; `spreadCalculator` never wrote a record. Four other things in the graph were left out of the denominator on purpose and the echo names them — three event classes and the `QuoteControl` service interface can never write audit output, so counting them would have reported 50% for a run that logged everything it could. Whether `spreadCalculator` is silent by design or silent by accident needs its source; that's the one to look at.
+> **Agent:** Every node that *can* log did — five of five. Five other things in the graph were left out of the denominator on purpose and the echo names each one with its reason: three event classes and the `QuoteControl` service interface can never write audit output, and `spreadCalculator` cannot either — its class declares no supertype, so there is no `auditLog` for it to write with. Counting all five would have reported 50% for a run that logged everything it could.
+>
+> Read that last exclusion carefully, though, because the echo is careful about it too: `spreadCalculator` being unable to log is **not** the same as it being fine. It is not observable in *any* audit log, so this 100% says nothing about whether it ran — proof-of-absence simply does not reach it. If you need to know that it ran, it needs an audit logger before the next capture.
 
 
 ## 3 · "Why is this number what it is?" — one value followed back through the graph
@@ -174,7 +177,7 @@ Ten records, and the graph applies to this log — so a node's absence would be 
 }
 ```
 
-> **Agent:** `quotePublisher.spread` is computed from `spreadCalculator`, which listens to `priceListener` — the Topology tab is now focused on exactly those routes, and I've stepped the 09:00:00.270 cycle to the second node it dispatched — `quotePublisher`, after `orderTracker`. In this run `spreadCalculator` logged nothing (see conversation 2), so the 0.011 you see is `quotePublisher` reporting a value it was handed, not one this log lets us trace further. Position within the cycle *is* dispatch order here (`orderMeaningful: true`), so the sequence you're looking at is causal.
+> **Agent:** `quotePublisher.spread` is computed from `spreadCalculator`, which listens to `priceListener` — the Topology tab is now focused on exactly those routes, and I've stepped the 09:00:00.270 cycle to the second node it dispatched — `quotePublisher`, after `orderTracker`. `spreadCalculator` cannot write audit output at all (conversation 2), so the 0.011 you see is `quotePublisher` reporting a value it was handed, and no audit log will ever let us trace it further — that is a property of the build, not of this run. Position within the cycle *is* dispatch order here (`orderMeaningful: true`), so the sequence you're looking at is causal.
 
 
 ![The routes into quotePublisher, the cycle stepped to its second node](assets/conv-why-this-number.png)

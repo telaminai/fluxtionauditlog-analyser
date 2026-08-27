@@ -71,6 +71,7 @@ class Transcript:
     def __init__(self, ep):
         self.ep = ep
         self.lines = []
+        self.raw = []          # every FULL echo from the run, untrimmed — what `cites` is checked against
 
     def call(self, verb, params=None, show=None, wait=0.0):
         """Run the verb for real; render the request and the (trimmed) echo. A failure aborts the run —
@@ -84,6 +85,7 @@ class Transcript:
         # the socket wraps a verb's payload under its own key ({"coverage": {...}}); show the inside
         if len(payload) == 1 and isinstance(next(iter(payload.values())), dict):
             payload = next(iter(payload.values()))
+        self.raw.append(json.dumps(payload, ensure_ascii=False, indent=2))
         self.lines.append("```json")
         self.lines.append(f"→ analyser_{verb} {json.dumps(shorten(params or {}), ensure_ascii=False)}")
         self.lines.append(f"← {dump(pick(payload, show))}")
@@ -96,6 +98,7 @@ class Transcript:
         if not res.get("ok"):
             sys.exit("context failed during capture")
         ctx = res.get("context", {})
+        self.raw.append(json.dumps(ctx, ensure_ascii=False, indent=2))
         self.lines.append("```json")
         self.lines.append("→ analyser_context {}")
         self.lines.append(f"← {dump(pick(ctx, show))}")
@@ -107,10 +110,35 @@ class Transcript:
         self.lines.append("> **You:** " + text)
         self.lines.append("")
 
-    def agent(self, text):
+    def agent(self, text, cites=()):
+        """The agent's answer is AUTHORED — it is the point of the page, since it shows how an agent reasons
+        over what it got. But that makes it the half the harness cannot regenerate, and therefore the half
+        that goes stale silently: recording the echoes from a real run keeps the JSON honest while the prose
+        beside it drifts, contradicting the very echo it is reading.
+
+        That is not hypothetical. This page shipped saying "five of the six nodes that can log did" and
+        quoting ratio 0.833; M40.2b landed a day later, proved `spreadCalculator` cannot log at all, and the
+        echo became 1.0 — the numbers regenerated, the sentence did not.
+
+        So a claim can CITE the run: pass the figures the sentence depends on and the capture fails if the
+        live echo no longer contains them. A generated echo makes the JSON true; this makes the prose true.
+        """
+        for claim in cites:
+            if claim not in self.transcript_json():
+                sys.exit(f"authored prose cites {claim!r}, which no recorded echo on this page contains "
+                         f"any more — the run changed under the sentence. Rewrite the prose, do not "
+                         f"weaken this check.")
         self.lines.append("")
         self.lines.append("> **Agent:** " + text)
         self.lines.append("")
+
+    def transcript_json(self):
+        """Every FULL echo recorded from the live socket so far — never the authored prose.
+
+        Checked against the untrimmed echoes on purpose. The page's rendering is deliberately trimmed
+        (long strings cut, lists capped), so testing the claim against what is VISIBLE would fail for
+        sentences that are perfectly true of the run — and a check that cries wolf gets deleted."""
+        return "\n".join(self.raw)
 
     def prose(self, text):
         self.lines.append("")
@@ -163,7 +191,8 @@ def main():
     t.agent("At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live "
             "orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged "
             "both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. "
-            "Nothing else in the ten records is unusual.")
+            "Nothing else in the ten records is unusual.",
+            cites=["breachedOn", "ord-2", "riskMonitor"])
     cd.act(ep, "goto", {"recordIndex": 7, "reveal": True})
     t.shot("conv-what-happened.png", "The two flagged records, the note in the detail pane — the agent's answer as things you can click")
 
@@ -172,11 +201,16 @@ def main():
     t.you("Which nodes in this processor never logged anything in this run?")
     t.call("coverage", show=["declared", "covered", "uncovered", "ratio", "uncoveredIds", "uncoveredNodes",
                              "excludedFromDenominator", "excludedNote"])
-    t.agent("Five of the six nodes that *can* log did; `spreadCalculator` never wrote a record. Four other things "
-            "in the graph were left out of the denominator on purpose and the echo names them — three event "
-            "classes and the `QuoteControl` service interface can never write audit output, so counting them would "
-            "have reported 50% for a run that logged everything it could. Whether `spreadCalculator` is silent by "
-            "design or silent by accident needs its source; that's the one to look at.")
+    t.agent("Every node that *can* log did — five of five. Five other things in the graph were left out of the "
+            "denominator on purpose and the echo names each one with its reason: three event classes and the "
+            "`QuoteControl` service interface can never write audit output, and `spreadCalculator` cannot either — "
+            "its class declares no supertype, so there is no `auditLog` for it to write with. Counting all five "
+            "would have reported 50% for a run that logged everything it could.\n>\n"
+            "> Read that last exclusion carefully, though, because the echo is careful about it too: "
+            "`spreadCalculator` being unable to log is **not** the same as it being fine. It is not observable in "
+            "*any* audit log, so this 100% says nothing about whether it ran — proof-of-absence simply does not "
+            "reach it. If you need to know that it ran, it needs an audit logger before the next capture.",
+            cites=['"declared": 5', '"covered": 5', '"ratio": 1.0', "spreadCalculator", "QuoteControl"])
 
     # 3 ---------------------------------------------------------------------------------------------
     t.heading("3 · \"Why is this number what it is?\" — one value followed back through the graph")
@@ -186,10 +220,12 @@ def main():
     t.call("topology", {"step": 2}, show=["position", "currentNode", "rowCount", "atEntry", "orderMeaningful"])
     t.agent("`quotePublisher.spread` is computed from `spreadCalculator`, which listens to `priceListener` — the "
             "Topology tab is now focused on exactly those routes, and I've stepped the 09:00:00.270 cycle to the "
-            "second node it dispatched — `quotePublisher`, after `orderTracker`. In this run `spreadCalculator` logged nothing (see conversation 2), so the "
-            "0.011 you see is `quotePublisher` reporting a value it was handed, not one this log lets us trace "
-            "further. Position within the cycle *is* dispatch order here (`orderMeaningful: true`), so the sequence "
-            "you're looking at is causal.")
+            "second node it dispatched — `quotePublisher`, after `orderTracker`. `spreadCalculator` cannot write audit output at "
+            "all (conversation 2), so the "
+            "0.011 you see is `quotePublisher` reporting a value it was handed, and no audit log will ever let us "
+            "trace it further — that is a property of the build, not of this run. Position within the cycle *is* dispatch order here (`orderMeaningful: true`), so the sequence "
+            "you're looking at is causal.",
+            cites=["quotePublisher", "orderMeaningful"])
     t.shot("conv-why-this-number.png", "The routes into quotePublisher, the cycle stepped to its second node")
 
     # 5 (before 4, which closes the log) --------------------------------------------------------------
@@ -236,7 +272,8 @@ def main():
     t.agent("Expected, and not a quiet system: this build was compiled **without** audit logging — `EventLogManager` is "
             "not on the graph, so the processor writes no audit log at all, however carefully its nodes call "
             "`auditLog.info(…)`. The fix is `addEventAudit()` on the graph builder and a rebuild. I could tell you "
-            "that from the graph alone, before any run — there was never going to be a log to read.")
+            "that from the graph alone, before any run — there was never going to be a log to read.",
+            cites=["not_enabled", "addEventAudit()"])
     t.shot("conv-will-it-log.png", "No log open, the no-audit build's graph loaded — 18 nodes and no EventLogManager; the verdict rides context.graphPairing and the Project panel's Graph section")
 
     t.prose("---")
