@@ -1,6 +1,6 @@
 ## Polish round (brief 2026-08-17) — ☑ SHIPPED 2026-08-25 (H1–H6 complete)
-_Merged from `feat/polish-round`. Brief `docs/handoff/handoff_17_aug_2026_1.txt`, report
-`docs/handoff/handoff_17_aug_2026_1_report.txt`, review `docs/handoff/review_feat_polish_round.txt`._
+_Merged from `feat/polish-round`. Brief `docs/handoff/completed/handoff_17_aug_2026_1.txt`, report
+`docs/handoff/completed/handoff_17_aug_2026_1_report.txt`, review `docs/handoff/completed/review_feat_polish_round.txt`._
 - [H1] ☑ **Tracker archaeology** — found already done by the per-merge tidies and verified section by
   section: no block was left all-☑. Only the "Shipped — archived" summary line was stale (stopped at
   M28); it now lists M29–M35.

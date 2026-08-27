@@ -2,7 +2,7 @@
 
 _Status: **ACCEPTED v2 — 2026-08-22.** Written 2026-08-21 as an alternative to
 [spec-closed-loop.md](spec-closed-loop.md) Part B (M18); assessed and **adopted** in
-[review_spec_agent_brokered_dev_loop.txt](../handoff/review_spec_agent_brokered_dev_loop.txt), whose
+[review_spec_agent_brokered_dev_loop.txt](../handoff/completed/review_spec_agent_brokered_dev_loop.txt), whose
 amendments are folded in below and marked **(review)**. M18 as specced is closed in favour of this
 document. The
 question this document exists to answer is not "is this nice" but **"is this materially better than

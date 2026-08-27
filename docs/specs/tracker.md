@@ -91,7 +91,7 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
 
 ## M18 · Mongoose server link — ☒ **CLOSED 2026-08-22 in favour of the agent-brokered dev loop**
 _Superseded by **[spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md)** (ACCEPTED v2),
-assessed in [review_spec_agent_brokered_dev_loop.txt](../handoff/review_spec_agent_brokered_dev_loop.txt).
+assessed in [review_spec_agent_brokered_dev_loop.txt](../handoff/completed/review_spec_agent_brokered_dev_loop.txt).
 The deciding argument is no longer between two specs: **M34.0 passed its gate and M34.1's ordering
 slice shipped**, so M18 as specced would contradict merged code — the analyser cannot be made
 engine-agnostic and taught one server's REST API in the same quarter._
@@ -294,7 +294,7 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
 ## M35 · Log + graph lifecycle — ☑ SHIPPED 2026-08-25, all eleven slices + §E (archived)
 _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing open._
 
-## M36 · Start page — ◧ **.1–.4 MERGED to main 2026-08-25** (the empty state, doing a job); .5 docs page open
+## M36 · Start page — ☑ **.1–.5 SHIPPED** (.1–.4 2026-08-25, .5 docs page 2026-08-25); only the rule-1 owner decisions below and one upstream ask remain live
 _Design: **[spec-start-page.md](spec-start-page.md)**. The owner's four sections — what it does, how
 it helps, where it fits in the cycle, who you are — placed where they cost a returning user nothing._
 _The framing that shaped it: **the analyser already HAS a start page**, and it reads "No log loaded —
@@ -541,41 +541,32 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-08-22. Shipped since the last refresh: **M34.0** (spike, gate opened), **M34.1**
-ordering slice, **M35.1/.2/.3/.4/.7** (on `feat/m35-lifecycle`). **M18 is closed** in favour of
-spec-agent-brokered-dev-loop; its old slices are gone from this list._
+_Refreshed 2026-08-27. Shipped since the last refresh: **M35** (all eleven slices + §E), **M34.0–.3**,
+**M19.6/.7**, **M36.1–.5**, **M37** (the Project panel), **M38.1**, **M40.1**, the polish round; **M38.2–.6**
+are implemented on `feat/m38-portable-context` and under review._
 
-1. **M35 remnants** — **M35.5** (project switch closes log + graph) and **M35.6** (state the pairing
-   up front, largely delivered already by `context.graphPairing` and the status line). Finish the
-   branch and merge.
-2. **§E provenance** (spec-agent-brokered-dev-loop) — **before any agent swaps logs between
-   servers.** One field on `LogFingerprint`, plus the share-disclosure row and the Q1 soft-banner
-   treatment, in the same commit. The design creates the hole; this closes it first.
-3. **M34.1 remainder** — `graph(Path)` on the SPI, and reconciling an adapter-supplied graph with
-   `open {graphml}`. Deliberately after M35, which is where that reconciliation is being designed.
-4. **M12.4** (fix-with-agent launcher, v1 copy-command) — with M13 live, the handed-off agent can
-   query back while it works.
-5. **M12.1 / M12.2** (export_finding structure; replay-test fixture) — journal↔log pairing is the
-   precondition to resolve first, and it also gates **M33.5**.
-6. **M19** (onboarding example) — and it now carries the **§H conformance harness**, which must have
-   a home before any cross-repo work starts.
-7. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers), **M35.8**
-   (`open {project}` — so an agent can accept the offer M35.7 reports, and E7-E10 become drivable), **M29.5**, **M13.5**,
-   **M21.7–.9**, and the **M22** five
-   (`docs/handoff/handoff_17_aug_2026_1.txt`).
-8. **Cross-repo — the §H gate is MET (M19.6 shipped the bench 2026-08-25); DRAFTED and READY TO FILE,
-   still unfiled: UP-MNG-01…04, UP-PG-01…02, UP-RDR-01 in
-   [upstream-asks.md](../proposals/upstream-asks.md) §5–§7, each with evidence and acceptance, so a session
-   opened in the mongoose or playground repo has a brief.** The Mongoose **MCP admin tool** + `~/.mongoose/servers/` endpoint
-   files, and the playground's two catalogue asks (`agentBootstrap`, the `catalogue` version
-   integer). All belong in [upstream-asks.md](../proposals/upstream-asks.md).
-   _Alongside them, and promoted from a footnote: **the out-of-tree Chronicle reader**. The Mongoose
-   starters already write `auditBackend: "chronicle"`, so a reader on M31's shipped SPI
-   (`supportsFollow: true`) tails the live audit store and **deletes the export beat entirely** —
-   turning the dev cycle into edit → approve restart → watch the live log move. It is the cheapest
-   large upgrade on this list, because the SPI it needs shipped in 1.5.0._
-9. **M11** stays vision until a real Grafana consumer appears — and when one does it is
-   `export_promotion` (a neutral manifest the agent renders), not a dashboard generator.
+1. **M38 review → merge.** .5 (report destinations) and .6 (path anchors) are with the reviewer; .1–.4 are
+   closed. One rebase onto main at merge time, then the `docs/handoff` M38 files move to `completed/`.
+2. **Two decisions the M38 work surfaced**, owner's call: the **mixed-version profile hazard** (an older
+   analyser drops newer keys on save — preserve unknown keys, or refuse to save over a newer
+   `share.version`; candidate M38.7) and whether **M39 baselines** is spec'd next ("is this normal here?",
+   the question support cannot answer about an unfamiliar system).
+3. **M40.2/.3** (which nodes can log; the audit level) — after M40.1's shape has settled in use, and .3
+   only after measuring the way .1 was measured.
+4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
+5. **M19.3/.4** (tutorial, publish-gated on the playground Download) and **M19.8** (bench in CI).
+6. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers — read it as tier 1
+   of M38's model and share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
+   (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.6** (owner said YES).
+7. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
+   UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, each with evidence and
+   acceptance. The Mongoose **MCP admin tool** + `~/.mongoose/servers/` endpoint files, the playground's two
+   catalogue asks, and — promoted from a footnote — **the out-of-tree Chronicle reader** on M31's shipped
+   SPI, which deletes the export beat from the dev cycle. **UP-MNG-03** (the server supplying the
+   environment) now has its analyser-side counterpart in M38.3: where both exist the declaration wins and
+   `context.provenanceSource` says so.
+8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer
+   appears.
 
 ## Decisions (resolved)
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.

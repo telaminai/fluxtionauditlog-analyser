@@ -40,9 +40,12 @@ else. So when you and an agent connected over MCP look at the same session, you 
 facts, and a fact the panel lacks is added to `context` first. The keys it draws are `project`
 (`name`, `root`, `settings`), `log` (`openedFrom`, `openedBy`, `records`), `provenance`,
 `graphPairing` (`graph`, `graphSource`, `graphPath`, `applies`, `declaredByGraph`, `loggedNodes`,
-`verdict`, `sourceGraphOffered`, `sourceGraphNote`, `auditLogging`, `auditLoggingNote`), `processors` (`class`, `selected`, `source`,
-`from`), `source.rootTiers` (`path`, `tier`), `exports` (`enabled`, `dir`) and `reports` (`name`, `title`,
-`sections`, `from`).
+`verdict`, `sourceGraphOffered`, `sourceGraphNote`), `processors` (`class`, `selected`, `source`,
+`from`), `source.rootTiers` (`path`, `tier`, `form`) and `source.workspaceRoot`, `exports` (`enabled`,
+`dir`), `reports` (`name`, `title`, `sections`, `from`), `reportDestinations` (`name`, `location`, `kind`,
+`from`), and the portable-context facts — `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
+`vocabulary` (`path`, `resolved`, `exists`, `from`), `environments` (`name`, `provenance`, `logDir`,
+`default`) with `provenanceSource`, and `analyses` (`name`, `rationale`, `parameters`, `steps`, `from`).
 
 ## Layout
 

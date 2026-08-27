@@ -151,7 +151,15 @@ prompt and is served as `context.vocabulary.text`, so the assistant reads `live`
 `context` is also what the **Project panel** draws (*User guide ▸ The Project panel*): one payload, two
 readers. It reports the graph whether or not a log is open, `log.openedBy` (you or the action socket),
 `graphPairing.graphPath`, `processors` as a list with `selected` and whether `source` was `found`, and
-`source.rootTiers` — each root with the tier that supplied it (`project`, `own settings`, `demo (transient)`).
+`source.rootTiers` — each root with the tier that supplied it (`project`, `own settings`, `demo (transient)`) and
+the `form` it is stored in (`project-relative`, `workspace-relative`, `~`, `absolute`), plus `source.workspaceRoot`
+when the project declares an anchor.
+
+The project's portable context (*User guide ▸ Portable context*) rides the same payload: `runbooks[]` (pointers —
+read the file from the repository; the analyser never executes one), `vocabulary` (with the glossary's `text`),
+`environments[]` and `provenanceSource` (who supplied the log's provenance — *declared by the opener* always
+wins), `analyses[]` (the offer; recall with `open {analysis, bind}`), and `reportDestinations[]` (places the
+publisher acts on; the analyser never publishes).
 
 `graphPairing` also carries **`auditLogging`** (`enabled` / `not_enabled` / `unknown`) with an
 `auditLoggingNote`. That is read from the graph, not the log, so it answers **before a log exists** — a

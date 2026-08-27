@@ -145,6 +145,17 @@ The paired brief/report trail makes every delegated work block auditable from th
 When a cycle is fully done (merged/shipped, review answered), its brief/report/review files move to
 `docs/handoff/completed/` — the live directory holds only in-flight correspondence.
 
+Two review lessons from M37–M40 (2026-08-27), each found twice by two sessions independently, so they
+are checklist items rather than anecdotes:
+
+- **A feature that ships agent-first lags its human surface and its docs.** For every new `context` key,
+  name in the same commit the human surface that shows it (usually a Project-panel row) and the docs page
+  that says so — and if the docs promise a surface, that surface must exist (M40.1 promised the Topology
+  tab; M38.3 dropped the qualification exactly where it leaves the session, the report header).
+- **`MainFrame.context()` returns early on a fresh start** (`filter == null`). Anything a fresh start
+  should report — a graph, the roots, a verdict — goes ABOVE that return; twice a correctly `put` fact was
+  invisible to agents because it sat below it.
+
 ### Ad-hoc un-reviewed changes
 Sometimes a session working primarily in **another repo** (a downstream consumer of the analyser) hits an
 analyser-side bug and fixes it in passing — too small for a full brief, but it still lands on `main`
