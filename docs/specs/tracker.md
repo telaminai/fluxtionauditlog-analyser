@@ -357,6 +357,22 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
+## M40 · Audit readiness — will this processor log at all? — ◧ **.1 DONE 2026-08-27** on `feat/audit-readiness`
+_Brief `docs/handoff/handoff_27_aug_2026_1.txt`, report `docs/handoff/report_feat_audit_readiness.txt`.
+The owner's redirect: the authoring side belongs to the LLM writing the processor; the ANALYSER side can
+diagnose the graph. Every other producer check needs a log to examine, and the worst case produces no log._
+- [M40.1] ☑ **The verdict, from the graph** — `AuditReadiness.of(topology)` → ENABLED / NOT_ENABLED /
+  UNKNOWN. The compiler installs `EventLogManager` as a node when `addEventAudit()` was called; absent,
+  the processor writes nothing. **Measured** (rule 6): same program, one call removed → 613 bytes became
+  0. UNKNOWN with no graph — with no evidence the answer is "unknown", never "probably fine". Surfaced
+  in `context.topology.auditLogging`, verified live with a graph and NO log open. 7 tests, the real demo
+  fixture as the positive control.
+- [M40.2] ☐ **Which NODES can log** — a node that does not extend `EventLogNode` is silent by
+  construction, so its coverage gap is not evidence of anything. Needs source resolution per node; a
+  different evidence source with a different failure mode when source is missing.
+- [M40.3] ☐ **The audit LEVEL** (INFO vs TRACE) — only if the graph distinguishes them, and only after
+  measuring it the way M40.1 was measured. Do not claim it otherwise.
+
 ## M38 · Portable context — the project as a shared workspace — ◧ **.1–.7 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`**; .1–.6 reviewed (F1s taken), .7 awaiting review (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
 _Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
 human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
