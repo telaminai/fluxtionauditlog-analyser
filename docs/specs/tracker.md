@@ -344,9 +344,10 @@ separate, client-specific last mile: a Start-page/Assistant setup flow registers
 **Codex**, **Claude Code**, and a generic MCP client, and provides the Claude Desktop extension route. It does not
 add another protocol server, start a duplicate GUI, copy a per-run token, or edit unknown foreign configuration files
 silently. The analyser proves its own side with a loopback invocation of the exact bridge command and read-only
-`analyser_context`; a green check never pretends it has observed a foreign client or model._
+`analyser_context`; it refuses `OTHER_INSTANCE` when another analyser owns the last-writer-wins endpoint, and a
+green check never pretends it has observed a foreign client or model._
 - [M42.1] ☐ **Launch command + loopback probe** — resolved absolute launcher, argument-vector process handling,
-  redaction, and a real bridge → REST → `context` test under isolated home.
+  redaction, `OTHER_INSTANCE` protection, and a real bridge → REST → `context` test under isolated home.
 - [M42.2] ☐ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
   transport enablement; distinct app/bridge/client state.
 - [M42.3] ☐ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.

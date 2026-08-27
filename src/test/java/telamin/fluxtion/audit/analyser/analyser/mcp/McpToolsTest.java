@@ -75,6 +75,13 @@ class McpToolsTest {
     }
 
     @Test
+    void contextIsPinnedAsReadOnlyForTheMcpLoopbackProbe() {
+        assertTrue(McpTools.READ_ONLY.contains("context"),
+                "M42's self-test calls analyser_context specifically because it must never render or persist state");
+        assertEquals(true, annotations("context").get("readOnlyHint"));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void inputSchemaCarriesTheVerbsParams() {
         Map<String, Object> schema = (Map<String, Object>) tool("graph").get("inputSchema");

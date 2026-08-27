@@ -1,0 +1,74 @@
+package telamin.fluxtion.audit.analyser.analyser.mcp;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+/**
+ * The exact local command an MCP client launches for the analyser bridge (M42.1).
+ *
+ * <p>This is an argument vector, deliberately not a shell string: it is shared by client registration,
+ * generic configuration and the analyser's own loopback probe, all of which must launch precisely the
+ * same program. The per-run REST endpoint and token are discovered by the bridge and never belong here.
+ */
+public final class McpLaunchCommand {
+
+    /** The stable flag that turns the application launch into its headless stdio MCP bridge. */
+    public static final String MCP_FLAG = "--mcp";
+
+    private final List<String> launcher;
+
+    private McpLaunchCommand(List<String> launcher) {
+        if (launcher == null || launcher.isEmpty()) {
+            throw new IllegalArgumentException("an MCP launcher needs a command");
+        }
+        List<String> checked = new ArrayList<>(launcher.size());
+        for (String arg : launcher) {
+            if (arg == null || arg.isBlank()) throw new IllegalArgumentException("launcher arguments must be non-blank");
+            if (MCP_FLAG.equals(arg)) throw new IllegalArgumentException("pass the app launcher, not its --mcp flag");
+            checked.add(arg);
+        }
+        this.launcher = List.copyOf(checked);
+    }
+
+    /** Build a bridge command from a resolved executable and any launcher arguments it requires. */
+    public static McpLaunchCommand of(List<String> launcher) {
+        return new McpLaunchCommand(launcher);
+    }
+
+    /**
+     * The documented JBang app install supplies this stable launcher. It is an optional discovery
+     * result: an absent JBang app is not an error, because a selected fatjar is the honest fallback.
+     */
+    public static Optional<McpLaunchCommand> installedJbang(Path userHome) {
+        Objects.requireNonNull(userHome, "userHome");
+        Path bin = userHome.resolve(".jbang").resolve("bin");
+        for (String name : List.of("analyser", "analyser.cmd", "analyser.bat")) {
+            Path candidate = bin.resolve(name);
+            if (Files.isRegularFile(candidate)) return Optional.of(of(List.of(candidate.toAbsolutePath().toString())));
+        }
+        return Optional.empty();
+    }
+
+    /** A selected shaded jar, launched by the selected absolute Java executable. */
+    public static McpLaunchCommand jar(Path javaExecutable, Path jar) {
+        Objects.requireNonNull(javaExecutable, "javaExecutable");
+        Objects.requireNonNull(jar, "jar");
+        return of(List.of(javaExecutable.toAbsolutePath().toString(), "-jar", jar.toAbsolutePath().toString()));
+    }
+
+    /** The immutable argument vector actually given to {@link ProcessBuilder}. */
+    public List<String> command() {
+        List<String> command = new ArrayList<>(launcher);
+        command.add(MCP_FLAG);
+        return List.copyOf(command);
+    }
+
+    /** The command before the MCP bridge flag, for client-specific configuration renderers. */
+    public List<String> launcher() {
+        return launcher;
+    }
+}

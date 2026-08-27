@@ -45,6 +45,12 @@ and is upgrade-tested, but it is a distribution nicety rather than a prerequisit
 Existing registrations named `analyser` are left alone; the setup screen may offer a user-confirmed
 migration to the canonical MCP *server label* only.
 
+The registration label is deliberately not the bridge's discovery identity: current bridge responses
+advertise `serverInfo.name = fluxtion-audit-log-analyser`. A client may therefore show both names — its
+local `fluxtion-analyser` registration and the bridge's protocol identity. M42 must name that fact in
+the setup screen and persist neither as a third invented identity. Renaming `serverInfo.name` is a
+separate visible protocol-contract decision, not incidental installer polish.
+
 ---
 
 ## D-I1 — the connection remains a bridge to the live desktop session
@@ -68,9 +74,12 @@ flowchart LR
 - If the GUI is closed or the transport is off, the bridge returns its existing actionable error. It does
   not launch a second GUI, guess a log, or weaken the security model.
 
-**Out of scope:** remote/hosted MCP, a fixed listening port, an unauthenticated loopback endpoint, and
-automatic app launch. Those solve a different product problem and would blur the difference between a
-client operating a reviewed desktop session and a daemon acting unattended.
+**Permanent boundary:** remote/hosted MCP, a fixed listening port, an unauthenticated loopback endpoint,
+and automatic app launch from the bridge are out of scope. They would blur the difference between a
+client operating a reviewed desktop session and a daemon acting unattended. An agent-driven fresh start
+already has the explicit `analyser --rest` route (M19.7), and the bridge's not-running error names it.
+Revisit the boundary only if evidence shows this explicit path prevents a real user completing a
+supported workflow; do not add an unprompted "future opt-in" launch path.
 
 ---
 
@@ -110,7 +119,7 @@ the setup UI, client integrations, generic snippets, and the loopback probe.
 It resolves one of these launch forms, in order of confidence:
 
 1. the absolute `~/.jbang/bin/analyser` launcher installed by the documented JBang command;
-2. the absolute executable that launched the app, when it can be safely identified;
+2. the **full argument vector** that launched the app, when it can be safely identified;
 3. an explicitly chosen local fatjar plus the selected Java executable;
 4. no automatic setup — show the exact generic template and explain what path is missing.
 
@@ -132,9 +141,23 @@ For a JBang install today that is normally:
 
 The example is illustrative; the UI must show the real home-directory path on the current machine.
 
+Form 2 must never mistake `ProcessHandle.info().command()` (`java` under JBang) for an analyser
+launcher. It reconstructs a usable full Java/JBang argument vector, removes any opening-log argument,
+then proves the result with the loopback probe before offering it to a client. If that cannot be done
+unambiguously, form 2 is unavailable — an explicit fatjar is safer than a plausible-looking `java --mcp`.
+
+Running the resolved command in the probe is intentionally stronger than testing classes in-process: it
+also catches a stale JBang cache/launcher whose bridge jar is older than the running GUI. That mismatch
+is a diagnosable setup failure rather than a mysterious client problem.
+
 ---
 
 ## D-I4 — client-specific setup paths
+
+**External-contract rule:** before implementing, changing, or testing any Codex, Claude Code, Claude
+Desktop, or generic-client integration, read that client's *live* authoritative documentation and
+verify the exact CLI/configuration/extension contract. The commands below state the intended shape;
+they are not a licence to infer a protocol that has changed.
 
 ### Codex CLI
 
@@ -169,8 +192,10 @@ implementation time (the protocol is an external contract, so rule 6 applies).
 ### Claude Desktop
 
 Ship a versioned `fluxtion-analyser.mcpb` desktop extension whose only capability is to launch the
-same local stdio bridge. The extension uses a small platform-neutral launcher to find the JBang launcher
-or an explicitly configured fatjar; it must not bundle, download, or start a duplicate GUI.
+same local stdio bridge. It receives the explicit, validated command selected by D-I3; it must not
+duplicate launcher discovery, bundle/download a runtime, or start a duplicate GUI. If the documented
+extension contract cannot carry that explicit command portably, the safe v1 fallback is **Copy Claude
+Desktop configuration** — do not invent a second launcher with its own resolution rules.
 
 The analyser's flow is **Reveal/install extension…**: it prepares or reveals the package, shows the
 command it will run, then opens the client-directed install instructions. Claude Desktop owns extension
@@ -179,9 +204,8 @@ configuration database. The follow-up screen says **Installed in Claude Desktop 
 not "connected", until the bridge probe passes.
 
 Before implementation, read the current Claude Desktop extension/manifest source of truth and test the
-package on macOS, Windows and Linux. If the packaging contract cannot launch a Java/JBang command without
-embedding an unsupported runtime, the safe v1 fallback is **Copy Claude Desktop configuration**; do not
-invent a proprietary installer.
+package on macOS, Windows and Linux. The extension's launch-command conformance tests must reuse the
+D-I3 resolution fixtures; a launcher mismatch is a failed package, not a platform quirk.
 
 ### Generic MCP
 
@@ -207,9 +231,14 @@ action writes only a user-chosen file, never a hidden configuration location.
 ## D-I5 — the analyser can prove its own MCP chain
 
 **Yes, it can test itself — as a loopback integration test, not by pretending to be Codex or Claude.**
-The current GUI process starts the same resolved `--mcp` bridge command that a client would launch,
-speaks the bridge's current supported MCP discovery/tool protocol over the child process's stdin/stdout,
-and invokes the read-only `analyser_context` tool.
+First, the probing GUI reads the endpoint file. No file/dead pid is `REST_OFF`; a live pid other than
+the probing process is `OTHER_INSTANCE`, and the probe stops there — the well-known endpoint is
+last-writer-wins, so launching a bridge would otherwise prove a different analyser window. Only its own
+live endpoint may proceed.
+
+The GUI then starts the same resolved `--mcp` bridge command that a client would launch, speaks the
+bridge's current supported MCP discovery/tool protocol over the child process's stdin/stdout, and invokes
+the read-only `analyser_context` tool.
 
 That proves this complete chain:
 
@@ -227,7 +256,8 @@ stdin/destroys its child process. Its result distinguishes:
 | Result | Meaning | UI wording |
 |---|---|---|
 | `VERIFIED` | discovery, tool list, and `analyser_context` returned from this GUI | **Bridge works now** |
-| `REST_OFF` | the app has no live endpoint | **Turn on local transport** |
+| `REST_OFF` | no live endpoint, or the bridge reports its published analyser-unreachable code `-32001` | **Turn on local transport** |
+| `OTHER_INSTANCE` | a different live analyser process owns the well-known endpoint | **Another analyser owns the MCP connection** |
 | `LAUNCH_FAILED` | the resolved bridge executable did not start | **Fix launcher path** |
 | `PROTOCOL_FAILED` | the launched process was not a compatible bridge | **Bridge needs attention** |
 | `ACTION_FAILED` | the bridge reached the app but `context` failed | **App connection needs attention** |
@@ -239,10 +269,12 @@ The client-specific final check remains “does the client list `fluxtion-analys
 The same probe has two test seams:
 
 - pure tests feed scripted bridge input/output and assert discovery, `tools/list`, and the
-  `analyser_context` request stay read-only;
+  `analyser_context` request stay read-only; one pins that `context` remains in
+  `McpTools.READ_ONLY`;
 - an integration harness starts a real app with an isolated `user.home`, enables REST, runs the resolved
   child bridge, and asserts a `VERIFIED` loop. It belongs beside the M19 bench because that harness
-  already validates a fresh Swing/REST launch under an isolated home.
+  already validates a fresh Swing/REST launch under an isolated home. It also covers the dual-era
+  discovery choice, `-32001 → REST_OFF`, and pid mismatch → `OTHER_INSTANCE`.
 
 ---
 
@@ -267,6 +299,9 @@ not persist endpoint tokens, tool output, or a claim that an external client is 
 
 - Keep the existing `127.0.0.1`, ephemeral-port, fresh-token and mode-600 endpoint-file design. M42
   never converts it to a shared daemon or puts the endpoint/token in client configuration.
+- On non-POSIX filesystems the endpoint file's owner-only permission is best-effort; that is already
+  how `RestEndpointFile` behaves. The loopback/token design remains unchanged, and Windows docs must
+  state the platform limitation rather than promise POSIX mode bits.
 - Registration is explicit. The confirmation view names the client, server label, launcher and whether
   it will add, replace, remove, or merely copy. Cancel means no external process and no configuration
   write.
@@ -282,11 +317,14 @@ not persist endpoint tokens, tool output, or a claim that an external client is 
 
 ## Delivery slices
 
-One coherent slice per commit; `mvn test` green before each. UI changes are built and run manually
-because headless CI cannot prove a Swing setup flow.
+One coherent slice per commit; `mvn test` green before each. Every slice that makes a user-visible
+change adds its own `[Unreleased]` CHANGELOG line in the same commit — not deferred to M42.6. UI changes
+are built and run manually because headless CI cannot prove a Swing setup flow.
 
 1. **M42.1 — launch-command model and probe core.** `McpLaunchCommand`, argument-vector rendering,
-   redaction and the process-managed loopback probe; pure tests plus an isolated-home bench path.
+   redaction and the process-managed loopback probe; pure tests plus an isolated-home bench path. Pin
+   dual-era selection, `-32001 → REST_OFF`, pid mismatch → `OTHER_INSTANCE`, and context's read-only
+   membership before adding a human surface.
 2. **M42.2 — human surface and local readiness.** Start-page card, persistent Assistant entry,
    REST-off explanation/enabling confirmation, and the four-layer honest status model. Build/run the
    jar and check the fresh Start page stays dialog-free.
@@ -295,10 +333,12 @@ because headless CI cannot prove a Swing setup flow.
 4. **M42.4 — Claude Code.** User-scoped registration and a deliberate, copy-only project-config path.
    Verify the current external CLI/schema first, then against a clean Claude Code configuration.
 5. **M42.5 — Claude Desktop.** Package and test the local desktop extension across supported desktop
-   platforms, with the fallback defined in D-I4 if its documented packaging cannot launch the bridge.
+   platforms, using D-I3's command fixtures; use the D-I4 copy-config fallback if its documented
+   packaging cannot launch the bridge.
 6. **M42.6 — generic configuration and docs.** Copy/save generic snippet, update the connection guide,
    Assistant guide, Start-page documentation and screenshots/transcripts; regenerate and inspect every
-   visual/text artifact. Add CHANGELOG entry.
+   visual/text artifact. Setup surfaces are captured **only** by the isolated-home generated-capture
+   harness: their real absolute launcher paths are a screenshot leak surface a text sweep cannot see.
 
 ## Acceptance
 
@@ -310,20 +350,20 @@ because headless CI cannot prove a Swing setup flow.
   no unsupported private configuration editing is claimed.
 - A generic MCP user can copy a valid command/arguments block for the actual local launcher.
 - **Check connection** launches the same bridge command, calls only `analyser_context`, and accurately
-  distinguishes the failure modes in D-I5. It causes no visible UI or persistent-state mutation.
+  distinguishes every failure mode in D-I5, including `OTHER_INSTANCE`. It causes no visible UI or
+  persistent-state mutation.
 - A fresh, no-log launch stays non-modal; the setup remains discoverable after dismissal.
 - No client configuration, terminal history, UI message, screenshot, transcript or persisted config
   contains a per-run endpoint token.
 - `mvn test`, `mkdocs build --strict`, the public-data sweep, and visual inspection of regenerated
   setup screenshots/transcripts pass before release.
 
-## Questions for review
+## Review decisions recorded
 
-1. Is the chosen boundary right: direct CLI registration for Codex/Claude Code, but client-owned
-   extension installation for Claude Desktop and copy-only generic configuration?
-2. Should an installed JBang alias `fluxtion-analyser` be a separate distribution change, or should M42
-   include a backwards-compatible catalogue alias after a JBang feasibility/upgrade test?
-3. Is `analyser_context` the best permanent non-mutating loopback action, or should a dedicated
-   `analyser_ping` tool be added only if the existing context contract proves too broad?
-4. Is automatic GUI launch when the bridge has no endpoint a future opt-in capability, or should the
-   reviewed-live-session boundary remain permanent?
+- The three-tier client boundary stands: direct client-CLI registration for Codex/Claude Code,
+  client-owned installation for Claude Desktop, and copy-only generic configuration.
+- A JBang `fluxtion-analyser` alias is a separate distribution change; the tracker decision governs it.
+- `analyser_context` remains the probe: it is a real agent-facing, read-only, logless diagnostic. A
+  permanent `ping` tool solely for self-test would pollute every client's tool list.
+- The no-auto-launch boundary in D-I1 is permanent, subject only to its stated evidence-based revival
+  trigger.
