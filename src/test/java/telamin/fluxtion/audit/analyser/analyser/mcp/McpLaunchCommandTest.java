@@ -52,10 +52,27 @@ class McpLaunchCommandTest {
         Files.createFile(java);
         Files.createFile(jar);
 
-        McpLaunchCommand command = McpLaunchCommand.fromRunningJar(java, jar.toString(), ":").orElseThrow();
-        assertEquals(List.of(java.toAbsolutePath().toString(), "-jar", jar.toAbsolutePath().toString(), "--mcp"),
+        McpLaunchCommand command = McpLaunchCommand.fromRunningJar(java,
+                new String[]{"-Duser.home=/tmp/isolated-analyser", "-Xmx1g", "-jar", jar.toString(), "--rest"},
+                jar.toString(), ":", "/ignored-fallback").orElseThrow();
+        assertEquals(List.of(java.toAbsolutePath().toString(), "-Duser.home=/tmp/isolated-analyser", "-Xmx1g",
+                        "-jar", jar.toAbsolutePath().toString(), "--mcp"),
                 command.command());
-        assertTrue(McpLaunchCommand.fromRunningJar(java, jar + ":" + dir.resolve("other.jar"), ":").isEmpty(),
+        assertTrue(McpLaunchCommand.fromRunningJar(java, new String[0],
+                        jar + ":" + dir.resolve("other.jar"), ":", "/tmp/isolated-analyser").isEmpty(),
                 "a multi-entry classpath is not a launcher we can safely reconstruct");
+    }
+
+    @Test
+    void argumentRestrictedProcessMetadataStillCarriesTheCurrentUserHome() throws Exception {
+        Path java = dir.resolve("java");
+        Path jar = dir.resolve("analyser.jar");
+        Files.createFile(java);
+        Files.createFile(jar);
+
+        McpLaunchCommand command = McpLaunchCommand.fromRunningJar(java, new String[0], jar.toString(), ":",
+                dir.resolve("isolated-home").toString()).orElseThrow();
+        assertEquals(List.of(java.toAbsolutePath().toString(), "-Duser.home=" + dir.resolve("isolated-home").toAbsolutePath(),
+                "-jar", jar.toAbsolutePath().toString(), "--mcp"), command.command());
     }
 }

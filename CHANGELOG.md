@@ -15,6 +15,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Packaged launches can check their own bridge.** When the documented JBang launcher is not present,
   setup now safely uses a directly launched single jar from the current process. Ambiguous classpaths
   remain unavailable rather than becoming a guessed command.
+- **Bridge checks retain the app’s local-home context.** A packaged app launched with a custom Java
+  `user.home` now passes that same setting to its bridge child, so the child reads this window’s endpoint
+  instead of a different home directory’s stale or absent one.
 
 ## [1.10.0] - 2026-08-27
 

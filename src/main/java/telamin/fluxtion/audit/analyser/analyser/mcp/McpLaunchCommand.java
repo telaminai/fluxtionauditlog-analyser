@@ -55,21 +55,26 @@ public final class McpLaunchCommand {
     }
 
     /**
-     * A safe form-2 resolver for an app launched directly from one shaded jar. A classpath with more
-     * than one entry is deliberately refused: reconstructing an IDE or arbitrary Java launch would be a
-     * plausible-looking guess, not the exact bridge command a client should inherit. JBang wins whenever
-     * its documented launcher exists; this is the useful fallback for {@code java -jar} and release smoke
-     * tests.
+     * A safe form-2 resolver for an app launched directly from one shaded jar. It retains the current
+     * JVM's options through {@code -jar} (notably an isolated {@code -Duser.home}) and discards only the
+     * app arguments after the jar before adding {@code --mcp}. A classpath with more than one entry is
+     * deliberately refused: reconstructing an IDE or arbitrary Java launch would be a plausible-looking
+     * guess, not the exact bridge command a client should inherit. JBang wins whenever its documented
+     * launcher exists; this is the useful fallback for {@code java -jar} and release smoke tests.
      */
     public static Optional<McpLaunchCommand> runningJar() {
         String classPath = System.getProperty("java.class.path", "");
         String home = System.getProperty("java.home", "");
         if (home.isBlank()) return Optional.empty();
         String executable = System.getProperty("os.name", "").toLowerCase().contains("win") ? "java.exe" : "java";
-        return fromRunningJar(Path.of(home, "bin", executable), classPath, File.pathSeparator);
+        ProcessHandle.Info info = ProcessHandle.current().info();
+        Path java = info.command().map(Path::of).orElse(Path.of(home, "bin", executable));
+        String[] arguments = info.arguments().orElseGet(() -> new String[0]);
+        return fromRunningJar(java, arguments, classPath, File.pathSeparator, System.getProperty("user.home", ""));
     }
 
-    static Optional<McpLaunchCommand> fromRunningJar(Path javaExecutable, String classPath, String pathSeparator) {
+    static Optional<McpLaunchCommand> fromRunningJar(Path javaExecutable, String[] currentArguments,
+                                                      String classPath, String pathSeparator, String userHome) {
         if (javaExecutable == null || classPath == null || classPath.isBlank()
                 || pathSeparator == null || classPath.contains(pathSeparator)) {
             return Optional.empty();
@@ -80,7 +85,31 @@ public final class McpLaunchCommand {
                     || !jar.getFileName().toString().toLowerCase().endsWith(".jar")) {
                 return Optional.empty();
             }
-            return Optional.of(jar(javaExecutable, jar));
+            List<String> launcher = new ArrayList<>();
+            launcher.add(javaExecutable.toAbsolutePath().toString());
+            int jarFlag = -1;
+            if (currentArguments != null) {
+                for (int i = 0; i + 1 < currentArguments.length; i++) {
+                    if ("-jar".equals(currentArguments[i])
+                            && jar.equals(Path.of(currentArguments[i + 1]).toAbsolutePath().normalize())) {
+                        jarFlag = i;
+                        break;
+                    }
+                }
+            }
+            if (jarFlag >= 0) {
+                // Everything after the jar is an app argument (log path, --rest, …), not a JVM option.
+                for (int i = 0; i <= jarFlag; i++) launcher.add(currentArguments[i]);
+                launcher.add(jar.toString());
+            } else {
+                // ProcessHandle may withhold arguments on some platforms. This sound fallback still
+                // carries the one JVM property that controls where the bridge finds this app's endpoint.
+                if (userHome == null || userHome.isBlank()) return Optional.empty();
+                launcher.add("-Duser.home=" + Path.of(userHome).toAbsolutePath().normalize());
+                launcher.add("-jar");
+                launcher.add(jar.toString());
+            }
+            return Optional.of(of(launcher));
         } catch (RuntimeException e) {
             return Optional.empty();
         }
