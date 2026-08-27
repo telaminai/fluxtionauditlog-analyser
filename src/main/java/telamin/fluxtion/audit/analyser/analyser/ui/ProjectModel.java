@@ -42,7 +42,8 @@ public record ProjectModel(List<Section> sections) {
             "runbooks.name", "runbooks.path", "runbooks.resolved", "runbooks.exists", "runbooks.from",
             "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
             "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default",
-            "analyses.name", "analyses.rationale", "analyses.parameters", "analyses.steps", "analyses.from");
+            "analyses.name", "analyses.rationale", "analyses.parameters", "analyses.steps", "analyses.from",
+            "reportDestinations.name", "reportDestinations.location", "reportDestinations.kind", "reportDestinations.from");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
             PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports", ANALYSES = "Analyses";
@@ -231,6 +232,14 @@ public record ProjectModel(List<Section> sections) {
         if (reps.isEmpty()) {
             rows.add(new Row("No saved reports", "Reports tab ▸ New report, or report {…} from the socket",
                     null, null, Tone.MUTED, Target.REPORTS));
+        }
+        // M38.5: where reports are published — a place the publisher acts on; the analyser only states it.
+        // Copy gives the location; Show only for a directory that exists on this machine.
+        for (Object o : list(ctx.get("reportDestinations"))) {
+            Map<String, Object> d = map(o);
+            String loc = str(d.get("location"));
+            rows.add(new Row("publish to " + d.get("name"), loc + " · " + d.get("kind") + " · the analyser states it; the publisher acts",
+                    loc, str(d.get("from")), Tone.NORMAL, Target.NONE));
         }
         out.add(new Section(REPORTS, rows));
 

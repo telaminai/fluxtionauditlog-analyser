@@ -196,6 +196,46 @@ Analyses travel by default under **Saved analyses (named analyser-verb sequences
 they can only drive this viewer, never a server)**. The Project panel lists them under *Analyses* — the
 offer stated, with no run button, because a button that runs verbs would change what the app shows.
 
+## Report destinations — a place, never a credential
+
+The project may record **where** an investigation report is published — a bucket, a directory, a ticket
+system's base URL:
+
+```properties
+destination.count=2
+destination.0.name=incident-bucket
+destination.0.location=s3://acme-incident-reports/quote-service
+destination.1.name=shared-drive
+destination.1.location=/mnt/shared/reports/quote-service
+```
+
+It may **never** record how to authenticate there, and the gate makes that structural rather than
+polite: a URL with user info, a query or a fragment is refused (tokens travel there); anything matching
+a credential's shape (`AKIA…`, `token=`, `password=`, `Authorization:`) is refused with the reason; S3
+locations must be `s3://bucket[/prefix]` and directories plain paths. Credentials continue to come from
+the environment the publisher already runs in.
+
+**The analyser does not publish.** It states the place — in `context.reportDestinations` and the
+Project panel's Reports section (*publish to incident-bucket: s3://… · s3*) — so the agent that rendered a
+report knows where it belongs and publishes with its own credentials. File-writing verbs stay inside the
+exchange directory, and the analyser gains no server-side code, which is the standing decision M18's
+closure rests on.
+
+Destinations **travel by default** under **Report destinations (where reports are published — a bucket,
+directory or base URL; never a credential)**.
+
+## The share categories, complete
+
+| Category | Tier | Default | What leaves |
+|---|---|---|---|
+| Runbook LOCATIONS | 1 | off | project-relative paths — never contents |
+| Domain glossary LOCATION | 1 | on | one project-relative path — never contents |
+| Environments | 1 | on | names, provenance strings (may name systems and hosts), log directories |
+| Report destinations | 1 | on | places — never credentials |
+| Saved analyses | 2 | on | analyser-verb sequences with their rationale — they can only drive this viewer |
+
+Every label names its cargo (D-C8): ticking the box is consenting to exactly what it says.
+
 ## What comes next
 
 Repeatable analyses, report destinations, and path anchors — each a `context` fact first and a Project-panel row, so

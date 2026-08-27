@@ -19,6 +19,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   served in `context.vocabulary.text` and placed first in every *Explain* prompt, so `live` is read the way
   this system means it — for an LLM on an unseen processor and for a support engineer in their first week.
   Travels by default under a new **Domain glossary LOCATION** share checkbox; shown in the Project panel.
+- **Report destinations — a place, never a credential.** A project can record where its reports are
+  published (`destination.N.name/location`: an S3 bucket, a directory, a ticket system's base URL). The
+  analyser states it — `context.reportDestinations`, the Project panel's Reports section — and never
+  publishes; the publisher acts with its own credentials. Anything shaped like a credential (user info,
+  query tokens, `AKIA…`, `password=`) is refused with the reason at every entrance. Travels by default under
+  a **Report destinations** share checkbox; the M38 share categories are now complete and documented.
 - **Repeatable analyses.** A project can save *the analysis we run every time* — a named sequence of
   analyser verbs with its rationale and declared parameters (`analysis.N.*` in the profile; `{log}`-style
   placeholders bound at run time). Recall it from **File ▸ Run analysis** or `open {analysis, bind}`;

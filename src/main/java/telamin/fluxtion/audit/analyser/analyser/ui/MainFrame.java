@@ -3926,6 +3926,20 @@ public final class MainFrame extends JFrame {
                 }
                 out.put("analyses", list);
             }
+            // M38.5 D-C6: where reports are PUBLISHED — stated, never acted on. The publisher (an agent with its
+            // own credentials, or a person) reads this; the analyser never writes outside its exchange directory.
+            if (!config.reportDestinations.isEmpty()) {
+                List<Map<String, Object>> ds = new ArrayList<>();
+                for (telamin.fluxtion.audit.analyser.analyser.config.ReportDestination d : config.reportDestinations) {
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("name", d.name());
+                    one.put("location", d.location());
+                    one.put("kind", d.kind().name().toLowerCase(java.util.Locale.ROOT));
+                    one.put("from", project.hasProject() ? "project" : "own settings");
+                    ds.add(one);
+                }
+                out.put("reportDestinations", ds);
+            }
             // M37.6: where files LEAVE, and the reports the project holds. The exchange directory is
             // machine-tier (a path on this disk, never shared); the reports are project-tier. Both were
             // invisible outside their dialog/tab — and "exports off" is the state that made screenshot

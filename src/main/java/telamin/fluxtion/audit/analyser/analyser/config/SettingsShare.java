@@ -64,7 +64,9 @@ public final class SettingsShare {
         /** M38.3 D-C4/D-C8 (owner decision 2: travels by default). The label names the cargo: names, systems, hosts. */
         ENVIRONMENTS("Environments (names, the provenance string each stamps — which may name systems and hosts — and their log directories; never log data)", true),
         /** M38.4 D-C5/D-C8: tier 2 — analyser verb sequences; they can only drive this viewer. */
-        ANALYSES("Saved analyses (named analyser-verb sequences with their rationale — they can only drive this viewer, never a server)", true);
+        ANALYSES("Saved analyses (named analyser-verb sequences with their rationale — they can only drive this viewer, never a server)", true),
+        /** M38.5 D-C6/D-C8: places only — the gate refuses anything shaped like a credential. */
+        DESTINATIONS("Report destinations (where reports are published — a bucket, directory or base URL; never a credential)", true);
 
         public final String label;
         public final boolean defaultOn;
@@ -170,6 +172,9 @@ public final class SettingsShare {
         }
         if (categories.contains(Category.ANALYSES) && !c.analyses.isEmpty()) {
             ConfigStore.writeAnalyses(p, c.analyses);      // D-C5: gated — only analyser verbs leave
+        }
+        if (categories.contains(Category.DESTINATIONS) && !c.reportDestinations.isEmpty()) {
+            ConfigStore.writeDestinations(p, c.reportDestinations);   // D-C6: places, never credentials
         }
         if (categories.contains(Category.VIEW)) {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
@@ -370,6 +375,16 @@ public final class SettingsShare {
                     + (refused.isEmpty() ? "" : " · " + refused.size() + " REFUSED: " + String.join("; ", refused)));
         }
 
+        List<ReportDestination> destinations = null;
+        if (p.getProperty("destination.count") != null) {
+            present.add(Category.DESTINATIONS);
+            destinations = new ArrayList<>();
+            List<String> refused = ConfigStore.readDestinations(p, destinations);
+            summary.put(Category.DESTINATIONS, destinations.size() + " destination(s): "
+                    + destinations.stream().map(d -> d.name() + " → " + d.location()).toList()
+                    + (refused.isEmpty() ? "" : " · " + refused.size() + " REFUSED: " + String.join("; ", refused)));
+        }
+
         List<String> hiddenColumns = null;
         if (p.getProperty("hiddenColumn.count") != null) {
             present.add(Category.VIEW);
@@ -402,7 +417,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses,
+                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -462,6 +477,12 @@ public final class SettingsShare {
                 target.analyses.add(a);                                  // replace-by-name, like graphs
             }
         }
+        if (selected.contains(Category.DESTINATIONS) && plan.destinations() != null) {
+            for (ReportDestination d : plan.destinations()) {
+                target.reportDestinations.removeIf(x -> x.name().equals(d.name()));
+                target.reportDestinations.add(d);
+            }
+        }
         if (selected.contains(Category.VIEW) && plan.hiddenColumns() != null) {
             // View is the sender's column layout — replace the set wholesale (not additive)
             target.hiddenColumns.clear();
@@ -503,6 +524,7 @@ public final class SettingsShare {
             List<Environment> environments,
             String defaultEnvironment,
             List<AnalysisSpec> analyses,
+            List<ReportDestination> destinations,
             Boolean assistantInProcess,
             Boolean assistantRest,
             Integer maxRounds,

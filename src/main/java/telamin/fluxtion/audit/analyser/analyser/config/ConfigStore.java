@@ -90,6 +90,7 @@ public final class ConfigStore {
         readEnvironments(p, c.environments);
         c.defaultEnvironment = p.getProperty("environment.default", c.defaultEnvironment);
         readAnalyses(p, c.analyses);
+        readDestinations(p, c.reportDestinations);
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -164,6 +165,7 @@ public final class ConfigStore {
         writeEnvironments(p, globalTier == null ? c.environments : globalTier.environments(),
                 globalTier == null ? c.defaultEnvironment : globalTier.defaultEnvironment());
         writeAnalyses(p, globalTier == null ? c.analyses : globalTier.analyses());
+        writeDestinations(p, globalTier == null ? c.reportDestinations : globalTier.reportDestinations());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
@@ -583,6 +585,30 @@ public final class ConfigStore {
             Environment e = new Environment(p.getProperty("environment." + i + ".name"),
                     p.getProperty("environment." + i + ".provenance"), p.getProperty("environment." + i + ".logDir"));
             Environment.refuse(e).ifPresentOrElse(refused::add, () -> out.add(e));
+        }
+        return refused;
+    }
+
+    /** M38.5: report destinations — places only; a value the gate refuses is never written. */
+    static void writeDestinations(Properties p, List<ReportDestination> ds) {
+        int i = 0;
+        for (ReportDestination d : ds) {
+            if (ReportDestination.refuse(d).isPresent()) continue;
+            put(p, "destination." + i + ".name", d.name());
+            put(p, "destination." + i + ".location", d.location());
+            i++;
+        }
+        if (i > 0) p.setProperty("destination.count", Integer.toString(i));
+    }
+
+    /** @return the reasons for every destination refused (empty when all were plain places) */
+    static List<String> readDestinations(Properties p, List<ReportDestination> out) {
+        out.clear();
+        List<String> refused = new ArrayList<>();
+        int n = parseInt(p.getProperty("destination.count"), 0);
+        for (int i = 0; i < n; i++) {
+            ReportDestination d = new ReportDestination(p.getProperty("destination." + i + ".name"), p.getProperty("destination." + i + ".location"));
+            ReportDestination.refuse(d).ifPresentOrElse(refused::add, () -> out.add(d));
         }
         return refused;
     }

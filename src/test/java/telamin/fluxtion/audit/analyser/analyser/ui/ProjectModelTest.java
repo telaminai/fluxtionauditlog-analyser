@@ -234,6 +234,9 @@ class ProjectModelTest {
         assertTrue(proj.get(2).secondary().endsWith("default when nothing else applies"), proj.get(2).secondary());
         String prov = m.section(ProjectModel.LOG).rows().get(0).provenance();
         assertTrue(prov.contains("from risk-engine · prod (project environment 'prod'"), "declared, never inferred — and by whom: " + prov);
+    }
+
+    @Test
     void savedAnalysesAreTheOffer_statedWithoutARunButton() {
         Map<String, Object> ctx = full();
         ctx.put("analyses", List.of(Map.of("name", "spread breach", "rationale", "every breach starts the same way",
@@ -244,6 +247,19 @@ class ProjectModelTest {
         assertEquals("every breach starts the same way · 3 steps · needs [log] · File ▸ Run analysis", rows.get(0).secondary());
         assertEquals(ProjectModel.Target.NONE, rows.get(0).target(), "D-L3: the panel states the offer; recall lives in the menu and the verb");
         assertEquals("No saved analyses", ProjectModel.from(null).section(ProjectModel.ANALYSES).rows().get(0).primary());
+    }
+
+    @Test
+    void aReportDestinationIsStatedInTheReportsSection_neverActedOn() {
+        Map<String, Object> ctx = full();
+        ctx.put("exports", Map.of("enabled", false));
+        ctx.put("reportDestinations", List.of(Map.of("name", "bucket", "location", "s3://acme-incident-reports/quotes", "kind", "s3", "from", "project")));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.REPORTS).rows();
+        ProjectModel.Row d = rows.get(rows.size() - 1);
+        assertEquals("publish to bucket", d.primary());
+        assertTrue(d.secondary().startsWith("s3://acme-incident-reports/quotes · s3 · the analyser states it"), d.secondary());
+        assertEquals("s3://acme-incident-reports/quotes", d.path(), "Copy gives the place");
+        assertEquals(ProjectModel.Target.NONE, d.target(), "no publish button: the analyser never publishes");
     }
 
     @Test

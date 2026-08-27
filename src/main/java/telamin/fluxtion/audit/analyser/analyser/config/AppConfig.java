@@ -125,6 +125,8 @@ public final class AppConfig {
     public String defaultEnvironment = "";
     /** M38.4: repeatable analyses — named analyser-verb sequences with their rationale (tier 2). Project-scoped. */
     public final List<AnalysisSpec> analyses = new ArrayList<>();
+    /** M38.5: where reports are PUBLISHED — a place, never a credential (D-C6). The analyser states it; the publisher acts. */
+    public final List<ReportDestination> reportDestinations = new ArrayList<>();
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();

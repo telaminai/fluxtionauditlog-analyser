@@ -37,6 +37,20 @@ FOUND LIVE, FIXED BEFORE COMMIT (both would have been invisible to the unit test
     EDT hop (doOpenAnalysis); each step hops on its own through render(). 3/3 in 0.2s after the fix.
   Both are the kind of defect a sequence surfaces and a single verb never does — worth remembering for M38.5+.
 
+M38.5 — report destinations (D-C6) + share categories completed (D-C8)
+  config/ReportDestination   {name, location}; kind() S3 | URL | DIRECTORY read from the location. refuse(): name;
+                             one line ≤300; a CREDENTIAL blocklist (AKIA…, token=, secret=, password=, api key,
+                             Authorization/Bearer, sig=) on top of per-kind allowlists — s3://bucket[/prefix];
+                             http(s) base URL with no user info, query or fragment; a plain directory path (~ and
+                             absolute allowed — a shared drive is a legitimate place) with no shell shapes or "..".
+  The analyser never publishes: context.reportDestinations[] {name, location, kind, from} and the Reports
+  section's "publish to …" rows are statements for the publisher (an agent with its own credentials, or a
+  person). File-writing verbs stay inside the exchange directory; no server code (M18 closure).
+  Category DESTINATIONS default ON; label names the cargo and the guarantee. Loader/import/export gated;
+  the project loader announces a refused entry. Tier count in ProjectProfileTest: 9 on this branch.
+  Docs: portable-context.md ▸ Report destinations + "The share categories, complete" table; sharing-setups
+  row; project-panel. Tests: ReportDestinationTest (3), ProjectModelTest.aReportDestinationIsStated….
+
 NOT DONE, DELIBERATELY
   · No authoring verb or dialog: the profile file is the writer, as for every other M38 artefact. An agent
     could author one through the file it already edits; a verb would make the analysis settable AND runnable

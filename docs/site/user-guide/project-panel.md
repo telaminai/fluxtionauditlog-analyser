@@ -18,7 +18,7 @@ on the left rail under *Event types*, states all five at once.
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root | *project* / *own settings* / *discovered under a root* |
 | **Source roots** | each root | *project* / *own settings* / *demo (transient)* |
 | **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *File ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
-| **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — and each **saved report** by title with its section count | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
+| **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
 
 An empty section is a sentence, not a blank — *"No graph — File ▸ Open topology, or a reader may
 supply one with its log"* — so you never have to go elsewhere to learn why it is empty.

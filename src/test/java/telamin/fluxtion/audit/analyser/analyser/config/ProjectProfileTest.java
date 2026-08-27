@@ -46,8 +46,8 @@ class ProjectProfileTest {
      * pin's point is unchanged: machine settings stay out.
      */
     @Test
-    void theProjectTierIsTenCategoriesNotTheWholeShareableWhitelist() {
-        assertEquals(10,   // M38.1 RUNBOOKS, .2 VOCABULARY, .3 ENVIRONMENTS, .4 ANALYSES (project context by design)
+    void theProjectTierIsElevenCategoriesNotTheWholeShareableWhitelist() {
+        assertEquals(11,   // M38.1 RUNBOOKS, .2 VOCABULARY, .3 ENVIRONMENTS, .4 ANALYSES, .5 DESTINATIONS (project context by design)
                  ProjectProfile.PROJECT_SCOPED.size());
         assertTrue(ProjectProfile.PROJECT_SCOPED.containsAll(List.of(
                 SettingsShare.Category.SOURCE_ROOTS, SettingsShare.Category.MAVEN_REPOS,
