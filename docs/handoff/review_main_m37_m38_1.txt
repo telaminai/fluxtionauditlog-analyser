@@ -1,0 +1,76 @@
+REVIEW — main @ 5938b29: M37 merged, M38.1 (runbook pointers), review F2 taken
+Reviewer: the first session · Date: 2026-08-27
+Covers: 69f6a63 + 8141822 (M37), 5631e33 (F2), c6c98b8 (M38.1), e6275f8 + 5938b29 (tracker)
+
+VERDICT: **GOOD** — one defence-in-depth fix applied here (R1), nothing else outstanding.
+883 tests green on main; my F2 finding was taken correctly; the owner decisions a rebase dropped are
+fully restored (checked key by key, not by eye).
+
+================================================================================
+1. M38.1 — THE SECURITY SLICE, PROBED RATHER THAN READ
+================================================================================
+D-C2's gate (`Runbooks.refuse`) is built the right way round: an **allowlist**, where a path segment
+must match `[A-Za-z0-9._-]+`. That refuses shell metacharacters, spaces, quotes, `$`, backticks,
+encoded traversal and null bytes *by construction* rather than by a blocklist someone has to keep
+ahead of. I fired seventeen shapes at it:
+
+  ACCEPTED   ops/deploy.md · ./ops/deploy.md · ops/...md        (all plainly harmless)
+  refused    ops/../../etc/passwd · ../ops.md · /etc/passwd · C:\win\x.md · ~/x.md ·
+             https://evil/x.md · ops/%2e%2e/x.md · "ops/deploy.md; rm -rf /" · ops/$(whoami).md ·
+             a path with an embedded newline · ops//deploy.md · a NUL byte · a trailing space ·
+             \\server\share\x.md
+
+Nothing got through. The refusals also carry reasons, which is what makes a hostile or hand-edited
+file degrade to "that entry was dropped, and here is why" instead of to a pointer someone acts on.
+
+R1 · **`resolve()` had no containment check — fixed here.**
+     `Runbooks.resolve(/tmp/proj, "../../etc/passwd")` returned **`/etc/passwd`**. Not exploitable
+     through the product: `refuse()` gates the verb path, the import path and the config loader, so no
+     such value can be stored. But `resolve()` is public, does not know whether the gate ran, and is
+     the other half of the same boundary — and the two halves of a security boundary should each hold
+     alone. It now returns null when the normalised target falls outside the project root, which every
+     caller already treats as "no such runbook". Pinned by a test that fails on the old behaviour.
+
+     This is the only finding, and it is defence in depth rather than a hole.
+
+================================================================================
+2. THE BEST THING IN THE SLICE IS SOMETHING THAT DID **NOT** GET BUILT
+================================================================================
+From the commit message: *"first cut added `runbook {name, path}`; three pinned tests refused it."*
+I verified the mechanism — `assertEquals(14, VerbSchemas.all().size())` appears in `CloseVerbTest` and
+`ProjectVerbTest`, and there is no `runbook` verb in `VerbSchemas`.
+
+That is a decision taken long before M38 — keep the verb surface small, server verbs never on the
+analyser's socket — mechanically stopping a later, entirely plausible-looking addition. It is exactly
+the argument D-C1 makes for why tier 2 is safe to share, enforced by tests rather than by memory. Worth
+naming in the spec as evidence, because the next person to propose a convenient verb will meet it.
+
+================================================================================
+3. F2 TAKEN, AND TAKEN THE RIGHT WAY
+================================================================================
+The distinction I asked for is the one that was implemented: **sentences wrap, paths elide.** D-L8 is
+amended to say so, the default west column is 340px (was 280 — "at 280 the panel elided the verdicts it
+exists to state" is now a comment in `AppConfig`), and the panel opens at the top. The elision rule
+survives where it was right and is gone where it was wrong, which is the correct resolution rather than
+the easy one (dropping D-L8 wholesale).
+
+================================================================================
+4. THE DROPPED DECISIONS — VERIFIED RESTORED
+================================================================================
+`e6275f8` says a rebase dropped the owner decisions I recorded. Checked each one on main rather than
+trusting the commit: vocabulary as a pointed-at markdown file · environments travel by default · prior
+findings links only · baselines become M39 · M33.6 YES · M31.5 NOT YET · M38.6 · the M39 entry · D-C9
+present twice in the spec. All there.
+
+Worth noting as a process observation, not a complaint: those decisions were briefly lost because I
+first committed them onto a feature branch and then moved them (bb9995c). Decisions that belong to the
+project rather than to a branch should go straight to main — the round trip is what gave a rebase the
+chance to drop them.
+
+================================================================================
+5. NOT RE-VERIFIED
+================================================================================
+  · The regenerated screenshots on these commits (7 changed in 5631e33 alone). The isolated `user.home`
+    now makes the configuration-leak class impossible, and the panel shot was read when M37 was
+    reviewed; I did not re-read the set after the width change.
+  · M37's live behaviour beyond what I checked at review time — the merge is the same code.

@@ -112,4 +112,18 @@ class RunbooksTest {
         ProjectProfile.clearProjectScoped(back);
         assertTrue(back.runbooks.isEmpty(), "closing the project clears its pointers");
     }
+
+    /**
+     * Review 2026-08-27 (R1): refuse() gates every entrance, so this is unreachable through the product
+     * — but resolve() is public and must not hand a caller a path outside the project just because
+     * validation was skipped. Before the fix this returned /etc/passwd.
+     */
+    @org.junit.jupiter.api.Test
+    void resolveNeverEscapesTheProjectEvenIfTheGateWasSkipped() {
+        java.nio.file.Path root = java.nio.file.Path.of("/tmp/proj");
+        org.junit.jupiter.api.Assertions.assertNull(Runbooks.resolve(root, "../../etc/passwd"),
+                "an ungated traversal must resolve to nothing, not to a file outside the project");
+        org.junit.jupiter.api.Assertions.assertNotNull(Runbooks.resolve(root, "ops/deploy.md"),
+                "and a legitimate pointer still resolves");
+    }
 }

@@ -63,10 +63,22 @@ public final class Runbooks {
         return Optional.empty();
     }
 
-    /** Where the pointer lands on this machine, or null when there is no project root to resolve against. */
+    /**
+     * Where the pointer lands on this machine — or null when there is no project root, or when the
+     * result would fall OUTSIDE it.
+     *
+     * <p>The containment check is defence in depth, not a second gate: {@link #refuse} already rejects
+     * {@code ..} at every entrance, so a stored value cannot escape. But this method is public and does
+     * not know whether the gate ran, and the two halves of a security boundary should each hold alone —
+     * without it, {@code resolve(root, "../../etc/passwd")} returns {@code /etc/passwd} to any caller
+     * that skipped validation (measured in review, 2026-08-27). Escaping now returns null, which every
+     * caller already handles as "no such runbook".
+     */
     public static Path resolve(Path projectRoot, String relative) {
         if (projectRoot == null || relative == null) return null;
-        return projectRoot.resolve(relative.replace('\\', '/')).normalize();
+        Path root = projectRoot.toAbsolutePath().normalize();
+        Path target = root.resolve(relative.replace('\\', '/')).normalize();
+        return target.startsWith(root) ? target : null;
     }
 
     public static boolean exists(Path projectRoot, String relative) {
