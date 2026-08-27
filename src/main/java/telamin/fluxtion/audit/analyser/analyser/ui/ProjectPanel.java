@@ -27,6 +27,7 @@ public final class ProjectPanel extends JPanel {
 
     private final Navigator navigator;
     private final JPanel body = new TracksWidth();
+    private JScrollPane scroll;
     private ProjectModel model = ProjectModel.from(null);
 
     public ProjectPanel(Navigator navigator) {
@@ -34,7 +35,7 @@ public final class ProjectPanel extends JPanel {
         this.navigator = navigator;
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setBorder(UiTheme.pad());
-        JScrollPane scroll = new JScrollPane(body, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+        scroll = new JScrollPane(body, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -51,9 +52,13 @@ public final class ProjectPanel extends JPanel {
     /** Replace what is shown. Called on every lifecycle event by whoever owns the facts (D-L6). */
     public void render(ProjectModel m) {
         this.model = m == null ? ProjectModel.from(null) : m;
+        // a re-render must not move the user's eye: keep where they had scrolled to (the first live shots
+        // showed the panel jumping to its bottom on every lifecycle event — the new text areas dragged the
+        // viewport to their caret)
+        final int scrolledTo = scroll == null ? 0 : scroll.getVerticalScrollBar().getValue();
         body.removeAll();
         // review N4: the toggle says "Project"; the panel also states what is merely in force
-        JLabel caption = new JLabel("What is in force — the same facts `context` reports");
+        JLabel caption = new JLabel("What is in force — what `context` reports, for people");
         UiTheme.status(caption);
         caption.setAlignmentX(LEFT_ALIGNMENT);
         caption.setBorder(BorderFactory.createEmptyBorder(0, 0, UiTheme.GAP, 0));
@@ -71,36 +76,30 @@ public final class ProjectPanel extends JPanel {
         body.add(Box.createVerticalGlue());
         body.revalidate();
         body.repaint();
+        // after the deferred layout has run — two hops, because revalidate itself is deferred one
+        if (scroll != null) SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(
+                () -> scroll.getVerticalScrollBar().setValue(scrolledTo)));
     }
 
     private JComponent row(ProjectModel.Row r) {
-        JPanel line = new JPanel(new BorderLayout(UiTheme.GAP, 0));
-        line.setOpaque(false);
-        line.setAlignmentX(LEFT_ALIGNMENT);
-        line.setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
+        // two lines: [name/path ..................... buttons] over a full-width sentence. The sentence used to
+        // sit beside the buttons and wrapped into a five-line sliver (review F2, second look).
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.Y_AXIS));
+        row.setOpaque(false);
+        row.setAlignmentX(LEFT_ALIGNMENT);
+        row.setBorder(BorderFactory.createEmptyBorder(2, 0, 3, 0));
 
-        JPanel text = new JPanel();
-        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
-        text.setOpaque(false);
-        // C4: draw the abbreviated form; the full value is the tooltip and what Copy copies
+        JPanel head = new JPanel(new BorderLayout(UiTheme.GAP, 0));
+        head.setOpaque(false);
+        head.setAlignmentX(LEFT_ALIGNMENT);
+        // C4/D-L8: draw the abbreviated form; the full value is the tooltip and what Copy copies
         JLabel primary = new JLabel(r.primary() == null ? "?" : ProjectModel.abbreviate(r.primary()));
         primary.setMinimumSize(new Dimension(40, primary.getPreferredSize().height));   // let the row shrink; JLabel elides
         if (r.tone() == ProjectModel.Tone.MUTED) primary.setForeground(UiTheme.mutedForeground());
         if (r.tone() == ProjectModel.Tone.WARN) primary.setForeground(new Color(0xB0, 0x40, 0x20));
-        primary.setAlignmentX(LEFT_ALIGNMENT);
-        text.add(primary);
-        String sub = ProjectModel.abbreviate(r.secondary());
-        if (r.provenance() != null) sub = (sub == null || sub.isBlank() ? "" : sub + "  ·  ") + r.provenance();
-        if (sub != null && !sub.isBlank()) {
-            JLabel secondary = new JLabel(sub);
-            UiTheme.status(secondary);
-            secondary.setAlignmentX(LEFT_ALIGNMENT);
-            text.add(secondary);
-        }
-        String tip = r.path() != null ? r.path() : r.primary();
-        primary.setToolTipText(tip);
-        text.setMinimumSize(new Dimension(40, 10));
-        line.add(text, BorderLayout.CENTER);
+        primary.setToolTipText(r.path() != null ? r.path() : r.primary());
+        head.add(primary, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         actions.setOpaque(false);
@@ -119,9 +118,34 @@ public final class ProjectPanel extends JPanel {
             case SETTINGS_ASSISTANT -> actions.add(small("Settings…", "Settings ▸ Assistant", () -> navigator.openSettings("Assistant")));
             default -> { }
         }
-        if (actions.getComponentCount() > 0) line.add(actions, BorderLayout.EAST);
-        line.setMaximumSize(new Dimension(Integer.MAX_VALUE, line.getPreferredSize().height));
-        return line;
+        if (actions.getComponentCount() > 0) head.add(actions, BorderLayout.EAST);
+        head.setMaximumSize(new Dimension(Integer.MAX_VALUE, head.getPreferredSize().height));
+        row.add(head);
+
+        // Review F2: the second line is a SENTENCE — the pairing verdict, "source NOT found", the tier — whose
+        // tail carries the meaning, so it WRAPS across the full row. Elision (D-L8) stays for the first line.
+        String sub = r.secondary();
+        if (r.provenance() != null) sub = (sub == null || sub.isBlank() ? "" : sub + "  ·  ") + r.provenance();
+        if (sub != null && !sub.isBlank()) {
+            JTextArea secondary = new JTextArea();
+            // a text area asks its viewport to show its caret when its text changes — scheduled on the EDT, so
+            // it fires AFTER the area is in the scroll pane and drags the whole panel to wherever that area
+            // is (the first live shots opened scrolled to the bottom). Policy first, then the text.
+            if (secondary.getCaret() instanceof javax.swing.text.DefaultCaret dc) dc.setUpdatePolicy(javax.swing.text.DefaultCaret.NEVER_UPDATE);
+            secondary.setText(sub);
+            secondary.setEditable(false);
+            secondary.setFocusable(false);
+            secondary.setOpaque(false);
+            secondary.setLineWrap(true);
+            secondary.setWrapStyleWord(true);
+            secondary.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+            secondary.setFont(UIManager.getFont("Label.font").deriveFont(UIManager.getFont("Label.font").getSize2D() - 1f));
+            secondary.setForeground(UiTheme.mutedForeground());
+            secondary.setAlignmentX(LEFT_ALIGNMENT);
+            row.add(secondary);
+        }
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
+        return row;
     }
 
     /**

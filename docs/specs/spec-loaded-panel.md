@@ -122,7 +122,9 @@ the log itself declares. When a reader TRIED to supply a graph and could not, `s
 Support screenshot this application (review C4; `docs/site/support.md`), and this panel is by
 construction the most path- and name-dense surface in it — default shown. So the drawn form is
 abbreviated: `$HOME` becomes `~`, a long path keeps its head and last two segments with the middle
-elided (`ProjectModel.abbreviate`), and the full value lives behind *Copy path* and the tooltip. Rule 1
+elided (`ProjectModel.abbreviate`), and the full value lives behind *Copy path* and the tooltip. **Elision is
+for paths and names only** (review F2): a row's second line is a sentence — the pairing verdict, *source NOT
+found*, the tier — whose tail carries the meaning, so it wraps instead. The default column width is 340px. Rule 1
 cannot see inside an image; this narrows what an incidental screenshot carries, and a column of full
 paths was unreadable at the west rail's width anyway.
 

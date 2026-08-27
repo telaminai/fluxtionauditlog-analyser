@@ -45,8 +45,8 @@ public final class AppConfig {
     public boolean projectPanelCollapsed = false;
     /** M37: divider of the west column's vertical split (Event types above, Project below); -1 = never dragged. */
     public int westDivider = -1;
-    /** M37: width of the whole west column (rail + panels) — the user drags it; 280 fits paths and class names. */
-    public int westWidth = 280;
+    /** M37: width of the whole west column (rail + panels) — the user drags it. 340 (review F2): at 280 the panel elided the verdicts it exists to state. */
+    public int westWidth = 340;
 
     /**
      * Topology display preferences: layout spacing as a percentage, and label point size.

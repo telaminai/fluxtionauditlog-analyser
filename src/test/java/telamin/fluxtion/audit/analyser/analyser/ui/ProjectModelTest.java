@@ -193,12 +193,13 @@ class ProjectModelTest {
                 Map.of("name", "restart", "path", "ops/restart.md", "resolved", "/work/demo/ops/restart.md", "exists", false, "from", "project")));
         List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows();
         assertEquals(3, rows.size(), "the project row, then one row per pointer (D-C7)");
-        assertEquals("deploy runbook: ops/deploy.md", rows.get(1).primary(), "drawn as the profile holds it — a relative pointer");
+        assertEquals("deploy runbook", rows.get(1).primary());
         assertEquals("/work/demo/ops/deploy.md", rows.get(1).path(), "Copy/Show act on where it lands here");
-        assertEquals("a pointer into the repository — never contents", rows.get(1).secondary());
+        assertEquals("ops/deploy.md — a pointer into the repository, never contents", rows.get(1).secondary(),
+                "the pointer is drawn as the profile holds it, on the line that wraps rather than elides");
         assertEquals(ProjectModel.Target.NONE, rows.get(1).target(), "nothing on the panel runs it");
         assertEquals(ProjectModel.Tone.WARN, rows.get(2).tone());
-        assertEquals("file NOT found under the project root", rows.get(2).secondary());
+        assertEquals("ops/restart.md — file NOT found under the project root", rows.get(2).secondary());
     }
 
     @Test

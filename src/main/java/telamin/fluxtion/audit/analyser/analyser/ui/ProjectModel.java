@@ -52,7 +52,8 @@ public record ProjectModel(List<Section> sections) {
         Map<String, Object> proj = map(ctx.get("project"));
         List<Row> rows = new ArrayList<>();
         if (Boolean.TRUE.equals(proj.get("active"))) {
-            rows.add(new Row(str(proj.get("name")), str(proj.get("root")), str(proj.get("settings")),
+            // the root is a PATH: abbreviated here (D-L8), because the second line otherwise wraps the full thing
+            rows.add(new Row(str(proj.get("name")), abbreviate(str(proj.get("root"))), str(proj.get("settings")),
                     "project settings in force", Tone.NORMAL, Target.PROJECT));
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
@@ -64,8 +65,9 @@ public record ProjectModel(List<Section> sections) {
             Map<String, Object> r = map(o);
             boolean known = r.get("exists") != null;
             boolean exists = Boolean.TRUE.equals(r.get("exists"));
-            rows.add(new Row(r.get("name") + " runbook: " + r.get("path"),
-                    known && !exists ? "file NOT found under the project root" : "a pointer into the repository — never contents",
+            // the pointer goes on the WRAPPING line, where it is read whole; the eliding first line holds the name
+            rows.add(new Row(r.get("name") + " runbook",
+                    r.get("path") + (known && !exists ? " — file NOT found under the project root" : " — a pointer into the repository, never contents"),
                     str(r.get("resolved")), str(r.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL, Target.NONE));
         }
         out.add(new Section(PROJECT, rows));
