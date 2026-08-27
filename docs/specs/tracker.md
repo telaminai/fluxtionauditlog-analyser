@@ -424,8 +424,8 @@ saved graphs fell 6 → 1 and no surface showed the count._
   sequence test.
 - [M37.5] ☐ **Docs page + generated shot**; CHANGELOG; spec → SHIPPED.
 
-**Owner calls before .2:** the name (*Loaded* / *Session* / *In force*); stacked with Event types or
-exclusive; whether the start page shows the PROJECT section inline (proposed: no).
+**Owner calls, decided 2026-08-26:** name **Loaded**; **stacked** with Event types; the start page does
+**not** show the PROJECT section inline. Work: `feat/m37-loaded-panel` (brief `docs/handoff/handoff_26_aug_2026_1.txt`).
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general

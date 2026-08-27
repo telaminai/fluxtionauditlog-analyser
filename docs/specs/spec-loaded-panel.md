@@ -119,13 +119,13 @@ first.** M20.5 without it is an offer that fires once at open and is then invisi
 - Not a replacement for the status bar's transient messages, only for its role as the one place the
   pairing was stated.
 
-## Open questions (owner)
+## Decisions taken 2026-08-26 (owner)
 
-1. **Name.** *Loaded* (what this spec uses) · *Session* · *In force*. "Loaded" is the user's own word.
-2. **Stacked with Event types, or exclusive** (one west panel at a time)? Stacked is proposed because
-   the two answer different questions and both are glanced at, not worked in.
-3. Should the start page (the no-log STATE, D-S1) show the PROJECT section inline when a project is
-   active and no log is open? Proposed: no — the west panel already coexists with the start page.
+1. **Name: "Loaded."** The user's own word for the state, and a tab label rather than a sentence
+   fragment. (*Session* was generic; *In force* is how the docs talk, not how a rail button reads.)
+2. **Stacked** with *Event types* in the west column — the two answer different questions and both are
+   glanced at, not worked in.
+3. The start page does **not** show the PROJECT section inline — the west panel coexists with it.
 
 ## Acceptance
 
