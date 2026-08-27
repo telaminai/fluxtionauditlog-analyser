@@ -85,7 +85,17 @@ REVIEW OF .5/.6 (review_feat_m38_5_6.txt) — .6 no findings; .5 F1 TAKEN, both 
       Zapier, Telegram bot API, Google Chat). D-C6 now states what the gate can and cannot promise; D-C9 records
       the stronger "pure .. sequence" claim and the six-levels consequence the reviewer noted.
 
-FOUND LIVE — a hazard for shared profiles, recorded for the owner (not fixed here)
+M38.7 — rewrite what you own, preserve what you do not understand (D-C10; owner decision 2026-08-27)
+  config/KnownKeys           PROFILE_FAMILIES (what SettingsShare.export writes) and CONFIG_FAMILIES (+ the machine tier);
+                             family(key) = up to the first dot; preserve(fresh, previous, known) copies unknown-family
+                             entries the writer did not set. SettingsShare.export(…, previous) and ConfigStore.save both
+                             carry over; ProjectProfile.write reads the existing file first. Owned families are rewritten
+                             wholesale, so lists shrink and a removed runbook stays removed. Idempotent: preserved keys are
+                             stable, so M35.11's no-op write still holds.
+  Tests                      PreserveUnknownKeysTest (3): families; the profile hazard end to end (unknown kept, owned
+                             stale member gone, idempotent, loader still ignores); the own-settings writer likewise.
+
+FOUND LIVE — a hazard for shared profiles (now fixed above; the note stands as the record)
   An OLDER analyser that opens a profile written by a NEWER one drops the keys it does not know on its next
   save: ProjectProfile.write rebuilds the file from the categories it understands. Seen here by accident (a
   failed build left the previous jar in place; it opened the project and re-saved it without destination.*).

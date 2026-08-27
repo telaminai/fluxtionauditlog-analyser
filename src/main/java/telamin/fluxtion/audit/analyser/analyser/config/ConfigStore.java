@@ -179,6 +179,17 @@ public final class ConfigStore {
         put(p, "windowW", Integer.toString(c.windowW));
         put(p, "windowH", Integer.toString(c.windowH));
         try {
+            // M38.7: an older build must not strip a newer build's settings on save — carry over every family it
+            // does not own (rewrite what you own, preserve what you do not understand)
+            if (Files.isRegularFile(file)) {
+                Properties previous = new Properties();
+                try (var r = Files.newBufferedReader(file)) {
+                    previous.load(r);
+                    KnownKeys.preserve(p, previous, KnownKeys.CONFIG_FAMILIES);
+                } catch (IOException | RuntimeException ignored) {
+                    // unreadable previous file: write what we have
+                }
+            }
             Files.createDirectories(file.getParent());
             try (var w = Files.newBufferedWriter(file)) {
                 p.store(w, "fluxtion-analyser config (cleartext)");

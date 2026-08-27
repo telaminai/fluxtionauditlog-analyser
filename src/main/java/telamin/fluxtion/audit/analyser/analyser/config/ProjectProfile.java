@@ -299,7 +299,17 @@ public final class ProjectProfile {
      * back yields the same bytes.
      */
     public static String write(AppConfig c, SettingsShare share, Path file) {
-        return share.export(c, PROJECT_SCOPED, baseDirFor(file));
+        // M38.7: carry over what this version does not understand — the file may have been written by a newer one
+        java.util.Properties previous = null;
+        if (file != null && Files.isRegularFile(file)) {
+            previous = new java.util.Properties();
+            try (var r = Files.newBufferedReader(file)) {
+                previous.load(r);
+            } catch (IOException | RuntimeException e) {
+                previous = null;            // unreadable: nothing to preserve, and load() will say so on its own path
+            }
+        }
+        return share.export(c, PROJECT_SCOPED, baseDirFor(file), previous);
     }
 
     /**

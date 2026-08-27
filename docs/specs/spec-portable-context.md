@@ -1,6 +1,6 @@
 # Spec — portable context: the project as a shared workspace for a human and an AI
 
-**Status:** IMPLEMENTED — M38.1–.6 on `feat/m38-portable-context` 2026-08-27, one branch; .1–.4 reviewed (F1s taken), .5–.6 awaiting review (owner decisions 1–4 recorded below; .1 needed none of them). **Milestone:** M38. **Tracker:** [tracker.md](tracker.md) ▸ M38.
+**Status:** IMPLEMENTED — M38.1–.7 on `feat/m38-portable-context` 2026-08-27, one branch; .1–.6 reviewed (F1s taken), .7 awaiting review (owner decisions 1–4 recorded below; .1 needed none of them). **Milestone:** M38. **Tracker:** [tracker.md](tracker.md) ▸ M38.
 **Depends on:** **M37** (the Loaded panel) — see *Why on top of M37*.
 
 ## The proposition
@@ -214,6 +214,22 @@ path. That is the property that makes "one rule, no per-path toggle" safe rather
 Consequence, recorded so nobody rediscovers it as a surprise: six levels up from a deep checkout can
 reach a home directory or the filesystem root; source roots are inert lists the analyser resolves, the
 wider set was chosen deliberately, and the stored-form badge is the mitigation.
+
+## D-C10 — rewrite what you own, preserve what you do not understand (owner decision, 2026-08-27)
+
+Found live while building M38.5: both writers rebuilt their file from scratch, so an **older** analyser that
+opened a profile written by a **newer** one silently dropped every key it did not know on its next save.
+For a team on mixed versions that strips M38 facts from a committed profile with no diff anyone asked for
+— and a profile that is portable context, not settings, makes that a loss of shared knowledge.
+
+The decision, matching the format spec's *ignore, never reject*: a writer carries over every key
+**family** (the key up to its first dot) it does not own, byte for byte, and rewrites the families it does
+own wholesale — so a list can still shrink, and a removed runbook stays removed. Both writers do it: the
+profile exporter and the own-settings store. The alternative — refusing to save over a newer
+`share.version` — was rejected: it turns a mixed-version team into one that cannot save at all, and the
+version field says nothing about which *keys* are newer. The failure direction is safe by construction: a
+family the registry forgets is preserved unchanged, never lost. `KnownKeys` is the registry; a new key
+family added to either writer is added there in the same commit.
 
 ## Non-goals
 

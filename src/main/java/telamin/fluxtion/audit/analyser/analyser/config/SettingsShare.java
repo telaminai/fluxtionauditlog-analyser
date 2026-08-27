@@ -131,6 +131,15 @@ public final class SettingsShare {
      * ordinary share export, unchanged.
      */
     public String export(AppConfig c, Set<Category> categories, Path projectRoot) {
+        return export(c, categories, projectRoot, null);
+    }
+
+    /**
+     * M38.7 — as above, carrying over every key family in {@code previous} (the file being overwritten)
+     * that this version does not own. Rewrite what you own, preserve what you do not understand: an older
+     * analyser must not strip a newer one's facts from a shared profile on its next save.
+     */
+    public String export(AppConfig c, Set<Category> categories, Path projectRoot, Properties previous) {
         Properties p = sortedProps();
         p.setProperty("share.version", Integer.toString(SHARE_VERSION));
         if (projectRoot == null) {
@@ -201,6 +210,8 @@ public final class SettingsShare {
             ConfigStore.put(p, "llmBaseUrl", c.llmBaseUrl);
         }
 
+        carryOver(p, previous);   // M38.7: after every owned family is written, before serialising
+
         StringWriter sw = new StringWriter();
         try {
             p.store(sw, projectRoot == null
@@ -212,6 +223,11 @@ public final class SettingsShare {
         }
         String text = sw.toString();
         return projectRoot == null ? text : STORE_DATE_LINE.matcher(text).replaceFirst("");
+    }
+
+    /** Where the export serialises — split out so the M38.7 carry-over happens before it. */
+    private void carryOver(Properties p, Properties previous) {
+        if (previous != null) KnownKeys.preserve(p, previous, KnownKeys.PROFILE_FAMILIES);
     }
 
     /** The {@code #Mon Aug 25 09:00:00 BST 2026} line {@link Properties#store} always emits. */

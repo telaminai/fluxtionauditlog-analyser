@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **An older analyser no longer strips a newer one's settings on save.** Both the project profile and the
+  own-settings file used to be rebuilt from scratch, so a build that did not know a key dropped it the next
+  time it saved — for a team on mixed versions, a committed profile silently losing facts. Writers now carry
+  over every key family they do not own and rewrite only the ones they do, so lists still shrink and nothing
+  unknown is lost.
+
 ### Added
 - **Path anchors — a sibling checkout travels.** A project may declare `workspaceRoot=..` (or `../..`): a
   source root or Maven repo under that anchor is written relative to the project with `..` steps instead of

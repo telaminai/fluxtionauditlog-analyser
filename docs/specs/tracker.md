@@ -357,7 +357,7 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M38 · Portable context — the project as a shared workspace — ◧ **.1–.6 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`**, awaiting review of .5–.6 (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
+## M38 · Portable context — the project as a shared workspace — ◧ **.1–.7 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`**; .1–.6 reviewed (F1s taken), .7 awaiting review (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
 _Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
 human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
 on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
@@ -385,6 +385,9 @@ the asymmetry M37 exists to end._
   one rule for pointed-at content, not two); environments **travel by default**, label naming the cargo;
   prior findings are **links only**; **baselines become M39** — "what does normal look like here" is the
   question support cannot answer about an unfamiliar system and deserves its own design.
+- [M38.7] ☑ **Rewrite what you own, preserve what you do not understand (D-C10)** _(owner decision 2026-08-27; the
+  mixed-version hazard found live in .5: an older analyser dropped a newer one's keys on save. `KnownKeys` registry;
+  both writers carry over unknown key families and rewrite owned ones wholesale; loader unchanged — ignore, never reject)_
 - [M38.6] ☑ **Path anchors (D-C9)** _(2026-08-27: `workspaceRoot` anchor, validated; roots/repos under it written `../…`; `context.source.rootTiers[].form` + the Project panel's stored-form badge with a WARN for absolute/~ under a project; pointers unchanged)_ _(owner question 2026-08-27: "relative or absolute?")_ — three forms
   already exist and are chosen automatically (project-relative → `~` → absolute). Keep the rule, add the
   missing **anchor**: an optional project-declared `workspaceRoot` so a SIBLING checkout
@@ -547,10 +550,8 @@ are implemented on `feat/m38-portable-context` and under review._
 
 1. **M38 review → merge.** .5 (report destinations) and .6 (path anchors) are with the reviewer; .1–.4 are
    closed. One rebase onto main at merge time, then the `docs/handoff` M38 files move to `completed/`.
-2. **Two decisions the M38 work surfaced**, owner's call: the **mixed-version profile hazard** (an older
-   analyser drops newer keys on save — preserve unknown keys, or refuse to save over a newer
-   `share.version`; candidate M38.7) and whether **M39 baselines** is spec'd next ("is this normal here?",
-   the question support cannot answer about an unfamiliar system).
+2. **M39 baselines** — spec next? ("is this normal here?", the question support cannot answer about an
+   unfamiliar system.) The mixed-version hazard is decided and built (M38.7, D-C10).
 3. **M40.2/.3** (which nodes can log; the audit level) — after M40.1's shape has settled in use, and .3
    only after measuring the way .1 was measured.
 4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).

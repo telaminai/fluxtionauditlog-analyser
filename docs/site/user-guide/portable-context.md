@@ -265,6 +265,15 @@ and Maven repos are inert lists the analyser resolves, and may use the wider anc
 roots as a warning: this profile will not resolve them on a colleague's machine. That badge, on a row in a
 profile you are about to share, is the whole warning, delivered before the failure.
 
+## Mixed versions — a newer profile survives an older analyser
+
+A profile is committed with the repository, and not everyone on a team runs the same analyser build. An
+older build that opens a profile written by a newer one **keeps every key it does not understand** when it
+saves: it rewrites only the key families it owns (so removing a runbook still removes it) and carries the
+rest over byte for byte. The loader, likewise, ignores what it does not know — never rejects. So a project
+can adopt a new M38 fact without waiting for every teammate to upgrade, and nobody's save quietly strips
+it.
+
 ## The share categories, complete
 
 | Category | Tier | Default | What leaves |
