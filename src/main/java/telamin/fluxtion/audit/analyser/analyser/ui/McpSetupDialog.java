@@ -218,16 +218,21 @@ public final class McpSetupDialog extends JDialog {
 
     /** Long commands stay readable and copyable without a horizontal scroll or a shell reinterpretation. */
     private static JTextArea commandBox() {
-        return borderedTextBox(3);
+        return borderedTextBox(3, 68);
     }
 
     /** The generic record is intentionally larger than a command: its argument vector must be inspectable. */
     private static JTextArea configurationBox() {
-        return borderedTextBox(8);
+        return borderedTextBox(8, 68);
     }
 
-    private static JTextArea borderedTextBox(int rows) {
-        JTextArea field = new JTextArea(rows, 68);
+    /** Confirmation is deliberately wider: a local Java path must be inspectable before a client CLI runs. */
+    private static JTextArea confirmationCommandBox() {
+        return borderedTextBox(4, 108);
+    }
+
+    private static JTextArea borderedTextBox(int rows, int columns) {
+        JTextArea field = new JTextArea(rows, columns);
         field.setEditable(false);
         field.setLineWrap(true);
         field.setWrapStyleWord(true);
@@ -389,13 +394,12 @@ public final class McpSetupDialog extends JDialog {
             commands.add(CodexMcpClient.shellDisplay(codex.removeCommand()));
             verb = "remove";
         }
-        JTextArea exact = commandBox();
+        JTextArea exact = confirmationCommandBox();
         exact.setText(String.join("\n", commands));
-        int choice = JOptionPane.showConfirmDialog(this, new Object[]{
+        int choice = showWideRegistrationConfirmation("Confirm Codex registration", new Object[]{
                         "Codex will " + verb + " only the registration named fluxtion-analyser in its shared local "
                                 + "configuration. The bridge discovers the per-run endpoint and token itself; neither is in this command.",
-                        "Cancel means Codex is not started and no configuration is written.", exact},
-                "Confirm Codex registration", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+                        "Cancel means Codex is not started and no configuration is written.", exact});
         if (choice != JOptionPane.OK_OPTION) return;
         rememberSetup();
         setClientActionsEnabled(false);
@@ -549,13 +553,12 @@ public final class McpSetupDialog extends JDialog {
             commands.add(ClaudeMcpClient.shellDisplay(claude.removeCommand()));
             verb = "remove";
         }
-        JTextArea exact = commandBox();
+        JTextArea exact = confirmationCommandBox();
         exact.setText(String.join("\n", commands));
-        int choice = JOptionPane.showConfirmDialog(this, new Object[]{
+        int choice = showWideRegistrationConfirmation("Confirm Claude Code registration", new Object[]{
                         "Claude Code will " + verb + " only the user-scoped registration named fluxtion-analyser. "
                                 + "The bridge discovers the per-run endpoint and token itself; neither is in this command.",
-                        "Cancel means Claude Code is not started and no configuration is written.", exact},
-                "Confirm Claude Code registration", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+                        "Cancel means Claude Code is not started and no configuration is written.", exact});
         if (choice != JOptionPane.OK_OPTION) return;
         rememberSetup();
         setClientActionsEnabled(false);
@@ -666,6 +669,25 @@ public final class McpSetupDialog extends JDialog {
         } catch (IOException e) {
             clientStatus.setText("Could not save the generic MCP snippet. Choose another writable file and retry.");
         }
+    }
+
+    /**
+     * A registration command is a consent surface, so give the person a desktop-width view rather than
+     * relying on JOptionPane's compact default. The field itself is also wide enough to keep a Java/jar
+     * vector legible; both Codex and Claude Code use this same disclosure.
+     */
+    private int showWideRegistrationConfirmation(String title, Object[] message) {
+        JOptionPane pane = new JOptionPane(message, JOptionPane.WARNING_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+        JDialog confirmation = pane.createDialog(this, title);
+        int screenWidth = Toolkit.getDefaultToolkit().getScreenSize().width;
+        int desiredWidth = Math.min(960, Math.max(640, screenWidth - 64));
+        if (confirmation.getWidth() < desiredWidth) {
+            confirmation.setSize(desiredWidth, confirmation.getHeight());
+        }
+        confirmation.setLocationRelativeTo(this);
+        confirmation.setVisible(true);
+        Object choice = pane.getValue();
+        return choice instanceof Integer value ? value : JOptionPane.CLOSED_OPTION;
     }
 
     private void confirmEnableTransport() {

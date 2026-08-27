@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **Client-registration confirmations no longer squeeze the command.** Codex and Claude Code now use
+  a wider confirmation window and command field, so the exact Java/JBang bridge vector is readable
+  before either client CLI is allowed to run.
+
 ### Added
 - **Connect an AI client, without a first-run pop-up.** The Start page now offers Codex, Claude and
   generic MCP setup, with the same entry under Settings ▸ Assistant. It explains which current analyser

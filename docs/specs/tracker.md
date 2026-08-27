@@ -355,7 +355,8 @@ green check never pretends it has observed a foreign client or model._
   copyable command field were manually reviewed in the running UI (2026-08-27).
 - [M42.3] ◧ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
 - [M42.4] ◧ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
-  copy/diff-only, never a default side effect.
+  copy/diff-only, never a default side effect. Its shared confirmation disclosure now uses a readable desktop-width
+  command field (2026-08-27); final clean-client acceptance remains pending.
 - [M42.5] ☑ **Claude Desktop route** — live MCPB contract verified; the documented generic-config fallback is
   retained because the per-machine JBang/Java bridge has no portable bundled entry point (2026-08-27).
 - [M42.6] ◧ **Generic configuration + docs** — exact argument-vector JSON can be copied or saved only to a
