@@ -115,6 +115,8 @@ public final class AppConfig {
      * carries prose an agent wrote about your data, a different cargo from key names and formulas.
      */
     public final List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports = new ArrayList<>();
+    /** M38.1: runbook POINTERS — name → project-relative path (never contents). Project-scoped; see {@link Runbooks}. */
+    public final java.util.Map<String, String> runbooks = new java.util.LinkedHashMap<>();
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();

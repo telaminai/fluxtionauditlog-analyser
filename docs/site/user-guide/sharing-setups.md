@@ -17,6 +17,7 @@ the same source roots, event processors and **named graphs** (formulas and pins 
 | View | hidden columns |
 | Assistant | round / per-reply caps |
 | LLM *(off by default)* | provider / model / base-URL — **never the API key** |
+| Runbook LOCATIONS (paths in your repository — never their contents) *(off by default)* | name → project-relative path, e.g. `deploy → ops/deploy.md`. A **pointer** into your repository; the exporter refuses anything that is not a plain relative path, and so does the importer — see [Portable context](portable-context.md) |
 
 A shared graph that uses **external series** carries the CSV's *definition* (path, columns, clock),
 never its data — so it may depend on a **local file the recipient does not have**. Opening such a graph
@@ -30,6 +31,9 @@ for drag-drop into Slack/WhatsApp), or **Email…**.
 Your **API key**, AWS profile/region, recent files, search history and window/theme are never exported —
 and the whitelist is enforced on **import** too, so a hand-crafted file can't plant or overwrite a
 secret. Paths under your home are written `~`-relative so they survive a move to another machine.
+
+A runbook's **contents** never travel: the profile may point at `ops/deploy.md`, never carry the commands,
+and a value shaped like a command is refused with a reason on both export and import.
 
 ## Import or open?
 

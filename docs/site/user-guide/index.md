@@ -23,6 +23,7 @@ New here? Start with **[Getting started](../getting-started.md)**.
 - [Source navigation](source-navigation.md) — jump from a log line to the code.
 - [Sharing setups](sharing-setups.md) — export/import your whole configuration.
 - [The Project panel](project-panel.md) — what is in force: project, log, graph, processors, roots — in one place.
+- [Portable context](portable-context.md) — the project as a shared workspace: three tiers, and why a runbook is only ever a pointer.
 
 Not sure where to begin? **[Getting started](../getting-started.md)** walks you from a fresh install to a
 graphed, explained log.

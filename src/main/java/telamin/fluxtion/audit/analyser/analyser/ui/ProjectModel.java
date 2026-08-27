@@ -25,7 +25,7 @@ public record ProjectModel(List<Section> sections) {
     public enum Tone { NORMAL, MUTED, WARN }
 
     /** Where a row's "go to" leads — navigation only (D-L3). */
-    public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, PROJECT, REPORTS }
+    public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, SETTINGS_PROCESSORS, SETTINGS_ASSISTANT, PROJECT, REPORTS }
 
     public record Section(String title, List<Row> rows) { }
 
@@ -37,7 +37,8 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
-            "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from");
+            "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
+            "runbooks.name", "runbooks.path", "runbooks.resolved", "runbooks.exists", "runbooks.from");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
             PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports";
@@ -56,6 +57,16 @@ public record ProjectModel(List<Section> sections) {
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
                     Tone.MUTED, Target.NONE));
+        }
+        // M38.1 D-C7: a runbook POINTER is a visible row — "deploy runbook: ops/deploy.md · project". Copy and
+        // Show act on where it lands on this machine; what is drawn is the pointer as the profile holds it.
+        for (Object o : list(ctx.get("runbooks"))) {
+            Map<String, Object> r = map(o);
+            boolean known = r.get("exists") != null;
+            boolean exists = Boolean.TRUE.equals(r.get("exists"));
+            rows.add(new Row(r.get("name") + " runbook: " + r.get("path"),
+                    known && !exists ? "file NOT found under the project root" : "a pointer into the repository — never contents",
+                    str(r.get("resolved")), str(r.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL, Target.NONE));
         }
         out.add(new Section(PROJECT, rows));
 
@@ -140,11 +151,11 @@ public record ProjectModel(List<Section> sections) {
             String simple = dot < 0 ? fqn : fqn.substring(dot + 1);
             if (dot > 0) detail += " · " + fqn.substring(0, dot);
             rows.add(new Row(simple, detail, null, str(p.get("from")),
-                    found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN, found ? Target.SOURCE : Target.SETTINGS_SOURCE));
+                    found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN, found ? Target.SOURCE : Target.SETTINGS_PROCESSORS));
         }
         if (rows.isEmpty()) {
-            rows.add(new Row("No event processors", "Settings ▸ Source, or open a log and one is inferred",
-                    null, null, Tone.MUTED, Target.SETTINGS_SOURCE));
+            rows.add(new Row("No event processors", "Settings ▸ Event processor, or open a log and one is inferred",
+                    null, null, Tone.MUTED, Target.SETTINGS_PROCESSORS));
         }
         out.add(new Section(PROCESSORS, rows));
 
@@ -168,10 +179,10 @@ public record ProjectModel(List<Section> sections) {
         Map<String, Object> exports = map(ctx.get("exports"));
         if (Boolean.TRUE.equals(exports.get("enabled")) && exports.get("dir") != null) {
             rows.add(new Row("Exports to " + fileName(str(exports.get("dir"))), "screenshots, PDF/CSV exports and rendered reports land here",
-                    str(exports.get("dir")), "own settings", Tone.NORMAL, Target.SETTINGS_SOURCE));
+                    str(exports.get("dir")), "own settings", Tone.NORMAL, Target.SETTINGS_ASSISTANT));
         } else {
             rows.add(new Row("File exchange off", "Settings ▸ Assistant — until it is on, an agent's screenshot, export and report writes are refused",
-                    null, null, Tone.MUTED, Target.SETTINGS_SOURCE));
+                    null, null, Tone.MUTED, Target.SETTINGS_ASSISTANT));
         }
         List<Object> reps = list(ctx.get("reports"));
         for (Object o : reps) {

@@ -56,7 +56,9 @@ public final class SettingsShare {
         REPORTS("Investigation reports (definitions + narrative text — never log data)", true),
         VIEW("View (hidden columns)", true),
         ASSISTANT("Assistant", true),
-        LLM("LLM provider/model/base-URL (never the API key)", false);
+        LLM("LLM provider/model/base-URL (never the API key)", false),
+        /** M38.1 D-C8: off by default, and the exporter refuses any value that is not a project-relative path. */
+        RUNBOOKS("Runbook LOCATIONS (paths in your repository — never their contents)", false);
 
         public final String label;
         public final boolean defaultOn;
@@ -150,6 +152,9 @@ public final class SettingsShare {
         }
         if (categories.contains(Category.REPORTS)) {
             ConfigStore.writeReports(p, c.reports);
+        }
+        if (categories.contains(Category.RUNBOOKS) && !c.runbooks.isEmpty()) {
+            ConfigStore.writeRunbooks(p, c.runbooks);      // D-C2: pointers only; refused values never leave
         }
         if (categories.contains(Category.VIEW)) {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
@@ -308,6 +313,18 @@ public final class SettingsShare {
                     + (withNarrative == 0 ? "" : " · " + withNarrative + " carrying narrative text"));
         }
 
+        Map<String, String> runbooks = null;
+        if (p.getProperty("runbook.count") != null) {
+            present.add(Category.RUNBOOKS);
+            runbooks = new LinkedHashMap<>();
+            List<String> refused = ConfigStore.readRunbooks(p, runbooks);
+            // the summary names what is REFUSED as well as what arrives: a file carrying runbook CONTENTS
+            // is exactly the shape D-C2 exists to stop, and the importer must not be told "1 runbook"
+            summary.put(Category.RUNBOOKS, runbooks.size() + " runbook location(s)"
+                    + (refused.isEmpty() ? "" : " · " + refused.size() + " entry(ies) REFUSED — not a project-relative path: "
+                    + String.join("; ", refused)));
+        }
+
         List<String> hiddenColumns = null;
         if (p.getProperty("hiddenColumn.count") != null) {
             present.add(Category.VIEW);
@@ -340,7 +357,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns,
+                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -379,6 +396,11 @@ public final class SettingsShare {
                 target.reports.add(r);   // replace-by-name, like graphs and focuses
             }
         }
+        if (selected.contains(Category.RUNBOOKS) && plan.runbooks() != null) {
+            plan.runbooks().forEach((name, path) -> {
+                if (Runbooks.refuse(name, path).isEmpty()) target.runbooks.put(name, path);   // replace-by-name
+            });
+        }
         if (selected.contains(Category.VIEW) && plan.hiddenColumns() != null) {
             // View is the sender's column layout — replace the set wholesale (not additive)
             target.hiddenColumns.clear();
@@ -415,6 +437,7 @@ public final class SettingsShare {
             List<FocusSpec> focuses,
             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
             List<String> hiddenColumns,
+            Map<String, String> runbooks,
             Boolean assistantInProcess,
             Boolean assistantRest,
             Integer maxRounds,

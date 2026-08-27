@@ -58,7 +58,9 @@ class ProjectPanelIsRevealOnlyTest {
         String facts = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/SessionFacts.java"));
         int start = mainFrame.indexOf("ActionResult context() {");
         assertTrue(start > 0);
-        String context = mainFrame.substring(start, mainFrame.indexOf("public boolean showTab", start));
+        // context() plus the helpers it assembles from (runbooksForContext, …): the whole file is the honest
+        // scope once the builder is split — a key put nowhere in MainFrame is still a key context cannot serve
+        String context = mainFrame;
         Set<String> put = new TreeSet<>();
         Matcher m = Pattern.compile("put\\(\"([A-Za-z]+)\"").matcher(context + facts);
         while (m.find()) put.add(m.group(1));

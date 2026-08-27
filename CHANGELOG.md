@@ -7,6 +7,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Runbook pointers — the first slice of portable context.** A project can now record *where* its
+  runbooks live — `runbook.0.name=deploy` / `runbook.0.path=ops/deploy.md` in the committed profile — a
+  pointer into the repository, never the commands, and the analyser never executes it. Absolute paths, `..`,
+  URLs and anything shaped like a command are refused with a reason at every entrance — the profile loader
+  (the status bar says what was dropped and why), share import and share export. Deliberately no
+  action-socket verb: the reviewed file is the writer. Pointers appear in the Project panel and in `context.runbooks`, and travel only
+  under a new **Runbook LOCATIONS** share checkbox that is off by default. Docs: *User guide ▸ Portable
+  context* — the three-tier rule the rest of the milestone follows.
 - **The Project panel — what is in force, in one place.** A new *Project* toggle on the left rail, under
   *Event types*, states the active project (name, directory, settings file), the open audit log as you
   named it, the graph and its pairing verdict, every configured event processor with whether its source

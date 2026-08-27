@@ -1,0 +1,40 @@
+REPORT — M38: portable context (on branch feat/m37-loaded-panel, after M37)
+Date: 2026-08-27 · From: main session · Spec: docs/specs/spec-portable-context.md (PROPOSED by the first session)
+
+M38.1 — the tier model + runbook POINTERS (D-C1, D-C2, D-C7, D-C8)
+  config/Runbooks       the gate. refuse(name, path) returns the REASON or empty. Accepts only what can be
+                        nothing but a relative path inside the project: segments of [A-Za-z0-9._-], no
+                        absolute root / drive letter / ~ / URL, no "..", no spaces or shell metacharacters, no
+                        line breaks, ≤ 200 chars. Applied at EVERY entrance: ConfigStore.readRunbooks (profile + own settings),
+                        SettingsShare.preview/apply, SettingsShare.export/ConfigStore.writeRunbooks.
+  AppConfig.runbooks    name → relative path; project-scoped (ProjectProfile.PROJECT_SCOPED + Snapshot);
+                        persisted in the profile as runbook.count / runbook.i.name / runbook.i.path.
+  SettingsShare         Category.RUNBOOKS "Runbook LOCATIONS (paths in your repository — never their contents)",
+                        defaultOn=false (D-C8). Import summary names what was REFUSED, not just what arrived.
+  NO verb                first cut added `runbook {name, path}`; three pinned tests refused it (the surface is 14
+                        verbs, a compatibility contract — close/discover/project all extended `open`). Dropped,
+                        and rightly: D-C2's trust model makes the reviewed profile file IN THE REPOSITORY the
+                        writer; an agent recording pointers over the socket is the one unreviewed path into it.
+                        ProjectProfile.load now appends the refusal summary to its message, so a hostile or
+                        hand-edited entry is announced in the status bar and dropped — loud degradation.
+  context.runbooks[]    {name, path, resolved, exists, from, note}; reported with or without a log.
+  Project panel         one row per pointer under the project row — "deploy runbook: ops/deploy.md · project";
+                        Copy/Show act on the resolved path; WARN when the file is missing; Target NONE — nothing
+                        on the panel runs it (D-C7, and M37's D-L3).
+  docs                  user-guide/portable-context.md (tiers table; the D-C2 sentence verbatim; the verb; the
+                        refusal list), sharing-setups row (the disclosure contract test reads it), assistant /
+                        connect-an-llm tool lists, project-panel row. CHANGELOG. Tracker M38.1 ☑.
+  tests                 RunbooksTest (5): accepted shapes; a refusal table with reasons; the loader drops and
+                        explains; the share category is off by default, names its cargo, export omits when
+                        unticked, a hostile file's command is REFUSED while the pointer beside it arrives, an
+                        unticked receiver gets nothing; project round-trip + clearProjectScoped.
+                        ProjectModelTest.aRunbookPointerIsAVisibleRowOfTheProjectSection.
+
+  Deliberately NOT done in .1: no Settings-dialog editor for pointers (the verb and the profile file are the
+  two writers the spec names; a Swing editor is cheap to add when someone asks); no rendering of the pointed-at
+  file anywhere in the analyser — that would make the analyser a runbook reader, which is a step toward the
+  thing D-C2 forbids.
+
+OPEN QUESTIONS (owner) — untouched by .1, needed before .2/.3:
+  1 vocabulary: profile vs pointed-at file (proposed pointer + small inline fallback)
+  2 environments travel by default?   3 prior findings as links only?   4 baselines → M39?

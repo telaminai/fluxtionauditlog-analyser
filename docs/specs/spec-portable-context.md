@@ -1,6 +1,6 @@
 # Spec — portable context: the project as a shared workspace for a human and an AI
 
-**Status:** PROPOSED 2026-08-27 (owner-requested). **Milestone:** M38. **Tracker:** [tracker.md](tracker.md) ▸ M38.
+**Status:** IN PROGRESS — M38.1 implemented 2026-08-27 on `feat/m37-loaded-panel` (owner-requested; open questions 1–4 still the owner's; .1 needed none of them). **Milestone:** M38. **Tracker:** [tracker.md](tracker.md) ▸ M38.
 **Depends on:** **M37** (the Loaded panel) — see *Why on top of M37*.
 
 ## The proposition

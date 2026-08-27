@@ -83,8 +83,33 @@ public final class ConfigPanel extends JDialog {
         new ConfigPanel(owner, config, onSaved, readerSummaries).setVisible(true);
     }
 
+    /**
+     * M37: open on a named page ("Source roots", "Event processor", "Assistant", …). The Project panel's
+     * Settings… buttons say which page holds the thing the row is about; landing on the first tab regardless
+     * made the button a lie (found by the owner on the Reports row, 2026-08-27).
+     */
+    public static void show(JFrame owner, AppConfig config, Runnable onSaved,
+                            java.util.function.Supplier<java.util.List<String>> readerSummaries, String page) {
+        ConfigPanel panel = new ConfigPanel(owner, config, onSaved, readerSummaries);
+        panel.selectPage(page);
+        panel.setVisible(true);
+    }
+
+    private JTabbedPane tabs;
+
+    /** Select the tab whose title matches (case-insensitive); an unknown title leaves the first tab showing. */
+    void selectPage(String title) {
+        if (tabs == null || title == null) return;
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getTitleAt(i).equalsIgnoreCase(title)) {
+                tabs.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
     private void buildUi() {
-        JTabbedPane tabs = new JTabbedPane();
+        tabs = new JTabbedPane();
         tabs.addTab("Source roots", buildRootsTab());
         tabs.addTab("Maven repos", buildMavenTab());
         tabs.addTab("Event processor", buildEpTab());

@@ -105,6 +105,7 @@ nav:
       - Source navigation: user-guide/source-navigation.md
       - Working across projects: user-guide/projects.md
       - The Project panel: user-guide/project-panel.md
+      - Portable context: user-guide/portable-context.md
       - Investigation reports: user-guide/reports.md
       - Sharing setups: user-guide/sharing-setups.md
       - Log-source plugins: user-guide/plugins.md

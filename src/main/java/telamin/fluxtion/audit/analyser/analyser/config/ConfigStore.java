@@ -85,6 +85,7 @@ public final class ConfigStore {
         readGraphs(p, c.savedGraphs);
         readFocuses(p, c.namedFocuses);
         readReports(p, c.reports);
+        readRunbooks(p, c.runbooks);
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -154,6 +155,7 @@ public final class ConfigStore {
         writeGraphs(p, globalTier == null ? c.savedGraphs : globalTier.savedGraphs());
         writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
         writeReports(p, globalTier == null ? c.reports : globalTier.reports());
+        writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
@@ -532,6 +534,31 @@ public final class ConfigStore {
 
     static void put(Properties p, String k, String v) {
         if (v != null) p.setProperty(k, v);
+    }
+
+    /** M38.1: runbook pointers, validated on the way IN — a refused entry is dropped, never stored. */
+    static void writeRunbooks(Properties p, java.util.Map<String, String> runbooks) {
+        int i = 0;
+        for (var e : runbooks.entrySet()) {
+            if (Runbooks.refuse(e.getKey(), e.getValue()).isPresent()) continue;
+            p.setProperty("runbook." + i + ".name", e.getKey());
+            p.setProperty("runbook." + i + ".path", e.getValue());
+            i++;
+        }
+        p.setProperty("runbook.count", Integer.toString(i));
+    }
+
+    /** @return the reasons for every entry refused (empty when all were plain relative paths) */
+    static List<String> readRunbooks(Properties p, java.util.Map<String, String> out) {
+        out.clear();
+        List<String> refused = new ArrayList<>();
+        int n = parseInt(p.getProperty("runbook.count"), 0);
+        for (int i = 0; i < n; i++) {
+            String name = p.getProperty("runbook." + i + ".name");
+            String path = p.getProperty("runbook." + i + ".path");
+            Runbooks.refuse(name, path).ifPresentOrElse(refused::add, () -> out.put(name, path));
+        }
+        return refused;
     }
 
     static void writeList(Properties p, String prefix, List<String> values) {

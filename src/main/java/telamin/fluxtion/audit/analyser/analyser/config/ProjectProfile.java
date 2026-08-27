@@ -73,7 +73,8 @@ public final class ProjectProfile {
             SettingsShare.Category.EVENT_PROCESSORS,
             SettingsShare.Category.GRAPHS,
             SettingsShare.Category.REPORTS,
-            SettingsShare.Category.VIEW);
+            SettingsShare.Category.VIEW,
+            SettingsShare.Category.RUNBOOKS);      // M38.1: pointers are project context (D-C1 tier 1)
 
     private ProjectProfile() {
     }
@@ -148,7 +149,8 @@ public final class ProjectProfile {
                            List<FocusSpec> namedFocuses,
                            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
                            List<String> hiddenColumns,
-                           boolean hiddenColumnsSet) {
+                           boolean hiddenColumnsSet,
+                           java.util.Map<String, String> runbooks) {
 
         public Snapshot {
             sourceRoots = List.copyOf(sourceRoots);
@@ -158,13 +160,14 @@ public final class ProjectProfile {
             namedFocuses = List.copyOf(namedFocuses);
             reports = List.copyOf(reports);
             hiddenColumns = List.copyOf(hiddenColumns);
+            runbooks = java.util.Map.copyOf(runbooks == null ? java.util.Map.of() : runbooks);
         }
     }
 
     public static Snapshot snapshot(AppConfig c) {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
                 c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
-                c.hiddenColumnsSet);
+                c.hiddenColumnsSet, c.runbooks);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -180,6 +183,7 @@ public final class ProjectProfile {
         into.reports.addAll(s.reports());
         into.hiddenColumns.addAll(s.hiddenColumns());
         into.hiddenColumnsSet = s.hiddenColumnsSet();
+        into.runbooks.putAll(s.runbooks());
     }
 
     /**
@@ -193,6 +197,7 @@ public final class ProjectProfile {
         c.savedGraphs.clear();
         c.namedFocuses.clear();
         c.reports.clear();
+        c.runbooks.clear();
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there
@@ -237,7 +242,12 @@ public final class ProjectProfile {
             if (target.mavenRepos.isEmpty()) {
                 target.mavenRepos.add(AppConfig.defaultMavenRepo());
             }
-            return new LoadResult(true, "project loaded: " + file);
+            // M38.1: a refused runbook entry is loud, not silent — the summary the importer would have seen
+            // is the message the status bar shows, so a hand-edited or hostile pointer degrades to "dropped,
+            // here is why" in front of the person who opened the project
+            String rb = plan.summary().get(SettingsShare.Category.RUNBOOKS);
+            String warn = rb != null && rb.contains("REFUSED") ? "  ·  ⚠ runbooks: " + rb : "";
+            return new LoadResult(true, "project loaded: " + file + warn);
         } catch (RuntimeException e) {
             return new LoadResult(false, "could not load " + file + ": " + e.getMessage());
         }

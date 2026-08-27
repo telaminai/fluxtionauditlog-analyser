@@ -356,7 +356,7 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M38 · Portable context — the project as a shared workspace — ☐ SPEC'D 2026-08-27 (owner-requested)
+## M38 · Portable context — the project as a shared workspace — ◧ **.1 IMPLEMENTED on `feat/m37-loaded-panel` 2026-08-27** (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
 _Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
 human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
 on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
@@ -366,7 +366,7 @@ the asymmetry M37 exists to end._
   profile; runbooks never travel as payload. Tier 2 is safe only because **server verbs never appear on
   the analyser's action socket** — relaxing that standing decision would make every shared profile
   executable, and the spec says so out loud.
-- [M38.1] ☐ **Tier model + runbook POINTERS** — the profile records `ops/deploy.md`, never the commands:
+- [M38.1] ☑ **Tier model + runbook POINTERS** _(2026-08-27)_ — the profile records `ops/deploy.md`, never the commands:
   execution stays with the agent / UP-MNG-02, the trust boundary becomes "you cloned this repo" rather
   than "you opened a file someone sent you". Write-time validation, import refusal of contents, a
   Loaded-panel row. Security first, before anything wants to bend it.

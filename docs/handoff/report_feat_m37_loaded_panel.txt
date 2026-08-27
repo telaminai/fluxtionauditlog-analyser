@@ -50,6 +50,9 @@ LIVE (one JVM, isolated home, a project with 2 processors + 1 root; driven over 
       directory or "File exchange off" (the state that refused `screenshot` twice that day), and saved
       reports by title with a Go to the Reports tab. Tests: ProjectModelTest.reportsSectionShowsWhereFilesLeave…
 
+  Owner, live, 2026-08-27: the Reports row's Settings… opened the dialog on Source roots. The Navigator now
+  takes the page ("Source roots" / "Event processor" / "Assistant"); ConfigPanel.show(…, page) selects it.
+
 RULE 1 INCIDENT — found by reading the regenerated shots, fixed by construction
   The first capture-docs run after this change put a real venue's class name and an employer's package
   into three shots (project-panel, screenshot-dark, start-page): the harness ran the app under the REAL

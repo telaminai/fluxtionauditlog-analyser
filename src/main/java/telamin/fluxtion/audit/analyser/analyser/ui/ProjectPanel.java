@@ -21,8 +21,8 @@ public final class ProjectPanel extends JPanel {
         /** Bring a right-hand tab forward by title ("Topology", "Source"). */
         void showTab(String title);
 
-        /** Open Settings (the Source page holds roots and processors). */
-        void openSettings();
+        /** Open Settings on the named page ("Source roots", "Event processor", "Assistant"). */
+        void openSettings(String page);
     }
 
     private final Navigator navigator;
@@ -114,7 +114,9 @@ public final class ProjectPanel extends JPanel {
             case TOPOLOGY -> actions.add(small("Go", "Go to the Topology tab", () -> navigator.showTab("Topology")));
             case SOURCE -> actions.add(small("Go", "Go to the Source tab", () -> navigator.showTab("Source")));
             case REPORTS -> actions.add(small("Go", "Go to the Reports tab", () -> navigator.showTab("Reports")));
-            case SETTINGS_SOURCE -> actions.add(small("Settings…", "Settings ▸ Source", navigator::openSettings));
+            case SETTINGS_SOURCE -> actions.add(small("Settings…", "Settings ▸ Source roots", () -> navigator.openSettings("Source roots")));
+            case SETTINGS_PROCESSORS -> actions.add(small("Settings…", "Settings ▸ Event processor", () -> navigator.openSettings("Event processor")));
+            case SETTINGS_ASSISTANT -> actions.add(small("Settings…", "Settings ▸ Assistant", () -> navigator.openSettings("Assistant")));
             default -> { }
         }
         if (actions.getComponentCount() > 0) line.add(actions, BorderLayout.EAST);

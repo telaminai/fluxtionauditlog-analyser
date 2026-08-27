@@ -12,7 +12,7 @@ on the left rail under *Event types*, states all five at once.
 
 | Section | Row | Where it came from (the right-hand column) |
 |---|---|---|
-| **Project** | the profile's name and directory; *Copy* / *Show* the settings file | *project settings in force* — or *No project — using your own settings* |
+| **Project** | the profile's name and directory; *Copy* / *Show* the settings file; one row per **runbook pointer** (`deploy runbook: ops/deploy.md`, warning if the file is missing — see [Portable context](portable-context.md)) | *project settings in force* — or *No project — using your own settings* |
 | **Audit log** | the file you opened, as you named it (`s3://…` stays `s3://…`), records | *opened by you* / *opened by the action socket*, and the system it declared |
 | **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root | *project* / *own settings* / *discovered under a root* |

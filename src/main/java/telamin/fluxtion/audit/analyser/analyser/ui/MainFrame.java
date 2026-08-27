@@ -301,9 +301,9 @@ public final class MainFrame extends JFrame {
         // rendering of `context` (D-L1); refreshProjectPanel() is the only writer.
         projectPanel = new ProjectPanel(new ProjectPanel.Navigator() {
             @Override public void showTab(String title) { selectTab(title); }
-            @Override public void openSettings() {
+            @Override public void openSettings(String page) {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
-                        MainFrame.this::readerSummaries);
+                        MainFrame.this::readerSummaries, page);
             }
         });
         projectPanel.setVisible(!config.projectPanelCollapsed);
@@ -324,6 +324,27 @@ public final class MainFrame extends JFrame {
         west.add(rail, BorderLayout.WEST);
         layoutWest(west);
         return west;
+    }
+
+    /** M38.1: each pointer with where it lands on THIS machine and whether the file is there. */
+    private List<Map<String, Object>> runbooksForContext() {
+        List<Map<String, Object>> rbs = new ArrayList<>();
+        Path root = project.hasProject()
+                ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
+        config.runbooks.forEach((name, rel) -> {
+            Map<String, Object> one = new java.util.LinkedHashMap<>();
+            one.put("name", name);
+            one.put("path", rel);
+            Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, rel);
+            if (abs != null) {
+                one.put("resolved", abs.toString());
+                one.put("exists", java.nio.file.Files.isRegularFile(abs));
+            }
+            one.put("from", project.hasProject() ? "project" : "own settings");
+            one.put("note", "a pointer — read the file from the repository; the analyser stores no instructions and executes nothing");
+            rbs.add(one);
+        });
+        return rbs;
     }
 
     private ProjectPanel projectPanel;
@@ -3454,6 +3475,7 @@ public final class MainFrame extends JFrame {
             return List.copyOf(config.sourceRoots);
         }
 
+
         @Override
         public boolean addSourceRoot(String path) {
             if (path == null || path.isBlank()) return false;
@@ -3675,6 +3697,13 @@ public final class MainFrame extends JFrame {
                     procs.add(one);
                 }
                 if (!procs.isEmpty()) out.put("processors", procs);
+            }
+            // M38.1: runbook POINTERS — where the knowledge is, never what to do. Reported whether or not a
+            // log is open; the panel renders each as a row because a pointer an agent will act on and a
+            // human cannot see is precisely the shape spec-portable-context exists to avoid (D-C7).
+            {
+                List<Map<String, Object>> rbs = runbooksForContext();
+                if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
             // M37.6: where files LEAVE, and the reports the project holds. The exchange directory is
             // machine-tier (a path on this disk, never shared); the reports are project-tier. Both were

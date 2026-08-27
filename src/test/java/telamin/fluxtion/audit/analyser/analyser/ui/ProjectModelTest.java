@@ -176,12 +176,29 @@ class ProjectModelTest {
         assertEquals("1 section · saved report", rows.get(2).secondary());
         assertEquals("project", rows.get(1).provenance());
         assertEquals(ProjectModel.Target.REPORTS, rows.get(1).target(), "Go leads to the Reports tab — navigation, not rendering");
+        assertEquals(ProjectModel.Target.SETTINGS_ASSISTANT, rows.get(0).target(), "the exchange directory lives on Settings ▸ Assistant, and the button must land there (owner, 2026-08-27)");
 
         ctx.put("exports", Map.of("enabled", false));
         rows = ProjectModel.from(ctx).section(ProjectModel.REPORTS).rows();
         assertEquals("File exchange off", rows.get(0).primary());
         assertEquals(ProjectModel.Tone.MUTED, rows.get(0).tone());
         assertTrue(rows.get(0).secondary().contains("Settings ▸ Assistant"), "says where to turn it on");
+    }
+
+    @Test
+    void aRunbookPointerIsAVisibleRowOfTheProjectSection() {
+        Map<String, Object> ctx = full();
+        ctx.put("runbooks", List.of(
+                Map.of("name", "deploy", "path", "ops/deploy.md", "resolved", "/work/demo/ops/deploy.md", "exists", true, "from", "project"),
+                Map.of("name", "restart", "path", "ops/restart.md", "resolved", "/work/demo/ops/restart.md", "exists", false, "from", "project")));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows();
+        assertEquals(3, rows.size(), "the project row, then one row per pointer (D-C7)");
+        assertEquals("deploy runbook: ops/deploy.md", rows.get(1).primary(), "drawn as the profile holds it — a relative pointer");
+        assertEquals("/work/demo/ops/deploy.md", rows.get(1).path(), "Copy/Show act on where it lands here");
+        assertEquals("a pointer into the repository — never contents", rows.get(1).secondary());
+        assertEquals(ProjectModel.Target.NONE, rows.get(1).target(), "nothing on the panel runs it");
+        assertEquals(ProjectModel.Tone.WARN, rows.get(2).tone());
+        assertEquals("file NOT found under the project root", rows.get(2).secondary());
     }
 
     @Test
