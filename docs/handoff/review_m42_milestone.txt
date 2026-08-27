@@ -1,0 +1,111 @@
+REVIEW — M42 delivery, commits 199af4b..b92fa71 (M42.1 hardening → M42.6 + docs), reviewed on main
+Date: 2026-08-28 · Assessor: the session behind review_spec_mcp_client_install.txt and
+review_m42_1_probe.txt, closing the loop on both. Scope is the COMMITTED range only: another
+session was editing docs concurrently during this review; the working tree was clean at review
+time and nothing uncommitted is covered here.
+
+VERDICT: SOUND — the milestone is honestly ◧ and correctly so. All four gates verified by this
+review, not taken from the tracker's word: `mvn test` 997 green; `mkdocs build --strict` passes;
+the exemption-free sweep prints nothing; both new screenshots READ (neutral /tmp/analyser-docs
+paths throughout, no username, no token). Every finding from the two prior reviews is closed or
+deliberately carried. Findings below: one low-severity correctness (F1), one debt (F2), nits and
+notes. Nothing blocking.
+
+================================================================================
+1. PRIOR FINDINGS — ALL ACCOUNTED FOR
+================================================================================
+review_m42_1_probe F1 (VERIFIED TOCTOU) — FIXED in a88921c: after a successful context call the
+  probe re-reads the endpoint file and downgrades to OTHER_INSTANCE if a different live pid owns
+  it, with a test that feeds a two-endpoint queue to force the race. Footnote, no action: if the
+  racing instance wins AND exits cleanly (deleting the shared file) the re-read sees null and
+  VERIFIED stands — an ultra-narrow residue not worth more machinery.
+F2 (untested failure statuses) — FIXED: LAUNCH_FAILED (missing executable), PROTOCOL_FAILED
+  (garbage output), and the -32022 era-fallback leg all have tests via the helper bridge's new modes.
+F3 (stacked javadoc) — FIXED, merged to one comment.
+F5 (cold-JBang timeout wording) — ADDRESSED: the PROTOCOL_FAILED status says "A cold launcher may
+  need a moment; retry once."
+F4 (stderr captured then discarded) — CARRIED, acceptable: failure wording is fixed-string by
+  design; the redacted-tail diagnostic remains a good future improvement.
+review_m42_1_probe §4 (tracker ☐ until the bench path exists) — RESOLVED THE RIGHT WAY: loop-bench
+  now launches the packaged `--mcp` child under the bench's disposable home and proves modern
+  discovery, analyser_context advertisement, and the read-only call into that exact analyser. ☑ is
+  earned, not asserted.
+
+================================================================================
+2. SPEC CONFORMANCE, VERIFIED AGAINST THE CODE
+================================================================================
+D-I2 — the Start-page offer is a normal card; "Not now" hides only the rendered page (comment says
+  why: no remembered opt-out). The combo's persist listener is attached AFTER the initial
+  setSelectedItem, so opening the dialog performs no write; opening also launches nothing (client
+  detection is PATH inspection only, stated in comments at both sites).
+D-I3 — form 2 (runningJar) is conservative exactly as amended: single-entry classpath only, keeps
+  pre-jar JVM options (so an isolated -Duser.home survives), strips app arguments after the jar,
+  and reconstructs -Duser.home when ProcessHandle withholds arguments. JBang wins when present.
+D-I4 — Codex and Claude Code run exact current CLI argument vectors (`codex mcp add NAME -- …`,
+  `claude mcp add --scope user --transport stdio NAME -- …`) behind a desktop-width confirmation
+  showing the verbatim command; replace is an explicit remove-then-add whose partial failure is
+  reported honestly; project scope is copy-only with the .mcp.json refusal stated in the status
+  line. Claude Desktop takes the amended spec's sanctioned fallback (redirect to Generic) rather
+  than shipping an extension that would re-implement launcher discovery — the right call given the
+  amendment. Generic renders the no-token mcpServers record from the same vector the probe runs,
+  copy or save-to-user-chosen-file with an overwrite confirmation.
+D-I5 — the dialog's six status wordings match the amended table, OTHER_INSTANCE included; probing
+  runs off-EDT through Background per the house rule.
+D-I6 — persisted state is the target, two booleans, and a launcher IDENTITY that is a category
+  string ("installed JBang launcher" / "packaged application"), not a path — tighter than the spec
+  required. Every status string refuses to claim a connected client; the "last recorded a
+  successful registration" wording explicitly says a past command proves nothing current.
+D-I7 — no shell anywhere: ProcessBuilder vectors throughout; shellDisplay quoting exists only for
+  display/copy. CLI output is bounded (8K), redacted by pattern before retention, and never shown
+  raw; processes get timeout → destroy → destroyForcibly; Cancel provably runs nothing.
+A2 (two names) — the dialog carries the fluxtion-analyser vs fluxtion-audit-log-analyser note
+  in-surface, and the CHANGELOG/docs explain it. As specced.
+Rule 1 — the two setup screenshots are captured ONLY via the harness: isolated home, a staged
+  neutral JBang launcher and fake client executable, Robot capture of the real dialog. Read by
+  this review: clean.
+Rule 2 — CHANGELOG carries Added/Changed/Fixed entries covering the user-visible slices. (An
+  earlier draft of this review suspected the line was missing; it was a truncated diff-stat, and
+  the suspicion was wrong.)
+McpSetupState — the four-way local classification (OFF / STARTING / READY / OTHER_INSTANCE) is a
+  small pure-policy class with tests, and only READY may probe. Good shape.
+ConfigPanel — the nested-setup REST enable is mirrored back into the still-open Settings checkbox
+  so a later OK cannot write a stale value over it; the comment names the exact hazard.
+
+================================================================================
+3. FINDINGS
+================================================================================
+F1 (low, correctness) — runningJar() copies EVERY pre-jar JVM option into the registered client
+  command, including debug/instrumentation flags. A `java -agentlib:jdwp=…,address=5005 -jar app`
+  launch would bake the debug flag into the bridge command; when the client later launches it, the
+  port is taken (or suspend=y hangs the bridge silently at client startup — the worst kind of
+  "MCP server doesn't respond"). JBang winning whenever installed keeps exposure low, and IDE
+  launches are -cp (refused), but the fix is small: refuse form 2 (per the spec's own "safely
+  identified" bar) or strip -agentlib/-javaagent/-Xdebug/-XX:+*Debugger options when present.
+F2 (debt) — CodexMcpClient and ClaudeMcpClient are ~90% identical (findExecutable, invoke, drain,
+  redact, quoteForShell, the record types). A third client CLI makes three copies of a process
+  harness whose timeout/kill/redaction behaviour must never drift apart. Extract the shared
+  CLI-runner on next touch.
+F3 (nit) — section 2's "Ready to run…" box joins the vector with two spaces, unquoted; a path with
+  spaces reads as separate arguments if someone copies from THERE rather than the quoted Copy
+  actions. Cosmetic; consider shellDisplay for that box too.
+F4 (nit) — the generic-setup screenshot clips the two-names note mid-sentence ("…identifies itself
+  as"). Recapture taller when docs are next regenerated.
+F5 (note, known class) — this dialog is modeless and paints UiTheme colours at build time, so it
+  will not follow a Theme ▸ switch while open — the same accepted N2 gap recorded in the 3d27f3d
+  review. Close/reopen; no action beyond this note.
+F6 (note) — saysMissing() classifies ABSENT from CLI output substrings; a CLI version/locale change
+  degrades it to INDETERMINATE, which the UI handles honestly. Fine as built; recorded so a future
+  "always indeterminate" report has its likely cause named.
+F7 (process) — the tracker's M42.5 line records "live MCPB contract verified" with no pointer to
+  where that verification lives. Rule 1's own lesson: a recorded verification that stopped being
+  true reads exactly like one that is. When M42.3/.4's final acceptances are recorded, name the
+  evidence location (report file or ledger line) for the MCPB check too.
+
+================================================================================
+4. WHAT REMAINS BEFORE THE MILESTONE ARCHIVES
+================================================================================
+- M42.3 — record the final read-only analyser_context acceptance from a real Codex session.
+- M42.4 — the clean-client Claude Code acceptance, same shape.
+- Per the protocol, the milestone moves to completed/tracker.md (and this file plus the two prior
+  M42 reviews to docs/handoff/completed/) only when those are recorded and the release ships.
+- F1 and F4 are worth folding into whichever commit records those acceptances.
