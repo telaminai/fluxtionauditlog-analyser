@@ -12,6 +12,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -19,6 +20,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import java.awt.BorderLayout;
 import java.awt.Dialog;
@@ -60,7 +62,8 @@ public final class McpSetupDialog extends JDialog {
     private final Runnable onTransportEnabled;
     private final RestEndpointFile endpointFile = RestEndpointFile.wellKnown();
     private final JLabel localStatus = new JLabel();
-    private final JLabel commandStatus = new JLabel();
+    /** A real field rather than a clipped label: absolute Java/jar paths are routinely wider than a dialog. */
+    private final JTextArea commandStatus = commandBox();
     private final JLabel bridgeStatus = new JLabel("Bridge: not checked in this session.");
     private final JLabel clientStatus = new JLabel();
     private final JButton enableTransport = new JButton("Enable local transport…");
@@ -157,15 +160,30 @@ public final class McpSetupDialog extends JDialog {
         return label;
     }
 
-    private static JPanel section(String heading, JLabel value) {
+    private static JPanel section(String heading, JComponent value) {
         JPanel panel = new JPanel(new BorderLayout(8, 2));
         panel.setAlignmentX(LEFT_ALIGNMENT);
         panel.setOpaque(false);
         JLabel label = new JLabel(heading);
         label.setFont(label.getFont().deriveFont(java.awt.Font.BOLD));
         panel.add(label, BorderLayout.NORTH);
-        panel.add(noteLabel(value), BorderLayout.CENTER);
+        panel.add(value instanceof JLabel text ? noteLabel(text) : value, BorderLayout.CENTER);
         return panel;
+    }
+
+    /** Long commands stay readable and copyable without a horizontal scroll or a shell reinterpretation. */
+    private static JTextArea commandBox() {
+        JTextArea field = new JTextArea(3, 68);
+        field.setEditable(false);
+        field.setLineWrap(true);
+        field.setWrapStyleWord(true);
+        java.awt.Font base = UIManager.getFont("TextField.font");
+        if (base == null) base = field.getFont();
+        field.setFont(new java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN, base.getSize()));
+        field.setBorder(BorderFactory.createCompoundBorder(UIManager.getBorder("TextField.border"),
+                BorderFactory.createEmptyBorder(4, 6, 4, 6)));
+        field.setAlignmentX(LEFT_ALIGNMENT);
+        return field;
     }
 
     private static JLabel noteLabel(JLabel label) {
@@ -206,6 +224,7 @@ public final class McpSetupDialog extends JDialog {
             commandStatus.setText((jbang.isPresent() ? "Ready to run installed JBang command: "
                     : "Ready to run this packaged application: ") + display(command.command()));
         }
+        commandStatus.setCaretPosition(0);
         checkBridge.setEnabled(local.canProbe() && command != null);
         refreshClientStatus();
         revalidate();

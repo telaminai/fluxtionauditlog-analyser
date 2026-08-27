@@ -18,6 +18,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Bridge checks retain the app’s local-home context.** A packaged app launched with a custom Java
   `user.home` now passes that same setting to its bridge child, so the child reads this window’s endpoint
   instead of a different home directory’s stale or absent one.
+- **Long bridge commands are now readable.** MCP setup renders the resolved command in a selectable,
+  word-wrapping multi-line field instead of clipping an absolute Java or jar path at the window edge.
 
 ## [1.10.0] - 2026-08-27
 
