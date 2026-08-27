@@ -155,6 +155,14 @@ readers. It reports the graph whether or not a log is open, `log.openedBy` (you 
 the `form` it is stored in (`project-relative`, `workspace-relative`, `~`, `absolute`), plus `source.workspaceRoot`
 when the project declares an anchor.
 
+Five keys the closing M38 review found described in prose but not by name — an agent looks for the handle:
+`dispatchOrder` (whether position in `nodeLogs` is dispatch order — *total* — or merely arrival — *PARTIAL*;
+never read PARTIAL as causality), `timeOrder` (present only when the log's timestamps are out of order —
+the report summary, so disorder is announced rather than discovered through wrong answers), `graphPairing
+.sourceGraphDeclined` (a reader offered a graph but an OPENED one holds the slot — opened beats supplied),
+`reports[].createdAt`, and `source.workspaceDir` (where the declared `workspaceRoot` resolves on this machine —
+two facts, not one).
+
 The project's portable context (*User guide ▸ Portable context*) rides the same payload: `runbooks[]` (pointers —
 read the file from the repository; the analyser never executes one), `vocabulary` (with the glossary's `text`),
 `environments[]` and `provenanceSource` (who supplied the log's provenance — *declared by the opener* always
