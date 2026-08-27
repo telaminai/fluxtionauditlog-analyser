@@ -364,7 +364,9 @@ green check never pretends it has observed a foreign client or model._
 - [M42.6] ☑ **Generic configuration + docs** — exact argument-vector JSON can be copied or saved only to a
   user-chosen file (with overwrite confirmation); connection, Assistant, Start-page and FAQ guidance now cover
   the in-app path, including the Working-with-AI connection and loop pages. Isolated native setup and confirmation
-  captures are published and visually inspected; `mvn test` and `mkdocs build --strict` are green (2026-08-27).
+  captures are published and visually inspected; the install and MCP guides now explicitly distinguish the
+  `analyser` JBang executable, `fluxtion-analyser` client registration, and bridge protocol name;
+  `mvn test` and `mkdocs build --strict` are green (2026-08-27).
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general

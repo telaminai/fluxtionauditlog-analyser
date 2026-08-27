@@ -242,9 +242,17 @@ running analyser's endpoint, per-run token, loaded log, or an approval choice. T
 fresh endpoint and token when the client starts it, so a registration survives analyser restarts without
 being rewritten.
 
-The registration label is **`fluxtion-analyser`**. The bridge protocol identifies itself as
-`fluxtion-audit-log-analyser`; these are the two existing names, not separate servers. Codex may need a
-larger tool timeout for an aggregate over a very large log.
+These names intentionally identify different layers, not separate servers:
+
+| Layer | Name | Where you see it |
+|---|---|---|
+| JBang executable | **`analyser`** | `jbang analyser@telaminai/fluxtionauditlog-analyser` and normally `~/.jbang/bin/analyser` after installation |
+| MCP client registration | **`fluxtion-analyser`** | Codex, Claude Code, or a generic `mcpServers` entry |
+| MCP bridge protocol | **`fluxtion-audit-log-analyser`** | the bridge's `serverInfo.name` response |
+
+The setup screen resolves the installed executable and registers it under the MCP client label, so none
+of the three names needs to be manually renamed. Codex may need a larger tool timeout for an aggregate
+over a very large log.
 
 ### Your first session
 

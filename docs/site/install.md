@@ -16,6 +16,12 @@ jbang app install analyser@telaminai/fluxtionauditlog-analyser
 ```
 
 The JBang alias points at the latest release's stable-name asset, so it always fetches the newest build.
+After installation, run `analyser [optional-log-file]` from your PATH.
+
+!!! note "The JBang name and MCP name are deliberately different"
+    JBang installs the executable as **`analyser`** (`~/.jbang/bin/analyser`). MCP clients register it
+    under **`fluxtion-analyser`**, then launch that exact executable with `--mcp`. The registration label
+    is a client-side name, so it does not need to match the executable name.
 
 !!! note "First run: JBang asks you to trust the download"
     JBang prompts before running a jar from a new source — answer **2** (trust this project's releases)

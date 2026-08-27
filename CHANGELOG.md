@@ -12,6 +12,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   before either client CLI is allowed to run.
 
 ### Changed
+- **Installation and MCP names are now explained consistently.** JBang's installed command is
+  `analyser`; the separately named MCP client registration is `fluxtion-analyser`. The guides now state
+  that this is intentional, correct a stale catalogue slug in the specification, and show where each
+  name appears.
 - **Working-with-AI MCP guidance now follows the in-app setup.** It explains the resolved JBang or
   Java bridge command, confirmed Codex/Claude Code registration, and the no-token generic fallback
   instead of implying that every client needs a hand-written jar command.

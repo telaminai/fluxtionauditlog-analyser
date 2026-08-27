@@ -29,7 +29,7 @@ calls to the running Swing session. M42 is **client setup and health**, not a se
 
 ## Why this is not M41 again
 
-M41 was correctly withdrawn: `jbang app install analyser@telaminai/fluxtion-auditlog-analyser` already
+M41 was correctly withdrawn: `jbang app install analyser@telaminai/fluxtionauditlog-analyser` already
 installs a runnable application and its JDK. The remaining friction is a *second*, client-specific
 installation step. Asking an analyst to find a jar, write JSON and understand why a new port and token
 must not go in it is poor onboarding; it is unrelated to native bundles.

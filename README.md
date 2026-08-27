@@ -67,6 +67,10 @@ jbang analyser@telaminai/fluxtionauditlog-analyser [optional-log-file]
 jbang app install analyser@telaminai/fluxtionauditlog-analyser   # installs an `analyser` command
 ```
 
+The JBang alias and installed executable are deliberately named **`analyser`**. MCP clients use the
+separate registration label **`fluxtion-analyser`** and launch that executable with `--mcp`; no rename
+is required. See [Connect an MCP client](https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/assistant/#connect-an-mcp-client).
+
 Or download the latest fatjar and run it:
 
 ```bash

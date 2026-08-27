@@ -32,6 +32,11 @@ each with its parameter schema, so there is nothing to teach the model. The read
 read-only; the ones that write files or replace what is loaded are marked destructive so your client asks
 you first. The full verb reference is in [Analyser assistant](user-guide/assistant.md).
 
+For clarity, JBang installs the local executable as **`analyser`**. The in-app setup registers the
+separate MCP client label **`fluxtion-analyser`**, whose command is the resolved
+`~/.jbang/bin/analyser --mcp` (or the equivalent packaged-JAR command). Those names have different jobs;
+the registration does not require an executable rename.
+
 ## Connect, step by step
 
 1. **Start the analyser and turn the transport on.** Either enable *Settings ▸ Assistant ▸ localhost
