@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-08-27
+
 ### Fixed
 - **A report's table section kept its numeric call parameters.** `recordIndex: 0` in a table's `call` arrived as a
   JSON double and was re-issued to `read` as `"0.0"`, which is no anchor — so the table failed with *read needs a
