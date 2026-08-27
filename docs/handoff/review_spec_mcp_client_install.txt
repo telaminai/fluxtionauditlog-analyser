@@ -1,0 +1,151 @@
+REVIEW — spec-mcp-client-install.md (M42, connect an AI client), PROPOSED at a9477b2
+Date: 2026-08-27 · Assessor: a fresh session (read the spec cold, then verified every claim it makes
+about the shipped bridge against McpBridge / McpTools / RestEndpointFile / Main / ActionServer)
+
+VERDICT: ACCEPT WITH AMENDMENTS — one blocking (A1: D-I5's headline VERIFIED claim is not provable
+as specified, and the fix is one comparison against a field the endpoint file already carries), one
+naming collision to acknowledge (A2), two process-rule conflicts (A3, A4), one leak-surface note for
+the docs slice (A5). The spec's factual claims about the existing bridge check out everywhere else,
+and D-I6's refusal to collapse "registration ran" into "connected" is exactly the house discipline.
+
+================================================================================
+1. CLAIMS CHECKED AGAINST THE SHIPPED BRIDGE — WHAT HOLDS
+================================================================================
+Verified, with the evidence:
+
+- Endpoint re-read on EVERY tools/call, not cached at startup — McpBridge.toolsCall reads
+  endpointFile.read() per call (McpBridge.java:246, with the comment saying why). D-I1's "a restart
+  needs no new client registration" is therefore already true, not aspirational.
+- The not-running error is actionable and names the command — NOT_RUNNING (McpBridge.java:78)
+  points at Settings ▸ Assistant and `--rest`. D-I1's "existing actionable error" is real.
+- Transport failure vs tool failure are DISTINCT on the wire — transport is a JSON-RPC error with
+  the reserved code -32001 (ERR_ANALYSER_UNREACHABLE, McpBridge.java:76); tool failure is a result
+  with isError:true. D-I5's probe taxonomy has real seams to hang on (see A1a below — the spec
+  should NAME the code, since it is the published discriminator between REST_OFF and ACTION_FAILED).
+- `analyser_context` is the right probe tool — `context` is in McpTools.READ_ONLY so the tool
+  carries readOnlyHint:true; the tool name is PREFIX + verb = analyser_context; and context answers
+  on a fresh no-log start (the MainFrame.context() early return still returns the fresh-start keys —
+  the ONBOARDING lesson). D-I5's "reliable health action on a fresh Start page" holds.
+- The destructive set is exactly as D-I7 states — McpTools.DESTRUCTIVE = {open, source_root,
+  screenshot, report}, pinned by FaqSecurityContractTest. No drift.
+- Endpoint file: mode 600 before the token is written, pid + startedAt recorded, alive() liveness
+  check (RestEndpointFile.write/read). D-I7's containment description matches the code.
+- The bridge is dual-era (legacy initialize/2025-11-25 and modern 2026-07-28 per-request _meta,
+  McpBridge javadoc). D-I5's "current supported MCP discovery/tool protocol" is satisfiable in
+  either era; server/discover answers both.
+
+================================================================================
+2. A1 (BLOCKING) — D-I5's VERIFIED cannot honestly say "from THIS GUI" as specified
+================================================================================
+The endpoint file is a single well-known path, last-writer-wins (RestEndpointFile.wellKnown()).
+With two analyser instances open, the probe's child bridge reaches whichever instance last wrote
+~/.fluxtion-analyser/rest-endpoint — and the probing GUI reports "Bridge works now" about a
+DIFFERENT WINDOW. Every downstream status claim in D-I6 inherits the error.
+
+Two instances is not hypothetical in this repo: the unreviewed-changes ledger records a real
+two-instance session that destroyed a project's saved graphs (the auto-save race behind the
+2026-08-26 graph-loss investigation). The hazard class is known and documented.
+
+The fix is cheap because the file already carries what is needed: before claiming VERIFIED, the GUI
+compares the endpoint file's pid (or url+token) against its own process/ActionServer. A mismatch
+becomes a SIXTH distinct probe result — OTHER_INSTANCE, "another analyser owns the MCP connection"
+— which is arguably a more useful diagnosis than any of the five listed. Amend the D-I5 table and
+the acceptance line ("accurately distinguishes the failure modes in D-I5") to include it.
+
+A1a (non-blocking, same section): name -32001 in the spec as the REST_OFF discriminator; it is a
+published contract (MCP reserves -32000..-32019 for implementation-defined errors) and the probe's
+classification should cite it rather than rediscover it.
+
+A1b (under-sold strength, worth a sentence): because the probe runs THE RESOLVED LAUNCHER, it
+catches JBang's stale-cache gotcha (a cached jar older than the running GUI — the `--fresh` issue
+ONBOARDING records) as a live signal instead of a user mystery. That is an argument FOR the
+launch-the-real-command design; the spec should claim it.
+
+================================================================================
+3. A2 — THE SERVER HAS TWO NAMES AND THE SPEC DISCUSSES ONE
+================================================================================
+The spec fixes the client-side registration label as `fluxtion-analyser`. The bridge's own
+serverInfo.name is `fluxtion-audit-log-analyser` (McpBridge.SERVER_NAME, McpBridge.java:64) — what
+a client displays after initialize/server/discover. Not a breakage (the label is client-side), but
+a user will see both names, and D-I6 persists a "redacted launch-command identity" that should not
+introduce a third. Either reconcile deliberately or state that label and serverInfo differ and why.
+Note SERVER_NAME is pinned ("used by the tests and by the docs to stay honest"), so changing it is
+a visible contract change, not a rename.
+
+================================================================================
+4. A3 / A4 — PROCESS-RULE CONFLICTS
+================================================================================
+A3 — CHANGELOG deferral violates hard rule 2. The delivery slices put "Add CHANGELOG entry" in
+M42.6, but M42.2–.5 each ship user-visible surface, and rule 2 is per-commit, same commit. Amend
+the slice list: every slice carries its own [Unreleased] line.
+
+A4 — Rule 6 applied unevenly across D-I4. Claude Code and Claude Desktop get explicit
+"verify against the live source of truth at implementation time"; the Codex section shows a
+concrete command (`codex mcp add fluxtion-analyser -- …`) with only "an equivalent of" as hedge.
+All three client CLIs are external contracts, and this repo's own bridge is the cautionary tale —
+it grew a dual-era protocol because MCP broke within months of the M13 spec. One sentence making
+the rule-6 obligation uniform across all four client paths closes it.
+
+================================================================================
+5. A5 — THE SETUP SCREEN IS A LEAK SURFACE THE SWEEP CANNOT READ
+================================================================================
+D-I3 requires the UI to show the REAL absolute launcher path on the current machine — a
+username-bearing string in a screenshot the four-term sweep cannot see. The generated-capture
+harness under an isolated user.home handles it (the same isolation that closed the M37 incident),
+but M42.6 should say the setup screens are captured ONLY via that harness; a hand-shot of this
+particular screen is precisely the class of leak rule 1 documents.
+
+================================================================================
+6. D-I4 BOUNDARIES — RIGHT, WITH TWO IMPLEMENTATION NOTES
+================================================================================
+The three-tier boundary is principled, not just cautious: Codex and Claude Code expose SUPPORTED
+registration CLIs, so invoking them after confirmation is the client's front door; Claude
+Desktop's configuration store is private, so the extension route (client owns the trust decision)
+is the only honest one; generic configs have unknowable locations and approval models, so
+copy-only is correct.
+
+N1 — the .mcpb extension's "small platform-neutral launcher to find the JBang launcher" DUPLICATES
+D-I3's resolution logic in a separately-shipped artifact: a drift surface. Either conformance-test
+the extension's launcher against the same resolution fixtures, or make it dumber (explicit
+configured path only, no discovery).
+
+N2 — D-I3 form 2 ("the absolute executable that launched the app") has a trap: under JBang the
+executable is `java`, and `java --mcp` is not a launch command. Resolution must capture the full
+argument vector (ProcessHandle.info()) and strip any log-path argument. The "when it can be safely
+identified" hedge covers it; the implementer should know the trap by name.
+
+N3 (minor honesty) — D-I7 says "keep the mode-600 endpoint-file design", but on non-POSIX
+filesystems the permissions are explicitly best-effort (RestEndpointFile.write catches
+UnsupportedOperationException) — and M42.5 targets Windows. One sentence, not a redesign.
+
+================================================================================
+7. THE QUESTIONS FOR REVIEW, ANSWERED
+================================================================================
+Q1 (boundary) — YES, as §6 above. No change requested beyond N1/N2.
+
+Q2 (JBang alias) — SEPARATE distribution change, and this is already DECIDED, not open: the
+tracker's Decisions block records "a compatible `fluxtion-analyser` JBang alias is welcome only
+after it has been proven to coexist and upgrade cleanly." Cite the decision; delete the question.
+
+Q3 (analyser_context vs analyser_ping) — KEEP context. It is read-only-pinned, schema-tested
+across both transports (McpToolsTest / ManifestVerbContractTest), works logless, and its payload
+makes a probe DIAGNOSTIC rather than binary. A ping verb would be a permanent tool in every
+client's list whose only consumer is the analyser probing itself — against the house grain that
+every verb is agent-facing. DO add one pure test asserting `context` stays in McpTools.READ_ONLY:
+the probe's "causes no mutation" acceptance now depends on that set membership.
+
+Q4 (auto-launch) — MAKE THE BOUNDARY PERMANENT, and note the need is already served: `analyser
+--rest` (M19.7) is the agent-driven fresh start, and the bridge's NOT_RUNNING error names that
+exact command. Auto-launch from the bridge would duplicate a shipped path while blurring the
+reviewed-session model D-I1 defends. If a door must be left, use the M18.2 pattern: park with a
+FALSIFIABLE revival trigger, never "future opt-in".
+
+================================================================================
+8. WHAT THE IMPLEMENTING SESSION SHOULD DO FIRST
+================================================================================
+- Fold A1 (OTHER_INSTANCE) into D-I5 and the acceptance before M42.1 starts — the probe core is
+  slice 1 and this changes its result type.
+- Apply A2–A5 as spec edits in the same commit.
+- M42.1's pure tests should include: era selection against a scripted dual-era bridge; the -32001
+  → REST_OFF mapping; the pid-mismatch → OTHER_INSTANCE path; and the READ_ONLY membership pin
+  from Q3.
