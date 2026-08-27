@@ -128,6 +128,23 @@ project: a modeless dialog titled with the path, monospace text of `ops/restart-
 opens Finder, *Copy path* copies, *Close* closes; the row for a MISSING runbook has no *Open*. Check the Graph
 row's *Open* still lands on the Topology tab and a processor's *Open* on the Source tab.
 
+## ☐ 2026-08-27 · `44b44c9` · fix(report): a table's numeric call parameters survive JSON
+
+**What.** `ReportVerb.callMap` stringified every value of a table section's `call`; a JSON number arrives as a
+`Double`, so `recordIndex: 0` was re-issued to `read` as `"0.0"`, `asInt` returned null and assembly failed with
+*read needs a recordIndex* although the author had given one. `callValue` now renders an integral number whole
+(`0.0` → `0`); non-integral and non-numeric values are unchanged.
+
+**Files.** `report/ReportVerb.java` (`callMap`, new `callValue`), `ReportVerbTest`
+(`numericCallParametersSurviveAsIntegers_aJsonDoubleAnchorStillAnchors`), CHANGELOG ▸ Fixed.
+
+**Verified.** 956 green; the sample-conversations harness (which aborts on any failed call) records two reports
+with `read`-derived tables and both render rows (`conv-chart-and-report.png`, `conv-deploy-uat.png`).
+
+**Reviewer must still check.** Whether `1e15` is the right ceiling for "render whole" (above it a long would
+still be exact but the double no longer is), and whether the same stringify-then-reparse seam exists for
+SERIES sections' `call` — `callMap` is shared, so the fix covers it, but no series test exercises a numeric.
+
 ## ☑ reviewed 2026-08-27 (the first session) · `3d27f3d` · fix(ui): Project panel + Event types panel follow a theme switch
 
 **Verdict.** Correct and well-diagnosed. The cause is stated accurately — `updateComponentTreeUI` leaves

@@ -105,8 +105,13 @@ def make_demo_project():
         "# Glossary\n\n- **live**: an order the venue has acknowledged and not yet filled or cancelled\n"
         "- **spread**: quotePublisher ask minus bid, in price units; 0.01 is normal here\n"
         "- **breach**: liveOrders above the risk limit; the RiskBreachEvent that follows is routine, not an outage\n")
+    uat = DEMO_PROJECT / "logs" / "uat"
+    uat.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(REPO / "src/test/resources/topology/demo-quote-audit-traced.yaml", uat / "quote-service-uat.yaml")
     profile.write_text(
         "share.version=1\n"
+        "environment.count=1\nenvironment.0.name=uat\nenvironment.0.provenance=DEMO quote service · uat\n"
+        "environment.0.logDir=logs/uat\n"
         f"sourceRoot.count=1\nsourceRoot.0={ROOT}\n"
         f"eventProcessorFqn.count=1\neventProcessorFqn.0={PROCESSOR}\n"
         f"selectedEventProcessor={PROCESSOR}\n"

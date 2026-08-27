@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **A report's table section kept its numeric call parameters.** `recordIndex: 0` in a table's `call` arrived as a
+  JSON double and was re-issued to `read` as `"0.0"`, which is no anchor — so the table failed with *read needs a
+  recordIndex* although the author had given one. Integral numbers are now rendered whole. Found while recording
+  the sample conversations: the harness refuses to publish a failed call, which is what it is for.
 - **Coverage no longer counts event classes as nodes that never ran.** The denominator included things
   that can never write audit output — event classes (data entering the graph, not code that runs) and
   exported service interfaces — so a gap that is a **category error** was reported as a low score. On
@@ -26,9 +30,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   app — as written, nothing run, nothing handed to an agent — with *Show file* and *Copy path* beside it.
 
 ### Added
-- **Docs: Working with AI ▸ Sample conversations** — six LLM → MCP → analyser conversations on the demo set. The asks
-  and answers are authored; every tool call and echo is recorded from a real run by `tools/capture-conversations.py`
-  (the transcript counterpart of the screenshot harness), so the page regenerates with the verbs instead of going stale.
+- **Docs: Working with AI ▸ Sample conversations** — seven LLM → MCP → analyser conversations on the demo set, among
+  them *chart it and write it up* (a report with a derived table) and *deploy the fix to UAT and show me it worked*
+  (a project environment stamps the UAT log's provenance; the report header says it was matched, not declared). The
+  asks and answers are authored; every tool call and echo is recorded from a real run by
+  `tools/capture-conversations.py` (the transcript counterpart of the screenshot harness), so the page regenerates
+  with the verbs instead of going stale. The tool calls sit in collapsed blocks — open one to see the wire — so the
+  page reads as a conversation first. The shipped demo project now declares a `uat` environment over `logs/uat`.
   The compiler-generated no-audit graph is now a checked-in fixture and a real-negative test for M40.1.
 - **Coverage no longer counts nodes that cannot log, and says which.** A class with no way to reach an
   audit logger is silent by construction, so its absence from a log is not evidence of anything. With
