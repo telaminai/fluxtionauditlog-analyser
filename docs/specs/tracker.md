@@ -338,6 +338,25 @@ fetches a JDK itself), `~/.jbang/bin/analyser` is the stable launcher path the M
 already turns the transport on without editing `config`. Native bundles would have added a Dock icon and a signing
 bill. Recorded under Decisions so it is not re-raised; reopen only when a user who cannot run JBang actually appears._
 
+## M42 · Connect an AI client — ☐ SPEC'D 2026-08-27
+_Design: **[spec-mcp-client-install.md](spec-mcp-client-install.md)**. M41 installed the application; this is the
+separate, client-specific last mile: a Start-page/Assistant setup flow registers the existing `--mcp` bridge with
+**Codex**, **Claude Code**, and a generic MCP client, and provides the Claude Desktop extension route. It does not
+add another protocol server, start a duplicate GUI, copy a per-run token, or edit unknown foreign configuration files
+silently. The analyser proves its own side with a loopback invocation of the exact bridge command and read-only
+`analyser_context`; a green check never pretends it has observed a foreign client or model._
+- [M42.1] ☐ **Launch command + loopback probe** — resolved absolute launcher, argument-vector process handling,
+  redaction, and a real bridge → REST → `context` test under isolated home.
+- [M42.2] ☐ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
+  transport enablement; distinct app/bridge/client state.
+- [M42.3] ☐ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
+- [M42.4] ☐ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
+  copy/diff-only, never a default side effect.
+- [M42.5] ☐ **Claude Desktop extension** — package/test the local extension against the live manifest contract, or
+  retain an honest documented generic-config fallback if it cannot launch the bridge portably.
+- [M42.6] ☐ **Generic configuration + docs** — copy/save standard stdio record; regenerated docs, visuals and
+  conversations; CHANGELOG.
+
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
 purpose by identifying the Fluxtion-specific elements and making them plugins — then write adapters
@@ -478,23 +497,26 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 _Refreshed 2026-08-27 (post 1.10.0 readiness). Shipped since the last refresh: **M38.2–.7** (merged, reviewed end to
 end), **M40.1/.2a/.2b/.3** (complete, post-merge reviewed), the Project-panel and theme fixes on main (ledger clear),
-the sample-conversations page and its harness. Newly spec'd: **M33.7** (report table sources). **M41** was spec'd and withdrawn._
+the sample-conversations page and its harness. Newly spec'd: **M33.7** (report table sources) and **M42** (connect an
+AI client). **M41** was spec'd and withdrawn._
 
 1. **M33.7 report table sources** — .7a (the store) first; the sample-conversations harness is the acceptance.
    (M41 one-command install was spec'd and withdrawn the same day — JBang already is that; see Decisions.)
-2. **M38.8** runbook `description` (the skill contract) — small, post-release, owner-agreed.
-3. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
-4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-5. **M19.3/.4** (tutorial, publish-gated on the playground Download)
+2. **M42 connect an AI client** — review D-I4's client boundaries and D-I5's loopback proof first; then M42.1
+   launch/probe is the vertical slice that makes every client route honest.
+3. **M38.8** runbook `description` (the skill contract) — small, post-release, owner-agreed.
+4. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
+5. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
+6. **M19.3/.4** (tutorial, publish-gated on the playground Download)
    and **M19.8** (bench in CI).
-6. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
+7. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
    rule-1 upstream ask.
-7. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
+8. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
    UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, **UP-MNG-03** (the server supplying the environment) has its analyser-side
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
-8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
+9. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
 
 ## Decisions (resolved)
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.
@@ -520,6 +542,10 @@ the sample-conversations page and its harness. Newly spec'd: **M33.7** (report t
   configs, `--rest` enables the transport without a config edit. A `jpackage`/Homebrew milestone (M41) was spec'd
   and withdrawn the same day: it would have added a Dock icon, a four-runner release matrix and a code-signing
   bill, and solved nothing a user has asked for. Reopen only for a real user who cannot run JBang.
+- **The MCP server identity is `fluxtion-analyser`; its executable need not share that name** _(2026-08-27)_ — a
+  client registration names the server independently and launches a resolved absolute command. The current JBang
+  launcher remains `analyser`; M42 uses it rather than making an install-name migration a prerequisite. A compatible
+  `fluxtion-analyser` JBang alias is welcome only after it has been proven to coexist and upgrade cleanly.
 - **Rendering stays Swing/Java2D — no embedded browser.** Reusing the JS replay engine via JCEF/JavaFX
   WebView would cost a ~100MB native per-platform dependency and destroy the single shaded fatjar that
   `jbang analyser@…` depends on. FlatLaf remains the only runtime dependency; a hand-rolled layered
