@@ -4,7 +4,7 @@ Status: ACCEPTED v2 (review: docs/handoff/completed/review_m34_spec.txt — F1 f
 F3 into D-A6, F4 as a signature change, F5 promoted to slice M34.0) · Owner: greg.higgins ·
 Last updated: 2026-08-20 · Milestone **M34**
 
-Companion to **[tracker.md](tracker.md)** (M34) and **[spec-log-source-plugins.md](spec-log-source-plugins.md)**
+Companion to **[tracker.md](tracker.md)** (M34) and **[spec-log-source-plugins.md](completed/spec-log-source-plugins.md)**
 (M31, whose reader SPI this extends). Prompted by the owner: *"make the app a general purpose solution
 by identifying the Fluxtion-specific elements and making them plugins… we could write a plugin for
 LangGraph etc that extracts their data and transforms it into our audit log format, then we are using

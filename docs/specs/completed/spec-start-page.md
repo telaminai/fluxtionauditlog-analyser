@@ -1,6 +1,6 @@
 # Start Page — the empty state, doing a job (Design Spec)
 
-_Status: **PROPOSED** — 2026-08-25, from the owner's ask: a start page with "what it does · how it
+_Status: **SHIPPED** — .1–.5 on 2026-08-25 (moved to completed/ 2026-08-27; only the rule-1 upstream ask in the live tracker remains). Written 2026-08-25 from the owner's ask: a start page with "what it does · how it
 helps · where it fits in the cycle · are you a developer, support, data analyst". This document
 takes that ask and argues where it should live, what it must not become, and how it stays true._
 

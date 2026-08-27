@@ -3,8 +3,8 @@
 Status: DRAFT v1 · Owner: greg.higgins · Last updated: 2026-08-15
 
 Companion to **[tracker.md](tracker.md)** (milestone **M20**),
-**[completed/spec-settings-share.md](completed/spec-settings-share.md)** (M15 — the export/import
-whitelist this builds on), and **[spec-onboarding-example.md](spec-onboarding-example.md)** (M19 — the
+**[completed/spec-settings-share.md](spec-settings-share.md)** (M15 — the export/import
+whitelist this builds on), and **[spec-onboarding-example.md](../spec-onboarding-example.md)** (M19 — the
 playground bundle *is* a project profile; M20 is how it auto-configures).
 
 ## The problem

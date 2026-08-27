@@ -93,16 +93,16 @@ ordering claim honoured by the view, coverage refusing an inferred graph) and **
 normative specification — *The audit log ▸ Format specification* — with a conformance suite the built-in
 reader and the SPI both pass). **M37 the Project panel** (shipped 2026-08-27: what is in force — project, log, graph, processors,
 roots, reports — rendered from `context` for people; the west column is draggable) and **M38.1** (runbook
-POINTERS — the profile records a location, never contents; `docs/specs/spec-portable-context.md`). **M38.2–.7**
+POINTERS — the profile records a location, never contents; `docs/specs/completed/spec-portable-context.md`). **M38.2–.7**
 (vocabulary pointer, environments + provenance defaults, repeatable analyses, report destinations, path anchors,
-preserve-unknown-keys) shipped 2026-08-27 — the project profile is portable context, gated at every entrance. **M40.1** (audit readiness read from the graph) shipped 2026-08-27 on main.
+preserve-unknown-keys) shipped 2026-08-27 — the project profile is portable context, gated at every entrance. **M40** (audit readiness: the verdict from the graph, an honest coverage denominator, which nodes can log, the audit level) COMPLETE 2026-08-27 on main. **Spec'd, unstarted (2026-08-27): M41** one-command install (`docs/specs/spec-native-install.md`) and **M33.7** report table sources (`docs/specs/spec-report-table-sources.md`).
 
 Also merged: **M19.6/.7** (`tools/bench/` — the dev loop's conformance bench, §H's home, runnable today
-against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.4** (the start page: the
+against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.5** (the start page: the
 no-log STATE, four sections each ending in an action against a demo set that ships in the jar; the
-first-run dialog is gone for everyone). Open analyser-side: **M36.5** (docs page + generated shot),
+first-run dialog is gone for everyone). Open analyser-side:
 **M19.3/.4** (tutorial, publish-gated on the playground Download), **M19.8** (bench in CI), **M34.4/.5** (first foreign adapter;
-per-cycle concurrency marker); **M36** start page (spec'd, `feat/m36-start-page`); M22 remnants — PNG export (22.3), alternative layouts
+per-cycle concurrency marker); M22 remnants — PNG export (22.3), alternative layouts
 (22.6), re-dispatch cause (22.11, needs `UP-FLX-10` in
 [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the holding pen for anything
 belonging to another repo); **M20.5** (project artifact pointers); **M29.5** (optional embed);

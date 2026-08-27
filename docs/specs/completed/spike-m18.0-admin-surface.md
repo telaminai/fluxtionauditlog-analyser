@@ -3,7 +3,7 @@
 Status: **DONE — O1 resolved** · 2026-08-15 · Gates: all of `spec-closed-loop.md` Part B
 
 **Verdict: the three "gaps" M18.0 was created to chase are all closed already.** The admin surface is
-substantially richer than [spec-closed-loop §B.2](spec-closed-loop.md) describes, no
+substantially richer than [spec-closed-loop §B.2](../spec-closed-loop.md) describes, no
 `fluxtion-server-plugins` PR is needed to unblock M18.1–M18.3, and **M18.2's design must change** — log
 discovery is an API call, not a file path resolved from config.
 

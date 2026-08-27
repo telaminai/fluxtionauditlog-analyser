@@ -127,7 +127,7 @@ second log leaves the FIRST log's topology on screen, and every figure derived f
 already knows how to say it: `loggedButNotInTopology` warns that "the graphml is probably from a
 different build, which makes every other figure here suspect". The warning exists; the lifecycle that
 would prevent needing it does not._
-_Sharpened by the M18 alternative ([spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md)):
+_Sharpened by the M18 alternative ([spec-agent-brokered-dev-loop.md](../spec-agent-brokered-dev-loop.md)):
 one analyser + many servers + many processors makes every one of these a per-minute operation rather
 than a per-session one._
 - [M35.1] ☑ **Close / reset** *(on `feat/m35-lifecycle`)* — close the log, close the graph, or reset both. The absent capability;
@@ -658,7 +658,7 @@ graphs replace-by-name, import summary dialog; whitelist enforced on import too.
   with the M17 docs site.
 
 ## M16 · Release & distribution — GitHub Actions, fatjar, JBang — ☑ SHIPPED (bar one repo toggle)
-_Design: **[../admin/release-process.md](../admin/release-process.md)**. Trunk-based on master;
+_Design: **[../admin/release-process.md](../../admin/release-process.md)**. Trunk-based on master;
 releases are one workflow-dispatch with a version number: tests → changelog stamp ([Unreleased] →
 version) → tag → fatjar build (`versions:set` from input; pom stays a placeholder) → GitHub release
 with notes + versioned & **stable-name** jars + sha256. `CHANGELOG.md` (Keep-a-Changelog, seeded) is
@@ -1553,8 +1553,8 @@ composite (guide + band + markers + on-plot explanation and pinned note)._
 
 ## M32 · Marker series — ☑ COMPLETE 2026-08-20 (core v1.5.0/v1.6.0; rug, PDF table and external-CSV source merged with M33)
 _32.1–.5 core shipped, reviewed and merged (incl. post-review D12 right-axis scale + the dedicated
-marker palette) — full record in **[completed/tracker.md](completed/tracker.md)**.
-Design: **[completed/spec-marker-series.md](completed/spec-marker-series.md)**._
+marker palette) — full record in **[completed/tracker.md](tracker.md)**.
+Design: **[completed/spec-marker-series.md](spec-marker-series.md)**._
 - [M32.6] ☑ **Flags rug** — flagged records as a built-in axis-lane rug
   (D-M5's second half): MarkerExtractor.flagRug is pure (tested — filter honoured, finding note as
   payload, click→record, no flags → no rug), the MainFrame seam supplies row→note and every flag
@@ -1712,3 +1712,101 @@ the asymmetry M37 exists to end._
   for a colleague. Pointers (runbook, vocabulary) stay project-relative with no `..`; source roots may
   use the wider set. The Project panel shows the stored FORM per row, so "this profile is not portable"
   is visible before it is shared rather than after it fails.
+
+## M36 · Start page — ☑ **.1–.5 SHIPPED** (.1–.4 2026-08-25, .5 docs page 2026-08-25; archived 2026-08-27 — the rule-1 upstream ask stays live)
+_Design: **[spec-start-page.md](spec-start-page.md)**. The owner's four sections — what it does, how
+it helps, where it fits in the cycle, who you are — placed where they cost a returning user nothing._
+_The framing that shaped it: **the analyser already HAS a start page**, and it reads "No log loaded —
+File ▸ Open, drag a file in, or File ▸ Open from S3". Honest and useless. Meanwhile "what is this
+for" lives in HelpPanel, a static page nobody opens before they have a problem. So this is not a new
+surface; it is the empty state finally earning its keep, and the test of the design is that opening
+a log from the command line means never seeing it._
+- [M36.1] ☑ **The state, not a screen** (D-S1) — occupies the main area whenever no log is open;
+  a log replaces it, closing one brings it back, `Help ▸ Start page` recalls it. No splash, no modal,
+  no dismissal to remember.
+- [M36.2] ☑ **Every section ends in an ACTION** (D-S2) — each of the four sections links into the
+  BUNDLED DEMO LOG, so every button works with no configuration, no server and no API key. A start
+  page whose buttons need setup first is one that lies on first contact.
+- [M36.3] ☑ **Three audience lanes, phrased as the user's own sentence** (D-S3) — "I am writing the
+  graph", "something is wrong in production", "I want the numbers out". **Never a question the app
+  asks**: people recognise their situation faster than they classify themselves, and nothing is
+  remembered or personalised.
+- [M36.4] ☑ **No feature list** (D-S4) — a page that enumerates capabilities is stale the release
+  after it is written, and it is the first thing a new user reads, so its errors are the ones they
+  carry. Three problems and three lanes; anything version-specific belongs in the release notes.
+- **O-S1 RESOLVED — bundle a demo SET, not a log.** `DemoAssets` ships the walkthrough log, a traced
+  log, a series log and the GraphML in the jar and unpacks them to `~/.fluxtion-analyser/demo`. One
+  log was the wrong answer: three of the four sections ask a question one log cannot answer (coverage
+  needs a TRACED run; a chart needs a series; step-through needs the graph).
+- **O-S2 RESOLVED — the whole LEFT COLUMN, tabs kept.** "Records pane only" was tried first and
+  failed its own acceptance: the page was clipped and a scrollbar appeared, because the detail pane
+  below it has nothing to say with no log and was still holding half the height. The right-hand tabs
+  stay, so the product's structure is still visible.
+- **O-S3 HELD, and it bit.** `DemoAssetsTest` asserts the shipped demo carries no real names — and
+  caught a vendor-domain copyright header in generated source on its way into the jar. That term is
+  now the FOURTH in rule 1's sweep, and the four `examples/` files carrying it are clean.
+- Closes **review_feat_m35_project N2** ("the first-run modal blocks an agent-driven start
+  entirely"), together with M19.7. M19.7 suppressed the modal for `--rest`; M36 removed it outright,
+  because the same three objections apply to the human at a fresh install. The `--rest` stdout note
+  M19.7 added stays — see `MainFrame.showFirstRunSettingsIfNeeded`.
+- [M36.5] ☑ **The start page is documented, with a generated screenshot** _(2026-08-25)_ —
+  `getting-started.md` is rebuilt around it: the Quick start is now "run it, click Open the demo log",
+  and the sentence promising that a first run opens Settings is gone (it had been false since M36).
+  `capture-docs.py` takes the shot by CLOSING the log — the page is a state, so the only honest way to
+  photograph it is to be in that state. Doing so exposed that `launch()` opens the log from the command
+  line while `seed()` does not, so the first run of the new step photographed an empty analyser for five
+  light-theme shots; the harness now reopens the log and waits for it.
+
+### Rule 1 — owner decisions, resolved (raised M36, sharpened by the polish round; the open upstream ask is in the live tracker)
+- ☑ **The sweep is extended to four terms, and its exemption is written down** _(2026-08-25)_ — run
+  literally the sweep can never be empty: `CLAUDE.md` states the rule and `ONBOARDING.md` restates it,
+  so both must spell the terms. Two sessions had been reporting "sweep clean" under different unwritten
+  exemptions. Rule 1 now says the exemption out loud and gives the form that needs no remembering —
+  `git ls-files | xargs grep -ril …` minus those two paths — which must print nothing. The mechanical
+  cost is real and is stated with it: a swept term may not be spelled anywhere else, **including in
+  prose about the rule**, so five documents were reworded to describe the fourth term rather than
+  print it, and `DemoAssetsTest` now parses all four from the sweep line at runtime instead of
+  concatenating one locally.
+- ☑ **The four `examples/fixture-generator` files are clean** _(2026-08-25)_ — the compiler-emitted
+  block carried a personal address on a vendor domain inside an "all rights reserved / confidential,
+  delete this file" notice, on files published in a public repo, where the notice was both a leak and
+  untrue. Header removed from all four. This also closes the live hazard the polish round exposed:
+  `tools/capture-docs.py` adds that directory as a source root and `source-navigation.png` renders one
+  of those files, so the docs screenshots were one scroll position away from publishing it.
+
+## M40 · Audit readiness — will this processor log at all? — ☑ **COMPLETE 2026-08-27** (.1/.2a/.2b/.3; post-merge review `docs/handoff/completed/review_main_m40_2b_3.txt` GOOD, F1 fixed; .2c optional, stays live)
+_Brief `docs/handoff/completed/handoff_27_aug_2026_1.txt`, report `docs/handoff/completed/report_feat_audit_readiness.txt`.
+The owner's redirect: the authoring side belongs to the LLM writing the processor; the ANALYSER side can
+diagnose the graph. Every other producer check needs a log to examine, and the worst case produces no log._
+- [M40.1] ☑ **The verdict, from the graph** — `AuditReadiness.of(topology)` → ENABLED / NOT_ENABLED /
+  UNKNOWN. The compiler installs `EventLogManager` as a node when `addEventAudit()` was called; absent,
+  the processor writes nothing. **Measured** (rule 6): same program, one call removed → 613 bytes became
+  0. UNKNOWN with no graph — with no evidence the answer is "unknown", never "probably fine". Surfaced
+  in `context.topology.auditLogging`, verified live with a graph and NO log open. 7 tests, the real demo
+  fixture as the positive control.
+- [M40.2a] ☑ **The denominator counts only what could log** _(2026-08-27)_ — measured first: the shipped
+  demo reported `declared 10 · covered 5 · ratio 0.5`, and all five "uncovered" were things that can
+  never write audit output (three event classes, an exported service, and the deliberately-silent
+  `spreadCalculator`). `CoverageScope` excludes by KIND — from the graph alone, no source needed — and
+  every exclusion is reported with its reason. Demo now `declared 6 · covered 5 · ratio 0.833`, the
+  remainder being the one real case. An UNKNOWN kind is KEPT: dropping what we cannot classify would
+  flatter the score, which is this defect pointing the other way.
+- [M40.2b] ☑ **Which NODES can log** _(2026-08-27)_ — `NodeLogging` over the node's own source.
+  **The premise recorded here was WRONG and rule 6 caught it**: "does not extend `EventLogNode`" would
+  have excluded `RiskMonitor`, which extends `SingleNamedNode` and logs on line 108 of the demo — a
+  false exclusion, the direction that flatters the score. Read from the runtime jar: the contract is the
+  `EventLogSource` interface, `EventLogNode` is a convenience base, and nine further framework classes
+  reach it transitively (that list is measured, and a test asserts each is recognised). Exclusion needs
+  PROOF — source in hand and no supertype at all; missing source or an unrecognised supertype stays
+  counted. Demo 0.833 → 1.000 with `spreadCalculator` named as **unobservable**, not as fine.
+- [M40.2c] ☐ _(live — see tracker.md ▸ M40)_ **Follow the supertype chain** — a node extending a project-local base that itself extends
+  `EventLogNode` currently lands in UNKNOWN and stays counted. Correct but conservative; resolving one
+  more hop needs the file's imports (`EventProcessorModel.resolveSimpleType`).
+- [M40.3] ☑ **The audit LEVEL** _(2026-08-27)_ — **the gate was answered NO, and the slice moved.** The
+  graph does not distinguish INFO from TRACE: the compiler's GraphML carries id, class and style per node
+  and no level string at all. And a build-time `addEventAudit(LogLevel.INFO)` would be the wrong fact
+  anyway, because `DataFlow.setAuditLogLevel` resets it at runtime — the M40.1 harness does exactly that.
+  So the level is read from the artefact in hand: every record header carries it. `AuditLevel` states the
+  levels present and names what they would have discarded, surfaced on `coverage` only when there IS a
+  gap the level could explain. Two facts, no verdict — the log genuinely cannot tell "the threshold
+  excluded them" from "nothing called `debug()`", so it does not pretend to.

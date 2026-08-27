@@ -18,7 +18,8 @@ M24 coverage · M25 drift fixes · M26 agent-efficiency verbs · M27 focus as a 
 named focuses · M28 conditionals + rolling windows + guides/bands · M29 external series (core) ·
 M30 rolled log sets · M31 log-source plugins (core) · M32 marker series · M33 investigation reports
 (core) · M34.0–.3 source adapters (SPI, degradation, format spec + conformance suite) · M35 log +
-graph lifecycle (all eleven) + §E provenance · refinement rounds 2–13 · assistant-vocabulary
+graph lifecycle (all eleven) + §E provenance · **M36 start page (.1–.5) · M37 Project panel · M38 portable
+context (.1–.7) · M40 audit readiness (.1/.2a/.2b/.3)** · refinement rounds 2–13 · assistant-vocabulary
 follow-ups. _(Polish H1, 2026-08-25: verified every section left in this file has open items; the
 archaeology the 2026-08-17 brief asked for had been done by the per-merge tidies.)_
 
@@ -286,6 +287,13 @@ _M33.1–.4 shipped, twice-reviewed, owner-eyeballed and merged — full record 
 Design: **[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md)**._
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
+- [M33.7] ☐ **Report table sources — every verb a table may cite, assembled** _(spec'd 2026-08-27;
+  **[spec-report-table-sources.md](spec-report-table-sources.md)**)_ — M33.3 shipped `read` tables and left
+  `aggregate`/`series`/`coverage` rendering "not assembled yet"; the UAT conversation recorded for the docs met that
+  sentence. D-T1 stores a call so it re-issues exactly (JSON text for non-scalars — the `"0.0"` anchor bug of
+  `44b44c9` was this seam); D-T2 one rule for every source (rows = the echo's list, columns = its keys, the scalars
+  printed under the table); D-T4 `rowWhen` refused, with the reason, on rows that have no record. Slices .7a store ·
+.7b aggregate + coverage · .7c series · .7d docs (scenario 4 of the sample conversations is the acceptance).
 - [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
   otherwise verb-only)_ · **chooser dialog for external marker CSVs** —
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
@@ -294,70 +302,12 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
 ## M35 · Log + graph lifecycle — ☑ SHIPPED 2026-08-25, all eleven slices + §E (archived)
 _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing open._
 
-## M36 · Start page — ☑ **.1–.5 SHIPPED** (.1–.4 2026-08-25, .5 docs page 2026-08-25); only the rule-1 owner decisions below and one upstream ask remain live
-_Design: **[spec-start-page.md](spec-start-page.md)**. The owner's four sections — what it does, how
-it helps, where it fits in the cycle, who you are — placed where they cost a returning user nothing._
-_The framing that shaped it: **the analyser already HAS a start page**, and it reads "No log loaded —
-File ▸ Open, drag a file in, or File ▸ Open from S3". Honest and useless. Meanwhile "what is this
-for" lives in HelpPanel, a static page nobody opens before they have a problem. So this is not a new
-surface; it is the empty state finally earning its keep, and the test of the design is that opening
-a log from the command line means never seeing it._
-- [M36.1] ☑ **The state, not a screen** (D-S1) — occupies the main area whenever no log is open;
-  a log replaces it, closing one brings it back, `Help ▸ Start page` recalls it. No splash, no modal,
-  no dismissal to remember.
-- [M36.2] ☑ **Every section ends in an ACTION** (D-S2) — each of the four sections links into the
-  BUNDLED DEMO LOG, so every button works with no configuration, no server and no API key. A start
-  page whose buttons need setup first is one that lies on first contact.
-- [M36.3] ☑ **Three audience lanes, phrased as the user's own sentence** (D-S3) — "I am writing the
-  graph", "something is wrong in production", "I want the numbers out". **Never a question the app
-  asks**: people recognise their situation faster than they classify themselves, and nothing is
-  remembered or personalised.
-- [M36.4] ☑ **No feature list** (D-S4) — a page that enumerates capabilities is stale the release
-  after it is written, and it is the first thing a new user reads, so its errors are the ones they
-  carry. Three problems and three lanes; anything version-specific belongs in the release notes.
-- **O-S1 RESOLVED — bundle a demo SET, not a log.** `DemoAssets` ships the walkthrough log, a traced
-  log, a series log and the GraphML in the jar and unpacks them to `~/.fluxtion-analyser/demo`. One
-  log was the wrong answer: three of the four sections ask a question one log cannot answer (coverage
-  needs a TRACED run; a chart needs a series; step-through needs the graph).
-- **O-S2 RESOLVED — the whole LEFT COLUMN, tabs kept.** "Records pane only" was tried first and
-  failed its own acceptance: the page was clipped and a scrollbar appeared, because the detail pane
-  below it has nothing to say with no log and was still holding half the height. The right-hand tabs
-  stay, so the product's structure is still visible.
-- **O-S3 HELD, and it bit.** `DemoAssetsTest` asserts the shipped demo carries no real names — and
-  caught a vendor-domain copyright header in generated source on its way into the jar. That term is
-  now the FOURTH in rule 1's sweep, and the four `examples/` files carrying it are clean.
-- Closes **review_feat_m35_project N2** ("the first-run modal blocks an agent-driven start
-  entirely"), together with M19.7. M19.7 suppressed the modal for `--rest`; M36 removed it outright,
-  because the same three objections apply to the human at a fresh install. The `--rest` stdout note
-  M19.7 added stays — see `MainFrame.showFirstRunSettingsIfNeeded`.
-- [M36.5] ☑ **The start page is documented, with a generated screenshot** _(2026-08-25)_ —
-  `getting-started.md` is rebuilt around it: the Quick start is now "run it, click Open the demo log",
-  and the sentence promising that a first run opens Settings is gone (it had been false since M36).
-  `capture-docs.py` takes the shot by CLOSING the log — the page is a state, so the only honest way to
-  photograph it is to be in that state. Doing so exposed that `launch()` opens the log from the command
-  line while `seed()` does not, so the first run of the new step photographed an empty analyser for five
-  light-theme shots; the harness now reopens the log and waits for it.
-
-### Rule 1 — owner decisions (raised M36, sharpened by the polish round)
-- ☑ **The sweep is extended to four terms, and its exemption is written down** _(2026-08-25)_ — run
-  literally the sweep can never be empty: `CLAUDE.md` states the rule and `ONBOARDING.md` restates it,
-  so both must spell the terms. Two sessions had been reporting "sweep clean" under different unwritten
-  exemptions. Rule 1 now says the exemption out loud and gives the form that needs no remembering —
-  `git ls-files | xargs grep -ril …` minus those two paths — which must print nothing. The mechanical
-  cost is real and is stated with it: a swept term may not be spelled anywhere else, **including in
-  prose about the rule**, so five documents were reworded to describe the fourth term rather than
-  print it, and `DemoAssetsTest` now parses all four from the sweep line at runtime instead of
-  concatenating one locally.
-- ☑ **The four `examples/fixture-generator` files are clean** _(2026-08-25)_ — the compiler-emitted
-  block carried a personal address on a vendor domain inside an "all rights reserved / confidential,
-  delete this file" notice, on files published in a public repo, where the notice was both a leak and
-  untrue. Header removed from all four. This also closes the live hazard the polish round exposed:
-  `tools/capture-docs.py` adds that directory as a source root and `source-navigation.png` renders one
-  of those files, so the docs screenshots were one scroll position away from publishing it.
+## M36 · Start page — follow-up (.1–.5 SHIPPED 2026-08-25; the milestone is in completed/tracker.md, design **[completed/spec-start-page.md](completed/spec-start-page.md)**)
+### Rule 1 — owner decisions (raised M36, sharpened by the polish round; the two resolved ones are archived with M36)
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md)
+## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md, design **[completed/spec-portable-context.md](completed/spec-portable-context.md)**)
 - [M38.8] ☐ **Runbook `description` — the skill contract** _(owner, 2026-08-27; after the release)_ — a
   runbook pointer is skill-shaped in storage but not in discovery: a model must open every file to know which
   is relevant. Add optional `runbook.N.description` (inert, gated like the name), serve it in
@@ -376,43 +326,24 @@ a log from the command line means never seeing it._
   things that fire at load), and it carries no log data. Slices M39.1–.5; four open questions for the
   owner, the first being where a baseline lives.
 
-## M40 · Audit readiness — will this processor log at all? — ☑ **COMPLETE 2026-08-27** (.1/.2a/.2b/.3; .2c optional)
-_Brief `docs/handoff/completed/handoff_27_aug_2026_1.txt`, report `docs/handoff/completed/report_feat_audit_readiness.txt`.
-The owner's redirect: the authoring side belongs to the LLM writing the processor; the ANALYSER side can
-diagnose the graph. Every other producer check needs a log to examine, and the worst case produces no log._
-- [M40.1] ☑ **The verdict, from the graph** — `AuditReadiness.of(topology)` → ENABLED / NOT_ENABLED /
-  UNKNOWN. The compiler installs `EventLogManager` as a node when `addEventAudit()` was called; absent,
-  the processor writes nothing. **Measured** (rule 6): same program, one call removed → 613 bytes became
-  0. UNKNOWN with no graph — with no evidence the answer is "unknown", never "probably fine". Surfaced
-  in `context.topology.auditLogging`, verified live with a graph and NO log open. 7 tests, the real demo
-  fixture as the positive control.
-- [M40.2a] ☑ **The denominator counts only what could log** _(2026-08-27)_ — measured first: the shipped
-  demo reported `declared 10 · covered 5 · ratio 0.5`, and all five "uncovered" were things that can
-  never write audit output (three event classes, an exported service, and the deliberately-silent
-  `spreadCalculator`). `CoverageScope` excludes by KIND — from the graph alone, no source needed — and
-  every exclusion is reported with its reason. Demo now `declared 6 · covered 5 · ratio 0.833`, the
-  remainder being the one real case. An UNKNOWN kind is KEPT: dropping what we cannot classify would
-  flatter the score, which is this defect pointing the other way.
-- [M40.2b] ☑ **Which NODES can log** _(2026-08-27)_ — `NodeLogging` over the node's own source.
-  **The premise recorded here was WRONG and rule 6 caught it**: "does not extend `EventLogNode`" would
-  have excluded `RiskMonitor`, which extends `SingleNamedNode` and logs on line 108 of the demo — a
-  false exclusion, the direction that flatters the score. Read from the runtime jar: the contract is the
-  `EventLogSource` interface, `EventLogNode` is a convenience base, and nine further framework classes
-  reach it transitively (that list is measured, and a test asserts each is recognised). Exclusion needs
-  PROOF — source in hand and no supertype at all; missing source or an unrecognised supertype stays
-  counted. Demo 0.833 → 1.000 with `spreadCalculator` named as **unobservable**, not as fine.
-- [M40.2c] ☐ **Follow the supertype chain** — a node extending a project-local base that itself extends
-  `EventLogNode` currently lands in UNKNOWN and stays counted. Correct but conservative; resolving one
-  more hop needs the file's imports (`EventProcessorModel.resolveSimpleType`).
-- [M40.3] ☑ **The audit LEVEL** _(2026-08-27)_ — **the gate was answered NO, and the slice moved.** The
-  graph does not distinguish INFO from TRACE: the compiler's GraphML carries id, class and style per node
-  and no level string at all. And a build-time `addEventAudit(LogLevel.INFO)` would be the wrong fact
-  anyway, because `DataFlow.setAuditLogLevel` resets it at runtime — the M40.1 harness does exactly that.
-  So the level is read from the artefact in hand: every record header carries it. `AuditLevel` states the
-  levels present and names what they would have discarded, surfaced on `coverage` only when there IS a
-  gap the level could explain. Two facts, no verdict — the log genuinely cannot tell "the threshold
-  excluded them" from "nothing called `debug()`", so it does not pretend to.
+## M40 · Audit readiness — follow-up (.1/.2a/.2b/.3 COMPLETE 2026-08-27; the milestone is in completed/tracker.md; post-merge review `docs/handoff/completed/review_main_m40_2b_3.txt`)
+- [M40.2c] ☐ **Follow the supertype chain** _(optional)_ — a node extending a project-local base that itself extends
+  `EventLogNode` currently lands in UNKNOWN and stays counted. Correct but conservative; resolving one more hop needs
+  the file's imports (`EventProcessorModel.resolveSimpleType`).
 
+## M41 · One-command install — a native app with a stable launcher, no JDK to find — ☐ SPEC'D 2026-08-27 (spec **[spec-native-install.md](spec-native-install.md)**)
+_The owner's ask after the 1.10.0 readiness review: the demo, the start page and the sample conversations all begin AFTER
+a four-hurdle install (find a JDK, fetch a jar, absolute jar path into an MCP config, edit `config` with the app closed).
+`jpackage` bundles with a `jlink`'d runtime, built in the release matrix; `brew install telaminai/tap/fluxtion-analyser`;
+a stable `fluxtion-analyser` launcher; `--print-mcp-config <client>` prints the snippet with its own resolved path and
+never writes another program's file. The fatjar and JBang stay. State in `~/.fluxtion-analyser/` is never touched._
+- [M41.1] ☐ **`mvn -Ppackage` locally** (D-N1, D-N3, D-N6) — profile, `jdeps`/`jlink`/`jpackage`, `--version`,
+  `--print-mcp-config` (both headless); read the bundle's visible strings (rule 1 cannot see inside a `.dmg`).
+- [M41.2] ☐ **Release matrix** (D-N2) — four runners, stable asset names, `SHA256SUMS`, the headless smoke
+  (`--help`; `--mcp` answering `initialize`) gating every bundle; first exercised on a pre-release tag.
+- [M41.3] ☐ **Tap + docs** (D-N4, D-N5, D-N8) — file **UP-DIST-01**, write the cask, platform-tab `install.md`,
+  `getting-started.md` ("you need nothing"), lead `connect-an-llm.md` with `--print-mcp-config`.
+- [M41.4] ☐ **Signing** (D-N7, *owner*: ship unsigned now / sign first / macOS only) and **winget** (UP-DIST-02).
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
@@ -552,30 +483,28 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-08-27. Shipped since the last refresh: **M35** (all eleven slices + §E), **M34.0–.3**,
-**M19.6/.7**, **M36.1–.5**, **M37** (the Project panel), **M38.1**, **M40.1**, the polish round; **M38.2–.6**
-are implemented on `feat/m38-portable-context` and under review._
+_Refreshed 2026-08-27 (post 1.10.0 readiness). Shipped since the last refresh: **M38.2–.7** (merged, reviewed end to
+end), **M40.1/.2a/.2b/.3** (complete, post-merge reviewed), the Project-panel and theme fixes on main (ledger clear),
+the sample-conversations page and its harness. Newly spec'd: **M41** (one-command install) and **M33.7** (report table
+sources) — the owner allocates them between the two sessions._
 
-1. **M38 review → merge.** .5 (report destinations) and .6 (path anchors) are with the reviewer; .1–.4 are
-   closed. One rebase onto main at merge time, then the `docs/handoff` M38 files move to `completed/`.
-2. **M39 baselines** — spec next? ("is this normal here?", the question support cannot answer about an
-   unfamiliar system.) The mixed-version hazard is decided and built (M38.7, D-C10).
-3. **M40.2/.3** (which nodes can log; the audit level) — after M40.1's shape has settled in use, and .3
-   only after measuring the way .1 was measured.
+1. **M41 one-command install** and **M33.7 report table sources** — independent of each other (packaging/CI vs. the
+   report model), so they can run in parallel in two sessions without touching the same files. M33.7a (the store)
+   first within its track; M41.1 (local `-Ppackage`) first within its own.
+2. **M38.8** runbook `description` (the skill contract) — small, post-release, owner-agreed.
+3. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
 4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-5. **M19.3/.4** (tutorial, publish-gated on the playground Download) and **M19.8** (bench in CI).
-6. **The small schedulable remnants**, any time: **M20.5** (project artifact pointers — read it as tier 1
-   of M38's model and share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
-   (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.6** (owner said YES).
+5. **M19.3/.4** (tutorial, publish-gated on the playground Download — M41.3's bundles are what that page points at)
+   and **M19.8** (bench in CI).
+6. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
+   model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
+   (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
+   rule-1 upstream ask.
 7. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
-   UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, each with evidence and
-   acceptance. The Mongoose **MCP admin tool** + `~/.mongoose/servers/` endpoint files, the playground's two
-   catalogue asks, and — promoted from a footnote — **the out-of-tree Chronicle reader** on M31's shipped
-   SPI, which deletes the export beat from the dev cycle. **UP-MNG-03** (the server supplying the
-   environment) now has its analyser-side counterpart in M38.3: where both exist the declaration wins and
-   `context.provenanceSource` says so.
-8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer
-   appears.
+   UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, plus **UP-DIST-01/02** once M41.2 has
+   produced the assets they checksum. **UP-MNG-03** (the server supplying the environment) has its analyser-side
+   counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
+8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
 
 ## Decisions (resolved)
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.
