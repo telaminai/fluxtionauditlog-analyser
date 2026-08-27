@@ -377,7 +377,7 @@ a log from the command line means never seeing it._
   owner, the first being where a baseline lives.
 
 ## M40 · Audit readiness — will this processor log at all? — ◧ **.1 DONE 2026-08-27** on `feat/audit-readiness`
-_Brief `docs/handoff/handoff_27_aug_2026_1.txt`, report `docs/handoff/report_feat_audit_readiness.txt`.
+_Brief `docs/handoff/completed/handoff_27_aug_2026_1.txt`, report `docs/handoff/completed/report_feat_audit_readiness.txt`.
 The owner's redirect: the authoring side belongs to the LLM writing the processor; the ANALYSER side can
 diagnose the graph. Every other producer check needs a log to examine, and the worst case produces no log._
 - [M40.1] ☑ **The verdict, from the graph** — `AuditReadiness.of(topology)` → ENABLED / NOT_ENABLED /
