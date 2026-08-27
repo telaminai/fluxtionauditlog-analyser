@@ -36,6 +36,8 @@ import signal
 import subprocess
 import sys
 import tempfile
+import queue
+import threading
 import time
 import traceback
 import urllib.error
@@ -94,6 +96,53 @@ class Analyser:
             # failure the caller can name instead: a conformance bench must fail by step, not by
             # traceback.
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+
+
+class McpBridge:
+    """One real stdio bridge child, driven only through its public JSON-RPC wire.
+
+    The bench already starts the desktop app in a temporary home. Its bridge child gets that same
+    home through the Java launcher, exactly as an installed launcher would discover the per-run
+    endpoint. Keeping the protocol here instead of importing application classes matters: this is
+    the packaging/launch seam M42 is meant to prove.
+    """
+
+    MODERN = "2026-07-28"
+
+    def __init__(self, command):
+        self.process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE, text=True, bufsize=1)
+        self.lines = queue.Queue()
+        threading.Thread(target=self._read_lines, daemon=True).start()
+
+    def _read_lines(self):
+        for line in self.process.stdout:
+            self.lines.put(line)
+        self.lines.put(None)
+
+    def request(self, method, request_id, params):
+        request = {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
+        self.process.stdin.write(json.dumps(request) + "\n")
+        self.process.stdin.flush()
+        try:
+            line = self.lines.get(timeout=15)
+        except queue.Empty:
+            return {"error": {"message": "bridge did not reply within 15 seconds"}}
+        if line is None:
+            return {"error": {"message": "bridge closed stdout"}}
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError:
+            return {"error": {"message": "bridge returned invalid JSON"}}
+
+    @classmethod
+    def modern_params(cls, values=None):
+        params = dict(values or {})
+        params["_meta"] = {
+            "io.modelcontextprotocol/protocolVersion": cls.MODERN,
+            "io.modelcontextprotocol/clientInfo": {"name": "fluxtion-loop-bench", "version": "1"},
+        }
+        return params
 
 
 def main():
@@ -203,6 +252,24 @@ def main():
                 time.sleep(0.5)
             step("a fresh install started with --rest shows no first-run dialog (it said so on stdout)",
                  "no Settings dialog" in out, "M19.7 / review N2")
+
+            # M42.1: prove the packaged command a client runs, not an in-process bridge test. Both
+            # desktop and bridge use the disposable home's endpoint file; no developer endpoint or token
+            # can be touched or printed by this route.
+            bridge = McpBridge(["java", f"-Duser.home={home}", "-jar", str(jars[-1]), "--mcp"])
+            procs.append(bridge.process)
+            discover = bridge.request("server/discover", "mcp-discover", bridge.modern_params())
+            step("the packaged MCP bridge answers modern discovery", "result" in discover,
+                 "server/discover")
+            tools = bridge.request("tools/list", "mcp-tools", bridge.modern_params())
+            advertised = tools.get("result", {}).get("tools", [])
+            step("the packaged MCP bridge advertises analyser_context",
+                 any(t.get("name") == "analyser_context" for t in advertised if isinstance(t, dict)),
+                 "tools/list")
+            context = bridge.request("tools/call", "mcp-context", bridge.modern_params({
+                "name": "analyser_context", "arguments": {}}))
+            step("the packaged MCP bridge reaches this analyser with read-only context",
+                 "result" in context and not context["result"].get("isError", False), "tools/call")
         analyser.act("open", {"close": "all"})
         r = analyser.act("open", {"log": str(log_path), "graphml": str(graph_path), "provenance": srv["name"]})
         step("open {log, graphml, provenance} accepted", r.get("ok", False), r.get("error", ""))

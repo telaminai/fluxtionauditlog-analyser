@@ -346,8 +346,10 @@ add another protocol server, start a duplicate GUI, copy a per-run token, or edi
 silently. The analyser proves its own side with a loopback invocation of the exact bridge command and read-only
 `analyser_context`; it refuses `OTHER_INSTANCE` when another analyser owns the last-writer-wins endpoint, and a
 green check never pretends it has observed a foreign client or model._
-- [M42.1] ☐ **Launch command + loopback probe** — resolved absolute launcher, argument-vector process handling,
-  redaction, `OTHER_INSTANCE` protection, and a real bridge → REST → `context` test under isolated home.
+- [M42.1] ☑ **Launch command + loopback probe** — resolved absolute launcher, argument-vector process handling,
+  redaction, `OTHER_INSTANCE` protection, and a real bridge → REST → `context` test under isolated home. The M19
+  isolated-home bench now launches the packaged `--mcp` child and proves modern discovery, `analyser_context`
+  discovery and its read-only call back into that exact analyser (2026-08-27).
 - [M42.2] ☐ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
   transport enablement; distinct app/bridge/client state.
 - [M42.3] ☐ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.

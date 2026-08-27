@@ -19,7 +19,9 @@ tools/bench/loop-bench.py --stub --launch
 `--stub` starts the fake server in a temp registry; `--launch` starts a **fresh, never-configured**
 analyser from `target/` with `--rest` into an isolated home — which is also the test of M19.7 (an agent
 can start the analyser on a fresh machine and reach its socket, with no first-run dialog in the way).
-Both are torn down at the end (`--keep` to leave them up and poke at the analyser).
+The same path also launches the packaged `--mcp` bridge against that isolated home and proves modern
+discovery, `analyser_context` discovery, and its read-only call back into that exact analyser. Both are
+torn down at the end (`--keep` to leave them up and poke at the analyser).
 
 ## Run it against a real server — the acceptance test for UP-MNG-01/02
 
