@@ -116,6 +116,39 @@ class ReportVerbTest {
     }
 
     @Test
+    void aSERIEScallGetsTheSameTreatment_theSeamIsSharedSoTheTestMustBeToo() {
+        // the author flagged this gap themselves: SERIES and TABLE both build their call through
+        // callMap, so the fix already covers series — but an untested half of a shared seam is one
+        // refactor away from being a bug again, and this one cost a live capture to find the first time
+        var parsed = parse(List.of(Map.of("kind", "series", "call",
+                Map.of("verb", "series", "ref", "book.mid", "from", 1.0E12, "to", 2.0E12))));
+        assertEquals(List.of(), parsed.warnings());
+        var call = parsed.spec().sections().get(0).call();
+        assertEquals("1000000000000", call.get("from"), "epoch millis must not re-issue as 1.0E12");
+        assertEquals("2000000000000", call.get("to"));
+    }
+
+    @Test
+    void aGenuINELYfractionalParameterKeepsItsFraction() {
+        // the fix must not turn every number into an integer: a threshold is not an anchor
+        var parsed = parse(List.of(Map.of("kind", "table", "call",
+                Map.of("verb", "read", "fields", "book.mid", "recordIndex", 0.0, "above", 17.25))));
+        assertEquals("17.25", parsed.spec().sections().get(0).call().get("above"));
+        assertEquals("0", parsed.spec().sections().get(0).call().get("recordIndex"));
+    }
+
+    @Test
+    void aNumberBeyondExactDoubleRangeIsLeftAloneRatherThanRoundedSilently() {
+        // above ~2^53 a double no longer holds consecutive integers, so converting would invent a value.
+        // Leaving it as-is makes the verb refuse it, which is the honest failure. Every numeric parameter
+        // the schemas expose — epoch millis (~1.75e12), byteOffset, recordIndex, count — is far below this.
+        var parsed = parse(List.of(Map.of("kind", "table", "call",
+                Map.of("verb", "read", "fields", "book.mid", "recordIndex", 1.0E16))));
+        assertNotEquals("10000000000000000", parsed.spec().sections().get(0).call().get("recordIndex"),
+                "a value this size cannot be trusted through a double — do not print it as exact");
+    }
+
+    @Test
     void numericCallParametersSurviveAsIntegers_aJsonDoubleAnchorStillAnchors() {
         // JSON numbers arrive as doubles; recordIndex 0.0 re-issued as "0.0" is no anchor at all
         var parsed = parse(List.of(Map.of("kind", "table", "call",

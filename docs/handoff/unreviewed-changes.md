@@ -128,7 +128,32 @@ project: a modeless dialog titled with the path, monospace text of `ops/restart-
 opens Finder, *Copy path* copies, *Close* closes; the row for a MISSING runbook has no *Open*. Check the Graph
 row's *Open* still lands on the Topology tab and a processor's *Open* on the Source tab.
 
-## ☐ 2026-08-27 · `44b44c9` · fix(report): a table's numeric call parameters survive JSON
+## ☑ reviewed 2026-08-27 (the first session) · `44b44c9` · fix(report): a table's numeric call parameters survive JSON
+
+**Verdict.** Correct, correctly scoped, and a real bug — any agent sending a numeric anchor in a table
+call hit it, and it presented as the tool contradicting the author ("read needs a recordIndex" when one
+was given), which is the kind that wastes an afternoon. Both flagged challenges checked; both hold.
+962 green after the three tests added here.
+
+**The 1e15 ceiling — sound, and for a better reason than "a big round number".** The real boundary is
+2^53 (9007199254740992), above which a double no longer holds consecutive integers, so converting would
+INVENT a value. 1e15 sits comfortably under it. I checked it against every numeric parameter the schemas
+actually expose rather than in the abstract: `at`/`from`/`to` are **epoch millis** (~1.75e12),
+`byteOffset` would need a petabyte-scale log, and `recordIndex`/`count`/`limit`/`step` are small. Nothing
+reachable comes near the ceiling. Above it the value is left as-is and the verb refuses it — announce
+rather than be silently wrong, which is the house rule. Pinned by a test.
+
+**The series seam — the fix already covers it; only the test was missing.** SERIES and TABLE both build
+their call through `callMap`, so series was fixed the moment table was. But an untested half of a shared
+seam is one refactor from being a bug again, and this one cost a live capture to find the first time, so
+it is tested now with epoch-millis values (`1.0E12` → `1000000000000`, not `1.0E12`).
+
+**Also checked, not flagged:** a genuinely fractional parameter keeps its fraction (`above: 17.25` stays
+`"17.25"` — the fix must not turn every number into an integer); null values were already guarded in
+`callMap` and still are; `Short`/`Byte`/`BigInteger` route through the same integral path correctly.
+
+**No follow-up.** Scenario 6 of the sample-conversations page issues `"recordIndex": 0` in a table call,
+so the page now exercises this regression on every capture — the bug cannot come back quietly.
 
 **What.** `ReportVerb.callMap` stringified every value of a table section's `call`; a JSON number arrives as a
 `Double`, so `recordIndex: 0` was re-issued to `read` as `"0.0"`, `asInt` returned null and assembly failed with
