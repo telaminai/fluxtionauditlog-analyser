@@ -54,7 +54,23 @@ whether the same mirroring belongs anywhere else `sourcePanel` state is pushed.
 
 ---
 
-## ☐ 2026-08-26 · (this branch) · fix(graphs): a project's saved graphs survive the first log opened under it
+## ☑ reviewed 2026-08-27 (the first session) · `32db461` · fix(graphs): a project's saved graphs survive the first log opened under it
+
+**Verdict.** Correct, minimal, and the right layer — the placeholder tab is structure, so suppressing the
+*echo* rather than the *tab* is the fix, and the `onLoaded` snapshot is honest belt-and-braces. Both
+reviewer checks done and both pass. **(a)** a fresh log with no saved graphs still opens `Graph 1`, and
+`restore(List.of())` returns early leaving it — verified headless and live (`context.graphs` → `["Graph
+1"]` on a clean home). **(b)** a hand-added graph still persists — live: `graph {name:"Mid"}` →
+`graph.count=2`, `graph.0.name=Graph 1`, `graph.1.name=Mid` in the profile. `mvn test` green.
+
+I pinned check (a) as a third test in `GraphTabsBindIsNotAnEditTest` rather than leaving it verified
+once: it is the regression this fix could plausibly cause (a suppressed tab, not a suppressed edit) and
+nothing else covers it.
+
+Follow-up, not blocking: `bind()` and `restore()` both end `restoring = false` unconditionally rather
+than restoring the previous value. Unreachable today — `bind()` is called from exactly one place, a line
+before `restore()`, never nested — but the guard collapses silently if that ever stops being true. A
+`boolean prev = restoring; … finally { restoring = prev; }` in both costs two lines.
 
 **What.** `GraphTabs.bind()` opened its placeholder tab through `addGraph()`, which fires the change
 listener; since B-M20-3 that listener persists the open tabs, and `MainFrame.onLoaded` assigns the store

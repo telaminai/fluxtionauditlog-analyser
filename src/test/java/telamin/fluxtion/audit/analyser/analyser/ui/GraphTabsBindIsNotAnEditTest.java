@@ -49,6 +49,25 @@ class GraphTabsBindIsNotAnEditTest {
         assertEquals(0, edits[0], "restoring persisted state is not an edit either");
     }
 
+    /**
+     * The other half of the fix, and the thing a suppression bug would break silently: the guard stops
+     * the placeholder being ECHOED as an edit, it does not stop it being opened. Asked for by the fix's
+     * own ledger entry as a reviewer check (2026-08-27) and pinned here so it stays checked.
+     */
+    @Test
+    void aFreshLogWithNoSavedGraphsStillOpensThePlaceholderTab() {
+        GraphTabs tabs = new GraphTabs();
+        tabs.setChangeListener(() -> { });
+        tabs.bind(new HeapLogStore(Samples.sample()), new FilterState());
+        assertEquals(List.of("Graph 1"), tabs.specs().stream().map(GraphSpec::name).toList(),
+                "the placeholder is structure: suppressed as an EDIT, still opened as a TAB");
+
+        // MainFrame calls restore() unconditionally, including for a profile with nothing saved
+        tabs.restore(List.of());
+        assertEquals(List.of("Graph 1"), tabs.specs().stream().map(GraphSpec::name).toList(),
+                "an empty profile must not clear the tab the user is looking at");
+    }
+
     @Test
     void aRealEditStillPersists_theFixDidNotSilenceTheListener() {
         GraphTabs tabs = new GraphTabs();

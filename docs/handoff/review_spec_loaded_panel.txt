@@ -1,0 +1,103 @@
+REVIEW — spec-loaded-panel.md (M37, the Loaded panel) · PROPOSED 2026-08-26
+Reviewer: the first session · Date: 2026-08-27 · Spec at dba5878
+Also in this pull: `32db461` reviewed and ticked in docs/handoff/unreviewed-changes.md.
+
+VERDICT: **ACCEPT**, with four corrections to fold in before M37.1 — one factual, one gap, one
+mechanism to reuse rather than rebuild, and one new constraint the spec could not have known about.
+None changes the design.
+
+================================================================================
+1. THE CENTRAL DECISION IS RIGHT, AND IT IS THE REASON TO BUILD THIS
+================================================================================
+D-L1 — the panel is a RENDERING of `context`, never a second model — is the best thing in the spec, and
+it is worth saying why beyond "less duplication". This repo's recurring defect is two surfaces
+disagreeing about one fact: the topology echo that said `scopeBounded` while the status line did not
+(polish P2), the graph-fit verdict that lived only in the status bar and was overwritten by the next
+message (M35.6), coverage that would have printed 100% against an inferred graph (M34.2). A human panel
+computed from MainFrame fields would have joined that list within two releases. Building it from the
+same assembly the socket serves makes divergence a test failure instead of a support call.
+
+The corollary is stronger still and should be defended in review if it is ever traded away: *a fact the
+panel needs that `context` lacks is added to `context` first*. That makes every slice of M37 an
+improvement to the agent surface as well, which is the rare case where the human and machine roadmaps
+are the same work.
+
+The evidence offered for the whole spec is also correct and worth keeping in the document: the
+graph-loss defect fixed in `32db461` ran from 1.1 until yesterday partly because **nobody could see the
+saved-graph count change under them**. A panel that states what is in force is how that class of bug
+becomes visible rather than reported.
+
+================================================================================
+2. CHECKED, AND NOT A PROBLEM (recorded so it is not re-raised)
+================================================================================
+**Cost of re-rendering.** D-L6 re-renders on every lifecycle event and forbids a timer, and the panel is
+built from `context` — so the obvious objection is that `context` is expensive on a multi-GB log. It is
+not: the assembly loops only over `selectedRecords` and `flaggedRows`, both bounded by what the user has
+touched, and otherwise reads counters already held on the index. Rebuilding it per lifecycle event is
+cheap. D-L6 as written is safe.
+
+================================================================================
+3. CORRECTIONS TO FOLD IN
+================================================================================
+C1 · **The mock shows the wrong project path, in a spec whose subject is showing paths.** D-L2 renders
+     `~/projects/demo/.fluxtion-analyser/project.properties`. Two errors in one line: `.fluxtion-analyser`
+     is the APP's own settings directory, and the project's profile is
+     `ProjectProfile.CANONICAL_RELATIVE` = `.analyser/project.fluxtion-settings`. Illustrations get
+     copied into implementations; this one would put the panel's flagship row on a path that does not
+     exist.
+
+C2 · **S3 and the "real path" trap — a genuine gap.** `LogStore.localFile()` is documented as "a real
+     path even for S3, which is fetched to a temp file". A panel that renders `localFile()` for an S3
+     log shows `/var/folders/…/T/…`, which is true, useless, and actively wrong for this panel's one
+     job — the user did not load a temp file, they loaded `s3://bucket/key`. The AUDIT LOG row must show
+     the ORIGIN the user or agent named, with the local copy secondary or absent. Worth stating in
+     D-L2, because the obvious implementation reaches for `localFile()`.
+     Same question, smaller: a rolled set's members (D-L2 lists them) are file-local — say whether the
+     paths shown are the set's directory or each member's full path.
+
+C3 · **D-L5's "default shown on first launch of the version that ships it" already exists — reuse it.**
+     `config.lastRunVersion` plus `MainFrame.maybeShowWhatsNew()` is exactly this mechanism. Two things
+     the implementer needs to know rather than rediscover: it is written by `maybeShowWhatsNew`, and
+     that method returns EARLY on `ReleaseNotes.isDevBuild()` **before** writing the field — so a
+     development build never records a version, and anything hung off the same field behaves differently
+     in the IDE than in a release. Either share the field deliberately (and handle the dev case) or use
+     a separate `loadedPanelSeenVersion`; do not assume the field is maintained on every launch.
+
+C4 · **New constraint the spec predates: support screenshot this application.** Support are now a
+     significant user group (they answer questions about live systems they did not build — see
+     docs/site/support.md, added 2026-08-26). They share screenshots. This panel is by construction the
+     most path-dense, name-dense surface in the product — project names, full filesystem paths, §E
+     provenance strings that carry host and environment — and D-L5 makes it **default shown**. That is a
+     material increase in what an incidental screenshot leaks, and rule 1 cannot see inside an image.
+     The spec's own mock already elides with `…`, so the instinct is present; make it a DECISION rather
+     than an artefact of the mock: abbreviate `$HOME` to `~`, elide the middle of long paths, and put
+     the full value behind *Copy path* / a tooltip. That also improves the panel — a column of
+     full paths is unreadable at the west rail's width.
+
+================================================================================
+4. SMALLER NOTES
+================================================================================
+N1 · D-L7's "a second graph that lost the precedence says so on a second line" already has its input:
+     `LogStore.sourceGraphNote()` exists precisely to say why a source's graph is absent when the source
+     TRIED and failed (M34 review F2). Name it, or it will be reimplemented.
+N2 · Open question 2 (stacked vs exclusive): **stacked**, and there is a bonus the spec does not claim.
+     With no log open the west rail's *Event types* list is empty — a live half-state I hit while
+     capturing the start page. Stacking Loaded there means the rail stops being a blank box beside the
+     start page and starts answering "why is this empty".
+N3 · Open question 3 (PROJECT section on the start page): agree, **no** — for the reason in N2.
+N4 · Open question 1 (name): "Loaded" is the user's word and should win the toggle. Note the panel also
+     shows things that are in force rather than loaded (settings tier, source roots), which the spec
+     title acknowledges; a heading inside the panel can carry that nuance without renaming the toggle.
+N5 · Acceptance is testable as written, which is not the norm for a UI spec — particularly "a test
+     asserts no action on the panel calls a mutating MainFrame method" (D-L3). Keep that one.
+
+================================================================================
+5. SEQUENCING
+================================================================================
+The slice order is right and M37.1 (`context` parity) first is the load-bearing choice — it is what
+makes D-L1 true rather than aspirational. One addition: C1/C2 belong IN M37.1, because both are about
+what `context` should report (the project's real profile path; the log's origin rather than its temp
+copy), not about how the panel draws it.
+
+The spec's own claim that this precedes M20.5 is correct and well argued: an offer that fires once at
+open and is then invisible is exactly the shape of defect this panel exists to end.

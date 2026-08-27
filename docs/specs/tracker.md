@@ -356,7 +356,7 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M37 · Loaded panel — what is in force, stated in one place — ☐ SPEC'D 2026-08-26 (owner-requested)
+## M37 · Loaded panel — what is in force, stated in one place — ☐ **ACCEPTED 2026-08-27** (owner-requested; reviewed)
 _Design: **[spec-loaded-panel.md](spec-loaded-panel.md)**. The owner's ask: a tab on the west rail that
 shows the loaded graphml(s), the event processors (Java classes), the audit logs, and the project's name
 and file location — "currently it is not clear what is loaded in the current project"._
@@ -366,6 +366,14 @@ is `context` rendered for the human — one model, two readers — and it goes *
 project pointers are invisible without it. The 2026-08-26 graph-loss defect is the motivating case:
 saved graphs fell 6 → 1 and no surface showed the count._
 
+- Review (`docs/handoff/review_spec_loaded_panel.txt`, 2026-08-27): ACCEPT. Four corrections fold into
+  **M37.1**, not the panel slices — C1 the mock's project path is wrong (`.analyser/project.fluxtion-settings`,
+  `ProjectProfile.CANONICAL_RELATIVE`, not `.fluxtion-analyser/project.properties`); C2 an S3 log's
+  `localFile()` is a TEMP copy, so the row must show the origin the user named; C3 "default shown once"
+  already exists as `config.lastRunVersion`, which `maybeShowWhatsNew` skips writing on a dev build;
+  C4 support screenshot this app and the panel is the most path-dense surface in it, so abbreviate and
+  put full paths behind *Copy path*. Confirmed NOT a problem: rebuilding `context` per lifecycle event
+  is cheap (it loops only over selected and flagged rows).
 - [M37.1] ☐ **`context` parity** — add the facts the panel needs that `context` lacks (project file
   location, source-root tiers, rolled-set members, per-processor source resolution); parity test scaffold.
 - [M37.2] ☐ **The panel** — `NavRail` toggle "Loaded" beside *Event types*, persisted, default shown once;

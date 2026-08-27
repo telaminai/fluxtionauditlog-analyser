@@ -1,6 +1,6 @@
 # Spec — the Loaded panel: what is in force, stated in one place
 
-**Status:** PROPOSED 2026-08-26 (owner-requested). **Milestone:** M37. **Tracker:** [tracker.md](tracker.md) ▸ M37.
+**Status:** ACCEPTED 2026-08-27 (owner-requested; reviewed — `docs/handoff/review_spec_loaded_panel.txt`, four corrections C1–C4 to fold into M37.1). **Milestone:** M37. **Tracker:** [tracker.md](tracker.md) ▸ M37.
 
 ## The proposition
 
