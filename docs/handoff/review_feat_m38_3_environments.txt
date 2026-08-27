@@ -1,0 +1,76 @@
+REVIEW — feat/m38-portable-context, M38.3 (environments) + R2 fix + D-C1 evidence
+Reviewer: the first session · Date: 2026-08-27 · Branch @ 0bd19f6 · reviewed through .2 previously
+Covers: 0fa7353 (M38.3), 302c381 (R2), 0bd19f6 (D-C1 evidence). 893 green on the branch.
+
+VERDICT: **MERGE after F1** — one finding, and it is the same shape as the finding this session's
+other branch just took: the agent surface distinguishes two things that the LONGEST-LIVED human
+surface does not.
+
+================================================================================
+1. R2 AND THE D-C1 EVIDENCE — BOTH TAKEN WELL
+================================================================================
+R2: the glossary is now delimited `<<<GLOSSARY … GLOSSARY>>>` and framed as reference text rather than
+an instruction. The attestation reasoning is recorded in D-C3 with the M33 REPORTS precedent, so the
+line is the spec's rather than one person's — which is what I asked for and is the part that outlives
+the change.
+
+D-C1 evidence: the pinned-verb test is now cited in the spec. Worth saying why that matters more than a
+citation usually does — the next person to propose a convenient verb will meet an argument backed by a
+test that already refused one, rather than a paragraph they can reason their way around.
+
+================================================================================
+2. M38.3 — THE DESIGN IS RIGHT, AND THE HONESTY MACHINERY IS MOSTLY THERE
+================================================================================
+`Environment.refuse()` reuses `Runbooks.refusePointer` for `logDir`, so one gate covers runbooks,
+glossary and log directories — that generalisation keeps paying. `match()` is pure and returns a
+**reason**, not just a value, which is the right shape. Declared always wins; the matcher is consulted
+only when the opener declared nothing. `context.provenanceSource` names who answered.
+
+And the Project panel appends it (`ProjectModel:114`), so on screen a matched provenance reads
+*risk-engine · host-7 · prod (project environment 'prod' — the log is under logs/prod)*. That is the
+lesson from M40.1's F2 applied without being asked — the agent surface and the human surface agree.
+
+F1 · **THE REPORT HEADER CANNOT TELL A MATCHED PROVENANCE FROM A DECLARED ONE.** — fix before merge
+     `LogFingerprint` carries `provenance` and not how it was obtained, so an exported report prints
+     *"written against risk-engine · host-7 · prod · 5821 record(s)"* whether a human declared that or
+     the analyser matched a directory. `provenanceSource` exists in `context` and in the panel; the PDF
+     is the one surface that leaves the session, outlives the state that produced it, and is read by
+     someone who was not there — and it is the one that drops the qualification.
+
+     Why this is not pedantry, in this feature specifically. Directory matching is a **heuristic about
+     the filesystem** standing in for a **claim about a system**. Those come apart in exactly the case
+     support hits: a log exported from prod and copied into `logs/uat/` to be looked at. The match is
+     honest about its mechanism ("the log is under logs/uat") and wrong about the world, and D-C4 exists
+     precisely to stop "right about UAT, read as production". A report is where that error becomes
+     durable.
+
+     Cheap fix, and there is a precedent for the shape: thread the source into `LogFingerprint` (a sixth
+     component, additive — the 4-arg constructor was already kept once for §E) and print matched
+     provenance with its qualification, e.g. *"… · prod (matched by directory, not declared)"*. The
+     mismatch banner's vocabulary already distinguishes kinds of sameness; this is the same instinct one
+     level down.
+
+     Not blocking the design — blocking only the claim a report makes.
+
+================================================================================
+3. SMALLER
+================================================================================
+N1 · `match()` returns the FIRST environment whose logDir contains the log. Two environments with
+     nested or identical logDirs resolve by declaration order, silently. `refuse()` could reject a
+     logDir that is a prefix of another environment's — or `match()` could report the ambiguity rather
+     than pick. The current behaviour is defensible and undocumented; one clause in the javadoc would
+     settle it either way.
+N2 · A remote open with no local copy matches only the default (stated in the javadoc — good). Worth
+     confirming that is what you want for S3: the default environment stamping every S3 log is a
+     confident answer derived from nothing about that log.
+N3 · `provenance` is capped at 200 chars and must be one line — consistent with the other gates, and
+     the cap is the kind of thing that only looks unnecessary until someone pastes a stack trace.
+
+================================================================================
+4. WHAT I CHECKED
+================================================================================
+  · The gate: `logDir` goes through `refusePointer`, so `..`, absolutes, URLs and command shapes are
+    refused as they are for runbooks — verified by reading the call, not assumed from the comment.
+  · Declared-wins: `match` is reached only when `logProvenance == null`.
+  · That the panel surfaces the source (it does) and that the report does not (it does not).
+  · 893 tests green on the branch, including EnvironmentTest (the matcher, the refusals, the default).
