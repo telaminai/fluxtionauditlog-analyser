@@ -18,6 +18,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   line them up against the Topology tab — previously both were scrambled by an unordered copy.
 
 ### Changed
+- **The Project panel and the Event types panel follow a theme switch** (Theme ▸ …) — both painted their rows,
+  section borders and group headers from the theme at build time and kept the old colours; they now re-render on
+  the switch, and the panel's warning colour is theme-aware.
 - **Project panel buttons say what they do**: *Show* → **Show file** (the file manager), *Go* → **Open** (the
   thing in its tab). A runbook or glossary row's **Open** now reads the file in a read-only viewer inside the
   app — as written, nothing run, nothing handed to an agent — with *Show file* and *Copy path* beside it.

@@ -98,6 +98,19 @@ public final class EventFilterPanel extends JPanel {
         checks.repaint();
     }
 
+    /**
+     * Owner, 2026-08-27: the section border and the group headers hold colours computed at build time, which
+     * a theme switch does not touch. Recompute them from the new theme.
+     */
+    public void refreshTheme() {
+        setBorder(UiTheme.section("Event types"));
+        for (java.awt.Component c : checks.getComponents()) {
+            if (c instanceof JLabel l && l.getFont() != null && l.getFont().isBold()) l.setForeground(UiTheme.mutedForeground());
+        }
+        checks.revalidate();
+        checks.repaint();
+    }
+
     private void addSection(String title, List<Map.Entry<String, Integer>> entries) {
         if (entries.isEmpty()) return;
         JLabel hdr = new JLabel(title);

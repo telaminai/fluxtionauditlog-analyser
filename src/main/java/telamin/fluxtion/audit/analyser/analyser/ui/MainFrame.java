@@ -1301,6 +1301,8 @@ public final class MainFrame extends JFrame {
         // it was given, so a stale tint survives a theme switch unless it is recomputed
         UiTheme.applyControlSurface(filterBar);
         if (navRail != null) navRail.refreshTheme();
+        if (projectPanel != null) projectPanel.refreshTheme();   // owner, 2026-08-27: rows are painted from UiTheme at render time
+        eventFilterPanel.refreshTheme();                          // section border + group headers likewise
         repaint();                 // charts read the theme on paint
         config.theme = theme;
         saveConfigQuietly();

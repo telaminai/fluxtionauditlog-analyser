@@ -50,6 +50,16 @@ public final class ProjectPanel extends JPanel {
         return model;
     }
 
+    /**
+     * Owner, 2026-08-27: the panel kept the old theme's colours after Theme ▸ …. Every row sets its foreground,
+     * font and borders explicitly from UiTheme at render time, and updateComponentTreeUI leaves explicit values
+     * alone — so a theme switch must re-render, which recomputes all of them from the new UIManager defaults.
+     */
+    public void refreshTheme() {
+        UiTheme.applySurface(scroll, body);
+        render(model);
+    }
+
     /** Replace what is shown. Called on every lifecycle event by whoever owns the facts (D-L6). */
     public void render(ProjectModel m) {
         this.model = m == null ? ProjectModel.from(null) : m;
@@ -98,7 +108,7 @@ public final class ProjectPanel extends JPanel {
         JLabel primary = new JLabel(r.primary() == null ? "?" : ProjectModel.abbreviate(r.primary()));
         primary.setMinimumSize(new Dimension(40, primary.getPreferredSize().height));   // let the row shrink; JLabel elides
         if (r.tone() == ProjectModel.Tone.MUTED) primary.setForeground(UiTheme.mutedForeground());
-        if (r.tone() == ProjectModel.Tone.WARN) primary.setForeground(new Color(0xB0, 0x40, 0x20));
+        if (r.tone() == ProjectModel.Tone.WARN) primary.setForeground(UiTheme.warnForeground());
         primary.setToolTipText(r.path() != null ? r.path() : r.primary());
         head.add(primary, BorderLayout.CENTER);
 

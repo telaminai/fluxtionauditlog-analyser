@@ -47,6 +47,11 @@ public final class UiTheme {
         l.setForeground(mutedForeground());
     }
 
+    /** A warning foreground that reads on the active theme — brick on light, salmon on dark. Recomputed per call, so a re-render after a theme switch picks the right one. */
+    public static Color warnForeground() {
+        return ThemeManager.isDark() ? new Color(0xE8, 0x7A, 0x5A) : new Color(0xB0, 0x40, 0x20);
+    }
+
     /** The theme's muted foreground (secondary text), with a sensible fallback. */
     public static Color mutedForeground() {
         return or(UIManager.getColor("Label.disabledForeground"), new Color(0x8A8F98));
