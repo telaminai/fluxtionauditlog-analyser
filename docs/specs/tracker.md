@@ -277,7 +277,7 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
 - [M31.4r] ☐ **Out-of-tree example reader** — lives in the playground repo (this repo cannot ship it);
   also the ONE M31 acceptance only a real jar can settle (two conflicting plugin jars coexisting).
   The in-tree toy reader in ReaderSpiTest is the seam proof meanwhile. Cross-repo slice.
-- [M31.5] ☐ *(owner decision)* **Separate `analyser-reader-spi` artifact** — needs a multi-module
+- [M31.5] ☐ **NOT YET** _(owner, 2026-08-27)_ · **Separate `analyser-reader-spi` artifact** — needs a multi-module
   build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
 ## M33 · Investigation reports — ◧ CORE SHIPPED 2026-08-20 (archived; M33.5 gated)
@@ -286,7 +286,8 @@ _M33.1–.4 shipped, twice-reviewed, owner-eyeballed and merged — full record 
 Design: **[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md)**._
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
-- [M33.6] ☐ *(owner call, from the eyeball pass — E4)* **chooser dialog for external marker CSVs** —
+- [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
+  otherwise verb-only)_ · **chooser dialog for external marker CSVs** —
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
   markers deserve the same dialog before advertising the CSV source to non-agent users.
 
@@ -380,9 +381,19 @@ the asymmetry M37 exists to end._
   parameters; an offer, never automatic.
 - [M38.5] ☐ **Report destinations** (a place, never a credential — the `LLM`-category precedent), share
   categories completed, docs + CHANGELOG.
-- Open for the owner: where vocabulary lives (profile vs pointed-at file); whether environments travel by
-  default; prior findings as links only; and whether **baselines** ("what does normal look like here",
-  the question support cannot answer about an unfamiliar system) is M39 rather than a slice here.
+- **Owner decisions, 2026-08-27:** vocabulary is a **pointed-at markdown file** (same rule as a runbook —
+  one rule for pointed-at content, not two); environments **travel by default**, label naming the cargo;
+  prior findings are **links only**; **baselines become M39** — "what does normal look like here" is the
+  question support cannot answer about an unfamiliar system and deserves its own design.
+- [M38.6] ☐ **Path anchors (D-C9)** _(owner question 2026-08-27: "relative or absolute?")_ — three forms
+  already exist and are chosen automatically (project-relative → `~` → absolute). Keep the rule, add the
+  missing **anchor**: an optional project-declared `workspaceRoot` so a SIBLING checkout
+  (`../shared-lib`) can be expressed — today it is written `~/…`, portable for you and silently wrong
+  for a colleague. Pointers (runbook, vocabulary) stay project-relative with no `..`; source roots may
+  use the wider set. The Project panel shows the stored FORM per row, so "this profile is not portable"
+  is visible before it is shared rather than after it fails.
+- [M39] ☐ **Baselines** _(spec to write)_ — a reference healthy log and/or expected coverage set bound to
+  the project, so "is this normal here?" is answerable by someone who never saw the system before.
 
 ## M37 · Loaded panel — what is in force, stated in one place — ☐ **ACCEPTED 2026-08-27** (owner-requested; reviewed)
 _Design: **[spec-loaded-panel.md](spec-loaded-panel.md)**. The owner's ask: a tab on the west rail that

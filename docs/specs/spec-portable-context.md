@@ -134,6 +134,44 @@ Proposed additions:
 - `RUNBOOKS` — *"Runbook LOCATIONS (paths in your repository — never their contents)"*, default **off**,
   and the exporter refuses any value that is not a project-relative path.
 
+## D-C9 — paths: the anchor is declared, not chosen per path (owner question, 2026-08-27)
+
+*"Should the paths in the project have an option for relative or absolute?"* Three forms already exist
+and are chosen automatically, most-specific first (`SettingsShare.toPortable`):
+
+1. **project-relative** when the path is under the project root (M35.11);
+2. **`~/…`** when it is under the user's home;
+3. **absolute**, verbatim, otherwise.
+
+**Keep the automatic rule; do not add a per-path toggle.** A profile whose paths were each chosen by
+hand is one where portability varies row by row, nobody remembers why, and the failure appears on
+somebody else's machine. One rule, applied consistently, is what makes a profile safe to share.
+
+**The real gap is a missing ANCHOR, not a missing option.** A sibling checkout — `../shared-lib/src/main/java`,
+the monorepo neighbour, the library everyone has next to the app — is *outside* the project root, so it
+falls to rule 2 and is written `~/work/shared-lib/…`. That is portable for **you** on another machine and
+silently wrong for a colleague who checks out somewhere else. The path is stably positioned relative to
+the project and we have no way to say so.
+
+So: an optional **`workspaceRoot`** declared by the project (a directory at or above the project root).
+When set, a path under it that is not under the project root is written relative to it. The anchor is
+declared once, per project, by the person who knows the layout — not guessed per path, and not asked at
+save time.
+
+**This must not weaken D-C2.** A **runbook or vocabulary pointer stays project-relative only, with no
+`..` traversal** — those are things an agent will act on, and the trust boundary is "inside the
+repository you cloned". Source roots and Maven repos are inert lists the analyser resolves, and may use
+the wider anchor set. Two rules, because the two carry different risk, and the exporter enforces both.
+
+**And make it visible (M37).** The Project panel already shows each root's tier; it should also show the
+form each path is *stored* in — `project` / `workspace` / `home` / `absolute`. Today you cannot tell
+whether a profile is portable until a colleague opens it and it fails; an "absolute" badge on a row in
+a profile you are about to share is the whole warning, delivered before the failure. That is M37's
+thesis applied to M38's problem, and it is a label, not a feature.
+
+An override remains available for the rare deliberate case — a per-root choice in Settings, defaulting
+to automatic — but it is a correction, not the mechanism.
+
 ## Non-goals
 
 - **Not a secret store.** No credentials, ever, in any tier.
@@ -144,16 +182,18 @@ Proposed additions:
 
 ## Open questions (owner)
 
-1. **Where does vocabulary live?** In the profile (portable, one file) or as a pointed-at markdown file
-   in the repo (reviewable, diffable, and the same trust argument as D-C2)? Proposed: **pointer with a
-   small inline fallback** — a team with three terms should not need a file.
-2. **Do environments and hostnames travel by default?** They are not secrets, but they are estate
-   detail. Proposed default-on, with the label naming exactly what leaves.
-3. **Do prior findings belong here** as links to reports, or is the Reports tab already that? Proposed:
-   links only, so recurrence is discoverable without duplicating M33.
-4. **Baselines** — a reference "healthy" log or expected coverage set, so *"is this normal here?"* is
-   answerable about an unfamiliar system. Genuinely useful for support; a bigger slice than the rest.
-   Split to M39?
+_All four **DECIDED by the owner 2026-08-27**; kept here with the answers so the reasoning survives._
+
+1. **Where does vocabulary live?** → **A pointed-at markdown file.** Not the profile, and not the
+   inline fallback I proposed: vocabulary gets the same treatment as a runbook (D-C2), so the content
+   is reviewed, diffed and version-controlled, and the profile holds only the pointer. One rule for
+   pointed-at content instead of two, and D-C3's field becomes a path.
+2. **Do environments and hostnames travel by default?** → **Yes**, default-on, with the category label
+   naming exactly what leaves (D-C8).
+3. **Prior findings** → **links only**. No duplication of M33.
+4. **Baselines** → **their own milestone, M39.** Bigger than the other four slices together, and the
+   question it answers — *"is this normal here?"* — is the one support cannot answer about an
+   unfamiliar system, so it deserves its own design rather than a slice.
 
 ## Acceptance
 
@@ -174,10 +214,13 @@ Proposed additions:
 
 - **M38.1** The tier model + `RUNBOOKS` pointer (write-time validation, import refusal, `context` +
   Loaded-panel row). The security decisions land first, before anything wants to bend them.
-- **M38.2** Vocabulary (D-C3) — profile field or pointer per open question 1, served in `context`.
+- **M38.2** Vocabulary (D-C3) — a POINTER to a markdown file (decided), validated and served like
+  a runbook pointer, so M38.1's path rules cover it.
 - **M38.3** Environments + provenance defaults (D-C4).
 - **M38.4** Saved analyses (D-C5), with rationale and parameter binding.
 - **M38.5** Report destinations (D-C6); share categories completed (D-C8); docs, CHANGELOG, tracker.
+- **M38.6** Path anchors (D-C9) — optional `workspaceRoot`, the stored-form badge in the Project panel,
+  and the exporter enforcing "pointers are project-relative, no `..`" separately from source roots.
 
 ## Relationship to other work
 
