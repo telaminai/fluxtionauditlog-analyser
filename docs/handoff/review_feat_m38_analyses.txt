@@ -86,3 +86,33 @@ N3 · The rationale is required by the record's contract, matching named focuses
   · 889 green on the branch as handed over.
   · NOT re-run: the live recall path (the async-load and EDT-hop fixes) — the report describes driving
     both, and I have no reason to doubt it; it is simply not something I re-drove.
+
+================================================================================
+5. F1 VERIFIED CLOSED — 2026-08-27, on bd946d5
+================================================================================
+Re-probed independently rather than reading the fix. The gate now refuses every shape it accepted
+before, and still accepts the two it must:
+
+    report -> absolute path            refused
+    screenshot -> escapes project      refused
+    source_root -> /etc                refused
+    open log -> /etc/passwd            refused
+    open PROJECT                       refused
+    report -> project-relative         ACCEPTED
+    open log -> {log} parameter        ACCEPTED
+    open log -> UNDECLARED parameter   refused
+
+The last two are the part worth calling out. Binding a path as a **declared parameter** keeps the
+analysis portable without the profile naming a path at all — and the person recalling it supplies and
+therefore SEES the value. That is a better answer than the gate alone: it makes the useful case
+possible rather than merely safe. Refusing an undeclared `{log}` closes the obvious way round it.
+
+D-C1 now enumerates what an analysis can do instead of asserting what it cannot, which was the part of
+the finding that mattered beyond the code — a spec sentence that is 90% true is worse than one that
+lists. The probe table is recorded there as evidence, so the next person to widen the gate meets the
+measurements rather than the prose.
+
+N1/N2/N3 taken. N2's shape is right: a stopped run reports `skipped` AND says the earlier steps have
+already changed the view, which is the honest thing to say to someone deciding whether to re-run.
+
+**F1 closed. No further findings from me on M38.4.**
