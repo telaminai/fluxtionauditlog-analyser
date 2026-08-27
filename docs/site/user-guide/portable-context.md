@@ -8,6 +8,9 @@ the same log, and between one machine and the next.
 
 Naming it correctly changes what is allowed in. This page is the rule.
 
+For the AI side — how the assistant or an LLM over MCP finds, uses and creates these — see
+[Runbooks, glossary and saved analyses with an AI](../ai-and-runbooks.md).
+
 ## Three tiers, decided by whether the stored thing EXECUTES
 
 | Tier | What it is | Examples | Travels in a shared profile? |

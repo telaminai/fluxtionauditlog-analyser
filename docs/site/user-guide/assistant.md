@@ -163,7 +163,8 @@ the report summary, so disorder is announced rather than discovered through wron
 `reports[].createdAt`, and `source.workspaceDir` (where the declared `workspaceRoot` resolves on this machine —
 two facts, not one).
 
-The project's portable context (*User guide ▸ Portable context*) rides the same payload: `runbooks[]` (pointers —
+The project's portable context (*User guide ▸ Portable context*; the AI-side manual is *Working with AI ▸ Runbooks,
+glossary and saved analyses with an AI*) rides the same payload: `runbooks[]` (pointers —
 read the file from the repository; the analyser never executes one), `vocabulary` (with the glossary's `text`),
 `environments[]` and `provenanceSource` (who supplied the log's provenance — *declared by the opener* always
 wins), `analyses[]` (the offer; recall with `open {analysis, bind}`), and `reportDestinations[]` (places the
