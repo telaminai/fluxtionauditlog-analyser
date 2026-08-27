@@ -46,29 +46,24 @@ you first. The full verb reference is in [Analyser assistant](user-guide/assista
     prints the full token. `--rest` is also what an agent runs on a machine that has never seen the
     analyser: no dialog stands in its way, and the console names the endpoint file.
 
-2. **Register the bridge with your client.** Use an **absolute path** to the jar (desktop apps do not
-   inherit your shell's `PATH`; if `java` is not found, use its full path too). For Claude Code:
+2. **Set up the bridge from the analyser.** On the Start page choose **Connect Codex**, **Connect
+   Claude**, or **Generic MCP setup**; the same screen is also at **Settings ▸ Assistant / LLM ▸ Connect
+   an AI client**. It shows the *resolved*, absolute bridge command for this installation rather than a
+   command you have to reconstruct.
 
-    ```bash
-    claude mcp add fluxtion-analyser -- java -jar /absolute/path/to/fluxtion-auditlog-analyser.jar --mcp
-    ```
+    - **Codex** and **Claude Code** offer explicit, confirmed CLI registration. Claude Code's automatic
+      route is user-scoped; its project command is deliberately copy-only, so run it yourself from the
+      project root you mean to change.
+    - **Claude Desktop** has no bundled extension for this per-machine JBang/Java bridge. Select its
+      **Generic MCP setup** fallback instead; the analyser does not edit Claude Desktop configuration.
+    - **Generic MCP setup** shows a complete `mcpServers` JSON record. Copy it or save it to a file you
+      choose, then put it in the location your client documents. The JSON preserves every command
+      argument separately and never contains the endpoint or token.
 
-    or in `.mcp.json` at the project root:
-
-    ```json
-    {
-      "mcpServers": {
-        "fluxtion-analyser": {
-          "command": "java",
-          "args": ["-jar", "/absolute/path/to/fluxtion-auditlog-analyser.jar", "--mcp"]
-        }
-      }
-    }
-    ```
-
-    Claude Desktop and Codex use the same command in their own config files — the exact snippets are in
-    [Analyser assistant ▸ Configure your client](user-guide/assistant.md#configure-your-client).
-    Claude Desktop only reads its config at startup, so quit and reopen it.
+    Opening the setup screen changes nothing. Use **Check connection** after enabling local transport:
+    it starts the exact bridge command and asks it only for `analyser_context`. A green result proves the
+    local analyser-to-bridge chain, not that a client has imported the registration. Restart or reload
+    your client where that client requires it.
 
 3. **Open a log in the analyser** — or let the AI do it with `analyser_open` once you have checked the
    connection. Everything the AI renders lands in the window you are looking at.
@@ -77,7 +72,11 @@ you first. The full verb reference is in [Analyser assistant](user-guide/assista
 
 Do these in order; each one isolates a different part of the chain.
 
-**Is the app listening?** With the analyser running, the endpoint file exists and names a URL:
+**Does the bridge reach this app?** The quickest normal check is **Connect an AI client ▸ Check
+connection**. It runs the exact command shown on that screen and makes the read-only `analyser_context`
+call. It is deliberately a bridge check, not an imitation of Codex, Claude Code or another client.
+
+For a technical check, the endpoint file exists while the analyser is listening and names a URL:
 
 ```bash
 cat ~/.fluxtion-analyser/rest-endpoint
@@ -99,8 +98,8 @@ No file means the transport is off — enable it in Settings ▸ Assistant, or r
        analyser_open · analyser_source_root
 ```
 
-If the server is missing, the client did not launch the bridge — check the path to the jar and to
-`java` in the config, and that the client was restarted after editing it.
+If the server is missing, the client did not launch the bridge. Reopen the analyser setup screen and use
+the exact resolved record or registration command; then restart/reload the client if it requires that.
 
 **Does a call reach the app?** Ask for something harmless and read-only:
 

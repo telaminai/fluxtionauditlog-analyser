@@ -1,6 +1,6 @@
 # Spec — Connect an AI client: local MCP setup from the analyser
 
-**Status:** PROPOSED 2026-08-27  
+**Status:** ACTIVE 2026-08-27
 **Milestone:** M42  
 **Extends:** [M13 MCP transport](spec-assistant-actions-mcp.md), [Start page](completed/spec-start-page.md), and [the connection guide](../site/connect-an-llm.md).  
 **Does not reopen:** M41 native installation. JBang remains the supported way to install the application.
@@ -14,7 +14,7 @@ application, without copying a token, finding an ephemeral port, or hand-authori
 |---|---|---|
 | **Codex CLI** | With the user's confirmation, invokes its MCP registration command for a local stdio server. | Discover tools and ask for approval before calls as the client normally does. |
 | **Claude Code** | With the user's confirmation, invokes its user-scoped MCP registration command. | Discover tools and apply its normal per-call policy. |
-| **Claude Desktop** | Offers the packaged local desktop extension, verifies its bridge command, and directs the user through the client's explicit extension install. | Install/enable the extension; a desktop client owns that trust decision. |
+| **Claude Desktop** | Explains that this per-machine JBang/Java bridge has no portable bundled extension, then offers the generic no-token stdio record. | Choose and apply Claude Desktop's supported configuration/installation flow. |
 | **Generic MCP client** | Produces a complete, copyable stdio-server configuration using the resolved local launcher. | Choose where and whether to install that configuration. |
 
 The bridge already exists. `analyser --mcp` is a headless stdio MCP server; it reads the live,
@@ -231,7 +231,8 @@ remain the security boundary.
 
 ### Generic MCP
 
-Generic setup shows and copies a neutral stdio server record:
+Generic setup shows a selectable, copyable neutral stdio server record built from the exact resolved
+argument vector, not a guessed shell string:
 
 ```json
 {
@@ -244,9 +245,11 @@ Generic setup shows and copies a neutral stdio server record:
 }
 ```
 
-It also offers a Java/fatjar variant where that is the resolved launcher. The app writes no generic
-client configuration: configuration locations and approval models are client-specific. A **Save snippet…**
-action writes only a user-chosen file, never a hidden configuration location.
+For a Java/fatjar launch, `command` is the absolute Java executable and `args` begins with `-jar`; for
+an installed JBang launch, it is the absolute JBang launcher followed by `--mcp`. The app writes no
+generic client configuration: configuration locations and approval models are client-specific. A **Save
+snippet…** action writes only a user-chosen file, with an overwrite confirmation, never a hidden
+configuration location.
 
 ---
 
@@ -357,9 +360,9 @@ are built and run manually because headless CI cannot prove a Swing setup flow.
    safe failure/copy fallback. Verify against a clean Codex config/home, then run the loopback probe.
 4. **M42.4 — Claude Code.** User-scoped registration and a deliberate, copy-only project-config path.
    Verify the current external CLI/schema first, then against a clean Claude Code configuration.
-5. **M42.5 — Claude Desktop.** Package and test the local desktop extension across supported desktop
-   platforms, using D-I3's command fixtures; use the D-I4 copy-config fallback if its documented
-   packaging cannot launch the bridge.
+5. **M42.5 — Claude Desktop.** Verify the live MCPB contract. Retain the generic fallback when its
+   documented packaging cannot launch the per-machine JBang/Java bridge without inventing a second
+   launcher.
 6. **M42.6 — generic configuration and docs.** Copy/save generic snippet, update the connection guide,
    Assistant guide, Start-page documentation and screenshots/transcripts; regenerate and inspect every
    visual/text artifact. Setup surfaces are captured **only** by the isolated-home generated-capture

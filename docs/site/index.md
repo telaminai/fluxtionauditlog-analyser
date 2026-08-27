@@ -91,6 +91,12 @@ record, trace it to the exact source method.
 
 See the [Assistant guide](user-guide/assistant.md) for the full workflow.
 
+!!! tip "Connect your own AI client"
+    The Start page has **Connect Codex**, **Connect Claude** and **Generic MCP setup** cards. They take
+    you to the live-session setup screen, where you enable the local transport, test the exact bridge
+    command, and either explicitly register a supported CLI client or copy the generic no-token JSON.
+    See [Connecting an LLM to the analyser](connect-an-llm.md).
+
 ## Get going
 
 - **[Getting started](getting-started.md)** — open a log, add source roots, pick your event processor,

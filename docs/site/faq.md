@@ -60,6 +60,15 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
   to a plain build — and a plugin can only ever be a log *reader*: it cannot add verbs to the action
   socket, so the verb list above stays complete with or without plugins.
 
+## How do I connect Codex, Claude Code or another MCP client?
+
+With the analyser open, use **Connect an AI client** on the Start page or **Settings ▸ Assistant / LLM**.
+Turn on local transport and use **Check connection** to prove the local bridge reaches this live window.
+The screen can explicitly register Codex or user-scoped Claude Code when their CLIs are available. For
+Claude Desktop and any other client, **Generic MCP setup** supplies the exact no-token stdio JSON for you
+to copy or save to a file you choose; it never guesses or edits a client configuration location. See
+[Connecting an LLM to the analyser](connect-an-llm.md) for the full sequence.
+
 ## How do I check for updates?
 
 Each release is on the [releases page](https://github.com/telaminai/fluxtionauditlog-analyser/releases/latest); the JBang alias and the download

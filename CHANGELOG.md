@@ -31,6 +31,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Claude Desktop now has an explicit, honest path.** Setup distinguishes it from Claude Code and
   explains why no portable `.mcpb` package is shipped for a per-machine JBang/Java bridge. It directs
   to Generic MCP setup instead of inventing a second launcher or writing Claude Desktop configuration.
+- **Generic MCP setup now gives you the complete configuration.** It renders the exact local stdio
+  command as selectable JSON, lets you copy it, or saves it only to a file you choose (with overwrite
+  confirmation). It never puts the per-run endpoint or token into that configuration.
 
 ## [1.10.0] - 2026-08-27
 

@@ -38,10 +38,10 @@ to the exact source, and hand to an LLM for a plain-English, code-grounded expla
   The prompt is also **seeded with the log's file path, shape and per-record byte offsets**, so an agentic
   model can grep/seek the whole file (read-behind and read-ahead from any anchor) to answer follow-ups —
   the selection is a curated starting point, not the entire evidence base.
-- **MCP server** — `java -jar fluxtion-auditlog-analyser.jar --mcp` exposes the assistant's verbs as
-  native **MCP tools**, so Claude Code / Claude Desktop / Codex can drive the running analyser — query the
-  log, plot a series, flag the culprit records — with no prompting and no token to copy. Configure the
-  client once; the bridge finds the app's per-run endpoint itself. See
+- **MCP server** — the Start page and Assistant settings can connect Codex or Claude Code through their
+  installed CLIs, or render the exact no-token JSON for Claude Desktop and any other MCP client. The
+  bridge exposes the assistant's verbs as native **MCP tools**, so an AI can query the running analyser,
+  plot a series and flag culprit records without a copied port or token. See
   [Connect an MCP client](https://telaminai.github.io/fluxtionauditlog-analyser/user-guide/assistant/#connect-an-mcp-client).
 - **Triage aids** — anomaly row tints (parse-error / breach / NaN) with **jump-to-next-anomaly**
   (F3 / Shift+F3), a node-count bar, bookmarks/flags, and a two-record **diff** (menu or table right-click).

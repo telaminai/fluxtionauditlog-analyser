@@ -4,6 +4,7 @@ import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.core.Background;
 import telamin.fluxtion.audit.analyser.analyser.mcp.CodexMcpClient;
 import telamin.fluxtion.audit.analyser.analyser.mcp.ClaudeMcpClient;
+import telamin.fluxtion.audit.analyser.analyser.mcp.GenericMcpConfiguration;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbe;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState;
@@ -16,6 +17,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -31,13 +33,15 @@ import java.awt.FlowLayout;
 import java.awt.Toolkit;
 import java.awt.Window;
 import java.awt.datatransfer.StringSelection;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * The local MCP readiness and confirmed-client-setup surface (M42.2–.4).
+ * The local MCP readiness and confirmed-client-setup surface (M42.2–.6).
  *
  * <p>Opening it only reads the current local state and the documented JBang launcher. Third-party
  * configuration changes have their own confirmation; enabling local transport has another. Bridge
@@ -83,6 +87,8 @@ public final class McpSetupDialog extends JDialog {
     private final JLabel bridgeStatus = new JLabel("Bridge: not checked in this session.");
     private final JLabel clientStatus = new JLabel();
     private final JPanel clientActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+    /** Generic JSON is shown as data the person can inspect/select, never placed in a hidden client configuration. */
+    private final JTextArea genericConfiguration = configurationBox();
     private final JButton enableTransport = new JButton("Enable local transport…");
     private final JButton checkBridge = new JButton("Check connection");
     private final JComboBox<Target> target;
@@ -170,6 +176,9 @@ public final class McpSetupDialog extends JDialog {
         clientActions.setAlignmentX(LEFT_ALIGNMENT);
         body.add(clientActions);
         body.add(Box.createVerticalStrut(4));
+        genericConfiguration.setVisible(false);
+        body.add(genericConfiguration);
+        body.add(Box.createVerticalStrut(4));
         body.add(Box.createVerticalStrut(8));
         body.add(note("The registration label will be <b>fluxtion-analyser</b>. The bridge protocol identifies "
                 + "itself as <b>fluxtion-audit-log-analyser</b>; those are the two existing names, not a third "
@@ -209,7 +218,16 @@ public final class McpSetupDialog extends JDialog {
 
     /** Long commands stay readable and copyable without a horizontal scroll or a shell reinterpretation. */
     private static JTextArea commandBox() {
-        JTextArea field = new JTextArea(3, 68);
+        return borderedTextBox(3);
+    }
+
+    /** The generic record is intentionally larger than a command: its argument vector must be inspectable. */
+    private static JTextArea configurationBox() {
+        return borderedTextBox(8);
+    }
+
+    private static JTextArea borderedTextBox(int rows) {
+        JTextArea field = new JTextArea(rows, 68);
         field.setEditable(false);
         field.setLineWrap(true);
         field.setWrapStyleWord(true);
@@ -271,6 +289,8 @@ public final class McpSetupDialog extends JDialog {
     private void refreshClientStatus() {
         Target selected = (Target) target.getSelectedItem();
         clientActions.removeAll();
+        genericConfiguration.setVisible(false);
+        genericConfiguration.setText("");
         if (selected == Target.CODEX) {
             refreshCodexStatus();
         } else if (selected == Target.CLAUDE_CODE) {
@@ -278,8 +298,7 @@ public final class McpSetupDialog extends JDialog {
         } else if (selected == Target.CLAUDE_DESKTOP) {
             refreshClaudeDesktopStatus();
         } else {
-            clientStatus.setText("No generic MCP configuration has been supplied. Its location and approval model belong "
-                    + "to your client; opening this screen has not changed it.");
+            refreshGenericStatus();
         }
         clientActions.revalidate();
         clientActions.repaint();
@@ -598,6 +617,55 @@ public final class McpSetupDialog extends JDialog {
                 + "the exact JBang or Java command on this machine, so no extension is offered that guesses or duplicates "
                 + "that launcher. Use Generic MCP setup to copy the resolved no-token configuration instead.");
         clientActions.add(action("Use Generic MCP setup", () -> target.setSelectedItem(Target.GENERIC)));
+    }
+
+    private void refreshGenericStatus() {
+        if (command == null) {
+            clientStatus.setText("No generic configuration can be made until this app has a supported local launcher. "
+                    + "Install with JBang or run the packaged application, then reopen setup.");
+            return;
+        }
+        genericConfiguration.setText(GenericMcpConfiguration.render(command));
+        genericConfiguration.setCaretPosition(0);
+        genericConfiguration.setVisible(true);
+        clientStatus.setText("This is the complete standard stdio record for another MCP client. It contains the local "
+                + "launcher only—never this analyser's endpoint, token, log, or client approval choice.");
+        clientActions.add(action("Copy configuration", this::copyGenericConfiguration));
+        clientActions.add(Box.createHorizontalStrut(8));
+        clientActions.add(action("Save snippet…", this::saveGenericConfiguration));
+    }
+
+    private void copyGenericConfiguration() {
+        if (genericConfiguration.getText().isBlank()) return;
+        try {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new StringSelection(genericConfiguration.getText()), null);
+            clientStatus.setText("Copied the generic MCP configuration. Choosing where or whether to install it remains your decision.");
+        } catch (IllegalStateException | java.awt.HeadlessException e) {
+            clientStatus.setText("Could not reach the clipboard. Select the configuration field and copy it manually.");
+        }
+    }
+
+    private void saveGenericConfiguration() {
+        if (genericConfiguration.getText().isBlank()) return;
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Save generic MCP configuration snippet");
+        chooser.setSelectedFile(new java.io.File("fluxtion-analyser-mcp.json"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        Path selected = chooser.getSelectedFile().toPath();
+        if (Files.exists(selected)) {
+            int replace = JOptionPane.showConfirmDialog(this,
+                    "Replace the selected file?\n\n" + selected.getFileName() + "\n\n"
+                            + "Only this generic MCP snippet will be written. No client configuration location is inferred.",
+                    "Replace snippet", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (replace != JOptionPane.OK_OPTION) return;
+        }
+        try {
+            Files.writeString(selected, genericConfiguration.getText() + System.lineSeparator());
+            clientStatus.setText("Saved the generic MCP snippet to the file you chose. No client was configured.");
+        } catch (IOException e) {
+            clientStatus.setText("Could not save the generic MCP snippet. Choose another writable file and retry.");
+        }
     }
 
     private void confirmEnableTransport() {

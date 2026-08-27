@@ -215,69 +215,36 @@ running, or REST transport disabled — start the app with `--rest`"*. That flag
 (persistently) and prints where the endpoint file is, so an agent can bring the analyser up on a fresh
 machine without a human at the keyboard.
 
-### Configure your client
+### Set up an MCP client in the app
 
-Use an **absolute path** to the jar in all three. Desktop apps don't inherit your shell's `PATH`, so if
-`java` isn't found, use its full path too (`which java` to get it).
+Open **Connect an AI client** from the Start page, or from **Settings ▸ Assistant / LLM**. Opening the
+screen only inspects this analyser; it does not change a client configuration. Its **Bridge command** is
+the exact local launcher this installation can use — the installed JBang launcher or the current packaged
+application, including an absolute Java path where one is required. Do not shorten, split or substitute
+that command.
 
-=== "Claude Code"
+First turn on **local transport** for this already-open analyser, then choose **Check connection**. The
+check launches that same bridge and makes one read-only `analyser_context` call. A successful check proves
+the analyser → bridge chain for this window; it cannot prove that a foreign client has imported the setup
+or made a model call.
 
-    Add it to `.mcp.json` in your project root:
+Choose the client you use:
 
-    ```json
-    {
-      "mcpServers": {
-        "fluxtion-analyser": {
-          "command": "java",
-          "args": ["-jar", "/absolute/path/to/fluxtion-auditlog-analyser.jar", "--mcp"]
-        }
-      }
-    }
-    ```
+| Choice | What the analyser can do | What remains yours |
+|---|---|---|
+| **Codex** | After an explicit confirmation, run the installed Codex CLI to add, replace or remove the `fluxtion-analyser` registration. It also offers a copyable command if the CLI is unavailable. | Approve the change and confirm it in Codex. |
+| **Claude Code** | After an explicit confirmation, register a **user-scoped** `fluxtion-analyser` server with the installed Claude Code CLI. A project-scoped command is copy-only. | Run the project command from the intended project root, if that is the scope you want. |
+| **Claude Desktop** | Explain the supported fallback and take you to Generic MCP setup. The analyser does not claim to ship or install a Desktop extension. | Use Claude Desktop's own supported configuration/installation flow. |
+| **another MCP client** | Render the complete standard `mcpServers` JSON record from the exact bridge argument vector; copy it, or save it to a file you choose. | Put that record in the configuration location and approval flow your client documents. |
 
-    Or from the CLI — everything after `--` is the launch command:
+The generic JSON contains only the local stdio launcher and its separate arguments. It never contains the
+running analyser's endpoint, per-run token, loaded log, or an approval choice. The bridge discovers its
+fresh endpoint and token when the client starts it, so a registration survives analyser restarts without
+being rewritten.
 
-    ```bash
-    claude mcp add fluxtion-analyser \
-      -- java -jar /absolute/path/to/fluxtion-auditlog-analyser.jar --mcp
-    ```
-
-    Add `--scope user` to make it available in every project instead of just this one. A project-scoped
-    `.mcp.json` is committable, so a team shares one setup.
-
-=== "Claude Desktop"
-
-    Settings ▸ Developer ▸ **Edit Config**, which opens
-    `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or
-    `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
-
-    ```json
-    {
-      "mcpServers": {
-        "fluxtion-analyser": {
-          "command": "java",
-          "args": ["-jar", "/absolute/path/to/fluxtion-auditlog-analyser.jar", "--mcp"]
-        }
-      }
-    }
-    ```
-
-    Quit and restart Claude Desktop completely — it only reads this file at startup.
-
-=== "Codex"
-
-    In `~/.codex/config.toml` (or a project's `.codex/config.toml`):
-
-    ```toml
-    [mcp_servers.fluxtion-analyser]
-    command = "java"
-    args = ["-jar", "/absolute/path/to/fluxtion-auditlog-analyser.jar", "--mcp"]
-    ```
-
-    Or `codex mcp add fluxtion-analyser -- java -jar /absolute/path/to/analyser.jar --mcp`.
-
-    Codex caps each tool call at 60s by default; raise `tool_timeout_sec` if you aggregate over a very
-    large log.
+The registration label is **`fluxtion-analyser`**. The bridge protocol identifies itself as
+`fluxtion-audit-log-analyser`; these are the two existing names, not separate servers. Codex may need a
+larger tool timeout for an aggregate over a very large log.
 
 ### Your first session
 
@@ -387,38 +354,49 @@ the toolbar, so the screen and the socket never disagree about what is being sho
 
 ### Let your agent set it up
 
-Every step above is an ordinary shell command, so you can hand the whole setup to the agent you're
-already talking to — *"install the Fluxtion analyser with jbang and register it as an MCP server"* — and
-approve the commands as they come. The recipe, if you'd rather run it yourself:
+An agent can help with an explicit client-CLI registration, but the analyser is the source of the
+launch command: install it with JBang, open the app, then use **Connect an AI client**. It presents the
+exact bridge vector for this machine and asks before it invokes either supported client CLI. For an
+unknown client, copy or save the Generic MCP record and apply it only where that client's documentation
+says. An MCP client must still ask for approval for its own tools; the analyser cannot grant that approval
+on its behalf.
 
-```bash
-jbang app install analyser@telaminai/fluxtionauditlog-analyser    # 1. install → ~/.jbang/bin/analyser
-printf 'assistant.rest=true\n' >> ~/.fluxtion-analyser/config     # 2. enable REST (analyser CLOSED)
-claude mcp add fluxtion-analyser -- ~/.jbang/bin/analyser --mcp   # 3. register with your client
-~/.jbang/bin/analyser my-log.yaml                                 # 4. open the app on a log
-```
+!!! note "Reading coverage results"
+    The denominator counts only what **could** log. Event classes and exported service interfaces appear in
+    a graph because the processor handles them, not because they run, so counting them as "never logged"
+    reports a category error as a low score — on the demo that alone read 50% where the honest figure is
+    100% of what can log. Anything left out is named in `excludedFromDenominator` with its reason, and
+    summarised in `excludedNote`: a denominator that quietly shrinks is the same dishonesty as one that
+    quietly includes.
 
-Order matters, and step 2 in particular has a trap:
+    With source roots configured, a node whose class **cannot reach an audit logger at all** is left out
+    too — but read that exclusion carefully, because it is not reassurance. Such a node is not observable
+    in *any* audit log, so the ratio is silent about whether it ran rather than vouching for it, and
+    `excludedNote` says so by name. Exclusion requires proof: a node whose source is missing, or whose
+    supertype the analyser does not recognise, stays counted. Assuming silence is the one error you cannot
+    spot from the output.
 
-    The denominator counts only what **could** log. Event classes and exported service interfaces appear in a graph because the processor handles them, not because they run, so counting them as "never logged" reports a category error as a low score — on the demo that alone read 50% where the honest figure is 100% of what can log. Anything left out is named in `excludedFromDenominator` with its reason, and summarised in `excludedNote`: a denominator that quietly shrinks is the same dishonesty as one that quietly includes.
+    When nodes *are* uncovered, the answer also carries `auditLevels` / `auditLevelFinest` /
+    `auditLevelNote`. A gap can be the **level** rather than a silence: if the log was captured at INFO,
+    any `debug()` or `trace()` call wrote nothing, so a missing node may have run and logged below the
+    threshold. The note states the levels present and what they would have discarded, and stops there — the
+    log cannot distinguish "the threshold excluded them" from "nothing called `debug()`", so neither does
+    the analyser.
 
-    With source roots configured, a node whose class **cannot reach an audit logger at all** is left out too — but read that exclusion carefully, because it is not reassurance. Such a node is not observable in *any* audit log, so the ratio is silent about whether it ran rather than vouching for it, and `excludedNote` says so by name. Exclusion requires proof: a node whose source is missing, or whose supertype the analyser does not recognise, stays counted. Assuming silence is the one error you cannot spot from the output.
-
-    When nodes *are* uncovered, the answer also carries `auditLevels` / `auditLevelFinest` / `auditLevelNote`. A gap can be the **level** rather than a silence: if the log was captured at INFO, any `debug()` or `trace()` call wrote nothing, so a missing node may have run and logged below the threshold. The note states the levels present and what they would have discarded, and stops there — the log cannot distinguish "the threshold excluded them" from "nothing called `debug()`", so neither does the analyser.
+Setup notes:
 - **Edit the config only while the analyser is closed.** The running app holds settings in memory and
   writes the file on exit, so an edit made while it's open is overwritten. Toggling it in
   Settings ▸ Assistant is always safe.
 - **jbang caches jars.** If `--mcp` isn't recognised you're on an older cached build — `jbang cache clear`,
   or run once with `--fresh`.
-- **Launching needs a desktop session**; the app is a GUI, so step 4 won't work over a headless SSH shell.
+- **Launching needs a desktop session**; the app is a GUI, so it will not work over a headless SSH shell.
 
 !!! note "Setup is shell work, not an MCP tool"
 
-    Installing, configuring and launching are deliberately **not** exposed as MCP tools. Partly because
-    it would be circular — a tool that installs the bridge needs the bridge already installed — and
-    partly because the analyser's tool surface is kept to the log verbs on purpose. Shell commands
-    are yours to approve; tools are the model's to invoke, and that difference is the whole security
-    story below.
+    Installing, configuring and launching are deliberately **not** exposed as MCP tools. The Connect
+    screen is a human UI that can invoke a supported client CLI only after confirmation; generic and
+    Claude Desktop configuration remain yours to apply. It would be circular for an MCP tool to install
+    the bridge it needs, and the analyser's MCP surface is deliberately limited to log verbs.
 
 ### How it finds your running analyser
 
