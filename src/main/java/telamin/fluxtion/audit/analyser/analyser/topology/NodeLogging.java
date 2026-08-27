@@ -27,10 +27,17 @@ import java.util.regex.Pattern;
  * <h2>Only exclude when CERTAIN</h2>
  * Excluding shrinks the denominator and improves the number, so the burden of proof sits on exclusion.
  * A verdict of {@link Capability#SILENT_BY_CONSTRUCTION} is returned only when the source is in hand
- * AND the class declares no supertype at all — with no superclass and no interface there is nowhere an
- * {@code auditLog} field could come from. Everything else, including every case where the source is
- * missing or the supertype cannot be recognised, is {@link Capability#UNKNOWN} and stays counted.
- * Assuming silence is the one error that cannot be spotted from the output.
+ * AND the class declares no supertype at all AND its body names neither the logger type nor the
+ * contract. Everything else, including every case where the source is missing or the supertype cannot
+ * be recognised, is {@link Capability#UNKNOWN} and stays counted. Assuming silence is the one error that
+ * cannot be spotted from the output.
+ *
+ * <h2>The honest size of the claim (review N1)</h2>
+ * What this proves is <b>"this file gives no way to reach a logger"</b>, not "this class cannot log".
+ * One file is the whole evidence base, so a class that logs through a helper which never names the type
+ * — {@code Loggers.forNode(this).info(…)} — still reads as silent, and no text check closes that; only
+ * following the helper would. The gap is narrow and the shape unusual, but callers should quote the
+ * verdict at its real width rather than the wider one.
  */
 public final class NodeLogging {
 
@@ -80,8 +87,19 @@ public final class NodeLogging {
         }
         if (text == null || text.isEmpty()) return Capability.UNKNOWN;
 
-        String simple = fqn.substring(Math.max(fqn.lastIndexOf('.'), fqn.lastIndexOf('$')) + 1);
-        String header = declarationHeaderOf(text.get(), simple);
+        // Walk the nesting chain (Outer$Inner$Deeper), narrowing to each enclosing class's BODY in turn.
+        // Searching the whole file for the first `class <Simple>` reads the wrong declaration when a file
+        // holds two classes of that name at different depths (review N2) — and reading the wrong class can
+        // return SILENT for a node that logs, which is the direction that flatters the score.
+        String scope = text.get();
+        String[] chain = fqn.substring(fqn.lastIndexOf('.') + 1).split("\\$");
+        for (int i = 0; i < chain.length - 1; i++) {
+            String enclosing = bodyOf(scope, chain[i]);
+            if (enclosing.isEmpty()) return Capability.UNKNOWN;   // cannot place it — do not guess
+            scope = enclosing;
+        }
+        String simple = chain[chain.length - 1];
+        String header = declarationHeaderOf(scope, simple);
         if (header == null) return Capability.UNKNOWN;   // could not find it — say so, do not guess
 
         for (String type : typesNamedIn(header)) {
@@ -98,7 +116,7 @@ public final class NodeLogging {
         // `private EventLogger log; log.info(…)` and the first cut excluded it, a false exclusion, the
         // direction that flatters the score. So any mention of the logger TYPE or the contract in the
         // body, not just the conventional field name, is evidence enough to stay counted.
-        String body = bodyOf(text.get(), simple);
+        String body = bodyOf(scope, simple);
         boolean mentionsLogging = body.contains("auditLog") || body.contains("EventLogger") || body.contains(EVENT_LOG_SOURCE);
         return mentionsLogging ? Capability.UNKNOWN : Capability.SILENT_BY_CONSTRUCTION;
     }

@@ -136,4 +136,34 @@ class NodeLoggingTest {
                     base + " is in the measured list but is not recognised in an extends clause");
         }
     }
+
+    @Test
+    void aNestedClassIsFoundThroughItsOUTER_notByTheFirstNameMatchInTheFile() {
+        // review N2: a file holding a top-level `A` AND a nested `B.A` used to resolve to whichever came
+        // first in the text. Reading the wrong declaration can return SILENT for a node that logs, so the
+        // lookup now walks the nesting chain. The top-level A here logs; the nested one does not.
+        String file = "package p;\n"
+                + "class A extends EventLogNode { void f(){ auditLog.info(\"x\", 1); } }\n"
+                + "class B { static class A { int n; int f(){ return n; } } }\n";
+        assertEquals(NodeLogging.Capability.SILENT_BY_CONSTRUCTION,
+                NodeLogging.of("p.B$A", src(file)), "the NESTED A declares no supertype");
+        assertEquals(NodeLogging.Capability.CAN_LOG,
+                NodeLogging.of("p.A", src(file)), "the TOP-LEVEL A extends EventLogNode");
+    }
+
+    @Test
+    void aNestedClassWhoseOuterCannotBePlacedIsUnknown() {
+        assertEquals(NodeLogging.Capability.UNKNOWN,
+                NodeLogging.of("p.Gone$Inner", src("package p; class Other { class Inner { } }")));
+    }
+
+    @Test
+    void theBodyCheckedIsTheNESTEDonesBody_notTheWholeFile() {
+        // the outer mentions EventLogger; the inner does not. Scoping the body check to the whole file
+        // would return UNKNOWN for the inner and silently stop excluding anything nested in a logging class.
+        String file = "package p; class Outer extends EventLogNode {"
+                + " void f(){ EventLogger e = auditLog; }"
+                + " static class Plain { int n; } }";
+        assertEquals(NodeLogging.Capability.SILENT_BY_CONSTRUCTION, NodeLogging.of("p.Outer$Plain", src(file)));
+    }
 }

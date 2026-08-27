@@ -89,7 +89,27 @@ the unfixed jar, same script).
 (the `restoring` guard suppresses the edit, not the tab — `addGraph()` still runs); and that a graph
 edited by hand still auto-persists (pinned by the second test, but Swing-side confirmation is cheap).
 
-## ☐ 2026-08-27 · `5e73bae` · fix(project-panel): Show file / Open; runbook + glossary open read-only in the app
+## ☑ reviewed 2026-08-27 (the first session) · `5e73bae` · fix(project-panel): Show file / Open; runbook + glossary open read-only in the app
+
+**Verdict.** Correct, and the D-C2 reasoning is right rather than convenient: the analyser still never
+executes a runbook and never serves its contents to an agent, and a person reading the file the profile
+points at is neither hazard. The model side is exactly as claimed — `exists ? VIEW_FILE : NONE`, so a
+missing runbook has no *Open* and the red row still says why. The path shown is the row's `resolved`
+value, which reached `context` through the M38.1 gate, so the viewer inherits the containment rule
+rather than re-deriving it. 958 green; the reveal-only bytecode test still holds.
+
+**F1 (low, unfixed — owner's call).** *The 256K cap is announced but applied after the whole file is
+read.* `Files.readString(p)` materialises the entire file, then truncates; so the cap bounds what is
+DISPLAYED, not what is read. Point a runbook at a multi-gigabyte file inside the project — a profile is
+portable context that arrives from a colleague, and `runbook.0.path=data/dump.jsonl` is not exotic — and
+the read fails with `OutOfMemoryError`, which `catch (Exception e)` does **not** catch, so it escapes the
+EDT action rather than becoming the "(could not read …)" message the code intends. Two-line fix: check
+`Files.size(p)` first, or read bounded chars. Not urgent (the path is contained and the file is the
+user's own), but the code currently promises a cap it does not enforce.
+
+**N1.** An open viewer is modeless and does not follow a theme switch — `updateComponentTreeUI(this)` in
+MainFrame walks the frame only, not other windows. Only reachable in combination with `3d27f3d`; noted
+there too.
 
 **What.** Owner-requested naming: *Show* → *Show file*, *Go* → *Open*. New: *Open* on a runbook or vocabulary row
 opens a read-only viewer (plain text as written, 256K cap announced, Show file / Copy path / Close, modeless).
@@ -108,7 +128,22 @@ project: a modeless dialog titled with the path, monospace text of `ops/restart-
 opens Finder, *Copy path* copies, *Close* closes; the row for a MISSING runbook has no *Open*. Check the Graph
 row's *Open* still lands on the Topology tab and a processor's *Open* on the Source tab.
 
-## ☐ 2026-08-27 · `3d27f3d` · fix(ui): Project panel + Event types panel follow a theme switch
+## ☑ reviewed 2026-08-27 (the first session) · `3d27f3d` · fix(ui): Project panel + Event types panel follow a theme switch
+
+**Verdict.** Correct and well-diagnosed. The cause is stated accurately — `updateComponentTreeUI` leaves
+EXPLICIT colours alone, and both panels set foreground/font/border explicitly at render time, so a
+re-render is the right remedy rather than a wider sweep. Replacing the hard-coded WARN brick with
+`UiTheme.warnForeground()` (recomputed per call) fixes the root cause rather than the symptom. 958 green.
+
+**N1 (not blocking).** `EventFilterPanel.refreshTheme` identifies group headers by *"is this JLabel's font
+bold"*. It works, but it is a heuristic standing in for a fact the panel knows when it builds the label;
+if a bold non-header label ever appears it will be recoloured silently. Cheap to make explicit (tag the
+headers, or keep a list) whenever that code is next touched.
+
+**N2 (not blocking, spans `5e73bae`).** A theme switch does not reach an OPEN modeless window, because
+`MainFrame` calls `updateComponentTreeUI(this)` — the frame only. The runbook viewer added in `5e73bae`
+is exactly such a window, so a viewer left open across Theme ▸ … keeps the old palette. This gap exists
+only because the two changes met; neither is wrong alone.
 
 **What.** Both panels painted colours/fonts/borders from UiTheme at build time and kept them across Theme ▸ …
 (updateComponentTreeUI leaves explicit values alone). `ProjectPanel.refreshTheme()` re-applies the surface and
