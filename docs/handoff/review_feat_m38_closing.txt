@@ -1,0 +1,83 @@
+REVIEW — M38 closing: F1 (.5) verified closed, docs audit checked, Add-source fix
+Reviewer: the first session · Date: 2026-08-27 · Branch @ 96769a1
+Covers: 96769a1 (F1 remedies), 25613e4 (docs audit), 8ec893f (Add source)
+
+VERDICT: **F1 CLOSED. M38 is reviewed end to end — all six slices, no open findings from me.**
+Clear to rebase onto main and merge.
+
+================================================================================
+1. F1 (.5) — BOTH REMEDIES, VERIFIED BY PROBE
+================================================================================
+    https://hooks.slack.com/services/T00/B00/XXXX               refused
+    https://outlook.office.com/webhook/abc/IncomingWebhook/def   refused
+    https://acme.webhook.office.com/webhookb2/…                  refused   ← the tenant-subdomain form
+    https://discord.com/api/webhooks/123/abc                     refused
+    https://api.telegram.org/bot123:ABC/sendMessage              refused
+    https://chat.googleapis.com/v1/spaces/A/messages?key=k       refused
+    https://wiki.internal/reports · s3://incident-bucket/reports ACCEPTED
+    SettingsShare.Category.DESTINATIONS.defaultOn                false
+
+The list went wider than I proposed — Telegram's bot API and Google Chat were not on my list, and
+`*.webhook.office.com` catches the tenant-subdomain form of Teams that a plain host match would have
+missed. That is the right instinct for a blocklist: the shapes I named were examples, not the
+specification.
+
+And D-C6 now says what the gate **can and cannot** promise rather than asserting an invariant it cannot
+inspect. That was the half of the finding that outlives the code: a spec sentence stating an
+unenforceable guarantee invites the next reader to trust it, and the next author to widen the gate
+believing the sentence still holds.
+
+================================================================================
+2. THE DOCS AUDIT — 62 OF 67, AND THE FIVE ARE WORTH A LINE
+================================================================================
+The claim is that site pages carry every `context` key. I checked it mechanically rather than by
+reading: extracted every literal `put("…")` from the `context()` method body (bounded by brace depth,
+so verb echoes are excluded) and grepped the whole of `docs/site` for each.
+
+    67 literal keys in context() · 5 not mentioned anywhere in docs/site:
+        createdAt · dispatchOrder · sourceGraphDeclined · timeOrder · workspaceDir
+
+Three of the five have their CONCEPT documented under a prose name — "dispatch order" appears six
+times, "time-order report" three, "workspaceRoot" four — but the KEY is never named. For prose that is
+fine; for an agent reading `context` and looking for a handle it is not, which is exactly the gap the
+new ONBOARDING convention exists to close. `createdAt` and `sourceGraphDeclined` appear to be absent
+outright.
+
+Not blocking, and the audit is a real improvement on where this stood yesterday — 62 of 67 with the
+remainder identified is a good place to be. Worth one pass to name the five.
+
+**A false finding I did not report, recorded so nobody re-raises it:** `workspaceRoot` and
+`workspaceDir` look like one fact under two names. They are not — `workspaceRoot` is the DECLARATION
+(`../..`) and `workspaceDir` is where it RESOLVES on this machine. Two facts, correctly named, and an
+agent needs both. I checked the code before writing it up.
+
+================================================================================
+3. THE ADD-SOURCE FIX (8ec893f)
+================================================================================
+Right, and small in the way good UI fixes are: a processor whose source cannot be found offered a "Go"
+that went nowhere. It now offers "Add source", which opens Settings ▸ Source roots — the place that
+fixes the condition the row is reporting. A row that names a problem and then offers the action that
+resolves it is the panel doing its job; a dead button is the panel lying quietly.
+
+`ProjectPanelIsRevealOnlyTest` still passes, so D-L3 holds: navigating to Settings is reveal, not
+mutation, and the Navigator surface is unchanged.
+
+================================================================================
+4. M38 AS A WHOLE
+================================================================================
+Six slices, six reviews, every finding closed:
+
+    .1 runbook pointers   R1 — resolve() containment (fixed by me on main, survived the rebase)
+    .2 vocabulary         R2 — the glossary is reference text, delimited; D-C3 records why
+    .3 environments       F1 — the report header qualifies a matched provenance
+    .4 analyses           F1 — every path a step names is gated; D-C1 enumerates
+    .5 destinations       F1 — webhooks refused by name; category defaults off; D-C6 honest
+    .6 path anchors       no findings
+
+The through-line worth keeping: **four of the six findings were the same defect** — a surface that
+knows something a longer-lived surface does not. context knew the provenance was matched and the report
+header did not; context carried the audit verdict and no human surface did; the panel qualified a
+provenance and the PDF did not. That is now a convention in ONBOARDING rather than a lesson three
+people have to relearn.
+
+Clear to merge from my side.
