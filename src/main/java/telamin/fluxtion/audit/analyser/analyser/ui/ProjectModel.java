@@ -40,7 +40,8 @@ public record ProjectModel(List<Section> sections) {
             "source.rootTiers.path", "source.rootTiers.tier",
             "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
             "runbooks.name", "runbooks.path", "runbooks.resolved", "runbooks.exists", "runbooks.from",
-            "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from");
+            "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
+            "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
             PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports";
@@ -81,6 +82,14 @@ public record ProjectModel(List<Section> sections) {
                     : " — the domain glossary; its text is served to the assistant and in `context`"),
                     str(vocab.get("resolved")), str(vocab.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL, Target.NONE));
         }
+        // M38.3: the environments the project declares — one row each, the default marked
+        for (Object o : list(ctx.get("environments"))) {
+            Map<String, Object> e = map(o);
+            String detail = "stamps “" + e.get("provenance") + "”"
+                    + (e.get("logDir") != null ? " on logs under " + e.get("logDir") : "")
+                    + (Boolean.TRUE.equals(e.get("default")) ? " · default when nothing else applies" : "");
+            rows.add(new Row("environment " + e.get("name"), detail, null, "project", Tone.NORMAL, Target.NONE));
+        }
         out.add(new Section(PROJECT, rows));
 
         // ---- audit log -------------------------------------------------------------------------------
@@ -100,7 +109,11 @@ public record ProjectModel(List<Section> sections) {
             if (log.get("records") != null) detail.append(log.get("records")).append(" records");
             if (remote) detail.append(detail.isEmpty() ? "" : " · ").append("fetched to a local copy");
             String prov = "opened by " + (log.get("openedBy") == null ? "you" : log.get("openedBy"));
-            if (ctx.get("provenance") != null) prov += " · from " + ctx.get("provenance");
+            if (ctx.get("provenance") != null) {
+                prov += " · from " + ctx.get("provenance");
+                // M38.3: declared, never inferred — and the row says by whom, or which environment supplied it
+                if (ctx.get("provenanceSource") != null) prov += " (" + ctx.get("provenanceSource") + ")";
+            }
             rows.add(new Row(fileName(shown), detail.toString(), shown, prov, Tone.NORMAL, Target.NONE));
             List<Object> files = list(ctx.get("files"));
             if (files.size() > 1) {

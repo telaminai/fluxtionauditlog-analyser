@@ -51,6 +51,25 @@ M38.2 — vocabulary (D-C3; owner decision 1: a pointed-at markdown file) · bra
                              ProjectModelTest.theVocabularyPointerIsARowOfTheProjectSection.
   docs                       portable-context.md ▸ Vocabulary; sharing-setups row; project-panel; assistant.md.
 
+M38.3 — environments + the §E provenance each stamps (D-C4; owner decision 2: travel by default)
+  config/Environment         record {name, provenance, logDir?}; refuse() gates name/provenance/logDir (logDir through the
+                             pointer gate); match(envs, default, projectRoot, logFile) is PURE: first logDir that CONTAINS
+                             the file (Path.startsWith, so "logs/production" is not "logs/prod"), else the default, else
+                             nothing — never a guess.
+  onLoaded                   logProvenance = request.provenance() as before; ONLY when null and a project is open, the
+                             matcher runs. logProvenanceSource = "declared by the opener" | the match reason. Cleared with
+                             the log. Follow-rotation reload re-declares the OPENER's provenance (was the effective one),
+                             so a project-supplied value keeps its source on reload.
+  context                    provenanceSource beside provenance; environments[] {name, provenance, logDir, default}.
+  Category.ENVIRONMENTS      default ON; label: "Environments (names, the provenance string each stamps — which may name
+                             systems and hosts — and their log directories; never log data)".
+  Project panel              one row per environment; the Audit log row's provenance carries "(who said so)".
+  tests                      EnvironmentTest (3): matcher precedence incl. S3 (no local file → default only) and the
+                             prefix trap; the refusal table; loader drop + share default/label/export/import/round-trip
+                             + loader announcement. ProjectModelTest.environmentsAreRows…
+  NOT done                   a Settings editor for environments (the profile file is the writer, as for the other
+                             pointers); UP-MNG-03's server-supplied value arrives as a declaration and therefore already wins.
+
 DECIDED (owner, 2026-08-27, on main 20628ab): 1 pointer file · 2 environments travel · 3 links only · 4 baselines → M39.
 Previously listed here as open:
   1 vocabulary: profile vs pointed-at file (proposed pointer + small inline fallback)

@@ -357,7 +357,7 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
-## M38 · Portable context — the project as a shared workspace — ◧ **.1–.2 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`** (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
+## M38 · Portable context — the project as a shared workspace — ◧ **.1–.3 IMPLEMENTED 2026-08-27 on `feat/m38-portable-context`** (owner-requested; report `docs/handoff/report_feat_m38_portable_context.txt`)
 _Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
 human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
 on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
@@ -374,7 +374,7 @@ the asymmetry M37 exists to end._
 - [M38.2] ☑ **Vocabulary** _(2026-08-27: `vocabulary=` pointer in the profile; `context.vocabulary` with the file's text; first block of the Explain prompt; `VOCABULARY` share category default-on; panel row)_ — what `live` means in THIS system. The cheapest large win in the milestone:
   an LLM on an unseen processor and a first-week support engineer need the identical thing, and neither
   has it. Inert, shareable, no execution.
-- [M38.3] ☐ **Environments + the §E provenance each stamps** — correctness, not convenience: two
+- [M38.3] ☑ **Environments + the §E provenance each stamps** _(2026-08-27: `environment.N.*` + `environment.default`; matched by logDir then default, only when nobody declared; `context.provenanceSource`; `ENVIRONMENTS` share category default-on; panel rows)_ — correctness, not convenience: two
   environments on one build emit indistinguishable logs, and an answer right about UAT read as
   production has no symptom the analyser can detect. Pairs with UP-MNG-03 (server wins where both exist).
 - [M38.4] ☐ **Repeatable analyses** — a named sequence of analyser verbs with its rationale and bound

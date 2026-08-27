@@ -219,6 +219,24 @@ class ProjectModelTest {
     }
 
     @Test
+    void environmentsAreRows_andTheLogRowSaysWhoSuppliedItsProvenance() {
+        Map<String, Object> ctx = full();
+        ctx.put("environments", List.of(
+                Map.of("name", "prod", "provenance", "risk-engine · prod", "logDir", "logs/prod", "default", false),
+                Map.of("name", "dev", "provenance", "risk-engine · dev", "default", true)));
+        ctx.put("provenance", "risk-engine · prod");
+        ctx.put("provenanceSource", "project environment 'prod' — the log is under logs/prod");
+        ProjectModel m = ProjectModel.from(ctx);
+        List<ProjectModel.Row> proj = m.section(ProjectModel.PROJECT).rows();
+        assertEquals(3, proj.size());
+        assertEquals("environment prod", proj.get(1).primary());
+        assertEquals("stamps “risk-engine · prod” on logs under logs/prod", proj.get(1).secondary());
+        assertTrue(proj.get(2).secondary().endsWith("default when nothing else applies"), proj.get(2).secondary());
+        String prov = m.section(ProjectModel.LOG).rows().get(0).provenance();
+        assertTrue(prov.contains("from risk-engine · prod (project environment 'prod'"), "declared, never inferred — and by whom: " + prov);
+    }
+
+    @Test
     void abbreviationKeepsHeadAndTail_andNeverTouchesWhatIsCopied() {
         assertEquals("~/projects/demo/logs/a.yaml", ProjectModel.abbreviate("/Users/someone/projects/demo/logs/a.yaml", "/Users/someone", 44));
         String longPath = "/Users/someone/very/deep/directory/structure/for/a/project/build/generated/x.graphml";

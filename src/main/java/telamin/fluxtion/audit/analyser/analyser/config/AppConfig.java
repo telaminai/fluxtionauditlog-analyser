@@ -119,6 +119,10 @@ public final class AppConfig {
     public final java.util.Map<String, String> runbooks = new java.util.LinkedHashMap<>();
     /** M38.2: the domain glossary — a POINTER to a markdown file in the repository (project-relative), or blank. */
     public String vocabularyPath = "";
+    /** M38.3: the environments this project declares (name → §E provenance, optional log directory). Project-scoped. */
+    public final List<Environment> environments = new ArrayList<>();
+    /** M38.3: the environment a log falls under when no logDir matches and nobody declared one; blank = none. */
+    public String defaultEnvironment = "";
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();

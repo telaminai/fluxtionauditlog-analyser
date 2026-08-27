@@ -60,7 +60,9 @@ public final class SettingsShare {
         /** M38.1 D-C8: off by default, and the exporter refuses any value that is not a project-relative path. */
         RUNBOOKS("Runbook LOCATIONS (paths in your repository — never their contents)", false),
         /** M38.2 D-C3/D-C8: a pointer to the glossary file — inert, so it travels by default. */
-        VOCABULARY("Domain glossary LOCATION (a markdown file in your repository — never its contents)", true);
+        VOCABULARY("Domain glossary LOCATION (a markdown file in your repository — never its contents)", true),
+        /** M38.3 D-C4/D-C8 (owner decision 2: travels by default). The label names the cargo: names, systems, hosts. */
+        ENVIRONMENTS("Environments (names, the provenance string each stamps — which may name systems and hosts — and their log directories; never log data)", true);
 
         public final String label;
         public final boolean defaultOn;
@@ -160,6 +162,9 @@ public final class SettingsShare {
         }
         if (categories.contains(Category.VOCABULARY) && c.vocabularyPath != null && !c.vocabularyPath.isBlank()) {
             ConfigStore.writeVocabulary(p, c.vocabularyPath);
+        }
+        if (categories.contains(Category.ENVIRONMENTS) && !c.environments.isEmpty()) {
+            ConfigStore.writeEnvironments(p, c.environments, c.defaultEnvironment);
         }
         if (categories.contains(Category.VIEW)) {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
@@ -338,6 +343,19 @@ public final class SettingsShare {
                     : "REFUSED — " + ConfigStore.vocabularyRefusal(p).orElse("not a project-relative path"));
         }
 
+        List<Environment> environments = null;
+        String defaultEnvironment = null;
+        if (p.getProperty("environment.count") != null) {
+            present.add(Category.ENVIRONMENTS);
+            environments = new ArrayList<>();
+            List<String> refused = ConfigStore.readEnvironments(p, environments);
+            defaultEnvironment = p.getProperty("environment.default");
+            summary.put(Category.ENVIRONMENTS, environments.size() + " environment(s): "
+                    + environments.stream().map(Environment::name).toList()
+                    + (defaultEnvironment == null ? "" : " · default " + defaultEnvironment)
+                    + (refused.isEmpty() ? "" : " · " + refused.size() + " REFUSED: " + String.join("; ", refused)));
+        }
+
         List<String> hiddenColumns = null;
         if (p.getProperty("hiddenColumn.count") != null) {
             present.add(Category.VIEW);
@@ -370,7 +388,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary,
+                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -417,6 +435,13 @@ public final class SettingsShare {
         if (selected.contains(Category.VOCABULARY) && plan.vocabulary() != null) {
             target.vocabularyPath = plan.vocabulary();          // already gated in preview
         }
+        if (selected.contains(Category.ENVIRONMENTS) && plan.environments() != null) {
+            for (Environment e : plan.environments()) {
+                target.environments.removeIf(x -> x.name().equals(e.name()));
+                target.environments.add(e);                          // replace-by-name, like graphs
+            }
+            if (plan.defaultEnvironment() != null) target.defaultEnvironment = plan.defaultEnvironment();
+        }
         if (selected.contains(Category.VIEW) && plan.hiddenColumns() != null) {
             // View is the sender's column layout — replace the set wholesale (not additive)
             target.hiddenColumns.clear();
@@ -455,6 +480,8 @@ public final class SettingsShare {
             List<String> hiddenColumns,
             Map<String, String> runbooks,
             String vocabulary,
+            List<Environment> environments,
+            String defaultEnvironment,
             Boolean assistantInProcess,
             Boolean assistantRest,
             Integer maxRounds,

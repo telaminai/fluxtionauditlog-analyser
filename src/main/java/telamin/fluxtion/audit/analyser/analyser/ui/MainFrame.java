@@ -783,6 +783,8 @@ public final class MainFrame extends JFrame {
      * Set by {@code open {provenance}} and cleared with the log.
      */
     private String logProvenance;
+    /** M38.3: WHERE logProvenance came from — "declared by the opener", or the project environment that supplied it. */
+    private String logProvenanceSource;
 
     /**
      * M36 — show the start page exactly when there is no log, and the table exactly when there is.
@@ -2251,6 +2253,7 @@ public final class MainFrame extends JFrame {
         logDisplayLocation = null;
         logLocalPath = null;
         logProvenance = null;          // §E: it described THAT log, not the next one
+        logProvenanceSource = null;
         declinedSourceGraph = null;    // review N1: that offer came with the log that just closed
         timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.clean();
@@ -2333,6 +2336,16 @@ public final class MainFrame extends JFrame {
         this.logDisplayLocation = location;
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
         logProvenance = request.provenance();                   // §E: what THIS request declared
+        logProvenanceSource = logProvenance == null ? null : "declared by the opener";
+        // M38.3 D-C4: a project may declare environments. Consulted ONLY when nobody declared — a declared
+        // value (the opener, or UP-MNG-03's server) always wins, and context says which answered.
+        if (logProvenance == null && project.hasProject()) {
+            Path root = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile());
+            Path local = loaded.localFile() == null ? null : Path.of(loaded.localFile());
+            telamin.fluxtion.audit.analyser.analyser.config.Environment
+                    .match(config.environments, config.defaultEnvironment, root, local)
+                    .ifPresent(m -> { logProvenance = m.environment().provenance(); logProvenanceSource = m.reason(); });
+        }
         // M35.9: every load-time side effect reads the request, not a field. The field version failed
         // four times — the last when maybeOfferProject consumed the socket flag 59 lines before the
         // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
@@ -2685,7 +2698,9 @@ public final class MainFrame extends JFrame {
             followTimer.stop();          // avoid re-entrant reloads while the async load runs
             // review F1: carry WHO ASKED, not just what was declared — a rotation's audience is
             // whoever was there for the open that started it
-            openFile(Path.of(followPath), OpenRequest.reload(currentRequest, logProvenance));
+            // M38.3: re-declare what the OPENER declared, not what the project supplied — the environment is
+            // matched again on reload, so its provenance keeps its "project environment" source
+            openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
             return;
         }
         if (added == 0) return;
@@ -3674,6 +3689,7 @@ public final class MainFrame extends JFrame {
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance != null) out.put("provenance", logProvenance);
+            if (logProvenanceSource != null) out.put("provenanceSource", logProvenanceSource);   // M38.3: declared, never inferred — and by whom
             // M35.8: which settings are in force. Outside the store block — a project is open (or
             // not) whether or not a log is, and "which settings am I using" must never be a guess.
             Map<String, Object> proj = new java.util.LinkedHashMap<>();
@@ -3752,6 +3768,19 @@ public final class MainFrame extends JFrame {
             {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
+            }
+            // M38.3: the environments the project declares, so an agent can name one when it opens a log
+            if (!config.environments.isEmpty()) {
+                List<Map<String, Object>> envs = new ArrayList<>();
+                for (telamin.fluxtion.audit.analyser.analyser.config.Environment e : config.environments) {
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("name", e.name());
+                    one.put("provenance", e.provenance());
+                    if (e.logDir() != null) one.put("logDir", e.logDir());
+                    one.put("default", e.name().equals(config.defaultEnvironment));
+                    envs.add(one);
+                }
+                out.put("environments", envs);
             }
             // M38.2: the glossary pointer — and, when the file is there, its text (D-C3: served in context).
             // Tier 1 and inert, which is why serving the CONTENT here is right where serving a runbook's

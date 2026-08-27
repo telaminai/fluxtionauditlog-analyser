@@ -87,6 +87,8 @@ public final class ConfigStore {
         readReports(p, c.reports);
         readRunbooks(p, c.runbooks);
         c.vocabularyPath = readVocabulary(p).orElse("");
+        readEnvironments(p, c.environments);
+        c.defaultEnvironment = p.getProperty("environment.default", c.defaultEnvironment);
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -158,6 +160,8 @@ public final class ConfigStore {
         writeReports(p, globalTier == null ? c.reports : globalTier.reports());
         writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
         writeVocabulary(p, globalTier == null ? c.vocabularyPath : globalTier.vocabularyPath());
+        writeEnvironments(p, globalTier == null ? c.environments : globalTier.environments(),
+                globalTier == null ? c.defaultEnvironment : globalTier.defaultEnvironment());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
@@ -548,6 +552,35 @@ public final class ConfigStore {
             i++;
         }
         p.setProperty("runbook.count", Integer.toString(i));
+    }
+
+    /** M38.3: environments, gated on the way in and out like every other declaration. */
+    static void writeEnvironments(Properties p, List<Environment> envs, String defaultName) {
+        int i = 0;
+        for (Environment e : envs) {
+            if (Environment.refuse(e).isPresent()) continue;
+            p.setProperty("environment." + i + ".name", e.name());
+            p.setProperty("environment." + i + ".provenance", e.provenance());
+            if (e.logDir() != null) p.setProperty("environment." + i + ".logDir", e.logDir());
+            i++;
+        }
+        if (i > 0) {
+            p.setProperty("environment.count", Integer.toString(i));
+            if (defaultName != null && !defaultName.isBlank()) p.setProperty("environment.default", defaultName);
+        }
+    }
+
+    /** @return the reasons for every declaration refused (empty when all were sound) */
+    static List<String> readEnvironments(Properties p, List<Environment> out) {
+        out.clear();
+        List<String> refused = new ArrayList<>();
+        int n = parseInt(p.getProperty("environment.count"), 0);
+        for (int i = 0; i < n; i++) {
+            Environment e = new Environment(p.getProperty("environment." + i + ".name"),
+                    p.getProperty("environment." + i + ".provenance"), p.getProperty("environment." + i + ".logDir"));
+            Environment.refuse(e).ifPresentOrElse(refused::add, () -> out.add(e));
+        }
+        return refused;
     }
 
     /** M38.2: the vocabulary pointer — written only when it passes the gate. */

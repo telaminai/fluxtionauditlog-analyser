@@ -108,8 +108,41 @@ repository — never its contents)** — inert, so there is nothing to consent t
 The Project panel shows it under the project row — *`vocabulary · docs/glossary.md`*, warning when the
 file is missing.
 
+## Environments — which system this log came from
+
+Two environments running the same build emit logs identical in shape and usually in filename. Only a
+declared value separates them, and today that value is typed by whoever wrote the export script, per
+site. The failure this prevents has no symptom: an answer **correct about UAT and read as production**.
+
+The project declares its environments and, for each, the **§E provenance** a log from it carries:
+
+```properties
+environment.count=2
+environment.0.name=prod
+environment.0.provenance=risk-engine · prod · ldn
+environment.0.logDir=logs/prod
+environment.1.name=uat
+environment.1.provenance=risk-engine · uat
+environment.1.logDir=logs/uat
+environment.default=uat
+```
+
+When a log is opened **without** a declared provenance, the analyser looks for the first environment
+whose `logDir` contains the file, then the default; the match supplies the provenance that rides the
+status bar, report headers and the mismatch banner. It never guesses: with no `logDir` match and no
+default, the log has no provenance, as before.
+
+**A declaration always wins.** `open {log, provenance}` from an agent — or a server that knows which
+environment it is (UP-MNG-03) — beats the project's environments, and `context.provenanceSource` says
+which answered: *declared by the opener*, *project environment 'prod' — the log is under logs/prod*, or
+*project default environment 'uat'*. The Project panel's log row carries the same words.
+
+Environments **travel by default** in a shared profile, under **Environments (names, the provenance
+string each stamps — which may name systems and hosts — and their log directories; never log data)**:
+the label says exactly what leaves, because a provenance string is estate detail even if it is not a
+secret. `logDir` is a pointer and passes the same gate as a runbook's.
+
 ## What comes next
 
-Declared environments and the provenance each stamps, repeatable analyses, report destinations, and path
-anchors — each a `context` fact first and a Project-panel row, so
+Repeatable analyses, report destinations, and path anchors — each a `context` fact first and a Project-panel row, so
 it is visible to both parties by construction. See the tracker's M38 for the order.

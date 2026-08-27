@@ -18,6 +18,7 @@ the same source roots, event processors and **named graphs** (formulas and pins 
 | Assistant | round / per-reply caps |
 | LLM *(off by default)* | provider / model / base-URL — **never the API key** |
 | Domain glossary LOCATION (a markdown file in your repository — never its contents) | the `vocabulary=docs/glossary.md` pointer — where the team's terms are defined; the file itself stays in the repository ([Portable context](portable-context.md)) |
+| Environments (names, the provenance string each stamps — which may name systems and hosts — and their log directories; never log data) | `environment.N.name/provenance/logDir` and `environment.default` — which system a log from here came from ([Portable context](portable-context.md)) |
 | Runbook LOCATIONS (paths in your repository — never their contents) *(off by default)* | name → project-relative path, e.g. `deploy → ops/deploy.md`. A **pointer** into your repository; the exporter refuses anything that is not a plain relative path, and so does the importer — see [Portable context](portable-context.md) |
 
 A shared graph that uses **external series** carries the CSV's *definition* (path, columns, clock),
