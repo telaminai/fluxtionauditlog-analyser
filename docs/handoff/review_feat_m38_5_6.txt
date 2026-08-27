@@ -1,0 +1,94 @@
+REVIEW — M38.5 (report destinations) and M38.6 (path anchors)
+Reviewer: the first session · Date: 2026-08-27 · Branch @ 6a8086f (pushed as 6a8086f, not 2da046d)
+Spec: spec-portable-context D-C6, D-C9 · 909 green on the branch
+
+VERDICT: **M38.6 MERGE, no findings. M38.5 MERGE after F1** — the invariant it states cannot be
+enforced by inspection for the destination shape people are most likely to paste.
+
+================================================================================
+1. M38.6 — PATH ANCHORS. NO FINDINGS, AND THE GATE IS STRICTER THAN ADVERTISED
+================================================================================
+D-C9 was my design, so I probed it rather than read it approvingly.
+
+    workspaceRoot: .  ..  ../..  ../../../../../..        ACCEPTED  (six up)
+                   ../../../../../../..                   refused   (seven)
+                   /etc · ~/x · ../../../etc · ..\.. · ../ok/../..  refused
+
+The description says "at most six up". The implementation is tighter and better: only a **pure ..
+sequence** is accepted, so ../../../etc (an ancestor plus a named segment) and ../ok/../..
+(normalisation trickery) are both refused. The anchor can only ever be an ancestor DIRECTORY, never a
+sideways path — which is the property that makes "one rule, no per-path toggle" safe rather than merely
+convenient. Worth saying in the spec, because it is a stronger claim than the one currently written.
+
+The separation D-C9 asked for held under test: runbook and vocabulary pointers still refuse .. (a
+pointer of ../ops/deploy.md is refused) while source roots may use the wider set. Two rules, because
+the two carry different risk, enforced rather than remembered.
+
+The form badge is the part I care most about and it is present — context.source.rootTiers[].form plus
+the panel showing project-relative / workspace-relative / ~ / absolute, with absolute-under-a-project
+warned. That makes "this profile is not portable" visible BEFORE it is shared rather than after it
+fails on a colleague's machine, which was the whole point of the decision.
+
+Note, not a finding: six levels up from a deep checkout can reach a home directory or the filesystem
+root. Source roots are inert lists the analyser resolves for source lookup, and D-C9 chose the wider
+set deliberately, so this is a consequence rather than a defect — and the badge is its mitigation.
+Recorded so nobody rediscovers it as a surprise.
+
+================================================================================
+2. M38.5 — F1: THE INVARIANT CANNOT BE INSPECTED FOR THE SHAPE PEOPLE WILL PASTE
+================================================================================
+The gate is good and refuses everything I threw at it in the shapes it anticipates:
+
+    https://user:pass@wiki/x           refused — "a URL with user info is a credential, not a place"
+    https://wiki/x?token=abc           refused — any query
+    https://wiki/x#bearer=xyz          refused — any fragment
+    s3://b/p?AWSAccessKeyId=AKIA...    refused
+    AKIAIOSFODNN7EXAMPLE               refused
+    a location with an Authorization header appended    refused
+    file:///etc/passwd  ·  ../../../etc                 refused
+
+But the check is, as its own comment says, "a blocklist on top of the allowlists", and it inspects
+userinfo, query and fragment. **A webhook's secret is the PATH.**
+
+    https://hooks.slack.com/services/T0000/B0000/XXXXXXXXXXXXXXXX          ACCEPTED
+    https://outlook.office.com/webhook/abc-def-123/IncomingWebhook/dead...  ACCEPTED
+
+A Slack incoming-webhook URL IS a credential: anyone holding it can post to that channel. Same for
+Teams and Discord. And "publish the incident report to the team's channel" is precisely the use this
+feature invites — it is not an exotic input, it is the first thing a support team would paste.
+
+D-C6 says "a destination is a place, never a credential". For a webhook the place IS the credential, so
+no amount of inspection separates them. Two fixes, and I would take both:
+
+  (a) **Default the DESTINATIONS category OFF.** It is true today, so destinations travel in a shared
+      profile by default. LLM already sets the precedent for a category that exists and does not
+      travel, and the reason is identical: the field can hold a secret even though it usually does not.
+  (b) **Refuse the known webhook shapes by host**, with the reason named — hooks.slack.com,
+      outlook.office.com/webhook, discord.com/api/webhooks. A short list catches the realistic case
+      and, more importantly, TEACHES: the refusal explains why that URL is not a place.
+
+If only one, take (a): it bounds the damage of every shape nobody has thought of yet, which is the
+class this finding belongs to.
+
+Also worth one line in D-C6: the invariant holds for buckets, directories and base URLs, and cannot be
+verified for a URL whose path is the secret. A spec that states an unenforceable invariant invites the
+next person to trust it.
+
+================================================================================
+3. SMALLER
+================================================================================
+N1 · The refusal messages are the best in the codebase — they name the reason and the alternative
+     ("credentials come from the environment the publisher runs in"). Keep that standard.
+N2 · The analyser does not publish, only states the place (M18's closure intact). That is the right
+     boundary, and it means F1's blast radius is a leaked secret in a shared file, not an action.
+
+================================================================================
+4. WHAT I CHECKED
+================================================================================
+  · Eleven destination shapes and three webhook shapes against ReportDestination.refuse.
+  · Ten workspaceRoot declarations against PathForm.refuseWorkspaceRoot.
+  · That runbook/vocabulary pointers still refuse .. after M38.6 widened source roots.
+  · 909 green on the branch as handed over.
+  · NOT re-run: the live sibling-root persistence, and the mixed-version hazard (owner's decision — my
+    view: preserve unknown keys, because dropping a key you do not understand is a silent repair, and
+    the format spec already asks readers to ignore-never-reject).
