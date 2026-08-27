@@ -102,3 +102,17 @@ N3 · The branch is behind main (M37 Project panel, M38.1–.2, R1). Rebase befo
   · Live: three graphs over the socket as in §1; context with/without a log before and after F1.
   · NOT verified: the 613-byte measurement itself (the report's; the compiler run I did produced graphs,
     not logs). Nothing in the slice depends on the number, only on the direction, which the graph shows.
+
+================================================================================
+6. FOLLOW-UP @ 9365d2c — VERDICT: **MERGE**
+================================================================================
+Re-verified on this branch's rebuilt jar, over the socket, with the same compiler-generated no-audit
+graph and no log open:
+  · context.graphPairing.auditLogging = not_enabled — present on a fresh start (F1 closed, and moved to
+    the right home: a fact about the graph beside the pairing, put literally so the M37 parity test sees it)
+  · the Project panel's Graph section shows "⚠ audit logging NOT installed" in WARN (F2 closed via the
+    panel; the CHANGELOG and producing-a-log.md now name that surface instead of the Topology tab)
+  · the audited demo graph → enabled; loggingCapable gone (F3); the custom-auditor limit stated (N1)
+One observation, not a finding: two sessions fixed F1 from opposite ends (hoist the topology block vs.
+move the fact beside graphPairing) and the branch keeps both, which is right — the hoist repairs every
+topology fact on a fresh start, not just this one.
