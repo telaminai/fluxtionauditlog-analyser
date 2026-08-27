@@ -356,6 +356,34 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
+## M38 · Portable context — the project as a shared workspace — ☐ SPEC'D 2026-08-27 (owner-requested)
+_Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
+human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
+on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
+the asymmetry M37 exists to end._
+- **D-C1 is the load-bearing decision — tiers by whether the stored thing EXECUTES.** Facts (vocabulary,
+  environments, pointers, baselines) and analyses (sequences of ANALYSER verbs) travel in a shared
+  profile; runbooks never travel as payload. Tier 2 is safe only because **server verbs never appear on
+  the analyser's action socket** — relaxing that standing decision would make every shared profile
+  executable, and the spec says so out loud.
+- [M38.1] ☐ **Tier model + runbook POINTERS** — the profile records `ops/deploy.md`, never the commands:
+  execution stays with the agent / UP-MNG-02, the trust boundary becomes "you cloned this repo" rather
+  than "you opened a file someone sent you". Write-time validation, import refusal of contents, a
+  Loaded-panel row. Security first, before anything wants to bend it.
+- [M38.2] ☐ **Vocabulary** — what `live` means in THIS system. The cheapest large win in the milestone:
+  an LLM on an unseen processor and a first-week support engineer need the identical thing, and neither
+  has it. Inert, shareable, no execution.
+- [M38.3] ☐ **Environments + the §E provenance each stamps** — correctness, not convenience: two
+  environments on one build emit indistinguishable logs, and an answer right about UAT read as
+  production has no symptom the analyser can detect. Pairs with UP-MNG-03 (server wins where both exist).
+- [M38.4] ☐ **Repeatable analyses** — a named sequence of analyser verbs with its rationale and bound
+  parameters; an offer, never automatic.
+- [M38.5] ☐ **Report destinations** (a place, never a credential — the `LLM`-category precedent), share
+  categories completed, docs + CHANGELOG.
+- Open for the owner: where vocabulary lives (profile vs pointed-at file); whether environments travel by
+  default; prior findings as links only; and whether **baselines** ("what does normal look like here",
+  the question support cannot answer about an unfamiliar system) is M39 rather than a slice here.
+
 ## M37 · Loaded panel — what is in force, stated in one place — ☐ **ACCEPTED 2026-08-27** (owner-requested; reviewed)
 _Design: **[spec-loaded-panel.md](spec-loaded-panel.md)**. The owner's ask: a tab on the west rail that
 shows the loaded graphml(s), the event processors (Java classes), the audit logs, and the project's name
