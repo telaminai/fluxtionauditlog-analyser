@@ -922,6 +922,16 @@ public final class TopologyPanel extends JPanel {
     private String scopePart = "";
 
     /**
+     * Whether the loaded processor can write an audit log at all (M40) — a fact about the GRAPH, so it
+     * is answerable with no log open, which is the whole point: the failure it catches produces nothing
+     * to examine afterwards.
+     */
+    public telamin.fluxtion.audit.analyser.analyser.topology.AuditReadiness auditReadiness() {
+        return telamin.fluxtion.audit.analyser.analyser.topology.AuditReadiness.of(
+                hasTopology() ? fullTopology : null);
+    }
+
+    /**
      * The selection's scope in the current world, honouring the routes bound (H4). ROUTES goes through
      * {@link FocusStack#routesInWorld} so the answer carries WHETHER it was bounded; the other scopes are
      * unchanged.
@@ -1229,6 +1239,9 @@ public final class TopologyPanel extends JPanel {
         // so the qualification has to travel in the data or the agent will read rowIndex as order.
         out.put("orderMeaningful", orderMeaningful);
         out.put("graphSource", graphSource.name());
+        // M40: read from the GRAPH, so an agent is told a processor writes nothing BEFORE it opens a
+        // log and finds it empty. UNKNOWN with no graph — never guessed from the log's contents.
+        out.putAll(auditReadiness().echo());
         if (!graphSource.supportsCoverage()
                 && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
             out.put("executionCaveat", "this graph was " + graphSource.describe + ": every node in "

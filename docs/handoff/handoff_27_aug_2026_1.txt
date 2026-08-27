@@ -1,0 +1,67 @@
+HANDOFF — M40: audit readiness, diagnosed from the GRAPH before any log exists
+Date: 2026-08-27 · From: the first session · Branch: feat/audit-readiness · Base: main @ 20628ab
+Report: docs/handoff/report_feat_audit_readiness.txt (written on the branch)
+
+ORIENT FIRST: docs/site/producing-a-log.md (audited by following it, 2026-08-26) ·
+ProducerDiagnostics + ProducerDiagnosticsTest (the post-hoc half, shipped 2026-08-25) ·
+spec-source-adapters D-A2 (declared-never-inferred) · NodeCoverage's javadoc, which already GUESSES at
+this condition and can now state it.
+
+WHY THIS, AND WHY IT IS THE ANALYSER'S JOB
+  Following "Producing an audit log" end to end found three requirements, one documented. Two are now
+  documented and three mistakes are caught by ProducerDiagnostics — but every one of those catches
+  needs a LOG to examine, and the worst case produces no log to examine. A processor built without
+  addEventAudit() writes nothing at all; the user sees an empty file, or no file, and concludes the
+  system was quiet.
+
+  The owner's framing, which redirected this work: the authoring side belongs to the LLM writing the
+  processor; the ANALYSER side can diagnose the graph. And the graph carries the answer — it is emitted
+  by the same build. If addEventAudit() was called the compiler installs the EventLogManager auditor
+  and it appears as a node (`eventLogger`, class com.telamin.fluxtion.runtime.audit.EventLogManager, in
+  the demo fixture). If it was not, the node is absent.
+
+  So the analyser can answer "will this processor produce an audit log?" from a .graphml alone, with no
+  log, no run, and no export — the earliest point at which the mistake is catchable.
+
+MEASURED, NOT INFERRED (rule 6)
+  One program: a Thermostat extending EventLogNode, auditLog.info(…) three times, level INFO, sink
+  attached. Run twice, one difference.
+    · WITH addEventAudit()     → 2 records, 613 bytes
+    · WITHOUT addEventAudit()  → 0 bytes. Empty. Not sparse — nothing.
+  That is why the verdict is phrased flatly. A hedge ("may produce fewer records") would read as
+  "probably fine" and let the real case through.
+
+TASK — one slice per commit, suite green before each
+  1  AuditReadiness (pure, headless) over ProcessorTopology → {ENABLED, NOT_ENABLED, UNKNOWN} with a
+     message that names the cause AND the fix. UNKNOWN when there is no graph: with no evidence the
+     answer is "unknown", never "probably fine" (D-A2's rule, applied to a new fact).
+  2  Surface it where the pairing verdict already lives — the Topology tab's standing statement — and
+     in `context`, so an agent is told before it opens a log rather than after it reads an empty one.
+     NOT a dialog: an open arrives from the socket as often as from a person (M35.7).
+  3  Make NodeCoverage's existing caveat precise. Its javadoc already lists "the graph was built
+     without addEventAudit(…)" as a possible cause of a coverage gap; with a verdict available that
+     stops being a guess.
+  4  Docs: producing-a-log.md gains the "the analyser will tell you before you run" note; CHANGELOG;
+     tracker M40.
+
+DELIBERATELY NOT IN THIS SLICE
+  · Which NODES can log (extends EventLogNode / calls auditLog). That needs source roots resolved per
+    node and is a second slice — it turns "coverage gap" into "silent by construction", which is
+    valuable but is a different evidence source with a different failure mode when source is missing.
+  · The audit LEVEL (INFO vs TRACE). Not yet established whether the graph distinguishes them; do not
+    claim it until measured the way the above was.
+  · Anything upstream. The framework shipping a canonical sink is a real ask and stays unfiled here —
+    this slice is what the analyser can do without waiting for it.
+
+TESTING
+  Headless throughout: AuditReadiness is arithmetic over a node list. Include the REAL demo fixture as
+  the positive control — a hand-made graph tests a parser nobody ships (the first cut of the test did
+  exactly that and failed while the production code was right; the helper now emits the compiler's
+  actual jGraph label shape).
+
+REVIEWER, PLEASE CHECK
+  · That a processor built WITHOUT the auditor is really flagged, against a graph you generate
+    yourself rather than the one in this branch.
+  · That nothing flags a healthy processor — a false positive here trains people to ignore it.
+  · The wording. This message is the whole feature: it must name addEventAudit(), say that the log will
+    be EMPTY rather than sparse, and not imply that a silent node is a defect when audit IS installed.

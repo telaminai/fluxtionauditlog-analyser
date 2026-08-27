@@ -98,7 +98,14 @@ That is the whole contract: `thermostat` is the name the graph gave the node, an
 and `heating` are the keys it logged — so in the analyser you filter on `thermostat` and plot
 `thermostat.celsius` over time. Open the file with **File ▸ Open log…**, or drag it onto the window.
 
-!!! success "If you get one of these wrong, the analyser tells you"
+!!! success "The analyser will tell you before you even run it"
+    Open your processor's `.graphml` and the analyser reads whether audit logging was installed at
+    build time — the compiler puts an `EventLogManager` node on the graph when `addEventAudit()` was
+    called. If it is missing, the Topology tab says so: this processor will write **no** audit log,
+    however carefully its nodes narrate themselves. That check needs no log, no run and no export,
+    which matters because this is the one mistake that leaves nothing behind to diagnose.
+
+!!! success "And if a log is wrong, it tells you that too"
     Opening a log runs three checks on the file and reports what it finds in the status bar and in
     `context`: records run together with no `---` between them, no `nodeLogs` anywhere, or a log
     containing nothing but the framework's own control event. Each names the cause and the fix. They

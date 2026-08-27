@@ -1,0 +1,58 @@
+REPORT — feat/audit-readiness · M40.1: will this processor log at all?
+From: the first session · Brief: docs/handoff/handoff_27_aug_2026_1.txt · Base: main @ 20628ab
+Status: M40.1 COMPLETE on the branch — 875 green (7 new), mkdocs strict green, sweep clean.
+
+1. WHAT CHANGED, AND WHY IT IS HERE RATHER THAN UPSTREAM
+   ProducerDiagnostics (2026-08-25) catches three producer mistakes by examining a LOG. The worst
+   mistake produces no log to examine: a processor built without addEventAudit() writes nothing, and
+   the user concludes the system was quiet.
+
+   The owner's redirect is what made this tractable: the authoring side belongs to the LLM writing the
+   processor; the analyser side can diagnose the GRAPH. And the graph carries the answer, because it
+   is emitted by the same build — the compiler installs EventLogManager as a node when
+   addEventAudit() was called (`eventLogger`, class …runtime.audit.EventLogManager, visible in the
+   demo fixture) and omits it when it was not.
+
+2. MEASURED, NOT INFERRED (rule 6)
+   One program — a Thermostat extending EventLogNode, auditLog.info(…) three times, level INFO, sink
+   attached — run twice with a single difference:
+     WITH addEventAudit()     2 records, 613 bytes
+     WITHOUT                  0 bytes
+   Empty, not sparse. The verdict is phrased flatly because the behaviour is; a hedge would read as
+   "probably fine" and let the real case through.
+
+3. THE SLICE
+   AuditReadiness (pure, no Swing) over ProcessorTopology → ENABLED / NOT_ENABLED / UNKNOWN, with a
+   message naming the cause and the fix. UNKNOWN when no graph is loaded: with no evidence the answer
+   is "unknown", never "probably fine" — D-A2's declared-never-inferred rule applied to a new fact.
+   Surfaced in `context.topology.auditLogging` (+ note). Verified live over the socket with a graph
+   loaded and NO log open, which is the case the feature exists for.
+   NodeCoverage's javadoc already listed "built without addEventAudit(…)" as one of four possible
+   causes of a coverage gap; it now points at the class that answers it outright.
+
+4. TESTS (7)
+   The REAL demo fixture is the positive control — a healthy processor must never be flagged, because
+   a false positive here trains people to ignore the true one. Then: no auditor → flagged flatly, with
+   assertions on the WORDING (names addEventAudit(), says "not a sparse one, none"); the control event
+   without its handler is called out as unusual rather than silently treated as either state; no graph
+   → UNKNOWN and explicitly not a problem; the echo carries the verdict as data; and ENABLED still
+   refuses to promise that every node logs.
+
+   ONE THING WORTH RECORDING: the first cut of the test built synthetic graphs whose node type was the
+   element's text. Three tests failed while the production code was RIGHT — the compiler puts the type
+   inside a jGraph label's `class:` line. The helper now emits the compiler's actual shape. A test
+   helper that invents a simpler format tests a parser nobody ships.
+
+5. NOT DONE, DELIBERATELY
+   M40.2 which NODES can log (needs per-node source resolution — a different evidence source with a
+   different failure mode when source is missing). M40.3 the audit LEVEL, only if the graph
+   distinguishes INFO from TRACE and only after measuring it the way §2 was measured. And the upstream
+   ask — a canonical LogRecordListener that writes the `---` framing — stays unfiled; this is what the
+   analyser can do without waiting for it.
+
+6. REVIEWER, PLEASE CHECK
+   · Generate a graph from a processor built WITHOUT addEventAudit() yourself and confirm it is
+     flagged — I verified the BEHAVIOUR that way (§2) but the graph-side negative is covered only by
+     synthetic fixtures here.
+   · That no healthy processor is flagged, against a real graph of your own.
+   · The wording, which is the whole feature.

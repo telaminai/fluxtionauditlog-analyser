@@ -29,6 +29,8 @@ import java.util.Set;
  *   <li><b>ran and logged nothing</b> — a node with no {@code auditLog} calls, or one whose dirty
  *       contract stops it before it logs;</li>
  *   <li><b>ran below the audit level</b> — the graph was built without {@code addEventAudit(…)}, or the
+ *       (M40: {@link AuditReadiness} answers that first possibility from the GRAPH, so when audit
+ *       is not installed the analyser states it outright instead of leaving the reader to guess)
  *       level was raised.</li>
  * </ul>
  *

@@ -29,6 +29,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `graphPairing.graphPath`; `processors` (class, selected, source found, from); `source.rootTiers`; and
   `source` now appears on a fresh start instead of only after the first log has loaded. Also `exports`
   (`enabled`, `dir`) and `reports` (`name`, `title`, `sections`, `from`).
+- **The analyser tells you a processor will produce no audit log — before you run it.** Open a
+  `.graphml` and it reads whether audit logging was installed at build time: the compiler puts an
+  `EventLogManager` node on the graph when `addEventAudit()` was called, and leaves it out when it was
+  not. Without it a processor writes **nothing** — not a sparse log, none — however carefully its nodes
+  call `auditLog.info(…)`. Measured, not assumed: the same program with and without that one call
+  produced two records and an empty file. The verdict shows on the Topology tab and rides `context` as
+  `auditLogging`, so an agent is told before it opens an empty log and concludes the system was quiet.
 
 ### Fixed
 - **A project's saved graphs are no longer wiped when you open a log.** With a project active, the
