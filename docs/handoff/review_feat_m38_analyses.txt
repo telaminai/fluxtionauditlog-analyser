@@ -1,0 +1,88 @@
+REVIEW — feat/m38-analyses (M38.4, repeatable analyses)
+Reviewer: the first session · Date: 2026-08-27 · Branch @ fdf6f97 · Base: main
+Spec: docs/specs/spec-portable-context.md (D-C1, D-C5) · 889 green on the branch
+
+VERDICT: **MERGE after F1** — the enforcement is one predicate short of the claim D-C1 makes for it,
+and I tested that rather than reasoning about it. Everything else is right, and two of the decisions
+are better than the spec asked for.
+
+================================================================================
+1. WHAT IS RIGHT, INCLUDING TWO THINGS THE SPEC DID NOT ASK FOR
+================================================================================
+· **`open {project}` and `open {close: "project"}` are refused as steps.** D-C5 did not call for this
+  and it is the sharpest judgement on the branch: a project switch is a session boundary (M35.5), so a
+  step that performed one would change what is in force underneath the remaining steps — and the reason
+  given, *"a session boundary is a person's act"*, is the right one rather than a mechanical one.
+· **Recall rides `open {analysis, bind}` rather than a new verb.** The surface stays at 14, and
+  recalling is treated as a lifecycle act alongside close/discover/project. Consistent with how every
+  other lifecycle addition has been made since M35.
+· **The panel states saved analyses with no run button** (D-L3) — a display that can act is a display
+  people stop trusting, and this one keeps that line even though a run button is the obvious feature.
+· **Placeholders must be declared parameters**, so `{whatever}` cannot ride in unnoticed.
+· **`refuse()` runs at read time as well as write time** (`ConfigStore` at both sites), so a
+  hand-edited or hostile profile degrades to "that analysis was dropped, here is why". Same posture as
+  runbooks, and the loader announces it rather than swallowing it.
+· The two defects found by driving it — `open {log}` being asynchronous, and the resulting wait
+  deadlocking under `render()`'s EDT hop — are exactly the class a single verb never shows and a
+  sequence always will. Worth carrying into M38.5.
+
+================================================================================
+2. F1 — "CAN ONLY DRIVE A VIEWER" IS NOT WHAT THE PREDICATE ENFORCES
+================================================================================
+D-C1 justifies tier 2 travelling in a shared profile with: *"A saved analysis can only drive a viewer …
+It cannot deploy, restart, or write anywhere."* The enforcement is `step.action ∈ VerbSchemas.all()`.
+That is necessary and not sufficient, because several analyser verbs write outside the analyser.
+
+Probed with the shipped verb set (`AnalysisSpec.refuse` + `VerbSchemas.all()`):
+
+    report writing to an absolute path            ACCEPTED    ← writes a PDF over any path
+    screenshot writing outside the project        ACCEPTED    ← writes a PNG over any path
+    source_root adding an arbitrary directory     ACCEPTED    ← mutates the recipient's config
+    open a log from anywhere                      ACCEPTED    ← reads any file
+    open a PROJECT                                refused     ← correctly
+
+So a recalled analysis can overwrite an arbitrary file with a PDF or a PNG, add source roots pointing
+anywhere, and read arbitrary paths. None of that deploys or restarts — but "cannot write anywhere" is
+now false, and D-C1's sentence is the load-bearing justification for these travelling in a shared
+profile at all.
+
+**Why it matters here specifically.** Analyses are tier 1's neighbours in the sharing model: they go by
+default, and the recipient sees a NAME and a RATIONALE. They do not see the paths. The mitigations are
+real — recall is an explicit act, there is no run button, and steps stop at the first failure — but
+every one of those assumes the person recalling knows what the steps do, and the artefact is designed
+to be shared with people who were not there when it was written.
+
+**The fix uses machinery that already exists.** Every other path in the profile goes through
+`Runbooks.refusePointer`; analysis step paths do not. Gate the path-bearing params of `report` and
+`screenshot` to project-relative, and either gate or surface `source_root {add}`. That is one call per
+site, it is the rule the rest of M38 already follows, and it makes D-C1's sentence true rather than
+aspirational.
+
+**If you would rather not gate, the alternative is disclosure, not silence:** show the steps before the
+run, so "explicit act" means an act taken with the facts. Gating is cheaper and needs no new surface.
+
+**Either way D-C1's wording must change.** As written it states a property the code does not have, and
+a spec sentence that is 90% true is worse than one that enumerates: say what an analysis CAN do — drive
+the viewer, read a log, write a report where the project allows — and the reader can reason about it.
+
+================================================================================
+3. SMALLER
+================================================================================
+N1 · `refuse()` takes `knownVerbs` as a parameter, which is the right shape (testable, no static
+     coupling) — but it means a caller can pass a wider set than the shipped one. Every current caller
+     passes `VerbSchemas.all()`. Worth a javadoc line saying that is the only correct argument.
+N2 · Steps stop at the first failure. Good. Does the echo say WHICH step failed and how many were
+     skipped? A half-run analysis that reports only "failed" leaves the user unsure what state the
+     viewer is now in — and the steps have already changed it.
+N3 · The rationale is required by the record's contract, matching named focuses. Keep that; it is the
+     thing that makes a shared analysis reviewable rather than an opaque macro.
+
+================================================================================
+4. WHAT I CHECKED
+================================================================================
+  · `refuse()` behaviour against the real shipped verb set, five step shapes (table above).
+  · That refusal runs at read time as well as write time — both `ConfigStore` sites.
+  · That the project-switch refusal covers both `open {project}` and `open {close: "project"}`.
+  · 889 green on the branch as handed over.
+  · NOT re-run: the live recall path (the async-load and EDT-hop fixes) — the report describes driving
+    both, and I have no reason to doubt it; it is simply not something I re-drove.
