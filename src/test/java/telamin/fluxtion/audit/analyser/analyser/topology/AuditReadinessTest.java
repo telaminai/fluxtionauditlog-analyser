@@ -54,6 +54,21 @@ class AuditReadinessTest {
         assertFalse(r.isProblem(), "a working processor must never be flagged");
     }
 
+    /**
+     * The real negative the M40.1 review asked for: the same fixture generator with ONE change — addEventAudit()
+     * removed — compiled by the real Fluxtion compiler (2026-08-27). 18 nodes, no EventLogManager. Checked in so
+     * the check is exercised against compiler output in both directions, not a hand-made graph in one of them.
+     */
+    @Test
+    void theRealCompilerOutputWithoutAddEventAuditIsFlagged() throws Exception {
+        ProcessorTopology t = GraphMlParser.parse(
+                Files.readString(Path.of("src/test/resources/topology/demo-quote-processor-noaudit.graphml")));
+        AuditReadiness r = AuditReadiness.of(t);
+        assertEquals(AuditReadiness.Verdict.NOT_ENABLED, r.verdict(), r.message());
+        assertTrue(r.isProblem());
+        assertEquals(18, t.nodeCount(), "the audited build has 20: the auditor and its control event are the difference");
+    }
+
     @Test
     void aGraphWithoutTheAuditorSaysSoFlatly() {
         AuditReadiness r = AuditReadiness.of(graphOf("PriceListener", "QuotePublisher", "Clock"));

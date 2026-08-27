@@ -145,6 +145,10 @@ The paired brief/report trail makes every delegated work block auditable from th
 When a cycle is fully done (merged/shipped, review answered), its brief/report/review files move to
 `docs/handoff/completed/` — the live directory holds only in-flight correspondence.
 
+Screenshots *and* the sample-conversation transcripts are generated (`tools/capture-docs.py`,
+`tools/capture-conversations.py`) from a real run under an isolated home, and read before committing — a
+typed transcript rots the release after it is written and nothing fails.
+
 Two review lessons from M37–M40 (2026-08-27), each found twice by two sessions independently, so they
 are checklist items rather than anecdotes:
 

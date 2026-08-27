@@ -18,6 +18,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   line them up against the Topology tab — previously both were scrambled by an unordered copy.
 
 ### Added
+- **Docs: Working with AI ▸ Sample conversations** — six LLM → MCP → analyser conversations on the demo set. The asks
+  and answers are authored; every tool call and echo is recorded from a real run by `tools/capture-conversations.py`
+  (the transcript counterpart of the screenshot harness), so the page regenerates with the verbs instead of going stale.
+  The compiler-generated no-audit graph is now a checked-in fixture and a real-negative test for M40.1.
 - **Docs: Working with AI ▸ Runbooks, glossary and saved analyses with an AI** — how the in-app assistant or an
   LLM over MCP finds them in `context`, uses them (read the file yourself; the analyser never runs one), and
   creates them (write the file and the pointer into the repository, show the diff — there is no verb, by design).

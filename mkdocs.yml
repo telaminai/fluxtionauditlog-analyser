@@ -92,6 +92,7 @@ nav:
   - Working with AI:
       - The build-with-AI loop: the-loop.md
       - Connecting an LLM to the analyser: connect-an-llm.md
+      - Sample conversations: sample-conversations.md
       - Answering questions about a running system: support.md
       - Runbooks, glossary and saved analyses with an AI: ai-and-runbooks.md
   - Getting started:

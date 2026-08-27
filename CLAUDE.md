@@ -30,7 +30,9 @@ architecture, conventions). This file is only the rules that must never be skipp
    the real one, and the moment a surface listed the configured processors (M37) three shots carried a real
    venue's class name and an employer's package. Reading the images caught it; the isolation makes it
    impossible. Capture by hand only when the harness cannot reach the surface,
-   and then read every visible string — title bar, status bar, paths — before committing.
+   and then read every visible string — title bar, status bar, paths — before committing. **The same rule
+   covers transcripts**: `docs/site/sample-conversations.md` is written by `tools/capture-conversations.py` from a
+   real run under the same isolated home; a hand-typed transcript is a screenshot the sweep cannot read either.
    **The sweep cannot see git metadata either.** **214** commits carry an employer-domain author
    email into the public history — 132 on the third sweep term's domain, 82 on the fourth's. Rewriting
    is ruled out by rule 3, so that history is accepted and recorded here.
