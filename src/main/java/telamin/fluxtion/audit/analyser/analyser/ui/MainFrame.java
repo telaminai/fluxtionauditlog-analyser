@@ -3771,6 +3771,12 @@ public final class MainFrame extends JFrame {
             source.put("rootTiers", tiers);
             out.put("source", source);
 
+            // M40.1 review F1: the topology BEFORE the fresh-start early return below. It sat after it, so with a
+            // graph open and no log ever loaded — the exact case audit readiness exists for — `context` carried
+            // no `topology` and therefore no verdict; only the `topology` verb's echo had it. Same trap that hid
+            // `source` until M37.
+            if (topologyPanel.hasTopology()) out.put("topology", topologyPanel.cursorState());
+
             // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
             Map<String, Object> f = new java.util.LinkedHashMap<>();
             // Found driving M35.8 E7.0: on a FRESH start no log has ever been loaded, `filter` is still
@@ -3825,7 +3831,6 @@ public final class MainFrame extends JFrame {
                 out.put("producer", producerDiagnostics.messages());
             }
 
-            if (topologyPanel.hasTopology()) out.put("topology", topologyPanel.cursorState());
 
             List<String> graphs = graphTabs.graphNames();
             if (!graphs.isEmpty()) out.put("graphs", graphs);
