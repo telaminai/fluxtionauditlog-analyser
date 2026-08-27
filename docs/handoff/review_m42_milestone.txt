@@ -109,3 +109,32 @@ F7 (process) — the tracker's M42.5 line records "live MCPB contract verified" 
 - Per the protocol, the milestone moves to completed/tracker.md (and this file plus the two prior
   M42 reviews to docs/handoff/completed/) only when those are recorded and the release ships.
 - F1 and F4 are worth folding into whichever commit records those acceptances.
+
+================================================================================
+ADDENDUM 2026-08-28 — REVIEW OF 821bc9d ("Docs: close M42 milestone")
+================================================================================
+The closure commit landed concurrently with this review (it is 10ac894's parent), so it was not in
+the reviewed range. Reviewed now. The SUBSTANCE may well be true — the owner was driving the other
+session live, and a live human acceptance is exactly how .3/.4 were supposed to finish. The FORM is
+premature on five counts, all cheap to fix:
+
+C1 (the F7 failure mode, now three instances) — .3 and .4 say "human acceptance is recorded
+   (2026-08-28)" but the commit contains no record: no report file, no ledger line, nothing the
+   sentence points at. Together with .5's unlocated "live MCPB contract verified", three claims now
+   assert a recording that exists only in the sentence asserting it. Fix: one report file
+   (report_m42_client_install.txt — the milestone has no brief/report pair at all, which is itself
+   the protocol gap) stating who accepted what, on which client versions, and where the MCPB check
+   was read. That file is also the natural home for the acceptance detail the tracker line is too
+   small to carry.
+C2 (rule 7) — the block is marked ☑ COMPLETE but still sits in the LIVE tracker; the live tracker
+   holds only in-progress + future work. Move the block to completed/tracker.md.
+C3 — the spec is stamped SHIPPED but remains in docs/specs/; completed designs move to
+   docs/specs/completed/ (with link fixes; re-run `mkdocs build --strict` after the move — CLAUDE.md
+   and other pages link the spec by path).
+C4 — this review's F1 (runningJar copies debug/agent JVM flags into a registered client command)
+   and F4 (the clipped generic-setup screenshot) were open when the milestone was declared complete,
+   and no code/docs commit has addressed them. F1 is small and is the difference between "complete"
+   and "complete with a known way to register a hanging bridge command".
+C5 — the closure moved the two ANSWERED reviews to completed/ (correct) but the milestone review
+   with open findings stays live (also correct) — so the milestone cannot simultaneously be COMPLETE
+   and have a live review with unanswered findings. Resolving C1–C4 resolves this.
