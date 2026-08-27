@@ -95,7 +95,7 @@ reader and the SPI both pass). **M37 the Project panel** (shipped 2026-08-27: wh
 roots, reports — rendered from `context` for people; the west column is draggable) and **M38.1** (runbook
 POINTERS — the profile records a location, never contents; `docs/specs/completed/spec-portable-context.md`). **M38.2–.7**
 (vocabulary pointer, environments + provenance defaults, repeatable analyses, report destinations, path anchors,
-preserve-unknown-keys) shipped 2026-08-27 — the project profile is portable context, gated at every entrance. **M40** (audit readiness: the verdict from the graph, an honest coverage denominator, which nodes can log, the audit level) COMPLETE 2026-08-27 on main. **Spec'd, unstarted (2026-08-27): M41** one-command install (`docs/specs/spec-native-install.md`) and **M33.7** report table sources (`docs/specs/spec-report-table-sources.md`).
+preserve-unknown-keys) shipped 2026-08-27 — the project profile is portable context, gated at every entrance. **M40** (audit readiness: the verdict from the graph, an honest coverage denominator, which nodes can log, the audit level) COMPLETE 2026-08-27 on main. **Spec'd, unstarted (2026-08-27): M33.7** report table sources (`docs/specs/spec-report-table-sources.md`). (M41 native install: spec'd and withdrawn — JBang is the install; tracker ▸ Decisions.)
 
 Also merged: **M19.6/.7** (`tools/bench/` — the dev loop's conformance bench, §H's home, runnable today
 against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.5** (the start page: the

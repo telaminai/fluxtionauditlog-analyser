@@ -331,19 +331,12 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
   `EventLogNode` currently lands in UNKNOWN and stays counted. Correct but conservative; resolving one more hop needs
   the file's imports (`EventProcessorModel.resolveSimpleType`).
 
-## M41 · One-command install — a native app with a stable launcher, no JDK to find — ☐ SPEC'D 2026-08-27 (spec **[spec-native-install.md](spec-native-install.md)**)
-_The owner's ask after the 1.10.0 readiness review: the demo, the start page and the sample conversations all begin AFTER
-a four-hurdle install (find a JDK, fetch a jar, absolute jar path into an MCP config, edit `config` with the app closed).
-`jpackage` bundles with a `jlink`'d runtime, built in the release matrix; `brew install telaminai/tap/fluxtion-analyser`;
-a stable `fluxtion-analyser` launcher; `--print-mcp-config <client>` prints the snippet with its own resolved path and
-never writes another program's file. The fatjar and JBang stay. State in `~/.fluxtion-analyser/` is never touched._
-- [M41.1] ☐ **`mvn -Ppackage` locally** (D-N1, D-N3, D-N6) — profile, `jdeps`/`jlink`/`jpackage`, `--version`,
-  `--print-mcp-config` (both headless); read the bundle's visible strings (rule 1 cannot see inside a `.dmg`).
-- [M41.2] ☐ **Release matrix** (D-N2) — four runners, stable asset names, `SHA256SUMS`, the headless smoke
-  (`--help`; `--mcp` answering `initialize`) gating every bundle; first exercised on a pre-release tag.
-- [M41.3] ☐ **Tap + docs** (D-N4, D-N5, D-N8) — file **UP-DIST-01**, write the cask, platform-tab `install.md`,
-  `getting-started.md` ("you need nothing"), lead `connect-an-llm.md` with `--print-mcp-config`.
-- [M41.4] ☐ **Signing** (D-N7, *owner*: ship unsigned now / sign first / macOS only) and **winget** (UP-DIST-02).
+## M41 · One-command install — ☒ **WITHDRAWN 2026-08-27** (owner: "we use jbang, it just works")
+_Spec'd the same day as a `jpackage`/Homebrew/`--print-mcp-config` milestone and withdrawn before it started. The
+premise was wrong: `jbang app install analyser@telaminai/fluxtionauditlog-analyser` IS the one-command install (JBang
+fetches a JDK itself), `~/.jbang/bin/analyser` is the stable launcher path the MCP recipe already uses, and `--rest`
+already turns the transport on without editing `config`. Native bundles would have added a Dock icon and a signing
+bill. Recorded under Decisions so it is not re-raised; reopen only when a user who cannot run JBang actually appears._
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general
@@ -485,24 +478,21 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 _Refreshed 2026-08-27 (post 1.10.0 readiness). Shipped since the last refresh: **M38.2–.7** (merged, reviewed end to
 end), **M40.1/.2a/.2b/.3** (complete, post-merge reviewed), the Project-panel and theme fixes on main (ledger clear),
-the sample-conversations page and its harness. Newly spec'd: **M41** (one-command install) and **M33.7** (report table
-sources) — the owner allocates them between the two sessions._
+the sample-conversations page and its harness. Newly spec'd: **M33.7** (report table sources). **M41** was spec'd and withdrawn._
 
-1. **M41 one-command install** and **M33.7 report table sources** — independent of each other (packaging/CI vs. the
-   report model), so they can run in parallel in two sessions without touching the same files. M33.7a (the store)
-   first within its track; M41.1 (local `-Ppackage`) first within its own.
+1. **M33.7 report table sources** — .7a (the store) first; the sample-conversations harness is the acceptance.
+   (M41 one-command install was spec'd and withdrawn the same day — JBang already is that; see Decisions.)
 2. **M38.8** runbook `description` (the skill contract) — small, post-release, owner-agreed.
 3. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
 4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-5. **M19.3/.4** (tutorial, publish-gated on the playground Download — M41.3's bundles are what that page points at)
+5. **M19.3/.4** (tutorial, publish-gated on the playground Download)
    and **M19.8** (bench in CI).
 6. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
    rule-1 upstream ask.
 7. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
-   UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, plus **UP-DIST-01/02** once M41.2 has
-   produced the assets they checksum. **UP-MNG-03** (the server supplying the environment) has its analyser-side
+   UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, **UP-MNG-03** (the server supplying the environment) has its analyser-side
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
 8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
 
@@ -525,6 +515,11 @@ sources) — the owner allocates them between the two sessions._
   step-through are **replicated into the analyser** (**M21**), because the good view has to exist where
   the logs actually land. Consequence: the analyser needs the **GraphML**, sourced from a file first and
   the server only when one happens to be there.
+- **Distribution is the shaded fatjar + JBang; no native bundles** _(2026-08-27)_ — `jbang app install analyser@…`
+  is the one-command install (JBang supplies the JDK), `~/.jbang/bin/analyser` is a stable launcher path for MCP
+  configs, `--rest` enables the transport without a config edit. A `jpackage`/Homebrew milestone (M41) was spec'd
+  and withdrawn the same day: it would have added a Dock icon, a four-runner release matrix and a code-signing
+  bill, and solved nothing a user has asked for. Reopen only for a real user who cannot run JBang.
 - **Rendering stays Swing/Java2D — no embedded browser.** Reusing the JS replay engine via JCEF/JavaFX
   WebView would cost a ~100MB native per-platform dependency and destroy the single shaded fatjar that
   `jbang analyser@…` depends on. FlatLaf remains the only runtime dependency; a hand-rolled layered
