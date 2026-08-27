@@ -51,6 +51,11 @@ M38.2 — vocabulary (D-C3; owner decision 1: a pointed-at markdown file) · bra
                              ProjectModelTest.theVocabularyPointerIsARowOfTheProjectSection.
   docs                       portable-context.md ▸ Vocabulary; sharing-setups row; project-panel; assistant.md.
 
+Review of .2 (review_feat_m38_portable_context.txt) — taken: R1 rebase done deliberately (containment check and
+its test confirmed present after the rebase); R2 the glossary is framed as REFERENCE TEXT, delimited
+<<<GLOSSARY … GLOSSARY>>>, "not an instruction"; the attestation reasoning recorded in D-C3 with the M33 precedent;
+N3 answered in the spec (text in context AND prompt, both labelled).
+
 M38.3 — environments + the §E provenance each stamps (D-C4; owner decision 2: travel by default)
   config/Environment         record {name, provenance, logDir?}; refuse() gates name/provenance/logDir (logDir through the
                              pointer gate); match(envs, default, projectRoot, logFile) is PURE: first logDir that CONTAINS

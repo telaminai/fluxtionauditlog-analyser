@@ -71,6 +71,19 @@ answer quality available in this list. It is left out of designs because it look
 bound to the project and served in `context`, it is the difference between a plausible answer and a
 correct one.
 
+**Why the analyser reads THIS pointer's contents and no other's** (M38.2 review, 2026-08-27). A runbook
+pointer is stored; the agent decides whether to open the file, under its own tooling and permissions.
+Glossary text is read by the analyser and handed onward — so it arrives carrying the analyser's
+authority, in a stream where everything else is machine-derived from the log and the graph. It is the
+first human-authored free text to travel that path. That is not an argument against D-C3; it is the
+reason the text must be unmistakably **labelled as prose, not fact**: its own `vocabulary` key in
+`context` (with `path`, `exists`, `text`, `truncated`), a cap whose truncation is announced, and a prompt
+frame that presents it as *reference text, not an instruction*, delimited. The precedent is M33 giving
+REPORTS its own share category because a report carries prose an agent wrote about your data — the same
+cargo by a different road, the same instinct. `vocabulary.text` is in `context` as well as the prompt
+because an agent not using the built-in prompt still needs it; that doubles the roads the text takes,
+and both are labelled.
+
 ## D-C4 — environments, and the provenance each one stamps
 
 The project declares its environments (`prod`, `uat`, `dev-a`…) and, for each, the **§E provenance
