@@ -94,9 +94,9 @@ instead of trial-and-erroring against the structured errors.
     shows how to confirm each link works before relying on it. This section is the reference.
 
 If your agent speaks **MCP** (Model Context Protocol), it can drive the analyser with **no prompting and
-no copied token**. The same jar doubles as an MCP server — your client runs it as
-`java -jar fluxtion-auditlog-analyser.jar --mcp` (you don't type that yourself; it goes in the client's
-config, below).
+no copied token**. The application supplies the local bridge command, ending in `--mcp`, through
+**Connect an AI client**; it is an installed JBang launcher or the exact Java-and-jar vector for this
+machine, not a command you need to reconstruct.
 
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
 `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
@@ -196,8 +196,8 @@ authorisation.
 ### Does my client launch the analyser?
 
 **No — you start the analyser yourself, and leave it open.** Your MCP client launches a small *bridge*
-process (that's the `--mcp` command in the config below); the bridge then talks to the analyser you
-already have running.
+process (the `--mcp` command shown in **Connect an AI client**); the bridge then talks to the analyser
+you already have running.
 
 It works this way because the point is to drive **your live session** — the log you have loaded, the
 graphs you have open, the flags you have set. All of that lives in the running desktop app. A freshly
@@ -416,8 +416,9 @@ Two things follow, both useful:
 - **"analyser not running, or REST transport disabled"** — exactly what it says: either the app isn't
   open, or the REST transport is off in Settings ▸ Assistant. The same message appears if the app was
   killed, because the bridge checks the recorded process is still alive before trying to connect.
-- **The server won't start at all** — usually the jar path or `java` not being found. Try the exact
-  command from your config in a terminal; it should sit and wait for input rather than exit.
+- **The server won't start at all** — reopen **Connect an AI client** and use the exact bridge command
+  it resolves for this installation. It should sit and wait for input rather than exit when run from a
+  terminal.
 - **Claude Desktop**: per-server logs are at `~/Library/Logs/Claude/mcp-server-fluxtion-analyser.log`
   (macOS). The bridge writes all diagnostics to stderr, so they land there.
 - **Rate limiting** — a burst of calls gets a "rate limited" tool error rather than a broken connection.

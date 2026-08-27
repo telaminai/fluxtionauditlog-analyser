@@ -96,7 +96,9 @@ flowchart LR
 
 - **The AI connects to the analyser through MCP** — the same verbs a person has, and nothing a person
   does not: open a log, filter, flag, chart, step the topology, write a report. Every one of them is a
-  render into the canvas, and every one is reversible. See [the assistant](user-guide/assistant.md).
+  render into the canvas, and every one is reversible. The analyser's Start page and Assistant settings
+  make this connection explicit: they can register Codex or Claude Code after confirmation, or supply
+  a generic no-token record for another client. See [Connecting an LLM to the analyser](connect-an-llm.md).
 - **The AI connects to the deployed app on Mongoose** to fetch what the canvas needs — the audit log
   and the processor's graph — and, on a development server, to act on what was found (turn audit
   detail up, restart after a fix). Today that is an export the agent fetches and opens; it arrives as

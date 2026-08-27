@@ -11,6 +11,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   a wider confirmation window and command field, so the exact Java/JBang bridge vector is readable
   before either client CLI is allowed to run.
 
+### Changed
+- **Working-with-AI MCP guidance now follows the in-app setup.** It explains the resolved JBang or
+  Java bridge command, confirmed Codex/Claude Code registration, and the no-token generic fallback
+  instead of implying that every client needs a hand-written jar command.
+
 ### Added
 - **Connect an AI client, without a first-run pop-up.** The Start page now offers Codex, Claude and
   generic MCP setup, with the same entry under Settings ▸ Assistant. It explains which current analyser

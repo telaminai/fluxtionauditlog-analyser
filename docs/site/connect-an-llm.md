@@ -9,7 +9,7 @@ LLM client connects, and how to check the connection is really working before yo
 
 ```mermaid
 flowchart LR
-  C["Your MCP client<br/>(Claude Code, Claude Desktop, Codex…)"] -->|stdio| B["Bridge<br/>java -jar analyser.jar --mcp"]
+  C["Your MCP client<br/>(Claude Code, Claude Desktop, Codex…)"] -->|stdio| B["Local bridge<br/>resolved launcher + --mcp"]
   B -->|localhost REST<br/>url + token from ~/.fluxtion-analyser/rest-endpoint| A["The running analyser<br/>(your live session)"]
 ```
 
@@ -20,10 +20,11 @@ Three parts, and it matters which is which:
 2. **A localhost REST transport inside the app.** Off by default. When it is on, the app listens on
    `127.0.0.1` on an ephemeral port with a per-run token, and publishes both to
    `~/.fluxtion-analyser/rest-endpoint` (mode 600) so nothing has to be copied into a prompt.
-3. **The bridge.** Your MCP client launches `java -jar fluxtion-auditlog-analyser.jar --mcp` as a
-   subprocess and talks MCP to it over stdio. The bridge is headless; it reads the endpoint file and
-   forwards each tool call to the running app. It does **not** start the app — the point is to drive
-   *your* live session, not a fresh one with nothing in it.
+3. **The bridge.** Your MCP client launches the exact local command shown by **Connect an AI client**
+   (an installed JBang launcher or an absolute Java-and-jar command, followed by `--mcp`) and talks MCP
+   to it over stdio. The bridge is headless; it reads the endpoint file and forwards each tool call to
+   the running app. It does **not** start the app — the point is to drive *your* live session, not a
+   fresh one with nothing in it.
 
 The client sees **one tool per verb**, `analyser_open`, `analyser_context`, `analyser_filter`,
 `analyser_graph`, `analyser_topology`, `analyser_flag`, `analyser_report` and so on — fourteen in all,
@@ -42,9 +43,9 @@ you first. The full verb reference is in [Analyser assistant](user-guide/assista
     # or: jbang analyser@telaminai/fluxtionauditlog-analyser --rest
     ```
 
-    The status bar reads *Assistant REST transport listening on http://127.0.0.1:…* and the console
-    prints the full token. `--rest` is also what an agent runs on a machine that has never seen the
-    analyser: no dialog stands in its way, and the console names the endpoint file.
+    The status bar reads *Assistant REST transport listening on http://127.0.0.1:…*. `--rest` is also
+    what an agent runs on a machine that has never seen the analyser: no dialog stands in its way, and
+    the console names the endpoint file. Neither route puts the per-run token in client configuration.
 
 2. **Set up the bridge from the analyser.** On the Start page choose **Connect Codex**, **Connect
    Claude**, or **Generic MCP setup**; the same screen is also at **Settings ▸ Assistant / LLM ▸ Connect
@@ -131,7 +132,7 @@ same call the bridge does.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Tools listed, every call says *not running* | app closed, or REST transport off | start the app; Settings ▸ Assistant ▸ localhost REST, or `--rest` |
-| Server never appears in the client | wrong jar or `java` path; client not restarted | absolute paths in the config; restart the client |
+| Server never appears in the client | stale launcher or client not reloaded | reopen **Connect an AI client**, use its resolved registration/JSON, then restart or reload the client if required |
 | Calls time out on a very large log | an `aggregate` over millions of records | raise the client's tool timeout (Codex: `tool_timeout_sec`) |
 | `screenshot` / `report` refused | file exchange is opt-in | Settings ▸ Assistant ▸ *Allow assistant file exchange*, and pick the directory |
 | The AI opened a log but `context` shows nothing yet | opening is asynchronous | ask for `context` again — it reports the log, its time-order report and any offers once the load lands |
