@@ -14,6 +14,7 @@ anonymous by construction rather than by inspection.
 Usage
 -----
     python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
+    python3 tools/capture-docs.py --mcp      # regenerate only the MCP setup/dialog shots
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
 Runs the app under an isolated home (/tmp/analyser-docs/home) so no real setting can reach a shot.
@@ -58,15 +59,19 @@ PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
 # the site. Caught by READING the images, which is
 # the rule; fixed here by construction: an isolated user.home has only what this script puts in it, so
 # "loaded only with the demo fixture" is finally true of the configuration as well as the log.
-HOME = pathlib.Path("/tmp/analyser-docs/home")
+CAPTURE_ROOT = pathlib.Path("/tmp/analyser-docs")
+HOME = CAPTURE_ROOT / "home"
 CONFIG = HOME / ".fluxtion-analyser" / "config"
 ENDPOINT = HOME / ".fluxtion-analyser" / "rest-endpoint"
+CAPTURE_BIN = CAPTURE_ROOT / "bin"
+CAPTURE_JAR = CAPTURE_ROOT / "fluxtion-auditlog-analyser.jar"
 # the app writes here; this script copies out of it. Cleared each run so "never overwrite" is satisfied
 # by construction rather than by hoping the names are fresh.
 EXPORT_DIR = pathlib.Path(tempfile.gettempdir()) / "analyser-doc-capture"
 # A throwaway project for the project-profile shots. Deliberately under a NEUTRAL path: the status bar
 # prints the profile's full path, and rule 1 exists because a screenshot carries strings grep cannot see.
-DEMO_PROJECT = pathlib.Path("/tmp/analyser-docs/demo-quote-project")
+DEMO_PROJECT = CAPTURE_ROOT / "demo-quote-project"
+_capture_process = None
 
 
 def jar():
@@ -140,7 +145,7 @@ def menu_capture(ep, menu, name):
         _failed.append(name)                # a verb failure produced no image either — count it
         return False
     b = res["wrote"]["windowBounds"]
-    raise_window()
+    raise_window(ep.get("pid"))
     time.sleep(0.8)                     # let the popup lay out before the shutter
     target = ASSETS / name
     # scratch path, not the asset — see capture(): aiming at an existing asset makes exists() a
@@ -161,8 +166,40 @@ def menu_capture(ep, menu, name):
     return False
 
 
-def launch(theme, project=None):
-    subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
+def stop_capture_app():
+    """Stop only the analyser process this harness launched; never kill a person's open window."""
+    global _capture_process
+    if _capture_process is not None and _capture_process.poll() is None:
+        _capture_process.terminate()
+        try:
+            _capture_process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            _capture_process.kill()
+            _capture_process.wait(timeout=5)
+    _capture_process = None
+
+
+def stage_mcp_setup_launchers():
+    """Make every visible setup path neutral before a public screenshot is taken."""
+    CAPTURE_JAR.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(jar(), CAPTURE_JAR)
+    jbang_launcher = HOME / ".jbang" / "bin" / "analyser"
+    jbang_launcher.parent.mkdir(parents=True, exist_ok=True)
+    # McpLaunchCommand deliberately discovers the documented JBang launcher by file identity. It is
+    # shown but never executed in these shots, so a neutral placeholder proves the layout without
+    # enrolling a real client or exposing a developer's launcher path.
+    jbang_launcher.write_text("# documentation capture launcher — never executed\n")
+    jbang_launcher.chmod(0o700)
+    CAPTURE_BIN.mkdir(parents=True, exist_ok=True)
+    claude = CAPTURE_BIN / "claude"
+    claude.write_text("#!/bin/sh\nexit 0\n")
+    claude.chmod(0o700)
+    return CAPTURE_JAR
+
+
+def launch(theme, project=None, mcp_setup=False):
+    global _capture_process
+    stop_capture_app()
     time.sleep(1)
     # a fresh isolated home every launch: whatever the previous run's app remembered is not ours to keep
     if HOME.exists():
@@ -198,8 +235,13 @@ def launch(theme, project=None):
                   # whole asset set churns for no visual change. Documentation images should be
                   # reproducible; that is the reason they are generated rather than taken by hand.
                   "windowX": "60", "windowY": "60", "windowW": "1680", "windowH": "1050"})
-    subprocess.Popen(["java", f"-Duser.home={HOME}", "-jar", str(jar()), str(LOG)],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    launch_jar = stage_mcp_setup_launchers() if mcp_setup else jar()
+    env = None
+    if mcp_setup:
+        env = os.environ.copy()
+        env["PATH"] = str(CAPTURE_BIN) + os.pathsep + env.get("PATH", "")
+    _capture_process = subprocess.Popen(["java", f"-Duser.home={HOME}", "-jar", str(launch_jar), str(LOG)],
+                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
     for _ in range(40):
         time.sleep(1)
         if ENDPOINT.exists():
@@ -240,8 +282,8 @@ def act(ep, verb, params=None):
     return out
 
 
-def window_id(pid):
-    """The CGWindowID of the analyser's main window, or None.
+def window_id(pid, title=None, fallback_rank=0):
+    """The CGWindowID of this analyser's main window or one of its dialogs, or None.
 
     Polish H3: `screencapture -R` photographs a REGION OF THE SCREEN, so anything overlapping the window
     lands in a public docs image — a browser with personal bookmarks nearly shipped that way (B-M20-2).
@@ -249,20 +291,23 @@ def window_id(pid):
     CGWindowListCopyWindowInfo via JXA, which ships with macOS (pyobjc does not).
 
     Matched on the OWNER PID — the pid the app itself publishes in its rest-endpoint file — plus layer 0
-    (a normal window, not a popup); the largest such window wins. Not on owner name or title: the first
-    cut matched owner /java/ and a title prefix, and found nothing, because a `java -jar` window's owner
-    name is the main class ("Main") and window titles are only visible to callers holding Screen
-    Recording permission. The pid is the one identity the two processes agree on.
+    (a normal window, not a popup); the largest such window wins. For a dialog we prefer its exact title
+    and use its stable area rank only when macOS withholds window names. Not on owner name: a `java -jar`
+    window's owner is the main class ("Main"), not a product name. The pid is the one identity the two
+    processes agree on.
     """
+    expected_title = json.dumps(title) if title else "null"
     js = ('ObjC.import("CoreGraphics");'
           'var l=$.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly|$.kCGWindowListExcludeDesktopElements,0);'
-          'var a=ObjC.deepUnwrap(ObjC.castRefToObject(l));var best=null;'
+          'var a=ObjC.deepUnwrap(ObjC.castRefToObject(l));var candidates=[];var wanted=%s;'
           'for (var w of a){'
           ' if(w.kCGWindowOwnerPID!==%d)continue;'
           ' if(w.kCGWindowLayer!==0)continue;'
           ' var area=w.kCGWindowBounds.Width*w.kCGWindowBounds.Height;'
-          ' if(!best||area>best.area)best={id:w.kCGWindowNumber,area:area};}'
-          'best?String(best.id):""') % int(pid)
+          ' candidates.push({id:w.kCGWindowNumber,area:area,name:String(w.kCGWindowName||"")});}'
+          'var exact=wanted===null?[]:candidates.filter(function(w){return w.name===wanted;});'
+          'var selected=exact.length?exact[0]:(candidates.sort(function(a,b){return b.area-a.area;})[%d]);'
+          'selected?String(selected.id):""') % (expected_title, int(pid), int(fallback_rank))
     out = subprocess.run(["osascript", "-l", "JavaScript", "-e", js], capture_output=True, text=True).stdout.strip()
     return int(out) if out.isdigit() else None
 
@@ -280,7 +325,7 @@ def native_capture(ep, bounds, shot):
     return "region"
 
 
-def raise_window():
+def raise_window(pid):
     """Bring the analyser to the front before a native capture.
 
     `screencapture -R` photographs a REGION OF THE SCREEN, not a window, so anything overlapping the
@@ -290,8 +335,7 @@ def raise_window():
     """
     subprocess.run(["osascript", "-e",
                     'tell application "System Events" to set frontmost of '
-                    'the first process whose unix id is (do shell script '
-                    '"pgrep -f fluxtion-auditlog-analyser | head -1") to true'],
+                    f'the first process whose unix id is {int(pid)} to true'],
                    check=False, capture_output=True)
     time.sleep(0.4)
 
@@ -311,7 +355,7 @@ def capture(ep, name):
     painted = EXPORT_DIR / scratch_name
 
     b = res["wrote"]["windowBounds"]
-    raise_window()
+    raise_window(ep.get("pid"))
     target = ASSETS / name
     # Capture to a SCRATCH path, never straight onto the asset. `screencapture` writes nothing when it
     # fails (no Screen Recording permission → "could not create image from rect"), and testing
@@ -343,6 +387,54 @@ _attempted = []     # every asset this run tried to produce, window and menu sho
 _failed = []        # the subset it could not — a failed verb call counts, not only a failed shutter
 
 
+def capture_mcp_setup():
+    """M42 UI disclosures, with fake local launchers so a public image contains no personal path."""
+    print("MCP setup dialogs")
+    stop_capture_app()
+    shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    HOME.mkdir(parents=True)
+    if EXPORT_DIR.exists():
+        shutil.rmtree(EXPORT_DIR)
+    EXPORT_DIR.mkdir(parents=True)
+    stage_mcp_setup_launchers()
+    classes = CAPTURE_ROOT / "classes"
+    source = REPO / "tools" / "McpSetupDocCapture.java"
+    compile_result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(source)],
+                                    capture_output=True, text=True)
+    names = ["mcp-generic-setup.png", "mcp-claude-code-confirm.png"]
+    _attempted.extend(names)
+    if compile_result.returncode != 0:
+        print(f"  ! could not compile MCP dialog capture: {compile_result.stderr.strip()}")
+        _failed.extend(names)
+        return
+    env = os.environ.copy()
+    env["PATH"] = str(CAPTURE_BIN) + os.pathsep + env.get("PATH", "")
+    capture_result = subprocess.run(["java", f"-Duser.home={HOME}", "-cp",
+                                     str(classes) + os.pathsep + str(CAPTURE_JAR), "McpSetupDocCapture", str(ASSETS)],
+                                    capture_output=True, text=True, env=env)
+    if capture_result.returncode != 0:
+        print(f"  ! MCP dialog capture failed: {capture_result.stderr.strip()}")
+    for name in names:
+        asset = ASSETS / name
+        if capture_result.returncode == 0 and asset.exists() and asset.stat().st_size > 0:
+            print(f"  ✓ {name}  ({asset.stat().st_size // 1024} KB, dialog capture)")
+        else:
+            _failed.append(name)
+
+
+def finish_capture():
+    if "--keep" not in sys.argv:
+        stop_capture_app()
+        shutil.rmtree(EXPORT_DIR, ignore_errors=True)
+        shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    if _failed:
+        print(f"done — {len(_attempted) - len(_failed)} of {len(_attempted)} regenerated; "
+              f"{len(_failed)} NOT captured: {', '.join(_failed)}")
+        print("  grant Screen Recording and Accessibility permission to this terminal and re-run before committing docs")
+        sys.exit(1)
+    print(f"done — {len(_attempted)} captures, all native")
+
+
 def seed(ep):
     """Every capture starts from the same loaded state."""
     act(ep, "source_root", {"add": [str(ROOT)]})
@@ -352,6 +444,11 @@ def seed(ep):
 
 def main():
     ASSETS.mkdir(parents=True, exist_ok=True)
+
+    if "--mcp" in sys.argv:
+        capture_mcp_setup()
+        finish_capture()
+        return
 
     print("light theme")
     ep = launch("Light")
@@ -502,19 +599,7 @@ def main():
     # the saved analysis's offer — the human-facing half of context.runbooks / vocabulary / analyses
     capture(ep, "ai-runbooks-panel.png")
 
-    if "--keep" not in sys.argv:
-        subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
-        shutil.rmtree(EXPORT_DIR, ignore_errors=True)
-        shutil.rmtree(DEMO_PROJECT.parent, ignore_errors=True)
-    # The count of shots ATTEMPTED was never the interesting number. Say how many images this run
-    # actually produced, and exit non-zero when any did not, so a capture run cannot look successful
-    # while leaving the assets exactly as it found them.
-    if _failed:
-        print(f"done — {len(_attempted) - len(_failed)} of {len(_attempted)} regenerated; "
-              f"{len(_failed)} NOT captured: {', '.join(_failed)}")
-        print("  grant Screen Recording permission to this terminal and re-run before committing docs")
-        sys.exit(1)
-    print(f"done — {len(_attempted)} captures, all native")
+    finish_capture()
 
 
 if __name__ == "__main__":

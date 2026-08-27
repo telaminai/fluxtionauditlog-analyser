@@ -15,6 +15,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Working-with-AI MCP guidance now follows the in-app setup.** It explains the resolved JBang or
   Java bridge command, confirmed Codex/Claude Code registration, and the no-token generic fallback
   instead of implying that every client needs a hand-written jar command.
+- **The connection guide now shows the setup before it changes anything.** Anonymised screenshots cover
+  Generic MCP's copy/save JSON and the explicit Claude Code confirmation, including what Cancel and a
+  successful client command do—and do not—prove.
 
 ### Added
 - **Connect an AI client, without a first-run pop-up.** The Start page now offers Codex, Claude and

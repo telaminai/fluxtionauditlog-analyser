@@ -66,6 +66,27 @@ you first. The full verb reference is in [Analyser assistant](user-guide/assista
     local analyser-to-bridge chain, not that a client has imported the registration. Restart or reload
     your client where that client requires it.
 
+### The registration screens
+
+The Generic MCP choice shows a complete, selectable `mcpServers` record. **Copy configuration** copies
+only that JSON; **Save snippet…** writes it only to a file you select and confirms before replacing one.
+Neither action changes a client configuration. The path below is deliberately a neutral documentation
+path — use the exact launcher shown by *your* analyser, not the one in this image.
+
+![Generic MCP setup shows the resolved JBang launcher as a standard mcpServers JSON record, with Copy configuration and Save snippet actions](assets/mcp-generic-setup.png)
+
+For Codex and Claude Code, choose **Check … registration** first. The app reports only the named
+`fluxtion-analyser` entry; it does not infer that an entry at a different scope wins. **Register** or
+**Replace** then shows the full command and a clear statement of what will change. It is still only a
+proposal: **Cancel** does not start the client or write a configuration.
+
+![Claude Code user-registration confirmation shows the exact command and Cancel and OK choices before the client CLI runs](assets/mcp-claude-code-confirm.png)
+
+The Claude Code example is user-scoped. Codex uses the same readable confirmation layout for its shared
+local registration. A project-scope Claude Code command remains copy-only; run it from the project root
+yourself if that is the configuration you intend to change. A successful confirmation says that the
+client command completed—not that a client is currently signed in, connected, or approved to call a tool.
+
 3. **Open a log in the analyser** — or let the AI do it with `analyser_open` once you have checked the
    connection. Everything the AI renders lands in the window you are looking at.
 

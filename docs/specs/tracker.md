@@ -354,15 +354,17 @@ green check never pretends it has observed a foreign client or model._
   transport enablement; distinct app/bridge/client state. The packaged-launch bridge check and its wrapped,
   copyable command field were manually reviewed in the running UI (2026-08-27).
 - [M42.3] ◧ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
+  Codex has manually discovered the `fluxtion-analyser` registration and its 14 tools (2026-08-27); the final
+  read-only `analyser_context` acceptance remains to be recorded.
 - [M42.4] ◧ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
   copy/diff-only, never a default side effect. Its shared confirmation disclosure now uses a readable desktop-width
   command field (2026-08-27); final clean-client acceptance remains pending.
 - [M42.5] ☑ **Claude Desktop route** — live MCPB contract verified; the documented generic-config fallback is
   retained because the per-machine JBang/Java bridge has no portable bundled entry point (2026-08-27).
-- [M42.6] ◧ **Generic configuration + docs** — exact argument-vector JSON can be copied or saved only to a
+- [M42.6] ☑ **Generic configuration + docs** — exact argument-vector JSON can be copied or saved only to a
   user-chosen file (with overwrite confirmation); connection, Assistant, Start-page and FAQ guidance now cover
-  the in-app path, including the Working-with-AI connection and loop pages. `mvn test` and `mkdocs build --strict`
-  are green (2026-08-27); manual Generic MCP UI review is still pending before this slice closes.
+  the in-app path, including the Working-with-AI connection and loop pages. Isolated native setup and confirmation
+  captures are published and visually inspected; `mvn test` and `mkdocs build --strict` are green (2026-08-27).
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open
 _Design: **[spec-source-adapters.md](spec-source-adapters.md)**. Owner ask: make the app general

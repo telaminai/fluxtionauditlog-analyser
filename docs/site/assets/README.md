@@ -30,6 +30,8 @@ thread, logger or account names** — use neutral placeholders (e.g. `DEMO`, `ma
 | `graph-series-dark.png` | Graphs — a value plotted over time (dark: plots read better on it) |
 | `graph-step-dark.png` | Graphs — stairs style |
 | `graph-series-light.png` | spare — the same plot on the light theme, if a page needs to match |
+| `mcp-generic-setup.png` | Working with AI ▸ Connecting an LLM — Generic MCP record, copy/save boundary |
+| `mcp-claude-code-confirm.png` | Working with AI ▸ Connecting an LLM — explicit Claude Code registration confirmation |
 | `sample-audit-log.yaml` | Downloadable sample (Home, Getting started, Install, Log format) |
 
 ### Withdrawn — need recapturing
@@ -52,12 +54,19 @@ without them. To restore any of them, load the demo fixture and capture by hand 
 ```bash
 mvn package                        # the harness drives the built jar
 python3 tools/capture-docs.py      # regenerates every image in the inventory above
+python3 tools/capture-docs.py --mcp # regenerates only the isolated MCP setup/dialog shots
 ```
 
 The harness launches the analyser on the demo fixture, drives it over the localhost REST transport
 (`topology`, `goto`, `flag`, `open`, `screenshot` verbs) and takes a **native** window capture so the
 title bar is included. It sets the theme and resets the saved topology view first, so runs are
 reproducible rather than depending on whatever state the app was left in.
+
+The MCP dialog pair is different from the main window shots: `tools/McpSetupDocCapture.java` opens the
+real Swing setup and confirmation dialogs directly. Before it does, `capture-docs.py` creates neutral
+JBang and Claude executables only under `/tmp/analyser-docs`; the confirmation is photographed before
+**OK**, so it cannot modify a real client configuration. This is how the visible command remains useful
+without publishing a developer's launcher path.
 
 Capturing by hand is a fallback for dialogs the harness cannot open. On macOS: **Cmd+Shift+4 → Space →
 click the window**, then check every visible string before committing. Reference with a relative path and
