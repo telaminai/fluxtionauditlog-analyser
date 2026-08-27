@@ -91,10 +91,9 @@ ordering claim honoured by the view, coverage refusing an inferred graph) and **
 normative specification — *The audit log ▸ Format specification* — with a conformance suite the built-in
 reader and the SPI both pass). **M37 the Project panel** (shipped 2026-08-27: what is in force — project, log, graph, processors,
 roots, reports — rendered from `context` for people; the west column is draggable) and **M38.1** (runbook
-POINTERS — the profile records a location, never contents; `docs/specs/spec-portable-context.md`). **M38.2–.6**
-(vocabulary pointer, environments + provenance defaults, repeatable analyses, report destinations, path anchors)
-are implemented on `feat/m38-portable-context` — .1–.4 reviewed and closed, .5–.6 under review; the branch
-rebases onto main once at merge. **M40.1** (audit readiness read from the graph) shipped 2026-08-27 on main.
+POINTERS — the profile records a location, never contents; `docs/specs/spec-portable-context.md`). **M38.2–.7**
+(vocabulary pointer, environments + provenance defaults, repeatable analyses, report destinations, path anchors,
+preserve-unknown-keys) shipped 2026-08-27 — the project profile is portable context, gated at every entrance. **M40.1** (audit readiness read from the graph) shipped 2026-08-27 on main.
 
 Also merged: **M19.6/.7** (`tools/bench/` — the dev loop's conformance bench, §H's home, runnable today
 against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.4** (the start page: the

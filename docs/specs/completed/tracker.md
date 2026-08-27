@@ -1673,3 +1673,51 @@ saved graphs fell 6 → 1 and no surface showed the count._
 types; the start page does **not** show the PROJECT section inline. Review F2 taken: sentences wrap, paths
 elide, default column 340px. Brief `docs/handoff/completed/handoff_26_aug_2026_1.txt`, report
 `docs/handoff/completed/report_feat_m37_loaded_panel.txt`.
+
+## M38 · Portable context — the project as a shared workspace — ☑ **SHIPPED 2026-08-27** — .1–.7 merged to main; .1–.6 reviewed end to end (`docs/handoff/completed/review_feat_m38_closing.txt`), .7 merged with its tests, review welcome (owner-requested; report `docs/handoff/completed/report_feat_m38_portable_context.txt`)
+_Design: **[spec-portable-context.md](spec-portable-context.md)**. Owner's framing: portable context for a
+human and an AI to work in a shared space — code, metadata, artifacts, logs, display, analysis. **Depends
+on M37**: without the Loaded panel these facts are readable by agents and invisible to humans, which is
+the asymmetry M37 exists to end._
+- **D-C1 is the load-bearing decision — tiers by whether the stored thing EXECUTES.** Facts (vocabulary,
+  environments, pointers, baselines) and analyses (sequences of ANALYSER verbs) travel in a shared
+  profile; runbooks never travel as payload. Tier 2 is safe only because **server verbs never appear on
+  the analyser's action socket** — relaxing that standing decision would make every shared profile
+  executable, and the spec says so out loud.
+- [M38.1] ☑ **Tier model + runbook POINTERS** _(2026-08-27)_ — the profile records `ops/deploy.md`, never the commands:
+  execution stays with the agent / UP-MNG-02, the trust boundary becomes "you cloned this repo" rather
+  than "you opened a file someone sent you". Write-time validation, import refusal of contents, a
+  Loaded-panel row. Security first, before anything wants to bend it.
+- [M38.2] ☑ **Vocabulary** _(2026-08-27: `vocabulary=` pointer in the profile; `context.vocabulary` with the file's text; first block of the Explain prompt; `VOCABULARY` share category default-on; panel row)_ — what `live` means in THIS system. The cheapest large win in the milestone:
+  an LLM on an unseen processor and a first-week support engineer need the identical thing, and neither
+  has it. Inert, shareable, no execution.
+- [M38.3] ☑ **Environments + the §E provenance each stamps** _(2026-08-27: `environment.N.*` + `environment.default`; matched by logDir then default, only when nobody declared; `context.provenanceSource`; `ENVIRONMENTS` share category default-on; panel rows; review F1: the report header qualifies a matched provenance)_ — correctness, not convenience: two
+  environments on one build emit indistinguishable logs, and an answer right about UAT read as
+  production has no symptom the analyser can detect. Pairs with UP-MNG-03 (server wins where both exist).
+- [M38.4] ☑ **Repeatable analyses** _(2026-08-27: `analysis.N.*` in the profile; gate = analyser verbs only, no project switch; `context.analyses` is the offer; recall via `open {analysis, bind}` and File ▸ Run analysis; stops at first failure; `ANALYSES` share category default-on; panel section)_ — a named sequence of analyser verbs with its rationale and bound
+  parameters; an offer, never automatic.
+- [M38.5] ☑ **Report destinations** _(2026-08-27: `destination.N.*`; gate refuses credential shapes; `context.reportDestinations`; Reports-section rows; `DESTINATIONS` share category — default OFF after review F1: a webhook URL is a credential in path form, known hosts refused by name; the category table completed on the docs page)_ (a place, never a credential — the `LLM`-category precedent), share
+  categories completed, docs + CHANGELOG.
+- **Owner decisions, 2026-08-27:** vocabulary is a **pointed-at markdown file** (same rule as a runbook —
+  one rule for pointed-at content, not two); environments **travel by default**, label naming the cargo;
+  prior findings are **links only**; **baselines become M39** — "what does normal look like here" is the
+  question support cannot answer about an unfamiliar system and deserves its own design.
+- [M38.7] ☑ **Rewrite what you own, preserve what you do not understand (D-C10)** _(owner decision 2026-08-27; the
+  mixed-version hazard found live in .5: an older analyser dropped a newer one's keys on save. `KnownKeys` registry;
+  both writers carry over unknown key families and rewrite owned ones wholesale; loader unchanged — ignore, never reject)_
+- [M38.6] ☑ **Path anchors (D-C9)** _(2026-08-27: `workspaceRoot` anchor, validated; roots/repos under it written `../…`; `context.source.rootTiers[].form` + the Project panel's stored-form badge with a WARN for absolute/~ under a project; pointers unchanged)_ _(owner question 2026-08-27: "relative or absolute?")_ — three forms
+  already exist and are chosen automatically (project-relative → `~` → absolute). Keep the rule, add the
+  missing **anchor**: an optional project-declared `workspaceRoot` so a SIBLING checkout
+  (`../shared-lib`) can be expressed — today it is written `~/…`, portable for you and silently wrong
+  for a colleague. Pointers (runbook, vocabulary) stay project-relative with no `..`; source roots may
+  use the wider set. The Project panel shows the stored FORM per row, so "this profile is not portable"
+  is visible before it is shared rather than after it fails.
+- [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
+  question support cannot answer about a system they did not build, and the one a deterministic record
+  uniquely can. Five decisions, the load-bearing two: **D-N1** a baseline is a NAMED REFERENCE RUN, never
+  an abstract "normal" (an abstract normal is unfalsifiable authority — nobody can check it, and when it
+  disagrees with reality there is no way to tell which is wrong); **D-N3** a comparison prints TWO
+  measurements and no verdict, because a scoring tool becomes a tool people ignore after its first false
+  alarm. Keyed per environment (M38.3), offered never automatic (M35–M37 spent three milestones removing
+  things that fire at load), and it carries no log data. Slices M39.1–.5; four open questions for the
+  owner, the first being where a baseline lives.

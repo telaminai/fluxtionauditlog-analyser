@@ -1,6 +1,6 @@
 # Spec — portable context: the project as a shared workspace for a human and an AI
 
-**Status:** IMPLEMENTED — M38.1–.7 on `feat/m38-portable-context` 2026-08-27, one branch; .1–.6 reviewed (F1s taken), .7 awaiting review (owner decisions 1–4 recorded below; .1 needed none of them). **Milestone:** M38. **Tracker:** [tracker.md](tracker.md) ▸ M38.
+**Status:** SHIPPED 2026-08-27 — M38.1–.7 merged to main; reviews in `docs/handoff/completed/` (spec, .2, .3, .4, .5/.6, closing).
 **Depends on:** **M37** (the Loaded panel) — see *Why on top of M37*.
 
 ## The proposition
