@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.core.Background;
 import telamin.fluxtion.audit.analyser.analyser.mcp.CodexMcpClient;
+import telamin.fluxtion.audit.analyser.analyser.mcp.ClaudeMcpClient;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpConnectionProbe;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpLaunchCommand;
 import telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState;
@@ -36,7 +37,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The local MCP readiness and confirmed-client-setup surface (M42.2–.3).
+ * The local MCP readiness and confirmed-client-setup surface (M42.2–.4).
  *
  * <p>Opening it only reads the current local state and the documented JBang launcher. Third-party
  * configuration changes have their own confirmation; enabling local transport has another. Bridge
@@ -91,6 +92,11 @@ public final class McpSetupDialog extends JDialog {
     private boolean codexJustChanged;
     private CodexMcpClient.RegistrationStatus codexRegistration = CodexMcpClient.RegistrationStatus.INDETERMINATE;
     private String codexOutcome = "";
+    private ClaudeMcpClient claude;
+    private boolean claudeChecked;
+    private boolean claudeJustChanged;
+    private ClaudeMcpClient.RegistrationStatus claudeRegistration = ClaudeMcpClient.RegistrationStatus.INDETERMINATE;
+    private String claudeOutcome = "";
 
     private McpSetupDialog(Window owner, AppConfig config, Runnable onConfigurationChanged, Target initial,
                            Dialog.ModalityType modality) {
@@ -266,8 +272,7 @@ public final class McpSetupDialog extends JDialog {
         if (selected == Target.CODEX) {
             refreshCodexStatus();
         } else if (selected == Target.CLAUDE) {
-            clientStatus.setText("Claude configuration is not supplied by the analyser yet. Its explicit setup arrives "
-                    + "in the next MCP slice; opening this screen has not changed Claude.");
+            refreshClaudeStatus();
         } else {
             clientStatus.setText("No generic MCP configuration has been supplied. Its location and approval model belong "
                     + "to your client; opening this screen has not changed it.");
@@ -288,7 +293,7 @@ public final class McpSetupDialog extends JDialog {
         if (codexChecked) {
             clientStatus.setText(codexJustChanged && !codexOutcome.isBlank() ? codexOutcome : switch (codexRegistration) {
                 case PRESENT -> "Codex lists the named registration. This proves its configuration only—not a connected "
-                        + "client session or an approved tool call.";
+                        + "client session or an approved tool call; another scope may take precedence.";
                 case ABSENT -> "Codex has no registration named fluxtion-analyser.";
                 case INDETERMINATE -> codexOutcome.isBlank()
                         ? "Codex has not been checked in this setup session."
@@ -341,13 +346,8 @@ public final class McpSetupDialog extends JDialog {
         codexJustChanged = false;
         codexRegistration = registration.status();
         codexOutcome = registration.detail();
-        if (registration.status() != CodexMcpClient.RegistrationStatus.INDETERMINATE) {
-            boolean installed = registration.present();
-            if (config.mcpCodexRegistrationInstalled != installed) {
-                config.mcpCodexRegistrationInstalled = installed;
-                onConfigurationChanged.run();
-            }
-        }
+        // A current CLI check can see a project-scoped entry. Only our successful add/replace/remove command
+        // earns the persisted "last command succeeded" reminder; a check is useful evidence, not that claim.
         refreshClientStatus();
     }
 
@@ -437,6 +437,157 @@ public final class McpSetupDialog extends JDialog {
     }
 
     private enum CodexChange { ADD, REPLACE, REMOVE }
+
+    private void refreshClaudeStatus() {
+        claude = ClaudeMcpClient.detect().orElse(null); // PATH inspection only: opening setup never starts Claude Code.
+        if (claude == null) {
+            clientStatus.setText("Claude Code CLI was not found on PATH. Install Claude Code, then use one of the "
+                    + "copyable commands; this analyser has not changed Claude Code or any project file.");
+            addClaudeCopyActions();
+            return;
+        }
+
+        if (claudeChecked) {
+            clientStatus.setText(claudeJustChanged && !claudeOutcome.isBlank() ? claudeOutcome : switch (claudeRegistration) {
+                case PRESENT -> "Claude Code lists the named registration. This proves its configuration only—not a "
+                        + "connected session or an approved tool call; another scope may take precedence.";
+                case ABSENT -> "Claude Code has no registration named fluxtion-analyser.";
+                case INDETERMINATE -> claudeOutcome.isBlank()
+                        ? "Claude Code has not been checked in this setup session."
+                        : claudeOutcome;
+            });
+        } else if (config.mcpClaudeRegistrationInstalled) {
+            clientStatus.setText("This analyser last recorded a successful Claude Code user registration. Check Claude "
+                    + "Code to confirm what it has now; a past command cannot prove a current session.");
+        } else {
+            clientStatus.setText("Claude Code CLI is available. Check its named registration or explicitly add one; "
+                    + "opening this screen has not run Claude Code.");
+        }
+
+        clientActions.add(action("Check Claude Code registration", this::checkClaudeRegistration));
+        if (command != null) {
+            boolean replace = claudeChecked && claudeRegistration == ClaudeMcpClient.RegistrationStatus.PRESENT;
+            clientActions.add(Box.createHorizontalStrut(8));
+            clientActions.add(action(replace ? "Replace Claude Code registration…" : "Register with Claude Code…",
+                    () -> confirmClaudeChange(replace ? ClaudeChange.REPLACE : ClaudeChange.ADD)));
+            if (replace || config.mcpClaudeRegistrationInstalled) {
+                clientActions.add(Box.createHorizontalStrut(8));
+                clientActions.add(action("Remove Claude Code registration…", () -> confirmClaudeChange(ClaudeChange.REMOVE)));
+            }
+            if (claudeChecked && claudeRegistration == ClaudeMcpClient.RegistrationStatus.INDETERMINATE) {
+                clientActions.add(Box.createHorizontalStrut(8));
+                clientActions.add(action("Copy Claude Code command", () -> copyClaudeCommand(false)));
+            }
+            clientActions.add(Box.createHorizontalStrut(8));
+            clientActions.add(action("Copy project-scope command", () -> copyClaudeCommand(true)));
+        }
+    }
+
+    private void addClaudeCopyActions() {
+        if (command == null) return;
+        clientActions.add(action("Copy Claude Code command", () -> copyClaudeCommand(false)));
+        clientActions.add(Box.createHorizontalStrut(8));
+        clientActions.add(action("Copy project-scope command", () -> copyClaudeCommand(true)));
+    }
+
+    private void checkClaudeRegistration() {
+        if (claude == null) return;
+        rememberSetup();
+        setClientActionsEnabled(false);
+        clientStatus.setText("Checking Claude Code's named registration (this explicit check may start its configured bridge)…");
+        ClaudeMcpClient toCheck = claude;
+        Background.run(toCheck::registration, this::showClaudeRegistration,
+                error -> showClaudeResult(new ClaudeMcpClient.Result(ClaudeMcpClient.Status.LAUNCH_FAILED,
+                        "Claude Code could not be checked; its configuration was not changed."), false));
+    }
+
+    private void showClaudeRegistration(ClaudeMcpClient.Registration registration) {
+        claudeChecked = true;
+        claudeJustChanged = false;
+        claudeRegistration = registration.status();
+        claudeOutcome = registration.detail();
+        // `claude mcp get` reports the effective name and can see local/project entries. It must not turn
+        // that observation into a claim that this app's user-scope command succeeded.
+        refreshClientStatus();
+    }
+
+    private void confirmClaudeChange(ClaudeChange change) {
+        if (claude == null || (command == null && change != ClaudeChange.REMOVE)) return;
+        List<String> commands = new ArrayList<>();
+        String verb;
+        if (change == ClaudeChange.ADD) {
+            commands.add(ClaudeMcpClient.shellDisplay(claude.addCommand(command)));
+            verb = "add";
+        } else if (change == ClaudeChange.REPLACE) {
+            commands.add("1. " + ClaudeMcpClient.shellDisplay(claude.removeCommand()));
+            commands.add("2. " + ClaudeMcpClient.shellDisplay(claude.addCommand(command)));
+            verb = "replace";
+        } else {
+            commands.add(ClaudeMcpClient.shellDisplay(claude.removeCommand()));
+            verb = "remove";
+        }
+        JTextArea exact = commandBox();
+        exact.setText(String.join("\n", commands));
+        int choice = JOptionPane.showConfirmDialog(this, new Object[]{
+                        "Claude Code will " + verb + " only the user-scoped registration named fluxtion-analyser. "
+                                + "The bridge discovers the per-run endpoint and token itself; neither is in this command.",
+                        "Cancel means Claude Code is not started and no configuration is written.", exact},
+                "Confirm Claude Code registration", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (choice != JOptionPane.OK_OPTION) return;
+        rememberSetup();
+        setClientActionsEnabled(false);
+        clientStatus.setText("Claude Code is applying the confirmed user registration change…");
+        ClaudeMcpClient client = claude;
+        Background.run(() -> switch (change) {
+                    case ADD -> client.add(command);
+                    case REPLACE -> client.replace(command);
+                    case REMOVE -> client.remove();
+                }, result -> showClaudeResult(result, change != ClaudeChange.REMOVE),
+                error -> showClaudeResult(new ClaudeMcpClient.Result(ClaudeMcpClient.Status.LAUNCH_FAILED,
+                        "Claude Code could not start; its configuration was not changed."), false));
+    }
+
+    private void showClaudeResult(ClaudeMcpClient.Result result, boolean installedOnSuccess) {
+        claudeChecked = true;
+        claudeJustChanged = true;
+        if (result.successful()) {
+            claudeRegistration = installedOnSuccess ? ClaudeMcpClient.RegistrationStatus.PRESENT
+                    : ClaudeMcpClient.RegistrationStatus.ABSENT;
+            claudeOutcome = installedOnSuccess
+                    ? "Claude Code user registration installed. This analyser has not observed a connected client or tool call; "
+                            + "a local or project registration with this name can take precedence."
+                    : "Claude Code user registration removed. This analyser has not changed any local or project registration.";
+            if (config.mcpClaudeRegistrationInstalled != installedOnSuccess) {
+                config.mcpClaudeRegistrationInstalled = installedOnSuccess;
+                onConfigurationChanged.run();
+            }
+        } else {
+            claudeRegistration = ClaudeMcpClient.RegistrationStatus.INDETERMINATE;
+            claudeOutcome = result.detail() + " Copy the command and inspect it in a terminal if you need to diagnose it.";
+        }
+        refreshClientStatus();
+    }
+
+    private void copyClaudeCommand(boolean projectScope) {
+        if (command == null) return;
+        List<String> copy;
+        if (projectScope) {
+            copy = ClaudeMcpClient.projectCommandForCopy(command);
+        } else {
+            copy = claude == null ? ClaudeMcpClient.userCommandForCopy(command) : claude.addCommand(command);
+        }
+        try {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new StringSelection(ClaudeMcpClient.shellDisplay(copy)), null);
+            clientStatus.setText(projectScope
+                    ? "Copied the project-scope command. Run it yourself from the chosen project root; this analyser will not write .mcp.json."
+                    : "Copied the Claude Code user-registration command. Running it is your explicit choice.");
+        } catch (IllegalStateException | java.awt.HeadlessException e) {
+            clientStatus.setText("Could not reach the clipboard. The exact user command is shown when you choose Register with Claude Code.");
+        }
+    }
+
+    private enum ClaudeChange { ADD, REPLACE, REMOVE }
 
     private void confirmEnableTransport() {
         int choice = JOptionPane.showConfirmDialog(this,

@@ -186,11 +186,24 @@ the loopback probe succeeds, and never claims it has observed a model call.
 
 The default target is the user's Claude Code configuration, not a repository `.mcp.json`: the analyser
 is a personal local desktop tool, and silently adding a server to a project file would make a machine
-integration look like checked-in project policy. The confirmation uses the current Claude Code CLI's
-user-scoped registration syntax and the same resolved argument vector.
+integration look like checked-in project policy. [Live Claude Code MCP documentation](https://code.claude.com/docs/en/mcp)
+and the installed CLI were verified on 2026-08-27. The confirmation uses the current user-scoped STDIO
+form, with every Claude option before the name, and the same resolved argument vector:
 
-An explicit **Project configuration instead…** route may show a diff/copyable `.mcp.json` block only
-after the person picks a project. It is never the default and is not written by this app. The exact
+```text
+claude mcp add --scope user --transport stdio fluxtion-analyser -- <absolute-launcher> --mcp
+```
+
+Opening setup only locates the `claude` executable. An explicit check invokes `claude mcp get
+fluxtion-analyser`; current Claude Code may health-check the server as part of that command, so the UI
+states that the explicit check can start the configured bridge. Add, replace, and remove use the CLI
+with bounded, redacted output; user-scope removal is always `claude mcp remove --scope user
+fluxtion-analyser`, never an inferred edit to another scope.
+
+The screen also offers a **Copy project-scope command**. It is never the default and never writes a
+project file: the person intentionally runs it from the desired project root if they want Claude Code
+to create or update that project's `.mcp.json`. A user-scope success and `mcp get` result are not
+presented as proof that an overlapping local/project configuration will not take precedence. The exact
 Claude CLI/options and config schema must be verified against the live Claude documentation at
 implementation time (the protocol is an external contract, so rule 6 applies).
 

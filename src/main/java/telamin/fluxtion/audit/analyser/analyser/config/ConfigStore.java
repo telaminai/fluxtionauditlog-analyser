@@ -102,6 +102,8 @@ public final class ConfigStore {
         c.mcpLauncherIdentity = p.getProperty("mcp.launcherIdentity", c.mcpLauncherIdentity);
         c.mcpCodexRegistrationInstalled = parseBool(p.getProperty("mcp.codexRegistrationInstalled"),
                 c.mcpCodexRegistrationInstalled);
+        c.mcpClaudeRegistrationInstalled = parseBool(p.getProperty("mcp.claudeRegistrationInstalled"),
+                c.mcpClaudeRegistrationInstalled);
         readList(p, "searchHistory", c.searchHistory);
         c.lastRunVersion = p.getProperty("lastRunVersion", c.lastRunVersion);
         c.windowX = parseInt(p.getProperty("windowX"), c.windowX);
@@ -181,6 +183,7 @@ public final class ConfigStore {
         put(p, "mcp.target", c.mcpSetupTarget);
         put(p, "mcp.launcherIdentity", c.mcpLauncherIdentity);
         put(p, "mcp.codexRegistrationInstalled", Boolean.toString(c.mcpCodexRegistrationInstalled));
+        put(p, "mcp.claudeRegistrationInstalled", Boolean.toString(c.mcpClaudeRegistrationInstalled));
         put(p, "windowX", Integer.toString(c.windowX));
         put(p, "windowY", Integer.toString(c.windowY));
         put(p, "windowW", Integer.toString(c.windowW));

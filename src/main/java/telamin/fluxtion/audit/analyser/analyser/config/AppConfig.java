@@ -93,6 +93,7 @@ public final class AppConfig {
     public String mcpSetupTarget = "";
     public String mcpLauncherIdentity = "";
     public boolean mcpCodexRegistrationInstalled = false;
+    public boolean mcpClaudeRegistrationInstalled = false;
 
     // B1 (review_handoff_16_aug_2026): verb-initiated file writes (screenshot/report) are OPT-IN and
     // confined to one directory — the socket's out-of-box promise stays "nothing outside the loaded log".

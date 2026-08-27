@@ -354,7 +354,7 @@ green check never pretends it has observed a foreign client or model._
   transport enablement; distinct app/bridge/client state. The packaged-launch bridge check and its wrapped,
   copyable command field were manually reviewed in the running UI (2026-08-27).
 - [M42.3] ◧ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
-- [M42.4] ☐ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
+- [M42.4] ◧ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
   copy/diff-only, never a default side effect.
 - [M42.5] ☐ **Claude Desktop extension** — package/test the local extension against the live manifest contract, or
   retain an honest documented generic-config fallback if it cannot launch the bridge portably.

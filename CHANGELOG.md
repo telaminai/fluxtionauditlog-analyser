@@ -24,6 +24,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   launching it; an explicit check, add, replace, or remove names only `fluxtion-analyser`, shows the
   exact no-token command, and uses the Codex CLI rather than editing its configuration file. A command
   success is kept distinct from a connected client session or approved tool call.
+- **Claude Code can now receive a confirmed user-scoped MCP registration.** Setup uses its current
+  CLI with an explicit `--scope user`; a project-scope command is copy-only, so the analyser never
+  creates or modifies a repository’s `.mcp.json`. A check makes clear that Claude Code may start its
+  configured bridge, and a client scope can override another one.
 
 ## [1.10.0] - 2026-08-27
 

@@ -29,6 +29,7 @@ class ConfigStoreTest {
         c.mcpSetupTarget = "CODEX";
         c.mcpLauncherIdentity = "packaged application";
         c.mcpCodexRegistrationInstalled = true;
+        c.mcpClaudeRegistrationInstalled = true;
         c.windowW = 1000;
         c.addRecent("/logs/audit.yaml");
 
@@ -44,6 +45,7 @@ class ConfigStoreTest {
         assertEquals("CODEX", d.mcpSetupTarget);
         assertEquals("packaged application", d.mcpLauncherIdentity);
         assertTrue(d.mcpCodexRegistrationInstalled);
+        assertTrue(d.mcpClaudeRegistrationInstalled);
         assertEquals(1000, d.windowW);
         assertTrue(d.recentFiles.contains("/logs/audit.yaml"));
         assertEquals(List.of("com.acme.marketmaker.strategy.DemoMarketMakerStrategy"), d.eventProcessorFqns);
