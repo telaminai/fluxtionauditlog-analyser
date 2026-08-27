@@ -12,6 +12,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   window an agent can operate, asks before it persistently enables local transport, and can check the
   exact local bridge command without exposing the endpoint token. Its status distinguishes this app,
   the bridge, and a third-party client registration instead of calling a local check “connected”.
+- **Packaged launches can check their own bridge.** When the documented JBang launcher is not present,
+  setup now safely uses a directly launched single jar from the current process. Ambiguous classpaths
+  remain unavailable rather than becoming a guessed command.
 
 ## [1.10.0] - 2026-08-27
 

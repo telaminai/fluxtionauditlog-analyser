@@ -136,6 +136,7 @@ public final class McpSetupDialog extends JDialog {
                 + "itself as <b>fluxtion-audit-log-analyser</b>; those are the two existing names, not a third "
                 + "identity. A successful local check proves this application and bridge only—it cannot prove "
                 + "that a client has imported configuration, signed in, or approved a tool call."));
+        body.add(Box.createVerticalGlue());
 
         JScrollPane scroll = new JScrollPane(body);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -196,12 +197,14 @@ public final class McpSetupDialog extends JDialog {
         localStatus.setText(local.detail());
         enableTransport.setVisible(local.status() == McpSetupState.LocalStatus.OFF);
 
-        Optional<McpLaunchCommand> found = McpLaunchCommand.installedJbang(Path.of(System.getProperty("user.home")));
+        Optional<McpLaunchCommand> jbang = McpLaunchCommand.installedJbang(Path.of(System.getProperty("user.home")));
+        Optional<McpLaunchCommand> found = jbang.isPresent() ? jbang : McpLaunchCommand.runningJar();
         command = found.orElse(null);
         if (command == null) {
-            commandStatus.setText("No documented JBang launcher was found yet. Install with JBang, then reopen this setup.");
+            commandStatus.setText("No supported local launcher was found. Install with JBang, then reopen this setup.");
         } else {
-            commandStatus.setText("Ready to run: " + display(command.command()));
+            commandStatus.setText((jbang.isPresent() ? "Ready to run installed JBang command: "
+                    : "Ready to run this packaged application: ") + display(command.command()));
         }
         checkBridge.setEnabled(local.canProbe() && command != null);
         refreshClientStatus();

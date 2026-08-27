@@ -44,4 +44,18 @@ class McpLaunchCommandTest {
         assertEquals(List.of("/Applications/Java 21/bin/java", "-jar", "/tmp/Fluxtion Analyser.jar", "--mcp"),
                 command.command());
     }
+
+    @Test
+    void acceptsOnlyOneDirectlyLaunchedJarAsTheSafeRunningJarFallback() throws Exception {
+        Path java = dir.resolve("java");
+        Path jar = dir.resolve("Fluxtion Analyser.jar");
+        Files.createFile(java);
+        Files.createFile(jar);
+
+        McpLaunchCommand command = McpLaunchCommand.fromRunningJar(java, jar.toString(), ":").orElseThrow();
+        assertEquals(List.of(java.toAbsolutePath().toString(), "-jar", jar.toAbsolutePath().toString(), "--mcp"),
+                command.command());
+        assertTrue(McpLaunchCommand.fromRunningJar(java, jar + ":" + dir.resolve("other.jar"), ":").isEmpty(),
+                "a multi-entry classpath is not a launcher we can safely reconstruct");
+    }
 }

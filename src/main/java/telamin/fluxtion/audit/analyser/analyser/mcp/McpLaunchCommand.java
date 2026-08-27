@@ -2,6 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.mcp;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +52,38 @@ public final class McpLaunchCommand {
             if (Files.isRegularFile(candidate)) return Optional.of(of(List.of(candidate.toAbsolutePath().toString())));
         }
         return Optional.empty();
+    }
+
+    /**
+     * A safe form-2 resolver for an app launched directly from one shaded jar. A classpath with more
+     * than one entry is deliberately refused: reconstructing an IDE or arbitrary Java launch would be a
+     * plausible-looking guess, not the exact bridge command a client should inherit. JBang wins whenever
+     * its documented launcher exists; this is the useful fallback for {@code java -jar} and release smoke
+     * tests.
+     */
+    public static Optional<McpLaunchCommand> runningJar() {
+        String classPath = System.getProperty("java.class.path", "");
+        String home = System.getProperty("java.home", "");
+        if (home.isBlank()) return Optional.empty();
+        String executable = System.getProperty("os.name", "").toLowerCase().contains("win") ? "java.exe" : "java";
+        return fromRunningJar(Path.of(home, "bin", executable), classPath, File.pathSeparator);
+    }
+
+    static Optional<McpLaunchCommand> fromRunningJar(Path javaExecutable, String classPath, String pathSeparator) {
+        if (javaExecutable == null || classPath == null || classPath.isBlank()
+                || pathSeparator == null || classPath.contains(pathSeparator)) {
+            return Optional.empty();
+        }
+        try {
+            Path jar = Path.of(classPath).toAbsolutePath().normalize();
+            if (!Files.isRegularFile(javaExecutable) || !Files.isRegularFile(jar)
+                    || !jar.getFileName().toString().toLowerCase().endsWith(".jar")) {
+                return Optional.empty();
+            }
+            return Optional.of(jar(javaExecutable, jar));
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
     }
 
     /** A selected shaded jar, launched by the selected absolute Java executable. */
