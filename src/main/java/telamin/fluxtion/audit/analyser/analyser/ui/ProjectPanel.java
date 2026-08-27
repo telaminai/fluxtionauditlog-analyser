@@ -113,6 +113,7 @@ public final class ProjectPanel extends JPanel {
         switch (r.target()) {
             case TOPOLOGY -> actions.add(small("Go", "Go to the Topology tab", () -> navigator.showTab("Topology")));
             case SOURCE -> actions.add(small("Go", "Go to the Source tab", () -> navigator.showTab("Source")));
+            case REPORTS -> actions.add(small("Go", "Go to the Reports tab", () -> navigator.showTab("Reports")));
             case SETTINGS_SOURCE -> actions.add(small("Settings…", "Settings ▸ Source", navigator::openSettings));
             default -> { }
         }

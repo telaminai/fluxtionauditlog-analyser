@@ -25,7 +25,7 @@ public record ProjectModel(List<Section> sections) {
     public enum Tone { NORMAL, MUTED, WARN }
 
     /** Where a row's "go to" leads — navigation only (D-L3). */
-    public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, PROJECT }
+    public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, PROJECT, REPORTS }
 
     public record Section(String title, List<Row> rows) { }
 
@@ -36,10 +36,11 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "processors.class", "processors.selected", "processors.source", "processors.from",
-            "source.rootTiers.path", "source.rootTiers.tier");
+            "source.rootTiers.path", "source.rootTiers.tier",
+            "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
-            PROCESSORS = "Event processors", ROOTS = "Source roots";
+            PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports";
 
     @SuppressWarnings("unchecked")
     public static ProjectModel from(Map<String, Object> ctx) {
@@ -161,6 +162,30 @@ public record ProjectModel(List<Section> sections) {
                     null, null, Tone.MUTED, Target.SETTINGS_SOURCE));
         }
         out.add(new Section(ROOTS, rows));
+
+        // ---- reports (M37.6): where files leave, and what the project has saved -----------------------
+        rows = new ArrayList<>();
+        Map<String, Object> exports = map(ctx.get("exports"));
+        if (Boolean.TRUE.equals(exports.get("enabled")) && exports.get("dir") != null) {
+            rows.add(new Row("Exports to " + fileName(str(exports.get("dir"))), "screenshots, PDF/CSV exports and rendered reports land here",
+                    str(exports.get("dir")), "own settings", Tone.NORMAL, Target.SETTINGS_SOURCE));
+        } else {
+            rows.add(new Row("File exchange off", "Settings ▸ Assistant — until it is on, an agent's screenshot, export and report writes are refused",
+                    null, null, Tone.MUTED, Target.SETTINGS_SOURCE));
+        }
+        List<Object> reps = list(ctx.get("reports"));
+        for (Object o : reps) {
+            Map<String, Object> r = map(o);
+            Object n = r.get("sections");
+            String detail = (n == null ? "0" : n) + " section" + ("1".equals(String.valueOf(n)) ? "" : "s") + " · saved report";
+            rows.add(new Row(str(r.get("title") != null ? r.get("title") : r.get("name")), detail, null, str(r.get("from")),
+                    Tone.NORMAL, Target.REPORTS));
+        }
+        if (reps.isEmpty()) {
+            rows.add(new Row("No saved reports", "Reports tab ▸ New report, or report {…} from the socket",
+                    null, null, Tone.MUTED, Target.REPORTS));
+        }
+        out.add(new Section(REPORTS, rows));
         return new ProjectModel(List.copyOf(out));
     }
 

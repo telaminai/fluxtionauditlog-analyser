@@ -45,6 +45,11 @@ LIVE (one JVM, isolated home, a project with 2 processors + 1 root; driven over 
   so labels elide and the buttons stay on screen) and processor rows led with the package (now the class
   name, package on the second line).
 
+  .6  Reports section (owner, after the first live render): `context.exports {enabled, dir}` and
+      `context.reports[] {name, title, sections, createdAt, from}`; the panel's sixth section — the exchange
+      directory or "File exchange off" (the state that refused `screenshot` twice that day), and saved
+      reports by title with a Go to the Reports tab. Tests: ProjectModelTest.reportsSectionShowsWhereFilesLeave…
+
 RULE 1 INCIDENT — found by reading the regenerated shots, fixed by construction
   The first capture-docs run after this change put a real venue's class name and an employer's package
   into three shots (project-panel, screenshot-dark, start-page): the harness ran the app under the REAL

@@ -49,9 +49,14 @@ class ProjectModelTest {
     @Test
     void everyEmptyStateIsASentence_neverABlankSection() {
         ProjectModel m = ProjectModel.from(empty());
-        assertEquals(List.of(ProjectModel.PROJECT, ProjectModel.LOG, ProjectModel.GRAPH, ProjectModel.PROCESSORS, ProjectModel.ROOTS),
-                m.sections().stream().map(ProjectModel.Section::title).toList(), "five sections, always, in this order");
+        assertEquals(List.of(ProjectModel.PROJECT, ProjectModel.LOG, ProjectModel.GRAPH, ProjectModel.PROCESSORS, ProjectModel.ROOTS, ProjectModel.REPORTS),
+                m.sections().stream().map(ProjectModel.Section::title).toList(), "six sections, always, in this order");
         for (ProjectModel.Section s : m.sections()) {
+            if (s.title().equals(ProjectModel.REPORTS)) {
+                // two states, both sentences: the exchange directory (off, here) and the saved reports (none)
+                assertEquals(List.of("File exchange off", "No saved reports"), s.rows().stream().map(ProjectModel.Row::primary).toList());
+                continue;
+            }
             assertEquals(1, s.rows().size(), s.title() + " has exactly one row when empty");
             ProjectModel.Row r = s.rows().get(0);
             assertTrue(r.primary().startsWith("No "), s.title() + ": " + r.primary());
@@ -60,7 +65,7 @@ class ProjectModelTest {
         }
         assertEquals("using your own settings (~/.fluxtion-analyser)", m.section(ProjectModel.PROJECT).rows().get(0).secondary());
         // a null payload — context threw, or nothing has ever been bound — is the same five sentences
-        assertEquals(5, ProjectModel.from(null).sections().size());
+        assertEquals(6, ProjectModel.from(null).sections().size());
     }
 
     @Test
@@ -152,6 +157,31 @@ class ProjectModelTest {
         assertEquals("No log loaded", m.section(ProjectModel.LOG).rows().get(0).primary());
         assertEquals("no log to pair with", m.section(ProjectModel.GRAPH).rows().get(0).secondary(), "the graph outlives the log and says it is unpaired");
         assertEquals("P", m.section(ProjectModel.PROJECT).rows().get(0).primary(), "the project survives a log close");
+    }
+
+    @Test
+    void reportsSectionShowsWhereFilesLeave_andWhatTheProjectSaved() {
+        Map<String, Object> ctx = full();
+        ctx.put("exports", Map.of("enabled", true, "dir", "/work/demo/exchange"));
+        ctx.put("reports", List.of(
+                Map.of("name", "spread-breach", "title", "Spread widened before the breach", "sections", 3, "from", "project"),
+                Map.of("name", "one", "title", "One", "sections", 1, "from", "project")));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.REPORTS).rows();
+        assertEquals(3, rows.size());
+        assertEquals("Exports to exchange", rows.get(0).primary());
+        assertEquals("/work/demo/exchange", rows.get(0).path(), "Copy copies the directory");
+        assertEquals("own settings", rows.get(0).provenance(), "the exchange directory is machine-tier, never shared");
+        assertEquals("Spread widened before the breach", rows.get(1).primary(), "the title leads, not the file-safe name");
+        assertEquals("3 sections · saved report", rows.get(1).secondary());
+        assertEquals("1 section · saved report", rows.get(2).secondary());
+        assertEquals("project", rows.get(1).provenance());
+        assertEquals(ProjectModel.Target.REPORTS, rows.get(1).target(), "Go leads to the Reports tab — navigation, not rendering");
+
+        ctx.put("exports", Map.of("enabled", false));
+        rows = ProjectModel.from(ctx).section(ProjectModel.REPORTS).rows();
+        assertEquals("File exchange off", rows.get(0).primary());
+        assertEquals(ProjectModel.Tone.MUTED, rows.get(0).tone());
+        assertTrue(rows.get(0).secondary().contains("Settings ▸ Assistant"), "says where to turn it on");
     }
 
     @Test

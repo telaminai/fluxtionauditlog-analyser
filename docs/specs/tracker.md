@@ -424,6 +424,11 @@ saved graphs fell 6 → 1 and no surface showed the count._
 - [M37.4] ☑ **Lifecycle wiring** — re-renders on the M35 events, no polling; the open→graph→project→close
   sequence test.
 - [M37.5] ☑ **Docs page + generated shot**; CHANGELOG; spec → SHIPPED.
+- [M37.6] ☑ **Reports section** _(owner-requested 2026-08-27, after seeing the panel)_ — where files leave
+  (the assistant exchange directory, machine-tier, or "File exchange off" with where to turn it on — the
+  state that refused `screenshot` twice that day with nothing on screen saying so) and the project's saved
+  reports by title. `context` gains `exports` and `reports`; M38.5's published destination is a further row
+  on this section (D-C6).
 
 **Owner calls, decided 2026-08-26/27:** name **Project** (was "Loaded" until seen live); **stacked** with Event types; the start page does
 **not** show the PROJECT section inline. Work: `feat/m37-loaded-panel` (brief `docs/handoff/handoff_26_aug_2026_1.txt`).

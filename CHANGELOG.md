@@ -14,10 +14,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   what would fill it. Every button reveals or navigates — copy a path, show it in the file manager, go to
   the tab — nothing on it changes state. It is drawn from the same `context` payload the assistant reads,
   so a person and an agent see one set of facts. Paths are abbreviated on screen; *Copy* gives the full
-  value. The left column is now draggable and its width persists.
+  value. The left column is now draggable and its width persists. A sixth section, **Reports**, shows
+  where files leave — the assistant's exchange directory, or *File exchange off* and where to turn it on
+  (the state that silently refuses an agent's `screenshot`) — and the project's saved reports by title.
 - **`context` reports more, and earlier.** The graph is reported whether or not a log is open; `log.openedBy`;
   `graphPairing.graphPath`; `processors` (class, selected, source found, from); `source.rootTiers`; and
-  `source` now appears on a fresh start instead of only after the first log has loaded.
+  `source` now appears on a fresh start instead of only after the first log has loaded. Also `exports`
+  (`enabled`, `dir`) and `reports` (`name`, `title`, `sections`, `from`).
 
 ### Fixed
 - **A project's saved graphs are no longer wiped when you open a log.** With a project active, the

@@ -65,6 +65,11 @@ Empty states are sentences that say what would fill them: *"No project — using
 supply one with its log."* · *"No event processors configured — Settings ▸ Source."* A blank row is a
 question the user has to go and answer somewhere else, which is the complaint this spec exists for.
 
+**A sixth section, REPORTS** (M37.6, owner-requested after the first live render): where files leave — the
+assistant's exchange directory (machine-tier: a path on this disk, never shared) or the sentence *"File
+exchange off — Settings ▸ Assistant"* — and each saved report by title with its section count (project
+tier). M38.5's *published destination* (spec-portable-context D-C6) is a further row here, not a new section.
+
 ## D-L3 — every row carries where it came from, and offers to REVEAL, never to CHANGE
 
 Provenance is a column, not a tooltip: *opened by you* / *from the project* / *supplied by the reader

@@ -3676,6 +3676,29 @@ public final class MainFrame extends JFrame {
                 }
                 if (!procs.isEmpty()) out.put("processors", procs);
             }
+            // M37.6: where files LEAVE, and the reports the project holds. The exchange directory is
+            // machine-tier (a path on this disk, never shared); the reports are project-tier. Both were
+            // invisible outside their dialog/tab — and "exports off" is the state that made screenshot
+            // fail twice on 2026-08-27 with nothing on screen saying so.
+            {
+                Map<String, Object> exports = new java.util.LinkedHashMap<>();
+                exports.put("enabled", config.assistantExports);
+                if (config.assistantExports && config.assistantExportDir != null && !config.assistantExportDir.isBlank()) {
+                    exports.put("dir", config.assistantExportDir);
+                }
+                out.put("exports", exports);
+                List<Map<String, Object>> reps = new ArrayList<>();
+                for (telamin.fluxtion.audit.analyser.analyser.report.ReportSpec r : config.reports) {
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("name", r.name());
+                    one.put("title", r.title());
+                    one.put("sections", r.sections() == null ? 0 : r.sections().size());
+                    if (r.createdAt() != null) one.put("createdAt", r.createdAt());
+                    one.put("from", project.hasProject() ? "project" : "own settings");
+                    reps.add(one);
+                }
+                if (!reps.isEmpty()) out.put("reports", reps);
+            }
             if (store != null) {
                 if (pendingRolledSetOffer != null) {
                     // M35.9: the dialog the socket path did not show. The member files are named so
