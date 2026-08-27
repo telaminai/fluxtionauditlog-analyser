@@ -1,0 +1,96 @@
+REVIEW — M42.1 loopback probe, commit 457b271, reviewed on main
+Date: 2026-08-27 · Assessor: the session that wrote review_spec_mcp_client_install.txt (432bd39),
+reviewing the slice that implements its amendments
+
+VERDICT: SOUND — merge stands. 974 tests green on this machine; sweep clean (exemption-free form);
+every "do first" item from the spec review landed and is pinned by a test; the five spec amendments
+(A1–A5) are folded in faithfully, two of them better than asked. Findings below are two minor
+(F1 test-worthy race, F2 missing failure-path tests), one nit, two notes. Nothing blocking.
+
+================================================================================
+1. THE SPEC-REVIEW AMENDMENTS, CHECKED ONE BY ONE
+================================================================================
+A1 OTHER_INSTANCE — DONE, and stronger than the review asked: the probe refuses BEFORE launching
+   (probe() checks endpoint.pid() against ProcessHandle.current().pid() and stops), so a bridge is
+   never even started against another window's endpoint. The D-I5 table gained the row; acceptance
+   names it; the test pins that the ProcessStarter is never invoked (fail("must not launch…")).
+A1a -32001 named — DONE: the spec's REST_OFF row cites the code; the probe maps
+   ERR_ANALYSER_UNREACHABLE → RestUnavailable → REST_OFF at both the call and discovery stages.
+A1b stale-JBang-cache argument — DONE, claimed in D-I3 ("intentionally stronger than testing
+   classes in-process").
+A2 two names — DONE: the spec now states serverInfo.name = fluxtion-audit-log-analyser vs the
+   fluxtion-analyser registration label, forbids a third invented identity, and marks renaming
+   SERVER_NAME as a visible protocol-contract decision.
+A3 per-slice CHANGELOG — DONE in the spec ("not deferred to M42.6"). This commit itself carries no
+   CHANGELOG line, and that is CORRECT: M42.1 ships no user-visible surface (no UI, no verb, no
+   behaviour change) — rule 2 is about user-visible change, and the amended spec wording matches.
+A4 rule 6 uniform — DONE: D-I4 opens with an external-contract rule covering all four client paths.
+A5 isolated screenshot capture — DONE: M42.6 says setup surfaces are captured ONLY by the
+   isolated-home harness, with the reason stated.
+Q1–Q4 — the "Questions for review" section is now "Review decisions recorded", matching the review's
+   answers verbatim, including the M18.2-style falsifiable revival trigger on the no-auto-launch
+   boundary. D-I3 form 2 also gained the java-vector trap by name (N2) and the Claude Desktop
+   extension no longer does its own launcher discovery (N1 — resolved by removing the duplication
+   rather than conformance-testing it, which is the better fix).
+
+================================================================================
+2. THE CODE, VERIFIED
+================================================================================
+- The real-bridge test is the right kind of strong: actualBridgeChildReachesTheTokenedRestServer…
+  spawns a REAL child JVM running the production McpBridge.main with -Duser.home pointed at a temp
+  dir, against a REAL ActionServer with a token — the exact production chain, isolated from the
+  developer's own running analyser (the RestEndpointFile javadoc's clobber warning is honoured).
+- Era negotiation matches the shipped dual-era bridge: modern server/discover first; -32601/-32022
+  falls back to legacy initialize. The probe never sends notifications/initialized, which the
+  hand-rolled bridge does not require — acceptable for a self-test of OUR bridge, noted in case a
+  future strict legacy implementation ever sits behind this probe.
+- Ordering of the guards is right: dead/absent endpoint → REST_OFF before the ownership check, so a
+  stale file from a crashed OTHER instance reads as "no live endpoint", not OTHER_INSTANCE.
+- Containment holds: Result.detail is always a fixed string — no token, URL, path or tool output can
+  leak into UI/logs by construction; stderr is drained (bounded 8K) so the child cannot block on a
+  full pipe; the child is closed stdin-first, then destroy, then destroyForcibly.
+- McpLaunchCommand is a genuine argument vector (spaces survive, pinned by test), refuses a launcher
+  already containing --mcp, and finds the documented ~/.jbang/bin launcher including the Windows
+  .cmd/.bat forms. A non-executable candidate resolves and later fails as LAUNCH_FAILED, which is
+  honest.
+- McpToolsTest pins context ∈ READ_ONLY with a message saying WHY (the probe's non-mutating
+  contract) — exactly the Q3 condition.
+
+================================================================================
+3. FINDINGS
+================================================================================
+F1 (minor) — VERIFIED has a narrow TOCTOU the ownership check cannot close alone. The probe checks
+   pid, then launches; the bridge RE-READS the endpoint file per call (McpBridge.toolsCall). If
+   another instance overwrites the well-known file in that window, the bridge reaches the OTHER
+   analyser and the probe reports VERIFIED for this one. The window is milliseconds and requires a
+   concurrent second instance, but the cheap tightening exists: after a successful context call,
+   re-read the endpoint file and downgrade to OTHER_INSTANCE if the pid is no longer ours. Two
+   lines; makes the VERIFIED claim airtight rather than very-probably-true. Recommend for M42.2.
+
+F2 (minor) — LAUNCH_FAILED and PROTOCOL_FAILED are the only statuses without a test, and the
+   -32022 leg of the era fallback is untested (only -32601, via the "legacy" helper). All three are
+   cheap: a nonexistent executable; a helper emitting garbage; a helper answering discover with
+   -32022. Worth adding before M42.2 builds UI wording on those statuses.
+
+F3 (nit) — McpTools.READ_ONLY now has TWO stacked javadoc comments; only the second attaches, the
+   original ("Verbs that never mutate the app…") dangles. Merge into one comment next touch.
+
+F4 (note) — stderr is captured and then DISCARDED on every path, including failures. The in-code
+   comment plans "the redacted tail for diagnostics" in a later UI; hold that plan — a
+   LAUNCH_FAILED/PROTOCOL_FAILED with no child diagnostic sends the user to a terminal to
+   reproduce what the probe already saw.
+
+F5 (note) — the 5s per-exchange timeout meets a cold JBang launcher (first run, --fresh, JDK
+   fetch) that can legitimately take longer to first byte; the process STARTS, so it reports
+   PROTOCOL_FAILED "did not reply in time" rather than anything suggesting slowness. When M42.2
+   words these statuses, give the timeout case its own honest wording or a longer first-line
+   allowance.
+
+================================================================================
+4. PROCESS
+================================================================================
+- Tracker: [M42.1] correctly still ☐ — the spec's integration seam ("beside the M19 bench") is not
+  yet built; the in-JVM child-process tests are close but are not the bench path. Tick only when
+  the bench-side run exists, or amend the item to say the in-JVM harness satisfies it.
+- No CHANGELOG line: correct for this slice (see A3 above).
+- Sweep: clean in the exemption-free form. mvn test: 974 green, 0 failures, this machine, JDK 21.
