@@ -14,6 +14,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   reads 83% with the one genuinely silent node remaining. Anything left out is named, with its reason,
   in `excludedFromDenominator` and summarised in `excludedNote` — a denominator that quietly shrinks
   is the same dishonesty as one that quietly includes, and harder to notice because the number improves.
+  The excluded list and the scored list now come back in **graph order**, as documented, so a reader can
+  line them up against the Topology tab — previously both were scrambled by an unordered copy.
 
 ### Added
 - **Docs: Working with AI ▸ Runbooks, glossary and saved analyses with an AI** — how the in-app assistant or an

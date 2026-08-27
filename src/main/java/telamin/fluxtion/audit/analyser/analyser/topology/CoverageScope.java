@@ -51,11 +51,22 @@ public final class CoverageScope {
     public record Scope(Set<String> loggable, Map<String, String> excluded) {
 
         public Scope {
-            loggable = Set.copyOf(loggable);
-            excluded = Map.copyOf(excluded);
+            // NOT Set.copyOf/Map.copyOf: both return unordered immutables, so the graph order this
+            // record's javadoc promises would be discarded at its own boundary — which is exactly what
+            // happened, and what the live echo showed (review N2). A documented order nobody delivers
+            // is worse than none, because callers rely on it.
+            loggable = java.util.Collections.unmodifiableSet(new LinkedHashSet<>(loggable));
+            excluded = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(excluded));
         }
 
-        /** The one-line statement a caller owes the reader when anything was dropped. */
+        /**
+         * The one-line statement a caller owes the reader when anything was dropped.
+         *
+         * <p>M40.2b WILL BREAK THIS COUNT (review N3): it derives "services" as everything that is not
+         * an event class, which is true while there are exactly two reasons and false the moment a
+         * third — "silent by construction" — arrives. Bucket by REASON then, not by string containment
+         * on the reason text.
+         */
         public String note() {
             if (excluded.isEmpty()) return null;
             long events = excluded.values().stream().filter(v -> v.contains("event class")).count();
@@ -81,7 +92,22 @@ public final class CoverageScope {
         Set<String> loggable = new LinkedHashSet<>();
         Map<String, String> excluded = new LinkedHashMap<>();
         if (authored == null) return new Scope(loggable, excluded);
-        for (String id : authored) {
+
+        // Walk the GRAPH's own order, keeping only ids in `authored` — `authored` itself arrives as an
+        // unordered set, so iterating it would produce whatever order the hash gave us. The graph's node
+        // map is insertion-ordered, and that is the order a reader can follow in the Topology tab.
+        // Anything authored but absent from the graph still has to be scored, so it follows, in its own
+        // stable order rather than being dropped.
+        java.util.List<String> inGraphOrder = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new LinkedHashSet<>();
+        if (topology != null) {
+            for (ProcessorTopology.Node n : topology.nodes()) {
+                if (authored.contains(n.id()) && seen.add(n.id())) inGraphOrder.add(n.id());
+            }
+        }
+        for (String id : new java.util.TreeSet<>(authored)) if (seen.add(id)) inGraphOrder.add(id);
+
+        for (String id : inGraphOrder) {
             ProcessorTopology.Node node = topology == null ? null : topology.node(id);
             ProcessorTopology.Kind kind = node == null ? null : node.kind();
             if (kind == ProcessorTopology.Kind.EVENT) {

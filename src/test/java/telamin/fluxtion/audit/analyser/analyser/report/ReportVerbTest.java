@@ -182,6 +182,32 @@ class ReportVerbTest {
         assertTrue(a.notes().get(0).contains("not assembled yet"), a.notes().toString());
     }
 
+    /**
+     * M40.2 / review N1: the PDF is the surface that LEAVES the session, so a coverage ratio printed
+     * there without its exclusions would be the one number a stranger cannot sanity-check.
+     *
+     * <p>Today it cannot happen — {@code coverage} is a declared TABLE_VERB but only {@code read}
+     * assembles, so a coverage section prints the gap note and no figure at all. This test passes on
+     * that branch AND on the day someone lights coverage up: it then demands the exclusion ride along.
+     * A guard written while the surface is still empty is the only kind that gets written.
+     */
+    @Test
+    void aCoverageTableEitherPrintsNoFigureOrPrintsWhatItLeftOut() {
+        var s = ReportSpec.SectionSpec.table(Map.of("verb", "coverage"), List.of(), null, null);
+        var a = ReportVerb.assembleTable(s, STORE);
+
+        boolean unassembled = a.notes().stream().anyMatch(n -> n.contains("not assembled yet"));
+        if (unassembled) {
+            assertTrue(a.table().rows().isEmpty(), "an unassembled source must print no rows");
+            return;
+        }
+        assertTrue(a.notes().stream().anyMatch(n -> n.contains("exclud"))
+                        || a.table().columns().stream().anyMatch(c -> c.key().contains("exclud")),
+                "coverage now assembles, so the report must carry what left the denominator (M40.2) — "
+                        + "a ratio alone in an exported PDF cannot be checked by whoever receives it: "
+                        + a.notes());
+    }
+
     // ---- CSV: one writer, raw values ---------------------------------------------------------------
 
     @Test

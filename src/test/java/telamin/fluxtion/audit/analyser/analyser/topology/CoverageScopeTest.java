@@ -49,6 +49,35 @@ class CoverageScopeTest {
     }
 
     @Test
+    void bothSetsComeBackInGRAPHorder_notWhateverTheHashGave() {
+        // review N2: the javadoc promised graph order and the record's own Set.copyOf/Map.copyOf threw
+        // it away, so the live echo listed the exclusions scrambled. A documented order nobody delivers
+        // is worse than none — a reader lines the list up against the Topology tab and finds it wrong.
+        // `authored` is deliberately built here in the WRONG order, and as an unordered set at that.
+        ProcessorTopology t = graphOf("alpha", "NODE", "BravoEvent", "EVENT", "charlie", "NODE",
+                "DeltaEvent", "EVENT", "echo", "NODE");
+        CoverageScope.Scope scope = CoverageScope.of(t,
+                Set.of("echo", "DeltaEvent", "alpha", "BravoEvent", "charlie"));
+
+        assertEquals(java.util.List.of("alpha", "charlie", "echo"),
+                java.util.List.copyOf(scope.loggable()), "loggable must follow the graph");
+        assertEquals(java.util.List.of("BravoEvent", "DeltaEvent"),
+                java.util.List.copyOf(scope.excluded().keySet()), "excluded must follow the graph");
+    }
+
+    @Test
+    void anIdTheGraphDoesNotHoldStillComesBackStably() {
+        // it cannot have a graph position, so it goes last in a deterministic order rather than a
+        // hash-dependent one — two runs of the same verb must not print two different lists
+        ProcessorTopology t = graphOf("beta", "NODE");
+        var first = CoverageScope.of(t, Set.of("zulu", "beta", "alpha"));
+        var again = CoverageScope.of(t, new java.util.HashSet<>(Set.of("alpha", "zulu", "beta")));
+
+        assertEquals(java.util.List.of("beta", "alpha", "zulu"), java.util.List.copyOf(first.loggable()));
+        assertEquals(java.util.List.copyOf(first.loggable()), java.util.List.copyOf(again.loggable()));
+    }
+
+    @Test
     void theDemoStopsCountingEventClassesAsNodesThatNeverRan() throws Exception {
         ProcessorTopology t = demo();
         Set<String> authored = Scaffolding.authoredNodes(t);
