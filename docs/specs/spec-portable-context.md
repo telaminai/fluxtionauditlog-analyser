@@ -36,6 +36,14 @@ A saved analysis therefore cannot deploy, restart, or write anywhere outside the
 was taken for decoupling; it is what makes analyser macros safe to email, and anyone proposing to relax
 it is also proposing to make every shared profile executable.
 
+**Evidence that the surface defends itself** (review of M38.1, 2026-08-27). The first cut of M38.1 added a
+`runbook {name, path}` verb; `assertEquals(14, VerbSchemas.all().size())` in `CloseVerbTest` and
+`ProjectVerbTest` refused it, and the verb was dropped in favour of the profile file as the writer. A
+decision taken long before this spec — the verb surface is a published compatibility surface, and
+server-shaped verbs never join it — mechanically stopped a later, plausible-looking addition. That is the
+tier-2 safety argument enforced by tests rather than memory; the next convenient verb will meet the same
+test, and it should.
+
 ## D-C2 — a runbook is stored as a POINTER; the payload lives in version control
 
 The profile records *"the deploy runbook for this system is `ops/deploy.md`"*, relative to the project
