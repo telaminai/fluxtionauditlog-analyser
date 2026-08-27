@@ -13,6 +13,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +60,15 @@ class McpConnectionProbeTest {
     }
 
     @Test
+    void alsoFallsBackWhenModernDiscoveryReportsAnUnsupportedVersion() throws Exception {
+        RestEndpointFile endpoint = ownLiveEndpoint();
+        McpConnectionProbe.Result result = new McpConnectionProbe(helperBridge("unsupported-modern"), endpoint).probe();
+
+        assertEquals(McpConnectionProbe.Status.VERIFIED, result.status(), result.detail());
+        assertEquals(McpConnectionProbe.Era.LEGACY, result.era());
+    }
+
+    @Test
     void endpointOwnedByAnotherLiveInstanceNeverLaunchesTheBridge() {
         RestEndpointFile.Endpoint other = new RestEndpointFile.Endpoint("http://127.0.0.1:1", "not-used", 17, null);
         McpConnectionProbe probe = new McpConnectionProbe(actualBridge(), () -> other, endpoint -> true,
@@ -73,6 +83,33 @@ class McpConnectionProbeTest {
                 () -> 42L, command -> fail("must not launch without a local endpoint"), Duration.ofSeconds(1));
 
         assertEquals(McpConnectionProbe.Status.REST_OFF, probe.probe().status());
+    }
+
+    @Test
+    void successfulContextIsDowngradedWhenAnotherInstanceWinsTheEndpointRace() throws Exception {
+        RestEndpointFile.Endpoint ours = new RestEndpointFile.Endpoint("http://127.0.0.1:1", "not-used", 42, null);
+        RestEndpointFile.Endpoint other = new RestEndpointFile.Endpoint("http://127.0.0.1:2", "not-used", 17, null);
+        ArrayDeque<RestEndpointFile.Endpoint> endpoints = new ArrayDeque<>(List.of(ours, other));
+        McpConnectionProbe probe = new McpConnectionProbe(helperBridge("modern"), endpoints::removeFirst,
+                endpoint -> true, () -> 42L, command -> new ProcessBuilder(command).start(), Duration.ofSeconds(5));
+
+        assertEquals(McpConnectionProbe.Status.OTHER_INSTANCE, probe.probe().status());
+    }
+
+    @Test
+    void missingBridgeExecutableIsReportedAsLaunchFailed() throws Exception {
+        RestEndpointFile endpoint = ownLiveEndpoint();
+        McpLaunchCommand missing = McpLaunchCommand.of(List.of(dir.resolve("does-not-exist").toString()));
+
+        assertEquals(McpConnectionProbe.Status.LAUNCH_FAILED, new McpConnectionProbe(missing, endpoint).probe().status());
+    }
+
+    @Test
+    void malformedBridgeOutputIsReportedAsProtocolFailed() throws Exception {
+        RestEndpointFile endpoint = ownLiveEndpoint();
+
+        assertEquals(McpConnectionProbe.Status.PROTOCOL_FAILED,
+                new McpConnectionProbe(helperBridge("garbage"), endpoint).probe().status());
     }
 
     @Test

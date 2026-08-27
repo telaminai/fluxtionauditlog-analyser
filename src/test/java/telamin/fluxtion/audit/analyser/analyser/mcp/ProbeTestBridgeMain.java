@@ -25,9 +25,16 @@ public final class ProbeTestBridgeMain {
                 String method = String.valueOf(request.get("method"));
                 Object id = request.get("id");
                 Map<String, Object> response;
-                if (legacy && "server/discover".equals(method)) {
+                if ("garbage".equals(args.length > 0 ? args[0] : "") && "server/discover".equals(method)) {
+                    out.write("this is not JSON\n");
+                    out.flush();
+                    continue;
+                }
+                if ((legacy || "unsupported-modern".equals(args.length > 0 ? args[0] : ""))
+                        && "server/discover".equals(method)) {
                     response = Map.of("jsonrpc", "2.0", "id", id,
-                            "error", Map.of("code", -32601, "message", "method not found"));
+                            "error", Map.of("code", legacy ? -32601 : -32022,
+                                    "message", legacy ? "method not found" : "unsupported protocol version"));
                 } else if ("server/discover".equals(method)) {
                     response = Map.of("jsonrpc", "2.0", "id", id,
                             "result", Map.of("supportedVersions", List.of(McpBridge.MODERN)));

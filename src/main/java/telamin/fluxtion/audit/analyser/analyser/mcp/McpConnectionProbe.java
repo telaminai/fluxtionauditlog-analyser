@@ -109,7 +109,18 @@ public final class McpConnectionProbe {
             return result(Status.LAUNCH_FAILED, Era.NONE, "could not launch the configured MCP bridge");
         }
 
-        return talkTo(process);
+        Result result = talkTo(process);
+        // McpBridge deliberately re-reads the endpoint before every tool call so it survives an app
+        // restart. That creates a narrow last-writer-wins window after our preflight: another analyser
+        // can publish between it and the context call. Re-check before we ever claim THIS window works.
+        if (result.verified()) {
+            RestEndpointFile.Endpoint after = endpoints.read();
+            if (after != null && liveness.alive(after) && after.pid() != thisPid.getAsLong()) {
+                return result(Status.OTHER_INSTANCE, Era.NONE,
+                        "another analyser process took ownership of the local MCP endpoint during the check");
+            }
+        }
+        return result;
     }
 
     private Result talkTo(Process process) {

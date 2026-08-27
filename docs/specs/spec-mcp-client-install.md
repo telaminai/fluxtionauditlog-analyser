@@ -265,6 +265,9 @@ stdin/destroys its child process. Its result distinguishes:
 This proves the analyser-side chain and the command a client will run. It cannot prove a third-party
 client has imported its configuration, is signed in, or will approve calls; the UI must say that plainly.
 The client-specific final check remains “does the client list `fluxtion-analyser` and its tools?”
+Before returning `VERIFIED`, the probe re-reads the endpoint file once more: a different live pid at
+that point downgrades the result to `OTHER_INSTANCE`. The bridge itself re-reads per tool call, so this
+second check closes the last-writer-wins race between the ownership preflight and the context response.
 
 The same probe has two test seams:
 
