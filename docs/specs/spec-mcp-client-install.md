@@ -1,6 +1,6 @@
 # Spec — Connect an AI client: local MCP setup from the analyser
 
-**Status:** ACTIVE 2026-08-27
+**Status:** SHIPPED 2026-08-28
 **Milestone:** M42  
 **Extends:** [M13 MCP transport](spec-assistant-actions-mcp.md), [Start page](completed/spec-start-page.md), and [the connection guide](../site/connect-an-llm.md).  
 **Does not reopen:** M41 native installation. JBang remains the supported way to install the application.

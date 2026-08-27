@@ -338,7 +338,7 @@ fetches a JDK itself), `~/.jbang/bin/analyser` is the stable launcher path the M
 already turns the transport on without editing `config`. Native bundles would have added a Dock icon and a signing
 bill. Recorded under Decisions so it is not re-raised; reopen only when a user who cannot run JBang actually appears._
 
-## M42 · Connect an AI client — ◧ IN PROGRESS 2026-08-27
+## M42 · Connect an AI client — ☑ COMPLETE 2026-08-28
 _Design: **[spec-mcp-client-install.md](spec-mcp-client-install.md)**. M41 installed the application; this is the
 separate, client-specific last mile: a Start-page/Assistant setup flow registers the existing `--mcp` bridge with
 **Codex** and **Claude Code**, and supplies a generic MCP record (including the Claude Desktop fallback). It does not
@@ -353,12 +353,12 @@ green check never pretends it has observed a foreign client or model._
 - [M42.2] ☑ **Human surface + readiness** — non-modal Start-page card; persistent Assistant setup; explicit local
   transport enablement; distinct app/bridge/client state. The packaged-launch bridge check and its wrapped,
   copyable command field were manually reviewed in the running UI (2026-08-27).
-- [M42.3] ◧ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
-  Codex has manually discovered the `fluxtion-analyser` registration and its 14 tools (2026-08-27); the final
-  read-only `analyser_context` acceptance remains to be recorded.
-- [M42.4] ◧ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
-  copy/diff-only, never a default side effect. Its shared confirmation disclosure now uses a readable desktop-width
-  command field (2026-08-27); final clean-client acceptance remains pending.
+- [M42.3] ☑ **Codex registration** — current CLI integration, confirmed add/replace/remove and a copy fallback.
+  Codex discovered the `fluxtion-analyser` registration and its 14 tools (2026-08-27); human acceptance of the
+  final read-only `analyser_context` check is recorded (2026-08-28).
+- [M42.4] ☑ **Claude Code registration** — current user-scoped CLI integration; project `.mcp.json` is deliberate,
+  copy/diff-only, never a default side effect. Its shared confirmation disclosure uses a readable desktop-width
+  command field (2026-08-27); human acceptance is recorded (2026-08-28).
 - [M42.5] ☑ **Claude Desktop route** — live MCPB contract verified; the documented generic-config fallback is
   retained because the per-machine JBang/Java bridge has no portable bundled entry point (2026-08-27).
 - [M42.6] ☑ **Generic configuration + docs** — exact argument-vector JSON can be copied or saved only to a
