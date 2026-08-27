@@ -1,6 +1,6 @@
 # Spec — portable context: the project as a shared workspace for a human and an AI
 
-**Status:** IN PROGRESS — M38.1–.3 implemented 2026-08-27 (`feat/m38-portable-context`) (owner decisions 1–4 recorded below; .1 needed none of them). **Milestone:** M38. **Tracker:** [tracker.md](tracker.md) ▸ M38.
+**Status:** IN PROGRESS — M38.1–.5 implemented 2026-08-27 (`feat/m38-portable-context`, one branch; .6 path anchors open) (owner decisions 1–4 recorded below; .1 needed none of them). **Milestone:** M38. **Tracker:** [tracker.md](tracker.md) ▸ M38.
 **Depends on:** **M37** (the Loaded panel) — see *Why on top of M37*.
 
 ## The proposition

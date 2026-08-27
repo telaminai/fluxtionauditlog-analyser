@@ -1,6 +1,9 @@
-REPORT — feat/m38-analyses · M38.4 repeatable analyses (D-C5)
-Date: 2026-08-27 · From: the second session · Branch cut from main @ 955b764 (M38.1 on main; .2/.3 on
-feat/m38-portable-context under review — this branch rebases onto that one when it merges).
+REPORT — M38.4 repeatable analyses (D-C5) + M38.5 report destinations (D-C6)
+Date: 2026-08-27 · From: the second session · Written on feat/m38-analyses, then REBASED onto feat/m38-portable-context
+at the owner's request (one M38 branch). Companion: report_feat_m38_portable_context.txt (.1–.3).
+The consolidation was a rebase with additive conflicts in 11 files; every shared anchor kept both sides, and the
+few non-additive spots (enum commas, the Snapshot/ImportPlan parameter lists, the tier count → 11) were repaired by
+hand and re-verified: 904 green, mkdocs strict, sweep clean, live smoke with every M38 fact in one profile.
 
 THE SLICE
   config/AnalysisSpec     record {name, rationale, parameters, defaults, steps[{action, params}]}.
