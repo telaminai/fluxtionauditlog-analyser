@@ -1,0 +1,76 @@
+HANDOFF — M33.7 · report table sources: assemble every reportable verb
+Date: 2026-08-28 · From: Codex · Branch: main · Base: main @ 29673fa
+Report: docs/handoff/handoff_28_aug_2026_1_report.txt
+
+ORIENT FIRST
+  · docs/specs/spec-report-table-sources.md — the accepted design and all eight acceptance checks.
+  · docs/specs/completed/spec-investigation-reports.md D-I7/D-I8 — the existing report/table contract.
+  · SectionSpec, ReportStore, ReportVerb, ReportsPanel, ReportRenderer, and their tests — the current
+    call persistence, table assembly, screen/PDF rendering, and CSV path.
+  · docs/site/sample-conversations.md scenario 4 plus tools/capture-conversations.py — the live
+    transcript is acceptance evidence, never hand-written copy.
+
+OUTCOME
+  Reports can table every D-I7 verb: existing `read`, plus `aggregate`, all three `series` shapes,
+  and `coverage`. A table's rows are its verb echo's list, default columns are echo keys, and its
+  scalar context is built once so screen and PDF say the same thing. The report model can reissue a
+  nested call exactly after save/restart without changing the portable properties-file format.
+
+SLICES — ONE USER-VISIBLE SLICE PER COMMIT
+  M33.7a — store (D-T1)
+    `SectionSpec.call` becomes `Map<String,Object>` in memory. Scalars retain their current property
+    representation; arrays/objects are compact JSON text at the ReportStore boundary and parse back
+    on read. Remove the lossy call flattening/callValue seam. Test a nested filter round trip and a
+    pre-1.10.0 scalar-shaped report reopening unchanged.
+
+  M33.7b — aggregate + coverage (D-T2/D-T3c/D-T4/D-T5)
+    Assemble aggregate bucket rows and the full coverage ledger; build the shared scalar line once for
+    ReportsPanel and ReportRenderer. Record-less aggregate/coverage rows refuse `rowWhen` with the
+    same visible warning/echo reason; empty results become a sentence, never a blank table. Test
+    caps, scope/filter wording, exclusions, screen/PDF scalar agreement, and CSV.
+
+  M33.7c — series (D-T3a/b)
+    Assemble bucket, crossing, and one-row-stat shapes. Refuse a table call that requests buckets AND
+    crossings. Crossing rows retain their record anchors and existing rowWhen/navigation behaviour;
+    other series shapes have the same record-less rowWhen refusal. Test each shape and the refusal.
+
+  M33.7d — docs and recorded acceptance
+    Update reports guidance. Regenerate sample-conversations scenario 4 from a real isolated run so it
+    tables `aggregate {groupBy: dimension}` with rows. Do not type a transcript or hand-capture an
+    image. Update tracker and CHANGELOG.
+
+NON-NEGOTIABLE BOUNDARIES
+  · One report table invokes one verb. No joins, sort model, `cellWhen`, or chart/PDF-picture work.
+  · `rowWhen` remains a predicate over a row's RECORD. It must never silently mean a formula over a
+    bucket or coverage row.
+  · A denominator or a truncated result is never hidden: coverage includes covered, uncovered and
+    excluded rows in graph order; caps say how many rows were omitted.
+  · Keep `ReportStore`'s flat properties format and M38.7 unknown-key preservation. This is a
+    compatible value encoding at the store edge, not a config-file rewrite.
+  · Pure model/renderer behaviour gets tests. Build and run the jar for the Reports tab, and visually
+    inspect generated transcripts/screenshots. Every user-visible slice has its own `[Unreleased]`
+    CHANGELOG line, `mvn test`, the public-data sweep, and `mkdocs build --strict` for site changes.
+
+ACCEPTANCE — DO NOT CLAIM WITHOUT EVIDENCE
+  1. Demo traced log: `read`, aggregate by dimension, series buckets, and coverage all have rows in
+     Reports, PDF, and their existing CSV export path.
+  2. A series crossings table navigates to its selected record and honours rowWhen.
+  3. aggregate with rowWhen renders un-highlighted and returns a warning explaining why.
+  4. A nested filter survives save → restart → reopen and runs under the stored scope; a 1.10.0 report
+     stays readable.
+  5. No-audit coverage includes every node with covered/uncovered/excluded status and its reason.
+  6. Screen and PDF scalar lines are byte-identical for a section.
+  7. Empty results render their header plus the verb's own reason.
+  8. The regenerated scenario 4 transcript proves aggregate table rows; reports guidance no longer
+     calls `read` the only v1 table source.
+
+REVIEWER, PLEASE CHECK
+  · Nested values were not flattened through Java `toString()`, and old scalar reports remain valid.
+  · The single scalar-line builder is genuinely shared by the screen and PDF paths.
+  · Record-less sources refuse rowWhen loudly; coverage does not hide excluded or covered nodes.
+  · The scenario-4 transcript was generated from a real run and contains aggregate table rows.
+
+WHEN COMPLETE
+  Write the paired report at the path above: commits, what shipped, every acceptance result, any
+  deliberate deferral, and source-vs-spec mismatch. Keep this brief and report in docs/handoff/ for
+  the independent review; move them to completed only after its findings are answered.

@@ -288,7 +288,8 @@ _M33.1–.4 shipped, twice-reviewed, owner-eyeballed and merged — full record 
 Design: **[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md)**._
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
-- [M33.7] ☐ **Report table sources — every verb a table may cite, assembled** _(spec'd 2026-08-27;
+- [M33.7] ◧ **Report table sources — every verb a table may cite, assembled** _(started 2026-08-28;
+  brief `docs/handoff/handoff_28_aug_2026_1.txt`; spec'd 2026-08-27;
   **[spec-report-table-sources.md](spec-report-table-sources.md)**)_ — M33.3 shipped `read` tables and left
   `aggregate`/`series`/`coverage` rendering "not assembled yet"; the UAT conversation recorded for the docs met that
   sentence. D-T1 stores a call so it re-issues exactly (JSON text for non-scalars — the `"0.0"` anchor bug of
