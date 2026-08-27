@@ -1,0 +1,129 @@
+REVIEW — feat/m37-loaded-panel (M37 the Project panel, .1–.6)
+Reviewer: the first session · Date: 2026-08-27 · Branch @ 39b2e3b · Base: main @ 428eb44
+Spec: docs/specs/spec-loaded-panel.md · Report: docs/handoff/report_feat_m37_loaded_panel.txt
+Prior review of the spec: docs/handoff/review_spec_loaded_panel.txt (C1–C4, N1)
+
+VERDICT: **MERGE** after F1 (one word, and it matters more than its size) and a decision on F2.
+Everything the spec's load-bearing decisions promised is not merely implemented but ENFORCED, which
+is rarer and better. All four of my spec corrections were folded in, and C4 was promoted from a
+footnote to its own decision (D-L8) — the right call, and better than what I proposed.
+
+================================================================================
+1. THE RULE-1 FINDING IS THE MOST IMPORTANT THING ON THIS BRANCH
+================================================================================
+The branch found that `capture-docs.py` had always run the app under the machine's **real**
+`~/.fluxtion-analyser`. Every documentation screenshot ever taken was produced by an analyser
+configured with this machine's actual source roots and event processors. Nothing rendered them, so
+nothing leaked — until a surface finally listed them, and three shots carried real names.
+
+**I verified the claim rather than accepting it, in both directions.**
+
+  · The hazard was REAL. Read the machine's config for SHAPE only (values never echoed into a
+    transcript): **5 source roots configured, 3 of them non-demo.** Any surface rendering that list
+    under the real home would have carried them.
+  · The published shots are CLEAN. The one pre-M37 surface that renders configuration is the Source
+    tab's `EventProcessor:` dropdown. I cropped that region out of `source-navigation.png` **as
+    committed on main** and enlarged it: the dropdown is **empty**. Nothing reached the site.
+
+So the fix is right and the framing is right — the isolated `user.home` makes it impossible by
+construction rather than by discipline, which is the correct grade of fix for a rule-1 hazard, and
+CLAUDE.md records it accurately.
+
+F1 · **ONE SENTENCE OVERSTATES IT, IN THE ALARMING DIRECTION.** — fix before merge
+     `tools/capture-docs.py` says the three shots carried the names *"onto the public site"*. They did
+     not: the commit message says plainly *"The leaked images were never committed"*, CLAUDE.md says
+     *"three shots carried…"* without the claim of publication, and the crop above confirms it. Only
+     the code comment says it shipped.
+
+     This is worth a word because of what rule 1 is made of. That paragraph exists because a recorded
+     mitigation stopped being true and read exactly like one that was; I corrected a stale count in it
+     two days ago. A record that is wrong in the *alarming* direction is the same defect wearing the
+     other face — the next person to read that comment learns a leak was published, and may act on it
+     (purge history, notify someone) for an event that did not happen. Delete "onto the public site",
+     or replace with "…into three shots, caught before they were committed".
+
+================================================================================
+2. THE SPEC'S DECISIONS ARE ENFORCED, NOT JUST OBSERVED
+================================================================================
+D-L1 (a rendering of `context`, never a second model) is the decision I said would decide whether
+this feature ages well. It is held by a test that reads BYTECODE: `ProjectPanel` and `ProjectModel`
+may not so much as reference `MainFrame`, `ActionExecutor` or `AppControl`; `ProjectModel` may not
+contain `javax/swing`; and every context key the model reads is checked against what `context()`
+actually puts, as source text. That is not a test of the current behaviour, it is a test of the
+constraint — a future shortcut fails the build instead of quietly creating the second model.
+
+D-L3 (reveal, never change) is held by the same test: the `Navigator` interface is asserted to be
+**exactly** `{showTab, openSettings}`. A panel that cannot name a mutating class cannot call one.
+
+D-L6 (follows the lifecycle, does not poll) — confirmed: no `Timer`, no scheduler anywhere in the
+panel or model.
+
+The corollary of D-L1 was honoured where it costs something, which is the real test of it: facts the
+panel needed were added to `context` FIRST — `project.root`, `log.openedBy`, `graphPairing.graphPath`,
+graph pairing reported with no log open, `processors[]`, `source.rootTiers[]`. One of those is a
+straight bug fix for agents that had nothing to do with the panel: `source` sat below a
+`filter == null` early return, so a `--rest` start reported **no source roots at all** until the first
+log loaded. That is the argument for D-L1 paying rent, found by building the human view.
+
+My follow-up from the `32db461` review was also taken: `GraphTabs.bind()` and `restore()` now restore
+the caller's previous `restoring` value rather than forcing `false`.
+
+================================================================================
+3. FINDINGS
+================================================================================
+F2 · **AT ITS DEFAULT WIDTH THE PANEL TRUNCATES THE VERDICTS IT EXISTS TO STATE.** — owner's call
+     `AppConfig.westWidth = 280`, shared with the rail, leaves roughly 250px of content. In the
+     committed `project-panel.png` almost every value is elided, including the ones that are the point
+     of the feature:
+
+         "applies — 5…"                     ← D-L4, the pairing verdict: "the fact users most often
+                                               get wrong in silence"
+         "source NOT found u…"              ← a negative state, and the reason to look
+         "selected · source found · com…"
+         "using your own settings (~/.fluxtion-…"
+         "What is in force — the same facts `conte…"   ← the panel's own heading
+
+     D-L8's abbreviation rule is right, and I asked for it — but it was written for **paths**, where
+     the head and tail carry the meaning and Copy has the rest. These are **short sentences**, where
+     the tail carries the meaning and eliding it leaves a fragment. The mitigations are real (tooltip,
+     Copy, a draggable column) but they are all *recovery*: the default rendering of a panel whose one
+     job is stating what is in force currently states most of it partially.
+
+     Two cheap options, not exclusive: raise the default width when the panel is first shown (a
+     one-field change, and the column is persisted the moment the user drags it); and wrap status
+     lines onto a second line instead of eliding them, keeping elision for paths as D-L8 intends.
+     Whichever, the docs screenshot should be retaken at a width where the panel reads — it is the
+     first impression of the feature and it currently sells it short.
+
+F3 · **THE SPEC FILE IS STILL `spec-loaded-panel.md` AND THE MILESTONE IS "the Project panel".** —
+     cosmetic, recorded not fixed. The rename (owner, after seeing it live) is carried through the UI,
+     the class names, the docs page and the config key; only the spec filename, my review filename and
+     this one keep the old word. Renaming files churns links for no reader benefit — but the next
+     person grepping "Loaded panel" should find this note.
+
+================================================================================
+4. WHAT IS GOOD
+================================================================================
+  · **M37.6 came from a real incident, not a backlog.** The Reports section shows the exchange
+    directory *or* "File exchange off — Settings ▸ Assistant" — the state that silently refused
+    `screenshot` twice on the day it was written. A panel justified by the failure it would have
+    prevented is the strongest kind of justification available.
+  · **Empty states are sentences.** "No project — using your own settings", "File exchange off —
+    Settings ▸ Assistant". A blank row is a question the user has to go and answer somewhere else, and
+    none of the six sections ever renders blank.
+  · **The tier of each source root and whether each processor RESOLVES.** Both were previously only
+    discoverable by failing to navigate. "source NOT found" is the panel telling you why the thing you
+    are about to try will not work, before you try it.
+  · **`ProjectModel.KEYS_READ`** — the model declares its own dependency on `context`, and the test
+    reads it. That is what makes D-L1 maintainable rather than aspirational.
+  · The report is honest about the two defects the first live render produced (rows overflowing the
+    column; processor rows leading with the package), which is how the F2 above got half-fixed already.
+
+================================================================================
+5. NOT RE-VERIFIED
+================================================================================
+  · I read `project-panel.png` in full and cropped `source-navigation.png` from main. I did not read
+    all 17 regenerated shots — the report says six distinct panel states were read, and the isolated
+    home now makes the class of leak impossible rather than unlikely.
+  · `mvn test` 877 green here. `mkdocs --strict` not run on this branch by me (it was on main earlier
+    today, and the branch adds one page plus nav).

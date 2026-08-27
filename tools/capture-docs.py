@@ -54,7 +54,8 @@ PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
 # machine's own ~/.fluxtion-analyser, pinning theme and columns "without disturbing the rest" — and "the
 # rest" was this machine's real source roots and event processors, in force for every capture ever taken.
 # Nothing rendered them until the Project panel (M37) listed the processors, and three shots carried a real
-# venue's class name and an employer's package onto the public site. Caught by READING the images, which is
+# venue's class name and an employer's package — caught before they were committed, so nothing reached
+# the site. Caught by READING the images, which is
 # the rule; fixed here by construction: an isolated user.home has only what this script puts in it, so
 # "loaded only with the demo fixture" is finally true of the configuration as well as the log.
 HOME = pathlib.Path("/tmp/analyser-docs/home")

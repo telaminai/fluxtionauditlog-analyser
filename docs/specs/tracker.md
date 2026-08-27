@@ -379,6 +379,13 @@ the asymmetry M37 exists to end._
   production has no symptom the analyser can detect. Pairs with UP-MNG-03 (server wins where both exist).
 - [M38.4] ☐ **Repeatable analyses** — a named sequence of analyser verbs with its rationale and bound
   parameters; an offer, never automatic.
+- [M38.6] ☐ **Path anchors (D-C9)** _(owner question 2026-08-27: "relative or absolute?")_ — three forms
+  already exist and are chosen automatically (project-relative → `~` → absolute). Keep the rule, add the
+  missing **anchor**: an optional project-declared `workspaceRoot` so a SIBLING checkout
+  (`../shared-lib`) can be expressed — today it is written `~/…`, portable for you and silently wrong
+  for a colleague. Pointers (runbook, vocabulary) stay project-relative with no `..`; source roots may
+  use the wider set. The Project panel shows the stored FORM per row, so "this profile is not portable"
+  is visible before it is shared rather than after it fails.
 - [M38.5] ☐ **Report destinations** (a place, never a credential — the `LLM`-category precedent), share
   categories completed, docs + CHANGELOG.
 - **Owner decisions, 2026-08-27:** vocabulary is a **pointed-at markdown file** (same rule as a runbook —
