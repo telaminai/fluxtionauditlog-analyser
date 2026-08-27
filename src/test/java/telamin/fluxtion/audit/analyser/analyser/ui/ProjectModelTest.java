@@ -49,8 +49,8 @@ class ProjectModelTest {
     @Test
     void everyEmptyStateIsASentence_neverABlankSection() {
         ProjectModel m = ProjectModel.from(empty());
-        assertEquals(List.of(ProjectModel.PROJECT, ProjectModel.LOG, ProjectModel.GRAPH, ProjectModel.PROCESSORS, ProjectModel.ROOTS, ProjectModel.REPORTS),
-                m.sections().stream().map(ProjectModel.Section::title).toList(), "six sections, always, in this order");
+        assertEquals(List.of(ProjectModel.PROJECT, ProjectModel.LOG, ProjectModel.GRAPH, ProjectModel.PROCESSORS, ProjectModel.ROOTS, ProjectModel.REPORTS, ProjectModel.ANALYSES),
+                m.sections().stream().map(ProjectModel.Section::title).toList(), "seven sections, always, in this order");
         for (ProjectModel.Section s : m.sections()) {
             if (s.title().equals(ProjectModel.REPORTS)) {
                 // two states, both sentences: the exchange directory (off, here) and the saved reports (none)
@@ -65,7 +65,7 @@ class ProjectModelTest {
         }
         assertEquals("using your own settings (~/.fluxtion-analyser)", m.section(ProjectModel.PROJECT).rows().get(0).secondary());
         // a null payload — context threw, or nothing has ever been bound — is the same five sentences
-        assertEquals(6, ProjectModel.from(null).sections().size());
+        assertEquals(7, ProjectModel.from(null).sections().size());
     }
 
     @Test
@@ -234,6 +234,16 @@ class ProjectModelTest {
         assertTrue(proj.get(2).secondary().endsWith("default when nothing else applies"), proj.get(2).secondary());
         String prov = m.section(ProjectModel.LOG).rows().get(0).provenance();
         assertTrue(prov.contains("from risk-engine · prod (project environment 'prod'"), "declared, never inferred — and by whom: " + prov);
+    void savedAnalysesAreTheOffer_statedWithoutARunButton() {
+        Map<String, Object> ctx = full();
+        ctx.put("analyses", List.of(Map.of("name", "spread breach", "rationale", "every breach starts the same way",
+                "parameters", List.of(Map.of("name", "log")), "steps", List.of("open", "filter", "graph"), "from", "project")));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.ANALYSES).rows();
+        assertEquals(1, rows.size());
+        assertEquals("spread breach", rows.get(0).primary());
+        assertEquals("every breach starts the same way · 3 steps · needs [log] · File ▸ Run analysis", rows.get(0).secondary());
+        assertEquals(ProjectModel.Target.NONE, rows.get(0).target(), "D-L3: the panel states the offer; recall lives in the menu and the verb");
+        assertEquals("No saved analyses", ProjectModel.from(null).section(ProjectModel.ANALYSES).rows().get(0).primary());
     }
 
     @Test

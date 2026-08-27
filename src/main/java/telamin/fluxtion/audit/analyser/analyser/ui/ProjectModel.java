@@ -41,10 +41,11 @@ public record ProjectModel(List<Section> sections) {
             "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
             "runbooks.name", "runbooks.path", "runbooks.resolved", "runbooks.exists", "runbooks.from",
             "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
-            "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default");
+            "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default",
+            "analyses.name", "analyses.rationale", "analyses.parameters", "analyses.steps", "analyses.from");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
-            PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports";
+            PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports", ANALYSES = "Analyses";
 
     @SuppressWarnings("unchecked")
     public static ProjectModel from(Map<String, Object> ctx) {
@@ -232,6 +233,24 @@ public record ProjectModel(List<Section> sections) {
                     null, null, Tone.MUTED, Target.REPORTS));
         }
         out.add(new Section(REPORTS, rows));
+
+        // ---- analyses (M38.4): the offer, stated. Recall lives in File ▸ Run analysis and open {analysis} —
+        // not here, because a button that runs verbs would change what the app shows (D-L3) ------------------
+        rows = new ArrayList<>();
+        for (Object o : list(ctx.get("analyses"))) {
+            Map<String, Object> a = map(o);
+            List<Object> params = list(a.get("parameters"));
+            String detail = (a.get("rationale") == null || str(a.get("rationale")).isBlank() ? "" : a.get("rationale") + " · ")
+                    + list(a.get("steps")).size() + " step" + (list(a.get("steps")).size() == 1 ? "" : "s")
+                    + (params.isEmpty() ? "" : " · needs " + params.stream().map(p -> str(map(p).get("name"))).toList())
+                    + " · File ▸ Run analysis";
+            rows.add(new Row(str(a.get("name")), detail, null, str(a.get("from")), Tone.NORMAL, Target.NONE));
+        }
+        if (rows.isEmpty()) {
+            rows.add(new Row("No saved analyses", "declare one in the project profile (analysis.N.*) — a named sequence of analyser "
+                    + "verbs with its reason; recall it from File ▸ Run analysis or open {analysis}", null, null, Tone.MUTED, Target.NONE));
+        }
+        out.add(new Section(ANALYSES, rows));
         return new ProjectModel(List.copyOf(out));
     }
 

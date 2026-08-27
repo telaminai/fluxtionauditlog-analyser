@@ -76,7 +76,8 @@ public final class ProjectProfile {
             SettingsShare.Category.VIEW,
             SettingsShare.Category.RUNBOOKS,       // M38.1: pointers are project context (D-C1 tier 1)
             SettingsShare.Category.VOCABULARY,     // M38.2: the glossary pointer, same rule
-            SettingsShare.Category.ENVIRONMENTS);  // M38.3: which system a log from here came from
+            SettingsShare.Category.ENVIRONMENTS,   // M38.3: which system a log from here came from
+            SettingsShare.Category.ANALYSES);      // M38.4: tier 2 — the team's repeatable analyses
 
     private ProjectProfile() {
     }
@@ -155,7 +156,8 @@ public final class ProjectProfile {
                            java.util.Map<String, String> runbooks,
                            String vocabularyPath,
                            List<Environment> environments,
-                           String defaultEnvironment) {
+                           String defaultEnvironment,
+                           List<AnalysisSpec> analyses) {
 
         public Snapshot {
             sourceRoots = List.copyOf(sourceRoots);
@@ -169,13 +171,14 @@ public final class ProjectProfile {
             vocabularyPath = vocabularyPath == null ? "" : vocabularyPath;
             environments = List.copyOf(environments == null ? List.of() : environments);
             defaultEnvironment = defaultEnvironment == null ? "" : defaultEnvironment;
+            analyses = List.copyOf(analyses == null ? List.of() : analyses);
         }
     }
 
     public static Snapshot snapshot(AppConfig c) {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
                 c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
-                c.hiddenColumnsSet, c.runbooks, c.vocabularyPath, c.environments, c.defaultEnvironment);
+                c.hiddenColumnsSet, c.runbooks, c.vocabularyPath, c.environments, c.defaultEnvironment, c.analyses);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -195,6 +198,7 @@ public final class ProjectProfile {
         into.vocabularyPath = s.vocabularyPath();
         into.environments.addAll(s.environments());
         into.defaultEnvironment = s.defaultEnvironment();
+        into.analyses.addAll(s.analyses());
     }
 
     /**
@@ -212,6 +216,7 @@ public final class ProjectProfile {
         c.vocabularyPath = "";
         c.environments.clear();
         c.defaultEnvironment = "";
+        c.analyses.clear();
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there
@@ -265,6 +270,8 @@ public final class ProjectProfile {
             if (vb != null && vb.contains("REFUSED")) warn += "  ·  ⚠ vocabulary: " + vb;
             String eb = plan.summary().get(SettingsShare.Category.ENVIRONMENTS);
             if (eb != null && eb.contains("REFUSED")) warn += "  ·  ⚠ environments: " + eb;
+            String an = plan.summary().get(SettingsShare.Category.ANALYSES);
+            if (an != null && an.contains("REFUSED")) warn += "  ·  ⚠ analyses: " + an;
             return new LoadResult(true, "project loaded: " + file + warn);
         } catch (RuntimeException e) {
             return new LoadResult(false, "could not load " + file + ": " + e.getMessage());

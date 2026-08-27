@@ -19,6 +19,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   served in `context.vocabulary.text` and placed first in every *Explain* prompt, so `live` is read the way
   this system means it — for an LLM on an unseen processor and for a support engineer in their first week.
   Travels by default under a new **Domain glossary LOCATION** share checkbox; shown in the Project panel.
+- **Repeatable analyses.** A project can save *the analysis we run every time* — a named sequence of
+  analyser verbs with its rationale and declared parameters (`analysis.N.*` in the profile; `{log}`-style
+  placeholders bound at run time). Recall it from **File ▸ Run analysis** or `open {analysis, bind}`;
+  `context.analyses` lists the offer. Steps run through the action socket's own dispatcher and stop at the
+  first failure. A step can only be an analyser verb, never a project switch, so a shared analysis can drive
+  this viewer and nothing else; travels by default under a **Saved analyses** share checkbox.
 - **Runbook pointers — the first slice of portable context.** A project can now record *where* its
   runbooks live — `runbook.0.name=deploy` / `runbook.0.path=ops/deploy.md` in the committed profile — a
   pointer into the repository, never the commands, and the analyser never executes it. Absolute paths, `..`,

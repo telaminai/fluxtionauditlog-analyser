@@ -262,7 +262,15 @@ public final class VerbSchemas {
                                 + "and the one call that puts it back — so the mutation is reversible "
                                 + "from the answer you were given. This is how to ACCEPT the "
                                 + "projectOffer that context reports. Any other param in the same call "
-                                + "is ignored and named")),
+                                + "is ignored and named"),
+                        p("analysis", string(), "M38.4: recall a SAVED ANALYSIS by name — the ones context.analyses "
+                                + "lists, each with its rationale and the parameters it declares. Its steps are "
+                                + "analyser verbs and run through this same surface in order, stopping at the "
+                                + "first failure; the echo reports each step. An offer made real by this call, "
+                                + "never automatic."),
+                        p("bind", new java.util.LinkedHashMap<>(Map.of("type", "object", "additionalProperties", Map.of("type", "string"))),
+                                "values for the analysis's declared parameters, e.g. {\"log\": \"/path/a.yaml\"}; "
+                                + "a parameter with no value and no default refuses the run and names itself")),
                 List.of()));
 
         s.put("source_root", schema("Inspect or change the configured Java source roots. Reaches the "

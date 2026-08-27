@@ -1,6 +1,6 @@
 # The Project panel — what is in force
 
-Six things shape every answer the analyser gives you: which **project** is active, which **audit
+Seven things shape every answer the analyser gives you: which **project** is active, which **audit
 log** is open, which **graph** is paired with it, which **event processors** are configured, and which
 **source roots** the code is read from. Until now they were told in five places — the window title,
 a status line the next message overwrote, the Topology header, and two dialogs. The **Project** panel,
@@ -17,6 +17,7 @@ on the left rail under *Event types*, states all five at once.
 | **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root | *project* / *own settings* / *discovered under a root* |
 | **Source roots** | each root | *project* / *own settings* / *demo (transient)* |
+| **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *File ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
 | **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — and each **saved report** by title with its section count | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
 
 An empty section is a sentence, not a blank — *"No graph — File ▸ Open topology, or a reader may

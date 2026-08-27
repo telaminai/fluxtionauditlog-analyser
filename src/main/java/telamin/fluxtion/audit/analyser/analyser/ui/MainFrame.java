@@ -1466,6 +1466,8 @@ public final class MainFrame extends JFrame {
         file.add(saveProjectAsItem);
         closeProjectItem.addActionListener(e -> closeProject());
         file.add(closeProjectItem);
+        file.add(analysesMenu);          // M38.4: recall a saved analysis — the UI half of the offer
+        rebuildAnalysesMenu();
 
         file.addSeparator();
         followMenuItem = new JCheckBoxMenuItem("Follow (tail)");
@@ -1799,7 +1801,11 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /** M38.4: a load is in flight (log, S3, rolled set). Read off the EDT by the analysis runner, hence volatile. */
+    private volatile boolean loadInFlight;
+
     private void setBusy(boolean busy) {
+        loadInFlight = busy;
         progress.setVisible(busy);
     }
 
@@ -2874,6 +2880,7 @@ public final class MainFrame extends JFrame {
         // Hanging this off dialog-close would silently lose every verb-driven change.
         if (project != null) project.requestSave();
         refreshProjectPanel();                                        // M37: roots and processors may have changed
+        rebuildAnalysesMenu();                                        // M38.4: the profile may have gained one
     }
 
     // ---- settings export / import (M15) ---------------------------------------------------------
@@ -3159,7 +3166,57 @@ public final class MainFrame extends JFrame {
         refreshProjectPanel();                                        // M37: the project, and everything it owns
     }
 
+    /** M38.4: File ▸ Run analysis — one item per saved analysis; the rationale is the tooltip. */
+    private final JMenu analysesMenu = new JMenu("Run analysis");
+
+    private void rebuildAnalysesMenu() {
+        analysesMenu.removeAll();
+        analysesMenu.setEnabled(!config.analyses.isEmpty());
+        analysesMenu.setToolTipText(config.analyses.isEmpty()
+                ? "No saved analyses — declare them in the project profile (analysis.N.*); see the Portable context guide" : null);
+        for (telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec a : config.analyses) {
+            JMenuItem item = new JMenuItem(a.name() + (a.parameters().isEmpty() ? "" : "…"));
+            item.setToolTipText(a.rationale().isBlank() ? a.steps().size() + " step(s)" : a.rationale());
+            item.addActionListener(e -> runAnalysisFromMenu(a));
+            analysesMenu.add(item);
+        }
+    }
+
+    /** Ask for the parameters an analysis declares (defaults prefilled), then run it off the EDT. */
+    private void runAnalysisFromMenu(telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec a) {
+        Map<String, String> bind = new java.util.LinkedHashMap<>();
+        if (!a.parameters().isEmpty()) {
+            JPanel form = new JPanel(new java.awt.GridLayout(0, 2, 8, 4));
+            Map<String, JTextField> fields = new java.util.LinkedHashMap<>();
+            for (String p : a.parameters()) {
+                form.add(new JLabel(p + ":"));
+                JTextField f = new JTextField(a.defaults().getOrDefault(p, ""), 32);
+                fields.put(p, f);
+                form.add(f);
+            }
+            JPanel box = new JPanel(new BorderLayout(0, 8));
+            JLabel why = new JLabel("<html><i>" + (a.rationale().isBlank() ? a.steps().size() + " steps" : a.rationale()) + "</i></html>");
+            box.add(why, BorderLayout.NORTH);
+            box.add(form, BorderLayout.CENTER);
+            int ok = JOptionPane.showConfirmDialog(this, box, "Run analysis: " + a.name(), JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (ok != JOptionPane.OK_OPTION) return;
+            fields.forEach((k, f) -> bind.put(k, f.getText()));
+        }
+        status.setText("Running analysis '" + a.name() + "'…");
+        telamin.fluxtion.audit.analyser.analyser.core.Background.run(
+                () -> actionControl.runAnalysis(a.name(), bind),
+                r -> status.setText(r.ok() ? "Analysis '" + a.name() + "': " + summarise(r) : "Analysis '" + a.name() + "' — " + r.error()),
+                err -> status.setText("Analysis '" + a.name() + "' failed: " + err.getMessage()));
+    }
+
+    private static String summarise(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult r) {
+        Object a = r.toMap().get("analysis");
+        if (a instanceof Map<?, ?> m) return String.valueOf(m.get("completed")) + (m.get("stoppedAt") != null ? " — stopped at step " + m.get("stoppedAt") : "");
+        return "done";
+    }
+
     private void updateProjectMenuState() {
+        rebuildAnalysesMenu();
         saveProjectAsItem.setEnabled(project.hasProject());
         closeProjectItem.setEnabled(project.hasProject());
         updateLifecycleMenu();
@@ -3528,6 +3585,64 @@ public final class MainFrame extends JFrame {
             return List.copyOf(config.sourceRoots);
         }
 
+        /** M38.4 D-C5: bind, then run each step through the socket's own dispatcher; stop at the first failure. */
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult runAnalysis(String name, Map<String, String> bindings) {
+            telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec spec = config.analyses.stream()
+                    .filter(a -> a.name().equals(name)).findFirst().orElse(null);
+            if (spec == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no saved analysis named '" + name
+                        + "' — saved: " + config.analyses.stream().map(telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec::name).toList());
+            }
+            List<String> missing = spec.unbound(bindings);
+            if (!missing.isEmpty()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("analysis '" + name + "' needs "
+                        + missing + " — pass bind: {" + String.join(": …, ", missing) + ": …}; these parameters have no default");
+            }
+            var bound = spec.bind(bindings);
+            var run = telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec.run(bound, step -> {
+                telamin.fluxtion.audit.analyser.analyser.llm.ActionResult r =
+                        actionExecutor.render(step.action(), new java.util.LinkedHashMap<>(step.params()));
+                // Opening a log is ASYNCHRONOUS (the docs tell agents to read `context` after it). A sequence
+                // cannot be told that: step 2 on a log step 1 has not finished loading fails with "no log is
+                // loaded" — seen on the first live run. So an open step waits for its load to settle, success
+                // or failure, before the next step runs.
+                if (r.ok() && step.action().equals("open")
+                        && (step.params().get("log") != null || step.params().get("logs") != null)) {
+                    long deadline = System.currentTimeMillis() + 120_000;
+                    while (loadInFlight && System.currentTimeMillis() < deadline) {
+                        try { Thread.sleep(50); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+                    }
+                    if (loadInFlight) {
+                        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the log did not finish loading within 120s");
+                    }
+                    if (store == null) {
+                        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the log failed to load — "
+                                + status.getText());
+                    }
+                }
+                return r;
+            });
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("analysis", name);
+            echo.put("rationale", spec.rationale());
+            List<Map<String, Object>> steps = new ArrayList<>();
+            for (var sr : run.steps()) {
+                Map<String, Object> one = new java.util.LinkedHashMap<>();
+                one.put("step", sr.index());
+                one.put("action", sr.action());
+                one.put("ok", sr.ok());
+                if (sr.error() != null) one.put("error", sr.error());
+                steps.add(one);
+            }
+            echo.put("steps", steps);
+            echo.put("completed", run.steps().stream().filter(telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec.StepResult::ok).count()
+                    + "/" + bound.size() + " steps");
+            if (!run.completed()) echo.put("stoppedAt", run.stoppedAt());
+            refreshProjectPanel();
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "analysis", echo);
+        }
+
 
         @Override
         public boolean addSourceRoot(String path) {
@@ -3788,6 +3903,28 @@ public final class MainFrame extends JFrame {
             {
                 Map<String, Object> v = vocabularyForContext();
                 if (!v.isEmpty()) out.put("vocabulary", v);
+            }
+            // M38.4: the saved analyses — the OFFER (D-C5). Listed with their rationale and the parameters they
+            // declare, so an agent can bind and recall one with open {analysis, bind}; nothing runs by itself.
+            if (!config.analyses.isEmpty()) {
+                List<Map<String, Object>> list = new ArrayList<>();
+                for (telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec a : config.analyses) {
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("name", a.name());
+                    one.put("rationale", a.rationale());
+                    List<Map<String, Object>> ps = new ArrayList<>();
+                    for (String pn : a.parameters()) {
+                        Map<String, Object> pm = new java.util.LinkedHashMap<>();
+                        pm.put("name", pn);
+                        if (a.defaults().containsKey(pn)) pm.put("default", a.defaults().get(pn));
+                        ps.add(pm);
+                    }
+                    one.put("parameters", ps);
+                    one.put("steps", a.steps().stream().map(telamin.fluxtion.audit.analyser.analyser.config.AnalysisSpec.Step::action).toList());
+                    one.put("from", project.hasProject() ? "project" : "own settings");
+                    list.add(one);
+                }
+                out.put("analyses", list);
             }
             // M37.6: where files LEAVE, and the reports the project holds. The exchange directory is
             // machine-tier (a path on this disk, never shared); the reports are project-tier. Both were

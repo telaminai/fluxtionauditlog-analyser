@@ -377,7 +377,7 @@ the asymmetry M37 exists to end._
 - [M38.3] ☑ **Environments + the §E provenance each stamps** _(2026-08-27: `environment.N.*` + `environment.default`; matched by logDir then default, only when nobody declared; `context.provenanceSource`; `ENVIRONMENTS` share category default-on; panel rows; review F1: the report header qualifies a matched provenance)_ — correctness, not convenience: two
   environments on one build emit indistinguishable logs, and an answer right about UAT read as
   production has no symptom the analyser can detect. Pairs with UP-MNG-03 (server wins where both exist).
-- [M38.4] ☐ **Repeatable analyses** — a named sequence of analyser verbs with its rationale and bound
+- [M38.4] ☑ **Repeatable analyses** _(2026-08-27 on `feat/m38-analyses`: `analysis.N.*` in the profile; gate = analyser verbs only, no project switch; `context.analyses` is the offer; recall via `open {analysis, bind}` and File ▸ Run analysis; stops at first failure; `ANALYSES` share category default-on; panel section)_ — a named sequence of analyser verbs with its rationale and bound
   parameters; an offer, never automatic.
 - [M38.5] ☐ **Report destinations** (a place, never a credential — the `LLM`-category precedent), share
   categories completed, docs + CHANGELOG.

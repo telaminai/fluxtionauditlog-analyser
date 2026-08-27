@@ -149,6 +149,52 @@ Environments **travel by default** in a shared profile, under **Environments (na
 string each stamps — which may name systems and hosts — and their log directories; never log data)**:
 the label says exactly what leaves, because a provenance string is estate detail even if it is not a
 secret. `logDir` is a pointer and passes the same gate as a runbook's.
+## Repeatable analyses — the one we run every time
+
+*Open this log, filter to that node, build those series, produce that report* — saved by name, with
+its **rationale**, because a saved view without its reason is an unexplained view (the pattern named
+focuses set). Parameters are declared and bound when it runs, so one analysis serves every incident of a
+kind.
+
+```properties
+analysis.count=1
+analysis.0.name=spread breach
+analysis.0.rationale=every breach incident starts the same way: the spread before it
+analysis.0.param.count=2
+analysis.0.param.0.name=log
+analysis.0.param.1.name=node
+analysis.0.param.1.default=quotePublisher
+analysis.0.step.count=3
+analysis.0.step.0.action=open
+analysis.0.step.0.params={"log": "{log}"}
+analysis.0.step.1.action=filter
+analysis.0.step.1.params={"text": "{node}"}
+analysis.0.step.2.action=graph
+analysis.0.step.2.params={"name": "Spread — {node}", "series": ["{node}.spread"]}
+```
+
+Each step is an action-socket verb with its params exactly as the socket would receive them; `{name}`
+anywhere in a value is replaced by the bound parameter.
+
+**Tier 2, by construction.** A step can only be a verb on the analyser's action socket, and that surface
+never carries a server verb — so a saved analysis can drive this viewer and nothing else, which is what
+makes it safe to share. The gate refuses a step naming a verb this build does not know, and refuses the
+two lifecycle acts that belong to a person even though they are analyser verbs: **opening or closing a
+project** (a session boundary). Closing a log or a graph is a legitimate step.
+
+**Recall is an offer.** `context.analyses` lists each analysis with its rationale and the parameters it
+declares; nothing runs by itself. To run one:
+
+- **File ▸ Run analysis ▸ *name*** — a small dialog asks for the parameters (defaults prefilled).
+- `open {analysis: "spread breach", bind: {log: "/path/to/audit.yaml"}}` over the socket.
+
+Steps run in order through the same dispatcher the socket uses, so every guard a verb has applies, and
+the run **stops at the first failure** — the echo reports each step and where it stopped. A parameter
+with no value and no default refuses the run and names itself.
+
+Analyses travel by default under **Saved analyses (named analyser-verb sequences with their rationale —
+they can only drive this viewer, never a server)**. The Project panel lists them under *Analyses* — the
+offer stated, with no run button, because a button that runs verbs would change what the app shows.
 
 ## What comes next
 

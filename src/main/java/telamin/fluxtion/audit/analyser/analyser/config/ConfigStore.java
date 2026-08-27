@@ -89,6 +89,7 @@ public final class ConfigStore {
         c.vocabularyPath = readVocabulary(p).orElse("");
         readEnvironments(p, c.environments);
         c.defaultEnvironment = p.getProperty("environment.default", c.defaultEnvironment);
+        readAnalyses(p, c.analyses);
         c.assistantActionsInProcess = parseBool(p.getProperty("assistant.inProcess"), c.assistantActionsInProcess);
         c.assistantActionsRest = parseBool(p.getProperty("assistant.rest"), c.assistantActionsRest);
         c.assistantExports = parseBool(p.getProperty("assistant.exports"), c.assistantExports);
@@ -162,6 +163,7 @@ public final class ConfigStore {
         writeVocabulary(p, globalTier == null ? c.vocabularyPath : globalTier.vocabularyPath());
         writeEnvironments(p, globalTier == null ? c.environments : globalTier.environments(),
                 globalTier == null ? c.defaultEnvironment : globalTier.defaultEnvironment());
+        writeAnalyses(p, globalTier == null ? c.analyses : globalTier.analyses());
         put(p, "assistant.inProcess", Boolean.toString(c.assistantActionsInProcess));
         put(p, "assistant.rest", Boolean.toString(c.assistantActionsRest));
         put(p, "assistant.exports", Boolean.toString(c.assistantExports));
@@ -581,6 +583,70 @@ public final class ConfigStore {
             Environment e = new Environment(p.getProperty("environment." + i + ".name"),
                     p.getProperty("environment." + i + ".provenance"), p.getProperty("environment." + i + ".logDir"));
             Environment.refuse(e).ifPresentOrElse(refused::add, () -> out.add(e));
+        }
+        return refused;
+    }
+
+    /** M38.4: analyses. Steps' params travel as one JSON object each — the shape the socket receives. */
+    static void writeAnalyses(Properties p, List<AnalysisSpec> analyses) {
+        java.util.Set<String> verbs = telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().keySet();
+        int i = 0;
+        for (AnalysisSpec a : analyses) {
+            if (AnalysisSpec.refuse(a, verbs).isPresent()) continue;
+            String k = "analysis." + i + ".";
+            put(p, k + "name", a.name());
+            put(p, k + "rationale", a.rationale());
+            p.setProperty(k + "param.count", Integer.toString(a.parameters().size()));
+            for (int j = 0; j < a.parameters().size(); j++) {
+                String name = a.parameters().get(j);
+                put(p, k + "param." + j + ".name", name);
+                if (a.defaults().containsKey(name)) put(p, k + "param." + j + ".default", a.defaults().get(name));
+            }
+            p.setProperty(k + "step.count", Integer.toString(a.steps().size()));
+            for (int j = 0; j < a.steps().size(); j++) {
+                put(p, k + "step." + j + ".action", a.steps().get(j).action());
+                put(p, k + "step." + j + ".params", telamin.fluxtion.audit.analyser.analyser.llm.Json.write(a.steps().get(j).params()));
+            }
+            i++;
+        }
+        if (i > 0) p.setProperty("analysis.count", Integer.toString(i));
+    }
+
+    /** @return the reasons for every analysis refused (empty when all were sound) */
+    @SuppressWarnings("unchecked")
+    static List<String> readAnalyses(Properties p, List<AnalysisSpec> out) {
+        out.clear();
+        List<String> refused = new ArrayList<>();
+        java.util.Set<String> verbs = telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().keySet();
+        int n = parseInt(p.getProperty("analysis.count"), 0);
+        for (int i = 0; i < n; i++) {
+            String k = "analysis." + i + ".";
+            List<String> params = new ArrayList<>();
+            java.util.Map<String, String> defaults = new java.util.LinkedHashMap<>();
+            int pn = parseInt(p.getProperty(k + "param.count"), 0);
+            for (int j = 0; j < pn; j++) {
+                String name = p.getProperty(k + "param." + j + ".name", "");
+                params.add(name);
+                String d = p.getProperty(k + "param." + j + ".default");
+                if (d != null) defaults.put(name, d);
+            }
+            List<AnalysisSpec.Step> steps = new ArrayList<>();
+            int sn = parseInt(p.getProperty(k + "step.count"), 0);
+            String bad = null;
+            for (int j = 0; j < sn; j++) {
+                String action = p.getProperty(k + "step." + j + ".action", "");
+                Object parsed;
+                try {
+                    parsed = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(p.getProperty(k + "step." + j + ".params", "{}"));
+                } catch (RuntimeException e) {
+                    parsed = null;
+                }
+                if (!(parsed instanceof java.util.Map<?, ?> m)) { bad = "step " + (j + 1) + " params are not a JSON object"; break; }
+                steps.add(new AnalysisSpec.Step(action, (java.util.Map<String, Object>) m));
+            }
+            AnalysisSpec a = new AnalysisSpec(p.getProperty(k + "name"), p.getProperty(k + "rationale"), params, defaults, steps);
+            if (bad != null) { refused.add("analysis '" + a.name() + "': " + bad); continue; }
+            AnalysisSpec.refuse(a, verbs).ifPresentOrElse(refused::add, () -> out.add(a));
         }
         return refused;
     }

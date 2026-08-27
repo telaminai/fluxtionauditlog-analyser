@@ -123,6 +123,8 @@ public final class AppConfig {
     public final List<Environment> environments = new ArrayList<>();
     /** M38.3: the environment a log falls under when no logDir matches and nobody declared one; blank = none. */
     public String defaultEnvironment = "";
+    /** M38.4: repeatable analyses — named analyser-verb sequences with their rationale (tier 2). Project-scoped. */
+    public final List<AnalysisSpec> analyses = new ArrayList<>();
 
     /** Recent search terms (most-recent first), for the search box history/autocomplete. */
     public final List<String> searchHistory = new ArrayList<>();

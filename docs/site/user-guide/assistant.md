@@ -103,6 +103,9 @@ The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open` and
 `analyser_source_root` — with full parameter schemas, so there's nothing to paste into a prompt.
 
+`open {analysis: name, bind: {…}}` recalls a saved analysis (*Portable context ▸ Repeatable analyses*) —
+`context.analyses` lists them with their parameters; steps run through this surface and stop at the first failure.
+
 `open` also takes `logs: [...]` — an explicit rolled set, loaded as one log in content order, the
 echo carrying the order chosen and the time-order report (see *Records ▸ Rolled log sets*).
 

@@ -102,6 +102,7 @@ public final class ActionExecutor implements RenderExecutor {
         // requiring one first would make them useless
         switch (action) {
             case "open" -> {
+                if (params.get("analysis") != null) return doOpenAnalysis(params);   // M38.4: off the EDT, see method
                 return onEdt(() -> doOpen(params));
             }
             case "source_root" -> {
@@ -698,7 +699,7 @@ public final class ActionExecutor implements RenderExecutor {
 
     /** Every 'open' param; used to name the ones a lifecycle act (project, close) leaves unhonoured. */
     private static final List<String> OPEN_PARAMS = List.of("log", "logs", "graphml", "processor",
-            "format", "provenance", "discover", "close", "project");
+            "format", "provenance", "discover", "close", "project", "analysis", "bind");
 
     private static List<String> otherOpenParams(Map<String, Object> params, String honoured) {
         List<String> ignored = new ArrayList<>();
@@ -706,6 +707,30 @@ public final class ActionExecutor implements RenderExecutor {
             if (!k.equals(honoured) && params.get(k) != null) ignored.add(k);
         }
         return ignored;
+    }
+
+    /**
+     * M38.4 — recall a saved analysis. NOT under onEdt(): the run waits for each asynchronous open to settle,
+     * and a wait on the EDT blocks the completion it waits for (the first live run timed out that way while
+     * the log sat loaded). Each step hops to the EDT on its own through render().
+     */
+    private ActionResult doOpenAnalysis(Map<String, Object> params) {
+        if (app == null) return ActionResult.error("'open' is not enabled here");
+        // M38.4: recall a saved analysis — its steps run through render(), so each keeps its own guards.
+        // On `open` because recalling is a lifecycle act like the others here, and the verb surface is a
+        // compatibility surface that does not grow for a concept an existing verb already names.
+        Map<String, String> bind = new LinkedHashMap<>();
+        if (params.get("bind") instanceof Map<?, ?> m) m.forEach((k, v) -> { if (v != null) bind.put(String.valueOf(k), String.valueOf(v)); });
+        ActionResult r = app.runAnalysis(str(params.get("analysis")), bind);
+        List<String> ignored = otherOpenParams(params, "analysis");
+        ignored.remove("bind");
+        if (r.ok() && !ignored.isEmpty()) {
+            Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("analysis")));
+            echo.put("ignored", ignored);
+            echo.put("ignoredWhy", "'analysis' was also given; its steps decide what opens");
+            return ActionResult.ok("open", "analysis", echo);
+        }
+        return r;
     }
 
     private ActionResult doOpen(Map<String, Object> params) {

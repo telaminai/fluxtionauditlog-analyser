@@ -1,0 +1,46 @@
+REPORT — feat/m38-analyses · M38.4 repeatable analyses (D-C5)
+Date: 2026-08-27 · From: the second session · Branch cut from main @ 955b764 (M38.1 on main; .2/.3 on
+feat/m38-portable-context under review — this branch rebases onto that one when it merges).
+
+THE SLICE
+  config/AnalysisSpec     record {name, rationale, parameters, defaults, steps[{action, params}]}.
+                          refuse(spec, knownVerbs): name; ≥1 step; every action ∈ VerbSchemas.all() (tier 2 rests on
+                          this); `open {project}` and `open {close: project}` refused — a session boundary is a
+                          person's act; every {placeholder} must be a declared parameter; parameter names are
+                          identifiers. unbound(bindings) names what a run still needs; bind() substitutes {name}
+                          in strings, lists and maps, defaults first, supplied values over them.
+                          run(bound, exec): the steps through the caller's dispatcher, stopping at the first
+                          failure; an exception is a failed step, not a crashed run.
+  Recall                  open {analysis, bind} — on `open`, not a new verb (the surface stays at 14; recalling
+                          is a lifecycle act like close/discover/project). Steps run through
+                          ActionExecutor.render(), so each keeps its own guards (EDT hop, export policy, read
+                          grants). File ▸ Run analysis ▸ name: parameters asked in a dialog with defaults
+                          prefilled; runs off the EDT; status bar reports "n/N steps" or where it stopped.
+  The offer               context.analyses[] {name, rationale, parameters[{name, default}], steps[actions], from};
+                          the Project panel's Analyses section states it with NO run button (D-L3).
+  Persistence / sharing   analysis.N.name/rationale/param.M.name|default/step.M.action|params (JSON object,
+                          the socket's shape). Category ANALYSES default ON, label naming the cargo and the
+                          guarantee ("they can only drive this viewer, never a server"). Loader/import drop a
+                          refused analysis with the reason; the project loader announces it.
+  Tests                   AnalysisSpecTest (4): the gate; binding; the runner; persistence + share + profile
+                          round-trip + loader announcement. ProjectModelTest.savedAnalysesAreTheOffer…
+  Docs                    portable-context.md ▸ Repeatable analyses; sharing-setups row; project-panel; assistant.md
+                          (open params). CHANGELOG. Tracker M38.4 ☑.
+
+FOUND LIVE, FIXED BEFORE COMMIT (both would have been invisible to the unit tests)
+  1 `open {log}` is ASYNCHRONOUS. The first live run reported 1/3 — step 2 (`filter`) ran before the log had
+    landed and failed "no log is loaded". The runner now waits for an open step's load to settle (success or
+    failure — both pass through setBusy(false)), up to 120s, before the next step; a failed load is a failed
+    step with the status bar's reason.
+  2 The wait then TIMED OUT while the log sat loaded: render("open") hops onto the EDT, so the runner was
+    spinning on the EDT and blocking the completion it waited for. `open {analysis}` is now routed BEFORE the
+    EDT hop (doOpenAnalysis); each step hops on its own through render(). 3/3 in 0.2s after the fix.
+  Both are the kind of defect a sequence surfaces and a single verb never does — worth remembering for M38.5+.
+
+NOT DONE, DELIBERATELY
+  · No authoring verb or dialog: the profile file is the writer, as for every other M38 artefact. An agent
+    could author one through the file it already edits; a verb would make the analysis settable AND runnable
+    by the same agent with no human in the path (the M38.2 review's argument).
+  · No per-step confirmation: the run is one act the person (or the MCP client's per-call approval) took.
+  · Merge note: ProjectProfileTest's tier count is 8 here (RUNBOOKS + ANALYSES) and 9 on the .2/.3 branch
+    (+VOCABULARY, ENVIRONMENTS) — 10 after both merge; expect that one-line conflict.

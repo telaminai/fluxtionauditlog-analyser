@@ -91,6 +91,14 @@ public interface AppControl {
      * closed (M35.5 — a project is a session boundary) and how to put the previous settings back.
      * The MCP client's per-call approval is the human gate. Default: not supported.
      */
+    /**
+     * M38.4 — recall a saved analysis by name (D-C5): bind its parameters and run its steps through the same
+     * dispatcher the socket uses. An OFFER made real by an explicit call, never automatic. Default: not offered.
+     */
+    default ActionResult runAnalysis(String name, java.util.Map<String, String> bindings) {
+        return ActionResult.error("'analysis' is not available in this context");
+    }
+
     default ActionResult openProject(String path) {
         return ActionResult.error("'project' is not enabled here");
     }
