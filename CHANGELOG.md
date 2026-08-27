@@ -10,6 +10,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Docs: Working with AI ▸ Runbooks, glossary and saved analyses with an AI** — how the in-app assistant or an
   LLM over MCP finds them in `context`, uses them (read the file yourself; the analyser never runs one), and
   creates them (write the file and the pointer into the repository, show the diff — there is no verb, by design).
+  Runbook files should be written in the skill shape (frontmatter `name`/`description`, then steps) so one file
+  serves the team, Claude Code and the analyser.
 
 ### Fixed
 - **An older analyser no longer strips a newer one's settings on save.** Both the project profile and the

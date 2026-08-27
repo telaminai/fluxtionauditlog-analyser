@@ -1712,12 +1712,3 @@ the asymmetry M37 exists to end._
   for a colleague. Pointers (runbook, vocabulary) stay project-relative with no `..`; source roots may
   use the wider set. The Project panel shows the stored FORM per row, so "this profile is not portable"
   is visible before it is shared rather than after it fails.
-- [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
-  question support cannot answer about a system they did not build, and the one a deterministic record
-  uniquely can. Five decisions, the load-bearing two: **D-N1** a baseline is a NAMED REFERENCE RUN, never
-  an abstract "normal" (an abstract normal is unfalsifiable authority — nobody can check it, and when it
-  disagrees with reality there is no way to tell which is wrong); **D-N3** a comparison prints TWO
-  measurements and no verdict, because a scoring tool becomes a tool people ignore after its first false
-  alarm. Keyed per environment (M38.3), offered never automatic (M35–M37 spent three milestones removing
-  things that fire at load), and it carries no log data. Slices M39.1–.5; four open questions for the
-  owner, the first being where a baseline lives.

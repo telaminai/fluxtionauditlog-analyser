@@ -68,6 +68,14 @@ Opening a project whose profile carries such an entry says so in the status bar 
 REFUSED — not a project-relative path: …"* — and the pointer beside it still loads. A share file that
 carries runbook *contents* imports the same way.
 
+### Write it in the skill shape
+
+The analyser needs only the path, but write the runbook file the way an AI harness loads a **skill** —
+frontmatter `name` and `description`, then the steps (see *Working with AI ▸ Runbooks, glossary and saved
+analyses with an AI*). A pointer may target a skill file directly (`.claude/skills/deploy/SKILL.md`), so one
+file serves the team, Claude Code and the analyser; and the `description` is what a later slice (M38.8) will
+surface in `context` so a model can pick the right runbook without opening all of them.
+
 ### Where you see it
 
 The **Project panel** lists each pointer under the project row — *`deploy runbook: ops/deploy.md ·

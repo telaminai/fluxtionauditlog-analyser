@@ -357,6 +357,25 @@ a log from the command line means never seeing it._
 - ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
   user's repo carries it. An upstream ask, not an analyser one.
 
+## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md)
+- [M38.8] ☐ **Runbook `description` — the skill contract** _(owner, 2026-08-27; after the release)_ — a
+  runbook pointer is skill-shaped in storage but not in discovery: a model must open every file to know which
+  is relevant. Add optional `runbook.N.description` (inert, gated like the name), serve it in
+  `context.runbooks[]`, show it on the Project-panel row. The file-shape convention (frontmatter `name`/
+  `description`, so a pointer may target a `SKILL.md`) is documented ahead of it, so no runbook needs
+  rewriting. Content delivery stays as it is: the analyser serves the pointer, never the instructions.
+
+## M39 · Baselines — "is this normal here?" — ☐ SPEC'D 2026-08-27 (owner decision 4; spec **[spec-baselines.md](spec-baselines.md)**)
+- [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
+  question support cannot answer about a system they did not build, and the one a deterministic record
+  uniquely can. Five decisions, the load-bearing two: **D-N1** a baseline is a NAMED REFERENCE RUN, never
+  an abstract "normal" (an abstract normal is unfalsifiable authority — nobody can check it, and when it
+  disagrees with reality there is no way to tell which is wrong); **D-N3** a comparison prints TWO
+  measurements and no verdict, because a scoring tool becomes a tool people ignore after its first false
+  alarm. Keyed per environment (M38.3), offered never automatic (M35–M37 spent three milestones removing
+  things that fire at load), and it carries no log data. Slices M39.1–.5; four open questions for the
+  owner, the first being where a baseline lives.
+
 ## M40 · Audit readiness — will this processor log at all? — ◧ **.1 DONE 2026-08-27** on `feat/audit-readiness`
 _Brief `docs/handoff/handoff_27_aug_2026_1.txt`, report `docs/handoff/report_feat_audit_readiness.txt`.
 The owner's redirect: the authoring side belongs to the LLM writing the processor; the ANALYSER side can

@@ -94,6 +94,27 @@ Portable context guide for the full gate). A prompt that does this well:
 The human review step — *show me the diff* — is the point. The pointer and the runbook arrive together,
 through version control, and the person who approves the commit is the person the rule protects.
 
+## Write runbooks in the skill shape
+
+A runbook file is ordinary markdown, and the analyser only ever needs its path — but write it in the shape
+an AI harness already knows how to load as a **skill**: a frontmatter block with `name` and `description`,
+then the steps.
+
+```markdown
+---
+name: restart-quote-service
+description: Restart the quote service after a config change; when to use, what to check first, how to verify.
+---
+1. …
+```
+
+Two things follow. A runbook pointer can target a skill file directly — `runbook.0.path=.claude/skills/restart/SKILL.md`
+— so one file is both the team's runbook and a Claude Code skill, and any harness that reads that shape gets
+it too. And the `description` is what lets a model decide *which* runbook is relevant before opening any
+of them; a planned slice (M38.8) surfaces it in `context.runbooks[]` as `runbook.N.description`, so
+runbooks written this way today need no rewriting then. Nothing in the analyser parses the frontmatter;
+the convention just makes the two worlds the same file.
+
 ## What the analyser will refuse
 
 - a runbook or glossary path that is absolute, uses `..`, is a URL, or looks like a command
