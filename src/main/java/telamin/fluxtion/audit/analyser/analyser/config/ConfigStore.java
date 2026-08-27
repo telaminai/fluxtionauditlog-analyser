@@ -58,6 +58,9 @@ public final class ConfigStore {
         }
         c.searchMavenRepos = parseBool(p.getProperty("mavenRepoSearch"), c.searchMavenRepos);
         c.eventFilterCollapsed = parseBool(p.getProperty("eventFilterCollapsed"), c.eventFilterCollapsed);
+        c.projectPanelCollapsed = parseBool(p.getProperty("projectPanelCollapsed"), c.projectPanelCollapsed);
+        c.westDivider = parseInt(p.getProperty("westDivider"), c.westDivider);
+        c.westWidth = parseInt(p.getProperty("westWidth"), c.westWidth);
         c.topologySpacingPercent = parseInt(p.getProperty("topologySpacing"), c.topologySpacingPercent);
         c.topologyTextSize = parseInt(p.getProperty("topologyTextSize"), c.topologyTextSize);
         c.topologyZoom = parseDouble(p.getProperty("topologyZoom"), c.topologyZoom);
@@ -128,6 +131,9 @@ public final class ConfigStore {
         writeList(p, "mavenRepo", globalTier == null ? c.mavenRepos : globalTier.mavenRepos());
         put(p, "mavenRepoSearch", Boolean.toString(globalTier == null ? c.searchMavenRepos : globalTier.searchMavenRepos()));
         put(p, "eventFilterCollapsed", Boolean.toString(c.eventFilterCollapsed));
+        put(p, "projectPanelCollapsed", Boolean.toString(c.projectPanelCollapsed));
+        put(p, "westDivider", Integer.toString(c.westDivider));
+        put(p, "westWidth", Integer.toString(c.westWidth));
         put(p, "topologySpacing", Integer.toString(c.topologySpacingPercent));
         put(p, "topologyTextSize", Integer.toString(c.topologyTextSize));
         put(p, "topologyZoom", Double.toString(c.topologyZoom));

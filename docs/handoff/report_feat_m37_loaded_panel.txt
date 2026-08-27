@@ -1,0 +1,65 @@
+REPORT — M37: the Project panel (branch feat/m37-loaded-panel)
+Date: 2026-08-27 · From: main session · Brief: docs/handoff/handoff_26_aug_2026_1.txt
+Base: main @ ff32aa1 (spec ACCEPTED with review C1–C4 folded in; owner decisions: name, stacked, not on start page)
+
+WHAT SHIPPED (all five slices, one branch)
+  .1  `context` parity — added: project.root · log.openedBy (you | action socket) · graphPairing.graphPath ·
+      graphPairing reported whether or not a log is open (it sat inside the store block — with a graph "still
+      loaded" context disowned it) · processors[] {class, selected, source: found|not found, from} ·
+      source.rootTiers[] {path, tier: project|own settings|demo (transient)} · and `source` moved ABOVE the
+      fresh-start early return: until now a `--rest` fresh start reported no roots until the first log loaded.
+  .2  ProjectPanel + ProjectModel. Toggle "Project" on the west rail, stacked under Event types in a vertical
+      split (config.westDivider); collapsed state config.projectPanelCollapsed (default shown — review C3:
+      a new key, absent from every existing config, so the shipping version shows it once and the first
+      collapse persists; nothing hung off lastRunVersion). Five sections, every empty state a sentence.
+  .3  Provenance column on every row; actions Copy / Show / Go / Settings… through a two-method Navigator.
+      Pairing verdict is the Graph row's second line (D-L4). Review C2: the Audit log row is the ORIGIN the
+      user named (`openedFrom`), the temp copy mentioned only as "fetched to a local copy". Review C4 → D-L8:
+      drawn paths abbreviated (~, middle elided, 44 chars), full value behind Copy and the tooltip. Review N1:
+      sourceGraphNote is the Graph section's line when the reader tried and failed.
+  .4  refreshProjectPanel() at: construction, onLoaded, closeLog, closeGraph, afterProjectChange,
+      onConfigChanged, the topology load listener, publishPairing, the demo root, the background processor
+      inference. No timer.
+  .5  docs/site/user-guide/project-panel.md (+ nav, index bullet, context keys on assistant.md); CHANGELOG;
+      tools/capture-docs.py gains the project-panel.png shot.
+  Owner, 2026-08-27, after seeing it live: renamed Loaded → Project (spec decision 1 rewritten); the west
+  column is DRAGGABLE — a horizontal split (config.westWidth, default 280) that shrinks to the rail when
+  both toggles are off and reopens at the chosen width.
+
+TESTS (876 green, 9 new)
+  ProjectModelTest (6): five sections always, every empty state a sentence; a full session renders each
+  fact with its provenance (C1 path asserted); S3 origin not temp copy (C2); graph-with-no-log / mismatch
+  as WARN / INFERRED shouted / precedence loser says so / sourceGraphNote (N1); the lifecycle sequence
+  open log → graph → project → close log; abbreviation keeps head + tail and never touches what is copied.
+  ProjectPanelIsRevealOnlyTest (2): bytecode — ProjectPanel and ProjectModel never name MainFrame or the
+  action surface, the Navigator has exactly {showTab, openSettings}, the model has no Swing (D-L3, D-L1);
+  and every dotted key in ProjectModel.KEYS_READ is `put(` in context() or SessionFacts, read as source
+  text — a renamed key fails here, not as a silently empty row.
+  Also the review follow-up on 32db461: GraphTabs bind()/restore() now restore the previous `restoring`
+  value instead of clearing it.
+
+LIVE (one JVM, isolated home, a project with 2 processors + 1 root; driven over the socket)
+  fresh start → project open (no log) → log → graph → close log: context carried every M37 key at each
+  step; the panel followed. Two defects found by the first live render and fixed before commit: rows
+  overflowed the column (the BoxLayout body did not track the viewport width — now a Scrollable that does,
+  so labels elide and the buttons stay on screen) and processor rows led with the package (now the class
+  name, package on the second line).
+
+RULE 1 INCIDENT — found by reading the regenerated shots, fixed by construction
+  The first capture-docs run after this change put a real venue's class name and an employer's package
+  into three shots (project-panel, screenshot-dark, start-page): the harness ran the app under the REAL
+  ~/.fluxtion-analyser config ("without disturbing the rest"), so this machine's own roots and processors
+  had been in force for every capture ever taken — invisible until the Project panel listed processors.
+  Exactly the review's C4. Fix: tools/capture-docs.py now launches under an isolated user.home
+  (/tmp/analyser-docs/home, wiped per launch); CLAUDE.md rule 1 records it. Regenerated 17 shots; the six
+  that show the panel in each distinct state were read (project-panel, start-page, screenshot-dark,
+  projects-active, graph-series-light, source-navigation) — demo content only. The leaked images were
+  never committed. The abbreviation (D-L8) would NOT have saved this — the class name is short.
+
+NOT DONE / FOR THE REVIEWER
+  · Screenshots: tools/capture-docs.py regenerates the asset set; because the panel is default-shown it now
+    appears in every left-column shot. Run and READ before release (rule 1). project-panel.png is new.
+  · The "Show" button is hidden for remote origins (s3://) — nothing local to show; Copy remains.
+  · Dragging the west divider is not testable headless; verified by eye on the live build.
+  · Open: should the Event types checklist's empty state (no log) also be a sentence? Reviewer N2 noticed
+    the blank box; the Project panel below it now answers "why", which may be enough.

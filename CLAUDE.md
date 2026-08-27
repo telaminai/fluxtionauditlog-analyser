@@ -26,7 +26,10 @@ architecture, conventions). This file is only the rules that must never be skipp
    **The sweep cannot see inside images.** It passed for the whole life of the repo while the release
    screenshots carried real venue, vendor and project names onto the public docs site (found 2026-08-16).
    Screenshots are therefore generated, not taken: `python3 tools/capture-docs.py` drives a real analyser
-   loaded **only** with the demo fixture. Capture by hand only when the harness cannot reach the surface,
+   loaded **only** with the demo fixture, **under an isolated `user.home`** — until 2026-08-27 it ran under
+   the real one, and the moment a surface listed the configured processors (M37) three shots carried a real
+   venue's class name and an employer's package. Reading the images caught it; the isolation makes it
+   impossible. Capture by hand only when the harness cannot reach the surface,
    and then read every visible string — title bar, status bar, paths — before committing.
    **The sweep cannot see git metadata either.** **214** commits carry an employer-domain author
    email into the public history — 132 on the third sweep term's domain, 82 on the fourth's. Rewriting

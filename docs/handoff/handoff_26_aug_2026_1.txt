@@ -1,0 +1,32 @@
+HANDOFF — M37: the Project panel — what is in force, stated in one place
+Date: 2026-08-26 · From: main session · Branch: feat/m37-loaded-panel (this brief opens it)
+Base: main @ 3f9ba88 (graph-loss fix + M37 spec + owner decisions)
+Report: docs/handoff/report_feat_m37_loaded_panel.txt — created in the first work commit.
+
+ORIENT FIRST: CLAUDE.md · docs/specs/spec-loaded-panel.md (ACCEPTED; D-L1..D-L7 + the three owner
+decisions: name "Loaded", stacked with Event types, not on the start page) · tracker ▸ M37.
+
+THE ONE DESIGN RULE — D-L1. The panel is a RENDERING of `context`, not a second model. Nothing in it
+may read a MainFrame field. Concretely: a pure `ProjectModel.from(Map contextPayload)` builds the five
+sections from the same map the action socket returns, and MainFrame calls
+`loadedPanel.render(ProjectModel.from(control.context().payload()))`. A fact the panel needs that
+`context` lacks is added to `context` FIRST — that is M37.1, and it improves the agent in the same
+slice. Gaps known at brief time: project root; who opened the log (you / action socket); the graph's
+path; the processors as a LIST with selected + source-found; the tier of each source root; and the
+graph section going missing whenever no log is open (`graphPairing` sat inside the store block).
+
+SLICES — one commit each, `mvn -o test` bare before each.
+  1  `context` parity: the additions above; `ProjectModel` reads only keys `context` puts, and a test
+     reads MainFrame.java + SessionFacts.java as text to prove every key ProjectModel names is put.
+  2  The panel: `NavRail.addToggle("Loaded")`, stacked under Event types in a persisted vertical
+     split (`AppConfig.projectPanelCollapsed`, `westDivider`), five sections, every empty state a sentence.
+  3  Provenance column + reveal-only actions (copy path · show in folder · go to tab · Settings…)
+     through a two-method `Navigator` interface; a bytecode test proves ProjectPanel never names
+     MainFrame (the same technique as McpBridgeHeadlessTest).
+  4  Lifecycle: `refreshLoaded()` at every M35 event site — onLoaded, closeLog, closeGraph,
+     afterProjectChange, onConfigChanged, the topology load listener, publishPairing, the demo root,
+     the background processor inference. No timer. Sequence test on the model.
+  5  Docs page (user-guide/loaded.md), nav, context keys on assistant.md, CHANGELOG, tracker.
+
+RULE 1 REMINDER: the panel shows paths. The generated screenshot must come from capture-docs.py on
+the demo set only, and be READ before commit.

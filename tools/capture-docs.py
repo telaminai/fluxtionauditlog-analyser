@@ -16,6 +16,7 @@ Usage
     python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
+Runs the app under an isolated home (/tmp/analyser-docs/home) so no real setting can reach a shot.
 Requires: a built jar (`mvn package`), and macOS `screencapture` with Screen Recording permission for
 the invoking terminal — a native capture is what gives the window its title bar.
 
@@ -49,8 +50,16 @@ SERIES_LOG = REPO / "src/test/resources/topology/demo-quote-series.yaml"
 GRAPHML = REPO / "src/test/resources/topology/demo-quote-processor.graphml"
 ROOT = REPO / "examples/fixture-generator/src/main/java"
 PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
-CONFIG = pathlib.Path.home() / ".fluxtion-analyser" / "config"
-ENDPOINT = pathlib.Path.home() / ".fluxtion-analyser" / "rest-endpoint"
+# The capture analyser's HOME — never the real one. Until 2026-08-27 this script ran the app under the
+# machine's own ~/.fluxtion-analyser, pinning theme and columns "without disturbing the rest" — and "the
+# rest" was this machine's real source roots and event processors, in force for every capture ever taken.
+# Nothing rendered them until the Project panel (M37) listed the processors, and three shots carried a real
+# venue's class name and an employer's package onto the public site. Caught by READING the images, which is
+# the rule; fixed here by construction: an isolated user.home has only what this script puts in it, so
+# "loaded only with the demo fixture" is finally true of the configuration as well as the log.
+HOME = pathlib.Path("/tmp/analyser-docs/home")
+CONFIG = HOME / ".fluxtion-analyser" / "config"
+ENDPOINT = HOME / ".fluxtion-analyser" / "rest-endpoint"
 # the app writes here; this script copies out of it. Cleared each run so "never overwrite" is satisfied
 # by construction rather than by hoping the names are fresh.
 EXPORT_DIR = pathlib.Path(tempfile.gettempdir()) / "analyser-doc-capture"
@@ -125,7 +134,10 @@ def menu_capture(ep, menu, name):
 def launch(theme, project=None):
     subprocess.run(["pkill", "-f", "fluxtion-auditlog-analyser"], check=False)
     time.sleep(1)
-    ENDPOINT.unlink(missing_ok=True)
+    # a fresh isolated home every launch: whatever the previous run's app remembered is not ours to keep
+    if HOME.exists():
+        shutil.rmtree(HOME)
+    HOME.mkdir(parents=True)
     # a fresh view every run: a remembered zoom or a stale topology would make the images irreproducible
     # a fresh export directory per launch: the guard refuses to overwrite, and regenerating the same
     # nine filenames is the entire job
@@ -156,7 +168,7 @@ def launch(theme, project=None):
                   # whole asset set churns for no visual change. Documentation images should be
                   # reproducible; that is the reason they are generated rather than taken by hand.
                   "windowX": "60", "windowY": "60", "windowW": "1680", "windowH": "1050"})
-    subprocess.Popen(["java", "-jar", str(jar()), str(LOG)],
+    subprocess.Popen(["java", f"-Duser.home={HOME}", "-jar", str(jar()), str(LOG)],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(40):
         time.sleep(1)
@@ -339,6 +351,11 @@ def main():
     act(ep, "goto", {"recordIndex": 5, "reveal": True})
     act(ep, "topology", {"select": "quotePublisher", "scope": "neighbours"})
     capture(ep, "screenshot-light.png")
+
+    # M37: the Project panel — default shown, so it is in every shot above; this one is FOR it. The demo
+    # set has no project, so the first row is the "No project — using your own settings" sentence, which
+    # is the state most first-time readers of the page are in.
+    capture(ep, "project-panel.png")
 
     # records and filtering: the table, the time range, and one record read out logically
     act(ep, "topology", {"showAll": True})

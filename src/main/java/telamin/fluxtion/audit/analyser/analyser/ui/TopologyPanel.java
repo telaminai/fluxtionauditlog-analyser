@@ -673,6 +673,11 @@ public final class TopologyPanel extends JPanel {
         return graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
     }
 
+    /** M37: the file the graph was OPENED from, absolute — null for a source-supplied graph, which has none. */
+    public String graphPath() {
+        return loadedFrom == null ? null : loadedFrom.toAbsolutePath().normalize().toString();
+    }
+
     /** How to name the loaded graph — its file, or where the source said it came from. */
     public String graphLabel() {
         if (loadedFrom != null) return loadedFrom.getFileName().toString();

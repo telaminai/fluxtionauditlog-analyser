@@ -41,6 +41,12 @@ public final class AppConfig {
     public boolean hiddenColumnsSet = false;   // distinguishes "never configured" from "user cleared all"
     /** Event-type rail panel collapsed — it costs 240px of a window whose job is showing wide records. */
     public boolean eventFilterCollapsed = false;
+    /** M37: the Project panel (what is in force) collapsed. Default SHOWN — it must be seen once to be looked for later. */
+    public boolean projectPanelCollapsed = false;
+    /** M37: divider of the west column's vertical split (Event types above, Project below); -1 = never dragged. */
+    public int westDivider = -1;
+    /** M37: width of the whole west column (rail + panels) — the user drags it; 280 fits paths and class names. */
+    public int westWidth = 280;
 
     /**
      * Topology display preferences: layout spacing as a percentage, and label point size.

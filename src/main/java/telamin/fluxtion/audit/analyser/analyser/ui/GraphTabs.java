@@ -83,11 +83,12 @@ public final class GraphTabs extends JPanel {
         // profile, and MainFrame.onLoaded assigns the store BEFORE binding, so this one fireChanged()
         // overwrote a project's saved graphs with ["Graph 1"] a line before restore() read them back.
         // Every release since 1.1 lost a project's graphs on the first log open (ledger, 2026-08-26).
+        boolean was = restoring;   // review 2026-08-27: restore the caller's value, never clear it
         restoring = true;
         try {
             addGraph();
         } finally {
-            restoring = false;
+            restoring = was;
         }
     }
 
@@ -280,11 +281,12 @@ public final class GraphTabs extends JPanel {
     /** Rebuild graphs (names + series + formulas + pin) from saved specs (used when a profile is restored). */
     public void restore(List<GraphSpec> saved) {
         if (saved == null || saved.isEmpty() || store == null) return;
-        restoring = true;   // rebuilding from persisted state is not a user edit — don't echo it back
+        boolean was = restoring;   // rebuilding from persisted state is not a user edit — don't echo it back
+        restoring = true;
         try {
             doRestore(saved);
         } finally {
-            restoring = false;
+            restoring = was;
         }
     }
 

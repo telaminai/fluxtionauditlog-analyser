@@ -22,6 +22,7 @@ New here? Start with **[Getting started](../getting-started.md)**.
 - [Assistant](assistant.md) — explain records, and let the assistant drive the analyser.
 - [Source navigation](source-navigation.md) — jump from a log line to the code.
 - [Sharing setups](sharing-setups.md) — export/import your whole configuration.
+- [The Project panel](project-panel.md) — what is in force: project, log, graph, processors, roots — in one place.
 
 Not sure where to begin? **[Getting started](../getting-started.md)** walks you from a fresh install to a
 graphed, explained log.

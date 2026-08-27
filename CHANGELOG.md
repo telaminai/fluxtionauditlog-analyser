@@ -6,6 +6,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **The Project panel — what is in force, in one place.** A new *Project* toggle on the left rail, under
+  *Event types*, states the active project (name, directory, settings file), the open audit log as you
+  named it, the graph and its pairing verdict, every configured event processor with whether its source
+  was found, and each source root with the tier that supplied it. Every empty section is a sentence saying
+  what would fill it. Every button reveals or navigates — copy a path, show it in the file manager, go to
+  the tab — nothing on it changes state. It is drawn from the same `context` payload the assistant reads,
+  so a person and an agent see one set of facts. Paths are abbreviated on screen; *Copy* gives the full
+  value. The left column is now draggable and its width persists.
+- **`context` reports more, and earlier.** The graph is reported whether or not a log is open; `log.openedBy`;
+  `graphPairing.graphPath`; `processors` (class, selected, source found, from); `source.rootTiers`; and
+  `source` now appears on a fresh start instead of only after the first log has loaded.
+
 ### Fixed
 - **A project's saved graphs are no longer wiped when you open a log.** With a project active, the
   first log opened under it replaced the profile's graphs with a single empty "Graph 1" — silently, on

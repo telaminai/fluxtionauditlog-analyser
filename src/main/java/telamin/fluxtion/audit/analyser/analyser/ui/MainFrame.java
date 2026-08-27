@@ -164,7 +164,9 @@ public final class MainFrame extends JFrame {
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
         actionExecutor = new ActionExecutor(
                 () -> store, () -> filter, graphTabs, tablePanel, this::flagRowsFromAction);
-        actionExecutor.bind(topologyPanel, new AppControlAdapter());
+        actionControl = new AppControlAdapter();
+        actionExecutor.bind(topologyPanel, actionControl);
+        refreshProjectPanel();                       // M37: state the empty session too
         actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
         readerRegistry.loadPlugins(java.nio.file.Path.of(
@@ -209,7 +211,7 @@ public final class MainFrame extends JFrame {
         // node tooltips pick up the class javadoc when a source root reaches the class
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // one place remembers a loaded topology, whichever entry point loaded it
-        topologyPanel.onTopologyLoaded(this::rememberGraphml);
+        topologyPanel.onTopologyLoaded(f -> { rememberGraphml(f); refreshProjectPanel(); });
         // the topology gets its own source viewer, sharing this service — so navigating from the graph
         // keeps the graph on screen instead of switching to the sibling Source tab
         topologyPanel.bindSource(sourceService);
@@ -293,8 +295,23 @@ public final class MainFrame extends JFrame {
             eventFilterPanel.setVisible(showing);
             config.eventFilterCollapsed = !showing;
             saveConfigQuietly();
-            west.revalidate();
-            west.repaint();
+            layoutWest(west);
+        });
+        // M37: what is in force — the Project panel, stacked under Event types (owner decision 2). It is a
+        // rendering of `context` (D-L1); refreshProjectPanel() is the only writer.
+        projectPanel = new ProjectPanel(new ProjectPanel.Navigator() {
+            @Override public void showTab(String title) { selectTab(title); }
+            @Override public void openSettings() {
+                ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
+                        MainFrame.this::readerSummaries);
+            }
+        });
+        projectPanel.setVisible(!config.projectPanelCollapsed);
+        rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
+            projectPanel.setVisible(showing);
+            config.projectPanelCollapsed = !showing;
+            saveConfigQuietly();
+            layoutWest(west);
         });
         // the same column checkboxes as the menu, one click from the table instead of up in the menu bar
         rail.addAction("Columns", () -> {
@@ -305,8 +322,67 @@ public final class MainFrame extends JFrame {
         rail.addGap();
 
         west.add(rail, BorderLayout.WEST);
-        west.add(eventFilterPanel, BorderLayout.CENTER);
+        layoutWest(west);
         return west;
+    }
+
+    private ProjectPanel projectPanel;
+    private JSplitPane westSplit;            // Event types over Project, inside the west column
+    private JSplitPane westOuter;            // the west column beside the records — the user drags this
+    private AppControlAdapter actionControl;
+
+    private boolean westHasPanel() {
+        return eventFilterPanel.isVisible() || (projectPanel != null && projectPanel.isVisible());
+    }
+
+    /**
+     * The west column's centre: Event types, the Project panel, both in a vertical split, or nothing.
+     * Rebuilt on every toggle rather than hiding a split-pane child — JSplitPane keeps giving an invisible
+     * child its share, and the divider is persisted only when both are showing (it is meaningless otherwise).
+     */
+    private void layoutWest(JPanel west) {
+        java.awt.Component centre = ((BorderLayout) west.getLayout()).getLayoutComponent(BorderLayout.CENTER);
+        if (centre != null) west.remove(centre);
+        if (westSplit != null && westSplit.getTopComponent() != null && westSplit.getBottomComponent() != null) {
+            config.westDivider = westSplit.getDividerLocation();
+            westSplit.setTopComponent(null);
+            westSplit.setBottomComponent(null);
+        }
+        boolean events = eventFilterPanel.isVisible(), loaded = projectPanel.isVisible();
+        if (events && loaded) {
+            westSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, eventFilterPanel, projectPanel);
+            westSplit.setResizeWeight(0.55);
+            westSplit.setBorder(BorderFactory.createEmptyBorder());
+            westSplit.setContinuousLayout(true);
+            if (config.westDivider > 0) westSplit.setDividerLocation(config.westDivider);
+            west.add(westSplit, BorderLayout.CENTER);
+        } else if (events) {
+            west.add(eventFilterPanel, BorderLayout.CENTER);
+        } else if (loaded) {
+            west.add(projectPanel, BorderLayout.CENTER);
+        }
+        // both toggles off: the column shrinks to the rail; a toggle back on reopens it at the chosen width
+        if (westOuter != null) {
+            westOuter.setDividerLocation(events || loaded
+                    ? Math.max(config.westWidth, navRail.getPreferredSize().width + 8)
+                    : navRail.getPreferredSize().width + 4);
+        }
+        west.revalidate();
+        west.repaint();
+    }
+
+    /**
+     * M37 D-L6 — re-render the Project panel from `context`. Called at every lifecycle event site and
+     * nowhere else; it reads the same payload an agent gets, so the two cannot drift.
+     */
+    private void refreshProjectPanel() {
+        if (projectPanel == null || actionControl == null) return;
+        try {
+            projectPanel.render(ProjectModel.from(actionControl.context().payload()));
+        } catch (RuntimeException e) {
+            // the panel is a courtesy view of state that already exists; it must never take the app down
+            projectPanel.render(ProjectModel.from(null));
+        }
     }
 
     /** View menu with a checkbox per record-table column (persisted; some hidden by default). */
@@ -687,6 +763,7 @@ public final class MainFrame extends JFrame {
         if (demoRoots.add(root.toString())) {
             sourceService.configure(effectiveSourceRoots(), config.selectedEventProcessor,
                     config.mavenRepos, config.searchMavenRepos);
+            refreshProjectPanel();                                    // M37: the transient root is a row, labelled demo
         }
         if (withGraph) topologyPanel.load(DemoAssets.graphml());
         openFile(log, OpenRequest.HUMAN);
@@ -1501,8 +1578,18 @@ public final class MainFrame extends JFrame {
         north.add(buildFilterBar(), BorderLayout.CENTER);
         add(north, BorderLayout.NORTH);
         eventFilterPanel.setPreferredSize(new Dimension(240, 200));
-        add(buildWestRail(), BorderLayout.WEST);
-        add(center, BorderLayout.CENTER);
+        // M37 (owner, 2026-08-27): the west column is DRAGGABLE, not a fixed 240px. The Project panel put
+        // paths and class names in it, and a width chosen for a checklist of event names is the wrong
+        // width for those. Persisted like every other layout choice (config.westWidth).
+        westOuter = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buildWestRail(), center);
+        westOuter.setResizeWeight(0.0);              // extra window width goes to the records, as before
+        westOuter.setContinuousLayout(true);
+        westOuter.setBorder(BorderFactory.createEmptyBorder());
+        westOuter.setDividerLocation(Math.max(config.westWidth, navRail.getPreferredSize().width + 8));
+        westOuter.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
+            if (westHasPanel()) config.westWidth = westOuter.getDividerLocation();   // a collapsed rail is not a choice of width
+        });
+        add(westOuter, BorderLayout.CENTER);
 
         JPanel statusBar = new JPanel(new BorderLayout());
         java.awt.Color statusLine = UIManager.getColor("Component.borderColor");
@@ -2144,6 +2231,7 @@ public final class MainFrame extends JFrame {
         status.setText("No log open" + (topologyPanel.hasGraph()
                 ? " · graph " + topologyPanel.graphLabel() + " still loaded" : ""));
         updateLifecycleMenu();
+        refreshProjectPanel();                                        // M37
     }
 
     /** Close the loaded topology, leaving the log alone (M35.1). */
@@ -2153,6 +2241,7 @@ public final class MainFrame extends JFrame {
         publishPairing();
         status.setText(store == null ? "No log open" : "Graph closed · " + store.size() + " records");
         updateLifecycleMenu();
+        refreshProjectPanel();                                        // M37
     }
 
     /** Both — back to a fresh start (M35.1). Profile state still survives; this is not "new project". */
@@ -2258,6 +2347,7 @@ public final class MainFrame extends JFrame {
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
         topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
         inferAndPopulateSource();
+        refreshProjectPanel();                                        // M37: the log, its provenance, the pairing
 
         config.logFile = location;
         config.addRecent(location);
@@ -2495,6 +2585,7 @@ public final class MainFrame extends JFrame {
                     ? "fits this log (" + lastPairing.matched() + "/" + lastPairing.logged() + ")"
                     : "\u26a0 DOES NOT FIT THIS LOG \u2014 " + lastPairing.reason());
         }
+        refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }
 
     /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
@@ -2638,6 +2729,7 @@ public final class MainFrame extends JFrame {
                     topologyPanel.setEmbeddedProcessors(candidates, inferred);
                     sourcePanel.showSelectedProcessor();
                     saveConfigQuietly();
+                    refreshProjectPanel();                            // M37: "selected" just changed
                 },
                 err -> { /* source inference is best-effort */ });
     }
@@ -2707,6 +2799,7 @@ public final class MainFrame extends JFrame {
         // `open {processor}` already go through, so scripted edits persist without a second code path.
         // Hanging this off dialog-close would silently lose every verb-driven change.
         if (project != null) project.requestSave();
+        refreshProjectPanel();                                        // M37: roots and processors may have changed
     }
 
     // ---- settings export / import (M15) ---------------------------------------------------------
@@ -2989,6 +3082,7 @@ public final class MainFrame extends JFrame {
         setTitleForProject();
         updateLifecycleMenu();
         status.setText(note + closedNote);
+        refreshProjectPanel();                                        // M37: the project, and everything it owns
     }
 
     private void updateProjectMenuState() {
@@ -3515,6 +3609,8 @@ public final class MainFrame extends JFrame {
                             telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.nodeTypes(
                                     selectedRecords, sourceService));
             Map<String, Object> log = facts.logAsMap();
+            // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
+            if (!log.isEmpty()) log.put("openedBy", currentRequest.fromActionSocket() ? "action socket" : "you");
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance != null) out.put("provenance", logProvenance);
@@ -3525,11 +3621,16 @@ public final class MainFrame extends JFrame {
             if (project.hasProject()) {
                 proj.put("name", project.activeName());
                 proj.put("settings", project.activeFile().toString());
+                proj.put("root", telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
+                        .baseDirFor(project.activeFile()).toString());        // M37: the project's directory
             } else {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
-            if (store != null) {
+            // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
+            // with the log closed and a graph "still loaded" (closeLog's own words) context disowned it —
+            // the disowning defect M34.2 fixed for hasGraph(), one level up.
+            {
                 // D-A1a: state it BEFORE anything is derived from position. An agent stepping a
                 // cycle, or reading the topology's dispatch badges, is entitled to know whether
                 // that order was derived or merely observed — and must not have to infer it.
@@ -3539,12 +3640,13 @@ public final class MainFrame extends JFrame {
                 boolean gf = topologyPanel.hasGraph();
                 pair.put("graph", topologyPanel.graphLabel());
                 pair.put("graphSource", topologyPanel.graphSource().name());
+                if (topologyPanel.graphPath() != null) pair.put("graphPath", topologyPanel.graphPath());   // M37
                 if (declinedSourceGraph != null) {
                     pair.put("sourceGraphOffered", declinedSourceGraph);
                     pair.put("sourceGraphDeclined", "an OPENED graph holds the slot — a graph someone "
                             + "named outranks one that arrived with the log (M34.1 precedence)");
                 }
-                if (store.sourceGraphNote() != null) {
+                if (store != null && store.sourceGraphNote() != null) {
                     pair.put("sourceGraphNote", store.sourceGraphNote());   // review M34 F2
                 }
                 // only describe a graph that is actually there: a verdict beside "graph": null is
@@ -3557,6 +3659,24 @@ public final class MainFrame extends JFrame {
                     pair.put("verdict", lastPairing.reason());
                 }
                 out.put("graphPairing", pair);
+            }
+            // M37: the processors as a LIST — configured, selected, and whether each resolves to source.
+            // A dropdown shows one value at a time; the panel and the agent both need the set.
+            {
+                List<Map<String, Object>> procs = new ArrayList<>();
+                java.util.Set<String> configured = new java.util.LinkedHashSet<>(config.eventProcessorFqns);
+                for (String fqn : candidateProcessors()) {
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("class", fqn);
+                    one.put("selected", fqn.equals(config.selectedEventProcessor));
+                    one.put("source", sourceService.resolver().find(fqn).isPresent() ? "found" : "not found");
+                    one.put("from", configured.contains(fqn) ? (project.hasProject() ? "project" : "own settings")
+                            : "discovered under a root");
+                    procs.add(one);
+                }
+                if (!procs.isEmpty()) out.put("processors", procs);
+            }
+            if (store != null) {
                 if (pendingRolledSetOffer != null) {
                     // M35.9: the dialog the socket path did not show. The member files are named so
                     // the set is one call away — open {logs: [...]} — and the agent decides, not the app.
@@ -3583,6 +3703,21 @@ public final class MainFrame extends JFrame {
                                 + "is arrival order, not cause. Do not read step-through or the "
                                 + "topology's order badges as causality on this log.");
             }
+
+            // M37: the source roots, BEFORE the fresh-start early return below. Until now `source` was
+            // assembled last, so a socket-driven fresh start — the exact case `--rest` exists for — reported
+            // no roots at all until the first log had loaded, and the Project panel drew "No source roots"
+            // over roots a project had just supplied.
+            Map<String, Object> source = facts.sourceAsMap();
+            // each root with its tier — a flat list cannot say which roots a project brought, which are the
+            // user's own, and which is the demo's transient root that a restart forgets
+            List<Map<String, Object>> tiers = new ArrayList<>();
+            for (String r : effectiveSourceRoots()) {
+                tiers.add(Map.of("path", r, "tier", demoRoots.contains(r) ? "demo (transient)"
+                        : project.hasProject() ? "project" : "own settings"));
+            }
+            source.put("rootTiers", tiers);
+            out.put("source", source);
 
             // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
             Map<String, Object> f = new java.util.LinkedHashMap<>();
@@ -3642,8 +3777,6 @@ public final class MainFrame extends JFrame {
 
             List<String> graphs = graphTabs.graphNames();
             if (!graphs.isEmpty()) out.put("graphs", graphs);
-
-            out.put("source", facts.sourceAsMap());
 
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
         }

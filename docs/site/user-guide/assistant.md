@@ -142,6 +142,11 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
     `context` (and `topology`) once the load lands, and none of them is ever a dialog on this path. This is
     one pattern, not four exceptions — if you need any of them, call `context` after opening.
 
+`context` is also what the **Project panel** draws (*User guide ▸ The Project panel*): one payload, two
+readers. It reports the graph whether or not a log is open, `log.openedBy` (you or the action socket),
+`graphPairing.graphPath`, `processors` as a list with `selected` and whether `source` was `found`, and
+`source.rootTiers` — each root with the tier that supplied it (`project`, `own settings`, `demo (transient)`).
+
 `context` carries `graphPairing` for the same reason: whether the loaded graph belongs to the loaded
 log is something to know **before** deriving anything from it, not after `coverage` returns a
 suspicious number. It also reports `projectOffer` when the log sits inside a project — the offer a

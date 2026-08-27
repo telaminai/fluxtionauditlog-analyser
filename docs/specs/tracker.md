@@ -395,7 +395,8 @@ the asymmetry M37 exists to end._
 - [M39] ☐ **Baselines** _(spec to write)_ — a reference healthy log and/or expected coverage set bound to
   the project, so "is this normal here?" is answerable by someone who never saw the system before.
 
-## M37 · Loaded panel — what is in force, stated in one place — ☐ **ACCEPTED 2026-08-27** (owner-requested; reviewed)
+
+## M37 · Project panel — what is in force, stated in one place — ◧ **IMPLEMENTED on `feat/m37-loaded-panel` 2026-08-27**, awaiting review (spec ACCEPTED; report `docs/handoff/report_feat_m37_loaded_panel.txt`)
 _Design: **[spec-loaded-panel.md](spec-loaded-panel.md)**. The owner's ask: a tab on the west rail that
 shows the loaded graphml(s), the event processors (Java classes), the audit logs, and the project's name
 and file location — "currently it is not clear what is loaded in the current project"._
@@ -413,18 +414,18 @@ saved graphs fell 6 → 1 and no surface showed the count._
   C4 support screenshot this app and the panel is the most path-dense surface in it, so abbreviate and
   put full paths behind *Copy path*. Confirmed NOT a problem: rebuilding `context` per lifecycle event
   is cheap (it loops only over selected and flagged rows).
-- [M37.1] ☐ **`context` parity** — add the facts the panel needs that `context` lacks (project file
+- [M37.1] ☑ **`context` parity** — add the facts the panel needs that `context` lacks (project file
   location, source-root tiers, rolled-set members, per-processor source resolution); parity test scaffold.
-- [M37.2] ☐ **The panel** — `NavRail` toggle "Loaded" beside *Event types*, persisted, default shown once;
+- [M37.2] ☑ **The panel** — `NavRail` toggle "Loaded" beside *Event types*, persisted, default shown once;
   five sections (Project · Audit log · Graph · Processors · Source roots), every empty state a sentence.
-- [M37.3] ☐ **Provenance + reveal actions** — per-row where-from (`OpenRequest` provenance, the tiers);
+- [M37.3] ☑ **Provenance + reveal actions** — per-row where-from (`OpenRequest` provenance, the tiers);
   actions are copy-path / show-in-folder / go-to only — a test proves nothing on the panel mutates.
   The pairing verdict is a row (applies · declared/inferred · opened beats supplied).
-- [M37.4] ☐ **Lifecycle wiring** — re-renders on the M35 events, no polling; the open→graph→project→close
+- [M37.4] ☑ **Lifecycle wiring** — re-renders on the M35 events, no polling; the open→graph→project→close
   sequence test.
-- [M37.5] ☐ **Docs page + generated shot**; CHANGELOG; spec → SHIPPED.
+- [M37.5] ☑ **Docs page + generated shot**; CHANGELOG; spec → SHIPPED.
 
-**Owner calls, decided 2026-08-26:** name **Loaded**; **stacked** with Event types; the start page does
+**Owner calls, decided 2026-08-26/27:** name **Project** (was "Loaded" until seen live); **stacked** with Event types; the start page does
 **not** show the PROJECT section inline. Work: `feat/m37-loaded-panel` (brief `docs/handoff/handoff_26_aug_2026_1.txt`).
 
 ## M34 · Source adapters — ◧ **.0–.3 MERGED to main 2026-08-25** (format spec + conformance suite published); .4/.5 open

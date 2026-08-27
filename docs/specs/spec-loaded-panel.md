@@ -1,6 +1,6 @@
-# Spec — the Loaded panel: what is in force, stated in one place
+# Spec — the Project panel: what is in force, stated in one place
 
-**Status:** ACCEPTED 2026-08-27 (owner-requested; reviewed — `docs/handoff/review_spec_loaded_panel.txt`, four corrections C1–C4 to fold into M37.1). **Milestone:** M37. **Tracker:** [tracker.md](tracker.md) ▸ M37.
+**Status:** IMPLEMENTED 2026-08-27 on `feat/m37-loaded-panel`, awaiting review (ACCEPTED 2026-08-27; review `docs/handoff/review_spec_loaded_panel.txt`, C1–C4 folded in; report `docs/handoff/report_feat_m37_loaded_panel.txt`). **Milestone:** M37. **Tracker:** [tracker.md](tracker.md) ▸ M37.
 
 ## The proposition
 
@@ -42,7 +42,7 @@ MainFrame fields directly. Two consequences, both wanted:
 ## D-L2 — five sections, and every "none" is a sentence, never a blank
 
 ```
-PROJECT        DemoQuote                      ~/projects/demo/.fluxtion-analyser/project.properties
+PROJECT        DemoQuote                      ~/projects/demo/.analyser/project.fluxtion-settings
                settings from: project (own settings for: columns, window)
 AUDIT LOG      demo-quote-audit.yaml          ~/projects/demo/logs/…   opened by you · 10 records · 12:00:01–12:00:09 UTC
                (a rolled set lists its members here, oldest first, with the current one marked)
@@ -54,6 +54,11 @@ SOURCE ROOTS   ~/projects/demo/src/main/java                project
                ~/work/shared-lib/src/main/java              own settings
                (demo root, transient — gone at restart)     demo
 ```
+
+**The AUDIT LOG row shows the origin the user or agent named** (review C2): an S3 log reads
+`s3://bucket/key`, never the temp file it was fetched to — `context.log.openedFrom`, with `log.path`
+(the local copy) mentioned as "fetched to a local copy" and nothing more. A rolled set's members are
+listed by display name in load order under the set's row; their directory is the row above.
 
 Empty states are sentences that say what would fill them: *"No project — using your own settings
 (~/.fluxtion-analyser)."* · *"No log loaded."* · *"No graph — File ▸ Open topology, or a reader may
@@ -81,11 +86,13 @@ statement; this one is visible from the Records tab.
 
 ## D-L5 — a NavRail toggle beside *Event types*, persisted
 
-`NavRail.addToggle("Loaded", …)` on the west rail, sharing the west column with the event-type filter
+`NavRail.addToggle("Project", …)` on the west rail, sharing the west column with the event-type filter
 (stacked; the split is persisted like every other layout choice). Collapsed state persists in
-`AppConfig.loadedPanelCollapsed`. Default **shown** on first launch of the version that ships it — a
-panel that answers "what is loaded" must be seen once to be looked for later; after that the user's
-choice stands.
+`AppConfig.projectPanelCollapsed`, the divider in `westDivider`. Default **shown** — a panel that answers "what
+is in force" must be seen once to be looked for later; after that the user's choice stands. Mechanism
+(review C3): a new boolean whose default is *shown*. An existing config has no such key, so the first
+launch of the shipping version shows it, and the first collapse persists; nothing is hung off
+`lastRunVersion`, which a dev build never writes.
 
 ## D-L6 — it follows the lifecycle, it does not poll
 
@@ -102,7 +109,17 @@ topology; GraphSource precedence picks it) — so the GRAPH section shows one, a
 second that lost the precedence, says so on a second line rather than inventing a list. What IS plural
 is listed: a rolled set's members; every configured processor; every root with its tier; and, for an
 M34.2 reader whose log embeds several processors (the split-view dropdown of `881b047`), the processors
-the log itself declares.
+the log itself declares. When a reader TRIED to supply a graph and could not, `sourceGraphNote`
+(M34 review F2) is the GRAPH section's second line — named here so it is not reimplemented (review N1).
+
+## D-L8 — what is DRAWN is abbreviated; what is COPIED is complete
+
+Support screenshot this application (review C4; `docs/site/support.md`), and this panel is by
+construction the most path- and name-dense surface in it — default shown. So the drawn form is
+abbreviated: `$HOME` becomes `~`, a long path keeps its head and last two segments with the middle
+elided (`ProjectModel.abbreviate`), and the full value lives behind *Copy path* and the tooltip. Rule 1
+cannot see inside an image; this narrows what an incidental screenshot carries, and a column of full
+paths was unreadable at the west rail's width anyway.
 
 ## Relationship to M20.5 (project artifact pointers)
 
@@ -121,8 +138,11 @@ first.** M20.5 without it is an offer that fires once at open and is then invisi
 
 ## Decisions taken 2026-08-26 (owner)
 
-1. **Name: "Loaded."** The user's own word for the state, and a tab label rather than a sentence
-   fragment. (*Session* was generic; *In force* is how the docs talk, not how a rail button reads.)
+1. **Name: "Project."** Decided 2026-08-27 after seeing it live, overriding the earlier "Loaded": the
+   panel is the project — what it points at and what is in force under it — and "Project" is the word
+   the window title, the File menu and the profile already use. (*Loaded* was the interim choice;
+   *Session* was generic; *In force* is how the docs talk, not how a rail button reads.) The spec's
+   filename keeps its history; the surface is the Project panel.
 2. **Stacked** with *Event types* in the west column — the two answer different questions and both are
    glanced at, not worked in.
 3. The start page does **not** show the PROJECT section inline — the west panel coexists with it.

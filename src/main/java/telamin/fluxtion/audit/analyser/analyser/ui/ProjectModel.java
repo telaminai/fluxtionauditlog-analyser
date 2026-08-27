@@ -1,0 +1,216 @@
+package telamin.fluxtion.audit.analyser.analyser.ui;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * M37 — what is in force, as five sections of rows, built from the {@code context} payload and nothing
+ * else (spec D-L1). This class is pure: no Swing, no MainFrame. It reads the same map the action socket
+ * hands an agent, so the human at the canvas and the agent at the socket see one set of facts, and when
+ * a fact is missing here the fix is to add it to {@code context} — which improves the agent too.
+ *
+ * <p>Every section has an empty state that is a sentence saying what would fill it (D-L2). A blank row is
+ * a question the user has to go and answer somewhere else, which is the complaint the panel exists for.
+ *
+ * <p>{@link #KEYS_READ} names every context key this class touches, dotted; a test reads MainFrame's
+ * source and proves each one is put. Add to it when you read a new key.
+ */
+public record ProjectModel(List<Section> sections) {
+
+    /** A row: what it is, where it is (a path, copyable; may be null), where it came from, and how it should read. */
+    public record Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) { }
+
+    public enum Tone { NORMAL, MUTED, WARN }
+
+    /** Where a row's "go to" leads — navigation only (D-L3). */
+    public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, PROJECT }
+
+    public record Section(String title, List<Row> rows) { }
+
+    public static final Set<String> KEYS_READ = Set.of(
+            "project.active", "project.name", "project.settings", "project.root",
+            "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
+            "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
+            "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
+            "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
+            "processors.class", "processors.selected", "processors.source", "processors.from",
+            "source.rootTiers.path", "source.rootTiers.tier");
+
+    public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
+            PROCESSORS = "Event processors", ROOTS = "Source roots";
+
+    @SuppressWarnings("unchecked")
+    public static ProjectModel from(Map<String, Object> ctx) {
+        if (ctx == null) ctx = Map.of();
+        List<Section> out = new ArrayList<>();
+
+        // ---- project ---------------------------------------------------------------------------------
+        Map<String, Object> proj = map(ctx.get("project"));
+        List<Row> rows = new ArrayList<>();
+        if (Boolean.TRUE.equals(proj.get("active"))) {
+            rows.add(new Row(str(proj.get("name")), str(proj.get("root")), str(proj.get("settings")),
+                    "project settings in force", Tone.NORMAL, Target.PROJECT));
+        } else {
+            rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
+                    Tone.MUTED, Target.NONE));
+        }
+        out.add(new Section(PROJECT, rows));
+
+        // ---- audit log -------------------------------------------------------------------------------
+        Map<String, Object> log = map(ctx.get("log"));
+        rows = new ArrayList<>();
+        if (log.isEmpty()) {
+            rows.add(new Row("No log loaded", "File ▸ Open, drag a file in, or open {path} from the socket",
+                    null, null, Tone.MUTED, Target.NONE));
+        } else {
+            // Review C2: the ORIGIN the user named is the row — `s3://bucket/key`, not the temp file it was
+            // fetched to. `path` is the local copy; for a local open the two are the same file.
+            String local = str(log.get("path"));
+            String origin = str(log.get("openedFrom"));
+            String shown = origin != null ? origin : local;
+            boolean remote = origin != null && local != null && !origin.equals(local);
+            StringBuilder detail = new StringBuilder();
+            if (log.get("records") != null) detail.append(log.get("records")).append(" records");
+            if (remote) detail.append(detail.isEmpty() ? "" : " · ").append("fetched to a local copy");
+            String prov = "opened by " + (log.get("openedBy") == null ? "you" : log.get("openedBy"));
+            if (ctx.get("provenance") != null) prov += " · from " + ctx.get("provenance");
+            rows.add(new Row(fileName(shown), detail.toString(), shown, prov, Tone.NORMAL, Target.NONE));
+            List<Object> files = list(ctx.get("files"));
+            if (files.size() > 1) {
+                // members are display names, in load order — the set's directory is the row above
+                for (Object f : files) {
+                    rows.add(new Row(fileName(str(f)), "member of the rolled set", null, null, Tone.MUTED, Target.NONE));
+                }
+            }
+        }
+        out.add(new Section(LOG, rows));
+
+        // ---- graph -----------------------------------------------------------------------------------
+        Map<String, Object> pair = map(ctx.get("graphPairing"));
+        rows = new ArrayList<>();
+        if (pair.get("graph") == null) {
+            rows.add(new Row("No graph", "File ▸ Open topology, or a reader may supply one with its log",
+                    null, null, Tone.MUTED, Target.NONE));
+        } else {
+            String src = str(pair.get("graphSource"));
+            String prov = switch (src == null ? "" : src) {
+                case "OPENED" -> "opened by you";
+                case "READER_DECLARED" -> "supplied by the reader (declared)";
+                case "READER_INFERRED" -> "supplied by the reader (INFERRED)";
+                default -> src;
+            };
+            String verdict;
+            Tone tone = Tone.NORMAL;
+            if (pair.get("applies") == null) {
+                verdict = log.isEmpty() ? "no log to pair with" : "not yet paired";
+                tone = Tone.MUTED;
+            } else if (Boolean.TRUE.equals(pair.get("applies"))) {
+                verdict = "applies — " + pair.get("declaredByGraph") + "/" + pair.get("loggedNodes")
+                        + " logged nodes declared by the graph";
+            } else {
+                verdict = "⚠ does not fit this log — " + pair.get("verdict");
+                tone = Tone.WARN;
+            }
+            rows.add(new Row(str(pair.get("graph")), verdict, str(pair.get("graphPath")), prov, tone, Target.TOPOLOGY));
+            if (pair.get("sourceGraphOffered") != null) {
+                rows.add(new Row(str(pair.get("sourceGraphOffered")), "the reader's graph — not shown: opened beats supplied",
+                        null, "supplied by the reader", Tone.MUTED, Target.NONE));
+            }
+        }
+        // Review N1: the reader TRIED to supply a graph and could not — sourceGraphNote says why (M34 review F2)
+        if (pair.get("sourceGraphNote") != null) {
+            rows.add(new Row("No graph from the reader", str(pair.get("sourceGraphNote")), null, null, Tone.MUTED, Target.NONE));
+        }
+        out.add(new Section(GRAPH, rows));
+
+        // ---- processors ------------------------------------------------------------------------------
+        rows = new ArrayList<>();
+        for (Object o : list(ctx.get("processors"))) {
+            Map<String, Object> p = map(o);
+            boolean selected = Boolean.TRUE.equals(p.get("selected"));
+            boolean found = "found".equals(p.get("source"));
+            String detail = (selected ? "selected · " : "") + (found ? "source found" : "source NOT found under any root");
+            // the class name leads and the package is the second line's tail — a 40-character FQN at the
+            // west column's width is a row of "com.acme.demo.generated.DemoQuoteProces…" with the name cut off
+            String fqn = str(p.get("class"));
+            int dot = fqn == null ? -1 : fqn.lastIndexOf('.');
+            String simple = dot < 0 ? fqn : fqn.substring(dot + 1);
+            if (dot > 0) detail += " · " + fqn.substring(0, dot);
+            rows.add(new Row(simple, detail, null, str(p.get("from")),
+                    found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN, found ? Target.SOURCE : Target.SETTINGS_SOURCE));
+        }
+        if (rows.isEmpty()) {
+            rows.add(new Row("No event processors", "Settings ▸ Source, or open a log and one is inferred",
+                    null, null, Tone.MUTED, Target.SETTINGS_SOURCE));
+        }
+        out.add(new Section(PROCESSORS, rows));
+
+        // ---- roots -----------------------------------------------------------------------------------
+        rows = new ArrayList<>();
+        Map<String, Object> source = map(ctx.get("source"));
+        for (Object o : list(source.get("rootTiers"))) {
+            Map<String, Object> r = map(o);
+            String tier = str(r.get("tier"));
+            rows.add(new Row(str(r.get("path")), null, str(r.get("path")), tier,
+                    tier != null && tier.startsWith("demo") ? Tone.MUTED : Tone.NORMAL, Target.SETTINGS_SOURCE));
+        }
+        if (rows.isEmpty()) {
+            rows.add(new Row("No source roots", "Settings ▸ Source — without one, no log line can reach its code",
+                    null, null, Tone.MUTED, Target.SETTINGS_SOURCE));
+        }
+        out.add(new Section(ROOTS, rows));
+        return new ProjectModel(List.copyOf(out));
+    }
+
+    public Section section(String title) {
+        for (Section s : sections) if (s.title().equals(title)) return s;
+        throw new IllegalArgumentException(title);
+    }
+
+    // ---- helpers: a map from the socket is loosely typed; read it defensively --------------------
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> map(Object o) {
+        return o instanceof Map<?, ?> m ? (Map<String, Object>) m : Map.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> list(Object o) {
+        return o instanceof List<?> l ? (List<Object>) l : List.of();
+    }
+
+    private static String str(Object o) {
+        return o == null ? null : o.toString();
+    }
+
+    /**
+     * Review C4 — support screenshot this application, and this is its most path-dense surface. What is
+     * DRAWN is abbreviated: {@code $HOME} becomes {@code ~}, and a long path keeps its head and its last
+     * two segments with the middle elided. The full value stays behind Copy and the tooltip.
+     */
+    public static String abbreviate(String path) {
+        return abbreviate(path, System.getProperty("user.home"), 44);
+    }
+
+    static String abbreviate(String path, String home, int max) {
+        if (path == null) return null;
+        String p = path;
+        if (home != null && !home.isBlank() && p.startsWith(home)) p = "~" + p.substring(home.length());
+        if (p.length() <= max) return p;
+        String sep = p.contains("/") ? "/" : "\\";
+        String[] parts = p.split(java.util.regex.Pattern.quote(sep));
+        if (parts.length < 4) return p.substring(0, Math.max(1, max - 1)) + "…";
+        String tail = parts[parts.length - 2] + sep + parts[parts.length - 1];
+        String head = parts[0].isEmpty() ? sep : parts[0] + sep;
+        if (head.length() + tail.length() + 1 > max) return "…" + p.substring(p.length() - (max - 1));
+        return head + "…" + sep + tail;
+    }
+
+    static String fileName(String path) {
+        if (path == null) return "?";
+        int i = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        return i >= 0 && i < path.length() - 1 ? path.substring(i + 1) : path;
+    }
+}
