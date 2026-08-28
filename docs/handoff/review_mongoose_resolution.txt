@@ -1,0 +1,73 @@
+REVIEW — the Mongoose bootstrap review resolution (0d6e56d)
+Reviewer: the first session (author of the §10a review being resolved) · Date: 2026-08-28
+
+VERDICT: **ACCEPTED — all four claims verified, and one of them is a correction to me that is right.**
+Two of my own four recommendations were over-stated; both have been narrowed correctly, and the narrower
+versions are better. No findings. 1069 green on main.
+
+Reviewing a resolution of my own review is a weak position, so each claim below was checked against code
+or the file rather than against my memory of what I meant.
+
+================================================================================
+1. THE A4 CORRECTION IS RIGHT, AND MY ORIGINAL CLAIM WAS WRONG
+================================================================================
+I wrote that a starter shipping a skill-shaped file would have it "surfaced in the analyser's Project
+panel and in `context.runbooks[]` with no work on either side."
+
+**That is false**, and it contradicts the very decision the feature is built on. Verified in code:
+`PointerDialog.discoverSkills` routes every candidate through `addRunbook(...)`, and there is exactly ONE
+write site — `config.runbooks.put(...)` at line 195 — which sits behind `confirm(...)`. Discovery OFFERS;
+a person chooses and confirms; only then is anything stored or served.
+
+So M35.4's rule held in the code while I overclaimed against it in prose — the same shape as mapping
+D-AI9's "no red" onto a brick foreground. Writing the decision down does not stop you contradicting it
+one document later. The resolution's wording — *"discovers and offers that file; a person must still
+choose and add the runbook before it is stored in a project profile or appears in context.runbooks[]"* —
+is exactly right.
+
+Checked the premise underneath it too, since a corrected claim is still worth being true: the candidate
+`.claude/skills/mongoose-local/SKILL.md` IS discovered by the shipped code, named `mongoose-local` from
+its frontmatter, with its description read. So the convention is adopted correctly; only the automatic
+part was wrong.
+
+================================================================================
+2. VAL-12 IS SCOPED MORE SHARPLY THAN MY A1 WAS
+================================================================================
+My A1 said: make the real starter satisfy `mongoose-stub.py`'s contract, run `loop-bench.py` unstubbed,
+and let it back Gates V2–V3.
+
+The second half of that was too generous, and the resolution catches it. `loop-bench` exercises the
+**loop contract** — registry glob, export endpoints, GraphML, driving the analyser. The stub serves those
+exports from the in-tree demo set, so a green bench says nothing about whether **Mongoose's own audit
+output** opens in the analyser. That is a different claim and it belongs to VAL-05, which still
+independently requires the exact configuration, artifact path/format, fixture identity and a restart-safe
+opening procedure.
+
+VAL-12 now reads as loop conformance with "the registry/export/GraphML evidence retained", and V3 keeps
+its native-audit obligation. Conflating the two would have let a passing bench stand in for the one thing
+the exercise exists to establish. Correct narrowing; I would not have caught it.
+
+================================================================================
+3. THE REMAINING CLAIMS
+================================================================================
+· **A1–A4 and M19.1a open.** Confirmed in the tracker: each of A1–A4 is ☐ under "each remains open until
+  its stated evidence exists", with its blocker named (A1 on Mongoose-side availability, A3 on D-05's
+  independent disposition). A3 is the one I most wanted kept separate — UP-MNG-01 and UP-MNG-02 must not
+  share a fate — and it is.
+· **V1 blocked on D-02.** Confirmed: V0.4 is ☐, the status table shows V1 with no entry, and the header
+  states no application implementation has started. The gate is real, not decorative.
+· **Copied artefacts match the source starter** — **I CANNOT VERIFY THIS.** The starter is not on this
+  machine. The claim is plausible and the README's source-of-truth rule is the right control, but it rests
+  on the author's word and should be recorded that way rather than as reviewed.
+
+================================================================================
+4. ONE THING I WOULD STILL PRESS, GENTLY
+================================================================================
+A2's resolution has the skill record registry-first discovery with a YAML fallback, which is what I asked
+for. Worth stating in the tracker where it will be read later: that fallback is the *reason* UP-MNG-01
+matters and also the reason it can be deferred — the project works without it and works better with it.
+If UP-MNG-01 is never filed, A2's fallback quietly becomes the permanent mechanism, and the registry ask
+dies by attrition rather than by decision. That is the failure mode A3 exists to prevent for UP-MNG-02;
+the same guard is worth having for -01.
+
+Not a finding — the tracker item exists. A sentence naming the drift risk would make it self-defending.
