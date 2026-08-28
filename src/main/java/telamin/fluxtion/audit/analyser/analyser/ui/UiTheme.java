@@ -52,6 +52,15 @@ public final class UiTheme {
         return ThemeManager.isDark() ? new Color(0xE8, 0x7A, 0x5A) : new Color(0xB0, 0x40, 0x20);
     }
 
+    /**
+     * A "this is working" foreground that reads on either theme (D-AI9). Recomputed per call, like
+     * {@link #warnForeground()}, so a theme switch picks the right one on the next render — the M42-era
+     * bug where explicit colours survived updateComponentTreeUI is the reason both are methods.
+     */
+    public static Color okForeground() {
+        return ThemeManager.isDark() ? new Color(0x6F, 0xC2, 0x76) : new Color(0x2E, 0x7D, 0x32);
+    }
+
     /** The theme's muted foreground (secondary text), with a sensible fallback. */
     public static Color mutedForeground() {
         return or(UIManager.getColor("Label.disabledForeground"), new Color(0x8A8F98));

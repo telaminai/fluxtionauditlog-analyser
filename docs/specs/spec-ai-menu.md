@@ -101,6 +101,49 @@ contents)"*. A stored `description` is authored text that now travels with the p
 say so — the rule is that a person reads the checkbox and knows what leaves. Whatever the wording lands
 on, a test asserts the label mentions the description, in the same way the M38 categories are pinned.
 
+## D-AI9 — a status light, and the thing it must not claim (owner, 2026-08-28)
+
+A green/red indicator for the AI connection, in the status bar and mirrored on the menu. The trap is
+named in `McpSetupState`'s own javadoc and the light must not spring it:
+
+> *"a green local state never gets misrepresented as 'an AI client is connected'"*
+
+Those are two different facts. This process can know **continuously and for free** whether its own local
+transport is up; whether a client is actually talking to it is a separate fact that needs a probe and is
+true only at the moment it is measured. So the light reports the first and says so in its words: **"MCP
+ready"**, never "MCP connected".
+
+Four states, because `McpSetupState.LocalStatus` already distinguishes them and collapsing them would
+lose the one that actually confuses people:
+
+| State | Light | Means |
+|---|---|---|
+| `READY` | green | this window is serving; a client can reach it |
+| `OFF` | grey | the transport is off — not an error, a choice |
+| `STARTING` | amber | enabled, no live endpoint published yet |
+| `OTHER_INSTANCE` | amber | **another analyser window owns the endpoint** — your client is talking to a different log |
+
+`OTHER_INSTANCE` is why this is worth building. It is invisible today, it is the state most likely to
+waste an hour, and it already carries an accurate sentence to show.
+
+**There is no red, and that is a decision** (owner asked, 2026-08-28). Red means *broken, act now*, and
+nothing in this set is broken: an off transport is a CHOICE, and another window owning the endpoint is a
+SURPRISE. Colouring a deliberate decision as a fault is how an indicator becomes something people stop
+reading — the same argument that keeps the coverage caveat off a perfect score. Red stays unspent, so it
+still means something on the day something genuinely fails.
+
+**And "tested" is deliberately NOT in the light.** A probe launches a bridge process and is true only at
+the instant it ran; a light showing a green tick from ten minutes ago asserts something it does not
+currently know. That is the declared-never-inferred line the rest of the app holds, so the probe stays in
+the setup dialog where a person asked for it and can see when it ran. The light reports the fact that is
+continuously true and free to check; the dialog reports the fact that has to be measured.
+
+**"No config" reads as grey, not red**, for the same reason — and its tooltip carries the remedy rather
+than a diagnosis, so the state that needs an action says what the action is.
+
+The tooltip is the existing `detail` string — one message, not a second wording that can drift from it
+(D-AI2 again). Clicking the light opens the same MCP setup dialog the menu does.
+
 ## Non-goals
 
 - **Not a second Settings dialog.** Every setting keeps exactly one owner.

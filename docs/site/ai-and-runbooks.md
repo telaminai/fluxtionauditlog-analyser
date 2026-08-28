@@ -174,6 +174,46 @@ Portable context guide for the full gate). A prompt that does this well:
 The human review step — *show me the diff* — is the point. The pointer and the runbook arrive together,
 through version control, and the person who approves the commit is the person the rule protects.
 
+## Managing pointers from the app
+
+*AI ▸ Runbooks…* and *AI ▸ Domain glossary…* add and remove the pointers a project declares, so you no
+longer have to hand-edit the profile. They store a **location** and, for a runbook, one line saying when
+to use it — never the file's contents, and the analyser still runs nothing.
+
+Both items need an open project and say so in their tooltip when there isn't one: pointers are portable
+context, and their value is that they travel to a colleague's checkout, so they belong to the project
+rather than to your own settings. Every path goes through the same gate the profile loader uses — an
+absolute path, a `..` escape, a URL or anything shaped like a command is refused **with the reason shown
+in the dialog**.
+
+### The description, and where it comes from
+
+A runbook's `description` is the line an AI client chooses by: with it, a model can tell which of six
+runbooks is relevant without opening any of them. It appears in `context.runbooks[]` and on the Project
+panel row.
+
+When you point *Add runbook…* at a [skill-shaped file](#write-runbooks-in-the-skill-shape), its
+frontmatter **prefills** the name and description — but only fields you have left empty, and what gets
+stored is whatever is in the boxes when you press OK. The analyser never re-reads the file to answer
+questions about it. That is deliberate: if the served description came from the file, editing the file
+would silently change what the analyser reports about your project, with nobody having declared it. The
+file suggests; you declare.
+
+## Is an AI client reaching this window?
+
+The status bar carries a light that answers exactly that:
+
+| Light | Means |
+|---|---|
+| **MCP ready** (green) | this window is serving — an AI client pointed here reaches *this* log |
+| **MCP elsewhere** (amber) | **another analyser window owns the endpoint**; a client using it is reading that window's log, not this one |
+| **MCP starting** (amber) | enabled, but no live endpoint published yet |
+| **MCP off** (grey) | the local transport is off — a choice, not a fault |
+
+*Ready* is not *connected*. This window being reachable and a client actually talking to it are two
+different facts: the first is true continuously, the second only at the moment you measure it. If you
+want the second, *AI ▸ Connect an AI client…* runs a real probe and tells you when it ran.
+
 ## Write runbooks in the skill shape
 
 A runbook file is ordinary markdown, and the analyser only ever needs its path — but write it in the shape

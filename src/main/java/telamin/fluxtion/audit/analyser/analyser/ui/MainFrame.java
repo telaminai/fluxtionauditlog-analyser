@@ -168,6 +168,7 @@ public final class MainFrame extends JFrame {
         actionControl = new AppControlAdapter();
         actionExecutor.bind(topologyPanel, actionControl);
         refreshProjectPanel();                       // M37: state the empty session too
+        refreshMcpIndicator();                       // D-AI9: and say whether an AI client reaches us
         actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
         readerRegistry.loadPlugins(java.nio.file.Path.of(
@@ -369,10 +370,15 @@ public final class MainFrame extends JFrame {
         List<Map<String, Object>> rbs = new ArrayList<>();
         Path root = project.hasProject()
                 ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
-        config.runbooks.forEach((name, rel) -> {
+        config.runbooks.forEach((name, ptr) -> {
+            String rel = ptr.path();
             Map<String, Object> one = new java.util.LinkedHashMap<>();
             one.put("name", name);
             one.put("path", rel);
+            // M43.2 (D-AI5): the DECLARED description, so a model can choose which runbook is relevant
+            // without opening every file. Served from the profile, never read from the file — a pointer
+            // whose file changes must not silently change what context says.
+            if (ptr.description() != null) one.put("description", ptr.description());
             Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, rel);
             if (abs != null) {
                 one.put("resolved", abs.toString());
@@ -383,6 +389,30 @@ public final class MainFrame extends JFrame {
             rbs.add(one);
         });
         return rbs;
+    }
+
+    /**
+     * D-AI9 — the AI status light. It answers one question: would an AI client asking right now reach
+     * THIS window? Not "is a client connected" — that is a different fact, needs a probe, and is true
+     * only at the instant it is measured, so it lives in the setup dialog instead.
+     */
+    private final JLabel mcpLight = new JLabel();
+
+    /** Re-read the local transport state and repaint the light. Cheap: a file read and a pid compare. */
+    private void refreshMcpIndicator() {
+        var endpointFile = telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown();
+        var endpoint = endpointFile.read();
+        var readiness = telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState.classify(
+                config.assistantActionsRest, endpoint, endpoint != null && endpoint.alive(),
+                ProcessHandle.current().pid());
+        var view = telamin.fluxtion.audit.analyser.analyser.mcp.McpIndicator.of(readiness);
+        mcpLight.setText("\u25cf " + view.label());
+        mcpLight.setToolTipText("<html><body style='width:320px'>" + view.detail() + "</body></html>");
+        mcpLight.setForeground(switch (view.level()) {
+            case GOOD -> UiTheme.okForeground();
+            case ATTENTION -> UiTheme.warnForeground();
+            case NEUTRAL -> UiTheme.mutedForeground();
+        });
     }
 
     private ProjectPanel projectPanel;
@@ -1302,6 +1332,7 @@ public final class MainFrame extends JFrame {
         UiTheme.applyControlSurface(filterBar);
         if (navRail != null) navRail.refreshTheme();
         if (projectPanel != null) projectPanel.refreshTheme();   // owner, 2026-08-27: rows are painted from UiTheme at render time
+        refreshMcpIndicator();                                  // D-AI9: its colour is explicit too, so it must be recomputed
         eventFilterPanel.refreshTheme();                          // section border + group headers likewise
         repaint();                 // charts read the theme on paint
         config.theme = theme;
@@ -1506,6 +1537,7 @@ public final class MainFrame extends JFrame {
         // Columns is no longer a top-level menu: it lives on the nav rail and on the table's right-click,
         // which is where you are when you notice a column is missing
         bar.add(buildThemeMenu());
+        bar.add(buildAiMenu());
 
         JMenu help = new JMenu("Help");
         // M36.1: the start page is a STATE, and the state is "no log open" — so anyone who has ever
@@ -1531,6 +1563,118 @@ public final class MainFrame extends JFrame {
         bar.add(help);
         setJMenuBar(bar);
     }
+
+    /**
+     * M43.1 — the AI menu (D-AI1: the Project panel STATES what is in force, this menu ACTS).
+     *
+     * <p>Everything here was reachable and almost none of it was findable: MCP setup lived in Settings
+     * and on the Start page, which only appears via Help ▸ Start page — invisible mid-session, which is
+     * exactly when someone thinks to connect an LLM.
+     *
+     * <p>Two rules hold this together. Every item OPENS the one owner of a setting or is BOUND to its
+     * value, never keeping a copy (D-AI2) — settings in two places drift, which is why KnownKeys exists.
+     * And an item whose precondition is missing is DISABLED WITH A REASON rather than opening a dialog
+     * that explains itself after the click (D-AI3); M35 spent a milestone removing six such modals, and a
+     * new menu is the likeliest place to reintroduce them. Nothing here RUNS anything (D-AI4).
+     */
+    private JMenu buildAiMenu() {
+        JMenu ai = new JMenu("AI");
+
+        JMenuItem connect = new JMenuItem("Connect an AI client…");
+        connect.setToolTipText("Register this analyser with Claude Code, Codex or any MCP client");
+        connect.addActionListener(e -> openMcpSetup());
+        ai.add(connect);
+
+        // BOUND, not copied: it reads and writes the same field Settings ▸ Assistant renders
+        JCheckBoxMenuItem transport = new JCheckBoxMenuItem("Local MCP / REST enabled");
+        transport.addActionListener(e -> {
+            config.assistantActionsRest = transport.isSelected();
+            onConfigChanged();
+            refreshMcpIndicator();
+        });
+        ai.add(transport);
+
+        ai.addSeparator();
+        JMenuItem runbooks = new JMenuItem("Runbooks…");
+        runbooks.addActionListener(e -> PointerDialog.runbooks(this, config, this::onProfileEdited, projectRoot()));
+        ai.add(runbooks);
+        JMenuItem glossary = new JMenuItem("Domain glossary…");
+        glossary.addActionListener(e -> PointerDialog.glossary(this, config, this::onProfileEdited, projectRoot()));
+        ai.add(glossary);
+
+        ai.addSeparator();
+        JMenuItem exchange = new JMenuItem("Report exchange directory…");
+        exchange.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged,
+                this::readerSummaries, "Assistant"));
+        ai.add(exchange);
+        JMenuItem showExchange = new JMenuItem("Show exchange directory");
+        showExchange.addActionListener(e -> revealPath(config.assistantExportDir));
+        ai.add(showExchange);
+
+        ai.addSeparator();
+        JMenuItem docs = new JMenuItem("Working with AI (docs)");
+        docs.addActionListener(e -> openDocsPage("ai-and-runbooks/"));
+        ai.add(docs);
+
+        // D-AI3: state the remedy on the item, so the reason is read BEFORE the click, not after it
+        ai.addMenuListener(new javax.swing.event.MenuListener() {
+            @Override public void menuSelected(javax.swing.event.MenuEvent e) {
+                transport.setSelected(config.assistantActionsRest);
+                boolean hasProject = project.hasProject();
+                for (JMenuItem item : new JMenuItem[]{runbooks, glossary}) {
+                    item.setEnabled(hasProject);
+                    item.setToolTipText(hasProject
+                            ? "Pointers stored in this project's profile — locations only, never contents"
+                            : "Needs an open project — File ▸ Open project");
+                }
+                boolean exchangeOn = config.assistantExports && !config.assistantExportDir.isBlank();
+                showExchange.setEnabled(exchangeOn);
+                showExchange.setToolTipText(exchangeOn ? config.assistantExportDir
+                        : "File exchange is off — turn it on in Report exchange directory…");
+            }
+            @Override public void menuDeselected(javax.swing.event.MenuEvent e) { }
+            @Override public void menuCanceled(javax.swing.event.MenuEvent e) { }
+        });
+        return ai;
+    }
+
+    /** The project root pointers are stored relative to, or null when no project is open. */
+    private Path projectRoot() {
+        return project.hasProject()
+                ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile())
+                : null;
+    }
+
+    /** A profile edit: persist, then re-render every surface that states what is in force. */
+    private void onProfileEdited() {
+        onConfigChanged();
+        refreshProjectPanel();
+    }
+
+    private void openMcpSetup() {
+        McpSetupDialog.show(this, config, () -> {
+            onConfigChanged();
+            refreshMcpIndicator();
+        }, McpSetupDialog.Target.fromPersisted(config.mcpSetupTarget, McpSetupDialog.Target.GENERIC), false);
+    }
+
+    private void revealPath(String path) {
+        if (path == null || path.isBlank()) return;
+        try {
+            java.awt.Desktop.getDesktop().open(new java.io.File(path));
+        } catch (Exception ignored) {
+            // the item is only enabled when the directory is configured; a failure here is not worth a modal
+        }
+    }
+
+    private void openDocsPage(String page) {
+        try {
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(
+                    "https://telaminai.github.io/fluxtionauditlog-analyser/" + page));
+        } catch (Exception ignored) {
+        }
+    }
+
 
     private void buildLayout() {
         // small minimums so the JSplitPane can move the divider freely (content min sizes were
@@ -1667,6 +1811,7 @@ public final class MainFrame extends JFrame {
                 BorderFactory.createEmptyBorder(4, 8, 4, 8)));
         UiTheme.status(status);
         statusBar.add(status, BorderLayout.WEST);
+        statusBar.add(mcpLight, BorderLayout.CENTER);      // D-AI9: is an AI client reaching THIS window?
         progress.setIndeterminate(true);
         progress.setVisible(false);
         progress.setPreferredSize(new Dimension(140, 14));

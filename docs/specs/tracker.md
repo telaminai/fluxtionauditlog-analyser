@@ -320,7 +320,7 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
   `description`, so a pointer may target a `SKILL.md`) is documented ahead of it, so no runbook needs
   rewriting. Content delivery stays as it is: the analyser serves the pointer, never the instructions.
 
-## M43 · The AI menu — quick access, and the runbook `description` it needs — ☐ SPEC'D 2026-08-28
+## M43 · The AI menu — quick access, and the runbook `description` it needs — ◧ **BUILT 2026-08-28** on `feat/m43-ai-menu`
 _Owner-directed. Spec **[spec-ai-menu.md](spec-ai-menu.md)**; absorbs **M38.8**._
 Everything an AI client needs is reachable and almost none of it is findable: MCP setup lives in Settings
 and on the Start page, which only appears via *Help ▸ Start page* — invisible mid-session, which is when
@@ -334,9 +334,15 @@ already writes them.
   a dialog that explains itself after the click — written down before the first item, because M35 spent a
   milestone removing six such modals; **D-AI4** nothing on the menu RUNS anything, recorded as a non-goal
   at the surface most likely to erode it.
-- Slices: **.1** the menu (navigate/bind only) · **.2** `runbook.N.description` end to end (= M38.8, and
-  it must land BEFORE .3) · **.3** *Runbooks…* through `Runbooks.refuse` · **.4** the skill-shape prefill ·
-  **.5** *Domain glossary…* · **.6** docs, generated shot, CHANGELOG.
+- Slices: **.1** ☑ the menu · **.2** ☑ `runbook.N.description` end to end (= M38.8) · **.3** ☑ *Runbooks…*
+  through `Runbooks.refuse` · **.4** ☑ the skill-shape prefill (`SkillFrontmatter`) · **.5** ☑ *Domain
+  glossary…* · **.6** ☐ generated screenshot of the menu (needs a capture run). **D-AI9** ☑ the status
+  light: three levels and **no red** — nothing in the set is broken (off is a CHOICE, another window is a
+  SURPRISE), so red stays unspent for a real fault; and "tested" is deliberately absent, because a probe
+  is true only at the instant it ran and a stale green tick asserts what it does not know.
+- Verified on the built jar: a pre-M43 runbook loads and serves with no description (backward
+  compatible), and the demo's real skill-shaped file prefills `restart-quote-service` and its
+  description. 1029 green.
 - **Open question for the owner:** the menu's name — proposed `AI` rather than *AI assistant*, since
   "assistant" already names the in-app panel and the docs nav settled on *Working with AI*.
 

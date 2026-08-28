@@ -42,7 +42,7 @@ class PreserveUnknownKeysTest {
         Files.createDirectories(file.getParent());
         AppConfig c = new AppConfig();
         c.sourceRoots.add(dir.resolve("src/main/java").toString());
-        c.runbooks.put("deploy", "ops/deploy.md");
+        c.runbooks.put("deploy", Runbooks.Pointer.of("ops/deploy.md"));
         assertTrue(ProjectProfile.save(file, c, share));
 
         // "a newer version" wrote two things this build has never heard of; and this build's user removed the runbook

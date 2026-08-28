@@ -58,7 +58,7 @@ public final class SettingsShare {
         ASSISTANT("Assistant", true),
         LLM("LLM provider/model/base-URL (never the API key)", false),
         /** M38.1 D-C8: off by default, and the exporter refuses any value that is not a project-relative path. */
-        RUNBOOKS("Runbook LOCATIONS (paths in your repository — never their contents)", false),
+        RUNBOOKS("Runbook LOCATIONS and descriptions (paths in your repository and one line saying when to use each — never their contents)", false),
         /** M38.2 D-C3/D-C8: a pointer to the glossary file — inert, so it travels by default. */
         VOCABULARY("Domain glossary LOCATION (a markdown file in your repository — never its contents)", true),
         /** M38.3 D-C4/D-C8 (owner decision 2: travels by default). The label names the cargo: names, systems, hosts. */
@@ -367,7 +367,7 @@ public final class SettingsShare {
                     + (withNarrative == 0 ? "" : " · " + withNarrative + " carrying narrative text"));
         }
 
-        Map<String, String> runbooks = null;
+        Map<String, Runbooks.Pointer> runbooks = null;
         if (p.getProperty("runbook.count") != null) {
             present.add(Category.RUNBOOKS);
             runbooks = new LinkedHashMap<>();
@@ -492,8 +492,14 @@ public final class SettingsShare {
             }
         }
         if (selected.contains(Category.RUNBOOKS) && plan.runbooks() != null) {
-            plan.runbooks().forEach((name, path) -> {
-                if (Runbooks.refuse(name, path).isEmpty()) target.runbooks.put(name, path);   // replace-by-name
+            plan.runbooks().forEach((name, ptr) -> {
+                // M43.2: the description travels with the pointer and is gated on the way in like the
+                // path — a refused description costs the description, never the pointer.
+                if (ptr != null && Runbooks.refuse(name, ptr.path()).isEmpty()) {
+                    String d = Runbooks.refuseDescription("runbook '" + name + "'", ptr.description())
+                            .isPresent() ? null : ptr.description();
+                    target.runbooks.put(name, new Runbooks.Pointer(ptr.path(), d));           // replace-by-name
+                }
             });
         }
         if (selected.contains(Category.VOCABULARY) && plan.vocabulary() != null) {
@@ -554,7 +560,7 @@ public final class SettingsShare {
             List<FocusSpec> focuses,
             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
             List<String> hiddenColumns,
-            Map<String, String> runbooks,
+            Map<String, Runbooks.Pointer> runbooks,
             String vocabulary,
             List<Environment> environments,
             String defaultEnvironment,

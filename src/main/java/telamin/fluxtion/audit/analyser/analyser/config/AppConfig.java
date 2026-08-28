@@ -123,7 +123,9 @@ public final class AppConfig {
      */
     public final List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports = new ArrayList<>();
     /** M38.1: runbook POINTERS — name → project-relative path (never contents). Project-scoped; see {@link Runbooks}. */
-    public final java.util.Map<String, String> runbooks = new java.util.LinkedHashMap<>();
+    /** M38.1/M43.2: name → pointer (path + optional description). ONE map, because a parallel
+     *  description map is two things that can disagree about which runbooks exist. */
+    public final java.util.Map<String, Runbooks.Pointer> runbooks = new java.util.LinkedHashMap<>();
     /** M38.2: the domain glossary — a POINTER to a markdown file in the repository (project-relative), or blank. */
     public String vocabularyPath = "";
     /** M38.3: the environments this project declares (name → §E provenance, optional log directory). Project-scoped. */

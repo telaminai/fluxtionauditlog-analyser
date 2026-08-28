@@ -572,12 +572,18 @@ public final class ConfigStore {
     }
 
     /** M38.1: runbook pointers, validated on the way IN — a refused entry is dropped, never stored. */
-    static void writeRunbooks(Properties p, java.util.Map<String, String> runbooks) {
+    static void writeRunbooks(Properties p, java.util.Map<String, Runbooks.Pointer> runbooks) {
         int i = 0;
         for (var e : runbooks.entrySet()) {
-            if (Runbooks.refuse(e.getKey(), e.getValue()).isPresent()) continue;
+            Runbooks.Pointer ptr = e.getValue();
+            if (ptr == null || Runbooks.refuse(e.getKey(), ptr.path()).isPresent()) continue;
+            // M43.2: a refused DESCRIPTION drops only the description — the pointer is still a good
+            // pointer, and losing it because its one-line summary was malformed would be a worse trade.
+            String description = Runbooks.refuseDescription("runbook '" + e.getKey() + "'", ptr.description())
+                    .isPresent() ? null : ptr.description();
             p.setProperty("runbook." + i + ".name", e.getKey());
-            p.setProperty("runbook." + i + ".path", e.getValue());
+            p.setProperty("runbook." + i + ".path", ptr.path());
+            if (description != null) p.setProperty("runbook." + i + ".description", description);
             i++;
         }
         p.setProperty("runbook.count", Integer.toString(i));
@@ -720,14 +726,19 @@ public final class ConfigStore {
     }
 
     /** @return the reasons for every entry refused (empty when all were plain relative paths) */
-    static List<String> readRunbooks(Properties p, java.util.Map<String, String> out) {
+    static List<String> readRunbooks(Properties p, java.util.Map<String, Runbooks.Pointer> out) {
         out.clear();
         List<String> refused = new ArrayList<>();
         int n = parseInt(p.getProperty("runbook.count"), 0);
         for (int i = 0; i < n; i++) {
             String name = p.getProperty("runbook." + i + ".name");
             String path = p.getProperty("runbook." + i + ".path");
-            Runbooks.refuse(name, path).ifPresentOrElse(refused::add, () -> out.put(name, path));
+            String raw = p.getProperty("runbook." + i + ".description");
+            var bad = Runbooks.refuseDescription("runbook '" + name + "'", raw);
+            bad.ifPresent(refused::add);                       // named, not silently dropped
+            String description = bad.isPresent() ? null : raw;
+            Runbooks.refuse(name, path)
+                    .ifPresentOrElse(refused::add, () -> out.put(name, new Runbooks.Pointer(path, description)));
         }
         return refused;
     }

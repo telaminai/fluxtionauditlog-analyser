@@ -43,7 +43,7 @@ public record ProjectModel(List<Section> sections) {
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
             "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
-            "runbooks.name", "runbooks.path", "runbooks.resolved", "runbooks.exists", "runbooks.from",
+            "runbooks.name", "runbooks.path", "runbooks.description", "runbooks.resolved", "runbooks.exists", "runbooks.from",
             "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
             "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default",
             "analyses.name", "analyses.rationale", "analyses.parameters", "analyses.steps", "analyses.from",
@@ -78,8 +78,13 @@ public record ProjectModel(List<Section> sections) {
             // the pointer goes on the WRAPPING line, where it is read whole; the eliding first line holds the name
             // owner, 2026-08-27: Open shows the file read-only IN the app for the person — D-C2 forbids executing
             // it and serving its contents to an agent; a person reading what the profile points at is neither
-            rows.add(new Row(r.get("name") + " runbook",
-                    r.get("path") + (known && !exists ? " — file NOT found under the project root" : " — a pointer into the repository, never contents"),
+            // M43.2: the DECLARED description rides on the same line — it is the sentence a person (or a
+            // model) chooses by, and a runbook row without it makes you open the file to learn what it is for
+            String described = str(r.get("description"));
+            String tail = known && !exists ? " — file NOT found under the project root"
+                    : described != null ? " — " + described
+                    : " — a pointer into the repository, never contents";
+            rows.add(new Row(r.get("name") + " runbook", r.get("path") + tail,
                     str(r.get("resolved")), str(r.get("from")), known && !exists ? Tone.WARN : Tone.NORMAL,
                     exists ? Target.VIEW_FILE : Target.NONE));
         }

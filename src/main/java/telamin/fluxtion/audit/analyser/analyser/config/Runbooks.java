@@ -30,6 +30,46 @@ public final class Runbooks {
     /** Path segments: letters, digits, dot, dash, underscore — nothing a shell or a URL would read. */
     private static final Pattern SEGMENT = Pattern.compile("[A-Za-z0-9._-]+");
 
+    /** Longest stored description. It is a sentence to choose by, not the runbook. */
+    public static final int MAX_DESCRIPTION = 300;
+
+    /**
+     * M43.2 (was M38.8) — what the profile stores for one runbook: WHERE it is, and one line saying when
+     * to use it. Both are DECLARED. The description exists so a model can choose between runbooks without
+     * opening every file; it is inert text, never resolved, fetched or executed.
+     *
+     * <p>A skill-shaped file carries the same two facts in its frontmatter, and the add dialog reads them
+     * to PREFILL (D-AI5) — but what is served is what a person declared here, so editing the file later
+     * cannot silently change what {@code context} says. That is D-A2 at a new fact.
+     *
+     * @param description may be null: it is optional, and a runbook written before this slice has none
+     */
+    public record Pointer(String path, String description) {
+        public Pointer {
+            if (description != null && description.isBlank()) description = null;
+        }
+
+        public static Pointer of(String path) {
+            return new Pointer(path, null);
+        }
+    }
+
+    /**
+     * The reason a description may NOT be stored, or empty. Gated like every other declaration: one line,
+     * bounded, no control characters — the shape rules the path already follows, for the same reason.
+     */
+    public static Optional<String> refuseDescription(String label, String description) {
+        if (description == null || description.isBlank()) return Optional.empty();   // optional by design
+        if (description.length() > MAX_DESCRIPTION) {
+            return Optional.of(label + ": description longer than " + MAX_DESCRIPTION
+                    + " characters — it is a line to choose by, not the runbook itself");
+        }
+        if (description.chars().anyMatch(ch -> ch == '\n' || ch == '\r' || ch == '\t')) {
+            return Optional.of(label + ": description must be one line — the analyser stores no instructions");
+        }
+        return Optional.empty();
+    }
+
     /** The reason this (name, path) pair may NOT be stored, or empty if it is an acceptable pointer. */
     public static Optional<String> refuse(String name, String path) {
         if (name == null || !NAME.matcher(name).matches()) {

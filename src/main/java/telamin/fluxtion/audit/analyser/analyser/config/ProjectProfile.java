@@ -154,7 +154,7 @@ public final class ProjectProfile {
                            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
                            List<String> hiddenColumns,
                            boolean hiddenColumnsSet,
-                           java.util.Map<String, String> runbooks,
+                           java.util.Map<String, Runbooks.Pointer> runbooks,
                            String vocabularyPath,
                            List<Environment> environments,
                            String defaultEnvironment,

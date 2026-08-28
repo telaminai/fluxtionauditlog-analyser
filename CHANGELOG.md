@@ -6,6 +6,26 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **An `AI` menu — everything an AI client needs, where you can find it.** MCP setup used to live in
+  Settings and on the Start page, which only appears via *Help ▸ Start page* — so it was invisible
+  mid-session, which is exactly when you think to connect an LLM. The menu gathers *Connect an AI
+  client…*, the local MCP/REST toggle, the report exchange directory and the docs, and adds the one
+  thing that had no UI at all: **Runbooks…** and **Domain glossary…** for the pointers a project
+  declares. An item whose precondition is missing is **disabled with the reason in its tooltip** rather
+  than opening a dialog that explains itself after the click.
+- **An AI status light in the status bar.** It answers one question — would an AI client asking right
+  now reach *this* window? **MCP ready** (green) means the analyser is reachable, deliberately not
+  "connected": whether a client is actually talking to it is a separate fact. **MCP elsewhere** (amber)
+  is the one worth building it for — another analyser window owns the endpoint, so your AI client is
+  answering questions about a different log. **MCP off** is grey, not red: it is a choice, not a fault.
+- **Runbooks can say what they are for.** A runbook pointer now carries an optional one-line
+  `description`, served in `context.runbooks[]` and shown on the Project panel row, so an AI client can
+  choose the relevant runbook without opening every file. When you point *Add runbook…* at a
+  skill-shaped file, its `name`/`description` frontmatter **prefills the fields** — but what is stored
+  is what you leave in them: editing that file later never silently changes what the analyser reports.
+
+
 ### Fixed
 - **A secret on the analyser's own command line can no longer reach an AI client's config file.** The
   MCP bridge command reconstructed from a `java -jar` launch copied every JVM option before `-jar`, and
