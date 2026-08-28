@@ -1,0 +1,76 @@
+REVIEW — docs/specs/mongoose-bootstrap-artefacts (d91e236), plus M33.7 as merged
+Reviewer: the first session · Date: 2026-08-28 · Range 6478d87..d91e236
+
+VERDICT: **Both sound. One structural finding on the Mongoose work (F1), with suggestions written into
+the specs themselves rather than only reported.** 1066 green on main.
+
+================================================================================
+1. M33.7 — REPORT TABLE SOURCES: SOUND, AND IT CLOSED MY N1 PROPERLY
+================================================================================
+`coverage` now assembles into a report table, which is exactly the moment the guard I left in M40.2 was
+designed to fire. It was replaced by something stronger — `coverageTableCarriesTheWholeLedgerAndExclusions`
+— which keeps the reasoning (the PDF is the surface that LEAVES the session) and goes further: the table
+carries the whole ledger, covered AND excluded rows with their reasons, plus the scalar line and notes.
+The right outcome; my test existed to force this and is better dead than kept.
+
+Checked what the test could not: the PRODUCTION wiring, since the test injects a `CoverageSource` lambda.
+`MainFrame.coverageForReport` builds a real `CoverageService.Input` from `fullTopology()`,
+`authoredNodeIds()` and **`sourceResolver()`** — so M40.2b's silent-by-construction exclusions reach the
+PDF too — and it honours the inferred-graph refusal rather than printing a meaningless ratio.
+
+Best part: there is now exactly ONE `CoverageService.assess` call in the echo path and one in the report
+path, over the same scorer. The agent-facing echo and the human-facing PDF can no longer disagree about a
+denominator, which was the actual risk behind N1. No findings.
+
+================================================================================
+2. F1 — THE MONGOOSE WORK DOES NOT CITE THE SPEC THAT OWNS ITS LOOP
+================================================================================
+The artefacts are good: honest scope, the CSV-vs-`PriceUpdate` mapper risk named as a risk rather than
+assumed away, a source-of-truth rule that forbids editing snapshots as a stealth alternative to changing
+the starter, and an explicit refusal to treat a bridge check as end-to-end evidence. The M19 alignment
+addendum is the right instinct.
+
+But it anchors to **M19 only**. The loop it describes — start a server, export a log and a GraphML, drive
+the analyser, investigate, fix, re-run — is already owned by **spec-agent-brokered-dev-loop.md, ACCEPTED
+v2 (2026-08-22)**, which appears nowhere in these documents. Three consequences, written into
+`specs/spec-mongoose-analyser-validation.md` §10a as A1–A4 so they act where the work happens:
+
+  A1 · **The acceptance already exists as an executable test.** §H required a conformance harness before
+       any cross-repo work; it was built and merged (M19.6): `tools/bench/loop-bench.py` plays §C3 steps
+       3–7 with PASS/FAIL per step, and `mongoose-stub.py` is "not a Mongoose; a statement of what one
+       must do". Gates V2–V3 are currently a hand-run checklist where an automated bench exists. The
+       single highest-value step in the plan is to make the real starter satisfy the stub's contract and
+       run the bench unstubbed — turning the end-to-end claim from something performed once into a test
+       that fails when it stops being true.
+
+  A2 · **Server discovery re-derives §C1's mechanism in a weaker form.** The skill finds the endpoint by
+       reading the project YAML. That cannot answer "which servers are running now?", which a second
+       project poses immediately. §C1 specifies `~/.mongoose/servers/<name>` (UP-MNG-01) and explicitly
+       warns off both alternatives. Recommendation: read the registry when present, fall back to config.
+       Note the two findings interlock — loop-bench already globs that exact shape, so registry support
+       is what makes A1 possible at all.
+
+  A3 · **UP-MNG-01 and UP-MNG-02 should not share a fate.** Skills are a legitimate, arguably better
+       implementation of §C3 step 9 than the MCP admin tool ask, and nothing here conflicts with the
+       standing decision — the analyser still gains no server-mutating code, so §B holds either way. But
+       the registry ask survives skills (scripts need discovery too); the MCP tool ask may not. Decide it
+       explicitly in upstream-asks.md rather than leaving UP-MNG-02 half-alive.
+
+  A4 · **One free win:** ship the shared skill as `.claude/skills/mongoose-local/SKILL.md` with `name`
+       and `description` frontmatter. As of M43 the analyser reads that shape (those two keys only,
+       nothing executed) and *Find skills…* discovers it, so every starter project gets its skill
+       surfaced in the Project panel and `context.runbooks[]` for free — which is this spec's own
+       "share the workspace with the LLM" goal. Cheap now, awkward to retrofit.
+
+Also annotated `skill/mongoose-local-skill-contract.md`'s Discovery contract in place, since that is the
+one paragraph A2 changes.
+
+================================================================================
+3. WHAT I DID NOT REVIEW
+================================================================================
+· The starter project itself — I only have the snapshot, and the README is right that the starter is the
+  source of truth. The CSV/`PriceUpdate` mapper risk is named there and I have no way to assess it here.
+· `run-server.sh` and `check-fluxtion-key.sh` beyond reading them for how discovery works.
+· Whether `loop-bench.py` passes against a real Mongoose — that is A1's proposal, not a claim.
+· Rule 1: the snapshot directory is clean under the four-term sweep and carries no real home paths,
+  which the README already commits to.

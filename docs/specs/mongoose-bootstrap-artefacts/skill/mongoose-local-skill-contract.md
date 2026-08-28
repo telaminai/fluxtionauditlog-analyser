@@ -12,6 +12,13 @@ AI registration, or replace project documentation.
 
 ## Discovery contract
 
+**Reviewer addendum (2026-08-28):** read `~/.mongoose/servers/<name>` (mode 600) when present and fall
+back to the YAML descriptor. Config-derived discovery cannot answer *"which servers are running now?"*,
+which a second project poses immediately. That file shape is specified in
+[`spec-agent-brokered-dev-loop.md`](../../spec-agent-brokered-dev-loop.md) §C1 as upstream ask UP-MNG-01,
+and `tools/bench/loop-bench.py` already globs it — so supporting it is also what lets the existing
+conformance bench run against a real starter instead of its stub. See the validation spec §10a.
+
 The skill must find, then report before it acts:
 
 - `pom.xml` and the Java/Maven build entry point;

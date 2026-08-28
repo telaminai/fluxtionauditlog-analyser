@@ -173,6 +173,88 @@ analyser result and V4's optional tool result agree for the same input, any requ
 been exercised twice, and the final independent review accepts or explicitly amends the record. A
 working server or a connected MCP entry by itself is not completion.
 
+## 10a. Alignment with the ACCEPTED dev-loop spec (reviewer addendum, first session, 2026-08-28)
+
+This document anchors itself to M19 (`spec-onboarding-example.md`), which is right for the *onboarding*
+half. But the loop it describes — start a server, export a log and a GraphML, drive the analyser,
+investigate, fix, re-run — is already owned by
+**[`spec-agent-brokered-dev-loop.md`](../../spec-agent-brokered-dev-loop.md), ACCEPTED v2 (2026-08-22)**,
+which this spec does not cite. Three consequences, in descending value.
+
+### A1 · The acceptance already exists as an executable test, and it is not referenced
+
+§H of the accepted spec required a conformance harness before any cross-repo work started. It was built
+and merged (M19.6, 2026-08-25): **`tools/bench/loop-bench.py`** plays §C3 steps 3–7 — glob the registry,
+pick a server, export log + GraphML, drive the analyser, assert the loop closed — with PASS/FAIL per step
+and a non-zero exit. Its companion `mongoose-stub.py` is explicitly *"not a Mongoose; a statement of what
+one must do"*.
+
+That reframes Gates V2–V3. As written they are a hand-run checklist; the highest-value single step in
+this whole plan is instead:
+
+> **Make the real starter satisfy `mongoose-stub.py`'s contract, then run `loop-bench.py` against it
+> instead of `--stub`.**
+
+The end-to-end claim then stops being a description someone performed once and becomes a test that fails
+when it stops being true — which is the difference this repo insists on everywhere else. Recommend
+`loop-bench.py` (unstubbed) be named as the **minimum evidence** for VAL-04/05, replacing or backing the
+prose gates.
+
+### A2 · Server discovery re-derives a mechanism the accepted spec already specified
+
+The skill's *Discovery contract* finds the admin endpoint by reading the project's YAML descriptor. That
+works for one project whose config you already have, and does not answer *"which servers are running
+right now?"* — the question a second project, or a server started from elsewhere, immediately poses.
+
+§C1 of the accepted spec addresses exactly this and warns off both alternatives by name: **do not put the
+registry in the analyser** (it re-acquires the coupling the design removes) **and do not put it in MCP
+client config** (static — a server deployed mid-session cannot register itself). It specifies instead a
+runtime file per server, mirroring the mechanism the analyser already ships and every script in `tools/`
+already uses with no configuration:
+
+```
+~/.mongoose/servers/<name>     (mode 600)     — upstream ask UP-MNG-01, drafted, gate met, NOT YET FILED
+```
+
+Recommendation: the skill's `inspect`/`status`/`start` should **read the registry when present and fall
+back to the YAML descriptor**, rather than treating config as the only source. That costs little now and
+avoids a parallel discovery mechanism that later has to be unwound — and `loop-bench.py` already globs
+this exact shape, so registry support is what lets A1 work at all.
+
+This project is also the first concrete consumer of UP-MNG-01, which is the strongest case an upstream
+ask can have. **Recommend filing it**, citing this validation as the requirement.
+
+### A3 · Decide the fate of UP-MNG-02 deliberately, not by drift
+
+§C3 step 9 has the agent restart the server *via a Mongoose-side MCP tool* (**UP-MNG-02**, also drafted
+and unfiled). Local skills and scripts are a legitimate — arguably better — implementation of that step:
+they need no cross-repo dependency, and per-action human approval still comes free from the MCP client
+prompting on each call. Nothing here conflicts with the standing decision; §B's point holds either way,
+because the analyser still acquires no server-mutating code.
+
+But the two asks should not share a fate. **UP-MNG-01 survives skills** (scripts need discovery as much
+as an MCP tool does, arguably more); **UP-MNG-02 may be made unnecessary by them.** Recommend recording
+that split explicitly in `docs/proposals/upstream-asks.md`, so UP-MNG-02 does not sit half-alive while
+the real implementation lives somewhere else.
+
+### A4 · One free win: write the shared skill in the shape the analyser now reads
+
+As of M43 (2026-08-28) the analyser reads `SKILL.md` frontmatter — `name` and `description` only,
+nothing executed — and *AI ▸ Runbooks… ▸ Find skills…* discovers such files anywhere in a project.
+
+If the proposed `mongoose-local` skill ships as `.claude/skills/mongoose-local/SKILL.md` with
+
+```markdown
+---
+name: mongoose-local
+description: Build, start, inspect and stop the local Mongoose server for this project.
+---
+```
+
+then every starter project gets it surfaced in the analyser's Project panel and in `context.runbooks[]`
+with no work on either side — which is precisely this spec's *"share the workspace with the LLM"* goal.
+Cheap to adopt now, awkward to retrofit once skills exist in another shape.
+
 ## 11. M19 onboarding-example alignment addendum
 
 `spec-onboarding-example.md` in the Audit Log Analyser repository owns the user-facing M19 contract.
