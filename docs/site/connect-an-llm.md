@@ -39,9 +39,9 @@ the registration does not require an executable rename.
 
 ## Connect, step by step
 
-1. **Start the analyser and turn the transport on.** Either enable *Settings ▸ Assistant ▸ localhost
-   REST transport* once (it is remembered), or start the app with the flag that does the same and says
-   so on the console:
+1. **Start the analyser and turn the transport on.** Tick *AI ▸ Local MCP / REST enabled* (it is
+   remembered, and it is the same setting as *Settings ▸ Assistant ▸ localhost REST transport*), or start
+   the app with the flag that does the same and says so on the console:
 
     ```bash
     java -jar fluxtion-auditlog-analyser.jar --rest
@@ -52,10 +52,13 @@ the registration does not require an executable rename.
     what an agent runs on a machine that has never seen the analyser: no dialog stands in its way, and
     the console names the endpoint file. Neither route puts the per-run token in client configuration.
 
-2. **Set up the bridge from the analyser.** On the Start page choose **Connect Codex**, **Connect
-   Claude**, or **Generic MCP setup**; the same screen is also at **Settings ▸ Assistant / LLM ▸ Connect
-   an AI client**. It shows the *resolved*, absolute bridge command for this installation rather than a
-   command you have to reconstruct.
+![The AI menu: connect a client, the local transport toggle, runbook and glossary pointers, the exchange directory](assets/ai-menu.png)
+
+2. **Set up the bridge from the analyser.** **AI ▸ Connect an AI client…** — reachable at any time,
+   including with a log open, which is usually when the thought occurs. The same screen is on the Start
+   page (**Connect Codex**, **Connect Claude**, **Generic MCP setup**) and at *Settings ▸ Assistant / LLM*.
+   It shows the *resolved*, absolute bridge command for this installation rather than a command you have
+   to reconstruct.
 
     - **Codex** and **Claude Code** offer explicit, confirmed CLI registration. Claude Code's automatic
       route is user-scoped; its project command is deliberately copy-only, so run it yourself from the
@@ -99,7 +102,20 @@ client command completed—not that a client is currently signed in, connected, 
 
 Do these in order; each one isolates a different part of the chain.
 
-**Does the bridge reach this app?** The quickest normal check is **Connect an AI client ▸ Check
+**Is this window even serving?** Read the status bar first — it costs nothing:
+
+| Light | Means |
+|---|---|
+| **MCP ready** | this window is serving; a client pointed here reaches *this* log |
+| **MCP elsewhere** | **another analyser window owns the endpoint** — a client is reading that window's log, not this one |
+| **MCP starting** | enabled, but no live endpoint published yet |
+| **MCP off** | the transport is off — tick *AI ▸ Local MCP / REST enabled* |
+
+*Ready* is not *connected*: this window being reachable and a client actually talking to it are different
+facts, and only the second needs a probe. **MCP elsewhere** is the one that quietly wastes time — two
+analysers open, and the answers are about the other one.
+
+**Does the bridge reach this app?** The quickest normal check is **AI ▸ Connect an AI client… ▸ Check
 connection**. It runs the exact command shown on that screen and makes the read-only `analyser_context`
 call. It is deliberately a bridge check, not an imitation of Codex, Claude Code or another client.
 
@@ -110,7 +126,7 @@ cat ~/.fluxtion-analyser/rest-endpoint
 # {"url":"http://127.0.0.1:52041","token":"…","pid":12684,"startedAt":"…"}
 ```
 
-No file means the transport is off — enable it in Settings ▸ Assistant, or restart with `--rest`.
+No file means the transport is off — tick *AI ▸ Local MCP / REST enabled*, or restart with `--rest`.
 
 **Does your client see the tools?** In Claude Code, `/mcp` should show the server connected with
 **14 tools**:
@@ -157,8 +173,8 @@ same call the bridge does.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Tools listed, every call says *not running* | app closed, or REST transport off | start the app; Settings ▸ Assistant ▸ localhost REST, or `--rest` |
-| Server never appears in the client | stale launcher or client not reloaded | reopen **Connect an AI client**, use its resolved registration/JSON, then restart or reload the client if required |
+| Tools listed, every call says *not running* | app closed, or REST transport off | start the app; *AI ▸ Local MCP / REST enabled*, or `--rest` |
+| Server never appears in the client | stale launcher or client not reloaded | reopen **AI ▸ Connect an AI client…**, use its resolved registration/JSON, then restart or reload the client if required |
 | Calls time out on a very large log | an `aggregate` over millions of records | raise the client's tool timeout (Codex: `tool_timeout_sec`) |
 | `screenshot` / `report` refused | file exchange is opt-in | Settings ▸ Assistant ▸ *Allow assistant file exchange*, and pick the directory |
 | The AI opened a log but `context` shows nothing yet | opening is asynchronous | ask for `context` again — it reports the log, its time-order report and any offers once the load lands |

@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **Docs: the AI menu is now the documented route to connecting an LLM.** *Connecting an LLM* leads with
+  *AI ▸ Connect an AI client…* (reachable mid-session, unlike the Start page), shows the menu, and adds a
+  table for reading the status light — including **MCP elsewhere**, the state that quietly wastes time
+  when two analysers are open. The Project panel page notes the runbook **description** and where
+  pointers are edited.
+
+
 ### Added
 - **Find skills… — the runbooks your project already has.** *AI ▸ Runbooks…* can now scan the project for
   skill-shaped files (`SKILL.md` with `name`/`description` frontmatter) and offer them, instead of making
