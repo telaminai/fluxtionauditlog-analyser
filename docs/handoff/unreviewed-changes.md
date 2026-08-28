@@ -16,7 +16,29 @@ still check**.
 
 ---
 
-## ☐ 2026-08-28 · `c4d1db3` · fix(mcp): the survivor window reclaims a dead endpoint; ATTENTION is amber
+## ☑ reviewed 2026-08-28 (the first session) · `c4d1db3` · fix(mcp): the survivor window reclaims a dead endpoint; ATTENTION is amber
+
+**Verdict.** Correct, no findings. Full reasoning in commit `d2007ea`; ticked here because a review that
+only exists in a commit message is one the next reader of this ledger will not find.
+
+The reclaim predicate is right and the load-bearing part is what it REFUSES — `shouldReclaim` is false for
+`OTHER_INSTANCE`, so a live owner is never displaced and two windows cannot fight over the file. I checked
+the thing a truth table cannot: `actionServer != null` is a faithful proxy for "listening" (assigned only
+after `start()` returns, nulled in the catch, nulled on stop), and the interleaving I looked for —
+shutdown's `stop()` at 4383 not nulling, so a poll could republish a dead endpoint — cannot happen,
+because the timer and the shutdown steps are both on the EDT and serialise.
+
+The amber correction is a finding against my own decision, which is the useful kind: D-AI9 said no red and
+my implementation used the Project panel's brick. Their N1 (timer held in a field, stopped in `onExit`)
+was already fixed before I reached it, and their point (3) corrected an over-modest "cannot" in
+`verify-m43.py` — the colour IS reachable by launching twice under each theme; only the live switch is
+not. Corrected there.
+
+**Open, and NOT a blocker:** auto-reclaim is a policy — an agent mid-session silently reaches the
+survivor's log, where a person sees the light change. My view is that it is the right policy (a dead
+endpoint hides the same change behind a hard failure) and that D-AI9 should gain a one-line addendum
+naming the residual rather than only the choice. That is the owner's call, and it is a wording change,
+not code.
 
 **What.** Owner's eyeball run of `verify-m43.py` (check C, step "close the second analyser"): the first window
 went *ready → elsewhere* correctly, then read **"MCP starting" for ever** once the second window closed — its
