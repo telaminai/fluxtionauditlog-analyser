@@ -16,6 +16,37 @@ still check**.
 
 ---
 
+## ☐ 2026-08-28 · `c4d1db3` · fix(mcp): the survivor window reclaims a dead endpoint; ATTENTION is amber
+
+**What.** Owner's eyeball run of `verify-m43.py` (check C, step "close the second analyser"): the first window
+went *ready → elsewhere* correctly, then read **"MCP starting" for ever** once the second window closed — its
+server was listening throughout; only the endpoint FILE had died with the other process. `McpSetupState.
+shouldReclaim(readiness, serverListening)` (pure) is true only for `STARTING` with a listening server;
+`refreshMcpIndicator` then calls new `ActionServer.republish()` and re-classifies. A LIVE other owner is never
+displaced (`OTHER_INSTANCE` → false), so two windows cannot fight. Also: the light rendered ATTENTION in
+`warnForeground()` (brick) — the owner's word for it was "red", and D-AI9 says amber and no red — so new
+`UiTheme.attentionForeground()` (amber on both themes) is used for the light only; the Project panel's ⚠ rows
+keep brick/salmon. The indicator timer is now a field stopped in `onExit` (my N1 on `ac6a559`).
+
+**Files.** `mcp/McpSetupState` (+`shouldReclaim`), `net/ActionServer` (+`republish`, `start()` uses it),
+`ui/MainFrame` (`refreshMcpIndicator`, `mcpIndicatorTimer`, `onExit`), `ui/UiTheme` (+`attentionForeground`),
+`McpSetupStateTest` (+truth table), `ActionServerTest` (+republish round-trip), `tools/verify-m43.py` (automated
+check [4]: the first analyser owns the endpoint again within ~10 s; eyeball CHECK C step 4 added, red named as
+FAIL), CHANGELOG ▸ Fixed.
+
+**Verified.** 1069 green; jar rebuilt. NOT verified live from here: the owner's eyeball window was open under
+the shared isolated home, so I did not start analysers against it — the owner re-runs `--eyeball` (steps 3–4)
+and the automated run (`verify-m43.py`, now 9 checks) is the reclaim's regression test.
+
+**Reviewer must still check.** (1) Whether auto-reclaim is the right POLICY, not just the right mechanism: when
+the newcomer goes away, an AI client silently starts reaching the survivor's log again. I judged that correct —
+the endpoint should always name *some* live window, and the light says which — but it is a decision, not a
+fix, and D-AI9 does not state it; a one-line addendum to `completed/spec-ai-menu.md` if the reviewer agrees.
+(2) The amber values (`0xA86E00` light / `0xE6B43C` dark) against both themes' status-bar backgrounds — I chose
+them for contrast by arithmetic, not by eye. (3) Whether `STARTING` with NO listening server (start failed) should
+say something other than "starting" — unchanged here; `applyRestServer` already puts the failure in the status
+bar.
+
 ## ☑ reviewed 2026-08-28 (the second session) · `ac6a559` · fix(ui): the D-AI9 light polls, because the fact it reports changes without us
 
 **Verdict.** Correct, and the right shape. The three questions the entry asks, answered from the code:
@@ -36,6 +67,8 @@ directory) is right and tested. 1067 green.
 **N1 (not blocking).** The timer is anonymous and never stopped; `onExit` stops `followTimer` explicitly
 before `System.exit`, so for symmetry hold it in a field and add it to that step list. Harmless today
 because exit follows.
+
+**Addendum (same day).** The owner's eyeball run found what this review did not think to ask: after the second window CLOSES, the first reads "MCP starting" for ever, because nothing re-publishes its endpoint. Fixed in `c4d1db3` (entry above). The poll itself was correct; the state machine behind it lacked a transition.
 
 **N2 (live verification is the owner's eyeball run).** The two things I could not observe from here — the
 colour on a live `Theme ▸ Dark`, and the light moving to *MCP elsewhere* within ~5 s when a second analyser
