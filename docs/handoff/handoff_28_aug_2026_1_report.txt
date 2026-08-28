@@ -1,0 +1,86 @@
+HANDOFF REPORT — M33.7 · report table sources: every verb a table may cite, assembled
+Date: 2026-08-28 · From: Codex · Branch: main
+Brief: docs/handoff/handoff_28_aug_2026_1.txt
+
+OUTCOME
+  A report table now reissues and renders each declared D-I7 source: read, aggregate, coverage,
+  and all three series row shapes. Calls with nested values survive the existing properties store;
+  the report's scalar context is one TableData value used by both the Reports panel and PDF renderer.
+  The live brief and this report await independent review before archival.
+
+DELIVERED, IN REVIEWABLE SLICES
+  faa53c3  Reports: retain structured table calls
+    .7a — SectionSpec.call is Map<String,Object>. Non-scalar values are compact JSON only in the
+    existing call.N.val properties slot and parse back as data; scalar-only reports remain strings.
+    ReportVerb preserves nested map/list values and keeps top-level integral numeric spelling safe
+    for read anchors.
+
+  8715bbb  Reports: assemble aggregate and coverage tables
+    .7b — aggregate buckets and full coverage ledger assemble into TableData. Coverage scoring was
+    factored into CoverageService and is shared by the action echo and report path. Scalars and empty
+    reasons live on TableData, so ReportsPanel and ReportRenderer consume exactly one string. The
+    action still presents the agent-facing never-logged list with its own limit; reports carry all
+    covered/uncovered/excluded rows, capped at 500 with the omitted tail named.
+
+  7b88cae  Reports: assemble series tables
+    .7c — buckets, crossings and statistics row shapes assemble from SeriesScan. Crossing anchors
+    drive ReportsPanel record navigation and retain strict rowWhen; buckets/stats refuse rowWhen at
+    resolution. A call with both buckets and crossings resolves as an explicit refusal.
+
+  This documentation commit  Docs: record M33.7 report table sources
+    .7d — reports guide, generated conversation transcript and screenshots. Scenario 4 now creates
+    aggregate {groupBy: dimension} and exports table section 2 as CSV.
+
+VERIFICATION
+  · Focused model tests passed repeatedly while building:
+      ReportPersistenceTest, ReportVerbTest, ReportRendererTest, AggregateServiceTest,
+      SeriesScanTest, CoverageServiceTest.
+  · The final full `mvn -q test` passed with local-loopback permission (the MCP/REST integration tests
+    bind local sockets), followed by a final successful `mkdocs build --strict`.
+  · `mkdocs build --strict` passed after the site and generated transcript changed.
+  · `python3 tools/capture-conversations.py` completed under its isolated home. It regenerated
+    docs/site/sample-conversations.md and five application screenshots. The scenario-4 transcript
+    records `aggregate {metric: count, groupBy: dimension}` and a real table CSV echo of `rows: 3,
+    columns: 2`.
+  · Visual inspection: docs/site/assets/conv-chart-and-report.png shows the Reports tab with three
+    aggregate rows (MarketDataEvent 400, OrderUpdateEvent 166, RiskBreachEvent 160) and the shared
+    scalar line `metric count · groupBy dimension · total 726 · population 726 records ...`.
+    The four other regenerated conversation captures were also inspected; no clipping or leaked
+    local paths were seen.
+  · The required public-content and untracked-file name sweeps were clean before each code commit;
+    rerun them before this docs commit.
+
+ACCEPTANCE EVIDENCE
+  1. All four table-source assemblers have unit coverage; the real isolated run proves aggregate rows
+     on the Reports tab and its CSV path. ReportRenderer consumes the same TableData for PDF output.
+  2. ReportVerbTest proves crossing rows retain record 2, apply rowWhen, and carry a record anchor;
+     ReportsPanel has a click listener over those anchors.
+  3. ReportVerbTest asserts the exact aggregate rowWhen refusal returned by ReportResolver; assembled
+     record-less tables have no printed rule or highlighted row.
+  4. ReportPersistenceTest covers a nested filter JSON-store-reload round trip and an explicit
+     pre-M33.7 scalar properties file. Aggregate report assembly reissues a nested filter and its
+     text limit; its scalar line states scope.
+  5. CoverageServiceTest runs the no-audit fixture, checks every denominator/excluded node has a
+     graph-ordered ledger row, and asserts spreadCalculator is excluded with its cannot-log reason.
+  6. ReportRendererTest proves it prints TableData's supplied scalar string and empty reason; the
+     panel reads that same TableData field rather than rebuilding it.
+  7. Aggregate, coverage, and series tests assert the explicit empty reasons; ReportRenderer prints
+     `no rows — <reason>` with the header retained.
+  8. The generated scenario-4 transcript and screenshot are listed above; the reports guide replaces
+     the former read-only v1 statement with the D-T2 source table.
+
+DELIBERATE BOUNDARIES
+  No joins, column sorting, cellWhen/having semantics, or series/topology pictures in PDFs were added.
+  rowWhen remains a predicate over a log record only; it never means a formula over a table cell.
+
+REVIEWER, PLEASE CHECK
+  · Nested maps/lists are never flattened via Java toString and existing scalar properties still load.
+  · The action and report coverage paths use CoverageService, and the report ledger includes excluded
+    and covered rows in graph order.
+  · A scalar line is created only in report assembly and reaches both screen and PDF via TableData.
+  · The scenario-4 transcript is generated, uses aggregate by dimension, and its screenshot shows rows.
+
+NEXT OWNER ACTION
+  Review this report against the brief. Keep both files in docs/handoff/ until the review is written
+  and any findings are addressed; then archive the brief/report/review together. Only after that
+  review should the next requested item, M38.8, begin.

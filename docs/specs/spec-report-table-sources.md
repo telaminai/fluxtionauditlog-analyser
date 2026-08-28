@@ -1,6 +1,6 @@
 # Spec — report table sources: every verb a table may cite, assembled
 
-**Status:** PROPOSED 2026-08-27. **Milestone:** M33.7 (it is M33's own recorded gap — *"aggregate/coverage/
+**Status:** IMPLEMENTED 2026-08-28 — awaiting independent handoff review. **Milestone:** M33.7 (it is M33's own recorded gap — *"aggregate/coverage/
 series table sources … stated, not hidden"*, completed/tracker.md ▸ M33.3). **Design it extends:**
 [completed/spec-investigation-reports.md](completed/spec-investigation-reports.md) D-I7/D-I8.
 **Tracker:** [tracker.md](tracker.md) ▸ M33. **Reviewer:** the rowWhen decision (D-T4) and the coverage

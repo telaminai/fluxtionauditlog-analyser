@@ -40,14 +40,31 @@ says so on the page.
 
 ## Tables: derived rows, declared presentation
 
-A `table` section stores the **query** that produces its rows (v1: `read {fields}`) plus a column
-spec — headings, order, widths, alignment, number formats (`0.00`, `percent`, `duration`, `time`).
-Rows re-run with the log; the presentation persists. Numbers set right-aligned in tabular figures.
+A `table` section stores the **query** that produces its rows plus a column spec — headings, order,
+widths, alignment, number formats (`0.00`, `percent`, `duration`, `time`). Rows re-run with the log;
+the presentation persists. Numbers set right-aligned in tabular figures. A table can cite the same
+verbs an agent sees over MCP:
+
+- `read {fields, recordIndex…}` — the selected records;
+- `aggregate {metric, groupBy, filter, limit}` — count/rate buckets;
+- `series {expr, buckets}` — buckets, `series {expr, crossings}` — anchored crossing rows, or plain
+  `series {expr}` — one statistics row;
+- `coverage {filtered}` — the full graph-ordered ledger: covered, uncovered, and deliberately
+  excluded nodes with their reasons.
+
+Each source prints its own scalar context under the table — population and scope for an aggregate,
+points and thresholds for a series, or the complete coverage denominator — and the same line appears
+in the PDF. A zero-result call keeps its header and says why it has no rows. Structured call values
+such as `filter: {from, to, dimensions}` are saved and reissued as data, rather than becoming display
+text after a restart.
 
 A **row highlight is a rule, not a paint**: `rowWhen: "book.mid > 17"` re-evaluates with the data,
 **strictly against each row's own record** — a value the record didn't log cannot fire the rule —
 and the rule is **printed with the table**, because an unexplained red row would be a judgement
-wearing evidence styling. Tables export to CSV (raw values — formatting stays on the page).
+wearing evidence styling. That makes it valid for `read` and series-crossing rows (which link back to
+a record), but not aggregate buckets, series buckets/statistics, or coverage rows; those refuse the
+rule with a visible warning rather than quietly applying a different column formula. Tables export to
+CSV (raw values — formatting stays on the page).
 
 ## The Reports tab
 

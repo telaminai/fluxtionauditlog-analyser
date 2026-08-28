@@ -57,6 +57,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   tables use the series verb's own result data. Crossing rows link back to their source records and
   retain `rowWhen`; ambiguous bucket-plus-crossing calls refuse explicitly.
 
+### Changed
+
+- **The reports guide and recorded AI conversation now cover every table source.** The guide explains
+  aggregate, series, coverage, structured call persistence, scalar context, and record-only
+  highlighting; the regenerated “Chart it and write it up” conversation proves an aggregate table and
+  CSV export from a real isolated run.
+
 ## [1.11.0] - 2026-08-27
 
 ### Fixed

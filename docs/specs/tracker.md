@@ -288,7 +288,7 @@ _M33.1–.4 shipped, twice-reviewed, owner-eyeballed and merged — full record 
 Design: **[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md)**._
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
-- [M33.7] ◧ **Report table sources — every verb a table may cite, assembled** _(started 2026-08-28;
+- [M33.7] ☑ **Report table sources — every verb a table may cite, assembled** _(implemented 2026-08-28;
   brief `docs/handoff/handoff_28_aug_2026_1.txt`; spec'd 2026-08-27;
   **[spec-report-table-sources.md](spec-report-table-sources.md)**)_ — M33.3 shipped `read` tables and left
   `aggregate`/`series`/`coverage` rendering "not assembled yet"; the UAT conversation recorded for the docs met that
@@ -301,7 +301,10 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   assemble from their action data; one scalar line feeds both the Reports tab and PDF, coverage carries
   its whole graph-ordered ledger, and record-less `rowWhen` refuses with a named warning. **.7c ☑
   2026-08-28:** series buckets, crossings and stats tables assemble; crossings navigate to their record
-  and can use `rowWhen`, while a call that names both shapes refuses. **.7d in progress.**
+  and can use `rowWhen`, while a call that names both shapes refuses. **.7d ☑ 2026-08-28:** the reports
+  guide and real isolated-run conversation now show every source; scenario 4 records the aggregate
+  table's three CSV rows. Implementation evidence is in
+  `docs/handoff/handoff_28_aug_2026_1_report.txt`; the brief and report remain live for independent review.
 - [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
   otherwise verb-only)_ · **chooser dialog for external marker CSVs** —
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether

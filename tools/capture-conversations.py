@@ -247,13 +247,16 @@ def main():
     t.call("report", {"name": "spread-vs-live", "title": "Spread widens while orders are live",
                       "sections": [{"kind": "narrative", "text": "Every widening of the spread in this run coincides with live orders; the chart shows the two series moving together."},
                                    {"kind": "record", "recordIndex": 12},
-                                   {"kind": "table", "call": {"verb": "read", "recordIndex": 0, "count": 10, "fields": "quotePublisher.spread,orderTracker.live"}}],
+                                   {"kind": "table", "call": {"verb": "aggregate", "metric": "count", "groupBy": "dimension"}}],
                       "path": "spread-vs-live.pdf"},
            show=["wrote", "report", "path", "sections", "saved", "name"])
+    t.call("report", {"name": "spread-vs-live", "csv": 2, "path": "spread-vs-live.csv"},
+           show=["path", "rows", "columns"])
     t.agent("The chart is on your Graph tab — spread on the left axis, live orders on the right, captioned with why I "
             "drew it. The report is saved in the project as *spread-vs-live* and rendered to the exchange directory "
-            "as `spread-vs-live.pdf`; its header names the log it was written against, so whoever receives it can "
-            "check it against the same file.")
+            "as `spread-vs-live.pdf`. Its aggregate table is also exported as CSV, so the report carries the event "
+            "population rather than a hand-picked ten-record sample; its header names the log it was written against, "
+            "so whoever receives it can check it against the same file.")
     t.shot("conv-chart-and-report.png", "The report on the Reports tab, written against the 726-record series log — the narrative labelled as the author's account, not evidence; the chart it refers to is on the Graph tab")
 
     # 6 ---------------------------------------------------------------------------------------------

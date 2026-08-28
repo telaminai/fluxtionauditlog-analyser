@@ -224,7 +224,7 @@ Ten records, and the graph applies to this log — so a node's absence would be 
 
 ??? example "→ `analyser_report`"
     ```json
-    → analyser_report {"name": "spread-vs-live", "title": "Spread widens while orders are live", "sections": [{"kind": "narrative", "text": "Every widening of the spread in this run coincides with live orders; the chart shows the two series moving …"}, {"kind": "record", "recordIndex": 12}, {"kind": "table", "call": {"verb": "read", "recordIndex": 0, "count": 10, "fields": "quotePublisher.spread,orderTracker.live"}}], "path": "spread-vs-live.pdf"}
+    → analyser_report {"name": "spread-vs-live", "title": "Spread widens while orders are live", "sections": [{"kind": "narrative", "text": "Every widening of the spread in this run coincides with live orders; the chart shows the two series moving …"}, {"kind": "record", "recordIndex": 12}, {"kind": "table", "call": {"verb": "aggregate", "metric": "count", "groupBy": "dimension"}}], "path": "spread-vs-live.pdf"}
     ← {
       "path": "<exchange-dir>/spread-vs-live.pdf",
       "sections": 3,
@@ -233,7 +233,18 @@ Ten records, and the graph applies to this log — so a node's absence would be 
     ```
 
 
-> **Agent:** The chart is on your Graph tab — spread on the left axis, live orders on the right, captioned with why I drew it. The report is saved in the project as *spread-vs-live* and rendered to the exchange directory as `spread-vs-live.pdf`; its header names the log it was written against, so whoever receives it can check it against the same file.
+??? example "→ `analyser_report`"
+    ```json
+    → analyser_report {"name": "spread-vs-live", "csv": 2, "path": "spread-vs-live.csv"}
+    ← {
+      "path": "<exchange-dir>/spread-vs-live.csv",
+      "rows": 3,
+      "columns": 2
+    }
+    ```
+
+
+> **Agent:** The chart is on your Graph tab — spread on the left axis, live orders on the right, captioned with why I drew it. The report is saved in the project as *spread-vs-live* and rendered to the exchange directory as `spread-vs-live.pdf`. Its aggregate table is also exported as CSV, so the report carries the event population rather than a hand-picked ten-record sample; its header names the log it was written against, so whoever receives it can check it against the same file.
 
 
 ![The report on the Reports tab, written against the 726-record series log — the narrative labelled as the author's account, not evidence; the chart it refers to is on the Graph tab](assets/conv-chart-and-report.png)
