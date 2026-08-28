@@ -310,12 +310,35 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
   user's repo carries it. An upstream ask, not an analyser one.
 
 ## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md, design **[completed/spec-portable-context.md](completed/spec-portable-context.md)**)
-- [M38.8] ☐ **Runbook `description` — the skill contract** _(owner, 2026-08-27; after the release)_ — a
+- [M38.8] ➜ **ABSORBED BY M43.2** _(owner, 2026-08-28: "the skills binding to playbook at the same time")_.
+  The menu is the first surface that must ASK for a description, so shipping the storage separately would
+  add an entry point needing immediate revision. Spec: **[spec-ai-menu.md](spec-ai-menu.md)** ▸ D-AI5.
+  Original note follows — a
   runbook pointer is skill-shaped in storage but not in discovery: a model must open every file to know which
   is relevant. Add optional `runbook.N.description` (inert, gated like the name), serve it in
   `context.runbooks[]`, show it on the Project-panel row. The file-shape convention (frontmatter `name`/
   `description`, so a pointer may target a `SKILL.md`) is documented ahead of it, so no runbook needs
   rewriting. Content delivery stays as it is: the analyser serves the pointer, never the instructions.
+
+## M43 · The AI menu — quick access, and the runbook `description` it needs — ☐ SPEC'D 2026-08-28
+_Owner-directed. Spec **[spec-ai-menu.md](spec-ai-menu.md)**; absorbs **M38.8**._
+Everything an AI client needs is reachable and almost none of it is findable: MCP setup lives in Settings
+and on the Start page, which only appears via *Help ▸ Start page* — invisible mid-session, which is when
+someone wants it. And runbook pointers can only be added by hand-editing the profile, though the app
+already writes them.
+- [M43] ☐ **The AI menu.** Load-bearing decisions: **D-AI1** the Project panel STATES and the menu ACTS,
+  so M37's reveal-only panel survives and no setting gets two owners; **D-AI5** the `description` is
+  DECLARED — a skill file's frontmatter may PREFILL the dialog but never supplies the served value, which
+  is M35.4's "offers and never selects" applied to a fact (inferring it would break D-A2 and let `context`
+  change under the profile); **D-AI3** an item with an unmet precondition is disabled WITH A REASON, never
+  a dialog that explains itself after the click — written down before the first item, because M35 spent a
+  milestone removing six such modals; **D-AI4** nothing on the menu RUNS anything, recorded as a non-goal
+  at the surface most likely to erode it.
+- Slices: **.1** the menu (navigate/bind only) · **.2** `runbook.N.description` end to end (= M38.8, and
+  it must land BEFORE .3) · **.3** *Runbooks…* through `Runbooks.refuse` · **.4** the skill-shape prefill ·
+  **.5** *Domain glossary…* · **.6** docs, generated shot, CHANGELOG.
+- **Open question for the owner:** the menu's name — proposed `AI` rather than *AI assistant*, since
+  "assistant" already names the in-app panel and the docs nav settled on *Working with AI*.
 
 ## M39 · Baselines — "is this normal here?" — ☐ SPEC'D 2026-08-27 (owner decision 4; spec **[spec-baselines.md](spec-baselines.md)**)
 - [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
@@ -487,7 +510,9 @@ AI client). **M41** was spec'd and withdrawn._
    (M41 one-command install was spec'd and withdrawn the same day — JBang already is that; see Decisions.)
 2. **M42 connect an AI client** — review D-I4's client boundaries and D-I5's loopback proof first; then M42.1
    launch/probe is the vertical slice that makes every client route honest.
-3. **M38.8** runbook `description` (the skill contract) — small, post-release, owner-agreed.
+3. **M43 the AI menu** (spec'd 2026-08-28, absorbs M38.8) — slice .2 is the `description` storage and must
+   land before .3, or the add-runbook dialog writes half a record and the storage learns a shape it has to
+   unlearn. Owner question open: the menu's name.
 4. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
 5. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
 6. **M19.3/.4** (tutorial, publish-gated on the playground Download)
