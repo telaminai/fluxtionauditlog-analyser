@@ -16,6 +16,41 @@ still check**.
 
 ---
 
+## ☐ 2026-08-28 · `ac6a559` · fix(ui): the D-AI9 light polls, because the fact it reports changes without us
+
+**What.** `MainFrame.startMcpIndicatorWatch()` — a 5-second repeating Swing timer plus a
+`windowActivated` refresh for the MCP status light. Also review F1's one-liner in `SkillDiscovery`
+(symlinked FILE, not just directory) with a regression test, and a new `tools/verify-m43.py`.
+
+**Why.** Found by writing the verification script, not by reading the code. Starting a second analyser
+under the same home makes the NEWCOMER take the endpoint file, so the first window silently stops being
+the one an AI client reaches — and its light kept reading "MCP ready", because it refreshed only at
+startup, on a theme switch and on the transport toggle. None of those happen when another process takes
+over. A light that asserts the wrong thing in exactly the state it was built to reveal is worse than no
+light, so this is a defect in D-AI9 rather than a polish item.
+
+**The design choice worth reviewing.** A poll is the shape I chose because nothing notifies us of another
+process claiming the file. Cost is one small file read and a pid compare every 5s on the EDT, and window
+activation covers the common case before the timer fires. The alternatives I did not take: a
+`WatchService` on the endpoint directory (more machinery, and the file is rewritten rather than
+edited-in-place, so the event story is not simpler), or refreshing only on activation (correct when you
+look at the window, wrong while you are watching it).
+
+**Files.** `MainFrame.java` (+watch), `SkillDiscovery.java` (+1 guard),
+`SkillDiscoveryTest.java` (+1 test), `tools/verify-m43.py` (new).
+
+**Verified.** 1067 green. `verify-m43.py` re-run against the rebuilt jar: 8 pass, 0 fail — including the
+two-analysers-one-owner case that exposed this, and an assertion that the watch is wired.
+
+**What the reviewer must still check.**
+1. **Is 5s the right interval, and is a timer acceptable at all here?** It is the first repeating timer I
+   have added to this frame. If there is a reason this app avoids them, this is the wrong shape and
+   activation-only would be the fallback.
+2. **That the timer does not fight the theme switch** — both call `refreshMcpIndicator()`, which
+   recomputes explicit colours; I could not observe painting from a script.
+3. **`verify-m43.py`'s honesty.** It claims three checks are unreachable from a script. If any of those
+   IS reachable, the script is under-claiming and should be extended rather than trusted as-is.
+
 ## ☐ 2026-08-28 · `7e8e859` · docs(specs): reviewer addendum §10a written INTO the Mongoose validation spec
 
 **What.** My review of `docs/specs/mongoose-bootstrap-artefacts` (d91e236) did not stop at a review file:
