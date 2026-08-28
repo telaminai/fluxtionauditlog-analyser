@@ -1,0 +1,105 @@
+REVIEW — report_mongoose_bootstrap_review_resolution.txt (0d6e56d), independent
+Reviewer: the second session · Date: 2026-08-28 · Asked for by the owner, against the four points the
+report itself lists under VERIFICATION REQUIRED. Each claim was checked against the code, the bench, or
+the tracker — not against the report's account of them.
+
+VERDICT: SOUND on three of four; the fourth (source/snapshot parity) is UNVERIFIABLE FROM THIS
+MACHINE, the snapshot's README breaks its own rule by recording no source revision (F1), and two
+starter-relative links are dead in the snapshot (F2). Nothing here blocks
+the report's status of "planning/documentation resolution only"; V1 stays blocked as the report says.
+
+================================================================================
+1. VAL-12 uses loop-bench only for the brokered leg, not as V3's native audit evidence — CORRECT
+================================================================================
+Read tools/bench/loop-bench.py (its step list and code) and mongoose-stub.py's header. The bench does
+exactly: 3 glob the registry (mode 600, UP-MNG-01 fields, pid alive) · 4 pick a server · 5 GET
+…/export?format=yaml and …/graphml · 6 drive the analyser over REST (open {close}, open {log, graphml,
+provenance}) · 7 assert context.provenance = the server's name. It never looks at a file under ./logs/,
+never asserts the audit was written at INFO by the running process, and never asks a domain question of
+the data. So the report's boundary — "proves registry → export → GraphML → analyser drive; cannot prove
+the starter wrote M19's local INFO text/YAML artifact or that it answered the predeclared question" — is
+the bench's actual scope, stated neither wider nor narrower. VAL-12's conditionality ("when Mongoose
+publishes the registry and export endpoints") is also right: the stub is "NOT a Mongoose server", and the
+current starter publishes neither surface, so an unstubbed pass is not claimable today. The spec's new
+§10a A1 says all of this; the mongoose tracker's A1 ☐ restates it with the right acceptance.
+
+One nuance worth keeping in view, not a finding: a passing bench DOES prove the server can hand the
+analyser an analyser-readable YAML audit export. That is real evidence about audit content — just not
+about the M19 local-file contract. The report's wording ("cannot prove the starter wrote M19's local …
+artifact") is precise about that distinction; do not let later summaries flatten it into "the bench says
+nothing about audit".
+
+================================================================================
+2. The A4 correction is true in code: Find skills… OFFERS; it does not add — CORRECT
+================================================================================
+PointerDialog.java: the Find skills… button builds a JList of SkillDiscovery.Candidate, shows it in a
+JOptionPane with the caption "Nothing is added until you choose one and confirm it", and on OK calls
+addRunbook(parent, config, projectRoot, picked.path(), picked.name(), picked.description()) — the SAME
+method a hand-typed pointer uses. That method opens the Add runbook dialog with the fields PREFILLED
+and only on its own confirm(), after Runbooks.refuse / refuseDescription pass, does
+config.runbooks.put(...) run (line 195). Cancel at either step stores nothing. So: discovery changes
+where the suggestion came from, never whether a person declared it — and context.runbooks[] is served
+from config.runbooks, so nothing reaches it without that put. The SkillDiscoveryTest header says
+"to OFFER"; onlyOffersWhatCouldActuallyBeSTORED pins that no refusable path is even offered. The owner's
+eyeball CHECK B (2026-08-28) exercised this exact path live: prefilled, then stored what the person left in
+the box. The report's correction of the earlier review's "surfaced … with no work on either side" is
+therefore right, and it was right to make it.
+
+================================================================================
+3. Copied starter artefacts match the source starter — UNVERIFIABLE HERE; ONE FINDING
+================================================================================
+The source starter (`mongoose-hosted-fluxtion`) is not on this machine — searched ~/IdeaProjects (the
+telamin/mongoose, mongoose-examples and mongoose-plugins checkouts are not it), ~/Downloads, Spotlight.
+I therefore make NO parity claim, and neither should the next reader take the report's word for it.
+
+F1 — the snapshot README's own "Source-of-truth and update rule" says: "refresh the matching snapshot in
+the same review slice and record the source revision/date here." No source revision, path or date is
+recorded anywhere in mongoose-bootstrap-artefacts/. Without it, "the copy matches the source" is a
+statement nobody can check later, including the author. Fix: one line in the README — source repo/path,
+commit or download date, and the list of files copied at that revision — added by whoever holds the
+starter. That is the whole of the finding; it is a bookkeeping gap, not a doubt about the content.
+
+What CAN be checked from here, and was: the snapshot's relative links. The adapted ones — to
+../../spec-agent-brokered-dev-loop.md and ../../handoff/… — resolve. TWO DO NOT:
+
+F2 — specs/tracker.md and specs/spec-mongoose-analyser-validation.md both link `../../CLAUDE.md`. In the
+STARTER that is the root CLAUDE.md; in the snapshot the root is mongoose-bootstrap-artefacts/ and the
+file lives at ai/CLAUDE.md, so both links are dead here. This is precisely the class the report calls
+"intentional snapshot-relative links" — but these two were NOT adapted, and nothing in the README says
+starter-relative links are left as-is. Either adapt them (`../ai/CLAUDE.md`) or state the rule once in
+the README ("links inside specs/ are starter-relative and resolve in the source project, not here").
+Either is fine; silent is not, because a reader following the link concludes the file is missing.
+(My first draft of this section said "no BROKEN lines" — the check I ran had printed two. Corrected.)
+
+The ai/CLAUDE.md link to the dev-loop spec is an absolute GitHub URL, appropriate for a file that lives
+in another repository.
+Four-term sweep: clean across the new files (com.example.myapp, 127.0.0.1, no user paths, no key).
+
+================================================================================
+4. M19.1a ◧, A1–A4 ☐, V1 ☐ until D-02 and a brief exist — CORRECT
+================================================================================
+Live tracker: M19.1a is ◧ and its text says "validation only; not a bundle shipment … V1 application
+work has not started … none is complete merely because the documentation exists". Mongoose tracker:
+V0 ◧ with "owner decision D-02 is still required before application implementation"; V0.4 ☐ is D-02
+itself; V1 ☐ "depends on V0.4"; A1–A4 each ☐ with a stated acceptance that documentation cannot meet
+(a real-server bench; a real registry entry; a Mongoose-owner disposition; a live Find skills… →
+add → context check). D-05 records UP-MNG-02's disposition as an open owner decision, and
+upstream-asks.md says UP-MNG-01 survives local skills while UP-MNG-02 "needs its own decision" — the
+A3 split, recorded where the earlier review asked for it. The delivery order names M19.1a as "D-02
+then the first typed slice". Nothing claims more than exists.
+
+N1 (note, no action): the mongoose tracker's A4 ☐ acceptance is the same live walk as the owner's
+eyeball CHECK B, just against THIS project's SKILL.md instead of the demo's. When someone does it,
+verify-m43.py --eyeball is already the script for it — point the project at the snapshot's .claude/ and
+the check is three minutes.
+
+================================================================================
+5. Gates
+================================================================================
+Pulled main at 0d6e56d (1.12.0 stamped just before it). mvn test 1069 green on this tree earlier today
+with no source change since; the resolution commit touches docs only. mkdocs --strict passes; the
+exemption-free sweep prints nothing; snapshot-internal links all resolve.
+
+DISPOSITION: accept the resolution as documentation. F1 (record the source revision) and F2 (the two
+`../../CLAUDE.md` links) before the next snapshot refresh. The report may close its "OPEN FOR INDEPENDENT REVIEW" status against this file; the
+M19.1a ◧ / V1 ☐ state is unchanged by it.
