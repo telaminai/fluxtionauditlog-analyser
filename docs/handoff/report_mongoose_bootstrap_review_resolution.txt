@@ -1,0 +1,64 @@
+MONGOOSE BOOTSTRAP REVIEW RESOLUTION
+Date: 2026-08-28
+Scope: respond to `review_mongoose_bootstrap_artefacts.txt` and synchronise the reviewed bootstrap
+       specification with its source starter.
+
+STATUS: OPEN FOR INDEPENDENT REVIEW — this is a planning/documentation resolution only. It does not
+start V1, make a Mongoose release claim, or close M19.1/M19.1a.
+
+INPUT REVIEW
+------------
+The review correctly found that the Mongoose validation cited M19's onboarding contract but omitted the
+accepted agent-brokered dev-loop specification, which owns registry discovery, export, GraphML and the
+repeatable cross-repo loop. It proposed A1–A4. The direct-on-main reviewer addendum was recorded in
+`unreviewed-changes.md`; this report is the source author's response to it.
+
+RESOLUTION
+----------
+A1 — ACCEPTED, with an important evidence boundary. `tools/bench/loop-bench.py` is now named as VAL-12:
+when Mongoose publishes the proposed registry and export endpoints, the real starter must pass the bench
+without `--stub`. The current starter has neither, so it makes no unstubbed-pass claim. The bench proves
+registry → export → GraphML → analyser drive; it cannot prove the starter wrote M19's local INFO text/YAML
+audit artifact or that the artifact answered the predeclared question. Native V3 evidence stays required.
+
+A2 — ACCEPTED. The candidate skill is registry-first when a Mongoose-published
+`~/.mongoose/servers/<name>` exists, with an explicit YAML fallback for a single local project. It never
+creates, repairs or infers a registry entry. That is UP-MNG-01's server-side responsibility.
+
+A3 — ACCEPTED AS A TRACKED DECISION, not decided by this documentation change. UP-MNG-01 remains required
+even if local scripts/skills cover the starter's operations. UP-MNG-02 remains an independent Mongoose
+owner decision: retain, defer or withdraw must be recorded expressly after workflow evidence. The optional
+analyser-client MCP check in V4 is not evidence for that choice.
+
+A4 — ACCEPTED WITH A CORRECTION TO THE REVIEW'S IMPLICATION. A project-local
+`.claude/skills/mongoose-local/SKILL.md` now uses `name`/`description` frontmatter and contains only a
+safe, gated working agreement. It is not a graduated shared skill. Reading the M43 implementation showed
+that **Find skills… offers candidates and never selects them**: a person must explicitly add the file as a
+runbook before it is stored in a project profile or appears in `context.runbooks[]`. The previous wording
+that this happens automatically was too strong.
+
+CHANGES MADE
+------------
+1. The source starter and review snapshot now carry the resolved cross-repo section, VAL-12, and the
+   gated candidate `SKILL.md`.
+2. Both local validation trackers distinguish V2/V3 native evidence from conditional brokered-loop
+   conformance, record the registry-first rule, and add D-05 for UP-MNG-02's disposition.
+3. The global M19 tracker gains M19.1a so the validation is visible but cannot be mistaken for the
+   playground bundle shipping. `upstream-asks.md` records that UP-MNG-01 survives local skills and that
+   UP-MNG-02 needs its own decision.
+4. The snapshot README and skill contract state the manual-offer boundary.
+
+VERIFICATION REQUIRED FROM THE NEXT REVIEWER
+--------------------------------------------
+1. Read `SkillDiscovery`/`PointerDialog`: verify the A4 correction (discovery offers; it does not add).
+2. Read `tools/bench/README.md` and `mongoose-stub.py`: verify VAL-12 matches the bench's actual scope
+   and does not replace the M19 file-audit evidence.
+3. Confirm source/snapshot parity for the copied AI instructions, validation spec, tracker and candidate
+   skill, allowing only snapshot-local relative links.
+4. Confirm M19.1a remains ◧ and V1 remains ☐ until D-02 is selected and an implementation brief exists.
+
+GATES RUN BY THIS SESSION
+-------------------------
+`mvn -q test`, `mkdocs build --strict`, the required public-name sweep and `git diff --check` are run
+before this report is committed. No source, server, audit, client registration or network operation was
+performed by this documentation resolution.

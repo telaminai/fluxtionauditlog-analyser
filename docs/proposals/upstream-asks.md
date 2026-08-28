@@ -908,6 +908,12 @@ the app that way with zero configuration — this is the same mechanism, one dir
 alternatives were rejected in the spec: a registry *inside the analyser* re-acquires the coupling M18
 was closed to remove; MCP client config is static and cannot absorb a server deployed mid-session.
 
+**Concrete consumer, 2026-08-28.** The local `mongoose-hosted-fluxtion` starter validation (M19.1a)
+needs this file before it can run the existing `loop-bench.py` against a real server. A project-local
+skill may read the registry and fall back to its YAML for one-project inspection, but it must not create
+or repair it; that fallback is not conformance evidence. This ask therefore survives regardless of the
+separate UP-MNG-02 decision.
+
 **Trust model, stated because these tokens gate restarts, not renders (spec review F5).** Mode 600,
 readable by any process running as the user — the same posture as the analyser's file. It is only
 sufficient because UP-MNG-03 puts the real refusal server-side: a non-dev deployment declines admin
@@ -929,6 +935,12 @@ that is exactly the step no one can automate portably today.
 deploy leg (§C3 step 9) and the moved M18.3/18.4. **`mongoose_export_audit` is the single most valuable
 tool here**: it is the first move of every support investigation and every agent-driven diagnosis, and
 it is the one currently done by hand
+
+**Disposition is independent of UP-MNG-01 (recorded 2026-08-28).** Local scripts/skills may prove a
+project-local start/stop workflow, but they neither remove the need for registry discovery nor decide
+whether the Mongoose owner should provide MCP export/restart/audit-level tools. Before filing or
+withdrawing this ask, record an explicit **retain / defer / withdraw** owner decision and the evidence
+behind it. M19.1a's optional analyser-client MCP comparison is not evidence either way.
 
 **The ask.** An MCP server (stdio, like the analyser's bridge) whose tools address a server by the
 `name` in its registry file (UP-MNG-01), each mutation approved per call by the MCP client — the

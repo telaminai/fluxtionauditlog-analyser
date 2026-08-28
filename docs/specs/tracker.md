@@ -143,6 +143,20 @@ analyser (reverse funnel)._
   port, the analyser's endpoint file), never to author a rival prompt. Add `skill.md`/`contract.md` to
   the snapshot set for the XML-defined example (spec O2), since those are what make the design-level
   edit in tutorial part 4 possible._
+- [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
+  downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
+  [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining
+  ownership. It tests this M19.1 contract **and** the accepted agent-brokered dev-loop where they meet:
+  M19's native `./logs/audit-<name>.yaml`, profile and Follow/source evidence stay required; the
+  registry/export/GraphML leg is **VAL-12**, exercised by `tools/bench/loop-bench.py` only when Mongoose
+  supplies UP-MNG-01 and the export surface. The current starter supplies neither, so it makes no
+  brokered-loop or distribution claim. Review resolution:
+  [`report_mongoose_bootstrap_review_resolution.txt`](../handoff/report_mongoose_bootstrap_review_resolution.txt).
+  V0 is documentation-complete except for owner decision D-02; V1 application work has not started.
+  The project-local `.claude/skills/mongoose-local/SKILL.md` is discoverable-but-not-auto-added and is
+  not the graduated shared skill (V5). Its local tracker carries the four explicit review follow-ups:
+  A1 real-server bench, A2 registry-first discovery, A3 UP-MNG-02 disposition, and A4 manual skill
+  adoption; none is complete merely because the documentation exists.
 - [M19.2] ☑ **`SettingsShare`: resolve relative roots against the import file's parent** — `preview`
   gained a `baseDir` overload; import resolves bundle-relative source roots / Maven repos against the
   settings file's directory (absolute & `~`-paths untouched; clipboard imports pass no baseDir). 2 tests.
@@ -495,8 +509,9 @@ and the M43 menu-name question for the owner._
    written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`
    before filing UP-MNG-01…04.
 4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-5. **M19.3/.4** (tutorial, publish-gated on the playground Download)
-   and **M19.8** (bench in CI).
+5. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
+   before its native audit and conditional VAL-12 evidence), **M19.3/.4** (tutorial, publish-gated on
+   the playground Download), and **M19.8** (bench in CI).
 6. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36

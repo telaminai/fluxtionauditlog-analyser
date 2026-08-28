@@ -1,7 +1,9 @@
 # Proposed `mongoose-local` shared skill contract
 
-**Status:** Design for review only — do not implement or distribute it until V1–V4 in the paired
-validation spec have concrete evidence. **Canonical validation spec:**
+**Status:** Design for review only — do not graduate or distribute it as a shared skill until V1–V4 in
+the paired validation spec have concrete evidence. A project-local candidate may use the same
+`.claude/skills/mongoose-local/SKILL.md` shape so the analyser can offer it for review; that does not
+make it a reusable capability or add it to AI context automatically. **Canonical validation spec:**
 [`../specs/spec-mongoose-analyser-validation.md`](../specs/spec-mongoose-analyser-validation.md).
 
 ## Intent
@@ -18,6 +20,10 @@ which a second project poses immediately. That file shape is specified in
 [`spec-agent-brokered-dev-loop.md`](../../spec-agent-brokered-dev-loop.md) §C1 as upstream ask UP-MNG-01,
 and `tools/bench/loop-bench.py` already globs it — so supporting it is also what lets the existing
 conformance bench run against a real starter instead of its stub. See the validation spec §10a.
+
+The skill must never create, repair or infer a registry entry. Only the running Mongoose server can
+publish that runtime fact; until it does, YAML is an explicitly weaker single-project fallback rather
+than proof of the brokered loop.
 
 The skill must find, then report before it acts:
 

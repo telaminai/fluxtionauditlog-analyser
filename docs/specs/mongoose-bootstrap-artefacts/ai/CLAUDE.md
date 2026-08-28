@@ -26,6 +26,13 @@ things an agent may silently assume. The target audit is the analyser-readable I
 MCP sharing is optional only after that standard analyser loop works. It supplements the analyser's
 Explain/copy-prompt capability and the IDE agent that edits this project; it does not replace either.
 
+The adjacent cross-repo contract is the accepted
+[agent-brokered dev loop](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-agent-brokered-dev-loop.md).
+When Mongoose supports it, the running server publishes `~/.mongoose/servers/<name>` and the analyser
+repository's `tools/bench/loop-bench.py` verifies registry → export → analyser drive. This starter does
+not yet publish that registry or the export endpoints, so do not claim the brokered loop has passed. A
+bench pass complements—not replaces—the local text/YAML audit evidence required by M19.
+
 ## Read before changing anything
 
 Read these project files in this order:
@@ -165,6 +172,11 @@ Keep project-specific decisions versioned here: event schemas, graph nodes, YAML
 acceptance tests. Add a project script only after the shared skill has a genuinely different per-project
 operation; document its inputs, outputs and safe stop behaviour. Do not create a custom Mongoose plugin
 or MCP tool merely to automate a one-off command—first prove the workflow with the shared skill/scripts.
+
+The project-local candidate at `.claude/skills/mongoose-local/SKILL.md` states the safe starting
+workflow. It is not a finished shared skill. The analyser can discover and offer it through **Find
+skills…**, but a person must explicitly add it as a runbook before it appears in a project profile or
+AI context.
 
 ## First proposed validation slice
 

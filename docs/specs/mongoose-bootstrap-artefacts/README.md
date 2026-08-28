@@ -12,6 +12,8 @@ an assurance that the starter's audit output is already analyser-compatible.
 | Snapshot | Source role | Review question |
 |---|---|---|
 | `ai/CLAUDE.md`, `ai/AGENTS.md` | Root AI instructions for the starter. | Does an agent get a safe, fact-based author/build/run/analyse loop? |
+| `starter-README.md` | Copied root README from the starter. | Does the human-facing entry point state the validation status rather than imply the workflow already works? |
+| `.claude/skills/mongoose-local/SKILL.md` | Project-local candidate skill. | Is its discovery shape useful while its operations remain explicitly gated and ungraduated? |
 | `specs/spec-mongoose-analyser-validation.md` | The validation contract. | Are the scope, gates, evidence and boundaries sufficient to make the end-to-end claim meaningful? |
 | `specs/tracker.md` | Live delivery order. | Are dependencies, handoff gates and acceptance criteria in the right sequence? |
 | `specs/review-onboarding-example-overlap.md` | M19 comparison and concrete current gaps. | Does this remain one onboarding path with an honest conformance bench? |
@@ -23,11 +25,13 @@ an assurance that the starter's audit output is already analyser-compatible.
 
 | Review | Date | Verdict |
 |---|---|---|
-| [`review_mongoose_bootstrap_artefacts.txt`](../../handoff/review_mongoose_bootstrap_artefacts.txt) | 2026-08-28, the first session | Sound, one structural finding: the work cites M19 but not [`spec-agent-brokered-dev-loop.md`](../spec-agent-brokered-dev-loop.md) (ACCEPTED v2), which owns the loop it describes. Recommendations written in as **§10a A1–A4** of the validation spec and one annotation on the skill contract; ledger entry `7e8e859` in [`unreviewed-changes.md`](../../handoff/unreviewed-changes.md) — **awaiting the author's response**. |
+| [`review_mongoose_bootstrap_artefacts.txt`](../../handoff/review_mongoose_bootstrap_artefacts.txt) | 2026-08-28, the first session | Sound, one structural finding: the work cited M19 but not [`spec-agent-brokered-dev-loop.md`](../spec-agent-brokered-dev-loop.md) (ACCEPTED v2), which owns the loop it describes. |
+| [`report_mongoose_bootstrap_review_resolution.txt`](../../handoff/report_mongoose_bootstrap_review_resolution.txt) | 2026-08-28, source-author response | A1–A4 accepted with limits: the real-server bench is conditional VAL-12 and does not replace native audit evidence; registry publication stays server-side; UP-MNG-02 needs its own decision; **Find skills… offers and never auto-adds**. Awaiting independent review. |
 
 The headline of that review, if you read nothing else: **§H's conformance harness already exists**
-(`tools/bench/loop-bench.py`, merged M19.6) and plays §C3 steps 3–7 with PASS/FAIL per step. Gates V2–V3
-are currently a hand-run checklist where an executable bench is sitting ready.
+(`tools/bench/loop-bench.py`, merged M19.6) and plays the registry/export/analyser leg with PASS/FAIL per
+step. It becomes VAL-12 when a real Mongoose starter publishes the needed server-side contract; it does
+not replace the M19 native text/YAML audit and visible-investigation evidence in V3.
 
 ## Source-of-truth and update rule
 

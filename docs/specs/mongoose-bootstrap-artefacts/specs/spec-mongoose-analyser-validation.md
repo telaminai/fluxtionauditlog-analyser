@@ -164,96 +164,67 @@ or claim an MCP connection worked solely because a command was generated.
 | D-01 | Which supported Mongoose audit-capture settings and output format work with the installed 1.0.28/1.0.38 stack and the analyser? | V3 — establish from local docs/run. |
 | D-02 | What is the smallest domain result worth observing after a `PriceUpdate`? | V0/V1 owner decision. |
 | D-03 | Which AI client is the first MCP acceptance client: Claude or Codex? | V4 owner decision; generic remains documented. |
-| D-04 | Where should the shared user-local `mongoose-local` skill live and how does it discover a starter? | V5, after two local validations. |
+| D-04 | After validation, where should the shared user-local `mongoose-local` skill live and which starter markers must it require? The current `.claude/skills/...` file is project-local only. | V5, after two local validations. |
+| D-05 | Does the Mongoose owner retain, defer or withdraw UP-MNG-02 independently of UP-MNG-01? Local skills do not decide it. | Distribution / brokered-loop claim. |
 
 ## 10. Definition of complete
 
 This validation is complete only when VAL-01 through VAL-11 have recorded evidence, V3's visible
 analyser result and V4's optional tool result agree for the same input, any required shared skill has
-been exercised twice, and the final independent review accepts or explicitly amends the record. A
-working server or a connected MCP entry by itself is not completion.
+been exercised twice, and the final independent review accepts or explicitly amends the record. The
+distribution-level claim additionally needs VAL-12 when the Mongoose-side prerequisites exist. A working
+server or a connected MCP entry by itself is not completion.
 
-## 10a. Alignment with the ACCEPTED dev-loop spec (reviewer addendum, first session, 2026-08-28)
+## 10a. Cross-repo dev-loop alignment (review resolved 2026-08-28)
 
-This document anchors itself to M19 (`spec-onboarding-example.md`), which is right for the *onboarding*
-half. But the loop it describes — start a server, export a log and a GraphML, drive the analyser,
-investigate, fix, re-run — is already owned by
-**[`spec-agent-brokered-dev-loop.md`](../../spec-agent-brokered-dev-loop.md), ACCEPTED v2 (2026-08-22)**,
-which this spec does not cite. Three consequences, in descending value.
+M19's `spec-onboarding-example.md` owns the user-facing download → run → analyser contract. The
+accepted [agent-brokered dev-loop specification](../../spec-agent-brokered-dev-loop.md)
+owns the adjacent cross-repo contract: a running Mongoose server publishes a registry entry, an agent
+exports log and GraphML, and the analyser drives the resulting files. This project is a conformance
+exercise for both contracts; it is not a third onboarding route.
 
-### A1 · The acceptance already exists as an executable test, and it is not referenced
+### A1. Use the existing bench for the brokered part of the loop, without overstating it
 
-§H of the accepted spec required a conformance harness before any cross-repo work started. It was built
-and merged (M19.6, 2026-08-25): **`tools/bench/loop-bench.py`** plays §C3 steps 3–7 — glob the registry,
-pick a server, export log + GraphML, drive the analyser, assert the loop closed — with PASS/FAIL per step
-and a non-zero exit. Its companion `mongoose-stub.py` is explicitly *"not a Mongoose; a statement of what
-one must do"*.
+The analyser repository already ships `tools/bench/loop-bench.py` and `mongoose-stub.py`. The stub is
+explicitly a statement of the Mongoose contract, not Mongoose itself; the bench tests registry discovery,
+audit/GraphML export and analyser drive steps with PASS/FAIL results. Once Mongoose implements the
+registry and export contract, this starter must run that same bench against its real server rather than
+against `--stub`.
 
-That reframes Gates V2–V3. As written they are a hand-run checklist; the highest-value single step in
-this whole plan is instead:
+That evidence is deliberately **additional** to V2/V3, not a replacement for them. A successful bench
+proves the brokered export path; it does not prove that this starter writes M19's native INFO text/YAML
+audit file at `./logs/audit-<name>.yaml`, nor that the file answers the V0 question. Those remain V3
+evidence. The starter currently publishes neither the proposed registry file nor the proposed export
+endpoints, so it cannot claim an unstubbed pass.
 
-> **Make the real starter satisfy `mongoose-stub.py`'s contract, then run `loop-bench.py` against it
-> instead of `--stub`.**
+| ID | Additional requirement | Acceptance evidence |
+|---|---|---|
+| VAL-12 | When the Mongoose-side contract is available, the real starter conforms to the agent-brokered loop. | `loop-bench.py --registry ~/.mongoose/servers --server <name>` passes against the actual server, with the registry/export/GraphML evidence retained. Until then, record the upstream dependency rather than substituting a hand-run claim. |
 
-The end-to-end claim then stops being a description someone performed once and becomes a test that fails
-when it stops being true — which is the difference this repo insists on everywhere else. Recommend
-`loop-bench.py` (unstubbed) be named as the **minimum evidence** for VAL-04/05, replacing or backing the
-prose gates.
+### A2. Use registry-first discovery with a project-local fallback
 
-### A2 · Server discovery re-derives a mechanism the accepted spec already specified
+The proposed skill reads `~/.mongoose/servers/<name>` when it is present, then falls back to the
+project's YAML descriptor for the single-project local workflow. It must never write, repair or invent
+the registry: publishing it is the Mongoose-side responsibility described by upstream ask UP-MNG-01.
+This preserves useful local inspection now while avoiding a second discovery convention once multiple
+servers exist.
 
-The skill's *Discovery contract* finds the admin endpoint by reading the project's YAML descriptor. That
-works for one project whose config you already have, and does not answer *"which servers are running
-right now?"* — the question a second project, or a server started from elsewhere, immediately poses.
+### A3. Keep the registry and Mongoose-MCP asks independent
 
-§C1 of the accepted spec addresses exactly this and warns off both alternatives by name: **do not put the
-registry in the analyser** (it re-acquires the coupling the design removes) **and do not put it in MCP
-client config** (static — a server deployed mid-session cannot register itself). It specifies instead a
-runtime file per server, mirroring the mechanism the analyser already ships and every script in `tools/`
-already uses with no configuration:
+UP-MNG-01 remains necessary even if local scripts or a skill cover this project's start/stop steps: both
+need a reliable answer to which servers are running. UP-MNG-02 is a separate Mongoose-owner decision.
+This validation must not silently mark it delivered, superseded or required for V4; V4 is the analyser's
+already-open-workspace MCP comparison. The upstream record must state an explicit retain, defer or
+withdraw decision after the local workflow has evidence.
 
-```
-~/.mongoose/servers/<name>     (mode 600)     — upstream ask UP-MNG-01, drafted, gate met, NOT YET FILED
-```
+### A4. Adopt the discoverable skill shape without claiming automatic context or graduation
 
-Recommendation: the skill's `inspect`/`status`/`start` should **read the registry when present and fall
-back to the YAML descriptor**, rather than treating config as the only source. That costs little now and
-avoids a parallel discovery mechanism that later has to be unwound — and `loop-bench.py` already globs
-this exact shape, so registry support is what lets A1 work at all.
-
-This project is also the first concrete consumer of UP-MNG-01, which is the strongest case an upstream
-ask can have. **Recommend filing it**, citing this validation as the requirement.
-
-### A3 · Decide the fate of UP-MNG-02 deliberately, not by drift
-
-§C3 step 9 has the agent restart the server *via a Mongoose-side MCP tool* (**UP-MNG-02**, also drafted
-and unfiled). Local skills and scripts are a legitimate — arguably better — implementation of that step:
-they need no cross-repo dependency, and per-action human approval still comes free from the MCP client
-prompting on each call. Nothing here conflicts with the standing decision; §B's point holds either way,
-because the analyser still acquires no server-mutating code.
-
-But the two asks should not share a fate. **UP-MNG-01 survives skills** (scripts need discovery as much
-as an MCP tool does, arguably more); **UP-MNG-02 may be made unnecessary by them.** Recommend recording
-that split explicitly in `docs/proposals/upstream-asks.md`, so UP-MNG-02 does not sit half-alive while
-the real implementation lives somewhere else.
-
-### A4 · One free win: write the shared skill in the shape the analyser now reads
-
-As of M43 (2026-08-28) the analyser reads `SKILL.md` frontmatter — `name` and `description` only,
-nothing executed — and *AI ▸ Runbooks… ▸ Find skills…* discovers such files anywhere in a project.
-
-If the proposed `mongoose-local` skill ships as `.claude/skills/mongoose-local/SKILL.md` with
-
-```markdown
----
-name: mongoose-local
-description: Build, start, inspect and stop the local Mongoose server for this project.
----
-```
-
-then every starter project gets it surfaced in the analyser's Project panel and in `context.runbooks[]`
-with no work on either side — which is precisely this spec's *"share the workspace with the LLM"* goal.
-Cheap to adopt now, awkward to retrofit once skills exist in another shape.
+The project carries a small, project-local candidate at
+`.claude/skills/mongoose-local/SKILL.md`, using the `name`/`description` frontmatter understood by the
+analyser. It is a safe working agreement, not a released shared capability. M43's **Find skills…**
+discovers and *offers* that file; a person must still choose and add the runbook before it is stored in a
+project profile or appears in `context.runbooks[]`. V5 alone can graduate its operations into the
+reusable user-local skill after the required repeated evidence.
 
 ## 11. M19 onboarding-example alignment addendum
 
