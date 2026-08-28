@@ -6,6 +6,7 @@ import telamin.fluxtion.audit.analyser.analyser.parse.Samples;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.net.URI;
@@ -99,5 +100,30 @@ class ActionServerTest {
             if (r.statusCode() == 429) sawTooMany++;
         }
         assertTrue(sawTooMany > 0, "a burst beyond the bucket should be rate-limited (429)");
+    }
+
+    @Test
+    void republishRewritesTheEndpointFileForTheRunningServer(@TempDir java.nio.file.Path dir) throws Exception {
+        // the pointer is disposable, the server is not: another window may delete or overwrite the file
+        // and then go away; republish() puts THIS server back without restarting anything
+        RestEndpointFile file = new RestEndpointFile(dir.resolve("rest-endpoint"));
+        HeapLogStore store = new HeapLogStore(Samples.sample());
+        ActionDispatcher d = new ActionDispatcher(false, null, () -> store.index().snapshot(), store::rawText);
+        ActionServer own = new ActionServer(d, "s3cr3t", 20, 5.0, file);
+        try {
+            own.start();
+            assertEquals(ProcessHandle.current().pid(), file.read().pid());
+            java.nio.file.Files.delete(file.path());                       // a departed window took it with it
+            assertNull(file.read());
+            assertTrue(own.republish());
+            RestEndpointFile.Endpoint again = file.read();
+            assertEquals(own.url(), again.url());
+            assertEquals(ProcessHandle.current().pid(), again.pid());
+            assertTrue(again.alive());
+        } finally {
+            own.stop();
+        }
+        assertNull(file.read(), "stop() removes the file it published");
+        assertFalse(new ActionServer(d, "x", 20, 5.0).republish(), "no file configured → nothing published");
     }
 }

@@ -31,6 +31,20 @@ class McpSetupStateTest {
     }
 
     @Test
+    void reclaimOnlyWhenServingAndNobodyLiveOwnsTheEndpoint() {
+        // the second-window-closed case (owner's eyeball, 2026-08-28): file gone or dead pid, our server up
+        assertTrue(McpSetupState.shouldReclaim(McpSetupState.classify(true, null, false, 42), true));
+        assertTrue(McpSetupState.shouldReclaim(McpSetupState.classify(true, OTHER, false, 42), true));
+        // a LIVE other owner is never displaced — two windows must not fight over the file
+        assertFalse(McpSetupState.shouldReclaim(McpSetupState.classify(true, OTHER, true, 42), true));
+        // nothing to reclaim with: no server listening, or already ours, or the transport is off
+        assertFalse(McpSetupState.shouldReclaim(McpSetupState.classify(true, null, false, 42), false));
+        assertFalse(McpSetupState.shouldReclaim(McpSetupState.classify(true, OURS, true, 42), true));
+        assertFalse(McpSetupState.shouldReclaim(McpSetupState.classify(false, null, false, 42), true));
+        assertFalse(McpSetupState.shouldReclaim(null, true));
+    }
+
+    @Test
     void onlyThisWindowsLiveEndpointCanBeProbed() {
         var ready = McpSetupState.classify(true, OURS, true, 42);
         assertEquals(McpSetupState.LocalStatus.READY, ready.status());

@@ -47,4 +47,19 @@ public final class McpSetupState {
         }
         return new LocalReadiness(LocalStatus.READY, "Analyser ready for MCP in this window.");
     }
+
+    /**
+     * Whether this window should RE-PUBLISH its endpoint. True only when the transport is enabled, this
+     * window's server is actually listening, and the well-known file names no live owner ({@code STARTING}).
+     *
+     * <p>Found by the owner's eyeball run of {@code tools/verify-m43.py} (2026-08-28): two windows, the
+     * second takes the endpoint (the first correctly reads "MCP elsewhere"), the second CLOSES and deletes
+     * the file — and the first window said "MCP starting" for ever, because nothing ever wrote its
+     * endpoint again. Its server had been listening the whole time; only the pointer was gone. A live
+     * owner is never displaced: {@code OTHER_INSTANCE} returns false here, so two windows cannot fight
+     * over the file — the newcomer keeps it until it goes away.
+     */
+    public static boolean shouldReclaim(LocalReadiness readiness, boolean serverListening) {
+        return serverListening && readiness != null && readiness.status() == LocalStatus.STARTING;
+    }
 }

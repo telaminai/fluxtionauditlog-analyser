@@ -61,6 +61,16 @@ public final class UiTheme {
         return ThemeManager.isDark() ? new Color(0x6F, 0xC2, 0x76) : new Color(0x2E, 0x7D, 0x32);
     }
 
+    /**
+     * The "look at this, nothing is broken" foreground — AMBER on both themes (D-AI9: the status light has
+     * no red; ATTENTION is another window owning the endpoint, or a transient start). Deliberately not
+     * {@link #warnForeground()}, whose brick/salmon reads as red in a one-word status-bar label — the
+     * owner's first sight of the light in that state was "red MCP starting" (2026-08-28).
+     */
+    public static Color attentionForeground() {
+        return ThemeManager.isDark() ? new Color(0xE6, 0xB4, 0x3C) : new Color(0xA8, 0x6E, 0x00);
+    }
+
     /** The theme's muted foreground (secondary text), with a sensible fallback. */
     public static Color mutedForeground() {
         return or(UIManager.getColor("Label.disabledForeground"), new Color(0x8A8F98));

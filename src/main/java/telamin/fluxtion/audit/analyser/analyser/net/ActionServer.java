@@ -70,13 +70,24 @@ public final class ActionServer {
 
     public void start() {
         server.start();
-        if (endpointFile != null) {
-            try {
-                endpointFile.write(url(), token);
-            } catch (IOException e) {
-                // REST itself is up and usable — only MCP discovery is degraded, so warn, never fail
-                System.out.println("[analyser] could not publish " + endpointFile.path() + ": " + e);
-            }
+        republish();
+    }
+
+    /**
+     * (Re)write the well-known endpoint file for this running server. Called at start, and again by the
+     * owner window when the file has gone missing or names a dead process while this server is still
+     * listening — the pointer is disposable, the server is not. Returns false when nothing was published
+     * (no file configured, or the write failed — which is reported, never thrown: REST itself is up and
+     * usable, only MCP discovery is degraded).
+     */
+    public boolean republish() {
+        if (endpointFile == null) return false;
+        try {
+            endpointFile.write(url(), token);
+            return true;
+        } catch (IOException e) {
+            System.out.println("[analyser] could not publish " + endpointFile.path() + ": " + e);
+            return false;
         }
     }
 

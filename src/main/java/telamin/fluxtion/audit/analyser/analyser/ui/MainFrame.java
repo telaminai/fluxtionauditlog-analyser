@@ -415,9 +415,9 @@ public final class MainFrame extends JFrame {
      * before the timer fires.
      */
     private void startMcpIndicatorWatch() {
-        javax.swing.Timer timer = new javax.swing.Timer(5000, e -> refreshMcpIndicator());
-        timer.setRepeats(true);
-        timer.start();
+        mcpIndicatorTimer = new javax.swing.Timer(5000, e -> refreshMcpIndicator());
+        mcpIndicatorTimer.setRepeats(true);
+        mcpIndicatorTimer.start();
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override public void windowActivated(java.awt.event.WindowEvent e) {
                 refreshMcpIndicator();   // returning to this window is exactly when you need the truth
@@ -426,18 +426,30 @@ public final class MainFrame extends JFrame {
     }
 
     /** Re-read the local transport state and repaint the light. Cheap: a file read and a pid compare. */
+    private javax.swing.Timer mcpIndicatorTimer;    // stopped in onExit like followTimer
+
     private void refreshMcpIndicator() {
         var endpointFile = telamin.fluxtion.audit.analyser.analyser.net.RestEndpointFile.wellKnown();
+        long pid = ProcessHandle.current().pid();
         var endpoint = endpointFile.read();
         var readiness = telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState.classify(
-                config.assistantActionsRest, endpoint, endpoint != null && endpoint.alive(),
-                ProcessHandle.current().pid());
+                config.assistantActionsRest, endpoint, endpoint != null && endpoint.alive(), pid);
+        // The pointer file is disposable, the server is not: when another window took the endpoint and
+        // then closed (or crashed), the file is gone or names a dead pid while this server is still
+        // listening. Without this, the light said "MCP starting" for ever (owner's eyeball, 2026-08-28).
+        // A LIVE owner is never displaced — shouldReclaim is false for OTHER_INSTANCE.
+        if (telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState.shouldReclaim(readiness, actionServer != null)
+                && actionServer.republish()) {
+            endpoint = endpointFile.read();
+            readiness = telamin.fluxtion.audit.analyser.analyser.mcp.McpSetupState.classify(
+                    config.assistantActionsRest, endpoint, endpoint != null && endpoint.alive(), pid);
+        }
         var view = telamin.fluxtion.audit.analyser.analyser.mcp.McpIndicator.of(readiness);
         mcpLight.setText("\u25cf " + view.label());
         mcpLight.setToolTipText("<html><body style='width:320px'>" + view.detail() + "</body></html>");
         mcpLight.setForeground(switch (view.level()) {
             case GOOD -> UiTheme.okForeground();
-            case ATTENTION -> UiTheme.warnForeground();
+            case ATTENTION -> UiTheme.attentionForeground();   // amber, not red (D-AI9)
             case NEUTRAL -> UiTheme.mutedForeground();
         });
     }
@@ -4367,6 +4379,7 @@ public final class MainFrame extends JFrame {
         flushProject();   // a debounce window must not eat the last edit of a session
         try {
             step(() -> { if (followTimer != null) followTimer.stop(); });
+            step(() -> { if (mcpIndicatorTimer != null) mcpIndicatorTimer.stop(); });
             step(() -> { if (actionServer != null) actionServer.stop(); });
             // stop() already removes it; this also clears a file stranded by an earlier crash of ours, so a
             // clean quit never leaves a stale endpoint for an MCP client to find (M13.1)

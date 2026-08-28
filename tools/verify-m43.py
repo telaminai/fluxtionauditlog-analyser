@@ -146,11 +146,22 @@ CHECK C — the status light, and that it notices the world changing  (D-AI9)
   3. Come back to this terminal and press ENTER. A SECOND analyser will start.
      Watch the FIRST window's status bar.
 
-     PASS  within about 5 seconds it changes to  * MCP elsewhere  in amber.
+     PASS  within about 5 seconds it changes to  * MCP elsewhere  in AMBER (not red:
+           nothing is broken - another window simply owns the endpoint).
            That is the whole point of the light: this window is no longer the one an
            AI client reaches, and it now says so without being asked.
      FAIL  it stays "MCP ready" - then the light asserts the wrong thing in exactly
            the state it exists for, and ac6a559's fix did not take.
+     FAIL  the text is RED - the light has no red level (D-AI9); that is a colour bug.
+
+  4. Press ENTER again. The SECOND analyser closes and takes the endpoint file with it.
+     Watch the FIRST window's status bar again.
+
+     PASS  within about 5 seconds it returns to  * MCP ready  in green - this window's
+           server was listening all along, and it has re-published its endpoint.
+     FAIL  it reads  * MCP starting  and stays there. That was the owner's first run
+           (2026-08-28): the pointer file died with the other window and nothing wrote
+           it again, so a live server sat behind a light claiming it was still starting.
 
 ================================================================================
 """
@@ -167,9 +178,12 @@ def eyeball():
         ["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar()), "--rest"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print("\n  Second analyser starting. Watch the FIRST window's light for ~5 seconds.")
-    print("  Expected: * MCP ready  ->  * MCP elsewhere\n")
-    input("  press ENTER when done to close the second analyser... ")
+    print("  Expected: * MCP ready  ->  * MCP elsewhere (amber)\n")
+    input("  [CHECK C step 4] press ENTER to close the second analyser... ")
     second.terminate()
+    print("\n  Second analyser closed. Watch the FIRST window's light for ~5 seconds.")
+    print("  Expected: * MCP elsewhere  ->  * MCP ready (green) - it reclaimed the endpoint\n")
+    input("  press ENTER when done... ")
     print("\n  Done. The first analyser is still open; close it yourself when finished.")
     return 0
 
@@ -237,6 +251,23 @@ def main():
               "a light that only refreshes at startup cannot see the state it exists to show")
     finally:
         second.terminate()
+    # ---- 4. and when the newcomer goes away, the survivor takes the endpoint back -----------------
+    # The owner's eyeball run found this (2026-08-28): after step 3 the second window closed, the file
+    # went with it, and the first window read "MCP starting" for ever — a live server behind a light
+    # claiming it had not started. The poll now re-publishes when no LIVE owner holds the file. This is
+    # observable from here: the file must come back naming the FIRST analyser's pid.
+    print("\n[4] the survivor re-publishes its endpoint once the newcomer is gone")
+    second.wait(timeout=15)
+    deadline = time.time() + 12
+    back = {}
+    while time.time() < deadline:
+        back = json.loads(endpoint_file.read_text()) if endpoint_file.exists() else {}
+        if back.get("pid") == first.get("pid"):
+            break
+        time.sleep(1)
+    check("the first analyser owns the endpoint again within ~10s of the second closing",
+          bool(first.get("pid")) and back.get("pid") == first.get("pid"),
+          f"endpoint pid={back.get('pid')} first={first.get('pid')} — 'MCP starting' for ever otherwise")
 
     # ---- what a script cannot reach ---------------------------------------------------------------
     print("\n[4] still needs a person")

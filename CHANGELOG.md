@@ -7,6 +7,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **The MCP status light no longer says "MCP starting" for ever after another analyser window closes.**
+  Two windows: the second takes the endpoint (the first correctly reads *MCP elsewhere*); the second closes and
+  takes the endpoint file with it — and the first window, whose server had been listening all along, read *MCP
+  starting* indefinitely because nothing ever wrote its endpoint again. The 5-second watch now **re-publishes**
+  this window's endpoint when the file is missing or names a dead process, and never displaces a live owner.
+  Found by the owner's first eyeball run of `tools/verify-m43.py`, which now checks the reclaim too. The light's
+  ATTENTION states are also **amber, not red**, as D-AI9 promised — the previous colour was the ⚠ brick shared
+  with the Project panel, which reads as red in a one-word status label.
 - **A refused table highlight rule no longer prints its legend on screen.** When a `rowWhen` is refused
   because the table's rows have no records (aggregate buckets, coverage rows, series buckets/stats),
   the Reports tab no longer prints "… — rows where …" under the un-highlighted table; the screen now
