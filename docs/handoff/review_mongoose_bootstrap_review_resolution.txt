@@ -103,3 +103,13 @@ exemption-free sweep prints nothing; snapshot-internal links all resolve.
 DISPOSITION: accept the resolution as documentation. F1 (record the source revision) and F2 (the two
 `../../CLAUDE.md` links) before the next snapshot refresh. The report may close its "OPEN FOR INDEPENDENT REVIEW" status against this file; the
 M19.1a ◧ / V1 ☐ state is unchanged by it.
+
+================================================================================
+6. Convergence with the parallel review (7e896e5, the first session)
+================================================================================
+Written without sight of each other. Same verdict on all four points, including that NEITHER machine
+holds the source starter — so parity is now twice-recorded as "the author's word", which is exactly why
+F1 (record the source revision) matters. Their §4 adds a point I did not make and endorse: A2's YAML
+fallback is the reason UP-MNG-01 can be deferred AND the mechanism by which it could die by attrition;
+the mongoose tracker's A2 item should name that risk in one sentence, as A3 already does for UP-MNG-02.
+That is for the artefacts' author to write, alongside F1 and F2.
