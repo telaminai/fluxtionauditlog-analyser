@@ -346,11 +346,12 @@ already writes them.
 - Slices: **.1** ☑ the menu · **.2** ☑ `runbook.N.description` end to end (= M38.8) · **.3** ☑ *Runbooks…*
   through `Runbooks.refuse` · **.4** ☑ the skill-shape prefill (`SkillFrontmatter`) · **.5** ☑ *Domain
   glossary…* · **.7** ☑ *Find skills…* — discovery that OFFERS (M35.4), bounded, inside the project,
-  declared ones marked not hidden · **.6** ◧ the capture step is IN the harness (`menu_capture(ep, "AI", "ai-menu.png")`, with a
-  project open so the pointer items show enabled rather than greyed); the image itself needs a run on a
-  machine with Screen Recording permission. The docs deliberately do NOT reference it yet — `mkdocs
-  --strict` fails on a missing image, which is the gate working, and shipping a broken image to say a
-  feature exists would be worse than saying nothing. **D-AI9** ☑ the status
+  declared ones marked not hidden · **.6** ☑ _(finished in review, 2026-08-28)_ the capture ran on the
+  owner's machine against a freshly built jar — the first run silently used a stale `target/` jar with no
+  AI menu, so the harness's own "no menu 'AI'" refusal was the gate working — and the `menu_capture` call
+  was moved AFTER the project relaunch (it sat before it, so the shot showed the greyed state its own
+  comment promised to avoid). `ai-menu.png` is read, referenced from *Working with AI ▸ Runbooks*, and
+  `mkdocs --strict` passes. **D-AI9** ☑ the status
   light: three levels and **no red** — nothing in the set is broken (off is a CHOICE, another window is a
   SURPRISE), so red stays unspent for a real fault; and "tested" is deliberately absent, because a probe
   is true only at the instant it ran and a stale green tick asserts what it does not know.

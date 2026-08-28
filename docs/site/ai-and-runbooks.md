@@ -176,6 +176,7 @@ through version control, and the person who approves the commit is the person th
 
 ## Managing pointers from the app
 
+![The AI menu with a project open: connect a client, the MCP toggle, runbook and glossary pointers, the exchange directory](assets/ai-menu.png)
 
 *AI ▸ Runbooks…* and *AI ▸ Domain glossary…* add and remove the pointers a project declares, so you no
 longer have to hand-edit the profile. They store a **location** and, for a runbook, one line saying when

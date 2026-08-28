@@ -1,4 +1,4 @@
-REVIEW — M33.7 report table sources, commits 800080f → b31e544, reviewed on main
+REVIEW — M33.7 report table sources, commits c4fb6b0 → 5344a25, reviewed on main
 Date: 2026-08-28 · Assessor: the independent review the brief (handoff_28_aug_2026_1.txt) asked for.
 Reviewed against the brief, the report, spec-report-table-sources.md, and the code itself.
 
@@ -64,7 +64,7 @@ F1 (LOW-MEDIUM, fix before archiving this pair) — the Reports PANEL prints the
   `a.table().rowWhen() != null` — the same source the PDF uses.
 
 F2 (paperwork, fix before archiving) — the report cites commits faa53c3 / 8715bbb / 7b88cae; after
-  the rebase onto concurrent main the delivered commits are 800080f / b0d6b23 / db9c9db. The
+  the rebase onto concurrent main the delivered commits are c4fb6b0 / 8e5304b / 32fa974. The
   brief/report pair is the audit trail; SHAs that resolve to nothing defeat its purpose. Update the
   report's DELIVERED section (this review's diffs were read from the post-rebase SHAs).
 
@@ -115,8 +115,8 @@ F1 — FIXED in ReportsPanel: the legend now reads `a.table().rowWhen()` / `rowW
   CHANGELOG ▸ Fixed carries the user-visible line.
 
 F2 — FIXED in handoff_28_aug_2026_1_report.txt: the three pre-rebase SHAs replaced with the
-  delivered 800080f / b0d6b23 / db9c9db, and the docs commit's placeholder ("This documentation
-  commit") replaced with b31e544. No prose changed beyond the identifiers.
+  delivered c4fb6b0 / 8e5304b / 32fa974, and the docs commit's placeholder ("This documentation
+  commit") replaced with 5344a25. No prose changed beyond the identifiers.
 
 Verified for this addendum: `mvn test` 1012 green; exemption-free sweep clean.
 

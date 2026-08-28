@@ -590,12 +590,14 @@ def main():
     profile = make_demo_project()
     ep = launch("Light")
     menu_capture(ep, "File", "projects-file-menu.png")
-    # M43.6: the AI menu, with a project open so Runbooks…/Domain glossary… are ENABLED — the shot has to
-    # show the working state, not the greyed one a reader would take for the feature being unavailable
-    menu_capture(ep, "AI", "ai-menu.png")
 
     ep = launch("Light", project=profile)      # relaunch WITH the project active
     seed(ep)
+    # M43.6: the AI menu, with a project open so Runbooks…/Domain glossary… are ENABLED — the shot has to
+    # show the working state, not the greyed one a reader would take for the feature being unavailable.
+    # (Found in review: this call originally sat BEFORE the project relaunch, so the shot showed exactly
+    # the greyed state the comment promised to avoid.)
+    menu_capture(ep, "AI", "ai-menu.png")
     act(ep, "goto", {"recordIndex": 3, "reveal": True})
     capture(ep, "projects-active.png")
     # Working with AI ▸ runbooks: the Project panel's Project section with the runbook pointer, the glossary and

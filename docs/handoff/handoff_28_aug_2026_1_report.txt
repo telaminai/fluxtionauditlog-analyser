@@ -9,25 +9,25 @@ OUTCOME
   The live brief and this report await independent review before archival.
 
 DELIVERED, IN REVIEWABLE SLICES
-  800080f  Reports: retain structured table calls
+  c4fb6b0  Reports: retain structured table calls
     .7a — SectionSpec.call is Map<String,Object>. Non-scalar values are compact JSON only in the
     existing call.N.val properties slot and parse back as data; scalar-only reports remain strings.
     ReportVerb preserves nested map/list values and keeps top-level integral numeric spelling safe
     for read anchors.
 
-  b0d6b23  Reports: assemble aggregate and coverage tables
+  8e5304b  Reports: assemble aggregate and coverage tables
     .7b — aggregate buckets and full coverage ledger assemble into TableData. Coverage scoring was
     factored into CoverageService and is shared by the action echo and report path. Scalars and empty
     reasons live on TableData, so ReportsPanel and ReportRenderer consume exactly one string. The
     action still presents the agent-facing never-logged list with its own limit; reports carry all
     covered/uncovered/excluded rows, capped at 500 with the omitted tail named.
 
-  db9c9db  Reports: assemble series tables
+  32fa974  Reports: assemble series tables
     .7c — buckets, crossings and statistics row shapes assemble from SeriesScan. Crossing anchors
     drive ReportsPanel record navigation and retain strict rowWhen; buckets/stats refuse rowWhen at
     resolution. A call with both buckets and crossings resolves as an explicit refusal.
 
-  b31e544  Docs: record M33.7 report table sources
+  5344a25  Docs: record M33.7 report table sources
     .7d — reports guide, generated conversation transcript and screenshots. Scenario 4 now creates
     aggregate {groupBy: dimension} and exports table section 2 as CSV.
 

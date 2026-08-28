@@ -1,0 +1,123 @@
+REVIEW — M43: the AI menu, runbook description, status light, skill discovery (28eeed..6478d87 on main)
+Date: 2026-08-28 · Assessor: the independent review report_m43_ai_menu.txt asked for. Reviewed against
+the spec (D-AI1…D-AI9), the report's own attack list, and the code; every gate re-run here.
+
+VERDICT: SOUND — and the three decisions the report flags all survive challenge; D-AI5 is endorsed
+with an additional argument the spec did not make (§2). One minor code finding (F1), one capture-
+harness defect found AND fixed in this review while finishing M43.6 (§4), notes otherwise. The
+milestone is now complete: this review closed the open .6 slice on the owner's machine.
+
+Gates, re-run on the reconciled main (M43 rebased together with M33.7): `mvn test` 1066 green ·
+`mkdocs build --strict` passes (with the new image referenced) · exemption-free sweep clean ·
+ai-menu.png and projects-active.png READ — AI menu present, pointer items ENABLED under the open
+project, the D-AI9 light live in the status bar ("MCP starting"), every visible string neutral.
+
+================================================================================
+1. THE ATTACK LIST, ITEM BY ITEM
+================================================================================
+The model change (Map<String,String> → Map<String,Runbooks.Pointer>) — HOLDS. One map, not a
+  parallel description map, is the right shape (two maps disagree about which runbooks exist). The
+  old-profile path was verified independently as asked: readRunbooks reads `runbook.N.description`
+  which a pre-M43 file lacks → null → Pointer(path, null); pinned by
+  RunbookDescriptionTest.aRunbookWrittenBeforeThisSliceStillLoads. SettingsShare import re-gates
+  both halves; the share label names the description as cargo and a test asserts it (D-AI8).
+
+A refused description costs the description, not the pointer — ENDORSED. The pointer is
+  load-bearing and the description a convenience on top; the refusal is NAMED in the refused list
+  (readRunbooks adds the reason), so nothing degrades silently. Consistent with the house rule
+  everywhere else: degrade loudly, keep what still works.
+
+Discovery's bounds — HOLD, with one asymmetry (F1). Depth 7 / 50 results with the cap named,
+  SKIP list covers the big offenders (.git, target, node_modules, venvs, dist…), symlinked
+  DIRECTORIES are skipped so the walk cannot leave the project, unreadable files are skipped
+  without abandoning the scan, and the walk never throws. Scanning this repo returns empty
+  quickly (re-verified). Candidates the gate would refuse are filtered before offering — the
+  offer/store invariant from the other side.
+
+The offer/store invariant (usableName) — HOLDS. Reduction only removes what is unusable, never
+  invents; the final check is `Runbooks.refuse(cleaned, "ok.md")` itself, so the invariant is
+  enforced by the real gate rather than a parallel rule that could drift.
+
+AiMenuTest's source-text checks — ACCEPTABLE AS A TRIPWIRE, and should be understood as one.
+  Two honest limits: `indexOf("\n    }")` finds the first 4-space-indented brace after the method
+  start, so an inner construct formatted at that indent would silently truncate the checked
+  region; and the check only covers buildAiMenu()'s body — a forbidden call in PointerDialog is
+  outside its sight (PointerDialog's own gate usage is what covers that). Both limits match the
+  ProjectPanelIsRevealOnlyTest precedent this follows. The renamed-method guard (assert with a
+  message naming the fix) is the right way to keep a source-text test from rotting into a no-op.
+
+================================================================================
+2. THE THREE DECISIONS
+================================================================================
+D-AI5 (declared, never read at serve time) — ENDORSED, and it is stronger than the spec argues.
+  The spec's argument is drift (context changing when a file changes, with nobody declaring it).
+  There is a second: serve-time frontmatter reads would make `context` a function of repository
+  FILES rather than the gated profile — anyone or anything with repo write could alter what the
+  analyser asserts about the project without ever touching the profile the gates guard. Declared
+  severs that path. The cost (a description that rots when the file evolves) is real but visible:
+  the Project panel shows the declared text next to an Open that shows the file, so drift is
+  inspectable by a human. If it ever bites, the cheap remedy is a VIEW-time drift hint in the
+  dialog (a human-initiated read is already D-AI5-legal — prefill proves it); do not revisit
+  serve-time reads.
+
+D-AI9 (no red, no "tested") — ENDORSED. Red-unspent matches the house pattern (the coverage caveat
+  stays off a perfect score for the same reason), and "MCP ready"-never-"connected" is enforced by
+  test against the exact trap McpSetupState's javadoc names. OTHER_INSTANCE earning the light its
+  place is correct — it is the state this review itself proved real in M42 (the endpoint file is
+  last-writer-wins). The light rendering live is now VISIBLE in the committed ai-menu.png
+  ("MCP starting", amber, bottom-right).
+
+D-AI1 (panel states, menu acts) — ENDORSED without qualification; it preserves M37's D-L3 instead
+  of eroding it for convenience, and AiMenuModel extracting the decisions from the listener is
+  what made D-AI2/3/4 testable at all.
+
+Also verified beyond the list: `context.runbooks[]` gains the description INSIDE the pre-existing
+above-the-early-return block (the ONBOARDING trap explicitly avoided); KnownKeys owns the family
+and the M38.7 preserve-unknown test was updated; the D-AI4 no-execute rule holds in PointerDialog
+(refusals rendered in-dialog with the reason, per D-AI6).
+
+================================================================================
+3. FINDINGS
+================================================================================
+F1 (minor) — SkillDiscovery skips symlinked DIRECTORIES but not a symlinked SKILL.MD FILE:
+  visitFile does not check Files.isSymbolicLink, and SkillFrontmatter.read follows links, so a
+  crafted in-project symlink causes a read OUTSIDE the project during discovery. Contained — what
+  escapes is two inert strings shown to a human in a dialog, and the STORED pointer is the
+  in-project symlink path — but the walk's "cannot leave the project" claim deserves the one-line
+  symmetry fix (`if (Files.isSymbolicLink(file)) return CONTINUE;`).
+F2 (nit, no action) — the truncation flag can over-claim: at exactly MAX_RESULTS the next file
+  visit sets truncated even when no further skill exists. Honest in the safe direction.
+F3 (note) — SkillFrontmatter reads only single-line frontmatter values; a YAML folded/multi-line
+  description yields no suggestion. Correct for a prefill (it is a suggestion, not a parser), noted
+  so nobody files it as a bug.
+F4 (process) — the push race: M43 was pushed to origin while this clone held unpushed M33.7 work,
+  so reconciling required a rebase that REWROTE the M33.7 SHAs — rotting the very SHA references
+  the M33.7 review had just fixed in its report (they are re-fixed in the commit carrying this
+  review, and frozen by pushing it). Lesson for the two-session workflow: a handoff report that
+  cites SHAs should be pushed promptly after it is written, and a session that pushes to a shared
+  main should say so where the other session will look.
+
+================================================================================
+4. M43.6 — FINISHED IN THIS REVIEW (the owner's machine has the permissions)
+================================================================================
+Two defects found on the way, both now fixed:
+- The first capture run silently drove a STALE target/ jar (predating M43) — the harness's own
+  "no menu 'AI'" refusal caught it, which is the gate working. The jar was rebuilt and all 19
+  shots regenerated from current main, so every docs screenshot now shows the menu bar with AI.
+- `menu_capture(ep, "AI", …)` sat BEFORE the project relaunch, so the shot showed Runbooks…/
+  glossary GREYED — exactly the state the call's own comment (and the report §4) promised to
+  avoid. Moved after the relaunch; the committed shot shows them enabled, with the comment now
+  recording the mistake so it is not reintroduced.
+ai-menu.png is read (menu, enabled pointer items, live status light, neutral paths), referenced
+from *Working with AI ▸ Managing pointers from the app*, and `mkdocs --strict` passes. The tracker's
+.6 line is flipped with the story above.
+
+================================================================================
+5. WHAT REMAINS
+================================================================================
+- F1's one-line symlink fix — fold into the next M43-adjacent commit.
+- The report's five ten-minute Swing checks (§4 of report_m43_ai_menu.txt) still want a human
+  click-through; this review verified the model layer and the two shots, not the dialog flows.
+- The cross-repo note (report §5) stands and is worth sending to the downstream session verbatim.
+- Archival: this brief-less milestone's report + this review move to completed/ together, and the
+  spec + tracker block archive, once the owner accepts the Swing checks (or waives them).
