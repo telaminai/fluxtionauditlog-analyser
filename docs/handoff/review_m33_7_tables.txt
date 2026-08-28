@@ -1,0 +1,101 @@
+REVIEW — M33.7 report table sources, commits 800080f → b31e544, reviewed on main
+Date: 2026-08-28 · Assessor: the independent review the brief (handoff_28_aug_2026_1.txt) asked for.
+Reviewed against the brief, the report, spec-report-table-sources.md, and the code itself.
+
+VERDICT: SOUND — one real defect (F1, a one-line UI fix that should land before this pair archives),
+one paperwork correction (F2, stale SHAs in the report), nits and notes. The design decisions D-T1–T5
+are implemented as written, the four reviewer-check items in the brief all pass under inspection, and
+every gate was re-verified by this review rather than taken from the report: `mvn test` 1012 green ·
+`mkdocs build --strict` passes · exemption-free sweep prints nothing · conv-chart-and-report.png READ
+(three aggregate rows, the scalar line under the table, every visible path neutral).
+
+================================================================================
+1. THE BRIEF'S REVIEWER-CHECK ITEMS, ONE BY ONE
+================================================================================
+"Nested values were not flattened through toString, and old scalar reports remain valid" — PASS.
+  ReportVerb.structured() deep-copies maps/lists at parse; JSON encoding happens in exactly one
+  place, ConfigStore.callValueForStore, at the store edge as D-T1 demands. A malformed legacy value
+  that merely LOOKS like JSON degrades to the scalar it was (callValueFromStore catches and returns
+  the string). ReportPersistenceTest covers the nested round trip and an explicit pre-M33.7
+  scalar-shaped file. Scalars keep the integral-number spelling, so the 44b44c9 anchor fix survives
+  the refactor (pinned by the retained ReportVerbTest).
+
+"The single scalar-line builder is genuinely shared" — PASS. The line is built once in assembly
+  (aggregateScalars / seriesScalars / crossingScalars / CoverageService's scalars), stored on
+  TableData, and both consumers read that field: ReportsPanel adds muted(a.table().scalarLine()),
+  ReportRenderer prints t.scalarLine(). Neither re-derives. (See F3 for the one rendering caveat.)
+
+"Record-less sources refuse rowWhen loudly; coverage does not hide excluded or covered nodes" —
+  PASS with the F1 exception below. The refusal happens at resolution (recordlessSource →
+  rowWhenWithoutRecord, the exact D-T4 sentence) and assembly passes null rowWhen to TableData, so
+  the PDF renders un-highlighted with no legend. The coverage ledger is the whole denominator:
+  covered + uncovered + excluded, graph order first then a deterministic sorted tail, capped at 500
+  with the omitted count named. The series both-shapes call is refused in BOTH layers (resolution
+  and assembly) — belt and braces.
+
+"The scenario-4 transcript was generated and contains aggregate table rows" — PASS. The transcript
+  carries the real `analyser_report` call with `{"verb": "aggregate", "metric": "count", "groupBy":
+  "dimension"}`, and the regenerated screenshot shows the Reports tab with MarketDataEvent 400 /
+  OrderUpdateEvent 166 / RiskBreachEvent 160 under the narrative, with the scalar line
+  `metric count · groupBy dimension · total 726 · population 726 records (filter: all · scan: index)`
+  printed beneath — read by this review, paths neutral throughout.
+
+Also verified, beyond the checklist:
+- CoverageService is a faithful extraction of ActionExecutor's scorer — same echo keys, same M40.2
+  denominator logic, same M40.3 level caveat, same build-mismatch warning — and the action now
+  consumes it, so the report and the echo cannot diverge (the class's stated purpose).
+- The INFERRED-graph refusal (M34.1) is carried into the report path by MainFrame.coverageForReport
+  — the spec did not say this explicitly and the implementation did it anyway. Correct instinct: a
+  report table must not print the 100% the interactive verb refuses.
+- Crossing rows sort by logTime across both directions, anchors survive into rowRecords, and the
+  panel's click handler null-guards each anchor. A null anchor inside highlights() would NPE into
+  the existing catch and render un-highlighted — degraded, never wrong.
+
+================================================================================
+2. FINDINGS
+================================================================================
+F1 (LOW-MEDIUM, fix before archiving this pair) — the Reports PANEL prints the rowWhen legend from
+  the SectionSpec; the PDF prints it from TableData. For a record-less source with a refused
+  rowWhen, TableData.rowWhen is null so the PDF is correctly silent — but ReportsPanel:319 tests
+  `s.rowWhen() != null` and prints "‹label› — rows where ‹rule›" under a table that has no
+  highlights. That is the exact trap D-I8 exists to prevent (an emphasis label claiming a rule that
+  never ran), and it makes the report's acceptance-3 sentence ("assembled record-less tables have
+  no printed rule") true of the PDF only. One-line fix: gate the panel's legend on
+  `a.table().rowWhen() != null` — the same source the PDF uses.
+
+F2 (paperwork, fix before archiving) — the report cites commits faa53c3 / 8715bbb / 7b88cae; after
+  the rebase onto concurrent main the delivered commits are 800080f / b0d6b23 / db9c9db. The
+  brief/report pair is the audit trail; SHAs that resolve to nothing defeat its purpose. Update the
+  report's DELIVERED section (this review's diffs were read from the post-rebase SHAs).
+
+F3 (nit, accepted) — the PDF path runs the scalar line through PdfDoc.clip, so a very long line
+  (a wide filter description) can render truncated on the page while the panel shows it in full.
+  The HANDED string is identical — acceptance 6 as tested holds — but "the same words on screen and
+  in the PDF" has this one width-bound exception. Not worth machinery; recorded so nobody reads the
+  claim as absolute.
+
+F4 (note) — CoverageService.node() gives the echo's neverLogged entries two new keys (status,
+  reason) that the old ActionExecutor entries did not carry. Additive and harmless to a
+  forward-tolerant reader; named here because the echo is agent-facing surface.
+
+F5 (note, spec'd behaviour) — the flat-store encoding cannot distinguish "a scalar string that is
+  valid JSON text" from "an encoded structure": such a string parses into structure on reload and
+  the call's value changes type across a restart. No real verb parameter has that shape today;
+  D-T1's encoding accepts this ambiguity implicitly. Recorded so a future odd bug report has its
+  cause named.
+
+================================================================================
+3. GATES, RE-RUN BY THIS REVIEW
+================================================================================
+`mvn test`: 1012 green, 0 failures. `mkdocs build --strict`: passes. Sweep (exemption-free form):
+clean. conv-chart-and-report.png inspected: rows, scalar line, neutral paths. CHANGELOG: each of the
+four slices carries its own [Unreleased] lines (checked per-commit). Tracker: M33.7 recorded, spec
+status "IMPLEMENTED — awaiting independent handoff review" — honest at the time it was written.
+
+================================================================================
+4. WHAT HAPPENS NEXT
+================================================================================
+- Land F1 (one line + a small panel-side assertion if practical) and F2 (edit the report's SHAs).
+- Then, per the brief's WHEN COMPLETE: move handoff_28_aug_2026_1.txt, its report, and this review
+  to docs/handoff/completed/, flip the spec to SHIPPED and archive it with the M33 family, and move
+  the tracker line. M38.8 (now folded into M43 per 4c32f0a) may start after that.
