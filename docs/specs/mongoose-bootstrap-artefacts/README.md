@@ -19,6 +19,16 @@ an assurance that the starter's audit output is already analyser-compatible.
 | `config/server-config.yml` | Current Mongoose deployment descriptor. | Is the mapper/audit risk identified rather than assumed away? |
 | `skill/mongoose-local-skill-contract.md` | Proposed shared user-local skill interface. | Which contract elements should become a reusable skill and which stay project-specific? |
 
+## Reviews received
+
+| Review | Date | Verdict |
+|---|---|---|
+| [`review_mongoose_bootstrap_artefacts.txt`](../../handoff/review_mongoose_bootstrap_artefacts.txt) | 2026-08-28, the first session | Sound, one structural finding: the work cites M19 but not [`spec-agent-brokered-dev-loop.md`](../spec-agent-brokered-dev-loop.md) (ACCEPTED v2), which owns the loop it describes. Recommendations written in as **§10a A1–A4** of the validation spec and one annotation on the skill contract; ledger entry `7e8e859` in [`unreviewed-changes.md`](../../handoff/unreviewed-changes.md) — **awaiting the author's response**. |
+
+The headline of that review, if you read nothing else: **§H's conformance harness already exists**
+(`tools/bench/loop-bench.py`, merged M19.6) and plays §C3 steps 3–7 with PASS/FAIL per step. Gates V2–V3
+are currently a hand-run checklist where an executable bench is sitting ready.
+
 ## Source-of-truth and update rule
 
 The starter project remains the source of truth for executable scripts, configuration, fixtures and

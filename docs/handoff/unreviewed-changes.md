@@ -16,6 +16,47 @@ still check**.
 
 ---
 
+## ☐ 2026-08-28 · `7e8e859` · docs(specs): reviewer addendum §10a written INTO the Mongoose validation spec
+
+**What.** My review of `docs/specs/mongoose-bootstrap-artefacts` (d91e236) did not stop at a review file:
+it added **§10a (A1–A4)** to `specs/spec-mongoose-analyser-validation.md` and annotated the *Discovery
+contract* paragraph of `skill/mongoose-local-skill-contract.md`. Full reasoning in
+`docs/handoff/review_mongoose_bootstrap_artefacts.txt`.
+
+**Why written in, not only reported.** The findings are about which spec the work anchors to, and a
+recommendation that lives only in a review file is one the next author has to go and find. But this means
+**I have edited another session's spec directly on main**, which is exactly what this ledger exists for.
+The addendum is additive — nothing of theirs was changed or deleted, and it is marked as a reviewer
+addendum with its date and author, so its status is legible in place.
+
+**The substance, in one line each.** The artefacts cite M19 only, while the loop they describe is owned by
+`spec-agent-brokered-dev-loop.md` (ACCEPTED v2), which they do not cite. A1: §H's conformance harness
+already exists (`tools/bench/loop-bench.py`) and should back Gates V2–V3 instead of a hand-run checklist.
+A2: server discovery re-derives §C1's registry in a weaker, config-derived form. A3: UP-MNG-01 and
+UP-MNG-02 should not share a fate. A4: ship the shared skill in the `SKILL.md` frontmatter shape M43 now
+reads, and the analyser surfaces it for free.
+
+**Files.** `docs/specs/mongoose-bootstrap-artefacts/specs/spec-mongoose-analyser-validation.md` (+82,
+new §10a), `.../skill/mongoose-local-skill-contract.md` (+7, one annotation),
+`docs/handoff/review_mongoose_bootstrap_artefacts.txt` (new).
+
+**Verified.** 1066 green; `mkdocs build --strict` passes; four-term sweep clean. I also checked the
+snapshot directory against the README's own promise rather than taking it — no real home paths, no
+credential-shaped strings. loop-bench.py's scope was read (`tools/bench/README.md` + the script's step
+list) rather than inferred, and `mongoose-stub.py`'s "statement of what one must do" framing is quoted
+from it.
+
+**What the reviewer must still check.**
+1. **Whether A1 is actually achievable** — I claim the real starter could satisfy `mongoose-stub.py`'s
+   contract and let `loop-bench.py` run unstubbed. I have not run it against a real Mongoose and have no
+   way to; if the starter cannot publish a registry file, A1 depends on A2 and both need owner sign-off.
+2. **A2's cost.** I recommend the skill read the registry with a YAML fallback. That is easy to say from
+   outside the starter; the author of those scripts should say whether it is cheap there.
+3. **A3 is a decision, not a finding** — whether UP-MNG-02 is superseded by skills is the owner's call and
+   I only argue the two asks should be separated, not which way it goes.
+4. **Whether §10a belongs in that document at all.** It is a reviewer's voice inside someone else's spec.
+   If the author would rather it lived only in the review file, moving it is a clean revert of two hunks.
+
 ## ☑ reviewed 2026-08-26 (the second session) · `881b047` · fix(topology): populate the split-view EventProcessor dropdown
 
 **Verdict.** Correct and minimal: a second `SourcePanel` instance that was never handed the processor
