@@ -7,6 +7,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Find skills… — the runbooks your project already has.** *AI ▸ Runbooks…* can now scan the project for
+  skill-shaped files (`SKILL.md` with `name`/`description` frontmatter) and offer them, instead of making
+  you go and find them with a file chooser. Ones already declared are shown greyed rather than hidden.
+  Finding is not adding: picking one opens the same confirm step a hand-typed pointer goes through. The
+  scan never leaves the project, skips build output and vendored trees, and names its own cap when it
+  stops early.
+
+
+### Added
 - **An `AI` menu — everything an AI client needs, where you can find it.** MCP setup used to live in
   Settings and on the Start page, which only appears via *Help ▸ Start page* — so it was invisible
   mid-session, which is exactly when you think to connect an LLM. The menu gathers *Connect an AI

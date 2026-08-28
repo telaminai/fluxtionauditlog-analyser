@@ -55,12 +55,18 @@ public final class PointerDialog {
                     : p.path() + (p.description() == null ? "  —  (no description)" : "  —  " + p.description()));
         });
 
+        JButton discover = new JButton("Find skills…");
         JButton add = new JButton("Add…");
         JButton remove = new JButton("Remove");
         remove.setEnabled(false);
         list.addListSelectionListener(e -> remove.setEnabled(list.getSelectedValue() != null));
 
         add.addActionListener(e -> addRunbook(dialog, config, projectRoot).ifPresent(name -> {
+            if (!model.contains(name)) model.addElement(name);
+            list.setSelectedValue(name, true);
+            onChanged.run();
+        }));
+        discover.addActionListener(e -> discoverSkills(dialog, config, projectRoot).forEach(name -> {
             if (!model.contains(name)) model.addElement(name);
             list.setSelectedValue(name, true);
             onChanged.run();
@@ -76,7 +82,7 @@ public final class PointerDialog {
 
         // D-AI7: NAME the file being written. A profile is committed and reviewed in git, so someone
         // editing it from a dialog should know which file their colleague will see change.
-        finish(dialog, list, detail, add, remove,
+        finish(dialog, list, detail, discover, add, remove,
                 "Stored in " + (profileFile == null ? "this project's profile" : profileFile.toString())
                         + " — a location and one line, never the file's contents. The analyser never runs "
                         + "a runbook.");
@@ -121,9 +127,14 @@ public final class PointerDialog {
     // ---- add one runbook --------------------------------------------------------------------------
 
     private static Optional<String> addRunbook(Component parent, AppConfig config, Path projectRoot) {
-        JTextField name = new JTextField(24);
-        JTextField path = new JTextField(30);
-        JTextField description = new JTextField(30);
+        return addRunbook(parent, config, projectRoot, "", "", null);
+    }
+
+    private static Optional<String> addRunbook(Component parent, AppConfig config, Path projectRoot,
+                                               String initialPath, String initialName, String initialDescription) {
+        JTextField name = new JTextField(initialName == null ? "" : initialName, 24);
+        JTextField path = new JTextField(initialPath == null ? "" : initialPath, 30);
+        JTextField description = new JTextField(initialDescription == null ? "" : initialDescription, 30);
         JLabel problem = problemLabel();
         JLabel prefilled = new JLabel(" ");
         prefilled.setForeground(UiTheme.mutedForeground());
@@ -185,6 +196,68 @@ public final class PointerDialog {
         return Optional.of(n);
     }
 
+    /**
+     * M43.7 — list the skill-shaped files already in the project and let the user pick.
+     *
+     * <p>It OFFERS (M35.4): every candidate is shown with what it would be called, and nothing reaches
+     * the profile until one is chosen and its name and description confirmed in the same Add dialog a
+     * hand-typed pointer goes through. A file already declared is shown greyed rather than hidden — a
+     * file you can see on disk and cannot see here sends you hunting for a bug that is not there.
+     */
+    private static java.util.List<String> discoverSkills(Component parent, AppConfig config, Path projectRoot) {
+        var found = telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery
+                .find(projectRoot, config.runbooks);
+        if (found.candidates().isEmpty()) {
+            JOptionPane.showMessageDialog(parent,
+                    "No skill-shaped runbooks found under this project.\n\n"
+                            + "The convention is a file called SKILL.md with `name` and `description` "
+                            + "frontmatter — for example .claude/skills/restart/SKILL.md — so one file is "
+                            + "both the team's runbook and a skill an AI harness can load.\n\n"
+                            + "Use Add… to point at any markdown file instead.",
+                    "Find skills", JOptionPane.INFORMATION_MESSAGE);
+            return java.util.List.of();
+        }
+
+        DefaultListModel<telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery.Candidate> model =
+                new DefaultListModel<>();
+        found.candidates().forEach(model::addElement);
+        JList<telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery.Candidate> list = new JList<>(model);
+        list.setCellRenderer((l, c, i, sel, foc) -> {
+            String text = c.declared()
+                    ? c.name() + " — " + c.path() + "   (already a runbook)"
+                    : c.name() + " — " + c.path();
+            JLabel label = new JLabel(text);
+            label.setOpaque(true);
+            if (sel) {
+                label.setBackground(l.getSelectionBackground());
+                label.setForeground(l.getSelectionForeground());
+            } else if (c.declared()) {
+                label.setForeground(UiTheme.mutedForeground());
+            }
+            label.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+            return label;
+        });
+
+        JPanel body = new JPanel(new BorderLayout(6, 6));
+        body.add(note(found.truncated()
+                ? "Showing the first " + telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery.MAX_RESULTS
+                  + " — there are more. Nothing is added until you choose one and confirm it."
+                : "Found in this project. Nothing is added until you choose one and confirm it."),
+                BorderLayout.NORTH);
+        body.add(new JScrollPane(list), BorderLayout.CENTER);
+        body.setPreferredSize(new Dimension(560, 300));
+
+        int choice = JOptionPane.showConfirmDialog(parent, body, "Find skills",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        var picked = list.getSelectedValue();
+        if (choice != JOptionPane.OK_OPTION || picked == null) return java.util.List.of();
+
+        // the SAME confirm step a hand-typed pointer goes through — discovery changes where the
+        // suggestion came from, never whether a person declared it
+        return addRunbook(parent, config, projectRoot, picked.path(), picked.name(), picked.description())
+                .map(java.util.List::of).orElse(java.util.List.of());
+    }
+
     // ---- shared bits ------------------------------------------------------------------------------
 
     private static Runbooks.Pointer selected(JList<String> list, AppConfig config) {
@@ -233,10 +306,11 @@ public final class PointerDialog {
     }
 
     private static void finish(JDialog dialog, JList<String> list, JLabel detail,
-                               JButton add, JButton remove, String noteText) {
+                               JButton discover, JButton add, JButton remove, String noteText) {
         JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
         JButton close = new JButton("Close");
         close.addActionListener(e -> dialog.dispose());
+        south.add(discover);
         south.add(add);
         south.add(remove);
         south.add(close);

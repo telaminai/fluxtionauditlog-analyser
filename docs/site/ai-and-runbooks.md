@@ -187,6 +187,18 @@ rather than to your own settings. Every path goes through the same gate the prof
 absolute path, a `..` escape, a URL or anything shaped like a command is refused **with the reason shown
 in the dialog**.
 
+### Finding the skills you already have
+
+*Add runbook…* lets you point at any file. **Find skills…** does the looking for you: it scans the
+project for `SKILL.md` files, shows what each would be called, and marks the ones already declared rather
+than hiding them — a file you can see on disk but not in the list sends you hunting for a bug that isn't
+there.
+
+Nothing is added by finding it. Pick one and you land in the same Add dialog a hand-typed pointer goes
+through, with the name and description filled in for you to confirm or change. The scan stays inside the
+project, skips build output and vendored trees, is depth- and count-limited, and says so when it stops
+early — a project root can be a monorepo.
+
 ### The description, and where it comes from
 
 A runbook's `description` is the line an AI client chooses by: with it, a model can tell which of six

@@ -320,7 +320,7 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
   `description`, so a pointer may target a `SKILL.md`) is documented ahead of it, so no runbook needs
   rewriting. Content delivery stays as it is: the analyser serves the pointer, never the instructions.
 
-## M43 · The AI menu — quick access, and the runbook `description` it needs — ◧ **BUILT 2026-08-28** on `feat/m43-ai-menu`
+## M43 · The AI menu — quick access, and the runbook `description` it needs — ◧ **MERGED to main 2026-08-28**, awaiting review
 _Owner-directed. Spec **[spec-ai-menu.md](spec-ai-menu.md)**; absorbs **M38.8**._
 Everything an AI client needs is reachable and almost none of it is findable: MCP setup lives in Settings
 and on the Start page, which only appears via *Help ▸ Start page* — invisible mid-session, which is when
@@ -336,7 +336,8 @@ already writes them.
   at the surface most likely to erode it.
 - Slices: **.1** ☑ the menu · **.2** ☑ `runbook.N.description` end to end (= M38.8) · **.3** ☑ *Runbooks…*
   through `Runbooks.refuse` · **.4** ☑ the skill-shape prefill (`SkillFrontmatter`) · **.5** ☑ *Domain
-  glossary…* · **.6** ◧ the capture step is IN the harness (`menu_capture(ep, "AI", "ai-menu.png")`, with a
+  glossary…* · **.7** ☑ *Find skills…* — discovery that OFFERS (M35.4), bounded, inside the project,
+  declared ones marked not hidden · **.6** ◧ the capture step is IN the harness (`menu_capture(ep, "AI", "ai-menu.png")`, with a
   project open so the pointer items show enabled rather than greyed); the image itself needs a run on a
   machine with Screen Recording permission. The docs deliberately do NOT reference it yet — `mkdocs
   --strict` fails on a missing image, which is the gate working, and shipping a broken image to say a

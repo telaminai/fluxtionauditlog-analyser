@@ -1,0 +1,88 @@
+REPORT — M43: the AI menu, the runbook description (was M38.8), the status light, skill discovery
+Author: the first session · Date: 2026-08-28 · MERGED TO MAIN (3664e4c + the discovery commit)
+Spec: docs/specs/spec-ai-menu.md (D-AI1…D-AI9) · Owner-directed, and owner-approved to merge.
+
+STATE: on main, 1054 green, mkdocs strict, sweep clean. Reviewed by nobody yet — this is the ask.
+
+================================================================================
+1. WHAT SHIPPED
+================================================================================
+  M43.1  the `AI` menu — Connect an AI client…, the MCP/REST toggle (bound, not copied), Runbooks…,
+         Domain glossary…, Report exchange directory…, Show exchange directory, docs link.
+  M43.2  runbook.N.description — stored, served in context.runbooks[], on the Project-panel row, in the
+         share label. THIS WAS M38.8; it is folded in because the menu is the first surface that must
+         ASK for a description.
+  M43.3  Runbooks… — add/remove pointers through the existing Runbooks.refuse gate.
+  M43.4  skill-shape prefill — SkillFrontmatter reads name/description to fill EMPTY fields only.
+  M43.5  Domain glossary… — the same shape for the single vocabulary pointer.
+  M43.7  Find skills… — scan the project for SKILL.md files and OFFER them (new; not in the spec's
+         original slice list, added because the binding was otherwise a file-chooser hunt).
+  D-AI9  the status light in the status bar.
+  M43.6  NOT DONE — the generated screenshot. See §4.
+
+================================================================================
+2. THE THREE DECISIONS WORTH CHALLENGING
+================================================================================
+D-AI5 · **The description is DECLARED, never read from the file at serve time.** A skill-shaped runbook
+carries the same sentence in its frontmatter and serving it from there would have been less code. It
+would also have INFERRED the fact: context would change whenever someone edited a file, with nobody
+declaring it. So the frontmatter only prefills a dialog a person confirms. This is the load-bearing
+decision of the milestone and the one most worth a second opinion.
+
+D-AI9 · **The status light has NO RED, and no "tested".** The owner asked for red/orange/green. Nothing
+in the state set is broken — transport off is a CHOICE, another window owning the endpoint is a SURPRISE
+— so red stays unspent for a real fault. And a probe is true only at the instant it ran, so a stale green
+tick would assert what it does not know; that stays in the setup dialog. Label is "MCP ready", never
+"connected", enforced by test, because McpSetupState's own javadoc names that exact trap.
+
+D-AI1 · **The Project panel STATES; the menu ACTS.** M37's reveal-only panel is untouched and mutation
+has one home. The alternative — buttons on the panel — would have eroded D-L3 for convenience.
+
+================================================================================
+3. WHAT A REVIEWER SHOULD ATTACK
+================================================================================
+· **The model change.** runbooks went Map<String,String> → Map<String,Runbooks.Pointer>. Check the
+  tiering still works: ProjectProfile.Snapshot/restore, SettingsShare export/import, and above all that
+  a profile written by a PREVIOUS version still loads. I verified that on the built jar against the demo
+  project (runbook loads, no description, no refusal) — verify it independently.
+· **A refused description costs the description and not the pointer.** That trade is mine and arguable;
+  the alternative is refusing the whole entry. I chose to keep the pointer because it does the work.
+· **Discovery's bounds.** MAX_DEPTH 7 / MAX_RESULTS 50, SKIP list, symlinks not followed. Point it at a
+  monorepo and see whether it is still quick, and whether the SKIP list is missing something obvious.
+· **The offer/store invariant.** SkillFrontmatter.usableName reduces a suggestion to something the gate
+  accepts; a test asserts every offered name would be ACCEPTED. If that ever fails, a user is shown a
+  refusal for text they did not type. Try to break it.
+· **AiMenuTest's source-text checks** (D-AI2/D-AI4). They read MainFrame's source for "the menu keeps no
+  state" and "the menu runs nothing". That technique follows ProjectPanelIsRevealOnlyTest, but it is
+  brittle by nature — check it fails when it should, not just that it passes.
+
+================================================================================
+4. NOT DONE, AND THE STANDING GAP
+================================================================================
+· **M43.6, the generated screenshot.** The capture step IS in capture-docs.py (`menu_capture(ep, "AI",
+  "ai-menu.png")`, with a project open so the pointer items show ENABLED, not greyed). This machine has
+  no Screen Recording permission so it skipped rather than faking. I added the docs reference, mkdocs
+  --strict failed on the missing image, and I removed it again — shipping a broken image to claim a
+  feature exists is worse than saying nothing. One capture run finishes it.
+· **NOBODY HAS CLICKED THE DIALOGS.** Swing is not unit-tested here (rule 4), so PointerDialog's add,
+  remove, discover and glossary flows, the refusal messages, and the light's colours rest on model tests,
+  source checks and my reading. This is the real gap. Worth ten minutes:
+    1. AI ▸ Runbooks… ▸ Find skills… on a project containing .claude/skills/<x>/SKILL.md — the list
+       should show it, and picking it should PREFILL name and description, not add it silently.
+    2. Add… with an absolute path or a `..` — the reason must appear IN the dialog, not a grey OK button.
+    3. A second analyser window — the first window's light should read "MCP elsewhere".
+    4. Theme ▸ Dark with the light visible — it holds explicit colours, so it must recompute.
+    5. Runbooks… with no project open — greyed, tooltip naming File ▸ Open project.
+
+================================================================================
+5. CROSS-REPO NOTE (owner FYI, 2026-08-28)
+================================================================================
+A downstream project is being set up to validate the toolchain end to end, and intends to drive a local
+Mongoose server with **local skills**, possibly one shared skill for every project created from the
+starter. That lands directly on this milestone: the analyser now READS `SKILL.md` frontmatter, so if the
+starter's skill uses the documented shape — `---` / `name:` / `description:` / `---` — then Find skills…
+will surface it in the Project panel and in context.runbooks[] with no extra work on either side.
+
+Worth telling that session explicitly, because it is a cheap convention to follow now and expensive to
+retrofit: the analyser reads only `name` and `description`, ignores everything else, and never executes
+the file.
