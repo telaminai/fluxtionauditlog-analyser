@@ -44,7 +44,7 @@ public final class AggregateService {
                                                 IntFunction<String> rawText) {
         String metric = str(params.get("metric"), "count");
         String groupBy = str(params.get("groupBy"), "none");
-        int limit = params.get("limit") instanceof Number n ? Math.max(1, n.intValue()) : 500;
+        int limit = asInt(params.get("limit"), 500);
         ActionFilter filter = ActionFilter.from(params.get("filter"));
 
         // validate up front so a typo becomes a structured ok:false (the model can self-correct), not a
@@ -149,6 +149,19 @@ public final class AggregateService {
 
     private static String str(Object o, String dflt) {
         return o == null || o.toString().isBlank() ? dflt : o.toString();
+    }
+
+    private static int asInt(Object value, int dflt) {
+        if (value instanceof Number n) return Math.max(1, n.intValue());
+        if (value instanceof String s) {
+            try {
+                return Math.max(1, Integer.parseInt(s.trim()));
+            } catch (NumberFormatException ignored) {
+                // Invalid limits have always fallen back to the documented default; keep that tolerant
+                // scalar contract when a persisted report reissues its top-level value as text.
+            }
+        }
+        return dflt;
     }
 
     private static double round(double v) {

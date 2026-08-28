@@ -200,16 +200,6 @@ public final class ActionExecutor implements RenderExecutor {
         LogStore s = store.get();
         if (s == null) return ActionResult.error("no log is loaded");
 
-        Set<String> authored = onEdt(() -> Set.copyOf(topology.authoredNodeIds()));
-        // M40.2: the denominator is what could LOG, not what appears in the graph. An event class in a
-        // "which nodes never ran" answer is a category error, and on the demo three of them plus a
-        // service interface turned 100%-of-what-can-log into a reported 50%.
-        // M40.2b: with source configured, a node that cannot reach an audit logger is dropped too —
-        // proven from its own source, never assumed. Without source everything stays counted.
-        var scope = onEdt(() -> telamin.fluxtion.audit.analyser.analyser.topology.CoverageScope
-                .of(topology.fullTopology(), authored, topology.sourceResolver()));
-        Set<String> declared = scope.loggable();
-
         // M34.1 — coverage is "declared minus observed". Over a graph INFERRED from what ran, that
         // subtraction is empty by construction: the answer is always 100% and the feature that found
         // 54 dead nodes in the POC becomes a tautology that still prints a number. Refuse instead.
@@ -222,72 +212,21 @@ public final class ActionExecutor implements RenderExecutor {
                     + "(open {graphml}) to get a real answer.");
         }
 
-        // one pass, honouring the active filter only if asked: coverage over "the records I am looking
-        // at" and coverage over "the whole run" are different questions and the caller must pick
+        // Take the graph facts on the EDT, then score the whole log off it. The same pure service feeds
+        // report tables, so an exported denominator cannot diverge from this action's echo.
         boolean filtered = Boolean.TRUE.equals(p.get("filtered"));
-        FilterState f = filtered ? filter.get() : null;
-        Set<String> logged = new java.util.LinkedHashSet<>();
-        List<String> levels = new ArrayList<>();
-        int scanned = 0;
-        for (int row = 0; row < s.size(); row++) {
-            if (f != null && !f.test(s.index(), row)) continue;
-            scanned++;
-            levels.add(s.record(row).level());
-            for (var nodeLog : s.record(row).nodeLogs()) {
-                logged.add(nodeLog.instanceId());
-            }
-        }
-        // M40.3 — the level in force is a FOURTH cause of a coverage gap: a node may have run, logged,
-        // and had its output discarded for being below the captured level. Read from the records, not
-        // the graph: the graph carries no level, and a build-time default is overridden at runtime.
-        var auditLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels);
-
-        telamin.fluxtion.audit.analyser.analyser.topology.NodeCoverage cov =
-                telamin.fluxtion.audit.analyser.analyser.topology.NodeCoverage.of(
-                        declared, logged, Set.of());
-
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("declared", cov.declaredCount());
-        // nothing leaves the denominator silently (M40.2): a number that quietly shrinks is the same
-        // dishonesty as one that quietly includes, and harder to notice because it improves
-        if (!scope.excluded().isEmpty()) {
-            out.put("excludedFromDenominator", scope.excluded());
-            out.put("excludedNote", scope.note());
-        }
-        out.put("covered", cov.covered().size());
-        out.put("uncovered", cov.uncovered().size());
-        out.put("ratio", Math.round(cov.ratio() * 1000) / 1000.0);
-        out.put("recordsScanned", scanned);
-        out.put("scope", filtered ? "current filter" : "whole log");
-        // only when there is actually a gap the level could explain — a caveat attached to a perfect
-        // score is noise, and noise is how a caveat that matters gets skimmed past
-        if (!cov.uncovered().isEmpty()) out.putAll(auditLevel.echo());
-
-        int limit = p.get("limit") instanceof Number n ? Math.max(1, n.intValue()) : 100;
-        List<Map<String, Object>> never = new ArrayList<>();
-        for (String id : cov.uncovered()) {
-            if (never.size() >= limit) break;
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("instanceId", id);
-            var info = onEdt(() -> topology.nodeInfo(id));
-            if (info != null && info.className() != null) entry.put("class", info.className());
-            never.add(entry);
-        }
+        var coverageInput = onEdt(() -> new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
+                topology.fullTopology(), topology.authoredNodeIds(), topology.sourceResolver()));
+        var assessed = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
+                s, filtered, filter.get(), coverageInput);
+        Map<String, Object> out = new LinkedHashMap<>(assessed.echo());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> allNever = (List<Map<String, Object>>) out.get("neverLogged");
+        Integer askedLimit = intOrNull(p.get("limit"));
+        int limit = askedLimit == null ? 100 : Math.max(1, askedLimit);
+        List<Map<String, Object>> never = allNever.stream().limit(limit).toList();
         out.put("neverLogged", never);
-        if (cov.uncovered().size() > never.size()) {
-            out.put("neverLoggedTruncated", cov.uncovered().size() - never.size());
-        }
-        // a node absent from the log may have run silently; say so once rather than let the caller read
-        // this as a list of dead code
-        out.put("note", "a node appears here if it never wrote audit output. That is 'never logged', "
-                + "not proven 'never ran' — a node with no auditLog call, or one whose dirty contract "
-                + "stops it early, is silent by design. Build with addEventAudit(LogLevel.TRACE) to make "
-                + "absence conclusive.");
-        if (cov.buildMismatch()) {
-            out.put("loggedButNotInTopology", cov.loggedButNotInTopology().stream().limit(20).toList());
-            out.put("warning", "instanceIds in the log are absent from the topology — the graphml is "
-                    + "probably from a different build, which makes every other figure here suspect");
-        }
+        if (allNever.size() > never.size()) out.put("neverLoggedTruncated", allNever.size() - never.size());
         return ActionResult.ok("coverage", "coverage", out);
     }
 

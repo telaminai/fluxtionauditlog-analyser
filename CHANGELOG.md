@@ -47,6 +47,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   structured `filter`, `crossings`, and similar call values without flattening them into Java display
   text; existing scalar-only report settings remain compatible.
 
+### Added
+
+- **Report tables now assemble aggregate and coverage calls.** Aggregate buckets carry their metric,
+  population, scope and truncation; coverage exports the complete graph-ordered ledger of covered,
+  uncovered and excluded nodes with the same denominator and caveats as the MCP action. Empty tables
+  state the verb's reason rather than presenting a blank grid.
+
 ## [1.11.0] - 2026-08-27
 
 ### Fixed

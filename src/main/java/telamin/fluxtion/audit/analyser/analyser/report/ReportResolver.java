@@ -177,15 +177,24 @@ public final class ReportResolver {
                     yield unresolved(i, s, "a table's rows are DERIVED (D-I7): its call must name one "
                             + "of " + TABLE_VERBS + ", got '" + verb + "'");
                 }
+                if ("series".equals(verb) && s.call().get("buckets") != null
+                        && s.call().get("crossings") != null) {
+                    yield unresolved(i, s, "a series table needs one row shape — buckets or crossings, not both");
+                }
                 // a malformed highlight rule is a WARNING, not a failure: the table still renders,
                 // un-highlighted, and the echo names the rule (acceptance 7)
                 String warning = null;
                 if (s.rowWhen() != null) {
-                    try {
-                        warning = rowWhenProblem(Expr.parse(s.rowWhen()), s.rowWhen());
-                    } catch (RuntimeException e) {
-                        warning = "rowWhen '" + s.rowWhen() + "' does not parse (" + e.getMessage()
-                                + ") — the table renders without highlighting";
+                    String recordless = recordlessSource(s, verb);
+                    if (recordless != null) {
+                        warning = rowWhenWithoutRecord(recordless);
+                    } else {
+                        try {
+                            warning = rowWhenProblem(Expr.parse(s.rowWhen()), s.rowWhen());
+                        } catch (RuntimeException e) {
+                            warning = "rowWhen '" + s.rowWhen() + "' does not parse (" + e.getMessage()
+                                    + ") — the table renders without highlighting";
+                        }
                     }
                 }
                 yield new SectionResolution(i, s.kind(), true, null, null, warning);
@@ -210,6 +219,23 @@ public final class ReportResolver {
                 + "evaluated against its own record alone, so the window would hold one sample and "
                 + "report a value it never computed; the table renders without highlighting. Compute "
                 + "the window with the 'series' verb and highlight on a plain comparison.";
+    }
+
+    /** The shared refusal for sources whose rows are values rather than records (D-T4). */
+    public static String rowWhenWithoutRecord(String source) {
+        return "rowWhen evaluates against a row's record; " + source
+                + " have none — highlight by columns is not a thing yet";
+    }
+
+    private static String recordlessSource(ReportSpec.SectionSpec section, String verb) {
+        return switch (verb) {
+            case "aggregate" -> "aggregate buckets";
+            case "coverage" -> "coverage rows";
+            case "series" -> section.call().get("crossings") == null
+                    ? section.call().get("buckets") == null ? "series stats" : "series buckets"
+                    : null;
+            default -> null;
+        };
     }
 
     private static boolean inRange(LogIndex idx, int recordIndex) {

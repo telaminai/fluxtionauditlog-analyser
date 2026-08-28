@@ -233,37 +233,82 @@ class ReportVerbTest {
     }
 
     @Test
-    void aNonReadSourceStatesTheGapInsteadOfAnEmptyAnswer() {
-        var s = ReportSpec.SectionSpec.table(Map.of("verb", "aggregate"), List.of(), null, null);
+    void aggregateRowsComeFromTheVerbEchoAndCarryOneScalarLine() {
+        var s = ReportSpec.SectionSpec.table(Map.of("verb", "aggregate", "metric", "count",
+                "groupBy", "dimension"), List.of(), null, null);
         var a = ReportVerb.assembleTable(s, STORE);
-        assertTrue(a.table().rows().isEmpty());
-        assertTrue(a.notes().get(0).contains("not assembled yet"), a.notes().toString());
+        assertFalse(a.table().rows().isEmpty());
+        assertEquals(List.of("key", "count"),
+                a.table().columns().stream().map(ColumnSpec::key).toList());
+        assertTrue(a.table().scalarLine().contains("metric count · groupBy dimension"));
+        assertTrue(a.table().scalarLine().contains("population 4 records (filter: all · scan: index)"));
+    }
+
+    @Test
+    void anAggregateReissuesItsNestedFilterAndTopLevelLimitAfterReportParsing() {
+        var parsed = parse(List.of(Map.of("kind", "table", "call", Map.of(
+                "verb", "aggregate", "metric", "count", "groupBy", "dimension", "limit", 1.0,
+                "filter", Map.of("from", 1_000.0, "dimensions", List.of("Fill", "Quote"))))));
+        var a = ReportVerb.assembleTable(parsed.spec().sections().get(0), STORE);
+
+        assertEquals(1, a.table().rows().size(), "the persisted scalar limit is parsed by the verb");
+        assertTrue(a.table().scalarLine().contains("time 1000–…"));
+        assertTrue(a.table().scalarLine().contains("dims: Fill, Quote"));
+        assertTrue(a.notes().stream().anyMatch(note -> note.contains("truncated")), a.notes().toString());
     }
 
     /**
      * M40.2 / review N1: the PDF is the surface that LEAVES the session, so a coverage ratio printed
      * there without its exclusions would be the one number a stranger cannot sanity-check.
      *
-     * <p>Today it cannot happen — {@code coverage} is a declared TABLE_VERB but only {@code read}
-     * assembles, so a coverage section prints the gap note and no figure at all. This test passes on
-     * that branch AND on the day someone lights coverage up: it then demands the exclusion ride along.
-     * A guard written while the surface is still empty is the only kind that gets written.
+     * <p>The action echo is intentionally a compact gap list, but the exported report needs the whole
+     * ledger: covered and excluded rows are the denominator a reader needs to check the ratio.
      */
     @Test
-    void aCoverageTableEitherPrintsNoFigureOrPrintsWhatItLeftOut() {
+    void coverageTableCarriesTheWholeLedgerAndExclusions() {
         var s = ReportSpec.SectionSpec.table(Map.of("verb", "coverage"), List.of(), null, null);
-        var a = ReportVerb.assembleTable(s, STORE);
+        var a = ReportVerb.assembleTable(s, STORE, filtered -> new ReportVerb.CoverageData(
+                List.of(
+                        Map.of("instanceId", "book", "class", "Book", "status", "covered",
+                                "reason", "wrote audit output"),
+                        Map.of("instanceId", "event", "class", "Event", "status", "excluded",
+                                "reason", "an event class")),
+                "declared 1 · covered 1 · uncovered 0 · ratio 1.0 · 4 records · scope: whole log",
+                List.of("excluded 1 declared item"), null));
 
-        boolean unassembled = a.notes().stream().anyMatch(n -> n.contains("not assembled yet"));
-        if (unassembled) {
-            assertTrue(a.table().rows().isEmpty(), "an unassembled source must print no rows");
-            return;
+        assertEquals(List.of("covered", "excluded"), a.table().rows().stream().map(r -> r.get(2)).toList());
+        assertTrue(a.notes().get(0).contains("excluded"));
+        assertTrue(a.table().scalarLine().contains("ratio 1.0"));
+    }
+
+    @Test
+    void coverageLedgerCapsAndNamesTheOmittedTail() {
+        List<Map<String, Object>> ledger = new java.util.ArrayList<>();
+        for (int i = 0; i < ReportVerb.COVERAGE_TABLE_CAP + 2; i++) {
+            ledger.add(Map.of("instanceId", "node" + i, "status", "covered", "reason", "logged"));
         }
-        assertTrue(a.notes().stream().anyMatch(n -> n.contains("exclud"))
-                        || a.table().columns().stream().anyMatch(c -> c.key().contains("exclud")),
-                "coverage now assembles, so the report must carry what left the denominator (M40.2) — "
-                        + "a ratio alone in an exported PDF cannot be checked by whoever receives it: "
-                        + a.notes());
+        var s = ReportSpec.SectionSpec.table(Map.of("verb", "coverage"), List.of(), null, null);
+        var a = ReportVerb.assembleTable(s, STORE, filtered -> new ReportVerb.CoverageData(
+                ledger, "declared 502", List.of(), null));
+
+        assertEquals(ReportVerb.COVERAGE_TABLE_CAP, a.table().rows().size());
+        assertTrue(a.notes().stream().anyMatch(note -> note.contains("and 2 more")), a.notes().toString());
+    }
+
+    @Test
+    void aggregateRowWhenIsRefusedAtResolutionBecauseBucketsHaveNoRecord() {
+        var s = ReportSpec.SectionSpec.table(Map.of("verb", "aggregate", "groupBy", "dimension"),
+                List.of(), "book.mid > 17", "above cap");
+        var r = ReportResolver.resolve(new ReportSpec("inv", "t", "", "", null, FilterSnapshot.all(),
+                        List.of(s)), STORE.index(), Map.of(), java.util.Set.of(), java.util.Set.of(), null);
+
+        assertTrue(r.sections().get(0).resolved());
+        assertEquals(ReportResolver.rowWhenWithoutRecord("aggregate buckets"), r.sections().get(0).warning());
+        var a = ReportVerb.assembleTable(s, STORE);
+        assertNull(a.table().rowWhen(), "the table must not print a rule it cannot apply");
+        assertFalse(a.table().highlighted().length == 0);
+        assertFalse(java.util.stream.IntStream.range(0, a.table().highlighted().length)
+                .anyMatch(i -> a.table().highlighted()[i]));
     }
 
     // ---- CSV: one writer, raw values ---------------------------------------------------------------

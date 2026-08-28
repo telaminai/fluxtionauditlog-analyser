@@ -289,6 +289,18 @@ public final class ReportsPanel extends JPanel {
                 return c;
             }
         });
+        List<Integer> rowRecords = a.rowRecords();
+        if (!rowRecords.isEmpty()) {
+            t.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                    int row = t.rowAtPoint(e.getPoint());
+                    if (row >= 0 && row < rowRecords.size() && rowRecords.get(row) != null
+                            && rowRecords.get(row) >= 0) {
+                        gotoRecord.accept(rowRecords.get(row));
+                    }
+                }
+            });
+        }
         t.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         JScrollPane sp = new JScrollPane(t);
         sp.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -300,10 +312,17 @@ public final class ReportsPanel extends JPanel {
         // with a screenful of empty grid under it
         sp.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, size.height));
         detail.add(sp);
+        if (a.table().rows().isEmpty()) {
+            String reason = a.table().emptyReason();
+            detail.add(muted(reason == null ? "no rows" : "no rows — " + reason));
+        }
         if (s.rowWhen() != null) {
             // D-I8 on screen exactly as on the page: the emphasis carries its reason
             detail.add(muted((s.rowWhenLabel() == null ? "highlighted" : s.rowWhenLabel())
                     + " — rows where " + s.rowWhen()));
+        }
+        if (a.table().scalarLine() != null && !a.table().scalarLine().isBlank()) {
+            detail.add(muted(a.table().scalarLine()));
         }
         for (String note : a.notes()) detail.add(muted(note));
     }

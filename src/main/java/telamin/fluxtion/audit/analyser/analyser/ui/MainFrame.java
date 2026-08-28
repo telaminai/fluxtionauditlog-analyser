@@ -909,7 +909,7 @@ public final class MainFrame extends JFrame {
                         "csv export needs 'path'");
             }
             var assembled = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
-                    .assembleTable(spec.sections().get(sectionIdx), store);
+                    .assembleTable(spec.sections().get(sectionIdx), store, this::coverageForReport);
             try {
                 Path out = Path.of(resolvedPath);
                 if (out.getParent() != null) Files.createDirectories(out.getParent());
@@ -977,6 +977,35 @@ public final class MainFrame extends JFrame {
         return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
     }
 
+    /**
+     * Coverage's graph facts belong to the UI, but its scoring is pure and shared with the action echo.
+     * The report gets the complete ledger rather than coverage's intentionally short agent-facing gap
+     * list; a PDF reader needs covered and excluded nodes to check the denominator too.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData coverageForReport(
+            boolean filtered) {
+        if (store == null || !topologyPanel.hasTopology()) {
+            return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(
+                    java.util.List.of(), null, java.util.List.of("coverage needs a loaded declared topology"),
+                    "coverage needs a loaded declared topology");
+        }
+        var graphSource = topologyPanel.graphSource();
+        if (graphSource != null && !graphSource.supportsCoverage()
+                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
+            String reason = "this graph was " + graphSource.describe + ", so coverage cannot mean anything: "
+                    + "it subtracts what ran from what was declared, and here the declared set is what ran";
+            return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(
+                    java.util.List.of(), null, java.util.List.of(reason), reason);
+        }
+        var input = new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
+                topologyPanel.fullTopology(), topologyPanel.authoredNodeIds(), topologyPanel.sourceResolver());
+        var assessed = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
+                store, filtered, filter, input);
+        return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(assessed.ledger(),
+                assessed.scalarLine(), assessed.notes(), assessed.ledger().isEmpty()
+                        ? "the topology declares no reportable nodes" : null);
+    }
+
     /** Assemble what each section can show headlessly, and render (M33.3 — see recorded deviations). */
     private byte[] renderReportPdf(telamin.fluxtion.audit.analyser.analyser.report.ReportSpec spec,
                                    telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.Resolution resolution,
@@ -1022,7 +1051,7 @@ public final class MainFrame extends JFrame {
                                 null, null);
                 case TABLE -> {
                     var assembled = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
-                            .assembleTable(s, store);
+                            .assembleTable(s, store, this::coverageForReport);
                     warnings.addAll(assembled.notes());
                     yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
                             "Table", null, null, assembled.table());
@@ -1738,7 +1767,8 @@ public final class MainFrame extends JFrame {
                                         sec.columns(), java.util.List.of(), new boolean[0],
                                         sec.rowWhen(), sec.rowWhenLabel()),
                                 java.util.List.of("no log is loaded"))
-                        : telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.assembleTable(sec, store),
+                        : telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
+                                .assembleTable(sec, store, this::coverageForReport),
                 row -> openRecordFromReport(row),
                 gname -> { sideTabs.setSelectedComponent(graphTabs); graphTabs.selectGraph(gname); },
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },

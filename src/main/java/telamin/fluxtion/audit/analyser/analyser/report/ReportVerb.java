@@ -4,6 +4,7 @@ import telamin.fluxtion.audit.analyser.analyser.graph.Evaluator;
 import telamin.fluxtion.audit.analyser.analyser.graph.Expr;
 import telamin.fluxtion.audit.analyser.analyser.graph.GraphKey;
 import telamin.fluxtion.audit.analyser.analyser.graph.SeriesExtractor;
+import telamin.fluxtion.audit.analyser.analyser.llm.AggregateService;
 import telamin.fluxtion.audit.analyser.analyser.llm.ReadService;
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
@@ -193,13 +194,36 @@ public final class ReportVerb {
 
     // ---- table assembly (D-I7: rows are DERIVED) --------------------------------------------------
 
-    public record AssembledTable(ReportRenderer.TableData table, List<String> notes) {
+    public record AssembledTable(ReportRenderer.TableData table, List<String> notes,
+                                 List<Integer> rowRecords) {
+        public AssembledTable {
+            notes = notes == null ? List.of() : List.copyOf(notes);
+            rowRecords = rowRecords == null ? List.of() : List.copyOf(rowRecords);
+        }
+
+        public AssembledTable(ReportRenderer.TableData table, List<String> notes) {
+            this(table, notes, List.of());
+        }
+    }
+
+    /** The UI supplies coverage's topology-aware ledger; report assembly stays headless and testable. */
+    @FunctionalInterface
+    public interface CoverageSource {
+        CoverageData coverage(boolean filtered);
+    }
+
+    /** Coverage's complete ledger and the scalar line already justified by the coverage computation. */
+    public record CoverageData(List<Map<String, Object>> rows, String scalarLine, List<String> notes,
+                               String emptyReason) {
+        public CoverageData {
+            rows = rows == null ? List.of() : List.copyOf(rows);
+            notes = notes == null ? List.of() : List.copyOf(notes);
+        }
     }
 
     /**
-     * Runs a TABLE section's call and evaluates its highlight rule. {@code read {fields}} is the v1
-     * source; the other declared verbs resolve (M33.1) but assemble in a later slice — the note says
-     * so rather than returning an empty table that looks like an answer.
+     * Runs a TABLE section's call and evaluates its highlight rule. The rows are the action result's
+     * own list: one vocabulary for an agent reading an echo and a human reading its report.
      *
      * <p>D-I8: {@code rowWhen} is evaluated STRICTLY against each row's own record — a fresh
      * evaluator per row, refs looked up in that record's nodeLogs only, no LOCF carry. A ref the
@@ -207,14 +231,22 @@ public final class ReportVerb {
      * cannot be checked against its own row does not fire on it.
      */
     public static AssembledTable assembleTable(ReportSpec.SectionSpec s, LogStore store) {
+        return assembleTable(s, store, null);
+    }
+
+    public static AssembledTable assembleTable(ReportSpec.SectionSpec s, LogStore store,
+                                                CoverageSource coverageSource) {
         List<String> notes = new ArrayList<>();
         String verb = text(s.call().get("verb"));
-        if (!"read".equals(verb)) {
-            notes.add("table source '" + verb + "' is not assembled yet — v1 derives rows from "
-                    + "read {fields}; the section resolves and the gap is stated rather than hidden");
-            return new AssembledTable(new ReportRenderer.TableData(s.columns(), List.of(),
-                    new boolean[0], s.rowWhen(), s.rowWhenLabel()), notes);
-        }
+        if ("read".equals(verb)) return assembleRead(s, store, notes);
+        if ("aggregate".equals(verb)) return assembleAggregate(s, store, notes);
+        if ("coverage".equals(verb)) return assembleCoverage(s, notes, coverageSource);
+        notes.add("table source '" + verb + "' is not assembled");
+        return new AssembledTable(new ReportRenderer.TableData(s.columns(), List.of(),
+                new boolean[0], null, null, null, "the source is not available"), notes);
+    }
+
+    private static AssembledTable assembleRead(ReportSpec.SectionSpec s, LogStore store, List<String> notes) {
         Map<String, Object> callParams = new LinkedHashMap<>();
         for (var e : s.call().entrySet()) {
             if (e.getKey().equals("verb")) continue;
@@ -227,7 +259,8 @@ public final class ReportVerb {
         if (!callParams.containsKey("fields")) {
             notes.add("the call names no 'fields' — a table needs projected columns; rows are empty");
             return new AssembledTable(new ReportRenderer.TableData(s.columns(), List.of(),
-                    new boolean[0], s.rowWhen(), s.rowWhenLabel()), notes);
+                    new boolean[0], s.rowWhen(), s.rowWhenLabel(), null,
+                    "the call names no projected fields"), notes);
         }
         Map<String, Object> result = ReadService.read(store.index().snapshot(), callParams, store::rawText);
         Object note = result.get("note");
@@ -249,7 +282,49 @@ public final class ReportVerb {
             rowRecords.add((Integer) r.get("recordIndex"));
         }
 
-        boolean[] hot = new boolean[rows.size()];
+        boolean[] hot = highlights(s, store, rowRecords, notes);
+        return new AssembledTable(new ReportRenderer.TableData(cols, rows, hot,
+                s.rowWhen(), s.rowWhenLabel(), null, "read returned no records"), notes, rowRecords);
+    }
+
+    private static AssembledTable assembleAggregate(ReportSpec.SectionSpec s, LogStore store, List<String> notes) {
+        Map<String, Object> params = callParams(s, false);
+        Map<String, Object> result = AggregateService.aggregate(store.index().snapshot(), params, store::rawText);
+        List<Map<String, Object>> buckets = mapList(result.get("buckets"));
+        List<ReportSpec.ColumnSpec> cols = s.columns().isEmpty()
+                ? aggregateColumns(result) : s.columns();
+        List<List<String>> rows = rows(buckets, cols);
+        if (result.get("truncated") != null) {
+            notes.add("truncated: " + result.get("truncated") + " more buckets than limit");
+        }
+        return new AssembledTable(new ReportRenderer.TableData(cols, rows, new boolean[rows.size()],
+                null, null, aggregateScalars(result), "aggregate returned no buckets for this population"), notes);
+    }
+
+    private static AssembledTable assembleCoverage(ReportSpec.SectionSpec s, List<String> notes,
+                                                   CoverageSource coverageSource) {
+        if (coverageSource == null) {
+            notes.add("coverage needs a loaded declared topology");
+            return new AssembledTable(new ReportRenderer.TableData(coverageColumns(), List.of(), new boolean[0],
+                    null, null, null, "coverage needs a loaded declared topology"), notes);
+        }
+        boolean filtered = Boolean.parseBoolean(String.valueOf(s.call().get("filtered")));
+        CoverageData data = coverageSource.coverage(filtered);
+        notes.addAll(data.notes());
+        List<ReportSpec.ColumnSpec> cols = s.columns().isEmpty() ? coverageColumns() : s.columns();
+        int shown = Math.min(COVERAGE_TABLE_CAP, data.rows().size());
+        if (data.rows().size() > shown) {
+            notes.add("coverage ledger capped at " + COVERAGE_TABLE_CAP + " rows — and "
+                    + (data.rows().size() - shown) + " more");
+        }
+        List<List<String>> rows = rows(data.rows().subList(0, shown), cols);
+        return new AssembledTable(new ReportRenderer.TableData(cols, rows, new boolean[rows.size()],
+                null, null, data.scalarLine(), data.emptyReason()), notes);
+    }
+
+    private static boolean[] highlights(ReportSpec.SectionSpec s, LogStore store, List<Integer> rowRecords,
+                                        List<String> notes) {
+        boolean[] hot = new boolean[rowRecords.size()];
         if (s.rowWhen() != null) {
             try {
                 Expr rule = Expr.parse(s.rowWhen());
@@ -270,12 +345,88 @@ public final class ReportVerb {
                 // resolution already carries this as a warning (acceptance 7); render un-highlighted
             }
         }
-        return new AssembledTable(new ReportRenderer.TableData(cols, rows, hot,
-                s.rowWhen(), s.rowWhenLabel()), notes);
+        return hot;
+    }
+
+    private static Map<String, Object> callParams(ReportSpec.SectionSpec s, boolean readFields) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        for (var e : s.call().entrySet()) {
+            if ("verb".equals(e.getKey())) continue;
+            params.put(e.getKey(), readFields && "fields".equals(e.getKey()) ? fields(e.getValue()) : e.getValue());
+        }
+        return params;
+    }
+
+    private static List<Map<String, Object>> mapList(Object value) {
+        if (!(value instanceof List<?> list)) return List.of();
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                Map<String, Object> copy = new LinkedHashMap<>();
+                for (var e : map.entrySet()) if (e.getKey() != null) copy.put(e.getKey().toString(), e.getValue());
+                out.add(copy);
+            }
+        }
+        return out;
+    }
+
+    private static List<List<String>> rows(List<Map<String, Object>> source,
+                                           List<ReportSpec.ColumnSpec> columns) {
+        List<List<String>> rows = new ArrayList<>();
+        for (Map<String, Object> row : source) {
+            List<String> cells = new ArrayList<>(columns.size());
+            for (ReportSpec.ColumnSpec column : columns) cells.add(cell(row, column.key()));
+            rows.add(cells);
+        }
+        return rows;
+    }
+
+    private static List<ReportSpec.ColumnSpec> aggregateColumns(Map<String, Object> result) {
+        List<ReportSpec.ColumnSpec> cols = new ArrayList<>();
+        cols.add(new ReportSpec.ColumnSpec("key", "key", "", "left", "", 0));
+        cols.add(new ReportSpec.ColumnSpec("count", "count", "", "right", "", 0));
+        if ("rate_per_min".equals(text(result.get("metric")))) {
+            cols.add(new ReportSpec.ColumnSpec("rate_per_min", "rate/min", "0.000", "right", "", 0));
+        }
+        return cols;
+    }
+
+    private static List<ReportSpec.ColumnSpec> coverageColumns() {
+        return List.of(
+                new ReportSpec.ColumnSpec("instanceId", "instance", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("class", "class", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("status", "status", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("reason", "reason", "", "left", "", 0));
+    }
+
+    private static String aggregateScalars(Map<String, Object> result) {
+        Map<?, ?> population = result.get("population") instanceof Map<?, ?> map ? map : Map.of();
+        return "metric " + text(result.get("metric")) + " · groupBy " + text(result.get("groupBy"))
+                + " · total " + text(result.get("total")) + " · population "
+                + text(population.get("records")) + " records (" + filterDescription(population.get("filter"))
+                + " · scan: " + text(population.get("scan")) + ")";
+    }
+
+    private static String filterDescription(Object value) {
+        if (!(value instanceof Map<?, ?> filter)) return "filter: all";
+        List<String> bits = new ArrayList<>();
+        if (filter.get("from") != null || filter.get("to") != null) {
+            bits.add("time " + (filter.get("from") == null ? "…" : filter.get("from")) + "–"
+                    + (filter.get("to") == null ? "…" : filter.get("to")));
+        }
+        if (filter.get("dimensions") instanceof List<?> dimensions && !dimensions.isEmpty()) {
+            bits.add("dims: " + String.join(", ", dimensions.stream().map(Object::toString).toList()));
+        }
+        if (filter.get("text") != null && !filter.get("text").toString().isBlank()) {
+            bits.add("text: " + filter.get("text"));
+        }
+        return bits.isEmpty() ? "filter: all" : "filter: " + String.join(", ", bits);
     }
 
     /** Rows per marker series the PDF table shows before capping (D-M3: the cap names the rest). */
     public static final int MARKER_TABLE_CAP = 200;
+    /** Full coverage ledgers are useful, but a synthetic estate must still name its truncated tail. */
+    public static final int COVERAGE_TABLE_CAP = 500;
 
     /**
      * The markers riding a chart as a TABLE — label, glyph, time, payload, record — so a printed

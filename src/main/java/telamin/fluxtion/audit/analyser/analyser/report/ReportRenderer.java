@@ -71,10 +71,16 @@ public final class ReportRenderer {
      * not have — the renderer only draws the verdicts and PRINTS the rule).
      */
     public record TableData(List<ReportSpec.ColumnSpec> columns, List<List<String>> rows,
-                            boolean[] highlighted, String rowWhen, String rowWhenLabel) {
+                            boolean[] highlighted, String rowWhen, String rowWhenLabel,
+                            String scalarLine, String emptyReason) {
         public TableData {
             columns = columns == null ? List.of() : List.copyOf(columns);
             rows = rows == null ? List.of() : List.copyOf(rows);
+        }
+
+        public TableData(List<ReportSpec.ColumnSpec> columns, List<List<String>> rows,
+                         boolean[] highlighted, String rowWhen, String rowWhenLabel) {
+            this(columns, rows, highlighted, rowWhen, rowWhenLabel, null, null);
         }
     }
 
@@ -193,7 +199,9 @@ public final class ReportRenderer {
             }
         }
         if (t.rows().isEmpty()) {
-            doc.text("(no rows)", MARGIN + 8, c.y + 10, PdfDoc.Face.HELVETICA, 9f, MUTED);
+            String reason = t.emptyReason() == null ? "no rows" : "no rows — " + t.emptyReason();
+            doc.text(PdfDoc.clip(reason, PdfDoc.Face.HELVETICA, 9f, CONTENT_W - 16),
+                    MARGIN + 8, c.y + 10, PdfDoc.Face.HELVETICA, 9f, MUTED);
             c.y += 20;
         }
         // D-I8: every emphasis that carries meaning carries its reason ON THE PAGE. A highlighted
@@ -207,6 +215,12 @@ public final class ReportRenderer {
                             PdfDoc.Face.HELVETICA, 8f, CONTENT_W - 16),
                     MARGIN + 13, c.y + 9, PdfDoc.Face.HELVETICA, 8f, MUTED);
             c.y += 18;
+        }
+        if (t.scalarLine() != null && !t.scalarLine().isBlank()) {
+            c.ensure(doc, 16);
+            doc.text(PdfDoc.clip(t.scalarLine(), PdfDoc.Face.HELVETICA, 8f, CONTENT_W),
+                    MARGIN, c.y + 9, PdfDoc.Face.HELVETICA, 8f, MUTED);
+            c.y += 16;
         }
         c.y += 8;
     }

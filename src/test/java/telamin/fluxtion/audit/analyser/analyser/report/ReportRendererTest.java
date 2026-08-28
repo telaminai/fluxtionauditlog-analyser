@@ -126,6 +126,20 @@ class ReportRendererTest {
     }
 
     @Test
+    void aTablePrintsTheSameProvidedScalarLineAndItsEmptyReason() {
+        String scalar = "SCALAR-LINE-MARKER";
+        ReportSpec spec = spec(SectionSpec.table(Map.of("verb", "aggregate"), List.of(), null, null));
+        ReportRenderer.TableData empty = new ReportRenderer.TableData(
+                List.of(new ColumnSpec("key", "key", "", "", "")), List.of(), new boolean[0],
+                null, null, scalar, "empty result");
+        String pdf = body(ReportRenderer.render(spec, resolve(spec, Map.of()),
+                List.of(new ReportRenderer.SectionContent("Aggregate", null, null, empty)), "demo.yaml", null));
+
+        assertTrue(pdf.contains(scalar), "the renderer receives the scalar string assembled for the panel");
+        assertTrue(pdf.contains("empty result"), "the PDF names why the table has no rows");
+    }
+
+    @Test
     void declaredFormatsAreApplied() {
         assertEquals("1.50", ReportRenderer.formatCell("1.5", "0.00"));
         assertEquals("1,250", ReportRenderer.formatCell("1250", "0"));
