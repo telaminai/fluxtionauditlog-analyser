@@ -226,7 +226,15 @@ public final class SeriesScan {
     }
 
     private static Long asLong(Object o) {
-        return o instanceof Number n ? n.longValue() : null;
+        if (o instanceof Number n) return n.longValue();
+        if (o instanceof String s) {
+            try {
+                return Long.parseLong(s.trim());
+            } catch (NumberFormatException ignored) {
+                // A persisted scalar is deliberately text; malformed text stays an absent optional value.
+            }
+        }
+        return null;
     }
 
     private static Double asDouble(Object o) {

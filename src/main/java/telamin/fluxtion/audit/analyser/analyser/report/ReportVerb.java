@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.report;
 import telamin.fluxtion.audit.analyser.analyser.graph.Evaluator;
 import telamin.fluxtion.audit.analyser.analyser.graph.Expr;
 import telamin.fluxtion.audit.analyser.analyser.graph.GraphKey;
+import telamin.fluxtion.audit.analyser.analyser.graph.SeriesScan;
 import telamin.fluxtion.audit.analyser.analyser.graph.SeriesExtractor;
 import telamin.fluxtion.audit.analyser.analyser.llm.AggregateService;
 import telamin.fluxtion.audit.analyser.analyser.llm.ReadService;
@@ -241,6 +242,7 @@ public final class ReportVerb {
         if ("read".equals(verb)) return assembleRead(s, store, notes);
         if ("aggregate".equals(verb)) return assembleAggregate(s, store, notes);
         if ("coverage".equals(verb)) return assembleCoverage(s, notes, coverageSource);
+        if ("series".equals(verb)) return assembleSeries(s, store, notes);
         notes.add("table source '" + verb + "' is not assembled");
         return new AssembledTable(new ReportRenderer.TableData(s.columns(), List.of(),
                 new boolean[0], null, null, null, "the source is not available"), notes);
@@ -322,6 +324,40 @@ public final class ReportVerb {
                 null, null, data.scalarLine(), data.emptyReason()), notes);
     }
 
+    private static AssembledTable assembleSeries(ReportSpec.SectionSpec s, LogStore store, List<String> notes) {
+        if (s.call().get("buckets") != null && s.call().get("crossings") != null) {
+            String reason = "a series table needs one row shape — buckets or crossings, not both";
+            return new AssembledTable(new ReportRenderer.TableData(s.columns(), List.of(), new boolean[0],
+                    null, null, null, reason), List.of(reason));
+        }
+        Map<String, Object> result = SeriesScan.scan(store, callParams(s, false));
+        String scalars = seriesScalars(result);
+        if (s.call().get("crossings") != null) {
+            Map<?, ?> crossings = result.get("crossings") instanceof Map<?, ?> map ? map : Map.of();
+            List<Map<String, Object>> source = crossingRows(crossings);
+            List<ReportSpec.ColumnSpec> cols = s.columns().isEmpty() ? crossingColumns(source) : s.columns();
+            List<List<String>> rows = rows(source, cols);
+            List<Integer> anchors = source.stream().map(row -> intValue(row.get("recordIndex"))).toList();
+            Object note = crossings.get("note");
+            if (note != null) notes.add(note.toString());
+            return new AssembledTable(new ReportRenderer.TableData(cols, rows, highlights(s, store, anchors, notes),
+                    s.rowWhen(), s.rowWhenLabel(), crossingScalars(scalars, crossings),
+                    "series found no crossings in this scope"), notes, anchors);
+        }
+        if (s.call().get("buckets") != null) {
+            List<Map<String, Object>> source = mapList(result.get("buckets"));
+            List<ReportSpec.ColumnSpec> cols = s.columns().isEmpty() ? seriesBucketColumns() : s.columns();
+            List<List<String>> rows = rows(source, cols);
+            return new AssembledTable(new ReportRenderer.TableData(cols, rows, new boolean[rows.size()],
+                    null, null, scalars, "series produced no buckets in this scope"), notes);
+        }
+        Map<String, Object> stats = result.get("stats") instanceof Map<?, ?> map ? mapCopy(map) : Map.of();
+        List<ReportSpec.ColumnSpec> cols = s.columns().isEmpty() ? seriesStatsColumns() : s.columns();
+        List<List<String>> rows = stats.isEmpty() ? List.of() : rows(List.of(stats), cols);
+        return new AssembledTable(new ReportRenderer.TableData(cols, rows, new boolean[rows.size()],
+                null, null, scalars, "series produced no finite points in this scope"), notes);
+    }
+
     private static boolean[] highlights(ReportSpec.SectionSpec s, LogStore store, List<Integer> rowRecords,
                                         List<String> notes) {
         boolean[] hot = new boolean[rowRecords.size()];
@@ -370,6 +406,26 @@ public final class ReportVerb {
         return out;
     }
 
+    private static Map<String, Object> mapCopy(Map<?, ?> map) {
+        Map<String, Object> copy = new LinkedHashMap<>();
+        for (var e : map.entrySet()) if (e.getKey() != null) copy.put(e.getKey().toString(), e.getValue());
+        return copy;
+    }
+
+    private static List<Map<String, Object>> crossingRows(Map<?, ?> crossings) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (String direction : List.of("above", "below")) {
+            for (Map<String, Object> event : mapList(crossings.get(direction + "Events"))) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("direction", direction);
+                row.putAll(event);
+                rows.add(row);
+            }
+        }
+        rows.sort(java.util.Comparator.comparingLong(row -> longValue(row.get("logTime"))));
+        return rows;
+    }
+
     private static List<List<String>> rows(List<Map<String, Object>> source,
                                            List<ReportSpec.ColumnSpec> columns) {
         List<List<String>> rows = new ArrayList<>();
@@ -399,12 +455,58 @@ public final class ReportVerb {
                 new ReportSpec.ColumnSpec("reason", "reason", "", "left", "", 0));
     }
 
+    private static List<ReportSpec.ColumnSpec> seriesBucketColumns() {
+        return List.of(
+                new ReportSpec.ColumnSpec("key", "bucket", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("count", "count", "", "right", "", 0),
+                new ReportSpec.ColumnSpec("min", "min", "0.000", "right", "", 0),
+                new ReportSpec.ColumnSpec("max", "max", "0.000", "right", "", 0),
+                new ReportSpec.ColumnSpec("mean", "mean", "0.000", "right", "", 0));
+    }
+
+    private static List<ReportSpec.ColumnSpec> crossingColumns(List<Map<String, Object>> rows) {
+        List<ReportSpec.ColumnSpec> cols = new ArrayList<>(List.of(
+                new ReportSpec.ColumnSpec("direction", "direction", "", "left", "", 0),
+                new ReportSpec.ColumnSpec("logTime", "time (UTC)", "time", "", "", 0),
+                new ReportSpec.ColumnSpec("recordIndex", "record", "", "right", "", 0),
+                new ReportSpec.ColumnSpec("byteOffset", "byte offset", "", "right", "", 0),
+                new ReportSpec.ColumnSpec("value", "value", "0.000", "right", "", 0)));
+        if (rows.stream().anyMatch(row -> row.get("file") != null)) {
+            cols.add(new ReportSpec.ColumnSpec("file", "file", "", "left", "", 0));
+        }
+        return cols;
+    }
+
+    private static List<ReportSpec.ColumnSpec> seriesStatsColumns() {
+        return List.of(
+                new ReportSpec.ColumnSpec("min", "min", "0.000", "right", "", 0),
+                new ReportSpec.ColumnSpec("minAt", "min at (UTC)", "time", "", "", 0),
+                new ReportSpec.ColumnSpec("max", "max", "0.000", "right", "", 0),
+                new ReportSpec.ColumnSpec("maxAt", "max at (UTC)", "time", "", "", 0),
+                new ReportSpec.ColumnSpec("mean", "mean", "0.000", "right", "", 0),
+                new ReportSpec.ColumnSpec("first", "first", "0.000", "right", "", 0),
+                new ReportSpec.ColumnSpec("firstAt", "first at (UTC)", "time", "", "", 0),
+                new ReportSpec.ColumnSpec("last", "last", "0.000", "right", "", 0),
+                new ReportSpec.ColumnSpec("lastAt", "last at (UTC)", "time", "", "", 0));
+    }
+
     private static String aggregateScalars(Map<String, Object> result) {
         Map<?, ?> population = result.get("population") instanceof Map<?, ?> map ? map : Map.of();
         return "metric " + text(result.get("metric")) + " · groupBy " + text(result.get("groupBy"))
                 + " · total " + text(result.get("total")) + " · population "
                 + text(population.get("records")) + " records (" + filterDescription(population.get("filter"))
                 + " · scan: " + text(population.get("scan")) + ")";
+    }
+
+    private static String seriesScalars(Map<String, Object> result) {
+        return "expr " + text(result.get("expr")) + " · resolve " + text(result.get("resolve"))
+                + " · " + text(result.get("points")) + " points";
+    }
+
+    private static String crossingScalars(String standard, Map<?, ?> crossings) {
+        int above = mapList(crossings.get("aboveEvents")).size();
+        int below = mapList(crossings.get("belowEvents")).size();
+        return standard + " · above " + above + " · below " + below;
     }
 
     private static String filterDescription(Object value) {
@@ -515,6 +617,30 @@ public final class ReportVerb {
 
     private static String text(Object o) {
         return o == null ? null : o.toString();
+    }
+
+    private static Integer intValue(Object value) {
+        if (value instanceof Number n) return n.intValue();
+        if (value instanceof String s) {
+            try {
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static long longValue(Object value) {
+        if (value instanceof Number n) return n.longValue();
+        if (value instanceof String s) {
+            try {
+                return Long.parseLong(s.trim());
+            } catch (NumberFormatException ignored) {
+                // Rows without a time sort last; this is an input shape problem, not a reason to drop one.
+            }
+        }
+        return Long.MAX_VALUE;
     }
 
     private static Integer asInt(Object o) {

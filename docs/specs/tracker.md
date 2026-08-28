@@ -299,7 +299,9 @@ Design: **[completed/spec-investigation-reports.md](completed/spec-investigation
   **.7a ☑ 2026-08-28:** structured calls persist as JSON values in the existing flat properties slots; legacy
   scalar-only reports still reopen unchanged. **.7b ☑ 2026-08-28:** aggregate and coverage tables now
   assemble from their action data; one scalar line feeds both the Reports tab and PDF, coverage carries
-  its whole graph-ordered ledger, and record-less `rowWhen` refuses with a named warning. **.7c in progress.**
+  its whole graph-ordered ledger, and record-less `rowWhen` refuses with a named warning. **.7c ☑
+  2026-08-28:** series buckets, crossings and stats tables assemble; crossings navigate to their record
+  and can use `rowWhen`, while a call that names both shapes refuses. **.7d in progress.**
 - [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
   otherwise verb-only)_ · **chooser dialog for external marker CSVs** —
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether

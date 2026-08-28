@@ -53,6 +53,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   population, scope and truncation; coverage exports the complete graph-ordered ledger of covered,
   uncovered and excluded nodes with the same denominator and caveats as the MCP action. Empty tables
   state the verb's reason rather than presenting a blank grid.
+- **Report tables now assemble all three series shapes.** Bucket, crossing, and whole-window statistic
+  tables use the series verb's own result data. Crossing rows link back to their source records and
+  retain `rowWhen`; ambiguous bucket-plus-crossing calls refuse explicitly.
 
 ## [1.11.0] - 2026-08-27
 

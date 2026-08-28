@@ -311,6 +311,47 @@ class ReportVerbTest {
                 .anyMatch(i -> a.table().highlighted()[i]));
     }
 
+    @Test
+    void seriesBucketsAndStatsUseTheirDistinctEchoShapes() {
+        var buckets = ReportVerb.assembleTable(ReportSpec.SectionSpec.table(
+                Map.of("verb", "series", "expr", "book.mid", "buckets", "minute"),
+                List.of(), null, null), STORE);
+        assertEquals(List.of("key", "count", "min", "max", "mean"),
+                buckets.table().columns().stream().map(ColumnSpec::key).toList());
+        assertEquals(1, buckets.table().rows().size());
+        assertTrue(buckets.table().scalarLine().contains("expr book.mid · resolve STRICT · 4 points"));
+
+        var stats = ReportVerb.assembleTable(ReportSpec.SectionSpec.table(
+                Map.of("verb", "series", "expr", "book.mid"), List.of(), null, null), STORE);
+        assertEquals(1, stats.table().rows().size());
+        assertEquals(List.of("min", "minAt", "max", "maxAt", "mean", "first", "firstAt", "last", "lastAt"),
+                stats.table().columns().stream().map(ColumnSpec::key).toList());
+    }
+
+    @Test
+    void seriesCrossingsKeepRecordAnchorsAndApplyRowWhen() {
+        var section = ReportSpec.SectionSpec.table(Map.of("verb", "series", "expr", "book.mid",
+                "crossings", Map.of("above", 17.25)), List.of(), "book.mid > 17.25", "above cap");
+        var table = ReportVerb.assembleTable(section, STORE);
+
+        assertEquals(List.of(2), table.rowRecords(), "a crossing row is a navigation surface");
+        assertEquals(List.of("above"), table.table().rows().stream().map(row -> row.get(0)).toList());
+        assertArrayEquals(new boolean[]{true}, table.table().highlighted());
+        assertTrue(table.table().scalarLine().contains("above 1 · below 0"));
+    }
+
+    @Test
+    void seriesWithBothRowShapesDoesNotResolveToAnArbitraryTable() {
+        var section = ReportSpec.SectionSpec.table(Map.of("verb", "series", "expr", "book.mid",
+                "buckets", "minute", "crossings", Map.of("above", 17.25)), List.of(), null, null);
+        var resolved = ReportResolver.resolve(new ReportSpec("inv", "t", "", "", null, FilterSnapshot.all(),
+                        List.of(section)), STORE.index(), Map.of(), java.util.Set.of(), java.util.Set.of(), null);
+
+        assertFalse(resolved.sections().get(0).resolved());
+        assertEquals("a series table needs one row shape — buckets or crossings, not both",
+                resolved.sections().get(0).reason());
+    }
+
     // ---- CSV: one writer, raw values ---------------------------------------------------------------
 
     @Test
