@@ -316,10 +316,13 @@ public final class ReportsPanel extends JPanel {
             String reason = a.table().emptyReason();
             detail.add(muted(reason == null ? "no rows" : "no rows — " + reason));
         }
-        if (s.rowWhen() != null) {
-            // D-I8 on screen exactly as on the page: the emphasis carries its reason
-            detail.add(muted((s.rowWhenLabel() == null ? "highlighted" : s.rowWhenLabel())
-                    + " — rows where " + s.rowWhen()));
+        if (a.table().rowWhen() != null) {
+            // D-I8 on screen exactly as on the page: the emphasis carries its reason. The rule is read
+            // from the ASSEMBLED table, not the section — a rowWhen refused for a record-less source
+            // (D-T4) reaches TableData as null, and printing the section's rule over a table that never
+            // evaluated it would be a label claiming an emphasis that never ran.
+            detail.add(muted((a.table().rowWhenLabel() == null ? "highlighted" : a.table().rowWhenLabel())
+                    + " — rows where " + a.table().rowWhen()));
         }
         if (a.table().scalarLine() != null && !a.table().scalarLine().isBlank()) {
             detail.add(muted(a.table().scalarLine()));

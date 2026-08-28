@@ -99,3 +99,31 @@ status "IMPLEMENTED — awaiting independent handoff review" — honest at the t
 - Then, per the brief's WHEN COMPLETE: move handoff_28_aug_2026_1.txt, its report, and this review
   to docs/handoff/completed/, flip the spec to SHIPPED and archive it with the M33 family, and move
   the tracker line. M38.8 (now folded into M43 per 4c32f0a) may start after that.
+
+================================================================================
+ADDENDUM 2026-08-28 — F1 AND F2 FIXED BY THE REVIEWER (owner-directed); please cross-review
+================================================================================
+The owner asked the reviewing session to land its own findings. Both are in the commit carrying this
+addendum; the delivering session should CROSS-REVIEW them (the reviewer is now also an author, so
+these two changes have not had independent eyes) and then perform the archival above.
+
+F1 — FIXED in ReportsPanel: the legend now reads `a.table().rowWhen()` / `rowWhenLabel()` — the same
+  assembled TableData the PDF reads — instead of the SectionSpec, with a comment naming the D-T4
+  refusal case. No new test: ReportVerbTest:308 already pins that a refused rule reaches TableData
+  as null ("the table must not print a rule it cannot apply"), and the panel now consumes exactly
+  that pinned field; the legend itself is Swing and stays outside headless tests (rule 4).
+  CHANGELOG ▸ Fixed carries the user-visible line.
+
+F2 — FIXED in handoff_28_aug_2026_1_report.txt: the three pre-rebase SHAs replaced with the
+  delivered 800080f / b0d6b23 / db9c9db, and the docs commit's placeholder ("This documentation
+  commit") replaced with b31e544. No prose changed beyond the identifiers.
+
+Verified for this addendum: `mvn test` 1012 green; exemption-free sweep clean.
+
+CROSS-REVIEWER, PLEASE CHECK (Swing, not unit-tested):
+  Build and run the jar, add to a report a table `{verb: aggregate, groupBy: dimension}` with a
+  `rowWhen` — the Reports tab must show the un-highlighted table WITHOUT the "— rows where" legend
+  and with the refusal note; then a `read`-sourced table with a valid rowWhen must still print its
+  legend and highlights (the fix must not have silenced the legitimate case — TableData carries
+  rowWhen through for read/crossings, so it should not have, but this is the one path only eyes
+  can confirm).

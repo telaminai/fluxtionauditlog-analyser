@@ -36,6 +36,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 
 ### Fixed
+- **A refused table highlight rule no longer prints its legend on screen.** When a `rowWhen` is refused
+  because the table's rows have no records (aggregate buckets, coverage rows, series buckets/stats),
+  the Reports tab no longer prints "… — rows where …" under the un-highlighted table; the screen now
+  matches the PDF, which was already correctly silent.
+
 - **A secret on the analyser's own command line can no longer reach an AI client's config file.** The
   MCP bridge command reconstructed from a `java -jar` launch copied every JVM option before `-jar`, and
   that command is written into the client's own configuration (`claude mcp add`, Codex) and offered for
