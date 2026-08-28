@@ -315,7 +315,11 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
 ## M43 · The AI menu — follow-up (COMPLETE 2026-08-28; the milestone is in completed/tracker.md, design **[completed/spec-ai-menu.md](completed/spec-ai-menu.md)**)
 - ☐ **Owner question: the menu's name** — shipped as `AI` (proposed over *AI assistant*, since "assistant" names the
   in-app panel and the docs nav settled on *Working with AI*). Rename is a one-line change if the owner prefers otherwise.
-- ☐ The ledger entry for `ac6a559` (the status light polls) is open for a reviewer — `docs/handoff/unreviewed-changes.md`.
+- ☐ **D-AI9 wording addendum (owner's call, from the `c4d1db3` review)** — the light's reclaim is a POLICY: when the
+  window owning the endpoint closes, the survivor re-publishes and an AI client mid-session silently reaches the
+  survivor's log, where a person sees the light change. Both reviewers judge it the right policy (a dead endpoint hides
+  the same change behind a hard failure); the spec should name the residual, not only the choice. One line in
+  `completed/spec-ai-menu.md` ▸ D-AI9; no code.
 
 ## M39 · Baselines — "is this normal here?" — ☐ SPEC'D 2026-08-27 (owner decision 4; spec **[spec-baselines.md](spec-baselines.md)**)
 - [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
@@ -483,7 +487,9 @@ table sources and **M43** the AI menu (+ M38.8), both reviewed SOUND on main, un
 withdrawn. Open on main: two ledger entries (`ac6a559` the status-light poll; `7e8e859` the Mongoose spec addendum)
 and the M43 menu-name question for the owner._
 
-1. **Review the two open ledger entries**, then **release** — `[Unreleased]` already carries M33.7 + M43 + two fixes.
+1. **Release 1.12.0** — gates passed 2026-08-28: 1069 green, `mkdocs --strict`, sweep, ledger clear (archived to
+   `handoff/completed/unreviewed-changes-2026-08.md`), eyeball CHECK C passed by the owner (ready → elsewhere in amber →
+   ready in green). `[Unreleased]` carries M33.7 + M43 + three fixes.
 2. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
 3. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
    written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`

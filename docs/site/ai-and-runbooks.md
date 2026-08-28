@@ -224,6 +224,9 @@ The status bar carries a light that answers exactly that:
 | **MCP starting** (amber) | enabled, but no live endpoint published yet |
 | **MCP off** (grey) | the local transport is off — a choice, not a fault |
 
+If the window that owns the endpoint **closes**, a window whose transport is on takes the endpoint back within a few
+seconds and its light returns to **MCP ready** — a live owner is never displaced, so two windows cannot fight over it.
+
 *Ready* is not *connected*. This window being reachable and a client actually talking to it are two
 different facts: the first is true continuously, the second only at the moment you measure it. If you
 want the second, *AI ▸ Connect an AI client…* runs a real probe and tells you when it ran.

@@ -111,6 +111,9 @@ Do these in order; each one isolates a different part of the chain.
 | **MCP starting** | enabled, but no live endpoint published yet |
 | **MCP off** | the transport is off — tick *AI ▸ Local MCP / REST enabled* |
 
+If the window that owns the endpoint **closes**, a window whose transport is on takes the endpoint back within a few
+seconds and its light returns to **MCP ready** — a live owner is never displaced, so two windows cannot fight over it.
+
 *Ready* is not *connected*: this window being reachable and a client actually talking to it are different
 facts, and only the second needs a probe. **MCP elsewhere** is the one that quietly wastes time — two
 analysers open, and the answers are about the other one.
