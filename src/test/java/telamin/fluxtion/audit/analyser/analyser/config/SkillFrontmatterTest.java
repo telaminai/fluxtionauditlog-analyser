@@ -123,4 +123,27 @@ class SkillFrontmatterTest {
         Files.writeString(big, "# not frontmatter\n" + "filler\n".repeat(200_000));
         assertTrue(SkillFrontmatter.read(big).isEmpty());
     }
+
+    @Test
+    void aPointerMayTargetASKILLfileInADotDirectory_becauseTheDOCSsaySoItCan() {
+        // "Write runbooks in the skill shape" tells people a pointer can be
+        // `.claude/skills/restart/SKILL.md`, so one file is both the team's runbook and a Claude Code
+        // skill. Nothing pinned that: tighten the path rules and the docs quietly become a lie, which is
+        // worse than a refusal because the reader trusts it.
+        for (String path : java.util.List.of(
+                ".claude/skills/restart/SKILL.md",
+                ".claude/skills/restart-quote-service/SKILL.md",
+                ".agents/skills/deploy/SKILL.md",
+                "ops/restart-quote-service.md")) {
+            assertTrue(Runbooks.refuse("restart", path).isEmpty(),
+                    "the docs promise this path works, and the gate refuses it: " + path);
+        }
+    }
+
+    @Test
+    void aDotDotEscapeIsStillRefused_theDotDirectoryAllowanceIsNotAHole() {
+        // allowing a leading dot must not have opened the traversal it was never meant to
+        assertTrue(Runbooks.refuse("x", ".claude/../../etc/passwd").isPresent());
+        assertTrue(Runbooks.refuse("x", "../secrets.md").isPresent());
+    }
 }
