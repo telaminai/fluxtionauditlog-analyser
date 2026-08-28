@@ -1,0 +1,83 @@
+REVIEW — main @ 27835ba: M42 (connect an AI client via MCP bridge setup), shipped in 1.11.0
+Reviewer: the first session · Date: 2026-08-28 · Range 7db2fe1..27835ba (23 commits, ~4000 lines)
+
+VERDICT: **SOUND — one finding, fixed here (F1), a credential-leak path the codebase already knew how
+to close.** The architecture is the right one and the two riskiest decisions are both correct. 1000 green.
+
+================================================================================
+1. THE TWO DECISIONS THAT MATTERED, AND BOTH ARE RIGHT
+================================================================================
+**It never edits the client's config file.** `ClaudeMcpClient` and `CodexMcpClient` shell out to the
+client's own CLI (`claude mcp add`, `codex`) and say so in the javadoc — *"Claude Code owns
+~/.claude.json; this class never parses or edits it."* That is the correct call and not the obvious one:
+parsing another tool's config is easy to do and impossible to keep right across their releases. The
+analyser writes nothing it does not own.
+
+**No shell anywhere.** Every launch goes through `ProcessBuilder(List<String>)` — probe, both clients,
+the bridge. A jar path with a space or a quote is an argument, never a token to be re-split. The generic
+JSON keeps the same property explicitly (*"every later argument remains a separate JSON string, never a
+shell split"*), which is exactly where a copy-paste config would otherwise get it wrong.
+
+`runningJar()` is properly conservative: multi-entry classpath refused, non-jar refused, missing files
+refused, and it fails to `Optional.empty()` rather than guessing a launcher. The earlier review's F1 (debug
+flags inherited) is closed, and the amendment from the M42.1 review — re-checking endpoint ownership AFTER
+the probe, so a TOCTOU window returns OTHER_INSTANCE — is implemented at `McpConnectionProbe:118`.
+
+================================================================================
+2. F1 — A SECRET ON THIS APP'S COMMAND LINE REACHED THE CLIENT'S CONFIG FILE (fixed here)
+================================================================================
+`fromRunningJar` copies **every** JVM option before `-jar` into the bridge vector, checked only against a
+denylist of debug agents. That vector does not stay local:
+
+    ClaudeMcpClient.add(bridge)  → `claude mcp add …` → written into ~/.claude.json
+    CodexMcpClient.add(bridge)   → written into the Codex config
+    GenericMcpConfiguration.render(bridge) → JSON shown for the user to paste into a client config
+
+So an analyser started with `-Dhttp.proxyPassword=…`, `-Dmy.token=…` or `-Dauthorization=…` put that
+value into a file the user may sync, commit, or paste into a chat while asking for setup help. Nothing in
+the path redacts it, and the setup dialog's whole purpose is to get that command in front of the user.
+
+What makes this a finding rather than a nitpick is that **this codebase already refuses exactly this**.
+D-C6 gates report destinations with `ReportDestination.CREDENTIAL` — AKIA keys, `token=`, `secret=`,
+`password=`, `api_key=`, `authorization`, `bearer` — and the M38.5 review even hardened it to OFF by
+default because "a webhook URL is a credential in path form". The rule existed; this entrance was missed.
+
+**Fix.** The gate is now ONE definition (`ReportDestination.looksLikeCredential`) used at both entrances,
+rather than a second copy that would drift — the copy that stops being updated is always the one still in
+use. `unsafeForClientBridge` consults it, so a credential-shaped option refuses the whole command, keeping
+the resolver's existing fail-closed behaviour rather than half-reconstructing a launch. Two tests: five
+credential shapes refused, and a counter-test that an ordinary launch (`-Xmx2g`, `-Dfile.encoding=UTF-8`)
+still produces a command — a gate that refuses everything would silently delete the fallback, which is the
+failure nobody notices because it looks like the feature simply not applying.
+
+The JBang path is unaffected and remains the documented route.
+
+================================================================================
+3. N1 — A REAL HOME PATH IS COMMITTED (PRE-EXISTING, NOT M42; owner's call)
+================================================================================
+Not this milestone's doing, but found while checking it, and it belongs in the same family as the two
+blind spots rule 1 already records:
+
+  tools/spikes/m34-langgraph/measure.py:8   a real home path, and a POC project name, as a DEFAULT
+                                            argument (added 2026-08-20)
+  docs/specs/completed/overview.md:3,8,15   a real home path under a different account name (2026-08-14)
+
+Rule 1's sweep is four literal terms. It cannot see a home directory or a project name, exactly as it
+cannot see inside images (found 2026-08-16) or into git metadata (recorded at 214 commits). This is the
+third instance of the same shape: **the sweep only knows what it was told to look for.** The measure.py
+one is trivially fixable — the script already takes the path as `sys.argv[1]`, so the hard-coded default
+is a convenience, not a requirement. Left for the owner rather than changed unasked, since one of these
+names may or may not be sensitive and only the owner knows.
+
+================================================================================
+4. WHAT I CHECKED
+================================================================================
+  · 1000 green (998 before, +2 here). Four-term sweep clean.
+  · Traced the bridge vector from `fromRunningJar` to all three places it lands.
+  · Confirmed no write to any external config: no `Files.write*` anywhere in the mcp package.
+  · Confirmed ProcessBuilder(List) at every launch site — no shell, no injection surface.
+  · Confirmed the M42.1 review's TOCTOU amendment is present, not just promised.
+  · NOT checked: the Swing setup dialog by hand (739 lines, not unit-testable per rule 4), and the
+    registration round-trip against a real Claude Code / Codex install — the tests use an injected
+    process factory, so the CLI's actual argument grammar is verified by the author's live runs only.
+    That is the standing gap for this milestone and worth one manual pass before it is called done.

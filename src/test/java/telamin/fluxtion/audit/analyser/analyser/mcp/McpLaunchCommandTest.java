@@ -92,4 +92,39 @@ class McpLaunchCommandTest {
                     "a client must not inherit " + unsafe);
         }
     }
+
+    @Test
+    void refusesAnyJvmOptionCarryingSomethingCredentialShaped() throws Exception {
+        // The vector is written into the AI client's OWN config file (claude mcp add / codex) and
+        // rendered for copying by GenericMcpConfiguration, so a secret on this app's command line would
+        // leave the machine by that route. D-C6 already refuses credential shapes where reports are
+        // published; this is the same rule at an entrance that had been missed.
+        Path java = dir.resolve("java");
+        Path jar = dir.resolve("analyser.jar");
+        Files.createFile(java);
+        Files.createFile(jar);
+
+        for (String secret : List.of("-Dhttp.proxyPassword=hunter2", "-Dapi_key=abcd1234",
+                "-Dmy.token=zzz", "-Dauthorization=Bearer xyz", "-Daws.key=AKIAIOSFODNN7EXAMPLE")) {
+            assertTrue(McpLaunchCommand.fromRunningJar(java,
+                            new String[]{"-Duser.home=/tmp/isolated-analyser", secret, "-jar", jar.toString()},
+                            jar.toString(), ":", "/ignored-fallback").isEmpty(),
+                    "a client config must not inherit " + secret);
+        }
+    }
+
+    @Test
+    void anOrdinaryLaunchIsStillAccepted_theGateMustNotRefuseEverything() throws Exception {
+        // the counter-test: a refusal that fires on normal options would silently remove the fallback
+        Path java = dir.resolve("java");
+        Path jar = dir.resolve("analyser.jar");
+        Files.createFile(java);
+        Files.createFile(jar);
+
+        assertTrue(McpLaunchCommand.fromRunningJar(java,
+                        new String[]{"-Duser.home=/tmp/isolated-analyser", "-Xmx2g", "-Dfile.encoding=UTF-8",
+                                "-jar", jar.toString()},
+                        jar.toString(), ":", "/ignored-fallback").isPresent(),
+                "ordinary JVM options must still produce a bridge command");
+    }
 }

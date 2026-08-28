@@ -29,6 +29,19 @@ public record ReportDestination(String name, String location) {
     private static final Pattern CREDENTIAL = Pattern.compile(
             "(?i)(AKIA[0-9A-Z]{16}|(token|secret|password|passwd|api[_-]?key|authorization|bearer|sig(nature)?)\\s*[=:])");
     public static final int MAX_LOCATION = 300;
+
+    /**
+     * Does this text carry something shaped like a credential? ONE definition, because a security
+     * pattern that exists twice drifts, and the copy that stops being updated is the one still in use.
+     *
+     * <p>Shared with {@code McpLaunchCommand}: the bridge command an AI client is asked to register is
+     * written into that client's own config file and offered for copying, so a JVM option carrying a
+     * secret would leave the machine by the same route a destination would (review 2026-08-28). The
+     * refusal reads the same at both entrances because it is the same rule.
+     */
+    public static boolean looksLikeCredential(String text) {
+        return text != null && CREDENTIAL.matcher(text).find();
+    }
     /**
      * Review F1 (2026-08-27): a webhook's secret is its PATH — anyone holding the URL can post to the channel —
      * so no inspection of user info, query or fragment separates the place from the credential. The realistic
@@ -62,7 +75,7 @@ public record ReportDestination(String name, String location) {
         if (loc.isBlank()) return Optional.of(label + ": no location");
         if (loc.length() > MAX_LOCATION) return Optional.of(label + ": location longer than " + MAX_LOCATION + " characters");
         if (loc.chars().anyMatch(ch -> ch == '\n' || ch == '\r' || ch == '\t')) return Optional.of(label + ": location must be one line");
-        if (CREDENTIAL.matcher(loc).find()) {
+        if (looksLikeCredential(loc)) {
             return Optional.of(label + ": looks like it carries a CREDENTIAL — a destination is a place, never how to "
                     + "authenticate there; credentials come from the environment the publisher runs in");
         }

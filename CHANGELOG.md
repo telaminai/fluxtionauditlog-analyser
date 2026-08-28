@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **A secret on the analyser's own command line can no longer reach an AI client's config file.** The
+  MCP bridge command reconstructed from a `java -jar` launch copied every JVM option before `-jar`, and
+  that command is written into the client's own configuration (`claude mcp add`, Codex) and offered for
+  copying — so starting the analyser with something like `-Dhttp.proxyPassword=…` put it in a file a
+  user may sync or commit. Credential-shaped options are now refused by the same gate that already
+  guards report destinations, using one shared definition rather than a second copy.
+
 ## [1.11.0] - 2026-08-27
 
 ### Fixed

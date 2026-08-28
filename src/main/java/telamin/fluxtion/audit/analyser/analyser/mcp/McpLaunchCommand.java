@@ -119,8 +119,31 @@ public final class McpLaunchCommand {
         }
     }
 
-    /** Debug agents can bind an occupied port or suspend a client-launched bridge before it reads stdin. */
+    /**
+     * Options this app's own launch must not pass on to a client-registered bridge.
+     *
+     * <p>Two different hazards, refused at the same gate because the consequence is the same — a bridge
+     * command a client cannot safely inherit:
+     * <ul>
+     *   <li><b>Debug agents</b> can bind an occupied port or suspend a client-launched bridge before it
+     *       reads stdin.</li>
+     *   <li><b>Anything credential-shaped</b> (review 2026-08-28). Every JVM option before {@code -jar}
+     *       is copied verbatim into the vector, and that vector is written into the AI client's own
+     *       config file by {@code claude mcp add} / {@code codex}, and rendered for copying by
+     *       {@link telamin.fluxtion.audit.analyser.analyser.mcp.GenericMcpConfiguration}. So an analyser
+     *       started with {@code -Dsome.token=…} would put that token in a file the user may sync or
+     *       commit. D-C6 already refuses credential SHAPES at the report-destination entrance; this is
+     *       the same rule at an entrance that had been missed, and it reuses the same pattern rather
+     *       than a second copy that could drift.</li>
+     * </ul>
+     * Refusing the whole command (rather than dropping the option) keeps the existing fail-closed
+     * behaviour: a half-reconstructed launch is a plausible-looking guess, which is what this resolver
+     * exists to avoid. The JBang path is unaffected and remains the documented route.
+     */
     private static boolean unsafeForClientBridge(String argument) {
+        if (telamin.fluxtion.audit.analyser.analyser.config.ReportDestination.looksLikeCredential(argument)) {
+            return true;
+        }
         return argument.startsWith("-agentlib:")
                 || argument.startsWith("-agentpath:")
                 || argument.startsWith("-javaagent:")
