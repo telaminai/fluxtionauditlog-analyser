@@ -16,5 +16,36 @@ still check**.
 
 ---
 
-_No entries awaiting review (tidied 2026-08-28). Reviewed entries are archived verbatim in
+_Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
+
+## ☐ 2026-08-28 · `9d5f1a2` · docs: F2 fixed by stating the starter-relative link rule; F1 left for the author
+
+**What.** One section added to `docs/specs/mongoose-bootstrap-artefacts/README.md` naming that links
+inside `specs/` are STARTER-relative and do not resolve in the snapshot. Responds to F2 of
+`review_mongoose_bootstrap_review_resolution.txt`.
+
+**Why this option and not the other.** That review offered two fixes — adapt the paths, or state the
+rule. They are not equal. Adapting would make every future refresh re-apply the same edits, and would put
+intentional differences into a copy **whose parity with the source already cannot be checked** (that is
+the same review's F1). Divergence indistinguishable from drift is worse than a link one sentence
+explains, so the snapshot stays byte-faithful to the starter and the README carries the explanation.
+
+Also recorded there, because it explains how two dead links passed every gate: `mkdocs build --strict`
+cannot catch this class at all — `docs/specs/` is not part of the built site, so the link checker never
+sees that directory. They were found by reading.
+
+**Files.** `docs/specs/mongoose-bootstrap-artefacts/README.md` (+1 section).
+
+**Verified.** Both links confirmed dead independently before fixing — `../../CLAUDE.md` from `specs/`
+resolves to nothing; the file is at `ai/CLAUDE.md`. mkdocs strict still passes; four-term sweep clean;
+1069 green.
+
+**What the reviewer must still check.**
+1. **Whether the owner prefers the other option.** If the snapshot is meant to be browsed standalone,
+   adapt the paths instead and delete this section. Both are defensible; only the author knows whether
+   this copy exists to be read or only to be compared.
+2. **F1 is NOT fixed, and I cannot fix it.** The README's own update rule requires the source revision
+   and date to be recorded; none is anywhere in the directory. That needs the starter, which is not on
+   this machine. Until it is recorded, "the copy matches the source" is unverifiable by anyone —
+   including the author, later.

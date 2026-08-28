@@ -34,6 +34,21 @@ The headline of that review, if you read nothing else: **§H's conformance harne
 step. It becomes VAL-12 when a real Mongoose starter publishes the needed server-side contract; it does
 not replace the M19 native text/YAML audit and visible-investigation evidence in V3.
 
+## Links inside `specs/` are STARTER-relative (review F2, 2026-08-28)
+
+`specs/tracker.md` and `specs/spec-mongoose-analyser-validation.md` link `../../CLAUDE.md`. That resolves
+in the **starter**, where those files sit beside a root `CLAUDE.md`; it does not resolve here, where the
+snapshot root is this directory and the file is at [`ai/CLAUDE.md`](ai/CLAUDE.md).
+
+They are left unadapted on purpose. The alternative — rewriting paths so they resolve in the snapshot —
+would make every future refresh re-apply the same edits, and would put intentional differences into a
+copy whose parity with the source **already cannot be checked** (F1 below). Divergence that is
+indistinguishable from drift is worse than a link a sentence explains. So the rule is stated once, here:
+a starter-relative link in `specs/` points at the real project, not at this copy.
+
+Note that `mkdocs build --strict` does not catch these — `docs/specs/` is not part of the built site, so
+the link checker never sees this directory. It was found by reading.
+
 ## Source-of-truth and update rule
 
 The starter project remains the source of truth for executable scripts, configuration, fixtures and
