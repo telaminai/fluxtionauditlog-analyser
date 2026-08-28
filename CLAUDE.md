@@ -75,7 +75,7 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-08-25 (v1.7.0 released; M34.0–.2, M35.1–.8/.10/.11 and §E merged to main, unreleased):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-08-28 (v1.11.0 released 2026-08-27; M43 and M33.7 merged after it, unreleased):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +
@@ -95,7 +95,7 @@ reader and the SPI both pass). **M37 the Project panel** (shipped 2026-08-27: wh
 roots, reports — rendered from `context` for people; the west column is draggable) and **M38.1** (runbook
 POINTERS — the profile records a location, never contents; `docs/specs/completed/spec-portable-context.md`). **M38.2–.7**
 (vocabulary pointer, environments + provenance defaults, repeatable analyses, report destinations, path anchors,
-preserve-unknown-keys) shipped 2026-08-27 — the project profile is portable context, gated at every entrance. **M40** (audit readiness: the verdict from the graph, an honest coverage denominator, which nodes can log, the audit level) COMPLETE 2026-08-27 on main. **Spec'd, unstarted (2026-08-27): M33.7** report table sources (`docs/specs/spec-report-table-sources.md`). (M41 native install: spec'd and withdrawn — JBang is the install; tracker ▸ Decisions.)
+preserve-unknown-keys) shipped 2026-08-27 — the project profile is portable context, gated at every entrance. **M40** (audit readiness: the verdict from the graph, an honest coverage denominator, which nodes can log, the audit level) COMPLETE 2026-08-27 on main. **M33.7** report table sources (aggregate/series/coverage tables assembled; a call stored so it re-issues exactly) SHIPPED 2026-08-28. **M42** connect an AI client (in-app MCP bridge setup, loopback probe, Claude Code/Codex/Claude Desktop/generic registration) COMPLETE 2026-08-28, in 1.11.0. **M43** the AI menu (+ M38.8 runbook `description`, the MCP status light, *Find skills…*) COMPLETE 2026-08-28. (M41 native install: spec'd and withdrawn — JBang is the install; tracker ▸ Decisions.)
 
 Also merged: **M19.6/.7** (`tools/bench/` — the dev loop's conformance bench, §H's home, runnable today
 against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.5** (the start page: the

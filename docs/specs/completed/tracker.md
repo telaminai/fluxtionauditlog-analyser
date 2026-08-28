@@ -1859,3 +1859,38 @@ and a green check never pretends it has observed a foreign client or model.
   captures are published and visually inspected; the install and MCP guides explicitly distinguish the
   `analyser` JBang executable, `fluxtion-analyser` client registration, and bridge protocol name. The final
   generic capture shows the complete naming disclosure (final review F4, 2026-08-28).
+
+## M43 · The AI menu — quick access, and the runbook `description` it needs — ☑ **COMPLETE 2026-08-28** (.1–.7 + D-AI9; review `docs/handoff/completed/review_m43_ai_menu.txt` SOUND — F1 fixed in `ac6a559`, F2/F3 notes, no action; report `docs/handoff/completed/report_m43_ai_menu.txt`)
+_Owner-directed. Spec **[spec-ai-menu.md](spec-ai-menu.md)**; absorbs **M38.8**._
+Everything an AI client needs is reachable and almost none of it is findable: MCP setup lives in Settings
+and on the Start page, which only appears via *Help ▸ Start page* — invisible mid-session, which is when
+someone wants it. And runbook pointers can only be added by hand-editing the profile, though the app
+already writes them.
+- [M43] ☑ **The AI menu.** Load-bearing decisions: **D-AI1** the Project panel STATES and the menu ACTS,
+  so M37's reveal-only panel survives and no setting gets two owners; **D-AI5** the `description` is
+  DECLARED — a skill file's frontmatter may PREFILL the dialog but never supplies the served value, which
+  is M35.4's "offers and never selects" applied to a fact (inferring it would break D-A2 and let `context`
+  change under the profile); **D-AI3** an item with an unmet precondition is disabled WITH A REASON, never
+  a dialog that explains itself after the click — written down before the first item, because M35 spent a
+  milestone removing six such modals; **D-AI4** nothing on the menu RUNS anything, recorded as a non-goal
+  at the surface most likely to erode it.
+- Slices: **.1** ☑ the menu · **.2** ☑ `runbook.N.description` end to end (= M38.8) · **.3** ☑ *Runbooks…*
+  through `Runbooks.refuse` · **.4** ☑ the skill-shape prefill (`SkillFrontmatter`) · **.5** ☑ *Domain
+  glossary…* · **.7** ☑ *Find skills…* — discovery that OFFERS (M35.4), bounded, inside the project,
+  declared ones marked not hidden · **.6** ☑ _(finished in review, 2026-08-28)_ the capture ran on the
+  owner's machine against a freshly built jar — the first run silently used a stale `target/` jar with no
+  AI menu, so the harness's own "no menu 'AI'" refusal was the gate working — and the `menu_capture` call
+  was moved AFTER the project relaunch (it sat before it, so the shot showed the greyed state its own
+  comment promised to avoid). `ai-menu.png` is read, referenced from *Working with AI ▸ Runbooks*, and
+  `mkdocs --strict` passes. **D-AI9** ☑ the status
+  light: three levels and **no red** — nothing in the set is broken (off is a CHOICE, another window is a
+  SURPRISE), so red stays unspent for a real fault; and "tested" is deliberately absent, because a probe
+  is true only at the instant it ran and a stale green tick asserts what it does not know.
+- Acceptance now met for D-AI2/3/4/6/7: the menu's decisions moved out of the Swing listener into
+  `AiMenuModel` so they can be tested at all, and the source-text checks assert the menu runs nothing
+  and keeps no state — a rule that cannot be tested is one that quietly stops being true.
+- Verified on the built jar: a pre-M43 runbook loads and serves with no description (backward
+  compatible), and the demo's real skill-shaped file prefills `restart-quote-service` and its
+  description. 1029 green.
+- **Open question for the owner:** the menu's name — proposed `AI` rather than *AI assistant*, since
+  "assistant" already names the in-app panel and the docs nav settled on *Working with AI*.

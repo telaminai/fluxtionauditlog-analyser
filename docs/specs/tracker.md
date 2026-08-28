@@ -19,7 +19,7 @@ named focuses · M28 conditionals + rolling windows + guides/bands · M29 extern
 M30 rolled log sets · M31 log-source plugins (core) · M32 marker series · M33 investigation reports
 (core + .7 report table sources) · M34.0–.3 source adapters (SPI, degradation, format spec + conformance suite) · M35 log +
 graph lifecycle (all eleven) + §E provenance · **M36 start page (.1–.5) · M37 Project panel · M38 portable
-context (.1–.7) · M40 audit readiness (.1/.2a/.2b/.3) · M42 Connect an AI client** · refinement rounds
+context (.1–.7) · M40 audit readiness (.1/.2a/.2b/.3) · M42 Connect an AI client · M43 the AI menu (+ M38.8)** · refinement rounds
 2–13 · assistant-vocabulary follow-ups. _(Polish H1, 2026-08-25: verified every section left in this
 file has open items; the archaeology the 2026-08-17 brief asked for had been done by the per-merge
 tidies.)_
@@ -304,7 +304,7 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
 ## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md, design **[completed/spec-portable-context.md](completed/spec-portable-context.md)**)
 - [M38.8] ➜ **ABSORBED BY M43.2** _(owner, 2026-08-28: "the skills binding to playbook at the same time")_.
   The menu is the first surface that must ASK for a description, so shipping the storage separately would
-  add an entry point needing immediate revision. Spec: **[spec-ai-menu.md](spec-ai-menu.md)** ▸ D-AI5.
+  add an entry point needing immediate revision. Spec: **[completed/spec-ai-menu.md](completed/spec-ai-menu.md)** ▸ D-AI5.
   Original note follows — a
   runbook pointer is skill-shaped in storage but not in discovery: a model must open every file to know which
   is relevant. Add optional `runbook.N.description` (inert, gated like the name), serve it in
@@ -312,40 +312,10 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
   `description`, so a pointer may target a `SKILL.md`) is documented ahead of it, so no runbook needs
   rewriting. Content delivery stays as it is: the analyser serves the pointer, never the instructions.
 
-## M43 · The AI menu — quick access, and the runbook `description` it needs — ◧ **MERGED to main 2026-08-28**, awaiting review
-_Owner-directed. Spec **[spec-ai-menu.md](spec-ai-menu.md)**; absorbs **M38.8**._
-Everything an AI client needs is reachable and almost none of it is findable: MCP setup lives in Settings
-and on the Start page, which only appears via *Help ▸ Start page* — invisible mid-session, which is when
-someone wants it. And runbook pointers can only be added by hand-editing the profile, though the app
-already writes them.
-- [M43] ☐ **The AI menu.** Load-bearing decisions: **D-AI1** the Project panel STATES and the menu ACTS,
-  so M37's reveal-only panel survives and no setting gets two owners; **D-AI5** the `description` is
-  DECLARED — a skill file's frontmatter may PREFILL the dialog but never supplies the served value, which
-  is M35.4's "offers and never selects" applied to a fact (inferring it would break D-A2 and let `context`
-  change under the profile); **D-AI3** an item with an unmet precondition is disabled WITH A REASON, never
-  a dialog that explains itself after the click — written down before the first item, because M35 spent a
-  milestone removing six such modals; **D-AI4** nothing on the menu RUNS anything, recorded as a non-goal
-  at the surface most likely to erode it.
-- Slices: **.1** ☑ the menu · **.2** ☑ `runbook.N.description` end to end (= M38.8) · **.3** ☑ *Runbooks…*
-  through `Runbooks.refuse` · **.4** ☑ the skill-shape prefill (`SkillFrontmatter`) · **.5** ☑ *Domain
-  glossary…* · **.7** ☑ *Find skills…* — discovery that OFFERS (M35.4), bounded, inside the project,
-  declared ones marked not hidden · **.6** ☑ _(finished in review, 2026-08-28)_ the capture ran on the
-  owner's machine against a freshly built jar — the first run silently used a stale `target/` jar with no
-  AI menu, so the harness's own "no menu 'AI'" refusal was the gate working — and the `menu_capture` call
-  was moved AFTER the project relaunch (it sat before it, so the shot showed the greyed state its own
-  comment promised to avoid). `ai-menu.png` is read, referenced from *Working with AI ▸ Runbooks*, and
-  `mkdocs --strict` passes. **D-AI9** ☑ the status
-  light: three levels and **no red** — nothing in the set is broken (off is a CHOICE, another window is a
-  SURPRISE), so red stays unspent for a real fault; and "tested" is deliberately absent, because a probe
-  is true only at the instant it ran and a stale green tick asserts what it does not know.
-- Acceptance now met for D-AI2/3/4/6/7: the menu's decisions moved out of the Swing listener into
-  `AiMenuModel` so they can be tested at all, and the source-text checks assert the menu runs nothing
-  and keeps no state — a rule that cannot be tested is one that quietly stops being true.
-- Verified on the built jar: a pre-M43 runbook loads and serves with no description (backward
-  compatible), and the demo's real skill-shaped file prefills `restart-quote-service` and its
-  description. 1029 green.
-- **Open question for the owner:** the menu's name — proposed `AI` rather than *AI assistant*, since
-  "assistant" already names the in-app panel and the docs nav settled on *Working with AI*.
+## M43 · The AI menu — follow-up (COMPLETE 2026-08-28; the milestone is in completed/tracker.md, design **[completed/spec-ai-menu.md](completed/spec-ai-menu.md)**)
+- ☐ **Owner question: the menu's name** — shipped as `AI` (proposed over *AI assistant*, since "assistant" names the
+  in-app panel and the docs nav settled on *Working with AI*). Rename is a one-line change if the owner prefers otherwise.
+- ☐ The ledger entry for `ac6a559` (the status light polls) is open for a reviewer — `docs/handoff/unreviewed-changes.md`.
 
 ## M39 · Baselines — "is this normal here?" — ☐ SPEC'D 2026-08-27 (owner decision 4; spec **[spec-baselines.md](spec-baselines.md)**)
 - [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
@@ -508,16 +478,16 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-08-27 (post 1.10.0 readiness). Shipped since the last refresh: **M38.2–.7** (merged, reviewed end to
-end), **M40.1/.2a/.2b/.3** (complete, post-merge reviewed), the Project-panel and theme fixes on main (ledger clear),
-the sample-conversations page and its harness. **M41** was spec'd and withdrawn._
+_Refreshed 2026-08-28. Shipped since the last refresh: **1.11.0** (M42 connect an AI client), then **M33.7** report
+table sources and **M43** the AI menu (+ M38.8), both reviewed SOUND on main, unreleased. **M41** was spec'd and
+withdrawn. Open on main: two ledger entries (`ac6a559` the status-light poll; `7e8e859` the Mongoose spec addendum)
+and the M43 menu-name question for the owner._
 
-1. **M42 connect an AI client** — review D-I4's client boundaries and D-I5's loopback proof first; then M42.1
-   launch/probe is the vertical slice that makes every client route honest.
-2. **M43 the AI menu** (spec'd 2026-08-28, absorbs M38.8) — slice .2 is the `description` storage and must
-   land before .3, or the add-runbook dialog writes half a record and the storage learns a shape it has to
-   unlearn. Owner question open: the menu's name.
-3. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
+1. **Review the two open ledger entries**, then **release** — `[Unreleased]` already carries M33.7 + M43 + two fixes.
+2. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
+3. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
+   written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`
+   before filing UP-MNG-01…04.
 4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
 5. **M19.3/.4** (tutorial, publish-gated on the playground Download)
    and **M19.8** (bench in CI).

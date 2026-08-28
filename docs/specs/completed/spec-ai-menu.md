@@ -1,6 +1,6 @@
 # Spec — the AI menu, and the runbook `description` it needs
 
-**Status:** PROPOSED 2026-08-28 (owner-directed: *"a menu item AI for quick access to AI functions"*, with
+**Status:** SHIPPED 2026-08-28 — .1–.7 + D-AI9 on main; review `docs/handoff/completed/review_m43_ai_menu.txt` SOUND, F1 fixed in `ac6a559` (ledger entry open for a reviewer); report `docs/handoff/completed/report_m43_ai_menu.txt`. Written 2026-08-28 (owner-directed: *"a menu item AI for quick access to AI functions"*, with
 M38.8 folded in — *"it will need the skills binding to playbook at the same time"*).
 **Milestone:** M43, absorbing **M38.8**. **Tracker:** [tracker.md](tracker.md).
 **Depends on:** M37 (the Project panel), M38.1/.2 (runbook + glossary pointers), M42 (MCP client setup).

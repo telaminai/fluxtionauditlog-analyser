@@ -6,43 +6,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-### Changed
-- **Docs: the AI menu is now the documented route to connecting an LLM.** *Connecting an LLM* leads with
-  *AI ▸ Connect an AI client…* (reachable mid-session, unlike the Start page), shows the menu, and adds a
-  table for reading the status light — including **MCP elsewhere**, the state that quietly wastes time
-  when two analysers are open. The Project panel page notes the runbook **description** and where
-  pointers are edited.
-
-
-### Added
-- **Find skills… — the runbooks your project already has.** *AI ▸ Runbooks…* can now scan the project for
-  skill-shaped files (`SKILL.md` with `name`/`description` frontmatter) and offer them, instead of making
-  you go and find them with a file chooser. Ones already declared are shown greyed rather than hidden.
-  Finding is not adding: picking one opens the same confirm step a hand-typed pointer goes through. The
-  scan never leaves the project, skips build output and vendored trees, and names its own cap when it
-  stops early.
-
-
-### Added
-- **An `AI` menu — everything an AI client needs, where you can find it.** MCP setup used to live in
-  Settings and on the Start page, which only appears via *Help ▸ Start page* — so it was invisible
-  mid-session, which is exactly when you think to connect an LLM. The menu gathers *Connect an AI
-  client…*, the local MCP/REST toggle, the report exchange directory and the docs, and adds the one
-  thing that had no UI at all: **Runbooks…** and **Domain glossary…** for the pointers a project
-  declares. An item whose precondition is missing is **disabled with the reason in its tooltip** rather
-  than opening a dialog that explains itself after the click.
-- **An AI status light in the status bar.** It answers one question — would an AI client asking right
-  now reach *this* window? **MCP ready** (green) means the analyser is reachable, deliberately not
-  "connected": whether a client is actually talking to it is a separate fact. **MCP elsewhere** (amber)
-  is the one worth building it for — another analyser window owns the endpoint, so your AI client is
-  answering questions about a different log. **MCP off** is grey, not red: it is a choice, not a fault.
-- **Runbooks can say what they are for.** A runbook pointer now carries an optional one-line
-  `description`, served in `context.runbooks[]` and shown on the Project panel row, so an AI client can
-  choose the relevant runbook without opening every file. When you point *Add runbook…* at a
-  skill-shaped file, its `name`/`description` frontmatter **prefills the fields** — but what is stored
-  is what you leave in them: editing that file later never silently changes what the analyser reports.
-
-
 ### Fixed
 - **A refused table highlight rule no longer prints its legend on screen.** When a `rowWhen` is refused
   because the table's rows have no records (aggregate buckets, coverage rows, series buckets/stats),
@@ -60,8 +23,41 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   structured `filter`, `crossings`, and similar call values without flattening them into Java display
   text; existing scalar-only report settings remain compatible.
 
-### Added
+### Changed
+- **Docs: the AI menu is now the documented route to connecting an LLM.** *Connecting an LLM* leads with
+  *AI ▸ Connect an AI client…* (reachable mid-session, unlike the Start page), shows the menu, and adds a
+  table for reading the status light — including **MCP elsewhere**, the state that quietly wastes time
+  when two analysers are open. The Project panel page notes the runbook **description** and where
+  pointers are edited.
+- **The reports guide and recorded AI conversation now cover every table source.** The guide explains
+  aggregate, series, coverage, structured call persistence, scalar context, and record-only
+  highlighting; the regenerated “Chart it and write it up” conversation proves an aggregate table and
+  CSV export from a real isolated run.
 
+### Added
+- **Find skills… — the runbooks your project already has.** *AI ▸ Runbooks…* can now scan the project for
+  skill-shaped files (`SKILL.md` with `name`/`description` frontmatter) and offer them, instead of making
+  you go and find them with a file chooser. Ones already declared are shown greyed rather than hidden.
+  Finding is not adding: picking one opens the same confirm step a hand-typed pointer goes through. The
+  scan never leaves the project, skips build output and vendored trees, and names its own cap when it
+  stops early.
+- **An `AI` menu — everything an AI client needs, where you can find it.** MCP setup used to live in
+  Settings and on the Start page, which only appears via *Help ▸ Start page* — so it was invisible
+  mid-session, which is exactly when you think to connect an LLM. The menu gathers *Connect an AI
+  client…*, the local MCP/REST toggle, the report exchange directory and the docs, and adds the one
+  thing that had no UI at all: **Runbooks…** and **Domain glossary…** for the pointers a project
+  declares. An item whose precondition is missing is **disabled with the reason in its tooltip** rather
+  than opening a dialog that explains itself after the click.
+- **An AI status light in the status bar.** It answers one question — would an AI client asking right
+  now reach *this* window? **MCP ready** (green) means the analyser is reachable, deliberately not
+  "connected": whether a client is actually talking to it is a separate fact. **MCP elsewhere** (amber)
+  is the one worth building it for — another analyser window owns the endpoint, so your AI client is
+  answering questions about a different log. **MCP off** is grey, not red: it is a choice, not a fault.
+- **Runbooks can say what they are for.** A runbook pointer now carries an optional one-line
+  `description`, served in `context.runbooks[]` and shown on the Project panel row, so an AI client can
+  choose the relevant runbook without opening every file. When you point *Add runbook…* at a
+  skill-shaped file, its `name`/`description` frontmatter **prefills the fields** — but what is stored
+  is what you leave in them: editing that file later never silently changes what the analyser reports.
 - **Report tables now assemble aggregate and coverage calls.** Aggregate buckets carry their metric,
   population, scope and truncation; coverage exports the complete graph-ordered ledger of covered,
   uncovered and excluded nodes with the same denominator and caveats as the MCP action. Empty tables
@@ -69,13 +65,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Report tables now assemble all three series shapes.** Bucket, crossing, and whole-window statistic
   tables use the series verb's own result data. Crossing rows link back to their source records and
   retain `rowWhen`; ambiguous bucket-plus-crossing calls refuse explicitly.
-
-### Changed
-
-- **The reports guide and recorded AI conversation now cover every table source.** The guide explains
-  aggregate, series, coverage, structured call persistence, scalar context, and record-only
-  highlighting; the regenerated “Chart it and write it up” conversation proves an aggregate table and
-  CSV export from a real isolated run.
 
 ## [1.11.0] - 2026-08-27
 
