@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-08-28
+
 ### Fixed
 - **The MCP status light no longer says "MCP starting" for ever after another analyser window closes.**
   Two windows: the second takes the endpoint (the first correctly reads *MCP elsewhere*); the second closes and
