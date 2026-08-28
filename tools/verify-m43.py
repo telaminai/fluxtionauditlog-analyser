@@ -18,9 +18,13 @@ worse than none: it produces a PASS that means less than it looks like.
     CANNOT be proved here         why
       the refusal TEXT in the     PointerDialog is modal Swing; the socket has no verb that opens it and
       Add dialog                  must not gain one (the surface is pinned, and D-AI4 keeps it inert)
-      the light's COLOUR, and     painting is not observable from outside the process; McpIndicator's
-      that a theme switch         words and levels are unit-tested, but "it is on screen and it
-      recomputes it               recomputed" needs eyes
+      the light RECOMPUTING on   only the LIVE switch. Review 2026-08-28 corrected an earlier version of
+      a live theme switch        this note that claimed the colour itself was unreachable: capture-docs.py
+                                 already launches under Theme > Dark and the screenshot verb paints the
+                                 window, so "green in light, legible in dark" IS reachable by launching
+                                 twice and reading the pixel. Under-claiming is its own dishonesty - it
+                                 makes a script look more limited than it is and quietly retires a check
+                                 nobody then writes. Left unbuilt, named as the extension it is.
 
 Usage:  mvn package -DskipTests && python3 tools/verify-m43.py             (automated: 8 checks)
         mvn package -DskipTests && python3 tools/verify-m43.py --eyeball  (the 3 a person must make)
@@ -276,9 +280,11 @@ def main():
            "one: the verb surface is pinned and D-AI4 keeps this menu inert")
     cannot("Find skills… lists the SKILL.md and PREFILLS name/description on picking it",
            "same — SkillDiscovery's data is unit-tested and verified on disk, but the dialog wiring is not")
-    cannot("the light's colour, and that Theme ▸ Dark recomputes it",
-           "painting is not observable from outside the process; McpIndicator's words and levels are "
-           "unit-tested, 'it is on screen and it recomputed' is not")
+    cannot("the light RECOMPUTING on a live Theme ▸ Dark switch",
+           "only the live switch. The colour itself IS reachable — capture-docs.py launches under Dark "
+           "and the screenshot verb paints the window, so two launches and a pixel read would cover "
+           "'green in light, legible in dark' (review 2026-08-28 corrected this claim; the extension is "
+           "not built, but calling it impossible would retire a check nobody then writes)")
 
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} need a person")
     if FAIL:
