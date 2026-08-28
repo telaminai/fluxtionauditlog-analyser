@@ -169,6 +169,7 @@ public final class MainFrame extends JFrame {
         actionExecutor.bind(topologyPanel, actionControl);
         refreshProjectPanel();                       // M37: state the empty session too
         refreshMcpIndicator();                       // D-AI9: and say whether an AI client reaches us
+        startMcpIndicatorWatch();
         actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
         readerRegistry.loadPlugins(java.nio.file.Path.of(
@@ -397,6 +398,32 @@ public final class MainFrame extends JFrame {
      * only at the instant it is measured, so it lives in the setup dialog instead.
      */
     private final JLabel mcpLight = new JLabel();
+
+    /**
+     * Keep the light honest about a fact that changes WITHOUT this window doing anything.
+     *
+     * <p>Found by tools/verify-m43.py, which started a second analyser under the same home and watched
+     * the endpoint file change owner: the newcomer takes the endpoint, so the FIRST window silently
+     * stops being the one an AI client reaches. Its light said "MCP ready" throughout, because until now
+     * it only refreshed at startup, on a theme switch and on the transport toggle — none of which happen
+     * when another process takes over.
+     *
+     * <p>That is the precise state D-AI9 exists to reveal ("MCP elsewhere"), so a light that cannot
+     * notice it is worse than no light: it actively asserts the wrong thing. A poll is the right shape
+     * here because nothing notifies us — the cost is one small file read and a pid compare, and the
+     * window-activation hook means the common case (you come back to this window) is already correct
+     * before the timer fires.
+     */
+    private void startMcpIndicatorWatch() {
+        javax.swing.Timer timer = new javax.swing.Timer(5000, e -> refreshMcpIndicator());
+        timer.setRepeats(true);
+        timer.start();
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowActivated(java.awt.event.WindowEvent e) {
+                refreshMcpIndicator();   // returning to this window is exactly when you need the truth
+            }
+        });
+    }
 
     /** Re-read the local transport state and repaint the light. Cheap: a file read and a pid compare. */
     private void refreshMcpIndicator() {

@@ -151,4 +151,21 @@ class SkillDiscoveryTest {
         assertTrue(find(root).candidates().isEmpty(),
                 "a pointer must stay inside the project, so discovery must not leave it either");
     }
+
+    @Test
+    void aSymlinkedSKILLfileIsNotFollowedEither(@TempDir Path root) throws Exception {
+        // review F1: the directory case was guarded and the FILE case was not, so my own symlink test
+        // passed while the asymmetric hole stayed open. One rule, both shapes.
+        Path outside = Files.createTempDirectory("outside");
+        Path real = outside.resolve("SKILL.md");
+        Files.writeString(real, "---\nname: escaped\ndescription: from outside the project\n---\n");
+        Files.createDirectories(root.resolve("ops"));
+        try {
+            Files.createSymbolicLink(root.resolve("ops/SKILL.md"), real);
+        } catch (UnsupportedOperationException | java.io.IOException e) {
+            return;                       // no symlink support here; the guard is still in the code
+        }
+        assertTrue(find(root).candidates().isEmpty(),
+                "a linked file must not have its frontmatter read from outside the project");
+    }
 }

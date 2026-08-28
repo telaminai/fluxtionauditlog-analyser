@@ -95,6 +95,10 @@ public final class SkillDiscovery {
                         || !SKILL_FILE.equals(fileName.toString().toLowerCase(Locale.ROOT))) {
                         return FileVisitResult.CONTINUE;
                     }
+                    // review F1: symlinked DIRECTORIES were skipped but a symlinked FILE was not, so a
+                    // link could still have the frontmatter read from outside the project. Same rule,
+                    // both shapes — a pointer must stay inside the project, so discovery must too.
+                    if (Files.isSymbolicLink(file)) return FileVisitResult.CONTINUE;
                     String rel = root.relativize(file).toString().replace('\\', '/');
                     // only offer what could actually be STORED: showing a candidate the gate would refuse
                     // puts a refusal in front of the user for something they did not type
