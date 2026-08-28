@@ -16,7 +16,31 @@ still check**.
 
 ---
 
-## ☐ 2026-08-28 · `ac6a559` · fix(ui): the D-AI9 light polls, because the fact it reports changes without us
+## ☑ reviewed 2026-08-28 (the second session) · `ac6a559` · fix(ui): the D-AI9 light polls, because the fact it reports changes without us
+
+**Verdict.** Correct, and the right shape. The three questions the entry asks, answered from the code:
+(1) **A repeating timer is already this frame's idiom for a fact nothing notifies us of** — `followTimer`
+polls the log file at `FOLLOW_POLL_MS`, `projectSaveDebounce` and `searchDebounce` are timers too; 5 s is
+proportionate for a light a human reads. The per-tick cost is `RestEndpointFile.read()` (one small file,
+or null when the transport is off) plus `ProcessHandle.of(pid).isAlive()` — well under a millisecond, fine
+on the EDT. (2) **No fight with the theme switch**: both paths call the same `refreshMcpIndicator()`, which
+recomputes label, tooltip and foreground from the *current* theme every time, so the timer can only ever
+re-apply what `applyTheme` just applied; `JLabel.setText` with an identical string does not revalidate, so
+there is no 5-second flicker either. (3) **`verify-m43.py` under-claims by half a check**: eyeball 3 says
+the light's *colour* cannot be reached from a script, but `capture-docs.py` already launches under
+`Theme ▸ Dark` and the `screenshot` verb paints the window — so "green in light, legible in dark" IS
+reachable (two launches, read the pixel); only "recomputed on a LIVE switch" is not. Not blocking; worth
+extending if the script is touched again. The F1 one-liner (symlinked file skipped like a symlinked
+directory) is right and tested. 1067 green.
+
+**N1 (not blocking).** The timer is anonymous and never stopped; `onExit` stops `followTimer` explicitly
+before `System.exit`, so for symmetry hold it in a field and add it to that step list. Harmless today
+because exit follows.
+
+**N2 (live verification is the owner's eyeball run).** The two things I could not observe from here — the
+colour on a live `Theme ▸ Dark`, and the light moving to *MCP elsewhere* within ~5 s when a second analyser
+takes the endpoint — are exactly checks C of `verify-m43.py --eyeball`, which the owner is running next.
+
 
 **What.** `MainFrame.startMcpIndicatorWatch()` — a 5-second repeating Swing timer plus a
 `windowActivated` refresh for the MCP status light. Also review F1's one-liner in `SkillDiscovery`
@@ -51,7 +75,23 @@ two-analysers-one-owner case that exposed this, and an assertion that the watch 
 3. **`verify-m43.py`'s honesty.** It claims three checks are unreachable from a script. If any of those
    IS reachable, the script is under-claiming and should be extended rather than trusted as-is.
 
-## ☐ 2026-08-28 · `7e8e859` · docs(specs): reviewer addendum §10a written INTO the Mongoose validation spec
+## ☑ reviewed 2026-08-28 (the second session) · `7e8e859` · docs(specs): reviewer addendum §10a written INTO the Mongoose validation spec
+
+**Verdict.** The substance checks out against the sources it cites, and the form is acceptable. A1: `tools/bench/
+loop-bench.py` does glob the registry, check mode 600 and the UP-MNG-01 fields, check the pid is alive and
+export the log — the steps the addendum says it plays; naming it as the minimum evidence for VAL-04/05 is
+right. A2: `spec-agent-brokered-dev-loop.md` §C1 (*the registry is a directory of endpoint files, owned by
+nobody*, `~/.mongoose/servers/<name>` mode 600) says what the addendum says it says. A4: `SkillFrontmatter`
+reads exactly `name`/`description`, so the suggested `SKILL.md` shape is the one M43 surfaces. A3 is a
+recommendation, correctly framed as one. On the form — editing another session's spec on main — the
+addendum is additive, dated and signed in place, and the ledger entry exists, which is the protocol.
+
+**N1 (the one follow-up).** A1–A4 live only as prose in §10a; the artefacts' own tracker
+(`mongoose-bootstrap-artefacts/specs/tracker.md`) does not mention them, so the author can accept or
+reject each explicitly — four `☐` items there, one per recommendation, and the decision on UP-MNG-02's
+fate recorded in `upstream-asks.md` as A3 asks. Otherwise the addendum is advice the next author has to
+find, which is the failure mode it was written in to avoid.
+
 
 **What.** My review of `docs/specs/mongoose-bootstrap-artefacts` (d91e236) did not stop at a review file:
 it added **§10a (A1–A4)** to `specs/spec-mongoose-analyser-validation.md` and annotated the *Discovery
