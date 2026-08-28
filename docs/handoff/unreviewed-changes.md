@@ -40,6 +40,12 @@ endpoint hides the same change behind a hard failure) and that D-AI9 should gain
 naming the residual rather than only the choice. That is the owner's call, and it is a wording change,
 not code.
 
+**Owner's eyeball re-run, same day: PASSED.** CHECK C on the rebuilt jar — *MCP ready* (green) → second window
+starts → *MCP elsewhere* in amber → second window closes → back to *MCP ready* in green within the poll. The amber
+values are therefore judged by eye as well as by arithmetic; nothing on this entry remains open except the D-AI9
+wording addendum above, which is the owner's call.
+
+
 **What.** Owner's eyeball run of `verify-m43.py` (check C, step "close the second analyser"): the first window
 went *ready → elsewhere* correctly, then read **"MCP starting" for ever** once the second window closed — its
 server was listening throughout; only the endpoint FILE had died with the other process. `McpSetupState.
