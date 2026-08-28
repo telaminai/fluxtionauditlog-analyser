@@ -19,7 +19,16 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
-## ☐ 2026-08-28 · `9d5f1a2` · docs: F2 fixed by stating the starter-relative link rule; F1 left for the author
+## ☑ reviewed 2026-08-28 (the second session — the review F2 came from) · `bc36c53` (entry written as `9d5f1a2` before the push rebase) · docs: F2 fixed by stating the starter-relative link rule; F1 left for the author
+
+**Verdict.** Accepted — the right option, for the reason given: a snapshot whose parity cannot be checked (F1)
+must not acquire intentional differences, or drift becomes indistinguishable from intent. The section is where a
+reader following the dead link will find it (the README's review table sits above it), and the `mkdocs --strict`
+blind spot it records is real — `docs/specs/` is outside the built site; ten stale links between specs were
+repaired by hand on 2026-08-27 for the same reason. Re-ran the snapshot link check after the pull: the two
+`../../CLAUDE.md` links are the only unresolved ones and are now explained. Item 1 (browse vs compare) is put
+to the owner in the session log rather than decided here; item 2 (F1) stays open for whoever holds the starter.
+
 
 **What.** One section added to `docs/specs/mongoose-bootstrap-artefacts/README.md` naming that links
 inside `specs/` are STARTER-relative and do not resolve in the snapshot. Responds to F2 of
