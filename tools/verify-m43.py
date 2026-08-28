@@ -22,7 +22,8 @@ worse than none: it produces a PASS that means less than it looks like.
       that a theme switch         words and levels are unit-tested, but "it is on screen and it
       recomputes it               recomputed" needs eyes
 
-Usage:  mvn package -DskipTests && python3 tools/verify-m43.py
+Usage:  mvn package -DskipTests && python3 tools/verify-m43.py             (automated: 8 checks)
+        mvn package -DskipTests && python3 tools/verify-m43.py --eyeball  (the 3 a person must make)
 """
 import importlib.util
 import json
@@ -78,7 +79,104 @@ def make_project():
     return profile
 
 
+EYEBALL = """
+================================================================================
+  M43 — the three checks a script cannot make. ~3 minutes.
+  The analyser is open with a project that already contains a skill-shaped runbook.
+  Each check says what PASS looks like AND what FAIL looks like, so a wrong answer
+  is recognisable rather than merely disappointing.
+================================================================================
+
+CHECK A — the gate's REASON reaches the user  (D-AI6)
+
+  1. AI  >  Runbooks...            (the menu is between Theme and Help)
+  2. Click  Add...
+  3. Name:  escape
+     File:  ../secrets.md          (type it; do not use Choose file)
+  4. Click OK.
+
+  PASS  the dialog STAYS OPEN and shows red text naming the reason - it should say the
+        path must be relative to the project root, and name '..'.
+  FAIL  the dialog closes and adds it  /  OK does nothing with no message  /  a stack trace.
+
+  5. Now replace the File with  /etc/passwd  and click OK again.
+  PASS  red text says it is ABSOLUTE and must be relative.
+  FAIL  anything silent.
+
+  6. Cancel out.
+
+--------------------------------------------------------------------------------
+
+CHECK B — discovery OFFERS, and prefills rather than deciding  (D-AI5)
+
+  1. AI  >  Runbooks...  >  Find skills...
+
+  PASS  a list appears containing
+            restart-quote-service - .claude/skills/restart/SKILL.md
+  FAIL  "No skill-shaped runbooks found"  /  an empty list  /  it adds something on its own.
+
+  2. Select that row, click OK.
+
+  PASS  the Add dialog opens with BOTH fields already filled:
+            Name         restart-quote-service
+            Description  Restart the DEMO quote service after a config change; what to check first.
+        and a grey line saying the values were suggested from the file's frontmatter.
+  FAIL  fields are empty (the prefill is not wired)
+  FAIL  it was added WITHOUT this confirm step - that would break "offers, never selects".
+
+  3. Change the Name to  restart-checked  and click OK.
+  PASS  the list now shows restart-checked - what YOU left in the box is what was stored.
+
+  4. Close the dialog.
+
+--------------------------------------------------------------------------------
+
+CHECK C — the status light, and that it notices the world changing  (D-AI9)
+
+  Look at the BOTTOM status bar, right of the record count.
+
+  1. PASS  it reads  * MCP ready  in green.
+     (If it reads "MCP starting", wait 5 seconds - it polls. If it NEVER becomes
+      "MCP ready", that is a FAIL and the poll is not working.)
+
+  2. Theme  >  Dark
+     PASS  the light is still legible and still green - the colour recomputed.
+     FAIL  it stays the light-theme green and looks wrong / becomes invisible.
+
+  3. Come back to this terminal and press ENTER. A SECOND analyser will start.
+     Watch the FIRST window's status bar.
+
+     PASS  within about 5 seconds it changes to  * MCP elsewhere  in amber.
+           That is the whole point of the light: this window is no longer the one an
+           AI client reaches, and it now says so without being asked.
+     FAIL  it stays "MCP ready" - then the light asserts the wrong thing in exactly
+           the state it exists for, and ac6a559's fix did not take.
+
+================================================================================
+"""
+
+
+def eyeball():
+    WORK.mkdir(parents=True, exist_ok=True)
+    profile = make_project()
+    print("Starting the analyser with a project that has a skill-shaped runbook...\n")
+    ep = cd.launch("Light", project=profile)
+    print(EYEBALL)
+    input("  [CHECK C step 3] press ENTER to start the second analyser... ")
+    second = subprocess.Popen(
+        ["java", f"-Duser.home={cd.HOME}", "-jar", str(cd.jar()), "--rest"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print("\n  Second analyser starting. Watch the FIRST window's light for ~5 seconds.")
+    print("  Expected: * MCP ready  ->  * MCP elsewhere\n")
+    input("  press ENTER when done to close the second analyser... ")
+    second.terminate()
+    print("\n  Done. The first analyser is still open; close it yourself when finished.")
+    return 0
+
+
 def main():
+    if "--eyeball" in sys.argv:
+        return eyeball()
     WORK.mkdir(parents=True, exist_ok=True)
     profile = make_project()
 
