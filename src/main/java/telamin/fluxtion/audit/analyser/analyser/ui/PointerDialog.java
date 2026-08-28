@@ -37,7 +37,8 @@ public final class PointerDialog {
     }
 
     /** Manage the project's runbook pointers. */
-    public static void runbooks(Component parent, AppConfig config, Runnable onChanged, Path projectRoot) {
+    public static void runbooks(Component parent, AppConfig config, Runnable onChanged, Path projectRoot,
+                                Path profileFile) {
         if (projectRoot == null) return;                       // the menu disables this; belt and braces
         JDialog dialog = dialog(parent, "Runbooks — pointers into this project");
 
@@ -73,13 +74,17 @@ public final class PointerDialog {
             onChanged.run();
         });
 
+        // D-AI7: NAME the file being written. A profile is committed and reviewed in git, so someone
+        // editing it from a dialog should know which file their colleague will see change.
         finish(dialog, list, detail, add, remove,
-                "Pointers are stored in this project's profile — a location and one line, never the file's "
-                        + "contents. The analyser never runs a runbook.");
+                "Stored in " + (profileFile == null ? "this project's profile" : profileFile.toString())
+                        + " — a location and one line, never the file's contents. The analyser never runs "
+                        + "a runbook.");
     }
 
     /** The single glossary pointer — the same shape, because it is the same kind of thing. */
-    public static void glossary(Component parent, AppConfig config, Runnable onChanged, Path projectRoot) {
+    public static void glossary(Component parent, AppConfig config, Runnable onChanged, Path projectRoot,
+                                Path profileFile) {
         if (projectRoot == null) return;
         String current = config.vocabularyPath == null ? "" : config.vocabularyPath;
         JTextField path = new JTextField(current, 34);
@@ -99,7 +104,8 @@ public final class PointerDialog {
         body.add(problem, c);
         c.gridy = 2;
         body.add(note("Its text is served to the assistant and in `context`, so the terms of this system are "
-                + "read the way this system means them. A pointer into the repository, never a copy."), c);
+                + "read the way this system means them. A pointer into the repository, never a copy. Stored in "
+                + (profileFile == null ? "this project's profile" : profileFile.toString()) + "."), c);
 
         if (confirm(parent, "Domain glossary", body, () -> {
             String v = path.getText().trim();

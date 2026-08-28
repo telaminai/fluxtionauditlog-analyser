@@ -1596,10 +1596,10 @@ public final class MainFrame extends JFrame {
 
         ai.addSeparator();
         JMenuItem runbooks = new JMenuItem("Runbooks…");
-        runbooks.addActionListener(e -> PointerDialog.runbooks(this, config, this::onProfileEdited, projectRoot()));
+        runbooks.addActionListener(e -> PointerDialog.runbooks(this, config, this::onProfileEdited, projectRoot(), profileFile()));
         ai.add(runbooks);
         JMenuItem glossary = new JMenuItem("Domain glossary…");
-        glossary.addActionListener(e -> PointerDialog.glossary(this, config, this::onProfileEdited, projectRoot()));
+        glossary.addActionListener(e -> PointerDialog.glossary(this, config, this::onProfileEdited, projectRoot(), profileFile()));
         ai.add(glossary);
 
         ai.addSeparator();
@@ -1619,23 +1619,27 @@ public final class MainFrame extends JFrame {
         // D-AI3: state the remedy on the item, so the reason is read BEFORE the click, not after it
         ai.addMenuListener(new javax.swing.event.MenuListener() {
             @Override public void menuSelected(javax.swing.event.MenuEvent e) {
-                transport.setSelected(config.assistantActionsRest);
-                boolean hasProject = project.hasProject();
+                // every decision here is AiMenuModel's; this method only paints them, so D-AI3 is
+                // pinned by test rather than by whoever last edited this listener
+                transport.setSelected(AiMenuModel.transportTicked(config));
+                AiMenuModel.Item pointers = AiMenuModel.pointers(project.hasProject());
                 for (JMenuItem item : new JMenuItem[]{runbooks, glossary}) {
-                    item.setEnabled(hasProject);
-                    item.setToolTipText(hasProject
-                            ? "Pointers stored in this project's profile — locations only, never contents"
-                            : "Needs an open project — File ▸ Open project");
+                    item.setEnabled(pointers.enabled());
+                    item.setToolTipText(pointers.tooltip());
                 }
-                boolean exchangeOn = config.assistantExports && !config.assistantExportDir.isBlank();
-                showExchange.setEnabled(exchangeOn);
-                showExchange.setToolTipText(exchangeOn ? config.assistantExportDir
-                        : "File exchange is off — turn it on in Report exchange directory…");
+                AiMenuModel.Item exchange = AiMenuModel.showExchange(config);
+                showExchange.setEnabled(exchange.enabled());
+                showExchange.setToolTipText(exchange.tooltip());
             }
             @Override public void menuDeselected(javax.swing.event.MenuEvent e) { }
             @Override public void menuCanceled(javax.swing.event.MenuEvent e) { }
         });
         return ai;
+    }
+
+    /** The profile file a pointer edit lands in — named in the dialog, because it is committed (D-AI7). */
+    private Path profileFile() {
+        return project.hasProject() ? project.activeFile() : null;
     }
 
     /** The project root pointers are stored relative to, or null when no project is open. */

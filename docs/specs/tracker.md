@@ -336,10 +336,17 @@ already writes them.
   at the surface most likely to erode it.
 - Slices: **.1** ☑ the menu · **.2** ☑ `runbook.N.description` end to end (= M38.8) · **.3** ☑ *Runbooks…*
   through `Runbooks.refuse` · **.4** ☑ the skill-shape prefill (`SkillFrontmatter`) · **.5** ☑ *Domain
-  glossary…* · **.6** ☐ generated screenshot of the menu (needs a capture run). **D-AI9** ☑ the status
+  glossary…* · **.6** ◧ the capture step is IN the harness (`menu_capture(ep, "AI", "ai-menu.png")`, with a
+  project open so the pointer items show enabled rather than greyed); the image itself needs a run on a
+  machine with Screen Recording permission. The docs deliberately do NOT reference it yet — `mkdocs
+  --strict` fails on a missing image, which is the gate working, and shipping a broken image to say a
+  feature exists would be worse than saying nothing. **D-AI9** ☑ the status
   light: three levels and **no red** — nothing in the set is broken (off is a CHOICE, another window is a
   SURPRISE), so red stays unspent for a real fault; and "tested" is deliberately absent, because a probe
   is true only at the instant it ran and a stale green tick asserts what it does not know.
+- Acceptance now met for D-AI2/3/4/6/7: the menu's decisions moved out of the Swing listener into
+  `AiMenuModel` so they can be tested at all, and the source-text checks assert the menu runs nothing
+  and keeps no state — a rule that cannot be tested is one that quietly stops being true.
 - Verified on the built jar: a pre-M43 runbook loads and serves with no description (backward
   compatible), and the demo's real skill-shaped file prefills `restart-quote-service` and its
   description. 1029 green.

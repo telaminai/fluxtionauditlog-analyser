@@ -590,6 +590,9 @@ def main():
     profile = make_demo_project()
     ep = launch("Light")
     menu_capture(ep, "File", "projects-file-menu.png")
+    # M43.6: the AI menu, with a project open so Runbooks…/Domain glossary… are ENABLED — the shot has to
+    # show the working state, not the greyed one a reader would take for the feature being unavailable
+    menu_capture(ep, "AI", "ai-menu.png")
 
     ep = launch("Light", project=profile)      # relaunch WITH the project active
     seed(ep)
