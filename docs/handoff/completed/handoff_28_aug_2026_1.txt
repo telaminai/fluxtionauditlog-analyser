@@ -1,9 +1,9 @@
 HANDOFF — M33.7 · report table sources: assemble every reportable verb
 Date: 2026-08-28 · From: Codex · Branch: main · Base: main @ 29673fa
-Report: docs/handoff/handoff_28_aug_2026_1_report.txt
+Report: docs/handoff/completed/handoff_28_aug_2026_1_report.txt
 
 ORIENT FIRST
-  · docs/specs/spec-report-table-sources.md — the accepted design and all eight acceptance checks.
+  · docs/specs/completed/spec-report-table-sources.md — the accepted design and all eight acceptance checks.
   · docs/specs/completed/spec-investigation-reports.md D-I7/D-I8 — the existing report/table contract.
   · SectionSpec, ReportStore, ReportVerb, ReportsPanel, ReportRenderer, and their tests — the current
     call persistence, table assembly, screen/PDF rendering, and CSV path.

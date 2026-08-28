@@ -1,10 +1,12 @@
 # Spec — report table sources: every verb a table may cite, assembled
 
-**Status:** IMPLEMENTED 2026-08-28 — awaiting independent handoff review. **Milestone:** M33.7 (it is M33's own recorded gap — *"aggregate/coverage/
-series table sources … stated, not hidden"*, completed/tracker.md ▸ M33.3). **Design it extends:**
-[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md) D-I7/D-I8.
-**Tracker:** [tracker.md](tracker.md) ▸ M33. **Reviewer:** the rowWhen decision (D-T4) and the coverage
-row shape (D-T3c) are the two to challenge.
+**Status:** SHIPPED 2026-08-28 — independent review found F1/F2, both corrected and cross-reviewed;
+the full correspondence is [here](../../handoff/completed/review_m33_7_tables.txt). **Milestone:** M33.7
+(it is M33's own recorded gap — *"aggregate/coverage/series table sources … stated, not hidden"*,
+[tracker.md](tracker.md) ▸ M33.3). **Design it extends:**
+[spec-investigation-reports.md](spec-investigation-reports.md) D-I7/D-I8.
+**Tracker:** [tracker.md](tracker.md) ▸ M33. **Review focus:** rowWhen (D-T4) and coverage row shape
+(D-T3c), both confirmed.
 
 ## The proposition
 

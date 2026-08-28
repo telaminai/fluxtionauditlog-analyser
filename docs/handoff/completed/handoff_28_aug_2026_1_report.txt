@@ -1,6 +1,6 @@
 HANDOFF REPORT — M33.7 · report table sources: every verb a table may cite, assembled
 Date: 2026-08-28 · From: Codex · Branch: main
-Brief: docs/handoff/handoff_28_aug_2026_1.txt
+Brief: docs/handoff/completed/handoff_28_aug_2026_1.txt
 
 OUTCOME
   A report table now reissues and renders each declared D-I7 source: read, aggregate, coverage,

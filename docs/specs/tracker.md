@@ -17,7 +17,7 @@ intra-record cursor) · M22 usability (36 of 41) · M23 explaining-what-you-foun
 M24 coverage · M25 drift fixes · M26 agent-efficiency verbs · M27 focus as a filter context +
 named focuses · M28 conditionals + rolling windows + guides/bands · M29 external series (core) ·
 M30 rolled log sets · M31 log-source plugins (core) · M32 marker series · M33 investigation reports
-(core) · M34.0–.3 source adapters (SPI, degradation, format spec + conformance suite) · M35 log +
+(core + .7 report table sources) · M34.0–.3 source adapters (SPI, degradation, format spec + conformance suite) · M35 log +
 graph lifecycle (all eleven) + §E provenance · **M36 start page (.1–.5) · M37 Project panel · M38 portable
 context (.1–.7) · M40 audit readiness (.1/.2a/.2b/.3) · M42 Connect an AI client** · refinement rounds
 2–13 · assistant-vocabulary follow-ups. _(Polish H1, 2026-08-25: verified every section left in this
@@ -288,23 +288,6 @@ _M33.1–.4 shipped, twice-reviewed, owner-eyeballed and merged — full record 
 Design: **[completed/spec-investigation-reports.md](completed/spec-investigation-reports.md)**._
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
-- [M33.7] ☑ **Report table sources — every verb a table may cite, assembled** _(implemented 2026-08-28;
-  brief `docs/handoff/handoff_28_aug_2026_1.txt`; spec'd 2026-08-27;
-  **[spec-report-table-sources.md](spec-report-table-sources.md)**)_ — M33.3 shipped `read` tables and left
-  `aggregate`/`series`/`coverage` rendering "not assembled yet"; the UAT conversation recorded for the docs met that
-  sentence. D-T1 stores a call so it re-issues exactly (JSON text for non-scalars — the `"0.0"` anchor bug of
-  `44b44c9` was this seam); D-T2 one rule for every source (rows = the echo's list, columns = its keys, the scalars
-  printed under the table); D-T4 `rowWhen` refused, with the reason, on rows that have no record. Slices .7a store ·
-.7b aggregate + coverage · .7c series · .7d docs (scenario 4 of the sample conversations is the acceptance).
-  **.7a ☑ 2026-08-28:** structured calls persist as JSON values in the existing flat properties slots; legacy
-  scalar-only reports still reopen unchanged. **.7b ☑ 2026-08-28:** aggregate and coverage tables now
-  assemble from their action data; one scalar line feeds both the Reports tab and PDF, coverage carries
-  its whole graph-ordered ledger, and record-less `rowWhen` refuses with a named warning. **.7c ☑
-  2026-08-28:** series buckets, crossings and stats tables assemble; crossings navigate to their record
-  and can use `rowWhen`, while a call that names both shapes refuses. **.7d ☑ 2026-08-28:** the reports
-  guide and real isolated-run conversation now show every source; scenario 4 records the aggregate
-  table's three CSV rows. Implementation evidence is in
-  `docs/handoff/handoff_28_aug_2026_1_report.txt`; the brief and report remain live for independent review.
 - [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
   otherwise verb-only)_ · **chooser dialog for external marker CSVs** —
   markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
@@ -527,28 +510,25 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 _Refreshed 2026-08-27 (post 1.10.0 readiness). Shipped since the last refresh: **M38.2–.7** (merged, reviewed end to
 end), **M40.1/.2a/.2b/.3** (complete, post-merge reviewed), the Project-panel and theme fixes on main (ledger clear),
-the sample-conversations page and its harness. Newly spec'd: **M33.7** (report table sources) and **M42** (connect an
-AI client). **M41** was spec'd and withdrawn._
+the sample-conversations page and its harness. **M41** was spec'd and withdrawn._
 
-1. **M33.7 report table sources** — .7a (the store) first; the sample-conversations harness is the acceptance.
-   (M41 one-command install was spec'd and withdrawn the same day — JBang already is that; see Decisions.)
-2. **M42 connect an AI client** — review D-I4's client boundaries and D-I5's loopback proof first; then M42.1
+1. **M42 connect an AI client** — review D-I4's client boundaries and D-I5's loopback proof first; then M42.1
    launch/probe is the vertical slice that makes every client route honest.
-3. **M43 the AI menu** (spec'd 2026-08-28, absorbs M38.8) — slice .2 is the `description` storage and must
+2. **M43 the AI menu** (spec'd 2026-08-28, absorbs M38.8) — slice .2 is the `description` storage and must
    land before .3, or the add-runbook dialog writes half a record and the storage learns a shape it has to
    unlearn. Owner question open: the menu's name.
-4. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
-5. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-6. **M19.3/.4** (tutorial, publish-gated on the playground Download)
+3. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
+4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
+5. **M19.3/.4** (tutorial, publish-gated on the playground Download)
    and **M19.8** (bench in CI).
-7. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
+6. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
    rule-1 upstream ask.
-8. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
+7. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
    UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, **UP-MNG-03** (the server supplying the environment) has its analyser-side
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
-9. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
+8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
 
 ## Decisions (resolved)
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.

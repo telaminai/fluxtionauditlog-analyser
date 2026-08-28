@@ -1632,6 +1632,16 @@ carry — a highlight a reader cannot verify from the visible row is a colour, n
   empty-state now distinguishes "nothing configured" from "configured but filtered to nothing"
   (a SHIPPED surface, fixed under Fixed in the changelog), and a report's open-record click on a
   filtered-out record now OFFERS the goto-reveal relaxation instead of doing nothing.
+- [M33.7] ☑ **Report table sources — every verb a table may cite, assembled** _(SHIPPED 2026-08-28;
+  spec [spec-report-table-sources.md](spec-report-table-sources.md); brief/report/review
+  `../../handoff/completed/handoff_28_aug_2026_1.txt`,
+  `../../handoff/completed/handoff_28_aug_2026_1_report.txt`,
+  `../../handoff/completed/review_m33_7_tables.txt`)_ — table calls retain structured values across
+  restart; `aggregate`, the full `coverage` ledger, and all `series` table shapes now assemble from
+  action data; a one-builder scalar line feeds Reports and PDF; record-less `rowWhen` refuses with a
+  named warning. The real generated conversation proves aggregate rows and CSV. Review F1 aligned the
+  panel legend with assembled TableData (the PDF's source of truth); the independent visual cross-review
+  confirmed a refused aggregate rule shows no legend while a valid read rule still highlights and prints it.
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
   (journal ↔ audit-log pairing) resolves, not before.
 

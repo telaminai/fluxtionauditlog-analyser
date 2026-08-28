@@ -127,3 +127,20 @@ CROSS-REVIEWER, PLEASE CHECK (Swing, not unit-tested):
   legend and highlights (the fix must not have silenced the legitimate case — TableData carries
   rowWhen through for read/crossings, so it should not have, but this is the one path only eyes
   can confirm).
+
+================================================================================
+CROSS-REVIEW 2026-08-28 — PASS; ARCHIVE AUTHORISED
+================================================================================
+An independent delivering-session review checked c919ae4 after the reviewer became its author.
+
+  · Code: ReportsPanel now gates the on-screen rule/label on assembled TableData, exactly as the
+    PDF renderer does. ReportVerbTest's pinned aggregate refusal reaches TableData as null; read and
+    crossings keep their valid rules. F2's four post-rebase identifiers resolve in the report.
+  · Gates: `mvn -q test` and `mvn -q package` passed.
+  · Real Swing check under an isolated home and demo log: an aggregate-by-dimension table with
+    `rowWhen: "quotePublisher.spread > 0"` showed its named D-T4 refusal warning and no “— rows
+    where” legend; a read table with `rowWhen: "orderTracker.live > 0"` showed the “orders live —
+    rows where …” legend and its matching rows highlighted.
+
+Verdict: F1 and F2 are closed. The brief, report and this review may archive together; M33.7's spec
+and tracker entry may move to completed. M33.5 and M33.6 remain live work and are not affected.
