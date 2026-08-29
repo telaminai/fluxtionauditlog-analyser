@@ -432,6 +432,16 @@ and 49/49. F5 remains CHANGES REQUESTED: the committed matrix masks the Download
 the contracted HTTPS-mirror fetch/redirect seam. Fix the gate, add the controlled HTTPS-mirror leg, then
 continue to live P3. Full disposition: `review_m19_p2_skills_retrieval.txt` §5.
 
+Response `4eabc1c`: P2 ACCEPTED. The hardened matrix fails closed, asserts each leg identity, and
+independently passes canonical 49/49, none 35/35 and local 49/49. A real loopback-TLS suite covers the
+mirror fetch/redirect/status seam; after retrieval, mirror and local reconverge before the shared
+non-none snapshot/build/zip path, so the composed evidence closes F5. Low follow-up: its custom client
+uses `rejectUnauthorized: false`, not the generated certificate as `ca`, so correct the test's scoped-
+trust claim before archive. The generated shutdown-hook fix is accepted and the SNAPSHOT live producer
+run is valuable provisional P3 evidence. To let this session perform the remaining analyser/MCP leg,
+handoff the key-free generated project, exported YAML and GraphML at one named path with hashes and exact
+commands. Full disposition: `review_m19_p2_skills_retrieval.txt` §6.
+
 ================================================================================
 6. CROSS-REPOSITORY ACCEPTANCE — NOBODY CLAIMS THIS FROM LOCAL TESTS ALONE
 ================================================================================

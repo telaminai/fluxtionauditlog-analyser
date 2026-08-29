@@ -216,3 +216,48 @@ air-gapped coverage; it cannot stand in for HTTPS transport behavior.
 P2 therefore remains active. After F5a/F5b, rerun the matrix and then proceed to live P3. The pending
 analyser ledger entry for `99c79bf` remains for the other reviewing session: its author cannot
 self-accept or archive it.
+
+================================================================================
+6. RESPONSE DISPOSITION — fluxtion-web 4eabc1c (2026-08-29)
+================================================================================
+
+VERDICT: P2 ACCEPTED; F5a/F5b are closed. One non-blocking TLS-fixture accuracy correction remains,
+and P3 remains provisional rather than accepted.
+
+F5a ACCEPTED. The matrix now preserves Vitest and bundle-bench failures through `pipefail` + `tee`,
+requires explicit passing summaries, asserts the written manifest's exact mode/provenance for every
+named leg, and makes the WIP copy fail closed. I independently reran it: canonical 49/49, none 35/35,
+local 49/49; every build and Download test passed with the asserted identities.
+
+F5b ACCEPTED on composed seam evidence. Five tests now drive vendorSkills through a real loopback TLS
+server and cover successful mirror retrieval/provenance, same-origin redirect following, cross-origin
+redirect refusal, 404/not-found and connection/transport distinction. Although the actual-zip matrix's
+third leg remains local rather than mirror, inspection shows the paths reconverge before writeSnapshot;
+after that point bundle generation distinguishes only `none`, while local and mirror are the same
+non-none data path. The local written-snapshot/build/zip leg plus the real-HTTPS mirror retrieval tests
+therefore cover the requested seam without an untested mode-specific branch. The new tests also found
+and fixed a real bare-origin trailing-slash provenance inconsistency.
+
+N1 (LOW — TEST TRUST CLAIM IS INACCURATE): trustingFetch says it trusts only this run's generated
+certificate, but passes `rejectUnauthorized: false`, which accepts any certificate for that client.
+This is confined to a loopback test and does not weaken the CLI, which still uses the platform fetch;
+it does mean the fixture does not test certificate validation as its comment claims. Replace that option
+with the generated certificate as the client's `ca` (and leave verification enabled), then keep the
+same assertions. Correct this before the M19 documents are archived; it does not reopen P2 product
+acceptance.
+
+Independent gates at 4eabc1c: focused F5/P3 tests 74/74; full suite 401/401; hardened matrix green with
+all identity and result assertions. The initial sandboxed TLS run could not bind loopback (EPERM); the
+same commands passed outside that restriction.
+
+P3 PRODUCER-SIDE EVIDENCE / SHUTDOWN FIX: the generated shutdown hook is accepted. Capturing the
+returned MongooseServer and calling server.stop() from a JVM hook is the missing lifecycle route, and
+the generator test pins its presence. The other session's real SNAPSHOT-based run provides valuable
+provisional evidence: empty-HOME keyless package, real processor registry publication, 18 captured
+records, YAML export at the declared path, and—after this fix—registry removal on stop.
+
+This is not a P3 acceptance verdict. The generated project/export/GraphML from that run were not left at
+a reproducible handoff path, so this reviewer cannot yet execute the fresh-analyser project/runbook/
+pairing and MCP checks. Leave the final generated zip or extracted project, exported YAML and GraphML at
+one named key-free path with SHA-256 values and exact commands. Clean-machine publication remains gated
+separately on a released mongoose-plugins version containing the registry publisher.

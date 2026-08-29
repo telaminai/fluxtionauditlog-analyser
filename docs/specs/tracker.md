@@ -352,7 +352,7 @@ analyser (reverse funnel)._
     byte-for-byte mirror. P3 parses that marker, rejects unknown versions and checks the mirror. The
     profile comment is informational. This selects a checker route already emitted by P1 and does not
     change the v2 inventory or profile schema.
-  - **P2 ◧ changes requested; F1–F4 ☑ accepted through `5f01cab`:** source parsing/refusals, bounded
+  - **P2 ☑ accepted at `4eabc1c`:** source parsing/refusals, bounded
     index/set, distinct outcomes, sanitised provenance and project-input refusal are sound; current
     canonical skill bytes match analyser `6243a89`. The empty eager content registry now lets a written
     `none` snapshot build; strict leading frontmatter/exact versions close both false passes; required
@@ -360,20 +360,27 @@ analyser (reverse funnel)._
     focused at `050c0ab`; 395/395 full at `5f01cab`. **F4 ☑:** the public raw analyser root serves the
     versioned index; the playground now selects it as CANONICAL_ROOT, has removed `--declare-canonical`,
     and the independently-run default CLI emits canonical@6243a89 with byte-identical content.
-    **F5 remains open:** canonical/none/local artifacts reproduce through build → actual zip → checker,
-    but the matrix masks its Download-test exit with `|| true`, does not assert each named leg's expected
-    mode/provenance, and substitutes local readFileSync for the contracted HTTPS-mirror fetch/redirect
-    seam. Make the harness fail closed and add a controlled HTTPS-mirror leg before live P3. Review:
+    **F5 ☑:** the matrix now fails closed, asserts exact leg identities, and independently passes
+    canonical 49/49, none 35/35 and local 49/49 through build → actual zip → checker. A five-test real
+    loopback-TLS fixture covers successful mirror retrieval/provenance, redirects and distinct HTTP/
+    transport outcomes; mirror/local reconverge before the shared non-none snapshot/build path.
+    Independent gates: 74/74 focused, 401/401 full. **Low follow-up before archive:** the fixture's
+    `rejectUnauthorized: false` accepts any certificate for its private client; supply the generated
+    certificate as `ca` so its scoped-trust comment is true. Review and dispositions:
     [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
-  - **P3 ◧ static scaffold implemented, no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
+  - **P3 ◧ producer path proven provisionally; no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
     guide mirror/version, committed processor source, declared/discoverable GraphML, exact shipped
     runbooks + frontmatter/provenance/minimum version, executable lifecycle scripts, safe inventory and
     placeholder refusal. Nine deterministic Python fixtures run in CI, including rejection of v2's
     one-based/singular profile plus canonical, `none` and clean HTTPS-mirror provenance. The real
-    canonical Spring Download zip now passes 49/49 static checks. Live keyless run → export → stop and
-    fresh analyser/MCP checks still wait for the fail-closed P2 source-mode matrix and published
-    Mongoose dependency. Local gates: 9/9 Python fixtures, 1,110/1,110
+    canonical Spring Download zip now passes 49/49 static checks. A real SNAPSHOT-based run at playground
+    `4eabc1c` proved empty-HOME keyless package, real processor registry publication, 18 audit records and
+    declared-path YAML export. It found that generated MongooseMain lacked a shutdown hook; the generator
+    now calls server.stop() from one, and the live rerun removed the registry entry cleanly. The final
+    key-free project/export/GraphML must be handed to this session at a named hashed path before the fresh
+    analyser project/runbook/pairing and MCP checks can run. Clean-machine acceptance still waits on a
+    published Mongoose dependency. Local gates: 9/9 Python fixtures, 1,110/1,110
     Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
