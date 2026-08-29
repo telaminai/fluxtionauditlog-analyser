@@ -145,6 +145,12 @@ analyser (reverse funnel)._
   now marked NOT PUBLISHABLE in the skill itself) remain OPEN.** The embedded one cannot be closed by
   writing: it needs someone with a Fluxtion API key to build a processor, run it through the listener and
   open the result.
+- [M19.17] ☑ **Bundle contract v1 written** _(2026-08-29, third review's F1)_ — normative table in the
+  spec: required files, exact profile keys verified against `ConfigStore`/`ProjectProfile`, the commands a
+  bundle must document, generated-bundle acceptance, and per-repo ownership. Versioned `m19-bundle/1`; any
+  change to it is v2. D-X3/D-X4/D-X6/D-X7/D-X9 are now normative in the spec rather than living only in a
+  handoff. **Still open: F4** (`skills.source` retrieval — index layout, error distinctions, bounded
+  content, recorded provenance) and **F5/F8** (embedded tier unverified end to end; needs a key-holder).
 - [M19.16] ☐ **Review amendments before bundle implementation** — correct the MCP bootstrap to the
   supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
   key provenance a value-free observable source rather than guessing a separate build's winner; and make
@@ -209,8 +215,9 @@ analyser (reverse funnel)._
 - [M19.12] ☐ **Key management — the surface, not just the decision (R8)** _(owner asked 2026-08-29: "is
   key management in this spec?" — it was not; D-R1 resolved the DECISION and nothing described the
   feature)_. Three surfaces, no first-run modal: a start-page card, an `AI ▸ Fluxtion API key…` item, and a
-  Project-panel row stating **provenance** — which of file / env / build property answered, because that is
-  the fact that costs an afternoon. Lift `FluxtionAccountDialog` including its `~/.fluxtion/profiles/`
+  Project-panel row stating **locally observable setup facts only** (D-X3) — the key file present or absent,
+  with the precedence rule documented beside it. It must NOT claim which source a future Maven build
+  resolved, and `FLUXTION_API_KEY` is not an answering source: the builder never reads it. Lift `FluxtionAccountDialog` including its `~/.fluxtion/profiles/`
   concept. Never validates against a service: presence is local, validity is the build's business, and an
   analyser phoning home to check a key is the enforcement this product argues against.
   **The limit now has ACCEPTANCE rather than prose**, which is the half that matters for a credential: a

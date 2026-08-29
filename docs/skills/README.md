@@ -42,9 +42,10 @@ x-analyser-min-version: 1.12.0
 ---
 ```
 
-`name` and `description` are what the analyser reads. `x-analyser-min-version` is ignored by the analyser
-and read by humans and by the bundle generator: a skill written against verbs that did not exist in an
-older analyser breaks silently otherwise (D-R3).
+`name` and `description` are what the analyser reads. **`x-analyser-min-version` must have an enforcer or
+it is a comment** (D-X9, review F4): the **bundle generator** checks it when assembling a bundle and
+refuses a skill newer than the analyser the bundle targets. The analyser does not enforce it at runtime —
+it does not fetch skills — so if the generator does not check it, nothing does.
 
 ## Overriding the source
 

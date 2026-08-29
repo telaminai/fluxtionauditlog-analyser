@@ -646,6 +646,72 @@ them where a step cannot be grounded without the host in front of you. Acceptanc
 containing one is a bug — but nothing currently *checks* that, and the check belongs to whoever generates
 bundles, not to this repo.
 
+## M19 BUNDLE CONTRACT v1 — normative (2026-08-29)
+
+_Raised as blocking by three reviews. This is the artefact a generator in another repository can be
+checked against; everything above it is rationale. **Version it: any change to this table is v2.** The
+analyser side of every key below was verified against this repo's source, not against prose._
+
+**Contract version:** `m19-bundle/1`. A bundle declares it; a checker refuses an unknown version.
+
+### Files the bundle MUST contain
+
+| Path | Required | Owner | Verified against |
+|---|---|---|---|
+| `.analyser/project.fluxtion-settings` | yes | generator | `ProjectProfile.CANONICAL_RELATIVE` — this exact relative path, no alternative accepted |
+| `<the log the project writes>` | yes, at a **generated concrete path** | generator | D-X6; the analyser cannot infer an unopened log path |
+| `<the processor's GraphML>` | yes, at a generated concrete path | generator | pairing needs it; M40.1 gives a verdict from it before any run |
+| the generated processor source | yes | generator | source navigation, and it is what makes the bundle keyless |
+| `.claude/skills/<name>/SKILL.md` × n | yes | canonical library | `SkillDiscovery` finds `SKILL.md` case-insensitively, ≤ depth 7 |
+| `CLAUDE.md` (+ `AGENTS.md` mirror) | yes | canonical + generator | R3, R4 |
+| `README.md` | yes | generator | run command, log path, the client-neutral analyser route |
+
+### Profile keys the generator MUST write
+
+Exact key names, verified in `ConfigStore`:
+
+| Key | Value | Notes |
+|---|---|---|
+| `projectName` | the bundle's name | |
+| `sourceRoot.count` / `sourceRoot.N` | project-relative roots | must resolve in the unzipped bundle |
+| `eventProcessorFqn` | the processor class | |
+| `runbook.count` | number of skills registered | |
+| `runbook.N.name` | matches the skill directory name | 1–40 of `[A-Za-z0-9_-]`, `Runbooks.refuse` |
+| `runbook.N.path` | e.g. `.claude/skills/<name>/SKILL.md` | project-relative; `..`, absolute and URLs refused |
+| `runbook.N.description` | the skill's frontmatter `description` | optional, one line, ≤ 300 chars |
+| `vocabulary` | glossary path, if the bundle ships one | same pointer rules |
+
+**The profile MUST NOT contain:** any log path (no such category exists), any API key, or `skills.source`
+(machine-tier only, D-R4/D-X8).
+
+### Commands the bundle MUST document
+
+| Purpose | Contract |
+|---|---|
+| run | **one command**, from the bundle's own script; works with **no API key** |
+| open the analyser | `jbang` line **plus** the JBang prerequisite, or the plain `java -jar` alternative (F7) |
+| connect an AI client | **client-neutral**: start with local transport, then *AI ▸ Connect an AI client…*. Never a hard-coded `claude mcp add` (D-X7) |
+| regenerate | separate, and the **only** step that mentions a key (F2/F6) |
+
+### Acceptance a generated bundle must pass
+
+- [ ] unzip → run → an audit log appears at the path the bundle declared, **with no API key present**
+- [ ] the analyser opens that log and its GraphML from the paths the profile/skills name, **on a machine
+      that has never opened either** (this is what F3 was about)
+- [ ] `analyser_context` reports the project, the log, the pairing, and every registered runbook with its
+      description and `exists: true`
+- [ ] *Find skills…* lists exactly the shipped skills and marks them already declared
+- [ ] no `TODO(bundle)` marker survives anywhere in the bundle
+- [ ] the contract version is declared and matches this table
+
+### Ownership
+
+| Part | Repo |
+|---|---|
+| this contract, the profile format, the analyser behaviour | **analyser** (here) |
+| bundle generation, the run script, the concrete paths | **playground** |
+| host-tier skill content and the operations it names | **bundle side**, from the canonical library |
+
 ### Still open after the 2026-08-29 review round — M19 is NOT ready to brief
 
 Three independent reviews have now run over this revision. Most findings are fixed above; **these are
@@ -675,7 +741,12 @@ the reviews found. **M19.16 stays open and no cross-repo briefing should start u
       `context.runbooks[]` names them on first open with no adoption step.
 - [ ] `Find skills…` on the freshly downloaded project lists exactly the shipped skills and marks them
       already declared — the M43.7 path, exercised by the bundle rather than by a fixture.
-- [ ] The bundle's `CLAUDE.md` carries the MCP registration line and the key paragraph from R4.
+- [ ] The bundle's `CLAUDE.md` carries the **client-neutral** setup route (start the analyser with local
+      transport, then *AI ▸ Connect an AI client…*) and the key paragraph from R4. **Not a command line** —
+      R3 removed that and this item contradicted it (D-X7).
+- [ ] Acceptance for "the agent is connected" is: the analyser's resolved registration completed for the
+      chosen client, the client lists the analyser's tools, and an `analyser_context` call returns this
+      project's facts. A README line is not evidence of a connection.
 - [ ] `skills.source` is honoured, defaults to canonical, accepts `none`, and is REFUSED from a project
       profile with the reason stated — a test asserts a profile carrying it is ignored (D-R4).
 - [ ] The source actually used is recorded in the generated project and shown, so a corporate mirror is
@@ -683,8 +754,10 @@ the reviews found. **M19.16 stays open and no cross-repo briefing should start u
 - [ ] No shipped bundle contains a `TODO(bundle)` marker (D-R2) — and something CHECKS it (C5).
 - [ ] Licence registration is offered on the START PAGE and the AI menu, never as a first-run modal
       (R6 — D-S1 removed that modal on owner report and it must not return).
-- [ ] **R8:** the key's PROVENANCE is shown — which of file / env / build property answered — not merely
-      present-or-absent.
+- [ ] **R8:** the key row states only **locally observable setup facts** (D-X3) — the key file is present
+      or absent, and the precedence rule is documented beside it. It must NOT claim which source a future
+      Maven invocation resolved, and must not list `FLUXTION_API_KEY` as an answering source, since the
+      builder never reads it.
 - [ ] **R8 safety, each asserted by a test rather than reviewed by eye:** the key value appears in no
       `context` output, no verb echo, no project profile, no `SettingsShare` export, and no status-bar or
       console text. `AppConfig` does not hold it; `KnownKeys` owns no family for it.
@@ -787,7 +860,7 @@ produced a different, drifting set per template. Almost none of it is domain-spe
 |---|---|---|
 | **common** | load an audit log · record a run · replay a run | the record/replay mechanism, and the analyser's own open path |
 | **mongoose-hosted** | deploy · start · stop · where its audit log lands | the starter's own scripts and admin endpoint |
-| **embedded** | start/stop in-process · where its audit log lands | `runtime.connector.DataFlowConnector` (`addDataFlow`, `addFeed`, `addSink`) with `FileMessageSink` as the log sink — verified in `fluxtion-runtime` 1.0.13 |
+| **embedded** | start/stop in-process · where its audit log lands | `DataFlow.setAuditLogProcessor(LogRecordListener)` — **NOT** `addSink`/`FileMessageSink`, which is business output and cannot be an audit listener (review F1/F5, D-X4). Tier is **NOT PUBLISHABLE** until run end to end. |
 
 A bundle **selects a tier**; it does not author a set. The domain-specific layer on top is thin and may be
 empty.
