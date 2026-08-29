@@ -120,7 +120,7 @@ to a Mongoose-side MCP tool, in the repo whose release cadence owns them._
   owning repo rather than in a user's session. The three-repo dependency is acceptable *because* of
   this and not otherwise.
 
-## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
+## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
 ships a runnable Mongoose example with Chronicle audit capture pre-enabled and one YAML export command
 targeting a predictable project-relative path,
@@ -288,9 +288,9 @@ analyser (reverse funnel)._
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
   gating anything. **Re-adding a first-run modal would reverse D-S1.**
-- [M19.10] ◧ **The canonical skill documents — analyser source corrected; generated substitution bench pending** — authored in [`docs/skills/`](../skills/README.md); four
-  written and verified discoverable by the shipped `SkillDiscovery`. Remaining: the `TODO(bundle)` markers
-  need grounding against a real host before any bundle ships one.
+- [M19.10] ☑ **The canonical skill documents and generated substitutions are accepted** — authored in [`docs/skills/`](../skills/README.md); four
+  written and verified discoverable by the shipped `SkillDiscovery`. Canonical `TODO(bundle)` markers
+  remain authoring inputs only; the generator grounds the selected copies and rejects any survivor.
   - 2026-08-29 at `5c72e21`: `CanonicalSkillsTest` pins the four names, descriptions and minimum analyser version;
     the Mongoose tier now follows the live registry → Chronicle capture → bundle-owned YAML export beat,
     and the embedded tier's NOT-PUBLISHABLE gate is pinned. The canonical `TODO(bundle)` markers remain
@@ -306,10 +306,10 @@ analyser (reverse funnel)._
   - Playground P1 `3c0f926` vendors byte-identical copies from `6243a89`, substitutes the two applicable
     skills and refuses surviving markers across generated files; the review at branch head `73565fc`
     runs 22 focused tests and confirms the copies remain byte-identical. Omitting
-    `replay-a-run` is accepted because this bundle declares no replay entry point. M19.10 remains ◧ only
-    until the P1 single-model finding is corrected and the generated files are re-reviewed; P2 source
-    modes and minimum-version enforcement are separate work, not evidence against the canonical files.
-- [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
+    `replay-a-run` is accepted because this bundle declares no replay entry point. The P1 single-model
+    finding was corrected at `8f20016`; the actual Download zip now proves the substituted files contain
+    no surviving marker and passes bundle-bench 49/49. P2 retrieval was accepted at `4eabc1c`.
+- [M19.1] ◧ **Bundle implementation complete; live P3 and public dependency remain** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
   layer, snapshot of the canon at generation time, canonical-reference line) + admin REST on + README
@@ -380,7 +380,7 @@ analyser (reverse funnel)._
     now calls server.stop() from one, and the live rerun removed the registry entry cleanly. The final
     key-free project/export/GraphML must be handed to this session at a named hashed path before the fresh
     analyser project/runbook/pairing and MCP checks can run. Clean-machine acceptance still waits on a
-    published Mongoose dependency. Local gates: 9/9 Python fixtures, 1,110/1,110
+    published Mongoose dependency. Local gates: 9/9 Python fixtures, 1,111/1,111
     Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
