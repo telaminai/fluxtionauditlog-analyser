@@ -128,7 +128,8 @@ the bundle *is* a project profile) — so onboarding becomes: download → run �
 project auto-loads (M20; **File ▸ Import** until it lands) → Follow a live log with click-to-source and Explain working.
 Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README links back to the
 analyser (reverse funnel)._
-- [M19] ➜ **REVISED 2026-08-29** — `spec-onboarding-example.md` ▸ *Revision 2026-08-29*. Owner-directed:
+- [M19] ➜ **REVISED 2026-08-29 · independently reviewed — ACCEPT WITH AMENDMENTS** in
+  [`review_m19_onboarding_and_trust.txt`](../handoff/review_m19_onboarding_and_trust.txt). Owner-directed:
   one download should produce a project where an LLM already knows Fluxtion, is connected to the analyser
   over MCP, and is told by the analyser which skills run/stop/read the local app. The spec pre-dated M38,
   M42 and M43, so five additions: **R1** the bundle ships `.claude/skills/*/SKILL.md`; **R2** the shipped
@@ -138,6 +139,10 @@ analyser (reverse funnel)._
   that both edits and drives; the surviving principle is that the ANALYSER edits no code); **R4** the
   licence key is the first wall after first success and the seeded CLAUDE.md must pre-empt it; **R5** open
   the analyser on the GRAPH before the first run, so M40.1 has something true to say at minute two.
+- [M19.16] ☐ **Review amendments before bundle implementation** — correct the MCP bootstrap to the
+  supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
+  key provenance a value-free observable source rather than guessing a separate build's winner; and make
+  the generated load-log skill name the bundle's actual path (review F1–F4).
 - [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns key PROVENANCE.** The visualiser is not shipping
   (too IDE-specific); its tools fold into the analyser, which removes the only real objection. "Provenance"
   because the key has three sources and WHICH one answered is the fact that costs an afternoon — the §E /
@@ -439,6 +444,10 @@ analyser is willing to assert._
   a better answer is not what moves them. If the answer is "eventually", runway changes, not direction.
 - Evidence is measured and none of it was produced for this document — including a simulated regulatory
   return that was FALSE (*"7 of 7 foreseen"*, actually 0) and was refuted only by the record.
+- ☐ **Trust-boundary amendment (review F5)** — a supplied audit record is evidence about the recorded
+  execution only within a declared, trusted runtime/deployment boundary. The analyser does not establish
+  the record's origin, completeness, semantic correctness or freedom from author influence; narrow the
+  spec and buyer-facing wording before treating "independently recorded" as a market claim.
 
 ## M39 · Baselines — "is this normal here?" — ☐ SPEC'D 2026-08-27 (owner decision 4; spec **[spec-baselines.md](spec-baselines.md)**)
 - [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
