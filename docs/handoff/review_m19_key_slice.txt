@@ -1,0 +1,109 @@
+REVIEW — M19.12/12a safe Fluxtion key management, db42919 + 1dd7d84
+Date: 2026-08-29 · Assessor: the Mongoose/playground-side session (independent of the author session)
+Reviewed at: main @ 1dd7d84, per the ledger entry in docs/handoff/unreviewed-changes.md
+
+VERDICT: ACCEPTED — one low-severity code follow-up (F1), two recorded notes (F2, F3), both of the
+entry's own code challenges answered (F1 answers the wipe challenge; F4 endorses the
+preserve-properties decision). The R8/D-X3 safety boundary holds at every surface I could reach,
+including live over the REST socket. The Swing-interaction items the entry lists remain for a human
+at a screen; everything reachable without one was verified and is listed below.
+
+================================================================================
+1. GATES RUN
+================================================================================
+
+  · mvn -q test                       → 1,086 tests, 0 failures, 0 errors, 0 skipped
+  · ./.venv/bin/mkdocs build --strict → PASS
+  · git diff --check                  → clean
+  · four-term sweep over both commits (git show db42919 1dd7d84 | grep -icE "<terms>") → 0 hits
+  · packaged jar (mvn package -DskipTests) — used for the runtime checks below
+
+================================================================================
+2. RUNTIME VERIFICATION (isolated user.home, --rest — the reachable half of the Swing list)
+================================================================================
+
+Launched the freshly packaged jar with -Duser.home=<scratch> --rest:
+
+  · First run printed the expected stdout note ("no configuration yet and no Settings dialog") —
+    no first-run gate appeared; M19.12a / D-S1 honoured. FluxtionKeySafetyTest also guards this
+    structurally (showFirstRunSettingsIfNeeded must reference neither JOptionPane nor the dialog).
+  · context.fluxtionKey with no key file:
+      {canonicalFilePresent: false, canonicalFile: "~/.fluxtion/fluxtion.apiKeyFile",
+       precedenceNote: "-Dfluxtion.apiKey ... overrides this file; FLUXTION_API_KEY is not read"}
+    Exactly the D-X3 shape: locally observable facts, a stated rule, no build-winner claim, and the
+    literal tilde path (no account name leaks into context or screenshots).
+  · Wrote apiKey=<sentinel> into the isolated home's canonical file, called context again WITHOUT
+    restarting: canonicalFilePresent flipped to true — presence is read live, so the Project row
+    tracks external edits, not just the dialog's own saves.
+  · The sentinel value appears NOWHERE in the full context JSON (grep over the raw response: 0).
+  · The screenshot verb on the fresh install correctly refuses ("file exports are disabled —
+    enable Settings ▸ Assistant ..."), which is the right default and incidentally routes the
+    entry's screenshot-hygiene concern through an explicit opt-in.
+
+Still requiring a human at a screen (unchanged from the entry's list): the Start-page card
+reflowing absent → present after an in-dialog save; the dialog opening with an empty masked field
+while a key exists; named save/activate/delete driven by clicks; visual layout.
+
+================================================================================
+3. FINDINGS
+================================================================================
+
+F1 (LOW, code — the entry's wipe challenge, answered): saveProfileAndActivate validates the
+profile NAME before entering the try/finally that wipes the key:
+
+    name = requireProfileName(name);   // throws for e.g. "../outside" — key untouched
+    requireKey(key);                   // wipes on blank itself
+    try { ... } finally { Arrays.fill(key, '\0'); }
+
+An invalid name therefore returns the caller's char[] unwiped — and the store's own test suite
+exercises exactly that path (profileNamesCannotEscapeTheProfilesDirectory) without asserting a
+wipe. The dialog clears the JPasswordField in its catch, but the char[] it obtained from
+getPassword() survives until GC. Fix is one move: hoist requireProfileName inside the try (or wipe
+in the dialog's catch). save() is correct: its only pre-try throw is the blank-key case, which
+wipes internally.
+
+F2 (NOTE, no change requested): buffer wiping is a hygiene gesture, not heap erasure —
+new String(key) inside the save paths necessarily creates immutable copies (the Properties value,
+the store buffer). Nothing in the code or docs overclaims this today; recorded so the CHANGELOG's
+"wipes caller buffers" is never later upgraded to a heap-secrecy claim it cannot honour.
+
+F3 (LOW, cross-repo compatibility note): Properties.store escapes '=', ':', spaces and non-ASCII
+in the stored VALUE. The builder reads the file back through Properties.load, so round-trip is
+correct — but the starter's check-fluxtion-key.sh reads the raw line
+(grep '^apiKey=' | cut -d= -f2-) and would see the ESCAPED form of a key containing those
+characters. Real keys are UUID-shaped, so practical risk is low; worth one line wherever the
+shell contract is next touched (starter-side; recorded in my repo's queue, not this slice's).
+
+F4 (ENDORSED — the entry's second challenge): preserving unrelated canonical-file properties on
+rewrite is the right decision. ~/.fluxtion/fluxtion.apiKeyFile is shared with the Maven plugin and
+the visualiser lineage; only apiKey is this dialog's to write, and clobbering the rest would break
+tools that own them. The accepted casualty is Properties semantics: comments and ordering of a
+hand-authored file are lost on rewrite. Acceptable, now recorded as intended.
+
+F5 (BEHAVIOURAL NOTE, intended-as-built): deleting the ACTIVE profile clears the active-profile
+marker but leaves the canonical key configured — so the row/card still say "present" with no named
+profile active. Defensible (deleting a profile should not break builds); recorded so the state is
+known-intended rather than rediscovered as a bug.
+
+================================================================================
+4. CONTEXT CONFIRMED IN PASSING
+================================================================================
+
+  · b0fdb86 signs M19 BUNDLE CONTRACT v2 and folds the export beat exactly along the
+    reconciliation proposed in handoff_29_aug_2026_1_report.txt §7b (bundle-owned export command →
+    declared concrete ./logs/audit-<name>.yaml; run and export stated as separate operations;
+    "any later change is v3"). The playground-side slices are therefore unblocked; that work
+    proceeds in its own repo against contract v2, not in this review.
+  · This slice is consistent with v2's key rows: presence-only, precedence documented not
+    resolved, FLUXTION_API_KEY never listed as an answering source, no validation call anywhere
+    (the safety test forbids HttpURLConnection/testConnection in the dialog by assertion).
+
+================================================================================
+5. DISPOSITION
+================================================================================
+
+Ledger entry db42919 ticked ☑ with this review as the detail. F1 is a follow-up for the author
+session (one hoisted line plus, ideally, a wipe assertion on the invalid-name test path); it does
+not block acceptance — the exposure is a GC-lifetime char[] in a process that already holds
+String copies transiently while saving. The human-at-a-screen checklist items remain open on the
+entry's terms and are listed in §2.

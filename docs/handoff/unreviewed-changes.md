@@ -92,7 +92,16 @@ profile, selected roots/skills survive restart, duplicate skill names do not rep
 and selecting one topology opens only that graph. Challenge the one-level Maven source-root guess and
 the decision to search GraphML under offered source roots rather than the whole repository.
 
-## ☐ pending review · `db42919` · M19.12/12a safe Fluxtion build-key management
+## ☑ reviewed 2026-08-29 (the Mongoose/playground session) · `db42919` · M19.12/12a safe Fluxtion build-key management
+
+**Verdict.** Accepted — the R8/D-X3 boundary holds at every reachable surface, verified live over REST
+under an isolated home (presence flips without restart; a sentinel key value is absent from the full
+context response; no first-run gate; 1,086 tests + mkdocs strict + four-term sweep green). One
+low-severity follow-up: `saveProfileAndActivate` validates the profile name BEFORE the try/finally
+that wipes the key, so an invalid name returns the caller's `char[]` unwiped — hoist the name check
+inside the try. Both of the entry's code challenges are answered (that one; and
+preserve-unrelated-properties is ENDORSED). Details, notes F2–F5 and the still-manual Swing
+checklist: [`review_m19_key_slice.txt`](review_m19_key_slice.txt).
 
 **What.** Adds the three signed-spec surfaces: a Start-page card, *AI ▸ Fluxtion API key…*, and a
 Project-panel/context row. `FluxtionKeyStore` writes the established
