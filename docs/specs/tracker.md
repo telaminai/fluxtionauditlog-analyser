@@ -381,6 +381,28 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
   the same change behind a hard failure); the spec should name the residual, not only the choice. One line in
   `completed/spec-ai-menu.md` ▸ D-AI9; no code.
 
+## Framing · The trust structure — "AI you do not have to trust" — ☐ PROPOSED 2026-08-29
+_Owner-directed. Spec **[spec-trust-structure.md](spec-trust-structure.md)**. Not a milestone: it creates
+little new work and instead CONSTRAINS existing work. Read it before any change that loosens what the
+analyser is willing to assert._
+- The position: regulated buyers are blocked on agentic AI because nothing an agent produces can be
+  independently checked. The answer is not to explain the model — it is to make the model's output
+  checkable against a record the model did not write.
+- **D-T1** do not say *explainable AI*: it is a term of art meaning model interpretability, we do not do
+  that, and a buyer who hears it will correctly conclude we do not fit. Say *verifiable* / *independently
+  recorded* — which asks them to believe nothing about the model.
+- **D-T3** the distinction that carries the position: an agent's account is TESTIMONY, the audit log is
+  EVIDENCE — written by the runtime, at the time, by a party with no interest in it. This is also why the
+  record must be on by default: a log enabled after an incident is not evidence of the incident.
+- **D-T4** every refusal in the analyser is now load-bearing rather than tasteful. A change that makes it
+  assert more than the record supports is **a change to the market position**, and reviewers should treat
+  it as one.
+- **D-T6 ☐ OPEN, and the most valuable thing to learn:** what is the forcing function for the first
+  serious prospect, and does it have a date? Regulated industries tolerate pain for years; availability of
+  a better answer is not what moves them. If the answer is "eventually", runway changes, not direction.
+- Evidence is measured and none of it was produced for this document — including a simulated regulatory
+  return that was FALSE (*"7 of 7 foreseen"*, actually 0) and was refuted only by the record.
+
 ## M39 · Baselines — "is this normal here?" — ☐ SPEC'D 2026-08-27 (owner decision 4; spec **[spec-baselines.md](spec-baselines.md)**)
 - [M39] ☐ **Baselines** — ☑ **SPEC'D 2026-08-27**, `spec-baselines.md`. "Is this normal here?" — the
   question support cannot answer about a system they did not build, and the one a deterministic record
