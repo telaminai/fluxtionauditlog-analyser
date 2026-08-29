@@ -192,7 +192,19 @@ analyser (reverse funnel)._
   bundle half — download, seeded profile, seeded skills, tier selection — because it does not exist yet.
   So the bench is the ordinary regression guard (three repos change independently; nothing says when it
   stops), scoped to the bundle path, and is **not** a precondition.
-- [M19.12] ☐ **Licence registration on the START PAGE, not a dialog (R6)** — `showFirstRunSettingsIfNeeded`
+- [M19.12] ☐ **Key management — the surface, not just the decision (R8)** _(owner asked 2026-08-29: "is
+  key management in this spec?" — it was not; D-R1 resolved the DECISION and nothing described the
+  feature)_. Three surfaces, no first-run modal: a start-page card, an `AI ▸ Fluxtion API key…` item, and a
+  Project-panel row stating **provenance** — which of file / env / build property answered, because that is
+  the fact that costs an afternoon. Lift `FluxtionAccountDialog` including its `~/.fluxtion/profiles/`
+  concept. Never validates against a service: presence is local, validity is the build's business, and an
+  analyser phoning home to check a key is the enforcement this product argues against.
+  **The limit now has ACCEPTANCE rather than prose**, which is the half that matters for a credential: a
+  test asserts the value reaches no `context`, no echo, no profile, no share export, no status bar or
+  console. `AppConfig` does not hold it; `KnownKeys` owns no family for it. Not hypothetical — the M42
+  review found JVM options carrying secrets into a client config file, and the sweep cannot see inside a
+  screenshot.
+- [M19.12a] ☐ **Licence registration placement (R6)** — `showFirstRunSettingsIfNeeded`
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
   gating anything. **Re-adding a first-run modal would reverse D-S1.**

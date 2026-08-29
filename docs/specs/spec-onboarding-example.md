@@ -423,6 +423,60 @@ bought.
 - **Run it more than once, on different models.** One session is an anecdote; the gaps that recur are the
   ones to write against.
 
+### R8 — the key surface, as a thing to build (owner asked 2026-08-29: is key management in here?)
+
+It was not. D-R1 resolved the *decision* — the analyser owns provenance, writes the file, never holds the
+value — and R4 says what the bundle's `CLAUDE.md` must warn about. Neither described the feature, and more
+seriously **the safety limit existed only as prose with no acceptance criteria**, which for a credential is
+the half that matters. This section is the buildable part.
+
+#### What it is
+
+**Three surfaces, no dialog at first run** (R6 — D-S1 removed that modal and it must not return):
+
+1. **A start-page card.** *"Fluxtion API key — not found. Needed to regenerate a processor; this project
+   runs without one."* States the fact, names the remedy, gates nothing.
+2. **An `AI` menu item** — *Fluxtion API key…* — opening the management dialog. Same owner, one place.
+3. **A Project-panel row** stating presence and **provenance**: *"key: present — from
+   `~/.fluxtion/fluxtion.apiKeyFile`"* / *"from `FLUXTION_API_KEY`"* / *"from a build property"*. Which
+   source answered is the fact that costs an afternoon (§E / M38.3 applied to a credential).
+
+#### What the dialog does
+
+- Writes `~/.fluxtion/fluxtion.apiKeyFile` in the established `apiKey=…` format — **lift
+  `fluxtion-visualiser`'s `FluxtionAccountDialog` rather than re-derive it**, including its
+  `~/.fluxtion/profiles/` concept, which is how one machine holds a work key and an evaluation key without
+  editing a file between builds.
+- Masks the field on screen (`JPasswordField`), as that dialog already does.
+- Reports **presence and provenance** afterwards; never re-displays the stored value.
+- Never validates the key against a service. Presence is a local fact; validity is the build's business,
+  and an analyser that phoned home to check a key would be doing the licence-enforcement this product
+  argues against.
+
+#### The limit, now with acceptance rather than prose
+
+The value is written and forgotten. It must never reach any surface that leaves the machine or the moment:
+
+| Surface | Why it is a real exposure |
+|---|---|
+| `context` / any verb echo | goes to an agent, and into its transcript |
+| the project profile | is committed and shared — M38's entire purpose |
+| `SettingsShare` export | goes to a colleague |
+| the status bar / console | lands in screenshots and screen-shares |
+| a screenshot | **the four-term sweep cannot see inside a PNG** — how real names reached the public site in August |
+
+`AppConfig` must not hold it. `KnownKeys` must not own a family for it. The M42 review found JVM options
+carrying secrets into a client config file, so this is a demonstrated failure mode in this codebase, not a
+hypothetical one.
+
+#### What would change the design
+
+If the key ever becomes a **signed licence the analyser must enforce** — an expiry it checks, a capability
+it gates — this stops being setup convenience and becomes licence enforcement inside source-available
+desktop code, which is theatre: an `if` statement anyone can remove, teaching honest users the licence is
+nominal. Writing a key is fine. **Checking one to decide what the analyser will do is a different product
+and needs its own spec.**
+
 ### The documents themselves
 
 Authored in **[`docs/skills/`](../skills/README.md)** — the source of truth for what is published to the
@@ -558,6 +612,13 @@ bundles, not to this repo.
 - [ ] No shipped bundle contains a `TODO(bundle)` marker (D-R2) — and something CHECKS it (C5).
 - [ ] Licence registration is offered on the START PAGE and the AI menu, never as a first-run modal
       (R6 — D-S1 removed that modal on owner report and it must not return).
+- [ ] **R8:** the key's PROVENANCE is shown — which of file / env / build property answered — not merely
+      present-or-absent.
+- [ ] **R8 safety, each asserted by a test rather than reviewed by eye:** the key value appears in no
+      `context` output, no verb echo, no project profile, no `SettingsShare` export, and no status-bar or
+      console text. `AppConfig` does not hold it; `KnownKeys` owns no family for it.
+- [ ] **R8:** the analyser never validates the key against a service — presence is local, validity is the
+      build's business.
 - [ ] The <10-minute claim is exercised by a bench, not asserted (C1).
 - [ ] **R7 (day two):** `New project…` offers what it found — skills via `SkillDiscovery`, a graph via
       M35.4's discovery, a source-root guess from the build layout — and adds nothing without a person
