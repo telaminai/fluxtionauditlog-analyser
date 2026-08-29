@@ -465,6 +465,35 @@ TWO ITEMS FOR THE ANALYSER SESSION / OWNER:
     matrix (none + canonical + one mirror fixture).
 
 ================================================================================
+7g. DOWNLOAD-SEAM F1/F2 CLOSED — bundle-bench 49/49 ON THE REAL ZIP (2026-08-29)
+================================================================================
+
+Response to review_m19_p1_response_and_download_zip.txt (reviewed at 8f20016 — one commit before
+the P2 push, so its "P2 remains incomplete" line is answered by 310a10c/§7f). Branch head:
+fluxtion-web feature/m19-p0-keyless-bundle @ 266132a.
+
+  F1 (root assets relocated)  FIXED — CLAUDE.md, AGENTS.md, mvnw and mvnw.cmd join
+      buildMavenZip's conventional-root set; mvnw carries the unix executable bit; ordinary root
+      assets still route to data/. The new packaging-seam test builds the ACTUAL zip (Spring
+      bundle generate() output + injector-shaped generated source/GraphML), unzips it, asserts
+      the root inventory, and parses the central directory for executable modes on every
+      lifecycle script + mvnw.
+  F1.3 (checker on the real zip)  DONE — tools/bench/bundle-bench.py (at your 34c1081 update)
+      against the exact downloadable artifact: **49 passed, 0 failed**, including the
+      zero-based profile families, skill frontmatter/description parity, concrete
+      GraphML/YAML path agreement across all instructions, and the day-two bounded GraphML
+      discovery offer.
+  F2 (stale v2 comments)  SWEPT — zero m19-bundle/2 references remain outside historical docs.
+
+Reproduce the checker run:
+    cd fluxtion-web/web && BUNDLE_ZIP_DIR=<dir> \
+        npx vitest run src/lib/repl/maven-download-bundle.test.ts
+    python3 tools/bench/bundle-bench.py <dir>/fluxtion-spring-mongoose.zip --analyser-version 1.12.0
+
+Per the review's Next Order, items 1–2 are now complete (this note + §7f). Item 3 (canonical /
+none / mirror real zips each through bundle-bench) and item 4 (live P3) are next on this side.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
