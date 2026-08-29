@@ -1,0 +1,215 @@
+REVIEW — M19 onboarding example, Revision 2026-08-29
+Spec: docs/specs/spec-onboarding-example.md
+Date: 2026-08-29 · Assessor: independent reviewer session
+
+Scope: the 2026-08-29 M19 revision — R1–R8, D-R1–D-R4, the canonical skills under docs/skills/,
+the cold-test claims, and the added acceptance contract. Claims were checked against this analyser's
+source, the packaged M19 loop bench, Fluxtion runtime source at
+8adfc6fd65b610e749d471d765f86a8c23ee1d03, and the locally resolved Fluxtion Builder 1.0.64 artifact.
+The older, already-reviewed M19.6/.7 loop bench was exercised but not re-reviewed as a design.
+
+VERDICT: RETURN FOR REVISION. The direction is sound, and the existing analyser/MCP loop remains green,
+but this spec is not ready to brief across repositories. Two canonical procedures contradict the runtime
+or the promised keyless path; the API-key provenance contract reports a source the builder does not read;
+and the MCP and skills-source contracts do not yet specify a working end-to-end route. F1–F6 are contract
+findings to close before implementation starts. F7 should be folded into the same revision so the public
+onboarding story stops contradicting it.
+
+================================================================================
+1. F1 — BLOCKING: THE EMBEDDED SKILL WIRES A BUSINESS SINK, NOT THE AUDIT LOG
+================================================================================
+
+docs/skills/embedded/run-embedded/SKILL.md:12–22 says DataFlowConnector.addSink plus FileMessageSink
+is the audit-log sink, and D-R2 repeats that this was verified against fluxtion-runtime 1.0.13
+(spec-onboarding-example.md:715–720).
+
+The live runtime separates these mechanisms:
+
+  · DataFlow.addSink(id, Consumer) dispatches SinkRegistration and binds a named graph output
+    (DataFlow.java:242–244).
+  · Audit records go to DataFlow.setAuditLogProcessor(LogRecordListener)
+    (DataFlow.java:412–414).
+  · DataFlowConnector.addSink delegates through EventFeedToDataFlowAgent, which ultimately calls the
+    first mechanism. It never installs an audit processor.
+
+Attaching FileMessageSink through addSink can write business output from a matching DSL sink; it cannot
+produce the eventLogRecord stream the analyser reads. The skill's subsequent "check the audit file is
+growing" step therefore cannot repair the setup it prescribed.
+
+Required correction: ground the embedded procedure in setAuditLogProcessor with an actual
+LogRecordListener/file writer and lifecycle, or remove the embedded tier until such a project-owned entry
+point exists. Delete the "verified" claim until that complete route has run.
+
+================================================================================
+2. F2 — BLOCKING: THE MONGOOSE PREFLIGHT PREVENTS THE PROMISED KEYLESS FIRST RUN
+================================================================================
+
+R4 says the generated processor ships and the project builds/runs without a key
+(spec-onboarding-example.md:266–276). The Mongoose skill agrees, then immediately labels the key check
+"Before anything: the preflight" and tells the agent to run check-fluxtion-key.sh
+(docs/skills/mongoose/run-mongoose-server/SKILL.md:9–16).
+
+The checked-in review copy exits 1 when no key exists
+(mongoose-bootstrap-artefacts/scripts/check-fluxtion-key.sh:23–28). A model following the canonical
+procedure stops before starting the project, turning the intended first success into a first failure.
+
+Required correction: startup checks only the artifacts required to run. Key preflight belongs solely in
+the regenerate procedure, immediately before the operation that needs it. Acceptance needs a no-key run
+of the generated bundle, not only prose saying the processor is committed.
+
+================================================================================
+3. F3 — HIGH: THE KEY SOURCES AND PRECEDENCE DO NOT MATCH FLUXTION BUILDER 1.0.64
+================================================================================
+
+R4/D-R1 and the Mongoose skill present three effective sources, with the skill stating this order:
+
+  FLUXTION_API_KEY -> ~/.fluxtion/fluxtion.apiKeyFile -> -Dfluxtion.apiKey
+
+Inspection of FluxtionConfigManager.load() in fluxtion-builder-1.0.64.jar shows the effective builder
+contract is instead:
+
+  System.getProperty("fluxtion.apiKey", file property "apiKey" or MISSING_KEY)
+
+The system property overrides the file. FluxtionConfigManager does not read FLUXTION_API_KEY. The review
+copy of check-fluxtion-key.sh reads that environment variable, but run-server.sh does not translate it
+into a JVM property. The preflight can therefore pass on a value the real build never receives, while the
+proposed Project-panel row reports a provenance that did not answer the build.
+
+Required correction: establish one authoritative resolver. Either remove the environment source or add
+an explicit, tested launcher/build mapping from FLUXTION_API_KEY to -Dfluxtion.apiKey. State the actual
+precedence (system property over file unless the builder changes), and integration-test provenance against
+the same resolver the build uses. Presence in the shell script is not evidence of build effectiveness.
+
+Reproduction used:
+
+  javap -classpath ~/.m2/repository/com/telamin/fluxtion/fluxtion-builder/1.0.64/\
+    fluxtion-builder-1.0.64.jar -c -p \
+    com.telamin.fluxtion.builder.compile.generation.remote.client.FluxtionConfigManager
+
+================================================================================
+4. F4 — HIGH: THE CANONICAL SKILL SET DOES NOT MEET R1'S OWN MINIMUM
+================================================================================
+
+R1 requires run, stop, audit-log location and regenerate (spec-onboarding-example.md:216–226). D-R2's
+table also names record-a-run as common. The source-of-truth directory contains only:
+
+  common/load-audit-log
+  common/replay-a-run
+  embedded/run-embedded
+  mongoose/run-mongoose-server
+
+There is no regenerate skill and no record-a-run skill. Two of the present procedures also cannot prove
+what their descriptions promise:
+
+  · load-audit-log says the profile records the log path and recommends analyser_context to find it
+    (lines 13–20). ProjectProfile has no exact log-path field; context.log describes only a log already
+    open. Before the first open this route cannot locate the file.
+  · replay-a-run promises cycle-count AND node-output comparison, but the only analyser call is aggregate
+    groupBy=dimension (lines 19–28). Repeating that call can compare dimension counts; it cannot establish
+    that node values match.
+
+Required correction: complete the host-keyed library, or narrow the claimed minimum. Every canonical
+skill must be executable after bundle substitution and its acceptance must prove its description, not
+merely that SkillDiscovery can parse its frontmatter.
+
+================================================================================
+5. F5 — HIGH: THE MCP ACCEPTANCE PROVES A PLACEHOLDER LINE, NOT A CONNECTION
+================================================================================
+
+R3 requires this line in README/CLAUDE.md:
+
+  claude mcp add fluxtion-analyser -- java -jar /path/to/fluxtion-auditlog-analyser.jar --mcp
+
+The generated project cannot know that path, and the described install path is a one-shot JBang launch,
+not a downloaded analyser jar. The existing M42 implementation deliberately resolves either the stable
+installed ~/.jbang/bin/analyser launcher or the actual Java-plus-jar vector (McpLaunchCommand.java:43–166)
+and renders client-specific Codex and Claude commands. The static placeholder bypasses that solved seam
+and covers Claude only.
+
+The acceptance item at spec-onboarding-example.md:607 checks only that the text exists, while the goal at
+lines 211–214 says the client "is connected". Registration text is not connection evidence.
+
+Required correction: specify how JBang itself is obtained on the claimed JDK-only machine; install a
+stable analyser launcher or resolve a real jar; provide exact current commands for each supported client;
+then require modern MCP discovery and an analyser_context tool call against the launched analyser. The
+existing loop bench already demonstrates the correct level of proof.
+
+================================================================================
+6. F6 — HIGH: skills.source IS NOT YET A RETRIEVAL CONTRACT, AND ITS PROVENANCE MAY LEAK A SECRET
+================================================================================
+
+D-R4 defines skills.source as an HTTP base URL, file URL or none
+(spec-onboarding-example.md:757–789), but does not define a manifest/file name, directory layout, selected
+tier representation, hashes/version, redirects, failure behaviour, or how "none" remains distinguishable
+from a failed fetch. A generic HTTP base cannot be enumerated. On 2026-08-29 the proposed canonical URL,
+https://fluxtion-playground.dev/skills, returned the site's generic application shell rather than a skill
+index or skill documents.
+
+D-R4 then requires the actual URL to be recorded in the generated project and shown. It does not refuse
+userinfo, query strings, fragments, signed URLs or credential-shaped paths. That is weaker than the
+existing ReportDestination gate, which refuses credential shapes, URL userinfo, queries and fragments
+(ReportDestination.java:78–95) precisely because recorded/shared locations leave their original context.
+
+Required correction: define a versioned machine-readable manifest and deterministic layout, including
+tier selection, integrity and failure rules. Restrict configured/recorded provenance to a plain
+credential-free base identity, or store a separately sanitised identity. Add tests for source failure,
+none, project-tier refusal, credential-bearing URLs, and provenance output.
+
+================================================================================
+7. F7 — MEDIUM: THE VERSION GUARD IS INERT, AND THE PUBLIC FIRST-RUN TEXT IS STILL STALE
+================================================================================
+
+The skills README says x-analyser-min-version is ignored by the analyser and read by humans and the
+future bundle generator (docs/skills/README.md:45–47). No acceptance item requires the generator,
+launcher or analyser to compare it. That does not mitigate D-R3's stated silent-break risk, especially
+because docs/site/install.md:26–29 warns that JBang may keep an older cached jar. Require a tested refusal
+or upgrade instruction when the selected skill needs a newer analyser.
+
+Separately, R6 correctly records that a fresh install has no first-run Settings modal, but the published
+install page still says "the Settings dialog opens automatically" (docs/site/install.md:68–70). The M19
+acceptance list does not explicitly close this contradiction. Remove the stale claim as part of the
+onboarding revision.
+
+================================================================================
+8. VERIFIED CLAIMS AND GATES
+================================================================================
+
+The findings above do not invalidate the already-shipped analyser/MCP path:
+
+  · mvn -q test — PASS: 1,085 tests, 0 failures, 0 errors, 0 skipped. The first restricted-shell run
+    could not bind loopback; the same suite passed when allowed to bind localhost.
+  · ./.venv/bin/mkdocs build --strict — PASS.
+  · mvn -q package -DskipTests — PASS.
+  · tools/bench/loop-bench.py --stub --launch — PASS: 23 passed, 0 failed, including packaged MCP
+    discovery, analyser_context, log+GraphML open, provenance, pairing, coverage and topology.
+  · git diff --check — clean; this new review artifact also has no whitespace errors.
+  · exemption-free four-term public-data sweep — clean, including this review artifact.
+
+R2's declared-not-inferred distinction is sound: a bundle author declaring runbooks in the profile is
+not the analyser adopting discoveries. R5's graph-before-log route is supported. R7's confirm-before-add
+rule is consistent with SkillDiscovery/PointerDialog. The context-free measurement prompt is materially
+better evidence than author testimony and needs no design correction from this review.
+
+================================================================================
+9. NOT VERIFIED
+================================================================================
+
+  · No generated playground M19 bundle exists, so the download, substitutions, seeded profile, tier
+    selection, TODO(bundle) rejection and under-ten-minute journey could not be exercised.
+  · The public playground source repository was unavailable from this machine. The website and published
+    template catalogue were inspectable; bundle-generator implementation was not.
+  · The Mongoose bootstrap snapshot still records no source revision, so source/snapshot parity remains
+    unverifiable (the earlier review's F1). This review does not convert that absence into a parity claim.
+  · No real Mongoose starter run, hosted regeneration, subscribed API key or server-native audit-file
+    production was exercised. The stub bench proves the brokered contract, not those native behaviours.
+  · R7 and R8 Swing surfaces do not exist yet. No UI behaviour or credential screenshot safety can be
+    eyeballed, and headless unit tests would not substitute for that check when they do exist.
+
+================================================================================
+10. DISPOSITION
+================================================================================
+
+Do not mark the M19 revision accepted and do not send cross-repository implementation briefs from its
+current contract. Revise F1–F6 first, fold F7 into the same documentation pass, then ask for a focused
+second review of the changed contracts. The M19 loop bench remains valid and green; this disposition is
+about the proposed bundle, skills and key-management extension, not a rollback of shipped M19.6/.7.
