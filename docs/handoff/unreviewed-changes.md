@@ -19,6 +19,28 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ pending review · `92ad3ba` · M19.8/9 Linux loop-bench CI and launch parsing tests
+
+**What.** Extracts desktop launch-argument stripping into a pure `Main.parseDesktopArgs` decision with
+headless tests, and adds a Linux CI job that packages the analyser then runs the existing 23-step
+stubbed registry/export/analyser/MCP loop under `xvfb-run`.
+
+**Why.** The end-to-end bench covered `--rest` only on machines able to launch Swing and was not run by
+CI. A typo could regress into a fake log path unnoticed, while the cross-repo registry/export contract
+could rot between local runs.
+
+**Files.** `.github/workflows/ci.yml`, `Main`, `MainLaunchArgsTest`, `tools/bench/README.md`, M19 tracker.
+
+**Verified.** `MainLaunchArgsTest` passed; full `mvn -q test` passed; a freshly packaged local
+`tools/bench/loop-bench.py --stub --launch` passed 23/23 outside the socket sandbox; pinned strict-site
+build, workflow YAML parse, diff check and tracked-file four-term sweep passed.
+
+**What the reviewer must still check.** Read the first GitHub Actions run: the `loop-bench` job must
+actually install/use `xvfb`, reach all 23 passes, terminate its analyser/stub children, and not hang until
+the 10-minute timeout. Confirm the separate build job remains headless and that caching/duplicate package
+cost is acceptable. In `Main`, verify MCP/help still short-circuit before desktop parsing and that keeping
+additional positional arguments matches the pre-existing behaviour.
+
 ## ☐ pending review · `1f30213` · M19.13 New project offers discovered setup
 
 **What.** `File ▸ New project…` now composes the existing bounded source-root, skill and GraphML
