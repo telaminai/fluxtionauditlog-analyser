@@ -17,6 +17,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Test generated-bundle contract preflight
+        run: python3 -m unittest tools/bench/test_bundle_bench.py
       # UI classes are only constructed, never shown, so the headless ubuntu runner is fine.
       - run: mvn -B verify
 

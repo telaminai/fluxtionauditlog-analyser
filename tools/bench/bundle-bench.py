@@ -1,0 +1,375 @@
+#!/usr/bin/env python3
+"""Static preflight for an M19 generated analyser bundle (contract m19-bundle/3).
+
+This is the analyser-owned first half of P3. It accepts either an unzipped project directory or the
+download zip and checks the contract facts that do not require starting Maven/Mongoose: safe inventory,
+guide/version mirror, exact profile ABI, source/GraphML paths, runbook/frontmatter parity, provenance,
+minimum analyser version, command scripts and placeholder refusal.
+
+It deliberately does NOT claim the live P3 result. The live half still has to run the bundle's own
+run/export/stop commands and drive a fresh analyser over REST/MCP against the resulting YAML + GraphML.
+
+Usage:
+    tools/bench/bundle-bench.py path/to/project-or.zip --analyser-version 1.12.0
+"""
+
+import argparse
+import dataclasses
+import pathlib
+import re
+import stat
+import sys
+import zipfile
+
+
+CONTRACT = "m19-bundle/3"
+PROFILE = ".analyser/project.fluxtion-settings"
+GUIDES = ("CLAUDE.md", "AGENTS.md")
+COMMAND_SCRIPTS = ("run-server.sh", "export-audit.sh", "stop-server.sh")
+PROVENANCE = re.compile(
+    r"(?:canonical|local)@[A-Za-z0-9._-]{1,120}"
+    r"|mirror:https://[^\s@?#]+@[A-Za-z0-9._-]{1,120}"
+    r"|none"
+)
+FQN = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)+")
+RUNBOOK_NAME = re.compile(r"[A-Za-z0-9_-]{1,40}")
+
+
+@dataclasses.dataclass(frozen=True)
+class Check:
+    name: str
+    ok: bool
+    detail: str = ""
+
+
+class Bundle:
+    def __init__(self, source):
+        self.source = pathlib.Path(source)
+        self._zip = None
+        self._paths = []
+        self._duplicates = set()
+        if self.source.is_dir():
+            self._paths = sorted(
+                p.relative_to(self.source).as_posix()
+                for p in self.source.rglob("*") if p.is_file()
+            )
+        elif self.source.is_file() and zipfile.is_zipfile(self.source):
+            self._zip = zipfile.ZipFile(self.source)
+            seen = set()
+            for info in self._zip.infolist():
+                if info.is_dir():
+                    continue
+                if info.filename in seen:
+                    self._duplicates.add(info.filename)
+                seen.add(info.filename)
+                self._paths.append(info.filename)
+            self._paths.sort()
+        else:
+            raise ValueError("input must be a project directory or zip file")
+
+    def close(self):
+        if self._zip is not None:
+            self._zip.close()
+
+    @property
+    def paths(self):
+        return tuple(self._paths)
+
+    @property
+    def duplicates(self):
+        return frozenset(self._duplicates)
+
+    def exists(self, path):
+        return path in self._paths
+
+    def read(self, path):
+        if self._zip is not None:
+            return self._zip.read(path)
+        return (self.source / pathlib.PurePosixPath(path)).read_bytes()
+
+    def executable(self, path):
+        if self._zip is not None:
+            info = self._zip.getinfo(path)
+            return bool((info.external_attr >> 16) & 0o111)
+        return bool((self.source / pathlib.PurePosixPath(path)).stat().st_mode & stat.S_IXUSR)
+
+
+def safe_relative(path):
+    if not path or "\\" in path or path.startswith("/"):
+        return False
+    p = pathlib.PurePosixPath(path)
+    return all(part not in ("", ".", "..") for part in p.parts)
+
+
+def parse_properties(text):
+    values = {}
+    errors = []
+    for number, raw in enumerate(text.splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith(("#", "!")):
+            continue
+        if line.endswith("\\"):
+            errors.append(f"line {number}: continuations are not valid generated-profile output")
+            continue
+        if "=" not in line:
+            errors.append(f"line {number}: expected key=value")
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if key in values:
+            errors.append(f"line {number}: duplicate key {key}")
+        values[key] = value
+    return values, errors
+
+
+def parse_frontmatter(text):
+    if not text.startswith("---\n"):
+        return {}, ["missing opening ---"]
+    end = text.find("\n---\n", 4)
+    if end < 0:
+        return {}, ["missing closing ---"]
+    values = {}
+    errors = []
+    for raw in text[4:end].splitlines():
+        if ":" not in raw:
+            errors.append(f"invalid frontmatter line: {raw}")
+            continue
+        key, value = raw.split(":", 1)
+        key, value = key.strip(), value.strip()
+        if key in values:
+            errors.append(f"duplicate frontmatter key {key}")
+        values[key] = value
+    return values, errors
+
+
+def version_tuple(value):
+    if not re.fullmatch(r"\d+\.\d+\.\d+", value or ""):
+        raise ValueError(f"not a three-part numeric version: {value!r}")
+    return tuple(int(part) for part in value.split("."))
+
+
+def check_bundle(bundle, analyser_version):
+    checks = []
+
+    def add(name, ok, detail=""):
+        checks.append(Check(name, bool(ok), str(detail) if detail else ""))
+        return bool(ok)
+
+    unsafe = sorted(path for path in bundle.paths if not safe_relative(path))
+    add("inventory paths are unique and project-relative",
+        not unsafe and not bundle.duplicates,
+        "; ".join(unsafe + sorted(bundle.duplicates)))
+
+    required = [PROFILE, "CLAUDE.md", "AGENTS.md", "README.md", *COMMAND_SCRIPTS]
+    missing = [path for path in required if not bundle.exists(path)]
+    if not add("required root inventory is present", not missing, "missing: " + ", ".join(missing)):
+        return checks
+
+    claude = bundle.read("CLAUDE.md")
+    agents = bundle.read("AGENTS.md")
+    add("AGENTS.md is a byte-identical CLAUDE.md mirror", claude == agents)
+    try:
+        guide = claude.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        add("agent guide is UTF-8", False, exc)
+        return checks
+    versions = re.findall(r"^Bundle contract: \*\*(m19-bundle/\d+)\*\*", guide, re.MULTILINE)
+    add("agent guide declares exactly the supported contract",
+        versions == [CONTRACT], repr(versions))
+
+    offenders = []
+    developer_paths = []
+    key_material = []
+    for path in bundle.paths:
+        data = bundle.read(path)
+        if b"TODO(bundle)" in data or b"/path/to/" in data:
+            offenders.append(path)
+        text = data.decode("utf-8", errors="ignore")
+        if re.search(r"(?:/Users/|/home/)[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\", text):
+            developer_paths.append(path)
+        for match in re.finditer(r"(?m)^\s*apiKey\s*=\s*(\S+)\s*$", text):
+            if match.group(1) not in ("YOUR_KEY", "MISSING_KEY", "..."):
+                key_material.append(path)
+    add("no generated file contains a bundle placeholder", not offenders, ", ".join(offenders))
+    add("no generated file contains an absolute developer-home path",
+        not developer_paths, ", ".join(developer_paths))
+    add("no generated file contains a literal Fluxtion key value", not key_material, ", ".join(key_material))
+
+    for script in COMMAND_SCRIPTS:
+        add(f"{script} is executable", bundle.executable(script))
+        add(f"agent guide documents ./{script}", f"./{script}" in guide)
+
+    try:
+        profile_text = bundle.read(PROFILE).decode("utf-8")
+    except UnicodeDecodeError as exc:
+        add("profile is UTF-8", False, exc)
+        return checks
+    props, prop_errors = parse_properties(profile_text)
+    add("profile is deterministic key=value syntax", not prop_errors, "; ".join(prop_errors))
+    add("profile declares share.version=1", props.get("share.version") == "1",
+        repr(props.get("share.version")))
+
+    forbidden = sorted(key for key in props
+                       if key in ("projectName", "skills.source")
+                       or "apikey" in key.lower() or key.startswith("log."))
+    add("profile contains no fictitious, retrieval, log or key properties",
+        not forbidden, ", ".join(forbidden))
+
+    def numbered(prefix, minimum=0, maximum=40):
+        raw_count = props.get(prefix + ".count")
+        try:
+            count = int(raw_count)
+        except (TypeError, ValueError):
+            add(f"{prefix}.count is an integer", False, repr(raw_count))
+            return []
+        if not add(f"{prefix}.count is in bounds", minimum <= count <= maximum, count):
+            return []
+        expected = set(range(count))
+        found = {
+            int(match.group(1)) for key in props
+            if (match := re.fullmatch(re.escape(prefix) + r"\.(\d+)", key))
+        }
+        add(f"{prefix} members are exactly zero-based 0..count-1",
+            found == expected, f"expected {sorted(expected)}, found {sorted(found)}")
+        return [props.get(f"{prefix}.{index}") for index in range(count)]
+
+    source_roots = numbered("sourceRoot", minimum=1, maximum=16)
+    safe_roots = all(value is not None and safe_relative(value) for value in source_roots)
+    add("source roots are project-relative", safe_roots, repr(source_roots))
+    missing_roots = [value for value in source_roots if value and not any(
+        path == value or path.startswith(value.rstrip("/") + "/") for path in bundle.paths)]
+    add("every source root exists in the bundle", not missing_roots, ", ".join(missing_roots))
+
+    processors = numbered("eventProcessorFqn", minimum=1, maximum=40)
+    add("event processor entries are Java FQNs",
+        all(value is not None and FQN.fullmatch(value) for value in processors), repr(processors))
+    selected = props.get("selectedEventProcessor")
+    add("selectedEventProcessor names a declared processor",
+        selected is not None and selected in processors, repr(selected))
+    source_candidates = []
+    if selected:
+        suffix = selected.replace(".", "/") + ".java"
+        source_candidates = [root.rstrip("/") + "/" + suffix for root in source_roots if root]
+    add("the selected generated processor source is committed",
+        any(bundle.exists(path) for path in source_candidates), ", ".join(source_candidates))
+
+    provenance = props.get("skills.provenance")
+    add("skills.provenance is present and sanitised",
+        provenance is not None and PROVENANCE.fullmatch(provenance), repr(provenance))
+    shown_provenance = re.findall(r"\bskills:\s*`([^`]+)`", guide)
+    add("agent guide shows the profile's exact skills provenance",
+        provenance is not None and shown_provenance == [provenance], repr(shown_provenance))
+
+    raw_runbook_count = props.get("runbook.count")
+    try:
+        runbook_count = int(raw_runbook_count)
+    except (TypeError, ValueError):
+        runbook_count = -1
+        add("runbook.count is an integer", False, repr(raw_runbook_count))
+    add("runbook.count is in bounds", 0 <= runbook_count <= 40, runbook_count)
+    expected_runbook_keys = {
+        f"runbook.{index}.{field}"
+        for index in range(max(runbook_count, 0)) for field in ("name", "path", "description")
+    }
+    found_runbook_keys = {key for key in props if re.fullmatch(r"runbook\.\d+\.(name|path|description)", key)}
+    add("runbook members are exactly zero-based 0..count-1",
+        found_runbook_keys == expected_runbook_keys,
+        "missing=" + repr(sorted(expected_runbook_keys - found_runbook_keys))
+        + " extra=" + repr(sorted(found_runbook_keys - expected_runbook_keys)))
+
+    declared_skill_paths = set()
+    declared_names = set()
+    for index in range(max(runbook_count, 0)):
+        name = props.get(f"runbook.{index}.name")
+        path = props.get(f"runbook.{index}.path")
+        description = props.get(f"runbook.{index}.description")
+        prefix = f"runbook.{index}"
+        add(prefix + " has a valid unique name",
+            name is not None and RUNBOOK_NAME.fullmatch(name) and name not in declared_names, repr(name))
+        if name:
+            declared_names.add(name)
+        path_ok = path is not None and safe_relative(path) and path.startswith(".claude/skills/")
+        add(prefix + " has a safe skill path", path_ok, repr(path))
+        if not path_ok:
+            continue
+        declared_skill_paths.add(path)
+        if not add(prefix + " skill file exists", bundle.exists(path), path):
+            continue
+        try:
+            skill_text = bundle.read(path).decode("utf-8")
+        except UnicodeDecodeError as exc:
+            add(prefix + " skill file is UTF-8", False, exc)
+            continue
+        frontmatter, fm_errors = parse_frontmatter(skill_text)
+        add(prefix + " has valid frontmatter", not fm_errors, "; ".join(fm_errors))
+        add(prefix + " name matches frontmatter and directory",
+            frontmatter.get("name") == name and pathlib.PurePosixPath(path).parent.name == name,
+            repr(frontmatter.get("name")))
+        add(prefix + " description matches frontmatter",
+            description is not None and frontmatter.get("description") == description,
+            repr(frontmatter.get("description")))
+        minimum = frontmatter.get("x-analyser-min-version")
+        try:
+            supported = version_tuple(minimum) <= version_tuple(analyser_version)
+        except ValueError as exc:
+            add(prefix + " minimum analyser version is valid", False, exc)
+        else:
+            add(prefix + " minimum analyser version is supported", supported,
+                f"needs {minimum}; bench {analyser_version}")
+
+    actual_skill_paths = {path for path in bundle.paths
+                          if path.startswith(".claude/skills/") and path.lower().endswith("/skill.md")}
+    add("profile declares exactly the shipped skills",
+        actual_skill_paths == declared_skill_paths,
+        "declared=" + repr(sorted(declared_skill_paths)) + " actual=" + repr(sorted(actual_skill_paths)))
+    if provenance == "none":
+        add("none provenance emits no skills/runbooks", runbook_count == 0 and not actual_skill_paths)
+    else:
+        add("Mongoose bundle carries load and run/export/stop skills",
+            {"load-audit-log", "run-mongoose-server"}.issubset(declared_names), repr(sorted(declared_names)))
+
+    text_paths = ["CLAUDE.md", "README.md", *sorted(actual_skill_paths)]
+    declarations = "\n".join(bundle.read(path).decode("utf-8", errors="replace") for path in text_paths)
+    graph_paths = sorted(set(re.findall(r"(?:\./)?(src/[A-Za-z0-9_./-]+\.graphml)\b", declarations)))
+    log_paths = sorted(set(re.findall(r"(?:\./)?(logs/[A-Za-z0-9_.-]+\.ya?ml)\b", declarations)))
+    add("all instructions declare one concrete GraphML path", len(graph_paths) == 1, repr(graph_paths))
+    add("the declared GraphML exists", len(graph_paths) == 1 and bundle.exists(graph_paths[0]),
+        graph_paths[0] if len(graph_paths) == 1 else "")
+    add("all instructions declare one concrete audit YAML path", len(log_paths) == 1, repr(log_paths))
+    if len(graph_paths) == 1:
+        graph = pathlib.PurePosixPath(graph_paths[0])
+        discovery_roots = [pathlib.PurePosixPath(root) for root in source_roots if root]
+        discovery_roots.append(pathlib.PurePosixPath("src/main/resources"))
+        discoverable = any(graph.is_relative_to(root) and len(graph.relative_to(root).parts) <= 12
+                           for root in discovery_roots)
+        add("day-two bounded GraphML discovery can offer the declared graph", discoverable, graph)
+
+    return checks
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("bundle", help="an unzipped bundle directory or generated zip")
+    parser.add_argument("--analyser-version", required=True,
+                        help="analyser version used for x-analyser-min-version checks")
+    args = parser.parse_args(argv)
+    try:
+        version_tuple(args.analyser_version)
+        bundle = Bundle(args.bundle)
+    except (OSError, ValueError, zipfile.BadZipFile) as exc:
+        print(f"FAIL  open bundle — {exc}")
+        return 2
+    try:
+        checks = check_bundle(bundle, args.analyser_version)
+    finally:
+        bundle.close()
+    for check in checks:
+        suffix = f" — {check.detail}" if check.detail else ""
+        print(f"{'PASS' if check.ok else 'FAIL'}  {check.name}{suffix}")
+    failed = [check for check in checks if not check.ok]
+    print(f"\n{len(checks) - len(failed)} passed, {len(failed)} failed")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -8,6 +8,26 @@ record format got one (M34.3).
 |---|---|---|
 | `loop-bench.py` | the **agent** of §C3 steps 3–7 | the test: glob the registry → pick a server → export log + GraphML → drive the analyser → assert the loop closed. PASS/FAIL per step, non-zero exit on any failure |
 | `mongoose-stub.py` | the **server** — reduced to the contract | the fixture: writes a `~/.mongoose/servers/<name>` file (UP-MNG-01 shape, mode 600) and serves the export endpoints from the in-tree demo set. Not a Mongoose; a statement of what one must do |
+| `bundle-bench.py` | the **static half of M19 P3** | checks a generated directory or zip against `m19-bundle/3`: safe inventory, exact profile ABI, contract/mirror, source/GraphML, skills/frontmatter/provenance/version, executable commands and no placeholders. It does not claim the live run |
+
+## Preflight a generated analyser bundle
+
+```bash
+tools/bench/bundle-bench.py /path/to/generated-project-or.zip --analyser-version 1.12.0
+python3 -m unittest tools/bench/test_bundle_bench.py
+```
+
+The analyser version is explicit so an old default cannot silently approve a skill requiring a newer
+analyser. The checker accepts both an unzipped project and the actual download zip without extracting it.
+It fails one-based profile members, a singular `eventProcessorFqn`, missing/extra runbook declarations,
+unknown contract versions, guide drift, unsafe zip paths, missing generated source/GraphML, undiscoverable
+GraphML, unsupported `x-analyser-min-version`, non-executable lifecycle scripts and surviving
+`TODO(bundle)`/`/path/to/` markers.
+
+A green preflight is not P3 acceptance. The remaining half uses a downloadable-equivalent bundle and a
+published Mongoose plugin version to run → export → stop with no key, then drives a fresh analyser and
+MCP client against the resulting YAML and declared GraphML. Until that passes, the script reports only
+that the bundle's static contract is internally coherent.
 
 ## Run it today — no Mongoose needed
 

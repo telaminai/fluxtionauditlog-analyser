@@ -357,6 +357,15 @@ analyser (reverse funnel)._
     air-gapped and literal `none`; its bounded versioned index; distinct none/not-found/invalid/transport
     results; sanitised provenance per mode; minimum-analyser-version enforcement; and refusal of project
     input. Complete those before full P3 source-mode acceptance.
+  - **P3 ◧ static scaffold implemented, no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
+    unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
+    guide mirror/version, committed processor source, declared/discoverable GraphML, exact shipped
+    runbooks + frontmatter/provenance/minimum version, executable lifecycle scripts, safe inventory and
+    placeholder refusal. Eight deterministic Python fixtures run in CI, including rejection of v2's
+    one-based/singular profile plus canonical, `none` and clean HTTPS-mirror provenance. Live keyless
+    run → export → stop and fresh analyser/MCP checks still wait for the corrected P1 model, Spring-XML
+    fixture, P2 matrix and published Mongoose dependency. Local gates: 8/8 Python fixtures, 1,110/1,110
+    Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining

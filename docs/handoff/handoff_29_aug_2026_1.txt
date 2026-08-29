@@ -108,6 +108,16 @@ P3 fixture scaffolding may be prepared, but do not start or report generated-bun
 remaining P1 corrections and P2 contract modes are present. Otherwise P3 merely rediscovers known
 failures and cannot execute its required source-mode matrix.
 
+ANALYSER P3 STATIC SCAFFOLD — 2026-08-29:
+
+  · `tools/bench/bundle-bench.py` now accepts a generated directory or zip without extraction and checks
+    `m19-bundle/3` inventory/profile/guide/source/GraphML/runbook/provenance/version/command/placeholder
+    invariants. Its deterministic fixtures include the rejected v2 one-based/singular profile shape.
+  · This gives the playground side an immediate command for every generated source-mode fixture. It is
+    deliberately not the live verdict: run/export/stop + fresh analyser/MCP remain gated as stated above.
+  · Local evidence: 8/8 static fixtures, 1,110/1,110 Java tests, strict docs build and the unchanged
+    packaged stub/analyser/MCP loop 23/23 all pass.
+
 This file owns coordination and repository boundaries. It does NOT silently replace the product spec.
 The signed revision of docs/specs/spec-onboarding-example.md, identified by an exact commit SHA, will own
 the final interface contract. If this brief and that revision disagree, stop and report the mismatch.
@@ -399,7 +409,8 @@ The integration is complete only when a freshly generated, downloadable-equivale
 
 The existing `tools/bench/loop-bench.py --stub --launch` remains a regression check for the brokered seam.
 It is not evidence that a real starter produced the native audit file or that the playground generated a
-correct bundle. Extend or add a bundle-mode bench only after the real generator output exists.
+correct bundle. The static `bundle-bench.py` scaffold may preflight generator fixtures now; extend the
+live half only when the real downloadable-equivalent output and P2 matrix exist.
 
 ================================================================================
 7. NON-NEGOTIABLE BOUNDARIES
