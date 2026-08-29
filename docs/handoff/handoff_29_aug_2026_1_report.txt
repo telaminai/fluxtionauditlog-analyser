@@ -782,6 +782,46 @@ REPRODUCING THE ARTIFACTS ON YOUR MACHINE needs only a JDK:
 REMAINING FOR M19: the MCP-client leg on your side. Nothing on this side is blocked.
 
 ================================================================================
+7o. M19 RELEASED TO PRODUCTION (2026-08-30)
+================================================================================
+
+fluxtion-web `main` @ 967d439 — pushed, which deploys the playground via Cloudflare. The M19 branch
+and the UP-PG-01 catalogue branch are both merged; `feature/m19-p0-keyless-bundle` is now history.
+
+PRE-DEPLOY GATE — I ran the cross-template smoke gate (17 generated projects, real Maven builds and
+boots) because two M19 changes touch SHARED paths, not just bundle mode: every Mongoose project's
+main now installs a shutdown hook, and every playground download's root-asset routing changed. It
+surfaced failures, all of which I traced to the gate itself, not the code:
+
+  · the gate booted `MongooseConfigMain` while the generator has emitted `MongooseProgrammaticMain`
+    for as long as both files existed — verified byte-identical on origin/main. Every Mongoose
+    programmatic-main check has been failing with ClassNotFoundException rather than testing
+    anything. FIXED (e840a02).
+  · three hosted-Fluxtion variants fail on a "MyProcessor received" marker they never print (the DSL
+    variant prints it; the imperative ones do not). Proved pre-existing by generating and booting
+    the SAME project from origin/main with plugins 1.0.38 and none of the M19 changes: 0 events
+    there too, identical. NOT fixed — deciding the right assertion for those variants is a real
+    question, not a typo, and I would have been guessing.
+  · the `MongooseMain (yaml)` noise was Chronicle's DiskSpaceMonitor flooding the log at 96% disk.
+
+So: no regressions attributable to M19, and one long-standing hole in the gate closed.
+
+RELEASED ALONGSIDE M19 (user-facing, independent of the bundle): the FLUXTION_API_KEY advice
+correction — generated projects no longer tell users to export a variable the compiler never reads;
+the Mongoose shutdown hook; the fluxtion-spring-mongoose CSV/typed-event fix; download root-asset
+routing; and the plugins 1.0.39 pin. Post-merge on main: 403/403, production build green,
+svelte-check unchanged.
+
+UPSTREAM-ASKS TIDIED (docs/proposals/upstream-asks.md): UP-MNG-01 ☑ landed and RELEASED in
+mongoose-plugins 1.0.39, with the one deviation recorded (removal hooks Service.stop(), not
+tearDown(), because a live run proved clean shutdown calls only stop()); UP-MNG-03 ◐ declaration
+half landed, ENFORCEMENT half explicitly still open and gated on the UP-MNG-02 decision, so the
+landed half must not be read as the paid line being enforceable; UP-PG-01 ☑ landed. UP-PG-02's
+capability now exists (bundles ship CLAUDE.md/AGENTS.md) but its catalogue field does not — stated
+precisely rather than closed. The round-4 gating paragraph and the §5 "NOT FILED" note now carry
+their outcome; the reasoning is kept, not deleted.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 

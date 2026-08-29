@@ -18,6 +18,14 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
+**STATUS UPDATE 2026-08-29 — the §5/§6 gate opened and three of these asks are DONE.** The §H
+harness landed in the M19 bench, the M19 bundle work then consumed these asks as a real client, and:
+**UP-MNG-01 ☑ landed and RELEASED** in `mongoose-plugins` 1.0.39; **UP-MNG-03 ◐** declaration half
+landed in the same release (enforcement half still waits on the UP-MNG-02 decision); **UP-PG-01 ☑**
+landed. UP-MNG-02 (D-05) and UP-MNG-04 remain owner decisions, UP-PG-02's capability now exists but
+its catalogue field does not, and UP-RDR-01 is untouched. The paragraph below is the round-4 framing,
+kept because its reasoning about the gate is what produced this outcome.
+
 **Raised 2026-08-25 (round 4), NOT yet filed — and gated:** §5–§7 are the server, playground and
 reader halves of the **agent-brokered dev loop** (`spec-agent-brokered-dev-loop.md`, ACCEPTED v2, M18
 closed in its favour): **UP-MNG-01…04** (`telaminai/mongoose` — endpoint registry file, MCP admin
@@ -867,6 +875,11 @@ done; what is missing is that the server half is glued together with bespoke scr
 instead of being a capability of the server. That is the gap these asks close, and it is why the
 priorities below are ordered by *what the humans are currently working around*.
 
+_**Overtaken for two of the four (2026-08-29):** UP-MNG-01 and UP-MNG-03's declaration half were
+implemented and RELEASED in `mongoose-plugins` 1.0.39 without ever being filed as issues — the M19
+bundle needed them, so they were built and proved against a real server instead. UP-MNG-02 and
+UP-MNG-04 are still unfiled and still owner decisions._
+
 _Still **NOT FILED** as issues in `telaminai/mongoose`. The nine fluxtion-owned asks were filed as
 issues 8–16 and moved; these have a spec, a bench and now production evidence, and no issue._
 
@@ -875,7 +888,20 @@ the owner decides which module). Evidence throughout is **measured**: the `svc-a
 check recorded in `spec-closed-loop.md` §B.2, the live playground read of 2026-08-21 (spec §C2), and
 the analyser's own endpoint-file mechanism, in daily use by every script in `tools/`._
 
-### UP-MNG-01 ☐ Each running server publishes an endpoint file — `~/.mongoose/servers/<name>`
+### UP-MNG-01 ☑ Each running server publishes an endpoint file — `~/.mongoose/servers/<name>`
+
+**LANDED AND RELEASED — `mongoose-plugins` 1.0.39 (2026-08-29).** Implemented in `svc-admin-web`
+(`ServerRegistryFile` + `WebAdminService` wiring), merged to `release`, released, and verified public:
+the released jar carries `ServerRegistryFile` and the `publishRegistry` / `serverName` / `environment`
+/ `registryDir` config. Config knobs also include a JVM-wide `mongoose.servers.dir` override so tests
+never touch a developer's real `~/.mongoose`. One deviation from the ask as written, decided by the
+implementation: removal hooks `Service.stop()`, **not** `tearDown()` — a live run proved Mongoose's
+clean shutdown calls only `stop()`, so removal in `tearDown()` would never have run. A crash still
+leaves a dead-pid entry, as specified.
+
+**Verified end to end**, not just unit-tested: the analyser's `loop-bench.py` passes every
+registry-side step against a real server, and the M19 P3 clean-machine run drove a generated bundle
+through publish → export → clean stop with the entry removed. 96 module tests green.
 
 **Target** `mongoose` (runtime or admin web service) · **Priority** highest — this is the discovery
 glob; without it every other leg of the loop needs hand configuration, which is the M18 shape again
@@ -968,7 +994,18 @@ journal lines; `mongoose_restart` prompts in the client and its description ment
 the analyser's Follow picks up the fresh log. **Cost to us if unfixed:** the flagship cycle's deploy
 leg does not exist and M18.3/18.4 stay deleted rather than moved.
 
-### UP-MNG-03 ☐ The server declares whether it is a dev instance
+### UP-MNG-03 ◐ The server declares whether it is a dev instance
+
+**DECLARATION HALF LANDED — `mongoose-plugins` 1.0.39 (2026-08-29).** `WebAdminService` takes a
+declared `environment` (default `dev`) and carries it into the UP-MNG-01 registry file, so an
+exporting agent has an authoritative value instead of a hand-typed one — which is the correctness
+half of this ask. The M19 bundle sets it explicitly, and `bundle-bench` asserts it.
+
+**STILL OPEN: the ENFORCEMENT half.** Nothing yet refuses admin control outside `dev`. That is
+deliberate: server-side refusal presupposes the UP-MNG-02 admin surface, whose retain/defer/withdraw
+is still an unmade owner decision (D-05). Until it is made, `environment` is a declared fact only —
+useful for provenance, not a licence boundary. Do not read the landed half as the paid line being
+enforceable.
 
 **Target** `mongoose` (server config) · **Priority** high — two independent reasons now: it makes the
 free/paid line enforceable (D-B7), **and it is a correctness requirement for anyone answering questions
@@ -1032,7 +1069,11 @@ re-raises the four that were withdrawn**: `mongoose.adminRest` (encoded by `type
 `adminWebService.config.sourceRoots`), `run` (`addRunScript: true`), `analyser.graphml` (a runtime
 fact — moved into UP-MNG-01's `processors[].graphml`). Two stand._
 
-### UP-PG-01 ☐ `catalogue: 1` — a version integer on the index
+### UP-PG-01 ☑ `catalogue: 1` — a version integer on the index
+
+**LANDED (2026-08-29).** `static/starter-templates/index.json` carries top-level `"catalogue": 1`,
+pinned by a test in `templates-disk.test.ts`. The gallery loader already accepted the object form and
+ignores unknown keys, so the change is additive for every existing consumer.
 
 **Target** `fluxtion-playground` (starter-templates) · **Priority** high — D-B4 governs additive
 evolution *of a field that does not exist*
@@ -1045,6 +1086,14 @@ is rule 6 pointed outward: we would be the party shipping the breaking revision.
 unfixed:** D-B4 is a rule about nothing.
 
 ### UP-PG-02 ☐ `agentBootstrap` — where the generated project's agent instructions live
+
+**The CAPABILITY now exists; the CATALOGUE FIELD does not (2026-08-29).** M19 bundles ship
+`CLAUDE.md` + an `AGENTS.md` mirror, generated from the single bundle model and declaring the
+contract version, the keyless-run and key-regeneration rules and the resolved MCP route. So the
+thing the field would advertise is real. What is still missing is the advertisement: nothing in
+`index.json` tells an agent, BEFORE generating, whether a template's project will ship agent
+instructions. That is the ask, and it is unchanged — only now it is a one-line addition describing
+shipped behaviour rather than a request for behaviour that does not exist.
 
 **Target** `fluxtion-playground` (starter-templates + `/start`) · **Priority** medium
 
