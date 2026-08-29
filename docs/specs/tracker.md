@@ -159,9 +159,14 @@ analyser (reverse funnel)._
   not redirect the instructions an agent reads. Accepts a URL, a local path, or `none` as a first-class
   value. The source used is recorded and shown. Blast radius stated: nothing executes a skill, so the
   exposure is an agent READING a procedure — real, bounded, and why the source is machine-tier.
-- [M19.11] ☐ **Onboarding bench (C1)** — the <10-minute claim has never been run cold and is testable on
-  the `loop-bench.py` pattern: fetch a bundle, build, run, launch the analyser, assert `context` reports the
-  log, the pairing and the seeded runbooks. Also the cheapest guard against the three repos drifting (C4).
+- [M19.11] ☐ **Onboarding bench — for the BUNDLE path only** _(C1 corrected 2026-08-29)_. My claim that
+  the headline had never been run cold was **wrong**: the owner ran it the previous Friday — bare Java
+  project, one `jbang` install, existing Claude skills picked up as-is, and **Codex** driving the analyser
+  over MCP. That is the first evidence in this project from a **different LLM** and from a **project not
+  prepared for it**, which is stronger than the fixture written for M43. What remains untested is the
+  bundle half — download, seeded profile, seeded skills, tier selection — because it does not exist yet.
+  So the bench is the ordinary regression guard (three repos change independently; nothing says when it
+  stops), scoped to the bundle path, and is **not** a precondition.
 - [M19.12] ☐ **Licence registration on the START PAGE, not a dialog (R6)** — `showFirstRunSettingsIfNeeded`
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without

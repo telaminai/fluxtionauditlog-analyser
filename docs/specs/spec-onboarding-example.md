@@ -327,14 +327,30 @@ regenerate a processor") states the fact and names the remedy without gating any
 
 Recorded rather than resolved. Each is falsifiable and none blocks the design.
 
-**C1 — the headline claim has never been tested, and it is testable.** *"<10 minutes, nothing pre-installed
-but a JDK"* has been this spec's target since it was written and no one has run it cold. A spec does not
-reduce friction; a tested path does. The precedent for fixing this exists and is already load-bearing:
-`tools/bench/loop-bench.py` turned the dev loop from a description into PASS/FAIL and is what unblocked
-the upstream asks. **Propose an onboarding bench on the same pattern** — fetch a bundle, build, run,
-launch the analyser, assert `context` reports the log, the graph pairing and the seeded runbooks. That
-also catches the failure this design is most exposed to: the bundle and the analyser drifting apart
-between releases, silently, until someone tries it cold.
+**C1 — CORRECTED 2026-08-29. It HAS been run, and the claim I made was wrong.** I wrote that the
+headline had never been tested cold. The owner had already run it on the Friday before: a **bare Java
+project**, a **single `jbang` install** of the analyser, **existing Claude skills** that were simply
+picked up, and **Codex** — not Claude Code — driving the analyser over MCP. It worked.
+
+That is stronger evidence than anything else this spec rests on, and it is worth being precise about why:
+
+- **A different LLM.** Every other data point in this project comes from a Claude session. Codex driving
+  fourteen verbs is the first evidence that the MCP surface is not accidentally shaped around the client
+  that built it — which is exactly what M42 claimed and could not previously demonstrate.
+- **A project not prepared for it.** The skills were already there for another reason and the analyser
+  found and used them. M43's discovery working on a project that was never designed for the convention is
+  a better test than the fixture I wrote for it.
+- **One command.** The install half of this spec's promise is demonstrated, not projected.
+
+**What it does not yet cover, and this is the only part of C1 that survives:** the bundle half. The
+playground download, the seeded profile, the seeded skills and the tier selection do not exist yet, so
+nothing has exercised them. The evidence covers *analyser + MCP + skills already present*; it cannot
+cover *a generated project that arrives primed*, because no such project has been generated.
+
+**So the bench's argument changes, and weakens.** It is no longer "nobody has tried this" — it is the
+ordinary regression case: this works today, three repositories will change independently, and nothing
+will say when it stops. That is worth having once the bundle exists, and is not worth blocking on before
+then. Scope it to the bundle path rather than to the whole claim.
 
 **C2 — the analyser side is one line; the BUNDLE side still has steps.** The analyser is
 `jbang analyser@telaminai/fluxtionauditlog-analyser` and a start page, which is genuinely low friction (I
@@ -344,11 +360,11 @@ the audit log landed and prints the exact `jbang` line to open the analyser. Two
 copy-paste. That is a larger win than anything else in this revision and it costs the bundle generator one
 script.
 
-**C3 — "nothing pre-installed but a JDK" is now understated.** The experience this revision describes needs
+**C3 — "nothing pre-installed but a JDK" is now understated** _(and the Friday run shows why it still matters)_. The experience this revision describes needs
 a JDK **plus an MCP-capable agent, configured, with a subscription**. That is the target user and the
 assumption is fine — but the promise no longer describes what is delivered. Someone arriving with only a
 JDK gets the analyser and the log and none of the AI story, and should be told that up front rather than
-discovering it. Suggest the headline becomes explicit about the two paths.
+discovering it. Suggest the headline becomes explicit about the two paths. The Friday run is the illustration rather than the counter-example: it worked because an MCP-capable client was already there and already subscribed. That is the assumption, and it held — it just should not be silent.
 
 **C4 — three repositories have to agree, and that is a sequencing risk rather than a design one.** M19 needs
 playground bundle generation, the Mongoose starter's behaviour, and this analyser. The owner has
