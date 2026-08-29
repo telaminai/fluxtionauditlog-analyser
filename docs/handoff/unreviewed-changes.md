@@ -19,6 +19,31 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ pending review · `1f30213` · M19.13 New project offers discovered setup
+
+**What.** `File ▸ New project…` now composes the existing bounded source-root, skill and GraphML
+discoveries into one confirmation. Every checkbox/radio begins off. Confirmed source roots and
+skill-shaped runbook pointers persist to the new profile; at most one confirmed topology opens. An empty
+directory yields an empty offer and can still create an empty project.
+
+**Why.** M19's prepared bundle is day one. Without this slice, reproducing the setup on a user's own
+project required four undocumented actions. The signed R7 rule is still D-AI5: discovery offers and a
+person declares; the analyser never silently adopts repository content.
+
+**Files.** `NewProjectDiscovery`, `NewProjectOfferDialog`, `MainFrame`, one headless test class, Projects
+guide, changelog and M19 tracker.
+
+**Verified.** `NewProjectDiscoveryTest` plus the existing project/session, skill and GraphML tests pass;
+full `mvn -q test` passed; pinned `mkdocs build --strict`, `git diff --check` and tracked-file four-term
+sweep passed.
+
+**What the reviewer must still check.** Run the jar under an isolated home against (a) an empty directory
+and (b) a small multi-module project with several skills/graphs. Confirm one dialog is readable at normal
+and narrow sizes, nothing is preselected, Cancel writes no profile, empty-confirm creates a usable empty
+profile, selected roots/skills survive restart, duplicate skill names do not replace earlier choices,
+and selecting one topology opens only that graph. Challenge the one-level Maven source-root guess and
+the decision to search GraphML under offered source roots rather than the whole repository.
+
 ## ☐ pending review · `db42919` · M19.12/12a safe Fluxtion build-key management
 
 **What.** Adds the three signed-spec surfaces: a Start-page card, *AI ▸ Fluxtion API key…*, and a
