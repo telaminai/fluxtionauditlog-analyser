@@ -295,6 +295,68 @@ That makes the analyser's first sentence to a newcomer a useful one, before anyt
 demonstrates the product's actual thesis (a verdict from declared structure) at minute two rather than
 minute ten.
 
+### R7 — DAY TWO: making an existing project analyser-ready (owner, 2026-08-29)
+
+Everything above makes **day one** excellent. Day two is the user's own project, and today it is a
+cul-de-sac — which is the classic way a good on-ramp converts nobody: the demo works and cannot be
+reproduced on real work.
+
+**The pieces all exist. The journey does not.** Verified in code:
+
+| Step | Today |
+|---|---|
+| create a profile | `File ▸ New project…` — exists, and creates an **empty** profile ("Start an empty project profile") |
+| find the skills already in the repo | `AI ▸ Runbooks… ▸ Find skills…` — exists (M43.7) |
+| register each | manual confirm — by design (D-AI5) |
+| source roots | manual, via Settings |
+| the graph | manual, via `open {graphml}` |
+
+So a user who has just seen a primed bundle work must then perform four unrelated actions, none of which
+anything tells them about, to reach the same state on their own code.
+
+**Proposal, and it is the pattern this app already has rather than a new one: `New project…` should OFFER
+what it found.** It creates an empty profile today; it could create one that says *"I found two
+`SKILL.md` files, a `src/main/java`, and a `.graphml` beside your log — add them?"* — offering, never
+selecting (M35.4, D-AI5). Every ingredient is built: `SkillDiscovery` for skills, the M35.4 graph
+discovery that already offers and never chooses, and the build layout for a source-root guess.
+
+That turns day two from four undocumented steps into one dialog a person confirms, and it is the same act
+the bundle performs — the difference being who declares it, which is exactly the D-AI5 distinction R2
+already relies on.
+
+**Acceptance for R7 is in the list below.** It is small, it is inside this repo, and it is the one part of
+M19 that does not need three parties to agree.
+
+### Delivery: two steps, and the second is a MEASUREMENT (owner, 2026-08-29)
+
+The owner's sequencing, and it is better than the recommendation it replaced. My advice had been to author
+the seeded `CLAUDE.md` first, on the grounds that the payload matters more than the plumbing. The owner's
+plan inverts it:
+
+> **1.** Get the template/new-project process working.
+> **2.** Have a **context-free LLM** develop and analyse a real Fluxtion project using it. The gaps it
+> hits rewrite the static context assets.
+
+**Why this is the better order.** Authoring the context up front means guessing what an LLM will lack.
+Step 2 *observes* it. That is the same discipline as the prediction files: a measured gap beats an
+imagined one, and the things a fresh model actually stumbles on are reliably not the things its author
+expected. It is also the only way to find out whether the assets are wrong versus merely incomplete.
+
+**What step 2 must capture to be evidence rather than impression** — record it, or it becomes a story
+about how it went:
+
+- the **question the model could not answer** from the seeded context, and what it did instead (guessed,
+  read source, asked, gave up)
+- whether it **invented an API** — the M21 failure mode, and the one the canon exists to prevent
+- where it needed the **audit log to correct itself**, which is the loop working rather than a gap
+- what it never used, because unused context is cost without benefit and the assets should shrink as well
+  as grow
+
+**A caution worth stating once.** "Context-free" is a property of the *session*, not of the model: a model
+with Fluxtion in its training data is not context-free about Fluxtion, and will paper over gaps a genuinely
+naive reader would fall into. That does not invalidate the exercise — it means an easy pass is weaker
+evidence than a hard failure, and the failures are the useful output.
+
 ### The documents themselves
 
 Authored in **[`docs/skills/`](../skills/README.md)** — the source of truth for what is published to the
@@ -431,6 +493,12 @@ bundles, not to this repo.
 - [ ] Licence registration is offered on the START PAGE and the AI menu, never as a first-run modal
       (R6 — D-S1 removed that modal on owner report and it must not return).
 - [ ] The <10-minute claim is exercised by a bench, not asserted (C1).
+- [ ] **R7 (day two):** `New project…` offers what it found — skills via `SkillDiscovery`, a graph via
+      M35.4's discovery, a source-root guess from the build layout — and adds nothing without a person
+      confirming it. A test asserts an empty directory produces an empty offer rather than an error.
+- [ ] **R7:** the day-two path is documented as a JOURNEY on the site, not as four separate features.
+- [ ] **Step 2:** the context-free run records the four things above, and the assets are rewritten from
+      what it recorded rather than from what we expected.
 - [ ] Step 6's division-of-labour paragraph is rewritten per R3.
 - [ ] The tutorial opens the graph before the first run and shows M40.1's verdict (R5).
 

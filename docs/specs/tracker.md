@@ -159,6 +159,23 @@ analyser (reverse funnel)._
   not redirect the instructions an agent reads. Accepts a URL, a local path, or `none` as a first-class
   value. The source used is recorded and shown. Blast radius stated: nothing executes a skill, so the
   exposure is an agent READING a procedure — real, bounded, and why the source is machine-tier.
+- [M19.13] ☐ **DAY TWO — `New project…` offers what it found** _(owner, 2026-08-29; spec R7)_. Day one is
+  a primed bundle; day two is the user's own project, and today that is a cul-de-sac. Verified in code:
+  `File ▸ New project…` exists and creates an **empty** profile, discovering nothing, so a user who has
+  just watched the bundle work must then perform four undocumented actions to reach the same state on
+  their own code. Every ingredient is already built — `SkillDiscovery`, M35.4's graph discovery, the build
+  layout for a source-root guess — so this is one dialog that OFFERS and never selects (D-AI5). **The only
+  part of M19 that needs no other party to agree**, and the part that decides whether the bundle is a demo
+  people can reproduce.
+- [M19.14] ☐ **Step 2 — rewrite the LLM context assets from a MEASURED run** _(owner, 2026-08-29)_. The
+  owner's sequencing, and better than the advice it replaced: build the mechanism first, then have a
+  context-free LLM develop and analyse a real project with it, and let the gaps it actually hits rewrite
+  the assets. Authoring first means guessing what a model will lack; this observes it — the prediction-file
+  discipline applied to documentation. Record four things or it is a story rather than evidence: the
+  question it could not answer from the seeded context, whether it INVENTED an API (the M21 failure mode),
+  where it needed the audit log to correct itself, and what it never used (unused context is cost). Caution
+  in the spec: "context-free" is a property of the session, not the model — an easy pass is weak evidence,
+  the failures are the output.
 - [M19.11] ☐ **Onboarding bench — for the BUNDLE path only** _(C1 corrected 2026-08-29)_. My claim that
   the headline had never been run cold was **wrong**: the owner ran it the previous Friday — bare Java
   project, one `jbang` install, existing Claude skills picked up as-is, and **Codex** driving the analyser
