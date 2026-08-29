@@ -158,6 +158,19 @@ analyser (reverse funnel)._
   work is coordinated by [`handoff_29_aug_2026_1.txt`](../handoff/handoff_29_aug_2026_1.txt): phase-zero
   live-source reconnaissance only until an amended **M19 bundle contract v1** is signed at an exact SHA;
   after that, repository-owned slices may proceed independently and converge on one generated-bundle bench.
+  - **Phase-zero report RECEIVED 2026-08-29** —
+    [`handoff_29_aug_2026_1_report.txt`](../handoff/handoff_29_aug_2026_1_report.txt) (Mongoose/playground
+    session). Both live-source tables delivered; seven mismatches recorded (M-1 the "Mongoose starter" is
+    actually the playground's `mongoose.ts` — reassigns the brief's M1/M3 slices; M-2 NO current
+    mongoose-hosted starter mode runs keyless; M-3 no file audit sink exists — chronicle-only capture,
+    YAML is export-at-read, so the bundle's `./logs/audit-<name>.yaml` line needs an owner route decision;
+    M-4/M-5 small loop-bench adaptations, analyser-owned; M-6 bundles are generated client-side in the
+    browser — skills should be VENDORED at build time, not fetched at download). Bundle implementation
+    NOT STARTED, per the gate. Two slices landed under their own already-accepted specs, on unpushed
+    local branches: **UP-MNG-01 registry file** (mongoose-plugins
+    `feature/up-mng-01-server-registry` @ 8137bf5 — writes `~/.mongoose/servers/<name>`, mode 600,
+    with `environment` per UP-MNG-03; 95 module tests green) and **UP-PG-01 `catalogue: 1`**
+    (fluxtion-web `feature/up-pg-01-catalogue-version` @ 4bb71b5). Pull/test instructions in the report §4.
 - [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns key PROVENANCE.** The visualiser is not shipping
   (too IDE-specific); its tools fold into the analyser, which removes the only real objection. "Provenance"
   because the key has three sources and WHICH one answered is the fact that costs an afternoon — the §E /

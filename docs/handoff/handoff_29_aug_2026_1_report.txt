@@ -1,0 +1,260 @@
+REPORT — M19 cross-repository coordination: Mongoose + playground halves (phase zero)
+Date: 2026-08-29 · From: Mongoose/playground-side session (Claude, fluxtion-visualiser workspace)
+Brief: docs/handoff/handoff_29_aug_2026_1.txt · Analyser repo read at: main @ c4e15ea
+
+STATUS: M19 bundle implementation NOT STARTED — awaiting M19 bundle contract v1 sign-off.
+Two slices OUTSIDE the gated contract were implemented under their own already-ACCEPTED specs
+(section 4): UP-MNG-01 (server registry file) and UP-PG-01 (catalogue version). Both sit on
+isolated single-commit branches, locally committed, NOT pushed; droppable without residue if the
+owner or the analyser session objects.
+
+================================================================================
+1. PHASE-ZERO RECONNAISSANCE — MONGOOSE (live source, not the snapshot)
+================================================================================
+
+1. Repositories and commits (local working trees, same machine as the analyser repo):
+     /Users/greg/IdeaProjects/telamin/mongoose/mongoose          (runtime)   develop @ 16754e5
+     /Users/greg/IdeaProjects/telamin/mongoose/mongoose-plugins  (plugins)   develop @ f7c2ad1
+   svc-admin-web module: mongoose-plugins/service/svc-admin-web, version 1.0.39-SNAPSHOT.
+
+2. Starter/template path — THE BRIEF'S ASSUMPTION IS WRONG, see mismatch M-1. There is no
+   Mongoose starter in the mongoose repositories. The Mongoose starter is the playground repo:
+   fluxtion-web web/src/lib/starter/mongoose.ts (+ fluxtion.ts for the hosted graph and pom) and
+   the templates web/static/starter-templates/*.starter.json (mongoose-hosted-fluxtion,
+   mongoose-server, fluxtion-spring-mongoose, mongoose-dynamic-feed, mongoose-dynamic-spring).
+
+3. Generated processor committed / does normal start regenerate? — NO KEYLESS PATH EXISTS TODAY
+   in any mongoose-hosted starter mode (mismatch M-2):
+     · AOT: the emitted pom binds fluxtion-maven-plugin at <phase>process-classes</phase> in the
+       DEFAULT lifecycle (fluxtion.ts:1819); a placeholder shell source ships and is "overwritten
+       by './mvnw package'" (fluxtion.ts:1545). First `./mvnw package` calls the hosted generator
+       → needs a key.
+     · In-process compile: Fluxtion.compile at startup — cloud call each boot (Supplier javadoc,
+       mongoose.ts ~556-570).
+     · Interpreted: FluxtionInterpreter.interpret — the javadoc itself says "the call reaches the
+       cloud source-gen at boot — needs a key on every run".
+
+4. Start/stop entry points (as generated today): start = run-server.sh
+   (`[ -f "$JAR" ] || ./mvnw -q package; exec java -DmongooseServer.config.file=config/
+   server-config.yml --add-opens … -jar`), i.e. first start also BUILDS (and therefore
+   regenerates — see 3). Stop = Ctrl-C/kill; there is no stop script and, until this week, no pid
+   published anywhere (the new registry file carries one).
+
+5. Regeneration entry point and phase: `./mvnw package` — fluxtion-maven-plugin `scan` bound at
+   process-classes (the ordering hazard already recorded as upstream ask UP-FLX-21). No separate
+   regenerate command exists in the generated project.
+
+6. Effective key resolution: fluxtion-builder 1.0.64 FluxtionConfigManager resolves
+   System.getProperty("fluxtion.apiKey", <apiKey= line in ~/.fluxtion/fluxtion.apiKeyFile>) —
+   property over file, environment variable NOT read (as established by
+   review_spec_m19_onboarding_example.txt F3 via javap; not independently re-verified here).
+   The starter's check-fluxtion-key.sh resolves FLUXTION_API_KEY FIRST, then the file
+   (fluxtion.ts:74-86), and run-server.sh does NOT map the env var to -Dfluxtion.apiKey — so the
+   preflight can pass on a value the build never receives. Confirms D-X3 exactly.
+
+7. Audit service/backend: performanceMonitoring.auditCapture — backend CHRONICLE ONLY.
+   AuditCaptureConfig.backend javadoc: "Currently only chronicle … YAML/JSONL are produced via the
+   /api/audit/file/{id}/export endpoint at read time, not as separate capture backends." Default
+   directory ./audit, rollSize 64m, retainHours janitor. The starter emits
+   `backend: chronicle` + autoStart per processor bean (mongoose.ts:196-205).
+   ⇒ M19's bundle line "text file sink at ./logs/audit-<name>.yaml, pre-enabled" HAS NO EXISTING
+   CAPABILITY (mismatch M-3). Answering the bootstrap tracker's D-01: no installed-version
+   configuration writes an INFO text/YAML audit file at a logs/ path today.
+   Caution recorded: wiring DataFlow.setAuditLogProcessor project-side to get a text file would
+   fight Mongoose's own capture service for the SINGLE-SLOT LogRecordListener — that route needs
+   a contract decision, not a project-local workaround (consistent with D-X4).
+
+8. GraphML and generated source: GraphML served per processor at
+   GET /api/processors/{group}/{name}/graphml (classpath resource, plus the `graphmlRoots` config
+   for runtime-loaded processors). Generated source: target/generated-sources/fluxtion (AOT); the
+   admin `sourceRoots` config feeds GET /api/source for click-to-source.
+
+9. Existing admin REST surface vs the loop-bench contract (svc-admin-web, live routes):
+   /api/server ✓ · /api/audit/files ✓ (BUT bare JSON array, not {"files":[…]} — mismatch M-4) ·
+   /api/audit/file/{id}/export?format=yaml ✓ (yaml default; `---` separated docs; jsonl option) ·
+   /api/processors/{group}/{name}/graphml ✓ · auth NONE|BASIC|BEARER (mismatch M-5: bench's
+   "TOKEN" guess should map to BEARER; `Authorization: Bearer <token>` is honoured in BEARER
+   mode) · registry file — DID NOT EXIST; implemented this session (section 4).
+   Tests proving the facts: svc-admin-web suite (95 tests, green — command in section 5); gap:
+   nothing yet proves a real starter-generated server produces an analyser-readable audit
+   artifact end-to-end (bootstrap tracker V2/V3 remain open), and loop-bench has not yet run
+   against a real server (needs a generated project booted with admin-web + audit capture).
+
+================================================================================
+2. PHASE-ZERO RECONNAISSANCE — PLAYGROUND (fluxtion-web, live source)
+================================================================================
+
+1. Repository and commit: /Users/greg/IdeaProjects/telamin/fluxtion-web, main @ 592c3f3.
+   Deployment: git push → Cloudflare Workers build (site is fluxtion-playground.dev).
+
+2. Download generator entry point: CLIENT-SIDE, IN THE BROWSER — web/src/lib/starter/zip.ts
+   (fflate zipSync) over the files produced by generate() from a StarterSpec. There is no
+   server-side bundle service (mismatch M-6 refines O3's wording: bundles ARE generated at
+   Download time and pinned to then-current versions — but by the user's browser, not a service).
+   Current bundle tree: pom + mvnw wrapper + src/main/java stubs + config/server-config.yml +
+   run-server.sh + check-fluxtion-key.sh + README.md (+ loader/ for dynamic templates). It ships
+   NO CLAUDE.md, NO AGENTS.md, NO .analyser/ profile, NO skills today.
+
+3. Template catalogue: web/static/starter-templates/index.json — was top-level `templates` only;
+   `"catalogue": 1` added on branch (section 4). Versions used by the Mongoose starter come from
+   the spec defaults + web/scripts/example-versions.json (fluxtion bom 1.0.64 era).
+
+4. Server-side generator settings: none exist — everything is committed to the repo. Consequence
+   for D-X8: `skills.source` has no natural "generator machine/service configuration" home; the
+   honest v1 shape is FETCH-AND-VENDOR AT BUILD/RELEASE TIME into the repo (the exact pattern the
+   repo already uses for playground-libs jar fetching), with the vendored revision + source
+   identity committed. Download-time HTTP fetch from the user's browser would add CORS/network
+   variance and violate reproducibility for no benefit.
+
+5. Versioned content index/fetch mechanism: starter-templates index now versioned (catalogue: 1);
+   NO skills index exists; https://fluxtion-playground.dev/skills currently serves the app shell
+   (confirms review F6's live observation).
+
+6. How generated files are tested today: vitest — templates-disk.test.ts (every template on disk
+   parses/validates/generates), starter-smoke.gen.test.ts + web/scripts/starter-smoke.sh (real
+   Maven build smoke), golden fixtures in spring-import.test.ts pinning generated output.
+
+7. Smallest seam for one bundle model (D-X6): StarterSpec (web/src/lib/starter/spec.ts) already
+   IS the single typed model feeding pom/README/scripts/yaml. The natural extension is additional
+   ProjectFile emitters (profile, CLAUDE.md/AGENTS.md, skills copies with substitution +
+   TODO(bundle) rejection) fed from the same spec, pinned by golden-fixture tests — no new
+   architecture needed.
+
+================================================================================
+3. MISMATCHES vs D-X1–D-X10 (observed → correction → owner → level)
+================================================================================
+
+M-1  Brief/§5 assume a Mongoose starter lives in the mongoose repo ("Mongoose M1/M3": keyless
+     run contract, start/stop/regenerate entry points). Observed: those artefacts are EMITTED BY
+     THE PLAYGROUND STARTER (fluxtion-web). Correction: reassign M1 and M3 to the playground;
+     the mongoose side owns runtime capabilities only (audit backend + lifecycle, admin
+     endpoints, registry publication). Ownership change only — no product change.
+
+M-2  D-X3 "startup never requires a key when the generated processor is present": TRUE of the
+     builder, FALSE of every current mongoose-hosted starter mode (§1.3). Correction: the bundle
+     contract must specify AOT + committed generated source + regeneration NOT bound to the
+     default lifecycle (behind a -Pgenerate-fluxtion profile, as some fluxtion templates already
+     do). Owner: playground. Product-level: yes — it changes the generated pom shape and the
+     starter's mode selection for bundles.
+
+M-3  The bundle contract's "text file sink at ./logs/audit-<name>.yaml, pre-enabled" does not
+     exist in Mongoose (chronicle-only capture; YAML is export-at-read). Three honest v1 routes:
+       (a) adopt the EXPORT BEAT for the bundle (works today; it is the accepted dev-loop shape);
+       (b) wait for/fund UP-RDR-01 (Chronicle reader — deletes the export beat);
+       (c) new file-sink backend in mongoose (new runtime work; must not fight the single-slot
+           LogRecordListener owned by the capture service).
+     Owner decision required (this is also the bootstrap tracker's D-01, now answerable: no
+     current config writes that file). Product-level: yes.
+
+M-4  loop-bench parses GET /api/audit/files as {"files":[…]}; the live endpoint returns a bare
+     array (and the svc-admin-web webapp consumes that shape). Recommended: the bench accepts
+     both shapes (analyser-owned edit; the stub itself flags the listing shape as "UP-MNG-04's
+     proposal"). Implementation-level. NOT patched around on the mongoose side.
+
+M-5  loop-bench sends `Authorization: Bearer <token>` only when the registry says authMode
+     "TOKEN". Real modes are NONE|BASIC|BEARER; the registry file now publishes the enum name and
+     Bearer headers are honoured in BEARER mode. Recommended: bench maps BEARER → its TOKEN
+     behaviour. Implementation-level, analyser-owned (the stub's own module doc invites this
+     correction).
+
+M-6  "Bundles are generated at Download time by the playground service" — mechanism is the
+     user's BROWSER (client-side zip). The pinning semantic O3 wanted is preserved. Consequence
+     for D-X8: prefer skills vendored into the repo at build time over any download-time fetch
+     (§2.4). Product-level nuance for the contract text.
+
+M-7  (Positive.) UP-MNG-01's registry file and UP-MNG-03's `environment` declaration now exist
+     (section 4). The UP-MNG-03 REFUSAL half (non-dev refuses admin control) is deliberately NOT
+     implemented: it presupposes the UP-MNG-02 admin-tool surface whose retain/defer/withdraw is
+     an explicitly reserved owner decision (D-05 in the bootstrap tracker; A3 follow-up).
+
+================================================================================
+4. WORK COMPLETED THIS SESSION (outside the gated M19 contract)
+================================================================================
+
+Both slices are specced by documents that are ALREADY ACCEPTED and outside the contested M19
+bundle contract: spec-agent-brokered-dev-loop.md (ACCEPTED v2) whose §H bench is the executable
+definition of done ("make the real server pass what the stub passes" — upstream-asks §5 records
+THE GATE IS MET), and upstream-asks §6 UP-PG-01. The brief's MUST-NOT list (guessed bundle
+layout, profile key, key precedence, provenance record, tutorial, skills fork, completion claims)
+covers neither. If that reading is rejected, each is one commit on its own branch.
+
+4a. UP-MNG-01 — server registry file
+    Repo/branch: mongoose-plugins, feature/up-mng-01-server-registry @ 8137bf5 (base develop
+    f7c2ad1). Files: ServerRegistryFile.java (new), WebAdminService.java (config + lifecycle),
+    ServerRegistryFileTest.java (new, 3 tests), svc-admin-web/pom.xml (surefire isolation).
+    Behaviour: while the admin web service is up, one JSON file per server at
+    ~/.mongoose/servers/<name> (override: config `registryDir`, JVM-wide property
+    `mongoose.servers.dir`), mode 600, written BEFORE the HTTP listener binds, refreshed on the
+    /api/server dashboard poll (folds in loader-registered processors and kernel-picked ports),
+    removed on clean shutdown; a crash leaves a dead-pid file by design. Fields: name (default =
+    working-dir basename; config `serverName`), home, url, token (BEARER mode only — file is
+    mode 600, same posture as ~/.fluxtion-analyser/rest-endpoint), authMode (NONE|BASIC|BEARER),
+    environment (config, default "dev" — UP-MNG-03's declaration half), pid, startedAt,
+    processors[{group,name,className,graphml}].
+    Evidence: `./mvnw -pl service/svc-admin-web test` → 95 tests, 0 failures (includes the three
+    new registry tests: contract fields + mode 600 + pid + url; default name; publishRegistry
+    off). Unit tests no longer touch the real ~/.mongoose/servers (surefire pins
+    mongoose.servers.dir=target/servers).
+    How the analyser session tests it: build the module, run any server embedding svc-admin-web
+    (e.g. mongoose-plugins example/admin-web-example), then
+      tools/bench/loop-bench.py --registry ~/.mongoose/servers --server <name>
+    Expected today: registry/pid/environment/export/graphml steps PASS once M-4/M-5 bench
+    adaptations land; audit-files step needs a processor with auditCapture enabled.
+
+4b. UP-PG-01 — catalogue schema version
+    Repo/branch: fluxtion-web, feature/up-pg-01-catalogue-version @ 4bb71b5 (base main 592c3f3).
+    web/static/starter-templates/index.json gains top-level "catalogue": 1;
+    templates-disk.test.ts pins it. 22/22 template tests green. The gallery loader already
+    accepts the object form and ignores extra keys, so this is additive for all consumers.
+
+Pull instructions (same machine — no remotes involved):
+    git -C <your-checkout> fetch /Users/greg/IdeaProjects/telamin/mongoose/mongoose-plugins \
+        feature/up-mng-01-server-registry
+    git -C <your-checkout> fetch /Users/greg/IdeaProjects/telamin/fluxtion-web \
+        feature/up-pg-01-catalogue-version
+Neither branch is pushed to any remote (house rule: no push without owner approval).
+
+================================================================================
+5. COMMANDS AND TESTS RUN
+================================================================================
+
+  mongoose-plugins:  ./mvnw -pl service/svc-admin-web test            → 95 tests, 0 failures
+  fluxtion-web/web:  npx vitest run src/lib/starter/templates-disk.test.ts
+                     src/lib/starter/templates.test.ts                → 22 tests, 0 failures
+  Read-only inspection: WebAdminService.java (full route table), AuditCaptureConfig.java,
+  AuditSinkHandle.java, MongooseServer.java boot sequence, fluxtion.ts / mongoose.ts / zip.ts /
+  templates.ts, mongoose-stub.py, loop-bench.py, both M19 reviews, the M19 spec, upstream-asks
+  §5–7, the bootstrap-artefacts snapshot and its tracker.
+
+================================================================================
+6. PROPOSED SLICES AFTER THE START SIGNAL (amending the brief's §5 per M-1)
+================================================================================
+
+  Playground P0 — keyless-run pom shape (was "Mongoose M1"): AOT + committed generated source;
+      regeneration behind -Pgenerate-fluxtion; run-server.sh performs no key preflight; a no-key
+      build/run fixture in starter-smoke. (Blocked on contract v1 confirming M-2's resolution.)
+  Playground P1 — typed bundle model additions: .analyser/project.fluxtion-settings emitter,
+      CLAUDE.md/AGENTS.md emitters, skills copy with substitution + TODO(bundle)/"/path/to/"
+      rejection; golden fixtures. (Blocked on contract v1: profile keys, CLAUDE.md content, and
+      D-X5's pinned skills revision.)
+  Playground P2 — skills vendoring: build-time fetch-and-commit from the analyser repo at a
+      pinned revision, recorded credential-free source identity, x-analyser-min-version check at
+      generation (D-X9). (Blocked on the D-X8 retrieval contract; M-6 nuance applies.)
+  Playground P3 — generated-bundle acceptance per brief §6. (Blocked on all above.)
+  Mongoose N1 — audit-artifact route per M-3's owner decision (export beat vs file backend vs
+      Chronicle reader). (Blocked on that decision; UP-RDR-01 is analyser/mongoose-owner scoped.)
+  Mongoose N2 — UP-MNG-02/03 enforcement: admin-tool disposition (D-05) then environment-based
+      refusal. (Blocked on the owner decision the upstream ask itself reserves.)
+  Analyser A1 — bench adaptations M-4/M-5 (your side; small).
+
+================================================================================
+7. NOT VERIFIED
+================================================================================
+
+  · loop-bench against a REAL server — no starter-generated server with admin-web + audit
+    capture was booted this session; the registry code is proven by unit tests only.
+  · FluxtionConfigManager key precedence — taken from review F3's javap evidence, not re-run.
+  · The deployed playground site's serving behaviour (only the repo was inspected, plus the
+    /skills app-shell observation cited from review F6).
+  · Snapshot/source parity for docs/specs/mongoose-bootstrap-artefacts (still records no source
+    revision; this report used live sources throughout, per the brief).
