@@ -341,6 +341,27 @@ amendment is theirs to make; nothing on the Mongoose/playground side is blocked 
 export endpoint exists and passed against the stub; the registry leg passed live (§7).
 
 ================================================================================
+7c. M-4 AND M-5 FIXED ON THE ANALYSER SIDE (owner-directed, 2026-08-29)
+================================================================================
+
+loop-bench.py now (i) accepts /api/audit/files as either the stub's {"files":[…]} wrapper or the
+real server's bare array (M-4), (ii) sends `Authorization: Bearer` for authMode "BEARER" as well
+as the legacy "TOKEN" guess (M-5), and (iii) fails the empty-listing case with an actionable
+message instead of a type error. mongoose-stub.py DELIBERATELY keeps the wrapper shape so the
+accept-both parsing stays exercised; its module doc records the resolution (sink:{type,location}
+remains UP-MNG-04's unimplemented proposal).
+
+Verified both ways:
+  · --stub --launch: 23 passed, 0 failed (full loop including MCP bridge and analyser drive).
+  · real server (admin-web-example, registry branch): 6 registry-side PASS, then the honest stop —
+    "0 files — is performanceMonitoring.auditCapture enabled with a processor recording?" That gap
+    closes only when a starter-generated bundle with processors + auditCapture exists (post
+    sign-off); clean SIGTERM again removed the registry file.
+
+With this, every adaptation the registry slice needed from the bench is done; the next bench
+milestone is unchanged: a full export-leg pass against the real starter bundle.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 

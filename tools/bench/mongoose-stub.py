@@ -13,11 +13,12 @@ This is NOT a Mongoose server. It does exactly what the analyser's upstream asks
 So it is the contract in executable form. The mongoose-side work is "make the real server pass what
 this passes" — and loop-bench.py, pointed at a real ~/.mongoose/servers/, is that acceptance test.
 
-ASSUMPTIONS the real server has not decided, flagged rather than baked in:
-  · authMode: this stub publishes "NONE" and checks no header. The bench sends
-    `Authorization: Bearer <token>` when a registry file says authMode "TOKEN" — that header shape is
-    the bench's GUESS at svc-admin-web's session model, and the mongoose side may correct it.
-  · the audit-files listing shape ({id, name, sink:{type, location}}) is UP-MNG-04's proposal.
+RESOLVED 2026-08-29 by the real implementation (svc-admin-web, branch feature/up-mng-01-server-registry):
+  · authMode is the server's enum NONE | BASIC | BEARER; `Authorization: Bearer` works in BEARER mode.
+    The bench now sends the bearer header for "BEARER" (and legacy "TOKEN"). This stub stays "NONE".
+  · the real /api/audit/files returns a BARE ARRAY of {id, processorName, path, …}; this stub keeps
+    the {"files":[…]} wrapper DELIBERATELY so the bench's accept-both parsing stays exercised.
+    The sink:{type, location} sub-object remains UP-MNG-04's proposal — not yet implemented upstream.
 
 Usage:
   tools/bench/mongoose-stub.py --registry /tmp/bench/servers --name demo-quote [--port 0]

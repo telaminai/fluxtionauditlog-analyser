@@ -23,9 +23,14 @@ Two ways to run it:
         tools/bench/loop-bench.py --registry ~/.mongoose/servers --server risk-engine
     with the analyser already running with REST on (or add --launch).
 
-ASSUMPTION, flagged: when a registry file says authMode "TOKEN" the bench sends
-`Authorization: Bearer <token>` — the bench's guess at the server's session model. The mongoose side
-owns that decision (UP-MNG-01); correct the bench when it is made.
+RESOLVED 2026-08-29 against the real server (mongoose-plugins svc-admin-web, branch
+feature/up-mng-01-server-registry — the first real UP-MNG-01 publisher):
+  · authMode is the server's enum NONE | BASIC | BEARER; `Authorization: Bearer <token>` is honoured
+    in BEARER mode. The bench sends the bearer header for "BEARER" (and still for the old guess
+    "TOKEN", so stub-era registry files keep working).
+  · GET /api/audit/files returns a BARE JSON ARRAY of {id, processorName, path, …} (the {"files":[…]}
+    wrapper was the stub's proposal; the mongoose side kept the shape its admin UI already consumes).
+    The bench accepts both. Entries carry "id", which is all the bench needs.
 """
 import argparse
 import json
@@ -56,10 +61,20 @@ def step(name, ok, detail=""):
 
 def http_get(url, token=None, auth_mode="NONE", timeout=30):
     req = urllib.request.Request(url)
-    if auth_mode == "TOKEN" and token:
-        req.add_header("Authorization", f"Bearer {token}")     # ASSUMPTION — see module doc
+    # "BEARER" is svc-admin-web's real enum; "TOKEN" was the pre-implementation guess, kept so
+    # older registry files / the stub still work. BASIC is not scripted here — a BASIC-mode server
+    # fails these GETs with 401, which is an honest bench failure, not a crash.
+    if auth_mode in ("BEARER", "TOKEN") and token:
+        req.add_header("Authorization", f"Bearer {token}")
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
+
+
+def parse_audit_files(body):
+    """GET /api/audit/files — svc-admin-web returns a bare JSON array (the shape its admin UI
+    consumes); the stub proposed {"files":[…]}. Accept both."""
+    parsed = json.loads(body)
+    return parsed["files"] if isinstance(parsed, dict) else parsed
 
 
 class Analyser:
@@ -220,8 +235,11 @@ def main():
         # ---- §C3 step 5: export ------------------------------------------------------------------------
         base, tok, auth = srv["url"], srv["token"], srv.get("authMode", "NONE")
         try:
-            files = json.loads(http_get(f"{base}/api/audit/files", tok, auth))["files"]
-            step("GET /api/audit/files lists the audit files", bool(files), f"{len(files)} file(s)")
+            files = parse_audit_files(http_get(f"{base}/api/audit/files", tok, auth))
+            if not step("GET /api/audit/files lists the audit files", bool(files),
+                        f"{len(files)} file(s)" if files else
+                        "0 files — is performanceMonitoring.auditCapture enabled with a processor recording?"):
+                return finish(procs, a.keep, work)
             audit_id = files[0]["id"]
             log_path = work / f"{srv['name']}-{audit_id}.yaml"
             log_path.write_bytes(http_get(f"{base}/api/audit/file/{audit_id}/export?format=yaml", tok, auth))
