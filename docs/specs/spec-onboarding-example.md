@@ -323,6 +323,41 @@ would re-introduce the exact thing M35 spent a milestone deleting: something tha
 the user has not yet asked for anything. A start-page card ("Fluxtion API key: not set — needed to
 regenerate a processor") states the fact and names the remedy without gating anything.
 
+### Cold test, 2026-08-29 — run rather than argued
+
+The owner's instruction after I hedged twice: *"if you aren't sure about C1, create a small Fluxtion
+project and try it."* Done, from a **fresh `HOME`** with no analyser config, against the **released**
+1.12.0 pulled by jbang — not a local build.
+
+| Step | Result |
+|---|---|
+| `jbang analyser@telaminai/fluxtionauditlog-analyser --rest` | **PASS** — installed and running from a fresh HOME, endpoint published |
+| a **hand-written** audit log, typed from *Format specification* | **PASS** — parsed, 3 records |
+| bare project: skills on disk, **no profile** | `context.runbooks` = none — **as designed** |
+| the same project with a **seeded profile** (the M19 bundle simulated) | **PASS** — both skills listed, `exists=true`, descriptions served |
+
+**The finding that matters, and it sharpens R2.** A project can carry `.claude/skills/` and the analyser
+will say nothing about them until a project profile declares them. That is correct — *offers, never
+selects* — but it means the two halves of "the LLM knows about the skills" work by **different
+mechanisms**:
+
+- the **agent harness** reads `.claude/skills/` off the filesystem itself, which is why the owner's
+  Friday run worked with skills that were already there for another purpose;
+- the **analyser** only reports what the profile declares, which is what `context.runbooks[]` serves.
+
+The owner's stated goal — *"the analyser tells the LLM about skills"* — is specifically the second, and
+therefore specifically needs the seeding in R2. Without it the skills still work, but the analyser is not
+the one telling anyone about them. Worth stating plainly, because "it worked" is true of both mechanisms
+and they fail differently.
+
+**And a correction to my own R6, which was half wrong.** I wrote that the analyser shows no dialog on
+first run. That is true of a **fresh install** and false of an **upgrade**: `maybeShowWhatsNew()` guards
+with *"fresh install, not an upgrade"* (`MainFrame:1438`), so a first-ever run is silent — confirmed by
+the cold run's log, which contains only the REST line — while an existing user who upgrades sees
+*"What's new in 1.12.0"*. The owner's report and my reading were about different situations and both
+were accurate. The onboarding path is unaffected; the correction is recorded because "a dialog appears on
+install" is exactly the sort of thing that gets remembered without its condition.
+
 ### Concerns for the handoff review
 
 Recorded rather than resolved. Each is falsifiable and none blocks the design.
