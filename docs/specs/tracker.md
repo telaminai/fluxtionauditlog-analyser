@@ -140,12 +140,11 @@ analyser (reverse funnel)._
   that both edits and drives; the surviving principle is that the ANALYSER edits no code); **R4** the
   licence key is the first wall after first success and the seeded CLAUDE.md must pre-empt it; **R5** open
   the analyser on the GRAPH before the first run, so M40.1 has something true to say at minute two.
-- [M19] ➜ **RETURNED FOR REVISION 2026-08-29 after three independent reviews — NOT ready to brief.** Most
-  findings are fixed in the spec; **F1 (no versioned bundle contract v1), F4 (`skills.source` has no
-  retrieval or version-enforcement contract) and F5/F8 (the embedded tier is unverified end to end and is
-  now marked NOT PUBLISHABLE in the skill itself) remain OPEN.** The embedded one cannot be closed by
-  writing: it needs someone with a Fluxtion API key to build a processor, run it through the listener and
-  open the result.
+- [M19] ➜ **REVISION RETURN IS SUPERSEDED by M19.16/.17 and the owner's start signal.** The third review
+  originally left F1/F4/F5/F8 open. F1 and F4 are now closed by signed `m19-bundle/2` + `m19-skills/1`
+  at `b0fdb86`; F5/F8 are a bounded deferral because the embedded tier is explicitly NOT PUBLISHABLE and
+  outside the Mongoose bundle. Embedded graduation still needs a key-holder run through the listener and
+  analyser; it does not block the selected Mongoose tier.
 - [M19.17] ☑ **Bundle contract v2 written** _(2026-08-29, third review's F1 + live export-beat correction)_ — normative table in the
   spec: required files, exact profile keys verified against `ConfigStore`/`ProjectProfile`, the commands a
   bundle must document, generated-bundle acceptance, and per-repo ownership. Versioned `m19-bundle/2`:
@@ -180,12 +179,13 @@ analyser (reverse funnel)._
     export step fails on the recorded M-4 bench adaptation (bare-array listing — analyser-owned edit,
     with M-5's BEARER mapping). The shutdown check caught and fixed a real bug: Mongoose's clean stop
     calls `Service.stop()`, never `tearDown()` — removal now hooks `stop()` (commit 6e7a2cc).
-- [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns key PROVENANCE.** The visualiser is not shipping
-  (too IDE-specific); its tools fold into the analyser, which removes the only real objection. "Provenance"
-  because the key has three sources and WHICH one answered is the fact that costs an afternoon — the §E /
-  M38.3 pattern applied to a credential. Lift `FluxtionAccountDialog` rather than re-derive it, including
-  its `~/.fluxtion/profiles/` concept. The limit is unchanged: manage it, state where it came from, and the
-  VALUE never reaches `context`, an echo, the profile, share export or a screenshot.
+- [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns local key-file management, not build-winner provenance.**
+  The visualiser is not shipping (too IDE-specific); its masked field, canonical file and
+  `~/.fluxtion/profiles/` concept moved into the analyser at `db42919`. The later D-X3 correction is
+  load-bearing: this process can observe only whether the canonical file has a configured key and cannot
+  know a `-Dfluxtion.apiKey` passed to a future Maven JVM. It documents that precedence and that
+  `FLUXTION_API_KEY` is not read, without claiming a winner. The VALUE never reaches `AppConfig`, context,
+  an echo, profile, share export, status/console or screenshot.
 - [D-R2] ☑ **RESOLVED 2026-08-29 — skills are a LIBRARY KEYED BY HOST**, not per-project authoring:
   `common` (load log, record, replay) + one of `mongoose` / `embedded` (audit via `setAuditLogProcessor(LogRecordListener)` — **NOT** `addSink`/`FileMessageSink`,
   which review F1 showed was wrong). A bundle SELECTS a tier. The rule: a skill describes the
@@ -204,8 +204,8 @@ analyser (reverse funnel)._
   playground vendors the snapshot at build/release, never in the user's browser. Blast radius stated:
   nothing executes a skill, so the exposure is an agent READING a procedure — real and bounded.
 - [M19.13] ☑ **DAY TWO shipped at `1f30213`: `New project…` offers what it found** _(owner, 2026-08-29; spec R7)_. Day one is
-  a primed bundle; day two is the user's own project, and today that is a cul-de-sac. Verified in code:
-  `File ▸ New project…` exists and creates an **empty** profile, discovering nothing, so a user who has
+  a primed bundle; day two is the user's own project. Before this slice, `File ▸ New project…` created an
+  **empty** profile and discovered nothing, so a user who had
   just watched the bundle work must then perform four undocumented actions to reach the same state on
   their own code. Every ingredient is already built — `SkillDiscovery`, M35.4's graph discovery, the build
   layout for a source-root guess — so this is one dialog that OFFERS and never selects (D-AI5). **The only
@@ -345,11 +345,10 @@ analyser (reverse funnel)._
   `tools/bench/loop-bench.py --stub --launch` path. Local isolated run passes **23/23** on 2026-08-29;
   GitHub run `33271896191` completed both `build` and `loop-bench` successfully, including the
   registry/export/analyser/MCP step under xvfb.
-- [M19.9] ☑ **Headless launch-argument tests shipped at `92ad3ba`** — `Main` now strips `--rest`, rejects an
-  unknown flag AFTER stripping, and lets a log path fall through. That is pure logic with three
-  behaviours and no unit test (rule 4). The loop bench covers it end-to-end, but only where a jar, a
-  JVM and a window exist, so a headless CI run would not catch a regression. From
-  `review_feat_m19_bench.txt` F3.
+- [M19.9] ☑ **Headless launch-argument tests shipped at `92ad3ba`** — `Main` strips `--rest`, rejects an
+  unknown flag AFTER stripping, and lets a log path fall through. This was pure logic with three
+  behaviours and no unit test (rule 4); the loop bench covered it only where a jar, JVM and window
+  existed. From `review_feat_m19_bench.txt` F3.
   - `Main.parseDesktopArgs` is pure and `MainLaunchArgsTest` pins strip/remember `--rest`, leave an
     unknown flag for the existing loud rejection, preserve a log path, and accept a fresh empty launch.
     Full Maven suite and the packaged 23/23 loop bench pass.

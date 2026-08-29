@@ -11,6 +11,36 @@ the current prose alone. M19 has two independent reviews and is awaiting amendme
 signed, versioned cross-repository contract; then each repository can implement its own side without
 sharing a working tree or guessing the other side's behaviour.
 
+CURRENT START SIGNAL / IMPLEMENTATION BASE — 2026-08-29, supersedes the phase gate below
+
+The owner has issued the start signal. The signed normative contract is `m19-bundle/2` +
+`m19-skills/1` at analyser commit
+`b0fdb86bcaea8ec9d89f8719ce2951ed0e75953b`. The v1 wording and pre-sign-off prohibitions below are
+historical orientation; do not use them to stop implementation or to restore the rejected direct-file
+sink. The owner-selected path is Mongoose Chronicle capture plus a bundle-owned YAML export command.
+
+The analyser side is available on `main` at `89edb0d9a60992c4d77e1447a293f1a36d58862c`:
+
+  · M-4/M-5 real listing/auth adaptations and 23/23 loop bench;
+  · safe canonical key management and profiles (`db42919`);
+  · `New project…` source-root/skill/GraphML offer (`1f30213`);
+  · tested launch parsing + Linux xvfb loop CI (`92ad3ba`; Actions run 33271896191 green);
+  · inert sanitised `skills.provenance`, project `skills.source` refusal, and corrected Chronicle-export
+    skill semantics (`5c72e21`).
+
+PLAYGROUND CONVERGENCE INPUT — exact, do not guess:
+
+  1. Vendor `common + mongoose` from analyser commit
+     `5c72e21ba289de35f6627b03c239f6a6ff7a9e2d`; never select `embedded`.
+  2. Substitute every project-owned run/export/replay command and concrete YAML/GraphML path, then fail
+     generation if `TODO(bundle)` or `/path/to/` remains.
+  3. Write `skills.provenance=canonical@5c72e21ba289de35f6627b03c239f6a6ff7a9e2d` in the generated
+     profile. Never write `skills.source`; it is build/release input only.
+  4. Document client setup as: start local transport, then use *AI ▸ Connect an AI client…*. Do not
+     hard-code a Claude command.
+  5. Run the generated-bundle acceptance in the signed contract. The analyser tutorial and M19.3/.4
+     remain publish-gated until that real bundle passes; prose is not the gate.
+
 This file owns coordination and repository boundaries. It does NOT silently replace the product spec.
 The signed revision of docs/specs/spec-onboarding-example.md, identified by an exact commit SHA, will own
 the final interface contract. If this brief and that revision disagree, stop and report the mismatch.
