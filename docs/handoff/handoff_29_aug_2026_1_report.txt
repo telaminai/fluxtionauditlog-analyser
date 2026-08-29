@@ -406,6 +406,35 @@ Two items for the analyser session:
     if the checker wants a profile key, name it (the profile format is yours).
 
 ================================================================================
+7e. v3 ABI + P1 REVIEW RESPONSE (playground side, 2026-08-29, later still)
+================================================================================
+
+Branch feature/m19-p0-keyless-bundle now: … 73565fc → 3acaf9b → 8f20016.
+
+  v3 ABI (BLOCKER, analyser 3720ef9)  APPLIED at 8f20016 — the profile emits the importer-backed
+      zero-based families (share.version=1, sourceRoot.0, eventProcessorFqn.count/.0,
+      selectedEventProcessor, runbook.0.*), no projectName; CLAUDE.md/AGENTS.md carry the exact
+      `Bundle contract: **m19-bundle/3**` marker for the P3 parser (review D2 accepted as-is).
+  F7 (env-var advice in ordinary output)  FIXED at 3acaf9b — bareRunScript and README keySteps name
+      only the two real sources; non-bundle fixture pins README + run.sh.
+  F5 (single model)  DONE at 8f20016 — one AnalyserBundleModel resolved from a validated spec;
+      scripts, README section, profile, skill substitution and guides all consume it; mongoose.ts's
+      93 duplicate lines deleted. Convergence test: rename the artifact once, every consumer
+      follows, no stale path survives anywhere.
+  F6 (Spring example)  DONE at 8f20016 — the acceptance fixture is fluxtion-spring-mongoose
+      (spring+aot+webAdmin); design XML ships and the guide's Design-level-editing section
+      references the spring-authoring contract/skill/example canon. Imperative template demoted to
+      a mechanics regression fixture.
+  N1  comment fixed.
+  P2 (partial)  x-analyser-min-version enforcement landed (skill newer than the bundle's named
+      analyser version refuses generation). REMAINING P2: source modes
+      (canonical-HTTPS/mirror/local/none), m19-skills/1/index.json parsing + bounds, distinct
+      failure outcomes, sanitised mirror/local provenance, project-input refusal — next slice,
+      before any P3 verdict, per the review's order.
+
+Evidence: 27 bundle tests, starter suite 217/217, production build green.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
