@@ -624,6 +624,69 @@ MCP-client connection. Note the recorded version gate: that run is SNAPSHOT-base
 acceptance additionally needs a PUBLISHED mongoose-plugins containing the registry publisher.
 
 ================================================================================
+7l. F5 CORRECTIONS + THE FIRST LIVE P3 RUN, WHICH FOUND A REAL DEFECT (2026-08-29)
+================================================================================
+
+fluxtion-web feature/m19-p0-keyless-bundle @ 4eabc1c. All three F5 findings are closed, and a
+provisional live P3 run happened alongside them — its defect is the important part of this note.
+
+F5 CORRECTIONS
+  · `|| true` REMOVED. The matrix now tees vitest and requires a passing line, and requires
+    bundle-bench's "N passed, 0 failed"; either failing exits the leg non-zero.
+  · Each leg now ASSERTS its expected mode AND provenance from the written manifest (a helper that
+    exits 1 on mismatch) instead of printing them for a human to notice.
+  · The HTTPS gap is closed properly: `vendor-skills-https.test.ts` runs the retriever against a
+    REAL TLS server on loopback — a self-signed cert generated per run, trusted only by the test's
+    own `node:https` client, so NO new dependency and nothing outside the test is affected. It
+    covers HTTPS retrieval end to end, mirror provenance from a real origin, a same-origin redirect
+    FOLLOWED, a cross-origin redirect REFUSED (naming the origin it declined), a 404 as
+    `not-found`, and a refused connection as `transport`.
+    That fixture immediately earned its place: it caught a trailing-slash inconsistency in mirror
+    provenance for a bare-origin root — `mirror:https://host:port/@rev` where the normalised source
+    root has no trailing slash. The `file:` roots could not see it. Now normalised.
+  · Re-run: matrix green on all three legs WITH assertions; full web suite 401/401.
+
+LIVE P3 (PROVISIONAL — recorded because of what it found)
+Chain run against a real generated bundle, in a disposable project, with mongoose-plugins
+1.0.39-SNAPSHOT built from `6e7a2cc`:
+
+  1. real bundle zip -> unzipped
+  2. `./mvnw -Pgenerate-fluxtion package` WITH a key -> a real 541-line MarketProcessor plus its
+     GraphML at the declared path (this stands in for the playground's in-browser generation)
+  3. THE KEYLESS PROOF: `HOME=<empty dir> ./mvnw package` -> EXIT 0, fat jar produced, and zero
+     occurrences of apiKey / MISSING_KEY / rapidapi / fluxtion-maven-plugin in the build log. The
+     contract's central promise now has direct evidence for the first time.
+  4. `./run-server.sh` -> server up; `~/.mongoose/servers/fluxtion-spring-mongoose` PUBLISHED with
+     the right name/environment, and after the dashboard poll its `processors[]` names the real
+     generated class `com.example.myapp.generated.MarketProcessor` with its graphml endpoint.
+  5. audit capture live (18 records); `./export-audit.sh` -> analyser-readable YAML at the declared
+     `logs/audit-fluxtion-spring-mongoose.yaml` with proper `eventLogRecord` documents.
+  6. `./stop-server.sh` -> **THE DEFECT**.
+
+DEFECT FOUND AND FIXED — the generated `MongooseMain` installed NO shutdown hook. It booted the
+server and returned, leaving the JVM alive on non-daemon agent threads, so SIGTERM killed the
+process without ever calling `MongooseServer.stop()` -> `Service.stop()`. Consequences: audit
+capture was never closed cleanly, and the registry entry survived every "clean" stop exactly as if
+the process had crashed. That made THREE shipped statements false at once — `stop-server.sh`'s own
+echo, the README's stop line, and the canonical skill's step 5 ("so Chronicle capture closes
+cleanly and the registry file is removed").
+
+Worth noting for the record: my svc-admin-web `stop()` fix was correct all along and had been
+verified against `admin-web-example` — which has an explicit shutdown hook. The generated bundle
+did not, so the removal code was simply never reached. A static check could not have found this;
+only running the artifact did.
+
+Fixed in the generator (MongooseMain captures the server and stops it on a shutdown hook), pinned
+by a test, and re-verified on the real bundle: boot -> registry published -> `./stop-server.sh` ->
+"stopping Mongoose server..." -> registry entry REMOVED.
+
+STILL NOT DONE for P3 acceptance: the analyser-side leg (open the exported log + GraphML on a
+machine that has never seen either, then `analyser_context` project/runbooks/pairing and a resolved
+MCP-client connection), and the clean-machine run, which still waits on a PUBLISHED
+mongoose-plugins containing the registry publisher. This run is SNAPSHOT-based by the recorded
+version gate and is offered as evidence, not as an acceptance verdict.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
