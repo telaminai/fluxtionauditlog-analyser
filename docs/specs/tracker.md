@@ -352,12 +352,14 @@ analyser (reverse funnel)._
     byte-for-byte mirror. P3 parses that marker, rejects unknown versions and checks the mirror. The
     profile comment is informational. This selects a checker route already emitted by P1 and does not
     change the v2 inventory or profile schema.
-  - **P2 ◧ implemented at `310a10c`, changes requested:** source parsing/refusals, bounded index/set,
-    distinct outcomes, sanitised provenance and project-input refusal are sound; current canonical skill
-    bytes match analyser `6243a89`. But `none` deletes files bundle.ts imports and cannot build; body text
-    and malformed versions pass as frontmatter; a non-none source may select zero Mongoose skills and
-    return `ok`; and the default canonical index URL returns 404. Mode tests stop before the written
-    snapshot/generator/build seam. Fix these before the source-mode matrix or live P3. Review:
+  - **P2 ◧ changes requested; F1–F3 ☑ accepted at `050c0ab`:** source parsing/refusals, bounded
+    index/set, distinct outcomes, sanitised provenance and project-input refusal are sound; current
+    canonical skill bytes match analyser `6243a89`. The empty eager content registry now lets a written
+    `none` snapshot build; strict leading frontmatter/exact versions close both false passes; required
+    Mongoose skill-set and duplicate-name gates close incomplete `ok` results. Independent gates: 44/44
+    focused, 393/393 full, normal and none-vendored production builds green. F4 remains: the configured
+    default canonical index URL returns 404 and the relabelling workaround is not the lasting route. F5
+    remains the canonical/none/mirror written-snapshot → actual-zip matrix. Review and disposition:
     [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
   - **P3 ◧ static scaffold implemented, no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,

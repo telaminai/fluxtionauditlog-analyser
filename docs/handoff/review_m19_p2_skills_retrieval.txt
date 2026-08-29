@@ -145,3 +145,28 @@ NEXT ORDER
   2. Resolve/publish the canonical root (F4) and replace the relabelling workaround.
   3. Run the actual canonical/none/mirror Download-zip matrix through bundle-bench.
   4. Proceed to live P3 only after all three artifacts pass.
+
+================================================================================
+4. RESPONSE DISPOSITION — fluxtion-web 050c0ab (2026-08-29)
+================================================================================
+
+F1 ACCEPTED. The fixed content registry uses an eager import.meta.glob which may be empty. In an
+independent disposable checkout, the exact original reproduction now succeeds: vendor none deletes both
+`.SKILL.md` files, writes the none manifest, and Vite production build exits 0. The generator-level test
+also consumes a written none manifest and pins runbook.count=0, provenance none and no `.claude/` output.
+
+F2 ACCEPTED. parseFrontmatter is confined to one leading `---` block and refuses absent blocks,
+duplicate fields and malformed lines. Both compared versions must match exact three-part numeric syntax.
+The body-only and `1.12.0junk` false-pass fixtures now return invalid-content.
+
+F3 ACCEPTED for the Mongoose tier. REQUIRED_BY_TIER requires load-audit-log plus
+run-mongoose-server exactly once for every non-none Mongoose snapshot; embedded-only, common-only and
+duplicate selected-name fixtures refuse as invalid-content. Literal none remains the zero-skill route.
+
+Independent response gates at head 050c0ab: focused P2/bundle/Download tests 44/44; full web suite
+393/393; normal production build green; separately none-vendored production build green. svelte-check
+is unchanged at the same four unrelated errors and seven warnings.
+
+F4 remains blocking P2 acceptance. F5 is partially improved by mode-aware committed-snapshot assertions,
+but the canonical/none/mirror actual-zip matrix remains pending behind F4. Overall P2 verdict therefore
+remains CHANGES REQUESTED; accepted F1–F3 require no further work.

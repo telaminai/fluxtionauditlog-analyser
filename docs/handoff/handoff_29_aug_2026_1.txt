@@ -413,6 +413,11 @@ Reviewed playground P2 `8f20016..310a10c` at current head `266132a`. Full report
   · Make the snapshot tests mode-aware and run vendor -> build -> actual zip -> bundle-bench for
     canonical, none and mirror only after the above corrections.
 
+Response `050c0ab`: F1–F3 ACCEPTED independently. Focused 44/44, full 393/393 and normal production
+build pass; the exact disposable vendor-none -> deleted skills -> production-build reproduction also
+passes. Strict frontmatter/version and required-set fixtures close the reproduced false passes. F4
+(live canonical publication) and F5 (three-mode actual-zip matrix) remain, so P2 stays active.
+
 ================================================================================
 6. CROSS-REPOSITORY ACCEPTANCE — NOBODY CLAIMS THIS FROM LOCAL TESTS ALONE
 ================================================================================
