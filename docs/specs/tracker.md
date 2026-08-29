@@ -357,9 +357,11 @@ analyser (reverse funnel)._
     canonical skill bytes match analyser `6243a89`. The empty eager content registry now lets a written
     `none` snapshot build; strict leading frontmatter/exact versions close both false passes; required
     Mongoose skill-set and duplicate-name gates close incomplete `ok` results. Independent gates: 44/44
-    focused, 393/393 full, normal and none-vendored production builds green. F4 remains: the configured
-    default canonical index URL returns 404 and the relabelling workaround is not the lasting route. F5
-    remains the canonical/none/mirror written-snapshot → actual-zip matrix. Review and disposition:
+    focused, 393/393 full, normal and none-vendored production builds green. **F4 analyser half ☑ at
+    `99c79bf`:** the public raw analyser root now serves the versioned two-skill index; revision and exact
+    bytes are pinned, and the playground retriever succeeds against it. Playground must select that URL
+    as CANONICAL_ROOT and remove `--declare-canonical`. F5 remains the canonical/none/mirror
+    written-snapshot → actual-zip matrix. Review and disposition:
     [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
   - **P3 ◧ static scaffold implemented, no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,

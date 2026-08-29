@@ -523,6 +523,31 @@ Evidence: 18 vendor tests, full web suite 393/393, production build green in bot
 the none-vendored checkouts, svelte-check unchanged.
 
 ================================================================================
+7i. F4 CANONICAL PUBLICATION — ANALYSER OWNER HALF LIVE (2026-08-29)
+================================================================================
+
+Analyser commit `99c79bf` publishes the m19-skills/1 index without copying the canonical skill source:
+
+  canonical root:
+    https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/skills
+  index:
+    <root>/m19-skills/1/index.json
+  selected revision:
+    6243a899774d591119559305a137ecf144819efd
+
+The index intentionally selects common/load-audit-log + mongoose/run-mongoose-server. replay-a-run is
+excluded by the already accepted no-replay-entry-point deviation; embedded remains NOT PUBLISHABLE.
+CanonicalSkillsTest pins the contract, exact subset, revision, existing below-root paths and SHA-256 of
+both source files. Full analyser suite 1,111/1,111 and strict docs pass. After push, the exact public
+index returned 200 and the playground P2 CLI retrieved both skills from the root successfully (currently
+classified mirror because its CANONICAL_ROOT constant still names the old URL).
+
+Playground action: set CANONICAL_ROOT to the root above, remove `--declare-canonical`, assert the default
+CLI records canonical@6243a899774d591119559305a137ecf144819efd, then run the F5 canonical/none/mirror
+written-snapshot -> production-build -> actual-zip -> bundle-bench matrix. F4 closes with that consumer
+proof; no analyser runtime or generated project ever fetches the root.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 

@@ -167,6 +167,11 @@ Independent response gates at head 050c0ab: focused P2/bundle/Download tests 44/
 393/393; normal production build green; separately none-vendored production build green. svelte-check
 is unchanged at the same four unrelated errors and seven warnings.
 
-F4 remains blocking P2 acceptance. F5 is partially improved by mode-aware committed-snapshot assertions,
-but the canonical/none/mirror actual-zip matrix remains pending behind F4. Overall P2 verdict therefore
-remains CHANGES REQUESTED; accepted F1–F3 require no further work.
+F4 analyser-owner half is resolved at `99c79bf`: the public raw repository root now serves the versioned
+index and the two exact `6243a89` skill files, with revision/hash/subset parity pinned by
+CanonicalSkillsTest. The playground retriever successfully selected both files from that live root as a
+clean HTTPS mirror. The playground must now make that URL its CANONICAL_ROOT and remove
+`--declare-canonical`; F4 remains open until its default CLI reports canonical@6243a89 from the live
+root. F5 is partially improved by mode-aware committed-snapshot assertions, but the
+canonical/none/mirror actual-zip matrix remains pending. Overall P2 verdict therefore remains CHANGES
+REQUESTED; accepted F1–F3 require no further work.

@@ -418,6 +418,13 @@ build pass; the exact disposable vendor-none -> deleted skills -> production-bui
 passes. Strict frontmatter/version and required-set fixtures close the reproduced false passes. F4
 (live canonical publication) and F5 (three-mode actual-zip matrix) remain, so P2 stays active.
 
+F4 analyser-owner half `99c79bf`: canonical root is now
+`https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/skills`; its
+`m19-skills/1/index.json` is live and selects the accepted load + Mongoose skills at `6243a89`. Tests pin
+the subset, revision and exact bytes; the playground retriever successfully fetched both from the live
+root. Playground action: make this CANONICAL_ROOT, remove `--declare-canonical`, prove default CLI emits
+`canonical@6243a89`, then run F5's canonical/none/mirror actual-zip matrix.
+
 ================================================================================
 6. CROSS-REPOSITORY ACCEPTANCE — NOBODY CLAIMS THIS FROM LOCAL TESTS ALONE
 ================================================================================
