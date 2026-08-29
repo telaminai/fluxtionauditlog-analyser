@@ -19,27 +19,45 @@ The owner has issued the start signal. The signed normative contract is `m19-bun
 historical orientation; do not use them to stop implementation or to restore the rejected direct-file
 sink. The owner-selected path is Mongoose Chronicle capture plus a bundle-owned YAML export command.
 
-The analyser side is available on `main` at `89edb0d9a60992c4d77e1447a293f1a36d58862c`:
+The analyser side is available on `main` at `6243a899774d591119559305a137ecf144819efd`:
 
   · M-4/M-5 real listing/auth adaptations and 23/23 loop bench;
   · safe canonical key management and profiles (`db42919`);
   · `New project…` source-root/skill/GraphML offer (`1f30213`);
   · tested launch parsing + Linux xvfb loop CI (`92ad3ba`; Actions run 33271896191 green);
   · inert sanitised `skills.provenance`, project `skills.source` refusal, and corrected Chronicle-export
-    skill semantics (`5c72e21`).
+    skill semantics (`5c72e21`);
+  · accepted-review follow-ups: every named-profile validation path wipes the submitted key buffer, the
+    canonical stop step is substitution-gated, and CI actions use v5 (`6243a89`).
 
 PLAYGROUND CONVERGENCE INPUT — exact, do not guess:
 
   1. Vendor `common + mongoose` from analyser commit
-     `5c72e21ba289de35f6627b03c239f6a6ff7a9e2d`; never select `embedded`.
+     `6243a899774d591119559305a137ecf144819efd`; never select `embedded`. This revision adds the required
+     clean-stop `TODO(bundle)` marker; a copy from `5c72e21` is now stale.
   2. Substitute every project-owned run/export/replay command and concrete YAML/GraphML path, then fail
      generation if `TODO(bundle)` or `/path/to/` remains.
-  3. Write `skills.provenance=canonical@5c72e21ba289de35f6627b03c239f6a6ff7a9e2d` in the generated
+  3. Write `skills.provenance=canonical@6243a899774d591119559305a137ecf144819efd` in the generated
      profile. Never write `skills.source`; it is build/release input only.
   4. Document client setup as: start local transport, then use *AI ▸ Connect an AI client…*. Do not
      hard-code a Claude command.
   5. Run the generated-bundle acceptance in the signed contract. The analyser tutorial and M19.3/.4
      remain publish-gated until that real bundle passes; prose is not the gate.
+
+MONGOOSE-PLUGINS VERSION GATE — development and publication are different gates:
+
+  · Development may install and pin `svc-admin-web:1.0.39-SNAPSHOT` from
+    `feature/up-mng-01-server-registry` at `6e7a2cc`, and must record that source SHA in evidence.
+    P0/P1/P2 and a local real-server bench do not wait for a release.
+  · A downloadable bundle, clean-machine P3 run, or M19 sign-off MUST pin a published
+    mongoose-plugins version containing that registry/clean-stop change. A developer-local Maven cache
+    is not distribution evidence. If no release exists, report that single release gate; do not weaken
+    the registry acceptance or copy plugin code into the bundle.
+
+GRAPHML DISCOVERY GATE — the generator chooses the concrete path, so the analyser does not guess it.
+P3 must call the analyser's day-two discovery at the generated bundle root and prove the declared
+GraphML is offered. If it is missed, either move the generated GraphML beneath a detected root or return
+the exact path so the analyser can widen its bounded scan before sign-off.
 
 This file owns coordination and repository boundaries. It does NOT silently replace the product spec.
 The signed revision of docs/specs/spec-onboarding-example.md, identified by an exact commit SHA, will own
@@ -286,14 +304,13 @@ whether it changes the product decision or only the implementation. Do not patch
 
 The other LLM should propose its exact commit plan after reconnaissance. The expected shape is:
 
-  Mongoose M1 — keyless run contract
-    Generated processor present; ordinary start performs no hosted regeneration and no key preflight.
+  Playground P0 — keyless ordinary lifecycle
+    Generated processor present; ordinary package/start performs no hosted regeneration and no key
+    preflight. Regeneration is separate and is the only key-required path.
 
-  Mongoose M2 — native audit file
-    Real runtime writes the agreed analyser-readable audit format/path; lifecycle closes it cleanly.
-
-  Mongoose M3 — explicit start/stop/regenerate entry points
-    Project-owned commands, key requirement only on regenerate, actionable failure, tests and docs.
+  Mongoose plugin dependency — registry and clean stop
+    The server publishes/removes the agreed registry entry. A local SNAPSHOT may prove development;
+    downloadable output waits for a published version containing `6e7a2cc`.
 
   Playground P1 — typed bundle model and exact layout
     One model supplies all project-relative values to README, CLAUDE/AGENTS, profile and skills.
@@ -302,7 +319,8 @@ The other LLM should propose its exact commit plan after reconnaissance. The exp
     Deterministic source/index, host tier, source modes, safe provenance, compatibility check, no TODO.
 
   Playground P3 — generated-bundle acceptance
-    Inventory/profile/frontmatter/path assertions plus a disposable keyless build/run fixture.
+    Inventory/profile/frontmatter/path assertions plus a disposable keyless build/run/export fixture;
+    day-two discovery must offer the bundle's declared GraphML.
 
 One user-visible slice per commit. Follow each repository's changelog, docs, test and release rules.
 
@@ -312,16 +330,17 @@ One user-visible slice per commit. Follow each repository's changelog, docs, tes
 
 The integration is complete only when a freshly generated, downloadable-equivalent bundle proves:
 
-  1. Its inventory exactly matches M19 bundle contract v1.
+  1. Its inventory exactly matches `m19-bundle/2` and declares that version.
   2. No key is configured; the committed processor builds/starts without regeneration.
-  3. The real Mongoose runtime writes audit records to the declared project-relative file.
+  3. The real Mongoose runtime captures Chronicle records; the bundle's own export command writes
+     analyser-readable YAML to the declared project-relative path.
   4. The declared GraphML fits the written log and source navigation reaches bundled source.
   5. The generated profile declares every shipped skill with its final description/path.
   6. No shipped file contains `TODO(bundle)`, `/path/to/`, a secret, an absolute developer path or an
      invented command.
   7. The analyser opens graph-first, then the log, and reports audit readiness/pairing honestly.
   8. A supported client uses the analyser's resolved MCP setup; discovery and `analyser_context` succeed.
-  9. Start, stop and log-location skills work exactly as written.
+  9. Start, clean stop and export/open skills work exactly as written.
  10. Regeneration without a key fails at the documented step with the documented remedy; the initial run
      remains a success. A valid-key regeneration is tested only in an authorised credential-bearing
      environment, with the value absent from all captured output.
@@ -350,13 +369,13 @@ correct bundle. Extend or add a bundle-mode bench only after the real generator 
 8. REPORT BACK
 ================================================================================
 
-Phase zero first: write the paired report named at the top with the two live-source tables, exact commit
-SHAs, commands/tests run, every mismatch, and the proposed Mongoose/playground slices. Mark implementation
-`NOT STARTED — awaiting M19 bundle contract v1 sign-off`.
+Phase zero is complete and the v2 start signal is at the top of this file. Continue appending exact
+implementation commits and local acceptance evidence to the paired report. Record whether a local
+SNAPSHOT or a published mongoose-plugins version was used; never describe the former as downloadable
+distribution evidence.
 
-After the start signal, append implementation commits and local acceptance evidence to that report. State
-what was not verified. Do not call the work complete until the analyser-side session runs the combined
-bundle acceptance and an independent review answers both repository reports.
+State what was not verified. Do not call the work complete until the analyser-side session runs the
+combined bundle acceptance and an independent review answers both repository reports.
 
 Keep this brief and report in docs/handoff/ while live. Move them to completed only after the amended spec,
 both implementations, combined bench and review findings are resolved.

@@ -1,0 +1,59 @@
+REPORT — M19 accepted-review follow-ups
+Date: 2026-08-29 · Author session: analyser implementation
+Implementation commit: 6243a899774d591119559305a137ecf144819efd
+
+OUTCOME
+
+The three new reviews are accepted and their actionable analyser-side findings are resolved. No review
+verdict is disputed. One cross-repository discovery check and one publication dependency are carried
+forward as explicit generated-bundle gates rather than guessed locally.
+
+1. KEY REVIEW — review_m19_key_slice.txt
+
+F1 fixed. saveProfileAndActivate now enters try/finally before validating the profile name. Every return
+or throw after receiving a non-null char[] therefore wipes it. FluxtionKeyStoreTest retains the rejected
+traversal-shaped name and now asserts its submitted buffer contains only NUL after the exception.
+
+F2-F5 remain correctly recorded notes: wiping a char[] is not a heap-erasure claim; Properties round-trip
+is compatible with the Builder; unrelated canonical properties remain preserved; deleting the active
+named profile intentionally leaves the canonical key configured.
+
+2. SKILL-PROVENANCE REVIEW — review_m19_skill_provenance_slice.txt
+
+F1 fixed. The canonical Mongoose skill's clean-stop operation now carries TODO(bundle), just like start
+and export. CanonicalSkillsTest pins that marker. A generated bundle cannot pass the existing no-marker
+gate until it substitutes an actual project-owned clean-stop procedure.
+
+This changes the canonical snapshot revision. The playground must vendor common + mongoose from
+6243a899774d591119559305a137ecf144819efd and emit the matching canonical@ revision. A copy pinned to
+5c72e21 predates the stop marker and is stale.
+
+F2 is now an explicit two-stage dependency rule. Development and local real-server acceptance may use
+svc-admin-web:1.0.39-SNAPSHOT installed from feature/up-mng-01-server-registry at 6e7a2cc, with that SHA
+recorded. A downloadable bundle, clean-machine P3 run, or M19 sign-off must use a published
+mongoose-plugins version containing the registry and clean-stop changes. P0/P1/P2 are not blocked by
+release timing; distribution acceptance is.
+
+3. CI + DISCOVERY REVIEW — review_m19_ci_and_discovery_slices.txt
+
+F3 actioned while the workflow was already touched: checkout and setup-java are v5 in both jobs. The
+first pushed Actions run must be read before this follow-up is accepted.
+
+F1 GraphML reach is made a P3 conformance assertion. The generator owns the concrete GraphML location,
+so this repository does not invent a constraint without its output. P3 must invoke NewProjectDiscovery
+at the generated bundle root and assert that the declared GraphML is offered. A miss has two permitted
+resolutions before sign-off: move the generated graph beneath a detected root, or return its exact path
+for a bounded analyser scan extension. F2 nested-module depth stays accepted-for-v1 pending measurement.
+
+4. VERIFICATION
+
+  · mvn -q -Dtest=FluxtionKeyStoreTest,CanonicalSkillsTest test — PASS
+  · mvn -q test — 1,107 tests, 0 failures/errors/skips
+  · ./.venv/bin/mkdocs build --strict — PASS
+  · workflow YAML parse — PASS
+  · git diff --check — clean
+  · tracked-file four-term public-data sweep — clean
+
+Not yet verified: the pushed v5 Actions run; a generated bundle's actual GraphML discovery; a clean
+machine using the future published mongoose-plugins version; the existing human-at-a-screen checklists
+from the accepted reviews.

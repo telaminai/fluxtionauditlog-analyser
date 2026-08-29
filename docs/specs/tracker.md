@@ -219,6 +219,11 @@ analyser (reverse funnel)._
     and `[Unreleased]` updated. Full Maven suite, pinned strict-site build, diff check and tracked-file
     leak sweep pass; independent Swing checks are logged in
     [`unreviewed-changes.md`](../handoff/unreviewed-changes.md).
+  - Independent review accepted the slice and found one concrete bundle-shaped reach gap: GraphML is
+    searched only below detected source roots. This is now a P3 gate, not an independently guessed path:
+    generated-bundle acceptance must call day-two discovery at the bundle root and assert the declared
+    graph is offered. If it misses, the generator moves the graph beneath a detected root or returns the
+    exact path for an analyser-side bounded-scan change before sign-off.
 - [M19.15] ☐ **The seeding prompt for step 2** _(owner, 2026-08-29; spec has it verbatim)_. Step 2 is only
   a measurement if the prompt does not contaminate it: leading the witness produces agreement, manufactured
   hostility produces theatre, instructing the task tests the prompt instead of the docs, and revealing it is
@@ -265,6 +270,9 @@ analyser (reverse funnel)._
   pass; full Maven suite, pinned strict-site build, diff check and tracked-file leak sweep pass; public
   guide and `[Unreleased]` updated. Pending independent Swing eyeball is logged in
   [`unreviewed-changes.md`](../handoff/unreviewed-changes.md).
+  - Independent review accepted the slice. Its one code follow-up is closed at `6243a89`: profile-name
+    validation now runs inside the same `finally`-guarded region as writes, and a regression test proves
+    the submitted `char[]` is wiped when a traversal-shaped name is refused.
 - [M19.12a] ☑ **Licence registration placement shipped at `db42919` (R6)** — `showFirstRunSettingsIfNeeded`
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
@@ -280,6 +288,10 @@ analyser (reverse funnel)._
   - At `5c72e21` the analyser preserves and shows only sanitised inert `skills.provenance`, while a project
     `skills.source` is ignored with an explicit refusal and removed on save. Tests cover canonical,
     local, mirror, none and credential-capable/malformed shapes; no runtime retrieval exists.
+  - Independent review accepted the grammar and real-server semantics. Its marker finding is closed at
+    `6243a89`: clean stop now has its own `TODO(bundle)`, so P3's no-marker check cannot pass without a
+    real project stop procedure. The generator must vendor `common + mongoose` from that revision (not
+    the earlier `5c72e21`) and emit `skills.provenance=canonical@6243a899774d591119559305a137ecf144819efd`.
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
@@ -295,6 +307,10 @@ analyser (reverse funnel)._
   port, the analyser's endpoint file), never to author a rival prompt. Add `skill.md`/`contract.md` to
   the snapshot set for the XML-defined example (spec O2), since those are what make the design-level
   edit in tutorial part 4 possible._
+  - **Dependency gate:** local implementation/bench work may use
+    `svc-admin-web:1.0.39-SNAPSHOT` installed from Mongoose Plugins `6e7a2cc`; it must record that SHA.
+    Downloadable output, clean-machine P3 and M19 sign-off require a published version containing that
+    registry/clean-stop change. P0/P1/P2 do not wait for the release.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining
@@ -345,6 +361,8 @@ analyser (reverse funnel)._
   `tools/bench/loop-bench.py --stub --launch` path. Local isolated run passes **23/23** on 2026-08-29;
   GitHub run `33271896191` completed both `build` and `loop-bench` successfully, including the
   registry/export/analyser/MCP step under xvfb.
+  - Independent review accepted the live run. Its CI hygiene note is folded into `6243a89`:
+    `actions/checkout` and `actions/setup-java` now use v5; the next pushed run is the verification gate.
 - [M19.9] ☑ **Headless launch-argument tests shipped at `92ad3ba`** — `Main` strips `--rest`, rejects an
   unknown flag AFTER stripping, and lets a log path fall through. This was pure logic with three
   behaviours and no unit test (rule 4); the loop bench covered it only where a jar, JVM and window

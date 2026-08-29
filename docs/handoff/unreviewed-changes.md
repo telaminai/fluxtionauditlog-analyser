@@ -19,6 +19,33 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ `6243a89` · resolve the accepted M19 slice-review follow-ups
+
+**What.** Moves named-profile validation inside the key store's wipe guard and pins the rejected-name
+path with a buffer assertion; adds the missing clean-stop `TODO(bundle)` marker plus a canonical-skill
+assertion; updates both CI jobs to checkout/setup-java v5. The paired response also makes the cross-repo
+version gate explicit: local work may use the `1.0.39-SNAPSHOT` built from Mongoose Plugins `6e7a2cc`,
+while downloadable/clean-machine acceptance waits for a published version containing it.
+
+**Why.** These are F1 from `review_m19_key_slice.txt`, F1 from
+`review_m19_skill_provenance_slice.txt`, and F3 hygiene from
+`review_m19_ci_and_discovery_slices.txt`. The discovery review's GraphML finding cannot be solved by
+guessing the generator's path, so P3 now has an explicit discover-the-generated-path assertion and a
+defined return route if it fails.
+
+**Files.** `FluxtionKeyStore`, its test, canonical Mongoose skill + parity test, CI workflow and
+changelog. Exact tracker/handoff disposition and the response report follow in the metadata commit.
+
+**Verified.** Focused key/skill tests pass; full Maven suite passes 1,107/1,107; pinned MkDocs strict
+build, workflow YAML parse, `git diff --check` and the tracked-file four-term sweep pass.
+
+**What the reviewer must still check.** Confirm every `saveProfileAndActivate` exit now wipes a non-null
+buffer without masking the null-key refusal. Confirm all three project-owned operations (start, export,
+clean stop) carry a substitution marker and that the generator consumes `6243a89`, not its earlier
+snapshot. Read the first pushed Actions run to prove both v5 actions and the xvfb bench are green. For
+the cross-repo side, distinguish a SHA-recorded local SNAPSHOT run from the eventual published-version
+clean run.
+
 ## ☑ reviewed 2026-08-29 (the Mongoose/playground session — the generator side check #1 is addressed to) · `5c72e21` · M19 skill provenance and Chronicle-export skill correction
 
 **Verdict.** Accepted — and check #1 is answered from the generator's side: the four emission modes
