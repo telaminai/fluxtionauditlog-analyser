@@ -122,7 +122,8 @@ to a Mongoose-side MCP tool, in the repo whose release cadence owns them._
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ☐ PROPOSED
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
-ships a runnable Mongoose example with audit logging pre-enabled (file sink at a predictable path),
+ships a runnable Mongoose example with Chronicle audit capture pre-enabled and one YAML export command
+targeting a predictable project-relative path,
 bundled source, and a **project profile at `.analyser/project.fluxtion-settings`** (M20's canonical path —
 the bundle *is* a project profile) — so onboarding becomes: download → run → jbang the analyser →
 project auto-loads (M20; **File ▸ Import** until it lands) → Follow a live log with click-to-source and Explain working.
@@ -145,18 +146,18 @@ analyser (reverse funnel)._
   now marked NOT PUBLISHABLE in the skill itself) remain OPEN.** The embedded one cannot be closed by
   writing: it needs someone with a Fluxtion API key to build a processor, run it through the listener and
   open the result.
-- [M19.17] ☑ **Bundle contract v1 written** _(2026-08-29, third review's F1)_ — normative table in the
+- [M19.17] ☑ **Bundle contract v2 written** _(2026-08-29, third review's F1 + live export-beat correction)_ — normative table in the
   spec: required files, exact profile keys verified against `ConfigStore`/`ProjectProfile`, the commands a
-  bundle must document, generated-bundle acceptance, and per-repo ownership. Versioned `m19-bundle/1`; any
-  change to it is v2. D-X3/D-X4/D-X6/D-X7/D-X9 are now normative in the spec rather than living only in a
-  handoff. **Still open: F4** (`skills.source` retrieval — index layout, error distinctions, bounded
-  content, recorded provenance) and **F5/F8** (embedded tier unverified end to end; needs a key-holder).
-- [M19.16] ☐ **Review amendments before bundle implementation** — correct the MCP bootstrap to the
+  bundle must document, generated-bundle acceptance, and per-repo ownership. Versioned `m19-bundle/2`:
+  v2 replaces the impossible run-writes-YAML assumption with the owner-selected Chronicle export beat and
+  makes `m19-skills/1` normative (index/layout, error distinctions, bounds, provenance and enforced minimum
+  analyser version). **Bounded deferral:** embedded remains NOT PUBLISHABLE and is outside the Mongoose tier.
+- [M19.16] ◧ **Review amendments before bundle implementation** — correct the MCP bootstrap to the
   supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
   key provenance a value-free observable source rather than guessing a separate build's winner; and make
   the generated load-log skill name the bundle's actual path (review F1–F4). Parallel Mongoose/playground
   work is coordinated by [`handoff_29_aug_2026_1.txt`](../handoff/handoff_29_aug_2026_1.txt): phase-zero
-  live-source reconnaissance only until an amended **M19 bundle contract v1** is signed at an exact SHA;
+  live-source reconnaissance only until an amended **M19 bundle contract** is signed at an exact SHA;
   after that, repository-owned slices may proceed independently and converge on one generated-bundle bench.
   - **Phase-zero report RECEIVED 2026-08-29** —
     [`handoff_29_aug_2026_1_report.txt`](../handoff/handoff_29_aug_2026_1_report.txt) (Mongoose/playground
@@ -195,11 +196,13 @@ analyser (reverse funnel)._
   conformance) ships in the jar. O3 already generates bundles at Download, so updating the site needs no
   analyser release — and nothing fetches at runtime, which is what preserves the offline story,
   reproducibility, and version safety.
-- [D-R4] ☐ **`skills.source` override — to BUILD.** Owner-required for test and corporate mirrors.
+- [D-R4] ☑ **`skills.source` override — BUILD/RELEASE contract fixed in `m19-skills/1`.** Owner-required for test and corporate mirrors.
   Machine tier ONLY: never read from a project profile, because a profile travels between people and must
   not redirect the instructions an agent reads. Accepts a URL, a local path, or `none` as a first-class
-  value. The source used is recorded and shown. Blast radius stated: nothing executes a skill, so the
-  exposure is an agent READING a procedure — real, bounded, and why the source is machine-tier.
+  value. The source used is recorded and shown. The versioned index/layout, bounds, distinct failures,
+  sanitised provenance and `x-analyser-min-version` refusal are normative in the M19 v2 contract; the
+  playground vendors the snapshot at build/release, never in the user's browser. Blast radius stated:
+  nothing executes a skill, so the exposure is an agent READING a procedure — real and bounded.
 - [M19.13] ☐ **DAY TWO — `New project…` offers what it found** _(owner, 2026-08-29; spec R7)_. Day one is
   a primed bundle; day two is the user's own project, and today that is a cul-de-sac. Verified in code:
   `File ▸ New project…` exists and creates an **empty** profile, discovering nothing, so a user who has
@@ -272,7 +275,7 @@ analyser (reverse funnel)._
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining
   ownership. It tests this M19.1 contract **and** the accepted agent-brokered dev-loop where they meet:
-  M19's native `./logs/audit-<name>.yaml`, profile and Follow/source evidence stay required; the
+  M19's bundle-owned YAML export at `./logs/audit-<name>.yaml`, profile and source evidence stay required; the
   registry/export/GraphML leg is **VAL-12**, exercised by `tools/bench/loop-bench.py` only when Mongoose
   supplies UP-MNG-01 and the export surface. The current starter supplies neither, so it makes no
   brokered-loop or distribution claim. Review resolution:

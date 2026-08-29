@@ -51,18 +51,22 @@ Say which path a step belongs to rather than implying one prerequisite covers al
 1. **Get an example** — open the playground, pick an example flow, **Download**. You get a runnable
    Mongoose example project.
 2. **Run it** — one command from the bundle's README (`mvn -q exec` / `java -jar …` — see O1). The
-   server starts and writes an **audit log to a predictable path** (`./logs/audit-<name>.yaml`).
-3. **Open the analyser** — `jbang analyser@telaminai/fluxtionauditlog-analyser`.
-4. **Load the bundle's project** — the bundle ships a **project profile** at
+   server starts keylessly with Chronicle audit capture enabled.
+3. **Export the captured run** — one bundle-owned command exports analyser-readable YAML to the
+   generated concrete path (`./logs/audit-<name>.yaml`). This is the v2 export beat: Mongoose has no
+   text-file capture backend today; UP-RDR-01 later removes this step by letting the analyser read
+   Chronicle directly.
+4. **Open the analyser** — `jbang analyser@telaminai/fluxtionauditlog-analyser`.
+5. **Load the bundle's project** — the bundle ships a **project profile** at
    `.analyser/project.fluxtion-settings` (M20's canonical path): source roots (relative, they ship in
    the zip), the event processor FQN — **zero manual setup**. Once M20 lands the analyser auto-detects
    it beside the log; until then it's File ▸ Import settings… on that file (M15's import doing
    onboarding duty).
-5. **Watch it live** — open `./logs/audit-<name>.yaml` with **Follow** on: records stream in; click a
-   node line → the bundled source opens; graph a value; **Explain** a cycle (copy-prompt works without
-   a key).
+6. **Inspect the export** — open `./logs/audit-<name>.yaml`; click a node line → the bundled source
+   opens; graph a value; **Explain** a cycle (copy-prompt works without a key). Follow becomes the
+   default route when UP-RDR-01 removes the export beat; v2 does not call a static export live.
 
-6. **Edit it — in your IDE, with your own LLM** — open the Maven project in IntelliJ/VS Code; the
+7. **Edit it — in your IDE, with your own LLM** — open the Maven project in IntelliJ/VS Code; the
    bundled `CLAUDE.md` bootstraps the IDE's agent with Fluxtion knowledge. Change a node, re-run,
    watch the log change in Follow. **Division of labour is deliberate**: the *in-app assistant*
    analyses the log; *code editing* happens in the user's IDE with their own agent (the
@@ -79,10 +83,10 @@ The Download bundle MUST contain:
 | Item | Why |
 |---|---|
 | runnable Mongoose example (source + build, or jar + config — O1) | the thing that runs |
-| **audit logging pre-enabled** — `EventLogManager` → **text file sink** at `./logs/audit-<name>.yaml`, level INFO | no configuration step; deliberately the file sink because that is the sink the analyser reads today. **Note (2026-08-25):** the playground's `mongoose` starters default to `auditBackend: "chronicle"` (live read, dev-loop spec §C2) — the bundle must override that to the file sink until the out-of-tree Chronicle reader (**UP-RDR-01**) exists, at which point the default becomes the better choice and the export beat disappears |
+| **audit logging pre-enabled** — Mongoose `performanceMonitoring.auditCapture`, Chronicle backend, plus one bundle-owned YAML export command targeting `./logs/audit-<name>.yaml` | verified live-source constraint: Mongoose has no text-file capture backend; `/api/audit/file/{id}/export?format=yaml` is the analyser-readable v2 route. UP-RDR-01 later deletes the export beat |
 | the **generated EventProcessor source** + the example's node sources | source navigation works out of the box |
 | **`.analyser/project.fluxtion-settings`** — relative source roots + EP FQN, at **M20's canonical project-profile path** so the bundle *is* a project profile (not a separately-named file the detector also accepts) | zero-setup: M20 auto-detects it; M15 import until then |
-| **`README.md`** — run command, the log path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser |
+| **`README.md`** — run command, export command, concrete YAML path, and "open this with the analyser" linking the tutorial page | the bundle itself funnels to the analyser without pretending run and export are one operation |
 | **admin REST enabled**, and the server **publishes its registry file** `~/.mongoose/servers/<name>` (upstream-asks **UP-MNG-01**; the M18 admin link is closed in favour of the agent-brokered loop) | the example doubles as the **loop's conformance bench** (below): an agent globs the registry, exports, and drives the analyser — `tools/bench/` runs exactly that, today against a stub |
 | **agent bootstrap — `CLAUDE.md` (+ `AGENTS.md` mirror), layered** (see below) | the user opens the project in their IDE and **their own LLM already knows Fluxtion** — the edit loop needs zero prompting |
 
@@ -200,8 +204,9 @@ local — the per-link dev opt-in is honestly true here). Concretely:
   enumeration; verify the three gaps on it (**sink-descriptor discovery, `EventLogControlEvent`,
   lifecycle** — registered admin commands or none); **any missing admin capability becomes a
   `fluxtion-server-plugins` PR** (updates to the Mongoose plugin are expected, not exceptional —
-  budget for them). The bundle's file sink keeps discovery simple (a real path to resolve).
-- M18.2's "Open server's audit log", M18.3's level control (watch Follow get chattier live), and
+  budget for them). The v2 export beat keeps discovery explicit: the registry identifies the capture,
+  and the bundle-owned command materialises the declared YAML path.
+- M18.2's "Open server's audit log", M18.3's level control (watch a later export get chattier), and
   M18.4's dev restart all get their acceptance demos on this bundle.
 - Later, the tutorial gains an optional part 4 ("control the server from the analyser") once M18.1–3
   ship — the onboarding page and the feature validate each other.
@@ -646,20 +651,21 @@ them where a step cannot be grounded without the host in front of you. Acceptanc
 containing one is a bug — but nothing currently *checks* that, and the check belongs to whoever generates
 bundles, not to this repo.
 
-## M19 BUNDLE CONTRACT v1 — normative (2026-08-29)
+## M19 BUNDLE CONTRACT v2 — normative (2026-08-29)
 
 _Raised as blocking by three reviews. This is the artefact a generator in another repository can be
-checked against; everything above it is rationale. **Version it: any change to this table is v2.** The
+checked against; everything above it is rationale. v2 incorporates the live-source finding that Mongoose
+capture is Chronicle-only and analyser-readable YAML is an export. **Any later change is v3.** The
 analyser side of every key below was verified against this repo's source, not against prose._
 
-**Contract version:** `m19-bundle/1`. A bundle declares it; a checker refuses an unknown version.
+**Contract version:** `m19-bundle/2`. A bundle declares it; a checker refuses an unknown version.
 
 ### Files the bundle MUST contain
 
 | Path | Required | Owner | Verified against |
 |---|---|---|---|
 | `.analyser/project.fluxtion-settings` | yes | generator | `ProjectProfile.CANONICAL_RELATIVE` — this exact relative path, no alternative accepted |
-| `<the log the project writes>` | yes, at a **generated concrete path** | generator | D-X6; the analyser cannot infer an unopened log path |
+| `<the analyser-readable YAML export>` | yes, at a **generated concrete path** after the export command | generator | Mongoose Chronicle capture + `/api/audit/file/{id}/export?format=yaml`; D-X6 still holds because the analyser cannot infer an unopened export path |
 | `<the processor's GraphML>` | yes, at a generated concrete path | generator | pairing needs it; M40.1 gives a verdict from it before any run |
 | the generated processor source | yes | generator | source navigation, and it is what makes the bundle keyless |
 | `.claude/skills/<name>/SKILL.md` × n | yes | canonical library | `SkillDiscovery` finds `SKILL.md` case-insensitively, ≤ depth 7 |
@@ -680,22 +686,25 @@ Exact key names, verified in `ConfigStore`:
 | `runbook.N.path` | e.g. `.claude/skills/<name>/SKILL.md` | project-relative; `..`, absolute and URLs refused |
 | `runbook.N.description` | the skill's frontmatter `description` | optional, one line, ≤ 300 chars |
 | `vocabulary` | glossary path, if the bundle ships one | same pointer rules |
+| `skills.provenance` | value-free source identity + revision, or `none` | inert declared fact only; it never controls retrieval |
 
-**The profile MUST NOT contain:** any log path (no such category exists), any API key, or `skills.source`
-(machine-tier only, D-R4/D-X8).
+**The profile MUST NOT contain:** any log/export path (no such category exists), any API key, or
+`skills.source` (build/release-tier only, D-R4/D-X8).
 
 ### Commands the bundle MUST document
 
 | Purpose | Contract |
 |---|---|
 | run | **one command**, from the bundle's own script; works with **no API key** |
+| export | **one command**, from the bundle's own script; selects the recorded audit file through the published registry/API and writes YAML to the bundle's declared concrete path |
 | open the analyser | `jbang` line **plus** the JBang prerequisite, or the plain `java -jar` alternative (F7) |
 | connect an AI client | **client-neutral**: start with local transport, then *AI ▸ Connect an AI client…*. Never a hard-coded `claude mcp add` (D-X7) |
 | regenerate | separate, and the **only** step that mentions a key (F2/F6) |
 
 ### Acceptance a generated bundle must pass
 
-- [ ] unzip → run → an audit log appears at the path the bundle declared, **with no API key present**
+- [ ] unzip → run → export using the bundle's own one command → analyser-readable YAML exists at the
+      declared path, **with no API key present**
 - [ ] the analyser opens that log and its GraphML from the paths the profile/skills name, **on a machine
       that has never opened either** (this is what F3 was about)
 - [ ] `analyser_context` reports the project, the log, the pairing, and every registered runbook with its
@@ -710,28 +719,52 @@ Exact key names, verified in `ConfigStore`:
 |---|---|
 | this contract, the profile format, the analyser behaviour | **analyser** (here) |
 | bundle generation, the run script, the concrete paths | **playground** |
-| host-tier skill content and the operations it names | **bundle side**, from the canonical library |
+| canonical skill content | **analyser** (here) |
+| selected/substituted skill copies and the project operations they name | **playground**, from the canonical library |
 
-### Still open after the 2026-08-29 review round — M19 is NOT ready to brief
+### Skills-source retrieval contract — `m19-skills/1`
 
-Three independent reviews have now run over this revision. Most findings are fixed above; **these are
-accepted and deliberately left open**, because closing them by writing more prose would repeat the error
-the reviews found. **M19.16 stays open and no cross-repo briefing should start until they are closed.**
+`skills.source` is a **playground build/release input**, never a downloaded-project setting, profile
+setting, browser-download fetch or analyser-runtime fetch. The playground vendors the selected snapshot
+before deployment; its client-side Download generator reads only that committed snapshot.
 
-- **F1 — there is no versioned bundle contract.** Part 1 lists what a bundle must contain in prose, and a
-  generator in another repository needs a *normative, versioned* contract it can be checked against —
-  file layout, required keys, the profile's exact contents, and a version number that changes when any of
-  it does. Without it, "the bundle must contain X" is unenforceable across three repositories, which is
-  precisely the drift C4 warns about. This is the largest remaining piece and it is a **document, not
-  code**.
-- **F4 — `skills.source` is a property with no retrieval contract.** D-R4 specifies where the value comes
-  from and that it is machine-tier; it does not specify *how a generator fetches from it* (protocol,
-  layout at the far end, failure behaviour, whether a mirror must mirror the tree shape), nor how
-  `x-analyser-min-version` is **enforced** rather than merely recorded. A frontmatter field nothing checks
-  is a comment.
-- **F5/F8 — the embedded tier is unverified end to end** and is now marked NOT PUBLISHABLE in the skill
-  itself. Closing it needs someone with a Fluxtion API key to build a processor, run it through the
-  listener, and open the result. That is the one item here that cannot be closed by writing.
+The source modes are: the canonical HTTPS root, a credential-free corporate HTTPS mirror with the same
+layout, a local `file:` root for air-gapped builds, or the literal `none`. HTTPS URLs with user-info,
+query or fragment, credential-shaped text, redirects outside the configured origin, and project-supplied
+values are refused before fetch or display. `none` performs no fetch and emits no skills/runbooks.
+
+Every non-`none` root contains `m19-skills/1/index.json`:
+
+```json
+{
+  "contract": "m19-skills/1",
+  "revision": "immutable source revision",
+  "skills": [
+    {"tier": "common", "path": "common/load-audit-log/SKILL.md"},
+    {"tier": "mongoose", "path": "mongoose/run-mongoose-server/SKILL.md"}
+  ]
+}
+```
+
+Paths are unique, relative, stay below the root, and select only `common` plus the requested host tier.
+The index contains at most 32 entries; each skill is at most 64 KiB and the selected set at most 512 KiB.
+Each selected file must have valid `name`, `description` and `x-analyser-min-version` frontmatter. The
+generator refuses a minimum newer than the analyser version named by the bundle, substitutes every
+project-owned command/path, then refuses `TODO(bundle)` and `/path/to/` in the result.
+
+The build reports `none`, not-found, invalid-index/content and transport failure as distinct results; it
+never silently falls back from an explicitly configured source. The generated profile records only a
+sanitised identity in `skills.provenance`: `canonical@<revision>`,
+`mirror:<scheme+host+path>@<revision>`, `local@<revision>`, or `none`. It records no local absolute path,
+query, fragment, user-info, credential, response header or key material. Hash pinning and signing remain
+recommended hardening, not v2 acceptance.
+
+### Start signal and bounded deferral
+
+The owner issued the implementation start signal on 2026-08-29 after the live reconnaissance report and
+the export-beat decision. Mongoose bundles select `common + mongoose`; the embedded tier is explicitly
+not part of M19 acceptance and remains NOT PUBLISHABLE until its listener/file lifecycle has an end-to-end
+key-holder run. That bounded deferral does not block the Mongoose bundle.
 
 ### Acceptance added by this revision
 
