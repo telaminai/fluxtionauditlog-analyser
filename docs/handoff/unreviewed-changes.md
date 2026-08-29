@@ -45,7 +45,14 @@ profile containing both keys reports the refusal without failing to load, then l
 `skills.source` after a real UI edit/save. Review the canonical skills with the playground generator:
 `TODO(bundle)` remains intentional in source but must be substituted and refused in every shipped bundle.
 
-## ☐ pending review · `92ad3ba` · M19.8/9 Linux loop-bench CI and launch parsing tests
+## ☑ reviewed 2026-08-29 (the Mongoose/playground session) · `92ad3ba` · M19.8/9 Linux loop-bench CI and launch parsing tests
+
+**Verdict.** Accepted — verified against the LIVE Actions run (33271896191), not the prose: all 23
+bench steps PASS by name on the runner under xvfb, MCP bridge included, job done in 42s with clean
+child teardown; `--mcp` short-circuits ahead of the desktop parse and `parseDesktopArgs` reproduces
+the old strip/retain semantics exactly. One hygiene note: checkout@v4/setup-java@v4 carry deprecation
+annotations — bump on the next workflow touch. Details:
+[`review_m19_ci_and_discovery_slices.txt`](review_m19_ci_and_discovery_slices.txt).
 
 **What.** Extracts desktop launch-argument stripping into a pure `Main.parseDesktopArgs` decision with
 headless tests, and adds a Linux CI job that packages the analyser then runs the existing 23-step
@@ -67,7 +74,17 @@ finished in ten seconds rather than reaching the timeout.
 caching/duplicate package cost is acceptable. In `Main`, verify MCP/help still short-circuit before
 desktop parsing and that keeping additional positional arguments matches the pre-existing behaviour.
 
-## ☐ pending review · `1f30213` · M19.13 New project offers discovered setup
+## ☑ reviewed 2026-08-29 (the Mongoose/playground session) · `1f30213` · M19.13 New project offers discovered setup
+
+**Verdict.** Accepted — the safety claims all hold in code: Cancel returns BEFORE `project.create`
+(no profile written), every control starts unselected (asserted structurally), apply() admits only
+offered-AND-selected items with the refuse gates re-run and putIfAbsent for duplicates, and the
+truncation cap is stated in the dialog. One medium follow-up (F1): GraphML is discovered only under
+offered source roots, so a graph at the project root, in src/main/resources or under
+target/generated-sources is missed — check against the bundle's declared GraphML path when the first
+generated bundle exists. Nested modules (F2) accepted as the v1 one-level guess. Click-through and
+restart-persistence stay on the human list. Details:
+[`review_m19_ci_and_discovery_slices.txt`](review_m19_ci_and_discovery_slices.txt).
 
 **What.** `File ▸ New project…` now composes the existing bounded source-root, skill and GraphML
 discoveries into one confirmation. Every checkbox/radio begins off. Confirmed source roots and

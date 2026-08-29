@@ -1,0 +1,102 @@
+REVIEW — M19.8/9 Linux loop-bench CI (92ad3ba) + M19.13 New-project discovery (1f30213)
+Date: 2026-08-29 · Assessor: the Mongoose/playground-side session (same reviewer as review_m19_key_slice.txt)
+Reviewed at: main @ a534136 (+ the key-slice review commit rebased on top)
+
+VERDICT: BOTH ACCEPTED. The CI slice's headline claim — the 23-step loop actually running on a
+GitHub runner — was verified against the real Actions run, not the prose. The discovery slice's
+safety claims (nothing preselected, Cancel writes no profile, finding-is-not-adding) all hold in
+code and tests. Two recorded findings for the discovery slice (F1 GraphML reach, F2 nested
+modules), both follow-ups rather than blockers, plus one small CI hygiene note (F3).
+
+================================================================================
+1. GATES RUN (at head)
+================================================================================
+
+  · mvn -q test                       → 1,094 tests, 0 failures, 0 errors, 0 skipped
+  · ./.venv/bin/mkdocs build --strict → PASS
+  · git diff --check                  → clean
+  · four-term sweep over all four commits (1f30213, ed6bdd1, 92ad3ba, a534136) → 0 hits
+
+================================================================================
+2. THE CI SLICE (92ad3ba) — verified against the LIVE Actions run
+================================================================================
+
+The ledger says "read the first GitHub Actions run"; done, via gh on run 33271896191 (the a534136
+push):
+
+  · The loop-bench job installed xvfb (already present on the runner image — the apt step is a
+    correct no-op there), packaged the analyser, and ran
+    `xvfb-run -a tools/bench/loop-bench.py --stub --launch`.
+  · The job log shows ALL 23 STEPS BY NAME, PASS each, ending "23 passed, 0 failed" — including
+    the Swing launch, the no-first-run-dialog stdout check, the packaged MCP bridge discovery /
+    tools-list / context call, and the analyser drive. Total job time 42s; no hang, children torn
+    down (the bench's finish() SIGINT path — the job completed rather than timing out).
+  · Notably the run already included the M-4/M-5 bench adaptations (a9e206c precedes it), so CI
+    is exercising the accept-both listing parse on the stub's wrapper shape.
+  · The build job remains headless (`mvn -B verify`) and both jobs share the maven cache; the
+    duplicate `package` in loop-bench cost ~15s of the 42 — acceptable, no change requested.
+
+Main.java: the MCP short-circuit runs BEFORE parseDesktopArgs (verified at source — the `--mcp`
+loop is the first statement of main, ahead of help and the desktop parse), and parseDesktopArgs
+reproduces the old strip-and-retain semantics exactly (unknown flags retained for the existing
+loud rejection; positional log path falls through; null/empty equivalent). MainLaunchArgsTest
+covers all four cases headlessly. Accepted as written.
+
+F3 (NOTE, non-blocking): the run carries deprecation annotations — actions/checkout@v4 and
+setup-java@v4 target Node 20 (forced to 24) and setup-java v4 is EOL. Bump to checkout@v5 /
+setup-java@v5 whenever the workflow is next touched; not worth its own commit.
+
+================================================================================
+3. THE DISCOVERY SLICE (1f30213) — code + headless verification
+================================================================================
+
+Claims verified in code (the reachable half of the ledger's manual list):
+
+  · Cancel writes no profile: `if (selection == null) return;` sits BEFORE `project.create(file)`
+    in chooseAndCreateProject — cancelling the offer aborts creation entirely, which is stronger
+    than the ledger sentence and correct.
+  · Nothing preselected: every JCheckBox/JRadioButton is constructed setSelected(false), and the
+    test asserts structurally that the dialog source contains no setSelected(true).
+  · Finding is not adding: apply() only admits paths that were BOTH offered and selected
+    (`offeredRoots.contains(normalized)`), re-applies the Runbooks.refuse gates at adoption time,
+    skips already-declared skills, and uses putIfAbsent so a duplicate skill name never replaces
+    an earlier choice. The D-AI5 test (empty selection → untouched AppConfig) pins it.
+  · Empty directory → empty offer, never an error; OK on the empty offer still creates a usable
+    empty profile (Selection.empty() → apply is a no-op → create proceeds).
+  · The confirmed graph is a UI open only (topologyPanel.load), not a profile write — consistent
+    with the graph-adoption rules elsewhere; roots/skills persist through the single
+    onProfileEdited() funnel.
+  · Truncated discovery is stated in the dialog ("safety cap; this is a partial offer") — the
+    no-silent-caps rule holds.
+
+F1 (MEDIUM follow-up — the entry's own challenge, answered with a concrete miss): GraphML is
+discovered ONLY under the OFFERED source roots (`GraphmlDiscovery.scan(sourceRoots…)`). Three
+realistic homes escape that net: src/main/resources (not a source root), target/generated-sources
+(not matched by the detector — see F2), and a .graphml at the project root "beside your log",
+which is R7's own motivating phrase. Consequence worth checking when the bundle exists: if the
+M19 bundle's declared GraphML path is not under a detected source root, day-two discovery on a
+bundle-shaped project will offer its skills and roots but MISS its graph. Suggested follow-up:
+one extra bounded scan level at the chosen root (the same safety-cap style), or align the bundle
+contract's GraphML path with a detectable location and record that constraint in the contract.
+
+F2 (LOW, recorded as accepted-for-v1): detectSourceRoots reaches the chosen dir, dir/src/main/java,
+and one level of children's src/main/java — nested modules (a/b/src/main/java) and generated-source
+roots are missed. Reusing the shipped detector is the right v1 call (consistency over a new
+walker); the step-2 context-free measurement is the mechanism that should decide whether deeper
+walking is actually needed, so no change requested now.
+
+Minor note, no change requested: the dialog's fixed 720px preferred width may clip on narrow
+screens; the ledger's readability check at narrow sizes stays on the human list.
+
+Still requiring a human at a screen: dialog readability, click-through of select/cancel/confirm,
+roots/skills surviving an app restart, and the multi-module visual walk — unchanged from the
+ledger entry's list minus what §3 verified in code.
+
+================================================================================
+4. DISPOSITION
+================================================================================
+
+Both ledger entries ticked ☑ with this file as the detail. Follow-ups: F1 (GraphML reach vs the
+bundle's declared path — check when the first generated bundle exists; owner may prefer the
+contract-side fix), F3 (action version bumps, fold into the next workflow edit). Nothing blocks
+the M19 implementation train.
