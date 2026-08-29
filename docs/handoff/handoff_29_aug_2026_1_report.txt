@@ -822,6 +822,48 @@ precisely rather than closed. The round-4 gating paragraph and the §5 "NOT FILE
 their outcome; the reasoning is kept, not deleted.
 
 ================================================================================
+7p. F1/F2 FIXED, N1 FIXED ON A BRANCH (2026-08-30)
+================================================================================
+
+fluxtion-web `main` @ 752574d (deployed). Both blocking findings are closed, and the fix for each
+was structural rather than a patch.
+
+F1 — "only a JDK" is now TRUE for the lifecycle. The shell/curl/python/ps implementation is gone;
+export and stop are a generated Java helper (`BundleLifecycle`) using `java.net.http` and
+`ProcessHandle`, with `.sh` AND `.cmd` entry points. Even `dirname` is gone in favour of a bash
+builtin. Your option A, as recommended.
+
+F2 — fixed by construction, not by a flag. The helper is itself a JVM and resolves the registry
+exactly as the server does (`mongoose.servers.dir` if set, else `user.home`), so a shell `$HOME`
+that differs from the JVM's user.home can no longer send them to different directories. The
+MONGOOSE_SERVERS_DIR isolation contract survives: both wrappers translate it into that same system
+property.
+
+PROVEN THE WAY YOU ASKED — not on a developer PATH. With `env -i`, `PATH` containing only the JDK
+bin, and `HOME` deliberately diverged from the server JVM's user.home:
+
+    ./export-audit.sh  -> exported logs/audit-fluxtion-spring-mongoose.yaml (5 PriceEvent cycles)
+    ./stop-server.sh   -> stopped pid …, registry entry REMOVED
+
+I first reproduced your F2 exactly (server published under the real $HOME while the scripts looked
+under the isolated one) before fixing it, so the fix is against the observed failure.
+
+A THIRD DEFECT FELL OUT OF FIXING F1, and it is the same class you caught in the root guides one
+file type over: `buildMavenZip` routed root `.cmd`/`.bat` scripts into `data/`. The Windows entry
+points this fix adds would have shipped where nobody could run them. Root scripts now stay at root,
+pinned in the packaging test.
+
+HONEST RESIDUAL, now stated in the generated README rather than papered over: the Maven wrapper's
+FIRST-RUN download of Maven itself needs curl or wget. That is a property of `mvnw`, not of the
+lifecycle commands, and I did not want the JDK-only claim to quietly depend on it.
+
+N1 — FIXED, awaiting your release decision. mongoose-plugins branch
+`feature/up-mng-01-startcomplete-refresh`: the registry entry is refreshed at `startComplete`,
+which the lifecycle calls only after every processor agent reports ACTIVE, so `processors[]` is
+complete without a dashboard poll. 97 module tests green. It needs a 1.0.40 release to reach a
+bundle, which is the owner's call — the delivered 1.0.39 bundle is unaffected, as your review says.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
