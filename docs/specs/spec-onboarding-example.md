@@ -651,14 +651,16 @@ them where a step cannot be grounded without the host in front of you. Acceptanc
 containing one is a bug — but nothing currently *checks* that, and the check belongs to whoever generates
 bundles, not to this repo.
 
-## M19 BUNDLE CONTRACT v2 — normative (2026-08-29)
+## M19 BUNDLE CONTRACT v3 — normative (2026-08-29)
 
 _Raised as blocking by three reviews. This is the artefact a generator in another repository can be
-checked against; everything above it is rationale. v2 incorporates the live-source finding that Mongoose
-capture is Chronicle-only and analyser-readable YAML is an export. **Any later change is v3.** The
-analyser side of every key below was verified against this repo's source, not against prose._
+checked against; everything above it is rationale. v2 incorporated the live-source finding that Mongoose
+capture is Chronicle-only and analyser-readable YAML is an export. **v3 corrects the profile ABI before
+publication:** v2 accidentally specified one-based list keys and a singular processor key that the
+analyser never reads. No v2 bundle was published or accepted. The analyser side of every v3 key below is
+pinned by a real `ProjectProfile.load` test, not only compared with prose._
 
-**Contract version:** `m19-bundle/2`. A bundle declares it; a checker refuses an unknown version.
+**Contract version:** `m19-bundle/3`. A bundle declares it; a checker refuses an unknown version.
 
 ### Files the bundle MUST contain
 
@@ -678,18 +680,23 @@ Exact key names, verified in `ConfigStore`:
 
 | Key | Value | Notes |
 |---|---|---|
-| `projectName` | the bundle's name | |
-| `sourceRoot.count` / `sourceRoot.N` | project-relative roots | must resolve in the unzipped bundle |
-| `eventProcessorFqn` | the processor class | |
+| `share.version` | `1` | explicit rather than relying on the missing-version compatibility default |
+| `sourceRoot.count` / `sourceRoot.0`…`sourceRoot.(count-1)` | project-relative roots | zero-based; must resolve in the unzipped bundle |
+| `eventProcessorFqn.count` / `eventProcessorFqn.0`…`eventProcessorFqn.(count-1)` | processor classes | zero-based `ConfigStore` list family |
+| `selectedEventProcessor` | the primary processor class | must also be present in the processor list |
 | `runbook.count` | number of skills registered | |
-| `runbook.N.name` | matches the skill directory name | 1–40 of `[A-Za-z0-9_-]`, `Runbooks.refuse` |
-| `runbook.N.path` | e.g. `.claude/skills/<name>/SKILL.md` | project-relative; `..`, absolute and URLs refused |
-| `runbook.N.description` | the skill's frontmatter `description` | optional, one line, ≤ 300 chars |
+| `runbook.0.name`…`runbook.(count-1).name` | matches the skill directory name | zero-based; 1–40 of `[A-Za-z0-9_-]`, `Runbooks.refuse` |
+| `runbook.0.path`…`runbook.(count-1).path` | e.g. `.claude/skills/<name>/SKILL.md` | project-relative; `..`, absolute and URLs refused |
+| `runbook.0.description`…`runbook.(count-1).description` | the skill's frontmatter `description` | optional, one line, ≤ 300 chars |
 | `vocabulary` | glossary path, if the bundle ships one | same pointer rules |
 | `skills.provenance` | value-free source identity + revision, or `none` | inert declared fact only; it never controls retrieval |
 
 **The profile MUST NOT contain:** any log/export path (no such category exists), any API key, or
 `skills.source` (build/release-tier only, D-R4/D-X8).
+
+There is no `projectName` profile key. The analyser declares the active project from the canonical
+profile's project-root directory (`ProjectProfile.baseDirFor` / `ProjectState.activeName`); an unknown
+`projectName` property is preserved for forward compatibility but does not name the project in context.
 
 ### Commands the bundle MUST document
 

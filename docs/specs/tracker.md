@@ -140,12 +140,19 @@ analyser (reverse funnel)._
   that both edits and drives; the surviving principle is that the ANALYSER edits no code); **R4** the
   licence key is the first wall after first success and the seeded CLAUDE.md must pre-empt it; **R5** open
   the analyser on the GRAPH before the first run, so M40.1 has something true to say at minute two.
-- [M19] ➜ **REVISION RETURN IS SUPERSEDED by M19.16/.17 and the owner's start signal.** The third review
-  originally left F1/F4/F5/F8 open. F1 and F4 are now closed by signed `m19-bundle/2` + `m19-skills/1`
+- [M19] ➜ **REVISION RETURN IS SUPERSEDED by M19.16/.17/.18 and the owner's start signal.** The third review
+  originally left F1/F4/F5/F8 open. F1 and F4 are now closed by signed `m19-bundle/3` + `m19-skills/1`
   at `b0fdb86`; F5/F8 are a bounded deferral because the embedded tier is explicitly NOT PUBLISHABLE and
   outside the Mongoose bundle. Embedded graduation still needs a key-holder run through the listener and
   analyser; it does not block the selected Mongoose tier.
-- [M19.17] ☑ **Bundle contract v2 written** _(2026-08-29, third review's F1 + live export-beat correction)_ — normative table in the
+- [M19.18] ☑ **Bundle contract v3 corrects the profile ABI before publication** _(2026-08-29)_ — P3
+  scaffolding checked P1's emitted profile against the real importer and found v2's one-based
+  `sourceRoot.1`/`runbook.1` members and singular `eventProcessorFqn` are ignored. v3 specifies the
+  zero-based list families, `selectedEventProcessor`, explicit `share.version=1`, and no fictitious
+  `projectName`; `ProjectProfileTest` loads the exact generator-facing shape and asserts roots,
+  processors, selection, runbooks/descriptions and provenance arrive. No v2 bundle was published or
+  accepted, so consumers move directly to `m19-bundle/3`; `m19-skills/1` is unchanged.
+- [M19.17] ☑ **Bundle contract v2 written, profile table superseded by v3** _(2026-08-29, third review's F1 + live export-beat correction)_ — normative table in the
   spec: required files, exact profile keys verified against `ConfigStore`/`ProjectProfile`, the commands a
   bundle must document, generated-bundle acceptance, and per-repo ownership. Versioned `m19-bundle/2`:
   v2 replaces the impossible run-writes-YAML assumption with the owner-selected Chronicle export beat and

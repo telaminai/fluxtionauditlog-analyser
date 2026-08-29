@@ -140,6 +140,47 @@ class ProjectProfileTest {
         assertEquals(List.of(project.resolve("libs").toString()), config.mavenRepos);
     }
 
+    /**
+     * M19 bundle contract v3 — pin the generator-facing ABI through the real importer. The v2 table
+     * accidentally described one-based list members and a singular eventProcessorFqn property; both
+     * are ignored by ConfigStore, so a profile can look plausible while onboarding nothing.
+     */
+    @Test
+    void generatedBundleProfileUsesTheRealZeroBasedConfigStoreFamilies(@TempDir Path dir) throws Exception {
+        Path project = dir.resolve("demo-bundle");
+        Path file = ProjectProfile.pathFor(project);
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, """
+                share.version=1
+                sourceRoot.count=1
+                sourceRoot.0=src/main/java
+                eventProcessorFqn.count=1
+                eventProcessorFqn.0=com.acme.demo.generated.DemoProcessor
+                selectedEventProcessor=com.acme.demo.generated.DemoProcessor
+                runbook.count=2
+                runbook.0.name=load-audit-log
+                runbook.0.path=.claude/skills/load-audit-log/SKILL.md
+                runbook.0.description=Open this bundle's exported audit log.
+                runbook.1.name=run-mongoose-server
+                runbook.1.path=.claude/skills/run-mongoose-server/SKILL.md
+                runbook.1.description=Run, export and stop this bundle's server.
+                skills.provenance=canonical@rev-42
+                """);
+
+        AppConfig config = new AppConfig();
+        ProjectProfile.LoadResult loaded = ProjectProfile.load(file, config, new SettingsShare());
+
+        assertTrue(loaded.loaded(), loaded.message());
+        assertEquals(List.of(project.resolve("src/main/java").toString()), config.sourceRoots);
+        assertEquals(List.of("com.acme.demo.generated.DemoProcessor"), config.eventProcessorFqns);
+        assertEquals("com.acme.demo.generated.DemoProcessor", config.selectedEventProcessor);
+        assertEquals(List.of("load-audit-log", "run-mongoose-server"),
+                config.runbooks.keySet().stream().toList());
+        assertEquals("Open this bundle's exported audit log.",
+                config.runbooks.get("load-audit-log").description());
+        assertEquals("canonical@rev-42", ProjectProfile.skillsProvenance(file).orElseThrow());
+    }
+
     @Test
     void aLooseSettingsFileStaysRelativeToItsOwnDirectory(@TempDir Path dir) throws Exception {
         // an exported file imported from wherever it was saved has no project root to speak of; its own
