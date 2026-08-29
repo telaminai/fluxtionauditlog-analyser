@@ -13,12 +13,26 @@ reads as persuasion, treat that as a defect in this document.
 
 ## 1. The four layers, and which repository owns each
 
-| Layer | What it is | Repo | Changed by us? |
+| Layer | What it is | Repository | Changed by us? |
 |---|---|---|---|
-| **Fluxtion** | AOT compiler + runtime. You declare a node's own inputs; the compiler derives the total dispatch order and generates the Java that runs it. | `telaminai/fluxtion` | **No.** Used as shipped. Shortfalls are filed as upstream asks. |
-| **Mongoose** | The deployment layer that hosts a compiled processor. | `telaminai/mongoose` | **No.** Dual-licensed (GPL + commercial). |
-| **The audit log** | What the runtime wrote, per event cycle: which nodes ran, in order, and what each logged. | — a file format | Spec'd here, with a conformance suite. |
-| **The analyser** | This repo. Reads the log and the graph; answers questions about a run after the fact. Also an MCP server. | `telaminai/fluxtionauditlog-analyser` | **Yes — this is the one under review.** |
+| **Fluxtion** | AOT compiler + runtime. You declare a node's own inputs; the compiler derives the total dispatch order and generates the Java that runs it. | <https://github.com/telaminai/fluxtion> | **No.** Used as shipped; shortfalls are filed as upstream asks. |
+| **Mongoose** | The deployment layer that hosts a compiled processor. | <https://github.com/telaminai/mongoose> · docs <https://telaminai.github.io/mongoose/> | **No.** Dual-licensed (GPL + commercial). |
+| **Mongoose plugins** | Services a deployment composes — admin web console, event sources, sinks. Where "deploy / start / stop / read logs" actually live. | <https://github.com/telaminai/mongoose-plugins> · docs <https://telaminai.github.io/mongoose-plugins/> | **No.** |
+| **The audit log** | What the runtime wrote, per event cycle: which nodes ran, in order, and what each logged. | a file format — [spec'd here](https://telaminai.github.io/fluxtionauditlog-analyser/format-spec/), with a conformance suite | Spec'd and enforced here. |
+| **The analyser** | This repo. Reads the log and the graph; answers questions about a run after the fact. Also an MCP server. | <https://github.com/telaminai/fluxtionauditlog-analyser> · docs <https://telaminai.github.io/fluxtionauditlog-analyser/> | **Yes — this is the one under review.** |
+
+### Getting up to speed on Fluxtion itself
+
+Read these before judging anything that models Fluxtion's execution semantics — inferring them instead of
+reading them is where every defect in the M21 topology work came from:
+
+- **<https://fluxtion-playground.dev/build-with-ai>** — the authoring context: how to design with Fluxtion
+  using an LLM, and the compile → build → run → review-the-audit-log → change → recompile loop that the
+  rest of this stack exists to serve. Start here.
+- **<https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt>** — the framework canon.
+- **<https://fluxtion-playground.dev/fluxtion-golden-path.md>** — the golden path.
+- **<https://fluxtion-playground.dev/starter-templates/index.json>** — the template catalogue a generated
+  project comes from.
 
 Two facts that surprise people:
 

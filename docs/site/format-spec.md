@@ -188,7 +188,7 @@ emitter fills the gap with an invention:
 ## Conformance
 
 The fixture set lives at
-[`src/test/resources/conformance/`](https://github.com/telaminai/fluxtion-auditlog-analyser/tree/main/src/test/resources/conformance)
+[`src/test/resources/conformance/`](https://github.com/telaminai/fluxtionauditlog-analyser/tree/main/src/test/resources/conformance)
 — one file per pinned semantic, with a README table saying what each pins — and
 `FormatConformanceTest` is what *passing* means. Every fixture runs twice: through the built-in text
 reader (the reference implementation) and through the plugin SPI over a reader that hands the same
