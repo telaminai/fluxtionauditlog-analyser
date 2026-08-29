@@ -548,6 +548,39 @@ written-snapshot -> production-build -> actual-zip -> bundle-bench matrix. F4 cl
 proof; no analyser runtime or generated project ever fetches the root.
 
 ================================================================================
+7j. LEDGER REVIEWED AND TIDIED (2026-08-29)
+================================================================================
+
+All four pending ledger entries reviewed and ACCEPTED — v3 ABI + bundle-bench
+(3720ef9/9750fad/34c1081), atomic REST endpoint (297c4c1), Maven-resource GraphML discovery
+(389d331) and the slice-review follow-ups (6243a89). Detail:
+`docs/handoff/completed/review_m19_analyser_slices_round2.txt`.
+
+The empirical answers to the entries' own "must still check" items, from the generator side:
+  · bundle-bench REJECTS the restored old P1 profile with eight precise failures naming each ABI
+    defect; passes the real bundle 49/49 in BOTH zip and directory mode.
+  · All four provenance shapes behave: canonical 49/49, clean mirror 49/49, `none` 35/35 with an
+    explicit none-consistency check, credential-bearing mirror REJECTED.
+  · The GraphML discovery fix is bounded to graph roots (never source roots, so nothing extra can be
+    persisted) and agrees with the generator's real emitted path.
+  · The key-wipe fix preserves the null-key refusal without masking it; all three project-owned
+    operations now carry substitution markers and the generator consumes 6243a89, not an earlier
+    snapshot.
+
+LEDGER TIDIED: all nine reviewed entries moved verbatim to
+`docs/handoff/completed/unreviewed-changes-2026-08.md`; the live ledger has no pending entries. The
+four M19 slice-review detail files moved with them so the archive's links resolve. The M19 handoff
+BRIEF + REPORT + branch reviews (P0 / P0-fixes+P1 / P1-response / P2) stay LIVE — per the tracker
+protocol they archive together when M19 completes, and P2's F4 plus the matrix and live P3 are open.
+
+CARRIED FORWARD — N1, the one open note from that review (not a defect): a `none` bundle and a
+canonical bundle both exit bundle-bench green, but mean different things — `none` is a structurally
+valid m19-bundle/3 artifact that CANNOT satisfy M19 acceptance, which requires run / stop /
+log-location skills. When the canonical/none/mirror matrix runs, all three will be green; green on
+`none` must not be read as acceptance-ready. Cheapest fix if wanted: print the skipped-check count,
+or take an expected mode so the operator asserts `none` rather than discovering it.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 

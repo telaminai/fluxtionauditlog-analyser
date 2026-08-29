@@ -1,0 +1,145 @@
+REVIEW — four analyser slices: v3 ABI + bundle-bench, atomic endpoint, GraphML discovery, follow-ups
+Date: 2026-08-29 · Assessor: the Mongoose/playground-side session (the generator side)
+Entries: 3720ef9+a3769bd+9750fad+8236aa5+34c1081 · 297c4c1 · 389d331 · 6243a89
+Reviewed at: main @ b099dfd
+
+VERDICT: ALL FOUR ACCEPTED. Every "what the reviewer must still check" item that the generator side can
+answer was answered empirically against real artifacts rather than by reading. One NOTE (N1) about what
+a green bundle-bench means for a `none` bundle — a reporting clarification for the upcoming matrix, not
+a defect. bundle-bench is the strongest instrument either side has built; it caught the v3 ABI defect in
+my own emitter before any bundle shipped, and it correctly rejects every adversarial fixture I built.
+
+================================================================================
+1. ENTRY `3720ef9` + `a3769bd` + `9750fad` + `8236aa5` + `34c1081` — ACCEPTED
+================================================================================
+
+The entry asks the reviewer to challenge the checker for false passes/failures, run it against real
+generated fixtures, and confirm it rejects the old P1 profile. Done, against artifacts from the actual
+Download path (not hand-made trees): the zip built by `buildMavenZip` in
+`src/lib/repl/maven-download-bundle.test.ts`, and that zip unpacked.
+
+  a. REAL canonical bundle — zip mode AND directory mode: **49 passed, 0 failed** each. The two modes
+     agree, so the single-root normalisation is not hiding anything.
+
+  b. THE OLD P1 PROFILE IS REJECTED — the entry's explicit ask. I restored the exact pre-v3 profile
+     (projectName, one-based sourceRoot.1/runbook.N, singular eventProcessorFqn) into an otherwise
+     valid bundle. Eight precise failures, each naming the real defect:
+
+         FAIL profile declares share.version=1 — None
+         FAIL profile contains no fictitious, retrieval, log or key properties — projectName
+         FAIL sourceRoot members are exactly zero-based 0..count-1 — expected [0], found [1]
+         FAIL eventProcessorFqn.count is an integer — None
+         FAIL selectedEventProcessor names a declared processor — None
+         FAIL the selected generated processor source is committed
+         FAIL runbook members are exactly zero-based 0..count-1 — missing=[runbook.0.*] extra=[runbook.2.*]
+         FAIL source roots are project-relative — [None]
+
+     No false negative and no vague failure: a reader is told which key is wrong, not merely that the
+     profile is bad.
+
+  c. PROVENANCE MODES — the entry's `none` versus mirror question, all four shapes:
+         canonical@<rev>                     → 49 passed, 0 failed
+         mirror:https://internal.example/…@<rev> (clean)  → 49 passed, 0 failed
+         none (no .claude, runbook.count=0)  → 35 passed, 0 failed, incl. an explicit
+                                               "none provenance emits no skills/runbooks" check
+         mirror:https://user:pw@…@rev1       → REJECTED (2 failures: provenance not sanitised, and the
+                                               guide/profile mismatch it induces)
+     The credential refusal firing on the recorded provenance — the surface that travels to a colleague —
+     is the check that matters most here, and it works.
+
+  d. Cross-checked the v3 key table against the emitter and the importer-backed ProjectProfileTest: keys,
+     zero-based indices, selectedEventProcessor membership and the absence of projectName all agree with
+     what my generator writes and what the analyser reads. Project-name derivation from the profile's
+     root directory is consistent with the bundle's single-root zip shape.
+
+N1 (NOTE, no code change requested — a reporting clarification for the matrix step): a `none` bundle
+exits 0 with "35 passed, 0 failed", while the canonical bundle runs 49 checks. The 14 skill checks
+correctly do not apply, and the mode IS explicitly validated — this is not a silent skip. But the two
+greens mean different things: `none` is a structurally valid m19-bundle/3 artifact that CANNOT satisfy
+M19's acceptance list, which requires run / stop / log-location skills. When step 3 of the next order
+runs all three artifacts through the bench, all three will be green, and green on `none` must not be
+read as acceptance-ready. Cheapest fix if wanted: print the skipped-check count, or take an expected
+mode so the operator asserts `none` rather than discovering it. Recording it because "no silent caps" is
+this project's own rule, applied here to the instrument rather than the product.
+
+================================================================================
+2. ENTRY `297c4c1` — ATOMIC ENDPOINT PUBLICATION — ACCEPTED
+================================================================================
+
+Challenged as asked. The publication is correct in the details that decide whether the race is really
+closed:
+
+  · the pending file is created in the SAME parent as the target, which is what makes ATOMIC_MOVE
+    possible at all — a temp in the system temp dir would silently degrade to copy-then-replace;
+  · owner-only permissions are applied as a CREATION attribute
+    (`PosixFilePermissions.asFileAttribute`), not set afterwards, so there is no window where the
+    token file is world-readable;
+  · `UnsupportedOperationException` falls back to a plain temp file (non-POSIX hosts), and
+    `AtomicMoveNotSupportedException` falls back to REPLACE_EXISTING;
+  · `finally { Files.deleteIfExists(pending) }` cleans the sibling on every path, including the throw.
+
+Bounded-retry check: the bench's tolerance is inside `Analyser.wait`, whose loop is governed by the
+pre-existing `deadline`; catching OSError/JSONDecodeError/KeyError/TypeError makes a malformed read
+"not ready yet" WITHOUT extending the deadline, so a server that never becomes valid still fails by
+step rather than hanging. That was the risk in the entry's own question, and it is not present.
+
+Note (not a finding): on the non-POSIX fallback the temp file is created without the explicit
+permission attribute. That path only triggers where POSIX permissions are unsupported, where the file
+inherits directory ACLs instead; worth knowing, not worth changing.
+
+================================================================================
+3. ENTRY `389d331` — MAVEN-RESOURCE GRAPHML DISCOVERY — ACCEPTED
+================================================================================
+
+This closes F1 of my own discovery review, and it is fixed in the narrowest correct way: the resources
+directory is appended to `graphRoots` ONLY — never to `sourceRoots` — and is guarded by
+`Files.isDirectory`. Because `NewProjectDiscovery.apply` admits source roots exclusively from
+`offer.sourceRoots()`, the extra root cannot be selected or persisted as a source root even if a user
+confirms every box. That is exactly the "changes only what is offered" boundary the entry claims.
+
+Verified against the REAL generated bundle rather than the fixture: bundle-bench's day-two discovery
+check on my actual Download zip reports
+
+    PASS  day-two bounded GraphML discovery can offer the declared graph —
+          src/main/resources/com/example/myapp/generated/MarketProcessor.graphml
+
+so the analyser-side fix and the generator-side path agree on the concrete shape, which is what the
+conditional concern in the original review could not establish. The entry is right that P3 must still
+prove the live offer in the app; this is the strongest evidence available before that.
+
+================================================================================
+4. ENTRY `6243a89` — SLICE-REVIEW FOLLOW-UPS — ACCEPTED
+================================================================================
+
+  · KEY WIPE (my `review_m19_key_slice.txt` F1) — fixed exactly at the point identified:
+    `requireProfileName`/`requireKey` moved INSIDE the try, so the finally always runs, and the fill is
+    null-guarded. I checked the interaction the entry asks about: with a null key, `requireKey` still
+    throws IllegalArgumentException and the guarded fill skips — the refusal is preserved and no NPE
+    masks it. The rejected-name path now wipes, which is what the test pins.
+  · CLEAN-STOP MARKER (my `review_m19_skill_provenance_slice.txt` F1) — present in the canonical
+    mongoose skill, and my generator consumes it: all THREE project-owned operations (start, export,
+    clean stop) now have substitution markers and all three are substituted, with the no-marker gate
+    refusing anything left behind. Confirmed on the shipped artifact.
+  · GENERATOR CONSUMES 6243a89, NOT AN EARLIER SNAPSHOT — confirmed: `skills/manifest.json` records
+    `canonical@6243a899774d591119559305a137ecf144819efd`, the profile and both guides carry that exact
+    string, and bundle-bench's provenance-parity check passes on the real bundle. The entry's own
+    independent SHA-256 comparison of the two skill files reached the same conclusion from the other
+    direction.
+  · CI v5 bumps — applied; the review note that raised them is closed.
+  · The cross-repo version gate is correctly stated: local work may use `1.0.39-SNAPSHOT` built from
+    Mongoose Plugins `6e7a2cc`; downloadable/clean-machine acceptance waits for a published version
+    containing it. That distinction is the one I flagged as F2 in the provenance review, so both sides
+    now record it identically.
+
+================================================================================
+5. WHAT THIS REVIEW DID NOT COVER
+================================================================================
+
+  · No live P3 path: no keyless Maven build, server boot, export, or fresh analyser/MCP run. All four
+    entries scope themselves as static/scaffolding work and that gate remains separate.
+  · The bundle-bench fixtures for `none` and mirror provenance were constructed by mutating a REAL
+    generated bundle to the shape my generator emits in those modes (my P2 tests pin that shape). They
+    are not end-to-end vendored artifacts; the true canonical/none/mirror matrix follows F4 of
+    `review_m19_p2_skills_retrieval.txt`, as that review's order requires.
+  · I did not re-run the analyser's Maven suite or inspect the named GitHub runs; the entries record
+    those and the CI evidence is independently visible.
