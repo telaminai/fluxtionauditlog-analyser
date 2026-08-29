@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **Rejected Fluxtion key-profile names now wipe the submitted credential buffer.** Validation failures
+  receive the same caller-buffer hygiene as successful saves and later write failures.
+
 ### Added
 - **New project now offers the setup already present in the directory.** After choosing a directory,
   one confirmation lists detected Java source roots, skill-shaped runbooks and GraphML. Every choice

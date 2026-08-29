@@ -62,8 +62,11 @@ class FluxtionKeyStoreTest {
     @Test
     void profileNamesCannotEscapeTheProfilesDirectory() {
         FluxtionKeyStore store = new FluxtionKeyStore(temp.resolve(".fluxtion"));
+        char[] rejectedKey = "secret".toCharArray();
         assertThrows(IllegalArgumentException.class,
-                () -> store.saveProfileAndActivate("../outside", "secret".toCharArray()));
+                () -> store.saveProfileAndActivate("../outside", rejectedKey));
+        assertArrayEquals(new char[rejectedKey.length], rejectedKey,
+                "the credential buffer is wiped even when profile-name validation fails");
         assertThrows(IllegalArgumentException.class, () -> store.activate("work/other"));
     }
 }

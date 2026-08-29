@@ -36,6 +36,7 @@ class CanonicalSkillsTest {
         assertTrue(text.contains("~/.mongoose/servers/"));
         assertTrue(text.contains("/api/audit/file/{id}/export?format=yaml"));
         assertTrue(text.contains("Chronicle"));
+        assertTrue(text.contains("TODO(bundle): substitute the exact clean-stop command"));
         assertFalse(text.contains("YAML deployment descriptor"));
         assertFalse(text.contains("addSink"));
     }

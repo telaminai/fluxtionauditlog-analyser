@@ -98,16 +98,16 @@ public final class FluxtionKeyStore {
 
     /** Save a named profile and make it the canonical active configuration. */
     public void saveProfileAndActivate(String name, char[] key) throws IOException {
-        name = requireProfileName(name);
-        requireKey(key);
         try {
+            name = requireProfileName(name);
+            requireKey(key);
             Properties profile = new Properties();
             profile.setProperty(API_KEY_PROPERTY, new String(key));
             write(profile, profileFile(name));
             copyKey(profile, canonicalFile());
             writeActiveProfile(name);
         } finally {
-            Arrays.fill(key, '\0');
+            if (key != null) Arrays.fill(key, '\0');
         }
     }
 

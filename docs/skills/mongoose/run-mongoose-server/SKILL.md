@@ -47,6 +47,8 @@ the bottom of this file, and the check belongs immediately before it.
 5. Stop the server through this project's own stop command, so Chronicle capture closes cleanly and the
    registry file is removed.
 
+   TODO(bundle): substitute the exact clean-stop command; do not assume a stop script exists.
+
 ## Do not start a second instance
 
 If a server is already running for this project, find it before starting another — the published
