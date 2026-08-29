@@ -37,14 +37,15 @@ defined return route if it fails.
 changelog. Exact tracker/handoff disposition and the response report follow in the metadata commit.
 
 **Verified.** Focused key/skill tests pass; full Maven suite passes 1,107/1,107; pinned MkDocs strict
-build, workflow YAML parse, `git diff --check` and the tracked-file four-term sweep pass.
+build, workflow YAML parse, `git diff --check` and the tracked-file four-term sweep pass. After push,
+GitHub Actions run `33272924784` passed both the v5 build job and the xvfb loop-bench job.
 
 **What the reviewer must still check.** Confirm every `saveProfileAndActivate` exit now wipes a non-null
 buffer without masking the null-key refusal. Confirm all three project-owned operations (start, export,
 clean stop) carry a substitution marker and that the generator consumes `6243a89`, not its earlier
-snapshot. Read the first pushed Actions run to prove both v5 actions and the xvfb bench are green. For
-the cross-repo side, distinguish a SHA-recorded local SNAPSHOT run from the eventual published-version
-clean run.
+snapshot. Inspect run `33272924784` if independent workflow-log verification is desired. For the
+cross-repo side, distinguish a SHA-recorded local SNAPSHOT run from the eventual published-version clean
+run.
 
 ## ☑ reviewed 2026-08-29 (the Mongoose/playground session — the generator side check #1 is addressed to) · `5c72e21` · M19 skill provenance and Chronicle-export skill correction
 

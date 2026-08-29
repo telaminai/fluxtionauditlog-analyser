@@ -37,7 +37,8 @@ release timing; distribution acceptance is.
 3. CI + DISCOVERY REVIEW — review_m19_ci_and_discovery_slices.txt
 
 F3 actioned while the workflow was already touched: checkout and setup-java are v5 in both jobs. The
-first pushed Actions run must be read before this follow-up is accepted.
+first pushed Actions run, `33272924784` at `7384d0e`, passed both the Maven build and the xvfb
+registry/export/analyser/MCP loop; both v5 setup steps are visible as successful in each job.
 
 F1 GraphML reach is made a P3 conformance assertion. The generator owns the concrete GraphML location,
 so this repository does not invent a constraint without its output. P3 must invoke NewProjectDiscovery
@@ -51,9 +52,9 @@ for a bounded analyser scan extension. F2 nested-module depth stays accepted-for
   · mvn -q test — 1,107 tests, 0 failures/errors/skips
   · ./.venv/bin/mkdocs build --strict — PASS
   · workflow YAML parse — PASS
+  · GitHub Actions run 33272924784 — build + loop-bench PASS with checkout/setup-java v5
   · git diff --check — clean
   · tracked-file four-term public-data sweep — clean
 
-Not yet verified: the pushed v5 Actions run; a generated bundle's actual GraphML discovery; a clean
-machine using the future published mongoose-plugins version; the existing human-at-a-screen checklists
-from the accepted reviews.
+Not yet verified: a generated bundle's actual GraphML discovery; a clean machine using the future
+published mongoose-plugins version; the existing human-at-a-screen checklists from the accepted reviews.

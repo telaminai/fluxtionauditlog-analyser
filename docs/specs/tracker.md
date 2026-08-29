@@ -362,7 +362,8 @@ analyser (reverse funnel)._
   GitHub run `33271896191` completed both `build` and `loop-bench` successfully, including the
   registry/export/analyser/MCP step under xvfb.
   - Independent review accepted the live run. Its CI hygiene note is folded into `6243a89`:
-    `actions/checkout` and `actions/setup-java` now use v5; the next pushed run is the verification gate.
+    `actions/checkout` and `actions/setup-java` now use v5. GitHub run `33272924784` completed both jobs
+    successfully at `7384d0e`; the loop step passed under xvfb.
 - [M19.9] ☑ **Headless launch-argument tests shipped at `92ad3ba`** — `Main` strips `--rest`, rejects an
   unknown flag AFTER stripping, and lets a log path fall through. This was pure logic with three
   behaviours and no unit test (rule 4); the loop bench covered it only where a jar, JVM and window
