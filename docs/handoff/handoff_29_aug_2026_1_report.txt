@@ -435,6 +435,36 @@ Branch feature/m19-p0-keyless-bundle now: … 73565fc → 3acaf9b → 8f20016.
 Evidence: 27 bundle tests, starter suite 217/217, production build green.
 
 ================================================================================
+7f. P2 DELIVERED (playground side, 2026-08-29, final slice before P3)
+================================================================================
+
+Branch head: fluxtion-web feature/m19-p0-keyless-bundle @ 310a10c.
+
+scripts/vendor-skills.mjs implements the full m19-skills/1 retrieval contract as a build/release
+tool: four source modes with pre-fetch refusals (user-info/query/fragment/non-https/credential
+shapes), index parsing with all bounds (32 entries, 64KiB/skill, 512KiB set, unique below-root
+paths, common+host-tier selection only), frontmatter + min-version validation, DISTINCT outcomes
+(ok/none/refused/not-found/invalid-index/invalid-content/transport — no silent fallback),
+cross-origin redirect refusal, and sanitised provenance in exactly the analyser's grammar.
+The committed snapshot was REGENERATED THROUGH THE TOOL from the analyser checkout at 6243a89;
+manifest.json is the machine record, and bundle.ts is manifest-driven (unknown skill → generation
+refuses; mode none → no skills, runbook.count=0, provenance none). Project-input refusal pinned
+(spec JSON smuggling skills.source is stripped and influences nothing).
+Evidence: 12 retrieval-contract tests + 28 bundle tests, starter suite 230/230, build green.
+
+TWO ITEMS FOR THE ANALYSER SESSION / OWNER:
+  · CANONICAL INDEX PUBLICATION (analyser-side deliverable, D-X2 "canonical skill content"):
+    no root currently publishes m19-skills/1/index.json — docs/skills/ has none, and the
+    proposed canonical root serves the app shell. Until one exists, canonical vendoring runs
+    from a local checkout with --declare-canonical (the releaser's recorded byte-parity
+    declaration). Publishing the index beside docs/skills/ (or naming the served root) makes the
+    canonical HTTPS mode live and deletes the declaration flag.
+  · P3 is now unblocked per the review's order (F7, F5, F6, v3 ABI, P2 all closed). Next from
+    this side: the generated-bundle acceptance — real zip with injected generated source, no-key
+    build/run against mongoose-plugins 6e7a2cc local install, export, analyser open, source-mode
+    matrix (none + canonical + one mirror fixture).
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
