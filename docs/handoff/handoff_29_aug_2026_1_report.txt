@@ -248,11 +248,82 @@ Neither branch is pushed to any remote (house rule: no push without owner approv
   Analyser A1 — bench adaptations M-4/M-5 (your side; small).
 
 ================================================================================
-7. NOT VERIFIED
+7. ADDENDUM 2026-08-29 (same day, later) — owner decision, live acceptance, runbook
 ================================================================================
 
-  · loop-bench against a REAL server — no starter-generated server with admin-web + audit
-    capture was booted this session; the registry code is proven by unit tests only.
+OWNER DECISION RECORDED: "go with the export beat for v1" — M-3 is RESOLVED (a): the M19 v1
+bundle's audit story is Chronicle capture + GET /api/audit/file/{id}/export?format=yaml. No new
+Mongoose runtime work is needed for the v1 audit path; the bundle contract's
+"text file sink at ./logs/audit-<name>.yaml" line should be amended accordingly (the amending
+session owns that edit). This also answers the bootstrap tracker's D-01: no file-writing config
+exists, and v1 does not need one. UP-RDR-01 later deletes the export beat; nothing in v1 blocks it.
+
+LIVE ACCEPTANCE RUN (real server, not the stub) — and one bug it caught and fixed:
+
+  · Booted mongoose-plugins example/admin-web-example (pins bumped to mongoose 1.0.28 +
+    svc-admin-web 1.0.39-SNAPSHOT on the branch) via `../../mvnw exec:exec`.
+  · ~/.mongoose/servers/admin-web-example appeared, mode 600 (-rw-------), correct field set,
+    live pid, environment "dev", url answering /healthz before any request needed it.
+  · tools/bench/loop-bench.py --registry ~/.mongoose/servers --server admin-web-example --launch:
+      PASS  registry directory has at least one server file
+      PASS  a server was picked
+      PASS  registry file is mode 600
+      PASS  registry file carries the UP-MNG-01 fields
+      PASS  the server's pid is alive
+      PASS  environment is declared (UP-MNG-03)
+      FAIL  export the audit log — the M-4 listing-shape mismatch, live-confirmed (bench indexes
+            ["files"] into a bare JSON array). Analyser-owned bench edit; also note this example
+            registers no processors/audit capture, so a FULL export pass needs the real starter
+            project (the gated V2/V3 work) even after the bench edit.
+  · BUG FOUND AND FIXED by the shutdown check: Mongoose's clean shutdown calls
+    Service.stop() → Lifecycle.stop() and NEVER tearDown(); removal originally sat in tearDown()
+    only, so the file survived clean stops. Fixed in branch commit 6e7a2cc (removal on stop() +
+    tearDown(), dedicated test). Re-verified live: SIGTERM to the JVM → shutdown hook →
+    server.stop() → file removed. 96 module tests green.
+  · Branch head is now: mongoose-plugins feature/up-mng-01-server-registry @ 6e7a2cc.
+
+PUSH STATUS: still nothing pushed (house rule — awaiting explicit owner approval per push). The
+§4 pull instructions only work on THIS machine. If the analyser session runs on a different
+machine it needs the branches pushed first:
+    mongoose-plugins  feature/up-mng-01-server-registry  @ 6e7a2cc
+    fluxtion-web      feature/up-pg-01-catalogue-version @ 4bb71b5
+    fluxtionauditlog-analyser main (this report + tracker note; commits 12c8678 + this addendum)
+
+RUNBOOK — machine-independent, for whoever picks this up:
+
+  A. Build + unit-test the Mongoose slice:
+       cd mongoose-plugins && ./mvnw -pl service/svc-admin-web test
+     (96 tests; surefire pins mongoose.servers.dir=target/servers so nothing touches your real
+      ~/.mongoose. The JVM-wide override property is `mongoose.servers.dir`.)
+
+  B. Boot a real server that publishes the registry file:
+       cd mongoose-plugins && ./mvnw -q -pl service/svc-admin-web -DskipTests install
+       cd example/admin-web-example && ../../mvnw -q exec:exec
+     Console: http://127.0.0.1:8181 · registry file: ~/.mongoose/servers/admin-web-example
+     Ctrl-C (or SIGTERM) removes the file; kill -9 leaves it with a dead pid (by design).
+
+  C. Run the acceptance bench against it (from the analyser repo, jar built in target/):
+       python3 tools/bench/loop-bench.py --registry ~/.mongoose/servers \
+           --server admin-web-example --launch
+     Expected today: 6 PASS + "export the audit log" FAIL until (i) the bench accepts the bare
+     /api/audit/files array (M-4) and maps authMode BEARER (M-5), and (ii) a server with real
+     processors + auditCapture exists (the starter project, post-sign-off).
+
+  D. Run the playground locally (fluxtion-web; Node 20+):
+       cd fluxtion-web/web && npm install && npm run dev
+     → http://localhost:5173/start   (the starter/Download UI — bundle generation happens here,
+                                      client-side; templates gallery includes the mongoose ones)
+     → http://localhost:5173/playground (CheerpJ playground)
+     Tests: `npm test` (vitest; templates-disk suite pins the catalogue + every template
+     generating). Real Maven smoke: web/scripts/starter-smoke.sh.
+
+================================================================================
+8. NOT VERIFIED
+================================================================================
+
+  · loop-bench's EXPORT leg against a real server — the registry leg passed live (addendum §7),
+    but no server with real processors + audit capture exists until the starter bundle ships, so
+    the export/graphml/analyser steps remain proven only against the stub.
   · FluxtionConfigManager key precedence — taken from review F3's javap evidence, not re-run.
   · The deployed playground site's serving behaviour (only the repo was inspected, plus the
     /skills app-shell observation cited from review F6).

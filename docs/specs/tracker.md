@@ -168,9 +168,17 @@ analyser (reverse funnel)._
     browser — skills should be VENDORED at build time, not fetched at download). Bundle implementation
     NOT STARTED, per the gate. Two slices landed under their own already-accepted specs, on unpushed
     local branches: **UP-MNG-01 registry file** (mongoose-plugins
-    `feature/up-mng-01-server-registry` @ 8137bf5 — writes `~/.mongoose/servers/<name>`, mode 600,
-    with `environment` per UP-MNG-03; 95 module tests green) and **UP-PG-01 `catalogue: 1`**
-    (fluxtion-web `feature/up-pg-01-catalogue-version` @ 4bb71b5). Pull/test instructions in the report §4.
+    `feature/up-mng-01-server-registry` @ 6e7a2cc — writes `~/.mongoose/servers/<name>`, mode 600,
+    with `environment` per UP-MNG-03; 96 module tests green) and **UP-PG-01 `catalogue: 1`**
+    (fluxtion-web `feature/up-pg-01-catalogue-version` @ 4bb71b5). Pull/test/runbook in the report §4/§7.
+  - **OWNER DECISION 2026-08-29: M-3 resolved — the EXPORT BEAT is v1's audit path** ("go with the
+    export beat for v1"): Chronicle capture + `/api/audit/file/{id}/export?format=yaml`; the bundle
+    contract's file-sink line amends accordingly; bootstrap D-01 answered (no file sink exists or is
+    needed for v1); UP-RDR-01 later deletes the beat. **Live acceptance ran the same day** (report §7):
+    a real server published the registry file and loop-bench passed ALL SIX registry-side steps; the
+    export step fails on the recorded M-4 bench adaptation (bare-array listing — analyser-owned edit,
+    with M-5's BEARER mapping). The shutdown check caught and fixed a real bug: Mongoose's clean stop
+    calls `Service.stop()`, never `tearDown()` — removal now hooks `stop()` (commit 6e7a2cc).
 - [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns key PROVENANCE.** The visualiser is not shipping
   (too IDE-specific); its tools fold into the analyser, which removes the only real objection. "Provenance"
   because the key has three sources and WHICH one answered is the fact that costs an afternoon — the §E /
