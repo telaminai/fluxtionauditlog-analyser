@@ -35,6 +35,7 @@ public record ProjectModel(List<Section> sections) {
 
     public static final Set<String> KEYS_READ = Set.of(
             "project.active", "project.name", "project.settings", "project.root",
+            "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
             "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
@@ -79,6 +80,12 @@ public record ProjectModel(List<Section> sections) {
             rows.add(new Row("Fluxtion key file: " + (present ? "present" : "absent"),
                     str(key.get("precedenceNote")), str(key.get("canonicalFile")),
                     "observed locally; validity not checked", present ? Tone.NORMAL : Tone.MUTED, Target.NONE));
+        }
+        Map<String, Object> skills = map(ctx.get("skills"));
+        if (skills.get("provenance") != null) {
+            rows.add(new Row("skills: " + skills.get("provenance"),
+                    "vendored when this project was generated; never fetched by the analyser",
+                    null, str(skills.get("from")), Tone.NORMAL, Target.NONE));
         }
         // M38.1 D-C7: a runbook POINTER is a visible row — "deploy runbook: ops/deploy.md · project". Copy and
         // Show act on where it lands on this machine; what is drawn is the pointer as the profile holds it.

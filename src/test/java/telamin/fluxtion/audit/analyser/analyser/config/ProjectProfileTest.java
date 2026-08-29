@@ -78,6 +78,43 @@ class ProjectProfileTest {
         assertTrue(text.contains("com.acme.A"), "the project's own settings must be there");
     }
 
+    @Test
+    void skillsSourceIsRefusedButSanitisedProvenanceIsPreservedAndReadable(@TempDir Path dir)
+            throws Exception {
+        Path file = ProjectProfile.pathFor(dir.resolve("bundle"));
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, "share.version=1\nskills.source=https://instructions.invalid/override\n"
+                + "skills.provenance=canonical@rev-42\n");
+
+        ProjectProfile.LoadResult loaded = ProjectProfile.load(file, new AppConfig(), share);
+        assertTrue(loaded.loaded());
+        assertTrue(loaded.message().contains("skills.source REFUSED"), loaded.message());
+        assertEquals("canonical@rev-42", ProjectProfile.skillsProvenance(file).orElseThrow());
+
+        ProjectProfile.save(file, new AppConfig(), share);
+        String saved = Files.readString(file);
+        assertFalse(saved.contains("skills.source"), "a forbidden project retrieval control is not carried over");
+        assertTrue(saved.contains("skills.provenance=canonical@rev-42"), saved);
+    }
+
+    @Test
+    void credentialCapableOrMalformedSkillProvenanceIsNeverEchoed(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("profile.fluxtion-settings");
+        for (String unsafe : List.of(
+                "mirror:https://user:password@example.invalid/skills@rev",
+                "mirror:https://example.invalid/skills?token=x@rev",
+                "mirror:https://example.invalid/skills#fragment@rev",
+                "file:/Users/someone/private@rev",
+                "canonical@bad/revision")) {
+            Files.writeString(file, "skills.provenance=" + unsafe + "\n");
+            assertTrue(ProjectProfile.skillsProvenance(file).isEmpty(), unsafe);
+        }
+        Files.writeString(file, "skills.provenance=mirror:https://mirror.example/fluxtion/skills@abc_123\n");
+        assertTrue(ProjectProfile.skillsProvenance(file).isPresent());
+        Files.writeString(file, "skills.provenance=none\n");
+        assertEquals("none", ProjectProfile.skillsProvenance(file).orElseThrow());
+    }
+
     // ---- switching ------------------------------------------------------------------------------
 
     /** The acceptance story: B's settings replace A's rather than piling on top of them. */

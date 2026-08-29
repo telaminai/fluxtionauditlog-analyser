@@ -21,6 +21,12 @@ Project panel can report whether that canonical file has a configured key, but i
 future Maven build will receive an overriding `-Dfluxtion.apiKey`; it states that precedence rule rather
 than guessing a winner.
 
+A generated project may also carry `skills.provenance`: a value-free identity such as
+`canonical@<revision>` saying which vendored skill snapshot it received. The Project panel shows that
+declaration as an inert fact. It never makes the analyser fetch anything. A hand-edited
+`skills.source` in the profile is refused because a shared project must not redirect the instructions an
+agent reads; source selection belongs to the playground's build/release process.
+
 With **no project open**, the analyser behaves exactly as it always has. Project profiles are opt-in.
 
 ## Opening and switching

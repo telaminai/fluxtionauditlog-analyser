@@ -269,9 +269,17 @@ analyser (reverse funnel)._
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
   gating anything. **Re-adding a first-run modal would reverse D-S1.**
-- [M19.10] ☐ **The canonical skill documents** — authored in [`docs/skills/`](../skills/README.md); four
+- [M19.10] ◧ **The canonical skill documents — analyser source corrected; generated substitution bench pending** — authored in [`docs/skills/`](../skills/README.md); four
   written and verified discoverable by the shipped `SkillDiscovery`. Remaining: the `TODO(bundle)` markers
   need grounding against a real host before any bundle ships one.
+  - 2026-08-29: `CanonicalSkillsTest` pins the four names, descriptions and minimum analyser version;
+    the Mongoose tier now follows the live registry → Chronicle capture → bundle-owned YAML export beat,
+    and the embedded tier's NOT-PUBLISHABLE gate is pinned. The canonical `TODO(bundle)` markers remain
+    intentionally because commands/paths are project-owned; M19.10 closes only when the playground
+    substitutes them and its generated-bundle checker proves none survive.
+  - The analyser now preserves and shows only sanitised inert `skills.provenance`, while a project
+    `skills.source` is ignored with an explicit refusal and removed on save. Tests cover canonical,
+    local, mirror, none and credential-capable/malformed shapes; no runtime retrieval exists.
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
@@ -332,10 +340,11 @@ analyser (reverse funnel)._
   first-run modal that otherwise blocked an agent on a never-configured machine before the socket existed;
   the MCP bridge's "not running" error names the command. Exercised by the bench's `--launch`, which
   starts a fresh install in an isolated home.
-- [M19.8] ◧ **The bench is wired in CI at `92ad3ba`; first Linux run pending** — the analyser is Swing, so the new
+- [M19.8] ☑ **The bench is green in Linux CI at `92ad3ba`** — the analyser is Swing, so the new
   job installs a display (`xvfb-run` on the Linux runner), packages the jar and runs the exact
   `tools/bench/loop-bench.py --stub --launch` path. Local isolated run passes **23/23** on 2026-08-29;
-  the first pushed GitHub Linux result is still required before this becomes ☑.
+  GitHub run `33271896191` completed both `build` and `loop-bench` successfully, including the
+  registry/export/analyser/MCP step under xvfb.
 - [M19.9] ☑ **Headless launch-argument tests shipped at `92ad3ba`** — `Main` now strips `--rest`, rejects an
   unknown flag AFTER stripping, and lets a log path fall through. That is pure logic with three
   behaviours and no unit test (rule 4). The loop bench covers it end-to-end, but only where a jar, a

@@ -10,11 +10,12 @@ Use this before answering any question about what the running system did.
 
 ## Steps
 
-1. **The log path is written into this skill when the bundle is generated.** It is not discoverable
-   from the analyser, and asking it is the wrong move:
+1. **The export command, log path and graph path are written into the generated project.** For a
+   Mongoose bundle, run its export command first: Chronicle capture is not itself analyser-readable
+   YAML. The unopened path is not discoverable from the analyser, and asking it is the wrong move:
 
    ```
-   TODO(bundle): the generator substitutes this project's actual audit-log and GraphML paths here.
+   TODO(bundle): substitute the bundle's exact export command (where required), concrete YAML-export path and GraphML path here.
    ```
 
    **Do not use `analyser_context` to find an unopened log** — an earlier version of this skill said to,

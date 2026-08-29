@@ -20,6 +20,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   analyser never validates the key, redisplays it, stores it in app settings, or puts it in a project,
   share export, action response, status message or console output.
 
+### Changed
+- **The canonical Mongoose skills now describe the real Chronicle export beat.** They discover the
+  running server through its registry entry, run the generated project's own YAML export command, then
+  open that concrete export with GraphML. They no longer imply that starting Mongoose directly writes
+  an analyser-readable YAML file or that a deployment descriptor reveals one.
+
 ## [1.12.0] - 2026-08-28
 
 ### Fixed

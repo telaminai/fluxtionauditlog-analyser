@@ -8,6 +8,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 
 /**
  * A project's settings, kept beside the project instead of in the one global config (M20).
@@ -286,8 +287,16 @@ public final class ProjectProfile {
             if (de != null && de.contains("REFUSED")) warn += "  ·  ⚠ destinations: " + de;
             String sr = plan.summary().get(SettingsShare.Category.SOURCE_ROOTS);
             if (sr != null && sr.contains("REFUSED")) warn += "  ·  ⚠ source roots: " + sr;
+            // M19 D-R4: this similarly named key is deliberately NOT the inert provenance fact.
+            // A project travels between people and must never redirect where a generator fetches the
+            // instructions an agent will read. It was ignored by preview already; name the refusal.
+            java.util.Properties declared = new java.util.Properties();
+            try (var reader = new java.io.StringReader(text)) { declared.load(reader); }
+            if (declared.getProperty("skills.source") != null) {
+                warn += "  ·  ⚠ skills.source REFUSED — build/release input, never a project setting";
+            }
             return new LoadResult(true, "project loaded: " + file + warn);
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | IOException e) {
             return new LoadResult(false, "could not load " + file + ": " + e.getMessage());
         }
     }
@@ -305,11 +314,51 @@ public final class ProjectProfile {
             previous = new java.util.Properties();
             try (var r = Files.newBufferedReader(file)) {
                 previous.load(r);
+                // KnownKeys preserves unknown future facts. This one is not future: the M19 contract
+                // explicitly forbids it in a project, while retaining the inert skills.provenance key.
+                previous.remove("skills.source");
             } catch (IOException | RuntimeException e) {
                 previous = null;            // unreadable: nothing to preserve, and load() will say so on its own path
             }
         }
         return share.export(c, PROJECT_SCOPED, baseDirFor(file), previous);
+    }
+
+    /**
+     * The inert, value-free identity the bundle generator declared for its vendored skill snapshot.
+     * Invalid or credential-capable shapes are absent rather than echoed to context/the Project panel.
+     */
+    public static Optional<String> skillsProvenance(Path file) {
+        if (file == null || !Files.isRegularFile(file)) return Optional.empty();
+        java.util.Properties properties = new java.util.Properties();
+        try (var reader = Files.newBufferedReader(file)) {
+            properties.load(reader);
+        } catch (IOException | RuntimeException e) {
+            return Optional.empty();
+        }
+        String value = properties.getProperty("skills.provenance");
+        if (value == null) return Optional.empty();
+        value = value.trim();
+        if (value.equals("none")) return Optional.of(value);
+        if (value.length() > 300 || value.chars().anyMatch(ch -> ch < 0x20 || ch == 0x7f)) {
+            return Optional.empty();
+        }
+        int revisionAt = value.lastIndexOf('@');
+        if (revisionAt <= 0 || revisionAt == value.length() - 1) return Optional.empty();
+        String source = value.substring(0, revisionAt);
+        String revision = value.substring(revisionAt + 1);
+        if (!revision.matches("[A-Za-z0-9._-]{1,120}")) return Optional.empty();
+        if (source.equals("canonical") || source.equals("local")) return Optional.of(value);
+        if (!source.startsWith("mirror:")) return Optional.empty();
+        try {
+            java.net.URI uri = java.net.URI.create(source.substring("mirror:".length()));
+            boolean safe = ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
+                    && uri.getHost() != null && uri.getUserInfo() == null && uri.getQuery() == null
+                    && uri.getFragment() == null;
+            return safe ? Optional.of(value) : Optional.empty();
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
     }
 
     /**

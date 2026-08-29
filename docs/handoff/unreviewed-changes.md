@@ -33,13 +33,13 @@ could rot between local runs.
 
 **Verified.** `MainLaunchArgsTest` passed; full `mvn -q test` passed; a freshly packaged local
 `tools/bench/loop-bench.py --stub --launch` passed 23/23 outside the socket sandbox; pinned strict-site
-build, workflow YAML parse, diff check and tracked-file four-term sweep passed.
+build, workflow YAML parse, diff check and tracked-file four-term sweep passed. After push, GitHub Actions
+run `33271896191` completed both `build` and the Linux `loop-bench` job successfully; the xvfb loop step
+finished in ten seconds rather than reaching the timeout.
 
-**What the reviewer must still check.** Read the first GitHub Actions run: the `loop-bench` job must
-actually install/use `xvfb`, reach all 23 passes, terminate its analyser/stub children, and not hang until
-the 10-minute timeout. Confirm the separate build job remains headless and that caching/duplicate package
-cost is acceptable. In `Main`, verify MCP/help still short-circuit before desktop parsing and that keeping
-additional positional arguments matches the pre-existing behaviour.
+**What the reviewer must still check.** Confirm the separate build job should remain headless and that
+caching/duplicate package cost is acceptable. In `Main`, verify MCP/help still short-circuit before
+desktop parsing and that keeping additional positional arguments matches the pre-existing behaviour.
 
 ## ☐ pending review · `1f30213` · M19.13 New project offers discovered setup
 

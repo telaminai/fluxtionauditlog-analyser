@@ -1,6 +1,6 @@
 ---
 name: run-mongoose-server
-description: Start, check and stop the local Mongoose server hosting this project's processor, and find the audit log it writes.
+description: Start and stop this project's local Mongoose server, export its captured run as analyser-readable YAML, and open it with the processor graph.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -26,18 +26,31 @@ the bottom of this file, and the check belongs immediately before it.
 
    TODO(bundle): if this project names it differently, correct this line when the bundle is generated.
 
-2. Find the audit log. It is declared in the server's YAML deployment descriptor — read that rather than
-   assuming a path, because the descriptor is what the server obeyed.
+2. Find this running server through the registry entry it publishes under
+   `~/.mongoose/servers/`. Use the bundle's declared server name; if it is not running, do not guess a
+   port or start a second copy. The registry entry supplies the base URL, auth mode, token, environment
+   and process id without putting any of them in this skill.
 
-3. Open it in the analyser with the processor's GraphML (see the `load-audit-log` skill), declaring which
-   system it came from.
+3. Export the captured Chronicle audit through **this project's own export script**:
 
-4. Stop the server through the same script or its admin endpoint, so the audit sink closes cleanly.
+   ```
+   TODO(bundle): substitute the exact export command and its concrete ./logs/audit-<name>.yaml target.
+   ```
+
+   Mongoose does not write analyser-readable YAML directly. The script selects the recorded audit file
+   through the registry/API and calls `/api/audit/file/{id}/export?format=yaml`; claiming the run itself
+   writes the YAML skips a required step and leaves `load-audit-log` with a path that does not exist.
+
+4. Open that concrete YAML export in the analyser with the processor's GraphML (see the
+   `load-audit-log` skill), declaring the registry server name as provenance.
+
+5. Stop the server through this project's own stop command, so Chronicle capture closes cleanly and the
+   registry file is removed.
 
 ## Do not start a second instance
 
-If a server is already running for this project, find it before starting another — two instances writing
-under one deployment produce two partial logs and no error. The same applies to the analyser: if its
+If a server is already running for this project, find it before starting another — the published
+registry entry is the authority. The same applies to the analyser: if its
 status bar reads **MCP elsewhere**, another analyser window owns the endpoint and your questions are
 being answered about a different log.
 

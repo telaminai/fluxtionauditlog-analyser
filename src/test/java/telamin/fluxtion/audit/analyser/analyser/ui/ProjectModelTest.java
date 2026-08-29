@@ -120,6 +120,17 @@ class ProjectModelTest {
     }
 
     @Test
+    void skillSnapshotProvenanceIsShownAsInertNotAsARetrievalControl() {
+        Map<String, Object> ctx = empty();
+        ctx.put("skills", Map.of("provenance", "canonical@rev-42",
+                "from", "project declaration (inert; never a retrieval control)"));
+        ProjectModel.Row row = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows().get(1);
+        assertEquals("skills: canonical@rev-42", row.primary());
+        assertTrue(row.secondary().contains("never fetched by the analyser"));
+        assertTrue(row.provenance().contains("inert"));
+    }
+
+    @Test
     void anS3LogShowsTheOriginTheUserNamed_notTheTempCopy() {
         Map<String, Object> ctx = full();
         ctx.put("log", Map.of("path", "/var/folders/xx/T/fetched-123.yaml",

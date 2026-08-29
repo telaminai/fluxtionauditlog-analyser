@@ -4083,6 +4083,15 @@ public final class MainFrame extends JFrame {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
+            if (project.hasProject()) {
+                telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
+                        .skillsProvenance(project.activeFile()).ifPresent(value -> {
+                            Map<String, Object> skills = new java.util.LinkedHashMap<>();
+                            skills.put("provenance", value);
+                            skills.put("from", "project declaration (inert; never a retrieval control)");
+                            out.put("skills", skills);
+                        });
+            }
             // M19.12 / D-X3: facts this process can observe, not a claim about a future Maven JVM.
             // The credential value never enters this map; the fixed tilde path avoids leaking the local
             // account name into context or screenshots.
