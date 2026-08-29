@@ -19,7 +19,18 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
-## ☐ pending review · `5c72e21` · M19 skill provenance and Chronicle-export skill correction
+## ☑ reviewed 2026-08-29 (the Mongoose/playground session — the generator side check #1 is addressed to) · `5c72e21` · M19 skill provenance and Chronicle-export skill correction
+
+**Verdict.** Accepted — and check #1 is answered from the generator's side: the four emission modes
+(`canonical@<sha|tag>`, `mirror:<clean https base>@<rev>`, `local@<rev>`, `none`) all fall inside the
+accepted grammar, revisions are committed to `[A-Za-z0-9._-]` (slugified if not), and P3 gains a
+conformance fixture asserting `skillsProvenance()` accepts each emitted string verbatim. The corrected
+skills match the REAL server contract at every live-verified point (registry fields, export endpoint,
+key precedence, registry removal on stop — the last true only since this afternoon's `stop()` fix).
+Two findings: F1 mongoose skill step 5 (stop) lacks a `TODO(bundle)` marker so the no-marker gate
+cannot force a real stop command; F2 two named upstream events the skills' claims wait on (playground
+P0 keyless pom; a mongoose-plugins release containing the registry branch). Details:
+[`review_m19_skill_provenance_slice.txt`](review_m19_skill_provenance_slice.txt).
 
 **What.** Generated profiles may carry sanitized, value-free `skills.provenance`; context and the
 Project panel show it as an inert project declaration. A project-supplied `skills.source` is ignored

@@ -1,0 +1,115 @@
+REVIEW — M19 skill provenance + Chronicle-export skill correction (5c72e21 + 89edb0d)
+Date: 2026-08-29 · Assessor: the Mongoose/playground-side session — i.e. THE GENERATOR SIDE the
+ledger entry's first check is addressed to
+Reviewed at: main @ 89edb0d (+ this session's two earlier review commits rebased on top)
+
+VERDICT: ACCEPTED. The provenance grammar is compatible with what the playground generator will
+emit — committed below, which is the answer the entry asked for. The corrected skills now match
+the REAL server contract at every point this side verified live (registry fields, export
+endpoint, key precedence, registry-file removal on stop). Two small findings (F1 marker gap in
+the mongoose skill's stop step, F2 an explicit cross-repo version dependency), neither blocking.
+
+================================================================================
+1. GATES RUN (at head)
+================================================================================
+
+  · mvn -q test                       → 1,100 tests, 0 failures, 0 errors, 0 skipped
+    (the "shutdown step failed, continuing" console lines are a test exercising that path)
+  · ./.venv/bin/mkdocs build --strict → PASS
+  · git diff --check                  → clean
+  · four-term sweep over 5c72e21 + 89edb0d → 0 hits
+
+================================================================================
+2. THE GRAMMAR CHECK — answered BY the generator side (the entry's check #1)
+================================================================================
+
+skillsProvenance accepts: `none` · `canonical@<rev>` · `local@<rev>` ·
+`mirror:<http(s), host, no userinfo/query/fragment>@<rev>`, rev ∈ [A-Za-z0-9._-]{1,120},
+≤300 chars, no control characters, split at the LAST '@' (so an '@' inside a mirror path cannot
+confuse the parse — verified by reading, and the userinfo case is pinned by test).
+
+GENERATOR COMMITMENT (playground P2, recorded here so both sides hold the same contract):
+  · default vendoring emits          canonical@<analyser-repo git SHA or tag>
+  · corporate mirror emits           mirror:<https base URL, no userinfo/query/fragment>@<rev>
+  · air-gapped local emits           local@<rev or date-stamp>  (the local PATH never enters it)
+  · skills.source=none emits         none
+  · revisions are git SHAs or tags; anything else (e.g. a semver with '+') is slugified to
+    [A-Za-z0-9._-] before emission, so the grammar's rejection of '+' is a non-issue.
+All four forms fall inside the accepted grammar; the credential-bearing and file:-URL shapes the
+test rejects are shapes the generator will never emit. P3's bundle acceptance should add a
+cross-repo conformance check: generate each mode, assert skillsProvenance() accepts the emitted
+string verbatim — that turns this prose commitment into a fixture.
+
+================================================================================
+3. THE OTHER TWO ENTRY CHECKS
+================================================================================
+
+Check #2 (both keys in one profile): covered at the API level by
+ProjectProfileTest.skillsSourceIsRefusedButSanitisedProvenanceIsPreservedAndReadable — load
+succeeds, the refusal is named in the load message, save drops only skills.source and preserves
+skills.provenance byte-for-byte. The UI edit/save path funnels through the same save; the
+click-through stays on the human list.
+
+Check #3 (TODO(bundle) intentional in source, substituted and refused in bundles): confirmed as
+the generator's duty and already a P1/P3 gate on my side — the generator substitutes every
+marker and the bundle acceptance refuses any survivor, per contract v2. See F1 for the one step
+that needs a marker added for that gate to bite.
+
+================================================================================
+4. THE SKILLS vs THE REAL SERVER — verified against what this side ran live today
+================================================================================
+
+Every server-facing claim in the corrected mongoose skill is now TRUE of the implementation:
+
+  · "registry entry it publishes under ~/.mongoose/servers/" — real (svc-admin-web branch
+    feature/up-mng-01-server-registry), and the field list the skill cites (base URL, auth mode,
+    token, environment, pid) is exactly the published set.
+  · "/api/audit/file/{id}/export?format=yaml" — the live endpoint; "Mongoose does not write
+    analyser-readable YAML directly" matches AuditCaptureConfig (chronicle-only, export-at-read).
+  · The FluxtionConfigManager precedence block (property wins; file otherwise; FLUXTION_API_KEY
+    never read; preflight-passes-while-build-fails called out) matches the recon in
+    handoff_29_aug_2026_1_report.txt §1.6 exactly.
+  · "the registry file is removed" on a clean stop — true as of TODAY only: the original slice
+    removed the file in tearDown(), which Mongoose's clean shutdown never calls; the fix (removal
+    on Service.stop(), commit 6e7a2cc on the mongoose-plugins branch) landed this afternoon. See F2.
+
+load-audit-log's F3 correction is right (context cannot name an unopened log; the profile stores
+no log path), and its no-log-yet section is the R5 graph-first path with the M40.1 verdict —
+consistent with what the key-slice review exercised live.
+
+CanonicalSkillsTest is a good pin: exact four-skill set, frontmatter + min-version, the
+registry/export story asserted positively AND the rejected file-sink story asserted absent, and
+the embedded tier's NOT PUBLISHABLE gate made structural.
+
+================================================================================
+5. FINDINGS
+================================================================================
+
+F1 (LOW — one-line fix): mongoose skill step 5 says "Stop the server through this project's own
+stop command" with NO TODO(bundle) marker. Steps 1 and 3 carry markers, so the P3 no-marker gate
+forces the generator to substitute them — but step 5 unmarked means a bundle could ship with a
+stop instruction naming a command the project does not have (today's starter emits no stop
+script; run-server.sh is foreground exec, stop is Ctrl-C). Either add the marker to step 5, or
+the generator commits to always shipping a stop script — both are fine; the marker is safer
+because the gate then enforces it.
+
+F2 (SEQUENCING, recorded not fixed): two of the skill's claims are true of the CONTRACT bundle,
+not of anything downloadable today, and the dependency should be explicit wherever the bundle's
+pins are decided:
+  · "builds and runs with no Fluxtion API key" requires playground P0 (committed generated
+    source + regeneration off the default lifecycle) — today's starter regenerates at
+    process-classes in every mongoose-hosted mode;
+  · "registry entry it publishes" + "registry file is removed" require the bundle to pin a
+    mongoose-plugins release containing the feature/up-mng-01-server-registry branch (6e7a2cc);
+    no such release exists yet — the branch is unmerged, awaiting the owner.
+Since the skills ship only inside generated bundles and the P3 acceptance requires the no-key run
+and a live registry, the gates already prevent a false bundle — this finding just names the two
+upstream events those gates wait on.
+
+================================================================================
+6. DISPOSITION
+================================================================================
+
+Ledger entry 5c72e21 ticked ☑ with this file as the detail. Follow-ups: F1's marker (author
+side, one line); F2's two events (generator side P0, and the mongoose-plugins branch
+merge/release — owner's call). The provenance grammar commitment in §2 becomes a P3 fixture.
