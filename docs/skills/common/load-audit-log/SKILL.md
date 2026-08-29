@@ -24,7 +24,18 @@ Use this before answering any question about what the running system did.
    category). An agent following the old instruction on a fresh bundle would find nothing and conclude the
    project was broken.
 
-2. Open the log together with the processor's GraphML, so structure and behaviour are read as one thing:
+2. Make sure this project's profile is active. `analyser_context.project.active` tells you whether it
+   is. If it is absent or names a different project, open this project **in a call of its own** first:
+
+   ```
+   analyser_open {"project": "<absolute path to this project root>"}
+   ```
+
+   Do not combine `project` with `log` or `graphml` in one call. A project switch is deliberately a
+   session boundary: the analyser ignores the other open parameters and names them in `ignored`, so
+   that a log cannot remain open under a different project's settings.
+
+3. Open the log together with the processor's GraphML, so structure and behaviour are read as one thing:
 
    ```
    analyser_open {"log": "<path>", "graphml": "<path>", "provenance": "<which system this came from>"}
@@ -33,7 +44,7 @@ Use this before answering any question about what the running system did.
    Declare `provenance` when you know it. It is how a report written from this log later says which
    system it described — nothing infers it for you.
 
-3. **Check the pairing before concluding anything.** `context.graphPairing` states whether the graph
+4. **Check the pairing before concluding anything.** `context.graphPairing` states whether the graph
    applies to this log. If it does not, a node's absence is not evidence of anything, and neither is
    coverage.
 

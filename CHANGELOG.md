@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **The canonical load-log skill now respects project switching as a session boundary.** When the
+  generated project is not already active, it opens the project first and the log plus GraphML in a
+  second call; combining them causes the analyser to ignore the log/graph parameters deliberately.
 - **The REST endpoint file is now published atomically.** MCP clients and startup automation no longer
   catch the file between creation and JSON write and mistake an empty token file for a broken analyser.
 - **New-project discovery now finds committed AOT GraphML under `src/main/resources`.** This is the
