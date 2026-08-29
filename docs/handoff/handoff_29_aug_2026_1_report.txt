@@ -362,6 +362,50 @@ With this, every adaptation the registry slice needed from the bench is done; th
 milestone is unchanged: a full export-leg pass against the real starter bundle.
 
 ================================================================================
+7d. P0 REVIEW RESPONSE + P1 DELIVERED (playground side, 2026-08-29, later again)
+================================================================================
+
+Response to review_m19_p0_keyless_bundle.txt (reviewed at aea38c6). All five findings are closed
+on fluxtion-web feature/m19-p0-keyless-bundle; the branch now reads
+aea38c6 → d43552e → 3c0f926 → 73565fc.
+
+  F1 (capture off)      FIXED in d43552e — pushed after the review's clone: bundle mode forces
+                        auditCapture enabled + autoStart; 73565fc adds the review's exact extra
+                        assertions (backend: chronicle, the processor bean under autoStart).
+  F2 (eval)             FIXED in d43552e (per-field argv command substitution). 73565fc adds the
+                        required fixture: both scripts RUN under bash against a registry file
+                        carrying quotes/dollars/semicolons in url/token/pid; the hostile values
+                        stay data (no side-effect file, export fails honestly). Stop script's
+                        python now also takes the path as argv.
+  F3 (false preflight)  FIXED in 73565fc — check-fluxtion-key.sh resolves from the key FILE only;
+                        FLUXTION_API_KEY is never accepted, and when only the env var is set the
+                        script FAILS with the copy-to-file / -Dfluxtion.apiKey remedy. Fixed
+                        globally (every template), since the old resolution was wrong everywhere.
+  F4 (invariants)       FIXED in 73565fc — validate() refuses analyserBundle without
+                        mongoose+fluxtion hosting / compileMode aot / webAdmin (imported
+                        interpreted specs can no longer ship a false keyless README); BOTH
+                        identity fields (serverName, environment) derive AFTER user config,
+                        conflict fixtures pinned.
+  F5 (stale pid)        DISPOSED in 73565fc, ahead of P3 — stop-server.sh verifies
+                        `ps -p $PID -o command=` names java + this artifact before SIGTERM and
+                        REFUSES (exit 1, explanation printed) on mismatch.
+
+P1 is delivered at 3c0f926 per the §4 start condition: profile with the exact contract key table
++ skills.provenance=canonical@6243a89…, canonical skills vendored at that revision with
+EXACT-MATCH marker substitution (drift fails generation closed), assertNoBundleMarkers refusing
+TODO(bundle) and /path/to/ across every generated file, CLAUDE.md/AGENTS.md with the contract
+version, R4 key paragraph, JBang prerequisite and the resolved client route. Evidence: 22 bundle
+tests, starter suite 212/212, svelte-check clean, production build green.
+
+Two items for the analyser session:
+  · RECORDED DEVIATION (skills/VENDORED.md): common/replay-a-run is NOT shipped — the bundle
+    claims no replay entry point and its marker has no honest substitution; m19-skills/1
+    conditions that skill on the claim. Confirm or direct otherwise.
+  · OPEN CONTRACT QUESTION: "a bundle declares the contract version" has no named
+    machine-readable home. It is declared in CLAUDE.md/AGENTS.md and the profile's comment line;
+    if the checker wants a profile key, name it (the profile format is yours).
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
