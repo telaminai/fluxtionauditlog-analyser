@@ -581,6 +581,49 @@ log-location skills. When the canonical/none/mirror matrix runs, all three will 
 or take an expected mode so the operator asserts `none` rather than discovering it.
 
 ================================================================================
+7k. F4 CLOSED (PLAYGROUND HALF) AND THE F5 MATRIX PASSES (2026-08-29)
+================================================================================
+
+fluxtion-web feature/m19-p0-keyless-bundle @ 5f01cab.
+
+F4 — CANONICAL_ROOT is now
+`https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/skills`, and the
+`--declare-canonical` relabelling workaround is DELETED, exactly as the P2 review required.
+Canonical provenance is now EARNED: the default CLI (no --source) fetches the published index over
+the network and records `canonical@6243a899774d591119559305a137ecf144819efd`. Notable closure — the
+first live run reproduced the previously declared bytes exactly (`git diff` over the vendored skills
+was empty), so the mechanism retroactively validated the declaration it replaced.
+
+Per the review's instruction, the default-root TESTS are network-free: the constant is asserted and
+the layout is exercised against a local fixture. The live fetch is release evidence (this note), not
+a unit test.
+
+F5 MATRIX — `web/scripts/bundle-matrix.sh` runs the whole chain per mode in a disposable checkout:
+vendor -> production build -> the REAL Download zip -> the analyser's bundle-bench.
+
+    LEG          PROVENANCE                    BUILD   ZIP   BUNDLE-BENCH
+    canonical    canonical@6243a89… (live)     OK      OK    49 passed, 0 failed
+    none         none                          OK      OK    35 passed, 0 failed
+    local        local@6243a89… (air-gapped)   OK      OK    49 passed, 0 failed
+
+The packaging test is mode-aware so one test drives every leg: a `none` snapshot legitimately ships
+no `.claude/` files and the test asserts their ABSENCE. Recall N1 (§7j): `none`'s green is a
+structural pass, not M19 acceptance-readiness.
+
+NOT COVERED — a true HTTPS *mirror* leg needs a controlled HTTPS fixture server, which does not
+exist; `file:` exercises the identical non-canonical code path (fetch -> validate -> snapshot ->
+build -> zip -> bench) and differs only in the provenance string, which IS pinned separately by unit
+tests and by bundle-bench fixtures (clean mirror 49/49; credential-bearing mirror REJECTED).
+
+Gates: full web suite 395/395, svelte-check unchanged, three production builds green.
+
+REMAINING FOR M19 ON THIS SIDE: live P3 only — unzip, no-key `./mvnw package` and `./run-server.sh`
+against mongoose-plugins `1.0.39-SNAPSHOT` (built from `6e7a2cc`), `./export-audit.sh`,
+`./stop-server.sh`, then the fresh-analyser checks (project/runbooks/pairing) and the resolved
+MCP-client connection. Note the recorded version gate: that run is SNAPSHOT-based; clean-machine
+acceptance additionally needs a PUBLISHED mongoose-plugins containing the registry publisher.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
