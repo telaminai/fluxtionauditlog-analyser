@@ -86,11 +86,16 @@ class Analyser:
         deadline = time.time() + seconds
         while time.time() < deadline:
             if self.endpoint_file.exists():
-                ep = json.loads(self.endpoint_file.read_text())
-                self.url, self.token = ep["url"], ep["token"]
-                r = self.act("context")
-                if r.get("ok") or "context" in r:
-                    return True
+                try:
+                    ep = json.loads(self.endpoint_file.read_text())
+                    self.url, self.token = ep["url"], ep["token"]
+                    r = self.act("context")
+                    if r.get("ok") or "context" in r:
+                        return True
+                except (OSError, json.JSONDecodeError, KeyError, TypeError):
+                    # A stale/corrupt file or an older analyser writing in place is "not ready yet",
+                    # not a bench traceback. Current RestEndpointFile publishes by atomic replace.
+                    pass
             time.sleep(0.5)
         return False
 

@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **The REST endpoint file is now published atomically.** MCP clients and startup automation no longer
+  catch the file between creation and JSON write and mistake an empty token file for a broken analyser.
 - **New-project discovery now finds committed AOT GraphML under `src/main/resources`.** This is the
   standard Maven location used by generated bundles; previously only Java source roots were scanned.
 - **Rejected Fluxtion key-profile names now wipe the submitted credential buffer.** Validation failures

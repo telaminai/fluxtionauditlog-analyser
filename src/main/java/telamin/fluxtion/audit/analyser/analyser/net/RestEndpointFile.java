@@ -4,8 +4,10 @@ import telamin.fluxtion.audit.analyser.analyser.llm.Json;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -54,8 +56,9 @@ public final class RestEndpointFile {
     }
 
     /**
-     * Publish {@code url} + {@code token} for this process. The file is created with owner-only
-     * permissions <i>before</i> the token is written, so it is never briefly world-readable.
+     * Publish {@code url} + {@code token} for this process. A private sibling is written completely
+     * before it atomically replaces the public path, so readers see either the previous complete
+     * endpoint or the new one — never an empty/partial token file.
      */
     public void write(String url, String token) throws IOException {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -64,15 +67,25 @@ public final class RestEndpointFile {
         m.put("pid", ProcessHandle.current().pid());
         m.put("startedAt", Instant.now().toString());
 
-        Path parent = path.getParent();
+        Path parent = path.toAbsolutePath().getParent();
         if (parent != null) Files.createDirectories(parent);
-        Files.deleteIfExists(path);
+        Path pending;
         try {
-            Files.createFile(path, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString(PERMS)));
+            pending = Files.createTempFile(parent, path.getFileName() + ".", ".tmp",
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString(PERMS)));
         } catch (UnsupportedOperationException e) {
-            Files.createFile(path);   // non-POSIX (Windows) — perms are best-effort
+            pending = Files.createTempFile(parent, path.getFileName() + ".", ".tmp");
         }
-        Files.writeString(path, Json.write(m), StandardCharsets.UTF_8);
+        try {
+            Files.writeString(pending, Json.write(m), StandardCharsets.UTF_8);
+            try {
+                Files.move(pending, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(pending, path, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(pending);
+        }
     }
 
     /** The published endpoint, or {@code null} if the file is absent or unreadable/malformed. */

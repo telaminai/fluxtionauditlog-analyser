@@ -44,6 +44,23 @@ class RestEndpointFileTest {
     }
 
     @Test
+    void republishAtomicallyReplacesTheCompleteEndpoint_withoutLeavingPrivateSiblings() throws IOException {
+        RestEndpointFile f = file();
+        f.write("http://127.0.0.1:1", "old-token");
+
+        f.write("http://127.0.0.1:2", "new-token");
+
+        RestEndpointFile.Endpoint e = f.read();
+        assertNotNull(e);
+        assertEquals("http://127.0.0.1:2", e.url());
+        assertEquals("new-token", e.token());
+        try (var files = Files.list(dir)) {
+            assertEquals(java.util.List.of(f.path()), files.toList(),
+                    "the private write-then-move sibling is always cleaned up");
+        }
+    }
+
+    @Test
     void createsMissingParentDirectories() throws IOException {
         RestEndpointFile f = new RestEndpointFile(dir.resolve("nested").resolve("deeper").resolve("rest-endpoint"));
         f.write("http://127.0.0.1:1", "t");
