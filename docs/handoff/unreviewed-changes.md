@@ -19,6 +19,36 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ `3720ef9` + `4860513` · correct the M19 profile ABI and add the P3 static bundle preflight
+
+**What.** `m19-bundle/3` replaces v2's unusable profile table with the real zero-based ConfigStore list
+families, selected processor and explicit share version; a `ProjectProfile.load` test pins the exact
+generator-facing file. `tools/bench/bundle-bench.py` then checks a generated directory or zip for that
+profile ABI, contract/guide mirror, safe inventory, committed source, declared/discoverable GraphML,
+runbook/frontmatter/provenance/version parity, executable commands, placeholders, developer paths and
+literal key material. Eight deterministic fixtures run in CI.
+
+**Why.** P3 scaffolding caught that P1 emitted `sourceRoot.1`, one-based runbooks and singular
+`eventProcessorFqn`. The analyser iterates list members from zero and recognises processors only through
+`eventProcessorFqn.count`/members plus `selectedEventProcessor`; the apparently complete v2 profile
+therefore loaded none of those facts. No v2 bundle was published or accepted.
+
+**Files.** M19 spec/tracker and cross-repo handoff/review; `ProjectProfileTest`; `bundle-bench.py` and its
+Python tests; bench/tool documentation; CI workflow. The exact v3 handoff commit is `a3769bd`.
+
+**Verified.** Profile/spec-link focused tests pass; full Maven suite passes 1,110/1,110; bundle fixtures
+pass 8/8; packaged stub/analyser/MCP loop passes 23/23; pinned strict-site build, Python compile, diff
+check and tracked-file four-term sweep pass. This is intentionally static P3 scaffolding, not a live
+generated-bundle verdict.
+
+**What the reviewer must still check.** Compare every v3 key/index directly with `ConfigStore` and
+`SettingsShare`, including project-name derivation. Challenge the checker for false passes/failures,
+especially zip path/mode handling, Java-properties/frontmatter parsing, `none` versus mirror provenance,
+GraphML discovery depth and secret/developer-path heuristics. Run it against the playground's actual
+canonical, `none` and non-canonical generated fixtures when available; confirm it rejects the old P1
+profile. Inspect the post-push CI run. The real keyless run/export/stop plus fresh analyser/MCP path
+remains a separate P3 gate.
+
 ## ☐ `297c4c1` · atomically publish the REST endpoint found by the Linux loop
 
 **What.** `RestEndpointFile` now writes complete JSON to an owner-only sibling and atomically replaces
