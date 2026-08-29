@@ -200,6 +200,165 @@ A fresh machine with only a JDK: playground → Download → one run command →
 Follow shows live records → click-to-source lands in the bundled example code → Explain produces a
 grounded answer. Timed under 10 minutes by someone who isn't us.
 
+## Revision 2026-08-29 — bringing this current with M38, M42 and M43
+
+_Owner-directed. This spec was written before **M38** (portable context), **M42** (connect an AI client)
+and **M43** (the AI menu, runbook descriptions, skills). Its target experience is still the right one —
+"<10 minutes, nothing pre-installed but a JDK" — but three of its steps describe a world where those
+milestones do not exist, and one paragraph is now actively wrong. Revised additively; nothing above is
+deleted, because the reasoning that produced it is still the reasoning._
+
+The goal, restated in the owner's words: **from a standing start, one download produces a project where
+an LLM opened in that directory already knows how to design with Fluxtion, is connected to the analyser
+over MCP, and is told by the analyser which skills deploy, start, stop and read the local application.**
+Everything below is what M19 needs in order to be that.
+
+### R1 — the bundle ships SKILLS, not only a `CLAUDE.md`
+
+`CLAUDE.md` bootstraps knowledge; a **skill** is an invocable procedure. M43 taught the analyser to read
+the shape, so the bundle should use it:
+
+```
+.claude/skills/<name>/SKILL.md      ---  name: … / description: … ---  then the steps
+```
+
+At minimum: **run**, **stop**, **where the audit log is**, and **regenerate after a graph change** (R4).
+`AGENTS.md` remains the mirror for non-Claude harnesses; the skills directory is the executable half.
+
+**The description is not decoration.** It is what lets a model choose the right skill without opening
+all of them (M43.2), and it is the only part the analyser serves.
+
+### R2 — the shipped profile REGISTERS those skills
+
+The bundle already carries `.analyser/project.fluxtion-settings`. It should now also carry, for each
+shipped skill:
+
+```
+runbook.N.name=start-server
+runbook.N.path=.claude/skills/start-server/SKILL.md
+runbook.N.description=Start the example and write its audit log to ./logs/…
+```
+
+so `context.runbooks[]` names them **from the first open**, with no adoption step.
+
+**This does not violate M43's "offers, never selects" (D-AI5), and the spec must say why**, because it
+looks like it does. That rule constrains **the analyser** adopting something it discovered — it must not
+turn a file it found into a declared fact. A bundle author declaring their own runbooks in the profile
+they ship is the *author* declaring, which is precisely the declared-not-inferred model working. Different
+actor, different act. The analyser still reads only what someone wrote down.
+
+### R3 — the agent is connected to the analyser, and step 6's division of labour is now wrong
+
+The bundle should carry the MCP registration one-liner in its README and `CLAUDE.md`:
+
+```
+claude mcp add fluxtion-analyser -- java -jar /path/to/fluxtion-auditlog-analyser.jar --mcp
+```
+
+**Correction to step 6.** It reads: *code editing happens in the user's IDE with their own agent*,
+framed as a deliberate division from the in-app assistant. **M42 partly dissolved that.** It is now one
+agent that both edits code and drives the analyser over fourteen verbs. The principle that survives is
+narrower and should be stated as such: **the analyser still edits no code** — hand-off-don't-embed is a
+constraint on the *analyser*, not a claim about how many agents the user has. As written, the paragraph
+describes a separation that no longer exists, and it is the sort of stale-by-success text that misleads
+precisely because it used to be right.
+
+### R4 — the licence key, which is the most likely first-run failure
+
+The template ships with the processor **already generated**, so it builds and runs with no key. The
+moment the graph changes, regeneration calls the hosted service and needs one — and the build stops at
+`process-classes` with no obvious cause. That is the first wall an LLM hits after its first success.
+
+Two consequences for this spec:
+
+1. **The seeded `CLAUDE.md` must say it, before the agent hits it.** One paragraph: the processor is
+   pre-generated so this runs immediately; changing the graph needs a key; here is where it goes. An
+   agent that hits `process-classes` without that context will conclude the project is broken.
+2. **The key has ONE canonical home and it is already established** — verified in the starter's own
+   `check-fluxtion-key.sh` and in `fluxtion-visualiser`'s account dialog:
+
+   ```
+   ~/.fluxtion/fluxtion.apiKeyFile      apiKey=…        [preferred]
+   FLUXTION_API_KEY                     env             [also read]
+   -Dfluxtion.apiKey=…                  build property
+   ```
+
+   So this is **not** `~/.m2/settings.xml`, and the bundle should document the preferred file.
+
+### R5 — the analyser opens BEFORE the first run, and has something to say
+
+M19's sequence opens the analyser on a log. There is no log until the example runs once. Better, and it
+costs nothing: **open the analyser on the GraphML first.** M35 supports a graph with no log, and M40.1
+then answers *"will this processor produce an audit log at all?"* from the graph alone.
+
+That makes the analyser's first sentence to a newcomer a useful one, before anything has run — and it
+demonstrates the product's actual thesis (a verdict from declared structure) at minute two rather than
+minute ten.
+
+### Acceptance added by this revision
+
+- [ ] The bundle contains `.claude/skills/*/SKILL.md` using the `name`/`description` frontmatter M43
+      reads, covering at least run / stop / log location / regenerate.
+- [ ] The shipped profile registers each skill as `runbook.N.*` including its description, so
+      `context.runbooks[]` names them on first open with no adoption step.
+- [ ] `Find skills…` on the freshly downloaded project lists exactly the shipped skills and marks them
+      already declared — the M43.7 path, exercised by the bundle rather than by a fixture.
+- [ ] The bundle's `CLAUDE.md` carries the MCP registration line and the key paragraph from R4.
+- [ ] Step 6's division-of-labour paragraph is rewritten per R3.
+- [ ] The tutorial opens the graph before the first run and shows M40.1's verdict (R5).
+
+### D-R1 — should the analyser manage the licence key? (recommendation)
+
+**Yes, with a sharp limit: the analyser helps you WRITE the key; it never HOLDS it.**
+
+My first instinct was to refuse this outright, on M42's precedent — *"Claude Code owns `~/.claude.json`;
+this class never parses or edits it"*, so the analyser shells out to the client's own CLI instead. That
+objection dissolves on inspection: `~/.fluxtion/` is **Fluxtion's own directory**, not a third party's,
+and this app already owns and publishes `~/.fluxtion-analyser/rest-endpoint`. Writing a Fluxtion key to a
+Fluxtion file is in-family; editing Maven's `settings.xml` would not be, and is not proposed.
+
+The friction case is real. Today the newcomer's instruction is *"create a properties file in a dot
+directory"*, at the exact moment they have just watched the tool work and want to change one line of
+their graph. That is the worst possible place to lose someone.
+
+**The limit, and why it is not fussiness.** A credential is a new class of thing for this codebase, which
+currently has a strict no-credentials posture — D-C6 refuses credential SHAPES in report destinations, and
+M42's own review found JVM options carrying secrets into a client config file. Holding a key inverts that
+posture, so the shape should be:
+
+- the analyser **writes** `~/.fluxtion/fluxtion.apiKeyFile` and then forgets the value
+- it **reads back presence only** — *key present* / *no key found* — never the value
+- the value **never** enters `AppConfig`, `context`, any verb echo, the project profile, `SettingsShare`
+  export, the status bar or the console
+
+Each of those is a real exposure, not a hypothetical: `context` goes to an agent, share export goes to a
+colleague, and **the four-term sweep cannot see inside a screenshot** — which is how real names reached
+the public docs site in August. A key on screen during a capture would be the same failure with worse
+consequences.
+
+Presence/absence is the fact worth surfacing, and it is the fact the newcomer needs. It has an obvious
+home in the Project panel beside the graph, in the shape this app already uses well: **state the fact,
+name the remedy** — *"Fluxtion API key: not found — regenerating this processor will fail. AI ▸ … to
+set one."* That is D-AI3's disabled-with-a-reason applied to a precondition rather than a menu item.
+
+**Prior art to reuse rather than re-derive:** `fluxtion-visualiser`'s `FluxtionAccountDialog` already
+reads and writes this file and supports named profiles under `~/.fluxtion/profiles/`. Whatever the
+analyser does should match its file format exactly, or two Telamin tools will disagree about the same
+file — the drift that `KnownKeys` exists to survive, in a file neither of them owns alone.
+
+**What would change my recommendation:** if the key is ever more than a token — a signed licence with an
+expiry the analyser would have to *enforce* — then this stops being a setup convenience and becomes
+licence enforcement inside source-available desktop code, which is the theatre the product assessment
+argues against. Writing a key is fine. Checking a key to decide what the analyser will do is a different
+product, and should be specced as one.
+
+## Owner decisions this revision needs
+
+- **D-R1 — does the analyser manage the key?** See the separate note below; my recommendation is that it
+  helps write the file and never holds the value.
+- **D-R2 — who authors the shipped skills?** They are Mongoose/playground operations, so they belong to
+  the bundle, not to this repo — but the analyser's docs own the *shape*. Confirm the split.
+
 ## Open questions
 
 - ~~**O1** — bundle form~~ **resolved: full Maven project** — the user views/edits it in their IDE

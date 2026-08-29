@@ -128,6 +128,24 @@ the bundle *is* a project profile) — so onboarding becomes: download → run �
 project auto-loads (M20; **File ▸ Import** until it lands) → Follow a live log with click-to-source and Explain working.
 Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README links back to the
 analyser (reverse funnel)._
+- [M19] ➜ **REVISED 2026-08-29** — `spec-onboarding-example.md` ▸ *Revision 2026-08-29*. Owner-directed:
+  one download should produce a project where an LLM already knows Fluxtion, is connected to the analyser
+  over MCP, and is told by the analyser which skills run/stop/read the local app. The spec pre-dated M38,
+  M42 and M43, so five additions: **R1** the bundle ships `.claude/skills/*/SKILL.md`; **R2** the shipped
+  profile REGISTERS them as `runbook.N.*` (and states why that does not violate D-AI5 — a bundle author
+  declaring their own runbooks is the author declaring, not the analyser inferring); **R3** MCP
+  pre-wiring, and step 6's division-of-labour paragraph is now WRONG and rewritten (M42 made it one agent
+  that both edits and drives; the surviving principle is that the ANALYSER edits no code); **R4** the
+  licence key is the first wall after first success and the seeded CLAUDE.md must pre-empt it; **R5** open
+  the analyser on the GRAPH before the first run, so M40.1 has something true to say at minute two.
+- [D-R1] ☐ **Owner: should the analyser manage the Fluxtion API key?** Recommendation in the spec —
+  yes, but it WRITES `~/.fluxtion/fluxtion.apiKeyFile` and never HOLDS the value; presence/absence is the
+  only fact it keeps. M42's "never edit another tool's config" does not apply (`~/.fluxtion/` is
+  Fluxtion's own, and this app already owns `~/.fluxtion-analyser/rest-endpoint`), but the no-credentials
+  posture does: the value must never reach `context`, an echo, the profile, share export or a screenshot —
+  the sweep cannot see inside a PNG. Reuse `fluxtion-visualiser`'s file format rather than re-deriving it.
+- [D-R2] ☐ **Owner: who authors the shipped skills** — bundle-side (they are Mongoose operations) with
+  the analyser's docs owning only the shape. Confirm the split.
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
