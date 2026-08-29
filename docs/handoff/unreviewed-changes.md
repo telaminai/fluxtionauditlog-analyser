@@ -19,6 +19,32 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ pending review · `5c72e21` · M19 skill provenance and Chronicle-export skill correction
+
+**What.** Generated profiles may carry sanitized, value-free `skills.provenance`; context and the
+Project panel show it as an inert project declaration. A project-supplied `skills.source` is ignored
+with a visible refusal and stripped on the next profile save, while provenance is preserved. The
+canonical Mongoose/load-log skills now say registry → Chronicle capture → bundle-owned YAML export →
+open with GraphML, and a test pins all four skill documents and the embedded publication gate.
+
+**Why.** The signed `m19-skills/1` contract separates build-time retrieval control from the portable
+fact recording what was vendored. The live Mongoose reconnaissance also disproved the skills' remaining
+deployment-descriptor/direct-YAML story.
+
+**Files.** `ProjectProfile`, `MainFrame`, `ProjectModel`; three test classes; canonical Mongoose and
+load-log skills; Projects guide, changelog and M19 tracker. The same commit records the successful Linux
+M19.8 run in the earlier ledger entry.
+
+**Verified.** Focused profile/model/parity/canonical-skill tests passed; full `mvn -q test`, pinned
+`mkdocs build --strict`, diff check and leak sweep passed. GitHub Actions run `33271896191` had already
+proved the separate M19.8 loop job on Linux/xvfb.
+
+**What the reviewer must still check.** Challenge `skillsProvenance`'s accepted grammar against the
+generator's exact emitted strings, especially mirror URLs and revision characters. Confirm an existing
+profile containing both keys reports the refusal without failing to load, then loses only
+`skills.source` after a real UI edit/save. Review the canonical skills with the playground generator:
+`TODO(bundle)` remains intentional in source but must be substituted and refused in every shipped bundle.
+
 ## ☐ pending review · `92ad3ba` · M19.8/9 Linux loop-bench CI and launch parsing tests
 
 **What.** Extracts desktop launch-argument stripping into a pure `Main.parseDesktopArgs` decision with

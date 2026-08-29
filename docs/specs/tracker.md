@@ -272,12 +272,12 @@ analyser (reverse funnel)._
 - [M19.10] ◧ **The canonical skill documents — analyser source corrected; generated substitution bench pending** — authored in [`docs/skills/`](../skills/README.md); four
   written and verified discoverable by the shipped `SkillDiscovery`. Remaining: the `TODO(bundle)` markers
   need grounding against a real host before any bundle ships one.
-  - 2026-08-29: `CanonicalSkillsTest` pins the four names, descriptions and minimum analyser version;
+  - 2026-08-29 at `5c72e21`: `CanonicalSkillsTest` pins the four names, descriptions and minimum analyser version;
     the Mongoose tier now follows the live registry → Chronicle capture → bundle-owned YAML export beat,
     and the embedded tier's NOT-PUBLISHABLE gate is pinned. The canonical `TODO(bundle)` markers remain
     intentionally because commands/paths are project-owned; M19.10 closes only when the playground
     substitutes them and its generated-bundle checker proves none survive.
-  - The analyser now preserves and shows only sanitised inert `skills.provenance`, while a project
+  - At `5c72e21` the analyser preserves and shows only sanitised inert `skills.provenance`, while a project
     `skills.source` is ignored with an explicit refusal and removed on save. Tests cover canonical,
     local, mirror, none and credential-capable/malformed shapes; no runtime retrieval exists.
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
