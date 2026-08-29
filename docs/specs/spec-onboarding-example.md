@@ -357,6 +357,72 @@ with Fluxtion in its training data is not context-free about Fluxtion, and will 
 naive reader would fall into. That does not invalidate the exercise — it means an easy pass is weaker
 evidence than a hard failure, and the failures are the useful output.
 
+### The seeding prompt for step 2 (owner, 2026-08-29)
+
+Step 2 is only a measurement if the prompt does not contaminate it. Four ways it can, and the prompt is
+built to avoid each:
+
+| Failure | What it produces |
+|---|---|
+| **Leading the witness** — *"try our great new template"* | agreement. Models are agreeable by default and will report success. |
+| **Manufactured hostility** — *"try to break it"* | adversarial theatre. Real users are not attacking the docs. |
+| **Instructing the task** — *"read CLAUDE.md, then add a node"* | tests the prompt. The DOCUMENTATION is supposed to be what tells it that. |
+| **Revealing it is a test** | the model evaluates documentation instead of using it, which is a different activity with different behaviour. |
+
+**And the risk that is easy to miss: the danger is not that it fails — it is that it SUCCEEDS by
+compensating.** A capable model will fill a documentation gap from training data, or by reading the
+generated source, and finish the task. The docs then look adequate and the gap is invisible. So the
+prompt's real job is to make the compensation *visible*, not to prevent it.
+
+**The measurement is mostly external, and that is deliberate.** The model's account of how it went is
+testimony; the git history, the code it wrote and the audit log are evidence. Prefer the second — the same
+distinction `spec-trust-structure.md` D-T3 draws for the product applies to assessing the product.
+
+#### The prompt
+
+Give it the project directory and this. Nothing else — no tool names praised, no instruction to read any
+particular file, and no mention that documentation is under test.
+
+```text
+You have been handed this project directory. You have not worked with this stack before and you
+have no stake in whether it is any good.
+
+Task: <one small, concrete, verifiable change — e.g. "add a node that flags readings above a
+threshold, run the project, and show me evidence from the audit log that it fired">
+
+Work from what is in the project. If something is not explained there you may look it up or read
+the generated source — but record it, because what the project failed to tell you is the thing we
+need to know.
+
+Append a line to NOTES.md whenever any of these happens:
+  - you could not find something the project should have told you
+  - you guessed at an API, a command or a file location instead of reading it
+  - you went outside the project to proceed (training knowledge, the web, reading generated code)
+  - the project told you something that turned out to be wrong
+  - something worked and you are not sure why
+
+Do not review the documentation. Do the task and record the friction.
+
+If you cannot complete the task, stop and say why. Do not substitute an easier one.
+```
+
+The last line is not filler: substituting a reachable task for the assigned one is a common model
+behaviour and it converts a hard failure into an apparent success, which is exactly the signal being
+bought.
+
+#### Reading the result
+
+- **A clean run is weak evidence.** It may mean the docs are good, or that the model already knew Fluxtion.
+  Check `NOTES.md` and the diff for compensation before concluding anything.
+- **An invented API is the strongest single finding** — it is the M21 failure mode, and it says the canon
+  did not reach the author.
+- **Where the audit log corrected it, the loop worked.** That is a success of the product, not a gap in the
+  docs, and the two should not be scored together.
+- **What it never opened is as informative as what it needed.** Unused context is cost; the assets should
+  shrink as well as grow.
+- **Run it more than once, on different models.** One session is an anecdote; the gaps that recur are the
+  ones to write against.
+
 ### The documents themselves
 
 Authored in **[`docs/skills/`](../skills/README.md)** — the source of truth for what is published to the
@@ -499,6 +565,9 @@ bundles, not to this repo.
 - [ ] **R7:** the day-two path is documented as a JOURNEY on the site, not as four separate features.
 - [ ] **Step 2:** the context-free run records the four things above, and the assets are rewritten from
       what it recorded rather than from what we expected.
+- [ ] **Step 2:** the seeding prompt is used verbatim — no tool names praised, no file named, no mention
+      that documentation is under test — and the run is repeated on at least two different models, because
+      one session is an anecdote and only recurring gaps are worth writing against.
 - [ ] Step 6's division-of-labour paragraph is rewritten per R3.
 - [ ] The tutorial opens the graph before the first run and shows M40.1's verdict (R5).
 

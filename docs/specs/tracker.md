@@ -167,6 +167,14 @@ analyser (reverse funnel)._
   layout for a source-root guess — so this is one dialog that OFFERS and never selects (D-AI5). **The only
   part of M19 that needs no other party to agree**, and the part that decides whether the bundle is a demo
   people can reproduce.
+- [M19.15] ☐ **The seeding prompt for step 2** _(owner, 2026-08-29; spec has it verbatim)_. Step 2 is only
+  a measurement if the prompt does not contaminate it: leading the witness produces agreement, manufactured
+  hostility produces theatre, instructing the task tests the prompt instead of the docs, and revealing it is
+  a test makes the model evaluate rather than use. **The risk that is easy to miss is not failure — it is
+  SUCCESS BY COMPENSATION**: a capable model fills a gap from training data or by reading generated source,
+  finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
+  prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
+  model's account is testimony (D-T3 applied to assessing the product).
 - [M19.14] ☐ **Step 2 — rewrite the LLM context assets from a MEASURED run** _(owner, 2026-08-29)_. The
   owner's sequencing, and better than the advice it replaced: build the mechanism first, then have a
   context-free LLM develop and analyse a real project with it, and let the gaps it actually hits rewrite
