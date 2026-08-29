@@ -19,6 +19,29 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ `297c4c1` · atomically publish the REST endpoint found by the Linux loop
+
+**What.** `RestEndpointFile` now writes complete JSON to an owner-only sibling and atomically replaces
+the well-known endpoint, with a same-filesystem replace fallback. The loop bench treats absent,
+malformed or incomplete endpoint data as "not ready yet" rather than escaping with a JSON traceback.
+
+**Why.** GitHub run `33273004452` passed all registry/export steps, then read the endpoint between its
+creation and JSON write and failed with `JSONDecodeError` after ten passes. The previous implementation
+explicitly deleted, created and then wrote the public token file, so this was a product publication race,
+not merely a slow runner.
+
+**Files.** `RestEndpointFile`, `RestEndpointFileTest`, `loop-bench.py`, changelog. Exact tracker evidence
+is in the following metadata commit.
+
+**Verified.** Focused endpoint/discovery tests pass outside the loopback socket sandbox; full Maven suite
+passes 1,109/1,109; packaged `tools/bench/loop-bench.py --stub --launch` passes 23/23; pinned MkDocs
+strict, `git diff --check` and the tracked-file four-term sweep pass.
+
+**What the reviewer must still check.** Challenge atomic replacement and the non-atomic filesystem
+fallback, including owner-only permissions and cleanup of the sibling. Confirm the bench retry is bounded
+by the existing deadline and does not hide a server that never becomes valid. Inspect the first pushed
+Linux run for both jobs.
+
 ## ☐ `389d331` · discover the generated bundle's Maven-resource GraphML
 
 **What.** `NewProjectDiscovery` adds an existing `src/main/resources` directory to its already bounded

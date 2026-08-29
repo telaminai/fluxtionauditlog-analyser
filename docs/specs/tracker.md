@@ -377,6 +377,11 @@ analyser (reverse funnel)._
   - Independent review accepted the live run. Its CI hygiene note is folded into `6243a89`:
     `actions/checkout` and `actions/setup-java` now use v5. GitHub run `33272924784` completed both jobs
     successfully at `7384d0e`; the loop step passed under xvfb.
+  - A later metadata-only run (`33273004452`) caught a real startup race: the endpoint publisher
+    created the public file before writing JSON, and the bench could read it empty. Fixed at `297c4c1`
+    by private owner-only write + atomic replace; the bench also treats a malformed/stale file as not
+    ready instead of crashing. Full 1,109-test suite and packaged local loop pass 23/23; pushed Linux
+    confirmation is pending.
 - [M19.9] ☑ **Headless launch-argument tests shipped at `92ad3ba`** — `Main` strips `--rest`, rejects an
   unknown flag AFTER stripping, and lets a log path fall through. This was pure logic with three
   behaviours and no unit test (rule 4); the loop bench covered it only where a jar, JVM and window
