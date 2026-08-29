@@ -52,6 +52,22 @@ class NewProjectDiscoveryTest {
     }
 
     @Test
+    void discoversTheCommittedAotGraphUnderMavenResources() throws Exception {
+        Path source = root.resolve("src/main/java");
+        Files.createDirectories(source);
+        Path graph = root.resolve("src/main/resources/com/acme/generated/DemoProcessor.graphml");
+        Files.createDirectories(graph.getParent());
+        Files.writeString(graph, graphml());
+
+        NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);
+
+        assertEquals(java.util.List.of(graph.toAbsolutePath().normalize()),
+                offer.graphs().candidates().stream()
+                        .map(c -> c.file().toAbsolutePath().normalize()).toList());
+        assertTrue(offer.graphs().notes().isEmpty());
+    }
+
+    @Test
     void onlyAnExplicitSelectionIsApplied() throws Exception {
         Path source = root.resolve("src/main/java");
         Files.createDirectories(source);

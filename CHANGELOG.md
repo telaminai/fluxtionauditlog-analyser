@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **New-project discovery now finds committed AOT GraphML under `src/main/resources`.** This is the
+  standard Maven location used by generated bundles; previously only Java source roots were scanned.
 - **Rejected Fluxtion key-profile names now wipe the submitted credential buffer.** Validation failures
   receive the same caller-buffer hygiene as successful saves and later write failures.
 

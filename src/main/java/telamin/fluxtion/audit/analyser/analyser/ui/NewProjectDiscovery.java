@@ -5,7 +5,9 @@ import telamin.fluxtion.audit.analyser.analyser.config.Runbooks;
 import telamin.fluxtion.audit.analyser.analyser.config.SkillDiscovery;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +52,15 @@ public final class NewProjectDiscovery {
         Path normalized = root == null ? null : root.toAbsolutePath().normalize();
         List<Path> sourceRoots = ConfigPanel.detectSourceRoots(normalized);
         SkillDiscovery.Found skills = SkillDiscovery.find(normalized, Map.of());
-        GraphmlDiscovery.Result graphs = GraphmlDiscovery.scan(
-                sourceRoots.stream().map(Path::toString).toList(), Set.of());
+        List<String> graphRoots = new ArrayList<>(sourceRoots.stream().map(Path::toString).toList());
+        // AOT GraphML is a Maven resource, not Java source. The playground's M19 bundle puts the
+        // committed graph here; scanning only detected src/main/java roots made day-two discovery
+        // miss the exact bundle shape it is meant to teach users to reproduce.
+        if (normalized != null) {
+            Path resources = normalized.resolve("src/main/resources");
+            if (Files.isDirectory(resources)) graphRoots.add(resources.toString());
+        }
+        GraphmlDiscovery.Result graphs = GraphmlDiscovery.scan(graphRoots, Set.of());
         return new Offer(normalized, sourceRoots, skills, graphs);
     }
 
