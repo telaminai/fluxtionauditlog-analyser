@@ -1,0 +1,101 @@
+REVIEW — M19 v3/P1 response and the real Download zip seam
+Date: 2026-08-29 · Assessor: analyser implementation/reviewer session
+Repository: https://github.com/telaminai/fluxtion-web
+Branch/head: feature/m19-p0-keyless-bundle @ 8f200160379d012380a1dbb0f516d1654c3ac223
+Range: 73565fc93db448ec1a05b07f0d1ea7a03fea79fd..8f200160379d012380a1dbb0f516d1654c3ac223
+Prior review: review_m19_p0_fixes_and_p1.txt
+
+VERDICT
+
+P1 RESPONSE: ACCEPTED at the generator layer. m19-bundle/3 uses the importer-backed profile ABI; the
+single AnalyserBundleModel supplies the contract facts to scripts/README/profile/skills/guides; the
+acceptance fixture is Spring-XML-defined and references the maintained authoring canon; ordinary Fluxtion
+output no longer recommends FLUXTION_API_KEY. Minimum-analyser-version refusal is a sound first P2 slice.
+
+DOWNLOAD/P3: CHANGES REQUESTED. The actual buildMavenZip path moves required root files CLAUDE.md,
+AGENTS.md, mvnw and mvnw.cmd under data/. The generated-file map passes, but the zip a user downloads has
+no root guides and ./run-server.sh cannot find ./mvnw. Fix and pin the packaging seam before P3/P2 output
+is treated as a bundle.
+
+P2 remains incomplete exactly as the response reports: source modes/index/bounds/distinct failures,
+sanitised non-canonical provenance and project-input refusal are still required.
+
+================================================================================
+1. REPRODUCIBILITY
+================================================================================
+
+Reviewed from the pushed head in the existing clean disposable clone:
+
+  · pnpm exec vitest run src/lib/starter/analyser-bundle.test.ts — 27/27 PASS
+  · pnpm test — 376/376 PASS (27 files)
+  · pnpm run build — PASS
+  · pnpm run check — the same four known SplitPane type errors + seven unrelated warnings; no changed
+    M19 file is named
+  · git diff 73565fc..8f20016 --check — PASS
+
+For the packaging seam I called buildMavenZip with the Spring acceptance spec's exact generate(spec)
+files plus generatedArtifacts at the model's processor-source and GraphML paths. The artifact contents
+were minimal because this check is about zip routing; their paths match the real browser injector. The
+analyser-owned `bundle-bench.py <zip> --analyser-version 1.12.0` safely normalised the zip's intended
+single `<artifact>/` root, then failed required root inventory. `unzip -l` showed:
+
+  · data/CLAUDE.md and data/AGENTS.md — required at project root;
+  · data/mvnw and data/mvnw.cmd — run-server.sh invokes ./mvnw;
+  · the injected generated processor and GraphML at the declared src/main paths — correct.
+
+No Maven/server/analyser run was attempted: the downloadable-equivalent artifact is structurally unable
+to reach that step, and P2 is not yet present.
+
+================================================================================
+2. FINDINGS AND DISPOSITION
+================================================================================
+
+F1 (BLOCKING DOWNLOAD/P3 — ROOT ASSETS ARE RELOCATED): maven-download.ts treats every root-level
+non-Java, non-shell asset except README/.gitignore as sample data. That generic rule predates the prepared
+bundle. It routes CLAUDE.md, AGENTS.md, mvnw and mvnw.cmd to data/, despite their ProjectFile paths and
+the bundle contract requiring them at root. Existing analyser-bundle tests call generate(spec), before
+this second packaging pass, so they cannot detect the relocation.
+
+Required correction:
+
+  1. Preserve the four named root files in buildMavenZip (or introduce an equally explicit root-project
+     asset classification without moving ordinary sample inputs out of data/).
+  2. Add a test that calls buildMavenZip with the Spring bundle plus generated source/GraphML, reads the
+     zip entries, and asserts root CLAUDE/AGENTS/mvnw/mvnw.cmd and executable lifecycle scripts.
+  3. Run the analyser checker against that actual zip. It must reach and pass all static checks; a
+     fileMap/generate assertion is not equivalent.
+
+F2 (LOW, REQUIRED WITH THE NEXT TOUCH — STALE CONTRACT COMMENTS): source comments in bundle.ts,
+spec.ts, fluxtion.ts, validate.ts, zip.ts and mongoose.ts still say m19-bundle/2. Generated guides/profile
+correctly declare v3, so this is not a user-artifact failure, but code readers now meet two contract
+versions in the implementation. Update the stale comments to v3; no behaviour change or new contract.
+
+D1 v3 PROFILE ABI — ACCEPTED. profileFile emits share.version=1; zero-based source, processor and runbook
+families; selectedEventProcessor; no projectName. This matches analyser 3720ef9 and is guarded by focused
+tests. The actual generated profile also passes every profile check in bundle-bench.
+
+D2 D-X6 SINGLE MODEL — ACCEPTED. Source inspection confirms export/stop scripts, bundle README section,
+profile, skill substitution and both guides receive AnalyserBundleModel. The rename test varies one
+artifact input and checks the contract consumers and server identity output; the previous duplicated
+bundle block is removed from mongoose.ts.
+
+D3 SPRING EXAMPLE — ACCEPTED. The main fixture imports fluxtion-spring-mongoose, validates Spring+AOT+
+webAdmin, includes src/main/fluxtion/designer/application-context.xml, and emits the design-level section
+with the maintained skill/contract/example references. The imperative fixture is explicitly secondary.
+
+D4 F7 KEY ADVICE — ACCEPTED. Ordinary README and bare run script now name the file and -D property only,
+state the environment variable is not read, and the non-bundle fixture pins both outputs.
+
+D5 MINIMUM VERSION — ACCEPTED AS PARTIAL P2. bundleSkills parses x-analyser-min-version and refuses a
+skill newer than the named 1.12.0 target; the guide shows that target. Retrieval modes and index validation
+remain P2 and must run this same gate on retrieved content.
+
+================================================================================
+3. NEXT ORDER
+================================================================================
+
+  1. Fix/pin buildMavenZip root asset routing and remove stale v2 comments.
+  2. Complete P2 source/index/failure/provenance/input-refusal modes.
+  3. Produce canonical, none and non-canonical real Download zips and pass bundle-bench on each.
+  4. Only then run live P3 with the published Mongoose dependency: unzip, no-key run, export, stop,
+     day-two discovery, fresh analyser context/runbooks/pairing and resolved MCP-client connection.

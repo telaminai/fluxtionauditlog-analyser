@@ -19,14 +19,15 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
-## ☐ `3720ef9` + `4860513` · correct the M19 profile ABI and add the P3 static bundle preflight
+## ☐ `3720ef9` + `a3769bd` + `9750fad` + `8236aa5` + `34c1081` · correct the M19 profile ABI and add the P3 static bundle preflight
 
 **What.** `m19-bundle/3` replaces v2's unusable profile table with the real zero-based ConfigStore list
 families, selected processor and explicit share version; a `ProjectProfile.load` test pins the exact
 generator-facing file. `tools/bench/bundle-bench.py` then checks a generated directory or zip for that
 profile ABI, contract/guide mirror, safe inventory, committed source, declared/discoverable GraphML,
 runbook/frontmatter/provenance/version parity, executable commands, placeholders, developer paths and
-literal key material. Eight deterministic fixtures run in CI.
+literal key material. Nine deterministic fixtures run in CI, including the real single-root zip shape
+and refusal of an unsafe archive member outside that root.
 
 **Why.** P3 scaffolding caught that P1 emitted `sourceRoot.1`, one-based runbooks and singular
 `eventProcessorFqn`. The analyser iterates list members from zero and recognises processors only through
@@ -37,7 +38,7 @@ therefore loaded none of those facts. No v2 bundle was published or accepted.
 Python tests; bench/tool documentation; CI workflow. The exact v3 handoff commit is `a3769bd`.
 
 **Verified.** Profile/spec-link focused tests pass; full Maven suite passes 1,110/1,110; bundle fixtures
-pass 8/8; packaged stub/analyser/MCP loop passes 23/23; pinned strict-site build, Python compile, diff
+pass 9/9; packaged stub/analyser/MCP loop passes 23/23; pinned strict-site build, Python compile, diff
 check and tracked-file four-term sweep pass. This is intentionally static P3 scaffolding, not a live
 generated-bundle verdict.
 

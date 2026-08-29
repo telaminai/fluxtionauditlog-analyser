@@ -336,17 +336,18 @@ analyser (reverse funnel)._
     fields, passes the stop registry path as argv, and refuses a reused/mismatched PID. The live Bash
     fixture keeps hostile registry values as data. Details and exact disposition:
     [`review_m19_p0_fixes_and_p1.txt`](../handoff/review_m19_p0_fixes_and_p1.txt).
-  - **Branch-level follow-up before merge:** the global preflight correction exposes existing reachable
-    ordinary-Fluxtion README/run-script text that still recommends `FLUXTION_API_KEY`, which neither the
-    corrected check nor Builder reads. Remove/map that advice and add a non-bundle generated-output test.
-  - **P1 ◧ implemented at `3c0f926`, changes requested:** the two applicable vendored skills, exact
-    substitutions, no-marker gate and CLAUDE/AGENTS content are individually sound; at
-    reviewed head `73565fc`, 22/22 focused and 371/371 full web tests pass, and production build accepts
-    the raw imports. The profile fails the real importer: one-based source/runbook members and singular
-    `eventProcessorFqn` populate none of those facts. Consume `m19-bundle/3` at analyser `3720ef9`.
-    D-X6 is also not met because `mongoose.ts` and `bundle.ts` independently derive commands/paths instead
-    of consuming one typed bundle model. The actual M19 bundle must use the resolved Spring-XML-defined
-    example and its authoring canon, not the imperative template used by the current fixture.
+  - **Branch-level key-advice follow-up ☑ closed at `3acaf9b`:** ordinary Fluxtion README/run-script
+    output now names only the Builder's file/-D sources and a non-bundle fixture pins both files.
+  - **P1 ☑ accepted at generator head `8f20016`:** `m19-bundle/3` emits the real zero-based profile ABI;
+    one AnalyserBundleModel supplies scripts/README/profile/skills/guides; the acceptance fixture is the
+    Spring-XML template with design XML + maintained authoring canon; minimum-version refusal is present.
+    Independent gates: 27/27 focused, 376/376 full and production build pass. Review:
+    [`review_m19_p1_response_and_download_zip.txt`](../handoff/review_m19_p1_response_and_download_zip.txt).
+  - **Download seam ☐ blocks P3 despite P1 generator acceptance:** the real `buildMavenZip` pass routes
+    required root `CLAUDE.md`, `AGENTS.md`, `mvnw` and `mvnw.cmd` into `data/`. Thus a zip produced with
+    injected source/GraphML has no root guides and `run-server.sh` cannot find `./mvnw`. Preserve those
+    root assets, test actual zip entries, then pass `bundle-bench.py` against the zip. Also update stale
+    source comments that still name v2; generated content already names v3.
   - **Contract-version declaration for v3 — no profile key:** the authoritative marker is the exact
     `Bundle contract: **m19-bundle/3**` line in required root `CLAUDE.md`; required `AGENTS.md` is its
     byte-for-byte mirror. P3 parses that marker, rejects unknown versions and checks the mirror. The
@@ -361,10 +362,10 @@ analyser (reverse funnel)._
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
     guide mirror/version, committed processor source, declared/discoverable GraphML, exact shipped
     runbooks + frontmatter/provenance/minimum version, executable lifecycle scripts, safe inventory and
-    placeholder refusal. Eight deterministic Python fixtures run in CI, including rejection of v2's
+    placeholder refusal. Nine deterministic Python fixtures run in CI, including rejection of v2's
     one-based/singular profile plus canonical, `none` and clean HTTPS-mirror provenance. Live keyless
     run → export → stop and fresh analyser/MCP checks still wait for the corrected P1 model, Spring-XML
-    fixture, P2 matrix and published Mongoose dependency. Local gates: 8/8 Python fixtures, 1,110/1,110
+    fixture, P2 matrix and published Mongoose dependency. Local gates: 9/9 Python fixtures, 1,110/1,110
     Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in

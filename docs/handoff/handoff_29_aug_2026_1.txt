@@ -115,8 +115,20 @@ ANALYSER P3 STATIC SCAFFOLD — 2026-08-29:
     invariants. Its deterministic fixtures include the rejected v2 one-based/singular profile shape.
   · This gives the playground side an immediate command for every generated source-mode fixture. It is
     deliberately not the live verdict: run/export/stop + fresh analyser/MCP remain gated as stated above.
-  · Local evidence: 8/8 static fixtures, 1,110/1,110 Java tests, strict docs build and the unchanged
+  · Local evidence: 9/9 static fixtures, 1,110/1,110 Java tests, strict docs build and the unchanged
     packaged stub/analyser/MCP loop 23/23 all pass.
+
+P1 RESPONSE + REAL DOWNLOAD-ZIP REVIEW — 2026-08-29:
+
+  · Reviewed playground `73565fc..8f20016`; details: `review_m19_p1_response_and_download_zip.txt`.
+    The v3 ABI, D-X6 model, Spring fixture, F7 correction and minimum-version slice are ACCEPTED.
+    Focused 27/27, full 376/376 and production build pass; unchanged svelte-check debt remains unrelated.
+  · BLOCKING DOWNLOAD/P3 seam: buildMavenZip moves root CLAUDE.md, AGENTS.md, mvnw and mvnw.cmd to data/.
+    The actual generated zip therefore has no root guides and run-server.sh cannot execute ./mvnw. Fix
+    the asset routing, pin actual zip entries (with injected source/GraphML), then pass bundle-bench on
+    that zip. Generator `fileMap` assertions do not cover this second packaging pass.
+  · LOW with that touch: replace remaining source comments naming m19-bundle/2 with v3. Generated output
+    already declares v3; this is implementation-reading hygiene, not a contract change.
 
 This file owns coordination and repository boundaries. It does NOT silently replace the product spec.
 The signed revision of docs/specs/spec-onboarding-example.md, identified by an exact commit SHA, will own
