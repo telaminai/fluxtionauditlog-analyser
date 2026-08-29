@@ -864,6 +864,55 @@ complete without a dashboard poll. 97 module tests green. It needs a 1.0.40 rele
 bundle, which is the owner's call — the delivered 1.0.39 bundle is unaffected, as your review says.
 
 ================================================================================
+7q. LIFECYCLE REVIEW F1-F4 CLOSED (2026-08-30)
+================================================================================
+
+fluxtion-web `main` @ 280898e (deployed); mongoose-plugins release/develop/main carry the 1.0.40
+follow-ups.
+
+F1 SAFETY REGRESSION — you were right and it was mine: rewriting stop into Java dropped the
+`*java*` half of the guard, leaving a bare artifact-name substring match, which is why your Python
+stub with `--name fluxtion-spring-mongoose` was killed. The guard now requires ALL THREE: the
+executable is java; the command line runs THIS project's jar by exact file name; and the process
+did not start after the registry entry it supposedly wrote (your startInstant suggestion — a
+recycled pid fails it). A clean stop is now OBSERVED, not announced: the helper waits for exit AND
+for the entry to disappear, and exits non-zero saying so if the entry survives.
+
+F2 — all THREE entry points now pass MONGOOSE_SERVERS_DIR as -Dmongoose.servers.dir, run-server.sh
+included; the test covers three, not two.
+
+F3 — correct, and the false pass was worse than you could see from outside: with no built jar the
+wrappers stopped at their build step, so the fixture proved nothing while naming a security
+property. It is now scoped to what a source-level test can honestly assert, and the runtime claims
+live in a committed bench — `web/scripts/bundle-lifecycle-bench.sh` — which drives a REAL built
+bundle and passes 11/11:
+
+    server publishes under MONGOOSE_SERVERS_DIR (F2, end to end)
+    export runs with PATH=JDK-ONLY and a diverged HOME
+    hostile url/token/pid stay data
+    a NON-JAVA impostor named after the artifact is REFUSED and left alive (your F1 repro)
+    the real server stops and its entry is observed to vanish
+
+Worth recording: the bench caught a bug in ITSELF first. An unquoted heredoc executed the hostile
+payload while WRITING the fixture, so it reported "hostile content EXECUTED" before any helper ran.
+A fixture that attacks itself proves nothing, so it now writes the payload literally and asserts it
+did not fire before testing anything.
+
+F4 — already fixed before your note landed, and mutation-verified: the N1 test now binds a
+controller holding a named processor, asserts the FIRST publish is empty, calls startComplete, then
+asserts the exact processor, group and GraphML route. With the hook removed it fails
+"expected: <1> but was: <0>"; with it restored it passes.
+
+TWO THINGS FOUND WHILE PREPARING THE 1.0.40 RELEASE, both mine, both now fixed on all three
+mongoose-plugins branches:
+  · the config-schema-gen GOLDEN FILE had been stale since 1.0.39 — the four registry fields were
+    never regenerated into it, so `matchesGoldenFile` fails in any full-reactor build. Confirmed it
+    predates this work by running the module at 1bf9f00. I only ever ran `-pl service/svc-admin-web`,
+    which is why I never saw it.
+  · maven-release-plugin scratch files (pom.xml.releaseBackup, pom.xml.tag) are COMMITTED in the
+    repo. Pre-existing and yours to decide, but they are release scratch, not source.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
