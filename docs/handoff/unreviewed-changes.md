@@ -19,6 +19,26 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ `389d331` · discover the generated bundle's Maven-resource GraphML
+
+**What.** `NewProjectDiscovery` adds an existing `src/main/resources` directory to its already bounded
+GraphML roots, without adding it as a Java source root or selecting the graph. A regression fixture puts
+the graph at the exact package-shaped location the playground download injector uses.
+
+**Why.** The accepted discovery review found that source-root-only scanning misses Maven-resource
+GraphML. P0 fixed the generated bundle's concrete location at `src/main/resources/...`, turning the
+review's conditional concern into a reproducible analyser-side miss.
+
+**Files.** `NewProjectDiscovery`, `NewProjectDiscoveryTest`, changelog. Tracker/handoff evidence and the
+P0 review are in the following metadata commit.
+
+**Verified.** Focused discovery test passes; full Maven suite passes 1,108/1,108; pinned MkDocs strict,
+`git diff --check` and the tracked-file four-term sweep pass.
+
+**What the reviewer must still check.** Confirm the extra root remains bounded by `GraphmlDiscovery`
+and changes only what is offered, never what is selected or persisted. P3 separately must generate a
+real bundle and assert its emitted graph is in the offer; this fixture does not replace that check.
+
 ## ☐ `6243a89` · resolve the accepted M19 slice-review follow-ups
 
 **What.** Moves named-profile validation inside the key store's wipe guard and pins the rejected-name

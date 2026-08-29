@@ -59,6 +59,22 @@ P3 must call the analyser's day-two discovery at the generated bundle root and p
 GraphML is offered. If it is missed, either move the generated GraphML beneath a detected root or return
 the exact path so the analyser can widen its bounded scan before sign-off.
 
+P0 REVIEW RETURN — 2026-08-29:
+
+  · fluxtion-web `feature/m19-p0-keyless-bundle @ aea38c6` was reviewed from a clean clone; 8 focused
+    and 357 full web tests pass. Review: `review_m19_p0_keyless_bundle.txt`.
+  · Keep the profile-gated scan/second compile, additive flag, registry identity model, export beat and
+    client-neutral README route.
+  · Correct before P0 acceptance: enable Chronicle audit capture for the bundle; remove shell `eval`
+    over registry JSON; make the regenerate preflight match Builder sources (or explicitly map and test
+    a wrapper); validate bundle mode as AOT + required Mongoose services and prevent service config from
+    overriding the generated registry identity.
+  · The emitted GraphML location is now known (`src/main/resources/...`). Analyser `389d331` adds that
+    bounded discovery root. P3 still proves the real emitted file is offered.
+
+P1 may proceed structurally while those P0 corrections are made, but it must not snapshot the current
+false `auditCapture: false`/README claim or the unsafe shell procedure into vendored skills.
+
 This file owns coordination and repository boundaries. It does NOT silently replace the product spec.
 The signed revision of docs/specs/spec-onboarding-example.md, identified by an exact commit SHA, will own
 the final interface contract. If this brief and that revision disagree, stop and report the mismatch.

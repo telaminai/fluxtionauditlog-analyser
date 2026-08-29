@@ -224,6 +224,10 @@ analyser (reverse funnel)._
     generated-bundle acceptance must call day-two discovery at the bundle root and assert the declared
     graph is offered. If it misses, the generator moves the graph beneath a detected root or returns the
     exact path for an analyser-side bounded-scan change before sign-off.
+  - The first P0 output fixed the path at `src/main/resources/<package>/<processor>.graphml`, so the
+    analyser-side return is closed at `389d331`: New-project discovery now includes that bounded Maven
+    resource root and a regression fixture uses the generated-bundle layout. P3 must still prove the
+    actual emitted path is offered; this unit fix is not generated-bundle evidence.
 - [M19.15] ☐ **The seeding prompt for step 2** _(owner, 2026-08-29; spec has it verbatim)_. Step 2 is only
   a measurement if the prompt does not contaminate it: leading the witness produces agreement, manufactured
   hostility produces theatre, instructing the task tests the prompt instead of the docs, and revealing it is
@@ -311,6 +315,15 @@ analyser (reverse funnel)._
     `svc-admin-web:1.0.39-SNAPSHOT` installed from Mongoose Plugins `6e7a2cc`; it must record that SHA.
     Downloadable output, clean-machine P3 and M19 sign-off require a published version containing that
     registry/clean-stop change. P0/P1/P2 do not wait for the release.
+  - **P0 ◧ implemented, changes requested:** fluxtion-web
+    `feature/m19-p0-keyless-bundle @ aea38c6` moves scan/second-compile behind
+    `-Pgenerate-fluxtion`, adds deterministic registry identity plus export/stop scripts, and keeps the
+    classic shape additive. Its 8 focused tests and an independent clean-clone 357-test run pass.
+    [`review_m19_p0_keyless_bundle.txt`](../handoff/review_m19_p0_keyless_bundle.txt) finds four required
+    corrections before P0 acceptance: the selected template still emits audit capture disabled; the
+    export script evaluates registry data as shell; regeneration recommends a preflight whose accepted
+    environment source the Builder does not read; and the bundle-mode invariants/identity override are
+    not enforced. P1 may scaffold, but must not canonise those false assumptions.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining

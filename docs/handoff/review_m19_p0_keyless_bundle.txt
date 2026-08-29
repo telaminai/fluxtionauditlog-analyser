@@ -1,0 +1,123 @@
+REVIEW — M19 playground P0 keyless bundle shape
+Date: 2026-08-29 · Assessor: analyser implementation/reviewer session
+Repository: https://github.com/telaminai/fluxtion-web
+Branch/commit: feature/m19-p0-keyless-bundle @ aea38c6d10c2401dc8e5558eb39ec2f8da01e4cd
+Contract: analyser m19-bundle/2 + m19-skills/1 at b0fdb86; convergence inputs through 6243a89
+
+VERDICT: CHANGES REQUESTED. The keyless default-POM mechanism is the right shape and the change is
+additive, but the selected template cannot yet produce the run/export success its README promises. Two
+previously documented integration defects re-enter through generated scripts (disabled capture and the
+ineffective key preflight), and registry JSON is evaluated as shell code. P1 may build its typed model
+and file inventory in parallel, but it must not vendor these procedures as canonical facts.
+
+================================================================================
+1. EVIDENCE AND SCOPE
+================================================================================
+
+Reviewed the exact pushed commit from a clean shallow clone, plus the download injector that places
+generated source under src/main/java and GraphML under src/main/resources.
+
+  · pnpm install --frozen-lockfile — PASS from the committed lock
+  · pnpm exec vitest run src/lib/starter/analyser-bundle.test.ts — 8/8 PASS
+  · pnpm test -- analyser-bundle.test.ts — full discovered web suite, 357/357 PASS
+  · commit diff read in full; classic generation remains unchanged when analyserBundle is false
+
+Not run yet, appropriately for P0 rather than P3: create a real zip, run its default Maven build with no
+key, boot against svc-admin-web:1.0.39-SNAPSHOT, send events, export YAML, stop, and open the result in
+the analyser. The current findings show that live path would stop before a successful export anyway.
+
+================================================================================
+2. WHAT IS SOUND
+================================================================================
+
+  · analyserBundle + AOT moves both fluxtion-maven-plugin:scan and compile-generated into the opt-in
+    generate-fluxtion profile. The default POM contains neither execution; the prior shape remains when
+    the flag is false.
+  · The browser download already injects generated Java and GraphML. With default regeneration removed,
+    the Java is now the committed processor rather than a shadow overwritten during package.
+  · Registry identity, bundle-owned export/stop entry points, concrete YAML target and the client-neutral
+    AI ▸ Connect an AI client route are the correct contract concepts.
+  · GraphML is concretely under src/main/resources. Analyser commit 389d331 now includes that bounded
+    Maven resource root in day-two discovery; P3 still has to exercise the actual output.
+
+================================================================================
+3. REQUIRED FINDINGS
+================================================================================
+
+F1 (BLOCKING — the default bundle records nothing): the selected
+mongoose-hosted-fluxtion.starter.json has performanceMonitoring.auditCapture=false. bundleSpec() changes
+only analyserBundle and compileMode; mongooseConfigYaml therefore emits:
+
+    performanceMonitoring:
+      auditCapture:
+        enabled: false
+
+The generated README simultaneously says "The server captures every event cycle", and export-audit.sh
+expects /api/audit/files to contain an entry. On the exact default P0 spec it will report zero files.
+
+Required correction: the typed analyser-bundle model must force Chronicle capture enabled and autoStart
+for the declared processor (or refuse generation). Add a test over generated server-config.yml asserting
+enabled:true, backend:chronicle and the processor bean under autoStart. P3 then proves an event creates an
+exportable file; a string assertion alone is not final evidence.
+
+F2 (HIGH — registry data becomes shell code): export-audit.sh emits URL, AUTH_MODE and TOKEN from parsed
+JSON, then imports them with:
+
+    eval "$(python3 ... )"
+
+A registry token or URL containing shell syntax is executed, not treated as data. Mode 600 protects the
+file from other accounts; it does not make dynamic service data safe to eval, and generated automation
+must not introduce a command-injection primitive.
+
+Required correction: remove eval. Prefer doing registry parse + authenticated HTTP export inside one
+small Python program, or pass NUL-delimited/argv values into shell without evaluation. Add a fixture with
+spaces, quotes, dollar/semicolon characters and assert they remain data. The stop script must likewise
+pass the registry path as argv rather than interpolate it inside Python source.
+
+F3 (BLOCKING — the known false key preflight is recommended again): check-fluxtion-key.sh accepts
+FLUXTION_API_KEY, while Builder 1.0.64 does not read that environment variable. The generated README now
+says to check with that script before -Pgenerate-fluxtion. A user can therefore receive a successful
+preflight followed by a build failure — the exact failure that M19 review F2/F3 and D-X3 corrected.
+
+Required correction: make the bundle regeneration path check only sources the build consumes (canonical
+apiKey file and an explicit -Dfluxtion.apiKey supplied to Maven), or have a wrapper deliberately map an
+environment value into that system property and test the real Maven invocation. Do not document the
+environment as effective merely because the shell can see it. Keep key mention confined to regeneration.
+
+F4 (MEDIUM — bundle invariants are optional input conventions, not validation): analyserBundle is an
+optional shared/importable boolean, but validate() does not require AOT, Mongoose hosting, webAdmin or
+performance monitoring. analyserBundleScriptsWanted checks only the flag + webAdmin, and its README block
+unconditionally claims keyless operation. An imported interpreted-mode spec can therefore validate and
+ship a false keyless README. Separately:
+
+    { serverName: spec.artifact, environment: 'dev', ...config }
+
+allows existing service config to override both supposedly deterministic fields.
+
+Required correction: validate/refuse every unsupported combination and derive the two identity fields
+after user config (or refuse conflicts). Pin invalid interpreted/no-webAdmin/no-capture fixtures and a
+conflicting serverName/environment fixture. P1's typed bundle constructor can make the valid path easy,
+but validate remains the boundary for imported/shared input.
+
+F5 (LOW, safe-stop follow-up): stop-server.sh trusts a possibly stale registry PID. Its own comment says
+a crash leaves the file; after PID reuse, kill -0 can succeed for an unrelated process and the script
+sends SIGTERM. Before P3 calls this a safe project stop, add a live server-identity check or another
+process-owned guard and fail closed on a stale/mismatched entry. This is separate from clean shutdown
+removing the registry file, which the Mongoose branch already fixed.
+
+================================================================================
+4. P1 START CONDITION
+================================================================================
+
+P1 may proceed now with the typed file/profile/context model, CLAUDE.md/AGENTS.md and canonical skill
+vendoring from analyser 6243a899774d591119559305a137ecf144819efd. It must:
+
+  · emit skills.provenance=canonical@that exact revision and never skills.source;
+  · substitute start, export, clean-stop and exact YAML/GraphML paths;
+  · fail on every surviving TODO(bundle) or /path/to/;
+  · model audit capture as required, not inherit false from the current template;
+  · not copy eval or the ineffective preflight into a skill;
+  · retain P3 as the real keyless run/export/open/discovery proof.
+
+P0 becomes ACCEPTED after F1-F4 are corrected with tests. F5 must be disposed before the stop procedure
+is accepted in P3; it need not block the profile/skills file-model work.
