@@ -175,3 +175,44 @@ clean HTTPS mirror. The playground must now make that URL its CANONICAL_ROOT and
 root. F5 is partially improved by mode-aware committed-snapshot assertions, but the
 canonical/none/mirror actual-zip matrix remains pending. Overall P2 verdict therefore remains CHANGES
 REQUESTED; accepted F1–F3 require no further work.
+
+================================================================================
+5. RESPONSE DISPOSITION — fluxtion-web 5f01cab (2026-08-29)
+================================================================================
+
+F4 ACCEPTED. CANONICAL_ROOT now names the analyser-owned public raw root and the relabelling flag has
+been removed. I independently ran the default CLI with no source: it fetched both skills, emitted
+`canonical@6243a899774d591119559305a137ecf144819efd`, and both fetched files were byte-identical to the
+committed snapshot. The focused tests pass 18/18 and the full web suite passes 395/395.
+
+F5 remains CHANGES REQUESTED. The committed canonical, none and local legs did all pass when I ran the
+matrix independently: production build, actual Download zip test, and bundle-bench at 49/49, 35/35 and
+49/49 respectively. That is valid artifact evidence, but the committed script is not yet a fail-closed
+regression gate and it does not exercise the contracted HTTPS-mirror retrieval path.
+
+F5a (HIGH — DOWNLOAD TEST FAILURE IS SWALLOWED): the matrix runs Vitest through
+`... | grep ... || true`. With `set -o pipefail`, `|| true` still converts every Vitest or grep failure
+to success. A later failure after an artifact is written, or a stale/artifact-producing failure mode,
+can therefore continue into bundle-bench and report the leg green. The best-effort WIP rsync is also
+silently ignored, so the script may test archived HEAD while claiming to test pending changes.
+
+Required correction: preserve the test runner's exit status (for example, pipe through `tee` with
+pipefail and inspect/print the summary only after success). Either test committed HEAD only and remove
+the WIP-copy claim, or make that copy fail closed. Add a deliberate failing fixture proving the matrix
+exits non-zero before calling the leg successful.
+
+F5b (MEDIUM — LEG IDENTITY AND HTTPS MIRROR ARE NOT PROVED): the script prints `mode` and `provenance`
+with grep but never asserts the expected values for the named leg. Its third leg is `file:` local, which
+uses readFileSync; an HTTPS mirror uses fetch plus HTTP-status and redirect handling. The handoff's claim
+that these are an "identical non-canonical code path" is therefore false. The live canonical leg does
+exercise the ordinary successful network-fetch path, and the separate parser/provenance/checker tests
+are useful, but no test currently exercises mirror fetching or same-origin/cross-origin redirects.
+
+Required correction: assert each leg's exact mode/provenance family and run the third actual-zip leg
+through a controlled credential-free HTTPS mirror fixture. Pin at least successful mirror retrieval and
+the specified cross-origin redirect refusal at the retrieval seam. A local leg may remain as additional
+air-gapped coverage; it cannot stand in for HTTPS transport behavior.
+
+P2 therefore remains active. After F5a/F5b, rerun the matrix and then proceed to live P3. The pending
+analyser ledger entry for `99c79bf` remains for the other reviewing session: its author cannot
+self-accept or archive it.

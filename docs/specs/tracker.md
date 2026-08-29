@@ -352,16 +352,18 @@ analyser (reverse funnel)._
     byte-for-byte mirror. P3 parses that marker, rejects unknown versions and checks the mirror. The
     profile comment is informational. This selects a checker route already emitted by P1 and does not
     change the v2 inventory or profile schema.
-  - **P2 ◧ changes requested; F1–F3 ☑ accepted at `050c0ab`:** source parsing/refusals, bounded
+  - **P2 ◧ changes requested; F1–F4 ☑ accepted through `5f01cab`:** source parsing/refusals, bounded
     index/set, distinct outcomes, sanitised provenance and project-input refusal are sound; current
     canonical skill bytes match analyser `6243a89`. The empty eager content registry now lets a written
     `none` snapshot build; strict leading frontmatter/exact versions close both false passes; required
     Mongoose skill-set and duplicate-name gates close incomplete `ok` results. Independent gates: 44/44
-    focused, 393/393 full, normal and none-vendored production builds green. **F4 analyser half ☑ at
-    `99c79bf`:** the public raw analyser root now serves the versioned two-skill index; revision and exact
-    bytes are pinned, and the playground retriever succeeds against it. Playground must select that URL
-    as CANONICAL_ROOT and remove `--declare-canonical`. F5 remains the canonical/none/mirror
-    written-snapshot → actual-zip matrix. Review and disposition:
+    focused at `050c0ab`; 395/395 full at `5f01cab`. **F4 ☑:** the public raw analyser root serves the
+    versioned index; the playground now selects it as CANONICAL_ROOT, has removed `--declare-canonical`,
+    and the independently-run default CLI emits canonical@6243a89 with byte-identical content.
+    **F5 remains open:** canonical/none/local artifacts reproduce through build → actual zip → checker,
+    but the matrix masks its Download-test exit with `|| true`, does not assert each named leg's expected
+    mode/provenance, and substitutes local readFileSync for the contracted HTTPS-mirror fetch/redirect
+    seam. Make the harness fail closed and add a controlled HTTPS-mirror leg before live P3. Review:
     [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
   - **P3 ◧ static scaffold implemented, no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
@@ -370,7 +372,7 @@ analyser (reverse funnel)._
     placeholder refusal. Nine deterministic Python fixtures run in CI, including rejection of v2's
     one-based/singular profile plus canonical, `none` and clean HTTPS-mirror provenance. The real
     canonical Spring Download zip now passes 49/49 static checks. Live keyless run → export → stop and
-    fresh analyser/MCP checks still wait for the P2 corrections/source-mode matrix and published
+    fresh analyser/MCP checks still wait for the fail-closed P2 source-mode matrix and published
     Mongoose dependency. Local gates: 9/9 Python fixtures, 1,110/1,110
     Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the

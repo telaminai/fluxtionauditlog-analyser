@@ -425,6 +425,13 @@ the subset, revision and exact bytes; the playground retriever successfully fetc
 root. Playground action: make this CANONICAL_ROOT, remove `--declare-canonical`, prove default CLI emits
 `canonical@6243a89`, then run F5's canonical/none/mirror actual-zip matrix.
 
+Response `5f01cab`: F4 ACCEPTED independently; the real default CLI emits canonical@6243a89 and fetched
+bytes match the snapshot. The reported canonical/none/local artifacts also reproduce at 49/49, 35/35
+and 49/49. F5 remains CHANGES REQUESTED: the committed matrix masks the Download Vitest exit with
+`|| true`, prints rather than asserts each leg's identity, and substitutes a readFileSync local leg for
+the contracted HTTPS-mirror fetch/redirect seam. Fix the gate, add the controlled HTTPS-mirror leg, then
+continue to live P3. Full disposition: `review_m19_p2_skills_retrieval.txt` §5.
+
 ================================================================================
 6. CROSS-REPOSITORY ACCEPTANCE — NOBODY CLAIMS THIS FROM LOCAL TESTS ALONE
 ================================================================================
