@@ -1,0 +1,98 @@
+REVIEW — response to M19 P3 lifecycle F1/F2 + registry N1
+Date: 2026-08-30 · Reviewer: analyser session
+Reviewed fluxtion-web: production main @ 752574d
+Reviewed mongoose-plugins: feature/up-mng-01-startcomplete-refresh @ ba27ea1
+Base review: review_m19_p3_released_bundle.txt
+
+VERDICT
+
+CHANGES REQUESTED. The Java-helper direction is accepted and the restricted-PATH export works, but F2
+is not closed, the stop rewrite weakens the accepted PID-reuse guard, and two claimed regression tests do
+not execute/assert the behaviour their names promise. Do not regenerate the final 1.0.40 bundle yet.
+
+WHAT PASSED
+
+  · production serves fluxtion-web 752574d (Cloudflare deployment 2ab5d108 reported)
+  · focused analyser-bundle + real-Download tests: 31/31
+  · real generated Download ZIP: analyser bundle-bench 49/49
+  · ZIP contains BundleLifecycle.java and root export/stop .sh + .cmd entry points
+  · reconstructed full bundle compiles BundleLifecycle into the released-1.0.39 fat jar
+  · with env -i, a PATH containing only the JDK bin, divergent HOME and an explicit registry override,
+    export-audit.sh called the Java helper and exported the contract stub's YAML successfully
+  · git diff --check for 967d439..752574d
+
+F1 (BLOCKING SAFETY REGRESSION — STOP KILLS A NON-JAVA PROCESS)
+
+The previously accepted guard required a live command line matching Java AND this project artifact. The
+new helper checks only:
+
+    commandLine.contains("fluxtion-spring-mongoose")
+
+That is not process identity. Empirical reproduction used this repository's Python Mongoose contract
+stub, deliberately registered as `fluxtion-spring-mongoose`. Its ordinary command line therefore included
+`--name fluxtion-spring-mongoose`. The generated stop-server.sh accepted it, called ProcessHandle.destroy(),
+killed the Python process and exited 0:
+
+    stopped server pid 11225 — Chronicle capture closes and the registry entry is removed
+
+The registry entry remained on disk. This is exactly the stale-entry/PID-reuse case the guard exists to
+make safe, with a process owned by the test rather than an innocent real process.
+
+Restore a fail-closed identity composed from facts the helper can observe: executable is java/java.exe;
+the command line names the expected `-jar` artifact (preferably rooted under registry `home`); and the
+process start instant agrees with registry `startedAt` within the registry's one-second precision. After
+destroy(), wait boundedly for process exit AND registry removal before printing that capture closed and
+the entry was removed. A Windows implementation where destroy() cannot run the JVM shutdown hook must
+fail honestly rather than claim clean removal.
+
+F2 (BLOCKING — MONGOOSE_SERVERS_DIR STILL SPLITS THE THREE COMMANDS)
+
+export-audit and stop-server translate MONGOOSE_SERVERS_DIR into `-Dmongoose.servers.dir`. run-server.sh
+does not. svc-admin-web 1.0.39 resolves registryDir config, then that system property, then JVM user.home;
+it does not read the shell variable. Therefore:
+
+    MONGOOSE_SERVERS_DIR=<isolated> ./run-server.sh
+
+publishes under the server JVM's default home, while export and stop look under `<isolated>`. The new F2
+test loops only over export-audit.sh and stop-server.sh, so it codifies the split rather than detecting it.
+Pass the same optional property from run-server.sh and its Windows equivalent, then pin all THREE entry
+points. If Windows lifecycle is claimed, a run-server.cmd is needed; currently the ZIP has only the two
+post-start `.cmd` files.
+
+F3 (BLOCKING TEST FALSE-PASS — “SCRIPTS ACTUALLY RUN” NO LONGER REACHES THE HELPER)
+
+The hostile-registry test copies only export-audit.sh and stop-server.sh into its temporary directory.
+It copies neither BundleLifecycle nor a built jar nor mvnw. Both wrappers stop at their missing-jar build
+step (`./mvnw` is absent), before registry parsing. Export is expected non-zero and stop has no exit-code
+assertion, so the fixture passes while exercising none of the security property it names. The current
+31/31 result includes this false pass.
+
+Drive a built generated bundle/helper in the fixture. Retain the hostile URL/token/pid assertions, and add
+the non-Java same-name process reproduction above so weakening the executable check cannot pass again.
+The restricted env-i proof is valuable but is only in the handoff: pin that strongest claim in a test or
+script committed with the generator.
+
+F4 (RELEASE TEST GAP — N1 TEST NEVER OBSERVES A PROCESSOR)
+
+ba27ea1's startComplete hook is the right structural location, but its new test binds no
+MongooseServerController. It asserts only that processors is an array before the call, the file still
+exists afterwards, and its timestamp did not go backwards. An unchanged `processors: []` passes. Bind the
+existing fake controller with one NamedEventProcessor: assert the initial record is empty, call
+startComplete(), then assert the exact processor/class/GraphML route appears. That pins the reason for
+1.0.40 rather than merely proving the hook is harmless with no controller.
+
+N1 (HONEST PREREQUISITE RESIDUAL — OWNER DECISION)
+
+The generated README now discloses that the only-script Maven wrapper needs curl or wget for its first
+Maven download. That is more honest, but means the milestone's broader “fresh machine with only a JDK”
+acceptance remains literally unproven. Either provide a JDK-owned first-download path or amend the
+milestone prerequisite to JDK + curl/wget. This is separate from the now-proven JDK-only export helper;
+do not merge those two claims again.
+
+NEXT ORDER
+
+1. Restore the stop identity/removal proof and fix its false-pass fixture.
+2. Pass the registry override through run as well as export/stop; decide whether Windows start is claimed.
+3. Strengthen the ba27ea1 processor-refresh test before or immediately after the 1.0.40 release.
+4. Regenerate one full 1.0.40 artefact at a named branch/SHA; rerun static 49, live restricted-PATH
+   run/export/stop, and analyser/MCP 19. Then P3 can receive a final verdict.

@@ -399,10 +399,13 @@ analyser (reverse funnel)._
     This session independently passed the ZIP 49/49 and its fresh analyser/MCP leg 19/19: active project,
     two described/existing runbooks, canonical@f5efe17 provenance, pairing 2/2, coverage 1.0, 14 tools and
     analyser_context returning the same state.
-    **Two producer corrections block the final Download verdict:** the JDK-only claim is false while
-    export/stop require Python 3 + curl/ps and have no Windows entry points; and run-server's JVM
-    `user.home` can differ from the `$HOME` used by export/stop, splitting the registry location.
-    Exact evidence and next order: [`review_m19_p3_released_bundle.txt`](../handoff/review_m19_p3_released_bundle.txt).
+    **Response at deployed fluxtion-web `752574d` is not yet accepted:** export/stop are now a generated
+    Java helper with POSIX + Windows wrappers, and restricted-JDK-PATH export passes. But run-server does
+    not pass the registry override used by the other two commands; the stop rewrite accepts any process
+    whose arguments contain the artifact name (it killed the Python contract stub); and the hostile-data
+    fixture no longer reaches the helper. The 1.0.40 startComplete refresh is structurally sound but its
+    test never binds or observes a processor. Exact reproductions and next order:
+    [`review_m19_p3_lifecycle_response.txt`](../handoff/review_m19_p3_lifecycle_response.txt).
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining
