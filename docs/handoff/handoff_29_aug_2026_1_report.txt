@@ -494,6 +494,35 @@ Per the review's Next Order, items 1–2 are now complete (this note + §7f). It
 none / mirror real zips each through bundle-bench) and item 4 (live P3) are next on this side.
 
 ================================================================================
+7h. P2 REVIEW F1-F3 CLOSED (2026-08-29)
+================================================================================
+
+Response to review_m19_p2_skills_retrieval.txt. Branch head: fluxtion-web
+feature/m19-p0-keyless-bundle @ 050c0ab.
+
+  F1 (none cannot build)   FIXED — the content registry is an eager import.meta.glob (empty is
+      legal); bundleFiles/bundleSkills take an injectable manifest; guide text none-aware.
+      Verified with the review's exact reproduction: disposable checkout -> vendor none (both
+      .SKILL.md deleted) -> vite build EXIT 0; plus a generator-level test against a written none
+      manifest (runbook.count=0, provenance none, no .claude/ files).
+  F2 (body text as frontmatter; parseInt versions)   FIXED — leading --- block only, duplicate
+      fields refuse, both versions must match digits.digits.digits. Both reproduced false-pass
+      fixtures added (body-only fields; 1.12.0junk).
+  F3 (incomplete selection returns ok)   FIXED — REQUIRED_BY_TIER (mongoose: load-audit-log +
+      run-mongoose-server) makes an incomplete non-none selection invalid-content; duplicate
+      selected names refuse; literal none stays the only zero-skill success. Both review fixtures
+      (embedded-only, common-only) added.
+  F5 (partial)   The committed-snapshot consistency test is mode-aware. The full
+      canonical/none/mirror zip matrix through bundle-bench follows F4.
+
+  F4 remains the cross-repo item: the canonical root must publish m19-skills/1/index.json
+  (canonical content is analyser-owned; or name a different stable HTTPS root). Once live, the
+  --declare-canonical workaround is deleted as the review requires.
+
+Evidence: 18 vendor tests, full web suite 393/393, production build green in both the normal and
+the none-vendored checkouts, svelte-check unchanged.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
