@@ -48,6 +48,8 @@ class Bundle:
         self._zip = None
         self._paths = []
         self._duplicates = set()
+        self._unsafe = set()
+        self._archive_names = {}
         if self.source.is_dir():
             self._paths = sorted(
                 p.relative_to(self.source).as_posix()
@@ -55,14 +57,24 @@ class Bundle:
             )
         elif self.source.is_file() and zipfile.is_zipfile(self.source):
             self._zip = zipfile.ZipFile(self.source)
+            raw_files = [info.filename for info in self._zip.infolist() if not info.is_dir()]
+            self._unsafe.update(path for path in raw_files if not safe_relative(path))
+            parts = [pathlib.PurePosixPath(path).parts for path in raw_files]
+            # buildStarterZip intentionally wraps the project in <artifact>/. Accept exactly one
+            # common safe top-level directory, but never normalize an unsafe member into safety.
+            common_root = (
+                parts[0][0] if parts and not self._unsafe
+                and all(len(p) >= 2 and p[0] == parts[0][0] for p in parts)
+                else None
+            )
             seen = set()
-            for info in self._zip.infolist():
-                if info.is_dir():
-                    continue
-                if info.filename in seen:
-                    self._duplicates.add(info.filename)
-                seen.add(info.filename)
-                self._paths.append(info.filename)
+            for archive_name in raw_files:
+                logical = archive_name[len(common_root) + 1:] if common_root else archive_name
+                if logical in seen:
+                    self._duplicates.add(logical)
+                seen.add(logical)
+                self._paths.append(logical)
+                self._archive_names[logical] = archive_name
             self._paths.sort()
         else:
             raise ValueError("input must be a project directory or zip file")
@@ -79,17 +91,21 @@ class Bundle:
     def duplicates(self):
         return frozenset(self._duplicates)
 
+    @property
+    def unsafe(self):
+        return frozenset(self._unsafe)
+
     def exists(self, path):
         return path in self._paths
 
     def read(self, path):
         if self._zip is not None:
-            return self._zip.read(path)
+            return self._zip.read(self._archive_names[path])
         return (self.source / pathlib.PurePosixPath(path)).read_bytes()
 
     def executable(self, path):
         if self._zip is not None:
-            info = self._zip.getinfo(path)
+            info = self._zip.getinfo(self._archive_names[path])
             return bool((info.external_attr >> 16) & 0o111)
         return bool((self.source / pathlib.PurePosixPath(path)).stat().st_mode & stat.S_IXUSR)
 
@@ -155,14 +171,15 @@ def check_bundle(bundle, analyser_version):
         checks.append(Check(name, bool(ok), str(detail) if detail else ""))
         return bool(ok)
 
-    unsafe = sorted(path for path in bundle.paths if not safe_relative(path))
+    unsafe = sorted(set(path for path in bundle.paths if not safe_relative(path)) | set(bundle.unsafe))
     add("inventory paths are unique and project-relative",
         not unsafe and not bundle.duplicates,
         "; ".join(unsafe + sorted(bundle.duplicates)))
 
     required = [PROFILE, "CLAUDE.md", "AGENTS.md", "README.md", *COMMAND_SCRIPTS]
     missing = [path for path in required if not bundle.exists(path)]
-    if not add("required root inventory is present", not missing, "missing: " + ", ".join(missing)):
+    if not add("required root inventory is present", not missing,
+               "missing: " + ", ".join(missing) if missing else ""):
         return checks
 
     claude = bundle.read("CLAUDE.md")

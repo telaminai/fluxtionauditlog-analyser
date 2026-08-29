@@ -128,9 +128,21 @@ The export is `logs/audit-demo-bundle.yaml`.
         with zipfile.ZipFile(archive, "w") as out:
             for path in self.root.rglob("*"):
                 if path.is_file():
-                    out.write(path, path.relative_to(self.root).as_posix())
+                    out.write(path, "demo-bundle/" + path.relative_to(self.root).as_posix())
 
         self.assert_passes(self.checks(archive))
+
+    def test_zip_traversal_is_not_hidden_by_top_level_normalisation(self):
+        archive = pathlib.Path(self.temp.name) / "unsafe.zip"
+        with zipfile.ZipFile(archive, "w") as out:
+            for path in self.root.rglob("*"):
+                if path.is_file():
+                    out.write(path, "demo-bundle/" + path.relative_to(self.root).as_posix())
+            out.writestr("../outside.txt", "must not escape")
+
+        failed = {check.name for check in self.checks(archive) if not check.ok}
+
+        self.assertIn("inventory paths are unique and project-relative", failed)
 
     def test_minimum_analyser_version_is_enforced(self):
         skill = self.root / ".claude/skills/load-audit-log/SKILL.md"
