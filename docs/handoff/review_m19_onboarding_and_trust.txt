@@ -1,0 +1,162 @@
+REVIEW — M19 onboarding revision + the trust-structure framing, 63d210a..17d427a
+Date: 2026-08-29 · Assessor: independent session, following REVIEWER-ORIENTATION.md
+
+VERDICT: ACCEPT WITH AMENDMENTS — the revised direction is sound and the shipped analyser capabilities
+it relies on are real. Five amendments are needed before implementation starts: one MCP bootstrap command
+does not match the supported client route (F1); the key-provenance UI is asked to report a build fact it
+cannot observe (F2); the canonical load-log skill promises state a project profile deliberately does not
+store (F3); the JDK-only headline remains unrepaired despite C3 correctly identifying the missing MCP
+client prerequisite (F4); and the new trust framing mistakes a runtime-produced, unsigned input for proof
+that an agent could not have influenced it (F5). The last is the most consequential wording correction.
+
+================================================================================
+1. WHAT WAS CHECKED — AND WHAT HOLDS
+================================================================================
+
+The M19 revision was checked against the current analyser rather than against its own account.
+
+- R1/R2 are feasible as written. SkillDiscovery reads SKILL.md frontmatter and only the name/description
+  reach the candidate (SkillDiscovery.java:53-60, 107-114); ConfigStore persists declared runbooks with
+  their description (ConfigStore.java:605-613). A bundle author declaring its own runbooks therefore does
+  not violate the analyser's offer-never-select rule.
+- R5 is already true. A graph with no log gets an audit-readiness verdict, including the real
+  no-addEventAudit compiler fixture (AuditReadinessTest.java:44-80), and context returns graph facts even
+  without a loaded log (MainFrame.java:4037-4050).
+- R6/R7's statements of current behaviour are true. Fresh installs suppress What's new
+  (MainFrame.java:1430-1449); showFirstRunSettingsIfNeeded() opens no human dialog
+  (MainFrame.java:3061-3077); a new project clears inherited source roots and saved graphs
+  (ProjectSessionTest.java:251-264).
+- D-T4's direction is grounded in shipped safeguards. For example, an inferred graph carries the explicit
+  "absence proves nothing" caveat in both UI and machine context (TopologyPanel.java:882-890,
+  1263-1271), and audit-readiness keeps "did not log" distinct from "did not run"
+  (AuditReadinessTest.java:114-120). I did not separately trace every one of D-T4's five bullets through
+  every Swing rendering path; the full Maven suite is the regression evidence for the rest.
+
+Gates run on 17d427a: `mvn -q test` passed; `mkdocs build --strict` passed; and
+`git diff --check cae08fa..HEAD` was clean. I did not repeat the owner's released-JBang cold run, drive
+the Swing UI by eye, inspect the external fluxtion-visualiser dialog, or verify any claim about the live
+playground/starter outside this repository. Those claims remain the owner's recorded evidence, not this
+reviewer's independent observation.
+
+================================================================================
+2. F1 (BLOCKING) — R3'S CLAUDE COMMAND IS NOT THE SUPPORTED REGISTRATION COMMAND
+================================================================================
+
+R3 tells a newly generated project to run:
+
+    claude mcp add fluxtion-analyser -- java -jar /path/to/fluxtion-auditlog-analyser.jar --mcp
+
+(spec-onboarding-example.md:250-256). The shipped confirmed Claude Code route is instead an explicit
+user-scoped stdio registration: ClaudeMcpClient builds `mcp add --scope user --transport stdio
+fluxtion-analyser -- <resolved bridge>` (ClaudeMcpClient.java:165-169). More importantly, the supported
+onboarding route deliberately resolves the local JBang/packaged-JAR command from the running analyser,
+because a copied generic jar path is not an installation instruction (connect-an-llm.md:57-75).
+
+This is not cosmetic: it is the line supposed to connect the bundle's LLM, and it advertises only Claude
+while M42 deliberately supports Claude Code, Codex, and generic MCP configuration.
+
+Amend R3 and its acceptance item before a generator uses it. Prefer a client-neutral instruction to start
+the analyser with local transport enabled and use `AI ▸ Connect an AI client…`, which supplies the
+installation-specific command. If a Claude copy command is retained, it must be the currently supported
+user/project-scope vector, be verified against Claude Code at generation time, and state the equivalent
+Codex/generic routes rather than silently excluding them.
+
+================================================================================
+3. F2 (BLOCKING) — KEY "PROVENANCE" NEEDS AN OBSERVABLE, VALUE-FREE CONTRACT
+================================================================================
+
+R8 requires a Project-panel assertion that *the build* is using the file, environment, or a `-D` build
+property (spec-onboarding-example.md:435-454, 642-653). The analyser cannot see a `-Dfluxtion.apiKey`
+passed to a separate Maven/JVM invocation, and its own environment is not proof of the build process's
+environment. Passing the value through the project profile or context to make that work would violate R8's
+own safety boundary.
+
+The one concrete resolver held in this repository also resolves `FLUXTION_API_KEY` before the file
+(mongoose-bootstrap-artefacts/scripts/check-fluxtion-key.sh:17-20), whereas the prose calls the file
+"preferred" (spec-onboarding-example.md:277-286, 646-650). The file may be the preferred *write home*,
+but there is no shared, verified precedence contract from which the analyser may claim the actual build
+winner.
+
+Before M19.12 is implemented, choose one honest shape:
+
+- show only candidates the analyser itself can observe (file present, analyser environment present), never
+  "your build used…"; or
+- have the generator/compiler write a value-free, provenance-only build result which the analyser labels
+  as build-declared, with an explicit precedence contract and tests for each source.
+
+Keep the key value out of every record. Until that decision is made, the acceptance criteria ask for a
+precise statement the product has no evidence source to make.
+
+================================================================================
+4. F3 (BLOCKING) — THE CANONICAL LOAD-LOG SKILL CANNOT FIND A FRESH BUNDLE'S LOG
+================================================================================
+
+The canonical load-audit-log skill says the project profile records the audit-log path and advises a
+fresh agent to ask `analyser_context` for it (docs/skills/common/load-audit-log/SKILL.md:13-20). Neither
+statement holds. ProjectProfile deliberately keeps a loaded log out of the project profile as session
+state (ProjectProfile.java:38-46), and context puts `log` only when one is already loaded
+(MainFrame.java:4021-4035); with none, the Project panel correctly says "No log loaded"
+(ProjectModel.java:111-116).
+
+This is precisely the first task the M19 experience must make trivial: its bundle contract already names
+the actual path `./logs/audit-<name>.yaml` (spec-onboarding-example.md:37-50, 69-75).
+
+Make the generated skill/template carry that concrete bundle path (or a generated project-local pointer
+to it). Do not state that a profile or context discovers an unopened log. The same review should ensure
+every host-tier skill either contains a real project command/path or retains a `TODO(bundle)` which the
+generator rejects, as D-R2/C5 require.
+
+================================================================================
+5. F4 — THE CANONICAL "ONLY A JDK" PROMISE STILL CONTRADICTS THE AI PATH
+================================================================================
+
+The headline and tracker still promise "nothing pre-installed but a JDK"
+(spec-onboarding-example.md:37; tracker.md:123-130). C3 correctly observes later that the revised AI
+experience also needs an installed, configured MCP-capable client and its subscription
+(spec-onboarding-example.md:578-585), but records a suggestion rather than repairing the governing
+promise.
+
+State the two paths in the target and acceptance: JDK/installation is sufficient to run the example and
+analyse its log; the AI-assisted path additionally requires a supported MCP client, configuration and any
+client entitlement. Scope the ten-minute claim to the path actually timed. Otherwise the first successful
+non-AI run will look like an incomplete delivery rather than the documented lower tier.
+
+================================================================================
+6. F5 (BLOCKING) — THE TRUST SPEC OVERSTATES INDEPENDENCE AND CONTRADICTS ITS OWN LIMITS
+================================================================================
+
+The central proposition says every AI claim can be checked against a record it did not author
+(spec-trust-structure.md:18-22), and D-T2 says the runtime log is evidence because "the agent cannot make
+it say something" (lines 39-44). Neither follows from the current product boundary:
+
+- the analyser accepts a hand-written audit log (the M19 cold-run record itself says so,
+  spec-onboarding-example.md:514-520);
+- an agent that authors a project can influence the graph, logging calls and inputs; and
+- this repository supplies no signed artefact, runtime identity, append-only log or chain-of-custody
+  mechanism that would let the analyser prove who produced a supplied file.
+
+D-T5 correctly says the product is silent on semantics and only covers what was logged
+(spec-trust-structure.md:82-95), so the earlier universal claim is also internally inconsistent.
+
+Amend the public proposition to a bounded claim: given a trusted runtime/deployment and a record supplied
+with declared provenance, the analyser independently checks *specified structural and recorded-execution
+claims* against that record; it does not establish the record's origin, completeness, semantic correctness,
+or that an author could not have influenced the system. Add this trust boundary to D-T3/D-T5 and the
+buyer-facing acceptance. If stronger provenance is desired, make authenticated build/runtime/log provenance
+a separately specified product capability rather than implying it exists today.
+
+================================================================================
+7. WHAT THE AMENDING SESSION SHOULD DO FIRST
+================================================================================
+
+1. Correct F1 and F4 in the M19 target, R3 and acceptance before any bundle or tutorial work begins.
+2. Resolve F2's evidence model before starting the key-management UI; a UI that guesses an effective
+   build credential source would violate D-T4's stated position.
+3. Correct F3 in the canonical skill/template and add a fresh-project test that demonstrates the agent can
+   locate the promised log without a prior manual open.
+4. Narrow F5 in both the trust spec and tracker summary, then add the bounded trust/provenance boundary to
+   buyer-facing material when it is written.
+5. Re-run Maven and strict MkDocs after the documentation amendments; perform the M19 bundle cold bench
+   only after a generated bundle exists.
+
+No implementation code is requested or approved by this review.
