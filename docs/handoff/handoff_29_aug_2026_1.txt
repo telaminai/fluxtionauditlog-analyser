@@ -75,6 +75,32 @@ P0 REVIEW RETURN — 2026-08-29:
 P1 may proceed structurally while those P0 corrections are made, but it must not snapshot the current
 false `auditCapture: false`/README claim or the unsafe shell procedure into vendored skills.
 
+P0-FIX + P1 REVIEW RETURN — 2026-08-29 (final at pushed head `73565fc`):
+
+  · Reviewed fluxtion-web `aea38c6..73565fc` from the pushed branch in a clean clone. Review:
+    `review_m19_p0_fixes_and_p1.txt`. Focused bundle tests 22/22, full web tests 371/371, production build
+    PASS. svelte-check retains four known errors in unrelated SplitPane callers; no changed P0/P1 file
+    is named. Vendored skills remain byte-identical to analyser `6243a89`.
+  · P0: ACCEPTED. All five findings in `review_m19_p0_keyless_bundle.txt` are closed by `d43552e` +
+    `73565fc`, including the executable hostile-registry fixture and fail-closed process identity check.
+  · Before branch merge, also correct ordinary non-bundle Fluxtion README/run-script output that still
+    recommends `FLUXTION_API_KEY`; the globally corrected preflight and Builder do not accept it. Pin the
+    ordinary generated files, not only the analyser-bundle script.
+  · P1: replay skill omission ACCEPTED (no replay claim). Contract declaration home ANSWERED without a
+    profile key: exact `Bundle contract: **m19-bundle/2**` marker in root CLAUDE.md, with AGENTS.md a
+    byte-identical mirror; P3 parses/refuses it. Profile comment is informational.
+  · P1 remains changes-requested on D-X6: define one typed resolved bundle model and make P0 scripts/
+    README plus P1 profile/guides/skills consume its paths, commands, identity and processor facts.
+  · The resolved example is Spring-XML-defined (tracker O2). P3 must not silently graduate the current
+    imperative test template; the bundle carries the relevant maintained authoring canon for the chosen
+    example.
+  · P2 is NOT folded into P1. Canonical vendoring/provenance is one mode; mirror, local, none, index
+    bounds/failures, compatibility enforcement and project-input refusal remain P2.
+
+P3 fixture scaffolding may be prepared, but do not start or report generated-bundle acceptance until the
+remaining P1 corrections and P2 contract modes are present. Otherwise P3 merely rediscovers known
+failures and cannot execute its required source-mode matrix.
+
 This file owns coordination and repository boundaries. It does NOT silently replace the product spec.
 The signed revision of docs/specs/spec-onboarding-example.md, identified by an exact commit SHA, will own
 the final interface contract. If this brief and that revision disagree, stop and report the mismatch.

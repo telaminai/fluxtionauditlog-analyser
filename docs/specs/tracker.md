@@ -296,6 +296,12 @@ analyser (reverse funnel)._
     `6243a89`: clean stop now has its own `TODO(bundle)`, so P3's no-marker check cannot pass without a
     real project stop procedure. The generator must vendor `common + mongoose` from that revision (not
     the earlier `5c72e21`) and emit `skills.provenance=canonical@6243a899774d591119559305a137ecf144819efd`.
+  - Playground P1 `3c0f926` vendors byte-identical copies from `6243a89`, substitutes the two applicable
+    skills and refuses surviving markers across generated files; the review at branch head `73565fc`
+    runs 22 focused tests and confirms the copies remain byte-identical. Omitting
+    `replay-a-run` is accepted because this bundle declares no replay entry point. M19.10 remains ◧ only
+    until the P1 single-model finding is corrected and the generated files are re-reviewed; P2 source
+    modes and minimum-version enforcement are separate work, not evidence against the canonical files.
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
@@ -315,15 +321,34 @@ analyser (reverse funnel)._
     `svc-admin-web:1.0.39-SNAPSHOT` installed from Mongoose Plugins `6e7a2cc`; it must record that SHA.
     Downloadable output, clean-machine P3 and M19 sign-off require a published version containing that
     registry/clean-stop change. P0/P1/P2 do not wait for the release.
-  - **P0 ◧ implemented, changes requested:** fluxtion-web
-    `feature/m19-p0-keyless-bundle @ aea38c6` moves scan/second-compile behind
+  - **P0 ☑ accepted at reviewed head `73565fc`:** fluxtion-web
+    `feature/m19-p0-keyless-bundle` moves scan/second-compile behind
     `-Pgenerate-fluxtion`, adds deterministic registry identity plus export/stop scripts, and keeps the
-    classic shape additive. Its 8 focused tests and an independent clean-clone 357-test run pass.
-    [`review_m19_p0_keyless_bundle.txt`](../handoff/review_m19_p0_keyless_bundle.txt) finds four required
-    corrections before P0 acceptance: the selected template still emits audit capture disabled; the
-    export script evaluates registry data as shell; regeneration recommends a preflight whose accepted
-    environment source the Builder does not read; and the bundle-mode invariants/identity override are
-    not enforced. P1 may scaffold, but must not canonise those false assumptions.
+    classic shape additive. `d43552e` closes disabled capture, export-script `eval` and forced serverName;
+    `73565fc` closes the Builder-inaccurate preflight, validates bundle invariants, forces both identity
+    fields, passes the stop registry path as argv, and refuses a reused/mismatched PID. The live Bash
+    fixture keeps hostile registry values as data. Details and exact disposition:
+    [`review_m19_p0_fixes_and_p1.txt`](../handoff/review_m19_p0_fixes_and_p1.txt).
+  - **Branch-level follow-up before merge:** the global preflight correction exposes existing reachable
+    ordinary-Fluxtion README/run-script text that still recommends `FLUXTION_API_KEY`, which neither the
+    corrected check nor Builder reads. Remove/map that advice and add a non-bundle generated-output test.
+  - **P1 ◧ implemented at `3c0f926`, changes requested:** the profile keys, two applicable vendored
+    skills, exact substitutions, no-marker gate and CLAUDE/AGENTS content are individually sound; at
+    reviewed head `73565fc`, 22/22 focused and 371/371 full web tests pass, and production build accepts
+    the raw imports. D-X6 is not
+    yet met because `mongoose.ts` and `bundle.ts` independently derive commands/paths instead of consuming
+    one typed bundle model. The actual M19 bundle must also use the resolved Spring-XML-defined example
+    and its authoring canon, not the imperative template used by the current fixture.
+  - **Contract-version declaration for v2 — no profile key:** the authoritative marker is the exact
+    `Bundle contract: **m19-bundle/2**` line in required root `CLAUDE.md`; required `AGENTS.md` is its
+    byte-for-byte mirror. P3 parses that marker, rejects unknown versions and checks the mirror. The
+    profile comment is informational. This selects a checker route already emitted by P1 and does not
+    change the v2 inventory or profile schema.
+  - **P2 ☐ is not folded into P1.** P1 implements the default canonical snapshot and canonical provenance
+    only. `m19-skills/1` still requires build/release inputs for canonical, clean HTTPS mirror, local
+    air-gapped and literal `none`; its bounded versioned index; distinct none/not-found/invalid/transport
+    results; sanitised provenance per mode; minimum-analyser-version enforcement; and refusal of project
+    input. Complete those before full P3 source-mode acceptance.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining

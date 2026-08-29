@@ -1,0 +1,149 @@
+REVIEW — M19 playground P0 fixes + P1 profile/skills/guides
+Date: 2026-08-29 · Assessor: analyser implementation/reviewer session
+Repository: https://github.com/telaminai/fluxtion-web
+Branch/head: feature/m19-p0-keyless-bundle @ 73565fc93db448ec1a05b07f0d1ea7a03fea79fd
+Range: aea38c6..73565fc (all corrections after the head covered by the prior review)
+Prior review: review_m19_p0_keyless_bundle.txt (aea38c6)
+
+VERDICT
+
+P0 FIXES: ACCEPTED. All five findings from the prior review are closed at the reviewed head. Chronicle
+capture is forced, registry data remains data in both executable scripts, the preflight now follows the
+Builder's real sources, bundle invariants are validated, identity is forced, and stop fails closed on a
+live process whose command does not identify this artifact.
+
+P1: CHANGES REQUESTED, with the emitted profile/skills/guides individually sound. D-X6 requires a single
+typed bundle model, while current P0 and P1 emitters independently reconstruct the same paths and
+commands. The fixture also uses the imperative template rather than the tracker-selected Spring-XML
+example. These are convergence defects to fix before P3, not reasons to discard the work.
+
+P2: NOT COMPLETE. Canonical vendoring plus canonical provenance is one source mode, not the signed
+m19-skills/1 retrieval/version/compatibility contract.
+
+BRANCH: CHANGES REQUESTED before P3/merge. In addition to the two P1 convergence findings and P2, the
+global preflight correction leaves reachable ordinary-Fluxtion output contradictory: its README and
+in-process run script still recommend FLUXTION_API_KEY although the corrected check and Builder reject it.
+
+================================================================================
+1. GATES AND REPRODUCIBILITY
+================================================================================
+
+Reviewed from a clean disposable clone of the exact pushed head:
+
+  · pnpm exec vitest run src/lib/starter/analyser-bundle.test.ts — 22/22 PASS
+  · pnpm test — 371/371 PASS (27 files)
+  · pnpm run build — PASS after fetching the build's 11 pinned browser libraries; proves ?raw skill
+    imports in production, not only Vitest
+  · pnpm run check — four errors + seven warnings, all outside changed P0/P1 files; at aea38c6 the same
+    checkout reports those four SplitPane errors plus three node-test typing errors, so P1 improves the
+    count by suppressing its Node-only fixture and introduces no new diagnostic
+  · both vendored SKILL.md files diff byte-for-byte clean against analyser commit 6243a89
+
+No generated zip or Maven/server run was claimed; that remains P3 after known corrections.
+
+================================================================================
+2. PRIOR P0 FINDINGS
+================================================================================
+
+F1 CAPTURE — CLOSED. mongooseConfigYaml forces Chronicle audit capture in bundle mode, names the hosted
+processor bean under autoStart, and preserves non-bundle template behaviour. The test now pins backend,
+enabled and processor-specific autoStart output.
+
+F2 SHELL DATA — CLOSED. export-audit.sh and stop-server.sh pass registry paths as argv and keep each JSON
+field inside quoted command substitution. The added live Bash fixture supplies quotes, dollars and
+semicolons in URL/token/PID, executes both scripts and proves no side-effect command runs.
+
+F3 KEY PREFLIGHT — CLOSED FOR M19. checkKeyScript no longer accepts FLUXTION_API_KEY as key material; it
+reads the key file, states system-property precedence, and gives a file/-D remedy when only the environment
+variable exists. The bundle guide and regeneration procedure now agree with Builder 1.0.64.
+
+F4 BUNDLE INVARIANTS — CLOSED. validate() refuses non-hosted, non-AOT and no-webAdmin bundle input; normal
+Mongoose validation already refuses no processors. serverName and environment are both derived after
+template config and conflict fixtures pin that generated identity.
+
+F5 STALE/REUSED PID — CLOSED. stop-server.sh first checks liveness, then requires the process command to
+contain java and this validated artifact name before SIGTERM. A mismatch explains the stale-entry risk and
+returns 1 without signalling. This is an appropriate fail-closed development-bundle identity guard.
+
+F7 (NEW, REQUIRED BEFORE MERGE; OUTSIDE THE M19 BUNDLE PATH): checkKeyScript was correctly fixed globally,
+but ordinary Fluxtion output was not updated with it. fluxtion.ts still emits, for reachable non-bundle
+projects:
+
+  · bareRunScript: "export FLUXTION_API_KEY first" and "check-fluxtion-key.sh verifies it";
+  · README keySteps: "Configure ... export FLUXTION_API_KEY" followed by the now-file-only preflight.
+
+An LLM/user following those generated instructions still gets a failed check/build. Remove the environment
+instruction or add an explicit tested wrapper that maps it to -Dfluxtion.apiKey. Add a non-bundle fixture
+covering the README and run script, because the current bundle assertion only checks the corrected script.
+
+================================================================================
+3. P1 FINDINGS AND DECISIONS
+================================================================================
+
+F5 (BLOCKING P1 — D-X6 single model not implemented): bundle.ts is a useful grouping but not the typed
+bundle model the signed handoff requires. mongoose.ts independently derives registry path, run/export/
+stop commands, YAML path and README statements; bundle.ts separately derives the same artifact, YAML,
+GraphML, commands, processor FQN and guide text. Tests assert today's duplicate strings agree, but a
+future rename can update one emitter and leave another stale.
+
+Required correction: resolve one immutable AnalyserBundleModel from a validated StarterSpec, containing
+contract, server identity/environment, processor/FQN, source roots, concrete GraphML/YAML paths, commands,
+selected skills and provenance. P0 scripts/README and P1 profile/guides/skill substitution all consume it.
+Tests vary model inputs once and assert every emitted consumer follows; no consumer reconstructs paths.
+
+F6 (BLOCKING selected example): the fixture imports mongoose-hosted-fluxtion.starter.json, whose Fluxtion
+definition is imperative builder style. Tracker O2 resolved the M19 example in favour of Spring-XML so
+tutorial part 4 can make a design-IR edit and follow the maintained build-with-AI → spring-authoring
+skill/contract path. P3 cannot silently turn the convenient P0 fixture into the public example.
+
+Required correction: make the actual analyser-bundle entry/fixture Spring-XML-defined and carry/reference
+the relevant maintained authoring snapshot promised by M19.1. The generic P0 mechanics may keep an
+imperative regression fixture, but it is not the downloadable M19 acceptance artifact.
+
+D1 REPLAY DEVIATION — ACCEPTED. m19-skills/1/D-X5 conditions replay on a bundle replay claim. This bundle
+has no honest replay entry point. Shipping load-audit-log + run-mongoose-server covers open, run, export,
+stop and regeneration without inventing a command. VENDORED.md records the omission. If replay is later
+added, its skill and comparison acceptance become mandatory together.
+
+D2 CONTRACT VERSION HOME — ANSWERED, NO PROFILE KEY. For m19-bundle/2, P3 parses the exact marker
+`Bundle contract: **m19-bundle/2**` from required root CLAUDE.md, refuses unknown/missing versions, and
+asserts required AGENTS.md is byte-for-byte identical. The profile comment is informational, not a second
+authority. This uses files/content P1 already emits; it adds no inventory item or profile schema key and
+therefore does not create m19-bundle/3.
+
+N1 (LOW): P1's test comment says src/main/resources is a discovery location the analyser "currently
+misses". That was true at review time and is closed on analyser main by 389d331. Update the stale comment;
+P3 still proves the actual graph is offered.
+
+================================================================================
+4. P2 IS A REAL REMAINING SLICE
+================================================================================
+
+P1 statically imports two canonical files and emits canonical@6243a89. It does not implement the
+m19-skills/1 build/release source contract:
+
+  · canonical HTTPS, clean corporate HTTPS mirror, local air-gapped and literal none modes;
+  · m19-skills/1/index.json parsing, contract/revision, unique contained paths and size/count bounds;
+  · distinct none, not-found, invalid content/index and transport failure outcomes with no fallback;
+  · mirror/local/none sanitised provenance, with no absolute local path or URL credentials;
+  · name/description/x-analyser-min-version validation and refusal when minimum exceeds the analyser
+    version the bundle names;
+  · refusal of project-supplied skills.source as a generator input (the analyser already refuses it at
+    runtime; P2 must prevent the project from steering build/release retrieval).
+
+The canonical imports and grammar fixture can become the default P2 mode; they do not make the other
+requirements disappear. Full P3 acceptance includes none, canonical and one non-canonical fixture, so
+starting it before P2 would guarantee an incomplete matrix.
+
+================================================================================
+5. NEXT ORDER
+================================================================================
+
+  1. Correct the ordinary-Fluxtion README/run-script FLUXTION_API_KEY contradiction and pin it.
+  2. Refactor P0/P1 emitters over one AnalyserBundleModel and use the selected Spring-XML example/canon.
+  3. Implement P2 source modes, index/bounds/failures, provenance and compatibility enforcement.
+  4. Then run P3: real generated zip, local 1.0.39-SNAPSHOT recorded at Mongoose Plugins 6e7a2cc,
+     no-key build/run/export/stop, analyser graph/log/project/runbook checks, source-mode matrix.
+
+P3 harness scaffolding may be written in parallel, but no P3 acceptance verdict should be issued until
+steps 1–3 are present.
