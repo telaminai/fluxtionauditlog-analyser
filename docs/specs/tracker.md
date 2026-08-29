@@ -252,14 +252,18 @@ analyser (reverse funnel)._
   where it needed the audit log to correct itself, and what it never used (unused context is cost). Caution
   in the spec: "context-free" is a property of the session, not the model — an easy pass is weak evidence,
   the failures are the output.
-- [M19.11] ☐ **Onboarding bench — for the BUNDLE path only** _(C1 corrected 2026-08-29)_. My claim that
+- [M19.11] ☑ **Onboarding bench — the bundle consumer path is reproducible** _(completed 2026-08-30)_. My claim that
   the headline had never been run cold was **wrong**: the owner ran it the previous Friday — bare Java
   project, one `jbang` install, existing Claude skills picked up as-is, and **Codex** driving the analyser
   over MCP. That is the first evidence in this project from a **different LLM** and from a **project not
-  prepared for it**, which is stronger than the fixture written for M43. What remains untested is the
-  bundle half — download, seeded profile, seeded skills, tier selection — because it does not exist yet.
-  So the bench is the ordinary regression guard (three repos change independently; nothing says when it
-  stops), scoped to the bundle path, and is **not** a precondition.
+  prepared for it**, which is stronger than the fixture written for M43. The producer's static
+  `bundle-bench.py` guards the generated ZIP. This repo now supplies the other half:
+  `tools/bench/bundle-client-bench.py` launches a never-configured analyser, opens project then YAML +
+  GraphML in the correct two-call order, checks profile/runbooks/provenance/pairing/coverage, and drives
+  a separately packaged MCP stdio bridge through current discovery, tools/list and analyser_context. It
+  passed 19/19 against artefact branch `893fbdf` and its 23-record released-1.0.39 bundle. This is the
+  ordinary regression guard (three repos change independently; nothing says when it stops), scoped to
+  the bundle path, and is **not** a precondition.
 - [M19.12] ☑ **Key management shipped at `db42919` (R8)** _(owner asked 2026-08-29: "is
   key management in this spec?" — it was not; D-R1 resolved the DECISION and nothing described the
   feature)_. Three surfaces, no first-run modal: a start-page card, an `AI ▸ Fluxtion API key…` item, and a
@@ -288,7 +292,7 @@ analyser (reverse funnel)._
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
   gating anything. **Re-adding a first-run modal would reverse D-S1.**
-- [M19.10] ◧ **Canonical skills accepted; one P3 instruction correction awaits re-vendoring** — authored in [`docs/skills/`](../skills/README.md); four
+- [M19.10] ☑ **Canonical skills accepted and the P3 correction is shipped** — authored in [`docs/skills/`](../skills/README.md); four
   written and verified discoverable by the shipped `SkillDiscovery`. Canonical `TODO(bundle)` markers
   remain authoring inputs only; the generator grounds the selected copies and rejects any survivor.
   - 2026-08-29 at `5c72e21`: `CanonicalSkillsTest` pins the four names, descriptions and minimum analyser version;
@@ -312,9 +316,11 @@ analyser (reverse funnel)._
   - P3 then proved a valid-looking combined `open {project, log, graphml}` call ignores the log and graph:
     a project switch is deliberately a session boundary. The canonical load-log skill is corrected at
     `f5efe17` to check the active project, open a different project alone, then open log + GraphML in the
-    second call. The published index now names that source revision. Re-vendor it into the playground and
-    regenerate the final acceptance artifact before M19.10 returns to ☑.
-- [M19.1] ◧ **Bundle implementation complete; live P3 and public dependency remain** — **full Maven project** (O1 resolved: user edits
+    second call. The published index now names that source revision.
+  - Closed 2026-08-30: the playground re-vendored the public canonical root at full revision
+    `f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8`; the delivered ZIP reports that provenance, both pointers
+    resolve to concrete marker-free skills, and the fresh analyser plus MCP bridge report the same value.
+- [M19.1] ◧ **Released bundle produced and consumer P3 accepted; two lifecycle corrections remain** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
   layer, snapshot of the canon at generation time, canonical-reference line) + admin REST on + README
@@ -329,11 +335,11 @@ analyser (reverse funnel)._
   port, the analyser's endpoint file), never to author a rival prompt. Add `skill.md`/`contract.md` to
   the snapshot set for the XML-defined example (spec O2), since those are what make the design-level
   edit in tutorial part 4 possible._
-  - **Dependency gate ☑ released as mongoose-plugins 1.0.39:** local implementation/bench work used
+  - **Dependency gate ☑ released and consumed as mongoose-plugins 1.0.39:** local implementation/bench work used
     `svc-admin-web:1.0.39-SNAPSHOT` from Mongoose Plugins `6e7a2cc`. On 2026-08-29 the final
     `svc-admin-web:1.0.39` and `mongoose-test-support:1.0.39` POMs both resolved publicly from the Repsy
-    repository generated bundles already declare. The playground must now bump its pinned
-    `mongoosePlugins` version from 1.0.38 to 1.0.39, regenerate, and use only that release for clean P3.
+    repository generated bundles already declare. The playground pins 1.0.39; an empty-HOME + empty
+    Maven-repository package resolved both public artefacts with no local snapshot or Fluxtion key.
   - **P0 ☑ accepted at reviewed head `73565fc`:** fluxtion-web
     `feature/m19-p0-keyless-bundle` moves scan/second-compile behind
     `-Pgenerate-fluxtion`, adds deterministic registry identity plus export/stop scripts, and keeps the
@@ -371,11 +377,11 @@ analyser (reverse funnel)._
     canonical 49/49, none 35/35 and local 49/49 through build → actual zip → checker. A five-test real
     loopback-TLS fixture covers successful mirror retrieval/provenance, redirects and distinct HTTP/
     transport outcomes; mirror/local reconverge before the shared non-none snapshot/build path.
-    Independent gates: 74/74 focused, 401/401 full. **Low follow-up before archive:** the fixture's
-    `rejectUnauthorized: false` accepts any certificate for its private client; supply the generated
-    certificate as `ca` so its scoped-trust comment is true. Review and dispositions:
+    Independent gates: 74/74 focused, 401/401 full. **Low follow-up ☑ closed at `2ad5289`:** the fixture
+    supplies its generated certificate as the private client's `ca` with verification enabled. Review
+    and dispositions:
     [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
-  - **P3 ◧ producer path proven provisionally; no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
+  - **P3 ◧ analyser/MCP accepted; distribution lifecycle corrections remain:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
     guide mirror/version, committed processor source, declared/discoverable GraphML, exact shipped
     runbooks + frontmatter/provenance/minimum version, executable lifecycle scripts, safe inventory and
@@ -384,12 +390,19 @@ analyser (reverse funnel)._
     canonical Spring Download zip now passes 49/49 static checks. A real SNAPSHOT-based run at playground
     `4eabc1c` proved empty-HOME keyless package, real processor registry publication, 18 audit records and
     declared-path YAML export. It found that generated MongooseMain lacked a shutdown hook; the generator
-    now calls server.stop() from one, and the live rerun removed the registry entry cleanly. The final
-    key-free project/export/GraphML must be handed to this session at a named hashed path before the fresh
-    analyser project/runbook/pairing and MCP checks can run. The Mongoose 1.0.39 publication gate is now
-    closed; clean-machine acceptance waits only on a final regenerated/re-vendored artifact using it.
+    now calls server.stop() from one, and the live rerun removed the registry entry cleanly.
     Local gates: 9/9 Python fixtures, 1,112/1,112
     Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
+    The final artefact is reproducible on fluxtion-web `m19/p3-artifacts` @ `893fbdf`; its ZIP SHA-256 is
+    `a5fba6c3d07cae710b825131403b1fa8d350fc6e6a284c5d95b03e94f29c9ba6`. Public 1.0.39 keyless build,
+    run, five typed PriceEvent cycles, 23-record export and clean ordinary-home stop are producer-proven.
+    This session independently passed the ZIP 49/49 and its fresh analyser/MCP leg 19/19: active project,
+    two described/existing runbooks, canonical@f5efe17 provenance, pairing 2/2, coverage 1.0, 14 tools and
+    analyser_context returning the same state.
+    **Two producer corrections block the final Download verdict:** the JDK-only claim is false while
+    export/stop require Python 3 + curl/ps and have no Windows entry points; and run-server's JVM
+    `user.home` can differ from the `$HOME` used by export/stop, splitting the registry location.
+    Exact evidence and next order: [`review_m19_p3_released_bundle.txt`](../handoff/review_m19_p3_released_bundle.txt).
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining

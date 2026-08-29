@@ -1,0 +1,103 @@
+REVIEW — M19 P3 released bundle + fresh analyser/MCP client
+Date: 2026-08-30 · Reviewer: analyser session
+Reviewed producer head: fluxtion-web feature/m19-p0-keyless-bundle @ 0f850eb
+Production deployment reported at: fluxtion-web main @ 967d439
+Reviewed artefact: fluxtion-web m19/p3-artifacts @ 893fbdf
+Reviewed analyser base: main @ 94355cd (canonical correction f5efe17)
+Published dependency: mongoose-plugins 1.0.39 (release merge 5155901)
+
+VERDICT
+
+ANALYSER/MCP CONSUMER LEG: ACCEPTED. OVERALL DOWNLOADABLE-BUNDLE SIGN-OFF: CHANGES REQUESTED.
+
+The missing client leg is now real evidence rather than an inferred result. A fresh analyser home opened
+the project in one call and its YAML + GraphML in the required second call; it reported both declared
+runbooks with descriptions and existing files, canonical@f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8,
+23 records, pairing 2/2, and coverage ratio 1.0 with zero uncovered. A separately-launched packaged stdio
+bridge answered current server/discover, advertised all 14 tools, and analyser_context returned that same
+project, record count, provenance and pairing. The new reproducible `tools/bench/bundle-client-bench.py`
+runs this public seam and passed 19/19 against the delivered bundle.
+
+The artefact itself is reproducible: branch 893fbdf contains the ZIP, generated processor, GraphML, YAML,
+README and hashes. All five SHA-256 entries pass; the ZIP is
+a5fba6c3d07cae710b825131403b1fa8d350fc6e6a284c5d95b03e94f29c9ba6. `bundle-bench.py` passes 49/49.
+An independent empty-HOME + empty-Maven-repository build resolved 69 MB from public repositories,
+including svc-admin-web and mongoose-test-support 1.0.39, and exited 0 with no key file.
+
+F1 (BLOCKING DISTRIBUTION — “ONLY A JDK” IS FALSE FOR THE SHIPPED LIFECYCLE)
+
+The README and artefact handoff both say “No prerequisites beyond a JDK”. The actual commands require:
+
+  export-audit.sh  -> bash + curl + python3
+  stop-server.sh   -> bash + python3 + ps
+
+Neither Python nor curl is supplied by a JDK, Python 3 is not guaranteed on a fresh macOS install, and
+the two lifecycle commands have no Windows `.cmd` equivalents even though the bundle ships mvnw.cmd.
+The producer's clean-machine proof isolated HOME and Maven resolution; it did not remove these host tools,
+so it could not prove the stated prerequisite. This is the same false-pass class as the earlier JBang and
+key findings: a developer machine compensates for something the product claims to supply.
+
+Choose one honest correction before the Download is accepted:
+
+  A. preserve the stated acceptance: make export/stop use a helper supplied and run by the JDK, and ship
+     equivalent POSIX + Windows entry points; or
+  B. narrow the product target and every README/guide/acceptance line to the actual supported platforms
+     and explicitly list bash, curl, Python 3 and ps as prerequisites.
+
+Given the milestone's repeated JDK-only headline, A is the contract-faithful correction. Pin the commands
+with a test whose PATH contains the JDK plus only the bundle-owned launchers; an ordinary developer PATH
+does not test this requirement.
+
+F2 (REQUIRED PORTABILITY CORRECTION — SHELL HOME AND JVM HOME CAN DISAGREE)
+
+`run-server.sh` launches `java` without binding `-Duser.home`. Mongoose publishes the registry under
+Java's `user.home`. `export-audit.sh` and `stop-server.sh` look under shell `$HOME`. Reproduction:
+
+  HOME=<isolated> ./run-server.sh
+
+on this Mac published `/Users/greg/.mongoose/servers/fluxtion-spring-mongoose`, while both scripts looked
+under `<isolated>/.mongoose/servers` and refused to export/stop. Ordinary interactive shells hide the
+defect because the two homes normally agree; containers, launchers and isolation harnesses need not.
+
+Make all three commands use one resolved registry home. The narrow generator fix is to pass
+`-Duser.home="$HOME"` to the launched JVM (while preserving an explicit MONGOOSE_SERVERS_DIR contract if
+that is intended), then add a fixture where shell HOME differs from the parent JVM's default user.home.
+
+N1 (NON-BLOCKING FOR THE BUNDLE; LOOP CONTRACT FOLLOW-UP)
+
+Immediately after the released server booted, its registry entry carried `processors: []`. The current
+loop-bench assumes `processors[0]` and failed its GraphML export. The delivered M19 bundle is not blocked:
+its profile and skills declare the committed local GraphML and the accepted consumer bench uses that
+authoritative path. The producer report says processors populate after a dashboard poll, which means the
+generic real-server bench and publisher have a lazy-publication seam to resolve separately: either publish
+processor routes eagerly or make the registry contract/bench wait on the endpoint that earns them. Do not
+count the existing loop-bench as a real-server pass on this released startup shape until that is pinned.
+
+VERIFICATION
+
+  · SHA256SUMS over artefact branch contents — 5/5 PASS
+  · tools/bench/bundle-bench.py <zip> --analyser-version 1.12.0 — 49/49 PASS
+  · empty HOME + empty Maven repo ./mvnw -q package — PASS, public 1.0.39, no key
+  · tools/bench/bundle-client-bench.py <project> --log <yaml> --graphml <graph> --expected-records 23
+      — 19/19 PASS, fresh analyser + packaged current MCP wire
+  · production starter catalogue — `catalogue: 1`; deployed fluxtion-spring-mongoose definition has
+      typed PriceEvent fields, csvToPriceEvent and Chronicle auditCapture enabled
+  · python3 -m py_compile tools/bench/bundle-client-bench.py — PASS
+  · mvn -q -Dtest=SpecLinksResolveTest test — PASS
+  · git diff --check — PASS before tracker/handoff edits
+
+NOT CHECKED
+
+I did not repeat the producer's browser Download click, key-assisted generation, live PriceEvent feed or
+ordinary-home clean stop; those are supported by its tests and delivered artefacts. I independently
+checked the actual zip/hash, public keyless build, analyser state and MCP wire. I did not run on Windows;
+the absence of export/stop `.cmd` files is source evidence, not a Windows execution claim.
+
+NEXT ORDER
+
+1. Producer fixes F1 and F2 and reruns its actual-zip tests plus the live run/export/stop path.
+2. Producer hands back the regenerated ZIP SHA and exact branch commit; the analyser session reruns
+   bundle-bench and bundle-client-bench.
+3. Resolve N1 under the generic registry/loop contract without making the M19 bundle rediscover a GraphML
+   path it already declares.
+4. Then mark M19.1 P3 accepted and archive the completed review train; M19.3/.14/.15 remain separately open.
