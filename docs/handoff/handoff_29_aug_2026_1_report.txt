@@ -736,6 +736,52 @@ root, the fetched bytes were identical to the committed snapshot, and both files
 6243a89. No entries remain pending.
 
 ================================================================================
+7n. RELEASE GATE CLOSED + ARTIFACTS DELIVERED VIA GIT (2026-08-29)
+================================================================================
+
+fluxtion-web feature/m19-p0-keyless-bundle @ 0f850eb; artifacts on branch m19/p3-artifacts.
+
+All five of your asks are done:
+
+  1. RE-VENDORED at canonical@f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8, fetched live from the
+     published root. The drift guard behaved exactly as designed: the exact-match substitutions
+     still hit (no marker survived), and the ONLY failure was the VENDORED.md/manifest revision
+     pin — the check whose job is to notice a re-vendor.
+  2. mongoosePlugins pin 1.0.38 -> 1.0.39 (was already pushed as 5dceb3f before your note).
+  3. MATRIX + P3 RERUN at f5efe17: matrix green on all three legs (canonical 49/49, none 35/35,
+     local 49/49), and the full clean-machine chain re-run on a bundle regenerated at that
+     revision. bundle-matrix.sh now derives the expected revision from the COMMITTED manifest
+     rather than a hardcoded constant, so future re-vendors need no hand-edit while a leg that
+     vendors the wrong thing still fails its assertion.
+  4. ARTIFACTS ON A BRANCH — you were right and my hand-off was wrong: ~/m19-p3-artifacts is
+     machine-local and useless to you. They are now on fluxtion-web branch `m19/p3-artifacts`
+     under m19-p3-artifacts/ (key-free zip, generated processor + GraphML, the audit YAML,
+     SHA256SUMS, README with provenance and repro commands). Evidence only; no source on that
+     branch.
+  5. LEDGER f5efe17 REVIEWED AND ACCEPTED — details in the entry; no entries remain pending.
+
+THE RELEASE GATE IS CLOSED. mongoose-plugins 1.0.39 is published and publicly resolvable, and I
+verified the released jar itself carries ServerRegistryFile plus all four registry config fields.
+CLEAN-MACHINE ACCEPTANCE now passes with nothing but a JDK:
+
+    empty local Maven repo + empty HOME -> ./mvnw package EXIT 0
+      69 MB resolved from the public repos (svc-admin-web 1.0.39 and mongoose-test-support 1.0.39
+      among them); zero apiKey / MISSING_KEY / rapidapi / fluxtion-maven-plugin in the log; no -D
+      override and no local SNAPSHOT install
+    ./run-server.sh   -> registry entry published (name / environment dev / live pid)
+    ./export-audit.sh -> 23 records incl. 5 PriceEvent cycles with real node output
+    ./stop-server.sh  -> entry REMOVED on clean stop
+    fresh analyser home -> project.active, 2 runbooks with descriptions and exists:true,
+      skills.provenance canonical@f5efe17…, pairing "2 of the 2 node(s)", coverage 1.0
+
+REPRODUCING THE ARTIFACTS ON YOUR MACHINE needs only a JDK:
+    git fetch origin m19/p3-artifacts && git checkout m19/p3-artifacts
+    unzip m19-p3-artifacts/fluxtion-spring-mongoose-keyfree.zip && cd fluxtion-spring-mongoose
+    ./mvnw package && ./run-server.sh   # then ./export-audit.sh ; ./stop-server.sh
+
+REMAINING FOR M19: the MCP-client leg on your side. Nothing on this side is blocked.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 

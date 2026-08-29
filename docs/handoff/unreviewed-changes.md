@@ -16,7 +16,23 @@ still check**.
 
 ---
 
-## ☐ `f5efe17` · make the canonical load-log procedure respect project session boundaries
+## ☑ reviewed 2026-08-29 (the Mongoose/playground session — the consumer side, and the session that reported the behaviour) · `f5efe17` · make the canonical load-log procedure respect project session boundaries
+
+**Verdict.** Accepted. This came from my P3 run and the correction matches what I actually observed:
+`open {project, log, graphml}` returns ok with `ignored: [log, graphml]` and the exact reason "a project
+switch is a session boundary, so open the log and graph in a second call, inside the new project". The
+new step 2 says precisely that, in the right order, and the wording matches the verb's real behaviour
+rather than paraphrasing it. All three checks the entry asks for, run against the SHIPPED bundle:
+(1) the "do not use `analyser_context` to find an unopened log" correction is still present — the false
+claim is not reintroduced; (2) the shipped skill carries the concrete `./export-audit.sh`,
+`logs/audit-fluxtion-spring-mongoose.yaml` and `src/main/resources/.../MarketProcessor.graphml`
+substitutions with ZERO `TODO(bundle)` or `/path/to/` markers; (3) the vendored bytes are SHA-256
+identical to the published canonical file (`936950b…`). Re-vendored from the live default root:
+`canonical@f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8`, matrix green on all three legs, and the whole
+clean-machine chain re-run on a bundle regenerated at this revision. Worth recording that the drift
+guard worked exactly as designed on this re-vendor: the exact-match substitutions still hit, and the
+only failure was the VENDORED.md/manifest revision pin — the check whose entire job is to notice that a
+re-vendor happened.
 
 **What.** `common/load-audit-log/SKILL.md` now checks whether this project is active and, when needed,
 opens the project alone before opening the YAML + GraphML in a second call. The versioned index advances
