@@ -306,6 +306,63 @@ They obey the rule in D-R2: they describe the project's own entry points and nev
 step cannot be grounded without the host in front of you it carries a `TODO(bundle)` marker — an
 instruction to the generator, and a bug if it ever reaches a shipped bundle.
 
+### R6 — the first-run surface is the START PAGE, not a dialog (correcting my own draft)
+
+Worth stating because I got it wrong twice in one session, and because the next reader will make the same
+assumption. **The analyser has no first-run dialog.** `showFirstRunSettingsIfNeeded()` is now a no-op for
+a human: M36 **D-S1** removed the modal after the owner reported *"no config found modal popped"*, and
+what remains is the `--rest` stdout note for the case where nobody is at the screen.
+
+The start page **is** the first run — it is the no-log STATE — and it already carries the MCP setup cards
+(Connect Codex / Connect Claude / Generic). So the behaviour we want on first launch exists; it is a
+surface, not a modal, and that is the better shape.
+
+**Therefore: licence registration belongs on the start page and on the AI menu, not in a new dialog.**
+Adding a first-run modal to offer key registration would reverse D-S1 — an owner-directed removal — and
+would re-introduce the exact thing M35 spent a milestone deleting: something that fires at a screen where
+the user has not yet asked for anything. A start-page card ("Fluxtion API key: not set — needed to
+regenerate a processor") states the fact and names the remedy without gating anything.
+
+### Concerns for the handoff review
+
+Recorded rather than resolved. Each is falsifiable and none blocks the design.
+
+**C1 — the headline claim has never been tested, and it is testable.** *"<10 minutes, nothing pre-installed
+but a JDK"* has been this spec's target since it was written and no one has run it cold. A spec does not
+reduce friction; a tested path does. The precedent for fixing this exists and is already load-bearing:
+`tools/bench/loop-bench.py` turned the dev loop from a description into PASS/FAIL and is what unblocked
+the upstream asks. **Propose an onboarding bench on the same pattern** — fetch a bundle, build, run,
+launch the analyser, assert `context` reports the log, the graph pairing and the seeded runbooks. That
+also catches the failure this design is most exposed to: the bundle and the analyser drifting apart
+between releases, silently, until someone tries it cold.
+
+**C2 — the analyser side is one line; the BUNDLE side still has steps.** The analyser is
+`jbang analyser@telaminai/fluxtionauditlog-analyser` and a start page, which is genuinely low friction (I
+previously counted this wrongly and the count is corrected above). What remains is on the project: download,
+build, run, find the log. Worth considering a single `./go` in the bundle that builds, runs, prints where
+the audit log landed and prints the exact `jbang` line to open the analyser. Two commands, the second
+copy-paste. That is a larger win than anything else in this revision and it costs the bundle generator one
+script.
+
+**C3 — "nothing pre-installed but a JDK" is now understated.** The experience this revision describes needs
+a JDK **plus an MCP-capable agent, configured, with a subscription**. That is the target user and the
+assumption is fine — but the promise no longer describes what is delivered. Someone arriving with only a
+JDK gets the analyser and the log and none of the AI story, and should be told that up front rather than
+discovering it. Suggest the headline becomes explicit about the two paths.
+
+**C4 — three repositories have to agree, and that is a sequencing risk rather than a design one.** M19 needs
+playground bundle generation, the Mongoose starter's behaviour, and this analyser. The owner has
+deliberately not started the cross-repo briefs until the project structure stabilised, which is the right
+order — starting them earlier would have meant briefing against a moving target. The risk transfers rather
+than disappears: once started, three parties must stay aligned across releases, and every cross-repo item
+in this project so far has moved slowly (the upstream asks were drafted 2026-08-25 and are not all filed).
+C1's bench is the cheapest available guard, because it fails when the three drift.
+
+**C5 — `TODO(bundle)` markers are a deliberate admission, and need an owner.** The canonical skills carry
+them where a step cannot be grounded without the host in front of you. Acceptance says a shipped bundle
+containing one is a bug — but nothing currently *checks* that, and the check belongs to whoever generates
+bundles, not to this repo.
+
 ### Acceptance added by this revision
 
 - [ ] The bundle contains `.claude/skills/*/SKILL.md` using the `name`/`description` frontmatter M43
@@ -319,7 +376,10 @@ instruction to the generator, and a bug if it ever reaches a shipped bundle.
       profile with the reason stated — a test asserts a profile carrying it is ignored (D-R4).
 - [ ] The source actually used is recorded in the generated project and shown, so a corporate mirror is
       distinguishable from the canonical set without diffing (D-R4).
-- [ ] No shipped bundle contains a `TODO(bundle)` marker (D-R2).
+- [ ] No shipped bundle contains a `TODO(bundle)` marker (D-R2) — and something CHECKS it (C5).
+- [ ] Licence registration is offered on the START PAGE and the AI menu, never as a first-run modal
+      (R6 — D-S1 removed that modal on owner report and it must not return).
+- [ ] The <10-minute claim is exercised by a bench, not asserted (C1).
 - [ ] Step 6's division-of-labour paragraph is rewritten per R3.
 - [ ] The tutorial opens the graph before the first run and shows M40.1's verdict (R5).
 

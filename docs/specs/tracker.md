@@ -159,6 +159,13 @@ analyser (reverse funnel)._
   not redirect the instructions an agent reads. Accepts a URL, a local path, or `none` as a first-class
   value. The source used is recorded and shown. Blast radius stated: nothing executes a skill, so the
   exposure is an agent READING a procedure — real, bounded, and why the source is machine-tier.
+- [M19.11] ☐ **Onboarding bench (C1)** — the <10-minute claim has never been run cold and is testable on
+  the `loop-bench.py` pattern: fetch a bundle, build, run, launch the analyser, assert `context` reports the
+  log, the pairing and the seeded runbooks. Also the cheapest guard against the three repos drifting (C4).
+- [M19.12] ☐ **Licence registration on the START PAGE, not a dialog (R6)** — `showFirstRunSettingsIfNeeded`
+  is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
+  the first run and already carries the MCP cards. A key card states the fact and names the remedy without
+  gating anything. **Re-adding a first-run modal would reverse D-S1.**
 - [M19.10] ☐ **The canonical skill documents** — authored in [`docs/skills/`](../skills/README.md); four
   written and verified discoverable by the shipped `SkillDiscovery`. Remaining: the `TODO(bundle)` markers
   need grounding against a real host before any bundle ships one.
