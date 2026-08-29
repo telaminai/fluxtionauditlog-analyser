@@ -318,6 +318,29 @@ RUNBOOK — machine-independent, for whoever picks this up:
      generating). Real Maven smoke: web/scripts/starter-smoke.sh.
 
 ================================================================================
+7b. MISMATCH REPORT — CONTRACT v1 vs THE OWNER'S EXPORT-BEAT DECISION (2026-08-29, post-push)
+================================================================================
+
+Reported per the brief's rule ("if this brief and that revision disagree, stop and report"), found
+while rebasing this report onto origin/main: commit c549988 wrote **M19 BUNDLE CONTRACT v1**
+BEFORE this report and the owner decision in §7 were visible remotely (the pushes crossed).
+
+The contract requires `<the log the project writes>` at a generated concrete path, and its
+acceptance reads "unzip → run → an audit log appears at the path the bundle declared, with no API
+key present". The owner's same-day decision (§7) is the EXPORT BEAT for v1: Mongoose capture is
+Chronicle-only, and the analyser-readable YAML is produced by
+GET /api/audit/file/{id}/export?format=yaml — i.e. the log does NOT appear from merely running;
+one export step produces it.
+
+These reconcile without losing D-X6's declared-concrete-path property: the bundle ships the
+export step (a script or the mongoose skill's step) that writes the exported YAML to the declared
+path (e.g. ./logs/audit-<name>.yaml), and the acceptance line becomes
+"unzip → run → export (the bundle's own one step) → the log is at the declared path, no key".
+The contract table is the analyser session's artefact (any change is v2 by its own rule), so the
+amendment is theirs to make; nothing on the Mongoose/playground side is blocked by it — the
+export endpoint exists and passed against the stub; the registry leg passed live (§7).
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
