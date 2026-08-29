@@ -139,6 +139,12 @@ analyser (reverse funnel)._
   that both edits and drives; the surviving principle is that the ANALYSER edits no code); **R4** the
   licence key is the first wall after first success and the seeded CLAUDE.md must pre-empt it; **R5** open
   the analyser on the GRAPH before the first run, so M40.1 has something true to say at minute two.
+- [M19] ➜ **RETURNED FOR REVISION 2026-08-29 after three independent reviews — NOT ready to brief.** Most
+  findings are fixed in the spec; **F1 (no versioned bundle contract v1), F4 (`skills.source` has no
+  retrieval or version-enforcement contract) and F5/F8 (the embedded tier is unverified end to end and is
+  now marked NOT PUBLISHABLE in the skill itself) remain OPEN.** The embedded one cannot be closed by
+  writing: it needs someone with a Fluxtion API key to build a processor, run it through the listener and
+  open the result.
 - [M19.16] ☐ **Review amendments before bundle implementation** — correct the MCP bootstrap to the
   supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
   key provenance a value-free observable source rather than guessing a separate build's winner; and make
@@ -153,8 +159,8 @@ analyser (reverse funnel)._
   its `~/.fluxtion/profiles/` concept. The limit is unchanged: manage it, state where it came from, and the
   VALUE never reaches `context`, an echo, the profile, share export or a screenshot.
 - [D-R2] ☑ **RESOLVED 2026-08-29 — skills are a LIBRARY KEYED BY HOST**, not per-project authoring:
-  `common` (load log, record, replay) + one of `mongoose` / `embedded` (`DataFlowConnector` +
-  `FileMessageSink`, verified in runtime 1.0.13). A bundle SELECTS a tier. The rule: a skill describes the
+  `common` (load log, record, replay) + one of `mongoose` / `embedded` (audit via `setAuditLogProcessor(LogRecordListener)` — **NOT** `addSink`/`FileMessageSink`,
+  which review F1 showed was wrong). A bundle SELECTS a tier. The rule: a skill describes the
   project's own entry points and never invents a CLI — invented commands are fiction an agent cannot
   distinguish from fact.
 - [D-R3] ☑ **RESOLVED 2026-08-29 — late-bind at DOWNLOAD, never at RUNTIME.** Guidance (prose, skills,
@@ -437,8 +443,12 @@ analyser is willing to assert._
   that, and a buyer who hears it will correctly conclude we do not fit. Say *verifiable* / *independently
   recorded* — which asks them to believe nothing about the model.
 - **D-T3** the distinction that carries the position: an agent's account is TESTIMONY, the audit log is
-  EVIDENCE — written by the runtime, at the time, by a party with no interest in it. This is also why the
-  record must be on by default: a log enabled after an incident is not evidence of the incident.
+  EVIDENCE **about execution** — produced by running, not by narration. Why the record must be on by
+  default: a log enabled after an incident is not evidence of the incident.
+  **BOUNDED (review F5, 2026-08-29):** it is *not* tamper-evident, *not* authenticated, and *not*
+  independent of whoever wrote the logging calls — the analyser parses a hand-written log, and an agent
+  that authors the project writes the `auditLog` calls. Origin rests on declared provenance and on
+  trusting the runtime. Never claim more than that.
 - **D-T4** every refusal in the analyser is now load-bearing rather than tasteful. A change that makes it
   assert more than the record supports is **a change to the market position**, and reviewers should treat
   it as one.

@@ -10,14 +10,18 @@ Use this before answering any question about what the running system did.
 
 ## Steps
 
-1. Find the log. This project writes it to the path recorded in the project profile; if you are unsure,
-   ask the analyser rather than guessing:
+1. **The log path is written into this skill when the bundle is generated.** It is not discoverable
+   from the analyser, and asking it is the wrong move:
 
    ```
-   analyser_context {}
+   TODO(bundle): the generator substitutes this project's actual audit-log and GraphML paths here.
    ```
 
-   The `log` and `graphPairing` sections say what is already open and which graph is paired with it.
+   **Do not use `analyser_context` to find an unopened log** — an earlier version of this skill said to,
+   and it was false (review F3, 2026-08-29). `context.log` describes the log **already open**; on a fresh
+   project it is absent, and the profile stores no log path at all (`ProjectProfile` has no such
+   category). An agent following the old instruction on a fresh bundle would find nothing and conclude the
+   project was broken.
 
 2. Open the log together with the processor's GraphML, so structure and behaviour are read as one thing:
 

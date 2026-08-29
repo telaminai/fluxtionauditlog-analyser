@@ -46,11 +46,18 @@ being answered about a different log.
 Only run this when you have changed the graph (added or rewired a node). Running the project does not
 need it.
 
-1. Check a key is resolvable:
+1. **Do not rely on the preflight script alone** (review F6). It reads `FLUXTION_API_KEY`, which the
+   builder never reads — so it can report success on a value the build will not receive. Check what the
+   build actually resolves:
 
    ```
-   ./scripts/check-fluxtion-key.sh      # if this project ships it
+   # the file the builder reads when no system property is set
+   grep -s '^apiKey=' ~/.fluxtion/fluxtion.apiKeyFile >/dev/null && echo "key file present" \
+                                                              || echo "NO key file — the build will fail"
    ```
+
+   If the project ships `check-fluxtion-key.sh`, treat a pass as necessary but not sufficient until that
+   script is fixed to check a source the builder reads.
 
 2. **Know which source the BUILD actually reads**, because it is not what a shell script reads. Verified
    against `fluxtion-builder` 1.0.64 (`FluxtionConfigManager`):

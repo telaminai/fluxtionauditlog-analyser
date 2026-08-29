@@ -1,0 +1,257 @@
+REVIEW — M19 amendment validation, 6014af9..c4e15ea
+Date: 2026-08-29 · Assessor: independent reviewer session
+
+Scope: validate commit c4e15eaaec6db739a08ce94f9dae62e521aad3c5 against both M19 reviews and
+the cross-repository decisions in handoff_29_aug_2026_1.txt. Checked the amended onboarding and trust
+specs, all canonical skills, the live tracker, the public install page, analyser source, Fluxtion runtime
+source at https://github.com/telaminai/fluxtion.git commit
+8adfc6fd65b610e749d471d765f86a8c23ee1d03, and the locally resolved Builder 1.0.64 artifact.
+
+VERDICT: RETURN FOR REVISION. The trust-spec correction is accepted and the MCP correction is sound.
+The runtime audit route and Builder precedence are now described correctly in principle. M19 itself is
+not ready for sign-off or parallel implementation: the required versioned bundle contract is absent;
+the key UI still claims an unobservable build winner; the load-log skill is unchanged; the skills-source
+contract and version enforcement remain unspecified; and the two amended host skills still contain
+procedures that cannot be used reliably as written. M19.16 must remain open and the phase-zero-only gate
+in handoff_29_aug_2026_1.txt remains in force.
+
+================================================================================
+1. F1 — BLOCKING: THE REQUIRED “M19 BUNDLE CONTRACT v1” DOES NOT EXIST IN THE SPEC
+================================================================================
+
+The coordination decision is explicit: the normative spec must contain a table labelled `M19 bundle
+contract v1`, with every producer/consumer field, path and command; implementation starts only after that
+exact contract revision and SHA are signed (handoff_29_aug_2026_1.txt:64-75, 158-175).
+
+No such contract or label exists in spec-onboarding-example.md. Its bundle table at lines 75-87 still
+uses placeholders such as `./logs/audit-<name>.yaml`; it does not give one exact GraphML path, generated
+processor path/FQN, source-root set, start command, stop command, regenerate command, final skill inventory,
+profile fields, skills provenance field or contract version. A search for `M19 bundle contract v1` finds
+it only in the coordination handoff and tracker, not in the normative spec.
+
+This is not a formatting request. Mongoose and playground cannot generate one consistent README,
+CLAUDE/AGENTS mirror, profile and skill set from the present prose without independently choosing the
+missing values—the guessing the phase gate was written to prevent.
+
+Required correction: add the versioned cross-repository contract table to the spec, populated from the
+other session's live-source reconnaissance. Record the exact signed SHA only after this review's remaining
+contract findings are closed.
+
+================================================================================
+2. F2 — BLOCKING: KEY PROVENANCE STILL CLAIMS A SEPARATE BUILD'S UNOBSERVABLE WINNER
+================================================================================
+
+The amendment correctly establishes the Builder 1.0.64 precedence at spec-onboarding-example.md:303-317:
+the JVM system property overrides the file, and the Builder does not read FLUXTION_API_KEY. It does not
+apply the agreed consequence.
+
+R8 still offers Project-panel text saying `overridden by -Dfluxtion.apiKey` while admitting the analyser
+cannot observe a property supplied to a future Maven JVM (lines 471-481). Acceptance still requires which
+of “file / env / build property answered” (lines 654-655). D-R1 retains the now-false sentence “Your build
+is using the environment variable” (lines 681-692). The tracker repeats three sources and an effective
+file/env/property winner (tracker.md:149-154, 203-209).
+
+That directly contradicts the fixed coordination decision: v1 reports locally observable setup facts,
+such as canonical key-file presence, and never claims which source a separate build used
+(handoff_29_aug_2026_1.txt:105-126). Effective build provenance is a later, value-free, build-declared
+schema with freshness and build identity—not an analyser inference.
+
+Required correction: make v1 file-presence-only (plus an optional “environment set but ineffective”
+diagnostic), remove effective-winner language from R8, acceptance, D-R1 and tracker, and defer
+`build-declared` provenance until its own schema exists.
+
+================================================================================
+3. F3 — BLOCKING: THE FRESH-BUNDLE LOAD-LOG PROCEDURE IS UNCHANGED AND STILL FALSE
+================================================================================
+
+docs/skills/common/load-audit-log/SKILL.md:13-20 still says the project profile records the audit-log path
+and tells the agent to use `analyser_context` to find it. The profile does not own a log-path category
+(ProjectProfile.java:66-81), and `context.log` is emitted only when a log is already loaded
+(MainFrame.java:4021-4035). The UI correctly says “No log loaded” in that state
+(ProjectModel.java:111-116).
+
+This was blocking F3 in review_m19_onboarding_and_trust.txt and part of F4 in the other independent review.
+The amendment did not touch the skill. It also violates D-X6, which requires a generated concrete path and
+explicitly says the analyser does not infer an unopened log path
+(handoff_29_aug_2026_1.txt:158-175).
+
+Required correction: make the generated skill carry the bundle model's exact project-relative audit-log
+and GraphML paths. Add fresh-project acceptance which locates and opens the promised log before any log has
+previously been opened.
+
+================================================================================
+4. F4 — BLOCKING: skills.source AND VERSION COMPATIBILITY ARE STILL NOT BUILD CONTRACTS
+================================================================================
+
+D-R4 still defines only a configurable base URL/path/none and the machine-tier rule
+(spec-onboarding-example.md:796-828). It does not define the deterministic index/layout, contract version,
+host-tier representation, distinct not-found/invalid/transport-failure results, bounded content, or a
+sanitised credential-free provenance identity. These are the minimum—not optional hardening—identified in
+the prior review and fixed as D-X8 (handoff_29_aug_2026_1.txt:190-209). Because the handoff explicitly says
+it is not normative, putting the missing contract there does not amend the spec.
+
+The version guard is also still inert. docs/skills/README.md:45-47 says the analyser ignores
+`x-analyser-min-version`; neither spec acceptance nor a generator contract requires a comparison. D-X9
+requires the generator to fail incompatible selection and the bundle to account for JBang caching
+(handoff_29_aug_2026_1.txt:211-216).
+
+Required correction: promote D-X8's minimum retrieval contract and D-X9's enforced compatibility rule into
+the versioned spec contract, with generator acceptance for canonical, mirror, local, none and each failure
+class. Keep hash pinning, redirect restrictions and signing clearly labelled as recommended hardening if
+they are not v1 gates.
+
+================================================================================
+5. F5 — HIGH: THE EMBEDDED AUDIT MECHANISM IS RIGHT, BUT THE CANONICAL CODE IS NOT USABLE
+================================================================================
+
+The conceptual correction is valid: DataFlow.addSink is business output and
+DataFlow.setAuditLogProcessor(LogRecordListener) is the audit route. The separator requirement and
+level-before-listener ordering are also supported by runtime source.
+
+The replacement snippet at docs/skills/embedded/run-embedded/SKILL.md:28-40 is not a complete Java route.
+`writer.newLine()` identifies the ordinary implementation as BufferedWriter, whose write/newLine/flush
+methods throw IOException. LogRecordListener.processLogRecord declares no checked exception, so the shown
+lambda does not compile without an exception policy. `writer` is never created, its path/open mode and
+parent-directory behaviour are unspecified, and the promised clean-close lifecycle is not installed.
+If a custom unchecked writer is intended, its missing definition is itself the procedure.
+
+Reproducible external evidence:
+
+  javap -classpath ~/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.13/\
+    fluxtion-runtime-1.0.13.jar com.telamin.fluxtion.runtime.audit.LogRecordListener
+  javap java.io.BufferedWriter
+
+The first has `void processLogRecord(LogRecord)` with no throws clause; the second shows IOException on
+write/newLine/flush/close. Runtime 1.0.13's JULLogRecordListener is a useful concrete comparison: its
+constructor owns the file handler and processLogRecord writes `record.toString() + "\n---\n"`.
+
+Required correction: provide a complete, compilable LogRecordListener/file lifecycle or keep the embedded
+tier blocked and unpublishable, as D-X4 already requires. Verify it by building and running a disposable
+embedded processor whose resulting file the analyser parses.
+
+================================================================================
+6. F6 — HIGH: THE REGENERATE PREFLIGHT STILL KNOWINGLY GIVES A FALSE POSITIVE
+================================================================================
+
+Moving the key check out of startup correctly closes the keyless-first-run failure. The regenerate
+procedure at docs/skills/mongoose/run-mongoose-server/SKILL.md:49-68 still tells an agent to run
+`check-fluxtion-key.sh` as “Check a key is resolvable”, then explains that this check can pass on
+FLUXTION_API_KEY although the following build does not read it.
+
+A canonical preflight whose success does not establish its stated precondition is not a preflight. A model
+following the procedure can still receive PASS, rebuild, and fail at process-classes. The warning makes the
+defect documented, not resolved.
+
+Required correction: the generated Mongoose procedure must invoke a check owned by the actual build path,
+or the Mongoose implementation must map the environment variable into the Builder and test that call.
+Otherwise remove the unsound script from the canonical procedure and check only the file/property sources
+the real regeneration command consumes.
+
+================================================================================
+7. F7 — HIGH: THE “JDK ONLY” PATH STILL REQUIRES AN UNDECLARED JBang INSTALL
+================================================================================
+
+The new prerequisite table separates the AI-client requirement, which closes half of the original finding.
+It then says a JDK is “genuinely all” because `jbang` fetches the analyser
+(spec-onboarding-example.md:39-55). JBang is not supplied by the JDK, and step 3 invokes its executable.
+The old acceptance still says a fresh JDK-only machine uses a jbang one-liner (lines 209-213), the revision
+intro retains the same headline (lines 217-220), and the tracker repeats it (tracker.md:123-130).
+
+The repository already documents a genuine JDK path: download the release jar and run `java -jar`
+(docs/site/install.md:44-51). Either use that route in the JDK-only journey, or declare/install JBang as a
+prerequisite and time that installation as part of the bench.
+
+================================================================================
+8. F8 — HIGH: THE CANONICAL SKILL LIBRARY STILL DOES NOT PROVE ITS OWN CLAIMS
+================================================================================
+
+Embedding regenerate inside the Mongoose host skill can satisfy R1's minimum without requiring a separate
+file. The broader D-R2 library remains incomplete:
+
+  · D-R2 names `record a run`, but docs/skills/common contains only load-audit-log and replay-a-run
+    (spec-onboarding-example.md:748-758; docs/skills/README.md:14-22).
+  · replay-a-run promises cycle-count and node-output comparison, but its only comparison call is
+    `aggregate {groupBy: dimension}` (SKILL.md:19-28). That can compare aggregate counts; it cannot establish
+    matching node values.
+
+Required correction: either add the promised record procedure and a real replay output comparison, or
+narrow the library and bundle claims. Discovery/frontmatter parsing is not behavioural acceptance.
+
+================================================================================
+9. F9 — MEDIUM: THE LIVE TRACKER AND PUBLIC INSTALL PAGE CONTRADICT THE AMENDED SPECS
+================================================================================
+
+The tracker is not a harmless summary; it controls implementation. It still states the false embedded
+`DataFlowConnector + FileMessageSink` route (tracker.md:155-159), the old key-winner contract
+(lines 149-154 and 203-209), and the unbounded trust claim that the record was written by a party with no
+interest in it (lines 433-441). Its trust-boundary amendment remains unchecked at lines 450-453 even though
+the trust spec has now made that correction.
+
+The published install page still says the Settings dialog opens automatically on first run
+(docs/site/install.md:68-70), while R6 correctly says a fresh install has no such modal
+(spec-onboarding-example.md:530-545).
+
+Required correction: update the tracker atomically with the final contract and remove the stale public
+first-run text. Do not mark M19.16 complete until the tracker describes the accepted contract rather than
+the rejected one.
+
+================================================================================
+10. AMENDMENTS THAT VALIDATE SUCCESSFULLY
+================================================================================
+
+  · MCP setup: R3 now routes all clients through `AI ▸ Connect an AI client…` and the analyser's resolved
+    local command. This closes the hard-coded Claude placeholder finding in principle. Acceptance line 646
+    should say “resolved setup route/instruction”, not the stale “registration line”.
+  · Builder contract: system property over file, no Builder environment lookup, is correct for
+    fluxtion-builder 1.0.64. Reproduction used `javap -c -p` on
+    FluxtionConfigManager; artifact SHA-256
+    27c7da3285ebc6d33ca75e8d045e8000605b60f5a122e66621305ff8efa45327.
+  · Keyless start: moving key preflight out of startup correctly closes the original first-run stop,
+    subject to F6 for regeneration.
+  · Audit routing: the distinction between business sinks and setAuditLogProcessor is correct, subject to
+    F5 for a complete implementation.
+  · Trust framing: spec-trust-structure.md:23-46, 62-88 and 113-128 now states the required trusted-runtime,
+    declared-provenance boundary and explicitly disclaims origin, completeness, semantics and freedom from
+    author influence. This closes trust review F5 in the spec itself. Only the tracker summary remains stale.
+
+================================================================================
+11. GATES AND EVIDENCE
+================================================================================
+
+At c4e15eaaec6db739a08ce94f9dae62e521aad3c5:
+
+  · `mvn -q test` — PASS: 1,085 tests, 0 failures, 0 errors, 0 skipped. The commit message's “1072 green”
+    is not the current Surefire count.
+  · `.venv/bin/mkdocs build --strict` — PASS.
+  · `tools/bench/loop-bench.py --stub --launch` — PASS: 23, FAIL: 0.
+  · `git diff --check 6014af9..c4e15ea` — clean.
+  · exemption-free four-term public-data sweep — clean before this review artifact; rerun after adding it.
+  · main, origin/main and the reviewed HEAD were the same SHA before this review artifact was written.
+
+The green gates establish that the existing analyser and brokered stub loop were not regressed. They do
+not validate a generated M19 bundle or repair contradictory contracts.
+
+================================================================================
+12. NOT VERIFIED
+================================================================================
+
+  · No `M19 bundle contract v1` or generated playground bundle exists, so inventory, substitutions,
+    profile declarations, source selection, no-TODO enforcement and the timed journey cannot be exercised.
+  · The phase-zero Mongoose/playground reconnaissance report requested by handoff_29_aug_2026_1.txt does
+    not yet exist at its named path. No start/stop/regenerate command should be signed from the local
+    snapshot in its place.
+  · No real Mongoose keyless build/run, native audit-file lifecycle, hosted regeneration or playground
+    Download was exercised in this validation. The 23-pass bench uses the repository's stub.
+  · No R7/R8 Swing surface exists yet, so UI wording and secret-safety cannot be eyeballed. Headless tests
+    will not replace that check once the UI exists.
+
+================================================================================
+13. DISPOSITION
+================================================================================
+
+Keep M19.16 unchecked. Do not issue the cross-repository implementation start signal. First resolve F1-F8
+in one normative spec revision and update the tracker/public install text in F9. Then request a focused
+review of that exact SHA. The trust spec itself may proceed with its bounded wording, but its tracker summary
+must be corrected before the framing is treated as accepted project guidance.
+
+No product or spec implementation changes were made by this review.

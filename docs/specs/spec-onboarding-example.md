@@ -42,7 +42,7 @@ reader discovers is false at step 6 costs more than one they were told:
 
 | Path | Needs |
 |---|---|
-| **Run and analyse** | a JDK. That is genuinely all — `jbang` fetches the analyser. |
+| **Run and analyse** | a JDK **and JBang** (review F7). The one-line install *invokes* `jbang`; it does not install it. Either declare it as a prerequisite with its install line, or give the plain `java -jar <released jar>` alternative for someone who has only a JDK. Saying "a JDK is all you need" and then printing a `jbang` command is the same shape of error as the key: true for the author, false for the reader. |
 | **The AI half** | a JDK **plus an MCP-capable client** (Claude Code, Codex or another), configured and subscribed |
 | **Change the graph** | the above, plus a Fluxtion API key (R4) |
 
@@ -468,10 +468,21 @@ the half that matters. This section is the buildable part.
 1. **A start-page card.** *"Fluxtion API key — not found. Needed to regenerate a processor; this project
    runs without one."* States the fact, names the remedy, gates nothing.
 2. **An `AI` menu item** — *Fluxtion API key…* — opening the management dialog. Same owner, one place.
-3. **A Project-panel row** stating presence and **provenance** — but only over sources the BUILD reads
-   (review F3): *"key: present — from `~/.fluxtion/fluxtion.apiKeyFile`"* or *"overridden by
-   `-Dfluxtion.apiKey`"*. Which source answered is the fact that costs an afternoon (§E / M38.3 applied
-   to a credential).
+3. **A Project-panel row stating only what the analyser can OBSERVE** (review F2, 2026-08-29 —
+   corrected twice, and the second correction removes a claim the first left in). The analyser is a
+   separate process from the Maven JVM that will run the build. It **cannot know** which source that
+   future build resolves, so it must not say *"overridden by `-Dfluxtion.apiKey`"* — that is a claim
+   about a process that has not started.
+
+   What it may state, because it can check it:
+
+   > *"key file: present at `~/.fluxtion/fluxtion.apiKeyFile`"* — or absent
+   > *"note: a `-Dfluxtion.apiKey` system property passed to the build overrides this file, and
+   > `FLUXTION_API_KEY` is not read by the build at all"*
+
+   The second line is **documentation of the precedence rule**, not an observation of which source won.
+   That distinction is the whole of D-T4 applied to this row: state the fact you have, name the rule, and
+   do not narrate a process you cannot see.
 
    **It must not report `FLUXTION_API_KEY` as the answering source**, because the builder never reads it
    — that would state a provenance that did not answer the build, which is worse than saying nothing.
@@ -634,6 +645,27 @@ C1's bench is the cheapest available guard, because it fails when the three drif
 them where a step cannot be grounded without the host in front of you. Acceptance says a shipped bundle
 containing one is a bug — but nothing currently *checks* that, and the check belongs to whoever generates
 bundles, not to this repo.
+
+### Still open after the 2026-08-29 review round — M19 is NOT ready to brief
+
+Three independent reviews have now run over this revision. Most findings are fixed above; **these are
+accepted and deliberately left open**, because closing them by writing more prose would repeat the error
+the reviews found. **M19.16 stays open and no cross-repo briefing should start until they are closed.**
+
+- **F1 — there is no versioned bundle contract.** Part 1 lists what a bundle must contain in prose, and a
+  generator in another repository needs a *normative, versioned* contract it can be checked against —
+  file layout, required keys, the profile's exact contents, and a version number that changes when any of
+  it does. Without it, "the bundle must contain X" is unenforceable across three repositories, which is
+  precisely the drift C4 warns about. This is the largest remaining piece and it is a **document, not
+  code**.
+- **F4 — `skills.source` is a property with no retrieval contract.** D-R4 specifies where the value comes
+  from and that it is machine-tier; it does not specify *how a generator fetches from it* (protocol,
+  layout at the far end, failure behaviour, whether a mirror must mirror the tree shape), nor how
+  `x-analyser-min-version` is **enforced** rather than merely recorded. A frontmatter field nothing checks
+  is a comment.
+- **F5/F8 — the embedded tier is unverified end to end** and is now marked NOT PUBLISHABLE in the skill
+  itself. Closing it needs someone with a Fluxtion API key to build a processor, run it through the
+  listener, and open the result. That is the one item here that cannot be closed by writing.
 
 ### Acceptance added by this revision
 
