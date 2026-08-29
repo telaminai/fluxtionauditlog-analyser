@@ -39,9 +39,10 @@ is done: the same steps pass that pass against the stub.
   it is made.
 - **Audit-file listing shape.** `GET /api/audit/files` → `{files: [{id, name, sink: {type, location}}]}` is
   UP-MNG-04's proposal, not a shipped endpoint.
-- **CI.** Not wired (tracker M19.8): the analyser is a Swing app, so a CI job needs a display (`xvfb-run`
-  on Linux), and that has not been verified from a Mac. Run it locally before touching any of the three
-  repos' loop code.
+- **CI.** `.github/workflows/ci.yml` packages the analyser and runs this exact stubbed launch under
+  `xvfb-run` on Linux. That guards registry discovery, YAML/GraphML export, the fresh isolated analyser,
+  REST actions and the packaged MCP bridge together. A real-server run remains the acceptance check for
+  Mongoose's side of the contract.
 
 Rule 1: every string the stub serves comes from `examples/fixture-generator` (`com.acme.demo`), and the
 registry file names nothing real.

@@ -45,14 +45,11 @@ public class Main {
             System.out.println(usage());
             return;
         }
-        // M19.7: `--rest` is a launch mode, not a file. Strip it, remember it, and let the rest of the
-        // args (an optional log path) fall through unchanged.
-        java.util.List<String> rest = new java.util.ArrayList<>();
-        for (String arg : args) {
-            if (REST_FLAG.equals(arg)) System.setProperty(REST_PROPERTY, "true");
-            else rest.add(arg);
-        }
-        final String[] fileArgs = rest.toArray(new String[0]);
+        // M19.7/M19.9: decide without touching Swing or process state, then apply the launch mode. The
+        // pure parser has a headless regression test for strip-rest / reject-unknown / retain-log.
+        DesktopArgs parsed = parseDesktopArgs(args);
+        if (parsed.rest()) System.setProperty(REST_PROPERTY, "true");
+        final String[] fileArgs = parsed.remaining().toArray(new String[0]);
         // An unrecognised flag used to fall through and be opened as a *log file*, so running an older
         // build with `--mcp` silently launched the GUI trying to load a file called "--mcp". Fail loudly.
         if (fileArgs.length > 0 && looksLikeFlag(fileArgs[0])) {
@@ -111,6 +108,23 @@ public class Main {
      */
     static boolean looksLikeFlag(String arg) {
         return arg.startsWith("-") && arg.length() > 1;
+    }
+
+    /** The desktop-only launch decision. MCP/help short-circuit before this in {@link #main}. */
+    record DesktopArgs(boolean rest, java.util.List<String> remaining) {
+        DesktopArgs {
+            remaining = java.util.List.copyOf(remaining);
+        }
+    }
+
+    static DesktopArgs parseDesktopArgs(String[] args) {
+        boolean rest = false;
+        java.util.List<String> remaining = new java.util.ArrayList<>();
+        for (String arg : args == null ? new String[0] : args) {
+            if (REST_FLAG.equals(arg)) rest = true;
+            else remaining.add(arg);
+        }
+        return new DesktopArgs(rest, remaining);
     }
 
     static String usage() {

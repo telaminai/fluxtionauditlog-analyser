@@ -332,14 +332,17 @@ analyser (reverse funnel)._
   first-run modal that otherwise blocked an agent on a never-configured machine before the socket existed;
   the MCP bridge's "not running" error names the command. Exercised by the bench's `--launch`, which
   starts a fresh install in an isolated home.
-- [M19.8] ☐ **The bench in CI** — the analyser is Swing, so the job needs a display (`xvfb-run` on the
-  Linux runner) plus the stub; not verified from a Mac, so recorded rather than claimed. Until then the
-  bench is run locally before any of the three repos' loop code changes.
-- [M19.9] ☐ **A headless test for the launch arguments** — `Main` now strips `--rest`, rejects an
+- [M19.8] ◧ **The bench is wired in CI; commit/Linux run pending** — the analyser is Swing, so the new
+  job installs a display (`xvfb-run` on the Linux runner), packages the jar and runs the exact
+  `tools/bench/loop-bench.py --stub --launch` path. Local isolated run passes **23/23** on 2026-08-29;
+  the first pushed GitHub Linux result is still required before this becomes ☑.
+- [M19.9] ◧ **Headless launch-argument tests implemented; full-gate/commit pending** — `Main` now strips `--rest`, rejects an
   unknown flag AFTER stripping, and lets a log path fall through. That is pure logic with three
   behaviours and no unit test (rule 4). The loop bench covers it end-to-end, but only where a jar, a
   JVM and a window exist, so a headless CI run would not catch a regression. From
   `review_feat_m19_bench.txt` F3.
+  - `Main.parseDesktopArgs` is pure and `MainLaunchArgsTest` pins strip/remember `--rest`, leave an
+    unknown flag for the existing loud rejection, preserve a log path, and accept a fresh empty launch.
 - Open: O2 which example — **tiebreaker: prefer Spring-XML-defined** (design-IR edit variant in the
   tutorial + the design→graph→record provenance chain; spec §Contract notes). _(O1: Maven project · O3: bundles generated at Download time, nothing to
   regenerate · O4: committed as M19.2 — all resolved.)_
