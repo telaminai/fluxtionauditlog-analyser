@@ -288,7 +288,7 @@ analyser (reverse funnel)._
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
   gating anything. **Re-adding a first-run modal would reverse D-S1.**
-- [M19.10] ☑ **The canonical skill documents and generated substitutions are accepted** — authored in [`docs/skills/`](../skills/README.md); four
+- [M19.10] ◧ **Canonical skills accepted; one P3 instruction correction awaits re-vendoring** — authored in [`docs/skills/`](../skills/README.md); four
   written and verified discoverable by the shipped `SkillDiscovery`. Canonical `TODO(bundle)` markers
   remain authoring inputs only; the generator grounds the selected copies and rejects any survivor.
   - 2026-08-29 at `5c72e21`: `CanonicalSkillsTest` pins the four names, descriptions and minimum analyser version;
@@ -309,6 +309,11 @@ analyser (reverse funnel)._
     `replay-a-run` is accepted because this bundle declares no replay entry point. The P1 single-model
     finding was corrected at `8f20016`; the actual Download zip now proves the substituted files contain
     no surviving marker and passes bundle-bench 49/49. P2 retrieval was accepted at `4eabc1c`.
+  - P3 then proved a valid-looking combined `open {project, log, graphml}` call ignores the log and graph:
+    a project switch is deliberately a session boundary. The canonical load-log skill is corrected at
+    `f5efe17` to check the active project, open a different project alone, then open log + GraphML in the
+    second call. The published index now names that source revision. Re-vendor it into the playground and
+    regenerate the final acceptance artifact before M19.10 returns to ☑.
 - [M19.1] ◧ **Bundle implementation complete; live P3 and public dependency remain** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
@@ -324,10 +329,11 @@ analyser (reverse funnel)._
   port, the analyser's endpoint file), never to author a rival prompt. Add `skill.md`/`contract.md` to
   the snapshot set for the XML-defined example (spec O2), since those are what make the design-level
   edit in tutorial part 4 possible._
-  - **Dependency gate:** local implementation/bench work may use
-    `svc-admin-web:1.0.39-SNAPSHOT` installed from Mongoose Plugins `6e7a2cc`; it must record that SHA.
-    Downloadable output, clean-machine P3 and M19 sign-off require a published version containing that
-    registry/clean-stop change. P0/P1/P2 do not wait for the release.
+  - **Dependency gate ☑ released as mongoose-plugins 1.0.39:** local implementation/bench work used
+    `svc-admin-web:1.0.39-SNAPSHOT` from Mongoose Plugins `6e7a2cc`. On 2026-08-29 the final
+    `svc-admin-web:1.0.39` and `mongoose-test-support:1.0.39` POMs both resolved publicly from the Repsy
+    repository generated bundles already declare. The playground must now bump its pinned
+    `mongoosePlugins` version from 1.0.38 to 1.0.39, regenerate, and use only that release for clean P3.
   - **P0 ☑ accepted at reviewed head `73565fc`:** fluxtion-web
     `feature/m19-p0-keyless-bundle` moves scan/second-compile behind
     `-Pgenerate-fluxtion`, adds deterministic registry identity plus export/stop scripts, and keeps the
@@ -354,7 +360,8 @@ analyser (reverse funnel)._
     change the v2 inventory or profile schema.
   - **P2 ☑ accepted at `4eabc1c`:** source parsing/refusals, bounded
     index/set, distinct outcomes, sanitised provenance and project-input refusal are sound; current
-    canonical skill bytes match analyser `6243a89`. The empty eager content registry now lets a written
+    canonical skill bytes matched analyser `6243a89` at acceptance; the post-P3 instruction correction
+    is published at `f5efe17` for the final re-vendor. The empty eager content registry now lets a written
     `none` snapshot build; strict leading frontmatter/exact versions close both false passes; required
     Mongoose skill-set and duplicate-name gates close incomplete `ok` results. Independent gates: 44/44
     focused at `050c0ab`; 395/395 full at `5f01cab`. **F4 ☑:** the public raw analyser root serves the
@@ -379,8 +386,9 @@ analyser (reverse funnel)._
     declared-path YAML export. It found that generated MongooseMain lacked a shutdown hook; the generator
     now calls server.stop() from one, and the live rerun removed the registry entry cleanly. The final
     key-free project/export/GraphML must be handed to this session at a named hashed path before the fresh
-    analyser project/runbook/pairing and MCP checks can run. Clean-machine acceptance still waits on a
-    published Mongoose dependency. Local gates: 9/9 Python fixtures, 1,111/1,111
+    analyser project/runbook/pairing and MCP checks can run. The Mongoose 1.0.39 publication gate is now
+    closed; clean-machine acceptance waits only on a final regenerated/re-vendored artifact using it.
+    Local gates: 9/9 Python fixtures, 1,112/1,112
     Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in

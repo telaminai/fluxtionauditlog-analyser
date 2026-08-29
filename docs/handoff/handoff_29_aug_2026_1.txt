@@ -442,6 +442,23 @@ run is valuable provisional P3 evidence. To let this session perform the remaini
 handoff the key-free generated project, exported YAML and GraphML at one named path with hashes and exact
 commands. Full disposition: `review_m19_p2_skills_retrieval.txt` §6.
 
+P3 response `2ad5289`: the typed PriceEvent/valueMapper correction is structurally accepted and focused
+tests pass 35/35; the independent full suite is 402/402 (the report's 401 count is one low). The second
+live finding is exactly why P3 is necessary: the earlier bundle was structurally valid but behaviourally
+empty. TLS scoped trust is also corrected. The claimed `~/m19-p3-artifacts` directory does not exist on
+this machine or under its repository/temp roots, so transfer it through a pushed artifact branch (or an
+attached build artifact) before this session can reproduce the analyser/MCP half.
+
+The combined-open observation is accepted and corrected in the canonical source at `f5efe17`: check
+`context.project.active`; if needed open the project alone, then open log + GraphML in a second call.
+The versioned index now names that source revision. Playground action: re-vendor the new canonical
+snapshot, regenerate the final bundle/artifacts, and rerun the fail-closed matrix before clean P3.
+
+Release gate update: mongoose-plugins 1.0.39 is published. Independent HTTP checks returned 200 for
+both `com.telamin:svc-admin-web:1.0.39` and `com.telamin:mongoose-test-support:1.0.39` from the Repsy
+repository emitted by the starter. Replace the playground's current 1.0.38 pin (and every SNAPSHOT
+override used for P3) with 1.0.39 before producing the transferred clean-machine artifact.
+
 ================================================================================
 6. CROSS-REPOSITORY ACCEPTANCE — NOBODY CLAIMS THIS FROM LOCAL TESTS ALONE
 ================================================================================

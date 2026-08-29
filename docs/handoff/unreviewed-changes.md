@@ -16,6 +16,31 @@ still check**.
 
 ---
 
+## ☐ `f5efe17` · make the canonical load-log procedure respect project session boundaries
+
+**What.** `common/load-audit-log/SKILL.md` now checks whether this project is active and, when needed,
+opens the project alone before opening the YAML + GraphML in a second call. The versioned index advances
+to the skill-source commit; CanonicalSkillsTest pins the new bytes and the two-call instruction.
+
+**Why.** The live P3 session tried the tempting combined `open {project, log, graphml}` shape. The
+analyser correctly treats a project switch as a session boundary and ignores the other parameters, but
+the canonical skill did not warn the agent. A generated procedure must not recommend a call that only
+partially applies while looking successful.
+
+**Files.** Canonical load-log skill and changelog in `f5efe17`; index, parity test, tracker and handoff in
+the following metadata commit.
+
+**Verified.** Focused `CanonicalSkillsTest,ProjectVerbTest,SpecLinksResolveTest`, full Maven suite
+1,112/1,112, strict docs and diff check pass on the final index state. The application behavior is
+already pinned by ProjectVerbTest; this slice changes instructions, not the verb.
+
+**What the reviewer must still check.** Confirm the two-call wording matches `ProjectVerbTest` and does
+not reintroduce the false claim that `analyser_context` can discover an unopened log. Re-vendor from the
+live default root in the playground, verify the new skill bytes and revision, and ensure the generated
+bundle contains the concrete export/GraphML substitution with no marker.
+
+---
+
 ## ☑ reviewed 2026-08-29 (the Mongoose/playground session — the consumer side) · `99c79bf` · publish the analyser-owned canonical m19-skills/1 index
 
 **Verdict.** Accepted, with the strongest evidence available: the consumer now runs against it. The

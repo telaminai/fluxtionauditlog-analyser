@@ -22,7 +22,7 @@ class CanonicalSkillsTest {
 
     private static final Path ROOT = Path.of("docs/skills");
     private static final Path PUBLISHED_INDEX = ROOT.resolve("m19-skills/1/index.json");
-    private static final String PUBLISHED_REVISION = "6243a899774d591119559305a137ecf144819efd";
+    private static final String PUBLISHED_REVISION = "f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8";
 
     @Test
     void exactlyTheFourCanonicalSkillsAreDiscoverableWithRequiredFrontmatter() throws Exception {
@@ -46,6 +46,19 @@ class CanonicalSkillsTest {
         assertTrue(text.contains("TODO(bundle): substitute the exact clean-stop command"));
         assertFalse(text.contains("YAML deployment descriptor"));
         assertFalse(text.contains("addSink"));
+    }
+
+    @Test
+    void loadLogSkillOpensAProjectBeforeTheLogBecauseTheSwitchEndsTheSession() throws Exception {
+        String text = Files.readString(ROOT.resolve("common/load-audit-log/SKILL.md"));
+        int projectCall = text.indexOf("analyser_open {\"project\"");
+        int logCall = text.indexOf("analyser_open {\"log\"");
+        assertTrue(projectCall >= 0 && logCall > projectCall,
+                "the project call must be a distinct earlier step, not combined with the log");
+        assertTrue(text.contains("analyser_context.project.active"));
+        assertTrue(text.contains("Do not combine `project` with `log` or `graphml`"));
+        assertTrue(text.contains("session boundary"));
+        assertTrue(text.contains("ignored"));
     }
 
     @Test
@@ -74,7 +87,7 @@ class CanonicalSkillsTest {
 
         Map<String, String> expectedHashes = Map.of(
                 "common/load-audit-log/SKILL.md",
-                "4c9550075e1b9bea69e56783fbe1a65c2d82dad39a79eddf0d84b5920a725ca6",
+                "936950b36a9cd123eaaaf76d9b3730ca2616645d26224397013f629548faefa8",
                 "mongoose/run-mongoose-server/SKILL.md",
                 "f2737e2c92c9b4e2ec1cb2776ad04c945da87346c309f48e3e67eef6bddda928");
         for (Map<String, Object> skill : skills) {
