@@ -35,12 +35,13 @@ is in the following metadata commit.
 
 **Verified.** Focused endpoint/discovery tests pass outside the loopback socket sandbox; full Maven suite
 passes 1,109/1,109; packaged `tools/bench/loop-bench.py --stub --launch` passes 23/23; pinned MkDocs
-strict, `git diff --check` and the tracked-file four-term sweep pass.
+strict, `git diff --check` and the tracked-file four-term sweep pass. After push, GitHub run
+`33273629437` passed both the build and Linux/xvfb loop-bench jobs.
 
 **What the reviewer must still check.** Challenge atomic replacement and the non-atomic filesystem
 fallback, including owner-only permissions and cleanup of the sibling. Confirm the bench retry is bounded
-by the existing deadline and does not hide a server that never becomes valid. Inspect the first pushed
-Linux run for both jobs.
+by the existing deadline and does not hide a server that never becomes valid. Inspect run `33273629437`
+for independent workflow-log verification.
 
 ## ☐ `389d331` · discover the generated bundle's Maven-resource GraphML
 
