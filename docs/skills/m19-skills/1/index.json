@@ -1,0 +1,14 @@
+{
+  "contract": "m19-skills/1",
+  "revision": "6243a899774d591119559305a137ecf144819efd",
+  "skills": [
+    {
+      "tier": "common",
+      "path": "common/load-audit-log/SKILL.md"
+    },
+    {
+      "tier": "mongoose",
+      "path": "mongoose/run-mongoose-server/SKILL.md"
+    }
+  ]
+}

@@ -15,6 +15,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   receive the same caller-buffer hygiene as successful saves and later write failures.
 
 ### Added
+- **A versioned canonical skills index for generated bundles.** Build/release tooling can retrieve the
+  analyser-owned `m19-skills/1` Mongoose snapshot directly from the repository's public raw HTTPS root;
+  tests pin the selected tiers, source revision and exact skill bytes. Generated projects remain offline
+  snapshots and never fetch this index at runtime.
 - **New project now offers the setup already present in the directory.** After choosing a directory,
   one confirmation lists detected Java source roots, skill-shaped runbooks and GraphML. Every choice
   starts off: discovery never silently adopts project content. Confirmed source roots and skill

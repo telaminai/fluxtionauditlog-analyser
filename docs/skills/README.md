@@ -53,3 +53,20 @@ it does not fetch skills — so if the generator does not check it, nothing does
 local directory, or `none`. It is **machine-tier only** and is never read from a project profile, because
 a profile travels between people and must not be able to redirect the instructions an agent reads
 (D-R4). Whichever source was used is recorded in the project and shown.
+
+The published canonical root for build/release tooling is:
+
+```text
+https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/skills
+```
+
+Its versioned machine index is `m19-skills/1/index.json`. The index records the immutable analyser
+revision of the selected source bytes. It intentionally publishes `common/load-audit-log` plus the
+Mongoose host skill for the M19 bundle: `common/replay-a-run` is conditional on a bundle claiming a real
+replay entry point, which this bundle does not, and the embedded tier remains explicitly not publishable.
+The playground retrieves and commits a snapshot at build/release time; generated projects never fetch
+this root.
+
+When either published skill changes, update the index revision to the commit containing those new bytes
+and update the parity test in `CanonicalSkillsTest`. A revision change without matching content, or
+content drift without the matching revision/hash update, fails the analyser build.
