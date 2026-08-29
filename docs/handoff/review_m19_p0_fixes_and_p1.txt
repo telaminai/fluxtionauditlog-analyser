@@ -12,10 +12,10 @@ capture is forced, registry data remains data in both executable scripts, the pr
 Builder's real sources, bundle invariants are validated, identity is forced, and stop fails closed on a
 live process whose command does not identify this artifact.
 
-P1: CHANGES REQUESTED, with the emitted profile/skills/guides individually sound. D-X6 requires a single
-typed bundle model, while current P0 and P1 emitters independently reconstruct the same paths and
-commands. The fixture also uses the imperative template rather than the tracker-selected Spring-XML
-example. These are convergence defects to fix before P3, not reasons to discard the work.
+P1: CHANGES REQUESTED. The skills/guides are individually sound, but the profile is not analyser-readable:
+its list keys are one-based and its processor key is singular. D-X6 also requires a single typed bundle
+model, while current P0 and P1 emitters independently reconstruct the same paths and commands. The fixture
+uses the imperative template rather than the tracker-selected Spring-XML example. Fix these before P3.
 
 P2: NOT COMPLETE. Canonical vendoring plus canonical provenance is one source mode, not the signed
 m19-skills/1 retrieval/version/compatibility contract.
@@ -100,16 +100,29 @@ Required correction: make the actual analyser-bundle entry/fixture Spring-XML-de
 the relevant maintained authoring snapshot promised by M19.1. The generic P0 mechanics may keep an
 imperative regression fixture, but it is not the downloadable M19 acceptance artifact.
 
+F8 (BLOCKING P1 — PROFILE ABI; FOUND WHILE SCAFFOLDING P3): the generated profile looks plausible but
+does not populate the analyser. ConfigStore.readList and readRunbooks iterate zero-based `0..count-1`.
+P1 emits `sourceRoot.count=1` with only `sourceRoot.1`, so no root loads; it emits two runbooks as `.1`
+and `.2`, so `.0` is refused/absent and `.2` is never visited. SettingsShare recognises processors only
+through `eventProcessorFqn.count` + zero-based members (and `selectedEventProcessor`); the emitted singular
+`eventProcessorFqn=<fqn>` is an unknown property. `projectName` is also not an analyser key; activeName is
+derived from the canonical profile's project-root directory.
+
+Required correction: consume `m19-bundle/3` at analyser `3720ef91704d675f1a98cf79d98829c2dd19c8c4`:
+`share.version=1`, `sourceRoot.0..`, `eventProcessorFqn.count` + `.0..`, `selectedEventProcessor`, and
+`runbook.0..`. Remove `projectName`. A real `ProjectProfile.load` regression now pins that exact shape.
+No v2 bundle was published or accepted; m19-skills/1 and the P0 verdict are unchanged.
+
 D1 REPLAY DEVIATION — ACCEPTED. m19-skills/1/D-X5 conditions replay on a bundle replay claim. This bundle
 has no honest replay entry point. Shipping load-audit-log + run-mongoose-server covers open, run, export,
 stop and regeneration without inventing a command. VENDORED.md records the omission. If replay is later
 added, its skill and comparison acceptance become mandatory together.
 
-D2 CONTRACT VERSION HOME — ANSWERED, NO PROFILE KEY. For m19-bundle/2, P3 parses the exact marker
-`Bundle contract: **m19-bundle/2**` from required root CLAUDE.md, refuses unknown/missing versions, and
+D2 CONTRACT VERSION HOME — ANSWERED, NO PROFILE KEY. For m19-bundle/3, P3 parses the exact marker
+`Bundle contract: **m19-bundle/3**` from required root CLAUDE.md, refuses unknown/missing versions, and
 asserts required AGENTS.md is byte-for-byte identical. The profile comment is informational, not a second
 authority. This uses files/content P1 already emits; it adds no inventory item or profile schema key and
-therefore does not create m19-bundle/3.
+did not itself require the v3 bump — the profile ABI correction above did.
 
 N1 (LOW): P1's test comment says src/main/resources is a discovery location the analyser "currently
 misses". That was true at review time and is closed on analyser main by 389d331. Update the stale comment;
@@ -140,9 +153,10 @@ starting it before P2 would guarantee an incomplete matrix.
 ================================================================================
 
   1. Correct the ordinary-Fluxtion README/run-script FLUXTION_API_KEY contradiction and pin it.
-  2. Refactor P0/P1 emitters over one AnalyserBundleModel and use the selected Spring-XML example/canon.
-  3. Implement P2 source modes, index/bounds/failures, provenance and compatibility enforcement.
-  4. Then run P3: real generated zip, local 1.0.39-SNAPSHOT recorded at Mongoose Plugins 6e7a2cc,
+  2. Emit the importer-backed m19-bundle/3 profile shape; remove the unused v2 properties.
+  3. Refactor P0/P1 emitters over one AnalyserBundleModel and use the selected Spring-XML example/canon.
+  4. Implement P2 source modes, index/bounds/failures, provenance and compatibility enforcement.
+  5. Then run P3: real generated zip, local 1.0.39-SNAPSHOT recorded at Mongoose Plugins 6e7a2cc,
      no-key build/run/export/stop, analyser graph/log/project/runbook checks, source-mode matrix.
 
 P3 harness scaffolding may be written in parallel, but no P3 acceptance verdict should be issued until

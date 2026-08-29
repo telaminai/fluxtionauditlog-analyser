@@ -13,8 +13,9 @@ sharing a working tree or guessing the other side's behaviour.
 
 CURRENT START SIGNAL / IMPLEMENTATION BASE — 2026-08-29, supersedes the phase gate below
 
-The owner has issued the start signal. The signed normative contract is `m19-bundle/2` +
-`m19-skills/1` at analyser commit
+The owner has issued the start signal. The signed normative contract is `m19-bundle/3` +
+`m19-skills/1`. The profile-ABI correction is at analyser commit
+`3720ef91704d675f1a98cf79d98829c2dd19c8c4`; the otherwise unchanged v2/skills decisions originated at
 `b0fdb86bcaea8ec9d89f8719ce2951ed0e75953b`. The v1 wording and pre-sign-off prohibitions below are
 historical orientation; do not use them to stop implementation or to restore the rejected direct-file
 sink. The owner-selected path is Mongoose Chronicle capture plus a bundle-owned YAML export command.
@@ -37,8 +38,10 @@ PLAYGROUND CONVERGENCE INPUT — exact, do not guess:
      clean-stop `TODO(bundle)` marker; a copy from `5c72e21` is now stale.
   2. Substitute every project-owned run/export/replay command and concrete YAML/GraphML path, then fail
      generation if `TODO(bundle)` or `/path/to/` remains.
-  3. Write `skills.provenance=canonical@6243a899774d591119559305a137ecf144819efd` in the generated
-     profile. Never write `skills.source`; it is build/release input only.
+  3. Write the exact zero-based `m19-bundle/3` profile families, including `share.version=1`,
+     `sourceRoot.0`, `eventProcessorFqn.count` + `.0`, `selectedEventProcessor`, and runbooks numbered
+     from `.0`; write `skills.provenance=canonical@6243a899774d591119559305a137ecf144819efd`.
+     Never write `projectName` (the analyser names the project from its root) or `skills.source`.
   4. Document client setup as: start local transport, then use *AI ▸ Connect an AI client…*. Do not
      hard-code a Claude command.
   5. Run the generated-bundle acceptance in the signed contract. The analyser tutorial and M19.3/.4
@@ -86,8 +89,12 @@ P0-FIX + P1 REVIEW RETURN — 2026-08-29 (final at pushed head `73565fc`):
   · Before branch merge, also correct ordinary non-bundle Fluxtion README/run-script output that still
     recommends `FLUXTION_API_KEY`; the globally corrected preflight and Builder do not accept it. Pin the
     ordinary generated files, not only the analyser-bundle script.
+  · URGENT P1 PROFILE ABI CORRECTION (`m19-bundle/3`, analyser `3720ef9`): P3 scaffolding found that
+    P1's one-based `sourceRoot.1`/`runbook.1` keys and singular `eventProcessorFqn` are not read by the
+    analyser. Emit the zero-based families named above. This supersedes only the v2 profile table;
+    `m19-skills/1`, P0 and the export-beat decision are unchanged. No v2 bundle was published/accepted.
   · P1: replay skill omission ACCEPTED (no replay claim). Contract declaration home ANSWERED without a
-    profile key: exact `Bundle contract: **m19-bundle/2**` marker in root CLAUDE.md, with AGENTS.md a
+    profile key: exact `Bundle contract: **m19-bundle/3**` marker in root CLAUDE.md, with AGENTS.md a
     byte-identical mirror; P3 parses/refuses it. Profile comment is informational.
   · P1 remains changes-requested on D-X6: define one typed resolved bundle model and make P0 scripts/
     README plus P1 profile/guides/skills consume its paths, commands, identity and processor facts.
@@ -372,7 +379,7 @@ One user-visible slice per commit. Follow each repository's changelog, docs, tes
 
 The integration is complete only when a freshly generated, downloadable-equivalent bundle proves:
 
-  1. Its inventory exactly matches `m19-bundle/2` and declares that version.
+  1. Its inventory exactly matches `m19-bundle/3` and declares that version.
   2. No key is configured; the committed processor builds/starts without regeneration.
   3. The real Mongoose runtime captures Chronicle records; the bundle's own export command writes
      analyser-readable YAML to the declared project-relative path.

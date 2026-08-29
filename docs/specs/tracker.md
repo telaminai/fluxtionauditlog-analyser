@@ -339,15 +339,16 @@ analyser (reverse funnel)._
   - **Branch-level follow-up before merge:** the global preflight correction exposes existing reachable
     ordinary-Fluxtion README/run-script text that still recommends `FLUXTION_API_KEY`, which neither the
     corrected check nor Builder reads. Remove/map that advice and add a non-bundle generated-output test.
-  - **P1 ◧ implemented at `3c0f926`, changes requested:** the profile keys, two applicable vendored
-    skills, exact substitutions, no-marker gate and CLAUDE/AGENTS content are individually sound; at
+  - **P1 ◧ implemented at `3c0f926`, changes requested:** the two applicable vendored skills, exact
+    substitutions, no-marker gate and CLAUDE/AGENTS content are individually sound; at
     reviewed head `73565fc`, 22/22 focused and 371/371 full web tests pass, and production build accepts
-    the raw imports. D-X6 is not
-    yet met because `mongoose.ts` and `bundle.ts` independently derive commands/paths instead of consuming
-    one typed bundle model. The actual M19 bundle must also use the resolved Spring-XML-defined example
-    and its authoring canon, not the imperative template used by the current fixture.
-  - **Contract-version declaration for v2 — no profile key:** the authoritative marker is the exact
-    `Bundle contract: **m19-bundle/2**` line in required root `CLAUDE.md`; required `AGENTS.md` is its
+    the raw imports. The profile fails the real importer: one-based source/runbook members and singular
+    `eventProcessorFqn` populate none of those facts. Consume `m19-bundle/3` at analyser `3720ef9`.
+    D-X6 is also not met because `mongoose.ts` and `bundle.ts` independently derive commands/paths instead
+    of consuming one typed bundle model. The actual M19 bundle must use the resolved Spring-XML-defined
+    example and its authoring canon, not the imperative template used by the current fixture.
+  - **Contract-version declaration for v3 — no profile key:** the authoritative marker is the exact
+    `Bundle contract: **m19-bundle/3**` line in required root `CLAUDE.md`; required `AGENTS.md` is its
     byte-for-byte mirror. P3 parses that marker, rejects unknown versions and checks the mirror. The
     profile comment is informational. This selects a checker route already emitted by P1 and does not
     change the v2 inventory or profile schema.
