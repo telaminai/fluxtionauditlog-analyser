@@ -396,6 +396,24 @@ The other LLM should propose its exact commit plan after reconnaissance. The exp
 One user-visible slice per commit. Follow each repository's changelog, docs, test and release rules.
 
 ================================================================================
+5b. P2 INDEPENDENT REVIEW — 2026-08-29
+================================================================================
+
+Reviewed playground P2 `8f20016..310a10c` at current head `266132a`. Full report:
+`review_m19_p2_skills_retrieval.txt`. Verdict: CHANGES REQUESTED; do not begin the source-mode matrix yet.
+
+  · BLOCKING: `skills.source=none` deletes the two skill files that bundle.ts statically imports, so
+    production build fails before a none bundle can be emitted.
+  · HIGH: the validator accepts name/description/minimum lines from the document body as frontmatter,
+    accepts malformed `1.12.0junk` through parseInt, and returns `ok` when a non-none source selects zero
+    Mongoose skills.
+  · BLOCKING P2 acceptance / cross-repo input: the configured default canonical index is HTTP 404.
+    Publish it or name a live stable root; the unverified local-to-canonical relabelling flag is not the
+    lasting retrieval route. The current committed skill bytes themselves do match analyser `6243a89`.
+  · Make the snapshot tests mode-aware and run vendor -> build -> actual zip -> bundle-bench for
+    canonical, none and mirror only after the above corrections.
+
+================================================================================
 6. CROSS-REPOSITORY ACCEPTANCE — NOBODY CLAIMS THIS FROM LOCAL TESTS ALONE
 ================================================================================
 

@@ -343,29 +343,31 @@ analyser (reverse funnel)._
     Spring-XML template with design XML + maintained authoring canon; minimum-version refusal is present.
     Independent gates: 27/27 focused, 376/376 full and production build pass. Review:
     [`review_m19_p1_response_and_download_zip.txt`](../handoff/review_m19_p1_response_and_download_zip.txt).
-  - **Download seam ☐ blocks P3 despite P1 generator acceptance:** the real `buildMavenZip` pass routes
-    required root `CLAUDE.md`, `AGENTS.md`, `mvnw` and `mvnw.cmd` into `data/`. Thus a zip produced with
-    injected source/GraphML has no root guides and `run-server.sh` cannot find `./mvnw`. Preserve those
-    root assets, test actual zip entries, then pass `bundle-bench.py` against the zip. Also update stale
-    source comments that still name v2; generated content already names v3.
+  - **Download seam ☑ closed at `266132a`:** the actual `buildMavenZip` preserves root CLAUDE/AGENTS,
+    Maven wrappers and lifecycle scripts; `mvnw` plus the scripts retain executable modes. The focused
+    packaging test passes and the exact Spring Download zip passes analyser bundle-bench 49/49. Stale v2
+    implementation comments are gone. Evidence is in the cross-repo report §7g.
   - **Contract-version declaration for v3 — no profile key:** the authoritative marker is the exact
     `Bundle contract: **m19-bundle/3**` line in required root `CLAUDE.md`; required `AGENTS.md` is its
     byte-for-byte mirror. P3 parses that marker, rejects unknown versions and checks the mirror. The
     profile comment is informational. This selects a checker route already emitted by P1 and does not
     change the v2 inventory or profile schema.
-  - **P2 ☐ is not folded into P1.** P1 implements the default canonical snapshot and canonical provenance
-    only. `m19-skills/1` still requires build/release inputs for canonical, clean HTTPS mirror, local
-    air-gapped and literal `none`; its bounded versioned index; distinct none/not-found/invalid/transport
-    results; sanitised provenance per mode; minimum-analyser-version enforcement; and refusal of project
-    input. Complete those before full P3 source-mode acceptance.
+  - **P2 ◧ implemented at `310a10c`, changes requested:** source parsing/refusals, bounded index/set,
+    distinct outcomes, sanitised provenance and project-input refusal are sound; current canonical skill
+    bytes match analyser `6243a89`. But `none` deletes files bundle.ts imports and cannot build; body text
+    and malformed versions pass as frontmatter; a non-none source may select zero Mongoose skills and
+    return `ok`; and the default canonical index URL returns 404. Mode tests stop before the written
+    snapshot/generator/build seam. Fix these before the source-mode matrix or live P3. Review:
+    [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
   - **P3 ◧ static scaffold implemented, no acceptance verdict:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
     guide mirror/version, committed processor source, declared/discoverable GraphML, exact shipped
     runbooks + frontmatter/provenance/minimum version, executable lifecycle scripts, safe inventory and
     placeholder refusal. Nine deterministic Python fixtures run in CI, including rejection of v2's
-    one-based/singular profile plus canonical, `none` and clean HTTPS-mirror provenance. Live keyless
-    run → export → stop and fresh analyser/MCP checks still wait for the corrected P1 model, Spring-XML
-    fixture, P2 matrix and published Mongoose dependency. Local gates: 9/9 Python fixtures, 1,110/1,110
+    one-based/singular profile plus canonical, `none` and clean HTTPS-mirror provenance. The real
+    canonical Spring Download zip now passes 49/49 static checks. Live keyless run → export → stop and
+    fresh analyser/MCP checks still wait for the P2 corrections/source-mode matrix and published
+    Mongoose dependency. Local gates: 9/9 Python fixtures, 1,110/1,110
     Java tests, strict docs and the existing packaged stub/analyser/MCP loop 23/23.
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in

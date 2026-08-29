@@ -1,0 +1,147 @@
+REVIEW — M19 P2 m19-skills/1 retrieval and snapshot integration
+Date: 2026-08-29 · Assessor: analyser implementation/reviewer session
+Repository: https://github.com/telaminai/fluxtion-web
+P2 commit: 310a10c2dd650a89a7f71eb88e0e903511ddbaeb
+P2 range: 8f200160379d012380a1dbb0f516d1654c3ac223..310a10c2dd650a89a7f71eb88e0e903511ddbaeb
+Reviewed at current branch head: 266132ac51319fdaa032bc571b8f314778f70134
+
+VERDICT
+
+CHANGES REQUESTED. The retrieval core has a good shape and most of the contract is present, but P2 is
+not yet closed and the source-mode matrix must not be treated as acceptance evidence yet.
+
+The blocking defect is concrete: `skills.source=none` deletes both `.SKILL.md` files, while bundle.ts
+still statically imports them. The production build then fails before it can emit the promised
+runbook.count=0/provenance=none bundle. Content validation also accepts body text as "frontmatter" and
+accepts malformed version strings through parseInt. A non-none index can select zero Mongoose skills
+and still return `ok`. Finally, the configured default canonical URL returns 404 for the required index;
+the local `--declare-canonical` relabelling escape hatch does not make the default HTTPS mode live.
+
+The later 266132a Download-seam change does not touch the P2 retrieval logic. Its packaging correction
+is independently accepted here: the focused real-zip test passes and the analyser handoff records the
+same generated artifact passing bundle-bench 49/49.
+
+================================================================================
+1. WHAT PASSED
+================================================================================
+
+  · Source parsing distinguishes canonical, clean HTTPS mirror, local file and literal none.
+  · Configured user-info/query/fragment, non-HTTPS and credential-shaped sources refuse before fetch.
+  · The index contract/revision grammar, 32-entry bound, relative unique paths, tier filtering,
+    64 KiB per-skill and 512 KiB selected-set bounds are implemented.
+  · ok/none/refused/not-found/invalid-index/invalid-content/transport outcomes are distinct in the
+    tested paths; explicit sources do not fall back.
+  · Provenance has the analyser's accepted value-free shapes and omits a local absolute path.
+  · Project input is stripped by the StarterSpec schema and cannot select a retrieval source.
+  · The two committed skill bytes exactly match analyser commit
+    6243a899774d591119559305a137ecf144819efd. Independent SHA-256 comparison passed for both files.
+  · Current-head gates: P2/bundle/real-zip focused tests 41/41; full suite 390/390; production build
+    green. svelte-check retains the same four unrelated SplitPane errors and seven warnings.
+
+================================================================================
+2. FINDINGS
+================================================================================
+
+F1 (BLOCKING — `none` CANNOT BUILD): vendor-skills.mjs writeSnapshot removes every existing
+`.SKILL.md` when the selected file set is empty. bundle.ts nevertheless has unconditional static raw
+imports for load-audit-log and run-mongoose-server. The dry-run test at vendor-skills.test.ts:142 never
+writes the snapshot or imports the generator, so it misses the integration failure.
+
+Reproduced in a disposable checkout:
+
+  node scripts/vendor-skills.mjs --source none
+    -> manifest mode none, provenance none, skills []; both skill files deleted
+  ./node_modules/.bin/vite build
+    -> Could not resolve "./skills/load-audit-log.SKILL.md?raw" from bundle.ts
+
+Required correction: make the generated content registry genuinely mode-aware (for example an eager
+glob or generated content module that can be empty), or retain build-only imports without shipping them.
+Then test the real sequence: vendor none into a disposable checkout -> production build -> actual
+Download zip -> bundle-bench. Assert no `.claude/skills`, runbook.count=0 and provenance none.
+
+F2 (HIGH — INVALID CONTENT PASSES AS VALID FRONTMATTER): frontmatter() searches the entire document for
+three matching lines. It does not require opening/closing `---`, does not confine fields to that block,
+and does not reject duplicates. A file containing only:
+
+  # no frontmatter delimiters
+  name: fake
+  description: body fields only
+  x-analyser-min-version: 1.12.0
+
+returns outcome `ok`. That contradicts "valid ... frontmatter" and is stricter downstream:
+bundle-bench's actual frontmatter parser rejects the same file.
+
+The version check has the same false-pass class: Number.parseInt accepts
+`x-analyser-min-version: 1.12.0junk`, and vendorSkills returns `ok`. The analyser checker requires the
+contract's exact three-part numeric version.
+
+Required correction: parse exactly one leading `---` frontmatter block, reject duplicate/missing fields,
+validate name/description there, and require both minimum and named analyser versions to match
+`digits.digits.digits` before comparison. Add both reproduced false-pass fixtures.
+
+F3 (HIGH — A NON-NONE SOURCE MAY SELECT NOTHING AND RETURN `ok`): validateIndex filters common plus the
+requested tier but does not validate the selected bundle set. An otherwise valid index containing only
+an embedded entry returns:
+
+  {"outcome":"ok","provenance":"local@r1","skills":[]}
+
+The generated Mongoose bundle then has non-none provenance but no required load/run-export-stop
+runbooks. bundle-bench correctly rejects that artifact, but the build/release retrieval boundary should
+not call the source valid.
+
+Required correction: for the Mongoose snapshot, require the supported selected names exactly once
+(`load-audit-log`, `run-mongoose-server` at present), reject duplicate selected names/output filenames,
+and distinguish this as invalid-content. Literal none remains the only successful zero-skill mode.
+
+F4 (BLOCKING P2 ACCEPTANCE, CROSS-REPO OWNER INPUT — DEFAULT CANONICAL MODE IS NOT LIVE): the configured
+default is https://fluxtion-playground.dev/skills, but on 2026-08-29 its required
+`m19-skills/1/index.json` returns HTTP 404. Running the real CLI with no `--source` exits 1 with the
+distinct not-found result. This is honest error handling, but it means "defaults to canonical" is not
+an operational source mode and the proposed canonical matrix cannot run.
+
+`--declare-canonical` is only a temporary manual assertion: it fetches a local root and then rewrites
+local provenance to canonical without comparing bytes or the revision to a canonical HTTPS source. The
+currently committed bytes do match the stated analyser commit (verified above), so this is not a finding
+against that snapshot; it is not a reproducible implementation of future canonical retrieval.
+
+Required owner decision/correction: publish the versioned index and files at the configured root, or name
+and configure another stable HTTPS root controlled by the canonical-content owner. Once live, remove the
+relabelling workaround. Pin a real default-CLI test against a controlled canonical fixture/server; do not
+make ordinary unit tests depend on the public network.
+
+F5 (MEDIUM — MODE INTEGRATION IS NOT TESTED): the committed-snapshot test hard-codes mode canonical and
+canonical provenance, while the `none` test is dry-run only. Therefore a legitimate mirror/local/none
+snapshot is not exercised through bundle.ts, the project generator, production build or Download zip;
+for mirror/local the consistency test itself would fail merely because the mode is not canonical.
+
+Required correction: make snapshot consistency assertions mode-aware, and add an isolated matrix that
+vendors canonical, none and a clean mirror/local fixture, then loads the generator and checks the actual
+zip with bundle-bench. This matrix should follow F1–F4, not precede them.
+
+================================================================================
+3. REPRODUCIBILITY AND BOUNDARY
+================================================================================
+
+Reviewed from the clean disposable clone at /private/tmp/m19-p0-review.rcNMCS/repo. Commands:
+
+  pnpm exec vitest run src/lib/starter/vendor-skills.test.ts \
+    src/lib/starter/analyser-bundle.test.ts src/lib/repl/maven-download-bundle.test.ts
+  pnpm test
+  pnpm run build
+  pnpm run check
+  node scripts/vendor-skills.mjs --out /private/tmp/m19-p2-default-output
+
+The adversarial frontmatter/version/empty-selection checks called exported vendorSkills against local
+temporary m19-skills/1 roots. The none build used a separate disposable checkout so reviewed source was
+not modified.
+
+Not verified: a successful real HTTPS mirror retrieval (tests use local roots and no network response
+fixture); same-origin/cross-origin redirect behavior under a real HTTPS server; a canonical source because
+the configured index is absent; any live P3 server/analyser/MCP path. Those remain later gates.
+
+NEXT ORDER
+
+  1. Close F1–F3 and make mode tests exercise written snapshots plus generator/build, not dry-run only.
+  2. Resolve/publish the canonical root (F4) and replace the relabelling workaround.
+  3. Run the actual canonical/none/mirror Download-zip matrix through bundle-bench.
+  4. Proceed to live P3 only after all three artifacts pass.
