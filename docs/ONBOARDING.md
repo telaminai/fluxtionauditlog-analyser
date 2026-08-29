@@ -93,6 +93,49 @@ behave, and to produce a paired graph + log to test against.
   a report that outlives the session carry it?** "Agents only, for now" is a decision worth making
   deliberately — it is just never worth making by accident.
 
+## Reviewing rather than changing?
+
+[`docs/handoff/REVIEWER-ORIENTATION.md`](handoff/REVIEWER-ORIENTATION.md) is the map for a session
+arriving to **judge** a body of work: the four-layer stack and who owns each, the vocabulary, the plugin
+SPI, what is currently live and unreviewed. It does not repeat this file — the decisions and blind spots
+below serve both jobs.
+
+## Standing decisions — the ones a change must not break by accident
+
+Each is argued somewhere; this list exists so you meet them before you meet the code that depends on
+them. Breaking one deliberately is a decision to record. Breaking one by accident has happened, which is
+why they are collected here.
+
+| Decision | In one line | Argued in |
+|---|---|---|
+| **Declared, never inferred** (D-A2, D-A1a, §E) | With no evidence the answer is UNKNOWN — never "probably fine". A graph, a provenance, an audit verdict is what someone declared, not what we guessed. | `spec-source-adapters.md`, M40's `AuditReadiness` |
+| **A surface renders the model; it is never a second model** (D-L1) | The Project panel reads only keys `context` puts. Enforced by a source-reading test, not by memory. | `spec-loaded-panel.md` |
+| **Reveal-only** (D-L3) | Every Project-panel button navigates or copies. Nothing on it mutates state; a bytecode test asserts it never names `MainFrame`. | `spec-loaded-panel.md` |
+| **Pointers, never contents; never executed** (D-C2) | A runbook or glossary is a location in the repo. The analyser stores no instructions and runs nothing. | `spec-portable-context.md` |
+| **Discovery offers, and never selects** (M35.4, D-AI5) | Found a graph, a skill, a frontmatter description? Offer it. A person declares it. Applies to facts as well as files. | `spec-ai-menu.md` |
+| **The panel STATES; the menu ACTS** (D-AI1) | Mutation has one home, so a reader never wonders whether a button will change their project. | `spec-ai-menu.md` |
+| **Nothing on the AI menu runs anything** (D-AI4) | Recorded at the surface where "just add a Run item" will be tempting. Enforced by a source-text test. | `spec-ai-menu.md` |
+| **The verb surface is pinned** | `assertEquals(14, VerbSchemas.all().size())`. Adding a verb is a decision, not a convenience. | tracker ▸ Decisions |
+| **Server verbs never appear on the action socket** | The analyser acquires no server-mutating code at all. Agents drive Mongoose directly. | `spec-agent-brokered-dev-loop.md` §B |
+| **Agent fixes arrive as evidence-linked PRs, never direct edits** | | tracker ▸ Decisions |
+| **The refusals are load-bearing** (D-T4) | Every place the analyser declines to assert something is now part of the market position. Loosening one is a position change, not a tweak. | `spec-trust-structure.md` |
+
+## The gates are each blind outside their own reach
+
+This is the most useful thing to know if your job is checking. Three gates, each sound within its scope
+and silent outside it — and the silence is what gets trusted:
+
+- **The four-term sweep cannot see inside images.** It passed for the whole life of the repo while
+  release screenshots carried real names onto the public site (found 2026-08-16). Screenshots are now
+  generated under an isolated `user.home`, never taken.
+- **The sweep cannot see git metadata.** 214 commits carry an employer-domain author address; the count
+  is pinned in CLAUDE.md and re-checked before every release.
+- **`mkdocs build --strict` cannot see `docs/specs/`.** It is not part of the built site, so the link
+  checker never visits it. Twelve stale links in two days were found by reading before
+  `SpecLinksResolveTest` was added.
+
+If you are relying on a gate, check first that it can see the thing you are relying on it for.
+
 ## Process
 
 - **This repo is PUBLIC** (since 2026-08-14, fresh single-commit history). Everything committed is
