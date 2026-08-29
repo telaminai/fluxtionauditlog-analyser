@@ -1,0 +1,332 @@
+HANDOFF — M19 cross-repository coordination: Mongoose + playground halves
+Date: 2026-08-29 · From: analyser-side implementation session · Branch: main
+Base reviewed: main @ 6014af9
+Report due: docs/handoff/handoff_29_aug_2026_1_report.txt
+
+PURPOSE
+
+This brief is for the LLM working in the Mongoose and playground repositories while a separate session
+implements the analyser half of M19. Parallel work is intended, but implementation MUST NOT start from
+the current prose alone. M19 has two independent reviews and is awaiting amendments. First establish one
+signed, versioned cross-repository contract; then each repository can implement its own side without
+sharing a working tree or guessing the other side's behaviour.
+
+This file owns coordination and repository boundaries. It does NOT silently replace the product spec.
+The signed revision of docs/specs/spec-onboarding-example.md, identified by an exact commit SHA, will own
+the final interface contract. If this brief and that revision disagree, stop and report the mismatch.
+
+================================================================================
+1. ORIENT FIRST
+================================================================================
+
+Read before proposing or changing anything:
+
+  · docs/handoff/REVIEWER-ORIENTATION.md
+  · docs/specs/spec-onboarding-example.md — M19 design and acceptance.
+  · docs/handoff/review_m19_onboarding_and_trust.txt — independent review: MCP route, observable key
+    provenance, unopened-log path, JDK/AI prerequisite split, trust boundary.
+  · docs/handoff/review_spec_m19_onboarding_example.txt — independent review against live runtime and
+    Builder: audit-sink error, keyless preflight conflict, actual key precedence, incomplete skills,
+    skills-source contract and version checks.
+  · docs/specs/tracker.md, M19 and Trust structure — live status and the M19.16 amendment gate.
+  · docs/skills/README.md and all four current SKILL.md files — proposed canonical content, not yet an
+    accepted implementation contract.
+  · docs/specs/spec-agent-brokered-dev-loop.md, especially the registry/export loop and §H bench.
+  · tools/bench/README.md and tools/bench/loop-bench.py — existing executable cross-repository seam.
+  · docs/specs/mongoose-bootstrap-artefacts/README.md and its linked reviews — useful snapshot only;
+    source parity remains unverified because the snapshot records no source revision.
+  · The target repositories' own CLAUDE.md/AGENTS.md, tracker, build and release rules.
+  · Live Fluxtion framework canon before making runtime/compiler claims:
+      https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt
+
+Do not infer current Mongoose or playground behaviour from the analyser's snapshot. Record the exact
+repository and commit used for every cross-repository claim.
+
+================================================================================
+2. PHASE GATE — WHAT MAY HAPPEN BEFORE SIGN-OFF
+================================================================================
+
+Before the amended M19 contract is signed off, the Mongoose/playground session MAY:
+
+  · inspect current source and tests read-only;
+  · identify exact existing paths, commands, versions and extension seams;
+  · run existing tests and a disposable generated bundle;
+  · return corrections where the proposed contract cannot match reality;
+  · draft repository-local implementation slices without marking them started.
+
+It MUST NOT yet:
+
+  · implement a guessed bundle layout, profile key, key precedence or provenance record;
+  · publish a tutorial or bundle promising an unshipped path;
+  · fork the canonical skills into a second source of truth;
+  · mark M19, a cross-repository slice, or an acceptance item complete because documentation exists.
+
+The start signal is an amended spec on main with an exact contract version and commit SHA, followed by
+owner sign-off. Both sessions record that same SHA in their first implementation report/commit.
+
+================================================================================
+3. DECISIONS FIXED FOR THE AMENDED CONTRACT
+================================================================================
+
+D-X1 — ONE VERSIONED CONTRACT, OWNED HERE
+
+The final cross-repository table lives in spec-onboarding-example.md and carries `M19 bundle contract v1`.
+It names every field/path/command and the repository that produces and consumes it. This coordination
+brief remains live correspondence; it is not a second normative definition.
+
+D-X2 — REPOSITORY OWNERSHIP
+
+  Analyser repository owns:
+    · canonical SKILL.md content;
+    · profile parsing/context/Project-panel representation;
+    · key-file management UI and its value-safety boundary;
+    · `New project…` offers;
+    · resolved Codex/Claude/generic MCP setup;
+    · the final cross-repository bundle bench.
+
+  Mongoose repository owns:
+    · the processor's keyless runtime/start path;
+    · real audit-record production and file lifecycle;
+    · exact start, stop and regenerate entry points;
+    · effective build-key resolution and build diagnostics;
+    · Mongoose-native tests proving those behaviours.
+
+  Playground repository owns:
+    · bundle generation and exact project-relative layout;
+    · selecting and copying the pinned canonical skill tier at generation time;
+    · substituting project-specific commands/paths and rejecting unresolved markers;
+    · generating README.md, CLAUDE.md, AGENTS.md and the analyser profile consistently;
+    · skills-source retrieval and safe source provenance;
+    · generator tests for the complete downloaded artifact.
+
+No session edits another repository's owned artefact to make its own tests pass. Interface corrections go
+back through the contract and are accepted by both sides before either implementation changes.
+
+D-X3 — KEY CONTRACT: V1 DOES NOT GUESS AN EFFECTIVE BUILD WINNER
+
+Current Fluxtion Builder 1.0.64 resolves `-Dfluxtion.apiKey` over `apiKey` in the configured/default key
+file. It does not itself read `FLUXTION_API_KEY`. Therefore:
+
+  · the canonical v1 sources are the system property and the key file;
+  · the preferred writable home is `~/.fluxtion/fluxtion.apiKeyFile`, `apiKey=...`;
+  · `FLUXTION_API_KEY` is NOT documented as effective unless the Mongoose/build implementation explicitly
+    maps it to the builder, with a test proving the real generation call receives it;
+  · the startup path never requires a key when the generated processor is present;
+  · key preflight belongs only to regenerate;
+  · the analyser never claims which source a separate Maven/JVM build used.
+
+For M19 v1, choose the smallest honest UI: the analyser may write the canonical file and report only
+locally observable setup facts such as `canonical key file present`; it must not render `your build used
+the file/environment/property`.
+
+If the owner later requires effective-build provenance, that is an additive contract: the build owner
+emits a VALUE-FREE result and the analyser labels it `build-declared`. It must define schema/version,
+freshness and processor/build identity before implementation. No key value, hash of the key, command-line
+option or secret-bearing path may enter the result. Do not invent that result independently in either
+repository during v1.
+
+D-X4 — AUDIT OUTPUT IS NOT A NORMAL MESSAGE SINK
+
+Fluxtion business sinks registered through DataFlow.addSink/DataFlowConnector.addSink are not audit-log
+processors. Audit records are delivered through DataFlow.setAuditLogProcessor(LogRecordListener), or the
+Mongoose audit service built on that mechanism. The Mongoose implementation must prove that the configured
+file contains analyser-readable audit records. A growing business-output file is not acceptance evidence.
+
+The embedded host tier is analyser-owned canonical content and remains blocked until its complete
+setAuditLogProcessor/file-lifecycle route is grounded. The Mongoose/playground session must not copy the
+currently incorrect embedded skill into a bundle.
+
+D-X5 — SKILLS HAVE ONE SOURCE OF TRUTH
+
+Canonical content stays under this repository's docs/skills/. A generated Mongoose bundle takes `common`
+plus the `mongoose` host tier at a pinned analyser-repository revision. The playground does not maintain a
+fork.
+
+The accepted v1 set must cover, with project-real procedures:
+
+  · start;
+  · stop;
+  · exact audit-log location/opening;
+  · record a run, if the bundle claims recording;
+  · replay and an actual comparison of outputs, if the bundle claims replay;
+  · regenerate after a graph/design change, with the key prerequisite at that point only.
+
+A template may substitute explicitly marked fields when generating the copy. The generated bundle MUST
+contain no `TODO(bundle)` and no placeholder command/path. Name/description/frontmatter and profile
+runbook declarations must describe the same final files.
+
+D-X6 — BUNDLE PATHS ARE PROJECT-RELATIVE AND GENERATED ONCE
+
+The signed contract table must give one value for each generated project:
+
+  · audit log path;
+  · GraphML path;
+  · generated processor source path and processor FQN;
+  · source roots;
+  · start command;
+  · stop command;
+  · regenerate command;
+  · skill paths;
+  · `.analyser/project.fluxtion-settings` fields.
+
+Values may contain a generator-known project/deployment name, but after generation they are concrete
+project-relative values. README, CLAUDE/AGENTS, skills, profile and tests are generated from that single
+model. The analyser does not infer an unopened log path, and a skill must not tell an agent that context
+knows a log which has never been opened.
+
+D-X7 — MCP SETUP USES THE ANALYSER'S RESOLVED ROUTE
+
+The bundle never ships `java -jar /path/to/...`. Its client-neutral instruction is:
+
+  1. install/start the analyser through the documented current route;
+  2. open `AI ▸ Connect an AI client…`;
+  3. use the exact resolved Codex, Claude Code or generic configuration shown there;
+  4. verify connection with MCP discovery and `analyser_context`.
+
+The basic path and AI path are stated separately: running the example and inspecting its log has the
+documented Java/analyser prerequisites; AI operation additionally requires a supported MCP client and any
+client entitlement. Do not retain the governing `only a JDK` headline for the full AI-assisted promise.
+
+D-X8 — skills.source BELONGS TO THE GENERATOR, NOT THE PROJECT OR ANALYSER RUNTIME
+
+Skills are late-bound at bundle-generation time. Therefore the control named `skills.source` belongs to
+the playground generator's machine/service configuration. It is never read from downloaded project input,
+the analyser project profile, or at analyser/runtime use.
+
+The minimum v1 retrieval contract must define:
+
+  · one deterministic index/layout and its contract version;
+  · canonical, corporate mirror, local/air-gapped and explicit `none` modes;
+  · host-tier selection;
+  · the difference between `none`, not found, invalid content and transport failure;
+  · bounded content and rejection of unresolved markers;
+  · a credential-free source identity recorded in the generated bundle.
+
+Separate control from provenance. A profile may carry an inert, declared `skills.provenance` string for
+context/Project-panel display only if the amended analyser schema accepts it; it must never carry
+`skills.source` or cause a fetch. URLs with user info, query, fragment or credential-shaped content are
+refused before storage/display. Hash pinning, redirect restrictions and signing are recommended hardening,
+not minimum v1 acceptance unless promoted by the signed contract.
+
+D-X9 — VERSION COMPATIBILITY MUST HAVE AN ENFORCER
+
+`x-analyser-min-version` is not decorative. At minimum the generator checks each selected skill against
+the analyser version its README requires and fails generation on incompatibility. The bundle names that
+minimum and the setup instructions account for JBang caching. Merely writing frontmatter which every
+consumer ignores is not acceptance.
+
+D-X10 — TRUST BOUNDARY
+
+The bundle and analyser may state what the declared graph and supplied record support. They do not claim
+to authenticate the record's origin, completeness, semantic correctness or freedom from author influence.
+Do not add stronger `independently proven` language in cross-repository docs.
+
+================================================================================
+4. PHASE-ZERO RECONNAISSANCE REQUIRED FROM THE OTHER LLM
+================================================================================
+
+Before implementation sign-off, return a factual table from LIVE source, not the snapshot:
+
+  Mongoose repository:
+    1. repository URL and exact commit;
+    2. starter/template path and its owning version;
+    3. whether the generated processor is committed and whether the normal start path regenerates;
+    4. exact current start and stop entry points;
+    5. exact regeneration entry point and Maven lifecycle phase;
+    6. effective key resolver/precedence in the real build and whether any wrapper maps environment state;
+    7. audit service/backend used, exact resulting format/path and clean shutdown behaviour;
+    8. exact GraphML and generated-source locations;
+    9. existing tests which prove each fact, and gaps requiring a new test.
+
+  Playground repository/service:
+    1. repository URL and exact commit (or state plainly if source access is unavailable);
+    2. Download generator entry point and current bundle tree;
+    3. template catalogue entry and versions used for the Mongoose starter;
+    4. where server-side generator settings are configured;
+    5. whether a versioned content index/fetch mechanism already exists;
+    6. how generated files are tested today;
+    7. the smallest seam for one bundle model to feed README/profile/skills/tests consistently.
+
+For every mismatch with D-X1–D-X10, report: observed source, proposed correction, owning repository and
+whether it changes the product decision or only the implementation. Do not patch around a mismatch.
+
+================================================================================
+5. IMPLEMENTATION SLICES AFTER THE START SIGNAL
+================================================================================
+
+The other LLM should propose its exact commit plan after reconnaissance. The expected shape is:
+
+  Mongoose M1 — keyless run contract
+    Generated processor present; ordinary start performs no hosted regeneration and no key preflight.
+
+  Mongoose M2 — native audit file
+    Real runtime writes the agreed analyser-readable audit format/path; lifecycle closes it cleanly.
+
+  Mongoose M3 — explicit start/stop/regenerate entry points
+    Project-owned commands, key requirement only on regenerate, actionable failure, tests and docs.
+
+  Playground P1 — typed bundle model and exact layout
+    One model supplies all project-relative values to README, CLAUDE/AGENTS, profile and skills.
+
+  Playground P2 — pinned skills source
+    Deterministic source/index, host tier, source modes, safe provenance, compatibility check, no TODO.
+
+  Playground P3 — generated-bundle acceptance
+    Inventory/profile/frontmatter/path assertions plus a disposable keyless build/run fixture.
+
+One user-visible slice per commit. Follow each repository's changelog, docs, test and release rules.
+
+================================================================================
+6. CROSS-REPOSITORY ACCEPTANCE — NOBODY CLAIMS THIS FROM LOCAL TESTS ALONE
+================================================================================
+
+The integration is complete only when a freshly generated, downloadable-equivalent bundle proves:
+
+  1. Its inventory exactly matches M19 bundle contract v1.
+  2. No key is configured; the committed processor builds/starts without regeneration.
+  3. The real Mongoose runtime writes audit records to the declared project-relative file.
+  4. The declared GraphML fits the written log and source navigation reaches bundled source.
+  5. The generated profile declares every shipped skill with its final description/path.
+  6. No shipped file contains `TODO(bundle)`, `/path/to/`, a secret, an absolute developer path or an
+     invented command.
+  7. The analyser opens graph-first, then the log, and reports audit readiness/pairing honestly.
+  8. A supported client uses the analyser's resolved MCP setup; discovery and `analyser_context` succeed.
+  9. Start, stop and log-location skills work exactly as written.
+ 10. Regeneration without a key fails at the documented step with the documented remedy; the initial run
+     remains a success. A valid-key regeneration is tested only in an authorised credential-bearing
+     environment, with the value absent from all captured output.
+ 11. `skills.source=none`, canonical and one non-canonical fixture behave distinctly; project input cannot
+     redirect the source.
+ 12. The complete supported path is timed against the prerequisite tier it actually requires.
+
+The existing `tools/bench/loop-bench.py --stub --launch` remains a regression check for the brokered seam.
+It is not evidence that a real starter produced the native audit file or that the playground generated a
+correct bundle. Extend or add a bundle-mode bench only after the real generator output exists.
+
+================================================================================
+7. NON-NEGOTIABLE BOUNDARIES
+================================================================================
+
+  · No key value crosses repository reports, profiles, context, logs, screenshots, process diagnostics or
+    test fixtures. Use presence/source enums only where the signed contract permits them.
+  · The analyser never executes a runbook and gains no server-mutating verb.
+  · Discovery offers; it never selects. Generated declarations are the bundle author's declarations.
+  · Generated/project-relative facts are declared once; consumers do not guess them independently.
+  · No public tutorial is published before the Download really ships and the bundle bench passes.
+  · No screenshot or transcript is hand-authored as acceptance evidence.
+  · Preserve unrelated work and never use destructive git operations to reconcile parallel sessions.
+
+================================================================================
+8. REPORT BACK
+================================================================================
+
+Phase zero first: write the paired report named at the top with the two live-source tables, exact commit
+SHAs, commands/tests run, every mismatch, and the proposed Mongoose/playground slices. Mark implementation
+`NOT STARTED — awaiting M19 bundle contract v1 sign-off`.
+
+After the start signal, append implementation commits and local acceptance evidence to that report. State
+what was not verified. Do not call the work complete until the analyser-side session runs the combined
+bundle acceptance and an independent review answers both repository reports.
+
+Keep this brief and report in docs/handoff/ while live. Move them to completed only after the amended spec,
+both implementations, combined bench and review findings are resolved.

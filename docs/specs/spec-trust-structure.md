@@ -15,11 +15,35 @@ built on evidence cannot deploy a component whose only account of itself is its 
 The usual answer to that is *explainable AI*: interpret the model's decisions. This product offers a
 different answer, and the difference is the whole position:
 
-> **Do not explain the model. Make its output checkable against a record the model did not write.**
+> **Do not explain the model. Check specified claims about what it built against a recorded execution.**
 
 An LLM designs the system. The compiler derives execution order deterministically. The runtime writes an
-audit record of what actually ran. A human — or another agent — interrogates that record afterwards.
-Every claim the AI makes about what it built can be checked against something it did not author.
+audit record of what ran. A human — or another agent — interrogates that record afterwards.
+
+**The claim is bounded, and the bound is not a caveat — it is the claim (corrected 2026-08-29, review F5).**
+An earlier draft said *"every claim the AI makes can be checked against a record it did not author"* and
+that **the agent cannot make the log say something**. Both are false as shipped, and the correction matters
+most in front of the buyer this spec targets:
+
+- the analyser **accepts a hand-written audit log** — demonstrated in this repo's own cold test, where one
+  was typed by hand from the format spec and parsed;
+- an agent that authors the project **writes the nodes**, and therefore writes the `auditLog` calls that
+  decide what appears in `nodeLogs`;
+- and there is **no signed artefact, runtime identity, append-only guarantee or chain of custody** in this
+  product. Nothing here establishes who produced a file.
+
+So the honest proposition is:
+
+> **Given a trusted runtime and a record supplied with declared provenance, the analyser independently
+> checks specified structural and recorded-execution claims against that record. It does not establish the
+> record's origin, its completeness, its semantic correctness, or that the author could not have influenced
+> what it contains.**
+
+That is still a strong and unusual claim — nothing adjacent checks structural claims against a recorded
+execution at all — and it is one a compliance officer cannot puncture with the first question they will
+ask, which is *"how do you know this log wasn't edited?"* The answer today is **you don't, and we say so**.
+If authenticated provenance is wanted, it is a separate capability to specify and build, not something to
+imply.
 
 ## D-T1 — the claim is NOT explainability, and saying "explainable AI" actively costs us
 
@@ -28,9 +52,10 @@ feature attribution, counterfactuals, model cards. We do not do that, and a buye
 will evaluate us against interpretability tooling and correctly conclude we do not fit.
 
 The claim we can actually support is narrower and stronger: **the system the AI produced is
-deterministic, and what it did is recorded independently of the AI.** That asks the buyer to believe
-nothing whatsoever about the model, which is a much easier thing to sell to someone whose job is not
-believing things.
+deterministic, and what it did was recorded by execution rather than by the model's account of it.** That
+asks the buyer to believe nothing about the model's *reasoning* — which is a much easier thing to sell to
+someone whose job is not believing things. It does not ask them to believe nothing at all: they must still
+trust the runtime that produced the record and the provenance under which it was supplied (F5).
 
 Use *verifiable*, *checkable*, *independently recorded*. Do not use *explainable*.
 
@@ -40,7 +65,7 @@ Use *verifiable*, *checkable*, *independently recorded*. Do not use *explainable
 |---|---|---|
 | **LLM author** | **No** | fallible by demonstration, not by assumption — see the evidence below |
 | **Compiler** | Verifiable | dispatch order is derived, and the generated Java is readable rather than reflective |
-| **Audit log** | Evidence | written by the runtime, not by the agent — the agent cannot make it say something |
+| **Audit log** | Evidence **about execution**, not about origin | written by the runtime as the system ran, independently of any later account of it. **Not tamper-evident, and not independent of the author who wrote the logging calls** (F5). Its force is that it was produced by execution rather than by narration — not that it could not have been influenced. |
 | **Analyser** | The instrument | states what the record supports and refuses what it does not (D-T4) |
 
 The structure only works because the trust decreases in the direction the work flows. An architecture
@@ -54,7 +79,13 @@ An agent's account of what it did is **testimony**: it may be accurate, it canno
 produced by the party with an interest in it. The audit log is **evidence**: produced by the runtime, at
 the time, independently of any claim, and readable by someone who was not there.
 
-Regulated industries exist because that distinction matters. It is also why the record has to be *on* by
+Regulated industries exist because that distinction matters.
+
+**The boundary, stated with it rather than after it (F5).** Evidence-not-testimony is a claim about *how
+the record was produced* — by execution, at the time — not a claim that it is authenticated. A supplied
+file's origin rests on declared provenance and on trusting the runtime that wrote it. Anyone who can write
+a file can write one of these; the analyser will read it and say what it says. Treat the distinction as
+what it is: it rules out an agent's *narration* being the only account, and it does not rule out tampering. It is also why the record has to be *on* by
 default — a log enabled after an incident is not evidence of the incident — and why the audit
 performance work is a market decision rather than an optimisation: at the measured throughput, leaving it
 on always is affordable, so the honest engineering position and the commercially useful one are the same
@@ -88,6 +119,11 @@ should be in the pitch, not discovered in the pilot:
 - **It is total on structure and silent on semantics.** The compiler will not let you build a cycle and
   will happily let you feed shelf level into a demand forecast. Every expensive defect in the measured
   three-round exercise lived in that gap.
+- **It does not establish the record's origin.** There is no signing, no runtime identity, no append-only
+  guarantee. Anyone who can write a file can write one of these, and the analyser will read it. Origin
+  rests on declared provenance and on trusting the runtime — say so before a compliance officer asks.
+- **The author influences what the record contains.** Whoever wrote the nodes wrote the `auditLog` calls.
+  The log is evidence of execution; it is not independent of the person or agent who decided what to log.
 - **The record covers what was logged.** Absence is only conclusive at a level of audit that captures the
   node in question; below that, absence is a level, not a silence.
 - **It requires determinism, which requires the compiler.** That is the adoption wall, and it is why the
@@ -148,6 +184,10 @@ Measured, and none of it produced to support this document.
 - [ ] Every existing refusal in D-T4 is covered by a test, and a review that loosens one treats it as a
       position change rather than a tweak.
 - [ ] The limits in D-T5 appear in the buyer-facing material, not only here.
+- [ ] **No surface, doc or pitch claims the record is tamper-evident, authenticated, or beyond the
+      author's influence** (F5). The bounded proposition is used verbatim where the claim is made.
+- [ ] The answer to *"how do we know this log wasn't edited?"* is written down and is "you don't, today" —
+      not improvised in a meeting.
 - [ ] D-T6's forcing function is answered for the first serious prospect and recorded against this spec.
 
 ## Why this is a spec and not a slide

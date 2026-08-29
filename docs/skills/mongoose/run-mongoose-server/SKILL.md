@@ -6,25 +6,15 @@ x-analyser-min-version: 1.12.0
 
 # Run the local Mongoose server
 
-## Before anything: the preflight
+## Start here — no key is needed to run
 
-A Mongoose/Fluxtion project needs a Fluxtion API key **only to regenerate** the processor. The generated
-processor ships with the project, so it builds and runs without one; changing the graph does not.
+The generated processor **ships with the project**, so it builds and runs with no Fluxtion API key. Do
+not run a key preflight before starting: an earlier version of this skill did, the check exits non-zero
+when no key exists, and a model following it stopped before the project ever ran — turning the intended
+first success into a first failure. A review caught it before it shipped.
 
-```
-./scripts/check-fluxtion-key.sh      # if this project ships it
-```
-
-The key is looked up in this order — the first that answers wins, and knowing WHICH one answered is
-usually the thing that resolves confusion:
-
-```
-FLUXTION_API_KEY                              environment
-~/.fluxtion/fluxtion.apiKeyFile               apiKey=…      [preferred]
--Dfluxtion.apiKey=…                           build property
-```
-
-If a build stops at `process-classes` with no obvious cause, this is why.
+The key is needed **only to REGENERATE** the processor after you change the graph. That procedure is at
+the bottom of this file, and the check belongs immediately before it.
 
 ## Steps
 
@@ -50,3 +40,29 @@ If a server is already running for this project, find it before starting another
 under one deployment produce two partial logs and no error. The same applies to the analyser: if its
 status bar reads **MCP elsewhere**, another analyser window owns the endpoint and your questions are
 being answered about a different log.
+
+## Regenerating after a graph change — this is where the key is needed
+
+Only run this when you have changed the graph (added or rewired a node). Running the project does not
+need it.
+
+1. Check a key is resolvable:
+
+   ```
+   ./scripts/check-fluxtion-key.sh      # if this project ships it
+   ```
+
+2. **Know which source the BUILD actually reads**, because it is not what a shell script reads. Verified
+   against `fluxtion-builder` 1.0.64 (`FluxtionConfigManager`):
+
+   ```
+   -Dfluxtion.apiKey=…                  system property   [WINS if set]
+   ~/.fluxtion/fluxtion.apiKeyFile      apiKey=…          [used when the property is absent]
+   ```
+
+   **`FLUXTION_API_KEY` is NOT read by the build.** `FluxtionConfigManager` makes no `System.getenv`
+   call at all. A preflight script may read that variable and pass, while the build it precedes never
+   receives the value — so if you set only the environment variable, the check succeeds and the build
+   still fails. Set the file, or pass the property explicitly.
+
+3. Rebuild. If the build stops at `process-classes`, the key is the reason.

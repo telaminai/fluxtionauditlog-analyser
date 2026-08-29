@@ -1,41 +1,56 @@
 ---
 name: run-embedded
-description: Start and stop this project's processor in-process, and find the audit log it writes, when the runtime is embedded rather than server-hosted.
+description: Start and stop this project's processor in-process, wire its audit log correctly, and find the file it writes.
 x-analyser-min-version: 1.12.0
 ---
 
 # Run the processor in-process
 
-For a project that embeds the Fluxtion runtime rather than deploying to a server. The host is
-`com.telamin.fluxtion.runtime.connector.DataFlowConnector`.
+For a project that embeds the Fluxtion runtime rather than deploying to a server.
 
-## The shape (verified against fluxtion-runtime 1.0.13)
+## The audit log is NOT a sink — this is the part that is easy to get wrong
 
-`DataFlowConnector` composes the running system:
+There are two unrelated output mechanisms on `DataFlow`, and only one produces the records the analyser
+reads. Verified against `fluxtion-runtime` 1.0.13:
 
-- `addDataFlow(DataFlow)` — the compiled processor
-- `addFeed(EventFeedAgent<?>)` — where events come from
-- `addSink(String, Consumer<T>)` — where output goes
-- `registerService(T, Class<S>, String)` — services the graph exports or consumes
+| Method | Takes | Produces |
+|---|---|---|
+| `addSink(String, Consumer<T>)` | a business consumer | **application output** — a named graph output |
+| `setAuditLogProcessor(LogRecordListener)` | `LogRecordListener` | **the audit log** — the `eventLogRecord` stream |
 
-The audit log is a sink like any other. `connector.FileMessageSink` takes a path and implements
-`Lifecycle` (`init` / `start` / `stop`), so the log file is opened and closed with the run.
+`FileMessageSink` extends `AbstractMessageSink`, **not** `LogRecordListener`. It cannot be passed to
+`setAuditLogProcessor` at all, and wiring it through `addSink` gives you business output while the audit
+file stays empty. An earlier version of this skill said otherwise and was wrong — a review caught it
+before it shipped.
 
 ## Steps
 
-1. Start it with this project's own entry point.
+1. **Install the audit processor before running.** `LogRecordListener` has one method,
+   `processLogRecord(LogRecord)`, and the record's `toString()` is the analyser's format — except that
+   **the `---` separator is yours to write.** Omit it and a whole file reads as one record, silently:
 
-   TODO(bundle): name the class and command. Do not invent one — an embedded host has no standard main.
+   ```java
+   dataFlow.setAuditLogLevel(EventLogControlEvent.LogLevel.INFO);   // set the level FIRST
+   dataFlow.setAuditLogProcessor(record -> {
+       writer.write("---");            // the separator the format requires — record.toString() omits it
+       writer.newLine();
+       writer.write(record.toString());
+       writer.newLine();
+       writer.flush();
+   });
+   ```
 
-2. **Confirm the log is actually being written before doing anything else.** An embedded run with no
-   audit sink attached, or a build without `addEventAudit()`, produces an empty file rather than an
-   error. Check the file is growing; if it is empty, open the GraphML in the analyser and read
-   `graphPairing.auditLogging` — it will say `not_enabled` if the build is the problem.
+   Set the level **before** attaching the processor. Setting it dispatches a control event through the
+   graph, so a processor attached first captures that event as a record about your own configuration.
 
-3. Stop it through the same entry point, so the sink's `stop()` runs and the file is closed cleanly. A
-   log truncated by a killed process is still readable, but its last cycle may be partial.
+2. **Start it with this project's own entry point.**
 
-## Why the stop matters more here than on a server
+   TODO(bundle): name the class and command. An embedded host has no standard main; do not invent one.
 
-There is no admin endpoint to ask. The process is the deployment, so the only thing that closes the sink
-is the process shutting down properly.
+3. **Confirm the file is actually growing.** An embedded run with no audit processor, or a build without
+   `addEventAudit()`, produces an **empty file** rather than an error. If it is empty, open the GraphML
+   in the analyser and read `graphPairing.auditLogging` — `not_enabled` means the build is the problem
+   and no amount of wiring here will fix it.
+
+4. **Stop through the same entry point**, so the writer is flushed and closed. There is no admin endpoint
+   to ask: the process *is* the deployment, so only a clean shutdown closes the file.

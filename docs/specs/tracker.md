@@ -142,7 +142,10 @@ analyser (reverse funnel)._
 - [M19.16] ☐ **Review amendments before bundle implementation** — correct the MCP bootstrap to the
   supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
   key provenance a value-free observable source rather than guessing a separate build's winner; and make
-  the generated load-log skill name the bundle's actual path (review F1–F4).
+  the generated load-log skill name the bundle's actual path (review F1–F4). Parallel Mongoose/playground
+  work is coordinated by [`handoff_29_aug_2026_1.txt`](../handoff/handoff_29_aug_2026_1.txt): phase-zero
+  live-source reconnaissance only until an amended **M19 bundle contract v1** is signed at an exact SHA;
+  after that, repository-owned slices may proceed independently and converge on one generated-bundle bench.
 - [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns key PROVENANCE.** The visualiser is not shipping
   (too IDE-specific); its tools fold into the analyser, which removes the only real objection. "Provenance"
   because the key has three sources and WHICH one answered is the fact that costs an afternoon — the §E /

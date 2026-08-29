@@ -34,7 +34,19 @@ that the analyser explains*. And it can't demo Follow, source navigation against
 the browser **and has a Download button** — the two best demos in the stack still don't touch
 (long-standing observation; this spec finally wires them).
 
-## The experience (target: <10 minutes, nothing pre-installed but a JDK)
+## The experience (target: <10 minutes)
+
+**Prerequisites, corrected 2026-08-29 (review F4).** This section was headed *"nothing pre-installed but
+a JDK"*, and C3 identified that as understated without repairing it. Repaired here, because a promise the
+reader discovers is false at step 6 costs more than one they were told:
+
+| Path | Needs |
+|---|---|
+| **Run and analyse** | a JDK. That is genuinely all — `jbang` fetches the analyser. |
+| **The AI half** | a JDK **plus an MCP-capable client** (Claude Code, Codex or another), configured and subscribed |
+| **Change the graph** | the above, plus a Fluxtion API key (R4) |
+
+Say which path a step belongs to rather than implying one prerequisite covers all three.
 
 1. **Get an example** — open the playground, pick an example flow, **Download**. You get a runnable
    Mongoose example project.
@@ -249,11 +261,22 @@ actor, different act. The analyser still reads only what someone wrote down.
 
 ### R3 — the agent is connected to the analyser, and step 6's division of labour is now wrong
 
-The bundle should carry the MCP registration one-liner in its README and `CLAUDE.md`:
+The bundle should carry a **client-neutral** instruction, not a command line.
 
-```
-claude mcp add fluxtion-analyser -- java -jar /path/to/fluxtion-auditlog-analyser.jar --mcp
-```
+**Corrected 2026-08-29 (review F1).** An earlier draft here printed
+`claude mcp add fluxtion-analyser -- java -jar /path/to/…jar --mcp`. That is wrong twice over: the shipped
+route builds `mcp add --scope user --transport stdio fluxtion-analyser -- <resolved bridge>`
+(`ClaudeMcpClient.addCommand`), and — more importantly — **a copied generic jar path is not an
+installation instruction.** M42 exists precisely because the analyser resolves the real local command
+(installed JBang launcher, else the running packaged jar) and hands it over already correct. Hard-coding a
+path defeats that and only serves one of the three supported clients.
+
+What the bundle should say instead:
+
+> Start the analyser with local transport enabled, then use **AI ▸ Connect an AI client…** — it detects
+> Claude Code, Codex or a generic MCP client and gives you the resolved registration for this machine.
+
+That is client-neutral, cannot go stale, and is the route the docs already teach.
 
 **Correction to step 6.** It reads: *code editing happens in the user's IDE with their own agent*,
 framed as a deliberate division from the in-app assistant. **M42 partly dissolved that.** It is now one
@@ -277,13 +300,21 @@ Two consequences for this spec:
 2. **The key has ONE canonical home and it is already established** — verified in the starter's own
    `check-fluxtion-key.sh` and in `fluxtion-visualiser`'s account dialog:
 
+   **Corrected 2026-08-29 (review F3), verified against `fluxtion-builder` 1.0.64's
+   `FluxtionConfigManager` rather than against a shell script:**
+
    ```
-   ~/.fluxtion/fluxtion.apiKeyFile      apiKey=…        [preferred]
-   FLUXTION_API_KEY                     env             [also read]
-   -Dfluxtion.apiKey=…                  build property
+   -Dfluxtion.apiKey=…                  system property   [WINS when set]
+   ~/.fluxtion/fluxtion.apiKeyFile      apiKey=…          [used when the property is absent]
    ```
 
-   So this is **not** `~/.m2/settings.xml`, and the bundle should document the preferred file.
+   Two errors in the earlier draft, both from taking `check-fluxtion-key.sh` as the builder's contract:
+   **`FLUXTION_API_KEY` is not read by the build at all** (`FluxtionConfigManager` makes no
+   `System.getenv` call), and the file is not "preferred" — the **system property overrides it**.
+
+   The consequence is a real trap and the bundle must say so: a preflight script that reads the
+   environment variable can PASS on a value the build never receives. It is still not
+   `~/.m2/settings.xml`.
 
 ### R5 — the analyser opens BEFORE the first run, and has something to say
 
@@ -437,9 +468,17 @@ the half that matters. This section is the buildable part.
 1. **A start-page card.** *"Fluxtion API key — not found. Needed to regenerate a processor; this project
    runs without one."* States the fact, names the remedy, gates nothing.
 2. **An `AI` menu item** — *Fluxtion API key…* — opening the management dialog. Same owner, one place.
-3. **A Project-panel row** stating presence and **provenance**: *"key: present — from
-   `~/.fluxtion/fluxtion.apiKeyFile`"* / *"from `FLUXTION_API_KEY`"* / *"from a build property"*. Which
-   source answered is the fact that costs an afternoon (§E / M38.3 applied to a credential).
+3. **A Project-panel row** stating presence and **provenance** — but only over sources the BUILD reads
+   (review F3): *"key: present — from `~/.fluxtion/fluxtion.apiKeyFile`"* or *"overridden by
+   `-Dfluxtion.apiKey`"*. Which source answered is the fact that costs an afternoon (§E / M38.3 applied
+   to a credential).
+
+   **It must not report `FLUXTION_API_KEY` as the answering source**, because the builder never reads it
+   — that would state a provenance that did not answer the build, which is worse than saying nothing.
+   Reporting it as *"set, but not read by the build"* is legitimate and useful, since a user who set only
+   that variable is in the confusing state this row exists to resolve. The analyser also cannot observe a
+   `-D` passed to a future Maven run, so where the value is not locally determinable the row says so
+   rather than guessing.
 
 #### What the dialog does
 
@@ -644,10 +683,10 @@ established: state a fact AND who supplied it. The key has three sources, and wh
 the thing that costs an afternoon:
 
 ```
-~/.fluxtion/fluxtion.apiKeyFile   apiKey=…       [preferred]
-FLUXTION_API_KEY                  environment
--Dfluxtion.apiKey=…               build property
+-Dfluxtion.apiKey=…               system property   [WINS when set]
+~/.fluxtion/fluxtion.apiKeyFile   apiKey=…          [used when the property is absent]
 ```
+_(Corrected 2026-08-29 — see R4. `FLUXTION_API_KEY` is read by scripts, NOT by the builder.)_
 
 *"Your build is using the environment variable, not the file you just edited"* is `provenanceSource`
 applied to a credential, and it is worth more than the setting UI.
