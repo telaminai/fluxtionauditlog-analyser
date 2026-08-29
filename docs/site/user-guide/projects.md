@@ -34,8 +34,11 @@ a project is open.
 **File ▸ Open project…** — pick the project directory, or its `.fluxtion-settings` file directly.
 
 - **File ▸ Open recent project** — the last ten, most recent first.
-- **File ▸ New project…** — starts an *empty* profile in a directory you choose. Empty means empty; it
-  does not inherit whatever you had open, or "new project" would just be a slow way to copy one.
+- **File ▸ New project…** — chooses a directory, then offers the Java source roots, `SKILL.md` runbooks
+  and GraphML it can already see there. Every box starts off: finding is not adding. Confirm only the
+  facts this analyser should adopt; an empty directory produces an ordinary empty offer and can still
+  become an empty profile. It never inherits whatever you happened to have open, or "new project"
+  would just be a slow way to copy one.
 - **File ▸ Save project as…** — forks the current settings to another project, which becomes active.
 - **File ▸ Close project** — returns to the settings you had **before you ever opened a project**.
 
@@ -43,6 +46,19 @@ a project is open.
 
 With a project open, its name sits in the window title — so *which settings am I using right now* is
 never a guess.
+
+### The day-two journey
+
+After trying a prepared example, use **File ▸ New project…** on your own repository. The one offer is
+the hand-off from demo to real work:
+
+1. review the detected `src/main/java` roots (including one-level Maven modules);
+2. choose any project-owned skills that should become declared runbook pointers;
+3. optionally choose one discovered GraphML topology to open;
+4. confirm once. Only those checked facts enter the new profile.
+
+The scans are bounded and skip build output, dependencies and symlinks. If a safety cap is reached the
+dialog says the offer is partial rather than presenting it as the whole repository.
 
 !!! info "Switching replaces, it doesn't merge"
 

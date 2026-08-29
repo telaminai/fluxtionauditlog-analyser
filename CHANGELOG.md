@@ -7,6 +7,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **New project now offers the setup already present in the directory.** After choosing a directory,
+  one confirmation lists detected Java source roots, skill-shaped runbooks and GraphML. Every choice
+  starts off: discovery never silently adopts project content. Confirmed source roots and skill
+  pointers are saved to the new profile, and at most one confirmed topology opens. An empty directory
+  is an ordinary empty offer and can still become an empty project.
 - **Local Fluxtion build-key management without a first-run gate.** The Start page and
   *AI ▸ Fluxtion API key…* now open one masked dialog for the established
   `~/.fluxtion/fluxtion.apiKeyFile`, including named local profiles. The Project panel states only

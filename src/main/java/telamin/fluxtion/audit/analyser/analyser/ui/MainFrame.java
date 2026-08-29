@@ -3281,7 +3281,7 @@ public final class MainFrame extends JFrame {
 
     private JMenuItem newProjectItem() {
         JMenuItem item = new JMenuItem("New project…");
-        item.setToolTipText("Start an empty project profile. Settings you edit from here save to it.");
+        item.setToolTipText("Create a project profile and optionally adopt discovered source roots, skills and GraphML");
         item.addActionListener(e -> chooseAndCreateProject());
         return item;
     }
@@ -3317,8 +3317,25 @@ public final class MainFrame extends JFrame {
             }
             return;   // never silently replace someone's project file
         }
+        Path root = fc.getSelectedFile().toPath().toAbsolutePath().normalize();
+        NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);
+        NewProjectDiscovery.Selection selection = NewProjectOfferDialog.show(this, offer);
+        if (selection == null) return;       // the offer is a question; Cancel creates and adopts nothing
         try {
             applyProjectResult(project.create(file));
+            NewProjectDiscovery.apply(offer, selection, config);
+            if (!selection.sourceRoots().isEmpty() || !selection.skillPaths().isEmpty()) {
+                onProfileEdited();           // one persistence funnel; the profile stores pointers, never skill text
+            }
+            if (selection.graph() != null) {
+                topologyPanel.load(selection.graph());
+                judgeOpenedGraph();
+                updateLifecycleMenu();
+                if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
+            }
+            status.setText("new project: " + root + "  ·  adopted " + selection.sourceRoots().size()
+                    + " source root(s), " + selection.skillPaths().size() + " skill pointer(s)"
+                    + (selection.graph() == null ? "" : " and opened " + selection.graph().getFileName()));
         } catch (java.io.IOException ex) {
             JOptionPane.showMessageDialog(this, "Could not create the project: " + ex.getMessage(),
                     "New project", JOptionPane.ERROR_MESSAGE);

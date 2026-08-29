@@ -203,7 +203,7 @@ analyser (reverse funnel)._
   sanitised provenance and `x-analyser-min-version` refusal are normative in the M19 v2 contract; the
   playground vendors the snapshot at build/release, never in the user's browser. Blast radius stated:
   nothing executes a skill, so the exposure is an agent READING a procedure — real and bounded.
-- [M19.13] ☐ **DAY TWO — `New project…` offers what it found** _(owner, 2026-08-29; spec R7)_. Day one is
+- [M19.13] ◧ **DAY TWO — implementation in worktree; full-gate/commit pending: `New project…` offers what it found** _(owner, 2026-08-29; spec R7)_. Day one is
   a primed bundle; day two is the user's own project, and today that is a cul-de-sac. Verified in code:
   `File ▸ New project…` exists and creates an **empty** profile, discovering nothing, so a user who has
   just watched the bundle work must then perform four undocumented actions to reach the same state on
@@ -211,6 +211,12 @@ analyser (reverse funnel)._
   layout for a source-root guess — so this is one dialog that OFFERS and never selects (D-AI5). **The only
   part of M19 that needs no other party to agree**, and the part that decides whether the bundle is a demo
   people can reproduce.
+  - 2026-08-29 implementation evidence: `NewProjectDiscovery` composes the existing bounded
+    `SkillDiscovery`, `GraphmlDiscovery` and source-root layout detection; `NewProjectOfferDialog` puts
+    all three in one confirmation with every choice off. Confirmed roots and skill pointers persist; at
+    most one confirmed topology opens. `NewProjectDiscoveryTest` proves an empty directory is an empty
+    offer, default adoption changes nothing, and explicit choices alone apply. Public Projects journey
+    and `[Unreleased]` updated; exact commit and full gates follow at slice close.
 - [M19.15] ☐ **The seeding prompt for step 2** _(owner, 2026-08-29; spec has it verbatim)_. Step 2 is only
   a measurement if the prompt does not contaminate it: leading the witness produces agreement, manufactured
   hostility produces theatre, instructing the task tests the prompt instead of the docs, and revealing it is
