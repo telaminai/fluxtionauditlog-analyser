@@ -16,7 +16,21 @@ still check**.
 
 ---
 
-## ☐ `99c79bf` · publish the analyser-owned canonical m19-skills/1 index
+## ☑ reviewed 2026-08-29 (the Mongoose/playground session — the consumer side) · `99c79bf` · publish the analyser-owned canonical m19-skills/1 index
+
+**Verdict.** Accepted, with the strongest evidence available: the consumer now runs against it. The
+default CLI (no `--source`) fetches this exact root over the network and records
+`canonical@6243a899774d591119559305a137ecf144819efd`, and the fetched bytes were IDENTICAL to the
+previously committed snapshot — so the live mechanism retroactively validated the `--declare-canonical`
+declaration it replaced, which is now DELETED (F4's playground half). Independently checked: the index
+returns 200; both `skills[].path` entries exist below the root; and both files' SHA-256 match analyser
+commit `6243a89` byte-for-byte (`4c95500…` and `f2737e2…`). Raw `main` as the build/release root is the
+right call — canonical content is analyser-owned, it already matches the required
+`<root>/m19-skills/1/index.json` layout, and nothing at runtime ever fetches it (the generator vendors
+at build time into a committed snapshot). The load-audit-log + run-mongoose-server subset matches the
+accepted no-replay deviation and the not-publishable embedded gate. The refresh rule cannot silently
+retain a stale revision because `manifest.json` records the fetched revision and a test pins it against
+`VENDORED.md`. Detail in the handoff report §7k/§7m.
 
 **What.** `docs/skills/m19-skills/1/index.json` publishes the accepted Mongoose subset from the public
 raw repository root. The skills README names the machine root and refresh rule; CanonicalSkillsTest pins

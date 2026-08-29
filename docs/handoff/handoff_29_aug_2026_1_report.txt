@@ -687,6 +687,55 @@ mongoose-plugins containing the registry publisher. This run is SNAPSHOT-based b
 version gate and is offered as evidence, not as an acceptance verdict.
 
 ================================================================================
+7m. P3 ARTIFACTS DELIVERED + A SECOND LIVE FINDING (2026-08-29)
+================================================================================
+
+fluxtion-web feature/m19-p0-keyless-bundle @ 2ad5289.
+
+ARTIFACTS FOR YOUR LEG — ~/m19-p3-artifacts/ (README.txt carries full provenance, the exact
+commands, and repro steps; SHA256SUMS covers every file):
+    fluxtion-spring-mongoose-keyfree.zip   the key-free project (committed generated processor)
+    generated/MarketProcessor.java|.graphml
+    logs/audit-fluxtion-spring-mongoose.yaml
+Built from the playground generator at 2ad5289 with skills canonical@6243a89…, contract
+m19-bundle/3, against mongoose-plugins 1.0.39-SNAPSHOT from 6e7a2cc (the recorded version gate).
+
+SECOND LIVE FINDING — THE BUNDLE DEMONSTRATED NOTHING. The first export scored coverage 0.0 with
+every record's nodeLogs EMPTY: 18 records that were 1 control + 15 internal + 2 lifecycle, and NO
+business events. The file feed published raw CSV lines the graph could not handle, so no node ever
+fired — gutting the tutorial's headline experience (click a node line for source, graph a value,
+confirm pairing) because there is nothing to click. Every static check passed on that bundle:
+inventory, profile, skills, declared paths were all correct. Only running it showed the log was
+hollow.
+
+Fixed by enabling the starter's existing csvToPriceEvent feature on the acceptance template (typed
+PriceEvent + CSV valueMapper; PriceEvent needed the fields the generated mapper's constructor
+requires, which surfaced as a compile failure when I first declared it field-less). Re-verified live
+end to end — generate -> KEYLESS build -> run -> export -> stop, then a FRESH analyser home with a
+jar at analyser main:
+
+    5 PriceEvent cycles with REAL node output (rootNode.onPriceEvent + riskCheck)
+    23 records · pairing "the graph declares 2 of the 2 node(s) this log writes"
+    coverage ratio 1.0, uncovered 0  (was 0.0)
+    project.active, 2 runbooks with descriptions and exists:true
+    skills.provenance = canonical@6243a899774d591119559305a137ecf144819efd
+
+CERT FIX — the HTTPS fixture now pins the generated certificate as the client's `ca`; verification
+stays ON. Your finding was right: `rejectUnauthorized:false` disables verification and my comment's
+claim of scoped trust was false. 5/5 with real verification.
+
+ONE OBSERVATION FOR THE CANONICAL SKILL (yours to decide): `open` IGNORES log/graphml when
+`project` is also given — "a project switch is a session boundary, so open the log and graph in a
+second call" — and says so in its echo. Correct and well-explained behaviour. But load-audit-log
+shows only the single `analyser_open {log, graphml, provenance}` form and never mentions the
+project step, so an agent that combines them gets a project and no log, with only the echo to
+explain why. A sentence in the skill would pre-empt it.
+
+LEDGER: `99c79bf` (canonical index) reviewed and ACCEPTED — the consumer side now runs against that
+root, the fetched bytes were identical to the committed snapshot, and both files' SHA-256 match
+6243a89. No entries remain pending.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
