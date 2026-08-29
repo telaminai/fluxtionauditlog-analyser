@@ -236,7 +236,7 @@ analyser (reverse funnel)._
   bundle half — download, seeded profile, seeded skills, tier selection — because it does not exist yet.
   So the bench is the ordinary regression guard (three repos change independently; nothing says when it
   stops), scoped to the bundle path, and is **not** a precondition.
-- [M19.12] ◧ **Key management — implementation landed in the worktree; full-gate/commit pending (R8)** _(owner asked 2026-08-29: "is
+- [M19.12] ☑ **Key management shipped at `db42919` (R8)** _(owner asked 2026-08-29: "is
   key management in this spec?" — it was not; D-R1 resolved the DECISION and nothing described the
   feature)_. Three surfaces, no first-run modal: a start-page card, an `AI ▸ Fluxtion API key…` item, and a
   Project-panel row stating **locally observable setup facts only** (D-X3) — the key file present or absent,
@@ -254,8 +254,10 @@ analyser (reverse funnel)._
   caller buffer, and supports named profiles without a value-read API. `FluxtionKeyDialog` is masked and
   never validates; Start page, AI menu and Project-panel/context row receive presence only. Targeted
   `FluxtionKeyStoreTest,FluxtionKeySafetyTest,ProjectModelTest,ProjectPanelIsRevealOnlyTest,AiMenuTest`
-  pass; public guide and `[Unreleased]` updated. Exact commit and full-suite count follow at slice close.
-- [M19.12a] ◧ **Licence registration placement implemented; full-gate/commit pending (R6)** — `showFirstRunSettingsIfNeeded`
+  pass; full Maven suite, pinned strict-site build, diff check and tracked-file leak sweep pass; public
+  guide and `[Unreleased]` updated. Pending independent Swing eyeball is logged in
+  [`unreviewed-changes.md`](../handoff/unreviewed-changes.md).
+- [M19.12a] ☑ **Licence registration placement shipped at `db42919` (R6)** — `showFirstRunSettingsIfNeeded`
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
   gating anything. **Re-adding a first-run modal would reverse D-S1.**

@@ -19,6 +19,33 @@ still check**.
 _Reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
 
+## ☐ pending review · `db42919` · M19.12/12a safe Fluxtion build-key management
+
+**What.** Adds the three signed-spec surfaces: a Start-page card, *AI ▸ Fluxtion API key…*, and a
+Project-panel/context row. `FluxtionKeyStore` writes the established
+`~/.fluxtion/fluxtion.apiKeyFile` format, preserves unrelated properties, applies owner-only POSIX
+permissions where available, wipes caller buffers, and supports named profiles under
+`~/.fluxtion/profiles/`. The masked dialog never reloads or validates a stored value. Public docs now
+distinguish this processor-build key from the analyser's existing optional LLM-provider key.
+
+**Why.** M19 R8/D-R1 made the analyser the owner of local key-file convenience but forbids it from
+becoming a licence enforcer or a credential propagation path. The analyser can observe canonical-file
+presence and document builder precedence; it cannot claim which source a future Maven JVM resolves.
+
+**Files.** `FluxtionKeyStore`, `FluxtionKeyDialog`, `MainFrame`, `StartPanel`, `ProjectModel`; four
+focused test changes; Getting started, Projects, FAQ, changelog and M19 tracker.
+
+**Verified.** Full `mvn -q test` passed; focused key/model/menu/parity tests passed; pinned
+`mkdocs build --strict` passed; `git diff --check` and the tracked-file four-term sweep passed.
+
+**What the reviewer must still check.** Build and run the jar under an isolated `user.home`. Confirm
+the Start-page card reflows and changes from absent to present after save; the dialog begins with an
+empty masked field even when a key exists; named save/activate/delete works; *AI ▸ Fluxtion API key…*
+opens the same owner; and the Project row states only presence plus the `-D`/environment rule. Inspect
+the screen for paths or entered values before taking any screenshot. In code, challenge whether every
+exception path wipes the temporary password array and whether preserving unrelated canonical-file
+properties is the right compatibility decision.
+
 ## ☑ reviewed 2026-08-28 (the second session — the review F2 came from) · `bc36c53` (entry written as `9d5f1a2` before the push rebase) · docs: F2 fixed by stating the starter-relative link rule; F1 left for the author
 
 **Verdict.** Accepted — the right option, for the reason given: a snapshot whose parity cannot be checked (F1)
