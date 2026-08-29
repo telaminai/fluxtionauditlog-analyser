@@ -8,12 +8,18 @@ file beside the project, so moving between them is one click instead of a re-imp
 
 | Tier | What's in it | Where it lives |
 |---|---|---|
-| **Machine** | API key · LLM provider/model · AWS profile/region · theme · recent files · window size · assistant settings · topology display prefs | `~/.fluxtion-analyser/config` |
+| **Machine** | LLM API key · LLM provider/model · AWS profile/region · theme · recent files · window size · assistant settings · topology display prefs | `~/.fluxtion-analyser/config` |
 | **Project** | **source roots · Maven repos · event processors + selected · saved graphs · hidden columns** | `<project>/.analyser/project.fluxtion-settings` |
 
 Nothing appears in both, which is what keeps this simple: there's no "which one wins" rule to remember.
 Switching a project swaps the project row and leaves the machine row alone — your key, your theme and
 your window stay exactly as they were.
+
+The separate **Fluxtion processor-build key** lives in `~/.fluxtion/fluxtion.apiKeyFile` and is managed
+from **AI ▸ Fluxtion API key…**. It is not an analyser setting and cannot enter a project profile. The
+Project panel can report whether that canonical file has a configured key, but it cannot know whether a
+future Maven build will receive an overriding `-Dfluxtion.apiKey`; it states that precedence rule rather
+than guessing a winner.
 
 With **no project open**, the analyser behaves exactly as it always has. Project profiles are opt-in.
 
@@ -80,9 +86,9 @@ already configured.
 
 !!! success "Why it's safe to commit"
 
-    **A profile cannot contain your API key — not because it's filtered out, but because the key was
-    never in the project tier to begin with.** The file is written from a fixed list of five categories,
-    and the key isn't one of them. There is no setting, no dialog and no mistake that puts it there.
+    **A profile cannot contain either your LLM API key or your Fluxtion build-key value.** The LLM key
+    is outside the project tier, while the build key never enters `AppConfig` at all: its dialog writes
+    straight to the established local Fluxtion file and then forgets the value.
 
     The same holds for your AWS profile, your theme and your window size: all machine-tier, none of them
     written to a profile. And paths under your home directory are stored `~`-relative, so a teammate's

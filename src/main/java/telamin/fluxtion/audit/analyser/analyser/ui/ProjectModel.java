@@ -35,6 +35,7 @@ public record ProjectModel(List<Section> sections) {
 
     public static final Set<String> KEYS_READ = Set.of(
             "project.active", "project.name", "project.settings", "project.root",
+            "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
             "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
@@ -68,6 +69,16 @@ public record ProjectModel(List<Section> sections) {
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
                     Tone.MUTED, Target.NONE));
+        }
+        // M19.12: the only observable fact is the canonical file's configured-key presence. A future
+        // Maven invocation may receive a -D override that this process cannot see, so the rule is
+        // documented beside the fact and never presented as a resolved winner.
+        Map<String, Object> key = map(ctx.get("fluxtionKey"));
+        if (!key.isEmpty()) {
+            boolean present = Boolean.TRUE.equals(key.get("canonicalFilePresent"));
+            rows.add(new Row("Fluxtion key file: " + (present ? "present" : "absent"),
+                    str(key.get("precedenceNote")), str(key.get("canonicalFile")),
+                    "observed locally; validity not checked", present ? Tone.NORMAL : Tone.MUTED, Target.NONE));
         }
         // M38.1 D-C7: a runbook POINTER is a visible row — "deploy runbook: ops/deploy.md · project". Copy and
         // Show act on where it lands on this machine; what is drawn is the pointer as the profile holds it.

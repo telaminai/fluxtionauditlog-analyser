@@ -38,6 +38,14 @@ blocks you from reading records:
 4. **An LLM key (optional)** — **Settings ▸ LLM** for in-app explanations. No key? Skip it and use
    **Copy prompt** with any agent (see [Assistant](user-guide/assistant.md)).
 
+If you later **regenerate a Fluxtion processor**, that build uses a different key. Open
+**AI ▸ Fluxtion API key…** (also offered on the Start page) to write the established
+`~/.fluxtion/fluxtion.apiKeyFile`; named local profiles let one machine switch between, for example,
+a work and evaluation key. The analyser reports presence only and does not validate or redisplay the
+stored value. A `-Dfluxtion.apiKey` passed to the build overrides the file, while
+`FLUXTION_API_KEY` is not read by the builder. Existing generated processors and the bundled demo run
+without this key.
+
 Now [filter](user-guide/records-and-filtering.md#the-shared-filter), [graph](user-guide/graphs.md), and
 [explain](user-guide/assistant.md).
 
@@ -94,6 +102,9 @@ Configure in-app explanations:
 !!! tip "No key is fine"
     Leave the key blank and the assistant runs in **copy-prompt mode** — it builds a ready-to-paste
     prompt (evidence + the analyser's action protocol) for Claude Code, Claude Desktop or any agent.
+
+This LLM-provider key is not the Fluxtion build key managed under **AI ▸ Fluxtion API key…**. They have
+different homes and purposes.
 
 ### Performance & S3
 - **Memory threshold (MB)** — logs at/below it load into heap; larger ones are memory-mapped

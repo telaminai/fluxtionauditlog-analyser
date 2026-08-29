@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Local Fluxtion build-key management without a first-run gate.** The Start page and
+  *AI ▸ Fluxtion API key…* now open one masked dialog for the established
+  `~/.fluxtion/fluxtion.apiKeyFile`, including named local profiles. The Project panel states only
+  whether that canonical file has a configured key and documents the builder rule: a
+  `-Dfluxtion.apiKey` passed to a future build overrides it; `FLUXTION_API_KEY` is not read. The
+  analyser never validates the key, redisplays it, stores it in app settings, or puts it in a project,
+  share export, action response, status message or console output.
+
 ## [1.12.0] - 2026-08-28
 
 ### Fixed

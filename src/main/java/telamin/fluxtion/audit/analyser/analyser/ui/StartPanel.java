@@ -62,6 +62,12 @@ public final class StartPanel extends JPanel {
         /** Open local AI-client setup; each card is a normal navigation action, never a first-run modal. */
         void openMcpSetup(McpSetupDialog.Target target);
 
+        /** Manage the builder key in its canonical file; this page never receives the value. */
+        void openFluxtionKey();
+
+        /** A locally observed presence fact only — never key validity or a future build's winner. */
+        boolean fluxtionKeyPresent();
+
         /** Back to the records table, for a page raised over an open log (Help ▸ Start page). */
         void backToRecords();
     }
@@ -77,6 +83,9 @@ public final class StartPanel extends JPanel {
 
     /** The optional AI-client offer; dismissal is deliberately only for this rendered Start Page. */
     private final JComponent aiClientOffer;
+
+    /** M19.12: the non-gating key offer; mutable only so it follows a save in the one owner dialog. */
+    private final Card fluxtionKeyCard;
 
     public StartPanel(Actions actions, Consumer<String> status) {
         super(new BorderLayout());
@@ -124,6 +133,12 @@ public final class StartPanel extends JPanel {
                         "Chart a value over time and export it.", false,
                         () -> open(DemoAssets.seriesLog(), false, "Graph"))));
 
+        col.add(Box.createVerticalStrut(20));
+        col.add(heading("Regenerate a processor"));
+        fluxtionKeyCard = card("", "", false, actions::openFluxtionKey);
+        refreshFluxtionKeyStatus();
+        col.add(row(fluxtionKeyCard));
+
         aiClientOffer = aiClientOffer();
         col.add(aiClientOffer);
 
@@ -140,6 +155,15 @@ public final class StartPanel extends JPanel {
         this.scroll = scroll;
         add(scroll, BorderLayout.CENTER);
         applyColours();
+    }
+
+    /** Refresh after the management dialog closes; the stored value never enters this component. */
+    public void refreshFluxtionKeyStatus() {
+        boolean present = actions.fluxtionKeyPresent();
+        fluxtionKeyCard.setCopy(present ? "Fluxtion API key — found" : "Fluxtion API key — not found",
+                present
+                        ? "Available for a future processor regeneration; this analyser does not validate it."
+                        : "Needed to regenerate a processor; existing generated projects still run without one.");
     }
 
     private final JScrollPane scroll;
@@ -470,8 +494,8 @@ public final class StartPanel extends JPanel {
         private static final int PAD = 12;
         private static final int SUB_LINES = 2;
 
-        private final String title;
-        private final String why;
+        private String title;
+        private String why;
         private final boolean primary;
 
         Card(String title, String why, boolean primary, Runnable go) {
@@ -485,6 +509,13 @@ public final class StartPanel extends JPanel {
             setToolTipText(why);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addActionListener(e -> go.run());
+        }
+
+        void setCopy(String title, String why) {
+            this.title = title;
+            this.why = why;
+            setToolTipText(why);
+            repaint();
         }
 
         private static Font base() {

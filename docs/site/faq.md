@@ -9,12 +9,16 @@ memory-map.
 ## Where are my settings stored?
 
 In `~/.fluxtion-analyser/config` — cleartext properties (this is a local, single-user tool). It holds
-your source roots, event processors, saved graphs, hidden columns and your LLM API key.
+your source roots, event processors, saved graphs, hidden columns and your LLM API key. The distinct
+Fluxtion processor-build key uses the builder's established `~/.fluxtion/fluxtion.apiKeyFile` instead.
 
 ## Is my API key safe? Does it leave my machine?
 
-The key is stored locally and is used only to call the LLM provider you configured. It is **never**
-included in an exported settings file — see [Sharing setups](user-guide/sharing-setups.md).
+There are two unrelated keys. The **LLM key** is stored locally and used only to call the provider you
+configured. The **Fluxtion build key**, managed from **AI ▸ Fluxtion API key…**, is written directly to
+the builder's canonical file and is used only when you regenerate a processor. Neither value is included
+in a project or exported settings file. The analyser reports build-key presence but never validates or
+redisplays it. See [Sharing setups](user-guide/sharing-setups.md).
 
 ## Does it work offline?
 

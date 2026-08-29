@@ -44,6 +44,9 @@ public final class MainFrame extends JFrame {
     private static final String STRATEGY_PKG = "com.acme.marketmaker.strategy";
 
     private final ConfigStore configStore = new ConfigStore();
+    /** M19.12: separate from AppConfig so the Fluxtion build key cannot enter shared settings. */
+    private final telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore fluxtionKeyStore =
+            new telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore();
     private final AppConfig config;
 
     private final LogTablePanel tablePanel = new LogTablePanel();
@@ -1663,6 +1666,12 @@ public final class MainFrame extends JFrame {
         ai.add(transport);
 
         ai.addSeparator();
+        JMenuItem fluxtionKey = new JMenuItem("Fluxtion API key…");
+        fluxtionKey.setToolTipText("Manage the local key file used when a processor is regenerated");
+        fluxtionKey.addActionListener(e -> openFluxtionKeyDialog());
+        ai.add(fluxtionKey);
+
+        ai.addSeparator();
         JMenuItem runbooks = new JMenuItem("Runbooks…");
         runbooks.addActionListener(e -> PointerDialog.runbooks(this, config, this::onProfileEdited, projectRoot(), profileFile()));
         ai.add(runbooks);
@@ -1728,6 +1737,14 @@ public final class MainFrame extends JFrame {
             onConfigChanged();
             refreshMcpIndicator();
         }, McpSetupDialog.Target.fromPersisted(config.mcpSetupTarget, McpSetupDialog.Target.GENERIC), false);
+    }
+
+    /** One key owner, reached from the AI menu and Start Page; no key value returns from the dialog. */
+    private void openFluxtionKeyDialog() {
+        if (FluxtionKeyDialog.show(this, fluxtionKeyStore)) {
+            if (startPanel != null) startPanel.refreshFluxtionKeyStatus();
+            refreshProjectPanel();
+        }
     }
 
     private void revealPath(String path) {
@@ -1838,6 +1855,8 @@ public final class MainFrame extends JFrame {
             @Override public void openMcpSetup(McpSetupDialog.Target target) {
                 McpSetupDialog.show(MainFrame.this, config, MainFrame.this::onConfigChanged, target, false);
             }
+            @Override public void openFluxtionKey() { openFluxtionKeyDialog(); }
+            @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
         }, text -> status.setText(text));
         recordsCards.add(startPanel, "start");
@@ -4047,6 +4066,15 @@ public final class MainFrame extends JFrame {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
+            // M19.12 / D-X3: facts this process can observe, not a claim about a future Maven JVM.
+            // The credential value never enters this map; the fixed tilde path avoids leaking the local
+            // account name into context or screenshots.
+            Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
+            fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
+            fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
+            fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
+                    + "overrides this file; FLUXTION_API_KEY is not read by the builder");
+            out.put("fluxtionKey", fluxtionKey);
             // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
             // with the log closed and a graph "still loaded" (closeLog's own words) context disowned it —
             // the disowning defect M34.2 fixed for hasGraph(), one level up.

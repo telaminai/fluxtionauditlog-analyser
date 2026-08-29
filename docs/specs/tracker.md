@@ -152,7 +152,7 @@ analyser (reverse funnel)._
   v2 replaces the impossible run-writes-YAML assumption with the owner-selected Chronicle export beat and
   makes `m19-skills/1` normative (index/layout, error distinctions, bounds, provenance and enforced minimum
   analyser version). **Bounded deferral:** embedded remains NOT PUBLISHABLE and is outside the Mongoose tier.
-- [M19.16] ◧ **Review amendments before bundle implementation** — correct the MCP bootstrap to the
+- [M19.16] ☑ **Review amendments signed before bundle implementation at `b0fdb86`** — correct the MCP bootstrap to the
   supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
   key provenance a value-free observable source rather than guessing a separate build's winner; and make
   the generated load-log skill name the bundle's actual path (review F1–F4). Parallel Mongoose/playground
@@ -236,7 +236,7 @@ analyser (reverse funnel)._
   bundle half — download, seeded profile, seeded skills, tier selection — because it does not exist yet.
   So the bench is the ordinary regression guard (three repos change independently; nothing says when it
   stops), scoped to the bundle path, and is **not** a precondition.
-- [M19.12] ☐ **Key management — the surface, not just the decision (R8)** _(owner asked 2026-08-29: "is
+- [M19.12] ◧ **Key management — implementation landed in the worktree; full-gate/commit pending (R8)** _(owner asked 2026-08-29: "is
   key management in this spec?" — it was not; D-R1 resolved the DECISION and nothing described the
   feature)_. Three surfaces, no first-run modal: a start-page card, an `AI ▸ Fluxtion API key…` item, and a
   Project-panel row stating **locally observable setup facts only** (D-X3) — the key file present or absent,
@@ -249,7 +249,13 @@ analyser (reverse funnel)._
   console. `AppConfig` does not hold it; `KnownKeys` owns no family for it. Not hypothetical — the M42
   review found JVM options carrying secrets into a client config file, and the sweep cannot see inside a
   screenshot.
-- [M19.12a] ☐ **Licence registration placement (R6)** — `showFirstRunSettingsIfNeeded`
+  - 2026-08-29 implementation evidence: `FluxtionKeyStore` writes only the established `apiKey=…` file,
+  preserves unrelated builder properties, enforces owner-only permissions where supported, wipes the
+  caller buffer, and supports named profiles without a value-read API. `FluxtionKeyDialog` is masked and
+  never validates; Start page, AI menu and Project-panel/context row receive presence only. Targeted
+  `FluxtionKeyStoreTest,FluxtionKeySafetyTest,ProjectModelTest,ProjectPanelIsRevealOnlyTest,AiMenuTest`
+  pass; public guide and `[Unreleased]` updated. Exact commit and full-suite count follow at slice close.
+- [M19.12a] ◧ **Licence registration placement implemented; full-gate/commit pending (R6)** — `showFirstRunSettingsIfNeeded`
   is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
   the first run and already carries the MCP cards. A key card states the fact and names the remedy without
   gating anything. **Re-adding a first-run modal would reverse D-S1.**

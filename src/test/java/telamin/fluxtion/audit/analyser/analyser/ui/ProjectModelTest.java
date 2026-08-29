@@ -102,6 +102,24 @@ class ProjectModelTest {
     }
 
     @Test
+    void keyRowStatesOnlyObservedPresenceAndTheBuildRule() {
+        Map<String, Object> ctx = empty();
+        ctx.put("fluxtionKey", Map.of(
+                "canonicalFilePresent", false,
+                "canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile",
+                "precedenceNote", "a -Dfluxtion.apiKey system property passed to the build overrides "
+                        + "this file; FLUXTION_API_KEY is not read by the builder"));
+
+        ProjectModel.Row key = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows().get(1);
+        assertEquals("Fluxtion key file: absent", key.primary());
+        assertEquals("~/.fluxtion/fluxtion.apiKeyFile", key.path());
+        assertTrue(key.secondary().contains("overrides this file"));
+        assertTrue(key.secondary().contains("not read by the builder"));
+        assertFalse(key.secondary().contains("resolved"), "this process cannot know a future build's winner");
+        assertEquals("observed locally; validity not checked", key.provenance());
+    }
+
+    @Test
     void anS3LogShowsTheOriginTheUserNamed_notTheTempCopy() {
         Map<String, Object> ctx = full();
         ctx.put("log", Map.of("path", "/var/folders/xx/T/fetched-123.yaml",
