@@ -138,14 +138,30 @@ analyser (reverse funnel)._
   that both edits and drives; the surviving principle is that the ANALYSER edits no code); **R4** the
   licence key is the first wall after first success and the seeded CLAUDE.md must pre-empt it; **R5** open
   the analyser on the GRAPH before the first run, so M40.1 has something true to say at minute two.
-- [D-R1] ☐ **Owner: should the analyser manage the Fluxtion API key?** Recommendation in the spec —
-  yes, but it WRITES `~/.fluxtion/fluxtion.apiKeyFile` and never HOLDS the value; presence/absence is the
-  only fact it keeps. M42's "never edit another tool's config" does not apply (`~/.fluxtion/` is
-  Fluxtion's own, and this app already owns `~/.fluxtion-analyser/rest-endpoint`), but the no-credentials
-  posture does: the value must never reach `context`, an echo, the profile, share export or a screenshot —
-  the sweep cannot see inside a PNG. Reuse `fluxtion-visualiser`'s file format rather than re-deriving it.
-- [D-R2] ☐ **Owner: who authors the shipped skills** — bundle-side (they are Mongoose operations) with
-  the analyser's docs owning only the shape. Confirm the split.
+- [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns key PROVENANCE.** The visualiser is not shipping
+  (too IDE-specific); its tools fold into the analyser, which removes the only real objection. "Provenance"
+  because the key has three sources and WHICH one answered is the fact that costs an afternoon — the §E /
+  M38.3 pattern applied to a credential. Lift `FluxtionAccountDialog` rather than re-derive it, including
+  its `~/.fluxtion/profiles/` concept. The limit is unchanged: manage it, state where it came from, and the
+  VALUE never reaches `context`, an echo, the profile, share export or a screenshot.
+- [D-R2] ☑ **RESOLVED 2026-08-29 — skills are a LIBRARY KEYED BY HOST**, not per-project authoring:
+  `common` (load log, record, replay) + one of `mongoose` / `embedded` (`DataFlowConnector` +
+  `FileMessageSink`, verified in runtime 1.0.13). A bundle SELECTS a tier. The rule: a skill describes the
+  project's own entry points and never invents a CLI — invented commands are fiction an agent cannot
+  distinguish from fact.
+- [D-R3] ☑ **RESOLVED 2026-08-29 — late-bind at DOWNLOAD, never at RUNTIME.** Guidance (prose, skills,
+  CLAUDE.md canon) lives on the website; anything the analyser must BEHAVE by (verb schemas, format
+  conformance) ships in the jar. O3 already generates bundles at Download, so updating the site needs no
+  analyser release — and nothing fetches at runtime, which is what preserves the offline story,
+  reproducibility, and version safety.
+- [D-R4] ☐ **`skills.source` override — to BUILD.** Owner-required for test and corporate mirrors.
+  Machine tier ONLY: never read from a project profile, because a profile travels between people and must
+  not redirect the instructions an agent reads. Accepts a URL, a local path, or `none` as a first-class
+  value. The source used is recorded and shown. Blast radius stated: nothing executes a skill, so the
+  exposure is an agent READING a procedure — real, bounded, and why the source is machine-tier.
+- [M19.10] ☐ **The canonical skill documents** — authored in [`docs/skills/`](../skills/README.md); four
+  written and verified discoverable by the shipped `SkillDiscovery`. Remaining: the `TODO(bundle)` markers
+  need grounding against a real host before any bundle ships one.
 - [M19.1] ☐ **Bundle contract (playground-side)** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific

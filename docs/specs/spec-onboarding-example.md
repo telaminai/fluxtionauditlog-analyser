@@ -295,6 +295,17 @@ That makes the analyser's first sentence to a newcomer a useful one, before anyt
 demonstrates the product's actual thesis (a verdict from declared structure) at minute two rather than
 minute ten.
 
+### The documents themselves
+
+Authored in **[`docs/skills/`](../skills/README.md)** — the source of truth for what is published to the
+website and baked into a bundle. Four to start: `common/load-audit-log`, `common/replay-a-run`,
+`embedded/run-embedded`, `mongoose/run-mongoose-server`. Verified discoverable by the shipped
+`SkillDiscovery`, each with a description the analyser reads.
+
+They obey the rule in D-R2: they describe the project's own entry points and never invent a CLI. Where a
+step cannot be grounded without the host in front of you it carries a `TODO(bundle)` marker — an
+instruction to the generator, and a bug if it ever reaches a shipped bundle.
+
 ### Acceptance added by this revision
 
 - [ ] The bundle contains `.claude/skills/*/SKILL.md` using the `name`/`description` frontmatter M43
@@ -304,14 +315,44 @@ minute ten.
 - [ ] `Find skills…` on the freshly downloaded project lists exactly the shipped skills and marks them
       already declared — the M43.7 path, exercised by the bundle rather than by a fixture.
 - [ ] The bundle's `CLAUDE.md` carries the MCP registration line and the key paragraph from R4.
+- [ ] `skills.source` is honoured, defaults to canonical, accepts `none`, and is REFUSED from a project
+      profile with the reason stated — a test asserts a profile carrying it is ignored (D-R4).
+- [ ] The source actually used is recorded in the generated project and shown, so a corporate mirror is
+      distinguishable from the canonical set without diffing (D-R4).
+- [ ] No shipped bundle contains a `TODO(bundle)` marker (D-R2).
 - [ ] Step 6's division-of-labour paragraph is rewritten per R3.
 - [ ] The tutorial opens the graph before the first run and shows M40.1's verdict (R5).
 
-### D-R1 — should the analyser manage the licence key? (recommendation)
+### D-R1 — the analyser owns key PROVENANCE ✅ RESOLVED (owner, 2026-08-29)
 
-**Yes, with a sharp limit: the analyser helps you WRITE the key; it never HOLDS it.**
+**Resolved: yes, and stronger than the original recommendation.** `fluxtion-visualiser` will not ship as a
+product — it was too IDE-specific — and its tools fold into the analyser as capabilities. That removes the
+one objection worth having (two Telamin tools disagreeing about a file neither owns alone) and makes the
+analyser the single desktop surface for this.
 
-My first instinct was to refuse this outright, on M42's precedent — *"Claude Code owns `~/.claude.json`;
+**"Provenance" is the precise word, and it is a pattern this codebase already implements.** §E and M38.3
+established: state a fact AND who supplied it. The key has three sources, and which one wins is exactly
+the thing that costs an afternoon:
+
+```
+~/.fluxtion/fluxtion.apiKeyFile   apiKey=…       [preferred]
+FLUXTION_API_KEY                  environment
+-Dfluxtion.apiKey=…               build property
+```
+
+*"Your build is using the environment variable, not the file you just edited"* is `provenanceSource`
+applied to a credential, and it is worth more than the setting UI.
+
+**One distinction to hold.** The analyser owns the management surface and the provenance statement; it
+does **not** own the FORMAT. The Maven plugin and the starter's `check-fluxtion-key.sh` also read that
+file. Owning the writing does not make it yours to change unilaterally.
+
+**The limit is unchanged by the promotion:** manage it, state where it came from, and the VALUE must
+never reach `AppConfig`, `context`, a verb echo, the project profile, `SettingsShare` export, the status
+bar or a screenshot. The four-term sweep cannot see inside a PNG — which is how real names reached the
+public docs site in August.
+
+_Original reasoning, kept because the check is the useful part._ My first instinct was to refuse this outright, on M42's precedent — *"Claude Code owns `~/.claude.json`;
 this class never parses or edits it"*, so the analyser shells out to the client's own CLI instead. That
 objection dissolves on inspection: `~/.fluxtion/` is **Fluxtion's own directory**, not a third party's,
 and this app already owns and publishes `~/.fluxtion-analyser/rest-endpoint`. Writing a Fluxtion key to a
@@ -341,10 +382,10 @@ home in the Project panel beside the graph, in the shape this app already uses w
 name the remedy** — *"Fluxtion API key: not found — regenerating this processor will fail. AI ▸ … to
 set one."* That is D-AI3's disabled-with-a-reason applied to a precondition rather than a menu item.
 
-**Prior art to reuse rather than re-derive:** `fluxtion-visualiser`'s `FluxtionAccountDialog` already
-reads and writes this file and supports named profiles under `~/.fluxtion/profiles/`. Whatever the
-analyser does should match its file format exactly, or two Telamin tools will disagree about the same
-file — the drift that `KnownKeys` exists to survive, in a file neither of them owns alone.
+**Prior art to LIFT, not merely match:** `fluxtion-visualiser`'s `FluxtionAccountDialog` already reads and
+writes this file and supports named profiles under `~/.fluxtion/profiles/`. Since the visualiser is not
+shipping, that dialog is the thing to bring across rather than re-derive — including the profile concept,
+which is how one machine holds a work key and an evaluation key without editing a file between builds.
 
 **What would change my recommendation:** if the key is ever more than a token — a signed licence with an
 expiry the analyser would have to *enforce* — then this stops being a setup convenience and becomes
@@ -356,8 +397,87 @@ product, and should be specced as one.
 
 - **D-R1 — does the analyser manage the key?** See the separate note below; my recommendation is that it
   helps write the file and never holds the value.
-- **D-R2 — who authors the shipped skills?** They are Mongoose/playground operations, so they belong to
-  the bundle, not to this repo — but the analyser's docs own the *shape*. Confirm the split.
+### D-R2 — the skills are a LIBRARY KEYED BY HOST, not per-project authoring ✅ RESOLVED (owner, 2026-08-29)
+
+My R1 framed skills as something a bundle author writes. That is the wrong shape and it would have
+produced a different, drifting set per template. Almost none of it is domain-specific: what varies is
+**how the processor is hosted**.
+
+| Tier | Skills | Grounded in |
+|---|---|---|
+| **common** | load an audit log · record a run · replay a run | the record/replay mechanism, and the analyser's own open path |
+| **mongoose-hosted** | deploy · start · stop · where its audit log lands | the starter's own scripts and admin endpoint |
+| **embedded** | start/stop in-process · where its audit log lands | `runtime.connector.DataFlowConnector` (`addDataFlow`, `addFeed`, `addSink`) with `FileMessageSink` as the log sink — verified in `fluxtion-runtime` 1.0.13 |
+
+A bundle **selects a tier**; it does not author a set. The domain-specific layer on top is thin and may be
+empty.
+
+**Skills describe the project's own entry points; they never invent a CLI.** A skill that says *"run
+`./scripts/run-server.sh`"* is true of the project that ships it; one that invents a command is fiction
+that fails on first use, and an agent has no way to tell the difference. Where a canonical skill cannot
+be grounded without the host in front of it, it says so rather than guessing.
+
+### D-R3 — content is late-bound at DOWNLOAD, never at RUNTIME (owner, 2026-08-29)
+
+The owner's question: if the authoring context, skills and LLM onboarding live as documents on the
+website, can they be updated without releasing the analyser? **Yes — and the mechanism is already
+decided, which is why this works.**
+
+**The line that must hold.** Separate content the analyser must **BEHAVE BY** from content that
+**GUIDES** a human or an LLM:
+
+| | Where it lives | Why |
+|---|---|---|
+| verb schemas, format-spec conformance, anything a licence decision rests on | **in the jar**, versioned with it | a tool that fetches the definition of its own behaviour is asserting things whose meaning it does not hold |
+| prose, tutorials, build-with-AI authoring context, `CLAUDE.md` canon, **skills** | **on the website** | they guide; they do not define what the analyser does |
+
+**And they are baked in at BUNDLE-GENERATION time, not fetched at use time.** O3 already resolved that
+bundles are generated at Download. So: update the website, the next download carries it, no analyser
+release — without anything fetching at runtime.
+
+Runtime fetching would cost three things currently being sold, and none of them is recoverable later:
+**the offline/air-gapped story** that answers regulated buyers, **reproducibility** (the same log
+analysed twice must not give different guidance), and **version safety** — a skill written for v1.12's
+verbs, used with someone's v1.9 analyser, breaks silently. That last one is cheap to mitigate and should
+be a line of frontmatter: the minimum analyser version a skill expects. The analyser already reports its
+own.
+
+This is not a new pattern. M19's prompt stack already says **embed a snapshot, reference the canon**; this
+extends the same rule to skills.
+
+### D-R4 — the skills SOURCE is overridable, and it is a supply-chain surface (owner, 2026-08-29)
+
+The owner's requirement: in test, and in a corporate environment, the skills written into a project must
+be **controlled by a URL** rather than always the canonical one. Correct, and it needs designing rather
+than adding, because a configurable source of *procedures an LLM will follow* is a supply-chain surface.
+
+**The property.**
+
+```
+skills.source = https://fluxtion-playground.dev/skills     (default, canonical)
+             | https://internal.example/fluxtion-skills    (a corporate mirror)
+             | file:/opt/fluxtion/skills                   (air-gapped)
+             | none                                        (write no skills)
+```
+
+**Machine tier only — and this is the load-bearing rule.** It is settable from the user's own settings,
+an environment variable, or a system property. It is **NEVER** read from a project profile, because a
+profile is the one file in this system designed to TRAVEL between people (M38's entire purpose). A shared
+profile that could set your skills URL would let a colleague's file redirect the instructions your agent
+reads. `KnownKeys` must therefore keep this key out of the profile tier, and a test should assert that a
+profile carrying `skills.source` has it ignored, with the reason surfaced.
+
+**Provenance, again, because it is the same problem.** Whatever URL was used is recorded in the project
+and shown: *"skills from https://internal.example/fluxtion-skills"*. A reader must be able to tell the
+canonical set from an internal mirror without diffing files, and an auditor must be able to tell later.
+
+**Blast radius, stated honestly.** Even a hostile source cannot make the analyser DO anything: it never
+executes a runbook or a skill (D-C2, D-AI4), and a pointer's contents are never served to an agent with
+the analyser's authority. The exposure is that an agent may READ a procedure and choose to follow it with
+its own tools — real, bounded, and the reason the source is machine-tier and its provenance is stated.
+
+**`none` must be a first-class value, not an omission.** An air-gapped or policy-controlled site needs a
+way to say "write no skills" that is distinguishable from "the fetch failed".
 
 ## Open questions
 
