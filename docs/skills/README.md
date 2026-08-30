@@ -11,15 +11,34 @@ replay a run, without the person having to explain any of that. `CLAUDE.md` give
 skill gives it a **procedure**. The analyser reads the `name`/`description` frontmatter (M43) and serves
 it in `context.runbooks[]`, so a model can pick the right one without opening all of them.
 
-## The tiers
+## Common + specialisations
 
-| Directory | For | Selected when |
-|---|---|---|
-| `common/` | any Fluxtion processor writing an audit log | always |
-| `mongoose/` | a processor hosted by a Mongoose server | the bundle is a Mongoose deployment |
-| `embedded/` | a processor run in-process via `DataFlowConnector` | the bundle embeds the runtime |
+| Directory | When it is selected |
+|---|---|
+| `common/` | **always** — any Fluxtion processor writing an audit log |
+| `mongoose/` | the processor is hosted by a Mongoose server |
+| `embedded/` | the processor runs in-process via `DataFlowConnector` |
+| `spring/` | the graph is authored as Spring XML and compiled ahead of time |
 
-A bundle takes `common/` plus **one** host tier. It does not author its own set (D-R2).
+**Selection is by TEMPLATE, from `m19-skills/2`** (owner, 2026-08-30: *"skills added depending upon the
+template the user selects"*, and *"we have common and specialisation"*). v1 took `common/` plus one **host**
+tier, which is too coarse: a template like *spring + mongoose* is Spring-**authored** and
+Mongoose-**hosted**, and the skills that differ by authoring style are not the ones that differ by host.
+
+So: **`common` is always selected, and a template names the specialisations it wants.** Selection is
+`common` + those. The index shape says so — `common` is a list, `specialisations` is a map.
+
+There is deliberately **no classification** of a specialisation as host-or-style. Nothing selects on it, and
+naming the axes invites a question the rule does not need to answer (*can a template have two hosts?*).
+
+The mapping lives with the **template**, not as a list of template ids on every skill — otherwise adding a
+template means editing every entry in this library.
+
+`spring` means the same thing here as `appliesTo: "spring"` in `reference-set.json`. One word meaning two
+things is how these drift apart.
+
+A bundle still does not author its own set (D-R2). **v1 is byte-pinned and must not be edited** — it is
+consumed by a released playground build; add a version instead.
 
 ## The rule these files must obey
 

@@ -18,6 +18,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   receive the same caller-buffer hygiene as successful saves and later write failures.
 
 ### Added
+- **A generated project's skills are now selected by the template it came from.** The canonical library
+  gains an `m19-skills/2` index: `common` is always shipped and a template names the specialisations it
+  wants (`mongoose`, `embedded`, `spring`). A new `spring/add-a-node` skill covers adding a node to a
+  Spring-XML graph, including the two ways that fail silently. `m19-skills/1` is unchanged.
 - **A new project can be given a `CLAUDE.md` that points at the canonical Fluxtion authoring resources.**
   The set ships with the analyser; only entries marked agreed are ever written, an existing `CLAUDE.md` is
   never overwritten, and the file carries links with a reason each rather than restating any rule.

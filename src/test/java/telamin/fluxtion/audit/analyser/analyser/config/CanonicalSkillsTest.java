@@ -25,9 +25,10 @@ class CanonicalSkillsTest {
     private static final String PUBLISHED_REVISION = "f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8";
 
     @Test
-    void exactlyTheFourCanonicalSkillsAreDiscoverableWithRequiredFrontmatter() throws Exception {
+    void exactlyTheCanonicalSkillsAreDiscoverableWithRequiredFrontmatter() throws Exception {
         SkillDiscovery.Found found = SkillDiscovery.find(ROOT, Map.of());
-        assertEquals(Set.of("load-audit-log", "replay-a-run", "run-embedded", "run-mongoose-server"),
+        assertEquals(Set.of("load-audit-log", "replay-a-run", "run-embedded", "run-mongoose-server",
+                        "add-a-node"),
                 found.candidates().stream().map(SkillDiscovery.Candidate::name).collect(Collectors.toSet()));
         assertFalse(found.truncated());
         for (SkillDiscovery.Candidate skill : found.candidates()) {
@@ -96,6 +97,62 @@ class CanonicalSkillsTest {
             assertTrue(source.startsWith(ROOT) && Files.isRegularFile(source), relative);
             assertEquals(expectedHashes.get(relative), sha256(Files.readString(source)), relative);
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v2IsCommonPlusSPECIALISATIONS_andV1StaysByteIdentical() throws Exception {
+        // v1 is consumed by a released playground build. Extending selection must not edit it.
+        Map<String, Object> v1 = (Map<String, Object>) Json.parse(Files.readString(PUBLISHED_INDEX));
+        assertEquals("m19-skills/1", v1.get("contract"));
+        assertEquals(PUBLISHED_REVISION, v1.get("revision"), "v1 is pinned; add a version, never edit one");
+
+        Map<String, Object> v2 = (Map<String, Object>) Json.parse(
+                Files.readString(ROOT.resolve("m19-skills/2/index.json")));
+        assertEquals("m19-skills/2", v2.get("contract"));
+
+        List<String> common = (List<String>) v2.get("common");
+        Map<String, Object> specialisations = (Map<String, Object>) v2.get("specialisations");
+        assertFalse(common.isEmpty(), "common is always selected, so it cannot be empty");
+        assertTrue(specialisations.keySet().containsAll(Set.of("mongoose", "embedded", "spring")));
+
+        List<String> everyPath = new java.util.ArrayList<>(common);
+        for (Map.Entry<String, Object> entry : specialisations.entrySet()) {
+            Map<String, Object> spec = (Map<String, Object>) entry.getValue();
+            assertTrue(spec.get("why") instanceof String why && !why.isBlank(),
+                    entry.getKey() + ": a specialisation must say when it applies, or a template author"
+                            + " picking one is guessing");
+            everyPath.addAll((List<String>) spec.get("skills"));
+        }
+
+        for (String relative : everyPath) {
+            Path source = ROOT.resolve(relative).normalize();
+            assertTrue(source.startsWith(ROOT) && Files.isRegularFile(source), relative);
+        }
+        assertEquals(everyPath.size(), Set.copyOf(everyPath).size(),
+                "a path in two places means one template selects the same skill twice");
+
+        // the whole library must be reachable: a skill in no list is authored, reviewed and never shipped
+        Set<String> indexed = Set.copyOf(everyPath);
+        for (SkillDiscovery.Candidate candidate : SkillDiscovery.find(ROOT, Map.of()).candidates()) {
+            assertTrue(indexed.contains(candidate.path()),
+                    candidate.path() + " exists in the library but no index entry ships it");
+        }
+    }
+
+    @Test
+    void theSpringSkillPOINTSatTheAgreedResourcesRatherThanRestatingThem() throws Exception {
+        String text = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
+        // D-AX1b: it may state what the published resources do NOT — the silent nodeBeans case and the
+        // audit contract — and must send the reader upstream for what they DO cover.
+        assertTrue(text.contains("fluxtion-playground.dev/CLAUDE.md"),
+                "the field-error triage is published; link it rather than copying it");
+        assertTrue(text.contains("referenced children are still discovered"),
+                "the transitive nodeBeans rule is the silent case this skill exists for");
+        assertTrue(text.contains("EventLogSource"),
+                "the audit contract is in none of the agreed resources (fluxtion#22), so it belongs here");
+        assertFalse(text.contains("transient") || text.contains("@FluxtionIgnore"),
+                "the field remedies ARE published — restating them is the duplication D-AX1b forbids");
     }
 
     private static String sha256(String text) throws Exception {

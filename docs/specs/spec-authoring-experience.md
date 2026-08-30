@@ -161,11 +161,13 @@ reader of it. The reference is the multiplier; content improvement without it is
   "the docs changed under me" is undiagnosable;
 - **checked** — see below.
 
-**Owner decision needed: which files are in the set.** My proposal, from the five-source check —
-`build-with-ai` (the loop and the prompts), `/CLAUDE.md` (the orientation), `fluxtion-golden-path.md`,
-and `spring-authoring/contract.md` **only for Spring-authored projects**. `claude.txt` is the framework
-canon and overlaps `/CLAUDE.md` heavily; including both may be redundant. `/audit-replay` should be
-excluded until it is corrected — it currently misleads authors (§1c UP-FLX-35).
+**RESOLVED 2026-08-30 (owner: "go with your recommendation").** The set is four:
+`build-with-ai` (the loop and the prompts), `/CLAUDE.md` (the orientation, which carries the source-gen
+triage table), `fluxtion-golden-path.md`, and `spring-authoring/contract.md` **for Spring-authored
+projects**. Two exclusions, both recorded with reasons in the file itself: `claude.txt` as **redundant,
+not wrong** — it overlaps the orientation heavily and two round-05 sessions that fetched it reported it
+contributed nothing they used; and `/audit-replay` until [fluxtion#22](https://github.com/telaminai/fluxtion/issues/22)
+lands, because it currently tells authors no instrumentation is needed.
 
 **A new gate this creates.** The bundle's value would now rest on **external** links, and two of this
 repo's recorded blind spots meet exactly there: `mkdocs --strict` cannot check external URLs, and

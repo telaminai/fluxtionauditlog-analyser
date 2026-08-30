@@ -1,0 +1,44 @@
+{
+  "contract": "m19-skills/2",
+  "revision": "4f9f9d831e5cca9e0c51edbbb304171a7106b9a0",
+  "$comment": [
+    "COMMON + SPECIALISATIONS. v1 took common plus one HOST tier, which is too coarse: a template like",
+    "spring + mongoose is Spring-authored AND Mongoose-hosted, and the skills that differ by authoring",
+    "style are not the ones that differ by host.",
+    "",
+    "The shape states the rule: `common` is a list and is always selected; `specialisations` is a map and a",
+    "TEMPLATE names the ones it wants. Selection = common + the named specialisations. There is deliberately",
+    "no classification of a specialisation as host-or-style \u2014 nothing selects on that, and labelling them",
+    "would invite a question the rule does not need to answer (can a template have two hosts?).",
+    "",
+    "The mapping lives with the TEMPLATE, not as a list of template ids on every skill: otherwise adding a",
+    "template means editing every entry in this library.",
+    "",
+    "'spring' means the same here as appliesTo:'spring' in reference-set.json. One word meaning two things",
+    "is how these drift apart."
+  ],
+  "common": [
+    "common/load-audit-log/SKILL.md",
+    "common/replay-a-run/SKILL.md"
+  ],
+  "specialisations": {
+    "mongoose": {
+      "why": "the processor is hosted by a Mongoose server",
+      "skills": [
+        "mongoose/run-mongoose-server/SKILL.md"
+      ]
+    },
+    "embedded": {
+      "why": "the processor runs in-process via DataFlowConnector",
+      "skills": [
+        "embedded/run-embedded/SKILL.md"
+      ]
+    },
+    "spring": {
+      "why": "the graph is authored as Spring XML and compiled ahead of time",
+      "skills": [
+        "spring/add-a-node/SKILL.md"
+      ]
+    }
+  }
+}

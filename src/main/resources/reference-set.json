@@ -19,33 +19,33 @@
       "id": "build-with-ai",
       "url": "https://fluxtion-playground.dev/build-with-ai",
       "why": "How to author Fluxtion with an LLM, and the compile/run loop the rest of the stack serves.",
-      "status": "proposed"
+      "status": "agreed"
     },
     {
       "id": "orientation",
       "url": "https://fluxtion-playground.dev/CLAUDE.md",
       "why": "The author orientation, including the source-gen triage table that maps a build error to its fix.",
-      "status": "proposed"
+      "status": "agreed"
     },
     {
       "id": "golden-path",
       "url": "https://fluxtion-playground.dev/fluxtion-golden-path.md",
       "why": "The blessed shape and its gotchas; carries the worked auditLog chaining example.",
-      "status": "proposed"
+      "status": "agreed"
     },
     {
       "id": "spring-contract",
       "url": "https://fluxtion-playground.dev/spring-authoring/contract.md",
       "why": "The FluxtionSpringConfig field table: nodeBeans, ignoredBeans, eventTypes and the XML shape.",
-      "status": "proposed",
+      "status": "agreed",
       "appliesTo": "spring"
     },
     {
       "id": "framework-canon",
       "url": "https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt",
       "why": "The framework reference.",
-      "status": "proposed",
-      "note": "Overlaps the orientation heavily. Round 05 found two sessions reporting it added nothing they used. Include only if the owner wants the canon cited directly."
+      "status": "excluded",
+      "note": "EXCLUDED as redundant, not as wrong. It overlaps the orientation heavily, and in round 05 two sessions that fetched it reported it contributed nothing they used — one recording that it explicitly states it does not document EventLogNode/auditLog. Cite the orientation instead. Revisit if the canon gains material the orientation lacks."
     },
     {
       "id": "audit-replay",
