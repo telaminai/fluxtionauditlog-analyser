@@ -69,13 +69,65 @@ class ReferenceSetWriteTest {
     }
 
     @Test
-    void aRaceLosesTheWriteRatherThanTheAuthorsFile(@TempDir Path project) throws Exception {
+    void createRefusesAFileThatAPPEAREDafterTheOfferSaidItCould(@TempDir Path project) throws Exception {
+        // review F6: an earlier version of this test called Files.writeString(CREATE_NEW) directly inside
+        // assertThrows. It proved the JDK primitive and would still have passed if create() were changed to
+        // truncate the author's file. This one drives ReferenceSet.create().
         if (ReferenceSet.agreed().isEmpty()) return;   // create path unreachable until sign-off
-        Files.writeString(project.resolve(ReferenceSet.FILE_NAME), "written between offer and create");
-        assertThrows(java.nio.file.FileAlreadyExistsException.class, () -> {
-            // simulate the gap: offer said CAN_CREATE, someone else wrote, create must not clobber
-            Files.writeString(project.resolve(ReferenceSet.FILE_NAME), ReferenceSet.markdown(),
-                    java.nio.file.StandardOpenOption.CREATE_NEW);
-        });
+
+        Path claude = project.resolve(ReferenceSet.FILE_NAME);
+        assertEquals(ReferenceSet.Outcome.CAN_CREATE, ReferenceSet.offer(project),
+                "the offer must green-light first, or this is not the race being tested");
+
+        // the gap: someone writes between offer and create
+        String theirs = "# written between offer and create\n";
+        Files.writeString(claude, theirs);
+
+        assertFalse(ReferenceSet.create(project),
+                "create() re-checks and must decline a file that appeared after the offer");
+        assertEquals(theirs, Files.readString(claude), "and their bytes must survive it");
+    }
+
+    @Test
+    void appliesToSELECTSratherThanAnnotates() {
+        // review N1: a Spring-only link rendered into every project charges every reader for an
+        // irrelevant fourth link, and an always-in-context file is a tax on every turn.
+        var spring = ReferenceSet.all().stream()
+                .filter(r -> r.agreed() && "spring".equals(r.appliesTo())).findFirst();
+        if (spring.isEmpty()) return;
+        assertFalse(ReferenceSet.markdown(null).contains(spring.get().url()),
+                "a spring-only resource must not appear in a project that is not spring-authored");
+        assertTrue(ReferenceSet.markdown("spring").contains(spring.get().url()),
+                "and it must appear when it does apply");
+        assertTrue(ReferenceSet.agreedFor("spring").size() > ReferenceSet.agreedFor(null).size(),
+                "selection must actually widen the set for a matching kind");
+    }
+
+    @Test
+    void theLastRESORTguardThrowsRatherThanTruncating(@TempDir Path project) throws Exception {
+        // review F6: the previous version of this called Files.writeString directly and so proved the JDK
+        // rather than this class. writeNew IS the production write path, split out so the CREATE_NEW guard
+        // — defence in depth for the window between create()'s own check and the write — is reachable.
+        Path claude = project.resolve(ReferenceSet.FILE_NAME);
+        String theirs = "# theirs\n";
+        Files.writeString(claude, theirs);
+
+        assertThrows(java.nio.file.FileAlreadyExistsException.class,
+                () -> ReferenceSet.writeNew(claude, "ours"),
+                "the write path must refuse an existing file; if this ever truncates, an author loses work");
+        assertEquals(theirs, Files.readString(claude));
+    }
+
+    @Test
+    void createIsTheONLYwriterAndItWritesTheRenderedSet(@TempDir Path project) throws Exception {
+        // the positive half, so the refusal tests above cannot pass by create() being inert
+        if (ReferenceSet.agreed().isEmpty()) return;
+        assertTrue(ReferenceSet.create(project), "create must report that it wrote");
+        String written = Files.readString(project.resolve(ReferenceSet.FILE_NAME));
+        assertEquals(ReferenceSet.markdown(), written, "the file must be exactly the rendered set");
+        for (var r : ReferenceSet.agreed()) {
+            assertTrue(written.contains(r.url()), r.id() + " missing from the written file");
+        }
+        assertFalse(ReferenceSet.create(project), "a second call must refuse — the file now exists");
     }
 }

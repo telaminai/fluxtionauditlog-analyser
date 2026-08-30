@@ -8,29 +8,47 @@ analyser ships with a demo set.
 
 !!! note "Every command is written out on purpose"
 
-    Nothing here says *"run the script at this URL"*. You can read every command before your assistant
-    runs it, and so can your security team. The analyser never fetches or executes this page.
+    You can read every command before your assistant runs it, and so can your security team — there is no
+    step that fetches and executes something you have not seen. The analyser never fetches or executes
+    this page.
+
+!!! warning "JBang will ask you to trust the release URL"
+
+    The first install stops on a trust prompt and **cancels itself after about 30 seconds** if nobody
+    answers. That decision is yours to make, not your assistant's — the prompt above tells it to wait for
+    you rather than choose. Afterwards JBang may say *"Please start a new Shell for changes to take
+    effect"*: either open a new shell, or run `~/.jbang/bin/analyser` directly.
 
 ## The prompt
 
 ```text
 Help me get the Fluxtion audit log analyser running, then give me a guided tour.
 
-STEP 1 — install and start it.
+STEP 1 — install it. Expect TWO interruptions; neither is an error.
 Run:
     jbang app install analyser@telaminai/fluxtionauditlog-analyser
-    analyser --rest
-The second command starts the analyser with its local socket enabled and opens its window.
-It BLOCKS, so run it in the background or a second terminal.
-If jbang is missing, tell me and stop — installing it is my decision, not yours.
 
-STEP 2 — connect yourself to it.
+(a) JBang will refuse to run the release URL until someone makes a TRUST decision, and it CANCELS
+    ITSELF after about 30 seconds. That choice is mine, not yours: show me the prompt, tell me it is
+    waiting, and wait for me. Do not pick an option on my behalf.
+(b) On a first install it then prints "Please start a new Shell for changes to take effect".
+    The `analyser` command may NOT be on PATH in your current shell. Either start a new shell, or
+    run it by its installed path: ~/.jbang/bin/analyser
+If jbang itself is missing, tell me and stop — installing it is my decision too.
+
+STEP 2 — start it.
+Run (new shell, or the full path from above):
+    analyser --rest
+This starts the analyser with its local socket enabled and opens its window.
+It BLOCKS, so run it in the background or a second terminal.
+
+STEP 3 — connect yourself to it.
 In the analyser window, I will use  AI ▸ Connect an AI client…  and follow it for my assistant.
 Tell me when you are ready for me to do that, wait for me to confirm, then verify by calling
 analyser_context and telling me what it reports. If you have no analyser tools after I confirm,
 say so plainly rather than pretending — we will fix it before going on.
 
-STEP 3 — give me the tour.
+STEP 4 — give me the tour.
 Use the "guided-start" skill if you have it. If you do not, follow these rules:
   - Drive the analyser's UI and tell me what to LOOK AT. Never state a number I cannot see on screen.
   - Call analyser_context before saying "as you can see", to check the view really shows it.

@@ -211,6 +211,13 @@ class CanonicalSkillsTest {
         }
         assertTrue(page.contains("You do **not** need a Fluxtion API key"),
                 "the keyless claim is the point of a first run and must be stated");
+        // review F5: a real cold install stops on a JBang trust prompt that self-cancels, then may leave
+        // `analyser` off PATH until a new shell. An agent that meets either undocumented stalls or fails.
+        assertTrue(page.contains("TRUST") || page.contains("trust"),
+                "the JBang trust prompt must be documented — it self-cancels and the decision is the "
+                        + "human's, not the agent's");
+        assertTrue(page.contains("~/.jbang/bin/analyser"),
+                "the first-shell PATH boundary must have a concrete escape, not just a warning");
     }
 
     private static String sha256(String text) throws Exception {

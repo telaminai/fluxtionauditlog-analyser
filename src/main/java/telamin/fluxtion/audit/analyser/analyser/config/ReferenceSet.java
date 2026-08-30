@@ -80,8 +80,28 @@ public final class ReferenceSet {
         }
     }
 
+    /** Agreed resources that apply to every project — those with no {@code appliesTo}. */
     public static List<Resource> agreed() {
-        return all().stream().filter(Resource::agreed).toList();
+        return agreedFor(null);
+    }
+
+    /**
+     * Agreed resources for a project of the given kind (review N1).
+     *
+     * <p>{@code appliesTo} SELECTS rather than annotates: a Spring-only link rendered into a non-Spring
+     * project charges every reader for an irrelevant fourth link, and an always-in-context file is a tax
+     * on every turn. An entry with no {@code appliesTo} is always in.
+     *
+     * @param kind the project's authoring style, e.g. {@code "spring"}; null or blank selects only the
+     *     always-on set.
+     */
+    public static List<Resource> agreedFor(String kind) {
+        String k = kind == null ? "" : kind.strip().toLowerCase(java.util.Locale.ROOT);
+        return all().stream()
+                .filter(Resource::agreed)
+                .filter(r -> r.appliesTo() == null || r.appliesTo().isBlank()
+                        || r.appliesTo().strip().toLowerCase(java.util.Locale.ROOT).equals(k))
+                .toList();
     }
 
     /**
@@ -91,18 +111,19 @@ public final class ReferenceSet {
      *     heading with no links under it".
      */
     public static String markdown() {
-        List<Resource> agreed = agreed();
+        return markdown(null);
+    }
+
+    /** As {@link #markdown()}, for a project of the given kind (review N1). */
+    public static String markdown(String kind) {
+        List<Resource> agreed = agreedFor(kind);
         if (agreed.isEmpty()) return "";
         StringBuilder out = new StringBuilder();
         out.append("# Working in this project\n\n")
                 .append("**Read these first — the canonical Fluxtion authoring resources. This file does ")
                 .append("not repeat them, so that improving them improves every project at once.**\n\n");
         for (Resource r : agreed) {
-            out.append("- <").append(r.url()).append("> — ").append(r.why());
-            if (r.appliesTo() != null && !r.appliesTo().isBlank()) {
-                out.append(" *(").append(r.appliesTo()).append("-authored projects)*");
-            }
-            out.append('\n');
+            out.append("- <").append(r.url()).append("> — ").append(r.why()).append('\n');
         }
         out.append("\nBelow this line belongs only what those do **not** cover: this project's own paths, ")
                 .append("commands and graph.\n");
@@ -126,15 +147,29 @@ public final class ReferenceSet {
      * @return true when a file was written.
      */
     public static boolean create(Path projectRoot) throws IOException {
+        return create(projectRoot, null);
+    }
+
+    /** As {@link #create(Path)}, selecting the links for a project of the given kind (review N1). */
+    public static boolean create(Path projectRoot, String kind) throws IOException {
         if (offer(projectRoot) != Outcome.CAN_CREATE) return false;
-        String body = markdown();
+        String body = markdown(kind);
         if (body.isBlank()) return false;
-        Path target = projectRoot.resolve(FILE_NAME);
-        // createNew: the offer/create pair is not atomic, and losing a race must not cost the author
-        // their file. Failing here is correct — it means someone else wrote one in between.
+        writeNew(projectRoot.resolve(FILE_NAME), body);
+        return true;
+    }
+
+    /**
+     * The only place this class writes, split out so the last-resort guard is reachable by a test.
+     *
+     * <p>{@code create} re-checks {@link #offer} and returns false for a file that already exists, so this
+     * is defence in depth for the window between that check and the write. {@code CREATE_NEW} makes losing
+     * that race cost the write rather than the author's file — throwing here is the correct outcome,
+     * because it means someone else wrote one in between (review F6).
+     */
+    static void writeNew(Path target, String body) throws IOException {
         Files.writeString(target, body, StandardCharsets.UTF_8,
                 java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE);
-        return true;
     }
 
     private static String str(Map<?, ?> m, String key) {

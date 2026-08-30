@@ -18,6 +18,13 @@ registered at `c543277` before any agent started.
 **Build failures: control 1.0, treatment 0.33 — separated on the mean, but the arms OVERLAP** (T3 failed
 once, exactly like every control).
 
+**How to read that, corrected by review F4.** Treated as a 2x2, 3/3 versus 1/3 gives Fisher's exact
+p = 0.20 one-sided (0.40 two-sided). With one task, one model family, one machine and three runs per arm,
+the honest statement is: **this round OBSERVED fewer build failures in the treatment arm. It is
+hypothesis-generating and too small to infer a direction or an effect size.** My earlier wording —
+"supports a direction", "the resources help" — over-read it, which is the same error as the WENT-OUTSIDE
+designation one round earlier, made while correcting that designation.
+
 ## P1 FALSIFIED — and D-AX5's primary signal is retired
 
 I predicted every T run below every C run on WENT-OUTSIDE. The arms came out **exactly equal**.
@@ -106,7 +113,8 @@ sibling finding — golden-path names `@FluxtionIgnore` without its package, whi
 ## What round 05 changes
 
 1. **WENT-OUTSIDE retired as the primary metric** (D-AX5) — equal across arms at n=3.
-2. **Build failures promoted** as the best available quantitative signal, with the caveat that it overlaps.
+2. **Build failures** is the only recorded number that moved. That describes which number moved; it is
+   **not** a supported treatment effect (F4).
 3. **"Resolve, not prevent" retired** — the resources do both.
 4. **UP-FLX-32** must state the rule, not a list of remedies. Three escapes found.
 5. **UP-FLX-35** narrowed to the *contract*, and corrected for a sixth source I had not read.
@@ -115,8 +123,15 @@ sibling finding — golden-path names `@FluxtionIgnore` without its package, whi
 ## Honest limits
 
 n=3, one task, one model family, one machine. The arms overlap on the only signal that moved, so this
-supports a **direction** and no effect size. And the round's most valuable output was not a number — it
-was noticing *what the agents believed*, which no metric here was designed to capture.
+supports **neither a direction nor an effect size** — it is an observation that generates a hypothesis
+(F4). And the round's most valuable output was not a number at all: it was noticing *what the agents
+believed*, which no metric here was designed to capture.
+
+**Reviewer-reproducible evidence is NOT preserved** (F4). This round records predictions, the aggregate
+table and the write-up. It does not retain per-run prompts, model identifiers, raw responses, generated
+patches or build logs, which `docs/experience/README.md` and the rig manifest both require. **Treat round
+05 as an observational internal note that cannot support attribution**, and preserve those artefacts
+before running an attribution round again.
 
 ## Post-round owner correction — a fourth route, which none of the six found
 

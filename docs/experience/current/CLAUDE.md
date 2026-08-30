@@ -66,14 +66,30 @@ The framework calls `setLogger` for you; you never construct an `EventLogger`. B
 choose the interface when the base class is taken, and note that anything extending a Fluxtion base such
 as `SingleNamedNode` already inherits `EventLogNode`, so it is covered without doing anything.
 
-**Be precise about what this buys you, because it is easy to over-read** (an earlier version of this file
-got it wrong). Extending `EventLogNode` gives your node an `auditLog` handle so it can record **its own
-key/values**. It is *not* what makes a node appear in the log at all: the generator emits an
-`auditInvocation` at each dispatch site, which is why `RiskCheck` — which does **not** extend
-`EventLogNode` — still appears in every record, showing only its method name.
+**Be precise about what this buys you, because it is easy to over-read** (two earlier versions of this file
+got it wrong in opposite directions). Extending `EventLogNode` — or implementing `EventLogSource` — is what
+lets the runtime hand your node a logger, so it can record **its own key/values**. It is *not* what puts a
+node in the record at all.
 
-So: without `EventLogNode` your node may still appear, but it can record **nothing about what it computed**
-— and a node that runs and reports no value is indistinguishable from one that did nothing. Extend it.
+Three separate conditions govern the record, and collapsing them is the common mistake:
+
+1. the node is **registered** with the auditor (the generated processor registers graph nodes);
+2. **invocation tracing** is on at a level that admits the trace — this is what produces the method-name
+   line you see for `RiskCheck`, which does not extend `EventLogNode`. With tracing **off**, a node that
+   logs no value **need not appear at all**;
+3. the node implements **`EventLogSource`**, which is what lets it record values of its own.
+
+So a method-name-only line does not mean the node is fine, and in an untraced log an absent node means
+*"said nothing"* rather than *"did not run"*. Implement the contract.
+
+**If you want the propagation path, turn tracing on at build time.** In the Java builder that is the
+overload you choose — `addEventAudit(LogLevel.INFO)` installs `tracingOn`, while the no-arg
+`addEventAudit()` installs `tracingOff`. With tracing on you get which nodes ran and in what order
+**whether or not any of them logs a message**; without it you get only what nodes chose to say.
+
+Watch one silent case: `addEventAudit(null)` is guarded by `if (tracingLogLevel != null)`, so it adds
+**no auditor at all** — green build, running application, no record. If the level comes from config,
+check it before passing it.
 
 ## 2. `@OnTrigger`'s boolean return decides whether anything downstream runs
 

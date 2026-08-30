@@ -299,9 +299,15 @@ versus going outside and learning nothing.
 **Keep it as a qualitative flag** — it names a specific thing the docs failed to supply, which is exactly
 what R2-E did — and **do not use it to separate conditions**.
 
-**Build FAILURES is the best available quantitative signal** (round 05: 3/3 control, 1/3 treatment), which
-is the metric this section originally dismissed as near-ceiling. It still overlaps, so it supports a
-direction and no effect size. Count failures, not attempts.
+**Build FAILURES is the only recorded number that moved** (round 05: 3/3 control, 1/3 treatment), which
+is the metric this section originally dismissed as near-ceiling. **That is a description of which number
+moved, not a supported treatment effect** (review F4): as a 2x2 it is Fisher p = 0.20 one-sided, on one
+task and one model family. Count failures rather than attempts, and report such a round as
+hypothesis-generating.
+
+**A round may not claim attribution unless its per-run evidence is preserved** — prompts, model
+identifier, bundle SHA, raw responses, patches, build logs, per-run scoring. Round 05 did not retain
+these and is therefore an observational note, whatever its numbers look like.
 
 **And the round's most valuable output was not a number at all** — it was noticing that four of six agents
 held the *same false belief* about dispatch order. No metric here was designed to capture what an agent

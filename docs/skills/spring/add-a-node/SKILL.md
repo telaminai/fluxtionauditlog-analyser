@@ -20,8 +20,14 @@ specific to a Spring-authored project.
    graph edges** — this is how the compiler learns what depends on what.
 3. **Add the bean id to `fluxtionSpringConfig`'s `nodeBeans`.**
 
-Then regenerate. See the `regenerate` skill; a graph change needs it, a change inside a method body
-does not.
+Then **regenerate** — a graph change needs it, a change inside a method body does not:
+
+```
+TODO(bundle): substitute this project's exact regeneration command (the Maven profile or script that
+invokes the Fluxtion source generator), and say whether it needs a Fluxtion API key.
+```
+
+Read the regenerated processor afterwards to confirm your node was wired. Do not edit it: it is an output.
 
 ## The two things that fail SILENTLY here
 
@@ -31,11 +37,15 @@ explicit Fluxtion nodes; referenced children are still discovered by Fluxtion."*
 `constructor-arg ref` from a listed node **is** in the graph; a bean that is neither listed nor referenced
 is **not** — and the build stays green. If your node never appears in the audit log, check this first.
 
-**A node that logs nothing is indistinguishable from a node that did nothing.** Appearing in the record is
-automatic; recording *values* is not. To record its own values a node needs an `EventLogger` — extend
-`EventLogNode`, or implement `EventLogSource` (`void setLogger(EventLogger)`) when its inheritance slot is
-already taken by a domain base class. Then `auditLog.info("key", value)`, which is fluent and has typed
-overloads — prefer the typed one so numbers stay numbers and remain graphable.
+**A node that logs nothing is indistinguishable from a node that did nothing.** To record its own values a
+node needs an `EventLogger`, and the runtime can only hand it one if the node implements `EventLogSource`
+(`void setLogger(EventLogger)`) — extend `EventLogNode`, or implement the interface directly when the
+inheritance slot is already taken by a domain base class. Then `auditLog.info("key", value)`, which is
+fluent and has typed overloads — prefer the typed one so numbers stay numbers and remain graphable.
+
+Do not read a method-name-only line as "this node is fine". That line comes from **invocation tracing**,
+which is a separate setting, and with tracing off a node that logs no value **may not appear at all** — so
+its absence means *"said nothing"*, not *"did not run"*.
 
 ## Prove it ran — do not assume
 
@@ -45,8 +55,10 @@ look for your node's entry inside the same record as the event that should have 
 Position within a record is **dispatch order**: a node listed after another ran after it, in the same
 cycle, on the same event. Read it as causal — that is what this log is for.
 
-If your node is absent from every record, work down this list before changing the code:
+If your node is absent from every record, work down this list before changing the code — **and note that
+absence alone does not prove it did not run** unless this log has invocation tracing on:
 
+- is invocation tracing enabled for this run, or does the log only carry what nodes chose to log?
 - is it in `nodeBeans`, or referenced by something that is?
 - did you regenerate after the graph change?
 - does it have a trigger method at all?

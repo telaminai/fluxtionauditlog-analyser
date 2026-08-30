@@ -8,18 +8,20 @@
     "",
     "The shape states the rule: `common` is a list and is always selected; `specialisations` is a map and a",
     "TEMPLATE names the ones it wants. Selection = common + the named specialisations. There is deliberately",
-    "no classification of a specialisation as host-or-style \u2014 nothing selects on that, and labelling them",
-    "would invite a question the rule does not need to answer (can a template have two hosts?).",
+    "no classification of a specialisation as host-or-style \u2014 nothing selects on that.",
     "",
-    "The mapping lives with the TEMPLATE, not as a list of template ids on every skill: otherwise adding a",
-    "template means editing every entry in this library.",
+    "REPLAY IS A SPECIALISATION, NOT COMMON (review F3). replay-a-run carries a required TODO(bundle) marker",
+    "and the accepted M19 bundle has no replay entry point, so making it unconditional would either trip the",
+    "fail-on-TODO bundle gate or ship a fictional procedure. Only a template with a real replay entry point",
+    "selects it.",
     "",
-    "'spring' means the same here as appliesTo:'spring' in reference-set.json. One word meaning two things",
-    "is how these drift apart."
+    "`templates` is the mapping the generator resolves. It lives here rather than as a list of template ids",
+    "on every skill: adding a template must not mean editing every entry in the library.",
+    "",
+    "'spring' means the same here as appliesTo:'spring' in reference-set.json."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
-    "common/replay-a-run/SKILL.md",
     "common/guided-start/SKILL.md"
   ],
   "specialisations": {
@@ -40,6 +42,21 @@
       "skills": [
         "spring/add-a-node/SKILL.md"
       ]
+    },
+    "replay": {
+      "why": "the project has a REAL replay entry point the bundle can name; without one, replay-a-run's TODO(bundle) cannot be substituted",
+      "skills": [
+        "common/replay-a-run/SKILL.md"
+      ]
+    }
+  },
+  "templates": {
+    "fluxtion-spring-mongoose": {
+      "specialisations": [
+        "spring",
+        "mongoose"
+      ],
+      "note": "The accepted M19 bundle. It has no replay entry point, so it does not select replay."
     }
   }
 }

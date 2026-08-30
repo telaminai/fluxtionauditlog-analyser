@@ -71,14 +71,27 @@ tautology that still prints.
 your components never executed, and how do you know the list is complete" does not, because the buyer
 knows they cannot answer it.
 
-**The boundary, and it is today's own finding.** Exogeneity applies to **participation and order**, not to
-**values**. Verified in `fluxtion-runtime` 1.0.13: the processor calls `nodeInvoked(node, name, method,
-event)` at every dispatch site — automatic, unauthored, true of any node — while `nodeRegistered` hands a
-logger only to a node that implements `EventLogSource`, and what it then records is whatever its author
-chose to write. **So the strong claim rests on the automatic half; the authored half is ordinary
-logging.** Conflating them is the D-T4 overclaim in its most tempting form, because the two arrive in the
-same record and look alike. What is unforgeable-by-construction is *that a node ran and where in the
-order*; what a node **says** about itself is testimony like any other log line.
+**The boundary — corrected 2026-08-30 by review F1, and the correction narrows the claim.** Exogeneity
+applies to **participation and order**, not to **values** — but only in a **traced** record, and only for
+**registered** nodes. Verified in `fluxtion-runtime` 1.0.13, three conditions apply, not two:
+
+1. `nodeRegistered` builds a logger for **every** registered node and stores it unconditionally; an
+   unregistered invocation resolves to `NullEventLogger` and appears nowhere.
+2. `nodeInvoked` calls `logNodeInvocation(traceLevel)`, which records the trace **only when the configured
+   level admits it** — and `addEventAudit()` installs `tracingOff()`. **With tracing off, a node that ran
+   and logged no value need not appear at all.**
+3. `EventLogSource` controls only whether the runtime can *inject* that logger into the node, and hence
+   whether the node can record its own values.
+
+**An earlier version of this section said participation was automatic for any dispatched node.** That is
+false, and false in the direction that flatters us: it would have let an *untraced* record be read as proof
+of absence. The analyser itself already refuses that conflation — it distinguishes traced from untraced
+because absence supports different claims in each — so the spec was overstating what the product is
+willing to assert, which is precisely the D-T4 failure this document exists to prevent.
+
+**So the honest claim.** In a traced record, that a registered node ran and where it sits in the order is
+recorded by the runtime rather than authored. In an untraced record, absence means *"said nothing"*. What
+a node **says** about itself is testimony in either case.
 
 ## D-T1 — the claim is NOT explainability, and saying "explainable AI" actively costs us
 

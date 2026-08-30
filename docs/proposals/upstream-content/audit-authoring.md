@@ -23,24 +23,48 @@ how a node emits a value into the audit log.** Every fact below was then read fr
 
 ## Draft — *Audit: what the log records, and what your node must do*
 
-The generated processor writes an audit record per event cycle. Two different mechanisms decide what is in
-it, and confusing them is the commonest audit mistake.
+The generated processor writes an audit record per event cycle. **Three** conditions decide what is in it,
+and collapsing them is the commonest audit mistake — it is easy to conclude that a node's absence proves it
+did not run, when in an untraced record it proves only that it said nothing.
 
-### 1 · Appearance is automatic. Values are not.
+### 1 · Three conditions, not two — and only one of them is about your node's type
 
-**Every node that is dispatched appears in the record**, whatever its type — the processor calls the
-auditor's `nodeInvoked(node, nodeName, methodName, event)` at each dispatch site. You get the node's name
-and the method that ran, for free, with no code.
+Read from `fluxtion-runtime` 1.0.13. Getting this wrong overstates what an ordinary record proves.
 
-**Only a node that implements `EventLogSource` can record its own values.** The auditor hands out loggers
-in `nodeRegistered(Object node, String nodeName)`, and it does so under exactly one test:
+**a · Registration.** The generated processor registers its graph nodes with each auditor.
+`EventLogManager.nodeRegistered(node, nodeName)` builds an `EventLogger` for **every** registered node and
+stores it in `node2Logger` **unconditionally**. An invocation of an unregistered node resolves to
+`NullEventLogger` and appears nowhere.
+
+**b · Invocation tracing decides whether a node shows up merely for RUNNING.**
+`nodeInvoked(...)` calls `logger.logNodeInvocation(traceLevel)`, and that method adds the trace **only
+when the configured level admits it**:
 
 ```java
-if (node instanceof EventLogSource) { ... setLogger(...) ... }
+public EventLogger logNodeInvocation(LogLevel logLevel) {
+    if (this.logLevel.level >= logLevel.level) { logrecord.addTrace(logSourceId); }
+    return this;
+}
 ```
 
-So a node with no logger still shows that it *ran* and can never show *what it computed* — and a node that
-runs and reports no value is indistinguishable from one that did nothing.
+`EventProcessorConfig.addEventAudit()` installs `EventLogManager.tracingOff()`; `addEventAudit(level)`
+installs `tracingOn(level)`. **So with tracing off, a node that ran and logged no value need not appear at
+all** — and its absence is therefore not evidence that it did not run.
+
+**c · `EventLogSource` decides whether the runtime can inject the node's own logger**, and hence whether
+it can record its own values:
+
+```java
+if (node instanceof EventLogSource) { calcSource.setLogger(logger); ... }
+```
+
+Note what this does **not** say: the logger exists either way. What the interface controls is whether your
+node gets a handle to it.
+
+**The practical summary.** In a **traced** record, a registered node's presence and position are recorded
+by the runtime rather than authored. In an **untraced** record, only what nodes chose to log appears, so
+absence means *"said nothing"* and not *"did not run"*. A node that runs and reports no value is
+indistinguishable from one that did nothing — which is the reason to implement the contract.
 
 ### 2 · The contract is an interface — one method
 
@@ -86,16 +110,53 @@ that stays a number is queryable and graphable downstream; one wrapped in a stri
 **Calling `auditLog` when audit is off is safe.** The field defaults to `NullEventLogger.INSTANCE`, so it
 is a no-op, never an NPE. Instrument freely; do not guard the calls.
 
-### 4 · Turning audit on
+### 4 · Turning audit on — and the overload you pick decides what you can prove
 
 Off by default. `LogLevel` is `NONE(0) · ERROR(1) · WARN(2) · INFO(3) · DEBUG(4) · TRACE(5)`, and a node's
 message appears only at or below the level in force.
 
+**In the Java graph builder, the choice is which overload you call** —
+`EventProcessorConfig.addEventAudit`, whose javadoc reads *"Add an `EventLogManager` auditor to the
+generated SEP. Specify the level at which method tracing will take place."*
+
+```java
+config.addEventAudit();                 // -> new EventLogManager().tracingOff()   values only
+config.addEventAudit(LogLevel.INFO);    // -> new EventLogManager().tracingOn(INFO)
+```
+
+**A third case worth knowing, because it fails silently.** The level overload is guarded:
+
+```java
+public EventProcessorConfig addEventAudit(LogLevel tracingLogLevel) {
+    if (tracingLogLevel != null) {
+        addAuditor(new EventLogManager().tracingOn(tracingLogLevel), EventLogManager.NODE_NAME);
+    }
+    return this;
+}
+```
+
+So `addEventAudit(null)` — a level read from configuration that turned out absent, say — adds **no
+auditor at all**. Not tracing-off: no audit. The build is green, the application runs, and there is no
+record. If you configure the level dynamically, check it before you pass it.
+
+**This is the most consequential line in this document.** With tracing **on at build time you get the
+propagation path — which nodes ran, and in what order — whether or not any of them logs a message.**
+That is what makes the record an account of execution rather than a collection of the messages someone
+remembered to write. With the no-arg form you get values only, and a node that logged nothing simply is
+not there.
+
+Further overloads take additional flags: `addEventAudit(LogLevel, boolean)` and
+`addEventAudit(LogLevel, boolean, boolean)`.
+
 - **Spring XML:** the `logLevel` field on `FluxtionSpringConfig`.
-- **Builder/DSL:** `EventProcessorConfig.addEventAudit`, and `DataFlow.setAuditLogLevel` at runtime.
+- **At runtime:** `DataFlow.setAuditLogLevel`.
 
 A graph built without audit enabled compiles and runs, and logs nothing. **A green build proves nothing
 about whether your node recorded anything** — read the log.
+
+**Downstream consequence worth stating for the reader:** tooling that answers *"which declared nodes never
+ran"* is only sound against a traced record. Against an untraced one the same absence means *"logged
+nothing"*, which is a much weaker claim.
 
 ### 5 · Order in the record is dispatch order
 
@@ -107,9 +168,10 @@ why it is reliable enough to reason from.
 ### 6 · Triage row, in the existing house style
 
 > **Symptom:** a node runs but the audit record shows only its method name, never the values it computed.
-> **Fix:** the node does not implement `EventLogSource`. Extend `EventLogNode`, or implement
-> `setLogger(EventLogger)` and keep the field `transient`. Appearance in the record is automatic;
-> recording values is not.
+> **Fix:** the node does not implement `EventLogSource`, so the runtime has no way to hand it a logger.
+> Extend `EventLogNode`, or implement `setLogger(EventLogger)` and keep the field `transient`. (The
+> method-name line you can see comes from invocation tracing, which is a separate setting — it does not
+> mean the node can record values.)
 
 ---
 
@@ -120,16 +182,19 @@ That page currently says:
 > *"Audit and replay are not a logging layer you bolt on. They fall out of how the processor is
 > generated."*
 
-**True for appearance, false for values** — and an author who reads it reasonably concludes no
-instrumentation is required. Measured consequence: in a fresh-context run against a real generated bundle,
-an author copied the shipped example that does **not** implement the contract, and produced a node that ran
-and left no evidence of what it did. That is the exact failure the audit log exists to prevent.
+**True of a traced record's participation and order; false for values, and false for an untraced record**
+— and an author who reads it reasonably concludes no instrumentation is required. Measured consequence: in
+a fresh-context run against a real generated bundle, an author copied the shipped example that does **not**
+implement the contract, and produced a node that ran and left no evidence of what it did. That is the exact
+failure the audit log exists to prevent.
 
 Suggested replacement:
 
-> Audit and replay are not a logging layer you bolt on — **which nodes fired, in what order** falls out of
-> how the processor is generated. What each node *reports about its own state* is one interface away:
-> implement `EventLogSource` (or extend `EventLogNode`) and call `auditLog`.
+> Audit and replay are not a logging layer you bolt on — **with invocation tracing enabled, which nodes
+> fired and in what order** falls out of how the processor is generated. What each node *reports about its
+> own state* is one interface away: implement `EventLogSource` (or extend `EventLogNode`) and call
+> `auditLog`. Without tracing, a node that logs nothing does not appear, so absence means "said nothing"
+> rather than "did not run".
 
 The page is also written for readers and reviewers rather than authors, so it should link to the section
 above rather than carry it.

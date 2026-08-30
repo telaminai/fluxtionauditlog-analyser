@@ -19,6 +19,7 @@ it in `context.runbooks[]`, so a model can pick the right one without opening al
 | `mongoose/` | the processor is hosted by a Mongoose server |
 | `embedded/` | the processor runs in-process via `DataFlowConnector` |
 | `spring/` | the graph is authored as Spring XML and compiled ahead of time |
+| `replay/` (`common/replay-a-run`) | the project has a **real replay entry point** the bundle can name |
 
 **Selection is by TEMPLATE, from `m19-skills/2`** (owner, 2026-08-30: *"skills added depending upon the
 template the user selects"*, and *"we have common and specialisation"*). v1 took `common/` plus one **host**
@@ -36,6 +37,12 @@ template means editing every entry in this library.
 
 `spring` means the same thing here as `appliesTo: "spring"` in `reference-set.json`. One word meaning two
 things is how these drift apart.
+
+**Replay is a specialisation, not common** (review F3, 2026-08-30). `common/replay-a-run` carries a
+required `TODO(bundle)` marker, and the accepted M19 bundle deliberately has no replay entry point — so
+making it unconditional would either trip the fail-on-`TODO` bundle gate or ship a procedure that does not
+exist. Only a template with a real replay entry point selects it. An earlier draft of v2 had it in
+`common` and reversed that accepted decision.
 
 A bundle still does not author its own set (D-R2). **v1 is byte-pinned and must not be edited** — it is
 consumed by a released playground build; add a version instead.

@@ -186,3 +186,29 @@ what makes a node **appear**; `nodeRegistered(node, name)` hands out a logger un
 `if (node instanceof EventLogSource)`, which is what lets a node record **values**. Two mechanisms, two
 facts — and the agent's round-03 inference that appearance depends on registration was **wrong**.
 Verified in `fluxtion-runtime` 1.0.13 sources. Refusing to promote it twice was the right call.
+
+## R3-A CORRECTED AGAIN — 2026-08-30, by an independent review (F1)
+
+The settlement recorded above under R3-D — *"`nodeInvoked` at every dispatch site is what makes a node
+APPEAR; `nodeRegistered` hands out a logger only to an `EventLogSource`"* — is **two mechanisms where the
+runtime has three**, and the missing one is the one that matters for this product.
+
+Verified in `fluxtion-runtime` 1.0.13 after the review named the lines:
+
+1. `nodeRegistered` builds an `EventLogger` for **every** registered node and stores it in `node2Logger`
+   **unconditionally**; it only *injects* it when the node is an `EventLogSource`.
+2. `nodeInvoked` looks the logger up and calls `logNodeInvocation(traceLevel)`, which adds the trace
+   **only when the configured level admits it**. `addEventAudit()` installs `tracingOff()`.
+3. So with tracing off, an invoked node that logs no value **need not appear at all** — and an
+   unregistered invocation resolves to `NullEventLogger` and appears nowhere either.
+
+**Why this one is worse than the earlier two.** R3-A was a false rule about a mechanism. This one
+overstates what an ordinary **untraced** record proves — it would let absence be read as proof a node did
+not run. The analyser already refuses that conflation (it distinguishes traced from untraced precisely
+because absence supports different claims in each), so I contradicted the product's own model while
+writing documentation for it, and carried the error into two public upstream issues.
+
+**Fourth correction to the same subject in this loop**, and the first found by an independent reviewer
+rather than by me or the owner. Every previous one was caught by reading an artefact; this one needed
+someone reading the *same* artefact more carefully than I had. That is an argument for the review step
+that no amount of self-checking replaces.
