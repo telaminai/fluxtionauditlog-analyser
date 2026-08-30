@@ -738,6 +738,16 @@ and the M43 menu-name question for the owner._
 
 ## Open questions
 
+- **Should a processor with no source still offer "Add source" when roots ARE configured?** _(raised
+  2026-08-30 from the live v4 bundle)_ The owner decided on 2026-08-27 that a processor whose source is not
+  found offers *Add source* rather than *Go*, because the remedy is a root. The deployed bundle produced a
+  case that may not have been in view: it declares `com.example.myapp.generated.MarketProcessor`, ships no
+  generated source, and **has `src/main/java` configured** — so adding a root cannot help, and the button
+  invites work that will not fix it. The Project panel's **wording** now distinguishes the two causes
+  (*"declared, but no source under the configured root(s) — is it generated?"* against *"no source roots
+  are configured"*), which carries most of the value. **The button is unchanged pending your call**, and a
+  test records that it is deliberate rather than an oversight.
+
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
 
 _(spec-closed-loop O1–O4 all resolved — statuses recorded in the M18 block above; O5 in Decisions.)_

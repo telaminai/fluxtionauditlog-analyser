@@ -91,7 +91,7 @@ class ProjectModelTest {
         assertEquals(2, procs.size());
         assertEquals("DemoQuoteProcessor", procs.get(0).primary(), "the class name leads; the package is detail");
         assertEquals("selected · source found · com.acme.demo.generated", procs.get(0).secondary());
-        assertEquals("source NOT found under any root · com.acme.demo.generated", procs.get(1).secondary());
+        assertEquals("declared, but no source under the configured root(s) — is it generated? · com.acme.demo.generated", procs.get(1).secondary());
         assertEquals(ProjectModel.Tone.WARN, procs.get(1).tone(), "a processor whose source cannot be found is a warning, not a muted fact");
         assertEquals(ProjectModel.Target.SOURCE, procs.get(0).target(), "source found: Go to the Source tab");
         assertEquals(ProjectModel.Target.ADD_SOURCE, procs.get(1).target(), "owner 2026-08-27: no source → no Go; 'Add source' opens Settings ▸ Source roots");
@@ -359,5 +359,55 @@ class ProjectModelTest {
         org.junit.jupiter.api.Assertions.assertFalse(
                 ProjectModel.from(ctx).sections().toString().contains("NOT installed"),
                 "a false positive here trains people to ignore the true one");
+    }
+
+    // ---- a declared processor with no source: two causes, opposite remedies -------------------------
+
+    private static Map<String, Object> withProcessor(boolean rootConfigured) {
+        Map<String, Object> ctx = new LinkedHashMap<>();
+        Map<String, Object> proc = new LinkedHashMap<>();
+        proc.put("class", "com.example.myapp.generated.MarketProcessor");
+        proc.put("selected", true);
+        proc.put("source", "not found");
+        proc.put("from", "project");
+        ctx.put("processors", List.of(proc));
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("rootTiers", rootConfigured
+                ? List.of(Map.of("tier", "project", "form", "relative"))
+                : List.of());
+        ctx.put("source", source);
+        return ctx;
+    }
+
+    private static ProjectModel.Row processorRow(Map<String, Object> ctx) {
+        for (ProjectModel.Section s : ProjectModel.from(ctx).sections()) {
+            if (s.title().equals("Event processors")) return s.rows().get(0);
+        }
+        throw new AssertionError("no processors section");
+    }
+
+    @Test
+    void noRootsConfigured_offersAddSource() {
+        ProjectModel.Row row = processorRow(withProcessor(false));
+        assertTrue(row.secondary().contains("no source roots are configured"), row.secondary());
+        assertEquals(ProjectModel.Target.ADD_SOURCE, row.target(),
+                "adding a root is exactly the remedy when none is configured");
+    }
+
+    @Test
+    void rootsConfiguredButClassABSENT_doesNotSendTheUserToAddAnotherRoot() {
+        // the live v4 bundle: src/main/java IS a root, and the generated processor was never shipped.
+        // "Add source" there invites the user to add a root that cannot help - the file is missing, not
+        // unreachable - and they discover that only after doing it.
+        ProjectModel.Row row = processorRow(withProcessor(true));
+        assertTrue(row.secondary().contains("is it generated?"),
+                "the remedy is to generate it, and the row should say so: " + row.secondary());
+        // The TARGET deliberately still says "Add source": that is an owner decision of 2026-08-27 and
+        // this case may not have been in view when it was made. Adding a root cannot help when the class
+        // was never generated, so it is raised as an open question rather than overturned here — the
+        // wording carries the correction either way.
+        assertEquals(ProjectModel.Target.ADD_SOURCE, row.target(),
+                "unchanged until the owner revisits it");
+        assertEquals(ProjectModel.Tone.WARN, row.tone(), "it is still wrong, and still warns");
     }
 }

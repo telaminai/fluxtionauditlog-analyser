@@ -214,6 +214,21 @@ The export is `logs/audit-demo-bundle.yaml`.
         self.assertTrue(checks["CLAUDE.md restates no rule the agreed set already carries"].ok,
                         "a link's own description must not count as a restatement")
 
+    def test_day_two_discovery_fails_when_the_declared_graph_is_ABSENT(self):
+        """The check claims discovery CAN OFFER the graph. It cannot offer a file that is not there.
+
+        Found against the live production bundle: a shape-only test reported green beside two reds about
+        the same missing file. A green line that is false is worse than a duplicate red one.
+        """
+        graph = "src/main/resources/com/acme/demo/generated/DemoProcessor.graphml"
+        (self.root / graph).unlink()
+        checks = {c.name: c for c in self.checks()}
+        self.assertFalse(checks["day-two bounded GraphML discovery can offer the declared graph"].ok)
+        self.assertIn("absent",
+                      checks["day-two bounded GraphML discovery can offer the declared graph"].detail)
+        # and the neighbouring contract check still fails for its own, different reason
+        self.assertFalse(checks["the declared GraphML exists"].ok)
+
     def test_a_passing_check_never_carries_a_FAILURE_WORD(self):
         """Review F6: check_v4 printed "differs" beside a GREEN AGENTS.md check.
 

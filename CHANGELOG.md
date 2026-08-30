@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **The Project panel now says WHY a processor's source is missing.** *"Source not found"* had two causes
+  with opposite remedies — no source roots configured, or roots configured and the class simply absent —
+  and one message for both sent half of readers to add a root that could not help.
 - **The canonical load-log skill now respects project switching as a session boundary.** When the
   generated project is not already active, it opens the project first and the log plus GraphML in a
   second call; combining them causes the analyser to ignore the log/graph parameters deliberately.

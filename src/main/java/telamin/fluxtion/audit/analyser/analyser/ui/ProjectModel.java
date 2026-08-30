@@ -26,7 +26,14 @@ public record ProjectModel(List<Section> sections) {
 
     /** Where a row's "go to" leads — navigation only (D-L3). */
     public enum Target { NONE, TOPOLOGY, SOURCE, SETTINGS_SOURCE, SETTINGS_PROCESSORS, SETTINGS_ASSISTANT, PROJECT, REPORTS,
-        /** A processor whose source was not found: the remedy is a root, so the button says so and opens Settings ▸ Source roots. */
+        /**
+         * A processor whose source was not found: the remedy is a root, so the button says so and opens
+         * Settings ▸ Source roots (owner, 2026-08-27).
+         *
+         * <p>Open question, raised 2026-08-30: when roots ARE configured and the class is still missing,
+         * the file is absent rather than unreachable, and adding another root cannot help. The row's
+         * wording now says so; whether the button should also change is the owner's call.
+         */
         ADD_SOURCE,
         /** A pointed-at file a PERSON may read in the app (runbook, glossary): a read-only viewer — never executed, never served to an agent. */
         VIEW_FILE }
@@ -208,11 +215,20 @@ public record ProjectModel(List<Section> sections) {
 
         // ---- processors ------------------------------------------------------------------------------
         rows = new ArrayList<>();
+        // "source not found" has TWO causes with OPPOSITE remedies, and reporting one message for both
+        // sends half the people down a dead end. Found against the live v4 bundle (2026-08-30): it
+        // declares a processor class and ships no generated source, while `src/main/java` IS configured —
+        // so "Add source" invites the user to add a root that cannot help, because the file is absent
+        // rather than unreachable. The remedy there is to generate it.
+        boolean anyRootConfigured = !list(map(ctx.get("source")).get("rootTiers")).isEmpty();
         for (Object o : list(ctx.get("processors"))) {
             Map<String, Object> p = map(o);
             boolean selected = Boolean.TRUE.equals(p.get("selected"));
             boolean found = "found".equals(p.get("source"));
-            String detail = (selected ? "selected · " : "") + (found ? "source found" : "source NOT found under any root");
+            String missingWhy = anyRootConfigured
+                    ? "declared, but no source under the configured root(s) — is it generated?"
+                    : "source NOT found: no source roots are configured";
+            String detail = (selected ? "selected · " : "") + (found ? "source found" : missingWhy);
             // the class name leads and the package is the second line's tail — a 40-character FQN at the
             // west column's width is a row of "com.acme.demo.generated.DemoQuoteProces…" with the name cut off
             String fqn = str(p.get("class"));
@@ -222,7 +238,14 @@ public record ProjectModel(List<Section> sections) {
             rows.add(new Row(simple, detail, null, str(p.get("from")),
                     // owner, 2026-08-27: no source → no "Go" (there is nowhere to go); "Add source" instead, which
                     // opens the Source roots page — the remedy is a root, not a processor setting
-                    found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN, found ? Target.SOURCE : Target.ADD_SOURCE));
+                    found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN,
+                    // The TARGET is unchanged: the owner decided on 2026-08-27 that a processor with no
+                    // source offers "Add source" rather than "Go". The absent-file case below may not have
+                    // been in view when that was decided — adding a root cannot help when the class was
+                    // never generated — but that is the owner's call to revisit, not mine to overturn in
+                    // passing. The WORDING now names the real cause either way, which carries most of the
+                    // value; see the open question in the tracker.
+                    found ? Target.SOURCE : Target.ADD_SOURCE));
         }
         if (rows.isEmpty()) {
             rows.add(new Row("No event processors", "Settings ▸ Event processor, or open a log and one is inferred",

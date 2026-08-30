@@ -447,9 +447,18 @@ def check_bundle(bundle, analyser_version):
         graph = pathlib.PurePosixPath(graph_paths[0])
         discovery_roots = [pathlib.PurePosixPath(root) for root in source_roots if root]
         discovery_roots.append(pathlib.PurePosixPath("src/main/resources"))
-        discoverable = any(graph.is_relative_to(root) and len(graph.relative_to(root).parts) <= 12
-                           for root in discovery_roots)
-        add("day-two bounded GraphML discovery can offer the declared graph", discoverable, graph)
+        in_scanned_tree = any(graph.is_relative_to(root) and len(graph.relative_to(root).parts) <= 12
+                              for root in discovery_roots)
+        # Existence is part of the claim, not a neighbouring one. The check says discovery CAN OFFER this
+        # graph; discovery cannot offer a file that is not there, so a shape-only test made this pass green
+        # beside two reds about the same missing file (production bundle, 2026-08-30). Two reds for one
+        # cause is fine - they are different properties - but a green line that is false is not.
+        present = bundle.exists(graph_paths[0])
+        add("day-two bounded GraphML discovery can offer the declared graph",
+            in_scanned_tree and present,
+            "" if (in_scanned_tree and present) else
+            (f"{graph} is not under a scanned root" if not in_scanned_tree
+             else f"{graph} is declared but absent, so nothing can discover it"))
 
     return checks
 
