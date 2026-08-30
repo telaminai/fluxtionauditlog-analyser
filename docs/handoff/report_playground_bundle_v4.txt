@@ -1,0 +1,145 @@
+REPORT — playground: bundle contract v4 (M19.21)
+Brief: docs/handoff/brief_playground_bundle_v4.txt
+Date: 2026-08-30 · From: the playground session · Implementation: fluxtion-web @ ea00075
+Skills consumed: m19-skills/2 (DRAFT) @ 619e048fb81a3046dc6c757ee2f1d7af62b3d4ea
+
+STATUS: IMPLEMENTED. HAND-BACK IS 68 PASSED / 1 FAILED, and the one failure is a BENCH DEFECT that
+this report proves rather than asserts. Read §3 before deciding whether v2 can be lifted from DRAFT.
+
+§0 — THE BRIEF'S OWN PRECONDITION
+  Checked rather than trusted, as §0 asked. All four inputs return 200:
+  m19-skills/2/index.json, reference-set.json, docs/skills/README.md, tools/bench/bundle-bench.py.
+  The index declares "contract": "m19-skills/2" and status DRAFT — NOT PUBLISHED, so §1 was live and
+  the work was unblocked.
+
+§1 — WHAT WAS BUILT
+
+  A · SELECTION (D-B1). The generator consumes m19-skills/2: common + the specialisations the
+      TEMPLATE declares. The bundle template is Spring-authored and Mongoose-hosted, so it declares
+      spring + mongoose and ships four skills:
+
+          common/load-audit-log        common/guided-start
+          spring/add-a-node            mongoose/run-mongoose-server
+
+      This matches the brief's worked example exactly, including the negative half: replay is NOT
+      selected. Under v2 that stops being a recorded deviation and becomes a specialisation this
+      template simply does not name, which is the point of the shape.
+
+      The template→specialisations mapping lives in the playground, per §3 of the brief. A new
+      REQUIRED_BY_SPECIALISATION map refuses a selection that names a specialisation but vendors none
+      of its skills, so `ok` is not reachable with non-none provenance and a missing procedure — the
+      v1 F3 rule, re-expressed for the new shape.
+
+  B · SUBSTITUTION (D-B3). spring/add-a-node's marker is substituted with this project's exact
+      regeneration command AND the key answer, which is the half a reader is hurt by getting wrong:
+
+          ./mvnw -Pgenerate-fluxtion package
+          # Regenerating calls the hosted Fluxtion generator and NEEDS an API key
+          # (~/.fluxtion/fluxtion.apiKeyFile, or -Dfluxtion.apiKey=...). Building and
+          # running this project do not: its generated processor is committed.
+
+      guided-start carries no project-owned value; it is declared as an explicit no-op substitution
+      so the "every skill needs a substitution decision" gate still holds rather than being bypassed
+      by absence. Substitution remains exact-match and throws on drift.
+
+  C · THE REFERENCE BLOCK (D-B2). CLAUDE.md renders the agreed set instead of carrying a hand-written
+      list, and says plainly that it does not repeat what it points at. appliesTo SELECTS: the Spring
+      contract link appears because this template is Spring; the bench's own negative check confirms
+      it would be absent otherwise.
+
+      THIS FIXED A LIVE DEFECT, not a hypothetical one. The previous hand-written list shipped
+      https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt — which
+      reference-set.json marks EXCLUDED. Every bundle generated before today carried it. Vendoring
+      now keeps only `agreed` entries, so an excluded URL is not one filtering mistake away from a
+      generated project. The old bundle also carried an ad-hoc Spring canon list (skill.md,
+      example.md) that duplicated the set's job; it is gone, and the design section now points at the
+      block and at the add-a-node skill instead.
+
+  D · PROFILE. Four runbooks, zero-based, each with its frontmatter description. The test now asserts
+      the runbook SET against the manifest rather than a hand-counted prefix — a prefix assertion
+      passes silently when a specialisation stops being selected.
+
+§2 — PINNING A DRAFT, which the brief did not ask for and which the contract needs
+  m19-skills/2 pins no revision, deliberately and correctly. But a generator still has to record
+  WHAT IT READ, and "main" is not that. The vendor tool now resolves the ref to a commit BEFORE
+  reading anything and fetches every path at that commit. Two consequences:
+
+    · a draft can be vendored with a real, reproducible identity — this snapshot is
+      619e048fb81a3046dc6c757ee2f1d7af62b3d4ea, not "main as of some moment";
+    · it closes a race the branch form always had. Fetching the index from main and then each skill
+      from main reads whatever main is at each fetch; a push landing mid-vendor produces a snapshot
+      that never existed as a single commit.
+
+  Provenance stays `canonical@<sha>`. An earlier attempt recorded `canonical-draft@`, which the bench
+  correctly refused: it breaks the declared grammar (canonical|local)@… | mirror:… | none. Draftness
+  is a property of the INDEX, not of the retrieval, and now lives in the manifest as `draft: true`.
+  That was my error and the bench caught it, which is the bench working.
+
+  When you publish v2 with a revision and per-path sha256, this tool will read the pinned revision
+  instead of resolving one, and nothing else changes.
+
+§3 — THE ONE FAILING CHECK IS THE BENCH'S, AND HERE IS THE PROOF
+
+    FAIL  CLAUDE.md restates no rule the agreed set already carries — source-gen triage
+
+  check_v4 greps the whole guide for ("@FluxtionIgnore", "declare transient", "source-gen triage").
+  The third token appears in reference-set.json's OWN description of the CLAUDE.md resource:
+
+    "why": "The author orientation, including the source-gen triage table that maps a build error
+            to its fix."
+
+  ReferenceSet.java line 126 renders `- <url> — why`, so the ANALYSER'S OWN ReferenceSet.markdown(
+  "spring") output — the rendering the brief names as the reference implementation, and reproduces
+  verbatim in §4b as the worked target — contains "source-gen triage" and fails the analyser's own
+  bench. Reproduced against your reference-set.json:
+
+    $ python3 -c "...render agreed+spring exactly as ReferenceSet.markdown does..."
+    bundle-bench check_v4 restatement tokens found in the ANALYSER'S OWN rendering: ['source-gen triage']
+
+  So the check cannot distinguish "this file restates the triage rule" from "this file names the
+  document that carries the triage rule" — and naming it is precisely what pointing means. Any
+  faithful generator fails.
+
+  I did not go green on this. Rewording your `why` text to slip past a grep would have hidden a
+  defect in the gate that the next generator would hit again, and the brief invites exactly this
+  instead: "If the contract is wrong rather than merely awkward, say so."
+
+  Two fixes, your call:
+    (a) scope the restatement check to the text BELOW the rendered reference block — it is the part
+        that could restate anything; the block is generated from your own data and cannot;
+    (b) check for restated CONTENT rather than a name (e.g. the guide asserting a rule with
+        surrounding prose), which is harder and probably not worth it.
+  (a) is a few lines and preserves what the check is for. Everything else in check_v4 passed.
+
+§4 — EVIDENCE RUN
+  node scripts/vendor-skills.mjs
+      vendored 4 skill(s) — canonical@619e048f…  [index is DRAFT: pinned to the resolved commit]
+      vendored 4 agreed reference resource(s)
+  BUNDLE_TEMPLATE=analyser-bundle.starter.json … maven-download-bundle.test.ts     PASS
+  bundle-bench.py --analyser-version 1.12.0 audit-analyser-bundle    68 passed, 1 failed  (§3)
+  npx vitest run                          415 passed (30 files)
+  npx svelte-check                        4 errors — all pre-existing, unrelated files, below the
+                                          recorded baseline of 6
+  npm run build (adapter-cloudflare)      PASS
+
+  Spot-checked in the generated bundle: AGENTS.md byte-identical to CLAUDE.md; no TODO(bundle) or
+  /path/to/ anywhere; the Spring link present; no excluded URL; contract marker m19-bundle/4.
+
+§5 — WHAT I DID NOT DO
+  · NOT DEPLOYED. The playground is committed at ea00075 and not pushed or released — the owner
+    approves pushes individually. The live site still serves v3 bundles until that happens, so do not
+    fetch a bundle from production expecting v4 yet.
+  · v2 is still DRAFT. Lifting it is yours, and §3 is the one thing I would settle first: if the
+    bench stays as-is, the next generator to render your reference set faithfully will fail the same
+    check and may well "fix" it by rewording your text.
+  · reference-set.json's `why` strings are analyser-owned. I vendored them verbatim and did not edit
+    them, which is what made §3 visible.
+
+§6 — ASKS BACK
+  1. Settle §3 (bench scope, or the `why` wording — but the bench is the better fix).
+  2. On publication of v2: pin a revision + per-path sha256, and the vendor tool will verify bytes
+     against it instead of resolving a commit itself. It already refuses a non-DRAFT index that does
+     not pin a revision.
+  3. UNRELATED, and still open from your own tutorial review: F1 — the bundle's RootNode logs only
+     the string `receivedEvent: PriceEvent{...}`, so there is no numeric node-log key and the
+     tutorial's graph step cannot work. That is playground-side and mine; it is not in this change.

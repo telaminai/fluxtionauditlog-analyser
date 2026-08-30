@@ -243,6 +243,26 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
+- [M19.21] ◧ **IMPLEMENTED playground-side 2026-08-30, ONE CONTRACT DEFECT BLOCKS SIGN-OFF** —
+  `fluxtion-web` @ `ea00075` (committed, **not deployed**: the live site still serves v3 bundles).
+  Report: [`report_playground_bundle_v4.txt`](../handoff/report_playground_bundle_v4.txt). The bundle
+  declares `m19-bundle/4` and selects `common` + the template's declared specialisations —
+  load-audit-log, guided-start, spring/add-a-node, mongoose/run-mongoose-server — with `replay`
+  correctly not selected. `bundle-bench.py` on a generated bundle: **68 passed, 1 failed**.
+  **The one failure is OURS, and the report proves it rather than asserting it:** `check_v4`'s
+  restatement guard greps for `source-gen triage`, which is the wording of `reference-set.json`'s own
+  `why` for the CLAUDE.md resource — so `ReferenceSet.markdown("spring")`, the rendering the brief
+  names as reference and reprints verbatim in its §4b worked target, fails our own bench. Any
+  faithful generator fails it. Fix is ours: scope the check to the text below the rendered block.
+  Two findings worth keeping: the previous bundle shipped
+  `raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt`, which our set marks
+  **EXCLUDED** — every bundle generated before today carried it, and vendoring only `agreed` entries
+  closes that; and their tool now **resolves the ref to a commit before reading**, so a DRAFT index
+  that pins nothing still vendors reproducibly and every byte comes from one commit rather than from
+  whatever `main` was at each fetch. `canonical-draft@` was tried and correctly refused by our
+  provenance grammar; draftness now lives in their manifest. **v2 stays DRAFT until the bench defect
+  is settled** — if it is not, the next generator to render our set faithfully will hit the same
+  check and may "fix" it by rewording our text. Original brief below.
 - [M19.21] ☐ **Playground-side: bundle contract v4** — **brief written for the playground session:**
   [`brief_playground_bundle_v4.txt`](../handoff/brief_playground_bundle_v4.txt). It leads with the two
   things that stop a cold start: the analyser inputs are committed but **not pushed**, so the canonical raw
