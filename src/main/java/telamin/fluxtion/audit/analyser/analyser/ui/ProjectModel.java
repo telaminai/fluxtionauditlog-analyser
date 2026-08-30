@@ -30,9 +30,9 @@ public record ProjectModel(List<Section> sections) {
          * A processor whose source was not found: the remedy is a root, so the button says so and opens
          * Settings ▸ Source roots (owner, 2026-08-27).
          *
-         * <p>Open question, raised 2026-08-30: when roots ARE configured and the class is still missing,
-         * the file is absent rather than unreachable, and adding another root cannot help. The row's
-         * wording now says so; whether the button should also change is the owner's call.
+         * <p>Settled 2026-08-30: this target is used for BOTH causes, including when roots are configured
+         * and the class is simply absent, where adding a root cannot help. The row's wording distinguishes
+         * them instead. Do not make the button conditional — that was considered and declined.
          */
         ADD_SOURCE,
         /** A pointed-at file a PERSON may read in the app (runbook, glossary): a read-only viewer — never executed, never served to an agent. */
@@ -239,12 +239,11 @@ public record ProjectModel(List<Section> sections) {
                     // owner, 2026-08-27: no source → no "Go" (there is nowhere to go); "Add source" instead, which
                     // opens the Source roots page — the remedy is a root, not a processor setting
                     found ? (selected ? Tone.NORMAL : Tone.MUTED) : Tone.WARN,
-                    // The TARGET is unchanged: the owner decided on 2026-08-27 that a processor with no
-                    // source offers "Add source" rather than "Go". The absent-file case below may not have
-                    // been in view when that was decided — adding a root cannot help when the class was
-                    // never generated — but that is the owner's call to revisit, not mine to overturn in
-                    // passing. The WORDING now names the real cause either way, which carries most of the
-                    // value; see the open question in the tracker.
+                    // The TARGET is the same for both causes, and that is SETTLED: the owner decided it
+                    // on 2026-08-27 and re-affirmed it on 2026-08-30 after the live v4 bundle raised the
+                    // absent-file case, where adding a root cannot help. One remedy button that is
+                    // occasionally unhelpful beats a row whose control changes shape depending on why
+                    // something is missing. The WORDING carries the distinction instead.
                     found ? Target.SOURCE : Target.ADD_SOURCE));
         }
         if (rows.isEmpty()) {

@@ -704,6 +704,14 @@ and the M43 menu-name question for the owner._
 8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
 
 ## Decisions (resolved)
+
+- **A processor with no source keeps offering "Add source", whatever the cause** _(owner, 2026-08-30;
+  re-affirming 2026-08-27)_. The live v4 bundle raised a case the original decision may not have had in
+  view — a declared processor class, no generated source shipped, and `src/main/java` already configured,
+  so adding a root cannot help. **The owner's answer is to keep the button as it is.** The Project panel's
+  *wording* still distinguishes the two causes, which is where the correction belongs: one remedy button
+  that is occasionally unhelpful beats a row whose control changes shape depending on why something is
+  missing. `ProjectModelTest` records the target as deliberate so a later reader does not "fix" it.
 - **API key at rest:** stored **cleartext** in `~/.fluxtion-analyser/config`.
 - **Display time zone:** **UTC** for all date/time rendering.
 - **EventProcessor:** **infer when possible** by scoring candidate processors' `instanceId→field`
@@ -738,15 +746,6 @@ and the M43 menu-name question for the owner._
 
 ## Open questions
 
-- **Should a processor with no source still offer "Add source" when roots ARE configured?** _(raised
-  2026-08-30 from the live v4 bundle)_ The owner decided on 2026-08-27 that a processor whose source is not
-  found offers *Add source* rather than *Go*, because the remedy is a root. The deployed bundle produced a
-  case that may not have been in view: it declares `com.example.myapp.generated.MarketProcessor`, ships no
-  generated source, and **has `src/main/java` configured** — so adding a root cannot help, and the button
-  invites work that will not fix it. The Project panel's **wording** now distinguishes the two causes
-  (*"declared, but no source under the configured root(s) — is it generated?"* against *"no source roots
-  are configured"*), which carries most of the value. **The button is unchanged pending your call**, and a
-  test records that it is deliberate rather than an oversight.
 
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
 

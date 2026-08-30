@@ -402,12 +402,12 @@ class ProjectModelTest {
         ProjectModel.Row row = processorRow(withProcessor(true));
         assertTrue(row.secondary().contains("is it generated?"),
                 "the remedy is to generate it, and the row should say so: " + row.secondary());
-        // The TARGET deliberately still says "Add source": that is an owner decision of 2026-08-27 and
-        // this case may not have been in view when it was made. Adding a root cannot help when the class
-        // was never generated, so it is raised as an open question rather than overturned here — the
-        // wording carries the correction either way.
+        // SETTLED (owner, 2026-08-30): the same target for both causes. Adding a root cannot help when
+        // the class was never generated, and that was considered and declined — one remedy button that is
+        // occasionally unhelpful beats a control that changes shape with the reason. The wording carries
+        // the distinction, so do not make this conditional.
         assertEquals(ProjectModel.Target.ADD_SOURCE, row.target(),
-                "unchanged until the owner revisits it");
+                "settled: one target for both causes; the wording distinguishes them");
         assertEquals(ProjectModel.Tone.WARN, row.tone(), "it is still wrong, and still warns");
     }
 }
