@@ -22,7 +22,8 @@ Status: ☐ not filed · ◐ filed · ☑ landed.
 harness landed in the M19 bench, the M19 bundle work then consumed these asks as a real client, and:
 **UP-MNG-01 ☑ landed and RELEASED** in `mongoose-plugins` 1.0.39; **UP-MNG-03 ◐** declaration half
 landed in the same release (enforcement half still waits on the UP-MNG-02 decision); **UP-PG-01 ☑**
-landed. UP-MNG-02 (D-05) and UP-MNG-04 remain owner decisions, UP-PG-02's capability now exists but
+landed; **UP-PG-03** raised 2026-08-30 (M19.5 — fetch a template by id). UP-MNG-02 (D-05) and
+UP-MNG-04 remain owner decisions, UP-PG-02's capability now exists but
 its catalogue field does not, and UP-RDR-01 is untouched. The paragraph below is the round-4 framing,
 kept because its reasoning about the gate is what produced this outcome.
 
@@ -1103,6 +1104,42 @@ example-specific file at generation, over the maintained
 <https://fluxtion-playground.dev/CLAUDE.md>). It is the one M19.1 need with no equivalent in the
 live catalogue. **Cost to us if unfixed:** step 1 of the loop cannot tell an agent whether the project
 it is about to generate will know Fluxtion.
+
+### UP-PG-03 ☐ Fetch a template by id, and two catalogue facts a picker needs
+
+**Raised 2026-08-30**, from the owner's ask that the analyser let you *choose a template inside the
+app* ([spec-template-from-analyser.md](../specs/spec-template-from-analyser.md), M19.5). Three parts,
+smallest first; all additive under `catalogue: 1`.
+
+**Target** `fluxtion-playground` (`/start/scaffold` + starter-templates) · **Priority** medium
+
+**(a) `GET /start/scaffold?template=<file>[&artifact=&group=&basePackage=]`.** The endpoint already
+generates a real zip server-side and is already Worker-safe — but its only input is an lz-string spec
+token from the `/start` page's "Copy curl" button. A Java client cannot reasonably produce one, and
+reimplementing lz-string to talk to our own service would be absurd. Resolving a named template from
+the directory the catalogue already indexes is ~20 lines in a 38-line file, reusing `validate()` and
+`buildStarterZip()` unchanged. The optional overrides preserve the factoring
+`spec-agent-brokered-dev-loop.md` §C2 established — *the template is a shape, the project is generated
+to the user's names* — and stop this degrading into a fixed zip. Unknown template → 404 naming the
+catalogue URL; both `s` and `template` → 400. **Cost to us if unfixed:** the analyser cannot acquire a
+project at all, and M19.5 stops at the hop the owner actually cares about.
+
+**(b) `tags: ["onboarding"]` on the templates worth showing a support engineer.** The catalogue's 14
+entries are written for the playground gallery — someone learning to *build*. The analyser's audience
+is someone diagnosing a system that already exists, and "Fluxtion DataFlow DSL" is noise to them. The
+alternative is an allowlist inside the analyser, a second source of truth that drifts on the first
+rename — the exact failure §C2 spent two corrections avoiding. `tags` already exists and is already
+optional (3 entries carry it), so this adds a value, not a key. **Cost to us if unfixed:** the picker
+either shows everything or drifts.
+
+**(c) Separate "builds keylessly" from `mode`.** §C2 states the rule *"`interpreted` is keyless…
+anything else is AOT and needs a subscribed compiler key."* True when written; **now false for exactly
+one template.** `analyser-bundle` is `mode: aot` **and builds with no key**, because M19 commits the
+generated processor and moves the `fluxtion-maven-plugin` scan behind `-Pgenerate-fluxtion`. A picker
+deriving a "needs an API key" warning from `mode` would therefore show a **wrong warning on the one
+template the tutorial recommends** — the first thing a new user sees. Building and regenerating are now
+different facts and `mode` cleanly carries neither. **Cost to us if unfixed:** either the picker says
+nothing about keys (today's workaround, spec §D-2) or it says something false at the front door.
 
 ---
 

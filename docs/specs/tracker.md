@@ -429,7 +429,15 @@ analyser (reverse funnel)._
   gained a `baseDir` overload; import resolves bundle-relative source roots / Maven repos against the
   settings file's directory (absolute & `~`-paths untouched; clipboard imports pass no baseDir). 2 tests.
   Unblocks the tutorial's "zero manual setup" claim.
-- [M19.3] ☐ **Tutorial page** `docs/site/tutorial-playground.md` — four parts (run+import ·
+- [M19.3] ☑ **Tutorial page SHIPPED** _(2026-08-30, `e1630e3` + `9d322ed` + `fadfa5b`)_ —
+  `docs/site/tutorial-playground.md` is nav'd under Getting started, written against the **shipped**
+  bundle, with four generated figures. Deviations from the entry below, both deliberate: **four
+  screenshots, not eight** (the page has four moments worth a picture; padding to a quota would have
+  photographed steps that read better as text), and the "fix" wording stayed off the page as the
+  entry required. Screenshots are produced by `tools/capture-docs.py --tutorial` from a bundle staged
+  by `tools/stage-tutorial-bundle.sh` — never hand-taken, under an isolated `user.home`, from a
+  neutral path both scripts refuse to violate, and every image read before commit. Original scope:
+  four parts (run+import ·
   analyse/tail · assistant · edit-with-your-IDE's-AI) + the 8-screenshot set (spec §Part 2, anonymised
   per policy), nav under Getting started. **Publish-gated on the bundle shipping** (write against the
   contract; publish only when Download delivers). **Two authoring notes:** (a) the pathway table names
@@ -437,12 +445,34 @@ analyser (reverse funnel)._
   to what's shipped that week (don't promise fixing before M18 lands — the end-bridge already phases it
   as "+ server link once M18 ships"). (b) In-page links must be **site-relative** (`producing-a-log.md`,
   not the spec's `../site/producing-a-log.md`) or `mkdocs build --strict` fails the link-check.
-- [M19.4] ☐ **Cross-links** — getting-started step 2, producing-a-log, landing "Get going"; **and the
+- [M19.4] ☑ **Cross-links SHIPPED** _(2026-08-30, `2e02205`)_ — all three entry points route to the
+  tutorial, and the end-bridge closes it with "Do this on your own system →" linking producing-a-log
+  and the project guide. `mkdocs build --strict` green, so every link is checked. Original scope:
+  getting-started step 2, producing-a-log, landing "Get going"; **and the
   tutorial's end-bridge**: a closing "Do this on your own system →" section linking producing-a-log
   (+ the server link once M18 ships) — the demo must hand off to the user's real adoption, not stop at
   the toy.
-- [M19.5] ☐ _(defer unless tutorial reads clunky)_ **File ▸ Open example…** one-action helper
-  (import + open + Follow).
+- [M19.5] ☐ **`File ▸ New project from template…` — choose a template inside the analyser** —
+  specced in [spec-template-from-analyser.md](spec-template-from-analyser.md) (DRAFT v1, 2026-08-30).
+  **WIDENED from its original scope** _("defer unless tutorial reads clunky — File ▸ Open example…
+  one-action helper (import + open + Follow)")_ on the owner's ask: *"I thought we would be able to
+  choose a template from the swing app to make it seamless to get started."* The old entry automated
+  the **last** hop and assumed the bundle was already downloaded; the owner meant the **first**. The
+  old scope survives as the new one's final step.
+  Three of the four pieces already exist — the versioned catalogue (UP-PG-01), **server-side zip
+  generation over HTTP** (`/start/scaffold`, a Cloudflare function running the same generator; this
+  was assumed browser-only and is not), and the zero-setup profile open. The gap is one query
+  parameter (`?template=<file>`) plus an analyser dialog and a **hardened** unzip — which is most of
+  the work and all of the risk (spec §D-4: zip-slip, expansion caps, exec-bit allowlist, atomic
+  extraction). Two findings the spec carries: `mode: aot` no longer implies "needs a key" now that the
+  M19 bundle builds keylessly, so a picker deriving that warning from `mode` would show a **wrong**
+  warning on the very template the tutorial recommends; and the listed subset must come from the
+  catalogue (`tags: ["onboarding"]`), not an allowlist inside the analyser that drifts on the first
+  rename. Both are the playground half, filed as **UP-PG-03**.
+  **One open owner decision (spec §D-3):** whether the analyser may ever *run* the downloaded project.
+  Recommended **no** for this slice — `Runbooks.java` deliberately stores pointers not commands, and
+  the analyser executes nothing derived from file content today. Ships as "show and copy the commands";
+  the reader still uses a terminal, and three tools become two.
 - [M19.6] ☑ **The loop's conformance bench — §H's home** _(DONE 2026-08-25, merged to main)_ —
   `tools/bench/loop-bench.py` plays the agent of dev-loop §C3 steps 3–7 (glob the registry → pick →
   export log + GraphML → `open {log, graphml, provenance}` + `source_root` → assert from `context` /
