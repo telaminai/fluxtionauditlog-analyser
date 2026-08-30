@@ -1,0 +1,137 @@
+M19.21 playground bundle contract v4 review — 2026-08-30
+=========================================================
+
+VERDICT: REVISE BEFORE ACCEPTANCE. Do not publish `m19-skills/2`, deploy the playground bundle, or
+archive this correspondence yet. The core selection and guide work is sound, but the claimed snapshot
+is not one coherent, safely-recorded revision and the analyser bench's own unit suite is red.
+
+Reviewed inputs
+---------------
+
+  * playground `fluxtion-web` `ea00075` (one local, unpushed commit over `994e82a`);
+  * analyser `d2bcf15` and handoff follow-up `9748b9d` (both local and unpushed);
+  * the generated `audit-analyser-bundle` produced by the real download seam.
+
+The already-live `?template=` endpoint in playground `994e82a` is explicitly outside this review.
+
+Independent evidence
+--------------------
+
+  * `pnpm test` in `fluxtion-web/web`: **415 passing**, 30 files.
+  * The real generated `audit-analyser-bundle` passes analyser `bundle-bench.py` **68/69**. Its one
+    failure is `source-gen triage`, exactly as the report says.
+  * `mvn -q test` in this repository passes.
+  * `python3 -m unittest tools/bench/test_bundle_bench.py` does **not** pass: 8 tests pass and one
+    fails (F2 below).
+  * `git diff --check origin/main..HEAD` is clean in both repositories.
+
+Accepted conclusions
+--------------------
+
+1. **The report's §3 argument is sound.** `referenceBlock` renders the agreed resource's `why` text
+   at playground `web/src/lib/starter/bundle.ts:599-611`; the brief's worked target deliberately does
+   the same. The string `source-gen triage` is therefore a link description inside the generated
+   reference block, not a local re-statement of the triage rule. The present whole-file scan in
+   `tools/bench/bundle-bench.py:210-213` asks the producer to choose between the specified target and
+   a green result. Scope the scan to the guide content after the stable "Everything below" boundary;
+   make a missing boundary fail closed, and add a fixture which proves the token is allowed in the
+   reference block but refused below it.
+
+2. **The skill SHA resolution is a worthwhile scope addition, and the implementation does pin the
+   skills.** `resolveRevision` resolves a raw GitHub branch to a SHA
+   (`web/scripts/vendor-skills.mjs:273-290`) before the index and each skill are fetched through the
+   resulting root (`:316-350`). One GitHub API call in a build-time vendoring step is a reasonable
+   trade for reproducible snapshots and for removing the mid-vendor branch race. It needs the tests
+   described in F4, and it must be extended to the other input before this claim can cover the bundle.
+
+3. **The v1 suite was not weakened.** Its existing refusal and validation fixtures now explicitly pass
+   `SKILLS_CONTRACT_V1` (for example `web/src/lib/starter/vendor-skills.test.ts:51,118-312`), so they
+   continue to exercise the published v1 contract rather than accidentally invoking v2.
+
+4. **The generated guide remains useful.** It gives real run/export/stop commands, explains the
+   keyless run versus key-required regeneration boundary, gives the design and GraphML paths, and
+   points the reader to the selected procedures. The deleted hand-written canon list has been replaced
+   by a concise applicable-reference block, not by an empty guide.
+
+Findings requiring correction
+-----------------------------
+
+F1 — BLOCKING: the reference-set snapshot is mutable, unpinned, and its override can record unsafe
+provenance. The new skills path correctly resolves `main` before reading, but
+`vendorReferenceSet` separately fetches `REFERENCE_SET_URL`, which still names `main`
+(`web/scripts/vendor-skills.mjs:421-459,496-507`). The committed snapshot therefore records that
+mutable URL as `source`, contains no resolved revision, and may describe references from a later commit
+than the skills. `--reference-set` / `REFERENCE_SET_SOURCE` also bypass the source parser and its
+credential/query/fragment refusal; a file URL or credential-shaped URL can enter the committed
+snapshot's `source`. Finally, `--reference-set none` skips writing but does not remove an old snapshot.
+
+For the canonical default, resolve the analyser repository once and fetch both the skills index and
+`src/main/resources/reference-set.json` at that same SHA. Record a safe revision-bearing identity,
+not the caller's raw URL. If a separate reference override remains supported, give it the same parsing,
+pinning, refusal and provenance rules; make `none` remove/refuse a stale `reference-set.json`. Add
+network-free tests for all of those cases. Until then, the report's "every byte comes from one commit"
+claim is true only for skills, not for the v4 bundle inputs that generate `CLAUDE.md`.
+
+F2 — BLOCKING: the analyser's own benchmark test suite regressed. The product check was renamed to
+`agent guide declares exactly one supported contract`
+(`tools/bench/bundle-bench.py:257-260`), while the unit fixture still expects the old name
+`agent guide declares exactly the supported contract` (`tools/bench/test_bundle_bench.py:115-124`).
+Update the expectation and rerun the suite. The normal generated-bundle run cannot substitute for a
+red test of the gate itself.
+
+F3 — HIGH: D-B2's important negative half remains unproved, and the advertised download seam cannot
+currently exercise it. The implementation appears correct — it filters `appliesTo` at
+`bundle.ts:599-601` — but `analyser-bundle.test.ts:403-420` asserts only that the Spring fixture has
+the Spring resource. The imperative fixture does not assert its absence. Moreover its real ZIP test
+always requires Spring's `application-context.xml`
+(`web/src/lib/repl/maven-download-bundle.test.ts:87-98`), so setting `BUNDLE_TEMPLATE` to a non-Spring
+template fails before the guide can be checked. Add the direct imperative-guide absence assertion and
+make the ZIP inventory conditional on the model's Spring definition (or deliberately narrow the seam
+and remove its claim to test any bundle template).
+
+F4 — HIGH: the new v2 retrieval behaviour has no direct adversarial tests. No test imports or calls
+`resolveRevision` or `vendorReferenceSet`; the old v1 tests cannot prove that a SHA is used for every
+v2 request, that an API failure returns the declared transport outcome, or that malformed v2 indices
+and specialisation selections refuse for the intended reason. Add deterministic `fetchImpl` tests that
+record every URL and prove index, skills and reference set are all read at one SHA. Retain the v1
+fixtures unchanged as the compatibility coverage.
+
+F5 — MEDIUM: the profile assertion is partly self-referential. The generator compares `runbook.count`
+with `SKILLS_MANIFEST.skills.length` (`analyser-bundle.test.ts:293`), so it detects an emitter mismatch
+but cannot detect a wrong manifest selection. The named checks cover load, Mongoose and no replay, but
+not the complete expected v4 set. Assert the literal four names for the acceptance Spring+Mongoose
+template, separately from asserting that profile emission follows the manifest.
+
+F6 — MEDIUM: successful bench output says an identical AGENTS.md "differs". The predicate is correct,
+but `check_v4` always supplies that detail whenever the file exists
+(`tools/bench/bundle-bench.py:215-218`). Emit no detail when the bytes match. A PASS line which says
+"differs" weakens the evidence the hand-back is meant to provide.
+
+Existing, separate work
+-----------------------
+
+The known RootNode numeric-log deficiency remains correctly outside `ea00075`: the generated node logs
+the complete event as `receivedEvent`, rather than a top-level numeric value. The M19 tutorial must keep
+its graph step illustrative until the producer records a numeric field and a generator test pins it.
+This review neither closes nor broadens that existing finding.
+
+What the implementing sessions should do first
+-----------------------------------------------
+
+1. On the analyser side, fix F2 and the bounded restatement scan from accepted conclusion 1, with
+   fixtures for reference-block versus below-block text.
+2. On the playground side, make canonical skills and reference-set vendoring a single SHA-pinned,
+   safe-provenance transaction (F1), then add the v2/override request tests (F4).
+3. Add the non-Spring selection assertion and repair or deliberately narrow the parameterised ZIP seam
+   (F3); strengthen the literal expected runbook set and the PASS diagnostic (F5-F6).
+4. Re-run the four evidence commands above. The generated bundle should then be green, rather than
+   accepted with a known red check. Return a follow-up report naming the exact commits; this review and
+   the current brief/report remain live until an independent re-review accepts them.
+
+Not independently checked
+-------------------------
+
+I did not run the producer-reported `svelte-check` or adapter-cloudflare build, deploy anything, or
+perform a live browser download. I did not test GitHub API rate-limit behaviour against the public API;
+the required request sequence is instead a deterministic unit-test obligation in F4. Windows lifecycle
+execution and the separately tracked numeric-log correction were also outside this review.

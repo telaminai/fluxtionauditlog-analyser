@@ -243,11 +243,13 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
-- [M19.21] ◧ **IMPLEMENTED playground-side 2026-08-30, ONE CONTRACT DEFECT BLOCKS SIGN-OFF** —
+- [M19.21] ◧ **REVIEWED 2026-08-30 — REVISE BEFORE ACCEPTANCE; DO NOT DEPLOY OR PUBLISH v2** —
   `fluxtion-web` @ `ea00075` (committed, **not deployed**: the live site still serves v3 bundles).
-  Report: [`report_playground_bundle_v4.txt`](../handoff/report_playground_bundle_v4.txt) — its §6
-  is the reviewer's list, ranked by where the work is most likely to be wrong, and it names one
-  coverage gap the author found and deliberately left open rather than closing unseen. The bundle
+  Report: [`report_playground_bundle_v4.txt`](../handoff/report_playground_bundle_v4.txt). Independent
+  review: [`review_playground_bundle_v4.txt`](../handoff/review_playground_bundle_v4.txt) — the
+  restatement failure really is an analyser bench defect, but sign-off is blocked by an unpinned,
+  unsafe-provenance reference-set fetch (separate from the skills SHA), a red analyser bench unit test,
+  and the unproved non-Spring `appliesTo` path. The bundle
   declares `m19-bundle/4` and selects `common` + the template's declared specialisations —
   load-audit-log, guided-start, spring/add-a-node, mongoose/run-mongoose-server — with `replay`
   correctly not selected. `bundle-bench.py` on a generated bundle: **68 passed, 1 failed**.
