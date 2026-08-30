@@ -18,6 +18,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   receive the same caller-buffer hygiene as successful saves and later write failures.
 
 ### Added
+- **A loopback-only playground origin override for local experiments.** `-Dfluxtion.analyser.playgroundOrigin=http://127.0.0.1:PORT`
+  points *New project from template…* at a playground served locally. Plain `http` is accepted **only** for
+  `127.0.0.1`, `[::1]` and `localhost`; every other origin keeps the HTTPS rule, and the origin must still be
+  bare — no path, query or credentials. The template dialog states which origin is in force whenever the
+  override is set. It is a JVM property by design and is not reachable from Settings or storable in a project
+  profile, because a persisted origin would outlive the experiment and travel with a shared project.
 - **Create a playground starter without leaving the analyser.** *File ▸ New project from template…*
   reads the live versioned catalogue, lets you choose a starter and identity, safely downloads and
   atomically extracts it, then opens its project profile. The HTTPS origin is pinned; traversal,

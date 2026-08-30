@@ -121,7 +121,17 @@ final class TemplateProjectDialog {
 
         JPanel panel = new JPanel(new BorderLayout(0, 8));
         panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        if (!selection.note().isBlank()) panel.add(new JLabel(selection.note()), BorderLayout.NORTH);
+        JPanel north = new JPanel(new java.awt.GridLayout(0, 1));
+        // D-AX10: an experiment that silently downloads from somewhere else is how a rig artefact gets
+        // mistaken for product behaviour. If the origin is overridden, the dialog SAYS which one.
+        if (TemplateClient.originOverridden()) {
+            JLabel banner = new JLabel("Templates are being read from " + TemplateClient.configuredOrigin()
+                    + " (-D" + TemplateClient.ORIGIN_PROPERTY + "), not the Fluxtion playground.");
+            banner.setForeground(UiTheme.warnForeground());
+            north.add(banner);
+        }
+        if (!selection.note().isBlank()) north.add(new JLabel(selection.note()));
+        if (north.getComponentCount() > 0) panel.add(north, BorderLayout.NORTH);
         JScrollPane templates = new JScrollPane(list);
         templates.setPreferredSize(new Dimension(620, 220));
         panel.add(templates, BorderLayout.CENTER);

@@ -63,12 +63,50 @@ public final class TemplateClient {
     private final URI origin;
     private final Fetcher fetcher;
 
+    /**
+     * D-AX10 — a loopback-only origin override, for running the analyser against a playground served
+     * locally while experimenting on the template and its documentation.
+     *
+     * <p>Deliberately a <b>JVM system property and not a setting</b>. A persisted origin is a
+     * supply-chain surface that outlives the experiment that created it: it would sit in a profile,
+     * travel with a shared project, and silently redirect where starter code is fetched from. The same
+     * reasoning as {@code spec-onboarding-example.md} D-R4 for the skills source. This is unreachable
+     * from the Settings UI and is never written to a project profile.
+     *
+     * <p>Only {@code http} to a loopback host is unlocked. Every other origin keeps the HTTPS rule
+     * unchanged, so the hole cannot be widened by a document, a config file or a redirect.
+     */
+    public static final String ORIGIN_PROPERTY = "fluxtion.analyser.playgroundOrigin";
+
     public static TemplateClient playground() {
         HttpClient http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
-        return new TemplateClient(PLAYGROUND, (uri, maxBytes) -> fetch(http, uri, maxBytes));
+        return new TemplateClient(configuredOrigin(), (uri, maxBytes) -> fetch(http, uri, maxBytes));
+    }
+
+    /** @return the origin in force: the pinned playground, or a loopback override when one is set. */
+    public static URI configuredOrigin() {
+        String raw = System.getProperty(ORIGIN_PROPERTY);
+        if (raw == null || raw.isBlank()) return PLAYGROUND;
+        try {
+            return validateOrigin(URI.create(raw.strip()));
+        } catch (IllegalArgumentException e) {
+            throw new Failure("-D" + ORIGIN_PROPERTY + "=" + raw.strip() + " is not usable: "
+                    + e.getMessage(), e);
+        }
+    }
+
+    /** True when an override is in force, so a surface can SAY so rather than quietly fetching elsewhere. */
+    public static boolean originOverridden() {
+        String raw = System.getProperty(ORIGIN_PROPERTY);
+        return raw != null && !raw.isBlank();
+    }
+
+    /** The origin this client is actually using. */
+    public URI origin() {
+        return origin;
     }
 
     TemplateClient(URI origin, Fetcher fetcher) {
@@ -160,14 +198,32 @@ public final class TemplateClient {
     }
 
     private static URI validateOrigin(URI origin) {
-        if (origin == null || !"https".equalsIgnoreCase(origin.getScheme()) || origin.getHost() == null
+        if (origin == null || origin.getHost() == null || origin.getScheme() == null
                 || origin.getRawQuery() != null || origin.getRawFragment() != null
+                || origin.getRawUserInfo() != null
                 || (origin.getPath() != null && !origin.getPath().isEmpty() && !origin.getPath().equals("/"))) {
-            throw new IllegalArgumentException("playground origin must be an HTTPS origin");
+            throw new IllegalArgumentException("playground origin must be a bare HTTPS origin");
+        }
+        boolean https = "https".equalsIgnoreCase(origin.getScheme());
+        boolean loopbackHttp = "http".equalsIgnoreCase(origin.getScheme()) && isLoopback(origin.getHost());
+        if (!https && !loopbackHttp) {
+            throw new IllegalArgumentException("playground origin must be an HTTPS origin — plain http is "
+                    + "accepted only for loopback (127.0.0.1, [::1], localhost)");
         }
         String base = origin.toString();
         while (base.endsWith("/")) base = base.substring(0, base.length() - 1);
         return URI.create(base + "/");
+    }
+
+    /**
+     * Exactly the three loopback spellings, matched literally. Deliberately not "starts with 127." and
+     * not a DNS lookup: a resolvable name is attacker-influenceable, and the point of this predicate is
+     * that it cannot be argued into accepting a remote host.
+     */
+    private static boolean isLoopback(String host) {
+        String h = host.toLowerCase(java.util.Locale.ROOT);
+        if (h.startsWith("[") && h.endsWith("]")) h = h.substring(1, h.length() - 1);
+        return h.equals("127.0.0.1") || h.equals("::1") || h.equals("localhost");
     }
 
     private static boolean sameOrigin(URI left, URI right) {

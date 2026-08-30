@@ -18,7 +18,12 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
-**Raised 2026-08-30 (§1c), NOT yet filed:** UP-FLX-32…34 come from the
+**FILED 2026-08-30 — [issues 19–23](https://github.com/telaminai/fluxtion/issues).** UP-FLX-32 → #19,
+UP-FLX-33 → #20, UP-FLX-34 → #21, UP-FLX-35 → #22, and **UP-FLX-36 → #23** (sibling dispatch order), which
+did not exist when this section was written — it came out of round 05, where four of six independent
+authors formed the *same wrong rule*. Each issue carries the measured evidence rather than the argument.
+
+**Raised 2026-08-30 (§1c):** UP-FLX-32…34 come from the
 [experience loop](../experience/README.md) — three rounds of a fresh-context LLM working a real released
 bundle. They are the loop's authoring findings turned into **diagnostics rather than documentation**, at
 the owner's direction, and each names the class in `fluxtion-builder` 1.0.64 that already computes the
@@ -347,7 +352,9 @@ it into compiler asks". Not every finding is a diagnostic, and saying which are 
 | R2-B "if the build stops at `process-classes`, the key is why" | **my error**, not upstream's — `fluxtion-maven-plugin:scan` binds to that phase | fixed in the doc set |
 | R2-C thin fixture · R2-D hidden feed offset · R3 bundle defects | **bundle / server** | the bundle owner; feed offset belongs with §5 |
 
-### UP-FLX-32 ☐ The constructor-match failure must name the remedy it already knows
+### UP-FLX-32 ◐ The constructor-match failure names one of three wiring strategies, and no remedy
+
+_Filed: https://github.com/telaminai/fluxtion/issues/19_
 
 **Target** `fluxtion` (`fluxtion-builder`) · **Priority** highest of this section — it is a one-line fix
 against a measured, repeated cost · *a second measured instance of UP-FLX-01; attach to
@@ -452,7 +459,9 @@ The message should therefore fork on the question the author actually faces:
 **Evidence** measured — one full build cycle in round 02, reproduced in both arms of round 04. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
 which is most non-trivial nodes.
 
-### UP-FLX-33 ☐ A Spring bean that is neither selected nor ignored is silently not a node
+### UP-FLX-33 ◐ A Spring bean that is neither selected nor ignored is silently not a node
+
+_Filed: https://github.com/telaminai/fluxtion/issues/20_
 
 **Target** `fluxtion` (`fluxtion-builder`, `extern.spring`) · **Priority** high — this is the silent class
 
@@ -501,7 +510,9 @@ correct and unhelpful: coverage subtracts against the graph, so a node that was 
 reported as one that never ran. This is precisely the case the product cannot see, and it is cheap to
 catch one layer up.
 
-### UP-FLX-34 ☐ Declare a node's audit capability in the GraphML
+### UP-FLX-34 ◐ Declare a node's audit capability in the GraphML
+
+_Filed: https://github.com/telaminai/fluxtion/issues/21_
 
 **Target** `fluxtion` (compiler, graphml emission) · **Priority** medium · *vertex-shaped; rides §2c's
 verified additive mechanism · direct analyser payoff*
@@ -526,7 +537,9 @@ logger-type mention — because a wrong exclusion silently flatters the coverage
 exists solely because the GraphML does not say. With the key declared, `SILENT_BY_CONSTRUCTION` becomes a
 read rather than an inference, and the analyser stops shipping a copy of the framework's type hierarchy.
 
-### UP-FLX-35 ☐ `claude.txt` does not say how to make a node auditable
+### UP-FLX-35 ◐ The audit contract is undocumented — usage is shown, `EventLogSource` is never named
+
+_Filed: https://github.com/telaminai/fluxtion/issues/22_
 
 **Target** `fluxtion` docs (`docs/claude.txt`) · **Priority** high — it is the LLM-facing canon, and this
 is the one subject where its silence is most expensive · *pairs with UP-SHARED-02*
@@ -582,6 +595,27 @@ who has to emit it. An LLM given the canon can build a correct graph that record
 **Cost to us if unfixed** every generated bundle must restate the audit contract in its own `CLAUDE.md`,
 which is how three wrong versions of it came to be written here. With it in the canon, the bundle **points**
 rather than restates, and the analyser stops depending on per-template prose for its own precondition.
+
+### UP-FLX-36 ◐ Sibling dispatch order is undocumented, and authors reliably infer the WRONG rule
+
+_Filed: https://github.com/telaminai/fluxtion/issues/23_
+
+**Target** `fluxtion` docs (+ optional GraphML) · **Priority** high — it is the only ask here whose gap
+*manufactures* a false belief rather than leaving a hole
+
+**Measured, round 05.** Ties between nodes at equal dependency depth break by **natural order of node
+name** — `TopologicalOrderIterator(graph, new NaturalOrderComparator(inst2Name))` in
+`TopologicallySortedDependencyGraph`. Published in none of the six authoring resources.
+
+**Four of six independent sessions concluded the rule is "declaration order in `nodeBeans`"**, and the
+error is structurally reproducible: append the bean last, pick a name that sorts after the existing
+sibling, and declaration order and name order predict identical output — the obvious experiment cannot
+discriminate. All six read the generated `handleEvent`; four were still wrong. One reached the truth only
+by decompiling the builder.
+
+**Cost to us if unfixed** the analyser recomputes layout layers rather than reading a declared order, so
+its ordering is reconstructed where the compiler's is authoritative — see the dispatch-order-index note in
+§2c, which this ask now has evidence for.
 
 ---
 
