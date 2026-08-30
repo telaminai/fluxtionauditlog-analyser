@@ -31,6 +31,9 @@ final class NewProjectOfferDialog {
         Map<Path, JCheckBox> roots = new LinkedHashMap<>();
         Map<String, JCheckBox> skills = new LinkedHashMap<>();
         Map<Path, JRadioButton> graphs = new LinkedHashMap<>();
+        JCheckBox guide = new JCheckBox("Create "
+                + telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME
+                + " pointing at the canonical Fluxtion authoring docs");
 
         if (offer.empty()) {
             list.add(new JLabel("Nothing discoverable was found. Create an empty project profile?"));
@@ -74,6 +77,20 @@ final class NewProjectOfferDialog {
         panel.add(list);
         JScrollPane scroll = new JScrollPane(panel);
         scroll.setPreferredSize(new Dimension(720, Math.min(480, Math.max(160, panel.getPreferredSize().height + 20))));
+        list.add(new JLabel(" "));
+        switch (offer.referenceGuide()) {
+            case CAN_CREATE -> {
+                guide.setSelected(false);           // M35.4: offered, never pre-selected
+                guide.setToolTipText("Links only — it restates nothing, so improving those pages "
+                    + "improves this project too.");
+                list.add(guide);
+            }
+            case EXISTS -> list.add(new JLabel(
+                "This project already has a " + telamin.fluxtion.audit.analyser.analyser.config
+                        .ReferenceSet.FILE_NAME + " — it will not be touched."));
+            case NOTHING_AGREED -> { }   // nothing signed off: say nothing rather than show a dead box
+        }
+
         int answer = JOptionPane.showConfirmDialog(owner, scroll, "New project — what should be added?",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (answer != JOptionPane.OK_OPTION) return null;
@@ -84,7 +101,8 @@ final class NewProjectOfferDialog {
         skills.forEach((path, box) -> { if (box.isSelected()) chosenSkills.add(path); });
         Path chosenGraph = graphs.entrySet().stream().filter(e -> e.getValue().isSelected())
                 .map(Map.Entry::getKey).findFirst().orElse(null);
-        return new NewProjectDiscovery.Selection(chosenRoots, chosenSkills, chosenGraph);
+        return new NewProjectDiscovery.Selection(chosenRoots, chosenSkills, chosenGraph,
+                guide.isSelected());
     }
 
     private static void addHeading(Box list, String text) {

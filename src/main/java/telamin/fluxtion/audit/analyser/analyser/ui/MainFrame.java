@@ -3413,6 +3413,9 @@ public final class MainFrame extends JFrame {
         try {
             applyProjectResult(project.create(file));
             NewProjectDiscovery.apply(offer, selection, config);
+            java.util.Optional<String> guideProblem = NewProjectDiscovery.writeReferenceGuide(offer, selection);
+            guideProblem.ifPresent(problem -> JOptionPane.showMessageDialog(this, problem,
+                    "New project", JOptionPane.WARNING_MESSAGE));
             if (!selection.sourceRoots().isEmpty() || !selection.skillPaths().isEmpty()) {
                 onProfileEdited();           // one persistence funnel; the profile stores pointers, never skill text
             }
@@ -3424,6 +3427,9 @@ public final class MainFrame extends JFrame {
             }
             status.setText("new project: " + root + "  ·  adopted " + selection.sourceRoots().size()
                     + " source root(s), " + selection.skillPaths().size() + " skill pointer(s)"
+                    + (selection.createReferenceGuide() && guideProblem.isEmpty()
+                        ? ", wrote " + telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME
+                        : "")
                     + (selection.graph() == null ? "" : " and opened " + selection.graph().getFileName()));
         } catch (java.io.IOException ex) {
             JOptionPane.showMessageDialog(this, "Could not create the project: " + ex.getMessage(),
