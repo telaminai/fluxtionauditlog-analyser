@@ -1,11 +1,13 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
 import telamin.fluxtion.audit.analyser.analyser.template.TemplateCatalogue;
+import telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet;
 import telamin.fluxtion.audit.analyser.analyser.template.TemplateClient;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -36,7 +38,12 @@ import java.util.concurrent.atomic.AtomicReference;
 /** Human confirmations for M19.5. Network/archive work stays outside this class and off the EDT. */
 final class TemplateProjectDialog {
 
-    record Choice(TemplateClient.Download download, Path destination) { }
+    /**
+     * @param referenceGuide whether to offer a {@code CLAUDE.md} of canonical authoring links once the
+     *     archive is open. Only one of the catalogue's onboarding templates ships agent instructions of
+     *     its own; the rest arrive bare, and this is the one thing the analyser already has for that.
+     */
+    record Choice(TemplateClient.Download download, Path destination, boolean referenceGuide) { }
 
     /** A modeless, cancellable progress surface; work itself remains on {@code Background}. */
     static final class Progress {
@@ -176,6 +183,16 @@ final class TemplateProjectDialog {
         row(form, c, 3, "Base package", basePackage, null);
         row(form, c, 4, "Project directory", destination, browse);
 
+        // M35 removed the modals from the load path, so this is a checkbox on a dialog that already
+        // exists rather than a second one after the download. Unchecked, like every other offer (M35.4).
+        // Absent entirely when nothing is agreed, because a dead control is worse than no control.
+        JCheckBox guide = new JCheckBox("Also create " + ReferenceSet.FILE_NAME
+                + " with links to the canonical Fluxtion authoring docs");
+        guide.setSelected(false);
+        guide.setToolTipText("Skipped if the template already ships one — it is never overwritten.");
+        boolean offerGuide = !ReferenceSet.agreed().isEmpty();
+        if (offerGuide) row(form, c, 5, "", guide, null);
+
         JTextArea boundary = textArea("The analyser downloads and opens this project. It never runs code "
                 + "from the archive; the next dialog shows copyable terminal commands.", 3, 58);
         boundary.setBackground(form.getBackground());
@@ -196,7 +213,7 @@ final class TemplateProjectDialog {
                 if (target.getParent() == null || !Files.isDirectory(target.getParent())) {
                     throw new IllegalArgumentException("The project directory's parent must already exist.");
                 }
-                return new Choice(request, target);
+                return new Choice(request, target, offerGuide && guide.isSelected());
             } catch (RuntimeException error) {
                 JOptionPane.showMessageDialog(owner, error.getMessage(), "Check project details",
                         JOptionPane.WARNING_MESSAGE);

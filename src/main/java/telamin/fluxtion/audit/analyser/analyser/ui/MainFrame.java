@@ -15,6 +15,7 @@ import telamin.fluxtion.audit.analyser.analyser.parse.LogStores;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceService;
 import telamin.fluxtion.audit.analyser.analyser.template.TemplateArchive;
 import telamin.fluxtion.audit.analyser.analyser.template.TemplateCatalogue;
+import telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet;
 import telamin.fluxtion.audit.analyser.analyser.template.TemplateClient;
 
 import javax.swing.*;
@@ -3335,7 +3336,7 @@ public final class MainFrame extends JFrame {
                         throw new TemplateClient.Failure("could not install the starter: " + e.getMessage(), e);
                     }
                 },
-                this::openInstalledTemplate,
+                installed -> openInstalledTemplate(installed, choice.referenceGuide()),
                 error -> showTemplateFailure("Could not create the project", error));
     }
 
@@ -3354,7 +3355,24 @@ public final class MainFrame extends JFrame {
         progressDialog.attach(task);
     }
 
-    private void openInstalledTemplate(TemplateArchive.Installed installed) {
+    private void openInstalledTemplate(TemplateArchive.Installed installed, boolean referenceGuide) {
+        // Only ONE of the catalogue's onboarding templates ships agent instructions; the rest arrive with
+        // no CLAUDE.md, no AGENTS.md and no skills. Honoured here rather than in the dialog because until
+        // the archive is unpacked we cannot know which kind this is — and it is never an overwrite: a
+        // template that ships its own file keeps it, and the status line says so rather than staying mute.
+        String guideNote = "";
+        if (referenceGuide) {
+            try {
+                guideNote = switch (ReferenceSet.create(installed.projectRoot(),
+                        NewProjectDiscovery.detectKind(installed.projectRoot()))) {
+                    case WROTE -> "  ·  wrote " + ReferenceSet.FILE_NAME;
+                    case ALREADY_EXISTS -> "  ·  kept the template's own " + ReferenceSet.FILE_NAME;
+                    case NOTHING_AGREED -> "";
+                };
+            } catch (java.io.IOException e) {
+                guideNote = "  ·  could not write " + ReferenceSet.FILE_NAME + ": " + e.getMessage();
+            }
+        }
         if (installed.profile() != null) {
             applyProjectResult(project.open(installed.profile()));
         } else {
@@ -3362,6 +3380,7 @@ public final class MainFrame extends JFrame {
             // unchecked and only the person's explicit selection is adopted.
             createProjectAt(installed.projectRoot());
         }
+        if (!guideNote.isEmpty()) status.setText(status.getText() + guideNote);
         TemplateProjectDialog.showCommands(this, installed.projectRoot(), installed.commands());
     }
 

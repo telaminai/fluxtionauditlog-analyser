@@ -35,6 +35,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   gains an `m19-skills/2` index: `common` is always shipped and a template names the specialisations it
   wants (`mongoose`, `embedded`, `spring`). A new `spring/add-a-node` skill covers adding a node to a
   Spring-XML graph, including the two ways that fail silently. `m19-skills/1` is unchanged.
+- **A downloaded template can be given a `CLAUDE.md` too.** *New project from template…* now offers it as
+  one unchecked box on the destination dialog. Only one of the catalogue's templates ships agent
+  instructions of its own, so the rest arrive with nothing for an AI assistant to read; a template that
+  does ship one keeps it untouched, and the status line says which happened.
 - **A new project can be given a `CLAUDE.md` that points at the canonical Fluxtion authoring resources.**
   *New project…* offers it as one unchecked box beside the source roots, skills and GraphML it found —
   including for an empty directory, where it helps most. Only entries marked agreed are ever written; a
