@@ -194,3 +194,90 @@ NOT VERIFIED
   - Playground consumption of m19-skills/2; the contract defects above make that premature.
 
 No repository changes were made apart from this review file. Nothing was committed or pushed.
+
+================================================================================
+CLOSURE REVIEW — f23b5c9, 2a4960a, b83459e
+================================================================================
+
+VERDICT: NOT YET CLOSED — four narrow corrections remain
+
+Accepted on re-review:
+
+  - F1's three-condition audit model is now accurate in the substantive draft/trust surfaces, and the
+    public corrections are present on Fluxtion issues #21 and #22.
+  - F2 now pins every v2 path at f23b5c9, checks its hash there and in the worktree, and has a real negative
+    lookup check.
+  - F5 documents the cold JBang trust and PATH branches with actionable instructions.
+  - F6's production CREATE_NEW path is now reached by a test; the normal re-check/false contract and the
+    last-resort exception contract are distinguished correctly.
+  - N1 and N3 are implemented as requested. Strict docs, the full Maven suite and diff check pass.
+
+C1 · F3 IS ONLY PARTLY CLOSED — the canonical selection moved the unresolved marker rather than proving a
+shippable result.
+
+Moving replay out of common is correct. Replacing the nonexistent `regenerate` skill with a concrete
+`TODO(bundle)` is also the right canonical-source shape. But the test named
+everyDeclaredTemplateResolvesToACOMPLETEselection checks only that files exist and replay is absent. The
+selected Spring skill still contains its new TODO(bundle), as do the selected v1-derived load/Mongoose
+skills. It never runs substitution and never asserts that no marker survives.
+
+That is especially important because the response simultaneously records “playground consumption of
+m19-skills/2” as unverified. Until the actual consumer selects spring+mongoose, substitutes the new
+regeneration marker and passes the existing fail-on-TODO gate on a generated bundle, the original F3
+acceptance has not been met. Either:
+
+  - keep v2 explicitly DRAFT/unpublished and leave F3 open until the playground integration exists; or
+  - add the consumer-side integration now and hand over the generated bundle/bench result.
+
+The new `templates` object in the canonical index is also the wrong ownership boundary. The index itself
+still says “a TEMPLATE names the specialisations it wants”, and the handoff §8 says the
+template-to-specialisations mapping is playground-owned/cross-repo. Centralising one of fourteen catalogue
+templates here creates the second source of truth the design was avoiding. Remove `templates` from the
+canonical index; use a test fixture to exercise a sample selection, and let each playground template own
+its declared specialisations.
+
+C2 · F4 STILL HAS THE REJECTED CLAIM IN THE PREREGISTRATION RECORD.
+
+docs/experience/runs/round-05/prediction.md line 59 still says:
+
+  n=3 supports a direction, not an effect size.
+
+Preserving a preregistration verbatim is good, but then append a conspicuous post-run/review correction
+rather than leaving the statement current. The response's claim that the result was “Relabelled
+everywhere” is presently false.
+
+C3 · ONE F1 SENTENCE REMAINS OVER-BROAD.
+
+docs/skills/spring/add-a-node/SKILL.md line 40 says “A node that logs nothing is indistinguishable from a
+node that did nothing.” That is true for an UNTRACED record and false for the traced record described two
+paragraphs later. Prefix it with “In an untraced record”. This is the opposite-direction overstatement to
+the original, but it still erases the distinction F1 was meant to restore.
+
+C4 · b83459e CORRUPTS THE REVIEW LEDGER.
+
+The authoring block's review disposition was copied into the still-pending `1707087` tutorial entry and
+the still-pending `7db161c` staging entry. This review did not assess either entry, and its F1–F6 fixes do
+not address their listed checks. Remove those two copied blocks.
+
+Within the authoring entry, “What a NEXT reviewer must still check (unchanged)” repeats mkdocs, Swing and
+the n=3 direction question immediately after saying this review closed them. Replace that stale list with
+the actual residuals from response_review_30_aug_2026_2.txt: the held-out guided-start run, Codex AGENTS.md
+loading, the unwired ReferenceSet human flow, and (until C1 closes) real playground consumption of v2.
+
+Do not represent the corrective commits as accepted by the reviewer until this closure pass is green. The
+author accepted the findings; that is not the same event as the reviewer accepting the fixes.
+
+N4 · Test count remains a presentation mismatch. The correction reports 1,146; the rerun produced 1,159
+executed cases in 164 Surefire XML suites. The constant 13-case difference suggests two counting methods
+(probably test methods versus parameterized executions). Prefer “Maven suite passed” or publish the exact
+counting command with the number.
+
+Closure verification performed:
+
+  PASS  mvn -q test — 1,159 executed cases by Surefire XML, no failures
+  PASS  /private/tmp/m19-docs-venv/bin/mkdocs build --strict
+  PASS  git diff --check 9c32f83..b83459e
+  PASS  v2 hashes match the declared f23b5c9 blobs (exercised by the Maven suite)
+  PASS  public issue #21/#22 correction comments read directly from GitHub
+
+Nothing was pushed by this reviewer.
