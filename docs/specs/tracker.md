@@ -166,6 +166,13 @@ analyser (reverse funnel)._
   drift from what the generator emits — which is precisely the "every check ran on a repaired copy" failure
   the playground just spent a day on. It is fixed when #24 lands and the fixture is regenerated. Recorded
   here so the exposure is visible rather than forgotten.
+  **UPDATE 2026-08-30, verified against production independently:** the playground scrubbed the bundle and
+  the live zip is now clean on both the four-term sweep and on confidentiality/rights language, with a
+  provenance-only header that says what generated the file and how to regenerate it. **The scope of #24 is
+  unchanged.** The playground can only scrub the one artefact it commits; the generator still emits the old
+  header to anyone who regenerates — and **our own canonical `add-a-node` skill hands users exactly that
+  command**, so the analyser routes people into it. The starter has stopped being a carrier; the generator
+  has not. Exposure window on the live bundle was roughly two hours (their measurement, not ours).
 
 - [M19.21] ◧ **v4 SHIPPED AND DEPLOYED; the deploy exposed a bug older than v4** _(2026-08-30)_ —
   `fluxtion-web` `453d084` → `b4194d3` → `2c973d4`, **live**. Review findings F1/F3/F4/F5 closed
