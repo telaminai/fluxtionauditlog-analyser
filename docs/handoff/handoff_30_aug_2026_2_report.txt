@@ -1,0 +1,204 @@
+REPORT — the authoring-experience block: measurement, diagnostics, the reference set, guided start
+Session: the outgoing session · Date: 2026-08-30 · 15 commits, 7b2e854..7a1811f
+State: 1140 tests green · four-term sweep clean · mkdocs --strict NOT RUN (see §7)
+
+If you are arriving cold, read docs/handoff/REVIEWER-ORIENTATION.md first. This report assumes it.
+
+================================================================================
+0. READ THIS FIRST — the shape of the work, and where I was wrong
+================================================================================
+This block began as "make the bundle's documentation better" and ended somewhere else. The short version
+of what the measurement found:
+
+  The material that answers most Fluxtion authoring questions is ALREADY PUBLISHED. The bundle did not
+  reference it. What is genuinely undocumented is the AUDIT LOG — the analyser's own subject.
+
+Everything downstream follows from that: the diagnostics filed upstream, the reference set, the thin
+Spring skill, the guided-start tour.
+
+I was wrong repeatedly and in one consistent direction — asserting product or framework behaviour from
+memory, then being corrected by an artefact or the owner. Count for the block: FIVE over-narrow or false
+rules, of which two had the evidence already in my hand. They are listed in §6 because the pattern matters
+more than any individual fix, and because the same failure is the reason the upstream asks exist.
+
+**The single most useful thing you can do in this review is check my claims against the artefacts rather
+than against this report.** Several are byte-level claims about jars; all are reproducible.
+
+================================================================================
+1. WHAT SHIPPED, BY COMMIT
+================================================================================
+7b2e854  §1c of upstream-asks.md: the loop's authoring findings written up as compiler diagnostics
+19dfd7c  spec-authoring-experience.md (M19.14a) — the method: tiering, metrics, preflight, control arms
+c6b765b  + the local rig (D-AX9..12); the canon I had not read
+e99c3c8  + reference-the-set-first sequencing; upstream-content/audit-authoring.md drafted
+8cfdc33  round 04 predictions, registered BEFORE the run
+18c0dfe  round 04 results — falsified my main prediction
+755d874  spec-guided-start.md (M19.19)
+c543277  round 05 predictions, registered BEFORE the run
+d30a33b  trust spec: why LLM sessions systematically under-value artefact-checked evidence
+a548a83  round 05 results — RETIRED my own primary metric
+5d3038c  upstream filed as telaminai/fluxtion issues 19-23; D-AX10 loopback playground origin (CODE)
+4f9f9d8  reference-set mechanism + link bench + ReferenceSet.java (CODE)
+003bc4e  skills m19-skills/2: common + specialisations, selected by template; reference set signed off
+979348e  skills discovery documented + tested as harness-neutral
+7a1811f  guided start: docs/site/guided-start.md + common/guided-start/SKILL.md (M19.19)
+
+Only three commits touch src/main: D-AX10 (TemplateClient), ReferenceSet.java, and a one-line UI banner.
+Everything else is docs, skills, specs and tests.
+
+================================================================================
+2. THE MEASUREMENT — and why you should distrust round 04
+================================================================================
+Nine fresh LLM sessions were run against the real released P3 bundle, on the same task, under controlled
+conditions. Predictions were committed BEFORE each round (8cfdc33, c543277) precisely so they could fail
+in public.
+
+Round 04 (n=1 per arm) produced WENT-OUTSIDE 4 vs 0 and I promoted it to the primary metric.
+Round 05 (n=3 per arm) produced 0.33 vs 0.33 — IDENTICAL — and I retired it.
+
+  * Round 04's result was noise plus a harness artefact I had myself created (one of the four instances
+    was reading the API key file; round 05 removed that motive by design).
+  * BUILD FAILURES separated the arms (3/3 control, 1/3 treatment) — the metric I had dismissed in
+    D-AX5 as "near-ceiling and uninformative". The arms still OVERLAP, so this supports a direction and
+    NO effect size.
+
+WHAT I WOULD MOST LIKE YOU TO CHALLENGE: whether n=3 with one task, one model family and one machine
+supports even the direction I claim. I think it supports "the resources help" and nothing quantitative.
+If you think the whole comparison is under-powered, say so — I would rather retire it than over-read it
+a third time.
+
+THE FINDING NO METRIC CAUGHT, and the strongest one:
+FOUR OF SIX agents came away holding the SAME false rule about sibling dispatch order ("declaration
+order"; the truth is natural order by node name). It is structurally reproducible — append the node last,
+pick a name that sorts after the existing sibling, and both hypotheses predict identical output. All six
+read the generated source. Four were still wrong. That is now telaminai/fluxtion#23, and it is the best
+evidence any of the asks carries.
+
+Implication I have recorded but not acted on: my instrument records what agents DID, not what they
+BELIEVED, and the most valuable result came from a question I nearly did not include.
+
+================================================================================
+3. UPSTREAM — FILED, and what to check
+================================================================================
+telaminai/fluxtion issues 19-23. Each names the class that already computes the fact its message omits;
+all were read from jars, not recalled.
+
+  #19  constructor-match failure names one of THREE wiring strategies and no remedy
+  #20  a Spring bean neither selected nor ignored is silently not a node
+  #21  declare audit capability (EventLogSource) in the GraphML
+  #22  the audit contract is undocumented — usage is shown, EventLogSource never named
+  #23  sibling dispatch order (natural order by node name), and authors infer the wrong rule
+
+VERIFY THESE IF YOU VERIFY NOTHING ELSE (each is one command against ~/.m2):
+  a) LiveGraphSourceGenExtractor (fluxtion-builder 1.0.64) runs THREE assignment strategies from one
+     entry point — generatePropertyAssignments (JavaBean setters), generatePublicMemberAssignments,
+     generateComplexConstructors — and only the last throws. This is the core of #19 and I got it wrong
+     first time: I wrote the ask as though constructors were the only route, having already read the
+     class. The owner corrected it.
+  b) EventLogManager: nodeInvoked() at every dispatch site is what makes a node APPEAR; nodeRegistered()
+     hands a logger only to `instanceof EventLogSource`, which is what lets it record VALUES. Two
+     mechanisms, two facts. This settles a question I twice refused to promote from inference (correctly).
+  c) The six-source check behind #22. I originally filed it having checked FIVE and never fetched the
+     sixth (fluxtion-golden-path.md), which is in my own proposed reference set. It does carry a worked
+     auditLog example; it never names the contract. The ask narrowed as a result.
+
+================================================================================
+4. CODE CHANGES — the only three, and what is untested
+================================================================================
+D-AX10 · TemplateClient loopback origin override (5d3038c)
+  -Dfluxtion.analyser.playgroundOrigin unlocks plain http for EXACTLY three loopback spellings, matched
+  literally — no "127." prefix match, no DNS lookup. Everything else keeps the HTTPS rule; an origin must
+  still be bare (no path/query/fragment/user-info). It is a JVM property and NOT a setting, and a test
+  asserts it is in neither KnownKeys family, so making it storable later must be deliberate.
+  9 tests, weighted to REFUSALS (loopback-as-prefix, 127.0.0.2, private ranges, credentials, junk).
+  REVIEWER MUST CHECK: the dialog banner is Swing and is NOT unit-tested. Build the jar and run with the
+  property set to confirm the origin is actually stated on screen.
+
+ReferenceSet.java (4f9f9d8)
+  First time the analyser writes DOCUMENTATION into a user's repository (verified beforehand: it had only
+  ever written profiles). Guards: never overwrite; only `agreed` entries; references not content;
+  CREATE_NEW so a lost race costs the write and not the author's file.
+  My own test caught an ordering bug — EXISTS was checked AFTER the agreed-set check, making the
+  never-overwrite guarantee conditional on the set being populated, so it would have gone unexercised
+  until the day the set went live.
+  REVIEWER MUST CHECK: nothing calls create() from the UI yet. The mechanism is complete and unwired —
+  that is deliberate but it means the offer-and-confirm flow has had no human in front of it.
+
+================================================================================
+5. THE REFERENCE SET AND SKILLS — decisions the owner made, that you should still question
+================================================================================
+* The agreed set is FOUR (build-with-ai, orientation, golden-path, spring contract). Two exclusions with
+  reasons in the file: claude.txt as REDUNDANT not wrong; /audit-replay until #22 lands, because it
+  currently tells authors no instrumentation is needed and a round-01 session concluded exactly that.
+* m19-skills/2 is COMMON + SPECIALISATIONS, selected by template. I first modelled it as two axes
+  (host/style); the owner flattened it and was right — the classification was a taxonomy nothing selects
+  on. v1 is byte-pinned and untouched.
+* Skills discovery was ALREADY harness-neutral in mechanism (any SKILL.md anywhere); .claude/skills
+  appeared only in comments. Now documented and pinned by a test. The neutral channel is
+  context.runbooks[] — the analyser TELLS an agent what to load, so no convention needs to be known.
+* Bundles still write to .claude/skills/ because it is the one layout that auto-loads. I did NOT invent
+  .agents/skills as a shipping target; it appears in a test only as a location that must be FOUND.
+
+QUESTION FOR YOU: the reference set is now signed off and ReferenceSet.markdown() will render it into a
+new project's CLAUDE.md. Is four links plus one line each the right size? I have argued that every line in
+an always-in-context file is a tax, and I may have over-corrected from a doc set that was too long.
+
+================================================================================
+6. MY ERRORS THIS BLOCK — stated so you can weight the rest
+================================================================================
+1. Wrote v1-v4 of a doc set and all of §1c WITHOUT reading claude.txt or the playground's build-with-ai —
+   the latter is listed as "Start here" in this repo's own REVIEWER-ORIENTATION. Two findings I had
+   treated as documentation gaps turned out to be published already.
+2. "A bean not listed in nodeBeans is not in the graph" — over-broad; referenced children are discovered.
+3. Wrote UP-FLX-32 as though constructor reachability were the only wiring route, having already read the
+   class that shows three. The owner supplied the JavaBean route.
+4. Drew a firm conclusion from n=1 THREE times: the WENT-OUTSIDE designation, "resolve not prevent", and
+   calling P2 falsified after one clean run when it says "at least one".
+5. Documented "extend EventLogNode" as the audit contract when M40.2b in this very repo turns on the fact
+   that the contract is the INTERFACE.
+
+The corrective that actually worked, every time, was reading the artefact. That is now recorded in
+spec-trust-structure.md as evidence for D-T3, with a mechanism: a recalled fact and a read fact arrive in
+identical form, so checking presents as pure overhead — and the failures are plausible rather than absurd,
+so they survive self-review, which uses the same faculty that produced them.
+
+================================================================================
+7. WHAT I DID NOT VERIFY — treat these as unreviewed
+================================================================================
+* mkdocs build --strict was NOT RUN. mkdocs is not installed on this machine and I did not install it
+  unprompted. docs/site/guided-start.md is new and is in the nav. Both its internal links resolve by hand
+  and the nav target exists, but rule 5 is not satisfied by that. RUN IT.
+* The guided-start prompt has NEVER BEEN EXECUTED END TO END. It is written from verified facts (the 14
+  verbs from VerbSchemas, the install commands from install.md, the demo paths from DemoAssets including
+  which log is traced) and a test fails on any analyser_* token that is not a real verb — but nobody has
+  pasted it into a cold client and watched it run. spec-guided-start D-G5 argues this is the loop's best
+  held-out task; it has not been run.
+* AGENTS.md auto-loading under Codex: assumed, flagged in the spec, never checked.
+* The reference-set link bench passes today (4/4). It is not in mvn test by design — a network fetch would
+  flake the build — so nothing checks those URLs on any schedule.
+* MCP registration in the guided-start prompt asks the HUMAN to do it. No headless path exists; whether
+  that pause is where people drop out is unknown.
+
+================================================================================
+8. OPEN, IN THE ORDER I WOULD TAKE THEM
+================================================================================
+1. Run mkdocs --strict (§7).
+2. Run the guided-start prompt cold, end to end, and report what breaks. This is the highest-value
+   unverified thing in the block.
+3. Wire ReferenceSet into the New-project confirmation as one unchecked offer (M35.4 shape).
+4. Playground side: the template->specialisations mapping that m19-skills/2 expects. Cross-repo.
+5. Round 06 with a DIFFERENT task shape. Everything measured so far is one stateful-accumulation task, and
+   round 05 showed how much a single task's accidents (node naming) drive the result.
+6. The remaining rig legs: the Fluxtion generation backend on the classpath (D-AX9), which nothing here
+   depends on but which turns the diagnostics into something testable in-cycle.
+
+================================================================================
+9. WHERE TO LOOK
+================================================================================
+docs/specs/spec-authoring-experience.md   the method (M19.14a) — D-AX1..D-AX12
+docs/specs/spec-guided-start.md           the tour (M19.19) — D-G1..D-G8
+docs/proposals/upstream-asks.md §1c       the diagnostics, with where each was filed
+docs/proposals/upstream-content/          drafted upstream content, not yet proposed
+docs/experience/runs/round-04, round-05   predictions committed before each run, then results
+src/main/resources/reference-set.json     the agreed set; status is the sign-off
+docs/skills/README.md + m19-skills/2      common + specialisations

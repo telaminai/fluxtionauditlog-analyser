@@ -16,6 +16,41 @@ still check**.
 
 ---
 
+## ☐ `7b2e854..7a1811f` (15 commits) · the authoring-experience block — measurement, diagnostics, reference set, guided start
+
+**Full report:** [`handoff_30_aug_2026_2_report.txt`](handoff_30_aug_2026_2_report.txt). Read that rather
+than this entry; it is a delegated work block, not an ad-hoc fix, and it records five errors of mine that
+should weight how you read the rest.
+
+**What.** Nine measured LLM sessions against the released P3 bundle (rounds 04-05, predictions committed
+before each run) → five upstream asks filed as telaminai/fluxtion#19-23 → an agreed reference set with a
+link bench → skills selected by template (`m19-skills/2`, common + specialisations) → the guided-start
+install prompt and tour skill (M19.19). Two specs: `spec-authoring-experience.md` (M19.14a),
+`spec-guided-start.md`.
+
+**Why.** The measurement found that most Fluxtion authoring material is already published and the bundle
+did not reference it; what is genuinely undocumented is the audit log — this product's own subject.
+
+**Files.** Only three touch `src/main`: `TemplateClient` (loopback origin override), new
+`config/ReferenceSet.java`, and a one-line UI banner. Everything else is docs, skills, specs, tests.
+
+**Verified.** 1140 green; four-term sweep clean; the reference-set bench passes 4/4; every jar-level claim
+in the report is reproducible with one command against `~/.m2`.
+
+**What the reviewer must still check.**
+- **`mkdocs build --strict` was NOT run** — mkdocs is not installed on this machine and I did not install
+  it unprompted. `docs/site/guided-start.md` is new and in the nav; its links resolve by hand, which does
+  not satisfy rule 5.
+- **The guided-start prompt has never been executed end to end.** Highest-value unverified item.
+- **Swing is untested as always**: the template dialog's origin banner needs the jar built and run with
+  `-Dfluxtion.analyser.playgroundOrigin=http://127.0.0.1:PORT` to confirm it states the origin.
+- **`ReferenceSet` is complete but unwired** — nothing calls `create()` from the UI, so the offer-and-
+  confirm flow has had no human in front of it.
+- **Whether round 05 (n=3, one task, one model family) supports even the direction I claim.** I retired my
+  own primary metric on it; challenge the rest.
+
+---
+
 ## ☐ `1707087` · correct the M19 tutorial and integrate generated screenshots
 
 **What.** Rewrites the playground tutorial against the released catalogue/lifecycle and actual analyser
