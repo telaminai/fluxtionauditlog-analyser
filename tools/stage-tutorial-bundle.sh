@@ -36,12 +36,13 @@ WEB="${2:-${FLUXTION_WEB:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../fluxtion-we
 TEMPLATE=analyser-bundle.starter.json
 ART=audit-analyser-bundle
 
-case "$DEST" in
-  "$HOME"|"$HOME"/*)
-    echo "refusing: $DEST is inside $HOME — the bundle's path is rendered in the title bar," >&2
-    echo "Project panel and status bar, so an account name would end up in a committed PNG." >&2
-    exit 1 ;;
-esac
+# capture-docs.py reads this exact path, so accepting an arbitrary destination has no useful meaning.
+# More importantly, DEST is removed below: constrain it before that destructive operation rather than
+# trusting a caller not to pass /, /tmp or another broad directory.
+[ "$DEST" = "/tmp/fluxtion-tutorial" ] || {
+  echo "refusing: destination must be exactly /tmp/fluxtion-tutorial (capture-docs.py reads that path)" >&2
+  exit 1
+}
 [ -d "${WEB:-}/web" ] || { echo "pass the fluxtion-web checkout: $0 '$DEST' /path/to/fluxtion-web" >&2; exit 1; }
 
 echo "==> 1. download the template a reader is told to download ($TEMPLATE)"
@@ -85,7 +86,8 @@ for _ in $(seq 1 60); do [ -f "$REG/$ART" ] && break; sleep 1; done
 sleep 5   # let the file feed drive its events through before the capture is closed
 ( cd "$P" && MONGOOSE_SERVERS_DIR="$REG" ./export-audit.sh ) >"$DEST/export.log" 2>&1 \
   || { echo "export failed; see $DEST/export.log" >&2; exit 1; }
-( cd "$P" && MONGOOSE_SERVERS_DIR="$REG" ./stop-server.sh ) >"$DEST/stop.log" 2>&1 || true
+( cd "$P" && MONGOOSE_SERVERS_DIR="$REG" ./stop-server.sh ) >"$DEST/stop.log" 2>&1 \
+  || { echo "clean stop failed; see $DEST/stop.log" >&2; exit 1; }
 
 LOG="$P/logs/audit-$ART.yaml"
 [ -s "$LOG" ] || { echo "no exported log at $LOG" >&2; exit 1; }
