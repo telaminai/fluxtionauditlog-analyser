@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static preflight for an M19 generated analyser bundle (contract m19-bundle/3).
+"""Static preflight for an M19 generated analyser bundle (contract m19-bundle/3 or /4).
 
 This is the analyser-owned first half of P3. It accepts either an unzipped project directory or the
 download zip and checks the contract facts that do not require starting Maven/Mongoose: safe inventory,
@@ -23,6 +23,23 @@ import zipfile
 
 
 CONTRACT = "m19-bundle/3"
+CONTRACT_V4 = "m19-bundle/4"
+SUPPORTED_CONTRACTS = (CONTRACT, CONTRACT_V4)
+
+# v4 D-B2: the agreed reference set. Kept here as DATA, fetched from the analyser at build time in a real
+# generator — this bench is a static preflight and must run offline, so it pins the four agreed URLs and
+# the one that is appliesTo-gated. If reference-set.json changes, this list changes with it.
+REFERENCE_ALWAYS = (
+    "https://fluxtion-playground.dev/build-with-ai",
+    "https://fluxtion-playground.dev/CLAUDE.md",
+    "https://fluxtion-playground.dev/fluxtion-golden-path.md",
+)
+REFERENCE_BY_KIND = {"spring": "https://fluxtion-playground.dev/spring-authoring/contract.md"}
+REFERENCE_EXCLUDED = (
+    # excluded upstream and must never be shipped: it tells authors no instrumentation is needed
+    "https://fluxtion-playground.dev/audit-replay",
+)
+REPLAY_SKILL = "replay-a-run"
 PROFILE = ".analyser/project.fluxtion-settings"
 GUIDES = ("CLAUDE.md", "AGENTS.md")
 COMMAND_SCRIPTS = ("run-server.sh", "export-audit.sh", "stop-server.sh")
@@ -164,6 +181,53 @@ def version_tuple(value):
     return tuple(int(part) for part in value.split("."))
 
 
+def check_v4(bundle, contract):
+    """BUNDLE CONTRACT v4 (D-B1/D-B2/D-B4). Silent for a v3 bundle: v3 predates these obligations."""
+    checks = []
+    if contract != CONTRACT_V4:
+        return checks
+
+    def add(name, ok, detail=""):
+        checks.append(Check(name, ok, detail))
+
+    guide = bundle.read("CLAUDE.md").decode("utf-8", errors="ignore")
+    kind = "spring" if bundle.exists("src/main/fluxtion/designer/application-context.xml") else None
+
+    missing = [u for u in REFERENCE_ALWAYS if u not in guide]
+    add("CLAUDE.md points at every always-on agreed resource", not missing, ", ".join(missing))
+
+    # appliesTo SELECTS rather than annotates (review N1): a non-Spring project must not be charged for
+    # a Spring link in a file that costs every turn
+    for k, url in REFERENCE_BY_KIND.items():
+        if kind == k:
+            add(f"CLAUDE.md points at the {k} resource", url in guide, url)
+        else:
+            add(f"CLAUDE.md omits the {k} resource for a non-{k} project", url not in guide, url)
+
+    shipped_excluded = [u for u in REFERENCE_EXCLUDED if u in guide]
+    add("CLAUDE.md ships no EXCLUDED resource", not shipped_excluded, ", ".join(shipped_excluded))
+
+    # D-AX1b: pointing is the point. Restating a rule the agreed set carries is the duplication that
+    # produced four wrong versions of the audit contract, and it is why an upstream edit stops helping.
+    restated = [t for t in ("@FluxtionIgnore", "declare transient", "source-gen triage") if t in guide]
+    add("CLAUDE.md restates no rule the agreed set already carries", not restated, ", ".join(restated))
+
+    agents = bundle.read("AGENTS.md").decode("utf-8", errors="ignore") if bundle.exists("AGENTS.md") else None
+    add("AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)",
+        agents is not None and agents == guide,
+        "missing" if agents is None else "differs")
+
+    # D-B1: replay carries a marker only a real replay entry point can substitute
+    replay = [p for p in bundle.paths if REPLAY_SKILL in p and p.endswith("SKILL.md")]
+    if replay:
+        add("a bundle shipping replay-a-run has a replay entry point it can name",
+            all(b"TODO(bundle)" not in bundle.read(p) for p in replay),
+            "replay skill shipped with its marker unsubstituted: " + ", ".join(replay))
+    else:
+        add("no replay-a-run shipped, so no replay entry point is claimed", True)
+    return checks
+
+
 def check_bundle(bundle, analyser_version):
     checks = []
 
@@ -191,8 +255,9 @@ def check_bundle(bundle, analyser_version):
         add("agent guide is UTF-8", False, exc)
         return checks
     versions = re.findall(r"^Bundle contract: \*\*(m19-bundle/\d+)\*\*", guide, re.MULTILINE)
-    add("agent guide declares exactly the supported contract",
-        versions == [CONTRACT], repr(versions))
+    add("agent guide declares exactly one supported contract",
+        len(versions) == 1 and versions[0] in SUPPORTED_CONTRACTS, repr(versions))
+    checks += check_v4(bundle, versions[0] if len(versions) == 1 else None)
 
     offenders = []
     developer_paths = []

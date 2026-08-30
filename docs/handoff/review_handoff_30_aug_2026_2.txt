@@ -335,3 +335,30 @@ Closure verification performed at de9d17b:
 The remaining playground integration is deliberately tracked as M19.21 and is not misreported as closed.
 No repository changes were made apart from this review addendum. Nothing was committed or pushed by this
 reviewer.
+
+================================================================================
+FINAL CLOSURE REVIEW — 8d5591d
+================================================================================
+
+VERDICT: ACCEPTED. The review and both corrective passes are closed.
+
+  - C4 is now complete: the ledger contains only the four genuine residuals and no longer contradicts
+    its own verified list.
+  - The v4 ownership paragraph now distinguishes analyser ownership from provenance timing: v2 is
+    authored and reviewed here, deliberately unpinned while DRAFT, and must be pinned on publication.
+  - The orphaned index comment is removed without losing any contract meaning; the complete no-templates
+    ownership explanation remains below it.
+
+This acceptance is deliberately narrower than declaring every residual delivered. The held-out external
+guided-start run, Codex `AGENTS.md` auto-loading, the human ReferenceSet confirmation flow, and real
+playground consumption of `m19-skills/2` remain stated in the ledger. The last is tracked as M19.21; v1
+remains the published skills contract until the generator supplies the substitution/bundle evidence.
+
+Final verification:
+
+  PASS  commit 8d5591d changes only the response record and the three files named by the findings
+  PASS  `mvn -q -Dtest=CanonicalSkillsTest,SpecLinksResolveTest test`
+  PASS  `/private/tmp/m19-docs-venv/bin/mkdocs build --strict`
+  PASS  `git diff --check`
+
+No further findings. Nothing was pushed by this reviewer.

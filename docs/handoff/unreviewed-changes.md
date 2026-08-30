@@ -16,7 +16,7 @@ still check**.
 
 ---
 
-## ☐ `7b2e854^..7a1811f` (15 commits) · the authoring-experience block — measurement, diagnostics, reference set, guided start
+## ☑ reviewed 2026-08-30 (the analyser reviewer) · `7b2e854^..7a1811f` (15 commits) · the authoring-experience block — measurement, diagnostics, reference set, guided start
 
 **Full report:** [`handoff_30_aug_2026_2_report.txt`](handoff_30_aug_2026_2_report.txt). Read that rather
 than this entry; it is a delegated work block, not an ad-hoc fix, and it records five errors of mine that
@@ -37,11 +37,11 @@ did not reference it; what is genuinely undocumented is the audit log — this p
 **Verified.** 1140 green; four-term sweep clean; the reference-set bench passes 4/4; every jar-level claim
 in the report is reproducible with one command against `~/.m2`.
 
-**REVIEW LANDED — CHANGES REQUIRED; fixes made, closure NOT yet granted.** See
+**REVIEW CLOSED — ACCEPTED WITH DECLARED RESIDUALS.** See
 [`review_handoff_30_aug_2026_2.txt`](review_handoff_30_aug_2026_2.txt) and the point-by-point
 [`response_review_30_aug_2026_2.txt`](response_review_30_aug_2026_2.txt). Fixes are in `f23b5c9`,
-`2a4960a`, `b83459e`. The author accepting findings is **not** the reviewer accepting fixes: a closure pass
-raised four further corrections (C1–C4) and this entry stays `☐` until that pass is green.
+`2a4960a`, `b83459e`, `de9d17b` and `8d5591d`. The reviewer accepted the final corrective pass; the four
+honestly unverified items remain below and the playground consumer work is tracked as M19.21.
 
 **F1 corrected a claim that had reached two public issues** — the audit model conflated registration,
 invocation tracing and value logging, and overstated what an untraced record proves. The reviewer also ran

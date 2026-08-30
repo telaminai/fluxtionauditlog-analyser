@@ -4,14 +4,14 @@ For: a session working in the PLAYGROUND repo · Raised: 2026-08-30 · Tracker: 
 ================================================================================
 0. CAN YOU START? — yes for design, NOT YET for fetching
 ================================================================================
-**Read this before anything else.** At the time of writing, the analyser-side inputs you need are
-committed on the analyser's `main` but **NOT PUSHED** (22 commits). Until the owner pushes:
+**Read this before anything else, and CHECK it rather than trusting it.** This brief was written while
+the analyser-side inputs were committed but not yet pushed. They are expected on `main` by the time you
+read this — but the cheap way to know is to look:
 
-  * the canonical raw URLs below will 404 or serve stale content;
-  * you can still read everything from a local clone of the analyser repo and design against it.
+    curl -sf https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/skills/m19-skills/2/index.json | head
 
-So: **start by reading; do not build a fetch step against these URLs until the push has happened.** If in
-doubt, `curl` one of them and check the content matches your local clone before writing code around it.
+If that 404s, the push has not landed: read from a local clone and do not build a fetch step against
+these URLs yet. If it returns JSON declaring `"contract": "m19-skills/2"`, everything in §1 is live.
 
 Second thing to know: **`m19-skills/2` is DRAFT — NOT PUBLISHED.** `m19-skills/1` remains the published
 contract. v2 becomes publishable when a generator — you — selects a real template, substitutes every
@@ -20,20 +20,25 @@ this brief, and it is what closes the analyser-side finding F3.** You are not bl
 you are the thing that lifts it.
 
 ================================================================================
-1. WHERE TO LOOK — in reading order
+1. WHERE TO LOOK — in reading order, as URLs
 ================================================================================
-1. `docs/specs/spec-onboarding-example.md` ▸ **BUNDLE CONTRACT v4 — DELTA from v3**
+You are working in the PLAYGROUND repo and may have no analyser clone, so these are fetchable. Prefix:
+
+  RAW = https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main
+
+1. RAW/docs/specs/spec-onboarding-example.md ▸ **BUNDLE CONTRACT v4 — DELTA from v3**
    THE SPEC. A delta: v3's tables remain normative except where v4 changes them. Read v3's "Files the
    bundle MUST contain", "Profile keys the generator MUST write" and "Acceptance" first if you have not.
-2. `docs/skills/README.md` — the skills library, the common+specialisations rule, the retrieval roots,
-   and the rule the skill files must obey (never invent a CLI).
-3. `docs/skills/m19-skills/2/index.json` — the machine index you consume. Its `$comment` block explains
-   why there is no `templates` map.
-4. `src/main/resources/reference-set.json` — the agreed authoring resources a generated `CLAUDE.md`
-   points at. `status` is the sign-off: ship **only** `agreed`.
-5. `docs/specs/spec-authoring-experience.md` ▸ D-AX1b/D-AX1c/D-AX1d — WHY the bundle points rather than
-   restates. Skip if you only need the what.
-6. `docs/handoff/review_handoff_30_aug_2026_2.txt` ▸ F3 and C1 — the findings this work closes.
+2. RAW/docs/skills/README.md — the library, the common+specialisations rule, the retrieval roots, and the
+   rule the skill files must obey (never invent a CLI).
+3. RAW/docs/skills/m19-skills/2/index.json — the machine index you consume. Its `$comment` explains why
+   there is no `templates` map.
+4. RAW/src/main/resources/reference-set.json — the agreed authoring resources. `status` is the sign-off:
+   ship **only** `agreed`.
+5. RAW/tools/bench/bundle-bench.py — **the executable definition of done.** See §5.
+6. RAW/docs/specs/spec-authoring-experience.md ▸ D-AX1b/c/d — WHY the bundle points rather than restates.
+   Skip if you only need the what.
+7. RAW/docs/handoff/review_handoff_30_aug_2026_2.txt ▸ F3 and C1 — the findings this work closes.
 
 ================================================================================
 2. RETRIEVAL — two roots, both vendored at build time, never fetched at runtime (D-R3)
@@ -93,9 +98,48 @@ D · PROFILE. Register each selected skill as `runbook.N.*` with its frontmatter
     table. Unchanged by v4.
 
 ================================================================================
-5. DONE LOOKS LIKE
+4b. THE RENDERED REFERENCE BLOCK — a worked target, NOT a byte-for-byte contract
 ================================================================================
-v3's acceptance still applies in full. v4 adds:
+This is what the analyser's own `ReferenceSet.markdown("spring")` produces today, for a Spring-authored
+project. Use it as a target for CONTENT. **Byte-identity is explicitly not required** — acceptance is
+"every applicable agreed URL present, no non-applicable one, nothing restated", so render it in whatever
+way suits your generator.
+
+    # Working in this project
+
+    **Read these first — the canonical Fluxtion authoring resources. This file does not repeat them, so
+    that improving them improves every project at once.**
+
+    - <https://fluxtion-playground.dev/build-with-ai> — How to author Fluxtion with an LLM, and the
+      compile/run loop the rest of the stack serves.
+    - <https://fluxtion-playground.dev/CLAUDE.md> — The author orientation, including the source-gen
+      triage table that maps a build error to its fix.
+    - <https://fluxtion-playground.dev/fluxtion-golden-path.md> — The blessed shape and its gotchas;
+      carries the worked auditLog chaining example.
+    - <https://fluxtion-playground.dev/spring-authoring/contract.md> — The FluxtionSpringConfig field
+      table: nodeBeans, ignoredBeans, eventTypes and the XML shape.
+
+    Below this line belongs only what those do **not** cover: this project's own paths, commands and
+    graph.
+
+For a NON-Spring template the fourth bullet must be **absent** — `appliesTo` selects, it does not
+annotate.
+
+================================================================================
+5. DONE LOOKS LIKE — and it is executable
+================================================================================
+Run the analyser's own static preflight against your generated bundle:
+
+    python3 bundle-bench.py --analyser-version <version> <unzipped-bundle-or-zip>
+
+It already enforces v3 in full — including **no `TODO(bundle)` or `/path/to/` survives anywhere** — and it
+now also checks the v4 obligations when your bundle declares `m19-bundle/4`: the agreed reference URLs
+present, the `appliesTo`-gated one present only for a Spring project, no EXCLUDED resource shipped, no
+restated rule, `AGENTS.md` byte-identical to `CLAUDE.md`, and no `replay-a-run` shipped with an
+unsubstituted marker.
+
+**A green run of that bench on a generated bundle is the hand-back.** v3's acceptance still applies in
+full. v4 adds:
   [ ] generated `CLAUDE.md` carries every agreed URL that applies to this template, and no URL whose
       `appliesTo` does not match
   [ ] it restates no rule an agreed resource already carries
@@ -108,8 +152,8 @@ v3's acceptance still applies in full. v4 adds:
 ================================================================================
 6. HAND BACK
 ================================================================================
-What closes F3 on our side is evidence, not a report: a generated bundle (or the bench result) showing a
-real template selected, every marker substituted, and the fail-on-marker gate green. Send that and we lift
+What closes F3 on our side is evidence, not a report: the `bundle-bench.py` output on a generated bundle,
+green, with the bundle declaring `m19-bundle/4`. Send that and we lift
 `m19-skills/2` from DRAFT and pin its provenance — a published index must name a revision containing every
 selected byte plus per-path `sha256`, which our tests enforce on publication.
 
