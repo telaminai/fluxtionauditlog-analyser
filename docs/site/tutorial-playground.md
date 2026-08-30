@@ -104,11 +104,13 @@ topology numbers the two nodes in dispatch order](assets/tutorial-cycle.png)
 ![Source navigation from the selected rootNode audit line to the generated processor and its
 RootNode implementation](assets/tutorial-source.png)
 
-The analyser can graph any numeric node-log value. The current bundle records the complete
-`PriceEvent` under `rootNode.receivedEvent`, but does not yet write `price` as a separate numeric key,
-so there is no honest bundle value to tell you to right-click in this release. The screenshot below
-shows the same graph action on the analyser's anonymous generated DEMO run; the starter follow-up is
-to log `price` separately and make this step executable rather than merely illustrative.
+The analyser can graph any numeric node-log value, and this bundle now writes two. Alongside the
+readable `rootNode.receivedEvent`, each cycle records `price` and `volume` as their own numeric keys —
+visible in the record above. Right-click either one and chart it: a string entry is for reading, a
+numeric one is for measuring, and a series needs the second kind.
+
+The bundle's own run is only five cycles, so the chart is a short one. The screenshot below is the
+same action over the analyser's longer anonymous DEMO run, purely so the shape is legible.
 
 ![A numeric node-log value plotted over a longer anonymous generated DEMO run](assets/graph-series-light.png)
 
