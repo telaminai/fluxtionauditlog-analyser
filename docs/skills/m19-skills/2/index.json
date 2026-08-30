@@ -16,22 +16,19 @@
     "",
     "'spring' means the same here as appliesTo:'spring' in reference-set.json.",
     "",
-    "STATUS: DRAFT, NOT PUBLISHED (review C1, 2026-08-30). No generator consumes this yet. Selected skills",
-    "still carry TODO(bundle) markers that only a real consumer can substitute, and the existing bundle gate",
-    "refuses a surviving marker. v2 becomes publishable when a generator selects a real template,",
     "substitutes every marker and passes that gate on a generated bundle. Until then v1 remains the",
-    "published contract.",
     "",
     "There is deliberately NO `templates` map here. A template declares the specialisations it wants, and",
     "templates are the playground's catalogue \u2014 centralising one of them in this analyser-owned index would",
     "be the second source of truth this design exists to avoid. A sample selection lives in a TEST FIXTURE",
     "instead (CanonicalSkillsTest), which exercises the rule without owning the data.",
     "",
-    "A DRAFT MAKES NO PROVENANCE CLAIM. v1 pins `revision` and exact bytes because it is published and a",
     "consumer must reproduce what it advertises. This draft deliberately declares NEITHER: an unpinned draft",
-    "is honest, whereas a pinned one goes stale on the next edit and either lies or forces a red commit to",
-    "re-pin. CanonicalSkillsTest enforces the rule that matters \u2014 a non-DRAFT index MUST pin a revision that",
-    "contains every selected byte, and those bytes must still match the worktree."
+    "",
+    "PUBLISHED 2026-08-30. A playground generator consumed this end to end and deployed a bundle from it, so",
+    "the DRAFT status is lifted and the provenance guarantee now binds: this index pins the revision that",
+    "contains every selected byte, plus a per-path sha256. CanonicalSkillsTest enforces both, and refuses a",
+    "non-DRAFT index that pins nothing."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -63,5 +60,13 @@
       ]
     }
   },
-  "status": "DRAFT \u2014 NOT PUBLISHED"
+  "revision": "48b0e0a7974715c260d123d6c66c26da1b30c4e9",
+  "sha256": {
+    "common/load-audit-log/SKILL.md": "936950b36a9cd123eaaaf76d9b3730ca2616645d26224397013f629548faefa8",
+    "common/guided-start/SKILL.md": "eccf57d6761e983f48410fae3b8357350e4e69ecbe41f32766e7fe8fe8c13b88",
+    "mongoose/run-mongoose-server/SKILL.md": "f2737e2c92c9b4e2ec1cb2776ad04c945da87346c309f48e3e67eef6bddda928",
+    "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
+    "spring/add-a-node/SKILL.md": "3ef0e623580a064fb958e466562be30f1ffe2909d49f654498599868a2e4825f",
+    "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
+  }
 }
