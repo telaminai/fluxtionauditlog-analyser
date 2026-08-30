@@ -173,8 +173,17 @@ analyser (reverse funnel)._
   Layout layering is a visual arrangement and makes no ordering claim. So this is an upstream
   documentation ask only — the declared dispatch-order index in §2c would still be an improvement, but
   nothing here is wrong today.
-- [M19.19] ☐ **Guided start — an install prompt, and an LLM tutor that drives the UI** _(owner idea,
-  2026-08-30; **and the experiment's baseline**, D-G8)_ — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
+- [M19.19] ◧ **Guided start — an install prompt, and an LLM tutor that drives the UI** _(owner idea,
+  2026-08-30; **and the experiment's baseline**, D-G8)_. **Skill and docs page shipped; first real drive
+  done 2026-08-30** — [`runs/guided-start-01/run.md`](../experience/runs/guided-start-01/run.md). All
+  three beats work against a running `--rest` analyser, and the drive found two defects in the skill:
+  **beat 2 reported ZERO on the traced demo log I had chosen** (the distinctive beat, showing nothing —
+  it now uses the untraced log where one node is uncovered, and reads the analyser's own
+  "never logged, not never ran" note aloud, which is a stronger demo than the number); and `flag` takes
+  `recordIndexes[]`, so the sketch would have made an agent guess wrong in front of the audience. Also:
+  no verb lists graphable keys, the demo set cannot be installed by the agent (a second human pause), and
+  a returning analyser restores its previous session. **STILL OPEN:** the held-out run — a fresh
+  context-free client following the docs-site prompt end to end. Nothing so far substitutes for it. — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
   capabilities, driven by a prompt an LLM executes. **Verified: the tutor needs NO new verbs** — `open`,
   `filter`, `topology`, `goto`, `graph` and `flag` already drive the UI, and `context` + `screenshot` tell
   the agent what the user can actually see. The load-bearing rule is D-G2, from D-T3: **the tutor points,
