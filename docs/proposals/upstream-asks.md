@@ -18,6 +18,14 @@ less than no ask at all.
 
 Status: ☐ not filed · ◐ filed · ☑ landed.
 
+**Raised 2026-08-30 (§1c), NOT yet filed:** UP-FLX-32…34 come from the
+[experience loop](../experience/README.md) — three rounds of a fresh-context LLM working a real released
+bundle. They are the loop's authoring findings turned into **diagnostics rather than documentation**, at
+the owner's direction, and each names the class in `fluxtion-builder` 1.0.64 that already computes the
+fact its message omits. §1c opens with the four rules that redirect argued for; the table there also
+records the findings that are **not** compiler asks, so the redirect cannot silently drop them.
+UP-FLX-32 is a second measured instance of UP-FLX-01 and belongs as a comment on issue 8, not a new issue.
+
 **STATUS UPDATE 2026-08-29 — the §5/§6 gate opened and three of these asks are DONE.** The §H
 harness landed in the M19 bench, the M19 bundle work then consumed these asks as a real client, and:
 **UP-MNG-01 ☑ landed and RELEASED** in `mongoose-plugins` 1.0.39; **UP-MNG-03 ◐** declaration half
@@ -286,6 +294,173 @@ alternative history is worse than no replay, because it presents as evidence.
 
 **Cost to us if unfixed.** The analyser cannot tell a replayed log from a live one, and has no basis to
 warn that a log it is showing came from an incomplete replay.
+
+---
+
+## 1c · Fluxtion compiler — diagnostics measured by the experience loop
+
+_Raised 2026-08-30 from [`docs/experience/`](../experience/README.md): three rounds in which a
+fresh-context LLM built and diagnosed inside a **real released bundle**, on a different task shape each
+round. Roughly half the findings turned out to be **Fluxtion authoring** friction rather than analyser
+friction — which the owner named directly: *"It's descending into how do I author Fluxtion? Luckily the
+compiler gives feedback we will extend to compiler codes on failure."* This section is that redirect.
+The authoring findings are written up as diagnostics instead of as documentation, and the reason is in
+the advice below._
+
+### The advice — four rules the loop paid for
+
+**1 · Documenting around a bad message is the wrong repair, and the loop measured why.** Round 02's most
+expensive finding (R2-A) was fixed here by adding three paragraphs to a bootstrap document. Round 03's
+agent **never opened that document** — it was measured, not assumed — and still reached a *more* accurate
+conclusion than the document contained. A diagnostic is read at the moment of failure by construction; a
+document is read only if someone chooses to. Where both are possible, the message wins, and the prose
+should be deleted once the message lands.
+
+**2 · Name the remedy, not just the symptom.** This is not a new idea to the codebase: §UP-FLX-32 shows
+two `throw` sites in the **same method**, one of which names the annotation that fixes it and one of
+which names nothing. The second is the one that cost a round.
+
+**3 · The fact needed for the remedy is almost always already in scope.** Each ask below names the class
+that already computes it. None asks the compiler to derive anything new.
+
+**4 · Codes matter most on the cases that do NOT fail the build.** The expensive findings in this loop
+were silent: a bean that is simply never a node, a node that can never record a value. A build that goes
+green and produces a wrong or empty answer is the class this whole product exists to catch, and it is the
+class with no message at all today.
+
+### Where each authoring finding actually belongs
+
+Recorded in full so that "we turned the loop into compiler asks" cannot quietly mean "we turned *some* of
+it into compiler asks". Not every finding is a diagnostic, and saying which are not is part of the ask.
+
+| Finding | Shape of the right fix | Where it went |
+|---|---|---|
+| R2-A stateful field fails constructor matching | **diagnostic** | UP-FLX-32 |
+| R1-G a bean absent from `nodeBeans` is silently not a node | **diagnostic** (silent case) | UP-FLX-33 |
+| R1-A / R3-D a node that can never record its own values | **diagnostic + GraphML** | UP-FLX-34 |
+| R1-G `@OnTrigger`'s boolean return; R2-F `getLatestEvent()` returns `Object`; R2-E `auditLog` value-type overloads | **documentation** — they are conventions, not failures | `claude.txt` / golden path; no ask filed, deliberately |
+| R2-B "if the build stops at `process-classes`, the key is why" | **my error**, not upstream's — `fluxtion-maven-plugin:scan` binds to that phase | fixed in the doc set |
+| R2-C thin fixture · R2-D hidden feed offset · R3 bundle defects | **bundle / server** | the bundle owner; feed offset belongs with §5 |
+
+### UP-FLX-32 ☐ The constructor-match failure must name the remedy it already knows
+
+**Target** `fluxtion` (`fluxtion-builder`) · **Priority** highest of this section — it is a one-line fix
+against a measured, repeated cost · *a second measured instance of UP-FLX-01; attach to
+[issue 8](https://github.com/telaminai/fluxtion/issues/8) rather than filing anew*
+
+**Measured, round 02.** A node holding its own state — two `HashMap`s for a per-symbol running count and
+maximum — fails the build with:
+
+```
+cannot find matching constructor for: Field{name=symbolStats, …}
+failed to match for these fields:[countBySymbol, maxPriceBySymbol, rootNode]
+```
+
+The fix is to mark the state `transient`. **The message names *constructor matching*, so "add a
+constructor taking the maps" is at least as plausible a reading** — and it is wrong. Both examples shipped
+in the bundle hold only null-at-construction state, so there was nothing to copy from either.
+
+**Located and verified in the artefact, 2026-08-30** (`fluxtion-builder` 1.0.64, entry
+`com/telamin/fluxtion/builder/generation/model/LiveGraphSourceGenExtractor.class`, read from the jar):
+
+- The throw is in **`generateComplexConstructors()`**, after
+  `ReflectionUtils.getConstructors(class, ConstructorMatcherPredicate.matchConstructorType(…))` returns an
+  **empty** set. It is a bare `RuntimeException` — no code, no rule line, no remedy.
+- **The same method already names a remedy for its neighbour.** A second `throw`, thirty bytecodes later,
+  handles `ConstructorMatcherPredicate.validateNoTypeClash(…)` and builds its message as
+  `"cannot find matching constructor for:" + node + " use @" + AssignToField.getSimpleName() + " to
+  resolve clashing types these fields:" + […]`. So one failure names the annotation that fixes it and its
+  sibling names nothing, under the same message prefix.
+- **The remedy is computed a few frames away.** The predicate that decides which fields must be
+  constructor-matched is `lambda$generateComplexConstructors$22` — a lambda of the throwing method — and
+  it reads `@ConstructorArg`, `@FluxtionIgnore`, `Modifier.isStatic` and **`Modifier.isTransient`**
+  directly. The failing field list is therefore, by construction, a list of fields the compiler has just
+  finished deciding are *not* transient and *not* `@FluxtionIgnore`d.
+
+*Verified: the throw sites, the two message shapes, and the annotations/modifiers the predicate reads.
+**Not** verified: the full boolean structure of that predicate — the bytecode suggests further conditions
+and this ask does not depend on them.*
+
+**The ask.** At the empty-match site, say what the sibling site already says:
+
+```
+FLX-1009  no constructor matches this node's mapped fields
+  node      symbolStats : com.example.myapp.node.SymbolStats
+  unmatched [countBySymbol: Map, maxPriceBySymbol: Map, rootNode: RootNode]
+  rule      Every non-transient instance field must be reachable from a constructor parameter —
+            the AOT generator rebuilds each node by calling one.
+  fix       Node-local state is not graph structure: mark it `transient`
+            (or @FluxtionIgnore). Only fields that are graph edges or configuration
+            belong in the constructor.
+  see       https://fluxtion.dev/errors/FLX-1009
+```
+
+The `fix` line is the whole ask. Everything above it is already in the message or in scope.
+
+**Evidence** measured — one full build cycle in round 02, and the single most expensive item of that
+round. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
+which is most non-trivial nodes.
+
+### UP-FLX-33 ☐ A Spring bean that is neither selected nor ignored is silently not a node
+
+**Target** `fluxtion` (`fluxtion-builder`, `extern.spring`) · **Priority** high — this is the silent class
+
+**Measured, round 01 (R1-G, a COULD-NOT-FIND).** Adding a `<bean>` to the designer context is not enough:
+the bean id must also appear in `fluxtionSpringConfig`'s `nodeBeans` list. Omit it and **the build is
+green, the app runs, and the node is simply not in the graph** — it never fires, logs nothing, and the
+audit log cannot report it as missing because it was never declared. The fresh agent could not determine
+from anything shipped whether the second edit was required.
+
+**Verified in the artefact, 2026-08-30** (`fluxtion-builder` 1.0.64,
+`com/telamin/fluxtion/builder/extern/spring/`):
+
+- `FluxtionSpringConfig` declares both an include list, `nodeBeans`, and an explicit exclude list,
+  **`ignoredBeans`** — so "not selected" and "deliberately excluded" are already distinguishable concepts
+  in the model.
+- The class already carries **two strict modes** for adjacent concerns: `strictEventHandlerBindings` and
+  `strictServiceBindings`, with messages of the form *"Node 'x' … but is not listed in strict event
+  handler bindings"*. The pattern this ask wants exists twice in the same file.
+- The one nearby error, *"Unknown or unselected node 'x' in event handler binding"*
+  (`IllegalArgumentException`), fires **only when a binding references the bean**. A bean that is merely
+  never selected reaches no check at all.
+
+**The ask**, in preference order:
+
+1. A build-time **INFO or WARN listing every context bean that is in neither `nodeBeans` nor
+   `ignoredBeans`** — "these beans exist and are not in the graph" — which is enough on its own, because
+   the failure mode is not knowing the list is exhaustive.
+2. A `strictNodeBeans` flag, mirroring the two strict modes already present, turning that list into a
+   build failure for projects that want it.
+
+**Cost to us if unfixed** the analyser reports the node as **absent from the declared graph**, which is
+correct and unhelpful: coverage subtracts against the graph, so a node that was never declared cannot be
+reported as one that never ran. This is precisely the case the product cannot see, and it is cheap to
+catch one layer up.
+
+### UP-FLX-34 ☐ Declare a node's audit capability in the GraphML
+
+**Target** `fluxtion` (compiler, graphml emission) · **Priority** medium · *vertex-shaped; rides §2c's
+verified additive mechanism · direct analyser payoff*
+
+**Measured across rounds 01 and 03, and confirmed by an owner correction (R1-A, R3-A, R3-D).** Whether a
+node can record its own values is decided by one fact: does it implement **`EventLogSource`**
+(`void setLogger(EventLogger)`) — whether directly, or by extending the convenience class `EventLogNode`,
+or by extending a Fluxtion base such as `SingleNamedNode` that already does. Verified against
+`fluxtion-runtime` 1.0.13. A node that implements it neither way still **appears** in the log — the
+generator emits an `auditInvocation` at each dispatch site — but can only ever show its method name.
+
+That distinction cost this loop three separate errors, and it is not visible in any artefact a reader has.
+
+**The ask.** A per-node data key, e.g. `auditCapable="true|false"`, plus the reason
+(`interface | baseClass | none`). The compiler resolves the type hierarchy already; this is emitting a
+fact it holds.
+
+**Cost to us if unfixed — this one is paid in the analyser today.** `topology/NodeLogging.java` (M40.2b)
+determines audit capability by **walking `fluxtion-runtime` itself** and maintaining an `AUDIT_CAPABLE`
+set, with a deliberate rule that excluding a node requires proof — source in hand, no supertype, no
+logger-type mention — because a wrong exclusion silently flatters the coverage number. That machinery
+exists solely because the GraphML does not say. With the key declared, `SILENT_BY_CONSTRUCTION` becomes a
+read rather than an inference, and the analyser stops shipping a copy of the framework's type hierarchy.
 
 ---
 

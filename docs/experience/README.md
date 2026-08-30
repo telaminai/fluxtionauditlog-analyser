@@ -63,6 +63,25 @@ runs/round-NN/  prompt, task, NOTES.md, findings, changes made, environment
 archive/vN/     superseded doc sets, kept so the trend can be read
 ```
 
+## Where the findings go — and the redirect after round 03
+
+Roughly half of rounds 01–03's findings were **Fluxtion authoring** friction, not analyser friction. The
+owner's call on seeing that: *"It's descending into how do I author Fluxtion? Luckily the compiler gives
+feedback we will extend to compiler codes on failure."*
+
+That is the right repair and it changes what this loop is for. Documenting around a bad error message is
+papering over it, and round 03 measured the cost of doing so: the agent **never opened** the bootstrap
+document containing round 02's fix. So the authoring findings were rewritten as compiler diagnostics —
+[`docs/proposals/upstream-asks.md` §1c](../proposals/upstream-asks.md), UP-FLX-32…34, each naming the
+class in `fluxtion-builder` that already computes the fact its message omits — and the prose that
+compensates for them should be deleted from the doc set once the messages land.
+
+**The loop's own design defect, which explains the drift.** None of the three rounds had an **analyser
+reachable** — the agent used `grep` every time. A loop set up to measure the LLM/analyser experience never
+put the analyser in it, so it measured what was present: the bundle and the framework. A further round
+should wire the analyser over MCP and use a task that needs it, or the loop should stop and let §1c be
+its output.
+
 ## What a reviewer should judge
 
 Not the individual edits. **The trend across rounds**, whether the held-out task passes, whether the doc
