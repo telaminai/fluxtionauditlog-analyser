@@ -72,6 +72,17 @@ Then, in the analyser:
 Open the project *before* the log. A project switch replaces your source roots and graphs, so the
 analyser treats it as a session boundary and deliberately ignores a log passed in the same breath.
 
+![The bundle's project profile in force: the analyser has the source roots, the event processor and
+both shipped skills without anything being typed in, and states that no Fluxtion key file is present
+— which the bundle does not need in order to run.](assets/tutorial-project-open.png)
+
+With the log and its GraphML open, the analyser reports what it has: 23 records, the event types it
+found, and — bottom right — whether the graph you gave it actually fits this log.
+
+![The exported log open with its GraphML: 23 records, the event types listed with their counts, and
+the topology showing PriceEvent reaching RootNode and RiskCheck. The status bar reads "fits this log
+(2/2)".](assets/tutorial-log-open.png)
+
 Now the things worth doing:
 
 - **Read a cycle.** Each record shows which nodes ran, in dispatch order, and what each logged —
@@ -81,6 +92,19 @@ Now the things worth doing:
   this log. If it does not, a node's absence proves nothing — and the analyser says so rather than
   letting you conclude it.
 - **Graph a value** over time from the records.
+
+Selecting one `PriceEvent` cycle shows what that event actually did — which nodes ran, in dispatch
+order, and what each of them logged:
+
+![One PriceEvent cycle: the record detail lists rootNode.onPriceEvent receiving
+PriceEvent{symbol=AAPL, price=195.3, volume=1200} and then riskCheck.onRiskCheck, while the topology
+numbers the two nodes that ran.](assets/tutorial-cycle.png)
+
+Clicking a node line opens the bundled source beside the graph — the project profile already named
+the source root, so there is nothing to configure first:
+
+![Source navigation: RootNode selected in the topology, with its source and the generated
+MarketProcessor shown alongside.](assets/tutorial-source.png)
 
 ## 5. Change something
 

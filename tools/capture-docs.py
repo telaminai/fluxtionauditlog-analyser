@@ -51,6 +51,14 @@ SERIES_LOG = REPO / "src/test/resources/topology/demo-quote-series.yaml"
 GRAPHML = REPO / "src/test/resources/topology/demo-quote-processor.graphml"
 ROOT = REPO / "examples/fixture-generator/src/main/java"
 PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
+# M19 tutorial shots are of a REAL generated bundle, not the demo fixture — the page teaches that
+# bundle, so a mocked-up screenshot would teach something that does not exist. The bundle must be
+# staged under a NEUTRAL path: its own paths are rendered in the title bar, the Project panel and the
+# status bar, and a scratch directory carrying an account name would put it in a PNG the sweep cannot
+# read. Stage it with tools/stage-tutorial-bundle.sh, which refuses a path containing a home directory.
+TUTORIAL_PROJECT = pathlib.Path("/tmp/fluxtion-tutorial/audit-analyser-bundle")
+TUTORIAL_LOG = TUTORIAL_PROJECT / "logs" / "audit-audit-analyser-bundle.yaml"
+TUTORIAL_GRAPHML = TUTORIAL_PROJECT / "src/main/resources/com/example/myapp/generated/MarketProcessor.graphml"
 # The capture analyser's HOME — never the real one. Until 2026-08-27 this script ran the app under the
 # machine's own ~/.fluxtion-analyser, pinning theme and columns "without disturbing the rest" — and "the
 # rest" was this machine's real source roots and event processors, in force for every capture ever taken.
@@ -442,8 +450,70 @@ def seed(ep):
     act(ep, "open", {"graphml": str(GRAPHML)})
 
 
+def capture_tutorial():
+    """The M19 tutorial shots — a real downloaded bundle, opened the way the page tells you to.
+
+    Everything here mirrors the page's own instructions rather than a convenient shortcut: the
+    PROJECT is opened first and the log second, because that is what the page tells the reader to do
+    and what the analyser actually requires (a project switch is a session boundary and ignores a log
+    passed with it). Shooting it any other way would photograph a path the tutorial does not teach.
+    """
+    if not TUTORIAL_LOG.exists():
+        sys.exit(f"stage the bundle first: {TUTORIAL_LOG} is missing "
+                 f"(see tools/stage-tutorial-bundle.sh)")
+    home = str(pathlib.Path.home())
+    if str(TUTORIAL_PROJECT).startswith(home):
+        sys.exit(f"refusing: {TUTORIAL_PROJECT} is inside {home}, so its path would render an "
+                 f"account name into the images — stage it somewhere neutral")
+
+    print("tutorial shots (light)")
+    ep = launch("Light")
+
+    # 1. the project as the bundle ships it: profile adopted, nothing typed in
+    act(ep, "open", {"project": str(TUTORIAL_PROJECT / ".analyser" / "project.fluxtion-settings")})
+    time.sleep(1)
+    capture(ep, "tutorial-project-open.png")
+
+    # 2. the exported log + its graph — the pairing verdict is the point of the shot
+    act(ep, "open", {"log": str(TUTORIAL_LOG), "graphml": str(TUTORIAL_GRAPHML),
+                     "provenance": "audit-analyser-bundle"})
+    for _ in range(20):
+        time.sleep(0.5)
+        if (act(ep, "context").get("context", {}).get("log") or {}).get("records"):
+            break
+    else:
+        sys.exit("the tutorial log did not load")
+    act(ep, "goto", {"recordIndex": 0, "reveal": True})
+    capture(ep, "tutorial-log-open.png")
+
+    # 3. a PriceEvent cycle read out: which nodes ran, in dispatch order, and what each logged.
+    # The index is found by scanning the log itself rather than by asking the app: `read` needs an
+    # anchor, and defaulting to record 0 silently shot the EventLogControlEvent — a cycle in which
+    # nothing logged, which is the opposite of what this figure is for.
+    price = 0
+    seen = -1
+    for line in TUTORIAL_LOG.read_text().splitlines():
+        if line.startswith("eventLogRecord:"):
+            seen += 1
+        elif "event: PriceEvent" in line:
+            price = seen
+            break
+    act(ep, "goto", {"recordIndex": price, "reveal": True})
+    capture(ep, "tutorial-cycle.png")
+
+    # 4. click-to-source: the node line reaching the bundled source, which the profile made possible
+    act(ep, "topology", {"select": "rootNode", "source": True})
+    capture(ep, "tutorial-source.png")
+
+    finish_capture()
+
+
 def main():
     ASSETS.mkdir(parents=True, exist_ok=True)
+
+    if "--tutorial" in sys.argv:
+        capture_tutorial()
+        return
 
     if "--mcp" in sys.argv:
         capture_mcp_setup()
