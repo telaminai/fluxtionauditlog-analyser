@@ -98,6 +98,7 @@ nav:
   - Getting started:
       - Quick start: getting-started.md
       - Install & run: install.md
+      - Playground to analyser in 10 minutes: tutorial-playground.md
   - User guide:
       - user-guide/index.md
       - Records, detail & filtering: user-guide/records-and-filtering.md
