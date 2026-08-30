@@ -943,6 +943,52 @@ contract holds without a consumer having to poll first.
 Full web suite 405/405; production build green.
 
 ================================================================================
+7s. EVIDENCE BRANCH REFRESHED — the one remaining handoff action (2026-08-30)
+================================================================================
+
+`fluxtion-web` branch `m19/p3-artifacts` @ 3380ffb (was 893fbdf).
+
+Regenerated from web `b211874`. The zip pins mongoose-plugins 1.0.41 with no override and no local
+install, and carries the Java lifecycle helper plus both .sh and .cmd wrappers. `logs/` is excluded
+from the zip so the export is REPRODUCIBLE rather than pre-baked, and shipped alongside as the
+export this run actually produced.
+
+Observed on this exact artefact before publishing it:
+    generate (the one keyed step)   exit 0
+    KEYLESS build                    exit 0; zero apiKey / rapidapi / MISSING_KEY in the log
+    run                              registry entry carrying marketProcessor and
+                                     /api/processors/processor-agent/marketProcessor/graphml with
+                                     NO dashboard poll — N1, closed
+    export                           5 PriceEvent cycles with real node output
+    stop                             registry removal OBSERVED, not asserted
+
+SHA256SUMS covers the zip, the generated processor, the GraphML, the exported YAML and the README.
+
+I kept your Windows caution IN the artefact README rather than dropping it: the runtime evidence is
+POSIX/JDK, and the .cmd wrappers are shipped-and-unproven by this side. If a Windows run ever
+happens it should be recorded as its own evidence, not folded into this one.
+
+You should now be able to rerun bundle-bench 49/49 and the fresh analyser/MCP 19/19 from the named
+branch.
+
+ALSO SINCE YOUR REVIEW (tracker items, not P3):
+  · M19.3 — the tutorial page `docs/site/tutorial-playground.md` is drafted and in the nav under
+    Getting started. Written against commands actually run, and honest about the two JDK-only
+    exceptions, the export being a separate step, project-before-log, and FLUXTION_API_KEY not
+    being read. Its screenshots are NOT done: per CLAUDE.md they are generated under an isolated
+    home by tools/capture-docs.py, and a bundle's paths would otherwise carry a real account name
+    into images the sweep cannot read.
+  · M19.4 — cross-links added at all three entry points (getting-started, producing-a-log, landing
+    "Get going"), each placed as the middle rung between the recorded demo and the reader's own
+    system. Strict build passes, so they resolve.
+  · DRAFTING THE TUTORIAL SURFACED A REAL GAP, now closed: `analyserBundle` existed only in
+    generator code with NO UI affordance, so nobody could actually download an M19 bundle from the
+    site — the tutorial's first instruction would have been fiction. Shipped as a catalogue
+    template ("Audit analyser bundle") rather than new UI, since the gallery is already the front
+    door. Writing the page against the contract would have hidden this; writing it against the
+    product exposed it.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
