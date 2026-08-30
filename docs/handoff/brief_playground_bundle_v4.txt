@@ -1,0 +1,117 @@
+BRIEF — playground: bundle contract v4 (skills by template, and a CLAUDE.md that points)
+For: a session working in the PLAYGROUND repo · Raised: 2026-08-30 · Tracker: M19.21
+
+================================================================================
+0. CAN YOU START? — yes for design, NOT YET for fetching
+================================================================================
+**Read this before anything else.** At the time of writing, the analyser-side inputs you need are
+committed on the analyser's `main` but **NOT PUSHED** (22 commits). Until the owner pushes:
+
+  * the canonical raw URLs below will 404 or serve stale content;
+  * you can still read everything from a local clone of the analyser repo and design against it.
+
+So: **start by reading; do not build a fetch step against these URLs until the push has happened.** If in
+doubt, `curl` one of them and check the content matches your local clone before writing code around it.
+
+Second thing to know: **`m19-skills/2` is DRAFT — NOT PUBLISHED.** `m19-skills/1` remains the published
+contract. v2 becomes publishable when a generator — you — selects a real template, substitutes every
+`TODO(bundle)` marker, and passes the existing fail-on-marker gate on a generated bundle. **That work is
+this brief, and it is what closes the analyser-side finding F3.** You are not blocked by the draft status;
+you are the thing that lifts it.
+
+================================================================================
+1. WHERE TO LOOK — in reading order
+================================================================================
+1. `docs/specs/spec-onboarding-example.md` ▸ **BUNDLE CONTRACT v4 — DELTA from v3**
+   THE SPEC. A delta: v3's tables remain normative except where v4 changes them. Read v3's "Files the
+   bundle MUST contain", "Profile keys the generator MUST write" and "Acceptance" first if you have not.
+2. `docs/skills/README.md` — the skills library, the common+specialisations rule, the retrieval roots,
+   and the rule the skill files must obey (never invent a CLI).
+3. `docs/skills/m19-skills/2/index.json` — the machine index you consume. Its `$comment` block explains
+   why there is no `templates` map.
+4. `src/main/resources/reference-set.json` — the agreed authoring resources a generated `CLAUDE.md`
+   points at. `status` is the sign-off: ship **only** `agreed`.
+5. `docs/specs/spec-authoring-experience.md` ▸ D-AX1b/D-AX1c/D-AX1d — WHY the bundle points rather than
+   restates. Skip if you only need the what.
+6. `docs/handoff/review_handoff_30_aug_2026_2.txt` ▸ F3 and C1 — the findings this work closes.
+
+================================================================================
+2. RETRIEVAL — two roots, both vendored at build time, never fetched at runtime (D-R3)
+================================================================================
+Skills:
+  https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/docs/skills
+  → the index you want is m19-skills/2/index.json
+
+Reference set (deliberately NOT under the skills root — a second copy would drift):
+  https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/src/main/resources/reference-set.json
+
+================================================================================
+3. WHAT YOU OWN vs WHAT WE OWN
+================================================================================
+YOURS:
+  * the catalogue, and therefore the **template → specialisations mapping**. The analyser deliberately
+    declares no `templates` map: centralising one of fourteen catalogue templates in an analyser-owned
+    file would be a second source of truth (review C1). Each template declares what it wants.
+  * bundle generation, the run/export scripts, all concrete paths
+  * substituting every `TODO(bundle)` marker in the selected skill copies
+  * rendering the bundle's `CLAUDE.md` (and generating `AGENTS.md` from it)
+
+OURS (do not fork; raise an ask instead):
+  * the canonical skill content and `m19-skills/*`
+  * `reference-set.json` and which entries are `agreed`
+  * the profile format and analyser behaviour
+
+================================================================================
+4. THE WORK, CONCRETELY
+================================================================================
+A · SELECTION. Consume `m19-skills/2`: selection = `common` + the specialisations your template declares.
+    - `common` today: `load-audit-log`, `guided-start`
+    - specialisations: `mongoose`, `embedded`, `spring`, `replay`
+    - **never select `replay` unless the template has a real replay entry point.** Its skill carries a
+      required marker you could not substitute, and v3's acceptance already refuses a surviving marker.
+      This is exactly the defect C1 caught in our own draft.
+    - worked example to sanity-check against: a spring+mongoose template selects
+      `common/load-audit-log`, `common/guided-start`, `spring/add-a-node`,
+      `mongoose/run-mongoose-server` — and **not** `common/replay-a-run`.
+
+B · SUBSTITUTION. Markers currently needing a project-owned value:
+    - `spring/add-a-node` — the exact regeneration command, and whether it needs a Fluxtion API key
+    - `mongoose/run-mongoose-server` — the exact clean-stop command (pre-existing)
+    - `common/replay-a-run` — only if you select it
+
+C · THE BUNDLE'S `CLAUDE.md`. Render from `reference-set.json`:
+    - ship only `agreed` entries — four today
+    - `appliesTo` **selects**, it does not annotate: a `spring` link must not appear in a non-Spring
+      project. An always-in-context file is a tax on every turn
+    - below the links, only what the set does NOT cover: this project's paths, commands, graph — and the
+      audit contract until telaminai/fluxtion#22 lands
+    - **restate nothing the agreed set already carries.** That duplication is why four wrong versions of
+      the audit contract got written; pointing is what makes one upstream edit improve every project
+    - generate `AGENTS.md` from it; never hand-maintain a twin
+
+D · PROFILE. Register each selected skill as `runbook.N.*` with its frontmatter description, per v3's
+    table. Unchanged by v4.
+
+================================================================================
+5. DONE LOOKS LIKE
+================================================================================
+v3's acceptance still applies in full. v4 adds:
+  [ ] generated `CLAUDE.md` carries every agreed URL that applies to this template, and no URL whose
+      `appliesTo` does not match
+  [ ] it restates no rule an agreed resource already carries
+  [ ] selected skills == common + the template's declared specialisations
+  [ ] a template without a replay entry point ships no `replay-a-run`
+  [ ] `AGENTS.md` byte-identical to `CLAUDE.md`, generated
+  [ ] **no `TODO(bundle)` survives anywhere in the generated bundle** (v3, and the gate that keeps v2
+      honest)
+
+================================================================================
+6. HAND BACK
+================================================================================
+What closes F3 on our side is evidence, not a report: a generated bundle (or the bench result) showing a
+real template selected, every marker substituted, and the fail-on-marker gate green. Send that and we lift
+`m19-skills/2` from DRAFT and pin its provenance — a published index must name a revision containing every
+selected byte plus per-path `sha256`, which our tests enforce on publication.
+
+If the contract is wrong rather than merely awkward, say so and we will change it here. The one thing not
+to do is fork the canonical content: a second copy is the failure this whole design exists to prevent.

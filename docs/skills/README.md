@@ -117,6 +117,19 @@ replay entry point, which this bundle does not, and the embedded tier remains ex
 The playground retrieves and commits a snapshot at build/release time; generated projects never fetch
 this root.
 
+### The reference set has its own retrieval path
+
+`reference-set.json` is **not** under the skills root — it lives on the analyser's classpath so the jar can
+render it, and the canonical copy is therefore:
+
+```text
+https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/src/main/resources/reference-set.json
+```
+
+One file, two consumers: the analyser reads it from the classpath, the playground fetches it at
+build/release time and vendors a snapshot exactly as it does for skills (D-R3 — never at runtime). A second
+copy under `docs/` was rejected: it would drift, which is the failure this whole design exists to avoid.
+
 When either published skill changes, update the index revision to the commit containing those new bytes
 and update the parity test in `CanonicalSkillsTest`. A revision change without matching content, or
 content drift without the matching revision/hash update, fails the analyser build.

@@ -243,7 +243,12 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
-- [M19.21] ☐ **Playground-side: bundle contract v4** _(specified 2026-08-30 after the owner asked where this
+- [M19.21] ☐ **Playground-side: bundle contract v4** — **brief written for the playground session:**
+  [`brief_playground_bundle_v4.txt`](../handoff/brief_playground_bundle_v4.txt). It leads with the two
+  things that stop a cold start: the analyser inputs are committed but **not pushed**, so the canonical raw
+  URLs are not live yet; and `m19-skills/2` is DRAFT, which is not a blocker for them because their
+  integration is what lifts it. Also records the retrieval path for `reference-set.json`, which is
+  deliberately outside the skills root and had none. _(specified 2026-08-30 after the owner asked where this
   work was written down — it was not)_ — [`spec-onboarding-example.md` ▸ BUNDLE CONTRACT v4](spec-onboarding-example.md).
   A delta on v3, because v3's tables remain correct except where this session changed them. Four
   obligations: consume `m19-skills/2` (common + specialisations) and own the **template → specialisations**

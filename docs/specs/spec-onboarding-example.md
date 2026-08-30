@@ -774,7 +774,7 @@ result.
 
 | Playground obligation | Detail |
 |---|---|
-| render the reference block from `reference-set.json` | canonical copy ships in the analyser jar at `/reference-set.json`; the analyser renders it via `ReferenceSet.markdown(kind)` |
+| render the reference block from `reference-set.json` | canonical copy ships in the analyser jar at `/reference-set.json`. **Retrieval path for the generator:** `https://raw.githubusercontent.com/telaminai/fluxtionauditlog-analyser/main/src/main/resources/reference-set.json` — it is deliberately NOT under the skills root, because a second copy would drift. Vendor a snapshot at build time (D-R3), never fetch at runtime. `ReferenceSet.markdown(kind)` is the reference rendering |
 | ship **only `agreed` entries** | `proposed` awaits sign-off; `excluded` carries its reason. Today: four agreed |
 | let `appliesTo` **select**, not annotate | a Spring-only link must not appear in a non-Spring project — an always-in-context file is a tax on every turn (review N1) |
 | below the block, only what the set does **not** cover | this project's paths, commands, graph — and the audit contract, until [fluxtion#22](https://github.com/telaminai/fluxtion/issues/22) lands upstream |

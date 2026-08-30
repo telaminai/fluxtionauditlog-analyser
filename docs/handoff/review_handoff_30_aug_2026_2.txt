@@ -281,3 +281,57 @@ Closure verification performed:
   PASS  public issue #21/#22 correction comments read directly from GitHub
 
 Nothing was pushed by this reviewer.
+
+================================================================================
+SECOND CLOSURE REVIEW — de9d17b
+================================================================================
+
+VERDICT: NOT YET CLOSED — C1–C3 are substantively closed; C4 still has one mechanical residue, and the
+new v4 ownership paragraph contradicts the draft-provenance rule.
+
+Accepted on this pass:
+
+  - C1's ownership correction is structurally sound: the analyser index owns only common and
+    specialisations, the sample template is test-only, and the real catalogue mapping is explicitly a
+    playground responsibility. Marking v2 `DRAFT — NOT PUBLISHED` is an honest closure of the correction,
+    not closure of F3: v1 remains published and M19.21 now tracks the missing consumer/substitution proof.
+    The conditional publication test preserves the revision/hash requirement without making a draft claim
+    reproducibility it does not have.
+  - C2 preserves the preregistered sentence while striking it and attaching the statistically accurate
+    post-run correction. It can no longer be mistaken for the current conclusion.
+  - C3 now qualifies the absence claim with `In an untraced record`, restoring the registered / invoked /
+    value-logged distinction.
+  - N4 no longer publishes the disputed bare test count in the closure response.
+
+D1 · C4 IS NOT FULLY APPLIED — the stale five-item list still follows the correct four-item residual list.
+
+docs/handoff/unreviewed-changes.md lines 53–68 first state the four actual residuals, then retain the old
+bullets saying strict MkDocs was not run, Swing is untested, ReferenceSet is unwired, guided-start is
+untested, and the n=3 direction needs challenge. Three of those were explicitly closed by this reviewer;
+two duplicate the new list. Delete lines 59–68. Until then the ledger contradicts both its own line 50 and
+the response's C4 claim that the stale list was replaced.
+
+D2 · THE V4 OWNERSHIP SENTENCE STILL SAYS AN UNPINNED DRAFT IS PINNED.
+
+docs/specs/spec-onboarding-example.md lines 818–820 calls `m19-skills/2` “authored, reviewed and pinned
+here”. The same section's warning and D-B1 correctly say v2 is deliberately unpinned until publication.
+Change that parenthesis to, for example, “authored and reviewed here; pinned here on publication”. This is
+the last internal contradiction in the new contract delta found by this pass.
+
+N5 · NON-BLOCKING COPY RESIDUE IN THE INDEX COMMENT.
+
+docs/skills/m19-skills/2/index.json line 17 is the orphaned second half of the removed templates-map
+explanation: “on every skill: adding a template must not mean editing every entry in the library.” Remove
+it or rewrite it as a complete sentence. The JSON and selection behaviour are unaffected.
+
+Closure verification performed at de9d17b:
+
+  PASS  mvn -q test (rerun outside the restricted sandbox because the REST/MCP tests bind loopback sockets)
+  PASS  /private/tmp/m19-docs-venv/bin/mkdocs build --strict
+  PASS  git diff --check
+  PASS  CanonicalSkillsTest exercises no analyser-owned templates map, sample common + spring + mongoose
+        selection, replay exclusion, draft marker status, and provenance requirements on publication
+
+The remaining playground integration is deliberately tracked as M19.21 and is not misreported as closed.
+No repository changes were made apart from this review addendum. Nothing was committed or pushed by this
+reviewer.
