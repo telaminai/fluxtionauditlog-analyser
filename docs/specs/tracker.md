@@ -151,6 +151,13 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
+- [M19.22] ☐ **The generated processor's copyright header ships in a public starter** _(found 2026-08-30
+  against the live bundle)_ — [`spec-onboarding-example.md` ▸ D-B6](spec-onboarding-example.md). The header
+  the Fluxtion generator emits carries a vendor-domain address (one of rule 1's four terms) **and** a
+  confidentiality / all-rights-reserved notice, in a starter that exists to be built on. Invisible until
+  now because the file was never shipped; the fix that closed the missing-processor defect is what exposed
+  it. Durable fix is upstream in `fluxtion`; the playground can replace the header at emit time meanwhile,
+  since it already rewrites the file. **Not yet filed upstream.**
 - [M19.21] ☐ **Playground-side: bundle contract v4** — **brief written for the playground session:**
   [`brief_playground_bundle_v4.txt`](../handoff/brief_playground_bundle_v4.txt). It leads with the two
   things that stop a cold start: the analyser inputs are committed but **not pushed**, so the canonical raw

@@ -803,6 +803,27 @@ duplication rule, and it is what makes an upstream edit improve every project in
 - [ ] a template without a replay entry point ships **no** `replay-a-run`
 - [ ] `AGENTS.md` is byte-identical to `CLAUDE.md` and was generated, not written
 
+### D-B6 · The generated processor's copyright header — a public-artefact problem, found 2026-08-30
+
+Committing the generated artefacts (correct, and what closed the missing-processor defect) put a file in
+front of every user that had never shipped before. Its generator-emitted header carries two things a public
+starter should not:
+
+- **a vendor-domain email address** — one of this repo's four redaction terms (CLAUDE.md rule 1;
+  deliberately not spelled here, because a mechanical rule cannot tell a mention from a leak). The
+  canonical sweep run over an unzipped bundle names the single file;
+- **a confidentiality and all-rights-reserved notice** — *"This file is confidential and only available to
+  authorized individuals"*. A starter that exists to be built on now ships a file saying the opposite, and
+  a compliance reader in the regulated market this stack targets meets that text in something their team
+  just downloaded.
+
+**Owner of the durable fix: `fluxtion` (the generator emits the header).** Cheapest immediate mitigation:
+the playground already rewrites this file to the project's own `basePackage`, so it can replace the header
+at emit time.
+
+**Acceptance to add when it is fixed:** an unzipped bundle passes the four-term sweep, and no shipped file
+claims confidentiality.
+
 ### D-B5 · Still open, and NOT specified here
 
 - **`agentBootstrap`** (UP-PG-02, [upstream-asks §6](../proposals/upstream-asks.md)) — where a generated
