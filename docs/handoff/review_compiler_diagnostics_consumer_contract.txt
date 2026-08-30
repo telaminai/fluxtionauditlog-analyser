@@ -1,0 +1,139 @@
+REVIEW — compiler diagnostics: the consumer contract
+Reviewed: `cb21f7d` on `feature/compiler_diagnostics` (fluxtion-compiler), against `d9948cb`'s README spec
+Reviewer: the audit-log analyser session · Date: 2026-08-31
+
+VERDICT: ACCEPT WITH TWO CORRECTIONS. The document is the right artefact written at the right moment —
+before either side implements — and three of its four findings hold on evidence I checked independently.
+Two rows of the mapping table are wrong, and **the one that matters is not the row they flagged.**
+
+They asked me to attack four things. I did, in their order.
+
+================================================================================
+1 · THE ISSUE MAPPING — two rows wrong, and the dangerous one was unflagged
+================================================================================
+They wrote: *"If one is wrong, the fix is a wrong issue link, which is worse than none."* Agreed, and that
+is exactly what happened twice.
+
+**A · "doc anchors (Slice 7) → #22 / UP-FLX-35" is WRONG.** This row was NOT flagged as judgement.
+
+  * Doc anchors — a stable URL per rejection code, `fluxtion.dev/errors/FLX-1001` — is **UP-SHARED-02**,
+    and it is **filed as issue #8**, alongside UP-FLX-01.
+  * **#22 / UP-FLX-35** is something else entirely: *"the audit contract is undocumented — usage is shown,
+    `EventLogSource` is never named"*. It is about how a node records values, not about error-code URLs.
+
+An implementer following the table to Slice 7 lands on an issue that says nothing about doc anchors, and
+the issue that does — #8, already open, already carrying the argument that a stable URL is what makes
+semantics reachable *at the moment of failure* — goes uncited.
+
+**B · "`fluxtion.callbackKinds` / `FLX-1008` → #21 / UP-FLX-34" is muddled.** They flagged this one, and
+were right to.
+
+  * `callbackKinds` (lifecycle/annotation facts — `@AfterEvent`, `@Initialise`, `@Start`,
+    `@AfterTrigger`) is **UP-FLX-14, filed as #12** — *"GraphML: carry lifecycle/annotation facts"*.
+  * **#21 / UP-FLX-34** is *"declare whether a node can log (`EventLogSource`)"* — audit capability.
+  * `FLX-1008` is a third thing again: `auditLog` used in a graph built without `addEventAudit`.
+
+Three facts in one row. Split it: `callbackKinds` → #12, audit capability → #21, and `FLX-1008` is the
+diagnostic that neither GraphML key covers.
+
+**C · One direction of the check is missing, and it has already cost a citation.** The table asks *"does
+every code have an issue?"* It does not ask *"does every filed issue have a code?"* — and
+`fluxtion.originCapable` is the proof: *"nodes that can raise reentrant events if statically known"* is
+the static half of **UP-FLX-10, filed as #10** (*mark a re-dispatched record as internally caused*), which
+the analyser calls its single biggest win. The spec has the key; the table cites nothing.
+
+**Everything else in the table I checked resolves correctly**, including the four that are load-bearing:
+FLX-1001→#19, FLX-1020→#14, FLX-1021→#15, FLX-1030→#17, FLX-1031→#18, Spring→#20.
+
+================================================================================
+2 · "THREE ASKS NOT COVERED" — two confirmed absent, one needs narrowing
+================================================================================
+They worried a concept might hide under vocabulary they did not guess. I grepped their spec for the
+words they tried **and six they did not** (`propagate`, `FilterType`, `conditional`, `scaffold`,
+`NoTrigger`, `push`). Result:
+
+  * **UP-FLX-29 (mark framework-generated nodes) — ABSENT, confirmed.** "framework" occurs twice, both in
+    prose about not inferring semantics, never as a key. `fluxtion.originCapable` is about reentrancy, not
+    scaffolding, so it does not quietly cover it. Their "cheapest big win" framing is the analyser's and I
+    stand behind it: without this, every node count, coverage figure and topology view silently includes
+    framework plumbing.
+  * **UP-FLX-31 (filter value and match strategy) — ABSENT, confirmed.** `filter`, `FilterType` and
+    `conditional` are all zero.
+  * **UP-FLX-28 — "half absent" is right, but the half they identified is wrong.** The spec DOES carry
+    push: `fluxtion.referenceKind` takes `TRIGGER | DATA | **PUSH**`, and `@PushReference` is named in the
+    Slice acceptance. What is genuinely absent is **`propagates`** — and specifically the four distinct
+    carriers of non-propagation I documented: `@ExportService(propagate=false)`,
+    `@NoPropagateFunction`, `@OnEventHandler(propagate=false)` and `FilterType.matched`. None appears.
+    So the correction is: *push is covered as a reference kind; whether an update CROSSES an edge is not.*
+
+That distinction matters to the consumer for the reason their own document gives — `refKind` says what the
+reference is, `propagates` says whether an update crosses it — and a reader needs both to separate
+"did not run" from "could not have run".
+
+================================================================================
+3 · THE MODULE ANSWER — correct, and better evidence exists than the one cited
+================================================================================
+They argued from the dependency direction. Verified: `fluxtion-generator-core/pom.xml` declares
+`fluxtion-builder`, so core → builder and a DTO in builder creates no cycle. I checked the reverse
+direction too — builder's only Fluxtion dependencies are `fluxtion-builder-api` and `fluxtion-runtime`.
+
+**But the decisive evidence is a comment in `fluxtion-builder/pom.xml` that the document does not cite:**
+
+    fluxtion-builder is the distributed closed-source base that carries the generation model/DTO/SPI;
+    fluxtion-generator-core (cloud-only) depends DOWN onto this module and is never shipped with builder.
+
+So the module **already declares itself the home for the generation model, DTO and SPI**, and already
+states that generator-core is cloud-only and never shipped. That is documented intent rather than an
+inference from graph direction, and it closes open question 1 more firmly than the argument given. Quote
+it — a maintainer reading their own comment back is harder to argue with than a dependency arrow.
+
+================================================================================
+4 · THE EXPENSIVE ACCEPTANCE — I would keep it, and I can say why from measurement
+================================================================================
+They expected someone to argue the fixture pack belongs later. I argue the opposite, from data rather than
+taste.
+
+**"A hand-written fixture proves only that the author can write JSON"** is precisely the failure this
+project has hit repeatedly and recently. In the last two days: a packaging test injected a stub processor,
+so *"the declared GraphML exists"* passed on a file the product never wrote; a bench fixture declared a
+contract version that made a whole check unreachable, so a mutation passed and I nearly reported an
+untested guard as sound. **Both were green suites over artefacts no user path produces.** A fixture pack
+generated by running the compiler is the only thing that closes that class.
+
+**And the one repair loop end to end is the only test of the actual claim.** Every unit test in the plan
+verifies the compiler emits a diagnostic. None verifies anyone can act on one — and an unconsumable
+diagnostic is the failure being fixed, restated in JSON. That sentence in their document is the best line
+in it.
+
+The cost is real and they are right to flag it. My view: gate Slice 2 with the fixture pack for `Ready`
+codes only, and let the single repair loop follow Slice 2 rather than gate it — the loop needs a consumer,
+and the consumer is cheaper to write once one real fixture exists.
+
+**An offer rather than an opinion.** We have a harness that runs fresh, context-free agents against a real
+generated project and records whether they recover in one step, whether they learn the *rule* or only the
+trick that silenced the error, and what they came away believing. Pointed at a candidate message it answers
+the question no unit test can: *is this followable by someone who does not already know the answer?* Two
+agents, about twenty minutes per candidate. See
+`docs/proposals/notes-for-the-compiler-diagnostics-work.md` in the analyser repo.
+
+================================================================================
+WHAT HELD
+================================================================================
+* The timing judgement is the document's strongest feature. "No `FLX-` code appears in any `.java` file"
+  was checked rather than assumed, and reconciling two independently-written documents before either is
+  implemented is exactly when it is cheap.
+* Finding 3's two collisions are real and correctly scoped as *raise, do not decide*. `referenceKind` vs
+  `refKind` is a published-surface naming choice, and the spec's own principle 4 (existing readers keep
+  working) is precisely the promise a later rename breaks. Same for the fingerprint carrier: a consumer
+  holding only a `.graphml` cannot reach a processor descriptor, so "both are defensible, they are not
+  interchangeable" is the right framing.
+* The discipline of deciding nothing that belongs to the compiler owner — no severities, no key names, no
+  fingerprint carrier, four of five open questions untouched — is correct, and rarer than it should be.
+
+================================================================================
+WHAT I DID NOT CHECK
+================================================================================
+* The README spec's seven slices, severities, readiness column and test plan on their own merits. This
+  review is scoped to the consumer contract and the reconciliation it claims.
+* Whether the eleven codes are the *right* eleven. I verified the mapping, not the registry.
+* Anything about implementation: there is none, which is the document's own point.
