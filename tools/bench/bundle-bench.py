@@ -213,9 +213,11 @@ def check_v4(bundle, contract):
     add("CLAUDE.md restates no rule the agreed set already carries", not restated, ", ".join(restated))
 
     agents = bundle.read("AGENTS.md").decode("utf-8", errors="ignore") if bundle.exists("AGENTS.md") else None
-    add("AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)",
-        agents is not None and agents == guide,
-        "missing" if agents is None else "differs")
+    agents_ok = agents is not None and agents == guide
+    # the detail is the FAILURE reason, so it must be empty on a pass. Emitting "differs" beside a green
+    # check makes a hand-back read as evidence of a problem it does not have (review F6).
+    add("AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)", agents_ok,
+        "" if agents_ok else ("missing" if agents is None else "differs"))
 
     # D-B1: replay carries a marker only a real replay entry point can substitute
     replay = [p for p in bundle.paths if REPLAY_SKILL in p and p.endswith("SKILL.md")]
@@ -354,8 +356,11 @@ def check_bundle(bundle, analyser_version):
         for index in range(max(runbook_count, 0)) for field in ("name", "path", "description")
     }
     found_runbook_keys = {key for key in props if re.fullmatch(r"runbook\.\d+\.(name|path|description)", key)}
-    add("runbook members are exactly zero-based 0..count-1",
-        found_runbook_keys == expected_runbook_keys,
+    runbook_keys_ok = found_runbook_keys == expected_runbook_keys
+    # same rule as the AGENTS.md check (review F6): the detail is the failure reason, so on a pass it is
+    # empty. "missing=[] extra=[]" beside a green line is noise that reads like a problem.
+    add("runbook members are exactly zero-based 0..count-1", runbook_keys_ok,
+        "" if runbook_keys_ok else
         "missing=" + repr(sorted(expected_runbook_keys - found_runbook_keys))
         + " extra=" + repr(sorted(found_runbook_keys - expected_runbook_keys)))
 

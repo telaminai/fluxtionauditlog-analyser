@@ -120,8 +120,100 @@ The export is `logs/audit-demo-bundle.yaml`.
 
         failed = {check.name for check in self.checks() if not check.ok}
 
-        self.assertIn("agent guide declares exactly the supported contract", failed)
+        self.assertIn("agent guide declares exactly one supported contract", failed)
         self.assertIn("no generated file contains a bundle placeholder", failed)
+
+    # ------------------------------------------------------------------ contract v4
+    # These were added with check_v4 and NEVER RAN: the shared fixture declares m19-bundle/3, so check_v4
+    # returned immediately every time. The bench is what a playground generator is told to run as its
+    # definition of done, so an untested half of it is worse than no half at all.
+
+    V4_REFERENCE_BLOCK = (
+        "- <https://fluxtion-playground.dev/build-with-ai> — the loop\n"
+        "- <https://fluxtion-playground.dev/CLAUDE.md> — the orientation\n"
+        "- <https://fluxtion-playground.dev/fluxtion-golden-path.md> — the blessed shape\n")
+
+    def make_v4(self, *, spring=False, reference_block=None, agents=None, extra_paths=()):
+        """Promote the shared fixture to a v4 bundle and return its checks."""
+        guide = (self.root / "CLAUDE.md").read_text().replace("m19-bundle/3", "m19-bundle/4")
+        guide += "\n" + (self.V4_REFERENCE_BLOCK if reference_block is None else reference_block)
+        if spring:
+            guide += ("- <https://fluxtion-playground.dev/spring-authoring/contract.md> — the field table\n")
+            self.write("src/main/fluxtion/designer/application-context.xml", "<beans/>")
+        self.write("CLAUDE.md", guide)
+        self.write("AGENTS.md", guide if agents is None else agents)
+        for path, body in extra_paths:
+            self.write(path, body)
+        return {c.name: c for c in self.checks()}
+
+    def test_v4_passes_when_the_reference_block_is_complete(self):
+        checks = self.make_v4()
+        v4 = [c for n, c in checks.items() if "reference" in n.lower() or "AGENTS.md" in n or "replay" in n]
+        self.assertTrue(v4, "check_v4 did not run at all — the fixture is not declaring m19-bundle/4")
+        for check in v4:
+            self.assertTrue(check.ok, f"{check.name}: {check.detail}")
+
+    def test_v4_fails_when_an_always_on_reference_is_missing(self):
+        checks = self.make_v4(reference_block="- <https://fluxtion-playground.dev/build-with-ai> — only one\n")
+        failed = {n for n, c in checks.items() if not c.ok}
+        self.assertIn("CLAUDE.md points at every always-on agreed resource", failed)
+
+    def test_v4_refuses_a_spring_link_in_a_NON_spring_project(self):
+        checks = self.make_v4(reference_block=self.V4_REFERENCE_BLOCK
+                              + "- <https://fluxtion-playground.dev/spring-authoring/contract.md> — nope\n")
+        failed = {n for n, c in checks.items() if not c.ok}
+        self.assertIn("CLAUDE.md omits the spring resource for a non-spring project", failed,
+                      "appliesTo must SELECT, not annotate")
+
+    def test_v4_requires_the_spring_link_for_a_spring_project(self):
+        checks = self.make_v4(spring=True)
+        self.assertTrue(checks["CLAUDE.md points at the spring resource"].ok)
+
+    def test_v4_refuses_an_excluded_resource(self):
+        checks = self.make_v4(reference_block=self.V4_REFERENCE_BLOCK
+                              + "- <https://fluxtion-playground.dev/audit-replay> — excluded upstream\n")
+        failed = {n for n, c in checks.items() if not c.ok}
+        self.assertIn("CLAUDE.md ships no EXCLUDED resource", failed)
+
+    def test_v4_refuses_a_restated_rule(self):
+        checks = self.make_v4(reference_block=self.V4_REFERENCE_BLOCK
+                              + "\nMark node state @FluxtionIgnore or declare transient.\n")
+        failed = {n for n, c in checks.items() if not c.ok}
+        self.assertIn("CLAUDE.md restates no rule the agreed set already carries", failed,
+                      "pointing is the point — a restated rule stops upstream edits helping")
+
+    def test_v4_requires_AGENTS_md_to_be_generated_not_written(self):
+        checks = self.make_v4(agents="# hand-written and different\n")
+        failed = {n for n, c in checks.items() if not c.ok}
+        self.assertIn("AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)", failed)
+
+    def test_v4_refuses_replay_shipped_with_an_unsubstituted_marker(self):
+        checks = self.make_v4(extra_paths=[
+            (".claude/skills/replay-a-run/SKILL.md",
+             "---\nname: replay-a-run\n---\nTODO(bundle): name the replay command\n")])
+        failed = {n for n, c in checks.items() if not c.ok}
+        self.assertIn("a bundle shipping replay-a-run has a replay entry point it can name", failed)
+
+    def test_a_passing_check_never_carries_a_FAILURE_WORD(self):
+        """Review F6: check_v4 printed "differs" beside a GREEN AGENTS.md check.
+
+        A hand-back is meant to be evidence, and a passing line that reads like a problem devalues every
+        other line on the page. Note the property is NOT "a passing check has no detail" - my first
+        attempt asserted that and it is false: the contract check legitimately reports which version it
+        found. What must never appear on a green line is a word that MEANS failure.
+        """
+        failure_words = ("differs", "missing", "unreadable", "not found", "invalid", "refused")
+        # BOTH contracts. Checked on v3 only, this missed the very check that prompted the finding, since
+        # check_v4 does not run on a v3 bundle — the first mutation test I ran passed for that reason.
+        for label, checks in (("v3", self.checks()), ("v4", self.make_v4().values())):
+            for check in checks:
+                if not check.ok:
+                    continue
+                detail = (check.detail or "").lower()
+                for word in failure_words:
+                    self.assertNotIn(word, detail,
+                                     f"{label}: passing check reads as a failure: "
+                                     f"{check.name!r} -> {check.detail!r}")
 
     def test_zip_preserves_the_same_contract_and_executable_checks(self):
         archive = pathlib.Path(self.temp.name) / "bundle.zip"
