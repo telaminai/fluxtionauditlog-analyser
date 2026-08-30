@@ -173,6 +173,11 @@ analyser (reverse funnel)._
   header to anyone who regenerates — and **our own canonical `add-a-node` skill hands users exactly that
   command**, so the analyser routes people into it. The starter has stopped being a carrier; the generator
   has not. Exposure window on the live bundle was roughly two hours (their measurement, not ours).
+  **UPDATE 2026-08-30 (comment on #24):** the playground has scrubbed its bundle, verified here against
+  production — so **the analyser jar is now the remaining public carrier**, and the generator keeps
+  stamping every user who regenerates. Still deliberately not hand-patched; it clears when #24 lands and
+  the fixture is regenerated. **No second issue was filed:** #24 already carries the analyser demo as
+  evidence item 2, and a duplicate would dilute the one that exists rather than add to it.
 
 - [M19.21] ◧ **v4 SHIPPED AND DEPLOYED; the deploy exposed a bug older than v4** _(2026-08-30)_ —
   `fluxtion-web` `453d084` → `b4194d3` → `2c973d4`, **live**. Review findings F1/F3/F4/F5 closed
@@ -834,6 +839,14 @@ and the M43 menu-name question for the owner._
   layout is the work, with pure-Java ELK as the fallback (spec-graph-replay §3).
 
 ## Open questions
+
+- **When the playground lands a numeric `price` node-log key, the tutorial's graph step becomes
+  executable** _(2026-08-30)_. `docs/site/tutorial-playground.md` (~line 107) is **currently correct and
+  deliberately illustrative**: it states that the bundle records the whole `PriceEvent` under
+  `rootNode.receivedEvent`, that there is *"no honest bundle value to tell you to right-click in this
+  release"*, and it labels the screenshot as the analyser's own DEMO run rather than the bundle. Nothing to
+  fix now. The follow-up is to make the step executable against the bundle once the playground's fix ships,
+  and to re-shoot that figure from the bundle rather than the demo.
 
 
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
