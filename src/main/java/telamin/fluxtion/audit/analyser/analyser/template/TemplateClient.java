@@ -64,8 +64,12 @@ public final class TemplateClient {
     private final Fetcher fetcher;
 
     /**
-     * D-AX10 — a loopback-only origin override, for running the analyser against a playground served
-     * locally while experimenting on the template and its documentation.
+     * D-AX10 — an origin override with a <b>loopback-only HTTP exception</b>, for running the analyser
+     * against a playground served locally while experimenting on the template and its documentation.
+     *
+     * <p>The heading previously said "loopback-only origin override", which is backwards: any HTTPS
+     * origin is accepted, and it is <em>plain HTTP</em> that is confined to loopback. Recorded twice by
+     * review before it was fixed.
      *
      * <p>Deliberately a <b>JVM system property and not a setting</b>. A persisted origin is a
      * supply-chain surface that outlives the experiment that created it: it would sit in a profile,

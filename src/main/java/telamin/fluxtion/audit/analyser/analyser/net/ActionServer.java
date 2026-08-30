@@ -112,16 +112,39 @@ public final class ActionServer {
         return "http://127.0.0.1:" + port;
     }
 
+    /**
+     * The guards every route shares, in the order the security contract requires.
+     *
+     * <p><b>Origin comes first, on every route</b> (review F2). The class contract is that any request
+     * carrying {@code Origin} is refused outright — the deliberately blunt DNS-rebinding posture — and a
+     * method or path reply ahead of it would answer a browser we said we would not answer.
+     *
+     * <p><b>Then the EXACT path</b> (review F1). {@code HttpServer} dispatches by longest matching
+     * PREFIX, not by exact match, so {@code /action/not-a-route} reaches this handler and, with a valid
+     * token, executed the action. The route said the path was wrong while doing the work anyway.
+     *
+     * @return true when the request has been answered and the caller must stop.
+     */
+    private boolean refusedByCommonGuards(HttpExchange ex, String exactPath, String method)
+            throws IOException {
+        if (ex.getRequestHeaders().containsKey("Origin")) {   // browser cross-origin → reject outright
+            send(ex, 403, err("requests carrying an Origin header are rejected"));
+            return true;
+        }
+        if (!exactPath.equals(ex.getRequestURI().getPath())) {
+            sendDiscovery(ex);           // a near-miss gets the signpost, never the handler
+            return true;
+        }
+        if (!method.equalsIgnoreCase(ex.getRequestMethod())) {
+            send(ex, 405, err(method + " only"));
+            return true;
+        }
+        return false;
+    }
+
     private void handleAction(HttpExchange ex) throws IOException {
         try {
-            if (!"POST".equalsIgnoreCase(ex.getRequestMethod())) {
-                send(ex, 405, err("POST only"));
-                return;
-            }
-            if (ex.getRequestHeaders().containsKey("Origin")) {   // browser cross-origin → reject outright
-                send(ex, 403, err("requests carrying an Origin header are rejected"));
-                return;
-            }
+            if (refusedByCommonGuards(ex, "/action", "POST")) return;
             String provided = ex.getRequestHeaders().getFirst(TOKEN_HEADER);
             if (provided == null || !provided.equals(token)) {
                 send(ex, 401, err("missing or bad " + TOKEN_HEADER));
@@ -148,23 +171,35 @@ public final class ActionServer {
      * any data, and a caller who cannot authenticate still needs to learn they are at the wrong door.
      */
     private void handleUnknownPath(HttpExchange ex) throws IOException {
+        // Origin first here too (F2): this is the browser-addressable surface, so it must not be the one
+        // route that answers a cross-origin caller.
+        if (ex.getRequestHeaders().containsKey("Origin")) {
+            send(ex, 403, err("requests carrying an Origin header are rejected"));
+            return;
+        }
+        sendDiscovery(ex);
+    }
+
+    /** The signpost: still 404, but enough to reach a working call on the next attempt. */
+    private void sendDiscovery(HttpExchange ex) throws IOException {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("ok", false);
         body.put("error", "no such path: " + ex.getRequestURI().getPath());
         body.put("routes", Map.of(
-                "/manifest", "GET — every verb and its JSON schema. Start here.",
+                "/manifest", "GET — every verb and its JSON schema. No token needed. Start here.",
                 "/action", "POST — run one verb"));
         body.put("actionEnvelope", Map.of("action", "<verb name>", "params", Map.of()));
-        body.put("tokenHeader", TOKEN_HEADER + " (required by /action and /manifest, not by this reply)");
+        // F3: the manifest is deliberately public — it is the bootstrap, and a token you cannot yet
+        // obtain is no use for discovering how to use the token you have.
+        body.put("tokenHeader", TOKEN_HEADER + " (required by /action only)");
         send(ex, 404, Json.write(body));
     }
 
     private void handleManifest(HttpExchange ex) throws IOException {
         try {
-            if (ex.getRequestHeaders().containsKey("Origin")) {
-                send(ex, 403, err("requests carrying an Origin header are rejected"));
-                return;
-            }
+            // Deliberately tokenless: the manifest is the bootstrap, and a token you cannot yet obtain is
+            // no use for learning how to use the token you have. Guarded on Origin, exact path and GET.
+            if (refusedByCommonGuards(ex, "/manifest", "GET")) return;
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("v", ActionDispatcher.SCHEMA_VERSION);
             m.put("tokenHeader", TOKEN_HEADER);

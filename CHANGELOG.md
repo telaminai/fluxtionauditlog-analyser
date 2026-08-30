@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **A near-miss path on the local assistant socket no longer reaches the handler.** The JDK's HTTP server
+  dispatches by longest path *prefix*, so `POST /action/not-a-route` with a valid token executed the
+  action, and `/manifest/anything` served the manifest. Both routes now require their exact path, enforce
+  their method, and refuse any request carrying `Origin` before anything else.
 - **A wrong path on the local assistant socket now says where the right one is.** Requesting anything
   other than `/action` or `/manifest` returned a bare "no context found", so a client holding a valid URL
   and token had no way to learn the protocol — and `/manifest`, which lists every verb and schema, was

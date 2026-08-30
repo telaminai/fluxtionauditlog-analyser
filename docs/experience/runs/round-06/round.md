@@ -1,7 +1,9 @@
 # Round 06 — the shipped assets, and the first round that could reach the audit half
 
-**Exploration round, n=2.** Predictions registered at `4e3e5bc`, rig amendment at `94f51bf`, both before
-either agent reported.
+**Exploration round, n=2.** Predictions registered at `c55d8b5`, rig amendment at `6a66cf4`, both before either agent
+reported. *(Corrected by review F5: the first write named `4e3e5bc`/`94f51bf`, which a rebase left
+unreachable — they exist in one working copy and no branch contains them, so a fresh clone could not
+check the preregistration claim. The evidence for a timing claim has to survive a clone.)*
 
 ## The rig caveat did NOT fire
 

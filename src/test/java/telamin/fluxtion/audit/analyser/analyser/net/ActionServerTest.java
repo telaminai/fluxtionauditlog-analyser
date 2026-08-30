@@ -162,4 +162,60 @@ class ActionServerTest {
         assertEquals(200, m.statusCode(), "/manifest must not be swallowed by the catch-all");
         assertTrue(m.body().contains("verbs"), m.body());
     }
+
+    // ---- review F1/F2/F3: HttpServer dispatches by PREFIX, not exact match ---------------------------
+
+    @Test
+    void aCHILDofActionDoesNotExecuteTheAction() throws Exception {
+        // The defect this pins: HttpServer chooses the longest matching PREFIX, so /action/not-a-route
+        // reached handleAction and, with a valid token, RAN the action — while the route the caller
+        // addressed did not exist. The server said the path was wrong by doing the work anyway.
+        HttpResponse<String> r = send(req("/action/not-a-route")
+                .header(ActionServer.TOKEN_HEADER, "s3cr3t")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"action\":\"aggregate\",\"params\":{}}"))
+                .build());
+
+        assertEquals(404, r.statusCode(), "a child path must not reach the handler");
+        assertTrue(r.body().contains("/manifest"), "and it should get the signpost: " + r.body());
+        assertFalse(r.body().contains("\"result\""), "the action must NOT have executed: " + r.body());
+    }
+
+    @Test
+    void aCHILDofManifestDoesNotServeTheManifest() throws Exception {
+        HttpResponse<String> r = send(req("/manifest/not-a-route").GET().build());
+        assertEquals(404, r.statusCode());
+        assertFalse(r.body().contains("\"verbs\""), "the manifest must not leak from a child path");
+    }
+
+    @Test
+    void wrongMethodsOnTheEXACTpathsAre405() throws Exception {
+        assertEquals(405, send(req("/manifest")
+                .POST(HttpRequest.BodyPublishers.ofString("{}")).build()).statusCode());
+        assertEquals(405, send(req("/action").header(ActionServer.TOKEN_HEADER, "s3cr3t")
+                .GET().build()).statusCode());
+    }
+
+    @Test
+    void ORIGINisRefusedBeforeAnythingElse_onEveryRoute() throws Exception {
+        // the class contract is that ANY request carrying Origin is refused; a method or path reply ahead
+        // of it would answer a browser we said we would not answer (review F2)
+        assertEquals(403, send(req("/not-a-route").header("Origin", "http://evil.example")
+                .GET().build()).statusCode(), "the discovery route must not be the exception");
+        assertEquals(403, send(req("/action").header("Origin", "http://evil.example")
+                .GET().build()).statusCode(), "Origin must beat the 405, not follow it");
+        assertEquals(403, send(req("/manifest").header("Origin", "http://evil.example")
+                .GET().build()).statusCode());
+    }
+
+    @Test
+    void discoveryStatesTheREALtokenContract() throws Exception {
+        // F3: it said the manifest needs a token. It does not, deliberately — and an agent told otherwise
+        // may never try the one call that would have unblocked it.
+        assertEquals(200, send(req("/manifest").GET().build()).statusCode(),
+                "the manifest is public by design");
+        String body = send(req("/nope").GET().build()).body();
+        assertTrue(body.contains("required by " + ActionServer.TOKEN_HEADER.replace("X-Analyser-Token",
+                "X-Analyser-Token") + " only") || body.contains("only"), body);
+        assertFalse(body.contains("required by /action and /manifest"), "the old, wrong contract: " + body);
+    }
 }

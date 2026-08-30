@@ -428,16 +428,12 @@ analyser (reverse funnel)._
   screenshots now show the real bundle's project, log, PriceEvent cycle and source navigation; three
   existing isolated-DEMO figures cover graphing, the AI menu and MCP setup. The remaining spec captures
   are the live playground Download, terminal lifecycle, an actual Explain answer and IDE edit; no connected
-  browser was available in this session, so those were not fabricated. **One producer gap blocks the graph step:**
-  the released bundle logs `rootNode.receivedEvent` as a string but no numeric key, so the tutorial cannot
-  honestly graph `price` until the starter logs it separately. Original requirement: four parts + the
-  8-screenshot set (spec §Part 2, anonymised
-  per policy), nav under Getting started. **Publish-gated on the bundle shipping** (write against the
-  contract; publish only when Download delivers). **Two authoring notes:** (a) the pathway table names
-  the Support leg "run, observe, diagnose *and fix*" — but "fix" is M12/M18; keep the page copy honest
-  to what's shipped that week (don't promise fixing before M18 lands — the end-bridge already phases it
-  as "+ server link once M18 ships"). (b) In-page links must be **site-relative** (`producing-a-log.md`,
-  not the spec's `../site/producing-a-log.md`) or `mkdocs build --strict` fails the link-check.
+  browser was available in this session, so those were not fabricated. **RESOLVED 2026-08-30:** the
+  producer gap that blocked the graph step is fixed — the released bundle now logs `price` and `volume` as
+  numeric keys, the tutorial tells readers to chart one from their own run, and the four screenshots were
+  re-shot against the real bundle. The DEMO chart is kept only because five cycles make an illegible plot,
+  and the page says so rather than implying the demo is the bundle. Remaining: the three neutral captures
+  that need a connected browser (live Download, terminal lifecycle, an Explain answer).
 - [M19.5] **ANALYSER HALF REVIEWED AND ACCEPTED 2026-08-30** —
   [`review_m19_5_template_picker.txt`](../handoff/review_m19_5_template_picker.txt). The archive
   boundary held against ten attacks written for the cases the report's own suite leaves open —
@@ -867,13 +863,11 @@ and the M43 menu-name question for the owner._
 
 ## Open questions
 
-- **When the playground lands a numeric `price` node-log key, the tutorial's graph step becomes
-  executable** _(2026-08-30)_. `docs/site/tutorial-playground.md` (~line 107) is **currently correct and
-  deliberately illustrative**: it states that the bundle records the whole `PriceEvent` under
-  `rootNode.receivedEvent`, that there is *"no honest bundle value to tell you to right-click in this
-  release"*, and it labels the screenshot as the analyser's own DEMO run rather than the bundle. Nothing to
-  fix now. The follow-up is to make the step executable against the bundle once the playground's fix ships,
-  and to re-shoot that figure from the bundle rather than the demo.
+- ~~**When the playground lands a numeric `price` node-log key, the tutorial's graph step becomes
+  executable**~~ — **CLOSED 2026-08-30, the same day it was raised.** The playground shipped the numeric
+  keys, the tutorial step is executable rather than illustrative, and the figures were re-shot. Left struck
+  rather than deleted because a question that was live for four hours is still evidence of how the two
+  repos actually worked.
 
 
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
