@@ -41,6 +41,9 @@ public final class ReferenceSet {
     private static final String RESOURCE = "/reference-set.json";
     public static final String FILE_NAME = "CLAUDE.md";
 
+    /** Machine-readable end of the rendered block; see {@link #markdown(String)}. */
+    public static final String BLOCK_END = "<!-- reference-block:end -->";
+
     public record Resource(String id, String url, String why, String status, String appliesTo, String note) {
         public boolean agreed() {
             return "agreed".equals(status);
@@ -141,8 +144,13 @@ public final class ReferenceSet {
         for (Resource r : agreed) {
             out.append("- <").append(r.url()).append("> — ").append(r.why()).append('\n');
         }
-        out.append("\nBelow this line belongs only what those do **not** cover: this project's own paths, ")
-                .append("commands and graph.\n");
+        // The machine-readable end of the block (bundle contract v4). A generator emits it and the bench
+        // bounds its restated-rule scan with it; pinning a PROSE sentence instead would weld a parser to
+        // words that must stay free to improve, and the two repos had already drifted before anyone
+        // noticed. An HTML comment renders as nothing.
+        out.append("\n").append(BLOCK_END).append("\n\n")
+                .append("Below this line belongs only what those do **not** cover: this project's own ")
+                .append("paths, commands and graph.\n");
         return out.toString();
     }
 

@@ -40,6 +40,11 @@ REFERENCE_EXCLUDED = (
     "https://fluxtion-playground.dev/audit-replay",
 )
 REPLAY_SKILL = "replay-a-run"
+
+# v4 D-B2: the machine-readable end of the generated reference block. The generator emits it; the bench
+# bounds its restated-rule scan with it. Deliberately an HTML comment: invisible when rendered, and it
+# leaves the surrounding prose free to be improved without breaking a parser.
+REFERENCE_BLOCK_END = "<!-- reference-block:end -->"
 PROFILE = ".analyser/project.fluxtion-settings"
 GUIDES = ("CLAUDE.md", "AGENTS.md")
 COMMAND_SCRIPTS = ("run-server.sh", "export-audit.sh", "stop-server.sh")
@@ -209,8 +214,23 @@ def check_v4(bundle, contract):
 
     # D-AX1b: pointing is the point. Restating a rule the agreed set carries is the duplication that
     # produced four wrong versions of the audit contract, and it is why an upstream edit stops helping.
-    restated = [t for t in ("@FluxtionIgnore", "declare transient", "source-gen triage") if t in guide]
-    add("CLAUDE.md restates no rule the agreed set already carries", not restated, ", ".join(restated))
+    #
+    # BOUNDARY (contract decision, 2026-08-30): the scan is bounded by an explicit MARKER, not by matching
+    # a sentence. A prose sentence is written for a human and must stay free to improve; welding a parser
+    # to it makes every wording change a breaking change, and the two repos had already drifted
+    # ("Everything below…" vs "Below this line…") before anyone noticed. An HTML comment renders as
+    # nothing, says exactly one thing, and belongs to the machine.
+    body_start = guide.find(REFERENCE_BLOCK_END)
+    if body_start < 0:
+        # FAIL CLOSED. Without the marker the boundary is unknown, and scanning the whole file would
+        # flag the reference block's own text. Refusing is the honest answer; guessing is not.
+        add("CLAUDE.md marks the end of the reference block", False,
+            "expected " + REFERENCE_BLOCK_END + " — without it the restated-rule scan cannot be bounded")
+    else:
+        add("CLAUDE.md marks the end of the reference block", True)
+        body = guide[body_start + len(REFERENCE_BLOCK_END):]
+        restated = [t for t in ("@FluxtionIgnore", "declare transient", "source-gen triage") if t in body]
+        add("CLAUDE.md restates no rule the agreed set already carries", not restated, ", ".join(restated))
 
     agents = bundle.read("AGENTS.md").decode("utf-8", errors="ignore") if bundle.exists("AGENTS.md") else None
     agents_ok = agents is not None and agents == guide

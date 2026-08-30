@@ -779,6 +779,7 @@ result.
 | let `appliesTo` **select**, not annotate | a Spring-only link must not appear in a non-Spring project — an always-in-context file is a tax on every turn (review N1) |
 | below the block, only what the set does **not** cover | this project's paths, commands, graph — and the audit contract, until [fluxtion#22](https://github.com/telaminai/fluxtion/issues/22) lands upstream |
 | mirror to `AGENTS.md` by **generation**, never by hand | two hand-maintained copies diverge silently (D-AX8) |
+| end the block with `<!-- reference-block:end -->` | **normative.** The restated-rule check is bounded by this marker and **fails closed** without it. A marker rather than a sentence, because prose must stay free to improve and the two repos had already drifted before anyone noticed |
 
 **A generated `CLAUDE.md` must not restate a rule the agreed set already carries.** That is the D-AX1b
 duplication rule, and it is what makes an upstream edit improve every project instead of one.

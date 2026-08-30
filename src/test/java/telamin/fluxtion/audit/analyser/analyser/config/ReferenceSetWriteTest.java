@@ -57,6 +57,19 @@ class ReferenceSetWriteTest {
     }
 
     @Test
+    void theRenderedBlockCarriesItsMACHINEreadableEnd() {
+        // contract v4: the bench bounds its restated-rule scan on this marker and fails closed without
+        // it, so a renderer that stops emitting it silently disables a check rather than failing one.
+        if (ReferenceSet.agreed().isEmpty()) return;
+        String md = ReferenceSet.markdown(null);
+        assertTrue(md.contains(ReferenceSet.BLOCK_END), "the block must mark where it ends");
+        for (var r : ReferenceSet.agreedFor(null)) {
+            assertTrue(md.indexOf(r.url()) < md.indexOf(ReferenceSet.BLOCK_END),
+                    r.id() + " must sit ABOVE the boundary, or the scan will read it as project prose");
+        }
+    }
+
+    @Test
     void onlyAGREEDentriesCouldEverBeWritten() {
         // the excluded audit-replay page actively misleads authors (fluxtion#22); a rendering bug that
         // let it through would put that in front of every new project

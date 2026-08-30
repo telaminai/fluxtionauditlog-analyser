@@ -125,6 +125,21 @@ way suits your generator.
 For a NON-Spring template the fourth bullet must be **absent** — `appliesTo` selects, it does not
 annotate.
 
+**BOUNDARY — decided 2026-08-30, and this is the contract owner's call you asked for.** End the generated
+block with, on its own line:
+
+    <!-- reference-block:end -->
+
+**Emit the marker; do NOT match a sentence.** The prose above and below it is written for a human and must
+stay free to improve — the two repos had already drifted (*"Everything below…"* against *"Below this
+line…"*) before anyone noticed, which is precisely what welding a parser to a sentence produces. An HTML
+comment renders as nothing, says one thing, and belongs to the machine.
+
+The bench bounds its restated-rule scan on that marker and **fails closed without it**: no marker, no
+boundary, and the check refuses rather than guessing. So a generator that stops emitting it fails a check
+instead of silently disabling one. The analyser's own renderer emits it too, and a test pins that every
+agreed link sits *above* it.
+
 ================================================================================
 5. DONE LOOKS LIKE — and it is executable
 ================================================================================

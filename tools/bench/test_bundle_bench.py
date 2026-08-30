@@ -131,7 +131,8 @@ The export is `logs/audit-demo-bundle.yaml`.
     V4_REFERENCE_BLOCK = (
         "- <https://fluxtion-playground.dev/build-with-ai> — the loop\n"
         "- <https://fluxtion-playground.dev/CLAUDE.md> — the orientation\n"
-        "- <https://fluxtion-playground.dev/fluxtion-golden-path.md> — the blessed shape\n")
+        "- <https://fluxtion-playground.dev/fluxtion-golden-path.md> — the blessed shape\n"
+        "\n<!-- reference-block:end -->\n")
 
     def make_v4(self, *, spring=False, reference_block=None, agents=None, extra_paths=()):
         """Promote the shared fixture to a v4 bundle and return its checks."""
@@ -193,6 +194,25 @@ The export is `logs/audit-demo-bundle.yaml`.
              "---\nname: replay-a-run\n---\nTODO(bundle): name the replay command\n")])
         failed = {n for n, c in checks.items() if not c.ok}
         self.assertIn("a bundle shipping replay-a-run has a replay entry point it can name", failed)
+
+    def test_v4_fails_closed_when_the_reference_block_boundary_is_MISSING(self):
+        """Contract decision: bound the restated-rule scan by an explicit marker, not by a sentence.
+
+        Without the marker the boundary is unknown. Scanning the whole file would flag the reference
+        block's own text; scanning none of it would pass anything. Refusing is the only honest option.
+        """
+        block = self.V4_REFERENCE_BLOCK.replace("\n<!-- reference-block:end -->\n", "")
+        checks = self.make_v4(reference_block=block)
+        failed = {n for n, c in checks.items() if not c.ok}
+        self.assertIn("CLAUDE.md marks the end of the reference block", failed)
+
+    def test_v4_scans_for_restated_rules_only_BELOW_the_boundary(self):
+        """A rule named ABOVE the marker is the reference block describing itself, not a restatement."""
+        above = ("- <https://fluxtion-playground.dev/CLAUDE.md> — the orientation, incl. the source-gen "
+                 "triage table\n" + self.V4_REFERENCE_BLOCK)
+        checks = self.make_v4(reference_block=above)
+        self.assertTrue(checks["CLAUDE.md restates no rule the agreed set already carries"].ok,
+                        "a link's own description must not count as a restatement")
 
     def test_a_passing_check_never_carries_a_FAILURE_WORD(self):
         """Review F6: check_v4 printed "differs" beside a GREEN AGENTS.md check.
