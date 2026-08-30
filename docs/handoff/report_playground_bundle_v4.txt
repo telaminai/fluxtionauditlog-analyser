@@ -262,3 +262,58 @@ STILL OPEN, and none of it is mine to close
     by rewording your `why` text, for the reason in §3.
   · F6 (the "differs" detail on a passing AGENTS.md check) — analyser-side.
   · The RootNode numeric-log finding remains separate and unaddressed here, as the review says.
+
+--------------------------------------------------------------------------------
+ADDENDUM — READ BEFORE IMPLEMENTING THE BOUNDED SCAN (2026-08-30)
+--------------------------------------------------------------------------------
+The review's accepted conclusion 1 says to scope the restatement scan "to the guide content after the
+stable 'Everything below' boundary". That makes a STRING IN MY GENERATOR into part of your gate, and
+nothing currently records it as a contract. Two things to fix that before you build on it.
+
+1. THE TWO DOCUMENTS DISAGREE ABOUT WHAT THE BOUNDARY SAYS.
+
+     my generator emits (CLAUDE.md:14):
+       Everything below is only what those do **not** cover: this project's own paths, commands and graph.
+
+     your brief's §4b worked target says:
+       Below this line belongs only what those do **not** cover: this project's own paths, commands and
+
+   The review keyed on MY wording, which is the one that exists in a real bundle — but the brief's
+   worked target is what a future generator would be written against. If someone later aligns my
+   prose to your §4b, a scan keyed on "Everything below" stops finding a boundary.
+
+   Your review already anticipated the consequence — "make a missing boundary fail closed" — which is
+   the right call and turns this from a silent hole into a loud failure. Please keep that; it is what
+   makes the coupling survivable.
+
+2. WHAT I SUGGEST, so the gate does not rest on prose either of us may edit.
+
+   Either (a) name the exact boundary sentence in the v4 contract as normative, and I will pin it
+   playground-side with an exact-match test so a reword fails my build instead of your scan; or
+   (b) have the generator emit a stable, non-prose marker — an HTML comment such as
+   `<!-- reference-block:end -->` — and scan on that. (b) is more robust because it cannot be
+   improved by an editor who does not know it is load-bearing, and it costs one line in my emitter.
+   I have not implemented either: which one it is, is your call as the contract's owner.
+
+   Until one of them is chosen, treat "Everything below is only what those do **not** cover:" as the
+   literal boundary — it is what the shipped bundle contains today, verified in the staged build
+   below.
+
+VERIFIED END TO END (2026-08-30), so "the playground is safe to deploy" is not an assertion:
+  tools/stage-tutorial-bundle.sh against fluxtion-web 453d084 — the real download seam, then
+  generate, then build with the key UNREACHABLE, then the generating build REFUSED for want of a key,
+  then run, export and clean stop:
+      staged   /tmp/fluxtion-tutorial/audit-analyser-bundle
+      log      logs/audit-audit-analyser-bundle.yaml, 15 PriceEvent references
+      profile  contract m19-bundle/4, runbook.count=4, skills.provenance canonical@619e048f…
+      skills   add-a-node, guided-start, load-audit-log, run-mongoose-server
+  So the v4 bundle a user would download builds, runs, exports and stops. The 68/69 is a gate defect,
+  not a broken artefact.
+
+TWO THINGS THAT ARE STILL DECISIONS, NOT DEFECTS, if the playground is deployed before you land F2:
+  · a downloaded bundle declares m19-bundle/4 and a skills provenance pointing at a commit of an
+    index that is still DRAFT — NOT PUBLISHED. Users would hold a project referencing a contract we
+    have not published. Your §6 ask was that v2 is lifted once a generator proves it, so the natural
+    order is: you land F2 + the scan → the bundle goes green → you publish v2 → then deploy.
+  · until then the artefact ships with a known red check. I am confident it is yours and you agreed,
+    but shipping to users past a red gate is a different decision from handing one to a reviewer.
