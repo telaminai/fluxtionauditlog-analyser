@@ -22,6 +22,14 @@ and **Help ▸ Start page** recalls it without closing what you are working on. 
 open a different demo log, because one log cannot answer all three — coverage needs a *traced* run, and
 a chart needs a series.
 
+## Next: a system you actually run
+
+The demo log is a recording. When you want to see the loop close — a running server producing a log
+that the analyser then explains — download a prepared project and run it:
+**[From playground to analyser in 10 minutes](tutorial-playground.md)**. It needs a JDK and no API
+key, and it is the same door your own system will use, one rung before you point the analyser at
+something of yours.
+
 ## Then: your own log
 
 When you have a log from your own processor — see [Producing an audit log](producing-a-log.md) — open it

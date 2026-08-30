@@ -2,7 +2,10 @@
 
 The analyser reads the **event-audit log** a Fluxtion `EventProcessor` emits. This page is the whole
 path from "my processor logs nothing" to a file the analyser opens. In a hurry, or just evaluating?
-The analyser ships a recorded run inside the jar — see [Getting started](getting-started.md).
+The analyser ships a recorded run inside the jar — see [Getting started](getting-started.md). Want a
+**live producer** instead of a recording — something you start, that writes a log while you watch?
+Download a prepared one: [From playground to analyser in 10 minutes](tutorial-playground.md). Its
+audit configuration is a working example of everything below.
 
 ## The shortest complete example
 

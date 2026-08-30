@@ -101,6 +101,8 @@ See the [Assistant guide](user-guide/assistant.md) for the full workflow.
 
 - **[Getting started](getting-started.md)** — open a log, add source roots, pick your event processor,
   configure the LLM, S3 and tailing — everything in Settings to get up and running.
+- **[From playground to analyser in 10 minutes](tutorial-playground.md)** — download a runnable
+  system, start it, and read the log it produces. A JDK, no API key, nothing else to install.
 - [Install & run](install.md)
 - [User guide](user-guide/index.md)
 - [Log format](log-format.md)
