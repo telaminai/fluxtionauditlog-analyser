@@ -571,6 +571,28 @@ Design: **[completed/spec-external-series.md](completed/spec-external-series.md)
 ## M31 · Log-source plugins — ◧ SHIPPED 2026-08-18 (archived; example reader is cross-repo)
 _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full record in
 **[completed/tracker.md](completed/tracker.md)**. Design: **[completed/spec-log-source-plugins.md](completed/spec-log-source-plugins.md)**._
+- [M31.4r] ◧ **BOTH EXAMPLE READERS BUILT; ACCEPTANCE 5 SETTLED** _(playground session, 2026-08-30)_ —
+  `fluxtion-web` `721b195` + `4408d90`, in `web/static/examples/analyser-reader-{jsonl,csv}`.
+  **Acceptance 2:** the JSONL plugin was verified by loading the BUILT JAR through the analyser's own
+  `ReaderRegistry` — discovered from a plugins directory, selected for `sample.jsonl` over the built-in
+  yaml reader, canonical text produced, store ingests 3 records.
+  **Acceptance 5, exhibited rather than asserted.** The CSV plugin bundles Jackson 2.9 where the JSONL
+  one bundles 2.17, and each asserts at open time which version its own classloader resolved:
+
+      FLAT classpath, jsonl first   Jsonl OK 2.17.2  ·  Csv   BROKEN (resolved 2.17.2)
+      FLAT classpath, csv first     Csv   OK 2.9.10  ·  Jsonl BROKEN (resolved 2.9.10)
+      ISOLATED, via the registry    jsonl 3 records 2.17.2  ·  csvrecords 2 records 2.9.10
+
+  Whichever version wins a flat classpath one plugin breaks — SILENTLY, in the ordinary case where a
+  plugin does not check its own dependency. Through the registry both work in one JVM on two versions
+  of the same class name. This is the acceptance no in-tree test can settle.
+  **STILL OPEN, and analyser-owned:** the plugin-author guide on the docs site, which slice M31.4 pairs
+  with this example. The two facts it must state are now established — how to obtain the SPI today
+  (release jar + `install-file`, since the pom is `0.0.0-SNAPSHOT` and resolvable from nowhere) and
+  that the published SHA-256 is worth checking, because the FAQ's own trust boundary says installing a
+  plugin jar is arbitrary code execution.
+  **Ask back:** when M31.5 lands, both examples should switch to the published SPI artifact and their
+  `setup.sh` should disappear. Original plan and blocker analysis —
 - [M31.4r] ◐ **IN PROGRESS (playground session, 2026-08-30)** — plan:
   [`plan_playground_reader_plugin.txt`](../handoff/plan_playground_reader_plugin.txt). **Blocker found
   and resolved:** M31.5's "plugin authors compile against the fatjar meanwhile" is not automatic — the
