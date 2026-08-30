@@ -1,0 +1,215 @@
+REVIEW — M44 session transition processor specification
+Spec commit: 039fa88
+Reviewed on main at: 4ad093f (the later commit does not change M44)
+Date: 2026-08-31
+Verdict: CHANGES REQUIRED — ARCHITECTURE DIRECTION ACCEPTED
+
+The choice is right. Session transitions are exactly the kind of behaviour that benefits from one
+compiled, replayable and auditable decision graph, and starting with one decision is the right migration
+shape. The spec is not safe to implement yet, though. Its eight sections name the right categories but do
+not form a closed protocol: requests, fallible I/O results, authoritative state and completed effects are
+currently collapsed together. That would make the first audit log describe intended transitions rather
+than necessarily describing what the application actually did.
+
+
+F1 — BLOCKING — requested state and completed state are not separated
+
+The event table has `OpenProjectRequested`, `OpenLogRequested` and `OpenGraphRequested`, but only project
+loading has an outcome event (`ProfileLoaded`), and that event carries neither the requested path nor an
+operation identity (spec-session-processor.md:61-69). The state nodes then claim ownership of the active
+project, open log and open graph (lines 71-78).
+
+All three operations are fallible. Updating state on the request makes the processor lie when I/O fails;
+updating it on an uncorrelated outcome makes two overlapping/background operations capable of completing
+against the wrong request. The existing project code has the correct ordering: it closes the current
+session only after `ProjectProfile.load` succeeds. A bad path or failed load does not close anything.
+
+The output side is equally incomplete. `CloseLogEffect` says what should happen, not that it happened.
+There are no `LogOpened`/`LogOpenFailed`, `GraphOpened`/`GraphOpenFailed`, `LogClosed`, `GraphClosed`,
+`ProfileApplied` or effect-failure facts. An audit entry saying `closingLog=true` can therefore be mistaken
+for evidence that the log closed.
+
+Required contract:
+
+  request -> decision/plan -> effect request -> adapter result -> authoritative state transition
+
+Every fallible effect needs a typed result. Correlate it with an operation id, or explicitly enforce and
+test a single-in-flight synchronous driver. State nodes consume completed facts, never intentions. Audit
+both the decision and its result so “requested close” and “closed” cannot be conflated.
+
+Also specify effect delivery. A safe minimal driver is: call `processor.onEvent(fact)`, drain an immutable
+`EffectBatch`, perform it outside Fluxtion dispatch, then feed result events back in order. Do not let a
+graph node call Swing/filesystem adapters directly or recursively call `onEvent`; that recreates hidden
+orchestration and makes re-entrancy part of the model by accident.
+
+
+F2 — BLOCKING — the first slice cannot express the existing SessionBoundary exceptions
+
+`OpenProjectRequested.source` lists menu/recent/template/socket (line 63), but the current application has
+a load-bearing distinction that is not a surface name:
+
+* an explicit project switch ends the session;
+* adopting the project offered BECAUSE a log was just opened does not close that log
+  (`applyProjectResult(..., false)` in MainFrame);
+* reopening the already-active project is a no-op;
+* a failed project load changes and closes nothing;
+* startup activation, create-project, save-as/fork and close-project have distinct semantics.
+
+Inferring intent from “a log happens to be open” is unsound: an explicit menu/socket switch with a log open
+must close it, while adoption for that same log must keep it. Add a project-transition kind such as
+`EXPLICIT_SWITCH`, `ADOPT_FOR_OPEN_LOG`, `STARTUP_ACTIVATION`, `CREATE`, `FORK` and `CLOSE`, then give each
+one a decision-table row.
+
+The first-slice replay must cover at least: successful explicit switch closes; failed switch does not;
+same-project open does not; log-offer adoption does not; close restores pre-project settings and closes;
+and socket/menu routes obtain the same decision. Name the exact old branches deleted in that slice. Merely
+removing the `if (endsSession)` block would leave `sessionEndEcho`, ignored-parameter routing and the
+adoption exception as independent sources of the same rule.
+
+The wider event inventory is also incomplete for state already claimed by the graph: `SessionDirty` has no
+profile-edited/save-requested/save-completed inputs, and replay 4 requires restoring settings but the
+effect list has no restore-no-project-settings request.
+
+
+F3 — HIGH — GraphPairing and AuditReadiness are different facts, but the spec merges them
+
+The derived table says `AuditReadiness` computes “what the pairing entitles a surface to assert” and replay
+3 says a mismatch makes readiness refuse coverage (lines 82-87, 114-117). That is not the analyser's
+existing contract:
+
+* `GraphPairing` compares declared node ids with logged node ids and answers whether this graph describes
+  this log.
+* `AuditReadiness.of(ProcessorTopology)` looks only for Fluxtion's `EventLogManager` in the graph and
+  answers whether the processor can emit any audit log at all. It is intentionally answerable without a
+  log.
+* Coverage confidence additionally depends on graph provenance and the log's tracing/audit-level regime.
+
+Preserve those distinctions in the processor. A sensible model is three nodes: `GraphPairing`,
+`AuditInstallationReadiness`, and `CoverageClaim` (the policy combining pairing, graph source and audit
+regime). `PairingComputed` should not carry already-computed semantics under an input name; feed it raw
+topology/log observations. The inputs must include topology node types, graph provenance and observed
+audit levels, not only the two id sets.
+
+
+F4 — HIGH — feasibility is positive, but it is not “settled” by the stated POM facts
+
+I tested the proposed dependency in a disposable worktree against runtime 1.0.13.
+
+1. Adding only `com.telamin.fluxtion:fluxtion-runtime:1.0.13` to this POM failed: the artefact is not in
+   Maven Central and this project declares no Fluxtion repository.
+2. Adding the public Repsy repository used by `examples/fixture-generator` made the keyless package pass.
+3. `mvn dependency:tree` shows:
+
+       fluxtion-runtime:1.0.13
+       \- org.agrona:agrona:2.3.0
+
+4. The shaded jar grew from 2,209,502 to 3,373,515 bytes: +1,164,013 bytes, not 0.6 MB. This is still a
+   modest and acceptable cost, but the spec currently counts the direct jar and omits its transitive.
+
+Pin the runtime version and public repository in the design, and add a cold/empty-local-repository build
+to acceptance. Say “one new direct runtime dependency, plus Agrona transitively” rather than “adds one”.
+
+Regeneration also needs a concrete source layout. A graph builder imports `fluxtion-builder`; putting it in
+ordinary `src/main/java` makes the default compile need the builder even if generation is profiled. Either
+put authoring source in a profile-added source root with builder/plugin dependencies confined to that
+profile, or use a separate generator module. State the exact choice and test that the default dependency
+graph contains runtime + Agrona but no builder/compiler/plugin execution.
+
+Finally, record the distribution licence decision. The published runtime 1.0.13 POM declares AGPL-3.0 and
+the analyser declares its own source-available commercial licence. Telamin can possess a separate right to
+combine them, but a commercial product spec should record that decision rather than have a reviewer infer
+it from common ownership.
+
+
+F5 — HIGH — the processor's own audit-log delivery and evidence boundary are unspecified
+
+`EventLogSource` is only the logger-injection interface (`setLogger(EventLogger)`). Implementing it does
+not by itself log anything; extending `EventLogNode` is the runtime's recommended convenience path. Name
+which one the nodes use and pin the logged keys.
+
+`addEventAudit(LogLevel.INFO)` compiles invocation tracing into the graph, but runtime level still gates
+what is emitted. The adapter must set a compatible runtime level. Otherwise “absence is meaningful” at
+lines 104-107 is too broad — it repeats the audit-regime distinction this repo has already corrected once.
+
+Most importantly, no output sink is specified. The running processor needs
+`setAuditLogProcessor(...)`, plus a declared format, destination/lifetime and failure policy, before the
+acceptance at line 155 can open any log. Define whether v1 writes a deterministic test file, a bounded
+diagnostic file, or an in-memory capture exported for the test. Keep it out of the user's business audit
+log and prevent self-observation from changing the evidence being inspected: capture scenario A, close or
+snapshot its sink, then open that fixed capture in scenario B.
+
+The audit schema must distinguish decisions from outcomes, per F1. For example:
+
+  SessionBoundary: decision=close, closingLog=true, reason=projectChanged
+  EffectOutcome: effect=closeLog, success=true
+
+Only the second proves the adapter actually completed the close.
+
+
+F6 — REQUIRED — acceptance is final-state shaped while delivery is slice-shaped
+
+Graph acceptance requires all four state nodes and all four decision nodes, while the risk section says
+slice one moves only `SessionBoundary` (lines 119-123, 158-165). Likewise “no decision from §3 remains in
+MainFrame or ProjectSession” cannot pass until the last slice. This gives the first implementer either a
+permanently red acceptance set or permission to wave it away.
+
+Split acceptance into:
+
+* Slice 1: runtime/POM shape, request-effect-result driver, SessionBoundary node, its exact graph edges,
+  its audit/output sink, and deletion of named SessionBoundary branches.
+* Later slices: one row per decision with its old branch deleted in the same commit.
+* Final convergence: the complete graph, every surface consuming the same decision snapshot, no duplicate
+  policy, and all four original replay journeys.
+
+Use behavioural characterisation tests for the old implementation before deleting it, then run the same
+fixtures against the processor. A source grep can support the deletion check, but behavioural equivalence
+is the contract.
+
+
+N1 — THE FIRST PREDICTION HAS ALREADY SCORED
+
+“Effect requests will multiply” is already confirmed at spec review: restore-settings, apply-vs-read
+profile, open outcomes, close outcomes and audit-sink delivery are absent from the first list. Record that
+as an early result rather than waiting for implementation to rediscover it. This is exactly the learning
+loop M44 is meant to produce.
+
+
+WHAT HOLDS
+
+* Session transitions are the correct first real processor: temporal state, several entrances, explicit
+  policy and high explanatory value.
+* Committed generated source with key-gated regeneration is the right dog-food configuration. The default
+  keyless build is feasible once the repository and profile/module shape are explicit.
+* “Effects are requests” and “adapters do not decide” are the correct architectural boundaries.
+* Replay, GraphML and the processor's own audit record are the right three independent acceptance views.
+* Moving one decision and deleting its former branch in the same commit is the right migration discipline.
+* Registering learning predictions before implementation is valuable, especially allowing the audit-log
+  usefulness claim to fail.
+
+
+VERIFICATION
+
+* Full Maven suite on main — PASS, 1,190 cases summed from Surefire XML.
+* `SpecLinksResolveTest` — PASS.
+* `git diff --check 039fa88^..039fa88` — PASS.
+* Runtime 1.0.13 source inspected for `EventLogSource`, `EventLogNode` and auditor semantics.
+* Disposable POM without Repsy — FAILED to resolve runtime from Central, as recorded in F4.
+* Same POM with Repsy — keyless `mvn -q -DskipTests package` PASS; dependency tree and shaded-size delta
+  captured above. No shared source file was changed by this experiment.
+
+
+NOT VERIFIED
+
+* No processor was generated; the regeneration profile/source layout does not yet exist.
+* No Fluxtion key was used or inspected.
+* The commercial distribution entitlement for the AGPL-labelled runtime was not established.
+* No UI behaviour changed in this spec-only commit.
+
+
+NEXT ORDER
+
+1. Specify the request -> decision -> effect -> result driver and authoritative-state rule.
+2. Add the complete project-transition decision table, especially ADOPT_FOR_OPEN_LOG and failures/no-ops.
+3. Separate pairing, audit installation and coverage entitlement.
+4. Pin the exact default POM, generator-profile/module and audit-sink shapes.
+5. Make slice-1 acceptance independently green, then implement only SessionBoundary.
