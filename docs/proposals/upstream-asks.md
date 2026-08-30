@@ -413,8 +413,19 @@ guessed wrong**, because the rule was not where the failure was. That is the cle
 tiering a fact into a message rather than prose: documentation was not missing, it was **unread at the
 moment it mattered**. Rule 1 of the advice above is no longer an argument — it is an observation.
 
-**Evidence** measured — one full build cycle in round 02, and the single most expensive item of that
-round. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
+**Retested 2026-08-30 (round 04), and the result is stronger than the original finding.** Two fresh agents,
+same bundle, same task; one was given the playground's authoring resources and one was not. **Both hit this
+error.** The resourced agent had the triage table *fetched and in context*, indexed by this very error
+string — and still wrote the field wrong, still failed the build, then fixed it in one step by quoting the
+table. **Documentation at maximum availability did not prevent it.** That is the case for a message, made
+by measurement rather than by argument.
+
+**The message must name BOTH remedies.** The two agents produced two different working fixes: `transient`
+(the documented idiom) and **removing `final`**. The second is sound — the field-inclusion predicate
+includes a field only when it is non-static, **final** and non-transient — so a message that teaches only
+`transient` leaves the `final` route working as undocumented folklore, and the two will drift.
+
+**Evidence** measured — one full build cycle in round 02, reproduced in both arms of round 04. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
 which is most non-trivial nodes.
 
 ### UP-FLX-33 ☐ A Spring bean that is neither selected nor ignored is silently not a node
@@ -502,6 +513,14 @@ neither. Reading them changed two entries above and produced this one.
 
 **Draft content ready:** [`upstream-content/audit-authoring.md`](upstream-content/audit-authoring.md) —
 the section itself, every fact read from `fluxtion-runtime` 1.0.13 and `fluxtion-builder` 1.0.64.
+
+**Confirmed by an agent holding all five resources (round 04).** Asked how it made its node record values,
+it named the gap itself: *"The `EventLogNode`/`auditLog` API surface (method signatures, return type,
+whether `.info()` chains) — not documented in any of the 5 listed resources."* It fell back on copying the
+project's own example. A measurable cost followed: unable to confirm that `info` returns `this`, it wrote
+three unchained statements, where the unresourced agent read `EventLogger` from the sources jar and
+chained. **The gap does not merely fail to help; it produces worse code in the agent that behaves
+correctly.**
 
 | Source | Covers the audit-authoring contract? |
 |---|---|

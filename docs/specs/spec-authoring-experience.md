@@ -101,7 +101,7 @@ bundle-local file that reinvents them. What the five-source check found:
 
 | Finding | Already published? | Consequence |
 |---|---|---|
-| R2-A `transient` | **yes** — canon *and* the playground triage table | not a doc gap; the bundle failed to point. UP-FLX-32 (the message) survives and is strengthened |
+| R2-A `transient` | **yes** — canon *and* the playground triage table | not a doc gap; the bundle failed to point. **Round 04 corrected this row: the resources RESOLVE the failure, they do not PREVENT it** — an agent holding the fetched triage table hit the identical error and then fixed it in one step. UP-FLX-32 is strengthened, not retired |
 | R1-G `nodeBeans` | **yes** — the Spring skill and contract, and `contract.md` is **more precise than my rule was** | my doc set said *"a bean not listed is not in the graph"*; contract.md says referenced children are still discovered. **My rule was wrong in the transitive case** — fixed |
 | R1-G `@OnTrigger` return | **yes** — canon | corrected in §1c |
 | R1-A / R3-A / R3-D audit contract | **no — in none of the five** | UP-FLX-35, and drafted: [`upstream-content/audit-authoring.md`](../proposals/upstream-content/audit-authoring.md) |
@@ -427,6 +427,12 @@ Both are legitimate; conflating them is not. Round 01–03's flaw was making att
 exploration rounds without noticing the difference.
 
 ### The rig manifest — every round records it, or the round proves nothing
+
+**Superseded in part by the guided-start prompt** ([spec-guided-start.md](spec-guided-start.md) D-G8,
+owner 2026-08-30): once a versioned prompt establishes the baseline, most of the fields below collapse into
+one — *"guided-start prompt vN"* — and a new prompt version becomes an explicit comparability boundary in
+the same way a runtime change is. Round 04 is the argument for it: a hand-built harness perturbed
+`serverName` for isolation and manufactured a finding about itself.
 
 Extends the existing "record the environment" rule to the surfaces the rig makes mutable:
 

@@ -104,6 +104,47 @@ rather than a matter of the agent's report.
 It is also the honest test of this spec: if a fresh model cannot follow the install prompt to a working UI,
 the prompt is wrong, and that is exactly what the loop is for.
 
+## D-G6 — TWO entrances, one source
+
+Owner, 2026-08-30: *"Both. Either copy the prompt from the doc site, or a user asks from an existing app:
+take me through a tutorial."*
+
+| | **Cold** — from the docs site | **Warm** — from a running app |
+|---|---|---|
+| Precondition | nothing installed; no MCP, no log, no project | analyser running, MCP connected, **and possibly the user's own work open** |
+| Carrier | a copy-pasteable prompt on a page | a `tutorial` skill in the canonical index, found via *Find skills…* (M43.7) |
+| First act | install → data → MCP → open → tutor | `context`, then branch — see D-G7 |
+
+**One source, two carriers.** The skill body **is** the prompt; the docs page renders it. Maintaining two
+copies would reproduce exactly the drift this session spent itself on (D-AX1a/b/c) — and the fix is the
+same one: generate, never hand-maintain a twin (D-AX8).
+
+**Discoverability of the warm path** without the analyser driving the agent: an *AI ▸ Take me through a
+tutorial…* item that **copies the prompt / names the skill**, in the shape M42's final dialog already
+uses — *"only shows and copies fixed lifecycle commands"*. The app offers text; the human hands it to
+their agent. No new execution path, and D-C2 stays intact.
+
+## D-G7 — the warm path must not clobber the user's work, and can do something better
+
+**The hazard, and it is real.** Someone with their own incident log open asks for a tutorial. If the tutor
+`open`s the demo, M35.5 applies — the project switch **closes their log and graph**. A tutorial that
+destroys what you were doing is a support ticket, not an onboarding.
+
+**The branch, off `context`, which already reports what is in force:**
+
+- **Nothing open** → run on the demo fixture that ships in the jar (M36). Clean, and labelled as demo.
+- **The user's own log open** → **run the tutorial on THEIR data.** Coverage against their graph, a
+  threshold on their series, a flag on their record.
+
+The second is not a fallback — it is the better product. *"54 of your nodes never ran"* lands in a way no
+demo fixture can, and it is the same three beats with different inputs. **Ask before switching, never
+switch silently** — and offer their own data first, which is the same instinct as M35.4's *offers, never
+selects*.
+
+**Corollary:** the tutorial must be written against *whatever is open*, not against fixture-specific
+values. A script that hard-codes the demo's numbers cannot run on the user's log, and would then quietly
+become a demo-only feature — which is D-G2's failure mode wearing a different hat.
+
 ## Sketch — the tutorial's three beats
 
 Each beat: drive the view, then let the user read it.
@@ -116,6 +157,42 @@ Each beat: drive the view, then let the user read it.
    The user ends with a bookmarked record they can re-open.
 
 Then stop. Three capabilities shown on screen beats ten narrated.
+
+## D-G8 — the prompt is also the experiment's BASELINE
+
+Owner, 2026-08-30: *"This prompt also gives you a really nice way of baselining your experiments for future
+testing."*
+
+Right, and round 04 proved the need the hard way. That round's environment was assembled by hand — unzip
+twice, `sed` the port and `serverName` for isolation — and the bespoke setup **manufactured a finding**:
+changing `serverName` broke `export-audit.sh`, which surfaced a real defect (`BundleLifecycle`'s hardcoded
+`SERVER_NAME`) via a symptom **I** caused. It also relied on the agent obeying stated isolation rules,
+which one agent breached and self-reported. A harness that perturbs the subject and enforces nothing is a
+harness that produces findings about itself.
+
+**What the prompt gives the loop:**
+
+- **A standard starting state**, produced the way a real user produces it, so a perturbation is the
+  subject's and not the harness's.
+- **One version string instead of a manifest.** D-AX12's rig manifest lists analyser SHA, builder version,
+  runtime version, template SHA, doc set version. If the baseline is *"guided-start prompt v3"*, most of
+  that collapses into one field the prompt itself pins — and *"which baseline was this round run against"*
+  stops being six questions.
+- **A comparability boundary that is explicit.** A new prompt version resets the baseline, exactly as a
+  runtime change does (D-AX12). That is a feature: the thing that changes the environment is versioned, so
+  rounds either side are known to be incomparable rather than assumed comparable.
+- **Setup stops being code we maintain.** The loop's harness becomes "run the prompt, then the task",
+  which is also the thing under test — so harness rot shows up as a failing baseline rather than as quiet
+  drift.
+
+**One caution, and it is the same one D-G5 carries.** When the baseline *is* a deliverable, a round that
+fails during setup is telling you about the prompt, not the doc set. Round records must separate
+**baseline established / did not establish** from the task result, or a bad prompt version will read as a
+documentation regression.
+
+**Isolation is the prompt's job to make possible, not the agent's to respect.** Round 04's rules were
+stated and unenforced. A baseline prompt should take a target directory and a port as parameters, so
+isolation is a property of the environment rather than a promise by the subject.
 
 ## Acceptance
 

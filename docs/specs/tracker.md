@@ -243,8 +243,16 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
+- [M19.20] ☐ **Sibling dispatch order is natural-order by node name** _(found in round 04, 2026-08-30)_ —
+  the generated processor orders nodes by `TopologicalOrderIterator(graph, new NaturalOrderComparator(
+  inst2Name))`: dependency order first, then **name order** among nodes at equal depth. Found by an agent
+  that placed a node later in the XML, observed it dispatched earlier, ruled out declaration order and
+  decompiled `fluxtion-builder` 1.0.64. Published in none of the five authoring resources. Two consequences
+  to work: it belongs in the upstream audit/authoring content (UP-FLX-35), and the analyser recomputes
+  layers rather than reading a declared order — worth checking whether its topology layout agrees with this
+  rule (see the dispatch-order-index note in `upstream-asks.md` §2c).
 - [M19.19] ☐ **Guided start — an install prompt, and an LLM tutor that drives the UI** _(owner idea,
-  2026-08-30)_ — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
+  2026-08-30; **and the experiment's baseline**, D-G8)_ — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
   capabilities, driven by a prompt an LLM executes. **Verified: the tutor needs NO new verbs** — `open`,
   `filter`, `topology`, `goto`, `graph` and `flag` already drive the UI, and `context` + `screenshot` tell
   the agent what the user can actually see. The load-bearing rule is D-G2, from D-T3: **the tutor points,
