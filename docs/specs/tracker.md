@@ -419,6 +419,18 @@ analyser (reverse funnel)._
   to what's shipped that week (don't promise fixing before M18 lands — the end-bridge already phases it
   as "+ server link once M18 ships"). (b) In-page links must be **site-relative** (`producing-a-log.md`,
   not the spec's `../site/producing-a-log.md`) or `mkdocs build --strict` fails the link-check.
+- [M19.5] **ANALYSER HALF REVIEWED AND ACCEPTED 2026-08-30** —
+  [`review_m19_5_template_picker.txt`](../handoff/review_m19_5_template_picker.txt). The archive
+  boundary held against ten attacks written for the cases the report's own suite leaves open —
+  a nested file whose BASENAME is allow-listed, an archive claiming a symlink, backslash-spelled
+  traversal, and the state of a caller's empty destination after a refusal — plus D-AX10's origin
+  override, which post-dates the report (numeric/octal loopback encodings refused rather than
+  resolved). Both suites are COMMITTED, so the next reviewer inherits them. D-3 holds by
+  construction: no execution primitive exists in the template path at all. Two non-blocking notes:
+  the class javadoc says "loopback-only" when any HTTPS origin is accepted (a wording fix, ours),
+  and nobody has yet clicked the Swing cancellation flow. **The review was late because it was
+  reported in conversation instead of written here** — the milestone sat awaiting a verdict already
+  reached, which is the same failure as a decision made, committed and not pushed.
 - [M19.5] ◧ **IMPLEMENTED END TO END — AWAITING INDEPENDENT REVIEW** _(2026-08-30; playground
   `994e82a` live, analyser `9d38cc4`)_ — `File ▸ New project from template…` reads the live
   catalogue-owned onboarding set and `keyNeed`, loads catalogue-owned identity defaults, downloads

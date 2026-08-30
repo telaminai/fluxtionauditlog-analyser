@@ -1,0 +1,99 @@
+M19.5 analyser picker — independent review (the playground session)
+Report under review: docs/handoff/handoff_30_aug_2026_1_report.txt
+Implementation: analyser `9d38cc4`, re-checked at current main (which added D-AX10, see §3)
+Date: 2026-08-30
+
+VERDICT: ACCEPT. The archive boundary holds against attacks written specifically for the cases the
+report's own suite leaves open, and D-3 is satisfied by construction rather than by discipline.
+Two notes, neither blocking; one is a documentation correction on our side, not theirs.
+
+WHY THIS REVIEW IS LATE, since the protocol cares
+------------------------------------------------
+The attacks below were run when the report was submitted, and reported in conversation instead of
+being written here. That is my error and it had a real cost: M19.5 sat awaiting an independent verdict
+that had in fact been reached. A review that exists only in a chat window is a review nobody can act
+on — the same shape as the boundary decision that was made, committed, and not pushed. Recorded rather
+than quietly fixed, because the failure is worth more than the fix.
+
+WHAT THE REPORT ASKED FOR, AND WHAT WAS DONE
+--------------------------------------------
+Item 1 asked the reviewer to attack TemplateArchive independently and NOT to accept the report's
+security summary as evidence. That is the right instruction and it is what was done. Five attacks,
+committed as `TemplateArchiveAdversarialTest` so the next reviewer inherits them rather than
+re-deriving them:
+
+  1. A NESTED FILE WITH AN ALLOW-LISTED BASENAME. The existing suite covers `bundle/evil.sh` — a
+     nested name the list does NOT contain. The interesting attack is the opposite: `bundle/tools/
+     run-server.sh` and `bundle/nested/deep/mvnw`, names the list DOES contain, placed where it does
+     not reach. Both install non-executable; only the root file gets the bit. The depth test
+     (`indexOf('/') == lastIndexOf('/')`) is doing the work, and it is the right key: a hostile
+     bundle would name its payload exactly what the installer expects to make executable.
+
+  2. AN ARCHIVE CLAIMING A SYMBOLIC LINK (S_IFLNK, target `/etc`). If a link were ever materialised
+     every other guard is bypassable — a link named `config` pointing at `/` turns a later in-bounds
+     write out of bounds. The entry installs as an inert REGULAR FILE whose content is the literal
+     target text. Nothing dereferences.
+
+  3. BACKSLASH-SPELLED TRAVERSAL (`bundle\..\..\escaped.txt`). Refused by the same rule as the
+     forward-slash form — separators are normalised before the check, so there is no second rule to
+     drift out of step with the first.
+
+  4. A REFUSAL WITH A PRE-EXISTING EMPTY DESTINATION. The installer deletes the caller's empty
+     directory so the atomic move has somewhere to land, so the question is what a refusal leaves
+     behind. The directory survives, still empty, and no staging remains. A boundary that fails
+     closed but eats the destination has still damaged state the user chose.
+
+  5. A REFUSAL PART-WAY THROUGH extraction leaves nothing in the destination parent and nothing
+     escaped.
+
+Item 4 asked for a STRUCTURAL confirmation of D-3, and it holds better than "we were careful":
+`ProcessBuilder`, `Runtime.exec` and `Desktop` appear NOWHERE in the template package or in
+TemplateProjectDialog. The analyser cannot run downloaded code because it has no primitive to do it
+with — not because the code path declines to. That is the difference between a property and a habit,
+and it is the right way to satisfy the Runbooks trust boundary.
+
+The origin is pinned and `followRedirects(NEVER)` is set, so a redirect cannot move it. The
+constructor is package-private AND validates, so there is no in-repo path that builds a client around
+an unvalidated origin (your own TemplateCatalogueTest asserts the refusals).
+
+§3 — WHAT CHANGED SINCE THE REPORT, AND WAS ALSO ATTACKED
+----------------------------------------------------------
+Current main adds D-AX10's `-Dfluxtion.analyser.playgroundOrigin` (`5d3038c`), which did not exist
+when the report was written. Reviewing the code as it stands rather than as submitted, five more
+attacks (`PlaygroundOriginAdversarialTest`), all held:
+
+  · hosts that merely LOOK like loopback over plain http — `127.0.0.1.evil.example`,
+    `localhost.evil.example`, `notlocalhost`, `localhost.`, `127.0.0.11` — all refused;
+  · NUMERIC AND OCTAL ENCODINGS of 127.0.0.1 that a browser will happily dial — `2130706433`,
+    `0x7f000001`, `127.1`, `0177.0.0.1`, `0.0.0.0` — all refused. String equality rather than address
+    parsing is the conservative choice and it is the correct one: an encoding trick cannot widen the
+    rule, and a reader auditing a command line sees the same spelling the code accepts;
+  · anything beyond a bare origin — path, query, fragment, user-info — refused even on loopback;
+  · the accepted spellings normalise to one trailing-slash form;
+  · with no property set the shipped origin stands, so the override is opt-in and never a default.
+
+Making it a system property rather than a setting is the right call for the reason given: a persisted
+origin would sit in a profile, travel with a shared project, and silently redirect where starter code
+is fetched from.
+
+NOTE 1 (ours, not yours) — the class javadoc calls this "a loopback-only origin override", and it is
+not: any HTTPS origin is accepted, which your own test names explicitly
+(`httpsIsStillAcceptedForAnyHost_soTheRuleWasNotSimplyDeleted`). The behaviour is right — HTTPS
+anywhere was already the rule and plain-http-on-loopback is the only thing unlocked — but the summary
+sentence says something narrower than the code does, and summary sentences are what people quote.
+Worth one word: "a loopback HTTP override", not "loopback-only".
+
+NOTE 2 (non-blocking) — the report's own item 3 asks a reviewer to click the Swing flow and cancel
+each stage. NOT DONE: headless here. The source-pinned seams and the Background/EDT structure read
+correctly, but nobody has yet proved the native dialogs behave under cancellation, and this review
+does not claim otherwise.
+
+WHAT I DID NOT CHECK
+--------------------
+The live `--live` bench leg against production (your own report records it green), the Windows
+lifecycle path, and the native dialog behaviour above.
+
+EVIDENCE
+--------
+  mvn -o test          1165 passed, 0 failures — including the ten attacks added here
+  the two new suites are committed, so the next reviewer starts from them rather than from prose
