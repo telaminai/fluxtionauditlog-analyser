@@ -1,0 +1,59 @@
+PLAN — M31.4r, the out-of-tree example reader
+From: the playground session · 2026-08-30 · Tracker: M31.4r
+Status: STARTING. Blocker identified and resolved below; raising it before building because the
+answer constrains what a plugin author can do, not just what this example does.
+
+WHAT THE SLICE OWES (spec-log-source-plugins, Delivery slice M31.4 + acceptance 2 and 5)
+  2. a toy example plugin, built OUT OF TREE against the SPI, opens a NON-YAML container and every
+     downstream feature works — filter, topology step-through, graphs, series, flags, report export,
+     with recordIndex anchors and D-P2 text rendering in the detail viewer;
+  5. **two plugins with conflicting transitive dependencies coexist** — the one M31 acceptance that
+     only real jars can settle, because isolated classloaders cannot be demonstrated by a test that
+     shares the test JVM's classpath.
+
+THE BLOCKER, AND WHY IT IS WORTH STATING
+M31.5 defers the separate `analyser-reader-spi` artifact and says "plugin authors compile against the
+fatjar meanwhile". I checked what that means in practice for someone outside this repo:
+
+  · the analyser pom is `com.telamin:fluxtion-auditlog-analyser:0.0.0-SNAPSHOT`, with NO
+    distributionManagement — it is published to no Maven repository, so `mvn` cannot resolve it;
+  · but GitHub releases DO carry a real jar: `v1.12.0`,
+    `fluxtion-auditlog-analyser-1.12.0.jar` (2,127,709 bytes), alongside `SHA256SUMS.sha256`.
+
+So "compile against the fatjar" is achievable but not automatic, and every plugin author will hit
+this. The example therefore has to answer it, visibly, rather than assume a resolvable dependency.
+
+  CHOSEN: a `setup.sh` that downloads the released jar, VERIFIES IT AGAINST THE PUBLISHED SHA256, and
+  `mvn install:install-file`s it into the local repo; the pom then depends on it as `provided`.
+  Verifying the hash is not ceremony here: the FAQ's own trust boundary says installing a plugin jar
+  is arbitrary code execution, and an example that teaches plugin authors to curl an unverified jar
+  would undercut the sentence the analyser asks users to rely on.
+
+  REJECTED, recorded so they are not re-proposed:
+   · `<systemPath>` — deprecated, non-portable, and hides the version;
+   · vendoring the SPI interfaces into the example — a second copy of a compatibility surface, which
+     is the exact failure this collaboration has spent two days paying for;
+   · waiting for M31.5 — it needs a multi-module build and is the owner's call, and this slice does
+     not need to block on it.
+
+  ASK BACK (not blocking): when M31.5 lands, this example should switch to the published SPI artifact
+  and `setup.sh` should disappear. Worth a line in M31.5 so the cleanup is not forgotten.
+
+SHAPE
+  web/static/examples/analyser-reader-jsonl/     reader A — JSONL container
+  web/static/examples/analyser-reader-csv/       reader B — CSV-of-records container
+
+  Two, not one, because acceptance 5 needs two jars whose TRANSITIVE dependencies conflict. Each
+  parses with a different JSON/CSV library at deliberately incompatible major versions, so loading
+  both proves the isolated classloaders rather than asserting them. One example alone cannot settle
+  the acceptance the tracker says only a real jar can settle.
+
+ORDER
+  1. reader A + setup.sh + README, opening a real non-YAML log the analyser then treats as any other;
+  2. reader B on a conflicting dependency;
+  3. both installed at once — the acceptance-5 evidence, run and recorded, not asserted.
+
+WHAT I WILL NOT DO
+Write the plugin-author guide on the docs site. That is analyser-owned documentation and slice M31.4
+pairs it with this example; I will supply the worked example it should point AT, and the two facts a
+guide has to state (how to obtain the SPI today, and that the hash is worth checking).

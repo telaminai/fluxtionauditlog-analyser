@@ -557,6 +557,19 @@ Design: **[completed/spec-external-series.md](completed/spec-external-series.md)
 ## M31 · Log-source plugins — ◧ SHIPPED 2026-08-18 (archived; example reader is cross-repo)
 _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full record in
 **[completed/tracker.md](completed/tracker.md)**. Design: **[completed/spec-log-source-plugins.md](completed/spec-log-source-plugins.md)**._
+- [M31.4r] ◐ **IN PROGRESS (playground session, 2026-08-30)** — plan:
+  [`plan_playground_reader_plugin.txt`](../handoff/plan_playground_reader_plugin.txt). **Blocker found
+  and resolved:** M31.5's "plugin authors compile against the fatjar meanwhile" is not automatic — the
+  analyser pom is `0.0.0-SNAPSHOT` with no `distributionManagement`, so `mvn` can resolve it from
+  nowhere; the GitHub release DOES carry a real jar (`v1.12.0`, 2,127,709 bytes) with published
+  `SHA256SUMS`. The example ships a `setup.sh` that downloads it, **verifies the published hash** and
+  `install-file`s it, then depends on it `provided` — hash-checking because the FAQ's own trust
+  boundary says installing a plugin jar is arbitrary code execution, and an example that curls an
+  unverified jar would undercut that sentence. TWO example readers, not one, because acceptance 5
+  needs two jars with CONFLICTING transitive dependencies to settle isolated classloaders — one
+  example cannot settle it. **Ask back:** when M31.5 lands, the example should switch to the published
+  SPI artifact and `setup.sh` should disappear; worth a line there so the cleanup is not forgotten.
+  The plugin-author guide half stays analyser-owned. Original entry —
 - [M31.4r] ☐ **Out-of-tree example reader** — lives in the playground repo (this repo cannot ship it);
   also the ONE M31 acceptance only a real jar can settle (two conflicting plugin jars coexisting).
   The in-tree toy reader in ReaderSpiTest is the seam proof meanwhile. Cross-repo slice.
