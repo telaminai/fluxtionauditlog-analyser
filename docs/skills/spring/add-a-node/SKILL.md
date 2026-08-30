@@ -37,7 +37,8 @@ explicit Fluxtion nodes; referenced children are still discovered by Fluxtion."*
 `constructor-arg ref` from a listed node **is** in the graph; a bean that is neither listed nor referenced
 is **not** — and the build stays green. If your node never appears in the audit log, check this first.
 
-**A node that logs nothing is indistinguishable from a node that did nothing.** To record its own values a
+**In an untraced record, a node that logs nothing is indistinguishable from a node that did nothing.** (In
+a traced one it still appears, showing its method — see below.) To record its own values a
 node needs an `EventLogger`, and the runtime can only hand it one if the node implements `EventLogSource`
 (`void setLogger(EventLogger)`) — extend `EventLogNode`, or implement the interface directly when the
 inheritance slot is already taken by a domain base class. Then `auditLog.info("key", value)`, which is

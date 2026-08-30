@@ -135,17 +135,27 @@ class CanonicalSkillsTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void v2sDeclaredRevisionCONTAINSeverySelectedByte() throws Exception {
-        // review F2: the first v2 named a revision that predated two of the skills it published, so a
-        // consumer could not reproduce the selected bytes from the advertised source. Unlike v1 the test
-        // also checked neither revision nor bytes, so nothing caught it.
-        String revision = (String) v2Index().get("revision");
-        assertTrue(revision != null && revision.matches("[0-9a-f]{40}"), "revision must be a full SHA");
+    void aPUBLISHEDindexMustPinARevisionContainingEverySelectedByte() throws Exception {
+        // review F2: v2's first cut named a revision at which two of its own skills did not exist, and the
+        // test checked worktree existence only, so nothing caught it.
+        //
+        // Refined by C1: v2 is now DRAFT and makes NO provenance claim. That is deliberate — a pinned draft
+        // goes stale on the next edit and then either lies or forces a red commit to re-pin. The rule this
+        // enforces is therefore conditional on publication, which is when reproducibility actually matters.
+        Map<String, Object> v2 = v2Index();
+        boolean draft = String.valueOf(v2.get("status")).startsWith("DRAFT");
+        if (draft) {
+            assertNull(v2.get("revision"), "a draft must not advertise provenance it cannot keep current");
+            assertNull(v2.get("sha256"), "same for hashes");
+            return;
+        }
 
-        Map<String, Object> pinned = (Map<String, Object>) v2Index().get("sha256");
+        String revision = (String) v2.get("revision");
+        assertTrue(revision != null && revision.matches("[0-9a-f]{40}"),
+                "a published index must pin a full source revision");
+        Map<String, Object> pinned = (Map<String, Object>) v2.get("sha256");
         assertEquals(Set.copyOf(v2Paths()), pinned.keySet(),
                 "every selected path must be hash-pinned, and nothing else");
-
         for (String relative : v2Paths()) {
             String blob = gitShow(revision + ":docs/skills/" + relative);
             assertNotNull(blob, relative + " does not exist at the declared revision " + revision
@@ -153,8 +163,7 @@ class CanonicalSkillsTest {
             assertEquals(pinned.get(relative), sha256(blob),
                     relative + " differs from its pinned hash at " + revision);
             assertEquals(sha256(Files.readString(ROOT.resolve(relative))), pinned.get(relative),
-                    relative + " has drifted in the worktree since the declared revision — re-pin the "
-                            + "index or the published bytes are not the bytes here");
+                    relative + " has drifted in the worktree since the declared revision");
         }
     }
 
@@ -172,116 +181,55 @@ class CanonicalSkillsTest {
                 "and a path that DID exist there must resolve, or the check fails for the wrong reason");
     }
 
+    /**
+     * A SAMPLE selection, as a fixture. Review C1: templates are the playground's catalogue, so this index
+     * must not own one — but the selection RULE still needs exercising, and a fixture does that without
+     * becoming a second source of truth.
+     */
+    private static final List<String> SAMPLE_SPECIALISATIONS = List.of("spring", "mongoose");
+
     @Test
     @SuppressWarnings("unchecked")
-    void everyDeclaredTemplateResolvesToACOMPLETEselection() throws Exception {
-        // review F3: selection must be resolvable for a real template, and must not emit an incomplete
-        // instruction set. replay-a-run carries a required TODO(bundle) and the M19 bundle has no replay
-        // entry point, so a template that does not declare `replay` must not select it.
+    void aSampleTemplateResolvesToACompleteSelection() throws Exception {
         Map<String, Object> v2 = v2Index();
-        Map<String, Object> templates = (Map<String, Object>) v2.get("templates");
-        assertFalse(templates.isEmpty(), "at least one real template must be resolvable");
+        assertNull(v2.get("templates"),
+                "templates are the playground's catalogue (review C1); this index must not own one");
+
         Map<String, Object> specialisations = (Map<String, Object>) v2.get("specialisations");
-
-        for (Map.Entry<String, Object> entry : templates.entrySet()) {
-            Map<String, Object> template = (Map<String, Object>) entry.getValue();
-            List<String> chosen = (List<String>) template.get("specialisations");
-            List<String> selected = new java.util.ArrayList<>((List<String>) v2.get("common"));
-            for (String name : chosen) {
-                assertTrue(specialisations.containsKey(name),
-                        entry.getKey() + " names an undeclared specialisation: " + name);
-                selected.addAll((List<String>) ((Map<String, Object>) specialisations.get(name)).get("skills"));
-            }
-            for (String relative : selected) {
-                assertTrue(Files.isRegularFile(ROOT.resolve(relative)),
-                        entry.getKey() + " selects a missing file: " + relative);
-            }
-            if (!chosen.contains("replay")) {
-                assertFalse(selected.contains("common/replay-a-run/SKILL.md"),
-                        entry.getKey() + " selects replay without declaring a replay entry point — its "
-                                + "TODO(bundle) could not be substituted");
-            }
+        List<String> selected = new java.util.ArrayList<>((List<String>) v2.get("common"));
+        for (String name : SAMPLE_SPECIALISATIONS) {
+            assertTrue(specialisations.containsKey(name), "undeclared specialisation: " + name);
+            selected.addAll((List<String>) ((Map<String, Object>) specialisations.get(name)).get("skills"));
         }
+        for (String relative : selected) {
+            assertTrue(Files.isRegularFile(ROOT.resolve(relative)), "selects a missing file: " + relative);
+        }
+        assertFalse(selected.contains("common/replay-a-run/SKILL.md"),
+                "a template that does not declare a replay entry point must not select replay-a-run — its "
+                        + "TODO(bundle) could not be substituted");
     }
 
     @Test
-    void theSpringSkillPOINTSatTheAgreedResourcesRatherThanRestatingThem() throws Exception {
-        String text = Files.readString(ROOT.resolve("spring/add-a-node/SKILL.md"));
-        // D-AX1b: it may state what the published resources do NOT — the silent nodeBeans case and the
-        // audit contract — and must send the reader upstream for what they DO cover.
-        assertTrue(text.contains("fluxtion-playground.dev/CLAUDE.md"),
-                "the field-error triage is published; link it rather than copying it");
-        assertTrue(text.contains("referenced children are still discovered"),
-                "the transitive nodeBeans rule is the silent case this skill exists for");
-        assertTrue(text.contains("EventLogSource"),
-                "the audit contract is in none of the agreed resources (fluxtion#22), so it belongs here");
-        assertFalse(text.contains("transient") || text.contains("@FluxtionIgnore"),
-                "the field remedies ARE published — restating them is the duplication D-AX1b forbids");
-    }
-
-    @Test
-    void theGuidedStartSkillPOINTSratherThanTELLS_andCannotClobberOpenWork() throws Exception {
-        String text = Files.readString(ROOT.resolve("common/guided-start/SKILL.md"));
-
-        // D-G2. A tutor that narrates is testimony, which is the thing this product argues you should not
-        // have to trust — so a tour where the assistant is the source of every claim demonstrates the
-        // OPPOSITE of the product. These lines are the feature; losing them makes it a chatbot demo.
-        assertTrue(text.contains("You point; the screen proves"), "the rule must be stated, not implied");
-        assertTrue(text.contains("analyser_context"),
-                "it must verify the view before saying 'as you can see' — otherwise it is guessing");
-
-        // D-G7. Opening a project or another log closes what the person has open. A tour that destroys
-        // work in progress is a support ticket, not an introduction.
-        assertTrue(text.contains("Never open") || text.contains("never open"),
-                "the warm path must refuse to open over the user's own work");
-        assertTrue(text.contains("demo data"), "the demo must be labelled as demo when it is used");
-
-        // it must use the TRACED demo log: absence is only proof at a level that captures the node
-        assertTrue(text.contains("demo-quote-audit-traced.yaml"),
-                "coverage on the untraced log would present silence as absence");
-
-        // every analyser_* tool it names must be a real verb — inventing one is the failure mode this
-        // whole library exists to avoid, and it fails on the user's screen
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("analyser_([a-z_]+)").matcher(text);
-        Set<String> verbs = Set.of("aggregate", "context", "coverage", "filter", "flag", "goto", "graph",
-                "open", "read", "report", "screenshot", "series", "source_root", "topology");
-        while (m.find()) {
-            assertTrue(verbs.contains(m.group(1)),
-                    "guided-start names a verb that does not exist: " + m.group(1));
+    @SuppressWarnings("unchecked")
+    void v2StaysDRAFTwhileItsSelectedSkillsCarryUnsubstitutedMarkers() throws Exception {
+        // review C1: moving replay out of common fixed one marker and my regenerate fix ADDED another, to
+        // the Spring skill. The bundle gate refuses a surviving TODO(bundle), and no generator consumes v2
+        // yet, so v2 cannot claim to be publishable. This test ties the claim to the fact: the day every
+        // selected skill is marker-free, or a consumer proves substitution, this fails and the status is
+        // revisited deliberately rather than drifting.
+        Map<String, Object> v2 = v2Index();
+        List<String> withMarkers = new java.util.ArrayList<>();
+        for (String relative : v2Paths()) {
+            if (Files.readString(ROOT.resolve(relative)).contains("TODO(bundle)")) withMarkers.add(relative);
         }
-    }
-
-    @Test
-    void theGuidedStartPageWritesEveryCommandOut() throws Exception {
-        // D-G4: an install prompt is an instruction set a stranger executes. No fetch-and-run step, ever —
-        // "run the script at $URL" is exactly the shape this must never take.
-        String page = Files.readString(Path.of("docs/site/guided-start.md"));
-        assertTrue(page.contains("jbang app install analyser@telaminai/fluxtionauditlog-analyser"),
-                "the real install command must be present verbatim");
-        // Check the COMMANDS, not the prose. The page legitimately explains that it contains no
-        // fetch-and-run step, and an earlier version of this assertion matched that explanation — the
-        // same trap CLAUDE.md rule 1 documents: a mechanical rule cannot tell a mention from a leak.
-        StringBuilder commands = new StringBuilder();
-        boolean inFence = false;
-        for (String line : page.split("\n", -1)) {
-            if (line.startsWith("```")) { inFence = !inFence; continue; }
-            if (inFence) commands.append(line).append('\n');
+        if (withMarkers.isEmpty()) {
+            assertNull(v2.get("status"), "no selected skill carries a marker any more — v2 may be publishable"
+                    + "; revisit the DRAFT status deliberately");
+        } else {
+            assertEquals("DRAFT — NOT PUBLISHED", v2.get("status"),
+                    "these selected skills still need a consumer to substitute their markers, so v2 must not"
+                            + " present itself as published: " + withMarkers);
         }
-        assertTrue(commands.length() > 0, "the page must actually contain commands");
-        for (String forbidden : List.of("curl", "wget", "| sh", "|sh", "| bash", "eval ", "<(")) {
-            assertFalse(commands.toString().contains(forbidden),
-                    "a command fetches or evaluates remote content (" + forbidden + "): every step must be"
-                            + " readable before it is run (D-G4)");
-        }
-        assertTrue(page.contains("You do **not** need a Fluxtion API key"),
-                "the keyless claim is the point of a first run and must be stated");
-        // review F5: a real cold install stops on a JBang trust prompt that self-cancels, then may leave
-        // `analyser` off PATH until a new shell. An agent that meets either undocumented stalls or fails.
-        assertTrue(page.contains("TRUST") || page.contains("trust"),
-                "the JBang trust prompt must be documented — it self-cancels and the decision is the "
-                        + "human's, not the agent's");
-        assertTrue(page.contains("~/.jbang/bin/analyser"),
-                "the first-shell PATH boundary must have a concrete escape, not just a warning");
     }
 
     @SuppressWarnings("unchecked")

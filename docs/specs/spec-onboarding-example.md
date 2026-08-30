@@ -737,6 +737,88 @@ profile's project-root directory (`ProjectProfile.baseDirFor` / `ProjectState.ac
 | canonical skill content | **analyser** (here) |
 | selected/substituted skill copies and the project operations they name | **playground**, from the canonical library |
 
+## BUNDLE CONTRACT v4 — DELTA from v3 (2026-08-30) · the playground-side work
+
+_Why a delta and not a rewrite: v3's tables are still correct except where this session changed them.
+Everything not listed here is unchanged and still normative. **Contract version:** `m19-bundle/4`._
+
+!!! warning "Not yet buildable against — `m19-skills/2` is DRAFT"
+
+    v2's selected skills still carry `TODO(bundle)` markers that only a real generator can substitute,
+    and v3's acceptance already refuses a surviving marker. **v1 remains the published skills contract**
+    until a generator selects a real template, substitutes every marker and passes that gate on a
+    generated bundle (review C1). This section specifies the target; it does not declare it met.
+
+**This section is the answer to "where is the playground work specified?" — it was not, until now.**
+`m19-skills/2` and `reference-set.json` were built here and existed only as artefacts; nothing told a
+generator what to do with them.
+
+### D-B1 · Selection moves from ONE HOST TIER to COMMON + SPECIALISATIONS
+
+v3 consumed `m19-skills/1`: `common` plus one host tier. v4 consumes **`m19-skills/2`**, where `common` is
+always selected and a **template names the specialisations it wants**.
+
+| Playground obligation | Detail |
+|---|---|
+| read `m19-skills/2/index.json` | `common` (list) + `specialisations` (map). Selection = `common` + the template's named specialisations |
+| own the **template → specialisations** mapping for its real catalogue | **entirely playground-side.** The canonical index deliberately declares **no** `templates` map (review C1): centralising one of fourteen catalogue templates in an analyser-owned file is the second source of truth this design exists to avoid. The analyser exercises the rule with a test fixture only |
+| **never select `replay` without a real replay entry point** | `common/replay-a-run/SKILL.md` carries a required `TODO(bundle)` the bundle could not substitute. v3's acceptance *"no `TODO(bundle)` survives"* already forbids shipping it unsubstituted; this makes the selection rule match |
+| verify vendored bytes against the pinned provenance | **on publication.** v2 is `DRAFT — NOT PUBLISHED` and makes no provenance claim; a pinned draft goes stale on the next edit and then either lies or forces a red commit. When v2 is published it must pin a `revision` containing every selected byte plus a per-path `sha256`, which `CanonicalSkillsTest` enforces conditionally today |
+| record `skills.provenance` as `canonical@<revision>` | unchanged from v3; applies once v2 is published |
+
+### D-B2 · The bundle's `CLAUDE.md` REFERENCES the agreed set; it does not restate it
+
+Measured basis (spec-authoring-experience D-AX1b): most Fluxtion authoring material is already published
+and the bundle did not point at it. Four wrong versions of the audit contract were written locally as a
+result.
+
+| Playground obligation | Detail |
+|---|---|
+| render the reference block from `reference-set.json` | canonical copy ships in the analyser jar at `/reference-set.json`; the analyser renders it via `ReferenceSet.markdown(kind)` |
+| ship **only `agreed` entries** | `proposed` awaits sign-off; `excluded` carries its reason. Today: four agreed |
+| let `appliesTo` **select**, not annotate | a Spring-only link must not appear in a non-Spring project — an always-in-context file is a tax on every turn (review N1) |
+| below the block, only what the set does **not** cover | this project's paths, commands, graph — and the audit contract, until [fluxtion#22](https://github.com/telaminai/fluxtion/issues/22) lands upstream |
+| mirror to `AGENTS.md` by **generation**, never by hand | two hand-maintained copies diverge silently (D-AX8) |
+
+**A generated `CLAUDE.md` must not restate a rule the agreed set already carries.** That is the D-AX1b
+duplication rule, and it is what makes an upstream edit improve every project instead of one.
+
+### D-B3 · New `TODO(bundle)` markers to substitute
+
+| Marker | In | Substitute with |
+|---|---|---|
+| regeneration command | `spring/add-a-node/SKILL.md` | this project's exact regeneration command, and whether it needs a Fluxtion API key |
+
+(`common/replay-a-run` keeps its marker and is now only selected by templates that can substitute it.)
+
+### D-B4 · Acceptance ADDED by v4
+
+- [ ] the generated `CLAUDE.md` contains every **agreed** reference-set URL that applies to this template,
+      and **no** URL whose `appliesTo` does not match
+- [ ] it restates no rule already carried by an agreed resource
+- [ ] the selected skill set equals `common` + the template's declared specialisations, resolved from
+      `m19-skills/2`
+- [ ] every vendored skill's bytes match its `sha256` at the declared `revision`
+- [ ] a template without a replay entry point ships **no** `replay-a-run`
+- [ ] `AGENTS.md` is byte-identical to `CLAUDE.md` and was generated, not written
+
+### D-B5 · Still open, and NOT specified here
+
+- **`agentBootstrap`** (UP-PG-02, [upstream-asks §6](../proposals/upstream-asks.md)) — where a generated
+  project's agent instructions live, as a catalogue field. Adjacent to D-B2 and still unfiled.
+- **A non-Claude skills location.** Bundles write `.claude/skills/` because it is the one layout that
+  auto-loads. The analyser is harness-neutral by construction and serves runbooks through
+  `context.runbooks[]`, so nothing is blocked — but if another harness's convention is verified, the
+  generator may write there too and this contract does not need to change.
+- **Guided start** ships in `common`, so every bundle carries it. It drives the analyser's own demo set
+  and needs no substitution.
+
+### Ownership for v4
+
+Unchanged from v3, with two additions: **`reference-set.json` and `m19-skills/2` are analyser-owned**
+(authored, reviewed and pinned here); **the template → specialisations mapping and the rendered
+`CLAUDE.md` are playground-owned**, built from those inputs.
+
 ### Skills-source retrieval contract — `m19-skills/1`
 
 `skills.source` is a **playground build/release input**, never a downloaded-project setting, profile

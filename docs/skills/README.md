@@ -38,6 +38,12 @@ template means editing every entry in this library.
 `spring` means the same thing here as `appliesTo: "spring"` in `reference-set.json`. One word meaning two
 things is how these drift apart.
 
+**`m19-skills/2` is DRAFT and unpublished** (review C1). Its selected skills still carry `TODO(bundle)`
+markers that only a generator can substitute, and the bundle gate refuses a surviving marker — so **v1
+remains the published contract** until a real consumer proves substitution end to end. A draft also makes
+no provenance claim: unlike v1 it pins no revision or hashes, because a pinned draft goes stale on the next
+edit.
+
 **Replay is a specialisation, not common** (review F3, 2026-08-30). `common/replay-a-run` carries a
 required `TODO(bundle)` marker, and the accepted M19 bundle deliberately has no replay entry point — so
 making it unconditional would either trip the fail-on-`TODO` bundle gate or ship a procedure that does not

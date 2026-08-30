@@ -78,3 +78,40 @@ STILL NOT VERIFIED — unchanged, and I am not claiming otherwise
 --------------------------------------------------------------------------------
 The guided-start prompt end to end through a fresh external client; AGENTS.md under Codex; a human
 confirmation flow for ReferenceSet, still deliberately unwired; playground consumption of m19-skills/2.
+
+
+================================================================================
+CLOSURE PASS — C1..C4 and N4 · commits b83459e^..HEAD
+================================================================================
+All four accepted. The reviewer is right that author-accepts-findings and reviewer-accepts-fixes are
+different events, and the ledger now says so.
+
+C1 · Both halves. (a) The `templates` map is REMOVED from the canonical index — I wrote in the v4 delta
+     that the mapping is playground-owned and then centralised a template here in the same session, which
+     is the contradiction the review caught. A test fixture exercises the selection rule instead, and a
+     test asserts the index owns no `templates`. (b) v2 is declared `DRAFT — NOT PUBLISHED`. I took the
+     option you offered rather than claiming an integration that does not exist: selected skills still
+     carry `TODO(bundle)` markers only a generator can substitute, so **F3 stays partly open** and v1
+     remains the published contract.
+
+     One consequence worth stating: pinning a DRAFT does not work. The drift check you asked for in F2
+     went red the moment C3 edited a selected skill, and re-pinning needs a commit that already contains
+     the edit — so a pinned draft either lies or forces a red commit. A draft therefore makes **no**
+     provenance claim, and the pin rule now binds **on publication**, which is when a consumer actually
+     needs to reproduce bytes. The negative test is unchanged.
+
+C2 · The preregistered sentence is struck in place with a conspicuous post-run correction, rather than
+     edited away. My "relabelled everywhere" was false; it is now true.
+
+C3 · Prefixed. The sentence was the opposite-direction overstatement to F1's and erased the same
+     distinction.
+
+C4 · My fault and a careless one: an unbounded string replace copied this review's disposition into the
+     `1707087` and `7db161c` entries, which this review never assessed. Both restored verbatim. The
+     authoring entry is back to `☐`, records that closure is NOT granted, and its residual list now names
+     the real ones — the held-out guided-start run, Codex AGENTS.md, the unwired ReferenceSet flow, and
+     real playground consumption of v2 — instead of repeating items this review had just closed.
+
+N4 · Count removed rather than reconciled. I was reporting Maven's summary line and you were counting
+     Surefire XML cases; publishing a bare number invites exactly this. These documents now say the suite
+     passes.

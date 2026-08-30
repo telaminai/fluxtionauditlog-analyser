@@ -56,4 +56,9 @@ Remaining known perturbation: `listenPort` is edited per copy, unavoidably and s
 
 One task, one model family, one machine. Six concurrent regenerations hit the hosted generation service,
 so an environment failure is possible and will be reported as an environment failure rather than quietly
-dropped. n=3 supports a direction, not an effect size.
+dropped. ~~n=3 supports a direction, not an effect size.~~
+
+> **STRUCK AFTER THE RUN (review F4/C2, 2026-08-30).** Even a direction is more than n=3 supports here.
+> As a 2x2 the observed 3/3 vs 1/3 is Fisher's exact **p = 0.20 one-sided**, on one task, one model family
+> and one machine. The preregistered sentence is kept struck rather than deleted, because a preregistration
+> that is quietly edited afterwards is worth nothing — but it is **not** the current claim. See `round.md`.

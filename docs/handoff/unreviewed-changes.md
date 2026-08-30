@@ -16,7 +16,7 @@ still check**.
 
 ---
 
-## ☑ reviewed 2026-08-30 · `7b2e854^..7a1811f` (15 commits) · the authoring-experience block — measurement, diagnostics, reference set, guided start
+## ☐ `7b2e854^..7a1811f` (15 commits) · the authoring-experience block — measurement, diagnostics, reference set, guided start
 
 **Full report:** [`handoff_30_aug_2026_2_report.txt`](handoff_30_aug_2026_2_report.txt). Read that rather
 than this entry; it is a delegated work block, not an ad-hoc fix, and it records five errors of mine that
@@ -37,20 +37,25 @@ did not reference it; what is genuinely undocumented is the audit log — this p
 **Verified.** 1140 green; four-term sweep clean; the reference-set bench passes 4/4; every jar-level claim
 in the report is reproducible with one command against `~/.m2`.
 
-**REVIEWED — CHANGES REQUIRED, and all of them addressed.** See
+**REVIEW LANDED — CHANGES REQUIRED; fixes made, closure NOT yet granted.** See
 [`review_handoff_30_aug_2026_2.txt`](review_handoff_30_aug_2026_2.txt) and the point-by-point
-[`response_review_30_aug_2026_2.txt`](response_review_30_aug_2026_2.txt). Fixes are in `f23b5c9` and
-`2a4960a`. Six findings, three notes, verdict accepted in full; F1 was independently verified against the
-runtime before acting. **F1 corrected a claim that had reached two public issues** — the audit model
-conflated registration, invocation tracing and value logging, and overstated what an untraced record
-proves. The reviewer also ran the real cold JBang install and found an undocumented trust prompt that
-self-cancels; that is now in the prompt and pinned by a test.
+[`response_review_30_aug_2026_2.txt`](response_review_30_aug_2026_2.txt). Fixes are in `f23b5c9`,
+`2a4960a`, `b83459e`. The author accepting findings is **not** the reviewer accepting fixes: a closure pass
+raised four further corrections (C1–C4) and this entry stays `☐` until that pass is green.
 
-**The reviewer verified** 1,153 tests, package build, `mkdocs build --strict`, the reference-link bench
-(6/6), diff/sweep checks, the three jar-level claims, and the Swing origin banner in a built jar — which
-closes four of the five items the handoff had listed as unverified.
+**F1 corrected a claim that had reached two public issues** — the audit model conflated registration,
+invocation tracing and value logging, and overstated what an untraced record proves. The reviewer also ran
+the real cold JBang install and found an undocumented trust prompt that self-cancels.
 
-**What a NEXT reviewer must still check** (unchanged by this review):
+**Closed by the reviewer's own verification:** the Maven suite, `mkdocs build --strict`, the reference-link
+bench, diff/sweep, the three jar-level claims, and the Swing origin banner in a built jar.
+
+**Residuals for a next reviewer** (from the response, not re-listing what was closed):
+- the guided-start prompt run end to end by a fresh external client — the held-out evidence D-G5 asks for;
+- `AGENTS.md` auto-loading under Codex;
+- the human confirmation flow for `ReferenceSet`, still deliberately unwired;
+- **real playground consumption of `m19-skills/2`** — F3 is only partly closed (C1) and v2 is marked DRAFT
+  until a generator selects, substitutes and passes the fail-on-`TODO` gate.
 - **`mkdocs build --strict` was NOT run** — mkdocs is not installed on this machine and I did not install
   it unprompted. `docs/site/guided-start.md` is new and in the nav; its links resolve by hand, which does
   not satisfy rule 5.
@@ -86,20 +91,7 @@ capture harness, diff check and the tracked-file four-term sweep pass. All seven
 opened at original resolution and read before use. The Browser integration reported no connected browser,
 so no live playground/terminal/IDE image was fabricated.
 
-**REVIEWED — CHANGES REQUIRED, and all of them addressed.** See
-[`review_handoff_30_aug_2026_2.txt`](review_handoff_30_aug_2026_2.txt) and the point-by-point
-[`response_review_30_aug_2026_2.txt`](response_review_30_aug_2026_2.txt). Fixes are in `f23b5c9` and
-`2a4960a`. Six findings, three notes, verdict accepted in full; F1 was independently verified against the
-runtime before acting. **F1 corrected a claim that had reached two public issues** — the audit model
-conflated registration, invocation tracing and value logging, and overstated what an untraced record
-proves. The reviewer also ran the real cold JBang install and found an undocumented trust prompt that
-self-cancels; that is now in the prompt and pinned by a test.
-
-**The reviewer verified** 1,153 tests, package build, `mkdocs build --strict`, the reference-link bench
-(6/6), diff/sweep checks, the three jar-level claims, and the Swing origin banner in a built jar — which
-closes four of the five items the handoff had listed as unverified.
-
-**What a NEXT reviewer must still check** (unchanged by this review): Challenge the explicit project → GraphML → log order against the
+**What the reviewer must still check.** Challenge the explicit project → GraphML → log order against the
 desktop UI and the fixed-export/Follow distinction. Confirm the four real-bundle captures and three
 isolated-DEMO figures are appropriate in one journey. On the producer side, reproduce the numeric-log
 finding and add an actual numeric node-log field before restoring the graph instruction. Four original
@@ -124,20 +116,7 @@ to appear valid.
 and privacy sweep pass. The destructive guard is exercised without deleting anything by passing a
 non-canonical destination and requiring a refusal before the web checkout check.
 
-**REVIEWED — CHANGES REQUIRED, and all of them addressed.** See
-[`review_handoff_30_aug_2026_2.txt`](review_handoff_30_aug_2026_2.txt) and the point-by-point
-[`response_review_30_aug_2026_2.txt`](response_review_30_aug_2026_2.txt). Fixes are in `f23b5c9` and
-`2a4960a`. Six findings, three notes, verdict accepted in full; F1 was independently verified against the
-runtime before acting. **F1 corrected a claim that had reached two public issues** — the audit model
-conflated registration, invocation tracing and value logging, and overstated what an untraced record
-proves. The reviewer also ran the real cold JBang install and found an undocumented trust prompt that
-self-cancels; that is now in the prompt and pinned by a test.
-
-**The reviewer verified** 1,153 tests, package build, `mkdocs build --strict`, the reference-link bench
-(6/6), diff/sweep checks, the three jar-level claims, and the Swing origin banner in a built jar — which
-closes four of the five items the handoff had listed as unverified.
-
-**What a NEXT reviewer must still check** (unchanged by this review): Challenge the fixed `/tmp/fluxtion-tutorial` policy and confirm
+**What the reviewer must still check.** Challenge the fixed `/tmp/fluxtion-tutorial` policy and confirm
 the clean-stop failure path leaves enough evidence in `stop.log`. A full staging run was not repeated;
 it deliberately needs a Fluxtion key for the one generation step and executes the neighbouring web
 template generator, outside this analyser-only change.

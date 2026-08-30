@@ -1,6 +1,5 @@
 {
   "contract": "m19-skills/2",
-  "revision": "f23b5c9adfb2d5457b21aa2b189bdc840c2f5482",
   "$comment": [
     "COMMON + SPECIALISATIONS. v1 took common plus one HOST tier, which is too coarse: a template like",
     "spring + mongoose is Spring-authored AND Mongoose-hosted, and the skills that differ by authoring",
@@ -15,10 +14,26 @@
     "fail-on-TODO bundle gate or ship a fictional procedure. Only a template with a real replay entry point",
     "selects it.",
     "",
-    "`templates` is the mapping the generator resolves. It lives here rather than as a list of template ids",
     "on every skill: adding a template must not mean editing every entry in the library.",
     "",
-    "'spring' means the same here as appliesTo:'spring' in reference-set.json."
+    "'spring' means the same here as appliesTo:'spring' in reference-set.json.",
+    "",
+    "STATUS: DRAFT, NOT PUBLISHED (review C1, 2026-08-30). No generator consumes this yet. Selected skills",
+    "still carry TODO(bundle) markers that only a real consumer can substitute, and the existing bundle gate",
+    "refuses a surviving marker. v2 becomes publishable when a generator selects a real template,",
+    "substitutes every marker and passes that gate on a generated bundle. Until then v1 remains the",
+    "published contract.",
+    "",
+    "There is deliberately NO `templates` map here. A template declares the specialisations it wants, and",
+    "templates are the playground's catalogue \u2014 centralising one of them in this analyser-owned index would",
+    "be the second source of truth this design exists to avoid. A sample selection lives in a TEST FIXTURE",
+    "instead (CanonicalSkillsTest), which exercises the rule without owning the data.",
+    "",
+    "A DRAFT MAKES NO PROVENANCE CLAIM. v1 pins `revision` and exact bytes because it is published and a",
+    "consumer must reproduce what it advertises. This draft deliberately declares NEITHER: an unpinned draft",
+    "is honest, whereas a pinned one goes stale on the next edit and either lies or forces a red commit to",
+    "re-pin. CanonicalSkillsTest enforces the rule that matters \u2014 a non-DRAFT index MUST pin a revision that",
+    "contains every selected byte, and those bytes must still match the worktree."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -50,21 +65,5 @@
       ]
     }
   },
-  "templates": {
-    "fluxtion-spring-mongoose": {
-      "specialisations": [
-        "spring",
-        "mongoose"
-      ],
-      "note": "The accepted M19 bundle. It has no replay entry point, so it does not select replay."
-    }
-  },
-  "sha256": {
-    "common/load-audit-log/SKILL.md": "936950b36a9cd123eaaaf76d9b3730ca2616645d26224397013f629548faefa8",
-    "common/guided-start/SKILL.md": "1adb8f8ca4030293dfcaa189007101a6b46d920e432c108622df44e87d40d0d9",
-    "mongoose/run-mongoose-server/SKILL.md": "f2737e2c92c9b4e2ec1cb2776ad04c945da87346c309f48e3e67eef6bddda928",
-    "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
-    "spring/add-a-node/SKILL.md": "647abd38e44f3a3975c806065fba448dc31a71c07b358928005129f05a2b0413",
-    "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
-  }
+  "status": "DRAFT \u2014 NOT PUBLISHED"
 }

@@ -243,6 +243,19 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
+- [M19.21] ☐ **Playground-side: bundle contract v4** _(specified 2026-08-30 after the owner asked where this
+  work was written down — it was not)_ — [`spec-onboarding-example.md` ▸ BUNDLE CONTRACT v4](spec-onboarding-example.md).
+  A delta on v3, because v3's tables remain correct except where this session changed them. Four
+  obligations: consume `m19-skills/2` (common + specialisations) and own the **template → specialisations**
+  mapping for the real catalogue; **never select `replay`** without a real replay entry point, since its
+  `TODO(bundle)` could not be substituted and v3 already forbids shipping an unsubstituted marker; render
+  the bundle's `CLAUDE.md` from `reference-set.json` shipping **only agreed entries** with `appliesTo`
+  selecting rather than annotating; and verify vendored bytes against v2's provenance **once v2 is
+  published**. Six added acceptance items. **`m19-skills/2` is DRAFT** — its selected skills carry
+  `TODO(bundle)` markers only a generator can substitute, so v1 stays the published contract and F3 is
+  only partly closed until a real consumer proves substitution (review C1). The template →
+  specialisations mapping is **playground-owned**; the canonical index declares no `templates` map.
+  `agentBootstrap` (UP-PG-02) stays open and adjacent.
 - [M19.20] ☐ **Sibling dispatch order is natural-order by node name** _(found in round 04, 2026-08-30)_ —
   the generated processor orders nodes by `TopologicalOrderIterator(graph, new NaturalOrderComparator(
   inst2Name))`: dependency order first, then **name order** among nodes at equal depth. Found by an agent
