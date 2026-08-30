@@ -1,0 +1,158 @@
+REVIEW — accumulated analyser changes, 2026-08-30
+Reviewer: independent analyser session
+Range reviewed: 7fb6b72..1a1e49a
+Current tip: 1a1e49a
+Verdict: CHANGES REQUIRED
+
+The archive boundary, origin validation, v4 handoff evidence, tutorial correction and the new
+template-reference-guide path are generally strong. The blocking defect is narrower: the new REST
+discovery route assumes exact-path dispatch, but the JDK HttpServer uses longest-prefix dispatch.
+Consequently a misspelled action URL can execute a real action instead of returning the discovery 404.
+
+The review started at 39d8ba4. Commits 674bdc1 and 1a1e49a arrived on main while it was in progress;
+they are included in the range and in the conclusions below.
+
+
+F1 — HIGH — /action and /manifest are prefix routes, so malformed paths reach real handlers
+
+ActionServer registers contexts at `/action`, `/manifest` and `/` (ActionServer.java:67-74), then
+describes the last one as handling anything that is not exactly the first two (lines 144-148). That is
+not how com.sun.net.httpserver.HttpServer routes: it chooses the longest matching path prefix.
+
+I added a review-only test in a detached worktree and ran:
+
+  mvn -q -Dtest=ActionServerTest#probePrefixAndMethodSemantics test
+
+It failed with these actual results:
+
+  request                                      expected       actual
+  GET  /manifest/not-a-route                   404            200 + full manifest
+  POST /manifest                              405            200 + full manifest
+  POST /action/not-a-route + valid token       404            200 + aggregate executed
+
+This is not a token bypass: the action-child request still needs a valid token. It is nevertheless a
+real dispatch defect. A client can address a path the server says is wrong and still mutate analyser
+view state or write an authorised output, depending on the action in its body. The three shipped tests
+only exercise a non-overlapping path (`/api/context`), a root child (`/nope`) and the exact manifest;
+none challenges HttpServer's prefix rule.
+
+Required correction: make the two real handlers reject any path other than their exact path before
+dispatch, and make `/manifest` enforce GET. Pin `/action/extra`, `/manifest/extra`, GET `/action` and
+POST `/manifest`. Wrong paths should reach the useful discovery response; wrong methods on exact paths
+should be 405.
+
+
+F2 — REQUIRED SECURITY-CONTRACT CORRECTION — the any-Origin refusal is not applied to every request
+
+The class contract says **any request carrying Origin is rejected** (ActionServer.java:20-29), and that
+is the deliberately simple DNS-rebinding posture. The new `handleUnknownPath` has no Origin check. A
+second review-only assertion proved:
+
+  GET /not-a-route + Origin: http://evil.example    expected 403, actual 404 discovery body
+
+There is a pre-existing order variant too: handleAction checks the HTTP method before Origin, so:
+
+  GET /action + Origin: http://evil.example         expected 403, actual 405
+
+Neither response exposes analyser data and a normal tokened POST action is still protected, so I do not
+classify this as a demonstrated exploit. It does, however, contradict the hard security invariant at the
+new browser-addressable surface. Put the Origin refusal ahead of method/path-specific replies on every
+route and retain tests for the unknown-path and wrong-method cases.
+
+
+F3 — REQUIRED — the discovery response gives the wrong token contract
+
+ActionServer.java:158 says:
+
+  X-Analyser-Token (required by /action and /manifest, not by this reply)
+
+But `handleManifest` performs no token check, and the established test deliberately calls GET
+`/manifest` without one and expects 200 (ActionServerTest.java:55-63). The public manifest is the useful
+bootstrap design; the new text should therefore say the token is required by `/action` only. Pin that
+fact by calling the manifest without a token and asserting the discovery wording, rather than merely
+checking that the header name occurs somewhere.
+
+
+F4 — REQUIRED TRACKER CORRECTION — the live tracker still records the superseded numeric-log state
+
+The updated tutorial and the four inspected screenshots correctly show `rootNode.price` and
+`rootNode.volume` as numeric keys, and tutorial-playground.md:107-115 now makes the graph step executable.
+The tracker still says the opposite twice:
+
+  * M19.3 around tracker.md:417-419 says the released bundle has no numeric key and the graph step is
+    blocked.
+  * Open questions around tracker.md:843-849 says the tutorial is still deliberately illustrative and
+    waits for the playground to land `price`.
+
+That is current-state documentation, not labelled historical review text. Remove or close the open
+question and update/retire the M19.3 residual so the tracker agrees with the shipped tutorial.
+
+
+F5 — REQUIRED REPRODUCIBILITY CORRECTION — round 06 names rebased, unreachable commits
+
+round-06/round.md:3 cites predictions at 4e3e5bc and the amendment at 94f51bf. Both objects happen to
+exist in this working copy, but `git branch --contains` returns no branch for either; a fresh clone is
+not entitled to have them. Their current reachable equivalents are:
+
+  c55d8b5  experience: round 06 predictions — the shipped assets, and the audit half
+  6a66cf4  experience: round 06 rig amendment — the bundle under test predates the numeric-key fix
+
+Replace the orphaned IDs with reachable ones (or use a durable tag/reference scheme). The timing claim
+is important to the preregistration, so its evidence must survive a clone.
+
+
+N1 — NON-BLOCKING — TemplateClient's origin-override Javadoc remains backwards
+
+TemplateClient.java:66-68 calls D-AX10 a “loopback-only origin override”, while validation accepts any
+HTTPS origin and restricts only plain HTTP to loopback; lines 76-77 state the real rule. This was already
+recorded by the M19.5 review. Change the heading to “loopback HTTP origin override” or describe it as an
+HTTPS origin override with a loopback-only HTTP exception.
+
+
+WHAT HELD
+
+* TemplateArchiveAdversarialTest exercises meaningful missing cases: nested allow-listed basenames,
+  archive-marked symlinks, backslash traversal, partial cleanup and preservation of a pre-existing empty
+  destination. The implementation remains fail-closed and never executes archive content.
+* PlaygroundOriginAdversarialTest rejects spoofed/numeric loopback forms and unsafe URI components while
+  preserving the fixed production origin. Its assertions are not vacuous.
+* The template reference-guide addition is explicit and unchecked, preserves a template's own CLAUDE.md
+  byte-for-byte, selects the Spring reference only from the extracted layout, and adds no execution path.
+  Its unit tests cover the file outcomes. The actual Swing checkbox layout was not driven in this review.
+* All four changed tutorial screenshots were read at original resolution. They consistently show the
+  real bundle (23 records, five PriceEvent cycles), numeric price/volume values, two paired nodes and
+  neutral `/tmp/fluxtion-tutorial` paths. The previously accepted public author attribution remains the
+  only personal name visible.
+* Round 06 correctly labels itself exploration at n=2 and explicitly refuses attribution. Only
+  prediction.md and round.md are preserved, not the raw per-agent transcripts/build artefacts, so I did
+  not independently verify its quotations or attempt counts; under D-AX5 that means the round must remain
+  observational, which its current conclusion does.
+
+
+GATES RUN AT 1a1e49a
+
+* `mvn -q test` — PASS (1,185 cases summed from Surefire XML).
+* `python3 -m unittest discover -s tools/bench -p 'test_*.py'` — PASS, 21 tests.
+* `/private/tmp/m19-docs-venv/bin/mkdocs build --strict` — PASS.
+* `git diff --check 7fb6b72..HEAD` — PASS.
+* Canonical four-term tracked-file privacy sweep — clean.
+* Review-only ActionServer probe — FAIL as intended, five assertions exposing F1/F2. It lives only in
+  `/private/tmp/analyser-many-review`; no production or repository file was changed by that probe.
+
+
+NOT VERIFIED
+
+* The new template-reference-guide checkbox was not clicked in the built Swing dialog; only its carrier
+  and filesystem outcomes were checked.
+* The round-06 external-agent runs were not reproduced and their raw artefacts are not in the repository.
+* Playground deployment and web-repository claims recorded in the handoffs were not re-run here; this is
+  an analyser-repository review.
+
+
+NEXT ORDER
+
+1. Fix F1-F3 together as one exact-routing/security-contract change and adopt the adversarial probe as a
+   compact permanent test.
+2. Correct F4/F5 and the N1 sentence.
+3. Re-run the full suite and strict docs, then ask for a closure pass. Do not interpret the current green
+   suite as covering F1: the review test demonstrates the missing seam directly.
