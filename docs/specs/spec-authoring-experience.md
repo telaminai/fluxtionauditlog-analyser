@@ -174,6 +174,33 @@ agreed set and fail on a non-200**. That check is cheap, and without it the casc
 silently — which is worse than not having it, because every project claims to point at guidance that no
 longer resolves.
 
+### D-AX1d — a new project MAY be given a `CLAUDE.md`, and the rules that make that safe
+
+Owner, 2026-08-30, answering the question this raised: *"For a new project or template project we can
+write a CLAUDE.md?"* Yes — and it is worth writing the guard rails down, because **the analyser has never
+written documentation into a user's repository** (verified: it writes profiles, nothing else). This is the
+first exception and it should be the narrowest one that works.
+
+- **Never overwrite.** An existing `CLAUDE.md` is the author's. `ReferenceSet.offer()` checks that
+  **first**, before anything else, so the guarantee does not depend on the set being populated — an
+  ordering bug caught by its own test, which would otherwise have gone unexercised until the day the set
+  went live.
+- **Only `agreed` entries are ever written.** Until D-AX1c is signed off the feature produces nothing, so
+  it cannot ship guidance nobody approved. Sign-off is a status field, not a code change.
+- **References, never content.** No restated rules — that duplication is what produced four wrong versions
+  of the audit contract here (D-AX1b).
+- **Offer, never select** (M35.4). The New-project confirmation already lists what it found with every
+  choice off; this is one more unchecked offer, not a new pattern.
+- **Two entrances, same source.** The playground generator writes it into a fresh bundle; the analyser
+  offers it for a day-two project. Both render from `src/main/resources/reference-set.json`, on the
+  classpath so the jar ships it and nothing keeps a second copy that can drift.
+
+**And the check that keeps it honest:** `tools/bench/reference-set-bench.py` fetches every URL and fails
+on a non-200. Deliberately not in `mvn test` — a network fetch there makes the build flake on someone
+else's outage — but nothing else can see these links at all: `mkdocs --strict` cannot check external URLs
+and `SpecLinksResolveTest` only walks `docs/specs`. `ReferenceSetTest` covers the structure offline and
+states plainly that it proves nothing about reachability.
+
 **Revised sequencing** — the content work now comes third, not first:
 
 1. agree the set (owner);

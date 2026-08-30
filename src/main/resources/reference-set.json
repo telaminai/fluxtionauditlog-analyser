@@ -1,0 +1,58 @@
+{
+  "$comment": [
+    "The AGREED SET of published Fluxtion authoring resources a generated project references.",
+    "spec-authoring-experience.md D-AX1c: a project POINTS at these; it never restates them, because one",
+    "edit upstream should improve every reader rather than being re-delivered per project.",
+    "",
+    "STATUS IS NOT DECORATION. 'proposed' entries are this session's recommendation and await the owner's",
+    "sign-off; 'excluded' entries are deliberate and carry the reason. Bundles must reference only",
+    "'agreed' entries — shipping a 'proposed' one would make the sign-off meaningless.",
+    "",
+    "Structure is checked by ReferenceSetTest (offline, in CI). Reachability is checked by",
+    "tools/bench/reference-set-bench.py, deliberately NOT in mvn test: mkdocs --strict cannot see external",
+    "URLs and SpecLinksResolveTest only walks docs/specs, so this is the only thing that checks them — but",
+    "a network fetch in the unit suite would make the build flake on someone else's outage."
+  ],
+  "version": 1,
+  "resources": [
+    {
+      "id": "build-with-ai",
+      "url": "https://fluxtion-playground.dev/build-with-ai",
+      "why": "How to author Fluxtion with an LLM, and the compile/run loop the rest of the stack serves.",
+      "status": "proposed"
+    },
+    {
+      "id": "orientation",
+      "url": "https://fluxtion-playground.dev/CLAUDE.md",
+      "why": "The author orientation, including the source-gen triage table that maps a build error to its fix.",
+      "status": "proposed"
+    },
+    {
+      "id": "golden-path",
+      "url": "https://fluxtion-playground.dev/fluxtion-golden-path.md",
+      "why": "The blessed shape and its gotchas; carries the worked auditLog chaining example.",
+      "status": "proposed"
+    },
+    {
+      "id": "spring-contract",
+      "url": "https://fluxtion-playground.dev/spring-authoring/contract.md",
+      "why": "The FluxtionSpringConfig field table: nodeBeans, ignoredBeans, eventTypes and the XML shape.",
+      "status": "proposed",
+      "appliesTo": "spring"
+    },
+    {
+      "id": "framework-canon",
+      "url": "https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt",
+      "why": "The framework reference.",
+      "status": "proposed",
+      "note": "Overlaps the orientation heavily. Round 05 found two sessions reporting it added nothing they used. Include only if the owner wants the canon cited directly."
+    },
+    {
+      "id": "audit-replay",
+      "url": "https://fluxtion-playground.dev/audit-replay",
+      "why": "Describes audit and replay as a property of the generated processor.",
+      "status": "excluded",
+      "note": "EXCLUDED until telaminai/fluxtion#22 is resolved. It states audit 'falls out of how the processor is generated' — true for which nodes fired, false for what each node reports — so an author concludes no instrumentation is needed. Measured: that is exactly what a round-01 session concluded. It misleads by assertion, not omission."
+    }
+  ]
+}

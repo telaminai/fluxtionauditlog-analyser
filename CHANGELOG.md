@@ -18,6 +18,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   receive the same caller-buffer hygiene as successful saves and later write failures.
 
 ### Added
+- **A new project can be given a `CLAUDE.md` that points at the canonical Fluxtion authoring resources.**
+  The set ships with the analyser; only entries marked agreed are ever written, an existing `CLAUDE.md` is
+  never overwritten, and the file carries links with a reason each rather than restating any rule.
 - **A loopback-only playground origin override for local experiments.** `-Dfluxtion.analyser.playgroundOrigin=http://127.0.0.1:PORT`
   points *New project from template…* at a playground served locally. Plain `http` is accepted **only** for
   `127.0.0.1`, `[::1]` and `localhost`; every other origin keeps the HTTPS rule, and the origin must still be
