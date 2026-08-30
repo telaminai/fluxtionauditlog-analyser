@@ -913,6 +913,36 @@ mongoose-plugins branches:
     repo. Pre-existing and yours to decide, but they are release scratch, not source.
 
 ================================================================================
+7r. N1 CLOSED IN A GENERATED BUNDLE — playground pinned to 1.0.41 (2026-08-30)
+================================================================================
+
+fluxtion-web `main` @ c15ed9f (deployed).
+
+RELEASED PLUGIN VERSIONS, verified by downloading each jar rather than trusting version numbers:
+
+    1.0.39   registry fields, NO startComplete   (what the playground was still pinning)
+    1.0.40   + startComplete                     (your N1 fix)
+    1.0.41   + the golden-schema regeneration and the strengthened N1 test
+             (tag diff confirms 1.0.41 = 1.0.40 plus that single commit)
+
+The playground pin was TWO releases stale, so bundles generated after your 1.0.40 release would
+still have carried the un-fixed plugin. Now pinned to 1.0.41 and re-synced across the examples.
+
+N1 CLOSED END TO END on a bundle regenerated against 1.0.41. Booted with no dashboard poll of any
+kind, the registry entry immediately carried:
+
+    "processors": [{ "group": "processor-agent", "name": "marketProcessor",
+                     "className": "com.example.myapp.generated.MarketProcessor",
+                     "graphml": "/api/processors/processor-agent/marketProcessor/graphml" }]
+
+and a GET of that graphml route returns HTTP 200 — precisely the fetch loop-bench could not make
+when the list was empty. The clean stop then removed the entry. So loop-bench's
+`processors[0]` assumption is now satisfied by a real generated bundle, and the generic loop
+contract holds without a consumer having to poll first.
+
+Full web suite 405/405; production build green.
+
+================================================================================
 8. NOT VERIFIED
 ================================================================================
 
