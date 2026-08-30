@@ -50,7 +50,14 @@ in Java to talk to our own service would be absurd.
 
 ## B — the mechanism
 
-### B1 · Playground: teach the existing endpoint a template id
+### B1 · Playground: teach the existing endpoint a template id — **LANDED 2026-08-30**
+
+**Live in production** at `fluxtion-web` `994e82a`, verified against the deployed site rather than
+only in test: a 38,564-byte `audit-analyser-bundle` zip, the `artifact` override rooting the project
+at `risk-engine/`, and 404 / 400 / 404 on an unknown id, both-inputs and a path-shaped id. All 14
+catalogue entries are fetchable, pinned by a test, so a template cannot be added and be unreachable.
+The catalogue additions of D-1 and D-2 landed with it. Contract as shipped is in
+[handoff_30_aug_2026_1.txt](../handoff/handoff_30_aug_2026_1.txt).
 
 `GET /start/scaffold?template=<file>[&artifact=&group=&basePackage=]`
 
@@ -92,7 +99,12 @@ discipline of encoding a fact once. Filed as the playground half of UP-PG-03.
 Until that tag exists, the analyser lists `type: mongoose|hosted` **and** falls back to showing
 everything with a one-line note rather than an empty dialog.
 
-**D-2 · `mode: aot` does not mean "needs a key" — and the catalogue currently implies it does.**
+**D-2 · `mode: aot` does not mean "needs a key" — and the catalogue implied it did. LANDED, and it
+was a live bug, not a hypothetical.** Reading the code made it worse than this section first stated:
+`KEY_BADGE` already carries a **"No key"** variant that **no `mode` can produce**, because the badge
+is derived from `mode` alone. So the live gallery was showing *"Key once at build"* on
+`analyser-bundle` — a false warning on the one template the tutorial recommends, as the first thing a
+new user sees. Fixed by an entry-level `keyNeed` override; every existing entry is unaffected.
 §C2 states the rule: *"`interpreted` is keyless…anything else is AOT and needs a subscribed compiler
 key."* That was true when written. It is now false for exactly one template — `analyser-bundle`, which
 is `mode: aot` **and builds keylessly**, because M19 commits the generated processor and moves the

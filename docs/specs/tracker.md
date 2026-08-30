@@ -452,7 +452,13 @@ analyser (reverse funnel)._
   tutorial's end-bridge**: a closing "Do this on your own system →" section linking producing-a-log
   (+ the server link once M18 ships) — the demo must hand off to the user's real adoption, not stop at
   the toy.
-- [M19.5] ☐ **`File ▸ New project from template…` — choose a template inside the analyser** —
+- [M19.5] ◧ **PLAYGROUND HALF LANDED AND RELEASED 2026-08-30** (`fluxtion-web` `994e82a`, live and
+  verified against production: `GET /start/scaffold?template=<id>`, plus the catalogue's `onboarding`
+  tags and `keyNeed`. UP-PG-03 ☑ closed; it also fixed a **live wrong badge** — the gallery said "Key
+  once at build" on the template the tutorial recommends, which needs no key to build). Elements 4-9,
+  the analyser half, remain — briefed in
+  [handoff_30_aug_2026_1.txt](../handoff/handoff_30_aug_2026_1.txt).
+  **`File ▸ New project from template…` — choose a template inside the analyser** —
   specced in [spec-template-from-analyser.md](spec-template-from-analyser.md) (DRAFT v1, 2026-08-30).
   **WIDENED from its original scope** _("defer unless tutorial reads clunky — File ▸ Open example…
   one-action helper (import + open + Follow)")_ on the owner's ask: *"I thought we would be able to

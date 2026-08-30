@@ -1,0 +1,121 @@
+HANDOFF — M19.5 · choose a template inside the analyser; the playground half is LIVE
+Date: 2026-08-30 · From: the Mongoose/playground session · Branch: main · Base: main @ 0001510
+Playground: telaminai/fluxtion-web main @ 994e82a — RELEASED to production and verified live
+
+ORIENT FIRST
+  · docs/specs/spec-template-from-analyser.md — the design, the decisions, and §D-4, which is the
+    part that carries the risk. Read §D-3 before writing any code: it is an OWNER DECISION, not a
+    detail, and it bounds what this feature is allowed to do.
+  · docs/specs/tracker.md M19.5 — widened from its original scope on the owner's ask; the old entry
+    ("File ▸ Open example… one-action helper") automated the LAST hop and is now this feature's
+    final step.
+  · docs/proposals/upstream-asks.md UP-PG-03 — all three parts landed today; the contract below is
+    what shipped, not what was asked for.
+
+WHY THIS EXISTS, IN THE OWNER'S WORDS
+  "I thought we would be able to choose a template from the swing app to make it seamless to get
+  started" … "this is the missing low friction onboarding step".
+
+  Today a first-time reader changes tool three times before seeing one record: browser (pick and
+  download a template) → terminal (build, run, export) → analyser. The browser hop is the one that
+  can be removed, and removing it makes the analyser the place onboarding STARTS.
+
+WHAT IS DONE — the playground half, live in production now
+
+  GET https://fluxtion-playground.dev/start/scaffold?template=<id>
+      [&artifact=<a>][&group=<g>][&basePackage=<p>]
+      -> 200 application/zip, content-disposition attachment; filename="<artifact>.zip"
+
+  · <id> is the `file` value from https://fluxtion-playground.dev/starter-templates/index.json,
+    with or without the ".starter.json" suffix. All 14 catalogue entries are fetchable; a test
+    asserts that, so a new template cannot be added and be unreachable.
+  · The three overrides are optional; an unset field keeps the template's own default. They exist
+    because the template is a SHAPE and the project is generated to the user's names
+    (spec-agent-brokered-dev-loop §C2) — without them this would be a fixed zip.
+  · Errors: 404 unknown id (the body NAMES the catalogue URL and lists the available ids, so a
+    client can recover without documentation); 404 for a path-shaped id; 400 if both ?s= and
+    ?template= are given (they are alternatives, and silently preferring one teaches the wrong
+    model); 422 if an override makes the spec invalid — never a zip that will not build.
+
+  Verified against PRODUCTION after the deploy, not only in test:
+      ?template=analyser-bundle            -> 200, 38,564-byte zip, unzips to audit-analyser-bundle/
+                                              with CLAUDE.md, AGENTS.md, config/, run + export + stop
+      ?template=analyser-bundle&artifact=risk-engine -> 200, project rooted at risk-engine/
+      ?template=nope                       -> 404
+      ?template=analyser-bundle&s=x        -> 400
+      ?template=..%2Fetc                   -> 404
+      /starter-templates/index.json        -> catalogue 1, both onboarding entries, keyNeed "none"
+
+  Catalogue (UP-PG-03 b/c), which is the CONTRACT YOUR PICKER READS:
+  · tags: ["onboarding"] now marks the subset worth showing someone diagnosing a system —
+    analyser-bundle and fluxtion-spring-mongoose. Select from THIS, never from an allowlist inside
+    the analyser: an in-app list is a second source of truth that drifts on the first rename.
+    Four templates actually have the capability (auditCapture + web admin); widening is a catalogue
+    edit, not an analyser release.
+  · keyNeed: "none" on analyser-bundle. Do not derive a key warning from `mode`.
+
+A LIVE BUG THIS FOUND, WORTH KNOWING BEFORE YOU COPY THE PATTERN
+  The gallery derived its key badge from `mode` alone, and KEY_BADGE.none ("No key") was
+  unreachable because no mode maps to it. So the site showed "Key once at build" on analyser-bundle
+  — which commits its generated processor and builds with NO key. The one template the tutorial
+  recommends carried a false warning as the first thing a new user saw. `mode: aot` means "the
+  cloud compiler generated this", which USED to imply "you need a key at build"; M19 broke that
+  equivalence and nothing had noticed. Fixed by an entry-level keyNeed override.
+
+  Note the shape of it, because your picker can reproduce it: keyless-to-BUILD and keyless-to-
+  REGENERATE are different claims, and only the first is true of the bundle. It ships
+  check-fluxtion-key.sh deliberately, as a preflight for the regeneration build.
+
+WHAT IS LEFT — the analyser half, elements 4-9 of the spec. Yours if you want it; see COORDINATION.
+
+  4. Catalogue client — fetch index.json, gate on the `catalogue` integer, refuse an unknown
+     version naming the analyser version (the x-analyser-min-version refusal shape).
+  5. HARDENED UNZIP — the risk centre, spec §D-4. The analyser would, for the first time, unpack a
+     network-fetched archive that legitimately contains executables (mvnw, run-server.sh, .cmd).
+     Non-negotiable: zip-slip refusal naming the entry; entry-count / per-entry / total-expansion
+     caps; the exec bit granted only to a fixed allowlist and NEVER taken from the archive's mode
+     bits; refuse a non-empty destination (never merge, never overwrite); atomic stage-then-move.
+  6. Swing dialog — list, destination chooser, optional identity fields, progress + cancel, and a
+     clear degradation when the catalogue is unreachable (§D-5). Never block the app.
+  7. Hand to the existing new-project path — this IS the original M19.5 (import + open + Follow).
+  8. Show and COPY the run/export commands. Do not execute them (§D-3).
+  9. Bench + CI that ATTACKS each §D-4 case. A feature that downloads and unpacks archives is not
+     acceptable on "it worked once by hand".
+
+THE ONE DECISION THAT IS NOT MINE TO MAKE (spec §D-3)
+  Whether the analyser may ever RUN the downloaded project. I recommend NO for this slice and the
+  spec is written that way. Runbooks.java deliberately stores POINTERS, never commands, so that
+  opening a colleague's project with an agent attached cannot execute text they wrote; and the
+  analyser executes nothing derived from file content today (only S3 fetches and MCP client
+  launches, both user-initiated). Downloading an archive and running a script out of it is a
+  different act. If the owner wants it, it should be its own slice with its own review, and the rule
+  should be that the analyser runs a FIXED, KNOWN command for a template it fetched itself — never a
+  string read out of a downloaded file.
+
+  Until that is decided, element 8 is "show and copy". The reader still uses a terminal for
+  build/run/export; three tools become two.
+
+COORDINATION
+  Elements 4-9 are Swing application code in this repo, which is your territory — I have been
+  committing docs here, not application code. Either you take the analyser half, or I take it and
+  you review; that is a handoff decision, not mine to make unilaterally. The playground half is done
+  either way and needs nothing further from this side.
+
+  If you take it: the endpoint is live and stable now, so element 5 (the unzip) can be built and
+  attacked against real bytes from day one — `curl -L
+  "https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle" -o b.zip` is a genuine
+  fixture, and a hostile fixture is one you build yourself.
+
+ALSO IN THIS PUSH
+  · docs/site/tutorial-playground.md — the four figures are now generated from the SHIPPED template
+    by tools/stage-tutorial-bundle.sh + tools/capture-docs.py --tutorial. The staging script did not
+    exist though capture-docs.py referenced it in two places; it does now, and it proves the keyless
+    claim rather than asserting it (it runs the GENERATING build under the same isolation and
+    requires it to FAIL for want of a key).
+  · A correction worth carrying: HOME= does not isolate a JVM. On macOS user.home comes from the
+    passwd entry, so a build launched with HOME=/tmp/... still reads the real ~/.fluxtion key file
+    and the real ~/.m2. My first version of that script "proved" a keyless build in 22 seconds
+    having proved nothing. Use -Duser.home. This is the same $HOME/user.home divergence MCP
+    acceptance already found once; it has now bitten twice, in different repos.
+  · The unreviewed-changes ledger is empty — both entries were reviewed and archived.
+  · M19.3 and M19.4 are ticked; they shipped but had never been marked.

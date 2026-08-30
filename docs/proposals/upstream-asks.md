@@ -22,7 +22,8 @@ Status: ☐ not filed · ◐ filed · ☑ landed.
 harness landed in the M19 bench, the M19 bundle work then consumed these asks as a real client, and:
 **UP-MNG-01 ☑ landed and RELEASED** in `mongoose-plugins` 1.0.39; **UP-MNG-03 ◐** declaration half
 landed in the same release (enforcement half still waits on the UP-MNG-02 decision); **UP-PG-01 ☑**
-landed; **UP-PG-03** raised 2026-08-30 (M19.5 — fetch a template by id). UP-MNG-02 (D-05) and
+landed; **UP-PG-03 ☑** landed and released 2026-08-30 (M19.5 — fetch a template by id; the analyser
+half remains). UP-MNG-02 (D-05) and
 UP-MNG-04 remain owner decisions, UP-PG-02's capability now exists but
 its catalogue field does not, and UP-RDR-01 is untouched. The paragraph below is the round-4 framing,
 kept because its reasoning about the gate is what produced this outcome.
@@ -1105,7 +1106,14 @@ example-specific file at generation, over the maintained
 live catalogue. **Cost to us if unfixed:** step 1 of the loop cannot tell an agent whether the project
 it is about to generate will know Fluxtion.
 
-### UP-PG-03 ☐ Fetch a template by id, and two catalogue facts a picker needs
+### UP-PG-03 ☑ Fetch a template by id, and two catalogue facts a picker needs
+
+**ALL THREE LANDED AND RELEASED (2026-08-30)**, `fluxtion-web` `994e82a`, verified against the
+deployed site: `GET /start/scaffold?template=<id>[&artifact=&group=&basePackage=]` returns the real
+zip, the catalogue carries `tags: ["onboarding"]` and `keyNeed: "none"`, and (c) turned out to be a
+**live bug** rather than a latent one — the gallery was badging `analyser-bundle` "Key once at build"
+when it needs no key to build. Contract as shipped:
+[handoff_30_aug_2026_1.txt](../handoff/handoff_30_aug_2026_1.txt).
 
 **Raised 2026-08-30**, from the owner's ask that the analyser let you *choose a template inside the
 app* ([spec-template-from-analyser.md](../specs/spec-template-from-analyser.md), M19.5). Three parts,
