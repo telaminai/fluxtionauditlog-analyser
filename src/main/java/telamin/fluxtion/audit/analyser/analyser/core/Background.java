@@ -30,6 +30,8 @@ public final class Background {
     /**
      * Runs {@code work} off the EDT; on success delivers the result to {@code onSuccess} on the EDT,
      * on failure delivers the throwable to {@code onError} on the EDT.
+     *
+     * @return the submitted task, so an explicitly cancellable UI can interrupt its own work
      */
     public static <T> Future<?> run(Supplier<T> work, Consumer<T> onSuccess, Consumer<Throwable> onError) {
         return POOL.submit(() -> {

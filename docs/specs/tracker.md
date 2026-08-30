@@ -453,33 +453,23 @@ analyser (reverse funnel)._
   tutorial's end-bridge**: a closing "Do this on your own system →" section linking producing-a-log
   (+ the server link once M18 ships) — the demo must hand off to the user's real adoption, not stop at
   the toy.
-- [M19.5] ◧ **PLAYGROUND HALF LANDED AND RELEASED 2026-08-30** (`fluxtion-web` `994e82a`, live and
-  verified against production: `GET /start/scaffold?template=<id>`, plus the catalogue's `onboarding`
-  tags and `keyNeed`. UP-PG-03 ☑ closed; it also fixed a **live wrong badge** — the gallery said "Key
-  once at build" on the template the tutorial recommends, which needs no key to build). Elements 4-9,
-  the analyser half, remain — briefed in
-  [handoff_30_aug_2026_1.txt](../handoff/handoff_30_aug_2026_1.txt).
-  **`File ▸ New project from template…` — choose a template inside the analyser** —
-  specced in [spec-template-from-analyser.md](spec-template-from-analyser.md) (DRAFT v1, 2026-08-30).
-  **WIDENED from its original scope** _("defer unless tutorial reads clunky — File ▸ Open example…
+- [M19.5] ◧ **IMPLEMENTED END TO END — AWAITING INDEPENDENT REVIEW** _(2026-08-30; playground
+  `994e82a` live, analyser `9d38cc4`)_ — `File ▸ New project from template…` reads the live
+  catalogue-owned onboarding set and `keyNeed`, loads catalogue-owned identity defaults, downloads
+  from the pinned HTTPS origin, installs through a fail-closed archive boundary, opens the bundled
+  profile (or reuses day-two discovery for an older template), and shows copyable analyser-owned
+  lifecycle commands without executing downloaded content. Network and extraction work is background,
+  modeless and cancellable. `template-bench.py` attacks traversal, absolute paths, populated targets,
+  count/per-entry/total expansion limits, multiple roots and an archive-marked `evil.sh`; its live leg
+  passed 6/6 against the deployed `analyser-bundle`. Full suite: 1129; strict docs: green. Review brief:
+  [handoff_30_aug_2026_1_report.txt](../handoff/handoff_30_aug_2026_1_report.txt).
+  **D-3 decided NO for this slice:** download/extract/open, then show/copy fixed commands; never run.
+  This was **widened from its original scope** _("defer unless tutorial reads clunky — File ▸ Open example…
   one-action helper (import + open + Follow)")_ on the owner's ask: *"I thought we would be able to
   choose a template from the swing app to make it seamless to get started."* The old entry automated
   the **last** hop and assumed the bundle was already downloaded; the owner meant the **first**. The
-  old scope survives as the new one's final step.
-  Three of the four pieces already exist — the versioned catalogue (UP-PG-01), **server-side zip
-  generation over HTTP** (`/start/scaffold`, a Cloudflare function running the same generator; this
-  was assumed browser-only and is not), and the zero-setup profile open. The gap is one query
-  parameter (`?template=<file>`) plus an analyser dialog and a **hardened** unzip — which is most of
-  the work and all of the risk (spec §D-4: zip-slip, expansion caps, exec-bit allowlist, atomic
-  extraction). Two findings the spec carries: `mode: aot` no longer implies "needs a key" now that the
-  M19 bundle builds keylessly, so a picker deriving that warning from `mode` would show a **wrong**
-  warning on the very template the tutorial recommends; and the listed subset must come from the
-  catalogue (`tags: ["onboarding"]`), not an allowlist inside the analyser that drifts on the first
-  rename. Both are the playground half, filed as **UP-PG-03**.
-  **One open owner decision (spec §D-3):** whether the analyser may ever *run* the downloaded project.
-  Recommended **no** for this slice — `Runbooks.java` deliberately stores pointers not commands, and
-  the analyser executes nothing derived from file content today. Ships as "show and copy the commands";
-  the reader still uses a terminal, and three tools become two.
+  old scope survives as the new one's final step. Full design and decision record:
+  [spec-template-from-analyser.md](spec-template-from-analyser.md).
 - [M19.6] ☑ **The loop's conformance bench — §H's home** _(DONE 2026-08-25, merged to main)_ —
   `tools/bench/loop-bench.py` plays the agent of dev-loop §C3 steps 3–7 (glob the registry → pick →
   export log + GraphML → `open {log, graphml, provenance}` + `source_root` → assert from `context` /

@@ -1,0 +1,95 @@
+REPORT — M19.5 analyser half: choose and open a playground template
+Date: 2026-08-30
+Brief: docs/handoff/handoff_30_aug_2026_1.txt
+Implementation: analyser main @ 9d38cc4
+Playground contract consumed: fluxtion-web @ 994e82a, deployed
+
+STATUS: IMPLEMENTATION COMPLETE; OPEN FOR INDEPENDENT REVIEW.
+The tracker stays ◧ until that review accepts the work. No other repository was changed.
+
+OUTCOME
+-------
+File ▸ New project from template… now removes the browser and manual-unzip hops. It reads the
+playground's live catalogue, presents the catalogue-owned onboarding subset, loads identity defaults
+from the selected template, downloads a generated zip, installs it at a user-approved destination and
+opens its analyser profile. A template without a profile is handed to the existing day-two discovery
+path rather than gaining a second import implementation.
+
+D-3 IS RESOLVED NO FOR THIS SLICE. The analyser never runs downloaded code. The final dialog shows and
+copies fixed analyser-owned commands selected only by recognised root filenames. It never reads a
+command from the archive. This preserves the existing runbook/pointer trust boundary.
+
+IMPLEMENTATION BY BRIEF ELEMENT
+-------------------------------
+4. Catalogue client
+   - TemplateClient pins https://fluxtion-playground.dev, disables redirects and bounds every response.
+   - TemplateCatalogue accepts only catalogue 1 and names the analyser version in an incompatibility.
+   - The onboarding set comes from tags, with the specified Mongoose and show-all degradations.
+   - keyNeed is consumed literally. "none" is rendered; absence is silent. mode is never used to infer
+     a key requirement.
+   - Identity defaults are read from the catalogue-owned .starter.json, not duplicated in Swing code.
+
+5. Hardened archive
+   - Refuses parent traversal, Unix/Windows absolute paths, duplicate normalised paths, excess entries,
+     per-entry and total expansion, multiple roots, links/non-directories and populated destinations.
+   - Writes with CREATE_NEW into a sibling staging directory and requires ATOMIC_MOVE. There is no
+     non-atomic success fallback and no merge/overwrite path.
+   - Ignores archive mode bits. Only root mvnw, run-server.sh, export-audit.sh, stop-server.sh and
+     check-fluxtion-key.sh receive POSIX execute bits. The hostile fixture marks evil.sh executable in
+     the zip central directory and proves the installed file is not executable.
+
+6. Swing
+   - Catalogue, defaults, download and extraction run through Background, off the EDT.
+   - Each operation has a modeless progress dialog and Cancel; HTTP interruption and archive-loop
+     interruption fail through the same cleanup boundary.
+   - An unreachable catalogue produces a human error with the manual playground route.
+   - The analyser-tagged catalogue entry is selected initially; this is a catalogue fact, not a
+     hard-coded template id.
+
+7. Existing project path
+   - A bundled .analyser/project.fluxtion-settings opens through ProjectSession.
+   - A pre-M19 template reuses NewProjectDiscovery/NewProjectOfferDialog.
+
+8. Commands, no execution
+   - The ready dialog shows cd plus recognised wrapper commands and offers Copy commands.
+   - No ProcessBuilder, Runtime.exec or archive-sourced command text exists in the template path.
+
+9. Bench, docs and capture
+   - tools/bench/template-bench.py always runs the hostile local boundary; --live adds the deployed
+     catalogue/scaffold/profile leg.
+   - projects.md documents the flow and trust boundary. projects-file-menu.png and
+     template-picker.png were regenerated from the real jar and visually inspected.
+
+EVIDENCE RUN
+------------
+  mvn -q test                                      PASS, 1129 tests, zero failures/errors
+  /private/tmp/m19-docs-venv/bin/mkdocs build --strict
+                                                    PASS
+  python3 -m py_compile tools/capture-docs.py tools/bench/template-bench.py
+                                                    PASS
+  tools/bench/template-bench.py                    PASS
+  tools/bench/template-bench.py --live             PASS, live leg 6 passed / 0 failed
+  python3 tools/capture-docs.py --template-picker  PASS, native 25 KB capture
+  python3 tools/capture-docs.py --projects-menu    PASS, native 599 KB capture
+  git diff --check                                 PASS before report commit
+
+WHAT THE REVIEWER MUST STILL CHECK
+----------------------------------
+1. Attack TemplateArchive independently, especially the exact root executable allowlist, the
+   pre-existing-empty-directory path and cleanup after a failed atomic install. Do not accept the
+   report's security summary as evidence.
+2. Run tools/bench/template-bench.py --live against production and inspect the generated project's
+   profile/runbook resolution rather than stopping at a 200 or PK header.
+3. Click the Swing flow: cancel each of catalogue/default/download, exercise the unreachable-catalogue
+   message, and confirm the app remains responsive. Headless tests source-pin this seam but cannot prove
+   the native dialogs.
+4. Confirm D-3 structurally: no downloaded script or profile/runbook string can reach an execution
+   primitive. Challenge the fixed command list separately from the archive's executable-bit allowlist.
+5. Read both regenerated screenshots. Confirm the picker shows the catalogue's keyNeed "none" on the
+   AOT analyser bundle and does not claim that regeneration is keyless.
+
+DO NOT ARCHIVE YET
+------------------
+This report, its brief and M19.5 remain live until the independent verdict is accepted. At that point
+move the completed work under docs/handoff/completed/ according to the handoff protocol and mark M19.5
+☑ in the tracker.
