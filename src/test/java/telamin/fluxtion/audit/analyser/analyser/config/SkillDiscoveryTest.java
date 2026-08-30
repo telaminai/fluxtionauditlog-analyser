@@ -140,6 +140,23 @@ class SkillDiscoveryTest {
     }
 
     @Test
+    void NOvendorDirectoryIsPrivileged(@TempDir Path root) throws Exception {
+        // owner, 2026-08-30: "let's not only use Claude". A skill is recognised by its FILE NAME, wherever
+        // it lives, so a project that uses another harness's layout — or nobody's — is served identically.
+        // The analyser then tells the agent which runbooks to load via context.runbooks[], which is what
+        // makes this work for a harness nobody here has heard of.
+        skill(root, ".claude/skills/a/SKILL.md", "---\nname: a\n---\n");
+        skill(root, ".agents/skills/b/SKILL.md", "---\nname: b\n---\n");
+        skill(root, ".config/agent/c/SKILL.md", "---\nname: c\n---\n");
+        skill(root, "docs/runbooks/d/SKILL.md", "---\nname: d\n---\n");
+        skill(root, "e/SKILL.md", "---\nname: e\n---\n");
+
+        var names = find(root).candidates().stream().map(SkillDiscovery.Candidate::name).sorted().toList();
+        assertEquals(List.of("a", "b", "c", "d", "e"), names,
+                "one of these was ranked or excluded by its path — vendor paths must not be encoded here");
+    }
+
+    @Test
     void aSymlinkedDirectoryIsNotFollowedOutOfTheProject(@TempDir Path root) throws Exception {
         Path outside = Files.createTempDirectory("outside");
         skill(outside, "secret/SKILL.md", "---\nname: escaped\n---\n");

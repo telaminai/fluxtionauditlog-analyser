@@ -17,10 +17,25 @@ import java.util.Set;
  * M43.7 — find the skill-shaped runbooks a project already has, so <i>Add runbook…</i> can OFFER them.
  *
  * <h2>Why this exists</h2>
- * The convention says a runbook may be written as a skill — {@code .claude/skills/restart/SKILL.md} with
- * `name`/`description` frontmatter — so one file serves the team and an AI harness alike. But a project
- * can already contain several of those and the analyser made you go and find them with a file chooser.
- * If a project template ships a standard skill, that is a file the user may not even know is there.
+ * A runbook may be written as a skill — a {@code SKILL.md} with `name`/`description` frontmatter — so one
+ * file serves the team and an AI harness alike. But a project can already contain several of those and the
+ * analyser made you go and find them with a file chooser. If a project template ships a standard skill,
+ * that is a file the user may not even know is there.
+ *
+ * <h2>Harness-neutral by construction — do NOT add vendor paths here</h2>
+ * A skill is recognised by its <b>file name</b>, anywhere under the project root. No path segment is
+ * privileged: {@code .claude/skills/restart/SKILL.md} and {@code ops/restart/SKILL.md} are found on
+ * identical terms, and adding a hardcoded list of vendor directories would be a regression rather than a
+ * feature — it would rank one tool's layout above another's while excluding every project that uses
+ * neither.
+ *
+ * <p>This follows the rule M42 already established for MCP clients: the analyser never encodes a
+ * third-party harness's file layout ({@code ClaudeMcpClient} does not parse {@code ~/.claude.json};
+ * {@code CodexMcpClient} does not read {@code config.toml}). Layouts are theirs to change.
+ *
+ * <p>The neutral channel is the analyser itself: confirmed runbooks are served in
+ * {@code context.runbooks[]} with their descriptions, so <b>an agent is told which runbooks to load and
+ * never has to know any convention</b>. That is what makes this work for a harness we have never heard of.
  *
  * <h2>It offers; it never selects (M35.4)</h2>
  * This returns candidates. Nothing is added to the profile until a person picks one and confirms the
@@ -37,12 +52,15 @@ public final class SkillDiscovery {
     private SkillDiscovery() {
     }
 
-    /** Deep enough for {@code .claude/skills/<name>/SKILL.md} and a few levels of project nesting. */
+    /** Deep enough for a {@code <dir>/skills/<name>/SKILL.md} layout and a few levels of project nesting. */
     static final int MAX_DEPTH = 7;
     /** More than any project needs to show in a list; the caller says when it truncated. */
     public static final int MAX_RESULTS = 50;
 
-    /** The file name the convention uses. Compared case-insensitively — people write skill.md too. */
+    /**
+     * The one thing that makes a file a skill. Compared case-insensitively — people write skill.md too.
+     * Deliberately the ONLY criterion: see the harness-neutrality note on the class.
+     */
     private static final String SKILL_FILE = "skill.md";
 
     /** Big, uninteresting, or not ours. Skipping these is what keeps the walk cheap. */

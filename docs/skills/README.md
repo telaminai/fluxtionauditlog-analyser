@@ -40,6 +40,24 @@ things is how these drift apart.
 A bundle still does not author its own set (D-R2). **v1 is byte-pinned and must not be edited** — it is
 consumed by a released playground build; add a version instead.
 
+## Where they go, and why the analyser does not care
+
+A bundle writes its skills to `.claude/skills/` because that is the one layout a harness **auto-loads**
+today; putting them somewhere neutral would help nobody natively while breaking the tool that does. When
+another harness's convention is verified, the generator can write there too — nothing here changes.
+
+**The analyser deliberately does not encode any of that.** A skill is recognised by its **file name**
+anywhere under the project root, so `.claude/skills/x/SKILL.md`, `.agents/skills/x/SKILL.md` and
+`ops/x/SKILL.md` are found on identical terms — pinned by a test, because a hardcoded list of vendor
+directories would rank one tool above another and exclude every project that uses neither. It is the same
+rule M42 set for MCP clients: the analyser never parses `~/.claude.json` or Codex's `config.toml` either.
+
+**The harness-neutral channel is `context.runbooks[]`** (owner, 2026-08-30: *"the analyser context tells
+the LLM which runbooks to load as a skill"*). Confirmed runbooks are served there with their descriptions,
+so an agent is **told** what to load and never has to know a convention. That is what makes this work for a
+harness nobody here has heard of — and it is why the location question is much less important than it
+looks.
+
 ## The rule these files must obey
 
 **Describe the project's own entry points; never invent a CLI.** A skill saying *"run
