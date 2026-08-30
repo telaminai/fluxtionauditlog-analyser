@@ -63,6 +63,31 @@ This is derived from the loop's data rather than from taste: **every expensive f
 was a silent one** — a bean that is never a node, a node that can never record a value, a declared sink
 that nothing writes to. The loud ones cost a build cycle each.
 
+### D-AX1a — the bundle POINTS at `claude.txt`; it restates nothing the canon already says
+
+Added 2026-08-30 after the owner asked whether I was authoring against
+[`docs/claude.txt`](https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt). **I was
+not** — v1–v4 of the doc set and §1c were written without reading it, which is a rule 6 miss and, on the
+count that matters, a **fourth instance of the pattern the loop keeps catching**. Reading it changed three
+things:
+
+- **`transient` is already in the canon**, clearly, with both remedies. Round 02's most expensive finding
+  was not an upstream knowledge gap — a correct rule existed and the author still guessed wrong, because it
+  was not where the failure was. That does not retire UP-FLX-32; it is the strongest possible case for it.
+- **`@OnTrigger`'s boolean return is already in the canon.** My §1c table filed it as an upstream
+  documentation ask. Corrected.
+- **The audit contract is NOT in the canon** — no `EventLogSource`, no `setLogger`, no `nodeLogs`, no
+  statement that position is dispatch order. That is now **UP-FLX-35**, and it is the reason three wrong
+  versions of that rule were written here: the bundle had to invent what the canon does not carry.
+
+**The decision.** A bootstrap doc that restates the canon inherits every drift between them and adds
+tokens to every turn. So: **link, with a one-line reason to open it**, and write only what the canon does
+not say. A line that duplicates `claude.txt` is a D-AX1 "Nowhere" line — and the preflight (D-AX6) should
+fail on the ones that are checkably duplicated, since the canon is a fetchable file.
+
+Sequencing consequence: **UP-FLX-35 lands before the doc set is rewritten**, or the rewrite will once
+again encode the audit contract locally instead of pointing at it.
+
 ## D-AX2 — the bootstrap doc teaches the LOOP, not the facts
 
 The current doc set is a list of rules to know **before** starting. That is the wrong shape for a
@@ -197,18 +222,145 @@ signal — the measurement is confounded, because its twin had already been read
 Keep both; **generate one from the other at bundle-build time** and let the preflight assert they match.
 Two hand-maintained copies is a divergence waiting to happen, and the divergence would be silent.
 
+## The rig — everything local, so the cycle is fast and both ends are editable
+
+Owner-directed, 2026-08-30:
+
+> *When you run the experiment the changes should be local for quick cycles. Playground as a local web app,
+> set the URL of analyser to use that. Fluxtion compiler backend on the classpath removes the network call
+> to compilation. You can then update both as part of the test. If we need to change Fluxtion runtime itself
+> that can happen but the gate is strong for comparability and regressions.*
+
+This changes what the experiment **is**. Until now a round could only measure documentation against a
+fixed upstream, so §1c's diagnostics were asks to file and wait on. With the rig, the message and the
+template are inside the loop: change the diagnostic, re-run the round, and see whether the prose it
+replaces is still needed. **That is the difference between proposing a fix and measuring one.**
+
+### D-AX9 — four surfaces, three of them mutable in-cycle
+
+| Leg | Local form | Mutable in a round? |
+|---|---|---|
+| **Playground** | local web app serving the catalogue and template zips | **yes** — the bundle contract and its examples (D-AX4) |
+| **Analyser** | this repo, run from `target/` | **yes** — but see D-AX10 |
+| **Fluxtion compiler** | generation backend on the classpath, no network call, **no API key** | **yes** — diagnostics (§1c) |
+| **Fluxtion runtime** | the substrate every measurement is taken against | **gated** — D-AX12 |
+
+Two consequences worth stating before they are discovered:
+
+- **The keyless path stops being exercised.** With generation local there is no key and no
+  `process-classes` network call, so the bundle's "runs without a key, regenerates with one" claim — the
+  most likely first-run failure in the field (M19 R4) — is no longer touched by any round. It must stay in
+  the **preflight** (D-AX6) against the real hosted path, or it silently rots.
+- **Local generation is not the user's generation.** A round on the rig measures the authoring experience,
+  not the install experience. Any claim about what a real fresh user hits still needs a run on the shipped
+  path, and the round record must say which it was.
+
+### D-AX10 — the analyser cannot point at a local playground today, and the fix must not be a setting
+
+**Verified in the code, 2026-08-30.** `TemplateClient.playground()` is the only production factory and
+hardcodes `PLAYGROUND = URI.create("https://fluxtion-playground.dev")`. The package-private constructor
+does take an origin, but `validateOrigin` **rejects any non-HTTPS scheme** — there is a test asserting
+exactly that (`TemplateCatalogueTest`, `http://templates.example` throws). Redirects are `NEVER`. So a
+local `http://127.0.0.1:PORT` playground is refused twice over, and there is **no override path at all** —
+not a property, not a setting, not a flag.
+
+That refusal is correct for shipped behaviour and must survive. The rig therefore needs a deliberate,
+narrow hole:
+
+- **A JVM system property, not a persisted setting** — e.g. `-Dfluxtion.analyser.playgroundOrigin=…`.
+  It must not be reachable from the Settings UI and must never be written into a project profile, because
+  a persisted origin is a supply-chain surface that outlives the experiment that created it (D-R4 in
+  [spec-onboarding-example.md](spec-onboarding-example.md) is the same concern for the skills source).
+- **Loopback only.** A non-HTTPS origin is accepted **only** when the host is `127.0.0.1`, `::1` or
+  `localhost`. Every other origin keeps the HTTPS rule unchanged. This is the same shape as M42's
+  loopback probe, and it is what makes the hole un-exploitable from a document or a config file.
+- **Visible.** When the override is in force, the template dialog says which origin it is using. An
+  experiment that silently downloads from somewhere else is how a rig artefact gets mistaken for product
+  behaviour.
+- **Tested at the boundary**, not just the happy path: `http://evil.example` still refused,
+  `https://` unaffected, and the property absent leaves today's behaviour byte-identical.
+
+### D-AX11 — diagnostics are BUILDER-side, so two thirds of §1c needs no backend at all
+
+**Verified while writing §1c, 2026-08-30**, and it makes the rig cheaper than the plan assumes:
+
+- **UP-FLX-32** (constructor match) throws from `LiveGraphSourceGenExtractor.generateComplexConstructors()`
+  in **`fluxtion-builder` 1.0.64** — a client-side jar, read from `~/.m2`.
+- **UP-FLX-33** (`nodeBeans`) lives in the same jar, `com.telamin.fluxtion.builder.extern.spring`.
+
+Both are therefore editable and testable **today**, against a locally-built `fluxtion-builder`, before any
+classpath-backend work lands. That matters for sequencing: the highest-value diagnostic in §1c can enter
+the loop first and cheapest.
+
+*Not verified: which side emits the GraphML, so **UP-FLX-34**'s home is unknown to me. Establish it before
+scheduling that ask — do not assume it is the same jar because its siblings are.*
+
+**The principle this generalises to:** a fix belongs in the **builder** wherever it can go there. The
+builder is instrumentation; the runtime is the thing being measured. Keeping them separate is what stops
+D-AX12's gate from firing on ordinary work.
+
+### D-AX12 — the runtime is the SUBSTRATE, and changing it invalidates more than the round
+
+Changing `fluxtion-runtime` mid-experiment is allowed and gated hard, for the reason the owner gives —
+comparability and regressions. Concretely, what a runtime change costs:
+
+- **It resets the baseline.** Rounds either side are not comparable, and no trend claim may span the
+  change until a **control-arm round has been re-run on the new runtime**. Without that, an improvement in
+  the metrics and a change in the substrate are indistinguishable.
+- **A change to the audit-log format invalidates prior evidence outright**, not just the trend — the log
+  is the measurement instrument, and every round's findings were read through it. The concrete gate is
+  the M34.3 conformance suite (`docs/site/format-spec.md`, `src/test/resources/conformance/`), which the
+  built-in reader and the SPI both pass today.
+- **Regression gate before any round runs on it:** conformance suite green, the analyser's full suite
+  green against the new runtime, and `tools/bench/loop-bench.py` green.
+- **The round record names the reason.** A runtime change made to serve a documentation experiment is a
+  strong signal that the experiment found something real — it should be conspicuous, not routine.
+
+### D-AX7 restated — three mutable surfaces make attribution harder, not easier
+
+With the rig, a single round can plausibly change the doc set, the template's examples **and** a compiler
+message. That is the fast cycle the owner wants, and it is also how attribution dies. Rounds therefore
+declare which kind they are:
+
+- **Exploration round** — change whatever is useful, record findings, **claim no attribution**. Fast, and
+  most rounds should be these.
+- **Attribution round** — one variable, control arm, n≥3. Only these may support a claim that something
+  improved, and only these count toward the trend.
+
+Both are legitimate; conflating them is not. Round 01–03's flaw was making attribution claims from
+exploration rounds without noticing the difference.
+
+### The rig manifest — every round records it, or the round proves nothing
+
+Extends the existing "record the environment" rule to the surfaces the rig makes mutable:
+
+```
+analyser        <git SHA>            playground      <content SHA / commit>
+fluxtion-builder <version or SHA>    template zip    <SHA-256>
+fluxtion-runtime <version>           doc set         current/ vN
+generation       local | hosted      analyser reachable  yes/no
+round kind      exploration | attribution   n = <runs per condition>
+```
+
 ## What to build
 
-1. **Preflight** in `tools/bench/` (D-AX6) — commands, pointers, fixture, examples. Blocks agent rounds.
-2. **Rewrite `current/` against D-AX1–AX3** — retier every line: to a skill, to an upstream ask, or
+1. **Loopback playground origin** (D-AX10) — the analyser change, and the only one in this repo. Property
+   only, loopback only, visible, refusals tested. **Nothing else on the rig works until this lands.**
+2. **Preflight** in `tools/bench/` (D-AX6) — commands, pointers, fixture, examples, **plus the keyless
+   hosted path** that the rig stops exercising (D-AX9). Blocks agent rounds.
+3. **Rewrite `current/` against D-AX1–AX3** — retier every line: to a skill, to an upstream ask, or
    deleted. Expect the bootstrap doc to get materially shorter.
-3. **The authoring-loop section** (D-AX2) — the one substantial *addition*.
-4. **Example set** (D-AX4) — a bundle ask, cheapest item here.
-5. **Harness**: n=3 parallel, analyser reachable, control arm, held-out task (D-AX5, D-AX7).
-6. **File §1c** upstream; delete the prose each landed diagnostic replaces (D-AX3).
+4. **The authoring-loop section** (D-AX2) — the one substantial *addition*.
+5. **Example set** (D-AX4) — served from the local playground, so it is testable in-cycle.
+6. **Harness**: n=3 parallel, analyser reachable, control arm, held-out task, rig manifest per round.
+7. **UP-FLX-32 in a locally-built `fluxtion-builder`** (D-AX11) — the cheapest diagnostic to try, and the
+   first real test of D-AX3: does the prose it replaces become deletable?
+8. **File UP-FLX-35** (D-AX1a) — the audit contract into `claude.txt`, **before** item 3, so the rewrite
+   points at the canon instead of inventing the rule locally for a fourth time.
 
-Order matters: 1 before 5, and 6 before the second pass of 2 — otherwise the doc set is rewritten around
-diagnostics that are about to make it redundant.
+Order matters. **1 before anything**; 2 before 6; and 7 before the second pass of 3, or the doc set gets
+rewritten around diagnostics that are about to make it redundant. Items 5 and 7 are the two that only the
+rig makes possible — everything else was already available and simply not done.
 
 ## Acceptance
 
@@ -224,6 +376,17 @@ diagnostics that are about to make it redundant.
 - [ ] A round has run with the analyser reachable and a task that needs it.
 - [ ] Each §1c diagnostic that lands upstream deletes its prose here, and the round record names the
       lines removed.
+- [ ] The playground origin override is **property-only and loopback-only**, unreachable from Settings,
+      never written to a profile, stated in the UI when in force, and covered by refusal tests — with the
+      property absent, shipped behaviour is unchanged.
+- [ ] Every round record carries the **rig manifest** and declares itself **exploration** or
+      **attribution**; only attribution rounds support a trend claim.
+- [ ] A `fluxtion-runtime` change has passed the M34.3 conformance suite, the analyser's suite and
+      `loop-bench.py` **before** any round runs on it, and a control-arm round has been re-run on the new
+      runtime before any trend claim spans it.
+- [ ] The keyless hosted path is still exercised somewhere, despite the rig no longer touching it.
+- [ ] No bootstrap line duplicates `claude.txt`; the doc links to it with a reason to open it, and the
+      preflight fails on checkable duplication (D-AX1a).
 
 ## What I have not verified
 

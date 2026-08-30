@@ -342,7 +342,8 @@ it into compiler asks". Not every finding is a diagnostic, and saying which are 
 | R2-A stateful field fails constructor matching | **diagnostic** | UP-FLX-32 |
 | R1-G a bean absent from `nodeBeans` is silently not a node | **diagnostic** (silent case) | UP-FLX-33 |
 | R1-A / R3-D a node that can never record its own values | **diagnostic + GraphML** | UP-FLX-34 |
-| R1-G `@OnTrigger`'s boolean return; R2-F `getLatestEvent()` returns `Object`; R2-E `auditLog` value-type overloads | **documentation** — they are conventions, not failures | `claude.txt` / golden path; no ask filed, deliberately |
+| R1-G `@OnTrigger`'s boolean return | **already in `claude.txt`** — corrected 2026-08-30, see below | the bundle must POINT at the canon, not restate it |
+| R2-F `getLatestEvent()` returns `Object`; R2-E `auditLog` value-type overloads | **documentation** — conventions, not failures | absent from `claude.txt`; UP-FLX-35 |
 | R2-B "if the build stops at `process-classes`, the key is why" | **my error**, not upstream's — `fluxtion-maven-plugin:scan` binds to that phase | fixed in the doc set |
 | R2-C thin fixture · R2-D hidden feed offset · R3 bundle defects | **bundle / server** | the bundle owner; feed offset belongs with §5 |
 
@@ -400,6 +401,17 @@ FLX-1009  no constructor matches this node's mapped fields
 ```
 
 The `fix` line is the whole ask. Everything above it is already in the message or in scope.
+
+**The fact is ALREADY DOCUMENTED, and that strengthens this ask rather than retiring it (checked against
+`claude.txt`, 2026-08-30, after the owner asked whether I had read it — I had not).** The framework canon
+states it plainly: *"Source-gen IS serialisation. Fluxtion reflects over every node's fields and emits a
+generated processor that reconstructs them via constructor calls and field assignments"*, with the remedy
+*"annotate `@FluxtionIgnore` … or declare `transient`. Both are valid."*
+
+So this was never a knowledge gap upstream. A correct, clearly-written rule existed and **the author still
+guessed wrong**, because the rule was not where the failure was. That is the cleanest available case for
+tiering a fact into a message rather than prose: documentation was not missing, it was **unread at the
+moment it mattered**. Rule 1 of the advice above is no longer an argument — it is an observation.
 
 **Evidence** measured — one full build cycle in round 02, and the single most expensive item of that
 round. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
@@ -465,6 +477,37 @@ set, with a deliberate rule that excluding a node requires proof — source in h
 logger-type mention — because a wrong exclusion silently flatters the coverage number. That machinery
 exists solely because the GraphML does not say. With the key declared, `SILENT_BY_CONSTRUCTION` becomes a
 read rather than an inference, and the analyser stops shipping a copy of the framework's type hierarchy.
+
+### UP-FLX-35 ☐ `claude.txt` does not say how to make a node auditable
+
+**Target** `fluxtion` docs (`docs/claude.txt`) · **Priority** high — it is the LLM-facing canon, and this
+is the one subject where its silence is most expensive · *pairs with UP-SHARED-02*
+
+**Checked 2026-08-30**, prompted by the owner asking whether I had been reading the canon while authoring
+the bundle's context assets. I had not — a rule 6 miss — so I read it, and the result changed two entries
+above and produced this one.
+
+**Present and clear:** the serialisation rule and its `transient` / `@FluxtionIgnore` remedy; `@OnTrigger`
+propagation semantics including `dirty = false`; `FluxtionSpring.compileAot`.
+
+**Absent:**
+
+| Missing | Why it costs | Loop evidence |
+|---|---|---|
+| **`EventLogSource` / `setLogger` / `EventLogNode`** — the contract by which a node gets an `auditLog` handle | an LLM cannot make a node record its own values, and cannot tell that a node still *appears* in the log without it | R1-A, R3-A, **R3-D** — three separate errors, mine and the agents' |
+| **Position in `nodeLogs` is dispatch order** | the property the audit log's causal reading rests on; the term `nodeLogs` does not appear at all | R1-E — the agent saw the ordering and recorded *"I do not know whether it is meaningful"* |
+| **The authoring loop** — compile → read the message → run → **read the audit log** → iterate | the canon describes `setAuditLogProcessor` mechanics but prescribes no cycle | D-AX2 in [`spec-authoring-experience.md`](../specs/spec-authoring-experience.md) |
+| **`nodeBeans` / `ignoredBeans`** on `fluxtionSpringConfig` | Spring XML authoring is named as a supported route with no statement of what makes a bean a node | R1-G, and UP-FLX-33's silent case |
+| `auditLog` value-type overloads; `getLatestEvent()` returning `Object` | small, but each sent an agent outside the project to read framework source | R2-E, R2-F |
+
+**Why this is the sharpest of the doc asks.** `claude.txt` is written *for a model*, and it covers the
+compiler thoroughly while leaving the **audit log** — the artefact the whole downstream toolchain exists to
+read, and the thing that makes a Fluxtion application explicable — essentially undocumented for the author
+who has to emit it. An LLM given the canon can build a correct graph that records nothing.
+
+**Cost to us if unfixed** every generated bundle must restate the audit contract in its own `CLAUDE.md`,
+which is how three wrong versions of it came to be written here. With it in the canon, the bundle **points**
+rather than restates, and the analyser stops depending on per-template prose for its own precondition.
 
 ---
 
