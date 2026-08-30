@@ -109,6 +109,33 @@ Both are settled decisions rather than open work, so their rationale now lives i
 agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
 they produced are unchanged and remain under **Decisions** below.
 
+## M44 · Session transitions as a Fluxtion processor — ☐ SPEC'D 2026-08-30
+
+_The first application of the review's standing architecture rule, and the owner's reason for choosing it:
+**using Fluxtion in a real application accelerates what we learn about it far more than measuring other
+agents does — and that learning is the raw material for the template bootstrap documents.**_
+
+- [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
+  are the right first subject on the rule's own test — several inputs whose ordering matters, evolving
+  state, rules with consequences, and behaviour currently spread across Swing callbacks. **M35 spent
+  eleven slices** getting these rules right and they still live in listeners rather than anywhere readable
+  as rules.
+  **Feasibility settled first, because it decides the shape:** the analyser today has **no Fluxtion
+  dependency at all** — FlatLaf is its only runtime dep. This adds **`fluxtion-runtime` only** (owner,
+  2026-08-30), 0.6 MB against a 2.1 MB fatjar. Generation is a hosted service, so the processor is
+  generated once and **committed as source**, exactly as the starter bundle does: `mvn test` and CI stay
+  keyless, and a key is needed only to change the graph. **The analyser therefore eats its own dog food in
+  precisely the configuration it recommends** — if that arrangement is awkward for us it is awkward for
+  every user, and we find out first.
+  **Two deliverables**: the processor, and a record of what a real author hits. The spec registers its
+  learning predictions **before** the work so they can be wrong — the `transient` rule biting us despite
+  knowing about it, the adapter boundary being harder than the graph, effect requests multiplying, and
+  whether the audit log is genuinely useful for our own debugging. That last one is the claim we make to
+  buyers, so a negative answer is the most valuable result available.
+  **First slice moves ONE decision** — `SessionBoundary` — end to end, proving the boundary and the build
+  shape before anything depends on them. And we inherit [fluxtion#25](https://github.com/telaminai/fluxtion/issues/25)
+  immediately: tracing is fixed at generation time, so we live with the constraint we just filed.
+
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
 ships a runnable Mongoose example with Chronicle audit capture pre-enabled and one YAML export command
@@ -118,6 +145,13 @@ the bundle *is* a project profile) — so onboarding becomes: download → run �
 project auto-loads (M20; **File ▸ Import** until it lands) → Follow a live log with click-to-source and Explain working.
 Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README links back to the
 analyser (reverse funnel)._
+- [M19] ➜ **SECOND ARCHIVE PASS 2026-08-30** — five more completed slices moved to
+  [`completed/tracker.md`](completed/tracker.md): **M19.21**, **M19.20**, **M19.14a**, **M19.14**, **M19.5**. Two contradictions were
+  removed on the way: M19.5 carried both an ACCEPTED and an AWAITING-REVIEW entry, and M19.21 carried
+  both a SHIPPED one and a "brief written, not pushed yet" one that had been true for two hours. Both
+  are the drift an accumulating tracker produces, and both were found by counting duplicate ids rather
+  than by reading.
+
 - [M19] ➜ **SHIPPED SLICES ARCHIVED 2026-08-30** — fourteen completed slices moved to
   [`completed/tracker.md`](completed/tracker.md) per rule 7. What remains here is open work **plus any
   slice finished since that tidy** (☑, awaiting the next one) — see the note at the top of this file.
@@ -193,89 +227,6 @@ analyser (reverse funnel)._
   the fixture is regenerated. **No second issue was filed:** #24 already carries the analyser demo as
   evidence item 2, and a duplicate would dilute the one that exists rather than add to it.
 
-- [M19.21] ◧ **v4 SHIPPED AND DEPLOYED; the deploy exposed a bug older than v4** _(2026-08-30)_ —
-  `fluxtion-web` `453d084` → `b4194d3` → `2c973d4`, **live**. Review findings F1/F3/F4/F5 closed
-  playground-side; F2, the bounded scan and F6 closed analyser-side, and its regenerated bundle is
-  **70 passed / 0 failed** — earned, not a reworded escape from the `why` text.
-  **THE DEPLOY IS WHAT FOUND THE REAL BUG.** The live bundle shipped NO generated processor and NO
-  GraphML: the server started, bound Jetty, published its registry entry, looked healthy, and threw
-  `generated processor not found` on the FIRST EVENT as a *warning* — handling nothing, so producing
-  none of the audit log it exists for. Not a v4 regression: `buildStarterZip` never had a path to a
-  generated processor at all, so the documented tutorial download had been broken since the template
-  launched. Fixed by committing the artefacts (option 1) plus a gate that refuses a bundle missing
-  either. Verified from the PRODUCTION zip: keyless build exit 0 with no generation step, zero
-  dispatch errors, 15 PriceEvent cycles, clean stop.
-  **The keeper, and it cost a day:** every check had run on a REPAIRED COPY — the packaging test
-  injected a stub processor, and the staging script ran `-Pgenerate-fluxtion` before testing that it
-  was not needed. *A generated file that no test obtains the way a USER obtains it is not covered,
-  however green the run.* The same shape as the bench's day-two GraphML check, fixed alongside.
-  Committing the artefacts then surfaced **M19.22** below — a file that had never shipped, and that
-  I committed without reading its header.
-  **Still open for the playground:** emit the reference-block MARKER (decision `48b0e0a`) and
-  re-vendor against the now-published `m19-skills/2`. Original review framing below —
-  **PLAYGROUND FINDINGS NOW CLOSED at `fluxtion-web` `453d084`** (F1 pinning + safe provenance +
-  `none` removal, F3 non-Spring `appliesTo` and the ZIP seam, F4 recording-fetcher pinning tests,
-  F5 literal runbook set) — 430 tests, up from 415; follow-up in the report. F1 also surfaced a
-  latent build break: the reference set was a static import, so `--reference-set none` broke module
-  resolution rather than degrading — the same shape as the earlier `skills.source=none` incident.
-  **ANALYSER CORRECTIVE PASS COMPLETE:** [`response_review_playground_bundle_v4.txt`](../handoff/response_review_playground_bundle_v4.txt)
-  closes F2 (the stale bench-unit expectation), the bounded restatement scan and F6 (the contradictory
-  passing detail). Its freshly generated local bundle is **70 passed, 0 failed**, not a reworded escape
-  from the `why` text. The original reviewer made this implementation change, so the full playground and
-  analyser correction set now awaits an independent re-review; M19.21 stays ◧. Original review framing
-  below —
-  `fluxtion-web` @ `ea00075` → `453d084` (committed, **not deployed**: the live site still serves v3 bundles).
-  Report: [`report_playground_bundle_v4.txt`](../handoff/report_playground_bundle_v4.txt). Independent
-  review: [`review_playground_bundle_v4.txt`](../handoff/review_playground_bundle_v4.txt) — the
-  restatement failure really is an analyser bench defect, but sign-off is blocked by an unpinned,
-  unsafe-provenance reference-set fetch (separate from the skills SHA), a red analyser bench unit test,
-  and the unproved non-Spring `appliesTo` path. The bundle
-  declares `m19-bundle/4` and selects `common` + the template's declared specialisations —
-  load-audit-log, guided-start, spring/add-a-node, mongoose/run-mongoose-server — with `replay`
-  correctly not selected. `bundle-bench.py` on a generated bundle: **68 passed, 1 failed**.
-  **The one failure is OURS, and the report proves it rather than asserting it:** `check_v4`'s
-  restatement guard greps for `source-gen triage`, which is the wording of `reference-set.json`'s own
-  `why` for the CLAUDE.md resource — so `ReferenceSet.markdown("spring")`, the rendering the brief
-  names as reference and reprints verbatim in its §4b worked target, fails our own bench. Any
-  faithful generator fails it. Fix is ours: scope the check to the text below the rendered block.
-  Two findings worth keeping: the previous bundle shipped
-  `raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt`, which our set marks
-  **EXCLUDED** — every bundle generated before today carried it, and vendoring only `agreed` entries
-  closes that; and their tool now **resolves the ref to a commit before reading**, so a DRAFT index
-  that pins nothing still vendors reproducibly and every byte comes from one commit rather than from
-  whatever `main` was at each fetch. `canonical-draft@` was tried and correctly refused by our
-  provenance grammar; draftness now lives in their manifest. **v2 stays DRAFT until the bench defect
-  is settled** — if it is not, the next generator to render our set faithfully will hit the same
-  check and may "fix" it by rewording our text. Original brief below.
-- [M19.21] ☐ **Playground-side: bundle contract v4** — **brief written for the playground session:**
-  [`brief_playground_bundle_v4.txt`](../handoff/brief_playground_bundle_v4.txt). It leads with the two
-  things that stop a cold start: the analyser inputs are committed but **not pushed**, so the canonical raw
-  URLs are not live yet; and `m19-skills/2` is DRAFT, which is not a blocker for them because their
-  integration is what lifts it. Also records the retrieval path for `reference-set.json`, which is
-  deliberately outside the skills root and had none. _(specified 2026-08-30 after the owner asked where this
-  work was written down — it was not)_ — [`spec-onboarding-example.md` ▸ BUNDLE CONTRACT v4](spec-onboarding-example.md).
-  A delta on v3, because v3's tables remain correct except where this session changed them. Four
-  obligations: consume `m19-skills/2` (common + specialisations) and own the **template → specialisations**
-  mapping for the real catalogue; **never select `replay`** without a real replay entry point, since its
-  `TODO(bundle)` could not be substituted and v3 already forbids shipping an unsubstituted marker; render
-  the bundle's `CLAUDE.md` from `reference-set.json` shipping **only agreed entries** with `appliesTo`
-  selecting rather than annotating; and verify vendored bytes against v2's provenance **once v2 is
-  published**. Six added acceptance items. **`m19-skills/2` is DRAFT** — its selected skills carry
-  `TODO(bundle)` markers only a generator can substitute, so v1 stays the published contract and F3 is
-  only partly closed until a real consumer proves substitution (review C1). The template →
-  specialisations mapping is **playground-owned**; the canonical index declares no `templates` map.
-  `agentBootstrap` (UP-PG-02) stays open and adjacent.
-- [M19.20] ☑ **Sibling dispatch order is natural-order by node name — FILED, analyser side clean** _(found in round 04, 2026-08-30)_ —
-  the generated processor orders nodes by `TopologicalOrderIterator(graph, new NaturalOrderComparator(
-  inst2Name))`: dependency order first, then **name order** among nodes at equal depth. Found by an agent
-  that placed a node later in the XML, observed it dispatched earlier, ruled out declaration order and
-  decompiled `fluxtion-builder` 1.0.64. Published in none of the five authoring resources. Two consequences
-  to work: it belongs in the upstream audit/authoring content (UP-FLX-35). **The analyser-side worry is
-  CHECKED and closed (2026-08-30):** `StepCursor` walks `record.nodeLogs()` in the log's own order, so
-  step-through READS dispatch order rather than reconstructing it, and cannot disagree with the compiler.
-  Layout layering is a visual arrangement and makes no ordering claim. So this is an upstream
-  documentation ask only — the declared dispatch-order index in §2c would still be an improvement, but
-  nothing here is wrong today.
 - [M19.19] ◧ **Guided start — an install prompt, and an LLM tutor that drives the UI** _(owner idea,
   2026-08-30; **and the experiment's baseline**, D-G8)_. **Skill and docs page shipped; first real drive
   done 2026-08-30** — [`runs/guided-start-01/run.md`](../experience/runs/guided-start-01/run.md). All
@@ -295,45 +246,6 @@ analyser (reverse funnel)._
   surface, and the whole path is **keyless** (a bundle ships its generated processor). One real gap: MCP
   registration is an in-app flow — v1 asks the human to do it rather than adding a headless path. Also
   D-G5: this is the best held-out task the experience loop has, because its outcome is objective.
-- [M19.14a] ☑ **The method for M19.14/.15, written up and REVIEWED** _(closure accepted 2026-08-30)_ _(owner-directed, 2026-08-30)_ —
-  [`spec-authoring-experience.md`](spec-authoring-experience.md). The end goal restated by the owner: the
-  product is the bundle's context assets (`CLAUDE.md`, `AGENTS.md`, the authoring loop, upstream asks), and
-  measurement is trajectory rather than pass/fail because the subject is probabilistic. Eight decisions:
-  where a fact belongs and why the discriminator is whether it fails **loudly** (D-AX1); the doc teaches the
-  compile→read-the-message→run→read-the-log **loop** rather than a list of rules (D-AX2); the doc set is a
-  **placeholder for missing diagnostics** and shrinks as §1c lands (D-AX3); the shipped **examples are
-  documentation** and currently demonstrate only the easy cases (D-AX4); six countable signals with
-  **WENT-OUTSIDE** primary, n≥3 in parallel, and one that should go **up** (D-AX5); a deterministic
-  **preflight** so probabilistic runs are not spent on script-findable defects (D-AX6); one variable per
-  round plus a control arm (D-AX7); generate `AGENTS.md` (D-AX8). Withdraws my "nobody reads `CLAUDE.md`"
-  conclusion — that measured the harness, not the product.
-- [M19.14] ☑ **Step 2 — CLOSED 2026-08-30 with the measurement, and NO rewrite** _(owner: "close M19.14
-  with what the measurement found")_. The item asked for the context assets to be rewritten from a measured
-  run. Six rounds were run; the honest outcome is that **the rewrite is not the deliverable** — the assets
-  as they ship already work, and what the measurement produced instead was five upstream asks, a corrected
-  audit model, and two defects in our own product.
-  **What the rounds found**, in the order they mattered:
-  (1) **Most of what I was writing was already published.** The `transient` rule, `@OnTrigger`'s return and
-  `nodeBeans` are all upstream; the bundle simply did not point at them. That produced D-AX1b and the
-  agreed reference set, and round 06 confirmed agents **fetch the links and use them** — the pointing
-  strategy is now observed, not argued.
-  (2) **The audit contract was documented nowhere** — none of six sources — which is
-  [fluxtion#22](https://github.com/telaminai/fluxtion/issues/22), and it is why four wrong versions of it
-  got written locally.
-  (3) **Documentation is the wrong tier for a build failure.** Round 05: an agent holding the correct,
-  published `transient` rule still wrote the field wrong and had to fail a build to find out. That is
-  §1c's argument made by measurement, and it produced
-  [issues 19–23](https://github.com/telaminai/fluxtion/issues).
-  (4) **Round 06, against the shipped assets:** zero build failures in both arms, links fetched and used,
-  and **2/2 agents came away with the correct three-condition audit model, both having CHECKED it** —
-  against round 05's four-of-six holding the same false rule. Not attributable (different task, bundle and
-  n), and recorded as such.
-  (5) **Two defects in the analyser, found by agents rather than by us**: the REST protocol was
-  undiscoverable, and a near-miss path executed the action. Both fixed.
-  **What is NOT closed by this**: M19.15 (the seeding prompt) stays open; `docs/experience/current/` is
-  retired as a subject and kept only as the comparison; and the method itself lives in
-  [`spec-authoring-experience.md`](spec-authoring-experience.md), which is where a seventh round would
-  start. **The deliverable was never the doc set — it was knowing which tier each fact belongs in.**
 - [M19.1] ◧ **Released bundle produced; implementation accepted, refreshed final evidence artefact remains** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
@@ -452,35 +364,6 @@ analyser (reverse funnel)._
   re-shot against the real bundle. The DEMO chart is kept only because five cycles make an illegible plot,
   and the page says so rather than implying the demo is the bundle. Remaining: the three neutral captures
   that need a connected browser (live Download, terminal lifecycle, an Explain answer).
-- [M19.5] **ANALYSER HALF REVIEWED AND ACCEPTED 2026-08-30** —
-  [`review_m19_5_template_picker.txt`](../handoff/review_m19_5_template_picker.txt). The archive
-  boundary held against ten attacks written for the cases the report's own suite leaves open —
-  a nested file whose BASENAME is allow-listed, an archive claiming a symlink, backslash-spelled
-  traversal, and the state of a caller's empty destination after a refusal — plus D-AX10's origin
-  override, which post-dates the report (numeric/octal loopback encodings refused rather than
-  resolved). Both suites are COMMITTED, so the next reviewer inherits them. D-3 holds by
-  construction: no execution primitive exists in the template path at all. Two non-blocking notes:
-  the class javadoc says "loopback-only" when any HTTPS origin is accepted (a wording fix, ours),
-  and nobody has yet clicked the Swing cancellation flow. **The review was late because it was
-  reported in conversation instead of written here** — the milestone sat awaiting a verdict already
-  reached, which is the same failure as a decision made, committed and not pushed.
-- [M19.5] ◧ **IMPLEMENTED END TO END — AWAITING INDEPENDENT REVIEW** _(2026-08-30; playground
-  `994e82a` live, analyser `9d38cc4`)_ — `File ▸ New project from template…` reads the live
-  catalogue-owned onboarding set and `keyNeed`, loads catalogue-owned identity defaults, downloads
-  from the pinned HTTPS origin, installs through a fail-closed archive boundary, opens the bundled
-  profile (or reuses day-two discovery for an older template), and shows copyable analyser-owned
-  lifecycle commands without executing downloaded content. Network and extraction work is background,
-  modeless and cancellable. `template-bench.py` attacks traversal, absolute paths, populated targets,
-  count/per-entry/total expansion limits, multiple roots and an archive-marked `evil.sh`; its live leg
-  passed 6/6 against the deployed `analyser-bundle`. Full suite: 1129; strict docs: green. Review brief:
-  [handoff_30_aug_2026_1_report.txt](../handoff/handoff_30_aug_2026_1_report.txt).
-  **D-3 decided NO for this slice:** download/extract/open, then show/copy fixed commands; never run.
-  This was **widened from its original scope** _("defer unless tutorial reads clunky — File ▸ Open example…
-  one-action helper (import + open + Follow)")_ on the owner's ask: *"I thought we would be able to
-  choose a template from the swing app to make it seamless to get started."* The old entry automated
-  the **last** hop and assumed the bundle was already downloaded; the owner meant the **first**. The
-  old scope survives as the new one's final step. Full design and decision record:
-  [spec-template-from-analyser.md](spec-template-from-analyser.md).
 ## M21 · Topology view + step-through — ◧ CORE SHIPPED (archived; 21.7–21.9 open)
 _M21.1–21.6 (parse, layout, panel, step-through, wiring, docs) and M21.10 (intra-record
 cursor) shipped and reviewed — full record in **[completed/tracker.md](completed/tracker.md)**.
@@ -606,7 +489,24 @@ _31.1–.3 + the plugin-author guide shipped, reviewed and merged — full recor
   example cannot settle it. **Ask back:** when M31.5 lands, the example should switch to the published
   SPI artifact and `setup.sh` should disappear; worth a line there so the cleanup is not forgotten.
   The plugin-author guide half stays analyser-owned. Original entry —
-- [M31.4r] ☐ **Out-of-tree example reader** — lives in the playground repo (this repo cannot ship it);
+- [M31.4r] ☑ **DONE 2026-08-30, playground-side** — a JSONL plugin at
+  `web/static/examples/analyser-reader-jsonl`, loaded as a built jar through the analyser's own
+  `ReaderRegistry`: discovered from a plugins directory, selected over the built-in YAML reader, canonical
+  text produced, store ingesting. **Acceptance 5 was settled by exhibition rather than assertion** — a CSV
+  plugin bundling Jackson 2.9 beside the JSONL one bundling 2.17, showing that on a FLAT classpath one
+  breaks whichever wins (and silently, in the ordinary case where a plugin does not check its own
+  dependency), while through the registry both work in one JVM on two versions of the same class name.
+  That is the M31 acceptance only a real jar could settle.
+  **Now unblocked on OUR side: [M31.4] the plugin-author guide**, which is analyser-owned documentation.
+  They established the two facts it must state rather than leaving us to guess: the analyser pom is
+  `0.0.0-SNAPSHOT` with no `distributionManagement`, so Maven resolves it from nowhere and an author must
+  install the released jar; and the setup script verifies the published SHA-256 and refuses on mismatch,
+  **because the FAQ tells users that installing a plugin jar is arbitrary code execution and the trust
+  boundary is their install action** — an example teaching authors to curl an unverified jar would undercut
+  the sentence users are asked to rely on.
+  **Ask back, recorded so it is not forgotten:** when **M31.5** publishes the SPI artifact, both examples
+  switch to it and `setup.sh` disappears.
+- [M31.4r-old] ☒ superseded — lives in the playground repo (this repo cannot ship it);
   also the ONE M31 acceptance only a real jar can settle (two conflicting plugin jars coexisting).
   The in-tree toy reader in ReaderSpiTest is the seam proof meanwhile. Cross-repo slice.
 - [M31.5] ☐ **NOT YET** _(owner, 2026-08-27)_ · **Separate `analyser-reader-spi` artifact** — needs a multi-module
