@@ -96,6 +96,7 @@ nav:
       - Answering questions about a running system: support.md
       - Runbooks, glossary and saved analyses with an AI: ai-and-runbooks.md
   - Getting started:
+      - Guided start with an AI assistant: guided-start.md
       - Quick start: getting-started.md
       - Install & run: install.md
       - Playground to analyser in 10 minutes: tutorial-playground.md

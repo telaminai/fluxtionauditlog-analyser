@@ -28,7 +28,7 @@ class CanonicalSkillsTest {
     void exactlyTheCanonicalSkillsAreDiscoverableWithRequiredFrontmatter() throws Exception {
         SkillDiscovery.Found found = SkillDiscovery.find(ROOT, Map.of());
         assertEquals(Set.of("load-audit-log", "replay-a-run", "run-embedded", "run-mongoose-server",
-                        "add-a-node"),
+                        "add-a-node", "guided-start"),
                 found.candidates().stream().map(SkillDiscovery.Candidate::name).collect(Collectors.toSet()));
         assertFalse(found.truncated());
         for (SkillDiscovery.Candidate skill : found.candidates()) {
@@ -153,6 +153,64 @@ class CanonicalSkillsTest {
                 "the audit contract is in none of the agreed resources (fluxtion#22), so it belongs here");
         assertFalse(text.contains("transient") || text.contains("@FluxtionIgnore"),
                 "the field remedies ARE published — restating them is the duplication D-AX1b forbids");
+    }
+
+    @Test
+    void theGuidedStartSkillPOINTSratherThanTELLS_andCannotClobberOpenWork() throws Exception {
+        String text = Files.readString(ROOT.resolve("common/guided-start/SKILL.md"));
+
+        // D-G2. A tutor that narrates is testimony, which is the thing this product argues you should not
+        // have to trust — so a tour where the assistant is the source of every claim demonstrates the
+        // OPPOSITE of the product. These lines are the feature; losing them makes it a chatbot demo.
+        assertTrue(text.contains("You point; the screen proves"), "the rule must be stated, not implied");
+        assertTrue(text.contains("analyser_context"),
+                "it must verify the view before saying 'as you can see' — otherwise it is guessing");
+
+        // D-G7. Opening a project or another log closes what the person has open. A tour that destroys
+        // work in progress is a support ticket, not an introduction.
+        assertTrue(text.contains("Never open") || text.contains("never open"),
+                "the warm path must refuse to open over the user's own work");
+        assertTrue(text.contains("demo data"), "the demo must be labelled as demo when it is used");
+
+        // it must use the TRACED demo log: absence is only proof at a level that captures the node
+        assertTrue(text.contains("demo-quote-audit-traced.yaml"),
+                "coverage on the untraced log would present silence as absence");
+
+        // every analyser_* tool it names must be a real verb — inventing one is the failure mode this
+        // whole library exists to avoid, and it fails on the user's screen
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("analyser_([a-z_]+)").matcher(text);
+        Set<String> verbs = Set.of("aggregate", "context", "coverage", "filter", "flag", "goto", "graph",
+                "open", "read", "report", "screenshot", "series", "source_root", "topology");
+        while (m.find()) {
+            assertTrue(verbs.contains(m.group(1)),
+                    "guided-start names a verb that does not exist: " + m.group(1));
+        }
+    }
+
+    @Test
+    void theGuidedStartPageWritesEveryCommandOut() throws Exception {
+        // D-G4: an install prompt is an instruction set a stranger executes. No fetch-and-run step, ever —
+        // "run the script at $URL" is exactly the shape this must never take.
+        String page = Files.readString(Path.of("docs/site/guided-start.md"));
+        assertTrue(page.contains("jbang app install analyser@telaminai/fluxtionauditlog-analyser"),
+                "the real install command must be present verbatim");
+        // Check the COMMANDS, not the prose. The page legitimately explains that it contains no
+        // fetch-and-run step, and an earlier version of this assertion matched that explanation — the
+        // same trap CLAUDE.md rule 1 documents: a mechanical rule cannot tell a mention from a leak.
+        StringBuilder commands = new StringBuilder();
+        boolean inFence = false;
+        for (String line : page.split("\n", -1)) {
+            if (line.startsWith("```")) { inFence = !inFence; continue; }
+            if (inFence) commands.append(line).append('\n');
+        }
+        assertTrue(commands.length() > 0, "the page must actually contain commands");
+        for (String forbidden : List.of("curl", "wget", "| sh", "|sh", "| bash", "eval ", "<(")) {
+            assertFalse(commands.toString().contains(forbidden),
+                    "a command fetches or evaluates remote content (" + forbidden + "): every step must be"
+                            + " readable before it is run (D-G4)");
+        }
+        assertTrue(page.contains("You do **not** need a Fluxtion API key"),
+                "the keyless claim is the point of a first run and must be stated");
     }
 
     private static String sha256(String text) throws Exception {

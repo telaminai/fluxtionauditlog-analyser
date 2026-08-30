@@ -18,6 +18,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   receive the same caller-buffer hygiene as successful saves and later write failures.
 
 ### Added
+- **Guided start: install and tour the analyser with an AI assistant.** A new docs page carries a
+  copy-paste prompt that installs the analyser via JBang, opens it, has you connect your assistant, and
+  then walks you through three things by driving the UI. A matching `guided-start` skill runs the tour
+  inside an already-connected session. The assistant is instructed to point at the screen rather than
+  state figures you cannot see, to use your own log if one is open, and never to open anything over your
+  work without asking. No key or account is needed.
 - **A generated project's skills are now selected by the template it came from.** The canonical library
   gains an `m19-skills/2` index: `common` is always shipped and a template names the specialisations it
   wants (`mongoose`, `embedded`, `spring`). A new `spring/add-a-node` skill covers adding a node to a

@@ -19,7 +19,8 @@
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
-    "common/replay-a-run/SKILL.md"
+    "common/replay-a-run/SKILL.md",
+    "common/guided-start/SKILL.md"
   ],
   "specialisations": {
     "mongoose": {
