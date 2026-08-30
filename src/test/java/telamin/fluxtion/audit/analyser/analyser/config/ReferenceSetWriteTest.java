@@ -24,7 +24,8 @@ class ReferenceSetWriteTest {
         Files.writeString(claude, mine);
 
         assertEquals(ReferenceSet.Outcome.EXISTS, ReferenceSet.offer(project));
-        assertFalse(ReferenceSet.create(project), "must refuse rather than write");
+        assertEquals(ReferenceSet.Result.ALREADY_EXISTS, ReferenceSet.create(project),
+                "must refuse rather than write, and say why");
         assertEquals(mine, Files.readString(claude), "the author's file must be byte-identical afterwards");
     }
 
@@ -34,7 +35,7 @@ class ReferenceSetWriteTest {
         // the owner signs entries off, this test starts exercising the create path instead.
         if (!ReferenceSet.agreed().isEmpty()) return;
         assertEquals(ReferenceSet.Outcome.NOTHING_AGREED, ReferenceSet.offer(project));
-        assertFalse(ReferenceSet.create(project));
+        assertEquals(ReferenceSet.Result.NOTHING_AGREED, ReferenceSet.create(project));
         assertFalse(Files.exists(project.resolve(ReferenceSet.FILE_NAME)),
                 "an empty set must produce no file at all — not a heading with no links under it");
         assertTrue(ReferenceSet.markdown().isEmpty());
@@ -83,8 +84,8 @@ class ReferenceSetWriteTest {
         String theirs = "# written between offer and create\n";
         Files.writeString(claude, theirs);
 
-        assertFalse(ReferenceSet.create(project),
-                "create() re-checks and must decline a file that appeared after the offer");
+        assertEquals(ReferenceSet.Result.ALREADY_EXISTS, ReferenceSet.create(project),
+                "create() must decline a file that appeared after the offer, and name the real reason");
         assertEquals(theirs, Files.readString(claude), "and their bytes must survive it");
     }
 
@@ -122,12 +123,13 @@ class ReferenceSetWriteTest {
     void createIsTheONLYwriterAndItWritesTheRenderedSet(@TempDir Path project) throws Exception {
         // the positive half, so the refusal tests above cannot pass by create() being inert
         if (ReferenceSet.agreed().isEmpty()) return;
-        assertTrue(ReferenceSet.create(project), "create must report that it wrote");
+        assertEquals(ReferenceSet.Result.WROTE, ReferenceSet.create(project), "create must report that it wrote");
         String written = Files.readString(project.resolve(ReferenceSet.FILE_NAME));
         assertEquals(ReferenceSet.markdown(), written, "the file must be exactly the rendered set");
         for (var r : ReferenceSet.agreed()) {
             assertTrue(written.contains(r.url()), r.id() + " missing from the written file");
         }
-        assertFalse(ReferenceSet.create(project), "a second call must refuse — the file now exists");
+        assertEquals(ReferenceSet.Result.ALREADY_EXISTS, ReferenceSet.create(project),
+                "a second call must refuse — the file now exists");
     }
 }

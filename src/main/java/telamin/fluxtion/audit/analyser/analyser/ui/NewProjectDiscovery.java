@@ -91,19 +91,17 @@ public final class NewProjectDiscovery {
      */
     public static Optional<String> writeReferenceGuide(Offer offer, Selection selection) {
         if (offer == null || selection == null || !selection.createReferenceGuide()) return Optional.empty();
-        // re-check rather than trusting the offer: it was computed before the dialog, and the file may
-        // have appeared since. ReferenceSet.create re-checks too; this keeps the reason reportable.
-        if (ReferenceSet.offer(offer.root()) != ReferenceSet.Outcome.CAN_CREATE) {
-            return Optional.of(ReferenceSet.FILE_NAME + " already exists — left untouched.");
-        }
+        // No pre-check. The offer was computed before the dialog opened and is stale by now; checking it
+        // here only creates a window in which the answer can change again. create() checks once and says
+        // what it did, so the message is the truth rather than an inference about a boolean.
         try {
-            if (ReferenceSet.create(offer.root(), offer.projectKind())) return Optional.empty();
-            // create() re-checks too, so a false has TWO causes and guessing produces the wrong message.
-            // Review N1: a file appearing between our check and create's own reported "nothing is agreed",
-            // which is untrue and sends the user looking in the wrong place. Re-read the reason.
-            return Optional.of(ReferenceSet.offer(offer.root()) == ReferenceSet.Outcome.EXISTS
-                    ? ReferenceSet.FILE_NAME + " already exists — left untouched."
-                    : "nothing to write: no reference resources are agreed yet");
+            return switch (ReferenceSet.create(offer.root(), offer.projectKind())) {
+                case WROTE -> Optional.empty();
+                case ALREADY_EXISTS ->
+                        Optional.of(ReferenceSet.FILE_NAME + " already exists — left untouched.");
+                case NOTHING_AGREED ->
+                        Optional.of("nothing to write: no reference resources are agreed yet");
+            };
         } catch (java.io.IOException e) {
             return Optional.of("could not write " + ReferenceSet.FILE_NAME + ": " + e.getMessage());
         }

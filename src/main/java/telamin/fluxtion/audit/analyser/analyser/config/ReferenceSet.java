@@ -47,6 +47,22 @@ public final class ReferenceSet {
         }
     }
 
+    /**
+     * What {@link #create} actually did. Review N1 offered two fixes — re-read the reason afterwards, or
+     * return a richer result. I took the first, which left a window where a file could appear between the
+     * caller's check and {@code create}'s own, and the diagnosis had to be guessed. This is the second
+     * fix: ONE check inside {@code create}, its reason returned, so no caller can be wrong about why and
+     * there is no second window to reason about.
+     */
+    public enum Result {
+        /** The file was written. */
+        WROTE,
+        /** A {@code CLAUDE.md} was already there; it was not touched. */
+        ALREADY_EXISTS,
+        /** Nothing is signed off, so there was nothing to write. */
+        NOTHING_AGREED
+    }
+
     /** What {@link #offer(Path)} found, so a caller can say why nothing will happen. */
     public enum Outcome {
         /** Nothing is signed off yet, so there is nothing to offer. */
@@ -141,22 +157,28 @@ public final class ReferenceSet {
         return agreed().isEmpty() ? Outcome.NOTHING_AGREED : Outcome.CAN_CREATE;
     }
 
-    /**
-     * Creates the file, and refuses in every case {@link #offer(Path)} did not green-light.
-     *
-     * @return true when a file was written.
-     */
-    public static boolean create(Path projectRoot) throws IOException {
+    /** Creates the file, reporting what it did and why. */
+    public static Result create(Path projectRoot) throws IOException {
         return create(projectRoot, null);
     }
 
     /** As {@link #create(Path)}, selecting the links for a project of the given kind (review N1). */
-    public static boolean create(Path projectRoot, String kind) throws IOException {
-        if (offer(projectRoot) != Outcome.CAN_CREATE) return false;
+    public static Result create(Path projectRoot, String kind) throws IOException {
+        // the ONLY check. A caller that pre-checks and then interprets a bare false has to guess which
+        // of two causes applied, and will sometimes guess wrong; returning the reason removes the guess.
+        Outcome outcome = offer(projectRoot);
+        if (outcome == Outcome.EXISTS) return Result.ALREADY_EXISTS;
+        if (outcome == Outcome.NOTHING_AGREED) return Result.NOTHING_AGREED;
         String body = markdown(kind);
-        if (body.isBlank()) return false;
-        writeNew(projectRoot.resolve(FILE_NAME), body);
-        return true;
+        if (body.isBlank()) return Result.NOTHING_AGREED;
+        try {
+            writeNew(projectRoot.resolve(FILE_NAME), body);
+        } catch (java.nio.file.FileAlreadyExistsException raced) {
+            // appeared between the check above and this write: the author's file wins, and the reason
+            // reported is the true one rather than an inference
+            return Result.ALREADY_EXISTS;
+        }
+        return Result.WROTE;
     }
 
     /**

@@ -67,21 +67,26 @@ class NewProjectReferenceGuideTest {
     }
 
     @Test
-    void theSECONDraceWindowStillReportsTheRIGHTreason(@TempDir Path root) throws Exception {
-        // review N1: writeReferenceGuide re-checks, then create() re-checks again. A file appearing in
-        // THAT window made create() return false, and the UI blamed "nothing is agreed" — untrue, and it
-        // sends the user looking in the wrong place. The existing race test covers the first window only.
-        if (ReferenceSet.agreed().isEmpty()) return;
-        NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);   // CAN_CREATE
+    void everyCreateOutcomeMapsToITSOWNmessage(@TempDir Path root) throws Exception {
+        // Closure review: my previous attempt at this wrote the file BEFORE calling writeReferenceGuide,
+        // so an outer existence check returned first and neither create() nor the diagnostic branch ran —
+        // it would have passed with the fix removed. The fix is now structural: create() checks ONCE and
+        // returns its reason, so there is no second window and no inference to test. What is left worth
+        // testing is that each reason reaches the user as its own message.
+        NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);
 
-        String theirs = "# appeared in the second window\n";
-        Files.writeString(root.resolve(ReferenceSet.FILE_NAME), theirs);
+        if (!ReferenceSet.agreed().isEmpty()) {
+            assertEquals(ReferenceSet.Result.WROTE, ReferenceSet.create(root, null));
+            assertTrue(Files.exists(root.resolve(ReferenceSet.FILE_NAME)));
+            // now it exists, so the SAME call must report existence, not "nothing agreed"
+            Optional<String> problem = NewProjectDiscovery.writeReferenceGuide(offer, withGuide(true));
+            assertTrue(problem.isPresent() && problem.get().contains("already exists"),
+                    "the reason must be the real one: " + problem.orElse("<none>"));
+        }
 
-        Optional<String> problem = NewProjectDiscovery.writeReferenceGuide(offer, withGuide(true));
-        assertTrue(problem.isPresent());
-        assertTrue(problem.get().contains("already exists"),
-                "the reason must be the real one, not a guess: " + problem.get());
-        assertEquals(theirs, Files.readString(root.resolve(ReferenceSet.FILE_NAME)));
+        assertEquals(ReferenceSet.Result.ALREADY_EXISTS,
+                ReferenceSet.create(root, null),
+                "create is the single source of the reason — a caller must never have to infer it");
     }
 
     @Test
