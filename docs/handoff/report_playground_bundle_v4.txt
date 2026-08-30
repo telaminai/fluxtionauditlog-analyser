@@ -135,7 +135,64 @@ this report proves rather than asserts. Read §3 before deciding whether v2 can 
   · reference-set.json's `why` strings are analyser-owned. I vendored them verbatim and did not edit
     them, which is what made §3 visible.
 
-§6 — ASKS BACK
+§6 — WHAT THE REVIEWER MUST STILL CHECK
+  Ranked by where this work is most likely to be WRONG, not by size. Nothing here should be taken
+  from this report on trust — §2 and §3 are arguments in my own favour and should be attacked first.
+
+  UNDER REVIEW:  fluxtion-web @ ea00075 (not pushed) · this repo @ d2bcf15 (not pushed)
+  The ?template= endpoint (fluxtion-web 994e82a) is already live and is NOT part of this review.
+
+  1. THE GAP I LEFT VISIBLE ON PURPOSE. D-B2's centre is that `appliesTo` SELECTS rather than
+     annotates — a Spring link must not appear in a non-Spring project. My suite asserts only the
+     POSITIVE half (analyser-bundle.test.ts:410, the Spring bundle contains spring-authoring/
+     contract.md). A non-Spring fixture exists (imperativeBundleSpec) and asserts nothing about that
+     link. bundle-bench checks the negative case, but only against the bundle it is handed, and I
+     handed it the Spring one. So the rule's more important half is UNVERIFIED playground-side. One
+     line closes it; I left it for review rather than closing it silently after finding it myself.
+
+  2. IS §3 SOUND, OR AM I EXCUSING A RED CHECK? Attack this hardest — I benefit from it being true.
+     Reproduce independently:
+         python3 -c "import json;d=json.load(open('src/main/resources/reference-set.json'));
+         print([r['why'] for r in d['resources'] if 'CLAUDE.md' in r['url']])"
+     Then ask the question I cannot answer neutrally: DID the generator have to render `why`
+     verbatim? The brief says byte-identity is not required, so a reviewer could fairly say I chose a
+     rendering that trips the gate and then called the gate wrong. My defence is that it matches
+     ReferenceSet.markdown() and the brief's own §4b worked target. Judge whether that is reasoning
+     or rationalisation.
+
+  3. resolveRevision IS SCOPE THE BRIEF DID NOT ASK FOR. It adds api.github.com to the vendoring
+     path — unauthenticated, 60 requests/hour — so a build step that previously needed only
+     raw.githubusercontent.com now has a second host that can fail it. I judge the reproducibility
+     and the closed mid-vendor race worth it; a reviewer may fairly disagree. Also verify it actually
+     pins: that the skills are fetched AT the sha and not at `main`.
+
+  4. WERE TESTS WEAKENED TO MAKE THEM PASS? The v1 suites now name their contract explicitly
+     (contract: SKILLS_CONTRACT_V1). Confirm coverage was preserved rather than neutered, especially
+     "refuses wrong contract, bad revision, escaping/duplicate paths" — it must still fail for the
+     right reason, not merely still fail.
+
+  5. ONE ASSERTION IS PARTLY SELF-REFERENTIAL. analyser-bundle.test.ts replaces a hand-counted
+     runbook.count=2 with a set comparison against SKILLS_MANIFEST. Both sides derive from the same
+     manifest, so it cannot catch "the manifest selected the wrong skills" — only emitter bugs. The
+     real content is in the named checks beside it (load-audit-log, run-mongoose-server, and NOT
+     replay-a-run). Strengthen if you disagree with that division.
+
+  6. VERIFY THE TWO HEADLINE CLAIMS RATHER THAN BELIEVING THEM.
+         git show HEAD~1:web/src/lib/starter/bundle.ts | grep claude.txt    # the EXCLUDED url
+         python3 tools/bench/bundle-bench.py --analyser-version 1.12.0 <generated-bundle>
+     Expect exactly ONE failure, the §3 one. A second failure means this hand-back is wrong.
+
+  7. READ THE GENERATED CLAUDE.md AS AN AGENT WOULD. The question is not whether it passes checks but
+     whether it still TEACHES after the design section's canon list was deleted — that job moved to
+     the reference block and the add-a-node skill, which is a judgement call, not a rule.
+
+  LOWEST RISK, needs least attention: the add-a-node substitution (exact-match, fails closed on
+  upstream drift) and AGENTS.md identity (byte-compared by two independent checks).
+
+  DO NOT ARCHIVE YET — this report and its brief stay live until the verdict is accepted, and
+  M19.21 stays ◧ until §3 is settled and the work is deployed.
+
+§7 — ASKS BACK
   1. Settle §3 (bench scope, or the `why` wording — but the bench is the better fix).
   2. On publication of v2: pin a revision + per-path sha256, and the vendor tool will verify bytes
      against it instead of resolving a commit itself. It already refuses a non-DRAFT index that does
