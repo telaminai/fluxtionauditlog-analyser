@@ -817,9 +817,15 @@ starter should not:
   a compliance reader in the regulated market this stack targets meets that text in something their team
   just downloaded.
 
-**Owner of the durable fix: `fluxtion` (the generator emits the header).** Cheapest immediate mitigation:
-the playground already rewrites this file to the project's own `basePackage`, so it can replace the header
-at emit time.
+**Owner of the durable fix: `fluxtion` (the generator emits the header) — filed as
+[fluxtion#24](https://github.com/telaminai/fluxtion/issues/24).** Cheapest immediate mitigation: the
+playground already rewrites this file to the project's own `basePackage`, so it can replace the header at
+emit time.
+
+**The analyser ships it too**, in its demo processor inside the jar — two independently generated
+processors with the same header, which is what identifies it as the generator's template rather than
+anything project-specific. Not hand-patched here on purpose: the demo is a generated artefact, and editing
+the shipped copy would make it an unfaithful example and drift from what the generator emits.
 
 **Acceptance to add when it is fixed:** an unzipped bundle passes the four-term sweep, and no shipped file
 claims confidentiality.
