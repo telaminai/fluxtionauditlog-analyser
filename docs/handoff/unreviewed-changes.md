@@ -30,6 +30,11 @@ range passes `git diff --check`. One non-blocking diagnostic race is recorded in
 **Verified.** Full Maven suite, focused ReferenceSet/link tests, package, strict MkDocs, privacy sweep,
 archive parity and the built Swing dialog. The range whitespace check fails only as recorded in F4.
 
+**Closure review `f9ccf20`: NOT YET CLOSED.** F1–F4 are accepted and N1's production correction is
+sound. One test correction remains: the new “second window” test writes the file before calling
+`writeReferenceGuide`, so the outer check returns and `ReferenceSet.create` is never reached. It duplicates
+the already-covered first window and would pass without the code it claims to pin. See C1 in the review.
+
 ---
 
 ## ☑ reviewed 2026-08-30 (the analyser reviewer) · `7b2e854^..7a1811f` (15 commits) · the authoring-experience block — measurement, diagnostics, reference set, guided start

@@ -87,3 +87,43 @@ WHAT PASSED / WHAT I VERIFIED
 
 The concurrent guided-start commit 9d704ee arrived after the reviewed range and is intentionally out of
 scope. No implementation fixes were made, and nothing was pushed.
+
+================================================================================
+CLOSURE REVIEW — f9ccf20
+================================================================================
+
+VERDICT: NOT YET CLOSED — F1–F4 ARE CLOSED AND N1'S PRODUCTION FIX IS SOUND; ITS NEW TEST DOES NOT
+EXERCISE THE CLAIMED WINDOW
+
+Accepted:
+
+  - F1: the public journey now separates profile pointers from the unchecked repository write and states
+    the link-only, Spring-gated and never-overwrite contract.
+  - F2: the live residual is struck and replaced with the actual reviewed state.
+  - F3: the tracker now states rule 7 coherently — completed items may remain checked between tidies;
+    fully shipped milestones/rounds move.
+  - F4: git diff --check ff85343^..f9ccf20 passes.
+  - N1 implementation: after ReferenceSet.create returns false, the outcome is re-read rather than
+    guessed, so a second-window file gets the truthful “already exists” message.
+
+C1 · REQUIRED TEST CORRECTION — the new second-window test repeats the first-window setup.
+
+NewProjectReferenceGuideTest.theSECONDraceWindowStillReportsTheRIGHTreason creates CLAUDE.md at line 78,
+then calls writeReferenceGuide at line 80. Production's outer check at NewProjectDiscovery lines 96–97
+therefore sees EXISTS and returns before ReferenceSet.create is called. That is the same window exercised
+by aFileThatAPPEAREDbetweenTheOfferAndTheWriteIsAlsoRefused immediately above it.
+
+The test would still pass if the new post-create logic at lines 100–106 were deleted. It therefore does
+not pin the defect f9ccf20 says it pins. Add a deterministic package-private seam around the create call
+(or return a richer result directly from ReferenceSet.create), make the test install the file after the
+outer check but before/delegating to create, and assert the false-create branch selects EXISTS. Keep the
+production fix; it is correct.
+
+Closure evidence:
+
+  PASS  mvn -q test — full suite, exit 0
+  PASS  /private/tmp/m19-docs-venv/bin/mkdocs build --strict
+  PASS  four-term tracked-file sweep — no non-exempt matches
+  PASS  git diff --check ff85343^..f9ccf20
+
+Nothing was pushed by the reviewer.
