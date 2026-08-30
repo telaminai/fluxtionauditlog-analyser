@@ -307,15 +307,33 @@ analyser (reverse funnel)._
   **preflight** so probabilistic runs are not spent on script-findable defects (D-AX6); one variable per
   round plus a control arm (D-AX7); generate `AGENTS.md` (D-AX8). Withdraws my "nobody reads `CLAUDE.md`"
   conclusion — that measured the harness, not the product.
-- [M19.14] ☐ **Step 2 — rewrite the LLM context assets from a MEASURED run** _(owner, 2026-08-29)_. The
-  owner's sequencing, and better than the advice it replaced: build the mechanism first, then have a
-  context-free LLM develop and analyse a real project with it, and let the gaps it actually hits rewrite
-  the assets. Authoring first means guessing what a model will lack; this observes it — the prediction-file
-  discipline applied to documentation. Record four things or it is a story rather than evidence: the
-  question it could not answer from the seeded context, whether it INVENTED an API (the M21 failure mode),
-  where it needed the audit log to correct itself, and what it never used (unused context is cost). Caution
-  in the spec: "context-free" is a property of the session, not the model — an easy pass is weak evidence,
-  the failures are the output.
+- [M19.14] ☑ **Step 2 — CLOSED 2026-08-30 with the measurement, and NO rewrite** _(owner: "close M19.14
+  with what the measurement found")_. The item asked for the context assets to be rewritten from a measured
+  run. Six rounds were run; the honest outcome is that **the rewrite is not the deliverable** — the assets
+  as they ship already work, and what the measurement produced instead was five upstream asks, a corrected
+  audit model, and two defects in our own product.
+  **What the rounds found**, in the order they mattered:
+  (1) **Most of what I was writing was already published.** The `transient` rule, `@OnTrigger`'s return and
+  `nodeBeans` are all upstream; the bundle simply did not point at them. That produced D-AX1b and the
+  agreed reference set, and round 06 confirmed agents **fetch the links and use them** — the pointing
+  strategy is now observed, not argued.
+  (2) **The audit contract was documented nowhere** — none of six sources — which is
+  [fluxtion#22](https://github.com/telaminai/fluxtion/issues/22), and it is why four wrong versions of it
+  got written locally.
+  (3) **Documentation is the wrong tier for a build failure.** Round 05: an agent holding the correct,
+  published `transient` rule still wrote the field wrong and had to fail a build to find out. That is
+  §1c's argument made by measurement, and it produced
+  [issues 19–23](https://github.com/telaminai/fluxtion/issues).
+  (4) **Round 06, against the shipped assets:** zero build failures in both arms, links fetched and used,
+  and **2/2 agents came away with the correct three-condition audit model, both having CHECKED it** —
+  against round 05's four-of-six holding the same false rule. Not attributable (different task, bundle and
+  n), and recorded as such.
+  (5) **Two defects in the analyser, found by agents rather than by us**: the REST protocol was
+  undiscoverable, and a near-miss path executed the action. Both fixed.
+  **What is NOT closed by this**: M19.15 (the seeding prompt) stays open; `docs/experience/current/` is
+  retired as a subject and kept only as the comparison; and the method itself lives in
+  [`spec-authoring-experience.md`](spec-authoring-experience.md), which is where a seventh round would
+  start. **The deliverable was never the doc set — it was knowing which tier each fact belongs in.**
 - [M19.1] ◧ **Released bundle produced; implementation accepted, refreshed final evidence artefact remains** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific

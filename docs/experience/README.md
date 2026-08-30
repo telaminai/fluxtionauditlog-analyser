@@ -87,6 +87,20 @@ in the real environment that file is auto-loaded and never needs opening. Run fu
 spec, not this README's rules: one variable per round, n≥3 in parallel, a preflight first, and the analyser
 present.
 
+## CLOSED 2026-08-30 — what six rounds actually produced
+
+M19.14 asked for the context assets to be rewritten from a measured run. They were not rewritten, and that
+is the finding rather than a failure to deliver: **the assets as they ship already work.**
+
+What the loop produced instead — five upstream issues, a corrected audit model, an agreed reference set,
+and two defects in the analyser found by agents rather than by us — is recorded against M19.14 in the
+tracker. The single most useful result is the one no metric was designed to catch: **round 05 had four of
+six agents holding the same false rule; round 06 had two of two holding the correct one, both having
+checked it.** The question that saw it was added only because round 05 embarrassed me into adding it.
+
+`current/` is retired as a subject. The shipped bundle's assets are the thing under test now, and the
+method is [`spec-authoring-experience.md`](../specs/spec-authoring-experience.md).
+
 ## What a reviewer should judge
 
 Not the individual edits. **The trend across rounds**, whether the held-out task passes, whether the doc
