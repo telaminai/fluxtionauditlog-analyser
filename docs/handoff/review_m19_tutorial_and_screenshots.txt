@@ -35,6 +35,10 @@ Corrections made here
      analyser commit `fadfa5b` supplied `tools/stage-tutorial-bundle.sh`; it generates the exact
      template, proves the ordinary build keyless, runs/exports/stops it and checks for PriceEvent
      cycles before the screenshot harness opens it.
+  9. Review tightened that new staging script before endorsement: its recursively removed destination
+     is now the one exact path the capture harness reads, and a failed clean stop is no longer hidden by
+     `|| true`. A capture therefore cannot pass after targeting a broad caller-supplied directory or
+     after leaving its Mongoose process/registry entry behind.
 
 Producer findings
 -----------------
