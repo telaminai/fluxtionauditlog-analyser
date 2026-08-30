@@ -59,7 +59,22 @@ bench, diff/sweep, the three jar-level claims, and the Swing origin banner in a 
 
 ---
 
-## ☐ `1707087` · correct the M19 tutorial and integrate generated screenshots
+## ☑ reviewed 2026-08-30 (the independent session) · `c6c7235` (the ledger's `1707087` rotted in a rebase — the fourth SHA this has happened to; push reports promptly) · correct the M19 tutorial and integrate generated screenshots
+
+**Verdict.** Correct, and the honesty is the best part: the graph step is explicitly downgraded to
+illustrative (DEMO asset, labelled as such IN the page) rather than pretending the bundle has a numeric
+key. All four reviewer checks done. **(a)** project → GraphML → log as three actions is right against
+M35/M40 semantics, and shot 1's own status bar shows the session-boundary wording. **(b)** the
+fixed-snapshot/Follow distinction is stated and Follow is visibly greyed in the no-log shot. **(c)** all
+seven images read at full resolution by this review: the four real-bundle shots are internally consistent
+(23 records, 5 PriceEvent, fits-this-log 2/2, canonical skills provenance, the honest key-file wording)
+and every visible path is neutral `/tmp/fluxtion-tutorial` / `com.example.myapp`; the three reused
+isolated-DEMO shots fit the journey and two of them were read by this reviewer when they were made.
+**(d)** the numeric-log finding REPRODUCES from shot 3 alone — `price=195.3` sits inside the
+`receivedEvent` toString, not as a top-level key, so it is text, not graphable (the ONBOARDING rule);
+the producer-side fix stays open cross-repo as recorded. One judgement noted: the generated source shot
+carries the framework's `@author` attribution of the owner's own public name — accepted, it is not a
+venue/account name. Gates re-run: 1144 green, mkdocs strict, sweep clean.
 
 **What.** Rewrites the playground tutorial against the released catalogue/lifecycle and actual analyser
 session semantics; integrates four real-bundle screenshots from `9d322ed` plus three existing screenshots
@@ -89,7 +104,17 @@ spec captures remain: playground Download, terminal lifecycle, an Explain answer
 
 ---
 
-## ☐ `7db161c` · make tutorial screenshot staging fail closed
+## ☑ reviewed 2026-08-30 (the independent session) · `546b2e7` (ledger's `7db161c` also rotted) · make tutorial screenshot staging fail closed
+
+**Verdict.** Correct and stronger than the guard it replaced: the exact-path pin subsumes the old
+inside-$HOME refusal and sits BEFORE the `rm -rf` (guard line ~41, destruction line 49, verified in the
+live script). The fixed `/tmp/fluxtion-tutorial` policy is right — it is the one path capture-docs.py
+reads, it is neutral by construction, and the exact string compare fails closed on any variant including
+a trailing slash. The stop-failure path leaves its evidence: output redirects to `$DEST/stop.log` before
+the fatal exit, and the error names that file. One nit, not blocking: the script's HEADER comment
+(constraint 1) still describes the replaced mechanism — "refuses a destination inside $HOME" — rather
+than the exact-path pin the code now enforces; align the prose next touch. A full staging run was not
+repeated here either (needs a Fluxtion key and the neighbouring web checkout, as the entry says).
 
 **What.** Constrains the staging script's recursively removed destination to the exact neutral path read
 by `capture-docs.py`, and makes a failed `stop-server.sh` fatal instead of hiding it with `|| true`.
