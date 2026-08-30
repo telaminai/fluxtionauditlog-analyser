@@ -312,6 +312,11 @@ compiler gives feedback we will extend to compiler codes on failure."* This sect
 The authoring findings are written up as diagnostics instead of as documentation, and the reason is in
 the advice below._
 
+**A branch is now working on the diagnostics.** Everything this section argues, plus the measured
+evidence behind it and an offer to test candidate messages against fresh agents, is collected for them in
+[`notes-for-the-compiler-diagnostics-work.md`](notes-for-the-compiler-diagnostics-work.md). Send that
+rather than this file: it is written as input to their design rather than as asks against it.
+
 ### The advice — four rules the loop paid for
 
 _The end-to-end method these asks serve — what belongs in a message versus a bootstrap doc, and how the
