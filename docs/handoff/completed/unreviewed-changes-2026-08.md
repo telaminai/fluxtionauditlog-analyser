@@ -1,8 +1,52 @@
-# Un-reviewed changes on `main` — ARCHIVE of reviewed entries (tidied 2026-08-28)
+# Un-reviewed changes on `main` — ARCHIVE of reviewed entries (tidied through 2026-08-30)
 
-Every entry below was reviewed and ticked in the live ledger `docs/handoff/unreviewed-changes.md` and moved here
-when that file was tidied on 2026-08-28 (nine entries + one incident record, 2026-08-26 → 2026-08-28). The live
-file holds only entries still awaiting review. Entries are verbatim.
+Every entry below was reviewed and ticked in the live ledger `docs/handoff/unreviewed-changes.md` before
+being moved here. The initial archive held nine entries plus one incident record (2026-08-26 → 2026-08-28);
+later accepted entries carry their review verdict with them. The live file holds only entries still awaiting
+review or accepted entries awaiting the next tidy.
+
+---
+
+## ☑ reviewed 2026-08-30 (the analyser reviewer) · `b07a74d` · make the released-bundle analyser/MCP acceptance reproducible
+
+**Verdict.** Accepted. The early-return and exception paths all converge through `finish`, which interrupts
+and then force-kills surviving analyser/bridge children and removes the disposable home. The bridge request
+has a bounded 15-second response wait; a timeout becomes a failed assertion rather than hanging the bench,
+and a subsequent broken pipe is caught by the outer failure path. Exact coverage 1.0 is correctly scoped to
+M19's typed acceptance bundle in both the module docstring and bench README; it is not presented as a generic
+bundle invariant. The previously recorded public-wire run remains the behavioural proof: 19/19 against the
+published artefact, including a fresh packaged analyser and a separately launched packaged MCP bridge.
+
+I did not rerun the desktop process under Linux/xvfb. I did re-read the public-wire implementation and its
+shared `McpBridge`, compile the script, verify the documented invocation, and confirm the current generated
+Download ZIP still passes the separate static contract 49/49. A refreshed producer artefact is tracked in the
+P3 review, not as a defect in this analyser-owned bench.
+
+**What.** `tools/bench/bundle-client-bench.py` launches the packaged analyser under a disposable,
+never-configured Java home; opens a generated bundle project before its exported YAML + declared GraphML;
+asserts the profile's two runbooks, skill provenance, record count, pairing and complete coverage; then
+launches the packaged stdio bridge and checks current discovery, tools/list and analyser_context against
+that same state. The bench README documents its place beside the static ZIP checker.
+
+**Why.** M19 P3's producer run had one remaining analyser-owned gate. An in-process test or a hand-written
+REST request would not prove the command an MCP client actually launches, and a one-off script would not
+guard the three-repository seam after the milestone. This preserves the exact public-wire check that
+accepted the released bundle.
+
+**Files.** `tools/bench/bundle-client-bench.py`, `tools/bench/README.md`; tracker and P3 review in the
+following metadata commit.
+
+**Verified.** Python compile and help pass. Against fluxtion-web artefact branch `m19/p3-artifacts` at
+`893fbdf`, the bench passes 19/19 using the packaged analyser jar: fresh REST launch, two-call project/log
+load, two described runbooks with existing files, canonical@f5efe17 provenance, 23 records, pairing 2/2,
+coverage 1.0, modern MCP discovery, 14 advertised tools and analyser_context state parity. Diff check
+passes. The desktop launch required running outside the filesystem sandbox; the isolated home and bridge
+were removed afterwards.
+
+**What the reviewer must still check.** Read the process cleanup and failure paths, especially early
+returns and a bridge timeout. Run the command from `tools/bench/README.md` under Linux/xvfb against the
+handed-off ZIP if practical. Challenge the strict coverage-1.0 requirement: it is deliberate for M19's
+typed business-event example, but this bench must not be presented as a generic arbitrary-bundle checker.
 
 ---
 

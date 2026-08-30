@@ -16,36 +16,6 @@ still check**.
 
 ---
 
-## ☐ `b07a74d` · make the released-bundle analyser/MCP acceptance reproducible
-
-**What.** `tools/bench/bundle-client-bench.py` launches the packaged analyser under a disposable,
-never-configured Java home; opens a generated bundle project before its exported YAML + declared GraphML;
-asserts the profile's two runbooks, skill provenance, record count, pairing and complete coverage; then
-launches the packaged stdio bridge and checks current discovery, tools/list and analyser_context against
-that same state. The bench README documents its place beside the static ZIP checker.
-
-**Why.** M19 P3's producer run had one remaining analyser-owned gate. An in-process test or a hand-written
-REST request would not prove the command an MCP client actually launches, and a one-off script would not
-guard the three-repository seam after the milestone. This preserves the exact public-wire check that
-accepted the released bundle.
-
-**Files.** `tools/bench/bundle-client-bench.py`, `tools/bench/README.md`; tracker and P3 review in the
-following metadata commit.
-
-**Verified.** Python compile and help pass. Against fluxtion-web artefact branch `m19/p3-artifacts` at
-`893fbdf`, the bench passes 19/19 using the packaged analyser jar: fresh REST launch, two-call project/log
-load, two described runbooks with existing files, canonical@f5efe17 provenance, 23 records, pairing 2/2,
-coverage 1.0, modern MCP discovery, 14 advertised tools and analyser_context state parity. Diff check
-passes. The desktop launch required running outside the filesystem sandbox; the isolated home and bridge
-were removed afterwards.
-
-**What the reviewer must still check.** Read the process cleanup and failure paths, especially early
-returns and a bridge timeout. Run the command from `tools/bench/README.md` under Linux/xvfb against the
-handed-off ZIP if practical. Challenge the strict coverage-1.0 requirement: it is deliberate for M19's
-typed business-event example, but this bench must not be presented as a generic arbitrary-bundle checker.
-
----
-
 ## ☑ reviewed 2026-08-29 (the Mongoose/playground session — the consumer side, and the session that reported the behaviour) · `f5efe17` · make the canonical load-log procedure respect project session boundaries
 
 **Verdict.** Accepted. This came from my P3 run and the correction matches what I actually observed:

@@ -320,7 +320,7 @@ analyser (reverse funnel)._
   - Closed 2026-08-30: the playground re-vendored the public canonical root at full revision
     `f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8`; the delivered ZIP reports that provenance, both pointers
     resolve to concrete marker-free skills, and the fresh analyser plus MCP bridge report the same value.
-- [M19.1] ◧ **Released bundle produced and consumer P3 accepted; two lifecycle corrections remain** — **full Maven project** (O1 resolved: user edits
+- [M19.1] ◧ **Released bundle produced; implementation accepted, refreshed final evidence artefact remains** — **full Maven project** (O1 resolved: user edits
   it in their IDE with their own LLM) with audit enabled + generated/EP source + settings file +
   **`CLAUDE.md` agent bootstrap** (the layered prompt stack in spec §Contract — thin example-specific
   layer, snapshot of the canon at generation time, canonical-reference line) + admin REST on + README
@@ -335,11 +335,14 @@ analyser (reverse funnel)._
   port, the analyser's endpoint file), never to author a rival prompt. Add `skill.md`/`contract.md` to
   the snapshot set for the XML-defined example (spec O2), since those are what make the design-level
   edit in tutorial part 4 possible._
-  - **Dependency gate ☑ released and consumed as mongoose-plugins 1.0.39:** local implementation/bench work used
+  - **Dependency gate ☑ released and consumed as mongoose-plugins 1.0.41:** local implementation/bench work used
     `svc-admin-web:1.0.39-SNAPSHOT` from Mongoose Plugins `6e7a2cc`. On 2026-08-29 the final
     `svc-admin-web:1.0.39` and `mongoose-test-support:1.0.39` POMs both resolved publicly from the Repsy
-    repository generated bundles already declare. The playground pins 1.0.39; an empty-HOME + empty
-    Maven-repository package resolved both public artefacts with no local snapshot or Fluxtion key.
+    repository generated bundles already declare. Public 1.0.40 added the `startComplete` registry refresh;
+    public 1.0.41 added its strengthened behavioural test and the regenerated schema golden. The playground
+    now pins 1.0.41; a generated bundle publishes its processor immediately without a dashboard poll and its
+    declared GraphML endpoint returns 200. Version 1.0.42 only removes release-plugin scratch from source
+    control (the relevant runtime source is identical), so it is not an M19 consumption gate.
   - **P0 ☑ accepted at reviewed head `73565fc`:** fluxtion-web
     `feature/m19-p0-keyless-bundle` moves scan/second-compile behind
     `-Pgenerate-fluxtion`, adds deterministic registry identity plus export/stop scripts, and keeps the
@@ -381,7 +384,7 @@ analyser (reverse funnel)._
     supplies its generated certificate as the private client's `ca` with verification enabled. Review
     and dispositions:
     [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
-  - **P3 ◧ analyser/MCP accepted; distribution lifecycle corrections remain:** `tools/bench/bundle-bench.py` checks an
+  - **P3 ◧ implementation accepted; refreshed shared evidence artefact remains:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
     guide mirror/version, committed processor source, declared/discoverable GraphML, exact shipped
     runbooks + frontmatter/provenance/minimum version, executable lifecycle scripts, safe inventory and
@@ -399,13 +402,15 @@ analyser (reverse funnel)._
     This session independently passed the ZIP 49/49 and its fresh analyser/MCP leg 19/19: active project,
     two described/existing runbooks, canonical@f5efe17 provenance, pairing 2/2, coverage 1.0, 14 tools and
     analyser_context returning the same state.
-    **Response at deployed fluxtion-web `752574d` is not yet accepted:** export/stop are now a generated
-    Java helper with POSIX + Windows wrappers, and restricted-JDK-PATH export passes. But run-server does
-    not pass the registry override used by the other two commands; the stop rewrite accepts any process
-    whose arguments contain the artifact name (it killed the Python contract stub); and the hostile-data
-    fixture no longer reaches the helper. The 1.0.40 startComplete refresh is structurally sound but its
-    test never binds or observes a processor. Exact reproductions and next order:
-    [`review_m19_p3_lifecycle_response.txt`](../handoff/review_m19_p3_lifecycle_response.txt).
+    **Lifecycle response accepted at deployed fluxtion-web `c15ed9f`:** `280898e` restores exact Java/JAR/
+    start-time stop identity, observes exit plus registry removal, passes the registry override through all
+    three commands, and moves runtime claims into a committed real-bundle bench reported 11/11. Public
+    mongoose-plugins 1.0.41 refreshes the entry at `startComplete`; its test observes the exact processor,
+    group and GraphML route, and a generated-bundle run fetched that route without a dashboard poll. This
+    session's current Download ZIP passes 49/49 and pins 1.0.41. **The shared `m19/p3-artifacts` branch is
+    still `893fbdf` / 1.0.39**, so refresh it with the current ZIP, generated source/GraphML/YAML/hashes before
+    the final current-version 19/19 rerun and P3 completion. Disposition:
+    [`review_m19_p3_lifecycle_final.txt`](../handoff/review_m19_p3_lifecycle_final.txt).
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining

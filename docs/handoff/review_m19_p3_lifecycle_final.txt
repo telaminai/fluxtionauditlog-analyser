@@ -1,0 +1,77 @@
+M19 P3 lifecycle + N1 final response review — 2026-08-30
+============================================================
+
+Verdict: IMPLEMENTATION ACCEPTED; REFRESH THE SHARED P3 ARTEFACT BEFORE FINAL M19.1 ACCEPTANCE.
+
+Reviewed inputs
+---------------
+
+  · fluxtion-web `752574d..c15ed9f`, especially `280898e` (lifecycle response) and
+    `c15ed9f` (mongoose-plugins 1.0.41 consumption);
+  · mongoose-plugins `v1.0.41`, including the behavioural `startComplete` registry test;
+  · the generated Download ZIP produced at web head `c15ed9f` by the real `buildMavenZip` test seam;
+  · analyser `b07a74d`, the fresh analyser/MCP consumer bench which was still pending in the ledger;
+  · the producer report's committed lifecycle-bench and live N1 evidence.
+
+Accepted corrections
+--------------------
+
+F1 — ACCEPTED. Stop now requires a Java process, this project's exact fat-jar filename and a start time
+consistent with the registry entry. It waits for both process exit and registry disappearance. The
+committed real-bundle bench preserves the reproduced non-Java impostor and hostile-data cases.
+
+F2 — ACCEPTED. Run, export and stop all translate `MONGOOSE_SERVERS_DIR` to the JVM property used by
+the server and generated Java helper. The previous shell-HOME/JVM-home split is closed by construction.
+
+F3 — ACCEPTED. The generator test now limits itself to source-level assertions, while the executable
+claims live in `web/scripts/bundle-lifecycle-bench.sh`, which actually builds and runs the helper. The
+reported run is 11/11. I inspected the gate and its failure checks; I did not rerun the credential-bearing
+generation needed to create its real processor.
+
+F4 / N1 — ACCEPTED. `ServerRegistryFileTest` now proves a first empty publish, binds a controller carrying
+`marketProcessor`, calls `startComplete`, then observes that exact name, group and GraphML route in the
+rewritten registry entry. This is a behavioural test of the failure, not a no-throw hook test. The web
+bundle pins public mongoose-plugins 1.0.41, and the producer's generated-bundle run observed the processor
+without a dashboard poll and fetched its GraphML route with HTTP 200.
+
+Independent checks
+------------------
+
+  · focused web bundle/download tests at `c15ed9f`: 32/32 pass;
+  · current generated Download ZIP SHA-256:
+    `14751108dac545d0811efd60417c2c559232874db7e9066427579e4a1d14bb88`;
+  · that ZIP declares mongoose-plugins 1.0.41 and passes analyser `bundle-bench.py` 49/49;
+  · `v1.0.41` contains the strengthened processor-observing test and startComplete implementation;
+  · analyser `b07a74d` cleanup, timeout and scope reviewed and accepted; its ledger entry is archived.
+
+Release-scratch disposition
+---------------------------
+
+The warning in report §7q is already stale. Mongoose-plugins main removed the tracked
+`pom.xml.releaseBackup` / `pom.xml.tag` files at `4f5d0bf`, added ignore rules, and published `v1.0.42`.
+The `WebAdminService` source is identical between v1.0.41 and v1.0.42, so 1.0.41 remains a valid complete
+runtime pin for M19; no playground bump is required merely to consume repository hygiene.
+
+One remaining handoff action
+----------------------------
+
+The shared `fluxtion-web` branch `m19/p3-artifacts` is still `893fbdf`: its bundle pins 1.0.39 and predates
+the generated Java lifecycle helper plus N1. The latest live results therefore cannot yet be reproduced by
+this reviewer from the named artefact which the earlier review explicitly required.
+
+Update that branch (or publish a new immutable evidence branch) with a c15ed9f-generated, key-free project:
+ZIP, generated processor, GraphML, exported YAML, SHA256SUMS and exact commands. It must pin 1.0.41 and
+contain the current lifecycle helper/wrappers. Then this session will rerun 49/49 and the fresh
+analyser/MCP 19/19 and may mark M19.1/P3 complete.
+
+This is an evidence-transfer requirement, not a request for another implementation change. M19 as a whole
+also retains the separately tracked tutorial/context work (M19.3/.4/.14/.15).
+
+Not independently rerun
+-----------------------
+
+  · the current real-bundle lifecycle bench (producer reports 11/11);
+  · the current 1.0.41 live export through a fresh analyser/MCP client, because that updated artefact is
+    not on the shared branch yet;
+  · Windows execution. The `.cmd` export/stop wrappers are present in the Download ZIP, but M19's accepted
+    runtime evidence is POSIX/JDK. Do not broaden it into a tested Windows claim without a Windows run.
