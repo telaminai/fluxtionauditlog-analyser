@@ -14,10 +14,23 @@ subject the whole downstream toolchain reads.
 | `fluxtion-playground.dev/audit-replay` | **correct** the standing claim — see the note at the end |
 | `fluxtion-playground.dev/spring-authoring/contract.md` | one line under `logLevel`, which is where the Spring author turns audit on |
 
-**Evidence that this gap is real:** checked 2026-08-30 across `claude.txt`, the playground `CLAUDE.md`,
-`spring-authoring/skill.md`, `spring-authoring/contract.md` and `/audit-replay`. **None of the five states
-how a node emits a value into the audit log.** Every fact below was then read from
-`fluxtion-runtime` 1.0.13 sources and `fluxtion-builder` 1.0.64, not inferred.
+**Evidence that this gap is real.** Six sources, **retrieved 2026-08-30** (review N3: these are live
+documents, not a local check — record what was read and when, because they can change under this claim):
+
+| # | Source | States the value-logging contract? |
+|---|---|---|
+| 1 | `https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt` | no |
+| 2 | `https://fluxtion-playground.dev/CLAUDE.md` | no |
+| 3 | `https://fluxtion-playground.dev/fluxtion-golden-path.md` | **usage only** — a worked `auditLog.info(k,v).info(k,v)` example and `addEventAudit(LogLevel.INFO)`; never names `EventLogSource`/`setLogger` |
+| 4 | `https://fluxtion-playground.dev/spring-authoring/skill.md` | no |
+| 5 | `https://fluxtion-playground.dev/spring-authoring/contract.md` | no — `logLevel` and `auditors` appear as config fields, no mechanics |
+| 6 | `https://fluxtion-playground.dev/audit-replay` | no, **and it implies the opposite** |
+
+Source 1 is fetched from a mutable branch head; the others are unversioned pages. **Nothing pins these**,
+so re-check before relying on the claim.
+
+Every fact below was read from `fluxtion-runtime` 1.0.13 sources and `fluxtion-builder` 1.0.64 —
+reproducible offline, unlike the table above.
 
 ---
 

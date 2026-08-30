@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** M19.10 — the source library itself, before the playground substitutes project-owned values. */
@@ -102,33 +104,24 @@ class CanonicalSkillsTest {
     @Test
     @SuppressWarnings("unchecked")
     void v2IsCommonPlusSPECIALISATIONS_andV1StaysByteIdentical() throws Exception {
-        // v1 is consumed by a released playground build. Extending selection must not edit it.
         Map<String, Object> v1 = (Map<String, Object>) Json.parse(Files.readString(PUBLISHED_INDEX));
         assertEquals("m19-skills/1", v1.get("contract"));
         assertEquals(PUBLISHED_REVISION, v1.get("revision"), "v1 is pinned; add a version, never edit one");
 
-        Map<String, Object> v2 = (Map<String, Object>) Json.parse(
-                Files.readString(ROOT.resolve("m19-skills/2/index.json")));
+        Map<String, Object> v2 = v2Index();
         assertEquals("m19-skills/2", v2.get("contract"));
+        assertFalse(((List<String>) v2.get("common")).isEmpty(), "common is always selected");
 
-        List<String> common = (List<String>) v2.get("common");
         Map<String, Object> specialisations = (Map<String, Object>) v2.get("specialisations");
-        assertFalse(common.isEmpty(), "common is always selected, so it cannot be empty");
-        assertTrue(specialisations.keySet().containsAll(Set.of("mongoose", "embedded", "spring")));
-
-        List<String> everyPath = new java.util.ArrayList<>(common);
+        assertTrue(specialisations.keySet().containsAll(Set.of("mongoose", "embedded", "spring", "replay")));
         for (Map.Entry<String, Object> entry : specialisations.entrySet()) {
             Map<String, Object> spec = (Map<String, Object>) entry.getValue();
             assertTrue(spec.get("why") instanceof String why && !why.isBlank(),
                     entry.getKey() + ": a specialisation must say when it applies, or a template author"
                             + " picking one is guessing");
-            everyPath.addAll((List<String>) spec.get("skills"));
         }
 
-        for (String relative : everyPath) {
-            Path source = ROOT.resolve(relative).normalize();
-            assertTrue(source.startsWith(ROOT) && Files.isRegularFile(source), relative);
-        }
+        List<String> everyPath = v2Paths();
         assertEquals(everyPath.size(), Set.copyOf(everyPath).size(),
                 "a path in two places means one template selects the same skill twice");
 
@@ -137,6 +130,77 @@ class CanonicalSkillsTest {
         for (SkillDiscovery.Candidate candidate : SkillDiscovery.find(ROOT, Map.of()).candidates()) {
             assertTrue(indexed.contains(candidate.path()),
                     candidate.path() + " exists in the library but no index entry ships it");
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v2sDeclaredRevisionCONTAINSeverySelectedByte() throws Exception {
+        // review F2: the first v2 named a revision that predated two of the skills it published, so a
+        // consumer could not reproduce the selected bytes from the advertised source. Unlike v1 the test
+        // also checked neither revision nor bytes, so nothing caught it.
+        String revision = (String) v2Index().get("revision");
+        assertTrue(revision != null && revision.matches("[0-9a-f]{40}"), "revision must be a full SHA");
+
+        Map<String, Object> pinned = (Map<String, Object>) v2Index().get("sha256");
+        assertEquals(Set.copyOf(v2Paths()), pinned.keySet(),
+                "every selected path must be hash-pinned, and nothing else");
+
+        for (String relative : v2Paths()) {
+            String blob = gitShow(revision + ":docs/skills/" + relative);
+            assertNotNull(blob, relative + " does not exist at the declared revision " + revision
+                    + " — the index names a source a consumer cannot fetch");
+            assertEquals(pinned.get(relative), sha256(blob),
+                    relative + " differs from its pinned hash at " + revision);
+            assertEquals(sha256(Files.readString(ROOT.resolve(relative))), pinned.get(relative),
+                    relative + " has drifted in the worktree since the declared revision — re-pin the "
+                            + "index or the published bytes are not the bytes here");
+        }
+    }
+
+    @Test
+    void theRevisionCheckFAILSwhenAPathIsAbsentThere() throws Exception {
+        // review F2 asked for a negative test. Without one, v2sDeclaredRevisionCONTAINSeverySelectedByte
+        // could be passing because gitShow always succeeds, which is how the original defect survived:
+        // the old v2 test checked worktree existence only, so a revision naming nothing was still green.
+        String v1Revision = (String) ((Map<String, Object>) Json.parse(Files.readString(PUBLISHED_INDEX)))
+                .get("revision");
+        assertNull(gitShow(v1Revision + ":docs/skills/common/guided-start/SKILL.md"),
+                "guided-start post-dates v1's revision, so this lookup MUST return null — if it does not,"
+                        + " the revision check cannot detect a revision that predates its own skills");
+        assertNotNull(gitShow(v1Revision + ":docs/skills/common/load-audit-log/SKILL.md"),
+                "and a path that DID exist there must resolve, or the check fails for the wrong reason");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void everyDeclaredTemplateResolvesToACOMPLETEselection() throws Exception {
+        // review F3: selection must be resolvable for a real template, and must not emit an incomplete
+        // instruction set. replay-a-run carries a required TODO(bundle) and the M19 bundle has no replay
+        // entry point, so a template that does not declare `replay` must not select it.
+        Map<String, Object> v2 = v2Index();
+        Map<String, Object> templates = (Map<String, Object>) v2.get("templates");
+        assertFalse(templates.isEmpty(), "at least one real template must be resolvable");
+        Map<String, Object> specialisations = (Map<String, Object>) v2.get("specialisations");
+
+        for (Map.Entry<String, Object> entry : templates.entrySet()) {
+            Map<String, Object> template = (Map<String, Object>) entry.getValue();
+            List<String> chosen = (List<String>) template.get("specialisations");
+            List<String> selected = new java.util.ArrayList<>((List<String>) v2.get("common"));
+            for (String name : chosen) {
+                assertTrue(specialisations.containsKey(name),
+                        entry.getKey() + " names an undeclared specialisation: " + name);
+                selected.addAll((List<String>) ((Map<String, Object>) specialisations.get(name)).get("skills"));
+            }
+            for (String relative : selected) {
+                assertTrue(Files.isRegularFile(ROOT.resolve(relative)),
+                        entry.getKey() + " selects a missing file: " + relative);
+            }
+            if (!chosen.contains("replay")) {
+                assertFalse(selected.contains("common/replay-a-run/SKILL.md"),
+                        entry.getKey() + " selects replay without declaring a replay entry point — its "
+                                + "TODO(bundle) could not be substituted");
+            }
         }
     }
 
@@ -218,6 +282,28 @@ class CanonicalSkillsTest {
                         + "human's, not the agent's");
         assertTrue(page.contains("~/.jbang/bin/analyser"),
                 "the first-shell PATH boundary must have a concrete escape, not just a warning");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> v2Index() throws Exception {
+        return (Map<String, Object>) Json.parse(Files.readString(ROOT.resolve("m19-skills/2/index.json")));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> v2Paths() throws Exception {
+        Map<String, Object> v2 = v2Index();
+        List<String> paths = new java.util.ArrayList<>((List<String>) v2.get("common"));
+        for (Object spec : ((Map<String, Object>) v2.get("specialisations")).values()) {
+            paths.addAll((List<String>) ((Map<String, Object>) spec).get("skills"));
+        }
+        return paths;
+    }
+
+    /** @return the blob at a git revision, or null when the path does not exist there. */
+    private static String gitShow(String spec) throws Exception {
+        Process p = new ProcessBuilder("git", "show", spec).redirectErrorStream(false).start();
+        String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        return p.waitFor() == 0 ? out : null;
     }
 
     private static String sha256(String text) throws Exception {
