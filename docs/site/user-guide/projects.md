@@ -67,7 +67,10 @@ a project is open.
 
 - **File ▸ Open recent project** — the last ten, most recent first.
 - **File ▸ New project from template…** — downloads a catalogue-selected starter into a destination
-  you approve, safely extracts it and opens its bundled profile. It shows commands but runs none.
+  you approve, safely extracts it and opens its bundled profile. It shows commands but runs none. Its
+  destination dialog carries one unchecked option to **create a `CLAUDE.md`** of canonical authoring links
+  in the new project: most catalogue templates ship no agent instructions at all, and a template that does
+  ship one keeps it — the file is never overwritten, and the status line says which happened.
 - **File ▸ New project…** — chooses a directory, then offers the Java source roots, `SKILL.md` runbooks
   and GraphML it can already see there, plus one option that is different in kind: **creating a
   `CLAUDE.md`** in that directory pointing at the canonical Fluxtion authoring documentation. Every box
