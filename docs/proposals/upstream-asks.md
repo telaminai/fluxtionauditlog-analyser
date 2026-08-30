@@ -596,6 +596,29 @@ who has to emit it. An LLM given the canon can build a correct graph that record
 which is how three wrong versions of it came to be written here. With it in the canon, the bundle **points**
 rather than restates, and the analyser stops depending on per-template prose for its own precondition.
 
+### UP-FLX-37 ◐ Invocation tracing is fixed at generation time, so an untraced processor cannot be made traced
+
+_Filed: https://github.com/telaminai/fluxtion/issues/25_
+
+**Target** `fluxtion` (runtime) · **Priority** high · *the PRODUCER half of UP-FLX-11, which asks the record
+to declare the regime*
+
+**Verified in `fluxtion-runtime` 1.0.13 and two generated processors, 2026-08-30.** `EventLogManager.trace`
+is assigned in exactly three places — its initialiser, `tracingOff()` and `tracingOn(level)` — and the last
+two are builder-time, reached from `EventProcessorConfig.addEventAudit`. The runtime control path,
+`calculationLogConfig(EventLogControlEvent)`, adjusts **per-node logger levels** and never touches it.
+
+So `DataFlow.setAuditLogLevel` can make a traced processor quieter; nothing can make an untraced one
+traced. **Turning tracing on requires regenerating, which requires a key** — and for a committed AOT
+processor running without one, the audit regime is not a setting at all.
+
+That is the difference between *"an absent node did not run"* and *"an absent node said nothing"*: a team
+that discovers mid-incident it needs the stronger regime cannot obtain it from the running system.
+
+**Cost to us if unfixed** the analyser's coverage verdict is only as strong as a regime the operator cannot
+change, and no tutorial or measurement can demonstrate the untraced case against a traced bundle — measured
+in round 06, where an agent correctly reported it could not.
+
 ### UP-FLX-36 ◐ Sibling dispatch order is undocumented, and authors reliably infer the WRONG rule
 
 _Filed: https://github.com/telaminai/fluxtion/issues/23_

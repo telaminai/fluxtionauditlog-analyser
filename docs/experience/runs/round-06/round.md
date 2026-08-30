@@ -100,8 +100,14 @@ made me add it.
 2. **D-AX1b has evidence.** Links get fetched and used.
 3. **A limitation of the channel**: our links are read through a summariser, so upstream precision matters
    more than length.
-4. **`eventLogger.trace = true` is hardcoded** in the generated processor, so a bundle log cannot
-   demonstrate the untraced case. Worth knowing before anyone writes a tutorial step about absence.
+4. **The audit regime is fixed at generation time** — filed as
+   [fluxtion#25](https://github.com/telaminai/fluxtion/issues/25). Arm A reported `eventLogger.trace = true`
+   as "hardcoded"; checking that myself sharpened it. It is **not** a constant — the bundle's processor has
+   `trace = true` and the analyser's demo has `trace = false`, so it faithfully reflects each build. The
+   defect is that generation is the *only* place the decision exists: `trace` is assigned solely by the
+   builder-time `tracingOn`/`tracingOff`, and no runtime control event reaches them. So turning tracing on
+   needs a regeneration, which needs a key — and the regime decides whether an absent node is *proof* or
+   merely *silence*.
 
 ## Honest limits
 
