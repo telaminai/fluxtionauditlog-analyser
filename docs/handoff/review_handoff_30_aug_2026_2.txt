@@ -1,0 +1,196 @@
+REVIEW — authoring-experience block
+Reviewed: 5397cd7..7a1811f (15 commits; the report's inclusive range is 7b2e854^..7a1811f)
+Handoff: docs/handoff/handoff_30_aug_2026_2_report.txt @ ffad4a2
+Date: 2026-08-30
+
+VERDICT: CHANGES REQUIRED
+
+This is valuable work, especially the correction from “write more bundle documentation” to “point at the
+existing canon and repair the missing audit contract”. The three requested evidence checks did not merely
+confirm the report, though: the EventLogManager check falsified its central audit-semantics statement, and
+the new m19-skills/2 index is not a reproducible or shippable contract yet.
+
+================================================================================
+FINDINGS — ordered by severity
+================================================================================
+
+F1 · BLOCKING — “appearance is automatic” collapses registration, invocation tracing and value logging
+into two mechanisms when the runtime has three conditions.
+
+The handoff §3b says nodeInvoked “is what makes a node APPEAR” and nodeRegistered hands a logger only to
+EventLogSource. fluxtion-runtime 1.0.13 says otherwise:
+
+  EventLogManager.nodeRegistered, lines 107–116
+    - constructs an EventLogger for every registered node;
+    - injects that logger only when the node implements EventLogSource;
+    - stores the logger in node2Logger unconditionally.
+
+  EventLogManager.nodeInvoked, lines 137–148
+    - looks the logger up in node2Logger, defaulting to NullEventLogger;
+    - calls logNodeInvocation(traceLevel).
+
+  EventLogger.logNodeInvocation, lines 238–242
+    - adds the trace only when the configured logger level admits the trace level.
+
+  EventProcessorConfig.addEventAudit()
+    - explicitly installs EventLogManager.tracingOff(); addEventAudit(level) installs tracingOn(level).
+
+Therefore the precise contract is:
+
+  1. the generated processor registers its graph nodes with each auditor;
+  2. with invocation tracing enabled, an invoked, registered node gets a method/trace entry (subject to
+     the configured level);
+  3. EventLogSource controls whether the runtime can inject a logger for the node's own values;
+  4. with tracing off, an invoked node that emits no value need not appear at all;
+  5. an unregistered invocation resolves to NullEventLogger and also does not appear.
+
+This is not a terminology nit. The analyser already distinguishes traced and untraced logs because
+absence supports different claims in each. The current wording overstates what an ordinary untraced audit
+record proves.
+
+Affected at minimum:
+
+  - handoff_30_aug_2026_2_report.txt §3b;
+  - proposals/upstream-content/audit-authoring.md (“Every node that is dispatched appears”);
+  - specs/spec-trust-structure.md D-T3 (the “unforgeable” participation/order claim needs a traced-log
+    boundary);
+  - skills/spring/add-a-node/SKILL.md (“Appearing in the record is automatic”);
+  - the round-03/round-05 conclusions and upstream-asks wording that inherit the same split;
+  - public Fluxtion issues #21 and #22, which repeat the mechanism as filed.
+
+Keep the useful EventLogSource ask, but correct it to “can receive a logger and record its own values”.
+State automatic participation/order only for registered graph nodes in a traced record. The traced demo is
+the right proof surface; the untraced demo is not.
+
+F2 · BLOCKING — m19-skills/2's provenance revision predates two of the skills it claims to publish.
+
+docs/skills/m19-skills/2/index.json declares revision
+4f9f9d831e5cca9e0c51edbbb304171a7106b9a0. At that revision:
+
+  git cat-file -e 4f9f9d8:docs/skills/m19-skills/2/index.json
+  git cat-file -e 4f9f9d8:docs/skills/common/guided-start/SKILL.md
+
+both fail. spring/add-a-node arrived in 003bc4e and guided-start arrived in 7a1811f. The v2 test checks
+only that current-worktree paths exist; unlike v1, it checks neither the revision nor exact bytes. A
+consumer cannot reproduce “the selected source bytes” from the advertised revision.
+
+Fix the revision to a commit containing every selected source byte, pin hashes/parity for every v2 path,
+and add a negative test that fails when a path or byte is absent at the declared revision. The index can
+be committed after the source revision it names, as v1's provenance model already allows.
+
+F3 · BLOCKING — the v2 selection rule necessarily emits incomplete instructions.
+
+The index makes common/replay-a-run/SKILL.md unconditional for every template, but that file still contains
+the required marker:
+
+  TODO(bundle): name the exact command for this project. There is no universal one
+
+The accepted M19 bundle deliberately has no replay entry point; docs/skills/README.md still records why v1
+does not ship replay. Making replay “common” reverses that accepted decision. Either the existing
+fail-on-TODO bundle gate rejects v2, or a weaker consumer ships a fictional procedure.
+
+The new Spring specialisation has a second dangling dependency: add-a-node says “See the regenerate
+skill”, but no regenerate skill exists in the canonical library or m19-skills/2. One exists only in the
+private experiment set under docs/experience/current, which a generated bundle cannot see.
+
+Make replay a capability/specialisation selected only by templates with a real replay entry point. Add a
+canonical, project-grounded regeneration procedure or inline the concrete generated command. Add a
+selection-level acceptance that resolves one real template and proves: every named skill is selected,
+every referenced companion skill exists, and no TODO(bundle) or placeholder survives.
+
+F4 · REQUIRED — round 05 records an observed difference, not evidence for the direction “the resources
+help”, and its underlying evidence is not reproducible from the repository.
+
+The build-failure table is 3/3 control versus 1/3 treatment. If treated as a simple 2x2 experiment,
+Fisher's exact p is 0.20 one-sided (0.40 two-sided). With one task, one model family, one machine and only
+three runs per arm, the honest statement is:
+
+  “This round observed fewer build failures in the treatment arm. It is hypothesis-generating and too
+   small to infer a direction or effect size.”
+
+“Supports a direction” and “the resources help” over-read it. Correct that wording in the handoff,
+spec-authoring-experience D-AX5, round-05/round.md and round-05/prediction.md. “Best available quantitative
+signal” may describe which recorded number moved; it must not be presented as a supported treatment effect.
+
+There is also no reviewer-reproducible run evidence under round-05: no exact task/prompt per arm, model
+identifier, bundle SHA/rig manifest, raw responses, generated patches, build logs or per-run scoring
+record. docs/experience/README.md says a round records prompt, task, NOTES, findings and environment, and
+spec-authoring-experience lines 472–488 says the rig manifest is mandatory. round-05 contains only
+prediction.md and the aggregate write-up. Preserve enough redacted artefacts to audit each C/T row, or
+label this as an observational internal note that cannot support attribution.
+
+F5 · REQUIRED — the exact cold guided-start install has an undocumented interactive branch.
+
+I ran the page's exact first command with an empty isolated Java home:
+
+  jbang app install analyser@telaminai/fluxtionauditlog-analyser
+
+Before installing, JBang refused to run the GitHub release URL until one of four trust choices was made;
+it would automatically cancel after 30 seconds. After “Trust once”, installation succeeded and printed:
+
+  Command installed: analyser
+  Setting up JBang environment...
+  Please start a new Shell for changes to take effect
+
+The pasted prompt says the two commands install then start the application, but tells neither the user nor
+the agent how to handle the trust decision or the first-shell PATH boundary. A non-interactive agent can
+time out at the first prompt, and the immediate analyser command can be unavailable in the same shell.
+
+Document the expected JBang trust prompt and make the human own that trust choice; then explicitly start a
+new shell or invoke the installed path in a way that is valid on the supported platforms. Keep the report's
+larger caveat: I did not count this as an end-to-end guided-tour acceptance. A genuinely held-out,
+context-free client still needs to run it through the human connection pause and all three UI beats.
+
+F6 · REQUIRED TEST CORRECTION — the claimed ReferenceSet race test does not call ReferenceSet.
+
+ReferenceSetWriteTest.aRaceLosesTheWriteRatherThanTheAuthorsFile directly calls Files.writeString with
+CREATE_NEW inside assertThrows. It would still pass if ReferenceSet.create were changed to truncate an
+author's file after its offer check. The production implementation is correct today, but this test proves
+the JDK primitive, not the production race guard. Replace it with a deterministic seam/race test that
+exercises ReferenceSet.create itself.
+
+================================================================================
+DECISIONS / NON-BLOCKING NOTES
+================================================================================
+
+N1 · Four reference links are reasonable for a Spring-authored project; three are the right always-on
+set. reference-set.json already marks spring-contract with appliesTo:spring, but ReferenceSet.markdown()
+renders it for every project and merely annotates it. When the currently-unwired UI offer lands, make
+appliesTo control selection rather than charging every non-Spring project for an irrelevant fourth link.
+
+N2 · The report's range syntax excludes its first commit. Use 7b2e854^..7a1811f or
+5397cd7..7a1811f. Also update “1140 tests”: the reviewed tree ran 1,153 tests in 164 suites.
+
+N3 · “Each is one command against ~/.m2” applies to checks (a) and (b), not (c). The six-source audit
+contract check fetches live public documents. Record the six URLs and retrieval date/commit where one is
+available.
+
+================================================================================
+WHAT PASSED / WHAT I VERIFIED
+================================================================================
+
+  PASS  mvn -q test — 1,153 tests, 0 failures/errors/skips
+  PASS  mvn -q -DskipTests package
+  PASS  /private/tmp/m19-docs-venv/bin/mkdocs build --strict
+  PASS  git diff --check 7b2e854^..7a1811f
+  PASS  four-term tracked-file sweep — no matches
+  PASS  tools/bench/reference-set-bench.py --all — 6/6 URLs returned HTTP 200
+  PASS  LiveGraphSourceGenExtractor 1.0.64 has all three assignment strategies; constructor generation is
+        the only strategy with the reported no-match throw. Actual call order is constructor, property,
+        public-member; the substantive handoff claim is sound.
+  PASS  the six public sources show audit usage but do not state EventLogSource/setLogger as the value-
+        logging contract. The narrowed documentation-gap claim is sound.
+  PASS  built-jar Swing check: the real template chooser fetched the live catalogue and visibly rendered
+        the configured-origin warning with the origin and -Dfluxtion.analyser.playgroundOrigin.
+  PASS  TemplateClient's override remains system-property-only, accepts plain HTTP only for exact
+        127.0.0.1/::1/localhost spellings, rejects redirects, paths, credentials and non-loopback HTTP.
+
+NOT VERIFIED
+
+  - The full guided-start prompt through a newly connected external client. This reviewer is not a fresh
+    model and cannot supply the held-out evidence the spec calls for.
+  - AGENTS.md auto-loading under Codex.
+  - A human confirmation flow for ReferenceSet; it is deliberately unwired.
+  - Playground consumption of m19-skills/2; the contract defects above make that premature.
+
+No repository changes were made apart from this review file. Nothing was committed or pushed.
