@@ -203,6 +203,40 @@ are checklist items rather than anecdotes:
   should report — a graph, the roots, a verdict — goes ABOVE that return; twice a correctly `put` fact was
   invisible to agents because it sat below it.
 
+### Loop handoffs — many iterations, one review
+
+A third style, alongside brief → report → review and the ad-hoc ledger. Introduced 2026-08-30 for the
+**experience loop** ([`docs/experience/`](experience/README.md)), and reusable for anything measured the
+same way.
+
+**When it applies.** The work is *documentation or content*, the blast radius is low, and the only honest
+test is running it rather than reading it. Reviewing each edit costs more than it catches; reviewing the
+**trend** is what tells you anything.
+
+**How it differs.**
+
+| | brief → report → review | ad-hoc ledger | **loop handoff** |
+|---|---|---|---|
+| Reviewed | every slice | every entry | **the trend, at the end** |
+| Evidence | the report | the entry | **each round's recorded run** |
+| Reviewer judges | is this change right | is this change safe | **is it converging, and did it shrink** |
+
+**Obligations on the author** — these replace per-slice review, so they are not optional:
+
+- **Record every round before editing**, including the environment (key present? analyser reachable? which
+  artefact?). A run whose conditions are unknown proves nothing.
+- **Rotate the task, and hold one out.** Repeat a task and the docs will pass because they now describe it.
+  A held-out pass is the only pass worth anything.
+- **Record what went UNUSED**, and delete it. A loop that only adds produces documentation nobody reads.
+- **Archive superseded sets**, so a reviewer can see whether a later one got *worse*.
+- **Touch no code.** That is what lets another session work the same repo in parallel.
+
+**A finding counts when it RECURS.** Rounds are non-deterministic; one agent hitting something once is
+noise, the same friction across two different tasks is a defect.
+
+**Stop and hand off** when a round yields no new recurring findings, or the held-out task runs clean — or
+early, saying so, if findings alternate rather than reduce, which means editing will not fix it.
+
 ### Ad-hoc un-reviewed changes
 Sometimes a session working primarily in **another repo** (a downstream consumer of the analyser) hits an
 analyser-side bug and fixes it in passing — too small for a full brief, but it still lands on `main`
