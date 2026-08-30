@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **A wrong path on the local assistant socket now says where the right one is.** Requesting anything
+  other than `/action` or `/manifest` returned a bare "no context found", so a client holding a valid URL
+  and token had no way to learn the protocol — and `/manifest`, which lists every verb and schema, was
+  itself undiscoverable. The 404 now names both routes, the request envelope and the auth header.
 - **The Project panel now says WHY a processor's source is missing.** *"Source not found"* had two causes
   with opposite remedies — no source roots configured, or roots configured and the class simply absent —
   and one message for both sent half of readers to add a root that could not help.

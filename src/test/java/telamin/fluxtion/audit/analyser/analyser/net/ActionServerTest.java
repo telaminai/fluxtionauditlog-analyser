@@ -126,4 +126,40 @@ class ActionServerTest {
         assertNull(file.read(), "stop() removes the file it published");
         assertFalse(new ActionServer(d, "x", 20, 5.0).republish(), "no file configured → nothing published");
     }
+
+    // ---- discovery: a wrong path must say where the right one is -------------------------------------
+
+    @Test
+    void anUnknownPathNAMESTheRoutesInsteadOfADeadEnd() throws Exception {
+        // Round 06: two independent agents, each holding a valid token, tried ~20 path/method/auth
+        // combinations and got the JDK's bare "No context found for request" every time. Neither reached
+        // the analyser. We publish a url and a token and no way to learn the protocol, and /manifest —
+        // which answers everything — was itself undiscoverable. One wrong guess must now be enough.
+        HttpResponse<String> r = send(req("/api/context").GET().build());
+
+        assertEquals(404, r.statusCode(), "the path really is wrong, so the status stays 404");
+        String body = r.body();
+        assertTrue(body.contains("/manifest"), "must point at the route that answers everything: " + body);
+        assertTrue(body.contains("/action"), body);
+        assertTrue(body.contains("action") && body.contains("params"),
+                "the envelope is the other half an agent cannot guess: " + body);
+        assertTrue(body.contains(ActionServer.TOKEN_HEADER), body);
+    }
+
+    @Test
+    void discoveryIsSERVEDwithoutAToken_becauseAWrongDoorIsNotASecret() throws Exception {
+        // it discloses the SHAPE of the api and never any data; a caller who cannot authenticate still
+        // needs to learn they are knocking in the wrong place
+        HttpResponse<String> r = send(req("/nope").GET().build());
+        assertEquals(404, r.statusCode());
+        assertTrue(r.body().contains("/manifest"));
+    }
+
+    @Test
+    void theRealRoutesStillWIN_soTheCatchAllCannotShadowThem() throws Exception {
+        HttpResponse<String> m = send(req("/manifest").header(ActionServer.TOKEN_HEADER, "s3cr3t")
+                .GET().build());
+        assertEquals(200, m.statusCode(), "/manifest must not be swallowed by the catch-all");
+        assertTrue(m.body().contains("verbs"), m.body());
+    }
 }

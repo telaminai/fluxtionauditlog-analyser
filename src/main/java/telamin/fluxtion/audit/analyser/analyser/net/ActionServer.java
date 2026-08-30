@@ -31,7 +31,8 @@ import java.util.concurrent.Executors;
  */
 public final class ActionServer {
 
-    private static final String TOKEN_HEADER = "X-Analyser-Token";
+    /** Package-visible so a test can assert the discovery reply names the real header. */
+    static final String TOKEN_HEADER = "X-Analyser-Token";
 
     private final HttpServer server;
     private final ActionDispatcher dispatcher;
@@ -65,6 +66,12 @@ public final class ActionServer {
         this.port = server.getAddress().getPort();
         server.createContext("/action", this::handleAction);
         server.createContext("/manifest", this::handleManifest);
+        // Round 06, both arms: two independent agents holding a valid token tried ~20 path/method/auth
+        // combinations each and got the JDK's bare "No context found for request" every time. Neither
+        // reached the analyser; both abandoned it and read the YAML directly. We publish a url and a
+        // token and no way to learn the protocol — and /manifest, which answers everything, is itself
+        // undiscoverable. A wrong path must therefore say where the right one is.
+        server.createContext("/", this::handleUnknownPath);
         server.setExecutor(Executors.newFixedThreadPool(2));
     }
 
@@ -132,6 +139,24 @@ public final class ActionServer {
         } finally {
             ex.close();
         }
+    }
+
+    /**
+     * Anything that is not {@code /action} or {@code /manifest}. Still a 404 — the path really is wrong —
+     * but the body names the two routes, the envelope and the auth header, so one wrong guess is enough
+     * to find the right one. Deliberately served WITHOUT a token: it discloses the shape of the API, never
+     * any data, and a caller who cannot authenticate still needs to learn they are at the wrong door.
+     */
+    private void handleUnknownPath(HttpExchange ex) throws IOException {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("ok", false);
+        body.put("error", "no such path: " + ex.getRequestURI().getPath());
+        body.put("routes", Map.of(
+                "/manifest", "GET — every verb and its JSON schema. Start here.",
+                "/action", "POST — run one verb"));
+        body.put("actionEnvelope", Map.of("action", "<verb name>", "params", Map.of()));
+        body.put("tokenHeader", TOKEN_HEADER + " (required by /action and /manifest, not by this reply)");
+        send(ex, 404, Json.write(body));
     }
 
     private void handleManifest(HttpExchange ex) throws IOException {
