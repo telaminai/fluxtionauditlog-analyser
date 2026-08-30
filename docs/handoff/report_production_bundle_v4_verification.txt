@@ -1,0 +1,74 @@
+REPORT — verifying the DEPLOYED v4 bundle against production (not a local zip)
+Date: 2026-08-30 · Source: https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle
+Bench: tools/bench/bundle-bench.py --analyser-version 1.12.0 · Result: 66 passed, 3 FAILED
+
+================================================================================
+P1 · BLOCKING, IN PRODUCTION — the bundle ships NO generated processor and NO GraphML
+================================================================================
+The live zip contains no `generated` directory, no `.graphml`, and no generated `.java` anywhere:
+
+  find . -path "*generated*"   -> nothing
+  find . -name "*.graphml"     -> nothing
+
+Its own README says the opposite, verbatim:
+
+  "**No API key is needed to build or run** - the generated processor ships in this project"
+
+**It does not ship.** What follows was checked rather than inferred:
+
+  * `mvn compile` SUCCEEDS. The processor is loaded reflectively by name in
+    `MarketProcessorSupplier.get()`, so nothing fails at compile time and the defect is invisible to a
+    build.
+  * After that compile there is **no `MarketProcessor.class` under `target/`** - the class the server
+    loads by name does not exist in any form.
+  * So the failure lands at **server startup**, as
+    `IllegalStateException("generated processor not found - run './mvnw package'")`.
+  * And that advice is itself wrong: generation is behind the `-Pgenerate-fluxtion` profile, so
+    `./mvnw package` will not produce it. The command that would is `./mvnw -Pgenerate-fluxtion package`,
+    **which requires a Fluxtion API key.**
+
+**Net effect: the keyless claim is false for the bundle currently in users' hands, and recovering costs a
+key.** That is the headline promise of the whole M19 onboarding path, and a guided-start user following
+the docs page meets it at the first `./run-server.sh`.
+
+Consequences beyond the key:
+
+  * **no GraphML -> no pairing, no coverage, no M40.1 verdict.** The analyser can open the log and cannot
+    do the thing beat 2 of the guided tour exists for;
+  * the shipped profile declares `selectedEventProcessor=com.example.myapp.generated.MarketProcessor`,
+    a class that is not in the bundle;
+  * the bench's day-two GraphML discovery check passes on the *declared* path while the file is absent -
+    worth knowing when reading its output.
+
+**Not a regression in the contract - a regression against it.** v3 already requires both artefacts, and
+rounds 01-05 used a bundle that had them; agents read `MarketProcessor.java` directly. Something in the v4
+generation path stopped emitting them.
+
+**This is the playground's to fix, and it outranks everything else on their list.**
+
+================================================================================
+P2 · EXPECTED - the reference-block boundary marker is absent
+================================================================================
+`CLAUDE.md marks the end of the reference block` fails because the marker is the decision they asked for
+and I only just made it (`<!-- reference-block:end -->`, analyser commit 48b0e0a). Their half is not late;
+it did not exist until now. Recorded so the failure is not mistaken for a defect.
+
+The check **fails closed** by design: no marker, no boundary, refuse rather than guess.
+
+================================================================================
+WHAT IS CORRECT IN PRODUCTION
+================================================================================
+66 checks pass, including everything v4 added except the marker:
+
+  * contract declared as `m19-bundle/4`;
+  * all four agreed reference links present, and the Spring one present **because this is a Spring
+    project** - `appliesTo` is selecting, not annotating;
+  * `AGENTS.md` byte-identical to `CLAUDE.md`;
+  * skills exactly `common` + `spring` + `mongoose` - `guided-start`, `load-audit-log`, `add-a-node`,
+    `run-mongoose-server` - and **no `replay-a-run`**, correctly, since this template has no replay entry
+    point;
+  * **zero surviving `TODO(bundle)` markers.** Every marker was substituted, which is the evidence
+    `m19-skills/2` was waiting on and the reason it is now published with pinned provenance.
+
+The selection and reference work is right. The bundle it is packaged into is missing its two most
+important files.
