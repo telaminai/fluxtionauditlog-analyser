@@ -162,7 +162,9 @@ The bundle is a demonstration; the point is your processor:
 
 - **[Produce a log](producing-a-log.md)** from your own processor.
 - **[Open a project](user-guide/projects.md)** for your repository. **File ▸ New project…** offers
-  source roots, skill-shaped runbooks and GraphML it finds, and adopts only what you confirm.
+  source roots, skill-shaped runbooks and GraphML it finds, and adopts only what you confirm — plus an
+  unchecked option to create a `CLAUDE.md` pointing at the canonical Fluxtion authoring docs, which is the
+  one choice there that writes a file rather than recording a pointer.
 
 The bundle exists so you can see the complete evidence loop work once before pointing it at something
 that matters.

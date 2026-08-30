@@ -1,0 +1,219 @@
+REVIEW — playground bundle v4 integration, including the deployed scaffold
+Date: 2026-08-30
+Reviewer: analyser session
+Verdict: CHANGES REQUIRED — the selection work is mostly sound, but the deployed onboarding path is
+not acceptance-ready and the published provenance guarantee is not enforced by its consumer.
+
+Reviewed revisions
+  * fluxtion-web: b211874^..453d084 (published template, Download/scaffold seams, v4 and its closure)
+  * analyser: b49f007^..8b4fcde (ReferenceSet closure, v4 checker/contract/publication and production
+    follow-ups). df7d2d3 and 8b4fcde were local and not yet on origin when this review was written.
+  * deployed bundle fetched from:
+      https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle
+    SHA-256 872120219db42f3c64b344750db6ef2a2a6608353b973180198dc40255adbacc
+
+Headline
+The review closure did fix the four things it set out to fix in its DRAFT fixture: appliesTo selection,
+literal runbook selection, a single resolved GitHub head for skills plus the default reference set, and
+non-vacuous request recording. The analyser's renamed checks and boundary decision are also right.
+
+Two seams were not exercised. The server scaffold does not pass through the browser's generated-artifact
+injection, so production serves a keyless-build-shaped project with no processor to compile. Separately,
+the vendor tests exercise only a DRAFT index; once the analyser published v2, the tool began claiming the
+index's older revision while continuing to fetch bytes from the newly resolved head, and never checked the
+declared hashes. Those are integration defects, not formatting objections.
+
+================================================================================
+F1 · BLOCKING, LIVE — the scaffold ZIP omits the committed processor and GraphML
+================================================================================
+The live ZIP has 34 entries and neither required path:
+
+  src/main/java/com/example/myapp/generated/MarketProcessor.java
+  src/main/resources/com/example/myapp/generated/MarketProcessor.graphml
+
+Current analyser bench, including df7d2d3's honest discovery check:
+
+  65 passed, 4 failed
+  FAIL CLAUDE.md marks the end of the reference block
+  FAIL the selected generated processor source is committed
+  FAIL the declared GraphML exists
+  FAIL day-two bounded GraphML discovery can offer the declared graph
+
+The cause is concrete. The scaffold handler calls `buildStarterZip(spec)`
+(`web/src/routes/(marketing)/start/scaffold/+server.ts:69`). That builder packages only `generate(spec)`
+output (`web/src/lib/starter/zip.ts:31-40`). The generated processor and GraphML exist only in the browser
+Download path's `generatedArtifacts` input (`web/src/lib/repl/maven-download.ts:371-405`).
+
+The tests reproduce the blind spot:
+  * `server.test.ts` checks export-audit.sh, the profile and pom shape, but not either generated artefact;
+  * `maven-download-bundle.test.ts` injects a fake empty Java class and `<graphml/>`, so it proves that
+    buildMavenZip can place artefacts supplied by its caller, not that the scaffold endpoint supplies them.
+
+This is worse than a compile failure. The default package can succeed because the supplier uses reflection;
+the server starts and publishes its registry entry, then the first event reports that the generated
+processor is missing. The error recommends `./mvnw package`, which is the command that already failed to
+generate it; recovery is `-Pgenerate-fluxtion` and therefore requires the key the README says is unnecessary.
+
+Required correction
+  * give the headless scaffold a real, committed generated-source + GraphML input, through the same explicit
+    artefact model as the browser path;
+  * preserve or safely transform the package when `basePackage` is overridden. If exact transformation
+    cannot be proved, refuse that override for this pre-generated template instead of serving mismatched
+    source;
+  * make the endpoint-level test inspect those exact paths from the ZIP it returns. The test must not create
+    the artefacts itself;
+  * add `<!-- reference-block:end -->`, the contract-owner decision made in 48b0e0a;
+  * run bundle-bench against that endpoint ZIP. Expected result after these corrections: 69/69.
+
+================================================================================
+F2 · BLOCKING BEFORE RE-VENDOR/DEPLOY — PUBLISHED revision and sha256 are ignored
+================================================================================
+The new recording fetcher is non-vacuous for the DRAFT case: it requires one API resolution, five raw
+requests, the resolved SHA in every raw URL, and no `/main/`. F4's requested proof is accepted that far.
+
+It does not exercise a PUBLISHED index. In the real published shape:
+
+  A = the SHA to which the tool resolves `main`
+  B = index.revision, the earlier commit containing the pinned skill bytes
+
+`vendorSkills` fetches the index and every skill from A, then chooses
+`idx.revision ?? resolvedRevision` and records B (`vendor-skills.mjs:334-415`). `validateIndexV2` merely
+checks that a published revision has a permissive string shape. It never reads `sha256`, and there is no
+hash calculation anywhere in the tool.
+
+I reproduced this with the recording fetcher altered so the API returned `aaaa...`, while a PUBLISHED
+index declared `bbbb...` and `sha256: {}`. The outcome was `ok`; every raw request used `aaaa...`; the
+manifest claimed revision `bbbb...`. Thus the general claim “every byte comes from one commit” is false,
+and the exact guarantee publication is meant to bind is unenforced.
+
+Required correction
+  * read the metadata index from the resolved head A;
+  * for a PUBLISHED index, obtain each selected skill from the declared content revision B where that source
+    supports revision-addressed reads, and in every source mode verify its bytes against the declared
+    per-path SHA-256;
+  * refuse a missing hash, wrong hash, missing selected path, malformed immutable revision or mismatched
+    revision; do not emit a manifest on failure;
+  * add the A != B fixture. Assert requests, bytes, hashes and the manifest, not merely `outcome=ok`.
+
+The index cannot name the Git commit that first contains that same index without a self-reference problem.
+The honest statement is therefore “metadata read at resolved head A; selected content reproduced from
+declared revision B and verified by hash,” not that every input including the index is one commit.
+
+The explicit reference-set override has the same false-identity problem. The CLI passes the skills revision
+to `vendorReferenceSet` even when `--reference-set` names an unrelated mirror/file, so arbitrary reference
+bytes are stamped `mirror:<origin>@<skills revision>`. Resolve or content-hash the override independently;
+never borrow the skills revision.
+
+================================================================================
+F3 · REQUIRED — the vendor operation is not one filesystem transaction, and `none/none` leaves stale data
+================================================================================
+The CLI writes the skills snapshot before fetching/validating the reference set. A reference failure exits
+with new skills plus the previous reference-set.json still on disk. That state is precisely the mixed
+snapshot the “same transaction” wording says cannot happen.
+
+There is also a direct false-pass path. With an existing reference-set.json:
+
+  node scripts/vendor-skills.mjs --source none --reference-set none --out <skills-dir>
+
+returns success and leaves the stale reference file. The removal branch is nested under
+`result.outcome === 'ok'`, so it is never reached when skills outcome is `none`.
+
+Resolve and validate both inputs without writes, then replace the whole snapshot only after both succeed.
+Pin both `none/none` cleanup and a failing-reference rollback with CLI-level tests.
+
+================================================================================
+F4 · REQUIRED — m19-skills/2 was published before its recorded hand-back, and its index prose is damaged
+================================================================================
+The v4 brief says the hand-back is a green bundle-bench run. The deployed bundle is not green, and the local
+production report already knew it was missing the two v3-required artefacts when 0e50b81 lifted DRAFT.
+Selection and marker substitution are good evidence, but they are not the acceptance event the brief names.
+
+Restore DRAFT until a real generated ZIP is green, or explicitly amend the publication gate before relying
+on a narrower one. Do not silently reinterpret it after publication. Once the scaffold fix passes locally,
+publish, then re-vendor through the corrected PUBLISHED path from F2 and deploy.
+
+The published `docs/skills/m19-skills/2/index.json` also contains two orphaned fragments left by prose
+editing:
+
+  "substitutes every marker ... Until then v1 remains the"
+  "consumer must reproduce ... This draft deliberately declares NEITHER ..."
+
+They contradict the later PUBLISHED paragraph. `CanonicalSkillsTest` checks for the words PUBLISHED and
+generator, so it cannot detect this mechanical damage. Remove the fragments and read the resulting comment
+as prose once; do not broaden the test into a prose parser.
+
+================================================================================
+F5 · REQUIRED — the production evidence documents now disagree with the corrected evidence
+================================================================================
+At f2cbb81, 66/3 was the correct output because the discovery check was shape-only. df7d2d3 correctly makes
+the hidden claim fail, so both production handoffs must now say 65/4 and must not list day-two discovery as
+passing. Also reconcile the older report's “failure at server startup” with the later observed result: the
+server starts and the failure appears during first-event dispatch. That difference matters because a health
+check can otherwise certify a server that processes nothing.
+
+================================================================================
+F6 · REQUIRED IN df7d2d3/8b4fcde — `rootTiers` cannot distinguish absent source from an unconfigured root
+================================================================================
+The bench half of df7d2d3 is accepted. The Project-panel wording is not.
+
+`processors[].source` says only whether the FQN resolved under the current roots. The existence of at least
+one `source.rootTiers` entry does not prove the class is absent: it may live under a second, unconfigured
+root. For example, `src/main/java` can be configured while generated source lives under
+`target/generated-sources`; adding that root is exactly the remedy. The live broken bundle proves absence
+for that inspected ZIP, but `ProjectModel` has no such fact and cannot generalise it.
+
+Keep the useful distinction, but state only what the model knows:
+
+  no roots:   "source not found: no source roots are configured"
+  some roots: "source not found under the configured roots" (optionally: "is it generated elsewhere?")
+
+Remove “class simply absent,” “adding a root cannot help” and “opposite remedies” from the changelog,
+tracker, Javadoc and comments unless discovery is extended to supply an explicit reason. The owner's
+8b4fcde decision to keep one stable Add source action for both states is accepted; it does not require the
+model to assert which cause produced the unresolved FQN.
+
+================================================================================
+ACCEPTED CLOSURES
+================================================================================
+  * F3 appliesTo: the non-Spring negative test has a non-empty gated-resource guard and checks that
+    always-on resources remain. It cannot pass vacuously in the committed fixture.
+  * F5 runbooks: literal four-skill expectation and manifest-following expectation are genuinely separate.
+  * analyser F2/F6: renamed check expectation and PASS detail are corrected; the v4 fixtures now execute.
+  * boundary: `<!-- reference-block:end -->` is the right normative boundary; analyser emission and
+    fail-closed checking are sound.
+  * df7d2d3 bench: discovery now requires both a scan-eligible path and an existing file.
+  * b49f007 ReferenceSet closure: returning WROTE / ALREADY_EXISTS / NOTHING_AGREED from the single write
+    path removes the caller's guessed reason and preserves CREATE_NEW. One non-blocking stale Javadoc line
+    still says create “returns false” (`ReferenceSet.java` around line 187); align it next touch.
+
+================================================================================
+VERIFICATION PERFORMED
+================================================================================
+fluxtion-web at 453d084, detached worktree:
+  * focused v4/scaffold/Download tests: 59 passed
+  * full Vitest suite: 430 passed
+  * production build: passed, with the same four pre-existing Svelte warnings
+  * `git diff --check 592c3f3..453d084`: passed
+
+analyser:
+  * full Maven suite: passed at f2cbb81 and again at df7d2d3
+  * focused CanonicalSkills/ReferenceSet/New-project tests: passed
+  * Python bundle-bench tests: 20 passed at f2cbb81; 21 passed at df7d2d3
+  * strict MkDocs build: passed
+  * privacy sweep and `git diff --check b49f007^..8b4fcde`: passed
+  * every declared v2 SHA-256 matches the named blob at 48b0e0a
+
+Not verified
+  * I did not rerun the full live Maven/server/export lifecycle; the live ZIP inventory, source trace,
+    bench and the analyser session's recorded run independently converge on F1.
+  * I did not visually inspect the Swing wording from df7d2d3; F6 is a model/evidence defect visible before
+    rendering.
+  * RootNode's numeric-log tutorial finding remains playground-owned and outside this closure review.
+
+Next order
+  1. Fix F1 and emit the marker; prove the actual scaffold ZIP, not a caller-supplied fake-artifact ZIP.
+  2. Fix F2/F3 and add PUBLISHED plus CLI transaction tests.
+  3. Correct F4-F6 on the analyser side.
+  4. Obtain a local 69/69 bundle; only then publish v2, re-vendor from that published index and deploy.
+  5. Fetch production afresh, require 69/69, then run keyless package -> run -> export -> clean stop and the
+     fresh-analyser/MCP leg.

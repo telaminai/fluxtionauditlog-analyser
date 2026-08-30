@@ -39,23 +39,29 @@ that destroys someone's work in progress is a support ticket, not an introductio
 
 | File | What it is for |
 |---|---|
-| `demo-quote-audit-traced.yaml` | the **traced** log — the only one where an absent node is proof rather than silence |
-| `demo-quote-processor.graphml` | the declared graph it was generated from |
-| `demo-quote-series.yaml` | 726 records, for the chart |
+| `demo-quote-audit.yaml` | 10 records, and **one declared node that never logged** — beat 2 |
+| `demo-quote-audit-traced.yaml` | the **traced** log: every node ran, so coverage is 1.0 — use it for the contrast, not for beat 2 |
+| `demo-quote-processor.graphml` | the declared graph both were generated from |
+| `demo-quote-series.yaml` | 726 records, for the chart in beat 3 |
 
-If that directory is missing, the demo has not been unpacked yet. Ask the person to open the analyser's
-**Start page** and use its demo action once — that installs it. Do not try to install it yourself.
+**If that directory is missing, stop and ask.** The demo unpacks only when someone uses a demo action on
+the analyser's **Start page** — you cannot install it yourself, and there is no verb for it. One click,
+then carry on.
 
 Say which data you are using, and if it is the demo, **say that it is demo data.**
 
 ## Beat 1 — what ran, and in what order
 
 ```
-analyser_open {"log": "~/.fluxtion-analyser/demo/demo-quote-audit-traced.yaml",
+analyser_open {"log": "~/.fluxtion-analyser/demo/demo-quote-audit.yaml",
                "graphml": "~/.fluxtion-analyser/demo/demo-quote-processor.graphml"}
-analyser_context {}          → confirm graphPairing before you claim anything
+analyser_context {}          → confirm graphPairing.applies before you claim anything
 analyser_topology {}         → put the graph on screen
 ```
+
+**Read the pairing from `context`, not from the echo `open` returns.** If a previous session's log is
+still open when you call `open`, the echo describes the graph against *that* log. `context` is computed
+after, and is the one to trust.
 
 Ask them to look at one record's node list. The point to make, once:
 
@@ -75,11 +81,22 @@ This is the beat that is unlike a log viewer, so give it room.
 analyser_coverage {}
 ```
 
-Let them read the number off the screen. Then the point:
+On the demo above this reports **6 declared, 5 covered, 1 uncovered**. Let them read it off the screen.
+Then the point:
 
-> That is a list of declared nodes with **no execution recorded**. It needs the declared graph *and* the
+> That is a declared node with **no audit output in this run**. It needs the declared graph *and* the
 > record — neither file can produce it alone, and no volume of log lines will, because a log has no list
 > of what was supposed to happen.
+
+**Then read them the analyser's own note, because it is the more impressive half:** it says this is
+*"never logged"*, not proven *"never ran"* — a node with no `auditLog` call is silent by design. The
+instrument is declining to make the stronger claim its own number would support. That refusal is the
+product; a tool willing to overstate here would be worth nothing to anyone who has to defend the answer.
+
+**The contrast, if they want it.** Re-open `demo-quote-audit-traced.yaml`: coverage is **1.0**, because
+that log has invocation tracing on, so every node's participation is recorded whether or not it logged
+anything. Same graph, same processor — a different thing provable. That *is* beat 2's point in one move,
+and it is why the tracing switch is a build-time decision worth making deliberately.
 
 If coverage refuses — an inferred graph cannot support it — **show them the refusal and explain it**. It
 is a better demonstration than the number would have been: the instrument declining to compute something
@@ -89,11 +106,20 @@ it cannot stand behind is the whole argument, live.
 
 Pick something the data actually supports; look at what keys exist rather than assuming.
 
+There is no verb that lists available keys, so read a record first rather than guessing:
+`analyser_read {"recordIndex": 0, "count": 2}`. On the demo series log, `riskMonitor.liveOrders` works.
+
 ```
-analyser_series {"expr": "<a numeric key>", "crossings": {"above": <threshold>}}
-analyser_goto   {...}        → select the record where it crossed
-analyser_flag   {...}        → bookmark it so it is still there tomorrow
+analyser_open   {"log": "~/.fluxtion-analyser/demo/demo-quote-series.yaml",
+                 "graphml": "~/.fluxtion-analyser/demo/demo-quote-processor.graphml"}
+analyser_series {"expr": "riskMonitor.liveOrders", "crossings": {"above": 1}}
+                             → 160 points; each crossing carries recordIndex and byteOffset
+analyser_goto   {"recordIndex": 15}
+analyser_flag   {"recordIndexes": [15], "note": "why it crossed"}
 ```
+
+**`flag` takes `recordIndexes` — an ARRAY.** The singular is refused; guessing it wastes a turn in front
+of the person you are showing.
 
 They end with a bookmarked record they can reopen. That is the loop: a question, an anchor in the
 evidence, and something durable.

@@ -69,10 +69,12 @@ a project is open.
 - **File ▸ New project from template…** — downloads a catalogue-selected starter into a destination
   you approve, safely extracts it and opens its bundled profile. It shows commands but runs none.
 - **File ▸ New project…** — chooses a directory, then offers the Java source roots, `SKILL.md` runbooks
-  and GraphML it can already see there. Every box starts off: finding is not adding. Confirm only the
-  facts this analyser should adopt; an empty directory produces an ordinary empty offer and can still
-  become an empty profile. It never inherits whatever you happened to have open, or "new project"
-  would just be a slow way to copy one.
+  and GraphML it can already see there, plus one option that is different in kind: **creating a
+  `CLAUDE.md`** in that directory pointing at the canonical Fluxtion authoring documentation. Every box
+  starts off: finding is not adding. Confirm only the facts this analyser should adopt; an empty directory
+  produces an ordinary empty offer and can still become an empty profile — the `CLAUDE.md` offer appears
+  there too, since it is the case where it helps most. It never inherits whatever you happened to have
+  open, or "new project" would just be a slow way to copy one.
 - **File ▸ Save project as…** — forks the current settings to another project, which becomes active.
 - **File ▸ Close project** — returns to the settings you had **before you ever opened a project**.
 
@@ -89,10 +91,28 @@ the hand-off from demo to real work:
 1. review the detected `src/main/java` roots (including one-level Maven modules);
 2. choose any project-owned skills that should become declared runbook pointers;
 3. optionally choose one discovered GraphML topology to open;
-4. confirm once. Only those checked facts enter the new profile.
+4. optionally ask it to create a `CLAUDE.md` — see below, this one writes a file;
+5. confirm once. Only those checked facts enter the new profile.
 
 The scans are bounded and skip build output, dependencies and symlinks. If a safety cap is reached the
 dialog says the offer is partial rather than presenting it as the whole repository.
+
+### The one option that writes to your repository
+
+Choices 1–3 record **pointers** in the analyser's own profile and change nothing in your working tree. The
+`CLAUDE.md` option is different and is described separately for that reason:
+
+- it **creates a file in the directory you chose** — the only documentation the analyser ever writes into
+  a repository;
+- it contains **links and one line each**, to the canonical Fluxtion authoring resources, and deliberately
+  restates none of their content. Improving those pages improves the file, which is the point of pointing
+  rather than copying;
+- a link that applies only to Spring-authored projects is written **only** when the directory looks
+  Spring-authored;
+- it **never overwrites an existing `CLAUDE.md`.** If you already have one, the dialog says so and the
+  option is not offered; if one appears while the dialog is open, the write is refused and you are told;
+- it is **unchecked by default**, like everything else in that dialog, and it does **not** enter the
+  profile — the profile records pointers to files, and this is a file, not a pointer to one.
 
 !!! info "Switching replaces, it doesn't merge"
 

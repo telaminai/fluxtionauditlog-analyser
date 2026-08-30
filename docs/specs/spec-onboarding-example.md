@@ -779,6 +779,7 @@ result.
 | let `appliesTo` **select**, not annotate | a Spring-only link must not appear in a non-Spring project — an always-in-context file is a tax on every turn (review N1) |
 | below the block, only what the set does **not** cover | this project's paths, commands, graph — and the audit contract, until [fluxtion#22](https://github.com/telaminai/fluxtion/issues/22) lands upstream |
 | mirror to `AGENTS.md` by **generation**, never by hand | two hand-maintained copies diverge silently (D-AX8) |
+| end the block with `<!-- reference-block:end -->` | **normative.** The restated-rule check is bounded by this marker and **fails closed** without it. A marker rather than a sentence, because prose must stay free to improve and the two repos had already drifted before anyone noticed |
 
 **A generated `CLAUDE.md` must not restate a rule the agreed set already carries.** That is the D-AX1b
 duplication rule, and it is what makes an upstream edit improve every project instead of one.
@@ -801,6 +802,33 @@ duplication rule, and it is what makes an upstream edit improve every project in
 - [ ] every vendored skill's bytes match its `sha256` at the declared `revision`
 - [ ] a template without a replay entry point ships **no** `replay-a-run`
 - [ ] `AGENTS.md` is byte-identical to `CLAUDE.md` and was generated, not written
+
+### D-B6 · The generated processor's copyright header — a public-artefact problem, found 2026-08-30
+
+Committing the generated artefacts (correct, and what closed the missing-processor defect) put a file in
+front of every user that had never shipped before. Its generator-emitted header carries two things a public
+starter should not:
+
+- **a vendor-domain email address** — one of this repo's four redaction terms (CLAUDE.md rule 1;
+  deliberately not spelled here, because a mechanical rule cannot tell a mention from a leak). The
+  canonical sweep run over an unzipped bundle names the single file;
+- **a confidentiality and all-rights-reserved notice** — *"This file is confidential and only available to
+  authorized individuals"*. A starter that exists to be built on now ships a file saying the opposite, and
+  a compliance reader in the regulated market this stack targets meets that text in something their team
+  just downloaded.
+
+**Owner of the durable fix: `fluxtion` (the generator emits the header) — filed as
+[fluxtion#24](https://github.com/telaminai/fluxtion/issues/24).** Cheapest immediate mitigation: the
+playground already rewrites this file to the project's own `basePackage`, so it can replace the header at
+emit time.
+
+**The analyser ships it too**, in its demo processor inside the jar — two independently generated
+processors with the same header, which is what identifies it as the generator's template rather than
+anything project-specific. Not hand-patched here on purpose: the demo is a generated artefact, and editing
+the shipped copy would make it an unfaithful example and drift from what the generator emits.
+
+**Acceptance to add when it is fixed:** an unzipped bundle passes the four-term sweep, and no shipped file
+claims confidentiality.
 
 ### D-B5 · Still open, and NOT specified here
 

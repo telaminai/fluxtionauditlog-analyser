@@ -39,11 +39,12 @@ REFERENCE_EXCLUDED = (
     # excluded upstream and must never be shipped: it tells authors no instrumentation is needed
     "https://fluxtion-playground.dev/audit-replay",
 )
-# The generated guide's explicit hand-off from analyser-owned references to project-owned guidance.
-# Its exact-once presence makes the restatement scan below auditable: link descriptions above it may
-# name an upstream rule; only the local guidance below can duplicate that rule.
-REFERENCE_BLOCK_BOUNDARY = "Everything below is only what those do **not** cover:"
 REPLAY_SKILL = "replay-a-run"
+
+# v4 D-B2: the machine-readable end of the generated reference block. The generator emits it; the bench
+# bounds its restated-rule scan with it. Deliberately an HTML comment: invisible when rendered, and it
+# leaves the surrounding prose free to be improved without breaking a parser.
+REFERENCE_BLOCK_END = "<!-- reference-block:end -->"
 PROFILE = ".analyser/project.fluxtion-settings"
 GUIDES = ("CLAUDE.md", "AGENTS.md")
 COMMAND_SCRIPTS = ("run-server.sh", "export-audit.sh", "stop-server.sh")
@@ -211,21 +212,32 @@ def check_v4(bundle, contract):
     shipped_excluded = [u for u in REFERENCE_EXCLUDED if u in guide]
     add("CLAUDE.md ships no EXCLUDED resource", not shipped_excluded, ", ".join(shipped_excluded))
 
-    # D-AX1b: pointing is the point. A resource's own description above the boundary may name the
-    # rule it carries (for example "source-gen triage"); only local guidance below may restate it.
-    # Refuse a guide that does not retain exactly one structural boundary rather than silently scanning
-    # an arbitrary region after a generator wording change.
-    boundary_count = guide.count(REFERENCE_BLOCK_BOUNDARY)
-    add("CLAUDE.md separates its reference block from local project guidance", boundary_count == 1,
-        f"expected one reference boundary, found {boundary_count}")
-    local_guidance = guide.split(REFERENCE_BLOCK_BOUNDARY, 1)[1] if boundary_count == 1 else guide
-    restated = [t for t in ("@FluxtionIgnore", "declare transient", "source-gen triage") if t in local_guidance]
-    add("CLAUDE.md restates no rule the agreed set already carries", not restated, ", ".join(restated))
+    # D-AX1b: pointing is the point. Restating a rule the agreed set carries is the duplication that
+    # produced four wrong versions of the audit contract, and it is why an upstream edit stops helping.
+    #
+    # BOUNDARY (contract decision, 2026-08-30): the scan is bounded by an explicit MARKER, not by matching
+    # a sentence. A prose sentence is written for a human and must stay free to improve; welding a parser
+    # to it makes every wording change a breaking change, and the two repos had already drifted
+    # ("Everything below…" vs "Below this line…") before anyone noticed. An HTML comment renders as
+    # nothing, says exactly one thing, and belongs to the machine.
+    body_start = guide.find(REFERENCE_BLOCK_END)
+    if body_start < 0:
+        # FAIL CLOSED. Without the marker the boundary is unknown, and scanning the whole file would
+        # flag the reference block's own text. Refusing is the honest answer; guessing is not.
+        add("CLAUDE.md marks the end of the reference block", False,
+            "expected " + REFERENCE_BLOCK_END + " — without it the restated-rule scan cannot be bounded")
+    else:
+        add("CLAUDE.md marks the end of the reference block", True)
+        body = guide[body_start + len(REFERENCE_BLOCK_END):]
+        restated = [t for t in ("@FluxtionIgnore", "declare transient", "source-gen triage") if t in body]
+        add("CLAUDE.md restates no rule the agreed set already carries", not restated, ", ".join(restated))
 
     agents = bundle.read("AGENTS.md").decode("utf-8", errors="ignore") if bundle.exists("AGENTS.md") else None
-    add("AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)",
-        agents is not None and agents == guide,
-        "missing" if agents is None else ("" if agents == guide else "differs"))
+    agents_ok = agents is not None and agents == guide
+    # the detail is the FAILURE reason, so it must be empty on a pass. Emitting "differs" beside a green
+    # check makes a hand-back read as evidence of a problem it does not have (review F6).
+    add("AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)", agents_ok,
+        "" if agents_ok else ("missing" if agents is None else "differs"))
 
     # D-B1: replay carries a marker only a real replay entry point can substitute
     replay = [p for p in bundle.paths if REPLAY_SKILL in p and p.endswith("SKILL.md")]
@@ -364,8 +376,11 @@ def check_bundle(bundle, analyser_version):
         for index in range(max(runbook_count, 0)) for field in ("name", "path", "description")
     }
     found_runbook_keys = {key for key in props if re.fullmatch(r"runbook\.\d+\.(name|path|description)", key)}
-    add("runbook members are exactly zero-based 0..count-1",
-        found_runbook_keys == expected_runbook_keys,
+    runbook_keys_ok = found_runbook_keys == expected_runbook_keys
+    # same rule as the AGENTS.md check (review F6): the detail is the failure reason, so on a pass it is
+    # empty. "missing=[] extra=[]" beside a green line is noise that reads like a problem.
+    add("runbook members are exactly zero-based 0..count-1", runbook_keys_ok,
+        "" if runbook_keys_ok else
         "missing=" + repr(sorted(expected_runbook_keys - found_runbook_keys))
         + " extra=" + repr(sorted(found_runbook_keys - expected_runbook_keys)))
 
@@ -432,9 +447,18 @@ def check_bundle(bundle, analyser_version):
         graph = pathlib.PurePosixPath(graph_paths[0])
         discovery_roots = [pathlib.PurePosixPath(root) for root in source_roots if root]
         discovery_roots.append(pathlib.PurePosixPath("src/main/resources"))
-        discoverable = any(graph.is_relative_to(root) and len(graph.relative_to(root).parts) <= 12
-                           for root in discovery_roots)
-        add("day-two bounded GraphML discovery can offer the declared graph", discoverable, graph)
+        in_scanned_tree = any(graph.is_relative_to(root) and len(graph.relative_to(root).parts) <= 12
+                              for root in discovery_roots)
+        # Existence is part of the claim, not a neighbouring one. The check says discovery CAN OFFER this
+        # graph; discovery cannot offer a file that is not there, so a shape-only test made this pass green
+        # beside two reds about the same missing file (production bundle, 2026-08-30). Two reds for one
+        # cause is fine - they are different properties - but a green line that is false is not.
+        present = bundle.exists(graph_paths[0])
+        add("day-two bounded GraphML discovery can offer the declared graph",
+            in_scanned_tree and present,
+            "" if (in_scanned_tree and present) else
+            (f"{graph} is not under a scanned root" if not in_scanned_tree
+             else f"{graph} is declared but absent, so nothing can discover it"))
 
     return checks
 

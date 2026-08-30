@@ -1894,3 +1894,255 @@ already writes them.
   description. 1029 green.
 - **Open question for the owner:** the menu's name — proposed `AI` rather than *AI assistant*, since
   "assistant" already names the in-app panel and the docs nav settled on *Working with AI*.
+
+## M19 · Onboarding example — SHIPPED SLICES (archived 2026-08-30)
+
+_Moved from the live tracker per rule 7 while M19 itself remains in progress; the open slices stay
+there. Verbatim, including their commits and evidence — nothing was rewritten in the move._
+
+- [M19.18] ☑ **Bundle contract v3 corrects the profile ABI before publication** _(2026-08-29)_ — P3
+  scaffolding checked P1's emitted profile against the real importer and found v2's one-based
+  `sourceRoot.1`/`runbook.1` members and singular `eventProcessorFqn` are ignored. v3 specifies the
+  zero-based list families, `selectedEventProcessor`, explicit `share.version=1`, and no fictitious
+  `projectName`; `ProjectProfileTest` loads the exact generator-facing shape and asserts roots,
+  processors, selection, runbooks/descriptions and provenance arrive. No v2 bundle was published or
+  accepted, so consumers move directly to `m19-bundle/3`; `m19-skills/1` is unchanged.
+- [M19.17] ☑ **Bundle contract v2 written, profile table superseded by v3** _(2026-08-29, third review's F1 + live export-beat correction)_ — normative table in the
+  spec: required files, exact profile keys verified against `ConfigStore`/`ProjectProfile`, the commands a
+  bundle must document, generated-bundle acceptance, and per-repo ownership. Versioned `m19-bundle/2`:
+  v2 replaces the impossible run-writes-YAML assumption with the owner-selected Chronicle export beat and
+  makes `m19-skills/1` normative (index/layout, error distinctions, bounds, provenance and enforced minimum
+  analyser version). **Bounded deferral:** embedded remains NOT PUBLISHABLE and is outside the Mongoose tier.
+- [M19.16] ☑ **Review amendments signed before bundle implementation at `b0fdb86`** — correct the MCP bootstrap to the
+  supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
+  key provenance a value-free observable source rather than guessing a separate build's winner; and make
+  the generated load-log skill name the bundle's actual path (review F1–F4). Parallel Mongoose/playground
+  work is coordinated by [`handoff_29_aug_2026_1.txt`](../../handoff/handoff_29_aug_2026_1.txt): phase-zero
+  live-source reconnaissance only until an amended **M19 bundle contract** is signed at an exact SHA;
+  after that, repository-owned slices may proceed independently and converge on one generated-bundle bench.
+  - **Phase-zero report RECEIVED 2026-08-29** —
+    [`handoff_29_aug_2026_1_report.txt`](../../handoff/handoff_29_aug_2026_1_report.txt) (Mongoose/playground
+    session). Both live-source tables delivered; seven mismatches recorded (M-1 the "Mongoose starter" is
+    actually the playground's `mongoose.ts` — reassigns the brief's M1/M3 slices; M-2 NO current
+    mongoose-hosted starter mode runs keyless; M-3 no file audit sink exists — chronicle-only capture,
+    YAML is export-at-read, so the bundle's `./logs/audit-<name>.yaml` line needs an owner route decision;
+    M-4/M-5 small loop-bench adaptations, analyser-owned; M-6 bundles are generated client-side in the
+    browser — skills should be VENDORED at build time, not fetched at download). Bundle implementation
+    NOT STARTED, per the gate. Two slices landed under their own already-accepted specs, on unpushed
+    local branches: **UP-MNG-01 registry file** (mongoose-plugins
+    `feature/up-mng-01-server-registry` @ 6e7a2cc — writes `~/.mongoose/servers/<name>`, mode 600,
+    with `environment` per UP-MNG-03; 96 module tests green) and **UP-PG-01 `catalogue: 1`**
+    (fluxtion-web `feature/up-pg-01-catalogue-version` @ 4bb71b5). Pull/test/runbook in the report §4/§7.
+  - **OWNER DECISION 2026-08-29: M-3 resolved — the EXPORT BEAT is v1's audit path** ("go with the
+    export beat for v1"): Chronicle capture + `/api/audit/file/{id}/export?format=yaml`; the bundle
+    contract's file-sink line amends accordingly; bootstrap D-01 answered (no file sink exists or is
+    needed for v1); UP-RDR-01 later deletes the beat. **Live acceptance ran the same day** (report §7):
+    a real server published the registry file and loop-bench passed ALL SIX registry-side steps; the
+    export step fails on the recorded M-4 bench adaptation (bare-array listing — analyser-owned edit,
+    with M-5's BEARER mapping). The shutdown check caught and fixed a real bug: Mongoose's clean stop
+    calls `Service.stop()`, never `tearDown()` — removal now hooks `stop()` (commit 6e7a2cc).
+- [D-R1] ☑ **RESOLVED 2026-08-29 — the analyser owns local key-file management, not build-winner provenance.**
+  The visualiser is not shipping (too IDE-specific); its masked field, canonical file and
+  `~/.fluxtion/profiles/` concept moved into the analyser at `db42919`. The later D-X3 correction is
+  load-bearing: this process can observe only whether the canonical file has a configured key and cannot
+  know a `-Dfluxtion.apiKey` passed to a future Maven JVM. It documents that precedence and that
+  `FLUXTION_API_KEY` is not read, without claiming a winner. The VALUE never reaches `AppConfig`, context,
+  an echo, profile, share export, status/console or screenshot.
+- [D-R2] ☑ **RESOLVED 2026-08-29 — skills are a LIBRARY KEYED BY HOST**, not per-project authoring:
+  `common` (load log, record, replay) + one of `mongoose` / `embedded` (audit via `setAuditLogProcessor(LogRecordListener)` — **NOT** `addSink`/`FileMessageSink`,
+  which review F1 showed was wrong). A bundle SELECTS a tier. The rule: a skill describes the
+  project's own entry points and never invents a CLI — invented commands are fiction an agent cannot
+  distinguish from fact.
+- [D-R3] ☑ **RESOLVED 2026-08-29 — late-bind at DOWNLOAD, never at RUNTIME.** Guidance (prose, skills,
+  CLAUDE.md canon) lives on the website; anything the analyser must BEHAVE by (verb schemas, format
+  conformance) ships in the jar. O3 already generates bundles at Download, so updating the site needs no
+  analyser release — and nothing fetches at runtime, which is what preserves the offline story,
+  reproducibility, and version safety.
+- [D-R4] ☑ **`skills.source` override — BUILD/RELEASE contract fixed in `m19-skills/1`.** Owner-required for test and corporate mirrors.
+  Machine tier ONLY: never read from a project profile, because a profile travels between people and must
+  not redirect the instructions an agent reads. Accepts a URL, a local path, or `none` as a first-class
+  value. The source used is recorded and shown. The versioned index/layout, bounds, distinct failures,
+  sanitised provenance and `x-analyser-min-version` refusal are normative in the M19 v2 contract; the
+  playground vendors the snapshot at build/release, never in the user's browser. Blast radius stated:
+  nothing executes a skill, so the exposure is an agent READING a procedure — real and bounded.
+- [M19.13] ☑ **DAY TWO shipped at `1f30213`: `New project…` offers what it found** _(owner, 2026-08-29; spec R7)_. Day one is
+  a primed bundle; day two is the user's own project. Before this slice, `File ▸ New project…` created an
+  **empty** profile and discovered nothing, so a user who had
+  just watched the bundle work must then perform four undocumented actions to reach the same state on
+  their own code. Every ingredient is already built — `SkillDiscovery`, M35.4's graph discovery, the build
+  layout for a source-root guess — so this is one dialog that OFFERS and never selects (D-AI5). **The only
+  part of M19 that needs no other party to agree**, and the part that decides whether the bundle is a demo
+  people can reproduce.
+  - 2026-08-29 implementation evidence: `NewProjectDiscovery` composes the existing bounded
+    `SkillDiscovery`, `GraphmlDiscovery` and source-root layout detection; `NewProjectOfferDialog` puts
+    all three in one confirmation with every choice off. Confirmed roots and skill pointers persist; at
+    most one confirmed topology opens. `NewProjectDiscoveryTest` proves an empty directory is an empty
+    offer, default adoption changes nothing, and explicit choices alone apply. Public Projects journey
+    and `[Unreleased]` updated. Full Maven suite, pinned strict-site build, diff check and tracked-file
+    leak sweep pass; independent Swing checks are logged in
+    [`unreviewed-changes.md`](../../handoff/unreviewed-changes.md).
+  - Independent review accepted the slice and found one concrete bundle-shaped reach gap: GraphML is
+    searched only below detected source roots. This is now a P3 gate, not an independently guessed path:
+    generated-bundle acceptance must call day-two discovery at the bundle root and assert the declared
+    graph is offered. If it misses, the generator moves the graph beneath a detected root or returns the
+    exact path for an analyser-side bounded-scan change before sign-off.
+  - The first P0 output fixed the path at `src/main/resources/<package>/<processor>.graphml`, so the
+    analyser-side return is closed at `389d331`: New-project discovery now includes that bounded Maven
+    resource root and a regression fixture uses the generated-bundle layout. P3 must still prove the
+    actual emitted path is offered; this unit fix is not generated-bundle evidence.
+- [M19.11] ☑ **Onboarding bench — the bundle consumer path is reproducible** _(completed 2026-08-30)_. My claim that
+  the headline had never been run cold was **wrong**: the owner ran it the previous Friday — bare Java
+  project, one `jbang` install, existing Claude skills picked up as-is, and **Codex** driving the analyser
+  over MCP. That is the first evidence in this project from a **different LLM** and from a **project not
+  prepared for it**, which is stronger than the fixture written for M43. The producer's static
+  `bundle-bench.py` guards the generated ZIP. This repo now supplies the other half:
+  `tools/bench/bundle-client-bench.py` launches a never-configured analyser, opens project then YAML +
+  GraphML in the correct two-call order, checks profile/runbooks/provenance/pairing/coverage, and drives
+  a separately packaged MCP stdio bridge through current discovery, tools/list and analyser_context. It
+  passed 19/19 against artefact branch `893fbdf` and its 23-record released-1.0.39 bundle. This is the
+  ordinary regression guard (three repos change independently; nothing says when it stops), scoped to
+  the bundle path, and is **not** a precondition.
+- [M19.12] ☑ **Key management shipped at `db42919` (R8)** _(owner asked 2026-08-29: "is
+  key management in this spec?" — it was not; D-R1 resolved the DECISION and nothing described the
+  feature)_. Three surfaces, no first-run modal: a start-page card, an `AI ▸ Fluxtion API key…` item, and a
+  Project-panel row stating **locally observable setup facts only** (D-X3) — the key file present or absent,
+  with the precedence rule documented beside it. It must NOT claim which source a future Maven build
+  resolved, and `FLUXTION_API_KEY` is not an answering source: the builder never reads it. Lift `FluxtionAccountDialog` including its `~/.fluxtion/profiles/`
+  concept. Never validates against a service: presence is local, validity is the build's business, and an
+  analyser phoning home to check a key is the enforcement this product argues against.
+  **The limit now has ACCEPTANCE rather than prose**, which is the half that matters for a credential: a
+  test asserts the value reaches no `context`, no echo, no profile, no share export, no status bar or
+  console. `AppConfig` does not hold it; `KnownKeys` owns no family for it. Not hypothetical — the M42
+  review found JVM options carrying secrets into a client config file, and the sweep cannot see inside a
+  screenshot.
+  - 2026-08-29 implementation evidence: `FluxtionKeyStore` writes only the established `apiKey=…` file,
+  preserves unrelated builder properties, enforces owner-only permissions where supported, wipes the
+  caller buffer, and supports named profiles without a value-read API. `FluxtionKeyDialog` is masked and
+  never validates; Start page, AI menu and Project-panel/context row receive presence only. Targeted
+  `FluxtionKeyStoreTest,FluxtionKeySafetyTest,ProjectModelTest,ProjectPanelIsRevealOnlyTest,AiMenuTest`
+  pass; full Maven suite, pinned strict-site build, diff check and tracked-file leak sweep pass; public
+  guide and `[Unreleased]` updated. Pending independent Swing eyeball is logged in
+  [`unreviewed-changes.md`](../../handoff/unreviewed-changes.md).
+  - Independent review accepted the slice. Its one code follow-up is closed at `6243a89`: profile-name
+    validation now runs inside the same `finally`-guarded region as writes, and a regression test proves
+    the submitted `char[]` is wiped when a traversal-shaped name is refused.
+- [M19.12a] ☑ **Licence registration placement shipped at `db42919` (R6)** — `showFirstRunSettingsIfNeeded`
+  is a no-op for humans since M36 **D-S1** removed the first-run modal on owner report; the start page IS
+  the first run and already carries the MCP cards. A key card states the fact and names the remedy without
+  gating anything. **Re-adding a first-run modal would reverse D-S1.**
+- [M19.10] ☑ **Canonical skills accepted and the P3 correction is shipped** — authored in [`docs/skills/`](../../skills/README.md); four
+  written and verified discoverable by the shipped `SkillDiscovery`. Canonical `TODO(bundle)` markers
+  remain authoring inputs only; the generator grounds the selected copies and rejects any survivor.
+  - 2026-08-29 at `5c72e21`: `CanonicalSkillsTest` pins the four names, descriptions and minimum analyser version;
+    the Mongoose tier now follows the live registry → Chronicle capture → bundle-owned YAML export beat,
+    and the embedded tier's NOT-PUBLISHABLE gate is pinned. The canonical `TODO(bundle)` markers remain
+    intentionally because commands/paths are project-owned; M19.10 closes only when the playground
+    substitutes them and its generated-bundle checker proves none survive.
+  - At `5c72e21` the analyser preserves and shows only sanitised inert `skills.provenance`, while a project
+    `skills.source` is ignored with an explicit refusal and removed on save. Tests cover canonical,
+    local, mirror, none and credential-capable/malformed shapes; no runtime retrieval exists.
+  - Independent review accepted the grammar and real-server semantics. Its marker finding is closed at
+    `6243a89`: clean stop now has its own `TODO(bundle)`, so P3's no-marker check cannot pass without a
+    real project stop procedure. The generator must vendor `common + mongoose` from that revision (not
+    the earlier `5c72e21`) and emit `skills.provenance=canonical@6243a899774d591119559305a137ecf144819efd`.
+  - Playground P1 `3c0f926` vendors byte-identical copies from `6243a89`, substitutes the two applicable
+    skills and refuses surviving markers across generated files; the review at branch head `73565fc`
+    runs 22 focused tests and confirms the copies remain byte-identical. Omitting
+    `replay-a-run` is accepted because this bundle declares no replay entry point. The P1 single-model
+    finding was corrected at `8f20016`; the actual Download zip now proves the substituted files contain
+    no surviving marker and passes bundle-bench 49/49. P2 retrieval was accepted at `4eabc1c`.
+  - P3 then proved a valid-looking combined `open {project, log, graphml}` call ignores the log and graph:
+    a project switch is deliberately a session boundary. The canonical load-log skill is corrected at
+    `f5efe17` to check the active project, open a different project alone, then open log + GraphML in the
+    second call. The published index now names that source revision.
+  - Closed 2026-08-30: the playground re-vendored the public canonical root at full revision
+    `f5efe17e1b234bdb6c55cd8fada27d2bdc8d2bc8`; the delivered ZIP reports that provenance, both pointers
+    resolve to concrete marker-free skills, and the fresh analyser plus MCP bridge report the same value.
+- [M19.2] ☑ **`SettingsShare`: resolve relative roots against the import file's parent** — `preview`
+  gained a `baseDir` overload; import resolves bundle-relative source roots / Maven repos against the
+  settings file's directory (absolute & `~`-paths untouched; clipboard imports pass no baseDir). 2 tests.
+  Unblocks the tutorial's "zero manual setup" claim.
+- [M19.4] ☑ **Cross-links SHIPPED** _(2026-08-30, `2e02205`)_ — all three entry points route to the
+  tutorial, and the end-bridge closes it with "Do this on your own system →" linking producing-a-log
+  and the project guide. `mkdocs build --strict` green, so every link is checked. Original scope:
+  getting-started step 2, producing-a-log, landing "Get going"; **and the
+  tutorial's end-bridge**: a closing "Do this on your own system →" section linking producing-a-log
+  (+ the server link once M18 ships) — the demo must hand off to the user's real adoption, not stop at
+  the toy.
+- [M19.6] ☑ **The loop's conformance bench — §H's home** _(DONE 2026-08-25, merged to main)_ —
+  `tools/bench/loop-bench.py` plays the agent of dev-loop §C3 steps 3–7 (glob the registry → pick →
+  export log + GraphML → `open {log, graphml, provenance}` + `source_root` → assert from `context` /
+  `coverage` / `topology` that the loop closed), PASS/FAIL per step, non-zero exit on failure.
+  `mongoose-stub.py` plays a server reduced to the contract (UP-MNG-01 registry file, mode 600; the export
+  endpoints) from the in-tree demo set, so the bench runs today with no Mongoose — and pointed at a real
+  `~/.mongoose/servers/` it is the acceptance test for UP-MNG-01/02. Assumptions (auth header, files
+  listing shape) flagged in its README, not baked in.
+- [M19.7] ☑ **An agent-driven fresh start** _(DONE 2026-08-25, merged to main; review_feat_m35_project N2)_
+  — `analyser --rest` starts with the REST transport on (persisted, and stdout says so) and skips the
+  first-run modal that otherwise blocked an agent on a never-configured machine before the socket existed;
+  the MCP bridge's "not running" error names the command. Exercised by the bench's `--launch`, which
+  starts a fresh install in an isolated home.
+- [M19.8] ☑ **The bench is green in Linux CI at `92ad3ba`** — the analyser is Swing, so the new
+  job installs a display (`xvfb-run` on the Linux runner), packages the jar and runs the exact
+  `tools/bench/loop-bench.py --stub --launch` path. Local isolated run passes **23/23** on 2026-08-29;
+  GitHub run `33271896191` completed both `build` and `loop-bench` successfully, including the
+  registry/export/analyser/MCP step under xvfb.
+  - Independent review accepted the live run. Its CI hygiene note is folded into `6243a89`:
+    `actions/checkout` and `actions/setup-java` now use v5. GitHub run `33272924784` completed both jobs
+    successfully at `7384d0e`; the loop step passed under xvfb.
+  - A later metadata-only run (`33273004452`) caught a real startup race: the endpoint publisher
+    created the public file before writing JSON, and the bench could read it empty. Fixed at `297c4c1`
+    by private owner-only write + atomic replace; the bench also treats a malformed/stale file as not
+    ready instead of crashing. Full 1,109-test suite and packaged local loop pass 23/23; GitHub run
+    `33273629437` passed both the build and xvfb loop-bench jobs at `2e63b8c`.
+- [M19.9] ☑ **Headless launch-argument tests shipped at `92ad3ba`** — `Main` strips `--rest`, rejects an
+  unknown flag AFTER stripping, and lets a log path fall through. This was pure logic with three
+  behaviours and no unit test (rule 4); the loop bench covered it only where a jar, JVM and window
+  existed. From `review_feat_m19_bench.txt` F3.
+  - `Main.parseDesktopArgs` is pure and `MainLaunchArgsTest` pins strip/remember `--rest`, leave an
+    unknown flag for the existing loud rejection, preserve a log path, and accept a fresh empty launch.
+    Full Maven suite and the packaged 23/23 loop bench pass.
+- Open: O2 which example — **tiebreaker: prefer Spring-XML-defined** (design-IR edit variant in the
+  tutorial + the design→graph→record provenance chain; spec §Contract notes). _(O1: Maven project · O3: bundles generated at Download time, nothing to
+  regenerate · O4: committed as M19.2 — all resolved.)_
+
+## M18 and M41 — closed and withdrawn (archived 2026-08-30)
+
+_Settled decisions moved off the live tracker. Verbatim; the standing decisions they produced remain
+in the live tracker's Decisions section._
+
+## M41 · One-command install — ☒ **WITHDRAWN 2026-08-27** (owner: "we use jbang, it just works")
+_Spec'd the same day as a `jpackage`/Homebrew/`--print-mcp-config` milestone and withdrawn before it started. The
+premise was wrong: `jbang app install analyser@telaminai/fluxtionauditlog-analyser` IS the one-command install (JBang
+fetches a JDK itself), `~/.jbang/bin/analyser` is the stable launcher path the MCP recipe already uses, and `--rest`
+already turns the transport on without editing `config`. Native bundles would have added a Dock icon and a signing
+bill. Recorded under Decisions so it is not re-raised; reopen only when a user who cannot run JBang actually appears._
+
+## M18 · Mongoose server link — ☒ **CLOSED 2026-08-22 in favour of the agent-brokered dev loop**
+_Superseded by **[spec-agent-brokered-dev-loop.md](../spec-agent-brokered-dev-loop.md)** (ACCEPTED v2),
+assessed in [review_spec_agent_brokered_dev_loop.txt](../../handoff/completed/review_spec_agent_brokered_dev_loop.txt).
+The deciding argument is no longer between two specs: **M34.0 passed its gate and M34.1's ordering
+slice shipped**, so M18 as specced would contradict merged code — the analyser cannot be made
+engine-agnostic and taught one server's REST API in the same quarter._
+
+_**Closed as "not the analyser's questions"** (acceptance 5): **M18.1** link/status · **M18.3**
+audit level · **M18.3a** the missing `GET` companion · **M18.4** dev restart · **M18.4a** why
+`start`/`stop` are commented out · **M18.6** source+graphml over REST · **O3** admin auth. They move
+to a Mongoose-side MCP tool, in the repo whose release cadence owns them._
+
+- [M18.2] ⏸ **PARKED, not deleted** — log discovery (*point the analyser at your running system*).
+  **Revival trigger, stated so it is falsifiable:** revive as an onboarding affordance only if
+  evidence shows no-agent developers bouncing off the export step. Until then the agent exports and
+  calls `open {log}`, which shipped.
+- [M18.5] ☐ _(unchanged, still deferred)_ deploy-jar-and-restart; non-loopback/production posture.
+  Now the natural home of **D-B7's paid production MCP** — enforcement server-side, since a licence
+  check inside a source-available client is an `if` anyone can delete.
+- **O5 — RESOLVED 2026-08-22 and CLOSED** (spec §G). Under M18 the overlap with `svc-admin-web`'s
+  audit viewer was a positioning problem settled by assertion. Under the adopted design it is
+  structural: the server's viewer is the **live, in-situ, one-server** surface; the analyser is the
+  **deep** one, fed by exports and adapters across many logs and systems. They are not fed by the
+  same thing, so they do not compete.
+- **Before any cross-repo work starts:** the loop is a contract and gets a **conformance harness**
+  (spec §H) — a scripted end-to-end of steps 3–7, homed in the **M19 bench**, so a break fails in the
+  owning repo rather than in a user's session. The three-repo dependency is acceptable *because* of
+  this and not otherwise.

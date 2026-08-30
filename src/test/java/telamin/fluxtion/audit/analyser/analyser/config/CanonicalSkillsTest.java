@@ -211,25 +211,25 @@ class CanonicalSkillsTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void v2StaysDRAFTwhileItsSelectedSkillsCarryUnsubstitutedMarkers() throws Exception {
-        // review C1: moving replay out of common fixed one marker and my regenerate fix ADDED another, to
-        // the Spring skill. The bundle gate refuses a surviving TODO(bundle), and no generator consumes v2
-        // yet, so v2 cannot claim to be publishable. This test ties the claim to the fact: the day every
-        // selected skill is marker-free, or a consumer proves substitution, this fails and the status is
-        // revisited deliberately rather than drifting.
+    void aPUBLISHEDindexRecordsWHYItIsPublishable() throws Exception {
+        // My first version said v2 must stay DRAFT while any selected skill carries a TODO(bundle) marker.
+        // That rule was WRONG and contradicted this library's own README: a marker HERE is an instruction
+        // to whoever generates the bundle, and the gate refuses only a marker that SURVIVES into a
+        // generated bundle. Marker-freeness in the library was never the condition, and holding v2 draft
+        // on it would have blocked publication forever.
+        //
+        // The real condition is a fact about the world — a consumer proved it substitutes them — which no
+        // test here can observe. So what is enforced is that publishing carries its justification, rather
+        // than being promoted by someone quietly editing one field.
         Map<String, Object> v2 = v2Index();
-        List<String> withMarkers = new java.util.ArrayList<>();
-        for (String relative : v2Paths()) {
-            if (Files.readString(ROOT.resolve(relative)).contains("TODO(bundle)")) withMarkers.add(relative);
-        }
-        if (withMarkers.isEmpty()) {
-            assertNull(v2.get("status"), "no selected skill carries a marker any more — v2 may be publishable"
-                    + "; revisit the DRAFT status deliberately");
-        } else {
-            assertEquals("DRAFT — NOT PUBLISHED", v2.get("status"),
-                    "these selected skills still need a consumer to substitute their markers, so v2 must not"
-                            + " present itself as published: " + withMarkers);
-        }
+        if (String.valueOf(v2.get("status")).startsWith("DRAFT")) return;
+
+        String comment = String.join(" ", (List<String>) v2.get("$comment"));
+        assertTrue(comment.contains("PUBLISHED"), "a published index must say it is published, and when");
+        assertTrue(comment.contains("generator") || comment.contains("consumed"),
+                "and must name the evidence that lifted the draft — a consumer proving substitution end to "
+                        + "end is the only thing that can, and it is not observable from this repository");
+        assertNotNull(v2.get("revision"), "publishing binds the provenance guarantee");
     }
 
     @SuppressWarnings("unchecked")
