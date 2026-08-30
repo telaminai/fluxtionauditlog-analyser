@@ -36,6 +36,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   share export, action response, status message or console output.
 
 ### Changed
+- **The playground-to-analyser tutorial now describes the released bundle honestly.** It uses the real
+  catalogue entry and paths, opens project/GraphML/log as separate session-safe actions, distinguishes
+  the fixed Chronicle export from a followable file, and adds generated anonymous screenshots for
+  records, source navigation, graphing and AI-client setup. It also names the remaining starter gap:
+  the current audit records contain no numeric business value to graph.
 - **The canonical Mongoose skills now describe the real Chronicle export beat.** They discover the
   running server through its registry entry, run the generated project's own YAML export command, then
   open that concrete export with GraphML. They no longer imply that starting Mongoose directly writes

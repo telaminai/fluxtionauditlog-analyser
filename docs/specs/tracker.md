@@ -429,16 +429,17 @@ analyser (reverse funnel)._
   gained a `baseDir` overload; import resolves bundle-relative source roots / Maven repos against the
   settings file's directory (absolute & `~`-paths untouched; clipboard imports pass no baseDir). 2 tests.
   Unblocks the tutorial's "zero manual setup" claim.
-- [M19.3] ☑ **Tutorial page SHIPPED** _(2026-08-30, `e1630e3` + `9d322ed` + `fadfa5b`)_ —
-  `docs/site/tutorial-playground.md` is nav'd under Getting started, written against the **shipped**
-  bundle, with four generated figures. Deviations from the entry below, both deliberate: **four
-  screenshots, not eight** (the page has four moments worth a picture; padding to a quota would have
-  photographed steps that read better as text), and the "fix" wording stayed off the page as the
-  entry required. Screenshots are produced by `tools/capture-docs.py --tutorial` from a bundle staged
-  by `tools/stage-tutorial-bundle.sh` — never hand-taken, under an isolated `user.home`, from a
-  neutral path both scripts refuse to violate, and every image read before commit. Original scope:
-  four parts (run+import ·
-  analyse/tail · assistant · edit-with-your-IDE's-AI) + the 8-screenshot set (spec §Part 2, anonymised
+- [M19.3] ◧ **Tutorial page corrected against the shipped bundle; screenshot set in progress.**
+  `docs/site/tutorial-playground.md` now uses the real Audit analyser bundle name and concrete paths,
+  opens project/GraphML/log separately, distinguishes a fixed export from a followable log, teaches
+  Explain/copy-prompt/MCP, and refuses to promise a two-run diff that is not built. Four generated
+  screenshots now show the real bundle's project, log, PriceEvent cycle and source navigation; three
+  existing isolated-DEMO figures cover graphing, the AI menu and MCP setup. The remaining spec captures
+  are the live playground Download, terminal lifecycle, an actual Explain answer and IDE edit; no connected
+  browser was available in this session, so those were not fabricated. **One producer gap blocks the graph step:**
+  the released bundle logs `rootNode.receivedEvent` as a string but no numeric key, so the tutorial cannot
+  honestly graph `price` until the starter logs it separately. Original requirement: four parts + the
+  8-screenshot set (spec §Part 2, anonymised
   per policy), nav under Getting started. **Publish-gated on the bundle shipping** (write against the
   contract; publish only when Download delivers). **Two authoring notes:** (a) the pathway table names
   the Support leg "run, observe, diagnose *and fix*" — but "fix" is M12/M18; keep the page copy honest

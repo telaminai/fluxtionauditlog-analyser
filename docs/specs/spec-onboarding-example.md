@@ -176,6 +176,14 @@ Contract notes:
   **Publish gate:** the page is *written* against the bundle contract but **published only when the
   playground's Download actually ships the bundle** — a tutorial that promises a Download that isn't
   there is worse than no tutorial.
+
+  **Reality correction after the released bundle was exercised (2026-08-30).** The v3 bundle is already
+  a project profile, so the tutorial opens it with **File ▸ Open project…**; it does not import the same
+  profile through the older settings-summary route. Its Chronicle-to-YAML export is a fixed snapshot,
+  not a file the running server appends to, so **Follow** cannot demonstrate live streaming on this
+  bundle. The screenshot set uses project + explicit GraphML, records/filter, source navigation, graph,
+  Explain/copy-prompt and MCP setup; Follow remains documented for directly-growing YAML logs. This is
+  the consequence of the accepted export-beat contract, not a missing analyser feature.
 - **Cross-links**: getting-started Quick start step 2 ("No log yet?") gains the playground option next
   to the static sample; producing-a-log.md links it as "want a live producer to try?"; landing page
   "Get going" mentions it.

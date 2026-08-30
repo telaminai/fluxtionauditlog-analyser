@@ -55,7 +55,7 @@ PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor"
 # bundle, so a mocked-up screenshot would teach something that does not exist. The bundle must be
 # staged under a NEUTRAL path: its own paths are rendered in the title bar, the Project panel and the
 # status bar, and a scratch directory carrying an account name would put it in a PNG the sweep cannot
-# read. Stage it with tools/stage-tutorial-bundle.sh, which refuses a path containing a home directory.
+# read. Unzip the real bundle under the neutral path below, run it, export it and stop it before capture.
 TUTORIAL_PROJECT = pathlib.Path("/tmp/fluxtion-tutorial/audit-analyser-bundle")
 TUTORIAL_LOG = TUTORIAL_PROJECT / "logs" / "audit-audit-analyser-bundle.yaml"
 TUTORIAL_GRAPHML = TUTORIAL_PROJECT / "src/main/resources/com/example/myapp/generated/MarketProcessor.graphml"
@@ -459,8 +459,9 @@ def capture_tutorial():
     passed with it). Shooting it any other way would photograph a path the tutorial does not teach.
     """
     if not TUTORIAL_LOG.exists():
-        sys.exit(f"stage the bundle first: {TUTORIAL_LOG} is missing "
-                 f"(see tools/stage-tutorial-bundle.sh)")
+        sys.exit(f"stage the bundle first: {TUTORIAL_LOG} is missing. Unzip the real Audit analyser "
+                 f"bundle at {TUTORIAL_PROJECT}, then run ./run-server.sh, ./export-audit.sh and "
+                 f"./stop-server.sh there before retrying")
     home = str(pathlib.Path.home())
     if str(TUTORIAL_PROJECT).startswith(home):
         sys.exit(f"refusing: {TUTORIAL_PROJECT} is inside {home}, so its path would render an "

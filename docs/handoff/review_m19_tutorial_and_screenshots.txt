@@ -1,0 +1,81 @@
+M19.3 tutorial + screenshot review — 2026-08-30
+================================================
+
+Verdict: DOC CORRECTIONS APPLIED; ONE PRODUCER ACTION AND FOUR SPEC CAPTURES REMAIN.
+
+Reviewed
+--------
+
+  · analyser tutorial `e1630e3` plus cross-links `2e02205`;
+  · playground catalogue/template `b211874`;
+  · refreshed evidence branch `m19/p3-artifacts` @ `3380ffb`;
+  · the actual exported YAML, generated profile and bundle inventory;
+  · four real-bundle screenshots in `9d322ed`, produced by `tools/capture-docs.py --tutorial` under
+    an isolated home and a neutral `/tmp/fluxtion-tutorial` project path;
+  · existing screenshots produced by the same harness under its isolated DEMO home.
+
+Corrections made here
+---------------------
+
+  1. The generated processor source and GraphML are now listed at their distinct real paths.
+  2. The tutorial opens project, GraphML and log as separate actions. Opening an existing project
+     profile does not guess/open its GraphML, and a project switch is a session boundary.
+  3. The analyser now opens on the GraphML before the first run, so audit readiness has something to
+     say before a log exists (spec R5).
+  4. Follow is no longer promised for the bundle's fixed exported YAML. Follow watches a file another
+     process appends to; M19's accepted Chronicle export beat produces a snapshot.
+  5. "Open the new log next to the old one" is gone. The analyser has one active log; the proposed
+     cross-run diff is not implemented.
+  6. Explain/copy-prompt and the resolved MCP-client route are now taught explicitly.
+  7. Seven generated, visually inspected, isolated-home screenshots are embedded. Four show the real
+     bundle's project, paired log, PriceEvent cycle and source navigation. The numeric graph, AI menu
+     and MCP setup use the neutral DEMO fixture where the bundle cannot yet supply the state, and the
+     page says so rather than pretending otherwise.
+  8. The incoming capture harness referred to a nonexistent `tools/stage-tutorial-bundle.sh`; its
+     failure now gives the concrete neutral staging and run/export/stop procedure instead.
+
+Producer findings
+-----------------
+
+F1 — BLOCKS THE TUTORIAL'S GRAPH STEP. The refreshed real export contains five PriceEvent cycles and
+coverage 1.0, but RootNode writes only:
+
+    receivedEvent: PriceEvent{symbol=AAPL, price=195.3, volume=1200}
+
+That is one string. There is no numeric `rootNode.price` (or other numeric business key), so the
+analyser cannot graph the advertised value. Make the analyser-bundle node log at least `price` as a
+numeric field, pin the emitted line in the generator test, regenerate the exact catalogue bundle and
+prove the value appears as a numeric node-log key before restoring the tutorial's graph instruction.
+
+F2 — CLOSED BY THE DOWNLOAD-SEAM TEST AND REAL-TEMPLATE CAPTURE. The original evidence branch was not
+the exact new catalogue template: `b211874` adds
+`analyser-bundle.starter.json` with artifact `audit-analyser-bundle`, but `3380ffb` still carries
+`fluxtion-spring-mongoose-keyfree.zip`, registry/log names based on `fluxtion-spring-mongoose`, and the
+older template's project root. The subsequent web `BUNDLE_TEMPLATE` seam test and analyser `9d322ed`
+capture use `audit-analyser-bundle` itself, closing the identity gap for the shipped Download path.
+
+Screenshot status
+-----------------
+
+Seven safe analyser screenshots are now on the page. Against the spec's original eight states, four
+neutral captures still remain (the cycle and MCP figures are useful additions, not substitutes):
+
+  · the live playground template card + Download action;
+  · terminal run/export/stop with the declared log path;
+  · an actual Explain answer rendered back into the analyser;
+  · an IDE showing the bundle's CLAUDE.md beside a real node edit.
+
+The Browser integration returned no connected browser, so none was fabricated or captured by an
+unapproved browser workaround. Finish these through a neutral, reproducible capture harness and inspect
+every visible path/title before committing.
+
+Not checked
+-----------
+
+  · the deployed site's rendered layout (no connected browser);
+  · Windows lifecycle commands;
+  · independently repeating the web Download-seam test and real-template capture added by the other
+    session while this review was being written.
+
+The generated source screenshot visibly retains `@author Greg Higgins`. That is intentional public
+source attribution already present in the shipped generated file, not an account/path leak; it remains.
