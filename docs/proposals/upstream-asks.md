@@ -309,6 +309,10 @@ the advice below._
 
 ### The advice — four rules the loop paid for
 
+_The end-to-end method these asks serve — what belongs in a message versus a bootstrap doc, and how the
+doc set shrinks as each diagnostic lands — is [`spec-authoring-experience.md`](../specs/spec-authoring-experience.md)
+(D-AX1, D-AX3)._
+
 **1 · Documenting around a bad message is the wrong repair, and the loop measured why.** Round 02's most
 expensive finding (R2-A) was fixed here by adding three paragraphs to a bootstrap document. Round 03's
 agent **never opened that document** — it was measured, not assumed — and still reached a *more* accurate

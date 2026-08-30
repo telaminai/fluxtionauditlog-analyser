@@ -243,6 +243,18 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
+- [M19.14a] ☐ **The method for M19.14/.15, written up for review** _(owner-directed, 2026-08-30)_ —
+  [`spec-authoring-experience.md`](spec-authoring-experience.md). The end goal restated by the owner: the
+  product is the bundle's context assets (`CLAUDE.md`, `AGENTS.md`, the authoring loop, upstream asks), and
+  measurement is trajectory rather than pass/fail because the subject is probabilistic. Eight decisions:
+  where a fact belongs and why the discriminator is whether it fails **loudly** (D-AX1); the doc teaches the
+  compile→read-the-message→run→read-the-log **loop** rather than a list of rules (D-AX2); the doc set is a
+  **placeholder for missing diagnostics** and shrinks as §1c lands (D-AX3); the shipped **examples are
+  documentation** and currently demonstrate only the easy cases (D-AX4); six countable signals with
+  **WENT-OUTSIDE** primary, n≥3 in parallel, and one that should go **up** (D-AX5); a deterministic
+  **preflight** so probabilistic runs are not spent on script-findable defects (D-AX6); one variable per
+  round plus a control arm (D-AX7); generate `AGENTS.md` (D-AX8). Withdraws my "nobody reads `CLAUDE.md`"
+  conclusion — that measured the harness, not the product.
 - [M19.14] ☐ **Step 2 — rewrite the LLM context assets from a MEASURED run** _(owner, 2026-08-29)_. The
   owner's sequencing, and better than the advice it replaced: build the mechanism first, then have a
   context-free LLM develop and analyse a real project with it, and let the gaps it actually hits rewrite

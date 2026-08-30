@@ -78,9 +78,14 @@ compensates for them should be deleted from the doc set once the messages land.
 
 **The loop's own design defect, which explains the drift.** None of the three rounds had an **analyser
 reachable** — the agent used `grep` every time. A loop set up to measure the LLM/analyser experience never
-put the analyser in it, so it measured what was present: the bundle and the framework. A further round
-should wire the analyser over MCP and use a task that needs it, or the loop should stop and let §1c be
-its output.
+put the analyser in it, so it measured what was present: the bundle and the framework.
+
+**The loop is superseded as designed.** Its method, its metrics and the corrections to it are now
+[`spec-authoring-experience.md`](../specs/spec-authoring-experience.md) — including the withdrawal of round
+03's "the agent never opened `CLAUDE.md`" conclusion, which measured this harness rather than the product:
+in the real environment that file is auto-loaded and never needs opening. Run further rounds under that
+spec, not this README's rules: one variable per round, n≥3 in parallel, a preflight first, and the analyser
+present.
 
 ## What a reviewer should judge
 
