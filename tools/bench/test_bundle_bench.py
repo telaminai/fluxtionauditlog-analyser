@@ -120,8 +120,50 @@ The export is `logs/audit-demo-bundle.yaml`.
 
         failed = {check.name for check in self.checks() if not check.ok}
 
-        self.assertIn("agent guide declares exactly the supported contract", failed)
+        self.assertIn("agent guide declares exactly one supported contract", failed)
         self.assertIn("no generated file contains a bundle placeholder", failed)
+
+    def test_v4_scans_local_guidance_not_the_rendered_reference_block(self):
+        reference_block = """## Read these first
+
+- <https://fluxtion-playground.dev/build-with-ai> — The authoring loop.
+- <https://fluxtion-playground.dev/CLAUDE.md> — The source-gen triage table.
+- <https://fluxtion-playground.dev/fluxtion-golden-path.md> — The golden path.
+
+Everything below is only what those do **not** cover: this project's own paths, commands and graph.
+"""
+        guide = (self.root / "CLAUDE.md").read_text().replace(
+            "Bundle contract: **m19-bundle/3** · skills: `canonical@rev-42`",
+            reference_block + "\nBundle contract: **m19-bundle/4** · skills: `canonical@rev-42`"
+        )
+        self.write("CLAUDE.md", guide)
+        self.write("AGENTS.md", guide)
+
+        checks = self.checks()
+        self.assert_passes(checks)
+        identity = next(check for check in checks
+                        if check.name == "AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)")
+        self.assertEqual("", identity.detail)
+
+        for token in ("@FluxtionIgnore", "declare transient", "source-gen triage"):
+            with self.subTest(token=token):
+                local_restatement = guide + f"\nDo not forget {token}.\n"
+                self.write("CLAUDE.md", local_restatement)
+                self.write("AGENTS.md", local_restatement)
+                failed = {check.name for check in self.checks() if not check.ok}
+                self.assertIn("CLAUDE.md restates no rule the agreed set already carries", failed)
+
+        missing_boundary = guide.replace(bundle_bench.REFERENCE_BLOCK_BOUNDARY, "Local guidance starts here:")
+        self.write("CLAUDE.md", missing_boundary)
+        self.write("AGENTS.md", missing_boundary)
+        failed = {check.name for check in self.checks() if not check.ok}
+        self.assertIn("CLAUDE.md separates its reference block from local project guidance", failed)
+
+        self.write("AGENTS.md", guide + "\nNot an identical mirror.\n")
+        identity = next(check for check in self.checks()
+                        if check.name == "AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)")
+        self.assertFalse(identity.ok)
+        self.assertEqual("differs", identity.detail)
 
     def test_zip_preserves_the_same_contract_and_executable_checks(self):
         archive = pathlib.Path(self.temp.name) / "bundle.zip"

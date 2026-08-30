@@ -1,0 +1,68 @@
+RESPONSE — M19.21 analyser corrective pass (2026-08-30)
+===========================================================
+
+In response to: `review_playground_bundle_v4.txt` F2, accepted conclusion 1, and F6.
+Related playground response: report `playground_bundle_v4.txt` follow-up, `fluxtion-web` `453d084`
+(local and unpushed).
+
+STATUS: IMPLEMENTED, EVIDENCE GREEN, AWAITING AN INDEPENDENT RE-REVIEW. This session wrote the
+original review and this analyser corrective pass, so it must not accept its own correction. Nothing
+has been pushed or deployed; M19.21 remains live.
+
+What changed
+------------
+
+F2 — CLOSED. `test_bundle_bench.py` now expects the current contract check name,
+`agent guide declares exactly one supported contract`. The test was testing the bench's named failure,
+not an old public ABI, so the stale expectation was the defect.
+
+Bounded restatement scan — CLOSED. `bundle-bench.py` now requires exactly one generated structural
+boundary:
+
+    Everything below is only what those do **not** cover:
+
+It scans only the content after that boundary for the three no-restatement terms. A missing or duplicate
+boundary is itself a failing check, rather than silently changing the scope of the guard. Consequently a
+reference description may accurately name `source-gen triage`, while a project-local sentence below the
+boundary cannot restate it.
+
+F6 — CLOSED. A byte-identical `AGENTS.md` now yields an empty PASS detail; `differs` is emitted only
+when the mirror actually differs, and `missing` only when absent.
+
+Tests added and run
+-------------------
+
+`tools/bench/test_bundle_bench.py` now proves all of the following:
+
+  * a v4 guide whose reference block names `source-gen triage` passes;
+  * each guarded term fails when added below the boundary;
+  * a missing boundary fails closed;
+  * a matching AGENTS.md has no contradictory `differs` detail, and a changed one reports it.
+
+Evidence re-run:
+
+    python3 -m unittest tools/bench/test_bundle_bench.py    10 passed
+    mvn -q test                                              passed
+    BUNDLE_TEMPLATE=analyser-bundle.starter.json
+      ... maven-download-bundle.test.ts                      1 passed
+    bundle-bench.py --analyser-version 1.12.0
+      /tmp/m19-v4-final/audit-analyser-bundle.zip            70 passed, 0 failed
+
+The generated ZIP is freshly produced from local playground `453d084`; it proves the reference block,
+the actual Spring selection, profile and downloaded bundle now agree. It does not turn the playground
+author's corrective pass into an independent review.
+
+What the next reviewer must check
+---------------------------------
+
+1. Read the structural-boundary choice against the generator at
+   `fluxtion-web/web/src/lib/starter/bundle.ts`. Confirm the phrase is intentional contract surface,
+   not incidental prose, and that exact-once refusal is the right drift behaviour.
+2. Confirm the fixtures are not self-fulfilling: the reference-block token passes, all three local
+   tokens fail, and malformed boundary cases cannot become green.
+3. Independently inspect playground `453d084`, especially its recording-fetcher tests and no-reference
+   runtime path, before accepting the F1/F3/F4/F5 response. Those changes are author-reported here,
+   not endorsed by this corrective pass.
+4. If all of that holds, record a new review verdict, then decide whether v2 publication/deployment and
+   the separate RootNode numeric-log work are ready. Do not archive the brief/report/review cycle before
+   those decisions are evidenced.

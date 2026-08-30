@@ -39,6 +39,10 @@ REFERENCE_EXCLUDED = (
     # excluded upstream and must never be shipped: it tells authors no instrumentation is needed
     "https://fluxtion-playground.dev/audit-replay",
 )
+# The generated guide's explicit hand-off from analyser-owned references to project-owned guidance.
+# Its exact-once presence makes the restatement scan below auditable: link descriptions above it may
+# name an upstream rule; only the local guidance below can duplicate that rule.
+REFERENCE_BLOCK_BOUNDARY = "Everything below is only what those do **not** cover:"
 REPLAY_SKILL = "replay-a-run"
 PROFILE = ".analyser/project.fluxtion-settings"
 GUIDES = ("CLAUDE.md", "AGENTS.md")
@@ -207,15 +211,21 @@ def check_v4(bundle, contract):
     shipped_excluded = [u for u in REFERENCE_EXCLUDED if u in guide]
     add("CLAUDE.md ships no EXCLUDED resource", not shipped_excluded, ", ".join(shipped_excluded))
 
-    # D-AX1b: pointing is the point. Restating a rule the agreed set carries is the duplication that
-    # produced four wrong versions of the audit contract, and it is why an upstream edit stops helping.
-    restated = [t for t in ("@FluxtionIgnore", "declare transient", "source-gen triage") if t in guide]
+    # D-AX1b: pointing is the point. A resource's own description above the boundary may name the
+    # rule it carries (for example "source-gen triage"); only local guidance below may restate it.
+    # Refuse a guide that does not retain exactly one structural boundary rather than silently scanning
+    # an arbitrary region after a generator wording change.
+    boundary_count = guide.count(REFERENCE_BLOCK_BOUNDARY)
+    add("CLAUDE.md separates its reference block from local project guidance", boundary_count == 1,
+        f"expected one reference boundary, found {boundary_count}")
+    local_guidance = guide.split(REFERENCE_BLOCK_BOUNDARY, 1)[1] if boundary_count == 1 else guide
+    restated = [t for t in ("@FluxtionIgnore", "declare transient", "source-gen triage") if t in local_guidance]
     add("CLAUDE.md restates no rule the agreed set already carries", not restated, ", ".join(restated))
 
     agents = bundle.read("AGENTS.md").decode("utf-8", errors="ignore") if bundle.exists("AGENTS.md") else None
     add("AGENTS.md is byte-identical to CLAUDE.md (generated, not hand-written)",
         agents is not None and agents == guide,
-        "missing" if agents is None else "differs")
+        "missing" if agents is None else ("" if agents == guide else "differs"))
 
     # D-B1: replay carries a marker only a real replay entry point can substitute
     replay = [p for p in bundle.paths if REPLAY_SKILL in p and p.endswith("SKILL.md")]
