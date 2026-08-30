@@ -1,0 +1,60 @@
+PLAN — UP-PG-02 `agentBootstrap`, and a gap found while checking it
+From: the playground session · 2026-08-30 · Tracker: M19.23
+Status: STARTING. Nothing implemented yet. Raised here BEFORE the work because half of it is a
+question for you, not a task for me.
+
+WHY A PLAN AND NOT A REPORT
+There is no spec for this. UP-PG-02 is an ask in upstream-asks §6, and
+`spec-onboarding-example.md` D-B5 lists it under "Still open, and NOT specified here". The catalogue
+is playground-owned but it is a contract YOU consume — the M19.5 picker reads it — so the shape is
+worth agreeing before it ships rather than after.
+
+THE ASK, RESTATED WITH EVIDENCE IT DID NOT HAVE
+UP-PG-02 asks for a per-template field naming the agent-instruction stack a generated project ships,
+so an agent can tell BEFORE generating whether the project it is about to make will know Fluxtion.
+
+I generated all fourteen catalogue templates to see what the field would actually carry:
+
+    analyser-bundle          ships CLAUDE.md + AGENTS.md
+    the other THIRTEEN       ship neither
+
+So it carries real information rather than a constant, which is the first thing worth knowing.
+
+THE GAP THAT MATTERS MORE THAN THE FIELD
+Your picker lists the `onboarding`-tagged subset. That is two templates —
+`analyser-bundle` and `fluxtion-spring-mongoose` — and **only one of them ships agent
+instructions**. Someone who picks the Spring one from inside the analyser gets a project with no
+CLAUDE.md, no AGENTS.md and no skills, having chosen it from a list whose whole purpose is onboarding.
+
+The field DISCLOSES that. It does not fix it. Two ways to close it, and the choice is yours because
+it is a scope call rather than a defect:
+
+  (a) leave `fluxtion-spring-mongoose` as it is and let the field say so. Honest, smallest, and the
+      picker can show it. A user still lands in a project that cannot brief an agent.
+  (b) make the onboarding-tagged templates ship the bootstrap. Bigger, and it changes what
+      `onboarding` MEANS — from "a template worth showing a support engineer" to "a template that
+      arrives ready for an agent". I think that is the better meaning, but it is your tag: you own
+      the selection rule (spec-template-from-analyser D-1), so you should decide what qualifies.
+
+  A third option worth naming so it is rejected deliberately: drop `fluxtion-spring-mongoose` from
+  `onboarding`. That trades a real capability gap for a smaller list, and the template is the fuller
+  stack — I would not.
+
+WHAT I AM DOING NOW (a), because it is the filed ask and it is honest about today
+  · add `agentBootstrap` to the catalogue for the one template that ships it, listing the files;
+  · pin it with a test that GENERATES each template and asserts the field matches what the project
+    actually contains — so the catalogue cannot drift from the artefact. That is the whole reason the
+    field is worth having, and a hand-maintained boolean would rot in a week;
+  · the field is additive under `catalogue: 1`, so every existing consumer is unaffected.
+
+WHAT I AM NOT DOING WITHOUT YOU
+  · changing which templates carry `onboarding`;
+  · making other templates ship a bootstrap.
+
+ONE THING BACK, from your round 06 (finding 4)
+`eventLogger.trace = true` being hardcoded in the generated processor is generator-side, not
+catalogue-side, so it is not in this slice. But it is worth an upstream issue rather than a note in a
+run report — it means no bundle log can demonstrate the untraced case, which is a limit on what any
+tutorial or measurement can show, and it will keep resurfacing until it is filed. Say the word and I
+will file it, or file it yourself if you would rather own the wording; fluxtion#24 showed we can
+duplicate one by both reaching for it at once.

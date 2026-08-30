@@ -151,6 +151,20 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
+- [M19.23] ◐ **UP-PG-02 `agentBootstrap` — IN PROGRESS, playground session** _(2026-08-30)_ —
+  plan: [`plan_playground_agent_bootstrap.txt`](../handoff/plan_playground_agent_bootstrap.txt). No spec
+  exists (D-B5 lists it as "still open, and NOT specified here"), and the catalogue is a contract the
+  M19.5 picker consumes, so the shape is being agreed before it ships rather than after.
+  **Evidence the ask did not have:** all fourteen templates were generated — `analyser-bundle` ships
+  `CLAUDE.md` + `AGENTS.md`, the other **thirteen ship neither**. So the field carries real information.
+  **The gap that matters more than the field:** the `onboarding` subset the picker lists is TWO
+  templates and only ONE ships agent instructions, so a user choosing `fluxtion-spring-mongoose` from
+  inside the analyser gets a project with no CLAUDE.md, no AGENTS.md and no skills — chosen from a list
+  whose purpose is onboarding. The field DISCLOSES that; it does not fix it. **Whether `onboarding`
+  should MEAN "arrives ready for an agent" is an analyser decision** (it owns the selection rule,
+  spec-template-from-analyser D-1) and is explicitly not being taken unilaterally. Shipping now: the
+  field, plus a test that generates each template and asserts the field matches what the project
+  actually contains, because a hand-maintained boolean rots in a week.
 - [M19.22] ◐ **The generated processor's header claims CONFIDENTIALITY — filed as
   [fluxtion#24](https://github.com/telaminai/fluxtion/issues/24)** _(found 2026-08-30 against the live
   bundle)_ — [`spec-onboarding-example.md` ▸ D-B6](spec-onboarding-example.md). Every generated processor
