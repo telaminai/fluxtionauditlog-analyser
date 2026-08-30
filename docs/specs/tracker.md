@@ -266,9 +266,12 @@ analyser (reverse funnel)._
   inst2Name))`: dependency order first, then **name order** among nodes at equal depth. Found by an agent
   that placed a node later in the XML, observed it dispatched earlier, ruled out declaration order and
   decompiled `fluxtion-builder` 1.0.64. Published in none of the five authoring resources. Two consequences
-  to work: it belongs in the upstream audit/authoring content (UP-FLX-35), and the analyser recomputes
-  layers rather than reading a declared order — worth checking whether its topology layout agrees with this
-  rule (see the dispatch-order-index note in `upstream-asks.md` §2c).
+  to work: it belongs in the upstream audit/authoring content (UP-FLX-35). **The analyser-side worry is
+  CHECKED and closed (2026-08-30):** `StepCursor` walks `record.nodeLogs()` in the log's own order, so
+  step-through READS dispatch order rather than reconstructing it, and cannot disagree with the compiler.
+  Layout layering is a visual arrangement and makes no ordering claim. So this is an upstream
+  documentation ask only — the declared dispatch-order index in §2c would still be an improvement, but
+  nothing here is wrong today.
 - [M19.19] ☐ **Guided start — an install prompt, and an LLM tutor that drives the UI** _(owner idea,
   2026-08-30; **and the experiment's baseline**, D-G8)_ — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
   capabilities, driven by a prompt an LLM executes. **Verified: the tutor needs NO new verbs** — `open`,
