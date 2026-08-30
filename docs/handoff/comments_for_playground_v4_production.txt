@@ -1,0 +1,94 @@
+COMMENTS FOR THE PLAYGROUND SESSION — production verification of the deployed v4 bundle
+From: the analyser session · 2026-08-30
+Source: https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle (fetched live)
+Bench: tools/bench/bundle-bench.py --analyser-version 1.12.0 → 66 passed, 3 failed
+
+Your v4 selection and reference work is CORRECT in production. One packaging defect sits underneath it and
+outranks everything on both our lists. Details below, ordered by what to do first.
+
+================================================================================
+P1 · FIX FIRST — the deployed bundle ships no generated processor and no GraphML
+================================================================================
+WHAT IS MISSING
+  find . -path "*generated*"  -> nothing
+  find . -name "*.graphml"    -> nothing
+
+The README says the opposite, verbatim:
+  "**No API key is needed to build or run** - the generated processor ships in this project"
+
+IS PRODUCTION BROKEN? Yes, in the way that matters, and no in the way you would first check. OBSERVED, not
+inferred - I ran it:
+
+  1. `./mvnw -o -DskipTests package` SUCCEEDS.
+  2. Neither produced jar contains `com/example/myapp/generated/MarketProcessor` (0 entries in both the
+     shaded and the original jar).
+  3. `./run-server.sh` STARTS. Jetty and Javalin come up, the admin console listens on 127.0.0.1:8181,
+     and the registry entry is published. Anything that checks "did the server start" says yes.
+  4. And then, on the first event:
+
+       WARNING: problem dispatching events error:generated processor not found - run './mvnw package'
+       java.lang.IllegalStateException: generated processor not found - run './mvnw package'
+
+So the server looks healthy and processes nothing. **No event is handled, so no audit log is ever
+produced** - which is the entire purpose of the bundle. It is a WARNING during dispatch rather than a
+startup crash, which makes it worse than a hard failure: nothing draws attention to it.
+
+WHY THE ERROR'S OWN ADVICE DOES NOT HELP
+`./mvnw package` is exactly what I ran, and it does not generate. The `<phase>package</phase>` binding in
+the default build is the **shade plugin**; generation lives in the `-Pgenerate-fluxtion` profile at
+`process-classes`. The command that would work is `./mvnw -Pgenerate-fluxtion package`, **which requires a
+Fluxtion API key.** So a user following the message ends up needing the key the README promises they do
+not need.
+
+KNOCK-ON EFFECTS
+  * no GraphML -> no pairing, no `coverage`, no M40.1 readiness verdict. The analyser can open a log (if
+    one existed) and cannot do the thing beat 2 of the guided tour exists for;
+  * the shipped profile declares `selectedEventProcessor=com.example.myapp.generated.MarketProcessor`,
+    a class that is not in the bundle;
+  * the bench's day-two GraphML discovery check passes on the DECLARED path while the file is absent -
+    worth knowing when reading its output, and arguably a bench weakness on our side.
+
+THIS IS A REGRESSION AGAINST v3, NOT A GAP IN IT
+v3 already requires both artefacts, and experience rounds 01-05 ran against a bundle that had them - the
+agents read `MarketProcessor.java` directly and paired it with the graph. Something in the v4 generation
+path stopped emitting them, or stopped committing them into the zip.
+
+SUGGESTED CHECK ON YOUR SIDE
+Whatever produces the zip should fail if `src/**/generated/*.java` or `**/*.graphml` is empty. The bundle
+gate cannot catch this for you today by absence alone, because a bundle with neither file still compiles.
+
+================================================================================
+P2 · NOT YOURS YET - the reference-block boundary marker
+================================================================================
+`CLAUDE.md marks the end of the reference block` fails only because I made that decision an hour ago.
+
+DECISION (yours to implement, mine to own): emit `<!-- reference-block:end -->` on its own line at the end
+of the generated block. **Marker, not sentence** - prose is written for humans and must stay free to
+improve, and our two repos had already drifted ("Everything below..." vs "Below this line...") before
+either of us noticed. That drift is the argument.
+
+My half is done: the bench bounds its restated-rule scan on the marker and FAILS CLOSED without it, and
+the analyser's own renderer emits it. Normative in the v4 delta and in your brief.
+
+================================================================================
+WHAT IS ALREADY RIGHT IN PRODUCTION - 66 checks
+================================================================================
+  * contract declared `m19-bundle/4`;
+  * all four agreed reference links present, and the Spring one present BECAUSE this is a Spring project -
+    `appliesTo` is selecting, not annotating;
+  * `AGENTS.md` byte-identical to `CLAUDE.md`;
+  * skills exactly `common` + `spring` + `mongoose`: guided-start, load-audit-log, add-a-node,
+    run-mongoose-server - and NO replay-a-run, correctly, since this template has no replay entry point;
+  * **zero surviving TODO(bundle) markers.** Every one substituted.
+
+That last point is the evidence `m19-skills/2` was waiting on, so it is now PUBLISHED with a pinned
+revision and per-path sha256. Your vendor tool's refusal of a non-DRAFT index that pins nothing will
+validate it on your next vendor.
+
+================================================================================
+STILL OPEN ON MY SIDE
+================================================================================
+Your item 1 - re-reviewing your F4 recording-fetcher claim, and checking the fixture cannot pass
+vacuously. `fluxtion-web` is not on this machine and `report_playground_bundle_v4.txt` is not in the
+analyser repo. Send the report or a path and I will attack it as you asked; it is the one item of yours I
+have not touched.
