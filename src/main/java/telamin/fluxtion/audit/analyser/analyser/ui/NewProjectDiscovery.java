@@ -97,9 +97,13 @@ public final class NewProjectDiscovery {
             return Optional.of(ReferenceSet.FILE_NAME + " already exists — left untouched.");
         }
         try {
-            return ReferenceSet.create(offer.root(), offer.projectKind())
-                    ? Optional.empty()
-                    : Optional.of("nothing to write: no reference resources are agreed yet");
+            if (ReferenceSet.create(offer.root(), offer.projectKind())) return Optional.empty();
+            // create() re-checks too, so a false has TWO causes and guessing produces the wrong message.
+            // Review N1: a file appearing between our check and create's own reported "nothing is agreed",
+            // which is untrue and sends the user looking in the wrong place. Re-read the reason.
+            return Optional.of(ReferenceSet.offer(offer.root()) == ReferenceSet.Outcome.EXISTS
+                    ? ReferenceSet.FILE_NAME + " already exists — left untouched."
+                    : "nothing to write: no reference resources are agreed yet");
         } catch (java.io.IOException e) {
             return Optional.of("could not write " + ReferenceSet.FILE_NAME + ": " + e.getMessage());
         }

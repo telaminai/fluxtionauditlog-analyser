@@ -9,9 +9,15 @@ Legend for each item: **[id] status — title** · _acceptance_.
 ## Shipped — archived
 
 **Tidied 2026-08-30 (rule 7).** Fourteen shipped M19 slices, plus the closed M18 and withdrawn M41, moved
-to [`completed/tracker.md`](completed/tracker.md) verbatim. This file went 949 → ~720 lines and now holds
-in-progress and future work only. Relative links in the moved blocks were rewritten for their new depth —
-`SpecLinksResolveTest` caught four that a move silently breaks, which is what it is for.
+to [`completed/tracker.md`](completed/tracker.md) verbatim. This file went 949 → ~720 lines. Relative links
+in the moved blocks were rewritten for their new depth — `SpecLinksResolveTest` caught four that a move
+silently breaks, which is what it is for.
+
+**The rule, stated once so two claims cannot both be made** (review F3): rule 7 says a finished item is
+ticked **☑ here**, and only a fully-shipped milestone or round MOVES. So this file legitimately holds ☑
+items — they are work completed since the last tidy, and they leave at the next one. It is **not** true
+that this file contains open work only, and an earlier version of this note said so while ticking two
+items in the same commit.
 
 Fully-delivered milestones and refinement rounds live in **[completed/tracker.md](completed/tracker.md)**:
 M0 setup · M1 parser & index · M2 table + detail · M3 filters & summary · M4 source · M5 LLM ·
@@ -113,8 +119,9 @@ project auto-loads (M20; **File ▸ Import** until it lands) → Follow a live l
 Target: under 10 minutes on a fresh machine with only a JDK. The bundle's README links back to the
 analyser (reverse funnel)._
 - [M19] ➜ **SHIPPED SLICES ARCHIVED 2026-08-30** — fourteen completed slices moved to
-  [`completed/tracker.md`](completed/tracker.md) per rule 7, so this section holds only work that is
-  still open. Archived: **M19.2** (SettingsShare relative roots), **M19.4** (cross-links), **M19.6–.9**
+  [`completed/tracker.md`](completed/tracker.md) per rule 7. What remains here is open work **plus any
+  slice finished since that tidy** (☑, awaiting the next one) — see the note at the top of this file.
+  Archived: **M19.2** (SettingsShare relative roots), **M19.4** (cross-links), **M19.6–.9**
   (the loop bench, agent-driven fresh start, bench green in CI, headless launch args), **M19.10**
   (canonical skills), **M19.11** (onboarding bench), **M19.12/.12a** (key management and licence
   placement), **M19.13** (day two), **M19.16–.18** (review amendments, bundle contract v2 then v3).

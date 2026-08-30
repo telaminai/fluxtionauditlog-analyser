@@ -16,6 +16,22 @@ still check**.
 
 ---
 
+## ☑ reviewed 2026-08-30 (the analyser reviewer) · `ff85343^..edcd3f7` (4 commits) · tracker archive and ReferenceSet New-project wiring
+
+**Review:** [`review_tracker_archive_and_reference_set_wiring.txt`](review_tracker_archive_and_reference_set_wiring.txt).
+
+**Verdict: CHANGES REQUIRED; ReferenceSet implementation accepted.** The unchecked Swing offer, separate
+filesystem write, never-overwrite path, conservative Spring selection and archive preservation all pass.
+Four corrections remain: document the repository-writing checkbox in the public Projects journey; replace
+this ledger's now-stale “ReferenceSet is unwired” residual; reconcile the live tracker's “open only” claim
+with its two newly-done M19 entries; and remove the completed tracker's blank EOF line so the historical
+range passes `git diff --check`. One non-blocking diagnostic race is recorded in the review.
+
+**Verified.** Full Maven suite, focused ReferenceSet/link tests, package, strict MkDocs, privacy sweep,
+archive parity and the built Swing dialog. The range whitespace check fails only as recorded in F4.
+
+---
+
 ## ☑ reviewed 2026-08-30 (the analyser reviewer) · `7b2e854^..7a1811f` (15 commits) · the authoring-experience block — measurement, diagnostics, reference set, guided start
 
 **Full report:** [`handoff_30_aug_2026_2_report.txt`](handoff_30_aug_2026_2_report.txt). Read that rather
@@ -53,7 +69,9 @@ bench, diff/sweep, the three jar-level claims, and the Swing origin banner in a 
 **Residuals for a next reviewer** (from the response, not re-listing what was closed):
 - the guided-start prompt run end to end by a fresh external client — the held-out evidence D-G5 asks for;
 - `AGENTS.md` auto-loading under Codex;
-- the human confirmation flow for `ReferenceSet`, still deliberately unwired;
+- ~~the human confirmation flow for `ReferenceSet`~~ — **WIRED at `1e370a4` and reviewed**: it is one
+  unchecked offer in *New project…*, and the reviewer confirmed the real Swing dialog shows it visible,
+  unclipped and unchecked by default;
 - **real playground consumption of `m19-skills/2`** — F3 is only partly closed (C1) and v2 is marked DRAFT
   until a generator selects, substitutes and passes the fail-on-`TODO` gate.
 

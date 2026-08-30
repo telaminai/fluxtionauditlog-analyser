@@ -2146,4 +2146,3 @@ to a Mongoose-side MCP tool, in the repo whose release cadence owns them._
   (spec §H) — a scripted end-to-end of steps 3–7, homed in the **M19 bench**, so a break fails in the
   owning repo rather than in a user's session. The three-repo dependency is acceptable *because* of
   this and not otherwise.
-

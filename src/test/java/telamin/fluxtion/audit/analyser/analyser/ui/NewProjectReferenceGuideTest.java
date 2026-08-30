@@ -67,6 +67,24 @@ class NewProjectReferenceGuideTest {
     }
 
     @Test
+    void theSECONDraceWindowStillReportsTheRIGHTreason(@TempDir Path root) throws Exception {
+        // review N1: writeReferenceGuide re-checks, then create() re-checks again. A file appearing in
+        // THAT window made create() return false, and the UI blamed "nothing is agreed" — untrue, and it
+        // sends the user looking in the wrong place. The existing race test covers the first window only.
+        if (ReferenceSet.agreed().isEmpty()) return;
+        NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);   // CAN_CREATE
+
+        String theirs = "# appeared in the second window\n";
+        Files.writeString(root.resolve(ReferenceSet.FILE_NAME), theirs);
+
+        Optional<String> problem = NewProjectDiscovery.writeReferenceGuide(offer, withGuide(true));
+        assertTrue(problem.isPresent());
+        assertTrue(problem.get().contains("already exists"),
+                "the reason must be the real one, not a guess: " + problem.get());
+        assertEquals(theirs, Files.readString(root.resolve(ReferenceSet.FILE_NAME)));
+    }
+
+    @Test
     void springIsDETECTEDsoTheSpringLinkIsSelected(@TempDir Path root) throws Exception {
         Path xml = root.resolve("src/main/fluxtion/designer/application-context.xml");
         Files.createDirectories(xml.getParent());

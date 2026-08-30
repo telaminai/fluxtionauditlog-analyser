@@ -1,0 +1,89 @@
+REVIEW — tracker archive and ReferenceSet New-project wiring
+Reviewed: ff85343^..edcd3f7 (four commits)
+Date: 2026-08-30
+
+VERDICT: CHANGES REQUIRED — THE REFERENCESET IMPLEMENTATION IS ACCEPTED; FOUR NARROW
+DOCUMENTATION / TRACKER CORRECTIONS REMAIN
+
+The filesystem-changing part is deliberately small and safe. The checkbox is visibly unchecked in the
+real Swing dialog, cancellation writes nothing, the write is separate from configuration adoption,
+ReferenceSet re-checks after the dialog, and CREATE_NEW preserves an author's file if a race is lost.
+Spring-only references are selected conservatively. The archive move also preserves the moved text
+exactly apart from the relative-link depth changes that the link test requires.
+
+The block is not ready to close because its live tracker and review surfaces now contradict the state it
+just created, and one repository gate is red.
+
+================================================================================
+FINDINGS — ordered by user/process impact
+================================================================================
+
+F1 · REQUIRED — the public Projects journey does not disclose the new repository write.
+
+docs/site/user-guide/projects.md still says File ▸ New project offers only Java roots, SKILL.md pointers
+and GraphML (lines 71–75), and its day-two steps list the same three choices (lines 86–92). The tutorial's
+handoff repeats that list (docs/site/tutorial-playground.md lines 163–165). The new checkbox is different
+from those facts: it creates CLAUDE.md in the selected repository and does not enter the profile.
+
+Document the fourth, unchecked choice; state that it writes canonical links only, never overwrites an
+existing CLAUDE.md, and is separate from profile adoption. Preserve the existing “only checked facts
+enter the profile” statement, but do not let it imply the dialog has no other effect.
+
+F2 · REQUIRED — the reviewed tree's live ledger misses this code change and says it is still unwired.
+
+docs/handoff/unreviewed-changes.md lines 53–58 carries “the human confirmation flow for ReferenceSet,
+still deliberately unwired” as a live residual. Commit 1e370a4 is exactly that wiring. The commit is also
+absent as its own ledger entry even though the file says every direct-main change must record its SHA,
+files, verification and remaining review work. This review adds the missing range entry; the stale
+residual remains for the author to correct.
+
+Replace the stale residual with the result of this review. Historical reports may continue to say it was
+unwired at handoff time; the live residual may not.
+
+F3 · REQUIRED — the archive's “open work only” claim is false at the same commit that makes it.
+
+docs/specs/tracker.md lines 11–14 says the live file now holds in-progress and future work only, and the
+M19 pointer at lines 115–121 says that section holds only open work. Yet M19.20 and M19.14a remain there
+marked done; both were closed by this reviewed four-commit block. The move itself is sound, but the
+resulting index describes a state that does not exist.
+
+Either move those two completed slices now, or qualify the pointer/header to say that newly completed
+items remain live until the next reviewed tidy. Keep one rule; do not claim both “finished items stay
+checked in the live tracker” and “the live tracker contains only open work” without naming the transition.
+
+F4 · REQUIRED — the archive commit fails the repository's whitespace gate.
+
+  git diff --check ff85343^..edcd3f7
+  docs/specs/completed/tracker.md:2149: new blank line at EOF.
+
+Remove the added blank line and rerun the exact range check. The working tree itself is clean, which is
+why a plain git diff --check at HEAD does not expose this committed defect.
+
+================================================================================
+NON-BLOCKING NOTE
+================================================================================
+
+N1 · There is one narrower diagnostic race after the tested dialog race. writeReferenceGuide first
+re-checks ReferenceSet.offer(), then ReferenceSet.create() checks it again. If CLAUDE.md appears between
+those two checks, create returns false and the UI reports “no reference resources are agreed yet” rather
+than “already exists — left untouched”. The safety property still holds. If this path is revised, return a
+richer create result or re-read the outcome before choosing the message; the existing test covers a file
+appearing while the dialog is open, not this second window.
+
+================================================================================
+WHAT PASSED / WHAT I VERIFIED
+================================================================================
+
+  PASS  mvn -q test — full suite, exit 0
+  PASS  focused SpecLinksResolveTest, NewProjectReferenceGuideTest and ReferenceSetWriteTest
+  PASS  mvn -q -DskipTests package
+  PASS  /private/tmp/m19-docs-venv/bin/mkdocs build --strict
+  PASS  four-term tracked-file sweep — no non-exempt matches
+  PASS  archive comparison — every moved M19/D-R/M18/M41 block is text-identical modulo the required
+        relative-link depth changes
+  PASS  built Swing dialog — empty project shows the CLAUDE.md offer, visibly unchecked, without clipping;
+        Cancel/termination wrote no project file
+  FAIL  git diff --check ff85343^..edcd3f7 — F4
+
+The concurrent guided-start commit 9d704ee arrived after the reviewed range and is intentionally out of
+scope. No implementation fixes were made, and nothing was pushed.
