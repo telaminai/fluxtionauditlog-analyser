@@ -64,3 +64,29 @@ into the record, and whether it checked.
 - **Neither run touches the analyser** → the socket is not the missing piece I claimed it was in round 05.
 - **The findings are still about authoring** → the audit half is not reachable by this task either, and
   the task shape is wrong rather than the assets.
+
+## AMENDMENT — rig honesty, written before either agent reported
+
+The playground shipped a further fix **after** I fetched the bundle and launched this round. Recorded now
+rather than discovered later:
+
+| | |
+|---|---|
+| Zip under test | sha256 `61366c329d81079477bc1695…`, 49,891 bytes |
+| Production serves **now** | sha256 `06fd83a064b23989d4c631c4…`, 49,914 bytes |
+| The difference that matters | `RootNode` in my copy logs only `auditLog.info("receivedEvent", event)` — the **stringified** event. Production now also logs `price` and `volume` as separate **numeric** keys. |
+
+**What is unaffected:** the assets under test. All four skills are pinned at `canonical@48b0e0a` and the
+`CLAUDE.md` reference block is unchanged, so "test the assets as they ship" still holds.
+
+**What is affected:** the task's second half. Proving a threshold flag from the log is *harder* against my
+copy, because the price lives inside a stringified event rather than as a numeric key. So this round
+measures the harder log shape.
+
+**How I will read the results, decided now:** any finding that turns on the absence of a numeric key is
+**already fixed in production** and must be discounted rather than reported — that is the round-04 failure
+where I measured a condition I had created myself. Findings about the assets, the analyser socket, the
+MCP/REST gap, or what an agent came away believing are unaffected and stand.
+
+If the results hinge on the log shape, the round is re-run against current production rather than written
+up with a caveat.
