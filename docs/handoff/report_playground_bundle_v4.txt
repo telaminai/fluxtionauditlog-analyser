@@ -200,3 +200,65 @@ this report proves rather than asserts. Read §3 before deciding whether v2 can 
   3. UNRELATED, and still open from your own tutorial review: F1 — the bundle's RootNode logs only
      the string `receivedEvent: PriceEvent{...}`, so there is no numeric node-log key and the
      tutorial's graph step cannot work. That is playground-side and mine; it is not in this change.
+
+================================================================================
+FOLLOW-UP — response to review_playground_bundle_v4 (2026-08-30)
+================================================================================
+Implementation: fluxtion-web @ 453d084 (over ea00075; neither pushed)
+Verdict accepted in full. Every playground-side finding is closed; F2 and the bounded restatement
+scan are analyser-side and untouched here.
+
+F1 — CLOSED, and it was the right blocker. Both halves of a snapshot now come from ONE commit:
+  resolveRevision additionally returns the repository AT the resolved commit (`repoBase`), and the
+  reference set is read from it rather than from a hardcoded `main` URL. An override now goes through
+  the SAME parser and refusals as the skills source — the bypass is closed, and the four refusal
+  shapes (user-info, non-https, query, credential-shaped) are asserted. The snapshot records
+  `provenance: canonical@<sha>` and the revision, never the caller's raw URL. `--reference-set none`
+  REMOVES a stale snapshot instead of leaving the previous one to be rendered into the next bundle.
+
+  WORTH RECORDING, because the review's F1 is what surfaced it: fixing `none` exposed a defect I had
+  introduced and would otherwise have shipped. The reference set was a STATIC import, so deleting it
+  broke module resolution rather than degrading — the same failure `skills.source=none` caused once
+  before with the vendored skills. It is a glob now; absence means no reference block; and the two
+  assertions that presuppose a vendored set skip in that mode, the way the suite already treats
+  skills.source=none. A blocking finding about provenance found a latent build break two steps away.
+
+F3 — CLOSED, both halves. `a NON-Spring bundle omits the spring-gated resource but keeps every
+  always-on one` asserts the negative rule directly, and guards itself: it fails if the vendored set
+  stops containing a gated resource, so it cannot quietly become vacuous. The ZIP seam no longer
+  hard-requires `application-context.xml` — it is conditional on the model's Spring definition — so
+  BUNDLE_TEMPLATE is a claim the seam can honour.
+
+  ONE LIMIT, stated rather than glossed: the catalogue contains exactly one bundle template today
+  (`analyserBundle: true` is set only on analyser-bundle), so the ZIP seam cannot be exercised with a
+  second, non-Spring template. The non-Spring rule is therefore proved at unit level against
+  `imperativeBundleSpec`, not through a real zip. If you would rather the seam's claim were narrowed
+  than left ahead of the catalogue, say so and I will narrow it.
+
+F4 — CLOSED. 14 new tests in `web/src/lib/starter/vendor-skills-v2.test.ts` drive vendoring through a
+  RECORDING fetcher, because a green vendoring run cannot distinguish "pinned" from "read main
+  twice". The fixture 404s any URL that is not at the resolved SHA, so the pinning assertion cannot
+  pass vacuously. Proved: the ref is resolved EXACTLY ONCE and the index, all four skills and the
+  reference set are read at that one commit; the branch is never read again; an already-pinned root
+  costs no API call; a failed resolve returns the declared transport outcome with nothing read
+  afterwards; and unknown specialisation, empty specialisation, and a PUBLISHED index without a
+  revision each refuse for their own named reason. The v1 fixtures are unchanged.
+
+F5 — CLOSED. The profile assertion is now two separate claims: the LITERAL four names for this
+  Spring+Mongoose acceptance template (hard-coded, so a wrong selection cannot agree with itself),
+  and separately that emission follows the manifest, which is the emitter bug the literal set cannot
+  see.
+
+EVIDENCE, re-run
+  npx vitest run                     430 passed, 31 files (was 415/30)
+  bundle-bench.py …                  68 passed, 1 failed — still only the §3 false positive
+  npm run build (adapter-cloudflare)  PASS
+  npx svelte-check                   4 errors, all pre-existing and unrelated, below the baseline of 6
+  --reference-set none               removes the snapshot; re-vendoring restores it; build stays green
+
+STILL OPEN, and none of it is mine to close
+  · F2 (bench unit suite red) and the bounded restatement scan — analyser-side. Until the scan is
+    fixed the generated bundle stays 68/69 and M19.21 should stay ◧: I have not made the bundle green
+    by rewording your `why` text, for the reason in §3.
+  · F6 (the "differs" detail on a passing AGENTS.md check) — analyser-side.
+  · The RootNode numeric-log finding remains separate and unaddressed here, as the review says.
