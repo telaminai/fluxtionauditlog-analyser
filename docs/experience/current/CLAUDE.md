@@ -97,10 +97,12 @@ it is. Read it as causal: a node listed after another ran after it, in the same 
    Fluxtion nodes; **referenced children are still discovered by Fluxtion**"*. So a bean reached by a
    `constructor-arg ref` from a listed node **is** in the graph; a bean that is neither listed nor
    referenced is **not**, silently. List your node unless something already listed points at it.
-3. **Every non-transient field of your node must be reachable from a constructor argument.** The AOT
-   generator rebuilds each node by matching its instance fields to a constructor. So a node that carries
-   its own state — a counter, a map, a running maximum — **will not build** unless that state is marked
-   `transient`:
+3. **Every non-transient field must be something the generator can supply.** The AOT generator rebuilds
+   each node, and it can supply a field three ways: a **constructor argument**, a **JavaBean setter**, or a
+   **public member**. Use a setter when a constructor argument is awkward. A field that is none of those and
+   is not excluded fails the build. So node-local state — a counter, a map, a running maximum — must be
+   marked `transient` (or `@FluxtionIgnore`), because it is state rather than a reference the graph
+   supplies:
 
    ```java
    public class SymbolStats extends EventLogNode {

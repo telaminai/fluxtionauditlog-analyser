@@ -259,10 +259,24 @@ thing on offer. These are better, and every one is a direct proxy for a document
 The last row matters: not every metric should fall. An author that self-corrects from the record is the
 behaviour this stack exists to produce, and a doc set that raises it is winning even if it grows.
 
-**WENT-OUTSIDE is the primary signal.** It is unambiguous — the agent went looking somewhere the bundle
-did not put the answer — and it is the least contaminated by model capability, because a more capable
-model finds the answer *faster*, not less often. R2-E is the exemplar: the agent unpacked a sources jar
-from the local Maven repository to learn the `auditLog` overloads. Nothing about that is a judgement call.
+**~~WENT-OUTSIDE is the primary signal.~~ RETIRED by round 05 — kept here so the correction is legible.**
+I argued it was "least contaminated by model capability, because a more capable model finds the answer
+faster, not less often". **Measured at n=3 per arm, the two arms scored identically (0.33 vs 0.33).** It
+turns out to track how curious a given run feels like being, which varies more between runs than between
+conditions — and round 04's 4-vs-0, the sole basis for the designation, was partly a harness artefact I
+then removed. It also conflates two opposite behaviours: going outside and learning the one correct answer,
+versus going outside and learning nothing.
+
+**Keep it as a qualitative flag** — it names a specific thing the docs failed to supply, which is exactly
+what R2-E did — and **do not use it to separate conditions**.
+
+**Build FAILURES is the best available quantitative signal** (round 05: 3/3 control, 1/3 treatment), which
+is the metric this section originally dismissed as near-ceiling. It still overlaps, so it supports a
+direction and no effect size. Count failures, not attempts.
+
+**And the round's most valuable output was not a number at all** — it was noticing that four of six agents
+held the *same false belief* about dispatch order. No metric here was designed to capture what an agent
+came away believing, and that is now the clearest gap in this instrument.
 
 **Run n > 1 per condition, and report a rate.** A single agent hitting something once is a hypothesis; the
 same friction across runs is a defect. That is already the loop's rule and it was never honoured, because

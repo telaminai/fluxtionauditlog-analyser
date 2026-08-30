@@ -45,6 +45,41 @@ ask, which is *"how do you know this log wasn't edited?"* The answer today is **
 If authenticated provenance is wanted, it is a separate capability to specify and build, not something to
 imply.
 
+## D-T7 — what is actually being sold: DERIVED orchestration, and a denominator
+
+Owner, 2026-08-30, asking whether the sale is *"exogenous linkage that has been removed unrecoverable
+before Fluxtion, and inferred orchestration"*. Yes — and it is worth splitting, because the two halves
+have very different strength in front of someone who already owns tracing.
+
+**1 · Derived, not inferred.** In a conventional system the orchestration is an *emergent runtime
+property*: nothing writes down what called what, in what order, or why. Compilation destroys the design
+intent, and the only route back is inference — from timestamps, thread ids, log adjacency — which
+interleaving, async and retries degrade exactly when you need it. Fluxtion **derives the total order at
+build time and emits it as an artefact**. The order is therefore not an observation to be reconstructed;
+it is a fact that already existed before the run. That is the exogenous linkage: the record is checked
+against something the runtime did not produce.
+
+**2 · A denominator — and this is the half that cannot be answered by a better log.** Because the declared
+set exists as an artefact, **absence becomes measurable**. `coverage` is declared minus logged. Tracing —
+OpenTelemetry, spans, parent/child — records what *did* happen and has no declared set to subtract from,
+so *"which nodes never ran"* is not a question it answers badly; it is a question it **cannot pose**. No
+volume of logs supplies a denominator. This is why the analyser refuses coverage on an **inferred** graph
+(`GraphSource.supportsCoverage()`): a denominator derived from the same record it is measuring is a
+tautology that still prints.
+
+**Say the second one first.** "Derived, not inferred" invites *"we have distributed tracing"*. "Which of
+your components never executed, and how do you know the list is complete" does not, because the buyer
+knows they cannot answer it.
+
+**The boundary, and it is today's own finding.** Exogeneity applies to **participation and order**, not to
+**values**. Verified in `fluxtion-runtime` 1.0.13: the processor calls `nodeInvoked(node, name, method,
+event)` at every dispatch site — automatic, unauthored, true of any node — while `nodeRegistered` hands a
+logger only to a node that implements `EventLogSource`, and what it then records is whatever its author
+chose to write. **So the strong claim rests on the automatic half; the authored half is ordinary
+logging.** Conflating them is the D-T4 overclaim in its most tempting form, because the two arrive in the
+same record and look alike. What is unforgeable-by-construction is *that a node ran and where in the
+order*; what a node **says** about itself is testimony like any other log line.
+
 ## D-T1 — the claim is NOT explainability, and saying "explainable AI" actively costs us
 
 In regulated buying, *explainable AI* is a term of art meaning **interpreting a model's decisions** —

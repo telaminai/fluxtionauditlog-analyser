@@ -420,10 +420,34 @@ string — and still wrote the field wrong, still failed the build, then fixed i
 table. **Documentation at maximum availability did not prevent it.** That is the case for a message, made
 by measurement rather than by argument.
 
-**The message must name BOTH remedies.** The two agents produced two different working fixes: `transient`
-(the documented idiom) and **removing `final`**. The second is sound — the field-inclusion predicate
-includes a field only when it is non-static, **final** and non-transient — so a message that teaches only
-`transient` leaves the `final` route working as undocumented folklore, and the two will drift.
+**The message must state the RULE, not a list of tricks — round 05 found three escapes and the owner named
+a fourth route the message hides entirely.**
+
+Across rounds 04-05, six agents produced **three different working fixes**, none identical: `transient`
+(documented), **removing `final`**, and **leaving the field null and initialising it lazily**. All three
+are sound against the field-inclusion predicate, which admits a field only when it is non-static, **final**
+and non-transient. Enumerating remedies invites a fourth.
+
+**And the message is worse than incomplete — it is misleading about what the builder supports.** Owner,
+2026-08-30: *"Fluxtion supports the JavaBean pattern to set references if constructor references are not a
+good fit or problematic."* **Verified in the same class**, which runs three assignment strategies from one
+entry point:
+
+```
+generatePropertyAssignments()       // JavaBean setters — beanPropertyMap, "set" prefix
+generatePublicMemberAssignments()   // public fields
+generateComplexConstructors()       // constructors — the ONLY one that throws
+```
+
+So a field can be supplied by a **constructor argument, a setter, or a public member** — and the message
+names only the strategy that failed. An author reading *"cannot find matching constructor"* has no way to
+learn that a setter would have worked. **Not one of the six agents used it.** Three found accidental
+escapes instead, and each shipped a fix it could not explain.
+
+The message should therefore fork on the question the author actually faces:
+
+> is this field **node-local state** (exclude it: `transient` / `@FluxtionIgnore`) or a **reference the
+> graph must supply** (wire it: constructor arg, JavaBean setter, or public member)?
 
 **Evidence** measured — one full build cycle in round 02, reproduced in both arms of round 04. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
 which is most non-trivial nodes.
