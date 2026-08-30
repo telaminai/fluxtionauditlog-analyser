@@ -243,8 +243,16 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
-- [M19.21] ◧ **REVIEWED 2026-08-30 — REVISE BEFORE ACCEPTANCE; DO NOT DEPLOY OR PUBLISH v2** —
-  `fluxtion-web` @ `ea00075` (committed, **not deployed**: the live site still serves v3 bundles).
+- [M19.21] ◧ **REVIEWED 2026-08-30 — REVISE BEFORE ACCEPTANCE; DO NOT DEPLOY OR PUBLISH v2.**
+  **PLAYGROUND FINDINGS NOW CLOSED at `fluxtion-web` `453d084`** (F1 pinning + safe provenance +
+  `none` removal, F3 non-Spring `appliesTo` and the ZIP seam, F4 recording-fetcher pinning tests,
+  F5 literal runbook set) — 430 tests, up from 415; follow-up in the report. F1 also surfaced a
+  latent build break: the reference set was a static import, so `--reference-set none` broke module
+  resolution rather than degrading — the same shape as the earlier `skills.source=none` incident.
+  **STILL BLOCKED ON US:** F2 (red bench unit test), the bounded restatement scan, and F6. The
+  bundle stays 68/69 and is deliberately NOT made green by rewording our own `why` text. Original
+  review framing below —
+  `fluxtion-web` @ `ea00075` → `453d084` (committed, **not deployed**: the live site still serves v3 bundles).
   Report: [`report_playground_bundle_v4.txt`](../handoff/report_playground_bundle_v4.txt). Independent
   review: [`review_playground_bundle_v4.txt`](../handoff/review_playground_bundle_v4.txt) — the
   restatement failure really is an analyser bench defect, but sign-off is blocked by an unpinned,
