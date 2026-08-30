@@ -30,10 +30,12 @@ range passes `git diff --check`. One non-blocking diagnostic race is recorded in
 **Verified.** Full Maven suite, focused ReferenceSet/link tests, package, strict MkDocs, privacy sweep,
 archive parity and the built Swing dialog. The range whitespace check fails only as recorded in F4.
 
-**Closure review `f9ccf20`: NOT YET CLOSED.** F1–F4 are accepted and N1's production correction is
-sound. One test correction remains: the new “second window” test writes the file before calling
-`writeReferenceGuide`, so the outer check returns and `ReferenceSet.create` is never reached. It duplicates
-the already-covered first window and would pass without the code it claims to pin. See C1 in the review.
+**Closure review `f9ccf20` + `b49f007`: CLOSED — ACCEPTED.** F1–F4 are accepted. `b49f007` replaces the
+unreached “second window” test and its guessed boolean reason with one `ReferenceSet.create` check returning
+WROTE / ALREADY_EXISTS / NOTHING_AGREED; the caller maps that result directly, and CREATE_NEW still wins a
+real write race. Independently reviewed in
+[`review_playground_bundle_v4_integration.txt`](review_playground_bundle_v4_integration.txt) under
+*Accepted closures*. One non-blocking stale Javadoc sentence is recorded there for the next touch.
 
 ---
 
