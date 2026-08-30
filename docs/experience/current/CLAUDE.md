@@ -1,5 +1,19 @@
 # Working in this project
 
+**Read these first — they are the canonical Fluxtion authoring resources, and this file does not repeat
+them:**
+
+- <https://fluxtion-playground.dev/build-with-ai> — how to author with an LLM, and the compile/run loop.
+- <https://fluxtion-playground.dev/CLAUDE.md> — the author orientation, including the **source-gen triage
+  table** (symptom → fix) that covers `transient` / `@FluxtionIgnore`.
+- <https://fluxtion-playground.dev/spring-authoring/contract.md> — the `FluxtionSpringConfig` field table:
+  `nodeBeans`, `ignoredBeans`, `eventTypes`, and the XML shape this project uses.
+
+*(Pending the owner's sign-off on the agreed set — `docs/specs/spec-authoring-experience.md` D-AX1c.)*
+
+Below is only what those do **not** cover: this project's paths and commands, and how a node participates
+in the **audit log**.
+
 A Fluxtion event-processing application hosted by a Mongoose server. You declare what each node depends
 on; a compiler derives the execution order and generates the dispatch code. Every run writes an **audit
 log** recording which nodes ran, in order, and what each one logged.
@@ -78,8 +92,11 @@ it is. Read it as causal: a node listed after another ran after it, in the same 
 1. `src/main/fluxtion/designer/application-context.xml` — add a `<bean>`. Its `<constructor-arg ref="..."/>`
    entries are the graph edges. `<constructor-arg value="..."/>` passes a plain value (a threshold, a
    limit) and is supported on graph nodes.
-2. In the same file, add the bean's id to `fluxtionSpringConfig`'s `nodeBeans` list. **A bean not listed
-   there is not in the graph.** This is the step that produces a node that silently never runs.
+2. In the same file, add the bean's id to `fluxtionSpringConfig`'s `nodeBeans` list. The precise rule, from
+   the playground's `spring-authoring/contract.md`: *"If present, only these beans are added as explicit
+   Fluxtion nodes; **referenced children are still discovered by Fluxtion**"*. So a bean reached by a
+   `constructor-arg ref` from a listed node **is** in the graph; a bean that is neither listed nor
+   referenced is **not**, silently. List your node unless something already listed points at it.
 3. **Every non-transient field of your node must be reachable from a constructor argument.** The AOT
    generator rebuilds each node by matching its instance fields to a constructor. So a node that carries
    its own state — a counter, a map, a running maximum — **will not build** unless that state is marked

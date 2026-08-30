@@ -140,3 +140,49 @@ appearance depends on registration has a real mechanism behind it. Still not est
 
 **Fixed in v4** (v3 archived): the interface documented with a worked example, the reason to prefer it,
 and the note that Fluxtion bases such as `SingleNamedNode` already inherit `EventLogNode`.
+
+## R4-A · Owner correction, 2026-08-30 — the static authoring resources, which I had not read
+
+The owner: *"I thought you were reading this https://fluxtion-playground.dev/build-with-ai — which has
+instructions and prompts to use?"* I had not. Nor `claude.txt`. This repo's own
+`docs/handoff/REVIEWER-ORIENTATION.md` lists `build-with-ai` as **"Start here"**, so the pointer existed
+and I walked past it — a rule 6 miss, and the **fourth** instance of this loop's recurring failure.
+
+**What five sources actually say** (checked 2026-08-30: `claude.txt`, playground `/CLAUDE.md`,
+`spring-authoring/skill.md`, `spring-authoring/contract.md`, `/audit-replay`):
+
+| Round finding | Published upstream? | Verdict |
+|---|---|---|
+| R2-A `transient` | **yes** — canon *and* the playground's source-gen triage table | would have been **prevented** |
+| R1-G `nodeBeans` | **yes** — the Spring skill and contract | would have been **prevented** |
+| R1-G `@OnTrigger` return | **yes** — canon | would have been prevented |
+| R1-A / R3-A / R3-D audit contract | **no — none of the five** | **not** prevented |
+| R1-E dispatch order is position in `nodeLogs` | **no** | **not** prevented |
+| R2-E `auditLog` overloads · R2-F `getLatestEvent` | **no** | **not** prevented |
+| bundle defects (R1-B/C, R2-C/D, R3) | n/a | unaffected |
+
+**Answer to "would your outcomes be better?": yes on Fluxtion authoring, not at all on the audit log.**
+Roughly a third of the doc findings evaporate — and the survivors are precisely the audit-log cluster,
+which is this product's own subject. The upstream material is good at the framework and silent on the
+record.
+
+**Also a second wrong rule of mine, found by reading rather than running.** My `CLAUDE.md` §4.2 said *"A
+bean not listed there is not in the graph."* `contract.md` is more precise: *"If present, only these beans
+are added as explicit Fluxtion nodes; **referenced children are still discovered by Fluxtion**."* So a bean
+reached by `constructor-arg ref` from a listed node **is** in the graph. Mine was over-broad and would
+mislead anyone whose node is a child. Fixed in the doc set; UP-FLX-33 re-scoped to the genuinely silent
+case — declared, in neither list, unreferenced.
+
+**And the confound this exposes, which is larger than the missing analyser.** No round used the
+playground's own authoring prompt — *"You have a compile/run loop — Fluxtion's errors are directive, so
+when one fires it's telling you the fix"* — or gave the agent the canonical orientation. So rounds 01–03
+measured a bundle **stripped of the authoring context the product already ships**. That is not a small
+harness detail: two of the findings I treated as documentation gaps were artefacts of it.
+
+**Settled at last — R3-A's open question, from the runtime source rather than inference.** Held unresolved
+for two rounds because I had twice promoted an unchecked inference. `EventLogManager` (an `Auditor`) has
+two distinct methods: `nodeInvoked(node, name, method, event)` runs at **every** dispatch site, which is
+what makes a node **appear**; `nodeRegistered(node, name)` hands out a logger under exactly one test,
+`if (node instanceof EventLogSource)`, which is what lets a node record **values**. Two mechanisms, two
+facts — and the agent's round-03 inference that appearance depends on registration was **wrong**.
+Verified in `fluxtion-runtime` 1.0.13 sources. Refusing to promote it twice was the right call.

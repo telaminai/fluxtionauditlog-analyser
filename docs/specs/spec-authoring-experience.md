@@ -80,13 +80,109 @@ things:
   statement that position is dispatch order. That is now **UP-FLX-35**, and it is the reason three wrong
   versions of that rule were written here: the bundle had to invent what the canon does not carry.
 
-**The decision.** A bootstrap doc that restates the canon inherits every drift between them and adds
-tokens to every turn. So: **link, with a one-line reason to open it**, and write only what the canon does
-not say. A line that duplicates `claude.txt` is a D-AX1 "Nowhere" line — and the preflight (D-AX6) should
-fail on the ones that are checkably duplicated, since the canon is a fetchable file.
+**Then the owner named the resource I should actually have been using:**
+[`fluxtion-playground.dev/build-with-ai`](https://fluxtion-playground.dev/build-with-ai) — which this
+repo's own `docs/handoff/REVIEWER-ORIENTATION.md` lists as *"Start here"*. It carries an authoring prompt,
+a prescribed loop, and links to a canonical `/CLAUDE.md`, a golden path, and a Spring-authoring skill and
+contract. **I had not read any of it.** Five sources checked in total; the tally is in D-AX1b.
 
-Sequencing consequence: **UP-FLX-35 lands before the doc set is rewritten**, or the rewrite will once
-again encode the audit contract locally instead of pointing at it.
+**The decision.** A bootstrap doc that restates published material inherits every drift between them and
+taxes every turn. So: **link, with a one-line reason to open it**, and write only what is not already
+published. A duplicated line is a D-AX1 "Nowhere" line, and the preflight (D-AX6) should fail on
+checkable duplication, since these are fetchable files.
+
+### D-AX1b — the loop's product is UPSTREAM CONTENT, and the bundle only references it
+
+Owner, 2026-08-30: *"We have static resources that help author. Make sure a new project references them
+properly. Your improvements should be aimed at making the content of these files better."*
+
+That inverts the deliverable, and it is right. The output is **edits to the static resources**, not a
+bundle-local file that reinvents them. What the five-source check found:
+
+| Finding | Already published? | Consequence |
+|---|---|---|
+| R2-A `transient` | **yes** — canon *and* the playground triage table | not a doc gap; the bundle failed to point. UP-FLX-32 (the message) survives and is strengthened |
+| R1-G `nodeBeans` | **yes** — the Spring skill and contract, and `contract.md` is **more precise than my rule was** | my doc set said *"a bean not listed is not in the graph"*; contract.md says referenced children are still discovered. **My rule was wrong in the transitive case** — fixed |
+| R1-G `@OnTrigger` return | **yes** — canon | corrected in §1c |
+| R1-A / R3-A / R3-D audit contract | **no — in none of the five** | UP-FLX-35, and drafted: [`upstream-content/audit-authoring.md`](../proposals/upstream-content/audit-authoring.md) |
+| R1-E dispatch order in `nodeLogs` | **no** | same |
+| R2-E `auditLog` overloads · R2-F `getLatestEvent` | **no** | same |
+| R1-G scalar `constructor-arg value=` | **no** — `contract.md` shows only `ref=` | worth an upstream line |
+
+**The pattern is clean and it is the product insight:** the upstream material covers **Fluxtion authoring**
+well and the **audit log** not at all. Which means the bundle's own file should be *thin and
+project-specific* — paths, commands, this project's graph — layered on published orientation, and the
+loop's real output is the audit section those resources lack.
+
+**How a new project references them — verified, because the obvious answer is wrong.**
+`Runbooks.refusePointer` rejects any pointer containing `"://"`, for **every** pointer a profile holds
+(runbooks and the M38.2 vocabulary alike): *"it must be a file in this repository"*. So the profile
+**cannot** carry a URL, by design — a profile that could pull content from anywhere is the supply-chain
+surface D-AX10 also guards. The references therefore live **in the bundle's `CLAUDE.md` as links**, which
+is a file in the repo and so a legal pointer target. No gate needs loosening; the bundle contract
+([spec-onboarding-example.md](spec-onboarding-example.md) ▸ *Files the bundle MUST contain*) needs a
+requirement that the file opens with them.
+
+### D-AX1c — agree the reference SET and wire it first; improve content second
+
+Owner, 2026-08-30: *"Before we change the contents of the static resources we need to make sure a new
+template project or new project is using an agreed set. Then we can improve a single resource with
+cascading benefits."*
+
+**This supersedes my sequencing, and the reason is structural.** If each generated project carries its own
+variant of the guidance, improving an upstream file benefits nobody already generated, and the
+improvement has to be re-delivered per project — which is how four wrong versions of the audit rule came
+to exist here in the first place. If every project **references** an agreed set, one edit improves every
+reader of it. The reference is the multiplier; content improvement without it is a broadcast to no one.
+
+**Link, do not embed — and that is consistent with the standing decisions rather than a new exception.**
+
+- **D-C2** (pointers, never executed, never served as contents) and **M38.1** (a profile records a
+  location, never contents) already say the project's carrier for guidance is a *pointer*. A markdown link
+  is exactly that: following it is the reader's act, not the app's.
+- **D-R3** ([spec-onboarding-example.md](spec-onboarding-example.md): content is late-bound at DOWNLOAD,
+  never at RUNTIME) constrains what the **bundle and the analyser** fetch and serve. It does not constrain
+  what a human or an agent chooses to open from a link, and reading it as though it did would forbid the
+  cascade the owner is asking for while gaining nothing.
+- **Embedding a copy would break both goals at once:** it re-creates the drift D-AX1a is about, and it
+  guarantees no cascade.
+
+**Two entrances must both be wired**, or the agreed set is agreed and unused:
+
+1. the **playground starter** — the generated bundle's `CLAUDE.md` opens with the set;
+2. the analyser's **new-project path** — *File ▸ New project from template…* and the day-two
+   *New project…* (M19.13), which must produce a project whose bootstrap file carries the same set.
+
+**What "an agreed set" has to be, and it is an upstream commitment, not a list we can make alone:**
+
+- **stable URLs** — a moved page silently degrades every project that ever referenced it;
+- **each with one line saying why to open it**, because a bare list of five links gets skipped;
+- **dated or versioned**, so a project can state which revision it was generated against — without that,
+  "the docs changed under me" is undiagnosable;
+- **checked** — see below.
+
+**Owner decision needed: which files are in the set.** My proposal, from the five-source check —
+`build-with-ai` (the loop and the prompts), `/CLAUDE.md` (the orientation), `fluxtion-golden-path.md`,
+and `spring-authoring/contract.md` **only for Spring-authored projects**. `claude.txt` is the framework
+canon and overlaps `/CLAUDE.md` heavily; including both may be redundant. `/audit-replay` should be
+excluded until it is corrected — it currently misleads authors (§1c UP-FLX-35).
+
+**A new gate this creates.** The bundle's value would now rest on **external** links, and two of this
+repo's recorded blind spots meet exactly there: `mkdocs --strict` cannot check external URLs, and
+`SpecLinksResolveTest` only walks `docs/specs`. So the preflight (D-AX6) must **fetch every URL in the
+agreed set and fail on a non-200**. That check is cheap, and without it the cascade mechanism fails
+silently — which is worse than not having it, because every project claims to point at guidance that no
+longer resolves.
+
+**Revised sequencing** — the content work now comes third, not first:
+
+1. agree the set (owner);
+2. wire both entrances, and add the link check to the preflight;
+3. **then** improve the content — starting with the audit section, which is the one gap all five share.
+
+Only at step 3 does [`upstream-content/audit-authoring.md`](../proposals/upstream-content/audit-authoring.md)
+get proposed upstream. It is drafted now so that step 3 is a review rather than a start, but it must not
+land before step 2 or its benefit reaches one bundle instead of all of them.
 
 ## D-AX2 — the bootstrap doc teaches the LOOP, not the facts
 
@@ -344,6 +440,9 @@ round kind      exploration | attribution   n = <runs per condition>
 
 ## What to build
 
+0. **Agree the reference set** (D-AX1c, owner) and **wire both entrances** — the generated bundle's
+   `CLAUDE.md` and the analyser's new-project path — plus the external-link check in the preflight.
+   **Every content improvement below is worth one project until this lands, and every project after it.**
 1. **Loopback playground origin** (D-AX10) — the analyser change, and the only one in this repo. Property
    only, loopback only, visible, refusals tested. **Nothing else on the rig works until this lands.**
 2. **Preflight** in `tools/bench/` (D-AX6) — commands, pointers, fixture, examples, **plus the keyless
@@ -355,8 +454,8 @@ round kind      exploration | attribution   n = <runs per condition>
 6. **Harness**: n=3 parallel, analyser reachable, control arm, held-out task, rig manifest per round.
 7. **UP-FLX-32 in a locally-built `fluxtion-builder`** (D-AX11) — the cheapest diagnostic to try, and the
    first real test of D-AX3: does the prose it replaces become deletable?
-8. **File UP-FLX-35** (D-AX1a) — the audit contract into `claude.txt`, **before** item 3, so the rewrite
-   points at the canon instead of inventing the rule locally for a fourth time.
+8. **File UP-FLX-35 and propose the drafted audit section** (D-AX1b) — into the agreed set, **after**
+   item 0 so it cascades, and **before** item 3 so the rewrite points instead of reinventing.
 
 Order matters. **1 before anything**; 2 before 6; and 7 before the second pass of 3, or the doc set gets
 rewritten around diagnostics that are about to make it redundant. Items 5 and 7 are the two that only the
@@ -385,8 +484,14 @@ rig makes possible — everything else was already available and simply not done
       `loop-bench.py` **before** any round runs on it, and a control-arm round has been re-run on the new
       runtime before any trend claim spans it.
 - [ ] The keyless hosted path is still exercised somewhere, despite the rig no longer touching it.
-- [ ] No bootstrap line duplicates `claude.txt`; the doc links to it with a reason to open it, and the
+- [ ] No bootstrap line duplicates the agreed set; the doc links to each with a reason to open it, and the
       preflight fails on checkable duplication (D-AX1a).
+- [ ] The agreed set is signed off, and **both** entrances produce a project referencing it — the
+      playground starter and the analyser's new-project path (D-AX1c).
+- [ ] The preflight fetches every URL in the agreed set and fails on a non-200 — neither `mkdocs --strict`
+      nor `SpecLinksResolveTest` can see external links.
+- [ ] No project embeds a copy of an agreed-set document; references are links, and the profile carries
+      none of them (`refusePointer` refuses URLs by design).
 
 ## What I have not verified
 

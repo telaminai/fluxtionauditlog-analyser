@@ -427,6 +427,19 @@ green, the app runs, and the node is simply not in the graph** — it never fire
 audit log cannot report it as missing because it was never declared. The fresh agent could not determine
 from anything shipped whether the second edit was required.
 
+**The documentation half of this is CORRECTED (2026-08-30) — the rule IS published, and the ask survives
+anyway.** The playground's `spring-authoring/skill.md` states *"Every node is a `<bean>` in `nodeBeans`;
+support beans go in `ignoredBeans`"* and *"Don't rely on implicit node discovery"*; `contract.md` is more
+precise still: *"If present, only these beans are added as explicit Fluxtion nodes; **referenced children
+are still discovered by Fluxtion**"*. So the bundle did not point at material that already existed — a
+bundle defect, not an upstream doc gap, and my own doc set stated the rule **too strongly** by omitting
+the transitive case (fixed).
+
+What survives untouched is the **silent build**: a bean that is neither listed nor referenced by anything
+listed is dropped without a word. Documentation reduces how often that happens; it cannot tell you it has
+happened. That is what the ask below is for, and the precise condition it should report is *"declared in
+the context, in neither list, and unreferenced"*.
+
 **Verified in the artefact, 2026-08-30** (`fluxtion-builder` 1.0.64,
 `com/telamin/fluxtion/builder/extern/spring/`):
 
@@ -483,12 +496,30 @@ read rather than an inference, and the analyser stops shipping a copy of the fra
 **Target** `fluxtion` docs (`docs/claude.txt`) · **Priority** high — it is the LLM-facing canon, and this
 is the one subject where its silence is most expensive · *pairs with UP-SHARED-02*
 
-**Checked 2026-08-30**, prompted by the owner asking whether I had been reading the canon while authoring
-the bundle's context assets. I had not — a rule 6 miss — so I read it, and the result changed two entries
-above and produced this one.
+**Checked 2026-08-30 across FIVE sources**, prompted by the owner asking whether I had been reading the
+canon — and then the playground's `build-with-ai` — while authoring the bundle's context assets. I had read
+neither. Reading them changed two entries above and produced this one.
 
-**Present and clear:** the serialisation rule and its `transient` / `@FluxtionIgnore` remedy; `@OnTrigger`
-propagation semantics including `dirty = false`; `FluxtionSpring.compileAot`.
+**Draft content ready:** [`upstream-content/audit-authoring.md`](upstream-content/audit-authoring.md) —
+the section itself, every fact read from `fluxtion-runtime` 1.0.13 and `fluxtion-builder` 1.0.64.
+
+| Source | Covers the audit-authoring contract? |
+|---|---|
+| `fluxtion` `docs/claude.txt` | **no** |
+| playground `/CLAUDE.md` (the orientation an LLM is told to load first) | **no** |
+| playground `/spring-authoring/skill.md` | **no** |
+| playground `/spring-authoring/contract.md` | **no** — `logLevel` and `auditors` appear as config fields with no mechanics |
+| playground `/audit-replay` | **no, and it implies the opposite** — see below |
+
+**Present and clear elsewhere, so NOT asks:** the serialisation rule with its `transient` /
+`@FluxtionIgnore` remedy (canon *and* the playground triage table); `@OnTrigger` propagation including
+`dirty = false`; `nodeBeans` / `ignoredBeans` (the Spring skill and contract).
+
+**`/audit-replay` is the sharpest instance, because it is not merely silent.** It states *"Audit and replay
+are not a logging layer you bolt on. They fall out of how the processor is generated"* — true for which
+nodes fired, **false for what each node reports**. An author who reads it concludes no instrumentation is
+needed, which is precisely what round 01's agent concluded. A gap misleads by omission; this misleads by
+assertion.
 
 **Absent:**
 
