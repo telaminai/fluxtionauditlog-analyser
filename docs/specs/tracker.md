@@ -243,6 +243,16 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
+- [M19.19] ☐ **Guided start — an install prompt, and an LLM tutor that drives the UI** _(owner idea,
+  2026-08-30)_ — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
+  capabilities, driven by a prompt an LLM executes. **Verified: the tutor needs NO new verbs** — `open`,
+  `filter`, `topology`, `goto`, `graph` and `flag` already drive the UI, and `context` + `screenshot` tell
+  the agent what the user can actually see. The load-bearing rule is D-G2, from D-T3: **the tutor points,
+  the screen proves** — it may not state a figure the user cannot see, which makes the tutorial a live
+  demonstration of the thesis rather than a chatbot describing software. Setup is shell, not analyser
+  surface, and the whole path is **keyless** (a bundle ships its generated processor). One real gap: MCP
+  registration is an in-app flow — v1 asks the human to do it rather than adding a headless path. Also
+  D-G5: this is the best held-out task the experience loop has, because its outcome is objective.
 - [M19.14a] ☐ **The method for M19.14/.15, written up for review** _(owner-directed, 2026-08-30)_ —
   [`spec-authoring-experience.md`](spec-authoring-experience.md). The end goal restated by the owner: the
   product is the bundle's context assets (`CLAUDE.md`, `AGENTS.md`, the authoring loop, upstream asks), and
