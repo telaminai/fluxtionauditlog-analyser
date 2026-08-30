@@ -58,3 +58,49 @@ WHAT I VERIFIED INDEPENDENTLY TODAY (not F4, but adjacent and relevant)
     clean run, confirmed here rather than taken from your table;
   * `<!-- reference-block:end -->` present exactly once;
   * four-term sweep clean, and zero confidentiality/rights language anywhere in the zip.
+
+================================================================================
+CODE REVIEW — 2026-08-30, second pass. The clone was made available; this SUPERSEDES
+the claim-only review above.
+================================================================================
+Read `web/src/lib/starter/vendor-skills-v2.test.ts` and `web/scripts/vendor-skills.mjs` at
+`fluxtion-web` `origin/main` (b76c191), in a detached worktree so the working checkout was untouched.
+
+VERDICT: **F4 HOLDS.** The fixture cannot pass vacuously. All five attacks answered, the last one by
+running it.
+
+V1 · SHA vs branch — HOLDS. `SHA = 'a'.repeat(40)`; `ROOT` carries `/main/`. A pinned URL and a branch URL
+     are unmistakably different strings, and line 124 asserts no raw URL contains `/main/`. My worry that
+     the resolved value might be or contain the branch does not apply.
+
+V2 · Does a 404 have to propagate? — HOLDS, and the design is better than I credited in the claim review.
+     I assumed the negative claim rested on the 404 breaking something, which a fallback could swallow. It
+     does not: `urls.push(href)` happens **before** any response branching, so the assertion is on the
+     RECORD of what was requested, not on what the response did. A swallowed 404 would still be caught.
+     That is the right way round and I had it backwards.
+
+V3 · Exact set or subset? — HOLDS in practice. `raw.length` is an exact count (5 = index + 4 skills), not
+     a containment check, and it is bracketed by the no-`/main/` assertion and by the file-name set on
+     line 75. An exact URL set would be marginally tighter; the count plus the two brackets is sufficient.
+
+V4 · "Exactly once" as a count? — HOLDS. `expect(api).toHaveLength(1)` with the exact resolve URL asserted
+     on the next line, and a separate test asserting an already-pinned root costs **zero** API calls.
+
+V5 · THE MUTATION — RUN, AND IT FAILS LOUDLY. I mutated `resolveRevision` to keep resolving the sha and
+     return the branch root, which is precisely the defect this fixture exists to catch:
+
+         return { revision: sha, root: source.root, repoBase: base(ref) };   // read at the branch
+
+     **7 of 14 tests failed.** Restored, 14/14 green. The fixture is doing work.
+
+ONE THING STILL WORTH ADDING (unchanged from the claim review, and not a defect)
+F4 proves the bytes were read **at the pinned commit**. It does not prove they were the bytes the index
+**pins** — the sha256 verification is a separate mechanism. A change that kept the pinning and dropped the
+hash check would leave all 14 green. One test asserting a corrupted byte at the correct SHA is refused
+would make "read from the right place" and "read the right thing" independently covered.
+
+CORRECTION TO MY OWN CLAIM REVIEW
+V2 above was my strongest stated worry and it was misplaced — I reasoned about the fixture's failure path
+without noticing the recorder records first. Reviewing a claim rather than code produced a confident
+concern that reading the code dissolved in a line. Worth remembering the next time a code review is
+declined on the grounds that the description is detailed enough.
