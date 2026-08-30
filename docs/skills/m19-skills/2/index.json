@@ -14,8 +14,6 @@
     "fail-on-TODO bundle gate or ship a fictional procedure. Only a template with a real replay entry point",
     "selects it.",
     "",
-    "on every skill: adding a template must not mean editing every entry in the library.",
-    "",
     "'spring' means the same here as appliesTo:'spring' in reference-set.json.",
     "",
     "STATUS: DRAFT, NOT PUBLISHED (review C1, 2026-08-30). No generator consumes this yet. Selected skills",

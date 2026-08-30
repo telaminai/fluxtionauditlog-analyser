@@ -56,16 +56,6 @@ bench, diff/sweep, the three jar-level claims, and the Swing origin banner in a 
 - the human confirmation flow for `ReferenceSet`, still deliberately unwired;
 - **real playground consumption of `m19-skills/2`** — F3 is only partly closed (C1) and v2 is marked DRAFT
   until a generator selects, substitutes and passes the fail-on-`TODO` gate.
-- **`mkdocs build --strict` was NOT run** — mkdocs is not installed on this machine and I did not install
-  it unprompted. `docs/site/guided-start.md` is new and in the nav; its links resolve by hand, which does
-  not satisfy rule 5.
-- **The guided-start prompt has never been executed end to end.** Highest-value unverified item.
-- **Swing is untested as always**: the template dialog's origin banner needs the jar built and run with
-  `-Dfluxtion.analyser.playgroundOrigin=http://127.0.0.1:PORT` to confirm it states the origin.
-- **`ReferenceSet` is complete but unwired** — nothing calls `create()` from the UI, so the offer-and-
-  confirm flow has had no human in front of it.
-- **Whether round 05 (n=3, one task, one model family) supports even the direction I claim.** I retired my
-  own primary metric on it; challenge the rest.
 
 ---
 

@@ -115,3 +115,26 @@ C4 · My fault and a careless one: an unbounded string replace copied this revie
 N4 · Count removed rather than reconciled. I was reporting Maven's summary line and you were counting
      Surefire XML cases; publishing a bare number invites exactly this. These documents now say the suite
      passes.
+
+
+================================================================================
+SECOND CLOSURE PASS — the three residuals
+================================================================================
+All three accepted; all three were mine, and two were the same kind of mistake as C4 — an edit that
+replaced a heading or a line and left what sat underneath it.
+
+C4 (completed) · The residual list was correct; the ORIGINAL bullets were still sitting under it. So the
+     entry simultaneously said mkdocs and the Swing banner were closed by the reviewer and listed them as
+     outstanding, and it still carried the n=3 "direction" question that F4 withdrew outright. Removed —
+     the entry now states what the reviewer closed, then the four real residuals, and nothing else.
+
+v4 ownership · The text said `reference-set.json` and `m19-skills/2` are "authored, reviewed and pinned
+     here" while the same document declares v2 deliberately unpinned. Reworded: authored and reviewed
+     here, **pinned on publication**, and unpinned while DRAFT — with the reason, so the next reader does
+     not "fix" it back by pinning a draft.
+
+index.json · An orphaned continuation line, left when my filter dropped the sentence above it. Removed;
+     the point it was making is carried in full by the no-`templates`-map paragraph further down.
+
+Three files touched, nothing else. A concurrent session's uncommitted work was reported by the reviewer;
+the tree was clean when I started, so nothing of theirs was swept up.

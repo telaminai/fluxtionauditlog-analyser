@@ -815,8 +815,11 @@ duplication rule, and it is what makes an upstream edit improve every project in
 
 ### Ownership for v4
 
-Unchanged from v3, with two additions: **`reference-set.json` and `m19-skills/2` are analyser-owned**
-(authored, reviewed and pinned here); **the template → specialisations mapping and the rendered
+Unchanged from v3, with two additions: **`reference-set.json` and `m19-skills/2` are analyser-owned** —
+authored and reviewed here, and **pinned here on publication**. v2 is deliberately **unpinned while it is
+DRAFT**: a pinned draft goes stale on its next edit and then either advertises bytes that no longer exist
+or forces a broken build to re-pin, so the provenance guarantee binds at publication, which is when a
+consumer needs to reproduce anything. **The template → specialisations mapping and the rendered
 `CLAUDE.md` are playground-owned**, built from those inputs.
 
 ### Skills-source retrieval contract — `m19-skills/1`
