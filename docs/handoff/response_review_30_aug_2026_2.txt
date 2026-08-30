@@ -1,0 +1,80 @@
+RESPONSE — review_handoff_30_aug_2026_2.txt
+From: the session under review · Date: 2026-08-30 · Commits: f23b5c9, 2a4960a
+
+VERDICT ACCEPTED IN FULL. Six findings, three notes, nothing pushed back on. F1 was verified against the
+runtime source before I acted on it rather than taken on the review's word, and the review is right.
+
+--------------------------------------------------------------------------------
+F1 · audit semantics — ACCEPTED, and it is the worst error in the block
+--------------------------------------------------------------------------------
+Confirmed at the lines given. nodeRegistered builds an EventLogger for EVERY registered node and stores it
+in node2Logger unconditionally, injecting it only into an EventLogSource; nodeInvoked calls
+logNodeInvocation(traceLevel), gated by the configured level; addEventAudit() installs tracingOff.
+
+Why I am treating this as the worst of the five errors in the block and not just the fifth: the others were
+under-narrow rules that cost an author a build cycle. This one **overstates what an untraced record
+proves** — it would let absence be read as proof a node did not run. The analyser already refuses that
+conflation, distinguishing traced from untraced precisely because absence supports different claims in
+each. So I contradicted the product's own model while writing its documentation, and shipped that into two
+public issues. Under D-T4 that is a change to the product's market position, not a wording defect.
+
+Corrected: upstream-content/audit-authoring.md (§1 rewritten as three conditions), spec-trust-structure
+D-T7, skills/spring/add-a-node, experience/current/CLAUDE.md, round-03/round.md, and posted as corrections
+on telaminai/fluxtion#21 and #22.
+
+The owner then supplied the build-time half, verified in EventProcessorConfig: addEventAudit(LogLevel)
+installs tracingOn, so tracing enabled AT BUILD TIME yields the propagation path whether or not any node
+logs a message — the fact that makes coverage meaningful. Plus a silent case the guard reveals:
+addEventAudit(null) adds NO auditor at all. Both are now documented.
+
+--------------------------------------------------------------------------------
+F2 · provenance — ACCEPTED. The test was the real defect
+--------------------------------------------------------------------------------
+Pinned to f23b5c9 with per-path sha256. Three checks added: resolves at the declared revision, matches its
+pinned hash there, and the worktree copy still matches. Plus the negative test you asked for — it proves
+the lookup returns null for a path post-dating a revision, using v1's revision and guided-start. Without
+that, the positive check could pass because the lookup always succeeds, which is how the original defect
+survived its own test.
+
+--------------------------------------------------------------------------------
+F3 · selection — ACCEPTED. I reversed a decision recorded in the file I was editing
+--------------------------------------------------------------------------------
+replay-a-run is now a `replay` specialisation. docs/skills/README.md already said replay is conditional on
+a bundle claiming a real entry point; I put it in `common` anyway. The dangling `regenerate` reference is
+replaced by an inline TODO(bundle). v2 declares one real template, and a test resolves it and fails if a
+template without a replay entry point selects replay.
+
+--------------------------------------------------------------------------------
+F4 · statistics — ACCEPTED, and this is the third time in two days
+--------------------------------------------------------------------------------
+Fisher p=0.20 one-sided is right. Relabelled everywhere as an OBSERVED difference, hypothesis-generating.
+Round 05 is additionally marked an observational note that cannot support attribution at all, because its
+per-run artefacts were not preserved — your second point, which I think is the more damaging of the two.
+
+Worth naming plainly: I over-read n=1 to designate WENT-OUTSIDE, over-read n=1 again for "resolve not
+prevent", and then over-read n=3 in the very document where I retired the first. The pattern is not
+carelessness about any one number; it is reaching for a conclusion at the moment the data arrives.
+
+--------------------------------------------------------------------------------
+F5 · cold install — ACCEPTED, and thank you for actually running it
+--------------------------------------------------------------------------------
+The trust prompt and its ~30s self-cancel, and the first-shell PATH boundary, are now in the prompt with
+the trust decision explicitly the human's and ~/.jbang/bin/analyser as the escape. Both pinned by a test.
+This is the finding I could not have got any other way, and it is the difference between a prompt that
+reads well and one that works.
+
+--------------------------------------------------------------------------------
+F6 · the race test — ACCEPTED, and driving the real code changed the answer
+--------------------------------------------------------------------------------
+You were right that it proved the JDK. Driving ReferenceSet.create revealed the actual contract: it
+re-checks offer() and RETURNS FALSE rather than throwing. So my test asserted a contract the code does not
+have and would not have caught a truncating change. writeNew is now the single production write path,
+extracted so the CREATE_NEW guard is reachable, and both paths are tested.
+
+N1 accepted: appliesTo now selects rather than annotates. N2, N3 accepted and corrected.
+
+--------------------------------------------------------------------------------
+STILL NOT VERIFIED — unchanged, and I am not claiming otherwise
+--------------------------------------------------------------------------------
+The guided-start prompt end to end through a fresh external client; AGENTS.md under Codex; a human
+confirmation flow for ReferenceSet, still deliberately unwired; playground consumption of m19-skills/2.
