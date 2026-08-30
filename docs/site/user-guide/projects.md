@@ -29,9 +29,35 @@ agent reads; source selection belongs to the playground's build/release process.
 
 With **no project open**, the analyser behaves exactly as it always has. Project profiles are opt-in.
 
+## Start from a playground template
+
+Choose **File ▸ New project from template…** to start inside the analyser instead of visiting the
+playground first. The analyser reads the playground's live, versioned catalogue and lists the entries
+the catalogue marks for onboarding; template names are not copied into the application. A key requirement
+is shown only when the catalogue declares `keyNeed` explicitly—the analyser never guesses it from AOT mode.
+
+1. Select a template and read its catalogue description.
+2. Confirm or change its artifact, group and base-package defaults.
+3. Choose a new or empty project directory.
+4. Select **Download and open**. The generated project's profile becomes the active project.
+
+![The live playground catalogue presented inside the Swing analyser, with the template description
+shown before anything is downloaded](../assets/template-picker.png)
+
+The archive boundary is deliberately strict: only the configured playground HTTPS origin is contacted;
+absolute and parent-traversing ZIP entries are refused; entry count and expanded sizes are capped; a
+non-empty destination is never merged or overwritten; and extraction is staged beside the destination
+then moved into place atomically. Archive mode bits are ignored—only the fixed root lifecycle allowlist
+(`mvnw`, run, export, stop and key-check shell wrappers) receives executable bits.
+
+The analyser **does not run downloaded code**. When the project is ready it shows fixed, copyable build,
+run, export and stop commands selected from recognised filenames. You decide whether to paste them into
+a terminal. If the catalogue is unreachable, the error gives the manual template-gallery route instead
+of leaving an empty picker.
+
 ## Opening and switching
 
-![The File menu with the project group: Open project, Open recent project, New project, Save project as and Close project, in their own section below the log and GraphML openers](../assets/projects-file-menu.png)
+![The File menu with the project group, including New project from template, in its own section below the log and GraphML openers](../assets/projects-file-menu.png)
 
 Project actions are a group of their own. The items above them open a *file to look at*; these change
 *which project's settings are in force*. **Save project as…** and **Close project** are greyed out until
@@ -40,6 +66,8 @@ a project is open.
 **File ▸ Open project…** — pick the project directory, or its `.fluxtion-settings` file directly.
 
 - **File ▸ Open recent project** — the last ten, most recent first.
+- **File ▸ New project from template…** — downloads a catalogue-selected starter into a destination
+  you approve, safely extracts it and opens its bundled profile. It shows commands but runs none.
 - **File ▸ New project…** — chooses a directory, then offers the Java source roots, `SKILL.md` runbooks
   and GraphML it can already see there. Every box starts off: finding is not adding. Confirm only the
   facts this analyser should adopt; an empty directory produces an ordinary empty offer and can still

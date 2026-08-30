@@ -430,6 +430,35 @@ def capture_mcp_setup():
             _failed.append(name)
 
 
+def capture_template_picker():
+    """M19.5's real catalogue chooser, generated under the same isolated home as every docs image."""
+    print("template picker")
+    stop_capture_app()
+    shutil.rmtree(CAPTURE_ROOT, ignore_errors=True)
+    HOME.mkdir(parents=True)
+    stage_mcp_setup_launchers()
+    classes = CAPTURE_ROOT / "classes"
+    source = REPO / "tools" / "TemplatePickerDocCapture.java"
+    result = subprocess.run(["javac", "-cp", str(CAPTURE_JAR), "-d", str(classes), str(source)],
+                            capture_output=True, text=True)
+    name = "template-picker.png"
+    _attempted.append(name)
+    if result.returncode != 0:
+        print(f"  ! could not compile template-picker capture: {result.stderr.strip()}")
+        _failed.append(name)
+        return
+    result = subprocess.run(["java", f"-Duser.home={HOME}", "-cp",
+                             str(classes) + os.pathsep + str(CAPTURE_JAR),
+                             "telamin.fluxtion.audit.analyser.analyser.ui.TemplatePickerDocCapture", str(ASSETS)],
+                            capture_output=True, text=True)
+    asset = ASSETS / name
+    if result.returncode == 0 and asset.exists() and asset.stat().st_size > 0:
+        print(f"  ✓ {name}  ({asset.stat().st_size // 1024} KB, dialog capture)")
+    else:
+        print(f"  ! template-picker capture failed: {result.stderr.strip()}")
+        _failed.append(name)
+
+
 def finish_capture():
     if "--keep" not in sys.argv:
         stop_capture_app()
@@ -508,11 +537,28 @@ def capture_tutorial():
     finish_capture()
 
 
+def capture_projects_menu():
+    """The project actions after M19.5 — including the live-catalogue template picker entry point."""
+    print("project menu (light)")
+    ep = launch("Light")
+    menu_capture(ep, "File", "projects-file-menu.png")
+    finish_capture()
+
+
 def main():
     ASSETS.mkdir(parents=True, exist_ok=True)
 
     if "--tutorial" in sys.argv:
         capture_tutorial()
+        return
+
+    if "--projects-menu" in sys.argv:
+        capture_projects_menu()
+        return
+
+    if "--template-picker" in sys.argv:
+        capture_template_picker()
+        finish_capture()
         return
 
     if "--mcp" in sys.argv:

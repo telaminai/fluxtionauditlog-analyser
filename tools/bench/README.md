@@ -10,6 +10,20 @@ record format got one (M34.3).
 | `mongoose-stub.py` | the **server** — reduced to the contract | the fixture: writes a `~/.mongoose/servers/<name>` file (UP-MNG-01 shape, mode 600) and serves the export endpoints from the in-tree demo set. Not a Mongoose; a statement of what one must do |
 | `bundle-bench.py` | the **static half of M19 P3** | checks a generated directory or zip against `m19-bundle/3`: safe inventory, exact profile ABI, contract/mirror, source/GraphML, skills/frontmatter/provenance/version, executable commands and no placeholders. It does not claim the live run |
 | `bundle-client-bench.py` | the **fresh-analyser/MCP half of M19 P3** | opens a producer-run bundle in a disposable analyser home, verifies profile/runbooks/provenance, log/GraphML pairing and coverage, then proves the packaged MCP bridge sees the same state |
+| `template-bench.py` | the **M19.5 template-picker boundary** | always runs the catalogue/version and hostile-ZIP tests; `--live` also downloads the deployed onboarding template and opens its profile through `ProjectSession` |
+
+## Preflight the analyser template picker
+
+```bash
+tools/bench/template-bench.py
+tools/bench/template-bench.py --live
+```
+
+The local leg refuses unsupported catalogue versions, unsafe catalogue paths, HTTP origins, traversal
+and absolute ZIP paths, populated destinations, expansion/entry-limit attacks, multiple roots and an
+archive claiming an executable bit for an ordinary file. The live leg reads the public catalogue,
+downloads the named template through `/start/scaffold?template=…`, extracts it through the same Java
+boundary the UI uses, opens the bundled profile and verifies every runbook pointer resolves.
 
 ## Preflight a generated analyser bundle
 

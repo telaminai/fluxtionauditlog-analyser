@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.core;
 import javax.swing.SwingUtilities;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -30,8 +31,8 @@ public final class Background {
      * Runs {@code work} off the EDT; on success delivers the result to {@code onSuccess} on the EDT,
      * on failure delivers the throwable to {@code onError} on the EDT.
      */
-    public static <T> void run(Supplier<T> work, Consumer<T> onSuccess, Consumer<Throwable> onError) {
-        POOL.submit(() -> {
+    public static <T> Future<?> run(Supplier<T> work, Consumer<T> onSuccess, Consumer<Throwable> onError) {
+        return POOL.submit(() -> {
             try {
                 T result = work.get();
                 SwingUtilities.invokeLater(() -> onSuccess.accept(result));

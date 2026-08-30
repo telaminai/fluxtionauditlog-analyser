@@ -18,6 +18,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   receive the same caller-buffer hygiene as successful saves and later write failures.
 
 ### Added
+- **Create a playground starter without leaving the analyser.** *File ▸ New project from template…*
+  reads the live versioned catalogue, lets you choose a starter and identity, safely downloads and
+  atomically extracts it, then opens its project profile. The HTTPS origin is pinned; traversal,
+  expansion, overwrite and executable-bit attacks are refused. Downloaded code is never executed—the
+  final dialog only shows and copies fixed lifecycle commands.
 - **A versioned canonical skills index for generated bundles.** Build/release tooling can retrieve the
   analyser-owned `m19-skills/1` Mongoose snapshot directly from the repository's public raw HTTPS root;
   tests pin the selected tiers, source revision and exact skill bytes. Generated projects remain offline

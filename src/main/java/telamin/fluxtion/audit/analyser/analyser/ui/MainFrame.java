@@ -13,6 +13,9 @@ import telamin.fluxtion.audit.analyser.analyser.io.S3Source;
 import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
 import telamin.fluxtion.audit.analyser.analyser.parse.LogStores;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceService;
+import telamin.fluxtion.audit.analyser.analyser.template.TemplateArchive;
+import telamin.fluxtion.audit.analyser.analyser.template.TemplateCatalogue;
+import telamin.fluxtion.audit.analyser.analyser.template.TemplateClient;
 
 import javax.swing.*;
 import java.awt.BorderLayout;
@@ -48,6 +51,9 @@ public final class MainFrame extends JFrame {
     private final telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore fluxtionKeyStore =
             new telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore();
     private final AppConfig config;
+    /** M19.5: one pinned public origin; downloaded content is extracted but never executed. */
+    private final TemplateClient templateClient = TemplateClient.playground();
+    private final TemplateArchive templateArchive = new TemplateArchive();
 
     private final LogTablePanel tablePanel = new LogTablePanel();
     /** M36: the LEFT COLUMN holds the start page or the records+detail pair, never both. */
@@ -1563,6 +1569,7 @@ public final class MainFrame extends JFrame {
         file.addSeparator();
         file.add(openProjectItem());
         file.add(recentProjectsMenu);
+        file.add(newProjectFromTemplateItem());
         file.add(newProjectItem());
         saveProjectAsItem.addActionListener(e -> saveProjectAs());
         saveProjectAsItem.setToolTipText("Fork these settings to another project. There is no plain "
@@ -3286,6 +3293,84 @@ public final class MainFrame extends JFrame {
         return item;
     }
 
+    private JMenuItem newProjectFromTemplateItem() {
+        JMenuItem item = new JMenuItem("New project from template…");
+        item.setToolTipText("Choose an onboarding starter from the live playground catalogue, download it safely and open its project profile");
+        item.addActionListener(e -> chooseTemplateProject());
+        return item;
+    }
+
+    private void chooseTemplateProject() {
+        status.setText("Loading the playground template catalogue…");
+        runTemplateTask("Loading the playground template catalogue…",
+                () -> templateClient.catalogue(ReleaseNotes.version()),
+                selection -> {
+                    TemplateCatalogue.Entry chosen = TemplateProjectDialog.chooseTemplate(this, selection);
+                    if (chosen == null) {
+                        status.setText("Template selection cancelled");
+                        return;
+                    }
+                    status.setText("Loading defaults for " + chosen.name() + "…");
+                    runTemplateTask("Loading defaults for " + chosen.name() + "…",
+                            () -> templateClient.defaults(chosen),
+                            defaults -> configureTemplateDownload(chosen, defaults),
+                            error -> showTemplateFailure("Could not load template defaults", error));
+                },
+                error -> showTemplateFailure("Could not load the template catalogue", error));
+    }
+
+    private void configureTemplateDownload(TemplateCatalogue.Entry template, TemplateClient.Defaults defaults) {
+        TemplateProjectDialog.Choice choice = TemplateProjectDialog.chooseDestination(this, template, defaults);
+        if (choice == null) {
+            status.setText("Template download cancelled");
+            return;
+        }
+        status.setText("Downloading and checking " + template.name() + "…");
+        runTemplateTask("Downloading and safely unpacking " + template.name() + "…",
+                () -> {
+                    byte[] zip = templateClient.download(choice.download());
+                    try {
+                        return templateArchive.install(zip, choice.destination());
+                    } catch (java.io.IOException e) {
+                        throw new TemplateClient.Failure("could not install the starter: " + e.getMessage(), e);
+                    }
+                },
+                this::openInstalledTemplate,
+                error -> showTemplateFailure("Could not create the project", error));
+    }
+
+    private <T> void runTemplateTask(String message, java.util.function.Supplier<T> work,
+                                     java.util.function.Consumer<T> onSuccess,
+                                     java.util.function.Consumer<Throwable> onError) {
+        TemplateProjectDialog.Progress progressDialog = TemplateProjectDialog.showProgress(this, message,
+                () -> status.setText("Template operation cancelled"));
+        java.util.concurrent.Future<?> task = Background.run(work, value -> {
+            progressDialog.finish();
+            if (!progressDialog.cancelled()) onSuccess.accept(value);
+        }, error -> {
+            progressDialog.finish();
+            if (!progressDialog.cancelled()) onError.accept(error);
+        });
+        progressDialog.attach(task);
+    }
+
+    private void openInstalledTemplate(TemplateArchive.Installed installed) {
+        if (installed.profile() != null) {
+            applyProjectResult(project.open(installed.profile()));
+        } else {
+            // Pre-M19 templates have no profile. Reuse day-two discovery: everything found is offered
+            // unchecked and only the person's explicit selection is adopted.
+            createProjectAt(installed.projectRoot());
+        }
+        TemplateProjectDialog.showCommands(this, installed.projectRoot(), installed.commands());
+    }
+
+    private void showTemplateFailure(String title, Throwable error) {
+        String message = rootMessage(error);
+        status.setText(title + ": " + message);
+        JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE);
+    }
+
     /** Pick a project directory rather than the profile file — the file name is always the same. */
     private void chooseAndOpenProject() {
         JFileChooser fc = new JFileChooser();
@@ -3306,8 +3391,12 @@ public final class MainFrame extends JFrame {
         fc.setDialogTitle("New project — choose the project directory");
         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        createProjectAt(fc.getSelectedFile().toPath());
+    }
+
+    private void createProjectAt(Path selectedRoot) {
         Path file = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
-                .pathFor(fc.getSelectedFile().toPath());
+                .pathFor(selectedRoot);
         if (Files.exists(file)) {
             int keep = JOptionPane.showConfirmDialog(this,
                     "That directory already has a project.\nOpen it instead of overwriting?",
@@ -3317,7 +3406,7 @@ public final class MainFrame extends JFrame {
             }
             return;   // never silently replace someone's project file
         }
-        Path root = fc.getSelectedFile().toPath().toAbsolutePath().normalize();
+        Path root = selectedRoot.toAbsolutePath().normalize();
         NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);
         NewProjectDiscovery.Selection selection = NewProjectOfferDialog.show(this, offer);
         if (selection == null) return;       // the offer is a question; Cancel creates and adopts nothing
