@@ -29,8 +29,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   wants (`mongoose`, `embedded`, `spring`). A new `spring/add-a-node` skill covers adding a node to a
   Spring-XML graph, including the two ways that fail silently. `m19-skills/1` is unchanged.
 - **A new project can be given a `CLAUDE.md` that points at the canonical Fluxtion authoring resources.**
-  The set ships with the analyser; only entries marked agreed are ever written, an existing `CLAUDE.md` is
-  never overwritten, and the file carries links with a reason each rather than restating any rule.
+  *New project…* offers it as one unchecked box beside the source roots, skills and GraphML it found —
+  including for an empty directory, where it helps most. Only entries marked agreed are ever written; a
+  Spring-only link is written only for a Spring-authored project; an existing `CLAUDE.md` is never
+  overwritten and you are told rather than left wondering; and the file carries links with a reason each
+  rather than restating any rule, so improving those pages improves the project too.
 - **A loopback-only playground origin override for local experiments.** `-Dfluxtion.analyser.playgroundOrigin=http://127.0.0.1:PORT`
   points *New project from template…* at a playground served locally. Plain `http` is accepted **only** for
   `127.0.0.1`, `[::1]` and `localhost`; every other origin keeps the HTTPS rule, and the origin must still be
