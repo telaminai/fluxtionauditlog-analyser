@@ -31,8 +31,10 @@ Corrections made here
      bundle's project, paired log, PriceEvent cycle and source navigation. The numeric graph, AI menu
      and MCP setup use the neutral DEMO fixture where the bundle cannot yet supply the state, and the
      page says so rather than pretending otherwise.
-  8. The incoming capture harness referred to a nonexistent `tools/stage-tutorial-bundle.sh`; its
-     failure now gives the concrete neutral staging and run/export/stop procedure instead.
+  8. The incoming capture harness initially referred to a nonexistent staging script. Concurrent
+     analyser commit `fadfa5b` supplied `tools/stage-tutorial-bundle.sh`; it generates the exact
+     template, proves the ordinary build keyless, runs/exports/stops it and checks for PriceEvent
+     cycles before the screenshot harness opens it.
 
 Producer findings
 -----------------
