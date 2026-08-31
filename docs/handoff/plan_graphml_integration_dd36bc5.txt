@@ -1,86 +1,47 @@
-INTEGRATION NOTE — GraphML metadata: what landed, and the one loop-integrity gap still open
-Repository: fluxtion-compiler
-Branch: feature/compiler_diagnostics @ 3091862 (dd36bc5 integrated as 7e63cbc)
-Written: 2026-08-31, revised the same day after the integration landed
+SUPERSEDED — do not use as current guidance
+Superseded: 2026-08-31, by fluxtion-compiler feature/compiler_diagnostics @ 1e1c133
 
-STATUS: the integration this note originally advised on is DONE. §1 is kept as the record of what
-the collision was and how it resolved. §2 is the part that is still live: the build fingerprint is
-NOT emitted, and it is the loop's integrity check.
+This note advised on the GraphML integration and then, in a second revision, argued for the build
+fingerprint. The integration is done and the fingerprint argument was wrong in two specific ways.
+Both errors are named below rather than deleted, because anyone who read the earlier revision needs
+to correct the same two things.
 
-================================================================================
-1 · WHAT THE COLLISION WAS, AND HOW IT RESOLVED  (historical)
-================================================================================
+CURRENT AUTHORITIES, in the compiler repository:
 
-Two sessions implemented GraphML edge metadata within an hour of each other, in the same file,
-neither able to see the other: `9402fe7` ("Slice 4") on the feature branch, `dd36bc5` on the handoff
-branch. They agreed on the diagnosis and disagreed on key name, edge shape, whether the emission was
-toggleable, and where the facts came from.
+  docs/specs/compiler-diagnostics/TRACKER.md        current state, closed decisions, ranked work
+  docs/specs/compiler-diagnostics/wire-contract.md  normative diagnostics JSON
+  docs/specs/meta-data-improvements/README.md       normative GraphML vocabulary and modes
+  design/model-rationalisation/README.md            the semantic-authority gate
 
-Resolved, per the compiler's own tracker (finding F6): `9402fe7` reverted, `dd36bc5` cherry-picked as
-`7e63cbc`. One exporter path, one key name (`refKind`), one relationship model, one toggle governing
-all of it, default OFF. Two follow-up commits then fixed the spike's concrete value defects and made
-model ownership the documented gate for flipping that default.
+WHAT THIS NOTE GOT WRONG
 
-The remaining architecture item — relationships re-derived by reflection rather than captured where
-the compiler decides them — is recorded in that tracker as an owner-confirmed gate, and is specified
-in the compiler repo at `design/model-rationalisation/README.md`. Nothing further is needed here.
+1 · It stated that `fluxtion.generatedAt` is emitted. It is not, and the reason matters: a wall-clock
+value makes an unchanged graph differ on every build, which defeats the byte-stable output the same
+vocabulary requires elsewhere. The key was removed deliberately. If a creation time is ever wanted it
+belongs in a build manifest or sidecar, not in the deterministic graph document.
 
-================================================================================
-2 · STILL OPEN: the build fingerprint is published but not emitted
-================================================================================
+I asserted this from a stale reading and did not notice that my own check had printed nothing for
+that key. The absence was the answer.
 
-Measured at `3091862`: the key manifest carries 26 keys, **19 emitted and 7 planned**.
-`fluxtion.toolchainVersion` and `fluxtion.generatedAt` are emitted. **`fluxtion.sourceFingerprint`
-is one of the seven planned** — specified in `docs/specs/meta-data-improvements/README.md`, declared
-in the manifest with `status: planned`, and produced by nothing.
+2 · It claimed the fingerprint could proceed independently of the model-authority gate, on the
+grounds that it is computed from the model rather than from the relationship carrier. That is wrong
+in a way worth keeping: hashing values the exporter derived by its own reflection would place a
+second source of truth inside the artefact whose entire purpose is to detect drift. The digest must
+be computed from the authoritative graph description, which means it follows the gate.
 
-This was assumed to have been covered by the combining work. It was not: the integration settled the
-edge model and the toggle, and the fingerprint was never in scope for either branch.
+The note was also incomplete on carriers. A digest present only in GraphML identifies the graph and
+proves nothing about a separate log. The current spec fixes four carriers for one value — GraphML,
+`DescriptorSupport.Meta`, the generated-source header used by `FLX-1021`, and the audit-log header —
+and the last requires a coordinated runtime change before graph/log pairing can be claimed.
 
-WHY IT IS WORTH MORE THAN ITS SIZE
+WHAT SURVIVES
 
-It is the only artefact that answers "is this graph the build that produced this log?" from two files
-and no running processor — which is the normal forensic case, and the normal LLM case. Today that
-question is answered by counting unmatched instance ids, a heuristic that cannot distinguish "wrong
-build" from "this cycle simply did not touch those nodes".
+Only the argument for why the fingerprint is worth its size: it is the one artefact that answers "is
+this the build that produced this log" without a running processor, and in a loop where a model
+regenerates repeatedly, the likeliest silent failure is reasoning confidently over the previous
+build's graph. That argument is already carried by the current spec, which also has the sequencing
+and the carriers right. Read that instead.
 
-In a loop where a model regenerates repeatedly, the most likely silent failure is not a bad
-diagnostic — it is the model reading the PREVIOUS build's graph and reasoning confidently about code
-that has since changed. Every other artefact in the loop is checkable; without the fingerprint, the
-pairing between them is not. It is the loop's integrity check rather than bookkeeping.
-
-It also has two other consumers already waiting, which is the argument for doing it once:
-
-* `ProcessorDescriptor.sourceFingerprint()` exists and returns null. Two fingerprints that can
-  disagree would be worse than one, so the GraphML value and the descriptor value must be the same
-  computation.
-* `FLX-1021` (stale checked-in generated source) is marked *Design needed*. With a fingerprint
-  stamped in the generated source header it becomes decidable: recompute, compare, and name the
-  class whose signature moved. That is the difference between a diagnostic that can exist and one
-  that cannot.
-
-WHAT STILL NEEDS DECIDING BEFORE IT CAN BE EMITTED
-
-The spec proposes SHA-256 over a canonical serialisation of the generation inputs — node names,
-classes, callback kinds, ranks, edges with their relationship facts, service contracts, audit regime,
-generator identity — sorted, and explicitly EXCLUDING timestamps, absolute paths and the generated
-source text.
-
-Two owner decisions remain, both recorded as open questions in the spec:
-
-1. the exact input set — in particular whether the audit regime belongs in it, since a traced and an
-   untraced build of one graph are arguably the same graph and definitely different artefacts;
-2. whether the AOT path must be reproducible under `SOURCE_DATE_EPOCH`, and whether a build wanting
-   byte-identical output can suppress `generatedAt`.
-
-The property that makes it useful is that two builds of unchanged input produce the same value. If it
-moves every rebuild, every comparison is a false negative and the key is worse than absent — the same
-failure mode as the reflection-ordering instability already found and fixed in this vocabulary.
-
-SEQUENCING
-
-Independent of the model-rationalisation work: the fingerprint is computed from the model, not from
-the relationship carrier, so it does not wait on that gate. It can be emitted while the vocabulary
-default is still OFF, and it is arguably the one key that should be emitted regardless of the
-toggle — a document that does not say which build wrote it is a document nothing can trust, whatever
-else it carries.
+The historical record of the two-implementation collision — `9402fe7` reverted, `dd36bc5` cherry-
+picked as `7e63cbc`, one exporter path, one key name, one toggle — is in the compiler's tracker under
+its own disposition and in git history. It does not need to live here.
