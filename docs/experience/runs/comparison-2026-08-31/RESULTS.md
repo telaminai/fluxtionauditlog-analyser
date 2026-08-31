@@ -108,10 +108,36 @@ of it is simply a stronger subject.
 - **Single fixture.** One node, one failure mode, the one FLX-1009 was designed against.
 - **Abstention was permitted**; real authoring gives no such permission.
 
+## SELF-ASSESSMENT — the treatment arm is close to circular
+
+Added after scoring, because the result reads stronger than it is.
+
+**The treatment prompt contained the sentence "constructor-maps every FINAL, non-transient instance
+field".** I then scored whether the agent said `final`. That is largely a measurement of whether a
+model can read a paragraph, which needed no experiment. Both treatment agents did more than parrot —
+they applied the rule and gave all three routes — but the criticism stands, and I should have seen it
+before running rather than after.
+
+**The control arm does not have this problem, and it is the half worth keeping.** Two capable agents,
+given the message an author sees today, produced wrong general rules — both said constructor-mapping
+applies to *every* field. That is a finding about the current state which depends on nothing I built,
+and it replicates the baseline's 0 of 2 on a different model family.
+
+**The row that would have been informative is the one that did not establish.** Build attempts is
+behavioural — it cannot be satisfied by recall — and at n=2 per arm it carries nothing.
+
+So the honest summary is narrower than the table: **the legacy message reliably produces wrong rules in
+capable readers, and this run does NOT show that the sidecar fixes that for the NEXT node rather than
+for the one in front of them.** Testing transfer is what would show it — see
+[`transfer-2026-08-31`](../transfer-2026-08-31/RESULTS.md).
+
 ## What this licenses, and what it does not
 
-**Licensed:** the FLX-1009 `why` field carries a rule that capable readers do not otherwise reach. That
-was the specific claim, and it is the one that transfers to the next unfamiliar node.
+**Licensed:** capable readers do not reach the `final` rule from the message an author sees today —
+0 of 2 here, 0 of 2 at baseline, on two different model families. That is the gap, measured.
+
+**NOT licensed by this run:** that the sidecar closes it durably. The treatment arm handed the agents
+the rule and asked whether they had it (see *Self-assessment*).
 
 **Not licensed:** any statement about build cycles saved. Row 1 needs more agents, or a task-pressure
 instrument rather than a question-answering one.
