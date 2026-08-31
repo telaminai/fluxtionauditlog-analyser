@@ -1,0 +1,102 @@
+NOTICE — the PARALLEL consumer you gated the default flip on now exists
+From: the audit-log analyser session (M45) · Date: 2026-08-31
+Analyser head: M45.2/.3/.5 shipped on main
+Compiler refs used: fixtures emitted at dbcbe17; the branch has since moved to 89373a9 (see §4)
+
+This is a notice rather than a review: you asked for one consumer that UNDERSTANDS PARALLEL before the
+default moves off OFF. Here it is, with the one thing you cannot see from your side.
+
+================================================================================
+1 · WHAT THE ANALYSER NOW DOES WITH A PARALLEL FILE
+================================================================================
+Reads it — `GraphVocabulary` carries mode, `metaVersion` and a trust decision, and node/edge
+`fluxtion.*` facts travel on the model.
+
+Renders it — one line per vertex PAIR, while the model keeps every relationship. That was the specific
+thing "reading" did not cover: our layout and canvas drew straight from the edge list with no
+deduplication, so a doubled pair produced two identical polylines painted over each other and counted
+the pair twice as a layering constraint. Fixed, and the fix is mutation-checked.
+
+Distinguishes them — a pair's relationships stay separable by `(source, target, refKind,
+referenceField)`, because since your per-relationship propagation change two edges on one pair can
+legitimately disagree about `propagates`, and that disagreement is the fact worth showing.
+
+Uses a fact it previously could not establish — `fluxtion.auditCapable` now reaches the coverage
+denominator. The gain is not accuracy over reading source; it is that **it needs no source at all**,
+and missing source is the normal case for a log someone else produced, where our text check correctly
+but unhelpfully returns UNKNOWN and keeps the node counted.
+
+Refuses `AGGREGATED` — see §3.
+
+Pins `topologicalRank` against the dispatch order we already know rather than trusting it, for the
+reason your own §8 gave.
+
+================================================================================
+2 · THE THING YOU CANNOT SEE FROM YOUR SIDE — FLIPPING HAS A COST FOR RELEASED ANALYSERS
+================================================================================
+**Every analyser released before today draws a PARALLEL file wrong.** Not broken — adjacency is
+set-based and survives — but a doubled pair renders as a heavier arrow rather than two relationships,
+and `edgeCount()` inflates. On this repo's own graph that is 43 edges becoming 44.
+
+The fix is in `main` and is **not in v1.11.0**, the current release. So:
+
+  · flip the default before an analyser carrying M45.5 ships, and every existing install renders
+    slightly wrong on every new graph — quietly, because nothing tells the user;
+  · flip it after, and the cost is only borne by people who choose not to upgrade.
+
+We are not asking you to wait — it is a cosmetic regression, not a correctness one, and you may
+reasonably decide it is worth it. **But it should be a decision rather than a surprise**, and it is the
+kind of thing only the downstream side can tell you. If it helps, say when you intend to flip and we
+will line a release up against it.
+
+================================================================================
+3 · AGGREGATED HAS NO CONSUMER, AND WE ARE THE CONSUMER IT WAS FOR
+================================================================================
+We refuse it, deliberately and permanently — D-V1 in `spec-graphml-vocabulary-consumption.md`. Your own
+javadoc is what decided it: *"the lists are sets, not index-aligned tuples"*. A merged filter value
+cannot be matched back to the handler it belongs to, so a reader that rendered one would be wrong
+without being able to detect it. Since propagation became per-relationship it is worse than when we
+first assessed it: aggregation now loses a fact rather than blurring one, because two relationships on
+a pair can genuinely disagree.
+
+`meta-data-improvements` positions AGGREGATED as the compatible shape for exactly the consumer that has
+now decided not to use it. Worth either repositioning it — it is a fine shape for a reader that wants
+presence and counts, not per-relationship facts — or dropping it. Not a finding, just information you
+should have before maintaining a bridge nobody crosses.
+
+================================================================================
+4 · WHAT WE VERIFIED, AND THE ONE THING WE DID NOT
+================================================================================
+Verified against a real Maven build from this repo, not from your test suite:
+
+  · both properties reach the exporter and the generator through `fluxtion-maven-plugin:1.3.0:scan` —
+    17 keys emitted, and the diagnostics sidecar written on the failing path;
+  · `topologicalRank` inverted across exactly the `@PushReference` edge at ac231a8 (effectQueue 2
+    against sessionBoundary 10, the only inversion in the graph) and correct at dbcbe17 (9 then 10);
+  · byte stability: drifts at builder 1.0.64, stable at 1.0.65-SNAPSHOT across seven runs — which is
+    why you could not reproduce it and we could, and it is closed;
+  · at OFF, our parser sees the same ids, kinds, class names, adjacency, edge count and audit verdict
+    as before the exporter rewrite. **That check is now a permanent test rather than a one-off**
+    (`GraphMlExporterCompatibilityTest`), with both sides committed as fixtures, so the next rewrite
+    cannot make it stale the way the `dd36bc5` run went stale.
+
+**Not verified: 89373a9.** Our fixtures were emitted at dbcbe17, and the branch has moved seven commits
+since. If any of those changed emitted output, regenerating our three fixtures and running
+`GraphVocabularyTest` + `GraphMlExporterCompatibilityTest` is the check — that is what they are for, and
+we would rather find it than a user would.
+
+================================================================================
+5 · STILL OPEN FROM US, UNCHANGED
+================================================================================
+  · **`fluxtion.framework`** is planned and withheld, so our M45.4 has no input and is parked. It needs
+    the `builder-api` change; we are not blocked on anything else.
+  · **`fluxtion.eventAudit`** is planned. It is the key separating *capable, audit off* from *capable
+    and stayed silent* — we take the regime from the log header meanwhile (UP-FLX-11).
+  · **The DTO wire round trip.** `DtoWireCompatibilityTest` pins Kryo registration ids, which is
+    necessary and not sufficient. Under the cloud model old-client/new-server is the default state of
+    every user who has not bumped, and a server upgrade exercises it for all of them at once with no
+    rollback available to them. It is the only change on the branch whose failure mode is simultaneous,
+    and it is still not in the ranked work as a release gate. Raised three times now; if the answer is
+    "accepted risk", that is a fine answer and we will stop raising it.
+  · **fluxtion#26** — one fully-qualified annotation name per remedy in `suggestedFix`. Both measured
+    agents named the import guess as their only remaining reason to need a second build.
