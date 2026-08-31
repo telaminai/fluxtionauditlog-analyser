@@ -1,0 +1,198 @@
+REPORT — compiler diagnostics + GraphML metadata: integration of 1e1c133
+Date: 2026-08-31 · Author session: compiler implementation
+Repository: fluxtion-compiler · Branch: feature/compiler_diagnostics
+Final SHA: 7a273a83dcbeb59bed66db14e5c30dd3b8d9e7bb
+Integrated from: 1e1c133 (origin) — rebased, fast-forward push, no force
+
+OUTCOME
+
+1e1c133 is integrated. The rebase applied with NO textual conflict, so everything below is semantic
+reconciliation rather than merge resolution. Two of this session's decisions were reversed by the
+compiler specs and one document was deleted; the defect fixes underneath them survive.
+
+The compiler documents were treated as authority throughout. Where a handoff review and a document at
+1e1c133 disagreed, the document won — including where that overturned work this session had already
+built and pushed.
+
+================================================================================
+1. INCORPORATED
+================================================================================
+
+Taken in: 9f55281, 3091862, 726653b, 1e1c133.
+
+Added on top:
+  7632b99  design note (subsequently deleted — see §2)
+  43e7451  exporter consumes the model instead of re-deriving it
+  735b0e6  reconciliation with the model-authority architecture
+  333bd52  stop reporting a deliberate non-failure as an error
+  7a273a8  tracker corrections
+
+================================================================================
+2. RECONCILIATIONS — where the specs overturned this session
+================================================================================
+
+2a. fluxtion.propagates restored as ONE key.
+
+This session had split it into `fluxtion.triggers` + `fluxtion.handlerPropagates`, on the strength of
+review_graph_metadata_spike F3 ("propagates still conflates different contracts"). The metadata spec
+at 1e1c133 keeps it whole and states the reason: propagates and refKind are INDEPENDENT axes, and a
+push edge is non-propagating AND direction-reversing, so splitting loses that case. The key asks one
+question of both carriers — does an update cross this edge. Reverted.
+
+The defect underneath the rename survives, which was the actual point: a @TriggerEventOverride-demoted
+parent now publishes propagates=false, matching the generated guard, where the reflection emitter said
+true.
+
+Note for the reviewing session: F3's finding was real, but the repair it implied was not the one the
+spec wanted. The conflation was in the VALUE, not the key.
+
+2b. Handler edges still carry no refKind — NOT a deviation.
+
+refKind names a parent-to-child reference kind; an event reaching a handler is not one. The metadata
+spec's own worked example (§What is emitted today) shows handler edges carrying handlerMethod, the
+filter keys and propagates, with no refKind.
+
+2c. design-exporter-consumes-model.md DELETED rather than merged.
+
+Its thesis is design/model-rationalisation's, written better and owner-confirmed. Keeping a second
+document describing one architecture is the failure that branch exists to fix. Its measurements now
+live in GraphMlRelationDivergenceTest, where they are executable; code comments point at the gate.
+
+2d. FLX-1009 — nothing of this session's to preserve.
+
+9f55281 supersedes the "a mixture is FLX-1001" rule with a better one: name both field sets and prove
+whether excluding state alone repairs the constructor before saying so. Accepted wholesale.
+
+================================================================================
+3. WHAT THE IMPLEMENTATION CHANGED
+================================================================================
+
+The GraphML exporter is now a projection of the model rather than a second discovery pass. It receives
+the DTO that is built ten lines above the call site and had previously been withheld from it.
+
+Now projected: filters, callback kinds, node kind, class and dispatch rank from NodeDto; PUSH from the
+graph's own push-edge set; propagation from the event graph. The carrying field is recorded beside each
+graph.addEdge — the one relationship fact the model discards, because the source-gen extractor
+flattens its field mapping into constructor and property source text before anything else can read it.
+The package-prefix framework heuristic is deleted.
+
+Four divergences closed, each measured against a compiled graph before being fixed, each pinned by a
+test that is known to fail against the previous emitter:
+
+  · an array-held parent emitted NO facts (the emitter tested == and Collection membership only);
+  · a @PushReference edge emitted NO facts — the compiler emits push edges reversed, and the emitter
+    asked every edge for the field on its target, so it searched the referenced node for a field
+    holding its own owner. refKind=PUSH was published vocabulary and unreachable in practice;
+  · a @TriggerEventOverride-demoted parent published propagates=true. Verified against the generated
+    dispatch: guardCheck_* reads only the overriding parent's dirty flag. The only value that was
+    WRONG rather than missing;
+  · handler edges borrowed the reference vocabulary.
+
+Also fixed silently by reading NodeDto: topologicalRank used getObjectSortedDependents (field order,
+not dispatch order), and filter values now pick up filterVariable resolved against the live instance,
+filterStringFromClass, and EventProcessorConfig filter-id overrides — none of which an annotation
+reader can see.
+
+Model change: @ServiceRegistered/@ServiceDeregistered added to NodeDto.annotatedMethods, which carried
+neither, so a node that only deregisters looked callback-less to every model consumer. Existing list
+field, no new field, no UID change, no Kryo shift. Goldens regenerated for exactly that delta and
+nothing else (verified by diffing annotation sets, not by eyeballing).
+
+================================================================================
+4. WHAT IS NOT DONE, AND WHY
+================================================================================
+
+4a. fluxtion.framework and fluxtion.authoredNodeCount are WITHHELD.
+
+Node creation is now recorded across four routes — factory, generation context, @Inject, and
+transitive reference from those. One route is not reachable from the compiler repository: the
+framework registers the clock, node-name lookup and service registry as AUDITORS, and
+EventProcessorConfig.getAuditorMap() lives in the open builder-api artefact and mixes those with any
+auditor the author added.
+
+Rather than publish `false` for a node the compiler created, both keys are `planned` in the manifest
+and not emitted. This is narrower than the metadata spec, which marks the key Ready and says it should
+ship together with propagates. Closing it needs a builder-api change. Tracker open work 8.
+
+4b. The model-authority gate is PARTLY closed (tracker open work 1).
+
+Relationship kind, origin and propagation are looked up at export time from authoritative sources
+rather than recorded as one neutral relationship record at the edge-add site, so there is no single
+GraphDescription carrier yet — P1/P2 are satisfied by composition, not by one object. One reflection
+call remains in GraphMlFacts: the class-level @FilterId default, which reads a value off an instance
+rather than re-deciding anything. JgraphGraphMLExporter.exportToString still calls getMethods() to add
+event and exported-service vertices; P1 says that description moves to the model seam and it has not.
+
+4c. Relationship routes only PARTLY proven (tracker open work 2).
+
+Covered: arrays, push direction and field ownership, @TriggerEventOverride demotion,
+@NoTriggerReference, handler edges, two fields on one vertex pair. NOT covered: method-reference
+captures, anchors, exported callbacks, and independent propagation per relationship — propagates is
+currently answered per vertex PAIR, because directParentsListeningForEvent is a node list.
+
+4d. PARALLEL still has no consumer. Default stays OFF. That is your F5 and it is unchanged.
+
+================================================================================
+5. FINDING RAISED THIS SESSION — client visibility of diagnostics
+================================================================================
+
+Asked how a client sees the new diagnostics, the measured answer is worth recording because it changes
+what "done" means for this work.
+
+The remote boundary sits AFTER the DTO is built: RemoteHttpModelGenerator posts the DTO and receives
+an EventProcessorModel. So the graph build, the DTO build and the source-gen extraction all run in the
+USER's JVM, and FLX-1001/1005/1007/1009/1008 are raised client-side. Local and remote AOT therefore
+raise identical diagnostics; only failures the server itself raises need the remote transport, and
+those are currently flattened to RemoteGenerationResponse.error, a plain String.
+
+But almost nothing surfaces them:
+
+  · DiagnosticException carries the structure and its message is DELIBERATELY the legacy prose, so an
+    ordinary build looks exactly as it did before;
+  · DiagnosticJsonWriter.writeSidecar is called ONLY from tests. No production path writes a sidecar,
+    so no CI gate or repair loop has a file to read;
+  · warnings reach a collector only if the caller sets one, and no public compile entry point does.
+
+Scope, now recorded in the tracker: FLX-1001, FLX-1005 and FLX-1009 are SOURCE-GENERATION diagnostics.
+An interpreted or in-process build never renders a node to source, so it cannot raise them — confirmed
+by the owner as deliberate. FLX-1007 is different; cycles are refused on every path.
+
+The swallow was correct, but it logged at ERROR with a stack trace, which made a working interpreted
+build look broken. Now DEBUG on that path, ERROR retained where rendering genuinely is the job.
+
+Consequence the public error docs owe an answer to: a graph developed interpreted can meet a
+constructor rejection for the first time at AOT build time — the "it worked yesterday" report. Two
+items added to tracker open work 7: state per-code scope publicly, and consider an opt-in
+"validate as if generating source".
+
+================================================================================
+6. VERIFICATION
+================================================================================
+
+Run on the integrated tree:
+
+  · full reactor — builder 159, generator-core 21, generator-http 14, integration 3436 (5 skipped),
+    zero failures, zero errors;
+  · focused: GraphMlMetadataTest 16/16, GraphMlRelationDivergenceTest 6/6;
+  · git diff --check 5c5a517..HEAD — clean;
+  · fast-forward push confirmed before pushing; no force at any point.
+
+Mutation evidence, because "the tests pass" is not the claim: every assertion in
+GraphMlRelationDivergenceTest began as a characterisation test asserting the DEFECT, so each is known
+to fail against the previous emitter rather than merely passing against the new one.
+
+NOT verified:
+  · no consumer has read a PARALLEL file;
+  · remote/Kryo compatibility of the NodeDto annotation addition is reasoned (existing list field, no
+    UID or id change) but not exercised by an old↔new test;
+  · the withheld fluxtion.framework routes are argued from code reading plus one probe, not from an
+    exhaustive enumeration of registration sites.
+
+================================================================================
+7. NOTE ON THIS DOCUMENT
+================================================================================
+
+Written here because this directory is where the cross-session handoffs live. It is a REPORT, not an
+authority: the compiler's authority is docs/specs/compiler-diagnostics/TRACKER.md and the specs beside
+it, and everything above is also recorded there. Where this file and the tracker ever disagree, the
+tracker is right — that is the same rule this integration was asked to apply to the earlier reviews.
