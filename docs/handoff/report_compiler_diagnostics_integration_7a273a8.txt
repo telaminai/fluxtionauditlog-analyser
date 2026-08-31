@@ -91,10 +91,13 @@ test that is known to fail against the previous emitter:
     WRONG rather than missing;
   · handler edges borrowed the reference vocabulary.
 
-Also fixed silently by reading NodeDto: topologicalRank used getObjectSortedDependents (field order,
-not dispatch order), and filter values now pick up filterVariable resolved against the live instance,
-filterStringFromClass, and EventProcessorConfig filter-id overrides — none of which an annotation
-reader can see.
+Filter values now pick up filterVariable resolved against the live instance, filterStringFromClass,
+and EventProcessorConfig filter-id overrides — none of which an annotation reader can see.
+
+CORRECTION (2026-08-31, after dbcbe17). An earlier version of this paragraph also claimed
+topologicalRank was "fixed silently by reading NodeDto". IT WAS NOT, and the claim stood in this
+report for a day. See §8 of report_m45_upstream_response_ac231a8.txt for what was actually wrong and
+what it means for M45.5.
 
 Model change: @ServiceRegistered/@ServiceDeregistered added to NodeDto.annotatedMethods, which carried
 neither, so a node that only deregisters looked callback-less to every model consumer. Existing list

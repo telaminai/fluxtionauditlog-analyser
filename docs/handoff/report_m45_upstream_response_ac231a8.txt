@@ -1,7 +1,8 @@
 REPORT — upstream response to M45 and the 7a273a8 review
 Date: 2026-08-31 · Author session: compiler implementation
 Repository: fluxtion-compiler · Branch: feature/compiler_diagnostics
-Final SHA: ac231a83f159b2c9ebc9074cccc6a3959d22ffcc
+Final SHA: dbcbe174c6f14f40424721fdd45b38e6251d64ea
+           (amended 2026-08-31 — was ac231a8; §8 added, §7b and §9 revised)
 Reviewed inputs: spec-graphml-vocabulary-consumption.md (M45), review_integration_7a273a8.txt,
                  review_diagnostics_closure_and_graphml_stability.txt
 
@@ -141,6 +142,7 @@ are reproducible from `GraphMlMetadataTest`'s probe path if you want them regene
     the manifest and withheld. The metadata spec's "Ready" marker describes the ask, not the output.
     **M45.4 is blocked upstream, and closing it needs a builder-api change.** M45.3 and M45.5 are not
     affected — auditCapable, propagates, filters, handlerMethod and topologicalRank are all emitted.
+    **But read §8 before building M45.5: topologicalRank was emitting the wrong order until dbcbe17.**
 
 7c. D-V1 — refuse AGGREGATED. Agreed, and upstream's own javadoc is the evidence you quote. Worth
     adding: with propagation now answered per RELATIONSHIP rather than per vertex pair, two edges on one
@@ -161,7 +163,60 @@ are reproducible from `GraphMlMetadataTest`'s probe path if you want them regene
   · the model-authority gate is partly closed: relationship kind and origin are looked up at export
     rather than recorded as one neutral record, and `exportToString` still calls `getMethods()` to add
     event vertices.
-  · method-reference captures, anchors and exported callbacks have no production relationship test.
+  · anchors and exported callbacks have no production relationship test (method-reference captures
+    now do — §8).
+
+================================================================================
+8. AMENDMENT — topologicalRank was the WRONG ORDER, and I had reported it fixed
+================================================================================
+
+TAKE dbcbe17 OR LATER BEFORE M45.5, AND REGENERATE ANY FIXTURE MADE WITH AN EARLIER BUILD.
+
+WHAT WAS WRONG. `topologicalRank` was an index into `getObjectSortedDependents()` — the OBJECT
+sorted order, which is field/construction order — not `getSortedDependents()`, the dispatch order.
+Those two lists part company exactly where push is involved, because push edges are inserted
+reversed. Measured on a graph with one push reference:
+
+    generated dispatch : ... joiner, sink
+    published rank     : sink=7, joiner=8        <- the opposite
+
+and against the implementation before the fix the gap is wider: pusher=10, target=3.
+
+WHY THIS MATTERS TO M45 SPECIFICALLY, which is the reason it is worth a whole section:
+
+  · M45.4's blocker (fluxtion.framework, §7b) is a MISSING key — you plan around it and lose a
+    feature. This is different in kind: the key was PRESENT, plausible, and reversed. D-V4 item 2
+    makes it "a column"; a column of integers reads as authoritative, and nothing downstream would
+    have told you the two numbers were the wrong way round.
+  · your own baseline is why it matters most here. Sibling dispatch order is the question three of
+    three agents could not answer from the artefacts, and four of six previously concluded
+    declaration order. Shipping a rank that inverts across push edges would have replaced "cannot
+    tell" with "confidently wrong", which is a worse position than the one you measured.
+  · it is the same defect class as the two we already fixed on this branch — per-pair propagation
+    and the @TriggerEventOverride demotion. A value that is wrong rather than missing, and readable
+    without any signal that it should not be trusted.
+
+HOW IT GOT INTO A REPORT, because the process point is the transferable part. The call site was
+renamed to `model.dispatchRank(...)` and the local variable to `dispatchOrder`, while the method
+behind them still returned the object order. The rename made the claim LOOK true, I wrote it into
+the integration report, and it survived your review and mine — because both of us were reading the
+report's prose against the diff, and no test asserted the ordering at all.
+
+It was found because the owner asked whether the rank was relied on anywhere or was "an arbitrary
+observed index after generation". That question, not a test, is what exposed it. The lesson I am
+taking: on this branch every CODE change has been mutation-checked, and the REPORTS have not been
+held to the same standard. A claim in a handoff is an assertion like any other.
+
+NOW COVERED, each mutation-checked against the implementation it replaces:
+
+  · topologicalRank follows dispatch order, asserted across a push edge;
+  · nodes and edges are emitted in SORTED order — the stability fix from §5 had no direct test, and
+    without the sort the emitted order is visibly walk order;
+  · a method-reference capture is a labelled relationship. The compiler follows
+    `MethodReferenceReflection.captured()[0]`; the field holds the lambda WRAPPER, so the old
+    emitter matched nothing and left the edge bare. This was on your unproven-routes list.
+
+Anchors and exported callbacks remain uncovered, and I am not claiming otherwise.
 
 ================================================================================
 9. NOTE ON THIS DOCUMENT
