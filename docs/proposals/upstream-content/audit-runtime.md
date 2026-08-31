@@ -18,7 +18,7 @@ the wrong evidence, so a diagnostic cannot reach them and a document has to.
 | `fluxtion-playground.dev/CLAUDE.md` | carries the same snippet as `claude.txt` |
 | `fluxtion-playground.dev/spring-authoring/contract.md` | one line under `logLevel` — the Spring author's entry point to audit |
 
-## Evidence the gap is real — retrieved 2026-08-31
+## Evidence the gap is real — retrieved 2026-08-31, **re-verified unchanged 2026-09-01**
 
 Live documents, so the retrieval date matters: they can change under this claim.
 
@@ -29,7 +29,8 @@ Live documents, so the retrieval date matters: they can change under this claim.
 | `https://fluxtion-playground.dev/CLAUDE.md` | same snippet as above | **no** |
 | all three | — | **`setAuditLogLevel`, `LogRecordListener`, `setLogSink`: zero occurrences in any of them** |
 
-Searched for `before init` / `after init` / `init()` near audit across all three: **no matches**.
+Searched for `before init` / `after init` / `init()` near audit across all three: **no matches**, on
+both retrievals. `setAuditLogLevel` and `LogRecordListener` remain at zero occurrences in all three.
 
 **The sharp point.** The two canonical snippets show **opposite orders**, each correct for its own
 situation and neither labelled:

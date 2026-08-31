@@ -109,6 +109,31 @@ Both are settled decisions rather than open work, so their rationale now lives i
 agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
 they produced are unchanged and remain under **Decisions** below.
 
+## Upstream template content — three drafts, ready to be taken
+
+_`docs/proposals/upstream-content/`. Drafted FOR the static authoring resources
+(`claude.txt`, the playground `CLAUDE.md`, the golden path), not for this repo. Each carries a
+retrieval-dated evidence table, because those are live documents that can change under a claim._
+
+- [UC1] ☐ **`audit-authoring.md`** — how a node participates in the audit log. The three conditions, the
+  `EventLogSource` contract, the `addEventAudit` overloads.
+- [UC2] ☐ **`audit-runtime.md`** — getting the log OUT. Six measured wirings, the `System.out` default
+  sink, `logLevel()` after `init()` being a silent no-op, and the fact that the audit "setters" are
+  dispatches. Evidence **re-verified unchanged 2026-09-01**.
+- [UC3] ☐ **`node-field-wiring-and-workflow.md`** — NEW 2026-09-01. Two halves of one gap.
+  **The rule:** *final* is the trigger for constructor mapping, and the word appears **nowhere** in any
+  of the three sources — nor do `non-final`, JavaBean setter-wiring, or `@ConstructorArg`. The canon
+  covers how to STOP a field being mapped and never what decides that it is. Route 3 — a non-final field
+  is setter-wired and never constructor-mapped — is the one three measured agents found by accident and
+  none could explain.
+  **The workflow:** develop bean-style, harden to constructors when the shape settles, treat the
+  migration as one deliberate break. Measured — four constructor-shape breaks while the node set churned,
+  none after it stabilised — and **no diagnostic can carry it**, because it is advice about the order to
+  work in rather than a failure to report.
+  _Also records what is already RIGHT and must not be touched: `claude.txt` states the exclusion remedy
+  with its FQN and says the field initialiser still runs, which this repo measured independently before
+  finding it already documented._
+
 ## M45 · Consuming the GraphML vocabulary — ◧ .1/.2/.3/.5 SHIPPED 2026-08-31
 
 _Design: **[spec-graphml-vocabulary-consumption.md](spec-graphml-vocabulary-consumption.md)**. The
