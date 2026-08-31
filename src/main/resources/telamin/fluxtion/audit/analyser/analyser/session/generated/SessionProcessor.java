@@ -49,11 +49,14 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoa
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
+import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
 
 /**
@@ -110,6 +113,11 @@ public class SessionProcessor
       new telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph(operationGate);;
   public final transient OpenLog openLog =
       new telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog(operationGate);;
+  public final transient Pairing pairing =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.Pairing(operationGate);;
+  public final transient LogArrival logArrival =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
+          operationGate, pairing, openGraph, effectQueue);;
   public final transient SessionBoundary sessionBoundary =
       new telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary(
           operationGate, activeProject, openLog, openGraph, effectQueue);;
@@ -119,20 +127,22 @@ public class SessionProcessor
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
+  public final transient AuditInstallation auditInstallation = new AuditInstallation();
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
   private boolean initCalled = false;
   private boolean processing = false;
   private boolean buffering = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(4);
+      new IdentityHashMap<>(5);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(4);
+      new IdentityHashMap<>(5);
 
   private boolean isDirty_activeProject = false;
   private boolean isDirty_openGraph = false;
   private boolean isDirty_openLog = false;
   private boolean isDirty_operationGate = false;
+  private boolean isDirty_pairing = false;
 
   //Filter constants
 
@@ -453,6 +463,10 @@ public class SessionProcessor
     effectOutcomes.onGraphClosed(typedEvent);
     auditInvocation(openGraph, "openGraph", "onGraphClosed", typedEvent);
     isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
+    auditInvocation(pairing, "pairing", "onGraphClosed", typedEvent);
+    isDirty_pairing = pairing.onGraphClosed(typedEvent);
+    auditInvocation(auditInstallation, "auditInstallation", "onGraphClosed", typedEvent);
+    auditInstallation.onGraphClosed(typedEvent);
     afterEvent();
   }
 
@@ -463,6 +477,10 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onGraphObserved(typedEvent);
     auditInvocation(openGraph, "openGraph", "onGraphObserved", typedEvent);
     isDirty_openGraph = openGraph.onGraphObserved(typedEvent);
+    auditInvocation(pairing, "pairing", "onGraphObserved", typedEvent);
+    isDirty_pairing = pairing.onGraphObserved(typedEvent);
+    auditInvocation(auditInstallation, "auditInstallation", "onGraphObserved", typedEvent);
+    auditInstallation.onGraphObserved(typedEvent);
     afterEvent();
   }
 
@@ -485,6 +503,10 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onLogObserved(typedEvent);
     auditInvocation(openLog, "openLog", "onLogObserved", typedEvent);
     isDirty_openLog = openLog.onLogObserved(typedEvent);
+    auditInvocation(pairing, "pairing", "onLogObserved", typedEvent);
+    isDirty_pairing = pairing.onLogObserved(typedEvent);
+    auditInvocation(logArrival, "logArrival", "onLogObserved", typedEvent);
+    logArrival.onLogObserved(typedEvent);
     afterEvent();
   }
 
@@ -596,6 +618,10 @@ public class SessionProcessor
       effectOutcomes.onGraphClosed(typedEvent);
       auditInvocation(openGraph, "openGraph", "onGraphClosed", typedEvent);
       isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
+      auditInvocation(pairing, "pairing", "onGraphClosed", typedEvent);
+      isDirty_pairing = pairing.onGraphClosed(typedEvent);
+      auditInvocation(auditInstallation, "auditInstallation", "onGraphClosed", typedEvent);
+      auditInstallation.onGraphClosed(typedEvent);
     } else if (event instanceof GraphObserved) {
       GraphObserved typedEvent = (GraphObserved) event;
       auditEvent(typedEvent);
@@ -603,6 +629,10 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onGraphObserved(typedEvent);
       auditInvocation(openGraph, "openGraph", "onGraphObserved", typedEvent);
       isDirty_openGraph = openGraph.onGraphObserved(typedEvent);
+      auditInvocation(pairing, "pairing", "onGraphObserved", typedEvent);
+      isDirty_pairing = pairing.onGraphObserved(typedEvent);
+      auditInvocation(auditInstallation, "auditInstallation", "onGraphObserved", typedEvent);
+      auditInstallation.onGraphObserved(typedEvent);
     } else if (event instanceof LogClosed) {
       LogClosed typedEvent = (LogClosed) event;
       auditEvent(typedEvent);
@@ -619,6 +649,10 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onLogObserved(typedEvent);
       auditInvocation(openLog, "openLog", "onLogObserved", typedEvent);
       isDirty_openLog = openLog.onLogObserved(typedEvent);
+      auditInvocation(pairing, "pairing", "onLogObserved", typedEvent);
+      isDirty_pairing = pairing.onLogObserved(typedEvent);
+      auditInvocation(logArrival, "logArrival", "onLogObserved", typedEvent);
+      logArrival.onLogObserved(typedEvent);
     } else if (event instanceof OpenProjectRequested) {
       OpenProjectRequested typedEvent = (OpenProjectRequested) event;
       auditEvent(typedEvent);
@@ -694,11 +728,14 @@ public class SessionProcessor
     auditor.nodeRegistered(subscriptionManager, "subscriptionManager");
     auditor.nodeRegistered(context, "context");
     auditor.nodeRegistered(activeProject, "activeProject");
+    auditor.nodeRegistered(auditInstallation, "auditInstallation");
     auditor.nodeRegistered(effectOutcomes, "effectOutcomes");
     auditor.nodeRegistered(effectQueue, "effectQueue");
+    auditor.nodeRegistered(logArrival, "logArrival");
     auditor.nodeRegistered(openGraph, "openGraph");
     auditor.nodeRegistered(openLog, "openLog");
     auditor.nodeRegistered(operationGate, "operationGate");
+    auditor.nodeRegistered(pairing, "pairing");
     auditor.nodeRegistered(sessionBoundary, "sessionBoundary");
   }
 
@@ -726,6 +763,7 @@ public class SessionProcessor
     isDirty_openGraph = false;
     isDirty_openLog = false;
     isDirty_operationGate = false;
+    isDirty_pairing = false;
   }
 
   @Override
@@ -760,6 +798,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(openGraph, () -> isDirty_openGraph);
       dirtyFlagSupplierMap.put(openLog, () -> isDirty_openLog);
       dirtyFlagSupplierMap.put(operationGate, () -> isDirty_operationGate);
+      dirtyFlagSupplierMap.put(pairing, () -> isDirty_pairing);
     }
     return dirtyFlagSupplierMap.getOrDefault(node, DataFlow.ALWAYS_FALSE);
   }
@@ -771,6 +810,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(openGraph, (b) -> isDirty_openGraph = b);
       dirtyFlagUpdateMap.put(openLog, (b) -> isDirty_openLog = b);
       dirtyFlagUpdateMap.put(operationGate, (b) -> isDirty_operationGate = b);
+      dirtyFlagUpdateMap.put(pairing, (b) -> isDirty_pairing = b);
     }
     dirtyFlagUpdateMap.get(node).accept(dirtyFlag);
   }
@@ -783,11 +823,19 @@ public class SessionProcessor
     return isDirty_operationGate;
   }
 
+  private boolean guardCheck_logArrival() {
+    return isDirty_openGraph | isDirty_operationGate | isDirty_pairing;
+  }
+
   private boolean guardCheck_openGraph() {
     return isDirty_operationGate;
   }
 
   private boolean guardCheck_openLog() {
+    return isDirty_operationGate;
+  }
+
+  private boolean guardCheck_pairing() {
     return isDirty_operationGate;
   }
 

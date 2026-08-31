@@ -12,6 +12,9 @@ import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;
 import com.telamin.fluxtion.builder.generation.config.EventProcessorConfig;
 import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
+import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
+import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
@@ -64,6 +67,10 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         OpenGraph openGraph = new OpenGraph(gate);
         SessionBoundary boundary = new SessionBoundary(gate, activeProject, openLog, openGraph, effects);
         EffectOutcomes outcomes = new EffectOutcomes(gate);
+        // M44.2 — the review's F3: three questions the first draft merged into one node.
+        Pairing pairing = new Pairing(gate);
+        AuditInstallation auditInstallation = new AuditInstallation();
+        LogArrival logArrival = new LogArrival(gate, pairing, openGraph, effects);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -74,6 +81,9 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(boundary, "sessionBoundary");
         cfg.addNode(effects, "effectQueue");
         cfg.addNode(outcomes, "effectOutcomes");
+        cfg.addNode(pairing, "pairing");
+        cfg.addNode(auditInstallation, "auditInstallation");
+        cfg.addNode(logArrival, "logArrival");
 
         // WITH a level: invocation tracing is compiled in, so every node that runs appears in the record
         // whether or not it made an auditLog call of its own. That is the regime in which absence from

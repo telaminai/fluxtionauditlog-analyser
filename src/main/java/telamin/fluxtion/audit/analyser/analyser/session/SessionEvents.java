@@ -94,22 +94,51 @@ public final class SessionEvents {
     // ---------------------------------------------------------------- observations
 
     /**
-     * The adapter reporting whether a log is open, and which.
+     * A log arrived, or went — and what it says about itself.
      *
-     * <p><b>This input exists because slice 1 does not own log opening yet.</b> M35's open path still
-     * lives in {@code MainFrame}, so the processor cannot know a log arrived unless it is told. It is
-     * an observation and not a result: nobody requested it, so it carries no {@code opId} and the gate
-     * does not check one.
+     * <p><b>This is a permanent input, not the scaffold slice 1 left behind.</b> Loading a log is
+     * asynchronous ({@code Background.run}) and the v1 driver is synchronous and single-in-flight by
+     * design (D-S0.3), so making the open an effect the processor requests would mean either an
+     * asynchronous driver or a lie about when the load finished. The load therefore stays in the
+     * adapter and reports what it found. What M44.2 removed is the DUPLICATION: this no longer says
+     * only "a log is open", it carries the evidence a decision needs.
      *
-     * <p><b>Scheduled for deletion</b> when the slice that moves log opening lands — at which point a
-     * log becomes open because {@code LogOpened} answered an {@code OpenLogEffect}, and this input
-     * becomes a second source of truth for the same fact. It is written down here so that removal is a
-     * planned step rather than a discovery.
+     * @param loggedNodeIds distinct {@code instanceId}s seen in the sampled records — raw, so the
+     *                      graph computes the pairing rather than being handed a verdict
+     * @param sampled       how many records were scanned, and {@code total} how many exist: a pairing
+     *                      drawn from a sample must never be stated as a whole-log claim
      */
-    public record LogObserved(boolean open, String logPath, String provenance) {
+    public record LogObserved(boolean open, String logPath, String provenance,
+                              java.util.Set<String> loggedNodeIds, int sampled, int total) {
+
+        public LogObserved {
+            loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** The shape slice 1 used, for callers with nothing to say about pairing. */
+        public LogObserved(boolean open, String logPath, String provenance) {
+            this(open, logPath, provenance, java.util.Set.of(), 0, 0);
+        }
     }
 
-    /** As {@link LogObserved}, for the topology graph, and deleted at the same time. */
-    public record GraphObserved(boolean open, String graphPath, String source) {
+    /**
+     * A topology arrived, or went, with the raw facts a decision needs.
+     *
+     * @param declaredNodeIds the authored node ids the graph declares
+     * @param nodeTypes       every node's simple type name, which is how audit installation is read —
+     *                        the compiler installs {@code EventLogManager} as a node, so its presence
+     *                        is the evidence and its absence is the finding
+     */
+    public record GraphObserved(boolean open, String graphPath, String source,
+                                java.util.Set<String> declaredNodeIds, java.util.List<String> nodeTypes) {
+
+        public GraphObserved {
+            declaredNodeIds = declaredNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(declaredNodeIds);
+            nodeTypes = nodeTypes == null ? java.util.List.of() : java.util.List.copyOf(nodeTypes);
+        }
+
+        public GraphObserved(boolean open, String graphPath, String source) {
+            this(open, graphPath, source, java.util.Set.of(), java.util.List.of());
+        }
     }
 }

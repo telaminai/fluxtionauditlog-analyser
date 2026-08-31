@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -57,13 +59,25 @@ class SessionGraphShapeTest {
                         + "would draw effects as feeding INTO the decision that produced them.");
         assertFalse(hasEdge(topology, "effectQueue", "sessionBoundary"));
 
-        // Nothing may reach the queue except through a decision.
+        // Nothing may reach the queue except through a DECISION. Asserted as the property rather than
+        // as a fixed list of node names: M44.2 added `logArrival`, which is a second decision and a
+        // legitimate second source, and a test that pinned the names would have called that a defect.
+        // What must never appear is an EVENT — an input wired straight to the effect queue is a short
+        // circuit round the policy, and that is what this catches.
         Set<String> intoQueue = topology.edges().stream()
                 .filter(e -> e.target().equals("effectQueue"))
                 .map(ProcessorTopology.Edge::source)
                 .collect(Collectors.toSet());
-        assertEquals(Set.of("sessionBoundary"), intoQueue,
-                "an input event wired straight to the effect queue is a short circuit round the policy");
+        assertFalse(intoQueue.isEmpty(), "something must fill the queue");
+        for (String source : intoQueue) {
+            ProcessorTopology.Node node = topology.node(source);
+            assertNotNull(node, source);
+            assertNotEquals(ProcessorTopology.Kind.EVENT, node.kind(),
+                    source + " is an EVENT wired straight to the effect queue — that is a short "
+                            + "circuit round the policy, which is exactly what this picture exists "
+                            + "to make visible");
+        }
+        assertTrue(intoQueue.contains("sessionBoundary"), "the session-boundary decision fills it");
     }
 
     @Test

@@ -2509,6 +2509,8 @@ public final class MainFrame extends JFrame {
         logDisplayLocation = null;
         logLocalPath = null;
         logProvenance = null;          // §E: it described THAT log, not the next one
+        loggedNodeSample = java.util.Set.of();   // the sample described THAT log too
+        loggedSampleScanned = 0;
         logProvenanceSource = null;
         declinedSourceGraph = null;    // review N1: that offer came with the log that just closed
         timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
@@ -2890,20 +2892,24 @@ public final class MainFrame extends JFrame {
         return pairing;
     }
 
+    /**
+     * M35.2, now DECIDED by the session processor (M44.2).
+     *
+     * <p>What used to be here — judge the open graph against the arriving log, keep it or close it —
+     * is {@code LogArrival} in the graph, replayable and audited. This method does what an adapter
+     * does: refresh the evidence, hand it over, and render whatever came back.
+     *
+     * <p>The load itself deliberately did NOT move. It is asynchronous ({@code Background.run}) and
+     * the driver is synchronous and single-in-flight by design, so making the open an effect the
+     * processor requests would have meant either an asynchronous driver or a lie about when the load
+     * finished. Moving the decision without the load is the honest half.
+     */
     private void repairLoadedGraph(LogStore loaded) {
-        if (!topologyPanel.hasGraph()) return;
-        var pairing = pairingAgainst(loaded);
-        lastPairing = pairing;
+        refreshLoggedNodeSample();
+        noteGraphState();
+        noteLogState();                     // the arrival — LogArrival decides on this
+        lastPairing = session == null ? null : session.processor().pairing.verdict();
         publishPairing();
-        if (pairing.applies()) {
-            status.setText(status.getText() + "  ·  graph " + topologyPanel.graphLabel()
-                    + " kept — " + pairing.reason());
-            return;
-        }
-        String closed = topologyPanel.graphLabel();
-        topologyPanel.clearGraph();
-        status.setText(status.getText() + "  ·  ⚠ graph " + closed + " closed — " + pairing.reason()
-                + ". Reopen it deliberately if you meant to compare them.");
     }
 
     /**
@@ -3619,18 +3625,51 @@ public final class MainFrame extends JFrame {
      *
      * <p>Scheduled for deletion with {@code LogObserved}, when the slice that moves log opening lands.
      */
+    /**
+     * The distinct instanceIds the open log writes, sampled once when it loads.
+     *
+     * <p>Cached deliberately: {@link #updateLifecycleMenu()} is the observation funnel and has ten
+     * call sites, and rescanning {@value #PAIRING_SAMPLE} records on each of them would put a log
+     * walk behind every menu refresh. It changes only when the log does.
+     */
+    private java.util.Set<String> loggedNodeSample = java.util.Set.of();
+    private int loggedSampleScanned;
+
+    private void refreshLoggedNodeSample() {
+        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
+        int scan = 0;
+        if (store != null) {
+            scan = Math.min(store.size(), PAIRING_SAMPLE);
+            for (int row = 0; row < scan; row++) {
+                for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
+            }
+        }
+        loggedNodeSample = logged;
+        loggedSampleScanned = scan;
+    }
+
     private void noteLogState() {
         if (session == null || session.isDispatching()) return;
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved(
-                store != null, logDisplayLocation, logProvenance));
+                store != null, logDisplayLocation, logProvenance,
+                loggedNodeSample, loggedSampleScanned, store == null ? 0 : store.size()));
     }
 
     /** As {@link #noteLogState()}, for the topology graph. */
     private void noteGraphState() {
         if (session == null || session.isDispatching()) return;
         Path graphFile = topologyPanel.loadedGraphFile();
+        boolean open = topologyPanel.hasGraph();
+        java.util.List<String> types = new java.util.ArrayList<>();
+        if (open) {
+            var full = topologyPanel.fullTopology();
+            if (full != null) {
+                for (var n : full.nodes()) types.add(n.simpleName());
+            }
+        }
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved(
-                topologyPanel.hasGraph(), graphFile == null ? null : graphFile.toString(), "OPENED"));
+                open, graphFile == null ? null : graphFile.toString(), "OPENED",
+                open ? topologyPanel.authoredNodeIds() : java.util.Set.of(), types));
     }
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */

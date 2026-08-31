@@ -310,7 +310,30 @@ agents does — and that learning is the raw material for the template bootstrap
   `STARTUP_ACTIVATION`, import-as-project) reach the same decision with a different kind — the rule is
   covered, the per-call-site kind is read rather than run. `ADOPT_FOR_OPEN_LOG` is worth a human's two
   minutes before release.
-- [M44.2] ☐ **Next slices:** `IgnoredParameters`, then split `GraphPairing` /
+- [M44.2] ◧ **The M35.2 rule and the review's F3 shipped 2026-08-31.** Three nodes: `Pairing` (does this
+  graph describe this log), `AuditInstallation` (can this processor log at all — **answerable without a
+  log**, which is the property F3 said merging would destroy), and `LogArrival`, which is
+  `MainFrame.repairLoadedGraph`'s rule moved into the graph. A log arriving judges an open graph as
+  *residue* and closes it if it does not fit; a graph arriving against a log is *intent* and is kept with
+  a warning. One comparison, two verbs, and now replayable rather than only checkable by running the app.
+  **What deliberately did NOT move: the load itself.** It is `Background.run` — asynchronous — and the
+  driver is synchronous and single-in-flight by design (D-S0.3). Making the open an effect would have
+  meant either an asynchronous driver or a lie about when the load finished. Moving the decision without
+  the load is the honest half, and the observations stop being scaffolding: `LogObserved`/`GraphObserved`
+  now carry the ids and node types the verdicts need, which is the shape the spec always specified.
+  Also cached the 500-record pairing sample per log rather than per menu refresh — the observation funnel
+  has ten call sites.
+  **A hollow assertion of my own, found by mutation and worth recording.** Deleting `LogArrival`'s
+  `!canSay()` branch changed nothing, because it is unreachable: the node only fires on an open log, so a
+  verdict always exists. My test for it matched `cannotSay` anywhere in the sink and passed on a line
+  `Pairing` writes when it first sees the graph, before any log. The empty-log protection actually lives
+  in `GraphPairing.of`, which returns *applies* for a log with no node output because a silent log cannot
+  convict a graph. Branch kept as null-safety and **documented as null-safety rather than as a rule**;
+  test rewritten to assert the decision line.
+  ☐ **Still to move:** `IgnoredParameters`, `CoverageClaim` (the third of F3's questions, which needs
+  graph provenance and the audit regime as well), and log/graph OPENING once the driver can carry an
+  asynchronous effect.
+- [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
   `AuditInstallationReadiness` / `CoverageClaim` (the review's F3 — three questions the first draft merged
   into one). Then move log and graph OPENING, which deletes `LogObserved`/`GraphObserved` and with them
   the observation funnel that exists only because slice 1 does not own those paths yet.
