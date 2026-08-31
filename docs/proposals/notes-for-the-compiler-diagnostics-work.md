@@ -164,6 +164,44 @@ If that is useful, say so and we will run it against your branch's messages befo
 two agents and about twenty minutes per candidate. **The measurement that produced these notes is the one
 thing here that we can offer rather than merely argue.**
 
+## 9 · A WORKFLOW finding, measured — develop bean-style, harden to constructors
+
+Owner-raised 2026-08-31 and **verified by experiment**, because it is exactly the kind of "transferable
+lesson" that is worth nothing if it is wrong.
+
+**The friction.** A generated processor is committed, and it constructs each node. Change a node's
+CONSTRUCTOR SIGNATURE and the committed source stops compiling — which blocks the regeneration that
+would fix it. `mvn -Pregen` compiles before it scans, so the build cannot bootstrap out of it. Hit four
+times in one session.
+
+**The measurement.** Two probes against a real graph:
+
+| probe | result |
+|---|---|
+| convert a node FROM constructor TO bean style | breaks — the committed source calls a constructor that no longer exists |
+| **add a NEW dependency to an already-bean-style node** | **compiles, regenerates, wires it** |
+
+Bean style emits `new AuditInstallation()` at the declaration and
+`auditInstallation.setOpenGraph(openGraph)` in an init block. Because the constructor signature never
+changes, **the committed generated source stays valid while dependencies come and go** — the
+chicken-and-egg simply does not arise.
+
+**The rule this gives an author**, and it matches how graphs actually evolve — structure churns early
+and then settles, while node LOGIC keeps changing:
+
+1. **While the shape is moving, use JavaBean style** — non-final field, setter. Adding or removing a
+   dependency never blocks regeneration.
+2. **Harden to constructor injection when the shape settles.** Final fields make the dependencies
+   explicit and immutable, and by then you are not changing them.
+3. **The migration is a one-time break** — do it deliberately, once, not by accident mid-slice.
+
+This also explains why the friction is front-loaded rather than permanent, which is what the owner said
+and what this repo experienced: four constructor-shape breaks during M44's early slices, none once the
+node set stabilised.
+
+**For the bootstrap docs this is worth more than a diagnostic**, because no compiler message can tell an
+author "you would have had a better week if you had started with setters".
+
 ## 8 · What I am not confident about
 
 - ~~**I have read bytecode, not compiler source.**~~ **RESOLVED 2026-08-31, from two directions at once.**
