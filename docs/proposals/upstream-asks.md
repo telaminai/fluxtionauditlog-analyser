@@ -464,6 +464,35 @@ The message should therefore fork on the question the author actually faces:
 **Evidence** measured — one full build cycle in round 02, reproduced in both arms of round 04. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
 which is most non-trivial nodes.
 
+### UP-FLX-38 ◐ `FLX-1009` names annotations without their packages — the last measured retry
+
+_Filed: https://github.com/telaminai/fluxtion/issues/26_
+
+**Target** `fluxtion-builder` diagnostics · **Priority** low effort, and it closes the best case
+
+The successor to [UP-FLX-32](#up-flx-32--the-constructor-match-failure-names-one-of-three-wiring-strategies-and-no-remedy),
+which is now implemented: `FLX-1009` forks state from reference, names all four wiring routes, and
+certifies when excluding the state alone is a complete repair. Measured, it works — see below. This is
+the one thing left on the best-case path.
+
+**Measured 2026-08-31**, two fresh sessions given a real failing build and the sidecar that build emitted
+(`docs/experience/runs/ceiling-2026-08-31/`): both fixed it in **one attempt**, both stated the complete
+rule, both attributed the rule to the JSON rather than training. Then both named the same single risk of
+a second build:
+
+> if `com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore` is the wrong package, the compile
+> fails on the import
+
+and both said they would use `transient` **first, specifically to avoid guessing it**. So the message
+steers authors away from the annotation it leads with, for want of a package name.
+
+**Ask:** give each annotation named in `suggestedFix` its fully-qualified name once — `@FluxtionIgnore`,
+`@ConstructorArg`, `@AssignToField` — and the same for any other code whose fix text names an annotation.
+
+**Why not leave it to an IDE.** The sidecar exists so a machine consumer can act without inference
+(UP-FLX-01/#19). An agent applying the fix from JSON has no autocomplete, so the one field the message
+omits is exactly the one a non-human reader cannot recover. It is one token per annotation.
+
 ### UP-FLX-33 ◐ A Spring bean that is neither selected nor ignored is silently not a node
 
 _Filed: https://github.com/telaminai/fluxtion/issues/20_
