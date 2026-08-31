@@ -76,11 +76,37 @@ input, including the ones where nothing moved.
 This idiom is easy to over-apply, and the test is not "how many handlers" but **what each one
 contributes**.
 
-> Use one `@OnTrigger` when several inputs feed **one derivation** — every input changes the same
-> answer, and the node recomputes the same thing however many moved.
->
-> Keep separate `@OnEventHandler`s when each event contributes **different data** — the handler is not
-> a trigger for a shared recomputation, it is the only place that particular fact is available.
+**There are three shapes, not two.** The first version of this section offered a binary and was
+corrected: the middle option is `@OnParentUpdate`, and missing it is what makes "several handlers" look
+like the only alternative.
+
+| your situation | the construct |
+|---|---|
+| several inputs, **one derivation**, you do not care which moved | one `@OnTrigger` |
+| several **node parents**, one derivation, but you need to know **which parent** moved | **`@OnParentUpdate` per parent + one `@OnTrigger`** |
+| several **event types**, each contributing **different data** | one `@OnEventHandler` each |
+
+**`@OnParentUpdate` is the one people do not find.** It takes a single argument — the parent's type —
+and is invoked **during the event-in phase, before any `@OnTrigger` in the same node**. So the canonical
+shape is *"note which parents moved, then derive once"*:
+
+```java
+@OnParentUpdate                                  // fires only when THIS parent updated
+public void priceMoved(PriceListener prices) { movedPrices = true; }
+
+@OnParentUpdate("secondaryFeed")                 // name the field when parents share a type
+public void secondaryMoved(PriceListener feed) { movedSecondary = true; }
+
+@OnTrigger                                        // then once, knowing what moved
+public boolean derive() { ... }
+```
+
+Two details worth having: when parents share a type, **type resolution is non-deterministic** unless you
+name the field in `value()`; and if the reference is a **collection**, the method is called **once per
+updated element**, so it can fire several times in one cycle.
+
+**Only the third row genuinely needs several handlers**, and the distinguishing question is whether your
+inputs are *node parents* (rows one and two) or *event types* (row three).
 
 *Found by auditing a real graph against this document.* Of six nodes still carrying several handlers,
 **five were correct** and would have been damaged by collapsing them:
@@ -98,6 +124,23 @@ mechanically to handler *count* would have destroyed the information the others 
 **The generated code tells you which case you are in.** A node with an `@OnTrigger` gets a
 `guardCheck_` method — an OR of its parents' dirty flags. If you cannot name the parents whose dirtiness
 should re-run your method, you do not have a derivation; you have several handlers, correctly.
+
+#### Controlling what triggers you
+
+Holding a reference to a parent puts you on its execution path. Three annotations change that, and none
+appears in the authoring docs:
+
+* **`@NoTriggerReference`** — hold a parent **solely as a data store**. You can read it; its updates do
+  not invoke you. This is the answer to *"I need this value but it is not what should re-run me."*
+* **`@TriggerEventOverride`** — mark **one** member as *the* trigger; every other reference in the class
+  is then treated as `@NoTriggerReference`. The concise form when exactly one parent should drive you.
+* **`@NoPropagateFunction`** — an exported function that does not propagate, for a service call that
+  should not start a wave.
+
+**A caution from applying this.** It is tempting to demote parents whose facts *happen* to arrive on the
+same event as a parent you already trigger on. Resist it unless the coupling is intrinsic: if the fact
+later arrives on its own event, the node silently stops re-deriving and nothing fails. Demote a parent
+because it is genuinely a data store, not because today's event routing makes it look redundant.
 
 ### 2 · "My node needs some state"
 
