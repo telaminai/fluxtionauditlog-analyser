@@ -1,0 +1,179 @@
+COMPILER DIAGNOSTICS / GRAPHML COMPLETION REVIEW
+================================================
+
+Reviewed compiler branch: feature/compiler_diagnostics
+Reviewed head: f9e297292d0ea46190d1f4981f662c96623a36df (f9e2972)
+Incoming range reviewed: 89373a9..f9e2972
+Review date: 2026-08-31
+
+VERDICT: CHANGES REQUIRED BEFORE THE REMOTE, MODEL-AUTHORITY, AND SPRING SLICES
+CAN BE CALLED COMPLETE. Do not start the fingerprint on the present carrier shape.
+
+The implementation has valuable, production-tested progress. In particular, anchor semantics,
+per-relationship propagation, deterministic GraphML output, the public Java capture entry point,
+and the Spring exception-hierarchy decision are sound. The full reactor is green. But four claims
+of completion do not survive production-path probes, and the tracker currently records mutually
+exclusive states. The common failure is reachability: compatibility and factory-level tests prove
+components in isolation while the public path does not use them.
+
+
+F1 — BLOCKER — Remote diagnostics exist in the response DTO but never cross a production boundary
+-----------------------------------------------------------------------------------------------
+
+RemoteGenerationResponse.diagnosticsJson is a good compatibility shape: a nullable String avoids
+requiring an old client to resolve new diagnostic classes, and RemoteResponseCompatibilityTest
+checks field evolution in both directions. That test proves serialisation compatibility, not remote
+transport.
+
+The production server constructs a successful response with source, reachability metadata and WASM
+files, then copies generatedArtifacts. It never calls setDiagnosticsJson
+(fluxtion-generator-http/.../Main.java:297-301). writeError constructs an error response containing
+only legacy prose (Main.java:344-352). The production client reads reachability metadata, WASM files
+and generatedArtifacts, then returns source; it never reads getDiagnosticsJson
+(RemoteHttpCombinedGenerator.java:139-165). A repository-wide search finds every setter/getter use
+in RemoteResponseCompatibilityTest, apart from the accessors themselves.
+
+Required closure: capture the server-side report on both success and coded failure, put the wire
+contract JSON on the response, and expose/carry it at the client. Add an endpoint-level production
+test which fails if either server assignment or client consumption is removed. Keep the String and
+the current compatibility test; they solve a different, necessary problem.
+
+
+F2 — BLOCKER — The model-authority gate is not closed and the fingerprint has no single input yet
+-------------------------------------------------------------------------------------------------
+
+The architecture decision is right: capture a fact where the compiler decides it and make the
+exporter serialization-only. The current implementation does not yet have the one carrier claimed
+by TRACKER.md:94-100 and 115-133.
+
+* NodeRelationship is never instantiated. A production search for `new NodeRelationship` finds no
+  call site; the running carrier is the separate mutable inner
+  TopologicallySortedDependencyGraph.ReferenceRelationship.
+* ReferenceRelationship stores fieldName, push, origin and propagates, then derives Kind in
+  getKind() from those values (TopologicallySortedDependencyGraph.java:1500-1543). That can be made
+  authoritative, but today it is not the immutable NodeRelationship contract introduced beside it.
+* GraphDescription.of receives only live nodes, although the DTO-builder comment says the seam holds
+  the finished DTO. It re-discovers the event-handler fact by reflective method scanning
+  (GraphDescription.java:73-101) even though NodeDto already records handler facts.
+* JgraphGraphMLExporter still discovers @ExportService interfaces by reflection and creates service
+  vertices/edges itself (JgraphGraphMLExporter.java:158-175). This is a semantic graph decision in
+  the serializer, not projection of an existing description.
+
+This is not a current GraphML-output regression: the production fixtures pass, and a review probe
+proved an anchor plus an ordinary reference on the same vertex pair preserves both ANCHOR and
+TRIGGER. It is a drift and identity defect. Hashing this mixture would bless whichever combination
+of dead carrier, mutable carrier and exporter inference happened to run, defeating the purpose of a
+model fingerprint.
+
+Required closure: choose and use one relationship type rather than retaining NodeRelationship as a
+dead parallel model; carry facts already held by NodeDto instead of reflecting them again; include
+exported-service relationships in the compiler-owned description; then make the exporter a pure
+projection. Only after a test proves each emitted semantic fact came from that carrier is the
+fingerprint input stable enough to define.
+
+
+F3 — BLOCKER — FluxtionDiagnostics.capture does not capture non-fatal Spring diagnostics
+-----------------------------------------------------------------------------------------
+
+A production-path probe ran FluxtionDiagnostics.capture around a real FluxtionSpring validation
+that emits SPRING_BEAN_NOT_SELECTED. The warning appeared in the log, but the returned
+DiagnosticReport did not contain it.
+
+The reason is structural. FluxtionDiagnostics installs DiagnosticCapture's ThreadLocal
+(FluxtionDiagnostics.java:45-74), and EventProcessorGenerator consults it. FluxtionSpring instead
+owns a separate diagnosticCollector populated only through setDiagnosticCollector
+(FluxtionSpring.java:255-281). It never consults DiagnosticCapture. SpringDiagnosticException is a
+DiagnosticCarrier, so thrown Spring errors can be folded into the result, but successful builds'
+Spring warnings cannot.
+
+Required closure: make Spring compilation use the same active capture collector (without creating a
+second envelope or duplicating diagnostics), retain explicit injection where useful, and pin a real
+successful Spring build whose warning is observable through FluxtionDiagnostics.capture.
+
+
+F4 — HIGH — Nested capture silently removes the outer capture scope
+--------------------------------------------------------------------
+
+A direct public-API probe nested FluxtionDiagnostics.capture calls and then inspected
+DiagnosticCapture.active() in the outer callable. It was null after the inner call. install()
+overwrites one ThreadLocal value and the inner finally calls remove() rather than restoring the
+previous collector (DiagnosticCapture.java:29-45; FluxtionDiagnostics.java:45-74).
+
+This is observable corruption rather than an exotic internal condition: a tool can capture a broad
+build action that invokes a helper which also captures diagnostics. Subsequent outer diagnostics are
+silently lost.
+
+Required closure: make installation return/retain the previous scope and restore it in finally, or
+use a stack. If nesting is deliberately unsupported, reject it immediately with a documented error;
+do not silently erase the outer collector. Pin the decision through the public API.
+
+
+F5 — HIGH — TRACKER.md is not a current-state authority
+-------------------------------------------------------
+
+The table at TRACKER.md:16-23 says there is no public collector, remote transport is not started,
+only one Spring diagnostic is implemented, and public collector plumbing is open. Later in the same
+file, lines 178-225 call the collector, remote transport and three Spring codes DONE. The model gate
+is described as both partly closed (line 23/open work 1) and CLOSED (line 115). The full-reactor
+evidence still names d279504 rather than the reviewed f9e2972 (lines 27-29).
+
+The earlier statements are stale, but simply changing all of them to DONE would also be false because
+F1-F3 remain. Reconcile the file after the production paths are fixed, distinguishing "wire field is
+compatible" from "endpoint transports it" and "Spring accepts an explicit collector" from "the
+public capture entry point reaches Spring warnings".
+
+
+F6 — MEDIUM — The third new Spring code is not pinned as a diagnostic contract
+-------------------------------------------------------------------------------
+
+SpringDiagnosticCodeTest asserts SPRING_HANDLER_MISMATCH and SPRING_CONFIG_LOG_LEVEL_CONFLICT.
+There is no test reference to SPRING_UNDECLARED_SERVICE_CALLBACK. Older failure-path coverage pins
+legacy prose and exercises nearby behavior, but does not prove that production emits this code with
+the promised element and suggested fix. Add the same code-level production assertion used for the
+other two before saying all three Ready codes are pinned.
+
+
+WHAT PASSED REVIEW
+------------------
+
+1. The focused production suite passed:
+   GraphMlRelationDivergenceTest, DiagnosticCollectorSeamTest,
+   RemoteResponseCompatibilityTest, SpringDiagnosticCodeTest,
+   SpringAdapterFailurePathTest and SchemaConformanceTest.
+2. The complete Maven reactor passed at f9e2972. The DiagnosticException ERROR logs and large GraphML
+   output are expected test fixtures; Maven reported no test failure.
+3. A compiler-produced probe with an anchor and an ordinary reference on the same vertex pair emitted
+   both relationships correctly. The earlier ANCHOR/PUSH semantic defect is closed.
+4. A compiler-produced inherited-handler probe found no inconsistency between NodeDto and
+   GraphDescription. No finding is raised for inherited @OnEventHandler methods.
+5. The nullable String remote field is the right compatibility mechanism. F1 asks that production
+   use it; it does not ask to replace it with diagnostic DTOs.
+6. Keeping SpringDiagnosticException under IllegalArgumentException while sharing DiagnosticCarrier
+   is the right compatibility boundary. It avoids both breaking callers and the graph code's
+   IllegalArgumentException-to-cycle conversion trap.
+
+
+RECOMMENDED ORDER
+-----------------
+
+1. Fix F3 and F4 so one public local capture contract works for Java and Spring.
+2. Fix F1 with one real server/client round-trip test.
+3. Complete F2 and only then define or implement the fingerprint.
+4. Add F6's missing assertion and reconcile TRACKER.md from the resulting production facts.
+
+Do not change the GraphML default from OFF as part of these fixes. A PARALLEL-aware consumer remains
+a separate published gate.
+
+
+REVIEW METHOD AND LIMITS
+------------------------
+
+The review inspected 89373a9..f9e2972, traced production call sites, ran the focused suite and full
+reactor, and used disposable tests in a detached worktree for the three disputed runtime properties.
+The Spring-capture and nested-capture tests failed against f9e2972 as described; the anchor-pair and
+inherited-handler tests passed. The disposable worktree and probe files were removed after recording
+the results; no compiler source was changed by this review.
+
+Not verified here: a deployed remote compiler service, Java/Kryo behavior against a real previously
+released RemoteGenerationResponse class, or analyser rendering of PARALLEL GraphML. Those remain
+distinct acceptance legs and are not prerequisites for reproducing F1-F6.
