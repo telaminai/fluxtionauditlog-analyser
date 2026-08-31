@@ -1,0 +1,120 @@
+INTEGRATION NOTE — two independent GraphML metadata implementations, one branch
+Repositories: fluxtion-compiler
+Branches: origin/feature/compiler_diagnostics @ 709592c
+          origin/handoff/compiler-graphml-dd36bc5 @ dd36bc5 (= 096d741 + one commit)
+Written: 2026-08-31, by the session that produced dd36bc5
+For: whoever resolves the cherry-pick, before resolving it
+
+WHY THIS NOTE EXISTS
+
+The cherry-pick of dd36bc5 onto feature/compiler_diagnostics is not a replay of one commit onto an
+unrelated base. Both branches implemented GraphML edge metadata, independently, within an hour of
+each other, in the same file. `9402fe7` ("Slice 4: the additive edge keys, and the edge descriptor
+they needed first", 10:21) landed on the feature branch; `dd36bc5` (10:5x) went to the handoff
+branch. Neither session could see the other's work.
+
+They agree on the diagnosis and disagree on three answers. A textual conflict resolution will pick
+one of each silently, and two of the three are decisions someone has already made deliberately.
+
+WHERE THEY DIFFER
+
+                     9402fe7 (feature branch)          dd36bc5 (handoff branch)
+  key name           fluxtion.referenceKind            fluxtion.refKind
+  shared keys        referenceField, propagates        same
+  edge shape         one edge per vertex pair,         one <edge> per relationship;
+                     values JOINED — "an edge that     joined-value form retained as an
+                     is both TRIGGER and DATA says     AGGREGATED mode
+                     so"
+  toggle             none — unconditional              -Dfluxtion.graphml.metadata=
+                                                       PARALLEL|AGGREGATED|OFF, default OFF
+  edgedefault        unchanged: `instanceof            corrected: reads the graph's own type,
+                     SimpleGraph` publishes            publishes "directed"
+                     "undirected" for a directed
+                     graph
+  where facts        EdgeReference in                  GraphMlFacts in the exporter, derived
+  come from          generation.model — captured       by reflection AFTER the fact
+                     in the model
+  node/graph keys    none                              kind, class, framework, auditCapable(+Via),
+                                                       callbackKinds, topologicalRank,
+                                                       filterIdDefault; graph-level metaVersion,
+                                                       generatedAt, node counts
+  handler edges      not covered                       handlerMethod, filterValue, filterType —
+                                                       the three-filtered-handlers case
+  published contract none                              key manifest + a conformance test that
+                                                       fails when emitter and manifest drift
+
+RECOMMENDED RESOLUTION — take parts, do not replay
+
+`EdgeReference` is the better carrier and should win. It captures the relationship in the model,
+where the compiler decides what a reference IS. dd36bc5's walker re-derives it by reflection
+afterwards, which is the defect BOTH reviews of that spike named, and which dd36bc5's own spec names
+as the condition that must be met before its default can be flipped on. If EdgeReference is
+authoritative, that condition is already satisfied on the feature branch — which is the happiest
+possible outcome of the collision.
+
+So the suggested shape of the merged result:
+
+  KEEP from 9402fe7      the EdgeReference model capture and its derivation
+  TAKE from dd36bc5      the metadata mode toggle and the default-OFF decision;
+                         the node-level and graph-level keys;
+                         handler-edge facts (method, filter value, filter type);
+                         the edgedefault correction (independent defect fix, see below);
+                         deterministic ordering of emitted relationships and merged values;
+                         the key manifest and its two-way conformance test;
+                         the acceptance tests, which encode the criteria rather than describing them
+  DECIDE                 the three items below
+
+THREE DECISIONS THAT ARE NOT CONFLICT-RESOLUTION CALLS
+
+D1 · refKind or referenceKind. One name ships. This is open question 4 in
+`docs/specs/meta-data-improvements/README.md` (inside dd36bc5). The analyser's ask UP-FLX-28 asked
+for `refKind`; the compiler-diagnostics README used `fluxtion.referenceKind`. Whichever wins, the
+key manifest and the conformance test must be updated with it, or the test will fail — which is the
+test doing its job.
+
+D2 · Unconditional or opt-in. The owner chose default OFF on 2026-08-31, on the acceptance point
+that property-absent, blank and unrecognised must all mean OFF, and that the vocabulary should not
+change any artefact until a consumer opts in. 9402fe7 emits unconditionally. Cherry-picking dd36bc5
+on top without reconciling this yields a toggle governing one emission path while another emits
+beside it regardless — the worst of both. If EdgeReference makes the facts authoritative, the
+argument for OFF weakens and flipping the default becomes a live option; that is a decision to take
+explicitly, not by merge order.
+
+D3 · Edge shape. Joined values on one edge, or one edge per relationship. dd36bc5 supports both and
+defaults to neither being forced: AGGREGATED is the joined form and its edge list is PROVEN
+identical to the pre-vocabulary document — same pairs, same order — by an acceptance test. That
+makes 9402fe7's choice available as a mode rather than a fork, if that is wanted.
+
+THE EDGEDEFAULT FIX IS INDEPENDENT
+
+`edgedefault` has always said "undirected" for a directed dependency graph, because the test is
+`g instanceof SimpleGraph` and SimpleDirectedGraph is not a subclass of it. That is a defect, not
+vocabulary, and it is not governed by any toggle in dd36bc5. It can ship on its own regardless of how
+D1-D3 land. The analyser is unaffected either way — it never reads the attribute, and its own parser
+javadoc already calls today's value misleading — but a conformant reader loses dispatch direction.
+
+WHAT THE TESTS ARE FOR, AND TWO THAT EARNED THEIR PLACE
+
+dd36bc5 carries 14 acceptance tests against a document the COMPILER produced, parsed with a general
+XML parser rather than the emitter's own code. Two failed on first run, before the defects were
+known:
+
+* the manifest conformance check failed because a key was in the emitter and not in the published
+  manifest — drift caught before it shipped;
+* the byte-stability check passed in isolation and FAILED in the full suite: Class.getMethods() has
+  no defined order and a merged value list came out reordered between runs. Two builds of one graph
+  would have told a consumer about a change that did not happen. Emission is now sorted.
+
+Both checks are worth keeping through the merge whichever way D1-D3 go. The second one is the reason
+to be careful with any reflection-ordered emission that survives.
+
+VERIFIED / NOT VERIFIED
+
+Verified: full compiler suite on dd36bc5, 3428 tests, zero failures. The analyser's own parser reads
+the PARALLEL output with identical nodes, kinds, class names and adjacency; only its edge count
+changes (11 to 14 on the probe graph), and its layer assignment is unaffected because in-degree is
+incremented and decremented once per duplicate.
+
+Not verified: crossing-reduction / barycentre ordering under duplicate edges; any GraphML consumer
+other than the analyser; and the merged behaviour of the two implementations, which does not exist
+yet — everything above about the combined result is a recommendation, not a measurement.
