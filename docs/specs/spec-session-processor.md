@@ -136,7 +136,27 @@ An effect performed in `@AfterEvent` runs when every decision in the cycle has a
 (`@AfterTrigger` is the narrower form: same phase, but only when this instance's own event-in handler was
 on the execution path.)
 
-**Two reasons survive, and they are the real ones:**
+**A third reason, found by probing rather than reasoning, and it is the decisive one here.** An
+`@AfterEvent` method was added to `EffectQueue` and the graph regenerated. The emitted `afterEvent()`
+block orders the phase like this:
+
+```java
+private void afterEvent() {
+    effectQueue.probeAfterEvent();     // the @AfterEvent method
+    clock.processingComplete();
+    eventLogger.processingComplete();  // <-- the audit record for this cycle is PUBLISHED here
+    isDirty_activeProject = false;
+    ...
+}
+```
+
+**`@AfterEvent` runs BEFORE the cycle's audit record is published.** For a processor whose audit log is
+the product, that ordering is the wrong way round: the irreversible act would happen before the evidence
+of deciding it exists, and an effect that threw could cost the record of the decision as well as the
+effect. The external drain runs after `onEvent` returns — after `afterEvent()`, after the record is
+published — so it guarantees **decided, recorded, then acted.**
+
+**Two further reasons survive, and they are the general ones:**
 
 1. **The result must re-enter as a fact.** `EffectOutcomes` records *happened*, not only *asked*, so the
    outcome has to arrive as a new event — which means something outside the cycle must feed it back

@@ -150,10 +150,21 @@ retrieval-dated evidence table, because those are live documents that can change
   ☐ **Idiom 2b not applied, and actionable now.** The source resolver is hand-threaded as a
   `Function<String, Optional<String>>` across **8 call sites** — already service-shaped, and the doc's
   own live candidate.
-  ☐ **Idiom 3 argued, not tested.** `ShowStatusEffect` is synchronous and fire-and-forget and exists to
-  be answered only because the contract says every effect is answered — precisely the shape `@AfterEvent`
-  suits. The argument for keeping the external drain still holds for the graph as a whole; whether it
-  holds for *that* effect is untested.
+  ☑ **Idiom 3 PROBED 2026-09-01, and the probe beat both of my arguments.** Added an `@AfterEvent` method
+  to `EffectQueue`, regenerated, and read the emitted `afterEvent()` block. It runs
+  `effectQueue.probeAfterEvent()` **first**, then `clock.processingComplete()`, then
+  **`eventLogger.processingComplete()` — which is where the cycle's audit record is published** — then
+  resets the dirty flags. So **`@AfterEvent` runs BEFORE the audit record exists.** For a processor whose
+  log is the product that ordering is the wrong way round: the irreversible act would happen before the
+  evidence of deciding it, and an effect that threw could cost the decision record too. The external
+  drain runs after `onEvent` returns, so it guarantees **decided, recorded, then acted** — a sharper and
+  more specific reason than either "the result must re-enter" or "opening is async", both of which are
+  general rather than about this product. Recorded in the spec and in the idioms draft.
+  ☑ **Idiom 2b applied, and it corrected the doc a third time.** `SourceResolver` is a named interface
+  across the eight call sites — but auditing first showed the doc's "live service candidate" was **not
+  one**: nothing in the graph resolves source, so it wanted an interface, not a service registration. The
+  doc now carries the test that would have caught it — *if no node queries it you want an interface; if a
+  node queries it you want a service*.
 - [UC3] ☐ **`node-field-wiring-and-workflow.md`** — NEW 2026-09-01. Two halves of one gap.
   **The rule:** *final* is the trigger for constructor mapping, and the word appears **nowhere** in any
   of the three sources — nor do `non-final`, JavaBean setter-wiring, or `@ConstructorArg`. The canon

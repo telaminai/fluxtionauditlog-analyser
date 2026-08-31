@@ -201,8 +201,28 @@ authoring docs:
 Choose `@AfterTrigger` when the effect belongs to work this node did; `@AfterEvent` for housekeeping that
 must happen whatever ran.
 
-**When to go outside the graph instead.** Two cases, and they are narrow:
+**Where in the after-event phase, exactly.** Worth knowing before you rely on it — measured by adding an
+`@AfterEvent` method and reading the emitted source:
 
+```java
+private void afterEvent() {
+    myNode.myAfterEventMethod();       // your method
+    clock.processingComplete();
+    eventLogger.processingComplete();  // the cycle's AUDIT RECORD is published here
+    isDirty_x = false;                 // dirty flags reset
+    ...
+}
+```
+
+**Your `@AfterEvent` runs before the audit record for that cycle is published**, and before the dirty
+flags reset. That is right for most things and decisive against one: if the audit log is evidence that
+someone relies on, an effect performed here happens *before* the record of deciding it exists — and an
+effect that throws can cost you the record as well.
+
+**When to go outside the graph instead.** Three cases, and they are narrow:
+
+* **the audit record must precede the act** — see above. Draining after `onEvent` returns gives you
+  *decided, recorded, then acted*;
 * **the result must re-enter as a fact** — if you need to record that the effect *happened* and not only
   that it was decided, the outcome has to arrive as a new event, so something outside must feed it back;
 * **the effect is asynchronous** — no in-graph phase can wait for it.
