@@ -1,0 +1,250 @@
+INDEPENDENT REVIEW — staged GraphML metadata implementation
+Reviewed repository: /Users/greg/IdeaProjects/telamin/fluxtion/fluxtion-compiler
+Reviewed branch/revision: feature/compiler_diagnostics @ dd36bc5
+Reviewed range: 096d741..dd36bc5
+Branch relation at review: one commit ahead and six commits behind
+  origin/feature/compiler_diagnostics @ e1b31a0
+Reviewer: analyser/Codex parallel review · Date: 2026-08-31
+
+VERDICT: CHANGES REQUIRED BEFORE MERGE.
+
+The feature toggle is the right immediate containment. An absent, blank or unrecognised
+fluxtion.graphml.metadata value resolves to OFF, and OFF routes through the legacy edge emitter.
+The focused Java-21 suite passes 14/14. Keeping edgedefault="directed" outside OFF is also right:
+it corrects a false declaration rather than opting into a vocabulary.
+
+The opt-in emitters are not yet trustworthy. Real compiled-graph probes produced three false or
+invalid facts: a reciprocal PUSH relationship was emitted as TRIGGER, AGGREGATED wrote the invalid
+GraphML boolean "false,true", and a null filter variable was emitted as the literal variable name.
+A direct helper probe found a fourth deterministic bug: START disappears when START_COMPLETE was
+seen first. The work is also based before six accepted diagnostics corrections, including a
+dependency-discovery EdgeReference model that overlaps this reflection-derived model. Reconciliation
+is not optional; rebasing both implementations without choosing one would leave two vocabularies and
+two sources of graph truth in one exporter.
+
+
+================================================================================
+F1 · BLOCKING INTEGRATION — the branch diverges before the reviewed diagnostics corrections
+================================================================================
+
+At review time:
+
+  local feature/compiler_diagnostics:  dd36bc5
+  merge base / parent:                 096d741
+  origin feature/compiler_diagnostics: e1b31a0
+
+The remote's 9402fe7 already records EdgeReference facts during dependency discovery and emits
+fluxtion.referenceKind/referenceField/propagates. dd36bc5 independently reconstructs relationships
+by reflection and emits fluxtion.refKind plus the wider manifest. The two changes touch the same
+exporter but disagree on key names, cardinality and the source of truth.
+
+The remote work is not itself the desired final implementation — its unconditional emitter and
+aggregated propagation are rejected in review_compiler_diagnostics_e1b31a0.txt — but it contains
+the important architectural correction: relationship facts are captured where the compiler decides
+them. GraphMlFacts.referenceFacts must not become a second dependency compiler beside that record.
+
+Required resolution: rebase onto e1b31a0, preserve its accepted cycle/diagnostic corrections, and
+choose one relationship descriptor and one key vocabulary. Extend dependency discovery for missing
+filter/method/array facts; let the exporter render those records in OFF/AGGREGATED/PARALLEL modes.
+
+
+================================================================================
+F2 · BLOCKING — AGGREGATED violates its own declared GraphML type
+================================================================================
+
+GraphMlFacts.merge joins distinct values with commas (GraphMlFacts.java:147). The exporter declares
+fluxtion.propagates as attr.type="boolean" (JgraphGraphMLExporter.java:456).
+
+A real graph with a trigger field and an @NoTriggerReference field between the same pair emitted:
+
+  fluxtion.refKind     = DATA,TRIGGER
+  fluxtion.propagates  = false,true
+
+"false,true" is not a GraphML boolean. A conformant reader may reject it, and a Boolean parser cannot
+recover two relationship values from a scalar key. This is not merely an analyser rendering issue;
+the producer contradicts its own schema declaration.
+
+Required resolution: either emit one document edge per relationship in PARALLEL, define separate
+aggregate string/list keys in AGGREGATED, or choose a structured encoding whose GraphML type matches.
+Do not comma-join into keys declared boolean/int/long.
+
+
+================================================================================
+F3 · BLOCKING — reflection turns a real PUSH relation into the wrong TRIGGER relation
+================================================================================
+
+Dependency discovery reverses @PushReference to owner -> target. The exporter later calls
+referenceFacts(target, source) for that document edge and scans target's fields for a reference back
+to source (GraphMlFacts.java:108, :368 onward).
+
+A real reciprocal graph contained:
+
+  owner.@PushReference target
+  target.owner                    // ordinary reference back
+
+The internal graph collapses to one owner -> target edge. Metadata output was:
+
+  fluxtion.refKind       = TRIGGER
+  fluxtion.referenceField = owner
+
+No PUSH fact survived. The reflection pass inspected the endpoint that happened to contain an
+ordinary back-reference and confidently described the collapsed edge as that relation. This is worse
+than omission: an analyser or LLM is told the opposite relationship inventory.
+
+Arrays, method-reference edges and other discovery routes are also outside this field walker. This
+confirms the spec's item 0: inference after graph construction is not an authoritative replacement
+for facts recorded while the graph is built.
+
+Required resolution: consume compiler-recorded relationship descriptors. Add reciprocal push,
+push-only, arrays, collections, method references and trigger+data same-pair producer fixtures before
+either opt-in mode is described as truthful.
+
+
+================================================================================
+F4 · BLOCKING — opt-in values include false and nondeterministically missing facts
+================================================================================
+
+F4a. Null filter variables become their names.
+
+GraphMlFacts.java:341 returns filterVariable when reflective value lookup returns null. A real handler
+with filterVariable="route" and route == null emitted:
+
+  fluxtion.filterValue = route
+
+The manifest describes the resolved discriminator, not the Java member name. Null/unresolved must be
+omitted or explicitly represented as unresolved; "route" is a false filter value.
+
+F4b. callbackKinds uses substring membership.
+
+GraphMlFacts.java:261 suppresses a kind when the accumulated string contains it. Feeding the production
+helper START_COMPLETE followed by START produced only START_COMPLETE because "START_COMPLETE" contains
+"START". Reflection method order is unspecified, so a genuine START callback appears or disappears
+depending on method enumeration order. Use a Set<String>, then sort/join. SERVICE_DEREGISTERED also
+needs reconciliation with the actual callback vocabulary.
+
+F4c. framework is still inferred from package prefixes (GraphMlFacts.java:426), despite the contract
+meaning compiler-created provenance. Compiler-created event-class vertices outside the framework
+package are therefore labelled authored. The default-OFF policy contains this today, but the value
+must be recorded at node creation before PARALLEL can become a supported mode.
+
+F4d. topologicalRank uses getObjectSortedDependents (GraphMlFacts.java:476), while the compiler's own
+DTO builder says event-dispatch order is getSortedDependents, especially with push direction. Name the
+rank honestly or derive it from the dispatch order a consumer expects.
+
+
+================================================================================
+F5 · BLOCKING CONTRACT — the manifest gate and prose claim a stronger relation than they test
+================================================================================
+
+The manifest description and README state that every manifest key is declared. The conformance test's
+name says the same. Its implementation checks only:
+
+  emitted keys  subset-of  declarations  subset-of  manifest
+
+It deliberately does not check manifest subset-of declarations. Measured current counts:
+
+  manifest keys:     27
+  declared keys:     20
+  missing declarations:
+    eventAudit
+    eventAuditLevel
+    exportedServices
+    generatorId
+    requiredServices
+    sourceFingerprint
+    sourceLocation
+
+Publishing vocabulary ahead of implementation is a reasonable choice; calling those future entries
+currently declared is not. Give manifest entries an explicit status (published/reserved/implemented),
+or split the vocabulary manifest from the emitter conformance set. Then name the test for the subset
+it enforces. Do not weaken the useful emitted -> declared -> manifest checks.
+
+
+================================================================================
+F6 · REQUIRED — default OFF is not exercised through the actual generation path
+================================================================================
+
+GraphMlMetadataTest.compileProbeText automatically sets PARALLEL when the system property is absent
+(GraphMlMetadataTest.java:445). The central default-OFF claim is therefore tested only at the enum
+accessor, not by generating a document with an absent property.
+
+Add an end-to-end absent-property fixture proving:
+
+  - zero fluxtion.* key declarations;
+  - zero fluxtion.* data values;
+  - legacy edge pairs, order and multiplicity;
+  - the one deliberate difference, edgedefault="directed".
+
+The README mode table currently says OFF is "byte-for-byte" legacy while the deliberate direction fix
+makes that impossible. Say "legacy topology/vocabulary, plus corrected edgedefault" instead.
+
+
+================================================================================
+F7 · REQUIRED BEFORE DEFAULT-ON — the analyser tolerates PARALLEL but does not consume it
+================================================================================
+
+The current analyser parser retains duplicate GraphML edge elements but ignores the new data keys.
+Adjacency collapses endpoints into sets, so reachability/layering remains stable; edge count rises and
+the canvas draws coincident parallel paths without distinguishing refKind/filter/referenceField.
+
+Default OFF therefore prevents an immediate user regression. It does not satisfy the stated flip gate
+"one consumer reading the keys." Before PARALLEL becomes default, the analyser needs:
+
+  - parsing for the versioned keys;
+  - a visible policy for parallel relationships (offset, grouped or selectable);
+  - compatibility fixtures for legacy, aggregated and parallel documents;
+  - a decision about whether edge count means dependency pairs or relationships.
+
+
+================================================================================
+ACCEPTED PARTS AND NOTES
+================================================================================
+
+A1. GraphMlOptions resolves absent, blank and unknown values to OFF. Keeping this private emission
+    switch out of FluxtionCompilerConfig is reasonable while the format is staged.
+
+A2. OFF uses the actual legacy emitter rather than trying to reconstruct legacy output. That is the
+    correct safety boundary.
+
+A3. edgedefault="directed" is a valid unconditional bug fix. It should not be hidden behind OFF.
+
+A4. Sorting the reflection-derived facts corrected a real byte-instability defect. Keep deterministic
+    ordering after moving fact capture into dependency discovery.
+
+A5. Skipping static, transient and @FluxtionIgnore fields is correct for the reflection fallback, but
+    it does not make that fallback authoritative for graph relationships.
+
+N1. GraphMlFacts links to nonexistent GraphMlOptions.EdgeMode in Javadoc. Run the Javadoc gate.
+
+N2. Mode is read more than once during one export. Capture it once at export entry and pass it through,
+    so a concurrent system-property change cannot produce declarations for one mode and edges for another.
+
+N3. The compatibility claim that parallel edges leave Kahn layering unchanged is plausible and was
+    previously measured, but crossing reduction/barycentre layout remains unverified. Keep that boundary.
+
+
+================================================================================
+VERIFICATION PERFORMED / NOT PERFORMED
+================================================================================
+
+Performed against dd36bc5 with the compiler source checkout treated as read-only:
+
+  - Java 21 focused reactor run:
+      ./mvnw -q -pl fluxtion-integration-tests -am \
+        -Dtest=com.telamin.fluxtion.builder.imperative.GraphMlMetadataTest \
+        -Dsurefire.failIfNoSpecifiedTests=false test
+      PASS — GraphMlMetadataTest 14/14;
+  - real producer probes for reciprocal push, trigger+data aggregation and null filter variable;
+  - direct callbackKinds helper probe for START_COMPLETE then START;
+  - manifest/declaration count and difference;
+  - current analyser GraphMlParser/ProcessorTopology source compatibility inspection;
+  - git diff --check 096d741..dd36bc5 — PASS.
+
+Not performed:
+
+  - full compiler reactor suite;
+  - Javadoc build;
+  - fresh analyser UI execution against the exact probe document;
+  - svc-admin-web or other GraphML consumers;
+  - rebase/conflict resolution onto e1b31a0;
+  - no compiler source, commit or branch was changed or pushed by this review.
