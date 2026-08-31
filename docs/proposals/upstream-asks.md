@@ -464,6 +464,58 @@ The message should therefore fork on the question the author actually faces:
 **Evidence** measured — one full build cycle in round 02, reproduced in both arms of round 04. **Cost to us if unfixed** none in the analyser directly; paid by every author of a stateful node,
 which is most non-trivial nodes.
 
+### UP-FLX-39 ◐ The two-phase execution model is undocumented, so authors build around it
+
+_Filed: https://github.com/telaminai/fluxtion/issues/27_
+
+**Target** `fluxtion` docs · **Priority** high for the authoring experience — it is a small doc change
+that removes a whole class of unnecessary machinery
+
+An event is processed in two phases: **event-in in topological order, then after-event in REVERSE
+topological order on the unwind.** Retrieved 2026-09-01: `@OnTrigger` appears 21 times in `claude.txt`,
+`reverse topological` **zero** times in any of the three sources, and **`@AfterTrigger` zero** times.
+The annotation reference is strong; the execution model the annotations sit in is absent.
+
+**What it cost here, which is the argument.** Not knowing there was an after-event phase, this repo built
+an effect queue drained by a driver *outside* the processor — and wrote into its spec that acting inside
+a node would put an irreversible act *"inside a dispatch that has not finished deciding"*. **That is
+wrong**: by the after-event phase every decision in the cycle is made. The external mechanism is still
+right for this application — outcomes must re-enter as facts, and one effect is asynchronous — but that
+is the narrow case, and there was no way to know it was narrow.
+
+Also asks for the `@AfterEvent` / `@AfterTrigger` distinction, which is real and appears nowhere:
+`@AfterEvent` always runs; `@AfterTrigger` runs only when the same instance's event-in handler was **on
+the current execution path**.
+
+**No diagnostic can reach this.** Nothing fails — the author ships more machinery than they needed and
+never sees an error.
+
+### UP-FLX-40 ◐ Re-dispatch is undocumented, and authors infer a FALSE design rule from it
+
+_Filed: https://github.com/telaminai/fluxtion/issues/28_
+
+**Target** `fluxtion` docs · **Priority** high — the failure mode is a propagated false belief, not a
+missed feature
+
+`processReentrantEvent` and `processAsNewEventCycle` are at **zero occurrences in all three sources**
+(2026-09-01). Without them, the acyclic constraint on the dependency graph reads as a constraint on the
+design.
+
+**This repo formed exactly that false rule** — *"you cannot have a node both read and be read by the same
+node"* — and **offered to put it into a bootstrap document an LLM loads first.** It was caught only
+because the owner said re-dispatch exists. That is the shape worth fixing: not a feature unused, but a
+false rule formed and about to be propagated into the documents that teach the next author.
+
+Asks for both methods and the distinction that is not guessable —
+`processReentrantEvent` inserts at the **front** and requires an existing cycle;
+`processAsNewEventCycle` appends and **forces** one — plus the sentence that stops the false rule: *the
+static graph must be acyclic, and that is not a limit on the design.*
+
+**Pairs with [UP-FLX-10](#up-flx-10--mark-a-re-dispatched-record-as-re-dispatched) (#10).** A
+re-dispatched record is indistinguishable from an external one in the log, so documenting the mechanism
+without that consequence is half the story — and it is the half that matters to anyone reconstructing
+causality. The `redispatch: true` attribute discussed on #10 resolves it.
+
 ### UP-FLX-38 ◐ `FLX-1009` names annotations without their packages — the last measured retry
 
 _Filed: https://github.com/telaminai/fluxtion/issues/26_
