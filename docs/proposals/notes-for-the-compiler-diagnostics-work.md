@@ -49,6 +49,14 @@ distinct working fixes**:
 All three are sound against the field-inclusion predicate. **Not one agent used the JavaBean setter
 route**, which is a supported way to supply the field and which the message never mentions.
 
+**Sharpened 2026-08-31 by a baseline run, and the correction matters.** Asked to *state the rule*
+rather than fix a build, **two of two agents named the setter route unprompted**. So the knowledge is
+present and does not survive contact with a failing build — which moves the diagnosis. The message is
+not failing to teach something unknown; it is **crowding out something already known** by naming one
+strategy at the moment of failure. Neither of those two agents named `final` as the trigger, though,
+so the half that is genuinely missing is *which* fields get mapped, not *how* they can be supplied.
+See `docs/experience/runs/baseline-2026-08-31/`.
+
 Two conclusions I would defend:
 
 **Enumerating remedies invites a fourth.** I first proposed "name both remedies" and that was wrong. A
