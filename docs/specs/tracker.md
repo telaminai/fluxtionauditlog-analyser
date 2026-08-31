@@ -330,8 +330,20 @@ agents does — and that learning is the raw material for the template bootstrap
   in `GraphPairing.of`, which returns *applies* for a log with no node output because a silent log cannot
   convict a graph. Branch kept as null-safety and **documented as null-safety rather than as a rule**;
   test rewritten to assert the decision line.
-  ☐ **Still to move:** `IgnoredParameters`, `CoverageClaim` (the third of F3's questions, which needs
-  graph provenance and the audit regime as well), and log/graph OPENING once the driver can carry an
+- [M44.2c] ☑ **`CoverageClaim` shipped 2026-08-31 — F3's third question, and the only one that is a
+  POLICY rather than a fact.** Coverage is *declared minus observed*, and that subtraction stops meaning
+  anything four separate ways. Only one was checked before, in `ActionExecutor.doCoverage`: an INFERRED
+  graph, where the declared set IS what ran. **Two of the other three had no home at all** — a graph
+  whose processor was built without an auditor (every declared node reads as never-logged, and the
+  number blames the nodes for the build), and a graph a person deliberately opened against a log it does
+  not describe. That second one is **the gap M35.3's own exception created**: keeping such a graph is
+  right — announce, never forbid — and scoring against it silently was not. Keeping the graph and
+  refusing the number are the same respect for intent.
+  The fourth is a **QUALIFIED**, not a refusal: a capture level below TRACE means a node may have run,
+  logged, and had its output discarded, so the number is computable and must carry what it hides.
+  **Refusing a computable number is as much a failure as printing a meaningless one**, and the
+  REFUSED/QUALIFIED split is the whole value of the node. Four rules, four mutations, all caught.
+  ☐ **Still to move:** `IgnoredParameters`, and log/graph OPENING once the driver can carry an
   asynchronous effect.
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
   `AuditInstallationReadiness` / `CoverageClaim` (the review's F3 — three questions the first draft merged

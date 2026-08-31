@@ -17,6 +17,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   before, and every answer says which of the two it came from.
 
 ### Changed
+- **`coverage` now refuses to print a number in two more cases where it would have been misleading**, and
+  qualifies it in a third. It already declined over a graph inferred from what ran. It now also declines
+  over a graph whose processor was built without audit logging — every declared node would read as never
+  logged, blaming the nodes for the build — and over a graph you deliberately opened against a log it does
+  not describe, where the denominator belongs to a different system. Keeping that graph on screen is still
+  right; scoring against it was not. And where the log was captured below TRACE, the number is still given
+  but now says what it hides: a node may have run, logged, and had its output discarded.
 - **Project transitions are now decided by an auditable Fluxtion processor, and the analyser can open
   its own audit log to see why.** The rule that a project switch closes the log and graph — and the
   exceptions that it must not, when the project is being adopted *because* a log was just opened, when

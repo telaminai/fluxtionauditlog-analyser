@@ -59,6 +59,18 @@ public final class ActionExecutor implements RenderExecutor {
         this.flagRows = flagRows;
     }
 
+    /**
+     * What the session processor says may be asserted about coverage (M44.2). Optional: an unwired
+     * executor scores as before, because a missing opinion must not become a refusal.
+     */
+    private java.util.function.Supplier<
+            telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim.Assessment> coverageClaim;
+
+    public void bindCoverageClaim(java.util.function.Supplier<
+            telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim.Assessment> claim) {
+        this.coverageClaim = claim;
+    }
+
     /** Wire the verbs that reach beyond the records table. Optional: unwired verbs report unavailable. */
     public void bind(TopologyPanel topology, telamin.fluxtion.audit.analyser.analyser.llm.AppControl app) {
         this.topology = topology;
@@ -200,16 +212,13 @@ public final class ActionExecutor implements RenderExecutor {
         LogStore s = store.get();
         if (s == null) return ActionResult.error("no log is loaded");
 
-        // M34.1 — coverage is "declared minus observed". Over a graph INFERRED from what ran, that
-        // subtraction is empty by construction: the answer is always 100% and the feature that found
-        // 54 dead nodes in the POC becomes a tautology that still prints a number. Refuse instead.
-        var graphSource = onEdt(topology::graphSource);
-        if (graphSource != null && !graphSource.supportsCoverage()
-                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
-            return ActionResult.error("this graph was " + graphSource.describe
-                    + ", so coverage cannot mean anything: it subtracts what ran from what was "
-                    + "declared, and here the declared set IS what ran. Open a declared graph "
-                    + "(open {graphml}) to get a real answer.");
+        // M44.2 — the DECISION is the session processor's (CoverageClaim), not this method's. It used
+        // to check one of the four ways coverage stops meaning anything: an INFERRED graph. The other
+        // three — a processor that cannot log, a graph that does not describe this log, and a capture
+        // level below TRACE — went unchecked here, and two of them had no home at all.
+        var claim = coverageClaim == null ? null : coverageClaim.get();
+        if (claim != null && !claim.allowed()) {
+            return ActionResult.error(claim.reason() + ".");
         }
 
         // Take the graph facts on the EDT, then score the whole log off it. The same pure service feeds
@@ -220,6 +229,13 @@ public final class ActionExecutor implements RenderExecutor {
         var assessed = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
                 s, filtered, filter.get(), coverageInput);
         Map<String, Object> out = new LinkedHashMap<>(assessed.echo());
+        // A QUALIFIED number is computable and must carry what it hides — refusing it would be as much
+        // a failure as printing it bare.
+        if (claim != null && claim.claim()
+                != telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim.Claim.FULL) {
+            out.put("claim", claim.claim().name().toLowerCase(java.util.Locale.ROOT));
+            out.put("claimNote", claim.reason());
+        }
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> allNever = (List<Map<String, Object>>) out.get("neverLogged");
         Integer askedLimit = intOrNull(p.get("limit"));

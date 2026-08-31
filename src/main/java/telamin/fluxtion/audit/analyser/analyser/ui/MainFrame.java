@@ -180,6 +180,10 @@ public final class MainFrame extends JFrame {
         refreshProjectPanel();                       // M37: state the empty session too
         refreshMcpIndicator();                       // D-AI9: and say whether an AI client reaches us
         startMcpIndicatorWatch();
+        // M44.2: the coverage verdict is the processor's. Lazily read, so the driver is not built
+        // before the fields its adapter performs against exist.
+        actionExecutor.bindCoverageClaim(() -> session == null
+                ? null : session.processor().coverageClaim.assessment());
         actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
         readerRegistry.loadPlugins(java.nio.file.Path.of(

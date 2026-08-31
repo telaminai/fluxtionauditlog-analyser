@@ -50,6 +50,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRe
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
+import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
@@ -99,6 +100,7 @@ public class SessionProcessor
         BatchHandler {
 
   //Node declarations
+  public final transient AuditInstallation auditInstallation = new AuditInstallation();
   private final transient CallbackDispatcherImpl callbackDispatcher = new CallbackDispatcherImpl();
   public final transient Clock clock = new Clock();
   public final transient EffectQueue effectQueue = new EffectQueue();
@@ -115,6 +117,9 @@ public class SessionProcessor
       new telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog(operationGate);;
   public final transient Pairing pairing =
       new telamin.fluxtion.audit.analyser.analyser.session.node.Pairing(operationGate);;
+  public final transient CoverageClaim coverageClaim =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim(
+          pairing, auditInstallation, openGraph, openLog);;
   public final transient LogArrival logArrival =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
           operationGate, pairing, openGraph, effectQueue);;
@@ -127,18 +132,18 @@ public class SessionProcessor
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
-  public final transient AuditInstallation auditInstallation = new AuditInstallation();
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
   private boolean initCalled = false;
   private boolean processing = false;
   private boolean buffering = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(5);
+      new IdentityHashMap<>(6);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(5);
+      new IdentityHashMap<>(6);
 
   private boolean isDirty_activeProject = false;
+  private boolean isDirty_auditInstallation = false;
   private boolean isDirty_openGraph = false;
   private boolean isDirty_openLog = false;
   private boolean isDirty_operationGate = false;
@@ -457,6 +462,8 @@ public class SessionProcessor
   public void handleEvent(GraphClosed typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(auditInstallation, "auditInstallation", "onGraphClosed", typedEvent);
+    isDirty_auditInstallation = auditInstallation.onGraphClosed(typedEvent);
     auditInvocation(operationGate, "operationGate", "onGraphClosed", typedEvent);
     isDirty_operationGate = operationGate.onGraphClosed(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onGraphClosed", typedEvent);
@@ -465,22 +472,24 @@ public class SessionProcessor
     isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
     auditInvocation(pairing, "pairing", "onGraphClosed", typedEvent);
     isDirty_pairing = pairing.onGraphClosed(typedEvent);
-    auditInvocation(auditInstallation, "auditInstallation", "onGraphClosed", typedEvent);
-    auditInstallation.onGraphClosed(typedEvent);
+    auditInvocation(coverageClaim, "coverageClaim", "onGraphClosed", typedEvent);
+    coverageClaim.onGraphClosed(typedEvent);
     afterEvent();
   }
 
   public void handleEvent(GraphObserved typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
+    auditInvocation(auditInstallation, "auditInstallation", "onGraphObserved", typedEvent);
+    isDirty_auditInstallation = auditInstallation.onGraphObserved(typedEvent);
     auditInvocation(operationGate, "operationGate", "onGraphObserved", typedEvent);
     isDirty_operationGate = operationGate.onGraphObserved(typedEvent);
     auditInvocation(openGraph, "openGraph", "onGraphObserved", typedEvent);
     isDirty_openGraph = openGraph.onGraphObserved(typedEvent);
     auditInvocation(pairing, "pairing", "onGraphObserved", typedEvent);
     isDirty_pairing = pairing.onGraphObserved(typedEvent);
-    auditInvocation(auditInstallation, "auditInstallation", "onGraphObserved", typedEvent);
-    auditInstallation.onGraphObserved(typedEvent);
+    auditInvocation(coverageClaim, "coverageClaim", "onGraphObserved", typedEvent);
+    coverageClaim.onGraphObserved(typedEvent);
     afterEvent();
   }
 
@@ -493,6 +502,8 @@ public class SessionProcessor
     effectOutcomes.onLogClosed(typedEvent);
     auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
     isDirty_openLog = openLog.onLogClosed(typedEvent);
+    auditInvocation(coverageClaim, "coverageClaim", "onLogClosed", typedEvent);
+    coverageClaim.onLogClosed(typedEvent);
     afterEvent();
   }
 
@@ -505,6 +516,8 @@ public class SessionProcessor
     isDirty_openLog = openLog.onLogObserved(typedEvent);
     auditInvocation(pairing, "pairing", "onLogObserved", typedEvent);
     isDirty_pairing = pairing.onLogObserved(typedEvent);
+    auditInvocation(coverageClaim, "coverageClaim", "onLogObserved", typedEvent);
+    coverageClaim.onLogObserved(typedEvent);
     auditInvocation(logArrival, "logArrival", "onLogObserved", typedEvent);
     logArrival.onLogObserved(typedEvent);
     afterEvent();
@@ -612,6 +625,8 @@ public class SessionProcessor
     } else if (event instanceof GraphClosed) {
       GraphClosed typedEvent = (GraphClosed) event;
       auditEvent(typedEvent);
+      auditInvocation(auditInstallation, "auditInstallation", "onGraphClosed", typedEvent);
+      isDirty_auditInstallation = auditInstallation.onGraphClosed(typedEvent);
       auditInvocation(operationGate, "operationGate", "onGraphClosed", typedEvent);
       isDirty_operationGate = operationGate.onGraphClosed(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onGraphClosed", typedEvent);
@@ -620,19 +635,21 @@ public class SessionProcessor
       isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
       auditInvocation(pairing, "pairing", "onGraphClosed", typedEvent);
       isDirty_pairing = pairing.onGraphClosed(typedEvent);
-      auditInvocation(auditInstallation, "auditInstallation", "onGraphClosed", typedEvent);
-      auditInstallation.onGraphClosed(typedEvent);
+      auditInvocation(coverageClaim, "coverageClaim", "onGraphClosed", typedEvent);
+      coverageClaim.onGraphClosed(typedEvent);
     } else if (event instanceof GraphObserved) {
       GraphObserved typedEvent = (GraphObserved) event;
       auditEvent(typedEvent);
+      auditInvocation(auditInstallation, "auditInstallation", "onGraphObserved", typedEvent);
+      isDirty_auditInstallation = auditInstallation.onGraphObserved(typedEvent);
       auditInvocation(operationGate, "operationGate", "onGraphObserved", typedEvent);
       isDirty_operationGate = operationGate.onGraphObserved(typedEvent);
       auditInvocation(openGraph, "openGraph", "onGraphObserved", typedEvent);
       isDirty_openGraph = openGraph.onGraphObserved(typedEvent);
       auditInvocation(pairing, "pairing", "onGraphObserved", typedEvent);
       isDirty_pairing = pairing.onGraphObserved(typedEvent);
-      auditInvocation(auditInstallation, "auditInstallation", "onGraphObserved", typedEvent);
-      auditInstallation.onGraphObserved(typedEvent);
+      auditInvocation(coverageClaim, "coverageClaim", "onGraphObserved", typedEvent);
+      coverageClaim.onGraphObserved(typedEvent);
     } else if (event instanceof LogClosed) {
       LogClosed typedEvent = (LogClosed) event;
       auditEvent(typedEvent);
@@ -642,6 +659,8 @@ public class SessionProcessor
       effectOutcomes.onLogClosed(typedEvent);
       auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
       isDirty_openLog = openLog.onLogClosed(typedEvent);
+      auditInvocation(coverageClaim, "coverageClaim", "onLogClosed", typedEvent);
+      coverageClaim.onLogClosed(typedEvent);
     } else if (event instanceof LogObserved) {
       LogObserved typedEvent = (LogObserved) event;
       auditEvent(typedEvent);
@@ -651,6 +670,8 @@ public class SessionProcessor
       isDirty_openLog = openLog.onLogObserved(typedEvent);
       auditInvocation(pairing, "pairing", "onLogObserved", typedEvent);
       isDirty_pairing = pairing.onLogObserved(typedEvent);
+      auditInvocation(coverageClaim, "coverageClaim", "onLogObserved", typedEvent);
+      coverageClaim.onLogObserved(typedEvent);
       auditInvocation(logArrival, "logArrival", "onLogObserved", typedEvent);
       logArrival.onLogObserved(typedEvent);
     } else if (event instanceof OpenProjectRequested) {
@@ -729,6 +750,7 @@ public class SessionProcessor
     auditor.nodeRegistered(context, "context");
     auditor.nodeRegistered(activeProject, "activeProject");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
+    auditor.nodeRegistered(coverageClaim, "coverageClaim");
     auditor.nodeRegistered(effectOutcomes, "effectOutcomes");
     auditor.nodeRegistered(effectQueue, "effectQueue");
     auditor.nodeRegistered(logArrival, "logArrival");
@@ -760,6 +782,7 @@ public class SessionProcessor
     nodeNameLookup.processingComplete();
     serviceRegistry.processingComplete();
     isDirty_activeProject = false;
+    isDirty_auditInstallation = false;
     isDirty_openGraph = false;
     isDirty_openLog = false;
     isDirty_operationGate = false;
@@ -795,6 +818,7 @@ public class SessionProcessor
   public BooleanSupplier dirtySupplier(Object node) {
     if (dirtyFlagSupplierMap.isEmpty()) {
       dirtyFlagSupplierMap.put(activeProject, () -> isDirty_activeProject);
+      dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
       dirtyFlagSupplierMap.put(openGraph, () -> isDirty_openGraph);
       dirtyFlagSupplierMap.put(openLog, () -> isDirty_openLog);
       dirtyFlagSupplierMap.put(operationGate, () -> isDirty_operationGate);
@@ -807,6 +831,7 @@ public class SessionProcessor
   public void setDirty(Object node, boolean dirtyFlag) {
     if (dirtyFlagUpdateMap.isEmpty()) {
       dirtyFlagUpdateMap.put(activeProject, (b) -> isDirty_activeProject = b);
+      dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
       dirtyFlagUpdateMap.put(openGraph, (b) -> isDirty_openGraph = b);
       dirtyFlagUpdateMap.put(openLog, (b) -> isDirty_openLog = b);
       dirtyFlagUpdateMap.put(operationGate, (b) -> isDirty_operationGate = b);
@@ -817,6 +842,10 @@ public class SessionProcessor
 
   private boolean guardCheck_activeProject() {
     return isDirty_operationGate;
+  }
+
+  private boolean guardCheck_coverageClaim() {
+    return isDirty_auditInstallation | isDirty_openGraph | isDirty_openLog | isDirty_pairing;
   }
 
   private boolean guardCheck_effectOutcomes() {
