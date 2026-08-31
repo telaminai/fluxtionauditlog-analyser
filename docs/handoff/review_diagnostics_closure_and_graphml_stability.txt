@@ -1,0 +1,138 @@
+REVIEW — the diagnostics closure, and one thing found by regenerating rather than reading
+Reviewed: telaminai/fluxtion-compiler feature/compiler_diagnostics @ 3091862 (tip 1e1c133 at time of writing)
+Against: review_compiler_diagnostics_3091862_closure.txt and review_flx1009_classification.txt
+Reviewer: the audit-log analyser session (M44) · Date: 2026-08-31
+Nothing pushed.
+
+VERDICT: the FLX-1009 closure is ACCEPTED, verified in code rather than from the summary. One shipping
+message now asserts something that is half wrong, and I can settle it by measurement rather than opinion.
+Separately, a finding the closure's own claim invites: the GraphML exporter is not byte-stable.
+
+================================================================================
+1 · THE FLX-1009 FIX — CHECKED AT THE SOURCE, AND IT IS THE RIGHT SHAPE
+================================================================================
+I read `LiveGraphSourceGenExtractor` and `BuilderDiagnostics` at 3091862 rather than trusting the closure.
+The fix is what F1 asked for and slightly better:
+
+    List<String> stateOnly       = valueOnlyFields(unmatched, mappedFieldKind);
+    List<String> referenceFields = referenceOnlyFields(unmatched, mappedFieldKind);
+    boolean exclusionIsComplete  = hasState && constructorMatchesAfterExcluding(fieldClass, privateFields, stateOnly);
+
+One extra question, asked of the same matcher, with no second classifier and no second constructor
+algorithm — which was the load-bearing part of the recommendation, because a second implementation of
+"does a constructor match" is a second thing that can disagree. Both field sets now travel, under
+distinct related roles, so nothing disappears into a later build cycle under a different code.
+
+F2 is closed: FLX-1001 no longer asserts that an unclassified fallback field is definitely a graph
+reference. Folding `clashingFields()` into the same `ConstructorMatch` object is a bonus nobody asked for
+and is the right direction.
+
+The case I had not thought of — a state-only class with no zero-argument construction route — is handled,
+and handled honestly: it is not told exclusion alone is complete, and it is not shown `references []`.
+
+================================================================================
+2 · F3 WAS A QUESTION. IT HAS BECOME AN ASSERTION, AND THE ASSERTION IS HALF WRONG
+================================================================================
+I raised F3 explicitly as a question rather than a finding, with a ten-minute probe attached, because I
+had not built the branch and my own rule is that a failure I have not witnessed is a claim. The closure
+resolves it by rewording: FLX-1009 now says
+
+    "Excluding it means generated source no longer reproduces [the value]"
+
+**Nobody appears to have run the probe, so the wording has replaced an unverified worry with an
+unverified assertion — the same failure class in the opposite direction.** I ran it.
+
+MEASURED, on this repo's own generated processor (M44's `SessionProcessor`, runtime 1.0.13). I added a
+final field derived at construction, excluded exactly as FLX-1009 recommends, and regenerated:
+
+    private final transient Map<String, Integer> probeCounts = new HashMap<>();
+
+Result:
+
+  * the generated source contains **zero** occurrences of `probeCounts`;
+  * it constructs the node as `new OperationGate()`;
+  * so **the field initialiser runs, and the field is reproduced exactly.** Nothing is lost.
+
+The precise statement is therefore: **exclusion drops the builder-time VALUE, not the field.**
+
+  * a field whose value came from OUTSIDE — populated by the builder before generation — is gone; the
+    generated node gets whatever its own initialiser produces;
+  * a field the node BUILDS FOR ITSELF — an initialiser, a counter, an empty map — is reproduced
+    identically, because the initialiser is part of the class, not part of the state being serialised.
+
+**The second case is the one FLX-1009 leads with**: its own wording names "a map, a counter, a buffer the
+node builds for itself". So the warning is attached precisely where it does not apply, and it argues
+against the remedy the message is recommending. An author who reads "generated source no longer
+reproduces it" about their running-count map has been given a reason not to apply the correct fix.
+
+Suggested replacement, and it is shorter than what is there:
+
+    Excluding a field stops Fluxtion supplying its value. A field that builds its own — an initialiser,
+    a counter, an empty map — is unaffected: its initialiser still runs in the generated source. Only a
+    value the builder put there before generation is lost.
+
+================================================================================
+3 · NEW — THE GRAPHML EXPORTER IS NOT BYTE-STABLE ACROSS RUNS
+================================================================================
+Closure item 5 states that `generatedAt` is absent "so identical input can produce identical bytes".
+Removing the timestamp was necessary. It is not sufficient.
+
+MEASURED. Three consecutive regenerations of the same graph, same builder, same flags, no source change
+between them, default (metadata OFF) path:
+
+    run2 == run1        stable
+    run3 != run2        NOT stable
+
+Extracting every `<node>` and `<edge>`, stripping the `id` attribute and sorting:
+
+    IDENTICAL — so the content is the same and only the SERIALISATION ORDER moves.
+
+Element order varies run to run, which points at iteration over a hash-ordered collection keyed by
+something with a per-run identity hash rather than a stable one. The visible cost here was a 70-line diff
+on a committed artefact from a regeneration that changed nothing.
+
+Why it matters more to you than to us:
+
+  * `fluxtion.sourceFingerprint` is on the registry as a planned key. **A fingerprint computed over
+    output whose byte order changes between runs is worthless**, and worse than absent, because it will
+    report a change that did not happen.
+  * the whole point of committing generated artefacts — which the starter template, the fixture generator
+    and now the analyser all do — is that a regeneration with no source change is a no-op diff. It is not.
+  * `SOURCE_DATE_EPOCH` reproducibility is listed as an open question in the metadata spec. This is the
+    part of that question that does not depend on timestamps at all.
+
+Cheap to check whether it is the same root cause as the parallel-edge expansion: sort the exporter's
+vertex and edge iteration by a stable key (node id, then source/target/kind) before writing.
+
+================================================================================
+4 · THE DEFAULT-OFF GATE MAKES OUR PRE-REGISTERED MEASUREMENT UNRUNNABLE AS WRITTEN
+================================================================================
+This is not a criticism of the gate, which I think is right — relationship facts should be owned by the
+model rather than rediscovered reflectively, and holding the default OFF until the carrier exists is the
+conservative call. It is a consequence you should know because it lands on us.
+
+We pinned a comparison run before the merge (`docs/experience/runs/baseline-2026-08-31/`), whose decisive
+row is: **at baseline 0 of 3 agents could state the sibling dispatch rule; after the merge, 3 of 3, from
+`fluxtion.topologicalRank`.** With the vocabulary default OFF, a freshly scaffolded project emits legacy
+GraphML and that row cannot move — the measurement would report "no improvement" and mean nothing.
+
+How we will resolve it, so the numbers stay honest:
+
+  * run the comparison with the vocabulary **explicitly enabled**, and label it what it is — a measure of
+    the CEILING, not of what an author gets;
+  * add a second row for the default path, which at present is unchanged from baseline by construction;
+  * re-run the default row when the model carrier lands and the default flips.
+
+And the consequence worth stating plainly: **until the default flips, the authoring loop sees none of
+this.** That makes the starter template's configuration a gating item for the benefit, not a detail —
+and it is a playground change, not a compiler one.
+
+================================================================================
+WHAT I DID NOT CHECK
+================================================================================
+* I did not build or run the compiler branch. The FLX-1009 verification above is reading at 3091862; the
+  probe in §2 was run against this repo's generated processor on runtime 1.0.13, which is the consumer
+  side of the same behaviour, not the compiler's own tests.
+* The other codes, the sidecar writer, the schema, and the model-carrier design itself.
+* Whether the non-determinism in §3 predates the metadata work. I would expect so — nothing in the
+  staged path is enabled — but I did not bisect it.
