@@ -1,0 +1,238 @@
+INDEPENDENT REVIEW — compiler diagnostics specification and consumer contract
+Reviewed repository: fluxtion-compiler
+Reviewed branch/revision: origin/feature/compiler_diagnostics @ cb21f7d
+Reviewed range: d9948cb^..cb21f7d
+Documents: docs/specs/compiler-diagnostics/README.md and consumer-contract.md
+Reviewer: audit-log analyser session · Date: 2026-08-31
+
+VERDICT: CHANGES REQUIRED BEFORE SLICE 1.
+
+The direction is strong: stable coded diagnostics, a real producer-generated fixture pack, additive
+topology facts, and an end-to-end repair measurement are the right response to the measured authoring
+failures. The proposed consumer contract also arrived at the right time, before implementation made the
+wire shape expensive to change.
+
+It is not yet an implementation-ready contract. Four issue mappings claim coverage that the spec does
+not provide; the proposed Java carrier cannot compile in its selected module; and “stable JSON” is not
+defined tightly enough for an independent consumer. Two later-slice problems should also be corrected
+now: the fixture gate is internally circular, and the current graph representation cannot carry several
+of the proposed per-edge facts without an explicit model change.
+
+This is an independent second pass. I did not alter the earlier
+review_compiler_diagnostics_consumer_contract.txt; where this review disagrees, the source and issue text
+below are the reason.
+
+================================================================================
+F1 · BLOCKING — the reconciliation overclaims issue coverage
+================================================================================
+
+consumer-contract.md:22-45 says the spec answers eleven filed issues. Four mappings do not survive the
+filed issue text:
+
+1. `FLX-1001` does not yet answer #19 / UP-FLX-32.
+
+   #8's constructor example and the spec's FLX-1001 example concern mapped fields and an ignored inherited
+   `name`. #19 is deliberately sharper: the same throw is reached for ordinary node-local state, while
+   LiveGraphSourceGenExtractor supports three wiring strategies (constructor, JavaBean setter, public
+   member). #19 asks for the state-versus-reference fork and names those alternatives; it proposes
+   `FLX-1009` for that reason. The present FLX-1001 contract has no field classification, supported wiring
+   routes, or route-specific fix. Mapping it to #19 would permit that issue to close while preserving the
+   measured failure.
+
+   Resolution: either add FLX-1009 with #19's contract, or explicitly expand FLX-1001's minimum fields and
+   `why`/`suggestedFix` rules to cover both cases. Map the basic FLX-1001/model work to #8.
+
+2. “Spring diagnostics” does not answer #20 / UP-FLX-33.
+
+   #20 is specifically a context bean that is in neither `nodeBeans` nor `ignoredBeans`, is unreferenced,
+   and is therefore silently omitted. None of README.md:228-239 names that case.
+   `SPRING_UNKNOWN_HANDLER_NODE` is not equivalent: as #20 states, it fires only when a binding references
+   the bean. A merely unselected bean reaches no check.
+
+   Resolution: add a semantic id for the unselected-and-unignored bean report, with transitive child
+   exclusion and optional strict-mode acceptance, or mark #20 uncovered.
+
+3. `fluxtion.callbackKinds` / `FLX-1008` does not answer #21 / UP-FLX-34.
+
+   #21 asks for a per-node GraphML fact saying whether the node implements `EventLogSource` and can record
+   values. `callbackKinds` says which callbacks a node declares. FLX-1008 says audit is disabled. Neither
+   says whether the node is audit-capable. The required `auditCapable` fact is absent.
+
+   The correct traceability is: callback/lifecycle facts and the shared fixture pack -> #12 /
+   UP-FLX-14 + UP-SHARED-01; FLX-1008 -> #9; a new audit-capability key -> #21.
+
+4. Slice 7 diagnostic anchors do not answer #22 / UP-FLX-35.
+
+   #22 asks the framework canon to explain `EventLogSource`, `EventLogNode`, `setLogger`, typed fluent
+   logging, safe logging while audit is off, and how audit is enabled. Slice 7 creates pages for diagnostic
+   codes. A stable `/errors/FLX-1001` URL is UP-SHARED-02 under #8; it is not the audit-authoring contract.
+
+Consequently Finding 2's count is also wrong. The three asks it names are genuinely absent (UP-FLX-29,
+UP-FLX-31, and the `propagates` half of UP-FLX-28), but UP-FLX-33, UP-FLX-34, and UP-FLX-35 are absent too.
+UP-FLX-32 is only partially covered. The reconciliation must be rerun in both directions: spec item ->
+issue and filed issue -> spec item. That second direction also finds that `callbackKinds` and the fixture
+pack belong to #12, and that `originCapable` has a relationship to #10 that the table does not record.
+
+Evidence checked:
+
+* exact bodies of telaminai/fluxtion issues #8, #9, #12 and #14-#22;
+* LiveGraphSourceGenExtractor.java:98-102 and :125-283 — constructor, property and public-member paths;
+* analyser docs/proposals/upstream-asks.md, including UP-FLX-28..35 and UP-SHARED-01/02.
+
+================================================================================
+F2 · BLOCKING — the selected module is right, but the proposed type cannot live there
+================================================================================
+
+consumer-contract.md:70-81 correctly resolves the dependency direction to `fluxtion-builder`. The poms
+and existing remote DTOs support that conclusion: generator-core depends on builder, and
+RemoteGenerationResponse already lives in builder and crosses server -> client.
+
+README.md:70-87 nevertheless illustrates `FluxtionDiagnostic` as a Java `record`.
+`fluxtion-builder/pom.xml` deliberately compiles with source/target 1.8. A record cannot compile there.
+This is not merely illustrative once Slice 1 says “define diagnostic DTOs” in that module.
+
+The carrier also crosses two existing binary protocols:
+
+* `RemoteGenerationResponse` is Java-serialised, pins `serialVersionUID = 1`, and relies on nullable added
+  fields for old-client/new-server and new-client/old-server compatibility;
+* Kryo pre-registers the response and model DTO classes in an order that must not drift accidentally.
+
+Resolution: retain builder ownership, but specify a Java-8-compatible immutable/defensively-copied POJO
+family. State which DTOs implement `Serializable`; add diagnostics as a nullable response field; preserve
+the response UID; register any Kryo classes without shifting existing ids; and require compatibility tests
+in both version directions and both serialisation formats. This is required before Slice 1, not discovered
+while implementing remote support later.
+
+Evidence checked:
+
+* fluxtion-builder/pom.xml:31-32, :91-105;
+* RemoteGenerationResponse.java:18-48;
+* RemoteGenerationResponseCompatTest.java:17-47;
+* SerializationUtils.java:297-345;
+* RemoteHttpCombinedGenerator.java:101-163 and generator-http Main.java:297-365.
+
+================================================================================
+F3 · BLOCKING — “stable JSON” is not yet a consumer contract
+================================================================================
+
+README.md:105-129 gives one example and Slice 1 says JSON must be stable. It does not define what stability
+means. An independent parser still has to guess:
+
+* whether nullable fields are omitted or emitted as null;
+* whether `element` is one fixed object, a tagged union, or arbitrary per-code properties;
+* whether unknown codes, enum values and fields must be tolerated;
+* which changes increment `diagnosticsVersion` (and whether 1.0 means string, major/minor, or schema id);
+* ordering of diagnostics, `related`, fields and cycle paths;
+* whether source paths are relative, absolute, redacted, or allowed to reveal the build machine;
+* whether a fatal compiler exception must still leave a complete, atomically-written sidecar.
+
+The added acceptance at consumer-contract.md:92-94 only checks that named fields are non-empty. A producer
+and consumer using the same DTO/Jackson configuration can agree with each other while both violate the
+published bytes.
+
+Resolution: add a versioned JSON Schema or an equally exact normative wire table, golden JSON parsed by a
+consumer that does not use the producer DTO, and mutation tests for unknown additive fields/codes plus
+missing required fields. Pin failure-path sidecar behaviour. The schema, not a Java class, is the public
+contract.
+
+================================================================================
+F4 · REQUIRED — the proposed Slice 2 fixture gate is circular and cannot pass as written
+================================================================================
+
+consumer-contract.md:88-91 asks for one “real rejection” per `Ready` code and says this should gate
+Slice 2. The Ready set includes work assigned to later slices:
+
+* FLX-1008 is a warning in Slice 3, not a Slice 2 rejection;
+* FLX-1030 is replay work in Slice 5;
+* SPRING_DECLARED_EVENT_UNHANDLED is a warning by default, not necessarily a rejection.
+
+Therefore “every Ready code before Slice 2” requires later slices before Slice 2 can close, and “real
+rejection” excludes valid warning diagnostics.
+
+Resolution: make the pack incremental. Each slice is accepted only when every code implemented by that
+slice has a producer-generated fixture; the complete pack gates the milestone/release. Call them
+“diagnostic-producing cases”, not all rejections. Keep the end-to-end repair measurement, but define it as
+an evaluation artefact with preserved prompt/model/output/build evidence, not a deterministic unit gate.
+
+================================================================================
+F5 · REQUIRED BEFORE SLICE 4 — the current graph discards the proposed edge facts
+================================================================================
+
+README.md:252-330 describes `referenceKind` and `referenceField` as low-cost additive GraphML data. The
+current exporter receives a `SimpleDirectedGraph<Object, DefaultEdge>` and writes only source/target plus
+generic labels. The facts are not on those edges:
+
+* push edges are retained only in a private `pushEdges` set on TopologicallySortedDependencyGraph;
+* `@NoTriggerReference` affects event propagation but no data-reference marker or field name is attached
+  to the exported DefaultEdge;
+* event -> handler edges are synthesised in JgraphGraphMLExporter with `addEdge(eventTypeClass, node)`,
+  which discards handler method, filter value and FilterType;
+* SimpleDirectedGraph cannot represent two independently-described references between the same pair of
+  vertices, so a per-field key is not generally expressible without changing or aggregating the model.
+
+This does not make the feature wrong, but it makes “add data keys only / no topology change” an unproved
+implementation strategy. Before Slice 4, specify the intermediate edge descriptor, how parallel
+references are represented without lying, and fixtures for mixed trigger/data references, push,
+propagate=false, matched/default filters and multiple fields to the same node pair.
+
+The callback enumeration is incomplete as well. README.md:280-294 omits `@AfterTrigger`,
+`@OnBatchEnd`, and `@OnBatchPause`, all of which ReflectionCache treats as handler callbacks. A generic
+`BATCH` value loses the distinction the metadata is meant to preserve.
+
+Evidence checked:
+
+* JgraphGraphMLExporter.java:108-159 and :213-371;
+* TopologicallySortedDependencyGraph.java:679-758, :924-981;
+* ReflectionCache.java:49-57.
+
+================================================================================
+F6 · REQUIRED — FLX-1008 is marked Ready without a decidable detection rule
+================================================================================
+
+README.md:186 and :477-482 require “node calls auditLog but graph has no event audit configured”. The
+builder can cheaply know that event audit is disabled and that a node implements `EventLogSource`; those
+facts do not prove the node calls `auditLog`. The graph extractor reflects types and annotations, not Java
+method bodies. Detecting a call requires source or bytecode analysis, the same class of mechanism for
+which FLX-1020 is correctly marked “Design needed”.
+
+Resolution: either mark FLX-1008 Design needed and specify a reliable analysis mechanism, or redefine it
+conservatively as an audit-capable-node/configuration diagnostic and accept the different semantics and
+noise. Do not infer a call from `EventLogSource`; issue #21 explicitly distinguishes capability from what
+a node actually records.
+
+================================================================================
+NOTES
+================================================================================
+
+N1. `git diff --check d9948cb^..cb21f7d` reports trailing whitespace on README.md lines 3-4. They are
+Markdown hard breaks, but they still make the repository's range check fail; use an ordinary paragraph or
+`<br>` if a clean diff gate is expected.
+
+N2. The module answer itself should stay. The builder pom contains stronger evidence than dependency
+direction alone: it explicitly says builder carries the generation model/DTO/SPI and generator-core is
+cloud-only. F2 changes the representation and compatibility contract, not ownership.
+
+N3. The real-fixture instinct is correct. Do not weaken it to hand-authored JSON. The correction is its
+incremental timing and independent wire-level parsing.
+
+================================================================================
+WHAT I VERIFIED
+================================================================================
+
+* fetched origin/feature/compiler_diagnostics and reviewed detached cb21f7d;
+* confirmed d9948cb and cb21f7d are the only branch commits over origin/develop;
+* read both changed documents in full;
+* checked all referenced filed issue bodies (#8, #9, #12, #14-#22), not their titles alone;
+* checked the three LiveGraphSourceGenExtractor wiring paths;
+* checked builder/core/http dependency and remote-serialisation paths;
+* checked the current GraphML exporter, dependency graph and callback discovery.
+
+WHAT I DID NOT VERIFY
+
+* No implementation exists, so no emitted JSON, GraphML, diagnostic, replay or remote response could be
+  exercised.
+* I did not run the Maven suite. The reviewed range changes documentation only; compilation would not test
+  any of the contractual claims above.
+* I did not assess every proposed severity or every diagnostic's framework semantics. The review focused
+  on the claimed issue reconciliation, the Slice 1 carrier/wire, and facts that would make later acceptance
+  pass for the wrong reason.
