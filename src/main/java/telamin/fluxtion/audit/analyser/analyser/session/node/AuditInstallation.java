@@ -1,10 +1,9 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
-import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
+import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.audit.EventLogSource;
 import com.telamin.fluxtion.runtime.audit.EventLogger;
 import com.telamin.fluxtion.runtime.audit.NullEventLogger;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
 import telamin.fluxtion.audit.analyser.analyser.topology.AuditReadiness;
 
 /**
@@ -25,10 +24,15 @@ import telamin.fluxtion.audit.analyser.analyser.topology.AuditReadiness;
  */
 public class AuditInstallation implements EventLogSource {
 
-    private EventLogger auditLog = NullEventLogger.INSTANCE;
+    private final OpenGraph openGraph;
 
+    private EventLogger auditLog = NullEventLogger.INSTANCE;
     private Verdict verdict = Verdict.UNKNOWN;
     private int nodeCount;
+
+    public AuditInstallation(OpenGraph openGraph) {
+        this.openGraph = openGraph;
+    }
 
     public enum Verdict {
         /** The auditor is on the graph: a run can produce a log. */
@@ -44,28 +48,22 @@ public class AuditInstallation implements EventLogSource {
         this.auditLog = log;
     }
 
-    @OnEventHandler
-    public boolean onGraphObserved(SessionEvents.GraphObserved event) {
-        if (!event.open() || event.nodeTypes().isEmpty()) {
+    /** One method, fired when the graph changed — see {@code Pairing} for why. */
+    @OnTrigger
+    public boolean recomputeOnStateChange() {
+        java.util.List<String> types = openGraph.nodeTypes();
+        if (!openGraph.isOpen() || types.isEmpty()) {
             verdict = Verdict.UNKNOWN;
             nodeCount = 0;
             auditLog.info("auditInstallation", verdict.name()).info("nodeCount", 0);
             return true;
         }
         String auditor = AuditReadiness.evidenceTypes().get(0);
-        verdict = event.nodeTypes().contains(auditor) ? Verdict.ENABLED : Verdict.NOT_ENABLED;
-        nodeCount = event.nodeTypes().size();
+        verdict = types.contains(auditor) ? Verdict.ENABLED : Verdict.NOT_ENABLED;
+        nodeCount = types.size();
         auditLog.info("auditInstallation", verdict.name())
                 .info("auditor", auditor)
                 .info("nodeCount", nodeCount);
-        return true;
-    }
-
-    @OnEventHandler
-    public boolean onGraphClosed(SessionEvents.GraphClosed event) {
-        verdict = Verdict.UNKNOWN;
-        nodeCount = 0;
-        auditLog.info("auditInstallation", verdict.name()).info("via", "GraphClosed");
         return true;
     }
 

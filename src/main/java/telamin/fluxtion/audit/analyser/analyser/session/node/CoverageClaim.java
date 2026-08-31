@@ -1,10 +1,9 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
-import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
+import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.audit.EventLogSource;
 import com.telamin.fluxtion.runtime.audit.EventLogger;
 import com.telamin.fluxtion.runtime.audit.NullEventLogger;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
 
 /**
  * <b>What may a surface actually ASSERT about coverage?</b> — the third of the three questions the
@@ -69,7 +68,6 @@ public class CoverageClaim implements EventLogSource {
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private Assessment assessment = new Assessment(Claim.REFUSED, "no log and no graph are open");
-    private String mostVerboseLevel;
 
     public CoverageClaim(Pairing pairing, AuditInstallation auditInstallation,
                          OpenGraph openGraph, OpenLog openLog) {
@@ -84,25 +82,13 @@ public class CoverageClaim implements EventLogSource {
         this.auditLog = log;
     }
 
-    @OnEventHandler
-    public boolean onLogObserved(SessionEvents.LogObserved event) {
-        mostVerboseLevel = event.open() ? event.mostVerboseLevel() : null;
-        return reassess();
-    }
-
-    @OnEventHandler
-    public boolean onGraphObserved(SessionEvents.GraphObserved event) {
-        return reassess();
-    }
-
-    @OnEventHandler
-    public boolean onGraphClosed(SessionEvents.GraphClosed event) {
-        return reassess();
-    }
-
-    @OnEventHandler
-    public boolean onLogClosed(SessionEvents.LogClosed event) {
-        mostVerboseLevel = null;
+    /**
+     * One method, fired when any of the four things it combines changed — see {@code Pairing} for the
+     * mechanism. This node previously carried FOUR handlers, one per event that could move its answer,
+     * each calling this same reassessment.
+     */
+    @OnTrigger
+    public boolean recomputeOnStateChange() {
         return reassess();
     }
 
@@ -113,7 +99,7 @@ public class CoverageClaim implements EventLogSource {
                 .info("whyNot", assessment.reason())
                 .info("provenance", String.valueOf(openGraph.source()))
                 .info("auditInstallation", auditInstallation.verdict().name())
-                .info("level", String.valueOf(mostVerboseLevel));
+                .info("level", String.valueOf(openLog.mostVerboseLevel()));
         return true;
     }
 
@@ -144,6 +130,7 @@ public class CoverageClaim implements EventLogSource {
                             + "denominator belongs to a different system or build. It was kept because "
                             + "you opened it deliberately; scoring against it would still be wrong");
         }
+        String mostVerboseLevel = openLog.mostVerboseLevel();
         if (mostVerboseLevel != null && !TRACE.equalsIgnoreCase(mostVerboseLevel)) {
             return new Assessment(Claim.QUALIFIED,
                     "the most verbose record in this log is " + mostVerboseLevel + ", not TRACE, so a "

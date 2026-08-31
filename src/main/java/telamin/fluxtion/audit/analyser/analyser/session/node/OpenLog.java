@@ -23,6 +23,20 @@ public class OpenLog implements EventLogSource {
     private String logPath;
     private String provenance;
 
+    /**
+     * The evidence a derived node needs, held HERE rather than re-observed there.
+     *
+     * <p>M44.2b: the derived nodes used to carry one {@code @OnEventHandler} per event that could
+     * change their answer — four on {@code CoverageClaim} alone, each calling the same recompute. They
+     * now hold a reference to this node and use a single {@code @OnTrigger}, which the compiler renders
+     * as an OR of its parents' dirty flags and invokes at most once per cycle. The state lives with
+     * the state; the derivation lives with the derivation.
+     */
+    private java.util.Set<String> loggedNodeIds = java.util.Set.of();
+    private int sampled;
+    private int total;
+    private String mostVerboseLevel;
+
     public OpenLog(OperationGate gate) {
         this.gate = gate;
     }
@@ -37,18 +51,32 @@ public class OpenLog implements EventLogSource {
         if (!gate.accepted()) {
             return false;
         }
+        boolean wasOpen = logPath != null;
         logPath = null;
         provenance = null;
+        loggedNodeIds = java.util.Set.of();
+        sampled = 0;
+        total = 0;
+        mostVerboseLevel = null;
         auditLog.info("openLog", "none").info("via", "LogClosed");
-        return true;
+        return wasOpen;
     }
 
     @OnEventHandler
     public boolean onLogObserved(SessionEvents.LogObserved event) {
+        String wasPath = logPath;
+        java.util.Set<String> wasIds = loggedNodeIds;
         logPath = event.open() ? event.logPath() : null;
         provenance = event.open() ? event.provenance() : null;
+        loggedNodeIds = event.open() ? event.loggedNodeIds() : java.util.Set.of();
+        sampled = event.open() ? event.sampled() : 0;
+        total = event.open() ? event.total() : 0;
+        mostVerboseLevel = event.open() ? event.mostVerboseLevel() : null;
         auditLog.info("openLog", event.open() ? event.logPath() : "none").info("via", "observation");
-        return true;
+        // Dirty ONLY when something moved. The boolean is Fluxtion's propagation control, so returning
+        // true unconditionally would re-derive every dependent on every observation — including the
+        // ones the menu funnel fires when nothing has changed at all.
+        return !java.util.Objects.equals(wasPath, logPath) || !wasIds.equals(loggedNodeIds);
     }
 
     public boolean isOpen() {
@@ -61,5 +89,23 @@ public class OpenLog implements EventLogSource {
 
     public String provenance() {
         return provenance;
+    }
+
+    /** Distinct instanceIds seen in the sample — the raw evidence a pairing needs. */
+    public java.util.Set<String> loggedNodeIds() {
+        return loggedNodeIds;
+    }
+
+    public int sampled() {
+        return sampled;
+    }
+
+    public int total() {
+        return total;
+    }
+
+    /** A LOWER BOUND on the capture threshold, never the threshold itself. */
+    public String mostVerboseLevel() {
+        return mostVerboseLevel;
     }
 }

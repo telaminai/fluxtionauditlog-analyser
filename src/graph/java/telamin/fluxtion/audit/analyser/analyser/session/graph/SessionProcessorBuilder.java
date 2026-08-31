@@ -70,8 +70,8 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         SessionBoundary boundary = new SessionBoundary(gate, activeProject, openLog, openGraph, effects);
         EffectOutcomes outcomes = new EffectOutcomes(gate);
         // M44.2 — the review's F3: three questions the first draft merged into one node.
-        Pairing pairing = new Pairing(gate);
-        AuditInstallation auditInstallation = new AuditInstallation();
+        Pairing pairing = new Pairing(openLog, openGraph);
+        AuditInstallation auditInstallation = new AuditInstallation(openGraph);
         LogArrival logArrival = new LogArrival(gate, pairing, openGraph, effects);
         CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
         IgnoredParameters ignoredParameters = new IgnoredParameters();

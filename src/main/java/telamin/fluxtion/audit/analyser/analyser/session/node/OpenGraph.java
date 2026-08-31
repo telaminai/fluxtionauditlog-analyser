@@ -21,6 +21,10 @@ public class OpenGraph implements EventLogSource {
     private String graphPath;
     private String source;
 
+    /** Held here for the same reason as {@code OpenLog}'s: derivation reads state, once per cycle. */
+    private java.util.Set<String> declaredNodeIds = java.util.Set.of();
+    private java.util.List<String> nodeTypes = java.util.List.of();
+
     public OpenGraph(OperationGate gate) {
         this.gate = gate;
     }
@@ -35,18 +39,25 @@ public class OpenGraph implements EventLogSource {
         if (!gate.accepted()) {
             return false;
         }
+        boolean wasOpen = graphPath != null;
         graphPath = null;
         source = null;
+        declaredNodeIds = java.util.Set.of();
+        nodeTypes = java.util.List.of();
         auditLog.info("openGraph", "none").info("via", "GraphClosed");
-        return true;
+        return wasOpen;
     }
 
     @OnEventHandler
     public boolean onGraphObserved(SessionEvents.GraphObserved event) {
+        String wasPath = graphPath;
+        java.util.Set<String> wasIds = declaredNodeIds;
         graphPath = event.open() ? event.graphPath() : null;
         source = event.open() ? event.source() : null;
+        declaredNodeIds = event.open() ? event.declaredNodeIds() : java.util.Set.of();
+        nodeTypes = event.open() ? event.nodeTypes() : java.util.List.of();
         auditLog.info("openGraph", event.open() ? event.graphPath() : "none").info("via", "observation");
-        return true;
+        return !java.util.Objects.equals(wasPath, graphPath) || !wasIds.equals(declaredNodeIds);
     }
 
     public boolean isOpen() {
@@ -59,5 +70,15 @@ public class OpenGraph implements EventLogSource {
 
     public String source() {
         return source;
+    }
+
+    /** The authored node ids the graph declares — raw, so a verdict is computed and not handed over. */
+    public java.util.Set<String> declaredNodeIds() {
+        return declaredNodeIds;
+    }
+
+    /** Every node's simple type name; how audit installation is read. */
+    public java.util.List<String> nodeTypes() {
+        return nodeTypes;
     }
 }

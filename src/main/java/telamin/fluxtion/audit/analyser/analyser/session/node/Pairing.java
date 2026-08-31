@@ -1,10 +1,9 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
-import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
+import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.audit.EventLogSource;
 import com.telamin.fluxtion.runtime.audit.EventLogger;
 import com.telamin.fluxtion.runtime.audit.NullEventLogger;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing;
 
 /**
@@ -26,20 +25,17 @@ import telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing;
  */
 public class Pairing implements EventLogSource {
 
-    private final OperationGate gate;
+    private final OpenLog openLog;
+    private final OpenGraph openGraph;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
-
-    private java.util.Set<String> declared = java.util.Set.of();
-    private java.util.Set<String> logged = java.util.Set.of();
-    private boolean haveGraph;
-    private boolean haveLog;
+    private GraphPairing verdict;
     private int sampled;
     private int total;
-    private GraphPairing verdict;
 
-    public Pairing(OperationGate gate) {
-        this.gate = gate;
+    public Pairing(OpenLog openLog, OpenGraph openGraph) {
+        this.openLog = openLog;
+        this.openGraph = openGraph;
     }
 
     @Override
@@ -47,33 +43,28 @@ public class Pairing implements EventLogSource {
         this.auditLog = log;
     }
 
-    @OnEventHandler
-    public boolean onLogObserved(SessionEvents.LogObserved event) {
-        haveLog = event.open();
-        logged = event.open() ? event.loggedNodeIds() : java.util.Set.of();
-        sampled = event.sampled();
-        total = event.total();
-        return recompute();
-    }
-
-    @OnEventHandler
-    public boolean onGraphObserved(SessionEvents.GraphObserved event) {
-        haveGraph = event.open();
-        declared = event.open() ? event.declaredNodeIds() : java.util.Set.of();
-        return recompute();
-    }
-
-    @OnEventHandler
-    public boolean onGraphClosed(SessionEvents.GraphClosed event) {
-        if (!gate.accepted()) {
-            return false;
-        }
-        haveGraph = false;
-        declared = java.util.Set.of();
+    /**
+     * ONE method, fired when either parent changed.
+     *
+     * <p>This replaced three {@code @OnEventHandler}s that each called the same recompute. The
+     * compiler renders an {@code @OnTrigger} as an OR of its parents' dirty flags —
+     * {@code guardCheck_pairing() { return isDirty_openLog | isDirty_openGraph; }} — evaluated once
+     * per cycle, so the node is invoked at most once however many of its inputs moved. That is the
+     * de-duplication the three handlers were hand-rolling, done by the compiler and visible in the
+     * generated source.
+     */
+    @OnTrigger
+    public boolean recomputeOnStateChange() {
         return recompute();
     }
 
     private boolean recompute() {
+        boolean haveGraph = openGraph.isOpen();
+        boolean haveLog = openLog.isOpen();
+        java.util.Set<String> declared = openGraph.declaredNodeIds();
+        java.util.Set<String> logged = openLog.loggedNodeIds();
+        sampled = openLog.sampled();
+        total = openLog.total();
         if (!haveGraph || !haveLog) {
             // "Cannot say" is a verdict, not a gap. A pairing needs both artefacts, and inventing one
             // when a log is open on its own is how a graph gets judged against nothing.
