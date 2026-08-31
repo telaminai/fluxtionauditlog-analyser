@@ -93,6 +93,44 @@ Recursion into `onEvent` from inside a node would make re-entrancy part of the m
 recreate exactly the hidden orchestration this milestone removes. The `EffectQueue` node is the only
 node the driver reads, and `drain()` returns an immutable batch and empties the queue.
 
+**D-S0.5 — state comes from EVENTS; services are for QUERY and for INSTIGATING ACTIONS.**
+
+Owner, 2026-09-01, correcting a proposal made here to move `OpenLog`/`OpenGraph` state out of the graph
+and behind an injected service. The rule:
+
+* **State comes from events that trigger the graph.** The graph holds it.
+* **Services are for querying something the graph must not mirror, or for instigating an action.**
+* And the reason it lands this way here: **this is a UI, so almost everything is event-triggered
+  already.** A UI generates events natively — a menu click, a load completing. Reaching for a service to
+  carry state would be inventing a second mechanism next to the one the platform already gives you.
+
+**Why the proposal was wrong, stated plainly because the reasoning is reusable.** Moving state behind a
+service would have cost the property this milestone exists for: *replaying the same typed inputs, can
+every decision be reconstructed from the graph and the audit log?* With state in a service, replaying
+events no longer reproduces a decision — you would also need to know what the service returned. I had
+noticed that and was about to work around it by logging every value read. **The rule removes the need
+for the workaround instead of managing it**, which is the better shape.
+
+**But the criticism underneath the proposal was right, and it points somewhere else.** `LogObserved`
+carries `open`, the path, the logged ids and the level — that is **a state snapshot pretending to be an
+event**. It says *"here is the current state"* rather than *"this happened"*, which is why it needed a
+mirror-maintenance guard (`isDispatching()`) and dirty-on-change logic that domain events would not need.
+
+The fix is not a service. It is honest events — `LogOpened(path, ids, level)` and `LogClosed()` — which
+[`spec-async-session-driver.md`](spec-async-session-driver.md) already plans, and which the driver
+change unblocks. **The mirror was never the mechanism's fault; it was an event modelled as a snapshot.**
+
+**Where a service IS right here**, and there is a live candidate: the source resolver that
+`NodeLogging`/`CoverageScope` use to answer *"can this class log?"*. It is threaded through as a
+`Function<String, Optional<String>>` parameter today — already service-shaped, just hand-carried. The
+graph must never mirror a source tree, and it only ever queries it. That is exactly (a).
+
+**Where we deliberately do NOT use (b).** Effects are drained after dispatch rather than invoked through
+an action service from inside a node. Calling an action service mid-cycle would put an irreversible act
+inside a dispatch that has not finished deciding, and would collapse the *asked* / *happened*
+distinction that `EffectOutcomes` exists to keep. That is a choice specific to a processor whose audit
+log is the product, not a general preference.
+
 **A framework fact that constrains the driver, verified in source.** `DataFlow.setAuditLogProcessor`,
 `setAuditLogLevel`, `setAuditLogRecordEncoder` and `setAuditTimeFormatter` are **not setters** — each is
 `onEvent(new EventLogControlEvent(...))`. They are dispatches. They must therefore run **at wiring time,
