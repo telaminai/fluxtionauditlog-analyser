@@ -80,10 +80,23 @@ Verified against a real Maven build from this repo, not from your test suite:
     (`GraphMlExporterCompatibilityTest`), with both sides committed as fixtures, so the next rewrite
     cannot make it stale the way the `dd36bc5` run went stale.
 
-**Not verified: 89373a9.** Our fixtures were emitted at dbcbe17, and the branch has moved seven commits
-since. If any of those changed emitted output, regenerating our three fixtures and running
-`GraphVocabularyTest` + `GraphMlExporterCompatibilityTest` is the check — that is what they are for, and
-we would rather find it than a user would.
+**NOW VERIFIED at `7c55b2f`** (amended after writing — the branch had moved past 89373a9 to the model
+fingerprint slice). Fixtures regenerated at the tip and the suites re-run:
+
+  · **`OFF` is byte-identical to the dbcbe17 output.** Zero `fluxtion.*` key declarations and zero
+    `fluxtion.*` data elements. The "give me the file I had before" contract holds across seven commits
+    including two merges and the exporter's model-projection rewrite;
+  · one new key, `fluxtion.sourceFingerprint`, and it behaves correctly on both counts we care about —
+    **stable across three consecutive regenerations**, and **identical between PARALLEL and
+    AGGREGATED**, which is the property that makes it a fingerprint of the model rather than of the
+    file. That was our worry when we reported the byte instability, and hashing over the carrier is the
+    right answer to it. It is now pinned by a test on our side, mutation-checked;
+  · everything else parses unchanged; all four M45 suites green.
+
+*One honest note on how we nearly reported this wrong: a first pass grepped the OFF file for the string
+`fluxtion.` and counted 27, which looked like a contract break. They were package names — this repo's own
+package is `telamin.fluxtion.audit.analyser`. Counting `<key id="fluxtion.` and `<data key="fluxtion.`
+gives zero and zero. Recorded because we would rather show the near-miss than the tidy conclusion.*
 
 ================================================================================
 5 · STILL OPEN FROM US, UNCHANGED

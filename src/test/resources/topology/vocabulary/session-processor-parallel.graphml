@@ -2,6 +2,7 @@
     <key id="vertex_label" for="node" attr.name="nodeData" attr.type="string"/>
     <key id="edge_label" for="edge" attr.name="edgeData" attr.type="string"/>
     <key id="fluxtion.metaVersion" for="graph" attr.name="fluxtion.metaVersion" attr.type="string"/>
+    <key id="fluxtion.sourceFingerprint" for="graph" attr.name="fluxtion.sourceFingerprint" attr.type="string"/>
     <key id="fluxtion.toolchainVersion" for="graph" attr.name="fluxtion.toolchainVersion" attr.type="string"/>
     <key id="fluxtion.nodeCount" for="graph" attr.name="fluxtion.nodeCount" attr.type="int"/>
     <key id="fluxtion.kind" for="node" attr.name="fluxtion.kind" attr.type="string"/>
@@ -20,6 +21,7 @@
     <key id="fluxtion.relationshipCount" for="edge" attr.name="fluxtion.relationshipCount" attr.type="int"/>
     <graph edgedefault="directed">
         <data key="fluxtion.metaVersion">1.0</data>
+        <data key="fluxtion.sourceFingerprint">77d590a149a2c6263bb7450c41b5469b960d1b02210443278e1193c8fb8dd828</data>
         <data key="fluxtion.nodeCount">27</data>
         <node id="ClockStrategyEvent">
             <data key="vertex_label">

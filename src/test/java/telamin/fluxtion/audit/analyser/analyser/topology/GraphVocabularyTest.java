@@ -122,6 +122,22 @@ class GraphVocabularyTest {
         assertNull(new ProcessorTopology.Edge("e", "a", "b").propagates());
     }
 
+    @Test
+    @DisplayName("the build fingerprint hashes the MODEL, so it does not move with the emission mode")
+    void theFingerprintIsModelScopedNotFileScoped() {
+        String parallelPrint = parallel().vocabulary().graphFacts().get("fluxtion.sourceFingerprint");
+        String aggregatedPrint = GraphMlParser.parse(DIR.resolve("session-processor-aggregated.graphml"))
+                .vocabulary().graphFacts().get("fluxtion.sourceFingerprint");
+
+        assertNotNull(parallelPrint, "the emitter declares a fingerprint");
+        assertEquals(parallelPrint, aggregatedPrint,
+                "PARALLEL and AGGREGATED are two renderings of ONE model, so a fingerprint over the "
+                        + "model must not move between them. A fingerprint that changed with the "
+                        + "emission mode would report a difference that does not exist — and this "
+                        + "repo measured exactly that class of problem when the emitter's byte order "
+                        + "was unstable at builder 1.0.64.");
+    }
+
     // ------------------------------------------------------------------ relationships
 
     @Test
