@@ -1,0 +1,276 @@
+INDEPENDENT RE-REVIEW — compiler diagnostics through Slice 4
+Reviewed repository: /Users/greg/IdeaProjects/telamin/fluxtion/fluxtion-compiler
+Reviewed branch/revision: feature/compiler_diagnostics @ e1b31a0
+Reviewed corrective range: 096d741..e1b31a0
+Reviewer: analyser/Codex session · Date: 2026-08-31
+Isolation: detached worktree /private/tmp/compiler-diagnostics-rereview-e1b31a0
+
+VERDICT: CHANGES REQUIRED BEFORE MERGE.
+
+The branch is stable: the full reactor passes at exactly 130 builder, 21 generator-core,
+14 generator-http and 3,414 integration tests, with zero failures. The FLX-1007 closure is
+also real: a mutually-referencing live graph now reaches DiagnosticException, and its
+cyclePath follows actual dependency edges rather than an alphabetically sorted vertex set.
+F4's fields are present in the current writer, F6 is now labelled PARTLY FIXED rather than
+complete, and the N8 vocabulary disposition is coherent.
+
+The branch is not ready to merge. Three corrections claimed fixed still fail when driven
+through production code: the FLX-1009 mixed-field fork, two ordinary Spring wiring forms,
+and schema validation. A fourth claim — that every correction is mutation-checked — is
+directly refuted by a mutation that removes every newly promised node-list property while
+all 130 builder tests stay green. The sidecar still deletes the old report before rename
+despite calling the operation atomic. Finally, Slice 4 must be reconciled with the newer,
+default-OFF GraphML metadata work rather than merging its unconditional and now-superseded
+emitter.
+
+
+================================================================================
+F1 · BLOCKING — FLX-1009 still wins a mixed failure and hides the graph reference
+================================================================================
+
+The mapper classification is now preserved, which fixes the collection and equals/identity
+re-derivation defects. The code that SELECTS the diagnostic is still wrong:
+
+  LiveGraphSourceGenExtractor.java:300-312
+    stateOnly = valueOnlyFields(unmatched, mappedFieldKind)
+    stateOnly.isEmpty() ? FLX-1001 : FLX-1009
+
+Any VALUE field therefore selects FLX-1009, even when another unmatched field is a genuine
+REFERENCE requiring a constructor. FLX-1009 names only the value field and recommends
+@FluxtionIgnore/transient, while the reference that makes that remedy insufficient vanishes
+from the structured result.
+
+I drove the real extractor with a node holding:
+
+  final Parent parent;       // REFERENCE
+  final String counter;      // renderable VALUE
+  MixedNode(Parent parent);  // no constructor for both mapped fields
+
+TopologicallySortedDependencyGraphDtoBuilder produced:
+
+  expected: FLX-1001
+  actual:   FLX-1009
+
+The branch's mixed test does not exercise this choice. ConstructorFieldForkTest:84-91 calls
+valueOnlyFields directly, observes [counter], and never asserts which diagnostic production
+selects. Its method name says the mixture is not reported as pure state while the production
+call does exactly that.
+
+Required correction: use FLX-1009 only when every unmatched field is classified VALUE.
+Any REFERENCE or unclassified member makes the general FLX-1001 the honest result. Pin the
+decision through TopologicallySortedDependencyGraphDtoBuilder, not the helper. Update the
+stale direct-parent explanation at LiveGraphSourceGenExtractor:298-299 and README's fork
+description at the same time.
+
+
+================================================================================
+F2 · BLOCKING — SPRING_BEAN_NOT_SELECTED still makes both false-positive decisions
+================================================================================
+
+Two independent production probes fail.
+
+1. A supplier-wired child is reported as omitted.
+
+   context.registerBean("child", Child.class, () -> child)
+   context.registerBean("parent", Parent.class, () -> new Parent(child))
+   nodeBeans = [parent]
+
+   actual diagnostic: ... not part of the graph: [child]
+
+The live Parent object holds Child and Fluxtion discovers that reference. The new traversal
+does not inspect the live object graph; referencesOf at FluxtionSpring.java:397-428 reads only
+RuntimeBeanReference values stored in BeanDefinition constructor/property metadata. Supplier,
+@Bean and autowired wiring need not leave that representation, so the rule still implements
+"explicit BeanDefinition reference", not issue #20's "unreferenced" condition.
+
+2. An unrelated Auditor-typed bean is suppressed even though it is not added.
+
+   context bean: unlistedAuditor = EventLogManager instance A
+   config.auditors: [EventLogManager instance B]
+   nodeBeans = [handler]
+
+   expected: unlistedAuditor is omitted
+   actual:   no warning
+
+auditorBeans at FluxtionSpring.java:346-358 removes every Auditor-typed bean whenever any
+auditor is configured. But addNodes at :213-219 adds an auditor only when
+springConfig.auditors.contains(the exact context bean). The committed test at
+SpringBeanNotSelectedContextTest:104-115 itself uses two different EventLogManager instances
+and then states the context bean is in the graph. It is not; the test pins the false result.
+
+There is a third fail-open/fail-noisy mismatch in the comments: beansReachableFromSelected
+says an unreadable definition suppresses the whole report (:368-371), but it returns an empty
+set and reportBeansNotSelected removes nothing (:277-290), so it reports more beans instead.
+
+Required correction: derive omission from the objects actually selected as nodes/auditors and
+the same live-reference walk the compiler uses, after selection has resolved. If that cannot be
+done in this slice, narrow the rule/message to explicit selection facts; do not claim "not part
+of the graph" from BeanDefinition metadata. Add real-context cases for supplier/@Bean wiring,
+the exact configured auditor instance, and an unconfigured Auditor-typed bean.
+
+
+================================================================================
+F3 · BLOCKING — SchemaConformanceTest is a partial schema reimplementation, not validation
+================================================================================
+
+The prior review explicitly required a strict JSON parser and Draft 2020-12 validator. The
+replacement reads the schema with SnakeYAML and manually implements only top-level required,
+pattern, enum and minLength (SchemaConformanceTest.java:107-145). It ignores $ref, type,
+allOf, if/then, const, items, minItems, minimum and format. Calling those four checks "the
+schema, executed" overstates what the test proves.
+
+Executable counterexample: I invoked that committed harness on this invalid element:
+
+  { "kind": "NODE" }
+
+The published schema's allOf/then requires nodeName and nodeClass, but assertConformsTo
+returned normally. The independent probe failed only on its final assertion that the harness
+must reject it. The committed self-test catches one lowercase code because pattern is one of
+the four rules copied into Java; it says nothing about the rest of the schema.
+
+The schema itself still contains two defects named by the prior review:
+
+  - diagnosticsVersion's pattern accepts 2.0 even though this file is normative for 1.x
+    (schema lines 13-16);
+  - nodeName, nodeClass, mappedFields, stateFields and collidingNodes are conditionally
+    required but are not declared/typed properties. A real validator therefore accepts a
+    numeric nodeName and arbitrary list contents.
+
+Its top description still says consumers tolerate unknown enum members while severity is the
+only enum and is now deliberately closed; wire-contract.md's acceptance checklist still asks
+for an unknown enum member to parse. The evolution decision was corrected in one paragraph,
+not through the whole contract.
+
+Required correction: use an actual Draft 2020-12 validator in test scope, parse as strict JSON,
+validate producer-generated output for every implemented code, and add negative mutations for
+the conditional element requirements and known property types. Pin the major version and make
+the schema description/checklist agree with the closed severity decision.
+
+
+================================================================================
+F4 · REQUIRED — the advertised minimum-field mutation gate does not exist
+================================================================================
+
+TRACKER.md:30 says every fix is mutation-checked. README says every minimum structured field is
+now checked. They are not.
+
+I temporarily removed the one p.put call in DiagnosticElement.node that emits mappedFields,
+stateFields and collidingNodes, then ran the complete builder suite:
+
+  ./mvnw -q -pl fluxtion-builder test
+  result: 130 passed, 0 failed
+
+The mutation was then reverted and the worktree returned clean. SchemaConformanceTest checks
+only the producer-generated cyclePath (:167-176). FLX-1001, FLX-1009 and FLX-1005 tests call
+BuilderDiagnostics directly and do not assert their promised element properties. This is the
+same below-the-decision test gap the tracker correctly identifies in its opening paragraph.
+
+Required correction: one producer-generated fixture per implemented code, asserting the exact
+registry minimums and passing the real schema validator. Keep a negative/mutation test that
+actually fails when each promised property is removed.
+
+
+================================================================================
+F5 · REQUIRED BEFORE SIDECAR USE — writeSidecar still is not atomic replacement
+================================================================================
+
+DiagnosticJsonWriter.java:68-74 and wire-contract.md call replacement atomic. The implementation
+does this at :89-93:
+
+  delete existing target
+  rename temp to target
+
+There is an absent-file window, and a failed rename loses the last valid report. The test at
+DiagnosticWireContractTest:222-241 verifies only the final state of successful create/replace;
+it cannot distinguish atomic replacement from delete-then-create.
+
+Required correction: same-directory Files.move with REPLACE_EXISTING + ATOMIC_MOVE, with a
+documented REPLACE_EXISTING fallback where atomic moves are unsupported, preserving the old
+target on failure and cleaning the temp on every path. This was N2 in the previous review and
+was not disposed in the response.
+
+
+================================================================================
+F6 · INTEGRATION BLOCKER — do not merge Slice 4's unconditional GraphML emitter
+================================================================================
+
+Revision e1b31a0 unconditionally declares and emits fluxtion.referenceKind,
+fluxtion.referenceField and fluxtion.propagates (JgraphGraphMLExporter.java:239-253,
+:391-440). It therefore changes default GraphML bytes and exposes a vocabulary before a
+consumer is ready. It also aggregates TRIGGER,DATA into positionally joined kinds/fields but
+reduces propagation to one OR boolean. That cannot express propagation per relationship — the
+distinction EdgeReference.java:59-68 says consumers need.
+
+The acceptance evidence is narrower than the text: EdgeReferenceGraphMLTest imports
+PushReference but has no push fixture; it has no mixed trigger/data pair, multiple same-pair
+fields, callback-kind fixture or consumer test. The newer metadata work has already corrected
+the central premise: GraphML output can expand one internal graph edge into multiple document
+edges without changing the compiler graph, and its metadata modes are explicitly staged behind
+fluxtion.graphml.metadata with default OFF.
+
+Required integration decision: remove 9402fe7's Slice 4 from this branch or replace it with the
+separately reviewed, default-OFF metadata implementation. Do not merge two competing key names,
+relationship models and exporter paths. This review does not accept or reject that newer
+uncommitted implementation; it is being reviewed separately.
+
+
+================================================================================
+ACCEPTED CLOSURES AND NOTES
+================================================================================
+
+A1. F1/F7's cycle repair is accepted for the measured case. CycleDiagnosticGraphTest now drives
+    a real mutually-referencing graph and the emitted path follows actual dependency edges. The
+    focused test and full reactor pass. Tighten its catch(RuntimeException) branch: an unrelated
+    runtime failure with any non-null message currently passes the test.
+
+A2. F4's current emitter does carry mappedFields/stateFields/collidingNodes. The finding is the
+    absent gate, not that current bytes omit them.
+
+A3. F6 is honestly PARTLY FIXED. collectDiagnosticsOnly gives Spring analysis one reachable
+    programmatic surface, while the missing public compile collector remains explicitly open.
+
+N1. FLX-1008 is not silent across the whole reactor. generator-http's
+    Phase19RestCompilerTest logs it five times for the framework serviceRegistry. The narrower
+    statement "zero across the 3,414 integration-test cases" can still be literally true, but it
+    is not a product-wide noise measurement. Decide whether framework infrastructure belongs in
+    this author-facing warning and measure the complete compile surface.
+
+N2. walkInProgress/eventWalkInProgress are documented as ordered identity sets but are ordinary
+    LinkedHashSet instances, so membership uses equals. The rest of this graph mixes equality and
+    identity semantics already; do not rely on the new comment as proof until equal-but-distinct
+    nodes are tested through cycle detection.
+
+N3. DiagnosticException still marks diagnostic transient while getDiagnostic says never null.
+    Acceptable only while the exception stays local; keep it with the already-open remote
+    compatibility work.
+
+
+================================================================================
+VERIFICATION PERFORMED / NOT PERFORMED
+================================================================================
+
+Performed on exact e1b31a0 with Java 21:
+
+  - ./mvnw -q -pl fluxtion-builder test — PASS, 130/130;
+  - ./mvnw -q -pl fluxtion-integration-tests -am test — PASS:
+      builder 130, generator-core 21, generator-http 14,
+      integration 3,414 (8 skipped), zero failures/errors;
+  - focused CycleDiagnosticGraphTest, EdgeReferenceGraphMLTest,
+    AuditCapabilityGraphWiringTest, SpringBeanNotSelectedContextTest and
+    SchemaConformanceTest — PASS;
+  - real-extractor mixed-field probe — reproduced FLX-1009 instead of FLX-1001;
+  - real Spring-context supplier reference probe — reproduced false [child] warning;
+  - real Spring-context auditor identity probe — reproduced suppression of an omitted bean;
+  - schema-harness invalid NODE probe — harness accepted what its schema rejects;
+  - minimum-field deletion mutation — all 130 builder tests stayed green;
+  - git diff --check 096d741..e1b31a0 — PASS;
+  - every temporary probe/mutation was removed; detached compiler worktree is clean.
+
+Not performed:
+
+  - large-graph cycle cost measurement;
+  - old/new remote Java or Kryo compatibility (correctly still open);
+  - source-path traversal closure (correctly still open);
+  - public documentation URL publication;
+  - review of the concurrent uncommitted GraphML toggle implementation (separate review);
+  - no compiler source, branch or working tree was changed or pushed by this review.
