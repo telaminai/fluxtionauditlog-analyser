@@ -34,25 +34,39 @@ import java.util.List;
  * so in the record. The guard is the enforcement; the ids are what make the enforcement checkable from
  * the audit log alone, which is what would survive this driver being replaced by an asynchronous one.
  *
- * <h2>Audit wiring: before {@code init()}, and on the auditor — both parts measured, not guessed</h2>
+ * <h2>Audit wiring — every line of it measured, and one of them corrects an earlier guess</h2>
  * Fluxtion's no-arg {@code EventLogManager()} — the constructor the generated processor uses — defaults
- * its sink to {@code System.out::println}. The first version of this class attached the sink after
+ * its sink to {@code System.out::println}. The first version of this class attached the sink <em>after</em>
  * {@code init()}, on the reasoning that "before the first request" was early enough. It is not:
  * {@code init()} itself audits a lifecycle event, so <b>the analyser printed audit records to stdout
- * before the sink existed</b>. Only running it showed that.
+ * before the sink existed</b>.
  *
- * <p>The level has a second, quieter version of the same trap. {@code EventLogManager.nodeRegistered}
- * stamps each node's logger with the current level <em>as the node is registered</em>, during
- * {@code init()}. Calling {@code logLevel(...)} afterwards changes the field and none of the loggers
- * already built from it — a configuration call that appears to work and does nothing. (The control-event
- * route, {@code setAuditLogLevel}, does not have this problem: it rebuilds the loggers. It has a
- * different one — see below.)
+ * <p>The repair was then over-corrected. Six wirings were run against this processor and counted:
  *
- * <p>So both go on {@code processor.eventLogger} <b>before</b> {@code init()}. Which also sidesteps
- * two facts about the {@code DataFlow} route worth knowing: {@code setAuditLogProcessor} and
- * {@code setAuditLogLevel} are <b>not setters</b> — each is {@code onEvent(new EventLogControlEvent(…))},
- * a dispatch, so neither could ever be called from inside a node — and the runtime prints an
- * unconditional {@code "updating event log config:"} line to stdout when it handles one.
+ * <pre>
+ *   setAuditLogProcessor(sink); init();                    3 records, stdout CLEAN   <-- documented
+ *   eventLogger.setLogSink(sink); logLevel(l); init();      2 records, stdout clean
+ *   init(); setAuditLogProcessor(sink);                     2 records, LEAKS RECORDS
+ *   setAuditLogProcessor(sink); setAuditLogLevel(l); init(); 4 records, PRINTS CONFIG
+ *   init(); setAuditLogLevel(l);                            4 records, PRINTS CONFIG
+ *   init(); eventLogger.logLevel(NONE);                     SILENT NO-OP
+ * </pre>
+ *
+ * <p>So: <b>the documented {@code setAuditLogProcessor}-then-{@code init()} route works and catches one
+ * record more</b> than reaching for the auditor directly, which an earlier version of this class did on
+ * the mistaken belief that the {@code DataFlow} route was itself the problem. It is not — the ordering
+ * was. The level is the one place we still bypass it, because {@code setAuditLogLevel} prints
+ * {@code "updating event log config:"} to stdout on every call, which a desktop application may not do,
+ * while {@code eventLogger.logLevel(...)} is silent.
+ *
+ * <p>And the level must precede {@code init()} whichever route you take: {@code nodeRegistered} stamps
+ * each node's logger with the level <em>as the node is registered</em>, so a later {@code logLevel(...)}
+ * changes the field and none of the loggers already built from it — measured above as a silent no-op.
+ *
+ * <p>Underneath all of it, one fact worth carrying: {@code setAuditLogProcessor} and
+ * {@code setAuditLogLevel} are <b>not setters</b>. Each is {@code onEvent(new EventLogControlEvent(…))} —
+ * a dispatch — which is why their ordering against {@code init()} matters at all, and why neither could
+ * ever be called from inside a node.
  */
 public final class SessionDriver {
 
@@ -92,9 +106,10 @@ public final class SessionDriver {
         }
         this.adapter = adapter;
         this.sink = sink;
-        // BEFORE init(), and on the auditor directly. Both parts of that are load-bearing — see the
-        // class comment. Getting either wrong is silent.
-        processor.eventLogger.setLogSink(sink);
+        // Both BEFORE init(), and each by the route measured to be silent — see the class comment.
+        // The sink goes through the documented DataFlow call; the level does NOT, because the
+        // documented one prints to stdout and this one does not.
+        processor.setAuditLogProcessor(sink);
         processor.eventLogger.logLevel(EventLogControlEvent.LogLevel.INFO);
         processor.init();
     }

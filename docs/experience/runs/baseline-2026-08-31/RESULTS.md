@@ -85,14 +85,36 @@ agents *asked to state the rule*. The knowledge is present and does not survive 
   rounds' worse results came from agents under task pressure.
 - Nothing here measures the *post-change* state. The comparison run has to use this same instrument.
 
-## What to re-run after the merge
+## PRE-REGISTERED — the comparison run, and what would falsify the claim
 
-Same five prompts, same fixtures, plus a regenerated GraphML carrying the new vocabulary. The two
-questions that should move:
+Pinned 2026-08-31, before the merge, so it cannot be adjusted afterwards. Same instrument: the same five
+prompts, the same fixtures, a regenerated GraphML carrying the new vocabulary, and the same explicit
+permission to abstain.
 
-- **Q1** should go from "cannot tell" (2 of 3) to a determinate answer, from `fluxtion.auditCapable`.
-- **Q2** should go from "the files do not determine it" (3 of 3) to the correct rule, from
-  `fluxtion.topologicalRank`.
+**The claim being tested.** The two upstream changes are *not the same kind of thing*. Diagnostics are an
+**optimisation** — both agents reached a working fix from the legacy message, so the win is cycles and a
+transferable rule, not a new answer. The GraphML vocabulary is a **capability change**, because the
+baseline shows the answers are not reachable slowly, they are not reachable at all.
 
-And on authoring, the number to beat is **2–3 predicted build attempts, with 0 of 2 knowing that
-`final` is what triggers the mapping**.
+| | baseline (measured) | predicted after merge | source of the change |
+|---|---|---|---|
+| Q2 · sibling dispatch order | **0 of 3** could answer; 3 of 3 said the files do not determine it | **3 of 3** answer correctly | `fluxtion.topologicalRank` |
+| Q1 · did the silent node run | **1 of 3** determinate (via arithmetic only this fixture allows) | **3 of 3** determinate | `fluxtion.auditCapable` |
+| Authoring · predicted build attempts | **2–3**, both agents | **1** | FLX-1009's fork |
+| Authoring · names `final` as the mapping trigger | **0 of 2** | **2 of 2** | FLX-1009's `why` |
+
+**What falsifies it.** *If Q2 does not move from 0 of 3, the capability claim is wrong and the metadata
+is an optimisation too.* That row cannot be rescued by argument: nobody could answer the question at
+baseline, so either the attribute makes it answerable or it does not. Q1 is the weaker test — one agent
+already got there, and a reader who tries hard enough may again.
+
+Secondary, and worth recording because it would be the more interesting failure: **if agents answer Q2
+correctly but cite prior knowledge rather than the attribute**, the vocabulary has not been read and the
+result proves nothing about the artefact. The BASIS line exists to catch exactly that.
+
+## Author's note on the instrument
+
+My predictions before this run were wrong **in the direction of pessimism** — I expected confident wrong
+answers and got honest non-answers. The instrument was calibrated on earlier rounds where agents were
+*doing a task*, and asking a question while permitting abstention is a different measurement. Recorded
+because the same reflex is what turns an easy pass into an unreported non-event.

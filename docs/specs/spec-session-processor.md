@@ -483,7 +483,13 @@ interesting one: it looks like ceremony for something that cannot fail, and with
 
 * `setAuditLogProcessor` / `setAuditLogLevel` / `setAuditLogRecordEncoder` / `setAuditTimeFormatter` are
   **not setters**. Each is `onEvent(new EventLogControlEvent(...))` — a dispatch. They therefore cannot
-  be called from inside a node, and belong at wiring time.
+  be called from inside a node, and their position relative to `init()` is significant in a way a
+  setter's would not be. **Corrected 2026-08-31 by measuring six wirings:** this spec first concluded
+  that the `DataFlow` route was itself the problem and reached for the auditor directly. It is not —
+  the *ordering* was. `setAuditLogProcessor(sink)` before `init()` is clean and captures one record more
+  than the auditor route. Only the LEVEL still bypasses it, because `setAuditLogLevel` prints
+  `updating event log config:` to stdout on every call. The full table is in
+  [`upstream-content/audit-runtime.md`](../proposals/upstream-content/audit-runtime.md).
 * `EventLogManager.nodeRegistered` stamps each node's logger with the level **as the node is
   registered**, during `init()`. Calling `logLevel(...)` afterwards changes the field and none of the
   loggers built from it — configuration that appears to work and does nothing. The control-event route

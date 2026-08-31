@@ -165,7 +165,12 @@ agents does — and that learning is the raw material for the template bootstrap
   late — `init()` audits, so the analyser printed audit records to stdout. Both found by running it.
   Three framework facts came from reading runtime 1.0.13: the audit "setters" are dispatches; `logLevel()`
   after `init()` silently does nothing because loggers are stamped at registration; and the runtime prints
-  to stdout when it handles an audit control event.
+  to stdout when it handles an audit control event. **All three re-verified by measurement 2026-08-31, and
+  one conclusion drawn from them was wrong**: the `DataFlow` route is not the problem, the ordering is —
+  `setAuditLogProcessor` before `init()` is clean and catches one record more than reaching for the
+  auditor. The driver now uses the documented call. Six measured wirings, and the gap they expose in the
+  three static bootstrap sources, are written up for upstream as
+  [`upstream-content/audit-runtime.md`](../proposals/upstream-content/audit-runtime.md).
   ☑ **The Swing evidence gap, closed the only way it could be.** The review asked for behavioural
   characterisation against the old implementation; the old implementation is Swing, which rule 4 does not
   unit-test. So **`tools/verify-session-transitions.py`** drives the rules through the **built jar** over
