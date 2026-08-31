@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class NodeLoggingTest {
 
     /** The real demo sources, which ship in the jar — the same file the resolver would hand back. */
-    private static final Function<String, Optional<String>> DEMO = fqn -> {
+    private static final SourceResolver DEMO = fqn -> {
         Path p = Path.of("src/main/resources/demo", fqn.replace('.', '/') + ".java");
         try {
             return Files.exists(p) ? Optional.of(Files.readString(p)) : Optional.empty();
@@ -30,7 +30,7 @@ class NodeLoggingTest {
         }
     };
 
-    private static Function<String, Optional<String>> src(String text) {
+    private static SourceResolver src(String text) {
         return fqn -> Optional.of(text);
     }
 

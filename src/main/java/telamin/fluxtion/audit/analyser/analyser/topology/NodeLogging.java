@@ -114,7 +114,7 @@ public final class NodeLogging {
      * @param vocabulary what the file said about itself
      */
     public static Answer of(ProcessorTopology.Node node, GraphVocabulary vocabulary,
-                            Function<String, Optional<String>> source) {
+                            SourceResolver source) {
         if (node != null && vocabulary != null && vocabulary.trustedForNodeFacts()) {
             String declared = node.fact("fluxtion.auditCapable");
             if ("true".equalsIgnoreCase(declared)) {
@@ -130,14 +130,14 @@ public final class NodeLogging {
         return new Answer(of(node == null ? null : node.className(), source), Basis.INFERRED);
     }
 
-    public static Capability of(String fqn, Function<String, Optional<String>> source) {
+    public static Capability of(String fqn, SourceResolver source) {
         if (fqn == null || fqn.isBlank() || source == null) return Capability.UNKNOWN;
 
         // a nested type lives in its outer class's file, and that is the file the resolver can find
         String outer = fqn.contains("$") ? fqn.substring(0, fqn.indexOf('$')) : fqn;
         Optional<String> text;
         try {
-            text = source.apply(outer);
+            text = source.sourceFor(outer);
         } catch (RuntimeException e) {
             return Capability.UNKNOWN;                   // a resolver that throws is not evidence
         }

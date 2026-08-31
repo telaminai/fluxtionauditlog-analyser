@@ -49,7 +49,7 @@ class CoverageScopeTest {
     }
 
     /** The demo sources ship in the jar; this is the same text the resolver hands the panel. */
-    private static final java.util.function.Function<String, java.util.Optional<String>> DEMO_SRC = fqn -> {
+    private static final SourceResolver DEMO_SRC = fqn -> {
         java.nio.file.Path p = java.nio.file.Path.of("src/main/resources/demo", fqn.replace('.', '/') + ".java");
         try {
             return java.nio.file.Files.exists(p)

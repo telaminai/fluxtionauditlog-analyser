@@ -158,6 +158,21 @@ have nodes ask it. Resist it for *state*:
 lookup. Constrain it with an interface: the node can then only ask what the interface exposes, and a test
 supplies a *test implementation* rather than a mock.
 
+**But check that a NODE is the consumer before reaching for a service**, and this is worth saying because
+an earlier draft of this document got it wrong. A Fluxtion service is registered so that *nodes* can
+query it. The example this section was written from — a source resolver, passed by hand through eight
+signatures — turned out on inspection to be consumed **entirely outside the graph**, by plain classes the
+action surface calls. Nothing in the processor resolved source at all.
+
+So the defect there was real but different: **an unnamed function type**, not a missing service. A
+`Function<String, Optional<String>>` says what it takes and returns and nothing about what it means — a
+reader has to reach the call site to learn the string is a class name rather than a path, and that empty
+means *"not found"* rather than *"found, and empty"*. The fix for that is a named interface, and it is
+worth doing on its own merits; it just is not this idiom.
+
+> **The test:** if no node queries it, you want an interface. If a node queries it, you want a service —
+> which is an interface too, registered so the graph can reach it.
+
 **A smell worth naming, because it is easy to write by accident.** An event carrying
 `open=true/false, path, ids, level` is **a state snapshot pretending to be an event** — it says "here is
 the current state" rather than "this happened". Snapshots need mirror-maintenance: guards against

@@ -33,7 +33,7 @@ class DeclaredAuditCapabilityTest {
             "src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml");
 
     /** No source resolver at all — the position an analyser is in with a stranger's log. */
-    private static final Function<String, Optional<String>> NO_SOURCE = fqn -> Optional.empty();
+    private static final SourceResolver NO_SOURCE = fqn -> Optional.empty();
 
     private static Set<String> authored(ProcessorTopology t) {
         return new LinkedHashSet<>(t.ids());

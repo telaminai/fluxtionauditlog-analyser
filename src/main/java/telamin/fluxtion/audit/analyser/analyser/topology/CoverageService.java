@@ -24,7 +24,7 @@ public final class CoverageService {
 
     /** The topology facts needed to score coverage without a Swing dependency. */
     public record Input(ProcessorTopology topology, Set<String> authored,
-                        Function<String, Optional<String>> sourceResolver) {
+                        SourceResolver sourceResolver) {
         public Input {
             authored = authored == null ? Set.of() : Set.copyOf(authored);
         }

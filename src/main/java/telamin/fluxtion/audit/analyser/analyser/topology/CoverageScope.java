@@ -140,7 +140,7 @@ public final class CoverageScope {
      *               reason this parameter is optional rather than required.
      */
     public static Scope of(ProcessorTopology topology, Set<String> authored,
-                           java.util.function.Function<String, java.util.Optional<String>> source) {
+                           SourceResolver source) {
         Set<String> loggable = new LinkedHashSet<>();
         Map<String, String> excluded = new LinkedHashMap<>();
         Map<String, Reason> reasons = new LinkedHashMap<>();
@@ -195,7 +195,7 @@ public final class CoverageScope {
      * no source at all.
      */
     private static boolean silentByConstruction(ProcessorTopology.Node node, ProcessorTopology topology,
-                                                java.util.function.Function<String, java.util.Optional<String>> source) {
+                                                SourceResolver source) {
         GraphVocabulary vocabulary = topology == null ? GraphVocabulary.none() : topology.vocabulary();
         if (vocabulary.trustedForNodeFacts()) {
             NodeLogging.Answer declared = NodeLogging.of(node, vocabulary, source);
