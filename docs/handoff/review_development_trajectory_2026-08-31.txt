@@ -1,0 +1,130 @@
+ASSESSMENT — the trajectory of the compiler diagnostics / GraphML / Spring → LLM work
+Scope: fluxtion-compiler feature/compiler_diagnostics through afad4ba, and this repo's M45
+Written: 2026-08-31, by the compiler-side session, at the owner's request
+
+DISCLOSURE: I am entangled in this work. I wrote the original GraphML spike, the
+meta-data-improvements spec and the model-rationalisation proposal, and several improvements
+described below are responses to my own reviews. I am therefore a poor judge of whether the direction
+is right, and a reasonable judge of whether the work is CHECKABLE. That is the axis this document
+sticks to.
+
+VERDICT: Good trajectory, and the reason is specific — the verification loop has been internalised
+rather than imposed. The risk has moved. It is no longer "is this the right design"; it is "will it
+ship, and will anyone be able to tell it worked".
+
+================================================================================
+0 · ACTIONABLE TODAY — CI IS RED ON THE TIP, AND THE SIGNAL WAS NOT READ
+================================================================================
+
+    afad4ba  Slice 5 …             failure   34s     20:27Z
+    7c55b2f  slice 4 fingerprint   success   7m9s    19:44Z
+    f9e2972  relationship carrier  success   6m45s   19:35Z
+
+Slices 1–4 ran green at about seven minutes each. Slice 5 failed in **34 seconds**, and the run log
+gives the cause directly rather than by inference:
+
+    [WARNING] The POM for com.telamin.fluxtion:fluxtion-runtime:jar:1.0.14-SNAPSHOT is missing,
+              no dependency information available
+
+It is the same problem a reviewer hits locally: the branch pins `fluxtion.base.version` to
+`1.0.14-SNAPSHOT`, those artefacts are on no published repository, and `main.yml` has no step that
+builds the paired public repo. CI cannot resolve what a human has to install by hand.
+
+**The loop is not missing — it fired correctly and immediately.** The signal was not picked up: two
+hours and one review conversation passed without it being mentioned, including by me until I went
+looking. That is the more tractable version of the problem and it has two acceptable answers:
+
+* add a public-repo checkout-and-install step to `main.yml`, pinned to the paired commit
+  (`fc8d776` on `telaminai/fluxtion` `origin/develop`); or
+* accept the red for the duration of the pin and say so in the tracker, so the light means something
+  again.
+
+An ignored red light stops working as a light. This is the one item in this document with a deadline.
+
+================================================================================
+1 · WHAT IS GENUINELY GOOD, WITH EVIDENCE RATHER THAN IMPRESSION
+================================================================================
+
+**The review loop has been internalised.** The strongest evidence is not that review findings were
+fixed — it is the three things that happened without a reviewer asking:
+
+* `dbcbe17` — a self-caught defect where a rename made `topologicalRank` LOOK repaired while the
+  accessor still returned the wrong list. Measured impact recorded in the commit: published rank was
+  the reverse of dispatch across every push edge. Finding that in your own work, in the report that
+  claimed to remove that defect class, is the hardest kind of catch;
+* `ac231a8` — the Kryo id gate was mutation-verified: a registration was inserted and `NodeDto`
+  watched moving from id 10 to 11, so the test is known to fail for the reason it claims;
+* the tracker carries **"Fingerprint | Emitted, contract NOT met"** against its own slice, naming four
+  specific shortfalls. Self-reporting a gap before a reviewer finds it is the single best signal in
+  the whole engagement.
+
+**The evidence rules come from real failures, not from principle.** "A diagnostic test drives the
+production classifier, not a factory with hand-built facts." "A claimed repair is applied to the same
+producer fixture and must compile." "Determinism compares complete same-input bytes — no timestamp
+stripping is allowed to manufacture a pass." That last rule closed a loophole MY OWN test used. Rules
+written after being burned are worth several written in advance.
+
+**The architecture converged the hard way, which is the durable way.** "Decide once, carry forward"
+was not decreed: three defects in three subsystems — the FLX-1009 misclassification, the exporter
+re-deriving relationships, the Spring rule reading the wrong representation — independently pointed at
+it. It is now a gate with an authority table, and the owner's version improved on the proposal by
+keeping GraphML-only facts off the remote DTO.
+
+**Scope discipline held under delivery pressure.** `FLX-1002` stayed blocked rather than shipping a
+breaking change dressed as a diagnostic. The metadata default stayed `OFF` through five slices that
+would have been satisfying to switch on. This repo refused `AGGREGATED` with stated reasons rather
+than taking the mode that looked compatible.
+
+================================================================================
+2 · THREE RISKS, IN THE ORDER I WOULD WORRY ABOUT THEM
+================================================================================
+
+**R1 · Velocity is outrunning verification.** Nine commits and ~2,400 lines in a day is not the
+problem. The branch being unbuildable by anyone else for two hours without that registering is the
+problem, and §0 is its instance. The fix is mechanical.
+
+**R2 · Built-but-not-delivered keeps growing.** Twenty GraphML keys emitted, a public collector seam,
+remote transport, five slices — and the metadata default is still `OFF`, the fingerprint's contract is
+unmet by its own account, `eventAudit` is `planned`, the Spring vocabulary is partly implemented, and
+the consumer milestone has not started. The release question raised earlier is still unanswered: what
+an author actually gets today is better cycle messages and two logged warnings. That is real, and it
+is a fraction of what has been built.
+
+**R3 · Prose is outpacing executable contracts.** The written material is unusually good — but two
+documents went stale within hours of being written (M45's SHA pin; my own integration note, which
+carried two errors), and a "document ownership" table now exists because there is enough material to
+need one. The manifest conformance test is the right pattern: a contract that RUNS and fails when the
+emitter and the document disagree — which it did, on its first execution. More of that, less of the
+other.
+
+================================================================================
+3 · THE MEASUREMENT THAT WOULD SETTLE IT
+================================================================================
+
+The `n=9` baseline is the only OUTPUT measure in this programme. It is honest about being
+observational and hypothesis-generating, and it has not been re-run since the work intended to move
+it. Everything shipped this week is an input.
+
+The compiler's own acceptance questions are the right ones and only one is answered mechanically:
+
+  1. does the diagnostic state the compiler rule rather than one favoured patch?          — not re-measured
+  2. does its suggested repair compile when applied to the same failing graph?            — answered by tests
+  3. can an author without prior context recover in one step and explain why?             — not re-measured
+
+One held-out fresh-session run against the improved diagnostics would say more about whether this is
+working than the next slice will. It is also the only evidence that would survive someone asking
+"did the diagnostics programme pay for itself".
+
+================================================================================
+WHAT I VERIFIED FOR THIS DOCUMENT
+================================================================================
+
+CI history and the failing run's log, read directly rather than inferred from timing; the local
+reproduction of the same resolution failure, including a forced `-U` attempt against the configured
+remote; the paired public commit and its contents; a green full reactor at `afad4ba` once that commit
+was installed (3,465 integration tests plus 170/21/14, zero failures); the tracker's own fingerprint
+disposition; the commits cited in §1, read in full.
+
+NOT verified: I did not run this repo's suite, re-run the baseline, or review the Spring codes and the
+relationship carrier internals beyond noting they landed. The judgements in §2 and §3 are opinion
+formed from a week inside two of the repositories, not measurements.
