@@ -71,6 +71,34 @@ handlers across three nodes before this was pointed out; they became three `@OnT
 re-derive my dependents". Returning `true` unconditionally re-derives everything downstream on every
 input, including the ones where nothing moved.
 
+#### When several handlers are RIGHT — the counter-case
+
+This idiom is easy to over-apply, and the test is not "how many handlers" but **what each one
+contributes**.
+
+> Use one `@OnTrigger` when several inputs feed **one derivation** — every input changes the same
+> answer, and the node recomputes the same thing however many moved.
+>
+> Keep separate `@OnEventHandler`s when each event contributes **different data** — the handler is not
+> a trigger for a shared recomputation, it is the only place that particular fact is available.
+
+*Found by auditing a real graph against this document.* Of six nodes still carrying several handlers,
+**five were correct** and would have been damaged by collapsing them:
+
+| node | handlers | why separate is right |
+|---|---|---|
+| an operation gate | 10 | each validates a different event's correlation id; it is the most upstream node and has no parents to trigger on |
+| an outcome recorder | 7 | each records a *different* effect name and reason — one trigger would lose which effect completed |
+| a state node | 2–3 | each event is a different state transition, not a recomputation |
+| a decision node | 2 | two genuinely different decisions, at two different moments in one operation |
+
+Only the nodes that **derived one answer from several inputs** wanted collapsing. Applying the idiom
+mechanically to handler *count* would have destroyed the information the others carry.
+
+**The generated code tells you which case you are in.** A node with an `@OnTrigger` gets a
+`guardCheck_` method — an OR of its parents' dirty flags. If you cannot name the parents whose dirtiness
+should re-run your method, you do not have a derivation; you have several handlers, correctly.
+
 ### 2 · "My node needs some state"
 
 **State comes from events that trigger the graph, and the graph holds it. Services are for querying

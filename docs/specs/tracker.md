@@ -134,6 +134,26 @@ retrieval-dated evidence table, because those are live documents that can change
   as evidence); state from events, services for query or action, plus the *state-snapshot-pretending-to-
   be-an-event* smell; side effects belong in the after-event phase, and when to go outside instead;
   re-dispatch and its two routes; the three threading options; and field wiring.
+- [UC5] ◧ **Idioms audited against the app that produced them — 2026-09-01.** A document that says "do X",
+  written by someone doing Y, is not evidence. Audited, with results recorded rather than tidied:
+  ☑ **Idiom 1 applied AND corrected by the audit.** Six nodes still carry several handlers, and **five
+  are right** — a gate validating ten different correlation ids, an outcome recorder whose seven handlers
+  each contribute a *different* effect name, state nodes whose events are transitions rather than
+  recomputations. Collapsing on handler COUNT would have destroyed the data they carry. The doc now
+  states the real test — one derivation from several inputs, versus each event contributing different
+  data — with the counter-case table. **The idiom was over-applicable as written, and only building
+  against it showed that.**
+  ☐ **Idiom 2a not applied, and it is our own named smell.** `LogObserved(boolean open, …)` and
+  `GraphObserved` are state snapshots pretending to be events — the exact shape the doc warns about,
+  still in the app. Sequenced, not ignored: the honest events (`LogOpened`/`LogClosed`) come from the
+  open path, which [M44.3](spec-async-session-driver.md) unblocks.
+  ☐ **Idiom 2b not applied, and actionable now.** The source resolver is hand-threaded as a
+  `Function<String, Optional<String>>` across **8 call sites** — already service-shaped, and the doc's
+  own live candidate.
+  ☐ **Idiom 3 argued, not tested.** `ShowStatusEffect` is synchronous and fire-and-forget and exists to
+  be answered only because the contract says every effect is answered — precisely the shape `@AfterEvent`
+  suits. The argument for keeping the external drain still holds for the graph as a whole; whether it
+  holds for *that* effect is untested.
 - [UC3] ☐ **`node-field-wiring-and-workflow.md`** — NEW 2026-09-01. Two halves of one gap.
   **The rule:** *final* is the trigger for constructor mapping, and the word appears **nowhere** in any
   of the three sources — nor do `non-final`, JavaBean setter-wiring, or `@ConstructorArg`. The canon
