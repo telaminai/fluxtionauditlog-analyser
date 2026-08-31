@@ -1,0 +1,212 @@
+REVIEW — the FLX-1009 classification, attacked as asked
+Reviewed: `origin/feature/compiler_diagnostics` @ 709592c (87cbe8c + the failure-path tests)
+Reviewer: the audit-log analyser session · Date: 2026-08-31
+Nothing pushed. Direction comment on the GraphML metadata work (dd36bc5) at the end.
+
+VERDICT: the classification is SOUND and the reporting is INCOMPLETE. The fork itself is right and is
+now read from the right place. What is wrong is downstream of it: on a node that has both problems, the
+author is told about one of them, and the compiler already holds everything it needs to say which.
+
+You asked for this to be attacked because it decides which of two opposite fixes an author applies and
+because it has been wrong once. So I went at the decision site rather than the message text.
+
+================================================================================
+WHAT IS RIGHT, STATED FIRST BECAUSE IT IS THE HARDER HALF
+================================================================================
+Recording the kind **inside the mapping loop** is the correct repair and the reasoning in the comment at
+`LiveGraphSourceGenExtractor:236` is the reasoning I would have wanted. Re-deriving by reflection at the
+throw site could not have worked: the loop compares parents with `equals`, so any node overriding it
+inverted the fork, and a `List` of genuine parents is a reference that no per-field type test recognises.
+Both failure modes are structural, not bugs, and moving the decision removes the class rather than the
+instances.
+
+`valueOnlyFields` leaving unclassified fields OUT is the right default and the right reason: a confidently
+wrong fix is worse than a general one. `ConstructorFieldForkTest` covers the four cases that matter,
+including the collection-of-parents case that would have deleted real graph edges.
+
+And `CompilerFailurePathTest` is the best commit on this branch. **Where a diagnostic suggests a fix, the
+test applies the fix and shows the same graph compiles** — all three routes. That is the only thing that
+distinguishes a remedy from a guess printed with confidence, and almost nobody does it. The
+StackOverflowError finding — 3,414 integration tests and not one had ever built a cyclic graph, so the
+cycle diagnostic was unreachable for the shape it exists to describe — is exactly the class of gap this
+project keeps paying for elsewhere.
+
+================================================================================
+F1 — THE MIXED NODE IS TOLD ABOUT HALF ITS PROBLEM, AND THE FIX IS ONE CALL
+================================================================================
+This is the finding. It is not in the fork; it is in what the throw site does with the fork's answer.
+
+At `LiveGraphSourceGenExtractor:307`:
+
+    List<String> unmatched  = <EVERY mapped field, not just the unmappable ones>
+    List<String> stateOnly  = valueOnlyFields(unmatched, mappedFieldKind);
+    diagnostic = stateOnly.isEmpty()
+        ? constructorDoesNotMatchMappedFields(..., unmatched, related(unmatched))
+        : stateFieldNotConstructorMappable(..., stateOnly, related(stateOnly));
+
+Take a node with one of each — a `final SupplierScorecard scorecard` (REFERENCE) and a
+`final Map<String,Integer> counter` (VALUE) — and no constructor matching either:
+
+  * `stateOnly` = `[counter]`, non-empty, so **FLX-1009** fires;
+  * its message says *"the fields [counter] look like node-local state rather than references to other
+    nodes"* — true, and it never mentions `scorecard`;
+  * `element.stateFields` = `[counter]`;
+  * `related` is built from `stateOnly`, so `scorecard` is absent there too.
+
+**`scorecard` appears nowhere in the diagnostic.** Not in the message, not in the element, not in the
+related refs. The author marks `counter` transient, rebuilds, and gets FLX-1001 about a field they were
+never told about — under a different code, which reads as a new and unrelated problem rather than the
+second half of the one they just fixed.
+
+Your own test is the tell. `aMixOfReferenceAndValueIsNotReportedAsPurelyState` asserts
+`state == [counter]` and `!state.contains("scorecard")`. Both pass, both are correct, and neither asks the
+question that matters — *is the author told about `scorecard` at all?* The test name reassures about
+something it does not check. (This is the same shape as the two green-suite-over-a-fabricated-artefact
+failures I hit in the analyser last week, which is why I looked for it.)
+
+**The compiler can do better than reporting both, and it has the data in hand.** At the throw site you
+already hold the constructor set and the matcher:
+
+    ReflectionUtils.getConstructors(fieldClass, matchConstructorType(cstrArgList, privateFields))
+
+Re-run that against `privateFields` **minus the `stateOnly` fields**. One extra call, no new reflection,
+no re-derivation — and it answers the question the author actually has:
+
+  * **a constructor matches the reduced set** → excluding the state fields is a COMPLETE fix. Emit
+    FLX-1009 and say so: *"excluding these is sufficient; the remaining mapped fields already match a
+    constructor."* One build cycle, and the author knows they are done.
+  * **nothing matches the reduced set** → the node has two problems. The author needs to exclude the
+    state AND supply the reference, and a message naming one of them is going to cost a cycle no matter
+    which one it picks. Emit FLX-1009 with the reference fields carried as `related` under a distinct
+    role (`MAPPED_REFERENCE_FIELD`), and one sentence: *"and [scorecard] is a reference with no matching
+    constructor — see FLX-1001."*
+
+That turns "here is one of your two problems" into "here is your fix, and it is complete" — which is the
+difference the whole registry exists to make. It is also cheap: the second branch needs no new code path,
+just `related` built from `unmatched` minus `stateOnly`, plus a sentence.
+
+================================================================================
+F2 — FLX-1001'S `why` ASSERTS SOMETHING THE FALLBACK PATH CANNOT SUPPORT
+================================================================================
+FLX-1001 says, unconditionally:
+
+    "The fields listed here reference other nodes in the graph, so Fluxtion expects to pass them in;
+     no constructor accepts them."
+
+That is a positive claim about what the fields ARE. It is true when the fork chose FLX-1001 because the
+fields are classified REFERENCE. It is **not** true on the path `valueOnlyFields` documents as its safety
+net — *"a field with no recorded kind is left OUT: unclassified falls back to the general FLX-1001,
+because a confidently wrong fix is worse than a general one."*
+
+The fallback exists precisely because the compiler does not know. The message it falls back to then tells
+the author it does. That is a confidently wrong claim reached by a mechanism designed to avoid confidently
+wrong claims — and `anUnclassifiedFieldFallsBackRatherThanBeingGuessedAtAsState` deliberately exercises
+the path, so it is a designed behaviour rather than an oversight.
+
+**How live is it?** By reading: every field in `unmatched` came from `privateFields`, which is populated
+at exactly three sites, each of which records a kind first. So on the evidence I have, an unclassified
+field cannot reach the throw site and this is latent rather than live. I did not build the branch, so I
+am not claiming that as measured — and either answer needs an action:
+
+  * if it is genuinely unreachable, `valueOnlyFields`'s comment should say the fallback is defensive
+    rather than a path with different semantics, because right now it reads as a live case;
+  * if it is reachable, FLX-1001's `why` needs a general form for it — *"Fluxtion could not determine
+    whether these are references or local state"* — and the `suggestedFix` should offer both forks.
+
+Wanting one message to be both "the reference case, stated confidently" and "the general case" is what
+produces this, and it is the same tension as F1 from the other direction.
+
+================================================================================
+F3 — WHAT EXCLUSION COSTS IS NEVER STATED, AND IT IS THE ONE SENTENCE THAT
+     STOPS THE FIX BEING WORSE THAN THE FAILURE
+================================================================================
+FLX-1009's remedy is *"mark it transient or @FluxtionIgnore and Fluxtion will stop mapping it"*. That
+says what Fluxtion stops doing. It does not say what the author loses.
+
+The consequence is derivable from your own `why` — *"generating a node's source means reproducing its
+state"* — so a field excluded from the model is, by definition, **not reproduced**. The generated node
+builds its own rather than receiving the builder-time one. For the case FLX-1009 names — an empty map, a
+zeroed counter, a buffer the node makes for itself — that is exactly right and costs nothing. For a
+`VALUE` field that happens to hold something the author put there, it is a silent behaviour change: green
+build, running processor, different numbers.
+
+`VALUE` means *"the serializer can render this"*. It does not mean *"the author did not care about it"*,
+and the compiler cannot see the difference. So the message should carry the boundary rather than the
+classifier pretending to:
+
+    Excluding a field means the generated node will NOT carry its current value — it builds its own.
+    That is what you want for a counter or a map the node fills. If this field holds a value you
+    supplied, exclude it and you will silently lose it: accept it in a constructor, or make it
+    non-final and give it a setter.
+
+**A signal you are not using, and could.** The loop already has the live value (`input.get(instance)`).
+An empty collection or a default primitive is very likely node-local; a populated map or a non-default int
+is very likely supplied. That is not decisive — a counter at 0 and a configured `limit = 0` are
+indistinguishable — but it does not need to be decisive to be useful, because it can reorder the two
+remedies. Your own test already treats ordering as load-bearing
+(`assertTrue("exclusion is offered before rewriting the constructor", ...)`). Lead with exclusion for an
+empty/default value, lead with "accept it in a constructor" for a populated one, and keep both in
+both cases.
+
+**Marked as a question, not a finding:** I could not build the branch to demonstrate an actual silent
+value loss, and my own rule is that a failure I have not witnessed is a claim. The probe is small — a node
+with `private final int limit = 2;` and no constructor accepting it, marked transient per the remedy, then
+check whether the generated source carries 2 or 0. If it carries 2 because the field initialiser survives,
+F3 narrows to fields assigned only in a constructor and the wording still helps. Worth ten minutes before
+acting on it.
+
+================================================================================
+WHAT I DID NOT CHECK
+================================================================================
+* I did not build or run the branch. Everything above is from reading `origin/feature/compiler_diagnostics`
+  at 709592c; I deliberately did not touch the working tree, which is behind the remote and dirty.
+* The other codes on their own merits — FLX-1002/1005/1007, the Spring rule, the sidecar writer. This is
+  scoped to the constructor fork you asked about.
+* Whether the eleven codes are the right eleven.
+
+================================================================================
+THE GRAPHML METADATA WORK (dd36bc5) — DIRECTION, KNOWING IT WILL CHANGE
+================================================================================
+Reading it as the consumer that filed most of these asks. **The direction is right and it is more
+valuable than the asks it answers**, for one reason worth naming: it converts things we asked to have
+*documented* into things that are *data*. A document is read if someone chooses to; an attribute is read
+by the tool every time.
+
+`fluxtion.topologicalRank` is the clearest case and it was not on our list in that form. We filed the
+dispatch-order gap (#23) as a documentation ask because four of six measured authors independently
+concluded declaration order — the obvious experiment cannot distinguish it from the real rule. A rank per
+node means the analyser can *show* the order and no author ever has to infer it. That is a better answer
+than the one we asked for.
+
+**Three pieces of analyser code this deletes, which is the strongest endorsement I can give:**
+
+  * `topology/Scaffolding.java` holds a hand-maintained list of framework class names. `fluxtion.framework`
+    retires it, and with it the maintenance burden of tracking every plumbing class you ever add. Your
+    "cheapest large win" call is right.
+  * `topology/AuditReadiness.java` detects audit by looking for `EventLogManager` on the graph, and its
+    javadoc records the known limit — a custom auditor writing the same records reads as NOT_ENABLED.
+    Graph-level `fluxtion.eventAudit` plus node-level `auditCapable`/`auditCapableVia` retires the
+    heuristic and the caveat together. `auditCapableVia` in particular lets a surface *explain* its answer
+    rather than assert it, which is the difference between a warning someone trusts and one they dismiss.
+  * every place we infer node kind from the `properties=` style string, replaced by `fluxtion.kind`.
+
+**The UP-FLX-28 correction landed and is right.** My earlier review said the missing half was
+`propagates`, not push, because `referenceKind` already carried PUSH. Emitting `refKind=PUSH` **and**
+`propagates=false` together is the correct resolution: the reference kind says what the reference is, the
+propagation flag says whether an update crosses it, and a reader needs both to separate "did not run"
+from "could not have run".
+
+**One caution, and it is about a word rather than a design.** The registry says `fluxtion.kind` retires
+the `properties=` style string and `fluxtion.class` retires the label-text `class:` line. *Retire* has to
+mean "stop being the source of truth", never "stop emitting" — every analyser in the field today reads
+those, including released versions nobody will upgrade. Your principle 4 covers it, but the word could be
+read either way by someone implementing six months from now, so it is worth one explicit sentence: the old
+label text is still emitted, the new keys win where both exist. Cheap to say, expensive to discover.
+
+**An offer that costs you nothing.** M44 landed in the analyser today and it makes us a producer as well
+as a consumer: the analyser now generates its own processor and **commits its GraphML with a test that
+pins the node set and the edge directions** (`SessionGraphShapeTest`). It asserts, among other things,
+that a `@PushReference` field draws `sessionBoundary -> effectQueue` and not the reverse — verified by
+regenerating without the annotation and watching the arrow flip. That test is a real downstream pin on
+your emitter, in a repo you can run. If a metadata change breaks a consumer, it will probably break that
+first, and you are welcome to treat it as a compatibility canary rather than finding out from a user.

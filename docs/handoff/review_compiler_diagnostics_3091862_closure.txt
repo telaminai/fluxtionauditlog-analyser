@@ -1,0 +1,66 @@
+REVIEW CLOSURE — compiler diagnostics and staged GraphML metadata
+Reviewed: telaminai/fluxtion-compiler feature/compiler_diagnostics @ 5c5a517
+Result pushed: 9f55281 + 3091862 (branch head 3091862)
+Reviewer: Codex analyser session · Date: 2026-08-31
+
+VERDICT
+
+The diagnostic slice is ACCEPTED at 3091862. The independent FLX-1009 review was right: 5c5a517
+preserved both field names by routing a mixed failure to FLX-1001, but it did not answer whether
+excluding the state was already a complete repair. That closure is now implemented through the real
+producer path and its advice is executed by the tests.
+
+The GraphML vocabulary remains STAGED, default OFF. Its direction is accepted; its reflective
+relationship discovery is not accepted as the final architecture. The owner has confirmed the hard
+gate: relationship facts are captured once where dependency discovery decides them, carried through
+the model/DTO, and only serialised by the exporter.
+
+WHAT CHANGED
+
+1. FLX-1009 now tests its remedy before printing it. Source generation and the counterfactual use the
+   same compiler-owned ConstructorMatch decision object. On an already-failing build, the compiler
+   removes VALUE fields from a copy of the mapped set and asks the same matcher one extra question.
+   There is no second field classifier or constructor algorithm.
+
+2. If the existing constructor accepts the remaining references, FLX-1009 says exclusion is a
+   complete repair and carries both stateFields and referenceFields. The test marks the state
+   transient and proves the same graph compiles.
+
+3. If references still lack a constructor, the first refusal carries both field sets, distinct
+   related roles, and both repairs. A state-only class with no zero-argument construction route is
+   also refused honestly; it is not told that exclusion alone is complete or shown "references []".
+
+4. FLX-1001 no longer claims an unclassified fallback field is definitely a graph reference.
+   FLX-1009 no longer equates VALUE with disposable: it says the serializer can render the current
+   value and explains that exclusion stops generated source reproducing it.
+
+5. The GraphML contract prose was reconciled with the code: OFF preserves legacy structure and
+   labels but not byte-for-byte output because edgedefault is unconditionally corrected to directed;
+   generatedAt is absent so identical input can produce identical bytes; and fluxtion.kind supersedes
+   the legacy properties style as source of truth without removing what released readers consume.
+
+SINGLE-SOURCE GRAPHML BOUNDARY
+
+Inspection confirmed that the model already owns most facts the exporter currently reflects again:
+NodeDto carries annotated methods, resolved filters, direct parent/listener sets and dispatch order;
+exported-function DTOs carry per-callback propagation; TopologicallySortedDependencyGraph owns the
+event graph and push-edge decisions. The missing carrier is per-field relationship multiplicity/kind
+at the point a simple graph collapses several relationships onto one vertex pair. That is the next
+implementation slice. Do not move the default from OFF until that carrier exists and a consumer reads
+it. The analyser's M44 SessionGraphShapeTest is available as a downstream direction canary.
+
+EVIDENCE
+
+- ./mvnw -q -pl fluxtion-builder test — exit 0 after the final changes.
+- ./mvnw -q -pl fluxtion-integration-tests -am test — exit 0 after the ConstructorMatch refactor.
+- ./mvnw -q -pl fluxtion-integration-tests -am -Dtest=GraphMlMetadataTest
+  -Dsurefire.failIfNoSpecifiedTests=false test — exit 0.
+- Focused producer/schema diagnostics suite — exit 0, including both mixed cases and the
+  no-zero-argument case.
+- git diff --check — clean before both commits.
+
+FILES TO READ WITH THIS CLOSURE
+
+- review_flx1009_classification.txt — the independent finding, preserved verbatim.
+- compiler docs/specs/compiler-diagnostics/TRACKER.md — disposition and remaining work.
+- compiler docs/specs/meta-data-improvements/README.md — the owner-confirmed model carrier gate.
