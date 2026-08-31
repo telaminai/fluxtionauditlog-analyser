@@ -1,0 +1,154 @@
+REVIEW — compiler diagnostics slices 1–5
+Reviewed: fluxtion-compiler feature/compiler_diagnostics @ afad4ba
+Range: 89373a9..afad4ba (9 commits, ~2,400 insertions)
+Reviewer: compiler-side session · Date: 2026-08-31
+
+DISCLOSURE unchanged: I wrote the original GraphML spike and the meta-data-improvements spec, so on
+the GraphML half these are mechanical checks, not independent design judgement.
+
+VERDICT: GREEN, ONCE THE PAIRED PUBLIC COMMIT IS BUILT. One finding that matters to THIS repository's
+planning; everything else held up, and the branch's own tracker already records the defects I would
+otherwise have reported.
+
+REVISED after first writing: this review initially reported the revision as unbuildable. It is
+buildable — the missing artefacts are produced by a specific public commit, named in §0 — and the
+suite is green. The finding in §1 is unchanged and in fact strengthened by what it took to build.
+
+================================================================================
+0 · THE BRANCH BUILDS ONLY AGAINST AN UNPUBLISHED PUBLIC COMMIT — NAMED HERE
+================================================================================
+
+`afad4ba` bumps `fluxtion.base.version` from the released `1.0.13` to `1.0.14-SNAPSHOT`, because the
+last uncaptured framework-provenance route needed `EventProcessorConfig#addFrameworkAuditor`, which
+lives in the OPEN `fluxtion-builder-api`. The compiler's tracker states this plainly and calls the
+pin temporary, so it is a recorded decision and not an accident.
+
+Neither artefact was obtainable at first, and that consequence is not recorded anywhere:
+
+  com.telamin.fluxtion:fluxtion-runtime:1.0.14-SNAPSHOT      absent
+  com.telamin.fluxtion:fluxtion-builder-api:1.0.14-SNAPSHOT  absent
+
+Neither is in the local repository — only failed-download markers — and neither resolves from the
+project's configured remote, checked with `-U` to defeat the cached-failure path. The local public
+checkout is on the 0.9.33 line and cannot produce them. So the artefacts exist only in the `~/.m2` of
+whoever ran `mvn install` on the paired public change.
+
+**The pairing, now established rather than assumed.** The artefacts come from the PUBLIC repository
+`telaminai/fluxtion` (locally `fluxtion-core`) on **`origin/develop` @ `fc8d776` — "Record
+framework-supplied auditors at their registration site"**. That commit adds
+`EventProcessorConfig#addFrameworkAuditor`, which is exactly what slice 5 needed. The local checkout
+sits on an unrelated branch at 0.9.33-SNAPSHOT, which is why nothing resolved; `origin/main` and
+`origin/release-repsy` are also on the 1.0.14 line but only `develop` carries the method.
+
+Built from a detached worktree of `fc8d776` with `mvn install -DskipTests` — all three artefacts
+(`fluxtion-runtime`, `fluxtion-builder-api`, `fluxtion-builder-api-all-java8`) installed, then the
+worktree removed and the public checkout left on its original branch, untouched.
+
+**With those installed, the compiler suite is GREEN at `afad4ba`:**
+
+    fluxtion-builder            170 tests
+    generator-core / http        21 / 14 tests
+    fluxtion-integration-tests 3,465 tests, 7 skipped
+    Failures 0, Errors 0        BUILD SUCCESS
+
+Two asks follow, both cheap, and the first is now half-answered:
+
+* record the paired public revision in the branch — `fc8d776` — so the pairing is reproducible later.
+  `FLUXTION_OPEN_REPO` is unset and the sibling checkout is on another line, so a reviewer arriving
+  cold has no way to find it except by grepping public refs for the method name, which is what I did;
+* treat "1.0.14 published" as a release-order item, not only a pin to revert.
+
+================================================================================
+1 · THIS INVALIDATES M45's RELEASE-FOOTPRINT ASSESSMENT — the finding for us
+================================================================================
+
+`spec-graphml-vocabulary-consumption.md` states, and the M45 tracker entry repeats:
+
+  "`fluxtion-runtime` is untouched, so the analyser's 1.0.13 dependency stands; `fluxtion-builder-api`
+   gains nothing, because the metadata switch is a JVM system property … **Only `fluxtion-builder`
+   needs releasing.**"
+
+That was true when written and is now false. The vocabulary's `fluxtion.framework` key — the input
+M45.4 is built on — is exactly what required the public change. Releasing the builder now implies
+publishing `fluxtion-builder-api` 1.0.14, and the same coordinate line carries `fluxtion-runtime`,
+which is this repo's own dependency.
+
+It does not change M45's design and it does not make the milestone harder to build. It changes the
+release conversation from "one closed-source module ships" to "a public release must land first", and
+that is a sequencing fact this repo asserted the opposite of. Correct the spec and the tracker row.
+
+================================================================================
+2 · WHAT I VERIFIED, AND WHAT IT MEANS FOR M45
+================================================================================
+
+**M45 F1 is RESOLVED. `fluxtion.framework` is emitted, from recorded provenance.** The manifest has
+moved from 17 emitted / 9 planned to **20 / 6**, with `framework`, `authoredNodeCount` and
+`sourceFingerprint` now emitted. Provenance is a recorded creation set on the graph
+(`compilerCreatedNodes`, populated at the factory, generation-context, `@Inject` and transitive
+routes), not a package prefix — and the withholding was principled: the framework registers its clock,
+service registry and event log manager as AUDITORS, mixed into the author's auditor map, so the key
+would have reported `false` for nodes the compiler built. That is why the public change was needed.
+
+`FrameworkProvenanceTest` puts every fixture class in `com.telamin.fluxtion.*` deliberately, so a
+regression to package inference has somewhere to fail. It passes in the green run above; I did not
+mutation-check it.
+
+**M45 F2 STANDS. `fluxtion.eventAudit` is still `planned`**, so the audit trio is still a duo and
+M45.3 should still be scoped to capability plus a log-derived regime.
+
+**My release finding from the diagnostics review is CLOSED.** `FluxtionDiagnostics.capture(Callable)`
+is now the public seam — it returns a `Result` carrying a `DiagnosticReport`, so a programmatic caller
+can finally obtain structured diagnostics rather than only an exception message. That was the gap
+between "Done locally" and "delivered" that made the whole machine-readable half unreachable.
+
+**The remote-transport compatibility test is the real shape, not a same-version round trip.**
+`PreDiagnosticsResponseV1` is a genuine pre-change class — its own `serialVersionUID = 1`, no
+diagnostics field — so the test deserialises an old response on new code rather than round-tripping
+one version against itself. That is stronger than the earlier `DtoWireCompatibilityTest`, whose
+javadoc admitted it covered the mechanism and not the artefact.
+
+================================================================================
+3 · THE FINGERPRINT — ALREADY SELF-REPORTED, NOT RE-REPORTED HERE
+================================================================================
+
+I went looking for the obvious defect: the digest reaches GraphML only, while closed decision 8
+requires it in the descriptor and generated-source metadata too, and says a GraphML-only digest
+"cannot satisfy pairing". `DescriptorSupport.Meta` is still not carrying it.
+
+The tracker already says so, and more sharply than I would have:
+
+  "Fingerprint | **Emitted, contract NOT met** | `canonicalForm` never reads
+   `eventDispatchPositionMap` although the class contract and the metadata spec both promise dispatch
+   rank; the exclusion test never calls `canonicalForm`; stability is only tested in one JVM; the
+   source file carried literal NUL separators and committed as `Bin 0 -> 8523 bytes`"
+
+and ranks it as "DEFINED and emitted in GraphML; two carriers still open". So this is disclosed, not
+hidden, and re-reporting it would add nothing. Noted only so that a reader of this review does not
+take the fingerprint's emitted status as meaning the contract is met — it is not, by the branch's own
+account, and a consumer pairing a log against it today would be relying on something incomplete.
+
+The design correction in slice 4 is right and worth recording: the digest hashes the relationship
+RECORD rather than facts the exporter composed, so it cannot preserve a second source of truth inside
+the artefact whose only job is detecting drift. That was the error in my own superseded integration
+note, and it has now been fixed in the implementation as well as the spec.
+
+================================================================================
+WHAT I VERIFIED / WHAT I DID NOT
+================================================================================
+
+Verified by reading at `afad4ba`: the pom's version bump and its recorded justification; the absence
+of both 1.0.14-SNAPSHOT artefacts locally and from the configured remote, with `-U`; the local public
+checkout's version line; the manifest's 20/6 split and the three keys that moved; the
+`compilerCreatedNodes` recording sites; `FluxtionDiagnostics`' public surface; `PreDiagnosticsResponseV1`'s
+shape; the tracker's own fingerprint disposition and closed decision 8.
+
+Verified by execution, after building the paired public commit: the full reactor at `afad4ba` —
+3,465 integration tests plus 170/21/14, zero failures, BUILD SUCCESS. The suite passes, which is a
+statement about stability, not about diagnostic correctness; the branch's own evidence rules make
+that distinction and it holds here.
+
+NOT verified: I did not run the public repository's own tests — it was installed with `-DskipTests`,
+so its correctness is assumed, not checked. I did not review the three Spring codes (`f1ed031`), the
+relationship carrier's internals (`f9e2972`), or the manifest gate test, beyond noting they landed.
+The fingerprint's recorded contract gaps (§3) are disclosed by the branch and not independently
+retested here.
