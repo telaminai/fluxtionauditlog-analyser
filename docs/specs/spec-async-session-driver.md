@@ -41,11 +41,28 @@ on each new request. That was written to detect staleness. It *also* implements
 **supersede**: a second open while the first is still loading makes the first's result arrive stale and
 be refused. The policy fell out of the mechanism, and it is the policy we would have chosen.
 
-## D-A1 — one thread calls `onEvent`, and it is the EDT
+## D-A1 — one thread calls `onEvent`; here that thread is the EDT
 
-**Non-negotiable, and it is the whole safety argument.** A Fluxtion processor is not thread-safe, and
-an audit record interleaved from two threads is worse than unreadable — it would present two cycles as
-one, which is exactly the confusion this milestone exists to remove.
+**The constraint is non-negotiable and it is the whole safety argument.** A Fluxtion processor is not
+thread-safe, and an audit record interleaved from two threads is worse than unreadable — it would
+present two cycles as one, which is exactly the confusion this milestone exists to remove.
+
+**Which thread is a choice, and there are three known answers** (owner, 2026-09-01). Recorded because
+the first draft of this section presented the third as the only option, which would have read as a
+Fluxtion limitation rather than a fit to this application:
+
+| option | when it fits |
+|---|---|
+| **a server** — Mongoose hosts the processor and owns its thread | a deployed service; not needed for a desktop app |
+| **an agent runner** — `DataFlowConnector` brokers `EventFeedAgent`s into a `DataFlow` on an Agrona `AgentRunner` with an idle strategy | headless or embedded, where no suitable thread already exists. Marked `@Experimental` |
+| **embed in a thread the application already has** | **this app.** Swing has exactly one such thread and everything else already runs on it |
+
+**We take the third, and the reason is that the thread already exists rather than that the others are
+unsuitable.** `Background.run` already marshals its results to the EDT, so the completion path is the one
+the application uses everywhere else — no executor introduced, no idle strategy to tune, nothing new to
+reason about. A web app would take a different answer here: no EDT, genuinely concurrent sessions, and
+therefore one confined processor per session. **That is the one part of this spec that does not
+generalise**, and it is worth knowing which part that is.
 
 So the asynchrony lives entirely at the boundary. The analyser already has a single designated thread
 that every UI mutation runs on, and `Background.run` already marshals results back to it:
