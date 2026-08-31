@@ -1,0 +1,185 @@
+REVIEW — compiler diagnostic scope policy slice
+Compiler branch: feature/compiler_diagnostics
+Reviewed range: 8ff07e02682f6c6b2a7fce327e8d553bb7407a68..c6bf306899f73f61ce1b7d7d7b76bfaf7da1c5fa
+Reviewed head: c6bf306899f73f61ce1b7d7d7b76bfaf7da1c5fa
+Prior review: review_compiler_branch_8ff07e0.txt
+Date: 2026-09-01
+
+VERDICT: CHANGES REQUIRED — THE NEW PUBLIC SCOPE CONTRACT IS NOT YET RELIABLE
+
+Publishing per-code scope is the right product decision. The distinction between a graph being
+valid in memory and renderable as Java source is important, and selecting the causal diagnostic by
+severity rather than array position is correctly pinned. The implementation does not support the
+commit's stronger claim that the table is measured and every row executable. One row is directly
+false, half the rows have no test, and the all-path assertion does not identify the failure it sees.
+The FLX-1002 correction also introduces a false propagation conclusion while leaving the earlier
+opposite premise active elsewhere in the same normative documents.
+
+This review covers the one new commit after 8ff07e0. It carries the earlier review's open findings
+forward rather than reproducing their evidence. The compiler worktree was not edited; its existing
+untracked tmp/ directory was left untouched.
+
+===============================================================================
+F1 — BLOCKER: FLX-1005 is labelled AOT-only but production rejects it interpreted
+===============================================================================
+
+error-scope.md and the tracker say FLX-1005 comes from source rendering and is not raised by an
+interpreted/in-process build. The production interpreted path already proves the opposite:
+
+    DataFlowBuildServiceIntegrationTest.failedInMemoryBuildDoesNotPoisonNextDslBuild
+      InMemoryEventProcessorBuilder.interpreted(...)
+      cfg.addNode(new Object(), "duplicateName")
+      cfg.addNode(new Object(), "duplicateName")
+
+That test expects graph construction to fail. The throw site is
+TopologicallySortedDependencyGraph.registerNode, before source rendering: duplicate inst2Name values
+raise DiagnosticException(BuilderDiagnostics.duplicateNodeName(...)), i.e. FLX-1005. Duplicate-name
+uniqueness belongs to the graph model and therefore applies to every build path.
+
+The new DiagnosticScopeTest does not contain an FLX-1005 fixture, so its green result cannot detect
+the false public row. Correct the table and its explanatory rule, then assert the exact FLX-1005 code
+through both interpreted and AOT public entry points. Strengthen the existing integration test too:
+catching any RuntimeException would also pass after a regression to an uncoded or unrelated failure.
+
+===============================================================================
+F2 — HIGH: “asserts every row” is false, and two existing assertions can pass vacuously
+===============================================================================
+
+The table has six rows: FLX-1001, 1009, 1005, 1007, 1008 and SPRING_*. DiagnosticScopeTest exercises
+only 1001, 1009 and 1007. There is no test for 1005, 1008 or any Spring diagnostic, and the alleged
+three build modes are represented by only two helpers. The README, tracker, test javadoc and commit
+message all claim every row is asserted.
+
+The covered rows are not all pinned to their stated meaning either:
+
+* interpretedBuildSucceeds catches every RuntimeException and returns false. The FLX-1007
+  interpreted assertion therefore passes for an uncoded StackOverflowError replacement only if it
+  escapes, or for any unrelated RuntimeException; it never checks FLX-1007.
+* theSameGraphCanBeAcceptedInterpretedAndRefusedAot does not build the same object graph. Its AOT
+  call registers one ScopeSource while NeedsConstructor refers to a different new ScopeSource. It
+  then asserts only that some AOT code is non-null, not that the intended FLX-1001 occurred.
+
+Make this a table-driven contract or add one production-path test per row. Capture the report from
+both paths and assert code plus severity, not success/failure alone. Reuse the same graph topology
+and identities when the claim is “same graph”; fresh equivalent instances are fine for isolation,
+but the parent registered in the config must be the parent held by the child. If SPRING_* is intended
+as a family rather than one row, name the representative codes the contract actually pins.
+
+===============================================================================
+F3 — HIGH: the FLX-1002 note confuses outward return with dirty propagation
+===============================================================================
+
+The new text says a boolean exported method's result is discarded in favour of hardcoded true and
+therefore “an author cannot suppress propagation by returning false”. The first half describes the
+generated service wrapper's outward return; the conclusion about graph propagation does not follow.
+
+ClassUtils.buildExportFunctionCall applies the callback result to dirty state when the service is
+propagating:
+
+    processor.setDirty(node, node.method(args));
+
+ExportService.propagate defaults true and its public javadoc explicitly says the boolean event-handler
+return determines propagation. Only after dispatch does the generated wrapper return true to its
+external caller. When propagation is disabled, the callback result is intentionally ignored because
+that callback has been removed from the propagation path. Those are separate contracts.
+
+No fixture supporting the new prose was committed. Before deciding FLX-1002, add production tests
+for boolean true/false under propagate=true and propagate=false, and separately assert what the
+external service caller receives. Preserve the measured generated source as an assertion rather than
+tracker prose. The policy must also reconcile the existing ValidateExportServiceVoidReturn substrate
+lint, whose tests currently state that every non-void export is a command-surface mistake. Otherwise
+the same author receives two incompatible rules from one compiler.
+
+===============================================================================
+F4 — MEDIUM: the corrected FLX-1002 premise coexists with its old opposite
+===============================================================================
+
+README.md now says boolean exports compile while other non-void returns fail, but its Slice 2 section
+still says FLX-1002 is blocked because a non-void method is valid and participates in dirty state.
+TRACKER.md likewise retains the blanket “non-void methods compile today” statement near the current
+scope section before recording the narrower result later. integration-ergonomics.md and the substrate
+lint tests still state the void-only rule.
+
+Do not choose the owner policy by editing one paragraph at a time. First pin the behaviour matrix,
+then give one document ownership of the policy and make other documents link to it. Retain the old
+premise only as visibly historical evidence, not as a second current answer.
+
+===============================================================================
+F5 — MEDIUM: the FLX-1002 “measurement” has no durable production fixture
+===============================================================================
+
+The commit records boolean and String examples only in prose. There is no added test that builds
+either graph, checks the generated service signature/body, or pins the javac failure. This is the
+same kind of unsupported premise that this commit says it is correcting, and it is already at odds
+with the existing void-return lint narrative.
+
+Add a matrix using real @ExportService interfaces and implementations: void, boolean, primitive
+non-boolean and reference return; propagate true/false where meaningful. Assert current compilation,
+generated source, runtime propagation and public return separately. That evidence can then support
+an owner decision about whether FLX-1002 names an existing failure, a warning, or more than one rule.
+
+===============================================================================
+PRIOR REVIEW FINDINGS STILL OPEN
+===============================================================================
+
+The c6bf306 policy commit does not address the release blockers in
+review_compiler_branch_8ff07e0.txt:
+
+* author-owned Anchor nodes still emit framework=true and authoredNodeCount remains low;
+* the GraphML manifest still omits ANCHOR from refKind.values and its validator skips that type;
+* remote server diagnostics still do not reach Fluxtion.compile/capture consumers;
+* active specs still contain contradictory old/current state;
+* the event-walk performance repair still lacks its direct regression fixture;
+* the negotiated wire-envelope boundary hardening remains recommended.
+
+The first two continue to block enabling or releasing the GraphML metadata contract. This review's
+F1 independently blocks publishing error-scope.md as measured public reference content.
+
+===============================================================================
+WHAT HELD UP
+===============================================================================
+
+* The AOT/interpreted distinction for FLX-1001 and FLX-1009 is real and is tested through public
+  build entry points with the expected codes.
+* Selecting the causal ERROR by severity rather than diagnostics[0] is correct and valuable for
+  every consumer of DiagnosticReport.
+* Publishing scope beside rule and repair will prevent “worked interpreted, failed at AOT” from
+  looking nondeterministic once the matrix is accurate.
+* Stopping for an owner decision on FLX-1002 rather than immediately turning a changed premise into
+  a new rejection was the right boundary.
+
+===============================================================================
+EXECUTION EVIDENCE
+===============================================================================
+
+Focused production-path suite at c6bf306: PASS.
+
+    DiagnosticScopeTest
+    DataFlowBuildServiceIntegrationTest
+
+This is useful negative evidence: the new scope suite and the existing interpreted FLX-1005 path are
+both green while contradicting each other, proving the contract has no executable join between them.
+
+Clean full reactor at c6bf306 with Java 21: PASS.
+
+    fluxtion-builder             193 tests, 0 failures/errors
+    fluxtion-generator-core       21 tests, 0 failures/errors
+    fluxtion-generator-http       16 tests, 0 failures/errors
+    fluxtion-integration-tests 3,477 tests, 0 failures/errors, 7 skipped
+
+Command:
+
+    env JAVA_HOME=<jdk-21> PATH=<jdk-21>/bin:/usr/bin:/bin ./mvnw -q clean test
+
+`git diff --check 8ff07e0..c6bf306` is clean.
+
+===============================================================================
+RECOMMENDED ORDER
+===============================================================================
+
+1. Correct FLX-1005 to every-path and pin its exact code through both public paths.
+2. Make the scope gate cover every published row and remove the two vacuous assertions.
+3. Add the FLX-1002 behaviour/propagation matrix and reconcile the existing void-return lint.
+4. Choose the FLX-1002 policy from that evidence, then rationalise README/tracker/current docs once.
+5. Close the carried GraphML F1/F2 blockers before enabling metadata, then the diagnostic reachability
+   and remaining regression/envelope items from the prior review.
