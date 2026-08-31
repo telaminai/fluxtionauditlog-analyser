@@ -1,0 +1,145 @@
+COMPILER DIAGNOSTICS + GRAPHML INTEGRATION HANDOFF
+==================================================
+
+Date: 2026-08-31
+Compiler repository: telaminai/fluxtion
+Branch: feature/compiler_diagnostics
+Final pushed head: 89373a9
+Remote freshness: origin/feature/compiler_diagnostics == 89373a9 when this report was written
+
+Outcome
+-------
+
+The temporary review branch is no longer part of the workflow. All reviewed compiler diagnostics,
+Spring-diagnostics contract, GraphML metadata and model-rationalisation work is integrated on the one
+active compiler branch above. Three rounds of concurrent remote work were fetched and merged. The only
+pre-existing worktree residue is the untracked compiler tmp/ directory; it was deliberately not added,
+deleted or modified.
+
+The final full Maven reactor passed on the integrated tree at d279504. The follow-up 89373a9 changes only
+the tracker line recording that result. Focused production tests for GraphML metadata, relationship
+divergence, the diagnostic sidecar and DTO wire compatibility also passed.
+
+Integrated commits
+------------------
+
+* 9a4b42a — rationalise the Java and Spring diagnostic specifications into one wire contract.
+* be63799 — merge the compiler-diagnostics and GraphML/model work, resolving the first tracker conflict.
+* 3b8d362 — merge the opt-in production diagnostic sidecar and DTO wire-compatibility gate.
+* d279504 — merge the dispatch-rank correction and additional compiler-produced GraphML coverage.
+* 89373a9 — record the final integrated verification in the live tracker.
+
+Contract decisions now recorded once
+------------------------------------
+
+1. Java and Spring diagnostics use DiagnosticReport/FluxtionDiagnostic as one envelope. Spring S*/V*
+   names are not a second transport shape: their semantic identifiers become diagnostic code values;
+   subject becomes the tagged element; xpathHint remains an element property.
+
+2. The diagnostic DTO remains in fluxtion-builder and Java-8 compatible. The published JSON schema is
+   exercised with a real Draft 2020-12 validator. Remote transport is not implemented; the new Kryo
+   registration-order test is a gate, not a claim that old/new released artefacts have been round-tripped.
+
+3. Diagnostics now have a production-reachable, opt-in sidecar:
+     -Dfluxtion.diagnostics.sidecar=<path>|true
+   It writes warnings and a terminal DiagnosticException without changing the legacy exception text.
+   A public collector seam and remote response carrier remain open.
+
+4. The exporter is a serializer, not the semantic authority. Node facts come from NodeDto; reference
+   field and push kind are recorded per relationship beside dependency discovery; propagation comes from
+   the event graph; dispatch rank comes from TopologicallySortedDependencyGraphDto's recorded
+   eventDispatchPositionMap. This preserves one source of truth and avoids choosing between two live graph
+   orderings in the exporter.
+
+5. GraphML metadata remains staged behind:
+     -Dfluxtion.graphml.metadata=OFF|AGGREGATED|PARALLEL
+   The default is OFF. Unknown or blank values are OFF. OFF uses the legacy edge path; the corrected
+   edgedefault="directed" remains unconditional. PARALLEL must not become the default until a real consumer
+   reads the keys.
+
+6. A vertex pair may carry several relationships. PARALLEL emits one edge per relationship. AGGREGATED
+   keeps one pair edge, lists compatible string facts, and omits a scalar boolean when relationships
+   disagree rather than writing invalid GraphML such as false,true.
+
+7. sourceFingerprint is a canonical model digest shared by GraphML, descriptor and generated-source
+   metadata. Its input set is still to be decided. Graph/log pairing also needs the runtime audit artefact
+   to carry that digest, but this compiler spec does not pre-decide whether that is a header, record or
+   sidecar.
+
+Review findings integrated
+--------------------------
+
+* Per-relationship propagation: a trigger and @NoTriggerReference sharing one node pair no longer share
+  an OR'd answer.
+* Per-relationship push kind: a push and ordinary reference sharing one pair keep distinct kinds.
+* @OnEventHandler(ofType=...) uses the concrete dispatch type recorded in the DTO.
+* topologicalRank is the recorded dispatch position, not object/field order; a push owner ranks before
+  its target.
+* Method-reference captures carry a labelled relationship.
+* EventLogSource subinterfaces are audit-capable without falsely claiming base-class provenance.
+* SERVICE_DEREGISTERED is present in the manifest and semantic manifest values are tested, not merely key
+  identifiers.
+* Metadata mode is captured once per export; it is not re-read partway through emission.
+* Nodes and edges are emitted deterministically. The byte-stability check covers the whole GraphML rather
+  than stripping a timestamp; generatedAt was removed pending an explicit reproducible-build policy.
+* The sidecar is driven through Fluxtion.compile in a production-path test, rather than by directly testing
+  the JSON writer.
+
+Conflicts and their resolution
+------------------------------
+
+There were three tracker conflicts caused by the remote advancing during verification. Each was resolved
+by retaining new evidence without reinstating stale architecture:
+
+* The production sidecar replaced the old statement that no production writer exists.
+* The runtime fingerprint carrier remains undecided rather than being silently fixed as an audit-log
+  header.
+* The last remote topological-rank fix selected getSortedDependents() in an exporter fallback. The
+  integrated version keeps the stronger model-owned solution already present: the exporter consumes the
+  DTO eventDispatchPositionMap. The remote's method-reference and deterministic-order tests were retained.
+* Duplicate rank fixtures and a duplicated XML helper introduced by the textual merge were removed; the
+  existing push fixture already pins dispatch rank, so one fixture now proves one claim.
+
+Verification
+------------
+
+Passed on the integrated compiler tree:
+
+* ./mvnw -q test — full reactor, exit 0.
+* GraphMlMetadataTest and GraphMlRelationDivergenceTest through fluxtion-integration-tests with -am.
+* DiagnosticSidecarProductionTest and DtoWireCompatibilityTest through the same production build path.
+* Both published JSON files parse with jq.
+* git diff --check and git diff --cached --check.
+* Conflict-marker sweep over every reconciled file.
+
+Expected DiagnosticException stack traces appear at ERROR during rejection-fixture tests; the Maven exit
+code, not those intentional log lines, is the gate.
+
+Remaining work — do not infer it as complete
+--------------------------------------------
+
+1. Expose a public diagnostic collector for callers that want objects rather than a sidecar file.
+2. Add the nullable diagnostic field to remote generation and prove released old/new Java and Kryo
+   compatibility. The registration-order test protects the known positional hazard but is not that test.
+3. Implement the remaining Spring codes against real failure-path fixtures, using the same envelope.
+4. Finish model capture for anchors and exported callbacks. A single immutable GraphDescription does not
+   yet exist; exported-service attachment and the class-level FilterId default retain limited reflection.
+5. Give framework/auditor provenance an explicit compiler-owned fact before emitting framework counts.
+6. Teach one analyser consumer to read PARALLEL GraphML, then reconsider the default. Until then OFF is
+   deliberate.
+7. Define the canonical fingerprint input set and coordinate the runtime audit-artifact carrier.
+8. Emit the remaining planned metadata families: eventAudit, services, sourceLocation and fingerprint.
+9. Decide FLX-1002 and the FLX-1008 framework-node noise policy.
+
+Files that are authoritative for the next session
+--------------------------------------------------
+
+* docs/specs/compiler-diagnostics/TRACKER.md — live state and ranked remaining work.
+* docs/specs/compiler-diagnostics/README.md — diagnostic architecture and implementation slices.
+* design/model-rationalisation/README.md — authority table and migration boundary.
+* docs/specs/meta-data-improvements/README.md — GraphML modes, compatibility and acceptance.
+* docs/specs/meta-data-improvements/schema/fluxtion-graphml-keys-1.0.json — machine-readable vocabulary.
+* design/spring-authoring/spec-3-authoring-docs-and-spring-elements.md — Spring codes mapped into the one
+  diagnostic envelope.
+
+No analyser application code was changed by this integration report.
