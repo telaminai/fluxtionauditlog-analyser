@@ -1,7 +1,8 @@
 REPORT — compiler diagnostics + GraphML metadata: integration of 1e1c133
 Date: 2026-08-31 · Author session: compiler implementation
 Repository: fluxtion-compiler · Branch: feature/compiler_diagnostics
-Final SHA: 7a273a83dcbeb59bed66db14e5c30dd3b8d9e7bb
+Final SHA: 152753495ffd4eb65de749ef35a41c1ed1969bca
+           (amended 2026-08-31 — was 7a273a8; §8 added, §4c and §6 revised)
 Integrated from: 1e1c133 (origin) — rebased, fast-forward push, no force
 
 OUTCOME
@@ -26,6 +27,8 @@ Added on top:
   735b0e6  reconciliation with the model-authority architecture
   333bd52  stop reporting a deliberate non-failure as an error
   7a273a8  tracker corrections
+  8e05abf  propagation is per relationship, not per vertex pair (see §8)
+  1527534  tracker: suite line at current head
 
 ================================================================================
 2. RECONCILIATIONS — where the specs overturned this session
@@ -126,9 +129,8 @@ event and exported-service vertices; P1 says that description moves to the model
 4c. Relationship routes only PARTLY proven (tracker open work 2).
 
 Covered: arrays, push direction and field ownership, @TriggerEventOverride demotion,
-@NoTriggerReference, handler edges, two fields on one vertex pair. NOT covered: method-reference
-captures, anchors, exported callbacks, and independent propagation per relationship — propagates is
-currently answered per vertex PAIR, because directParentsListeningForEvent is a node list.
+@NoTriggerReference, handler edges, two fields on one vertex pair, and independent propagation per
+relationship (see §8). NOT covered: method-reference captures, anchors, exported callbacks.
 
 4d. PARALLEL still has no consumer. Default stays OFF. That is your F5 and it is unchanged.
 
@@ -171,9 +173,9 @@ items added to tracker open work 7: state per-code scope publicly, and consider 
 
 Run on the integrated tree:
 
-  · full reactor — builder 159, generator-core 21, generator-http 14, integration 3436 (5 skipped),
+  · full reactor — builder 159, generator-core 21, generator-http 14, integration 3437 (5 skipped),
     zero failures, zero errors;
-  · focused: GraphMlMetadataTest 16/16, GraphMlRelationDivergenceTest 6/6;
+  · focused: GraphMlMetadataTest 16/16, GraphMlRelationDivergenceTest 7/7;
   · git diff --check 5c5a517..HEAD — clean;
   · fast-forward push confirmed before pushing; no force at any point.
 
@@ -189,7 +191,39 @@ NOT verified:
     exhaustive enumeration of registration sites.
 
 ================================================================================
-7. NOTE ON THIS DOCUMENT
+8. AMENDMENT — your F2 is dead, and checking it found something worse
+================================================================================
+
+Added after the first version of this report. review_graphml_metadata_dd36bc5 F2 said merge()
+comma-joins into fluxtion.propagates, declared attr.type="boolean", producing "false,true".
+
+F2 is NOT reproducible against the rewrite. AGGREGATED emits a single valid boolean. But it was only
+safe by accident: propagation was answered once per vertex PAIR, so merge() had one value to
+de-duplicate. Probing the exact fixture F2 describes — one parent held through two fields, one plain
+and one @NoTriggerReference — showed the pair-level answer is not coarse but WRONG:
+
+  refKind=TRIGGER  propagates=true  referenceField=dataOnly     <- @NoTriggerReference
+  refKind=TRIGGER  propagates=true  referenceField=triggering
+
+The pair propagates because of the first field and the second inherited it, so the artefact said a
+no-trigger reference fires its owner. That is the same class of defect as the @TriggerEventOverride
+case in §3, and the reason that one mattered.
+
+Fixed at 8e05abf. The event walker now records its carrying field at each eventGraph.addEdge, the way
+the dependency walker already did, so propagation is answered per (source, target, field). An edge
+with no field — an anchor, an injected relationship — falls back to the pair answer, and so does any
+propagation route not yet instrumented, so a missed site degrades to previous behaviour rather than
+silently reporting false. Two relationships on one pair can now legitimately disagree, and they are
+separate edges in PARALLEL, which removes the type violation for a reason rather than by luck.
+
+The new test fails against the per-pair implementation with exactly the measured wrong value —
+verified by running that mutation, not by assuming it.
+
+So: F2 as written is closed, but the finding behind it was worth more than its own text. Recording
+that here because the probe fixture in F2 is what found it.
+
+================================================================================
+9. NOTE ON THIS DOCUMENT
 ================================================================================
 
 Written here because this directory is where the cross-session handoffs live. It is a REPORT, not an
