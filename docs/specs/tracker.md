@@ -109,7 +109,7 @@ Both are settled decisions rather than open work, so their rationale now lives i
 agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
 they produced are unchanged and remain under **Decisions** below.
 
-## M44 · Session transitions as a Fluxtion processor — ☐ SPEC'D 2026-08-30, REVISED 2026-08-31
+## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31
 
 _The first application of the review's standing architecture rule, and the owner's reason for choosing it:
 **using Fluxtion in a real application accelerates what we learn about it far more than measuring other
@@ -148,6 +148,33 @@ agents does — and that learning is the raw material for the template bootstrap
   acceptance set** (the first draft's acceptance described the finished graph, which would have left slice
   one permanently red). And we inherit [fluxtion#25](https://github.com/telaminai/fluxtion/issues/25)
   immediately: tracing is fixed at generation time, so we live with the constraint we just filed.
+- [M44.1] ☑ **Slice 1 shipped 2026-08-31.** Seven nodes, generated AOT and committed; a synchronous
+  single-in-flight driver; a bounded audit sink that snapshots for inspection; 23 tests. All nine project
+  entrances now state a `TransitionKind` instead of the rule being inferred, and the three old homes of
+  the session-boundary rule are deleted — `afterProjectChange`'s `endsSession` block, the
+  `applyProjectResult` overload's unnamed `false`, and `sessionEndEcho`'s predict-before-the-switch.
+  **Measured cost +1,217,297 bytes shaded** (2.43 → 3.64 MB). Every guard mutation-checked, including
+  regenerating the graph without `@PushReference` to confirm the arrow really reverses.
+  **What it taught us, scored against predictions written first** (spec ▸ *SCORED*): the `transient` rule
+  did **not** bite, because the predicate takes *final, non-transient, non-ignored* fields — so ordinary
+  mutable node state never participates, and *"remove `final`"* is a first-class fix rather than the
+  workaround our upstream note called it. The adapter boundary was not the hard part; **re-entrancy** was,
+  because a partially-migrated app has two ways into the same state and only one of them is inside a
+  dispatch. Effect requests multiplied a second time. And **two defects were ours**: the single-in-flight
+  guard threw an exception the effect-failure handler swallowed, and the sink was attached one line too
+  late — `init()` audits, so the analyser printed audit records to stdout. Both found by running it.
+  Three framework facts came from reading runtime 1.0.13: the audit "setters" are dispatches; `logLevel()`
+  after `init()` silently does nothing because loggers are stamped at registration; and the runtime prints
+  to stdout when it handles an audit control event.
+  ☐ **Gap recorded, not papered over:** the review asked for behavioural characterisation tests against
+  the old implementation first. The old implementation is Swing, which rule 4 does not unit-test, so the
+  replay suite specifies the rules as read from the old code rather than proving byte-equivalence with it.
+- [M44.2] ☐ **Next slices:** `IgnoredParameters`, then split `GraphPairing` /
+  `AuditInstallationReadiness` / `CoverageClaim` (the review's F3 — three questions the first draft merged
+  into one). Then move log and graph OPENING, which deletes `LogObserved`/`GraphObserved` and with them
+  the observation funnel that exists only because slice 1 does not own those paths yet.
+- [M44.3] ☐ **Owner decision still open:** the runtime's published POM declares AGPL-3.0 and the analyser
+  is source-available commercial (D-S1.2). Recorded rather than inferred from common ownership.
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button

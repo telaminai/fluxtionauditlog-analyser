@@ -359,24 +359,32 @@ The first draft's acceptance described the finished graph while its risk section
 decision. That leaves the first implementer with a permanently red checklist or permission to ignore it.
 Split:
 
-**Slice 1 — `SessionBoundary` only, and independently green**
+**Slice 1 — `SessionBoundary` only, and independently green — SHIPPED 2026-08-31**
 
-- [ ] POM shape: `fluxtion-runtime` 1.0.13 + Repsy repository; `dependency:tree` shows runtime + Agrona
-      and **no builder/compiler/plugin**; cold empty-local-repo keyless build passes.
-- [ ] Regeneration profile `-Pregen` with `src/graph/java`; default build never resolves the builder.
-- [ ] The driver of D-S0.4 exists, with single-in-flight enforced **and a test that fails when it is
-      removed**.
-- [ ] `SessionBoundary` node, its exact graph edges, and its pinned audit keys.
-- [ ] The sink of D-S8.3 attached before the first event; a test proves records are captured **and that
-      nothing reaches stdout**.
-- [ ] Replay 1, 5, 6, 7 pass — the four that turn on `kind`.
-- [ ] **Named** old branches deleted in the same commit: `afterProjectChange(String, boolean)`'s
-      `endsSession` block, the `applyProjectResult` two-arg overload's adoption exception, and the
-      `sessionEndEcho` capture path. Deleting only the first would leave three independent sources of one
-      rule — which is how it got spread out in the first place.
-- [ ] **Behavioural characterisation tests written against the OLD implementation first**, then run
-      unchanged against the processor. A source grep can support the deletion check; behavioural
-      equivalence is the contract.
+- [x] POM shape: `fluxtion-runtime` 1.0.13 + Repsy repository; `dependency:tree` shows runtime + Agrona
+      and **no builder/compiler/plugin**. Asserted mechanically by `PomShapeTest`, which also fails if
+      the graph source root or the AOT plugin escapes the profile.
+- [x] Regeneration profile `-Pregen` with `src/graph/java`; the default build never resolves the builder.
+- [x] The driver of D-S0.4 exists, with single-in-flight enforced **and a test that fails when it is
+      removed** (mutation-checked; see below — the first version of that guard did not work).
+- [x] `SessionBoundary` node, its exact graph edges, and its pinned audit keys. Edges checked with the
+      analyser's own `GraphMlParser`, so our emitted topology is read by the code that reads a
+      customer's.
+- [x] The sink of D-S8.3; a test proves records are captured **and that nothing reaches stdout**.
+- [x] Replay 1, 5, 6, 7 pass, plus 6b (a throwing adapter), 7b (adoption is never a no-op), 9 (a stale
+      result), the single-in-flight guard and an unanswered effect.
+- [x] **Named** old branches deleted: `afterProjectChange(String, boolean)`'s `endsSession` block and
+      the flag itself, the `applyProjectResult` two-arg overload with its unnamed `false`, and
+      `sessionEndEcho`'s predict-before-the-switch capture. All nine project entrances — menu, recent,
+      import dialog, template, new-project, new-project-exists, fork, close, socket — now state a
+      `TransitionKind` and go through one funnel.
+- [ ] ~~**Behavioural characterisation tests written against the OLD implementation first.**~~ **NOT
+      DONE, and it could not be**: the old implementation is `MainFrame`, and rule 4 of this repo does
+      not unit-test Swing on headless CI. The replay suite is derived from reading the old code —
+      including its own comments, which is where `ADOPT_FOR_OPEN_LOG` came from — and equivalence is
+      verified by building and running the jar. **This is a real gap in the evidence and is recorded
+      rather than papered over**: what is proven is that the processor implements the rules as written
+      down, not that the rules as written down are byte-for-byte what the callbacks did.
 
 **Later slices** — one row per decision in §6, each deleting its old branch in the same commit.
 
@@ -418,6 +426,77 @@ Written before the work so it cannot be retrofitted.
 in this spec were wrong or absent until someone read runtime 1.0.13 or built the POM — the dependency
 size, the `System.out` default sink, and that the audit "setters" are dispatches. Each would have been
 found the expensive way. That is rule 6 earning its place again, and it is bootstrap-document material.
+
+## SCORED — what slice 1 actually taught us, 2026-08-31
+
+Written after implementing, against predictions written before. This is the deliverable the owner asked
+for: *"using Fluxtion in a real application accelerates what we learn about it far more than measuring
+other agents does."*
+
+**1 · The `transient` rule did NOT bite — because the rule is not the one we had written down.**
+Predicted as the most likely friction. It never fired. The reason is worth more than the prediction was:
+the field-inclusion predicate takes **final, non-transient, non-ignored** instance fields. Node-local
+state written as ordinary mutable private fields is never constructor-mapped, so it never participates.
+Every node here holds `Path`-ish state and an `EventLogger`, and not one needed `transient`.
+
+That is also the correction to our own upstream note, which said six agents hit this rule and framed
+`transient` as *the* remedy. The compiler-diagnostics branch confirmed the same predicate independently
+from the mapping loop on 2026-08-31. **So "remove `final`" — which two measured agents found and which
+we recorded as an undocumented workaround — is a first-class fix**, and the message that names only
+`transient` is steering authors away from the simpler one. `UP-FLX-32` is sharper for it.
+
+**2 · The adapter boundary was NOT the hard part. Re-entrancy was.** Predicted the temptation would be
+letting `MainFrame` decide. It was not — the effect list makes the boundary obvious. What was hard is
+that the analyser has *two* ways into the same state: File ▸ Close log closes a log, and so does a
+project switch. The second runs inside a dispatch cycle, the first does not, and the code path is
+identical. The processor has to be told about the first and must not be told about the second. That is
+now one guarded funnel on `updateLifecycleMenu`, and it is the shape any real migration will hit:
+**a graph adopted incrementally has to coexist with the callbacks it has not replaced yet.**
+
+**3 · Effect requests multiplied again, after the spec had already been corrected for it.**
+`CreateProfileEffect` was missing — creating a profile is a different act from loading one, with a
+different failure — and so was `StatusShown`, the answer to a notification effect. The second is the
+interesting one: it looks like ceremony for something that cannot fail, and without it the contract
+"every effect is answered" acquires an exception, which means a missing result stops proving anything.
+**The prediction has now scored twice, once at review and once at implementation.**
+
+**4 · Two defects were found by tests failing, and both were ours, not the framework's.**
+
+* The single-in-flight guard threw `IllegalStateException`; the effect-failure handler caught
+  `Exception`; so a re-entrant adapter had its violation silently converted into a routine
+  `EffectFailed` and the guard did nothing. **The error handling that makes effects safe was swallowing
+  the check that makes the record trustworthy.** Now a distinct `ProtocolViolation` that is rethrown.
+* The sink was attached after `init()`, on the reasoning that "before the first request" was early
+  enough. `init()` audits a lifecycle event, so the analyser printed audit records to stdout before the
+  sink existed. Both were caught only by running it, and both are now mutation-checked.
+
+**5 · Three framework facts that a reader would not infer, all read from runtime 1.0.13.**
+
+* `setAuditLogProcessor` / `setAuditLogLevel` / `setAuditLogRecordEncoder` / `setAuditTimeFormatter` are
+  **not setters**. Each is `onEvent(new EventLogControlEvent(...))` — a dispatch. They therefore cannot
+  be called from inside a node, and belong at wiring time.
+* `EventLogManager.nodeRegistered` stamps each node's logger with the level **as the node is
+  registered**, during `init()`. Calling `logLevel(...)` afterwards changes the field and none of the
+  loggers built from it — configuration that appears to work and does nothing. The control-event route
+  does not have this problem because it rebuilds the loggers; it has the next one instead.
+* The runtime prints an unconditional `"updating event log config:"` line to **stdout** when it handles
+  that control event. In a desktop application.
+
+**6 · The picture claim was mutation-checked, and it is real.** `@PushReference` on the effect-queue
+field is what makes the emitted GraphML draw `sessionBoundary → effectQueue`. Removing it and
+regenerating genuinely reverses the arrow, and `SessionGraphShapeTest` catches it. So "an accidental
+short circuit from input straight to effect is visible in the picture" is a property, not a hope.
+
+**7 · The measured cost, on our tree.** Shaded jar 2,427,471 → 3,644,768 bytes: **+1,217,297**. The
+review measured +1,164,013 against an older tree; both are the same fact and neither is the 0.6 MB the
+first draft claimed.
+
+**8 · An authoring-experience finding nobody was looking for.** Compiling with the builder on the path
+runs a `fluxtion-substrate-lint` annotation processor that warns on **every class in the project with
+instance state and no Fluxtion annotation** — thirty-odd Swing panels, a PDF writer, a source resolver.
+A project with one six-node graph gets a wall of warnings about classes that will never be nodes. The
+signal-to-noise makes the one legitimate warning (on `EffectQueue`, which really has no trigger
+annotation, deliberately) invisible. Filed as an upstream ask.
 
 **Every one of these becomes bootstrap-document material** if it holds, and a correction if it does not.
 That is the closed loop the owner asked for: we author, we hit what an author hits, and what we hit is

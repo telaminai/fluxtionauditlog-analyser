@@ -1208,6 +1208,47 @@ Every rejection code should carry a stable URL (`fluxtion.dev/errors/FLX-1001`).
 semantics in `claude.txt` reachable **at the moment of failure**, rather than requiring an agent to have
 read them up front — which is precisely where inference creeps in.
 
+### UP-SHARED-04 ☐ The substrate lint warns about every class in the project, not the nodes
+
+**Target** `fluxtion-builder` annotation processor · **Priority** medium — it is a good check, currently
+unusable in a real application
+
+Found 2026-08-31 while building the analyser's own first graph (M44), which is the first time this repo
+has compiled with the builder on the path.
+
+The `fluxtion-substrate-lint` processor emits, for every class with instance state and no Fluxtion
+annotation:
+
+> class 'X' has instance state but no Fluxtion trigger annotation (@OnEventHandler, @OnTrigger,
+> @Initialise, @ExportService, ...). If it is registered as a node, events will not propagate. Add a
+> trigger annotation, or mark the class @FluxtionDataOnly to silence this warning.
+
+**The check is right and the scope is wrong.** Our graph has six nodes. The build produced **thirty-plus**
+of these warnings — every Swing panel, a PDF writer, a source resolver, a highlighter, the main window.
+None of them will ever be a node. The conditional *"if it is registered as a node"* is doing all the work
+and the processor cannot evaluate it, so it warns unconditionally and leaves the reader to.
+
+The cost is not noise for its own sake: **it buries the one legitimate warning.** Exactly one of ours was
+real — a push-target node that genuinely has no trigger annotation, deliberately — and it was
+indistinguishable from thirty about `JPanel` subclasses.
+
+This is the reverse of the failure mode in
+[`notes-for-the-compiler-diagnostics-work.md`](notes-for-the-compiler-diagnostics-work.md) §4: not a
+silent green, but a warning so broad it is equivalent to one. An author's first experience of adding
+Fluxtion to an existing application should not be a wall of warnings about code that has nothing to do
+with it.
+
+Ask, in order of preference:
+
+1. **Scope it to classes reachable from a `FluxtionGraphBuilder`** — the builder is compiled in the same
+   round, and it names its nodes.
+2. **Failing that, a configured package prefix** (`-Afluxtion.lint.packages=com.example.myapp.node`), so
+   a project adding Fluxtion to one corner does not have to annotate the other ninety percent.
+3. **Failing that, off by default** with an opt-in flag. A check nobody can read is not a check.
+
+Adding `@FluxtionDataOnly` to thirty unrelated Swing classes to silence it is not a remedy — it would put
+a framework annotation on code that must not depend on the framework.
+
 ### UP-SHARED-03 ☐ The published POM declares a narrower licence than the source headers
 
 **Target** `fluxtion` release config · **Priority** medium — cheap to fix, awkward to discover late

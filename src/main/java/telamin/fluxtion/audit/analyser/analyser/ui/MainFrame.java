@@ -2571,6 +2571,11 @@ public final class MainFrame extends JFrame {
 
     /** Close items are enabled only when there is something to close. */
     private void updateLifecycleMenu() {
+        // M44: the single place the processor is told what is open. Every path that opens or closes a
+        // log or graph already lands here, which is why the observation hangs off it rather than being
+        // hand-placed at ten call sites that would drift apart.
+        noteLogState();
+        noteGraphState();
         syncRecordsCard();          // M36: the start page shows exactly when there is no log
         if (closeLogItem != null) closeLogItem.setEnabled(store != null);
         if (closeGraphItem != null) closeGraphItem.setEnabled(topologyPanel.hasGraph());
@@ -3192,7 +3197,7 @@ public final class MainFrame extends JFrame {
                 "Import settings", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
                 null, options, options[0]);
         if (intent == 1) {
-            applyProjectResult(project.open(file.toPath()));
+            requestProject(file.toPath(), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "import-dialog");
             return;
         }
         if (intent != 0) return;   // cancelled, or the dialog was closed
@@ -3273,8 +3278,9 @@ public final class MainFrame extends JFrame {
             return;
         }
         // M35.5's exception, and the only one: here the project is being adopted BECAUSE this log was
-        // opened. Ending the session would close the log that just arrived.
-        applyProjectResult(project.open(offer), false);
+        // opened. Ending the session would close the log that just arrived. The exception is now CARRIED
+        // as a transition kind rather than passed as an unnamed false — see TransitionKind.
+        requestProject(offer, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.ADOPT_FOR_OPEN_LOG, "log-offer");
     }
 
     // ---- projects (M20.2) --------------------------------------------------------------------
@@ -3374,7 +3380,7 @@ public final class MainFrame extends JFrame {
             }
         }
         if (installed.profile() != null) {
-            applyProjectResult(project.open(installed.profile()));
+            requestProject(installed.profile(), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "template");
         } else {
             // Pre-M19 templates have no profile. Reuse day-two discovery: everything found is offered
             // unchecked and only the person's explicit selection is adopted.
@@ -3402,7 +3408,7 @@ public final class MainFrame extends JFrame {
         Path file = chosen.isDirectory()
                 ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(chosen.toPath())
                 : chosen.toPath();
-        applyProjectResult(project.open(file));
+        requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "menu");
     }
 
     private void chooseAndCreateProject() {
@@ -3421,7 +3427,7 @@ public final class MainFrame extends JFrame {
                     "That directory already has a project.\nOpen it instead of overwriting?",
                     "Project exists", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
             if (keep == JOptionPane.YES_OPTION) {
-                applyProjectResult(project.open(file));
+                requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "new-project-exists");
             }
             return;   // never silently replace someone's project file
         }
@@ -3429,8 +3435,13 @@ public final class MainFrame extends JFrame {
         NewProjectDiscovery.Offer offer = NewProjectDiscovery.discover(root);
         NewProjectDiscovery.Selection selection = NewProjectOfferDialog.show(this, offer);
         if (selection == null) return;       // the offer is a question; Cancel creates and adopts nothing
-        try {
-            applyProjectResult(project.create(file));
+        // Creating the profile is now an effect the processor asks for, so its failure arrives as a
+        // warning rather than an exception — and if it did not happen, adopting the discovery into a
+        // project that does not exist would be worse than doing nothing.
+        if (!requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CREATE, "new-project")) {
+            return;
+        }
+        {
             NewProjectDiscovery.apply(offer, selection, config);
             java.util.Optional<String> guideProblem = NewProjectDiscovery.writeReferenceGuide(offer, selection);
             guideProblem.ifPresent(problem -> JOptionPane.showMessageDialog(this, problem,
@@ -3450,9 +3461,7 @@ public final class MainFrame extends JFrame {
                         ? ", wrote " + telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME
                         : "")
                     + (selection.graph() == null ? "" : " and opened " + selection.graph().getFileName()));
-        } catch (java.io.IOException ex) {
-            JOptionPane.showMessageDialog(this, "Could not create the project: " + ex.getMessage(),
-                    "New project", JOptionPane.ERROR_MESSAGE);
+            noteGraphState();
         }
     }
 
@@ -3462,9 +3471,13 @@ public final class MainFrame extends JFrame {
         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
         try {
-            project.saveAs(telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
-                    .pathFor(fc.getSelectedFile().toPath()));
-            afterProjectChange("project forked to " + project.activeName());
+            Path forked = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
+                    .pathFor(fc.getSelectedFile().toPath());
+            project.saveAs(forked);
+            // A fork adopts the new profile as active, which is a switch — and M35.5 applies to it for
+            // exactly the reason it applies to any other: the settings the log was being read through
+            // are now a different file's.
+            requestProject(forked, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.FORK, "save-as");
         } catch (java.io.IOException ex) {
             JOptionPane.showMessageDialog(this, "Could not write the project: " + ex.getMessage(),
                     "Save project as", JOptionPane.ERROR_MESSAGE);
@@ -3472,70 +3485,162 @@ public final class MainFrame extends JFrame {
     }
 
     private void closeProject() {
-        String was = project.activeName();
-        project.close();
-        afterProjectChange("closed project " + was + " — back to your own settings");
+        requestProject(project.activeFile(), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CLOSE, "menu");
     }
 
-    private void applyProjectResult(
-            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.LoadResult result) {
-        applyProjectResult(result, true);
-    }
+    // ---- M44 slice 1: session transitions are DECIDED by a Fluxtion processor -------------------
 
     /**
-     * @param endsSession true for an EXPLICIT project switch — the profile is the session boundary
-     *                    (M35.5), so the log and graph go with it. False for the one path where the
-     *                    project is adopted as PART of opening a log ({@link #maybeOfferProject}):
-     *                    closing there would destroy the log that just arrived.
+     * The session transition processor and its driver. Created lazily because it must not exist before
+     * the fields its adapter performs against ({@code project}, {@code store}, {@code topologyPanel}).
      */
-    private void applyProjectResult(
-            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.LoadResult result,
-            boolean endsSession) {
-        if (!result.loaded()) {
-            JOptionPane.showMessageDialog(this, result.message(), "Project",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionDriver session;
+
+    /**
+     * Whether the request in flight came from a person. It is <b>rendering</b>, not policy: the
+     * processor decides that a warning is warranted and what it says, and this decides whether that
+     * lands in a dialog or is handed back to a socket caller who cannot answer one (M35.7).
+     */
+    private boolean sessionInteractive = true;
+
+    /** What the transition in flight actually closed, with paths — the socket echo reads it. */
+    private final Map<String, Object> sessionClosed = new java.util.LinkedHashMap<>();
+
+    /** The warning text of the transition in flight, or null. Non-null means it did not proceed. */
+    private String sessionProblem;
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionDriver session() {
+        if (session == null) {
+            session = new telamin.fluxtion.audit.analyser.analyser.session.SessionDriver(
+                    this::performSessionEffect);
+            // The processor starts knowing nothing. Tell it what is already open, or its first
+            // boundary decision would be made against an empty world.
+            noteLogState();
+            noteGraphState();
         }
-        afterProjectChange(result.message(), endsSession);
+        return session;
     }
 
     /**
-     * Everything that has to happen when the project-scoped settings have been swapped underneath the
-     * running app: rebuild what reads them, refresh the menus, persist the pointer, and say so.
+     * <b>The one entrance to a project transition.</b> Every surface — menu, recent list, template,
+     * import dialog, log-offer adoption, socket — arrives here and states its
+     * {@link telamin.fluxtion.audit.analyser.analyser.session.TransitionKind}. Nothing infers intent
+     * from which surface asked, because two surfaces in the same state need opposite answers.
+     *
+     * @return true when the transition proceeded
      */
-    private void afterProjectChange(String note) {
-        afterProjectChange(note, true);
+    private boolean requestProject(Path file,
+                                   telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
+                                   String source, boolean interactive) {
+        sessionInteractive = interactive;
+        sessionClosed.clear();
+        sessionProblem = null;
+        var driver = session();
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source));
+        return sessionProblem == null;
+    }
+
+    /** The interactive form — a person asked, so a failure is a dialog. */
+    private boolean requestProject(Path file,
+                                   telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
+                                   String source) {
+        return requestProject(file, kind, source, true);
     }
 
     /**
-     * @param endsSession M35.5 — a project owns the source roots, event processors, named graphs,
-     *                    focuses and reports. Swap it and every one of those changes underneath the
-     *                    open log, so the log and graph are CLOSED with it: the profile is the
-     *                    session boundary. Leaving them would mean looking at one project's log
-     *                    through another's settings, with focuses pointing at nodes from a graph
-     *                    that is no longer the right one — the M35 defect at profile scope, and
-     *                    worse than the others because nothing re-checks anything when a profile
-     *                    changes.
+     * Translate and perform — and <b>decide nothing</b>. Every branch does what it is told, including
+     * when it looks wrong; an adapter that asked "should I really close this?" would put the rule back
+     * where M44 took it from.
      */
-    private void afterProjectChange(String note, boolean endsSession) {
-        String closedNote = "";
-        if (endsSession) {
-            boolean hadLog = store != null;
-            boolean hadGraph = topologyPanel.hasGraph();
-            if (hadLog) closeLog();
-            if (hadGraph) closeGraph();
-            if (hadLog || hadGraph) {
-                closedNote = "  ·  closed the " + (hadLog && hadGraph ? "log and graph"
-                        : hadLog ? "log" : "graph") + " — a project is a session boundary";
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result performSessionEffect(
+            telamin.fluxtion.audit.analyser.analyser.session.SessionEffects effect) throws Exception {
+        long opId = effect.opId();
+        return switch (effect) {
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.LoadProfileEffect e -> {
+                // Slice-1 honesty: ProjectSession.open reads the profile AND swaps the settings, so
+                // "loaded" here means both. Splitting them is a later slice; what is already true and
+                // was not before is that the log and graph close only on a load that SUCCEEDED, and
+                // that the close is proven by LogClosed rather than assumed from the request.
+                var r = project.open(Path.of(e.profilePath()));
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
+                        opId, e.profilePath(), r.loaded(),
+                        r.loaded() ? project.activeName() : null, 0, r.message());
             }
-        }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CreateProfileEffect e -> {
+                var r = project.create(Path.of(e.profilePath()));
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded(
+                        opId, e.profilePath(), r.loaded(),
+                        r.loaded() ? project.activeName() : null, 0, r.message());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProfileEffect e -> {
+                applyProjectSettings();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
+                        opId, e.profilePath(), e.name());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreSettingsEffect e -> {
+                project.close();
+                applyProjectSettings();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored(opId);
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CloseLogEffect e -> {
+                sessionClosed.put("log", logDisplayLocation);
+                closeLog();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed(opId);
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CloseGraphEffect e -> {
+                Path graphFile = topologyPanel.loadedGraphFile();
+                if (graphFile != null) sessionClosed.put("graph", graphFile.toString());
+                closeGraph();
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed(opId);
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
+                status.setText(e.text());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
+                        opId, "showStatus");
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowWarningEffect e -> {
+                sessionProblem = e.text();
+                if (sessionInteractive) {
+                    JOptionPane.showMessageDialog(this, e.text(), "Project", JOptionPane.WARNING_MESSAGE);
+                }
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
+                        opId, "showWarning");
+            }
+        };
+    }
+
+    /**
+     * Tell the processor what is open. Called from the paths that change it and are <b>not</b> the
+     * session adapter — a log opened from the File menu, a log closed from the File menu, the socket's
+     * own close verbs. Inside a transition the processor learns the same facts from the typed results
+     * ({@code LogClosed}), so calling this from {@code closeLog()} itself would both duplicate them and
+     * re-enter the driver mid-cycle.
+     *
+     * <p>Scheduled for deletion with {@code LogObserved}, when the slice that moves log opening lands.
+     */
+    private void noteLogState() {
+        if (session == null || session.isDispatching()) return;
+        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved(
+                store != null, logDisplayLocation, logProvenance));
+    }
+
+    /** As {@link #noteLogState()}, for the topology graph. */
+    private void noteGraphState() {
+        if (session == null || session.isDispatching()) return;
+        Path graphFile = topologyPanel.loadedGraphFile();
+        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved(
+                topologyPanel.hasGraph(), graphFile == null ? null : graphFile.toString(), "OPENED"));
+    }
+
+    /** The rendering half: make the UI reflect settings that have already been swapped. */
+    private void applyProjectSettings() {
         onConfigChanged();          // source service, processors, menus, and the global save
         graphTabs.restore(config.savedGraphs);
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
         updateLifecycleMenu();
-        status.setText(note + closedNote);
         refreshProjectPanel();                                        // M37: the project, and everything it owns
     }
 
@@ -3594,7 +3699,7 @@ public final class MainFrame extends JFrame {
         closeProjectItem.setEnabled(project.hasProject());
         updateLifecycleMenu();
         fillRecent(recentProjectsMenu, config.recentProjects,
-                path -> applyProjectResult(project.open(Path.of(path))));
+                path -> requestProject(Path.of(path), telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "recent"));
     }
 
     /** The window title carries the project, because "which settings am I using" is easy to lose. */
@@ -3752,11 +3857,14 @@ public final class MainFrame extends JFrame {
                                 "no project is open — these are already your own settings");
                     }
                     String was = project.activeName();
-                    String wasPath = project.activeFile().toString();
+                    Path wasFile = project.activeFile();
+                    String wasPath = wasFile.toString();
                     var before = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
+                    // The processor decides that leaving a project ends the session, and the adapter
+                    // records what it actually closed while doing it — so the echo below reports
+                    // outcomes rather than a prediction made before the switch.
+                    requestProject(wasFile, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.CLOSE, "socket", false);
                     Map<String, Object> closedEcho = sessionEndEcho();
-                    project.close();
-                    afterProjectChange("closed project " + was + " — back to your own settings", true);
                     var after = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
                     echo.put("closed", "project");
                     echo.put("project", was);
@@ -3784,10 +3892,10 @@ public final class MainFrame extends JFrame {
 
         /**
          * M35.8 — a route to machinery that exists: {@code project.open} never throws and
-         * {@code afterProjectChange(…, true)} already closes the log and graph. What is NEW is the echo,
-         * and the echo is the whole safety story: this verb APPLIES (a modal cannot be answered at the
-         * socket — M35.7), so what it replaced, what it closed and how to undo it must all be in the
-         * answer. {@link #applyProjectResult} is deliberately NOT used: its failure path is a dialog.
+         * the session processor already closes the log and graph. What is NEW is the echo, and the echo
+         * is the whole safety story: this verb APPLIES (a modal cannot be answered at the socket —
+         * M35.7), so what it replaced, what it closed and how to undo it must all be in the answer.
+         * The request is made NON-interactive for that reason: a failed load comes back as text.
          */
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openProject(String path) {
@@ -3822,14 +3930,14 @@ public final class MainFrame extends JFrame {
             String previousName = project.hasProject() ? project.activeName() : null;
             String previousPath = active == null ? null : active.toString();
             var before = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
-            Map<String, Object> closedEcho = sessionEndEcho();   // captured BEFORE the switch closes them
 
-            var result = project.open(file);
-            if (!result.loaded()) {
-                // ProjectProfile.load never throws; the reason is the answer. No dialog on this path.
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(result.message());
+            // M35.5's rule now lives in the processor: an EXPLICIT_SWITCH ends the session. Not
+            // interactive, so a failed load is returned rather than shown — a modal cannot be answered
+            // at the socket (M35.7).
+            if (!requestProject(file, telamin.fluxtion.audit.analyser.analyser.session.TransitionKind.EXPLICIT_SWITCH, "socket", false)) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(sessionProblem);
             }
-            afterProjectChange(result.message(), true);   // M35.5: an explicit switch ends the session
+            Map<String, Object> closedEcho = sessionEndEcho();
             var after = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.snapshot(config);
 
             echo.put("project", project.activeName());
@@ -3853,10 +3961,10 @@ public final class MainFrame extends JFrame {
          * it reversible from the echo).
          */
         private Map<String, Object> sessionEndEcho() {
-            Map<String, Object> closed = new java.util.LinkedHashMap<>();
-            if (store != null) closed.put("log", logDisplayLocation);
-            var gf = topologyPanel.loadedGraphFile();
-            if (gf != null) closed.put("graph", gf.toString());
+            // M44: this used to be called BEFORE the switch and list what was about to close — a
+            // prediction, and one that would have been wrong on every path where the transition did not
+            // proceed. It is now called AFTER, and reads what the adapter recorded closing.
+            Map<String, Object> closed = new java.util.LinkedHashMap<>(sessionClosed);
             Map<String, Object> out = new java.util.LinkedHashMap<>();
             out.put("closed", closed);
             out.put("closedWhy", closed.isEmpty()

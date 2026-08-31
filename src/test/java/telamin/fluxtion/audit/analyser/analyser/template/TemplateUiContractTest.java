@@ -21,7 +21,14 @@ class TemplateUiContractTest {
         assertTrue(flow.contains("Background.run("), "catalogue/download IO must stay off the EDT");
         assertTrue(flow.contains("showProgress"), "network/archive work must expose progress and cancellation");
         assertTrue(flow.contains("templateArchive.install"));
-        assertTrue(flow.contains("project.open(installed.profile())"));
+        // M44: the template flow still adopts the installed project, but it no longer calls
+        // ProjectSession directly — it states an intent and the session processor decides what that
+        // transition means. The assertion tracks the intent, not the old call.
+        assertTrue(flow.contains("requestProject(installed.profile()"),
+                "the installed template must be adopted as the active project");
+        assertTrue(flow.contains("TransitionKind.EXPLICIT_SWITCH"),
+                "and it must say WHICH kind of transition it is — inferring that from the surface is "
+                        + "exactly what M44 removed");
     }
 
     @Test

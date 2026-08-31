@@ -52,3 +52,8 @@ examples/*/target/
 # Python bytecode (tools/bench, tools/spikes)
 __pycache__/
 *.pyc
+
+# M44: the AOT generator also emits a PNG of the graph next to the GraphML. It is 232 KB of jar for a
+# picture nothing reads at runtime, and rule 1's sweep cannot see inside an image — so it is regenerated,
+# never committed. The GraphML beside it is the reviewable artefact and IS committed.
+src/main/resources/**/generated/*.png

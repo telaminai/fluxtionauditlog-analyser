@@ -26,14 +26,36 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.2</junit.version>
+        <!-- M44 D-S1.1: pinned, not ranged. The runtime is the ONLY Fluxtion artefact the default
+             build resolves; the builder and the AOT plugin exist solely inside the `regen` profile. -->
+        <fluxtion.version>1.0.13</fluxtion.version>
+        <!-- The builder is on its OWN version line, not the runtime's — 1.0.64 against runtime 1.0.13.
+             Reusing ${fluxtion.version} here resolves nothing and the failure is a download error rather
+             than anything that names the mistake. Same pairing as examples/fixture-generator. -->
+        <fluxtion.builder.version>1.0.64</fluxtion.builder.version>
+        <fluxtion.maven-plugin.version>1.3.0</fluxtion.maven-plugin.version>
     </properties>
 
-    <!-- One UI dependency: FlatLaf (MIT, pure-Java, modern flat themes). JUnit is test scope only. -->
+    <!--
+      Two runtime dependencies, and the second one has to be said out loud.
+
+      FlatLaf (MIT, pure-Java) is the UI. `fluxtion-runtime` arrived with M44 — the session transition
+      processor — and it brings `org.agrona:agrona` transitively. The spec's first draft costed this as
+      "0.6 MB, adds one dependency"; building it showed +1,164,013 bytes shaded and a repository this
+      project did not declare, because the artefact is not on Maven Central. Three facts where the draft
+      had one, which is why they are all written here rather than in a spec nobody reads at build time.
+    -->
     <dependencies>
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
             <version>3.5.1</version>
+        </dependency>
+        <!-- M44: the generated session processor's runtime. Pulls org.agrona:agrona transitively. -->
+        <dependency>
+            <groupId>com.telamin.fluxtion</groupId>
+            <artifactId>fluxtion-runtime</artifactId>
+            <version>${fluxtion.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -42,6 +64,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- fluxtion-runtime is not on Maven Central; the same public Repsy repo examples/fixture-generator
+         already declares. Central stays first so nothing else changes where it resolves from. -->
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>repsy-fluxtion-public</id>
+            <url>https://repo.repsy.io/mvn/fluxtion/fluxtion-public</url>
+        </repository>
+    </repositories>
 
     <build>
         <resources>
@@ -112,4 +147,70 @@
             </plugin>
         </plugins>
     </build>
+
+    <!--
+      M44 D-S1.1 — regeneration, and the reason it is a profile rather than a source root.
+
+      A Fluxtion graph builder imports `fluxtion-builder`. Put it in src/main/java and the ordinary
+      keyless build has to resolve the builder even though nothing is being generated — so CI, a fresh
+      contributor and the release build all acquire a dependency on a closed-source toolchain to compile
+      a UI. Confining both the source root and the toolchain to `-Pregen` keeps the default dependency
+      graph provably runtime + Agrona and nothing else. `PomShapeTest` asserts exactly that, because a
+      claim of this kind rots silently: nothing fails when it stops being true.
+
+      A separate Maven module was considered and rejected — the builder must see the analyser's own node
+      classes, so a module would need a dependency on this artefact and an install-first build order.
+
+          mvn -Pregen process-classes        # regenerate; needs ~/.fluxtion/fluxtion.apiKeyFile
+          mvn test                           # everyone else, keyless, no builder resolved
+
+      Generated source is COMMITTED under src/main/java/.../session/generated, exactly as the starter
+      bundle does it. A reviewer without a key reviews the committed source and the pinned GraphML.
+    -->
+    <profiles>
+        <profile>
+            <id>regen</id>
+            <dependencies>
+                <!-- `provided`: needed to compile the graph builder, never shipped. -->
+                <dependency>
+                    <groupId>com.telamin.fluxtion</groupId>
+                    <artifactId>fluxtion-builder</artifactId>
+                    <version>${fluxtion.builder.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>add-graph-source</id>
+                                <phase>generate-sources</phase>
+                                <goals><goal>add-source</goal></goals>
+                                <configuration>
+                                    <sources><source>src/graph/java</source></sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- scan finds the compiled FluxtionGraphBuilder and calls the hosted source-gen
+                         service — this is the only step that needs a key. -->
+                    <plugin>
+                        <groupId>com.telamin.fluxtion</groupId>
+                        <artifactId>fluxtion-maven-plugin</artifactId>
+                        <version>${fluxtion.maven-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <phase>process-classes</phase>
+                                <goals><goal>scan</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

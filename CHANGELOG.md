@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **Project transitions are now decided by an auditable Fluxtion processor, and the analyser can open
+  its own audit log to see why.** The rule that a project switch closes the log and graph — and the
+  exceptions that it must not, when the project is being adopted *because* a log was just opened, when
+  the load failed, and when the project is already active — lived in three places in the UI and could
+  only be checked by running the app. It is now one decision graph with a replayable record, which
+  distinguishes what was decided from what actually happened: *asked to close* and *closed* are separate
+  entries. Behaviour is unchanged, with one improvement: `open {close: "project"}` now reports what it
+  really closed rather than what it predicted before closing it.
+- **The runnable jar is about 1.2 MB larger** (2.43 MB → 3.64 MB), which is the Fluxtion runtime and its
+  one transitive dependency. Building the analyser still needs no Fluxtion API key and no compiler.
+
 ### Fixed
 - **A near-miss path on the local assistant socket no longer reaches the handler.** The JDK's HTTP server
   dispatches by longest path *prefix*, so `POST /action/not-a-route` with a valid token executed the
