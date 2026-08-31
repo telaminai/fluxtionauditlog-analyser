@@ -78,15 +78,23 @@ class DeclaredAuditCapabilityTest {
     }
 
     @Test
-    @DisplayName("an AGGREGATED graph is not believed here either — one refusal, applied everywhere")
-    void aggregatedDoesNotReachTheDenominator() {
+    @DisplayName("an AGGREGATED graph's NODE facts DO reach the denominator — the refusal is fact-scoped")
+    void aggregatedNodeFactsReachTheDenominator() {
         ProcessorTopology t = GraphMlParser.parse(
                 Path.of("src/test/resources/topology/vocabulary/session-processor-aggregated.graphml"));
-        assertFalse(t.vocabulary().trusted());
+
+        // This assertion is deliberately inverted from the one it replaces. D-V1 first refused an
+        // aggregated FILE outright. Comparing the same graph emitted both ways showed the node facts
+        // are bit-for-bit identical — aggregation merges EDGE facts onto one edge per pair and does
+        // not touch nodes — so the original rule threw away an exact answer because it shared a
+        // document with an inexact one. Refuse what actually merged, not everything near it.
+        assertFalse(t.vocabulary().trusted(), "edge facts still are not trusted wholesale");
+        assertTrue(t.vocabulary().trustedForNodeFacts(), "but node facts are exact in either shape");
+
         CoverageScope.Scope scope = CoverageScope.of(t, authored(t), NO_SOURCE);
-        assertTrue(scope.loggable().contains("effectQueue"),
-                "D-V1 refuses aggregated facts, and the refusal has to hold at every consumer, "
-                        + "not only where it was written down");
+        assertFalse(scope.loggable().contains("effectQueue"),
+                "so a node the graph says cannot log is excluded here too, with no source in hand");
+        assertEquals(CoverageScope.Reason.SILENT_BY_CONSTRUCTION, scope.reasons().get("effectQueue"));
     }
 
     @Test

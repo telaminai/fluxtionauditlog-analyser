@@ -197,7 +197,7 @@ public final class CoverageScope {
     private static boolean silentByConstruction(ProcessorTopology.Node node, ProcessorTopology topology,
                                                 java.util.function.Function<String, java.util.Optional<String>> source) {
         GraphVocabulary vocabulary = topology == null ? GraphVocabulary.none() : topology.vocabulary();
-        if (vocabulary.trusted()) {
+        if (vocabulary.trustedForNodeFacts()) {
             NodeLogging.Answer declared = NodeLogging.of(node, vocabulary, source);
             if (declared.basis() == NodeLogging.Basis.DECLARED) {
                 return declared.capability() == NodeLogging.Capability.SILENT_BY_CONSTRUCTION;

@@ -90,12 +90,59 @@ public record GraphVocabulary(Mode mode, String metaVersion, Map<String, String>
     /**
      * Whether a surface may state a fact from this file as <b>DECLARED</b>.
      *
-     * <p>Three conditions, and each rules out a different way of being confidently wrong: the
-     * vocabulary is present, its shape is per-relationship, and its MAJOR is one this build knows how
-     * to read.
+     * <p>Retained as the strict answer — per-relationship shape and a MAJOR this build reads. It is
+     * what an edge fact needs. Node facts need less; see {@link #trustedForNodeFacts()}.
      */
     public boolean trusted() {
         return mode == Mode.PARALLEL && major() == SUPPORTED_MAJOR;
+    }
+
+    /**
+     * Whether NODE facts may be stated as declared — true for {@code AGGREGATED} as well.
+     *
+     * <p><b>Measured, and it corrects this spec's first answer.</b> D-V1 originally refused an
+     * aggregated file outright. Comparing the same graph emitted both ways shows the node facts are
+     * <b>bit-for-bit identical</b>: aggregation merges EDGE facts onto one edge per vertex pair and
+     * does not touch nodes at all. So {@code auditCapable}, {@code kind}, {@code class},
+     * {@code callbackKinds} and {@code topologicalRank} are exact in either shape.
+     *
+     * <p>Refusing them cost the whole audit-capability win on an aggregated file for no reason. The
+     * rule is <b>fact-scoped, not file-scoped</b>: refuse what is actually merged, not everything that
+     * shares a document with it.
+     */
+    public boolean trustedForNodeFacts() {
+        return present() && major() == SUPPORTED_MAJOR;
+    }
+
+    /**
+     * Whether THIS edge's facts may be stated as declared.
+     *
+     * <p>Finer than the file, because aggregation only loses something where it actually merged. An
+     * aggregated edge carries {@code fluxtion.relationshipCount}: where that is 1 the edge represents
+     * one relationship and its facts are exact; where it is 2 or more they are distinct-value sets and
+     * {@code referenceField} reads like {@code "dirtyStateMonitor,eventDispatcher"} with a single
+     * {@code propagates} that cannot be attributed to either.
+     *
+     * <p>Since propagation became per-relationship upstream, that merge can hide a genuine
+     * disagreement — one field triggering, one {@code @NoTriggerReference} — which is exactly the fact
+     * an analyser needs. So a merged edge is refused and an unmerged one is not.
+     */
+    public boolean trustedForEdgeFacts(java.util.Map<String, String> edgeFacts) {
+        if (!trustedForNodeFacts()) {
+            return false;
+        }
+        if (mode == Mode.PARALLEL) {
+            return true;
+        }
+        String count = edgeFacts == null ? null : edgeFacts.get("fluxtion.relationshipCount");
+        if (count == null) {
+            return true;                       // not merged: nothing was collapsed onto this edge
+        }
+        try {
+            return Integer.parseInt(count.trim()) <= 1;
+        } catch (NumberFormatException e) {
+            return false;                      // unreadable count: assume it merged
+        }
     }
 
     /**
@@ -111,10 +158,12 @@ public record GraphVocabulary(Mode mode, String metaVersion, Map<String, String>
         return switch (mode) {
             case NONE -> "this graph carries no fluxtion.* metadata — it was emitted by a builder from "
                     + "before the vocabulary existed, or with it switched off";
-            case AGGREGATED -> "this graph is in the AGGREGATED shape, where per-relationship facts are "
-                    + "merged into sets — a filter value cannot be matched back to the handler it "
-                    + "belongs to, so the facts are read as absent rather than half-trusted. "
-                    + "Regenerate with -Dfluxtion.graphml.metadata=PARALLEL to use them";
+            case AGGREGATED -> "this graph is in the AGGREGATED shape. Its NODE facts are exact and are "
+                    + "used; its EDGE facts are merged wherever a vertex pair carries more than one "
+                    + "relationship, and a merged edge's facts are read as absent rather than "
+                    + "half-trusted, because a filter value or a propagation flag cannot be matched "
+                    + "back to the reference it belongs to. Regenerate with "
+                    + "-Dfluxtion.graphml.metadata=PARALLEL to use those too";
             case PARALLEL -> "this graph declares metadata version " + metaVersion + "; this build reads "
                     + SUPPORTED_MAJOR + ".x, so its facts are read as absent rather than guessed at";
         };

@@ -59,8 +59,31 @@ in the vocabulary is *per-relationship* facts: `propagates` is meaningless aggre
 update cross this edge" has no answer for a pair holding one triggering and one `@NoTriggerReference`
 field. Upstream found precisely that defect and fixed it by answering per relationship.
 
-**So:** if a file is `AGGREGATED`, the analyser reads it as if it were `OFF` and says so. Half-trusted
-facts are worse than none.
+### CORRECTED 2026-08-31 — the refusal is FACT-scoped, not FILE-scoped
+
+The rule above was right about the danger and wrong about its reach, and measuring it is what showed
+that. Emitting this repo's own graph both ways and comparing:
+
+* **node facts are bit-for-bit identical.** Aggregation merges EDGE facts onto one edge per vertex pair
+  and does not touch nodes at all. So `auditCapable`, `auditCapableVia`, `kind`, `class`,
+  `callbackKinds` and `topologicalRank` are exact in either shape;
+* **only a MERGED edge loses anything**, and it says when it has: an aggregated edge carries
+  `fluxtion.relationshipCount`, and where that is 1 nothing was collapsed onto it. The lossy case is
+  visible in the data — one such edge in our graph reads
+  `referenceField="dirtyStateMonitor,eventDispatcher"`, `relationshipCount=2`, with a single
+  `propagates` that cannot be attributed to either.
+
+Refusing the whole file therefore threw away an exact answer because it shared a document with an
+inexact one — and it cost the entire audit-capability win on any aggregated graph, for nothing.
+
+**The rule is now:** node facts are trusted in any mode at a supported MAJOR; edge facts are trusted
+from `PARALLEL`, and from `AGGREGATED` only where `relationshipCount` is absent or 1. Refuse what
+actually merged, not everything near it.
+
+The original instinct still holds where it applies: a merged edge's facts are read as absent rather
+than half-trusted, because since propagation became per-relationship a merge can hide a genuine
+disagreement — one triggering field and one `@NoTriggerReference` on the same pair — which is exactly
+the fact worth having.
 
 ## D-V2 — every derived answer says which source produced it
 

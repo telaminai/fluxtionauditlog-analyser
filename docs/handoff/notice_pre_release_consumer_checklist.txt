@@ -37,15 +37,35 @@ disagree, so aggregation loses a fact rather than blurring one.
 Release it under `metaVersion 1.0` and you own it under the 1.x compatibility promise indefinitely, for
 a shape with no known reader.
 
-Cheapest options, in our order of preference, all free today and none free later:
+DECIDED — **publish it, and document the scope precisely.** The owner asked us to call it, and
+measuring it changed our answer, so the reasoning matters more than the verdict.
 
-  a. **do not publish it in 1.0** — leave `OFF` and `PARALLEL`; it can be added in a later minor if a
-     consumer ever appears;
-  b. publish it but **document it as presence-and-counts only**, explicitly not a source of
-     per-relationship facts, so nobody builds on the ambiguity;
-  c. publish as-is, knowing the obligation.
+We emitted this repo's own graph both ways and compared:
 
-Not our call, and (c) is defensible. But it should be a decision made now rather than a default.
+  · **node facts are BIT-FOR-BIT IDENTICAL.** Aggregation merges EDGE facts onto one edge per vertex
+    pair and does not touch nodes at all. `auditCapable`, `auditCapableVia`, `kind`, `class`,
+    `callbackKinds` and `topologicalRank` are exact in either shape;
+  · **only a MERGED edge loses anything, and it announces itself.** An aggregated edge carries
+    `fluxtion.relationshipCount`; where that is 1, nothing was collapsed onto it and its facts are
+    exact too. The lossy case is visible in the data — one edge in our graph reads
+    `referenceField="dirtyStateMonitor,eventDispatcher"`, `relationshipCount=2`, with a single
+    `propagates` that cannot be attributed to either field.
+
+**So AGGREGATED is not a shape with no reader — it is a shape whose losses we had overstated.** Our own
+D-V1 refused the whole file, and that was wrong: it threw away an exact answer because it shared a
+document with an inexact one, and it cost the entire audit-capability win on any aggregated graph. We
+have corrected it. **The analyser now reads node facts from an aggregated file, and edge facts from any
+edge whose `relationshipCount` is absent or 1.** So it has a consumer, and that consumer is us.
+
+What we would ask of the release, and it is documentation rather than code:
+
+  **state in the key registry that aggregation affects EDGE facts only, and that
+  `relationshipCount == 1` means an edge's facts are exact.** Both are true of the emitter today and
+  neither is written down. Without them the shape reads as uniformly lossy — which is what we
+  concluded, wrongly, from the javadoc alone.
+
+That turns AGGREGATED from a bridge nobody crosses into the correct choice for any reader that draws
+one arrow per pair, which is most of them.
 
 ================================================================================
 2 · KEEP THE DEFAULT AT OFF FOR THIS RELEASE — WHICH WE THINK IS ALREADY THE PLAN
@@ -100,6 +120,30 @@ is necessary and not sufficient. Under the cloud model the server is always late
 pinned, so *old client + new server* is the default state of every user who has not bumped, and a server
 upgrade exercises it for all of them at once with no rollback available to them.
 
-Raised three times now. **If the answer is "accepted risk", that is a fine answer** — say it once and we
-will stop. It is the only change on the branch whose failure mode is simultaneous rather than gradual,
-which is why it keeps coming up rather than because we think you have missed it.
+Raised three times now, and the owner has asked for a concrete instruction rather than another flag. So:
+
+**DO THIS — two golden files and one test, before you tag.**
+
+  1. Using the **last released builder** (1.0.64 — a real pinned client, not a constructed one), build
+     any small graph and **capture the serialised DTO to a file**. Check it into the compiler repo as a
+     test resource, named for the version that produced it.
+  2. Capture the **`EventProcessorModel` the current server returns** for that DTO, and check that in
+     the same way.
+  3. Add one test at HEAD that (a) **deserialises the 1.0.64 DTO** — this is the server accepting an old
+     client, the case every un-bumped user is in — and (b) **deserialises the model response with the
+     1.0.64 reader**, which is that same user's build reading the reply. Assert the node set, the
+     annotated methods and the dispatch order survive both ways.
+  4. Run it in the release job, and **add a new golden pair on each release** rather than replacing the
+     old one. The matrix you want is "every released client against today's server", and it builds
+     itself one file at a time.
+
+**Why this shape.** It needs no version matrix, no dual-classpath harness and no second Maven module —
+two binaries and a test. It is exactly what "old client, new server" means in bytes, which is the thing
+`DtoWireCompatibilityTest` cannot reach: pinning Kryo registration ids proves the ids did not move,
+not that a payload written by last month's client still reads.
+
+**And the cheap insurance if that is more than you want before this release:** capture the two goldens
+now and check them in **without** the test. Capturing them is only possible while 1.0.64 is still the
+last release; writing the test can wait. Losing the ability to capture them cannot.
+
+If after that the answer is still "accepted risk", say it once and we will stop raising it.

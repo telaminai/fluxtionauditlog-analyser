@@ -129,7 +129,12 @@ flip is gated on**, so this milestone is a dependency in both directions._
   facts — and upstream's own javadoc says the merged facts are *sets, not index-aligned tuples*, so a
   pair with a filtered and a default-case handler yields `filterType="matched,defaultCase"` with nothing
   saying which went with which. A consumer rendering that would be wrong without being able to detect it.
-  **Read `PARALLEL` or read nothing.**
+  **Read `PARALLEL` or read nothing.** ☑ **CORRECTED 2026-08-31 by measurement:** the refusal is
+  **fact-scoped, not file-scoped**. Node facts are bit-for-bit identical between the two shapes —
+  aggregation touches only edges — so `auditCapable` and the rest are exact in either, and refusing them
+  cost the whole audit-capability win on an aggregated graph for nothing. Edge facts are refused from
+  `PARALLEL`-less files only where `relationshipCount > 1`, which is the case that actually merged and
+  which the data announces.
 - [M45.1] ☑ **Reachability proved, ceiling measured — 2026-08-31.** Both properties reach the exporter
   and the generator through the real `fluxtion-maven-plugin:scan`: `PARALLEL` emitted **17 keys / 281
   occurrences**, and the diagnostics sidecar was written on the failing path. **The two deferred rows of

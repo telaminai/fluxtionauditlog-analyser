@@ -115,7 +115,7 @@ public final class NodeLogging {
      */
     public static Answer of(ProcessorTopology.Node node, GraphVocabulary vocabulary,
                             Function<String, Optional<String>> source) {
-        if (node != null && vocabulary != null && vocabulary.trusted()) {
+        if (node != null && vocabulary != null && vocabulary.trustedForNodeFacts()) {
             String declared = node.fact("fluxtion.auditCapable");
             if ("true".equalsIgnoreCase(declared)) {
                 return new Answer(Capability.CAN_LOG, Basis.DECLARED);

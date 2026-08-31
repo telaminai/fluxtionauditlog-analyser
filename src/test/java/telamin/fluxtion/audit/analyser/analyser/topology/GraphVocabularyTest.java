@@ -64,9 +64,59 @@ class GraphVocabularyTest {
                 DIR.resolve("session-processor-aggregated.graphml")).vocabulary();
         assertEquals(GraphVocabulary.Mode.AGGREGATED, v.mode());
         assertTrue(v.present(), "the keys ARE there — this is a decision, not a parse failure");
-        assertFalse(v.trusted(), "half-trusted facts are worse than none");
+        assertFalse(v.trusted(), "half-trusted EDGE facts are worse than none");
         assertTrue(v.whyNot().contains("PARALLEL"),
                 "and the refusal must say how to get a usable file: " + v.whyNot());
+    }
+
+    @Test
+    @DisplayName("but an AGGREGATED file's NODE facts ARE exact — the refusal is fact-scoped")
+    void aggregatedNodeFactsAreStillExact() {
+        ProcessorTopology aggregated = GraphMlParser.parse(
+                DIR.resolve("session-processor-aggregated.graphml"));
+        ProcessorTopology parallel = parallel();
+
+        assertTrue(aggregated.vocabulary().trustedForNodeFacts(),
+                "aggregation merges EDGE facts onto one edge per pair; it does not touch nodes");
+
+        // Measured, not assumed: every node fact is identical in both shapes. Refusing them because
+        // they shared a document with merged edge facts cost the whole audit-capability win for no
+        // reason, which is why the rule is fact-scoped rather than file-scoped.
+        for (ProcessorTopology.Node p : parallel.nodes()) {
+            ProcessorTopology.Node a = aggregated.node(p.id());
+            assertNotNull(a, p.id());
+            assertEquals(p.facts(), a.facts(), "node facts differ for " + p.id());
+        }
+    }
+
+    @Test
+    @DisplayName("and an AGGREGATED edge is refused only where it actually merged")
+    void aggregatedEdgeTrustIsPerEdge() {
+        ProcessorTopology t = GraphMlParser.parse(DIR.resolve("session-processor-aggregated.graphml"));
+        GraphVocabulary v = t.vocabulary();
+
+        ProcessorTopology.Edge merged = t.edges().stream()
+                .filter(e -> {
+                    String c = e.fact("fluxtion.relationshipCount");
+                    return c != null && !c.trim().equals("1");
+                })
+                .findFirst().orElse(null);
+        assertNotNull(merged, "this fixture has a pair carrying two references");
+        assertTrue(merged.fact("fluxtion.referenceField").contains(","),
+                "and the merge is visible: two field names in one value");
+        assertFalse(v.trustedForEdgeFacts(merged.facts()),
+                "a merged edge cannot attribute its propagates to either reference");
+
+        ProcessorTopology.Edge single = t.edges().stream()
+                .filter(e -> !e.facts().isEmpty() && e != merged)
+                .filter(e -> {
+                    String c = e.fact("fluxtion.relationshipCount");
+                    return c == null || c.trim().equals("1");
+                })
+                .findFirst().orElse(null);
+        assertNotNull(single, "most edges carry exactly one relationship");
+        assertTrue(v.trustedForEdgeFacts(single.facts()),
+                "nothing was collapsed onto this edge, so its facts are exact");
     }
 
     @Test
