@@ -109,6 +109,61 @@ Both are settled decisions rather than open work, so their rationale now lives i
 agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
 they produced are unchanged and remain under **Decisions** below.
 
+## M45 · Consuming the GraphML vocabulary — ☐ SPEC'D 2026-08-31
+
+_Design: **[spec-graphml-vocabulary-consumption.md](spec-graphml-vocabulary-consumption.md)**. The
+upstream half of §2c lands in `fluxtion-builder`; this is our half. **We are the consumer the default
+flip is gated on**, so this milestone is a dependency in both directions._
+
+- [M45] ☐ **The vocabulary answers as DATA what we answer by HEURISTIC** — framework-generated nodes,
+  whether an update crosses an edge, whether a node can log at all, filter values, dispatch order. Every
+  one is an ask this repo filed.
+  **Two facts decide the shape, and neither is a preference.** The GraphML is emitted **client-side by
+  the author's pinned builder**, and the compiler is always latest-stable in the cloud (owner,
+  2026-08-31). So the analyser opens files from every builder version ever released, forever, and cannot
+  require a stranger to regenerate. **Dual-path is permanent, not transitional** — which corrects a claim
+  made in two reviews here: `fluxtion.framework` and `auditCapable` do **not** let us delete
+  `Scaffolding`'s class list or `AuditReadiness`'s `EventLogManager` heuristic. They demote them to
+  fallbacks, which still have to be maintained.
+  **The trap, decided once: `AGGREGATED` is refused.** It looks like the safe step — legacy shape, new
+  facts — and upstream's own javadoc says the merged facts are *sets, not index-aligned tuples*, so a
+  pair with a filtered and a default-case handler yields `filterType="matched,defaultCase"` with nothing
+  saying which went with which. A consumer rendering that would be wrong without being able to detect it.
+  **Read `PARALLEL` or read nothing.**
+- [M45.1] ☐ **Prove reachability, and measure the ceiling.** Install the branch, point `-Pregen` at it
+  with `-Dfluxtion.graphml.metadata=PARALLEL`, confirm our committed GraphML changes. A JVM system
+  property is only usable if it reaches the JVM running the exporter, and **nobody has tested whether it
+  survives `fluxtion-maven-plugin:scan`** — the same shape as the branch's own finding that
+  `writeSidecar` has no production caller. Also unblocks the pinned comparison run. Ships nothing.
+- [M45.2] ☐ **Read the vocabulary, change no behaviour.** `metaVersion` (1.x reader accepts every 1.y;
+  unknown MAJOR degrades to absent), node and edge keys, mode detection. Separating reading from acting
+  is what makes the rest safe.
+- [M45.3] ☐ **The audit trio** — `auditCapable`/`auditCapableVia`/`eventAudit`. Lets a surface say
+  *ran and said nothing* instead of hedging three cases into one sentence. Where the product claim
+  actually improves.
+- [M45.4] ☐ **An honest coverage denominator** from `fluxtion.framework`.
+- [M45.5] ☐ **Parallel edges and dispatch rank.** Checked, not assumed: `ProcessorTopology.of` does no
+  edge dedup and `LayeredLayout`/`TopologyCanvas` draw straight from `edges()`, so a `PARALLEL` file
+  overdraws a pair's arrow and inflates `edgeCount()`. Identity becomes
+  `(source, target, refKind, referenceField)`. Plus `topologicalRank` as a column — the question **0 of 3
+  measured agents could answer**.
+- [M45.6] ☐ **Bump `-Pregen` off builder 1.0.64**, regenerate, re-pin `SessionGraphShapeTest`.
+  **Expected to fail first, by design** — that test is the downstream canary we offered upstream.
+- [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
+  unconditional change is `edgedefault` corrected to directed, which our parser never reads; upstream ran
+  our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
+  check needs re-running at `7a273a8`**, where the exporter was rewritten as a model projection — a far
+  larger change than it covered.
+  **The DTO wire is the high-risk surface, because of the cloud model.** The server is always latest and
+  every client is pinned, so *old client + new server* is not an edge case — it is the default state of
+  every user who has not bumped, exercised for all of them at once by a server upgrade they cannot roll
+  back. The branch changes `NodeDto.annotatedMethods`, and the integration report lists that as
+  **reasoned but not exercised by an old↔new test**. ☐ **Ask upstream to make that round-trip a release
+  gate**: it is the only change on the branch whose failure mode is simultaneous.
+  **Release footprint, checked against `main`:** `fluxtion-builder` only — 32 files, everything else docs
+  and tests. `fluxtion-runtime` is untouched, so our 1.0.13 dependency stands, and `fluxtion-builder-api`
+  gains nothing because the switch is a system property rather than a `FluxtionCompilerConfig` method.
+
 ## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31
 
 _The first application of the review's standing architecture rule, and the owner's reason for choosing it:
