@@ -1,0 +1,105 @@
+NOTICE — what to settle BEFORE the builder release, from the consumer side
+From: the audit-log analyser session (M45) · Date: 2026-08-31
+Context: owner is completing the compiler work and releasing, then deciding what needs to change on
+         either side and whether a re-release follows.
+
+NOTHING FROM US BLOCKS THE RELEASE. M45.2/.3/.5 are shipped and green against the branch tip; we consume
+a `metaVersion 1.0` PARALLEL file today and fall back cleanly for everything else. This note is only
+about the few things that are **cheap now and expensive after**, because they are the ones a release
+makes permanent.
+
+================================================================================
+THE ASYMMETRY THAT DECIDES THE LIST
+================================================================================
+The GraphML is emitted **client-side by whichever builder an author pinned**. So the moment a builder
+is released, every file it ever emits exists somewhere, forever, and we must read it forever. There is
+no upgrade moment and no deprecation that reaches those files.
+
+That splits the work cleanly:
+
+  · **key NAMES and SEMANTICS published under `metaVersion 1.0` are permanent.** Getting one wrong is
+    not a bug you fix in the next release — it is a shape you support in perpetuity;
+  · **missing keys, and the DEFAULT, are cheap.** They change in any later release with no legacy
+    burden at all, because absence stays absence.
+
+So the pre-release question is not "is it finished" — it is "is anything published that we would not
+want to be stuck with".
+
+================================================================================
+1 · THE ONE DECISION WE WOULD MAKE BEFORE RELEASING — AGGREGATED
+================================================================================
+`AGGREGATED` was designed as the compatible shape for a consumer that wants the facts without the
+parallel-edge shape. **We are that consumer, and we have permanently refused it** (D-V1), for the reason
+your own javadoc gives: *"the lists are sets, not index-aligned tuples"*. Since propagation became
+per-relationship it is worse than when we assessed it — two relationships on a pair can now legitimately
+disagree, so aggregation loses a fact rather than blurring one.
+
+Release it under `metaVersion 1.0` and you own it under the 1.x compatibility promise indefinitely, for
+a shape with no known reader.
+
+Cheapest options, in our order of preference, all free today and none free later:
+
+  a. **do not publish it in 1.0** — leave `OFF` and `PARALLEL`; it can be added in a later minor if a
+     consumer ever appears;
+  b. publish it but **document it as presence-and-counts only**, explicitly not a source of
+     per-relationship facts, so nobody builds on the ambiguity;
+  c. publish as-is, knowing the obligation.
+
+Not our call, and (c) is defensible. But it should be a decision made now rather than a default.
+
+================================================================================
+2 · KEEP THE DEFAULT AT OFF FOR THIS RELEASE — WHICH WE THINK IS ALREADY THE PLAN
+================================================================================
+Restating so it is not lost in the release rush: the analyser fix that renders parallel edges correctly
+is on our `main` and **not in v1.11.0**, our current release. Ship the builder with the default at
+`PARALLEL` and every analyser install in the field draws a doubled pair as one heavy arrow and reports
+an inflated edge count — quietly, since nothing tells the user.
+
+Default `OFF` costs nothing and removes that entirely. The flip is a separate, later, cheap decision,
+and by then we will have shipped.
+
+================================================================================
+3 · WHAT WE DO NOT NEED FROM THIS RELEASE
+================================================================================
+Stated so it does not get pulled forward and delay you:
+
+  · **`fluxtion.framework`** — planned and withheld, needs the `builder-api` change. Our M45.4 is parked
+    and we are not blocked. Withholding it rather than publishing a package-prefix guess was the right
+    call and we would not reverse it to make a date;
+  · **`fluxtion.eventAudit`** — planned. We take the audit regime from the log header meanwhile;
+  · **the sidecar being on by default** — opt-in is right. We measured the ceiling with it enabled and
+    both predicted rows moved (2–3 build attempts to 1; `final` named as the mapping trigger 0 of 2 to
+    2 of 2), so the value is proven without needing it defaulted on.
+
+All three are additive. A later release adds them with no legacy shape to carry.
+
+================================================================================
+4 · WHAT WE HAVE PINNED, SO A RE-RELEASE CAN BE CHECKED CHEAPLY
+================================================================================
+When you decide what needs to change after release, these run in seconds on our side and will tell you
+whether a builder change reached a consumer or broke one:
+
+  · `GraphMlExporterCompatibilityTest` — `OFF` output against pre-vocabulary output: ids, kinds, class
+    names, adjacency both directions, edge count, audit verdict. Both sides committed, so it cannot go
+    stale the way the `dd36bc5` check did;
+  · `GraphVocabularyTest` — mode detection, the 1.x version promise, `auditCapable`, and the fingerprint
+    being **model-scoped rather than file-scoped** (identical across PARALLEL and AGGREGATED);
+  · `ParallelEdgeRenderingTest` — one line per pair, relationships still distinguishable,
+    `topologicalRank` **pinned against the dispatch order we know** rather than trusted;
+  · `DeclaredAuditCapabilityTest` — the declared fact reaching the coverage denominator, and the
+    fallback still honest without it.
+
+Regenerating our three fixtures against a new builder and running those four is the whole check. If you
+want it run against a release candidate before you tag, say so and we will.
+
+================================================================================
+5 · THE ONE ITEM WE WOULD STILL GATE ON, AND THEN LET GO
+================================================================================
+The old-client/new-server DTO round trip. `DtoWireCompatibilityTest` pins Kryo registration ids, which
+is necessary and not sufficient. Under the cloud model the server is always latest and every client is
+pinned, so *old client + new server* is the default state of every user who has not bumped, and a server
+upgrade exercises it for all of them at once with no rollback available to them.
+
+Raised three times now. **If the answer is "accepted risk", that is a fine answer** — say it once and we
+will stop. It is the only change on the branch whose failure mode is simultaneous rather than gradual,
+which is why it keeps coming up rather than because we think you have missed it.
