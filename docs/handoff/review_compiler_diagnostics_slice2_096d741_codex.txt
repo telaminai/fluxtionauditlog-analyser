@@ -1,0 +1,271 @@
+INDEPENDENT REVIEW — compiler diagnostics implementation through Slice 2
+Reviewed repository: /Users/greg/IdeaProjects/telamin/fluxtion/fluxtion-compiler
+Reviewed branch/revision: feature/compiler_diagnostics @ 096d741
+Reviewed range: cb21f7d..096d741
+Companion review already present:
+  review_compiler_diagnostics_slice2_096d741.txt
+Reviewer: analyser/Codex session · Date: 2026-08-31
+
+VERDICT: CHANGES REQUIRED BEFORE SLICE 3.
+
+This review was performed independently while another review of the same revision was
+running. The two reviews converge on the three highest-risk implementations: FLX-1009
+misclassifies fields and recommends the opposite fix; FLX-1007 invents a path from an
+unordered set; and SPRING_BEAN_NOT_SELECTED reports graph members as omitted. That
+convergence materially increases confidence that these are real defects rather than
+reviewer preference.
+
+The architectural direction remains right. Stable, machine-readable compiler facts are
+exactly what the compile -> diagnose -> re-author loop needs, and keeping the carrier in
+the Java-8 builder module is correct. The problem is the implementation boundary: the
+branch marks the carrier and five codes DONE while no build surface can yet consume the
+structure, and the tests construct the desired answer above the classification/detection
+code that is actually wrong.
+
+My distinct contribution is F4-F8: the published schema contradicts its evolution rules,
+the proposed remote shape is not made compatible by preserving a UID/appending Kryo ids,
+the path privacy invariant is incomplete, and the two Spring vocabularies need more than
+the cheap mapping claimed in the tracker.
+
+
+================================================================================
+F1 · BLOCKING — FLX-1009's classifier contradicts the extractor that did the mapping
+================================================================================
+
+LiveGraphSourceGenExtractor's mapping loop has three successful forms: a direct parent,
+a collection of parents, and a serialisable value. localStateFields later forgets two of
+them and treats every mapped value not identity-present in directParents as local state.
+
+I called that production classifier directly with:
+
+  - one direct parent field;
+  - one scalar value field; and
+  - one List containing two real parent nodes.
+
+The result was:
+
+    [limit, parents]
+
+Thus a value the extractor can render and a collection containing real graph edges both
+receive FLX-1009's advice to use @FluxtionIgnore/transient. The latter advice deletes the
+edges. A mixed failure is worse: the presence of either false "state" field selects
+FLX-1009 and can hide the genuinely unmatched reference.
+
+There is also an equals/identity fork: the mapper uses directParents.contains(value),
+while localStateFields uses identity. A node overriding equals can therefore be a
+reference to the mapper and state to the diagnostic raised by that mapper.
+
+Required correction: preserve the classification made at the mapping site and carry it
+to the failure. Do not infer it again from field values. Add extractor-level fixtures for
+direct reference, List/Set reference, rendered scalar, true local state, mixed failure,
+and equal-but-not-identical nodes. Factory tests cannot prove this code.
+
+
+================================================================================
+F2 · BLOCKING — FLX-1007's "path" is not an edge path and common cycles miss it
+================================================================================
+
+TopologicallySortedDependencyGraph.shortestCyclePath takes
+CycleDetector.findCyclesContainingVertex, which returns a Set, converts the member names
+to a List and sorts them. Sorting a vertex set cannot recover edge order. The resulting
+arrows can name edges that do not exist, and "shortest" compares region/set size rather
+than simple-cycle length. DiagnosticElement's canonical rotation is correct only when its
+input is already an ordered traversal; it cannot repair this input.
+
+The branch test bypasses the detector and gives BuilderDiagnostics a hand-authored path,
+so it validates formatting rather than detection. Use a simple-cycle algorithm already
+available in JGraphT, select an actual ordered cycle deterministically, and test through
+the real dependency graph with names whose alphabetical order differs from edge order.
+
+Separately, an ordinary mutual object reference StackOverflows in walkDependencies before
+failOnDependencyCycle runs. Either make the walk cycle-safe and route that failure through
+FLX-1007, or narrow the registry honestly to the subset of cycles it detects.
+
+
+================================================================================
+F3 · BLOCKING — SPRING_BEAN_NOT_SELECTED reports selected graph citizens as omitted
+================================================================================
+
+FluxtionSpring.omittedBeans subtracts explicit role-name lists from every Spring bean
+definition. It does not subtract transitive children discovered through an explicitly
+selected node, auditor beans, or framework/internal beans. The rule also runs before the
+graph model is available, so it has no evidence for the sentence "not part of the graph".
+
+This conflicts with issue #20's necessary condition: declared, in neither explicit list,
+AND unreferenced. A referenced child and an auditor can both be present in the processor
+while this warning tells the author to select or ignore them.
+
+Required correction: compute the warning from the resolved graph/auditor membership, not
+only Spring role lists. Test through a loaded context containing a transitive child, an
+auditor and internal infrastructure. Also remove "ERROR under strict" from the registry
+unless and until a dedicated strict-node-selection option is designed; the implementation
+always calls this diagnostic with strict=false.
+
+
+================================================================================
+F4 · BLOCKING — no author or machine can reach the structured result in production
+================================================================================
+
+The new model currently terminates inside the builder:
+
+  - DiagnosticJsonWriter.writeSidecar has no production caller;
+  - no production code constructs the diagnostic DiagnosticCollector;
+  - FluxtionSpring's collector field has no injection route and remains null;
+  - no generation result or RemoteGenerationResponse carries a DiagnosticReport; and
+  - no Maven/compiler surface reads DiagnosticException#getDiagnostic.
+
+The default user-visible message is deliberately the legacy message and contains no FLX
+code. Therefore rows such as "FLX-1005 ... now names both nodes" are true only of an
+unobserved object; the author still receives the old prose. The Spring warning survives
+only as an uncoded log line.
+
+That is an acceptable intermediate implementation, but not "Slice 1 DONE" / "Slice 2
+DONE" or a completed change "for the author". Mark the carrier/emitter as scaffolding
+until at least one real build exposes it. Before Slice 3 adds warnings, choose and prove
+the collector's per-compilation ownership and one consumer surface. Otherwise new warnings
+will be created and dropped exactly as this one is.
+
+
+================================================================================
+F5 · REQUIRED — the schema is not the stated 1.x wire contract
+================================================================================
+
+Nothing validates emitted bytes against the JSON Schema. SnakeYAML proves the hand-written
+output is parseable YAML; it is neither a strict JSON parser nor a schema validator. This
+is already hiding several contract contradictions:
+
+  1. Evolution requires a 1.0 consumer to tolerate unknown severity values, but severity
+     is a closed three-member enum in the 1.0 schema. A future 1.x severity is rejected by
+     the supposedly compatible schema.
+  2. The schema named fluxtion-diagnostics-1.0 accepts diagnosticsVersion "2.0" (indeed any
+     MAJOR.MINOR), so it cannot enforce its own major-version boundary.
+  3. Known element properties such as nodeName and nodeClass are required conditionally but
+     have no declared types. A NODE with numeric nodeName and boolean nodeClass validates.
+  4. README's per-code minimum fields (mappedFields/constructor, collidingNodes,
+     stateFields) are not emitted as element properties. Some names appear only as related
+     roles, a vocabulary the wire contract does not define fully.
+
+Required correction: add a test-scope strict JSON parser and Draft 2020-12 validator;
+validate producer-generated fixtures for every implemented code. Make schema evolution
+and version matching internally consistent, type every known tagged-union property, and
+make the registry/emitter agree on where each minimum fact lives. Keep mutation tests for
+unknown fields/codes/kinds and missing required facts; do not only test objects assembled
+by BuilderDiagnostics.
+
+
+================================================================================
+F6 · REQUIRED BEFORE REMOTE WORK — the binary compatibility plan is not established
+================================================================================
+
+The spec says a nullable diagnostics field, preserved serialVersionUID and appended Kryo
+registrations provide old/new compatibility. Those conditions are necessary, not
+sufficient.
+
+Java serialization must be tested with genuinely different old/new classes and
+classloaders, especially a new response containing non-null diagnostic classes an old
+client does not possess. The existing RemoteGenerationResponseCompatTest round-trips one
+current class and therefore does not test either version direction despite its Javadoc.
+
+Kryo uses its default FieldSerializer. Adding a field changes the response's field stream;
+appending class registrations only preserves ids and does not make FieldSerializer's class
+shape version-tolerant. Further, typed Severity and Category enums cannot carry a new enum
+member to an older JVM client even though the JSON contract requires unknown members to be
+tolerated.
+
+The lowest-risk design is to add one nullable diagnosticsJson String to the binary response
+and make the published JSON the sole evolving diagnostic contract. Old runtimes already
+know String; new clients parse under the stated tolerance rules. Whichever design is chosen,
+acceptance needs real old-jar/new-jar and new-jar/old-jar tests for Java serialization and
+Kryo, with both null and non-null diagnostics. Do that before modifying the remote DTO.
+
+
+================================================================================
+F7 · REQUIRED BEFORE EMISSION — path privacy can be bypassed by valid objects
+================================================================================
+
+SourceRef rejects absolute file names but accepts traversal such as
+"../../customer/src/N.java". DiagnosticReport independently accepts an absolute sourceRoot
+and emits it after only slash normalisation. Either value can expose machine/project layout,
+and a traversing sourceRef is not semantically below its declared root.
+
+The existing privacy test cannot catch this because it serialises no source path and merely
+searches output for one home-directory substring. Normalize and reject traversal segments;
+define whether sourceRoot is a project-relative label or sensitive metadata and enforce that
+decision. Test the resulting JSON with absolute POSIX/Windows/UNC roots and dot-segment paths.
+
+
+================================================================================
+F8 · DECISION BEFORE MORE SPRING CODES — the two vocabularies do not map cheaply
+================================================================================
+
+TRACKER.md says spec-3's subject can map to element and xpathHint to sourceRef. Several
+published cases cannot make that mapping:
+
+  - the S*/V* rule alias is a second stable identity beside the semantic SPRING_* id;
+    wire-contract.rule is prose, not that alias;
+  - S2 and V9 have an empty subject, while every current element kind requires a fact;
+  - S1 can have line/column without a file, while SourceRef requires file; and
+  - xpathHint is an XML selector, not file/line/column.
+
+Do not let four producers improvise this independently. Define one envelope before Slice 3
+expands Spring diagnostics: likely retain semantic code plus an optional stable ruleAlias,
+add a document/config element for subject-less findings, and preserve xpathHint as its own
+typed location/property. Then give the browser, plugin, cloud service and builder one shared
+fixture pack.
+
+
+================================================================================
+REQUIRED CORRECTIONS / ORDER
+================================================================================
+
+1. Fix and producer-test FLX-1009, FLX-1007 and SPRING_BEAN_NOT_SELECTED (F1-F3).
+2. Wire one real output/consumer path or relabel Slice 1/2 as scaffolding (F4).
+3. Make the schema executable and internally consistent before adding producers (F5).
+4. Settle the shared Spring envelope before implementing more Spring codes (F8).
+5. Before remote transport, prove real version skew or choose diagnosticsJson (F6).
+6. Close path privacy and atomic sidecar replacement before any sidecar ships (F7 and N2).
+
+
+================================================================================
+NOTES
+================================================================================
+
+N1. DiagnosticException marks its diagnostic transient while getDiagnostic says it is
+never null. Java-serialising the exception makes that promise false. Remove transient or
+narrow the promise before any exception crosses a boundary.
+
+N2. writeSidecar is not atomic replacement: it deletes the target before rename, exposing
+an absent-file window and losing the previous report on a crash. Use Files.move with
+REPLACE_EXISTING + ATOMIC_MOVE and a documented fallback; test failure cleanup separately.
+
+N3. The docs/emitter disagree on the error host: BuilderDiagnostics and wire-contract.md use
+fluxtion.com, while README.md uses fluxtion.dev. Pick the actual publication host before
+shipping clickable documentationUrl values.
+
+N4. Cycle detection now performs an additional whole-graph pass on every successful build.
+The existing integration suite is regression evidence, not a large-graph cost measurement.
+Benchmark at least one representative large graph before claiming the cost acceptable.
+
+
+================================================================================
+VERIFICATION PERFORMED / NOT PERFORMED
+================================================================================
+
+Performed on 096d741:
+
+  - ./mvnw -q -pl fluxtion-builder test — PASS;
+  - direct invocation of LiveGraphSourceGenExtractor.localStateFields — reproduced
+    [limit, parents] for rendered scalar + collection-of-parent fields;
+  - production call-site search — no sidecar caller, collector construction/injection,
+    diagnostic result surface or diagnostic system-property consumer found;
+  - source comparison of mapping vs classifier, cycle detector vs factory tests, schema vs
+    wire evolution, remote serializer registration and both Spring vocabularies.
+
+Not performed:
+
+  - the full 3,414-test integration suite was not rerun by this review (the companion review
+    did run the offline reactor and confirmed the stated counts);
+  - no large-graph cycle-detection benchmark;
+  - no actual old/new remote jar compatibility test (the absence of that proof is F6);
+  - no production diagnostic URL publication/deployment check;
+  - no code was changed in fluxtion-compiler; its pre-existing untracked tmp/ was untouched.
