@@ -1,0 +1,405 @@
+INDEPENDENT REVIEW — compiler diagnostics, Slice 1 and Slice 2 as implemented
+Reviewed repository: fluxtion-compiler
+Reviewed branch/revision: feature/compiler_diagnostics @ 096d741
+Reviewed range: cb21f7d..096d741 (diagnostics work only; the spring-author-extended
+                merge is docs-only and out of scope)
+Documents: docs/specs/compiler-diagnostics/{README,wire-contract,consumer-contract,TRACKER}.md
+           and schema/fluxtion-diagnostics-1.0.schema.json
+Code: the new fluxtion-builder diagnostic package, LiveGraphSourceGenExtractor,
+      TopologicallySortedDependencyGraph, FluxtionSpring
+Reviewer: audit-log analyser session · Date: 2026-08-31
+Verdict sought by the branch: independent review before Slice 3
+
+VERDICT: CHANGES REQUIRED BEFORE SLICE 3.
+
+The response to the previous review (cb21f7d, review_compiler_diagnostics_spec_cb21f7d.txt)
+is unusually good. Every one of F1–F6 was accepted, and three of them were accepted
+against the branch's own interest: the issue reconciliation was rerun in both
+directions and now marks four rows PARTIAL or NOT covered; FLX-1008 was demoted from
+Ready to Design needed; FLX-1002 was found not to be an existing failure at all and
+was stopped rather than shipped. The carrier is a Java-8 POJO, the wire contract and
+schema exist, and the module answer stayed put. That is the spec half.
+
+The implementation half does not yet hold. Three of the five codes claimed as
+implemented emit something the documents say they do not:
+
+* FLX-1007 does not emit a cycle path. It emits the cycle's vertex set, sorted
+  alphabetically, rendered with arrows between nodes that are not adjacent. In the
+  repro below every arrow it printed points the wrong way.
+* FLX-1009's classifier files a collection of genuine graph parents, and a mapped
+  value field, as node-local state — and then tells the author to stop mapping them.
+* SPRING_BEAN_NOT_SELECTED names beans that ARE in the graph, in a message that says
+  they are not. One of them was in the compiled processor's auditor map; another ran
+  its @Initialise callback.
+
+None of the three is caught by the branch's tests, because every diagnostic test
+calls the BuilderDiagnostics factory with a hand-built argument list. The three
+things a test could disagree with — the classifier, the cycle detector and the
+Spring rule — are the three things nothing drives. The suite is green, and the two
+suites cited in TRACKER.md do pass exactly as claimed; they are green over a layer
+that sits above every defect found here.
+
+This review is a second pass by the session that wrote the cb21f7d review. It does
+not re-argue anything that review settled.
+
+
+================================================================================
+F1 · BLOCKING — FLX-1007 emits a sorted vertex set and calls it a path
+================================================================================
+
+TopologicallySortedDependencyGraph:1252-1268 builds the "cycle path" from
+CycleDetector.findCyclesContainingVertex(v), which returns an unordered Set of the
+vertices on cycles through v, and then calls Collections.sort on the names (:1264)
+before handing them to DiagnosticElement.cycle. The canonical rotation is therefore
+applied to an already-alphabetical list and is a no-op on real output: the emitted
+order is alphabetical order, and any resemblance to the cycle is decided by the
+node names.
+
+Repro, on the branch as committed — three nodes wired zulu -> mike -> alpha -> zulu:
+
+    thrown:   DiagnosticException: Dependency cycle cannot be resolved: alpha -> mike -> zulu
+    element:  {cyclePath=[alpha, mike, zulu]}
+    the graph's actual edge set, read back out of the graph field:
+              zulu -> mike
+              mike -> alpha
+              alpha -> zulu
+
+Both arrows in the emitted path are the reverse of a real edge. The correct
+rendering from the same smallest-name start is alpha -> zulu -> mike. An author or
+an LLM given this diagnostic goes looking for a reference from alpha to mike, which
+does not exist, to break a cycle that closes the other way.
+
+This also refutes, specifically, the handoff note that "one of my test expectations
+was wrong and the code was right: I asserted the cycle path came out sorted. It's
+rotated to start at the smallest node with the cycle's order preserved." The code
+sorts, at :1264, and the test that was changed to match it never runs the detector —
+ConstructorDiagnosticsTest#aCycleNamesThePathAndHowToBreakIt passes a hand-written
+ordered list straight to BuilderDiagnostics.dependencyCycle, where the rotation
+does behave as documented. The expectation was closer to right than the code.
+
+Two further consequences of the same construction:
+
+* "shortest" (:1266) compares the sizes of vertex sets, not cycle lengths, so it
+  selects the smallest strongly-connected region, not the smallest cycle;
+* where one region contains two distinct simple cycles, the emitted list mixes
+  members of both, and there is no sequence that could describe it.
+
+Resolution: jgrapht-core 1.5.2 is already on the classpath and ships ordered
+simple-cycle algorithms — SzwarcfiterLauerSimpleCycles, JohnsonSimpleCycles,
+HawickJamesSimpleCycles — each returning List<List<V>> in traversal order. Take the
+shortest returned cycle, keep DiagnosticElement.cycle's rotation for the tie-break,
+and add a test that drives failOnDependencyCycle over a graph whose alphabetical
+order is not its traversal order. Until then wire-contract.md's "starting from the
+lexicographically smallest node name and following the cycle" is not implementable
+by this code, and the second clause is the one with the value in it.
+
+
+================================================================================
+F2 · BLOCKING — the FLX-1009 fork misfiles two field kinds the mapper already knew
+================================================================================
+
+This is the item TRACKER.md ranks first for attack, and it does not hold. The fork
+is decided by LiveGraphSourceGenExtractor.localStateFields (:622-641): a mapped
+field whose value is identity-present in directParents is a reference, everything
+else is node-local state.
+
+But the mapping loop 370 lines earlier has already classified every mapped field
+into three kinds, and only the first is a direct parent:
+
+* :247  the value IS a direct parent           -> a reference
+* :253  the value is a List/Set of parents     -> a collection of references
+* :259  the type is serialiser-supported       -> a rendered value field
+
+Kinds two and three both fail the classifier's test and are reported as state.
+Calling the classifier directly on a node holding one parent, a List of two
+parents, a String value and a HashMap of counts returns:
+
+    classified-as-state = [countBySymbol, currency, parents]
+
+so `parents` — a list of the node's real graph parents — and `currency` — a value
+Fluxtion does render into the generated source — are both reported under FLX-1009,
+whose why says they "are not references to other nodes in the graph, so Fluxtion has
+nothing to pass in and no way to render them", and whose suggestedFix leads with
+"mark it @FluxtionIgnore or transient". For `parents` that instruction deletes real
+graph edges. For `currency` it discards a value the compiler can serialise. Both
+statements in the why are false for those fields, and this is the case the design
+explicitly set out to avoid: "a confidently wrong fix is worse than a general one".
+
+A second, independent disagreement in the same fork: the mapper decides reference-ness
+with directParents.contains(value) (:247, equals), the classifier with identity
+(:654). For a node type that overrides equals — value-equal but distinct instances —
+the mapper says reference and the classifier says state:
+
+    equals-true, identity-false -> classified as state, while the mapper's
+    contains() had already called the same field a reference
+
+The comment at :654 argues identity is the right rule. It may be; the defect is that
+two code paths in one throw disagree, and the fork is decided by the one that did not
+build the model.
+
+Third: the choice is `stateOnly.isEmpty() ? FLX-1001 : FLX-1009` (:288-295), and
+FLX-1009 lists only the state-classified names. A node with a genuinely missing
+reference AND a value field therefore reports FLX-1009 naming the value field, and
+never mentions the field that actually failed to match.
+
+Resolution: classify at the mapping site, where the branch taken is the answer, and
+carry it to the throw — the information is already in the MappedField the loop built
+(its three constructors are exactly reference / collection / value). Fire FLX-1009
+only when every unmatched field is state, keep the FLX-1001 fallback, and make the
+equals-vs-identity rule one rule. Then test it through the extractor, not through
+BuilderDiagnostics.
+
+
+================================================================================
+F3 · BLOCKING — SPRING_BEAN_NOT_SELECTED reports beans that are in the graph
+================================================================================
+
+FluxtionSpring.omittedBeans (:286-303) reports every bean definition name absent
+from nodeBeans, ignoredBeans, eventBeans and configBeans. Two classes of bean that
+DO end up in the processor are absent from all four.
+
+Repro on the branch, allowlist = [parentNode], with a childBean referenced by
+parentNode's constructor and an auditor bean:
+
+    processor auditorMap        = [probeAuditor, serviceRegistry, clock]
+    reported "not part of the graph" = [childBean, probeAuditor]
+    childBean's @Initialise ran when the compiled processor was init'd = true
+
+So the one new warning on the branch states, of two beans, that they are "not part
+of the graph" while one is registered as an auditor and the other is a live node
+that runs callbacks.
+
+* Referenced children. Issue #20 states the condition in terms this rule does not
+  implement: contract.md says "If present, only these beans are added as explicit
+  Fluxtion nodes; referenced children are still discovered by Fluxtion", and the
+  issue concludes "the reportable case is a bean that is declared, in neither list,
+  and unreferenced". The rule implements list membership and drops the transitivity
+  half. It also runs from loadSpringConfig (:237), before any node is added, so it
+  could not see a reference even if it looked.
+* Auditors. shouldInspectBean (:702-713), twenty lines below the new code, already
+  says auditor beans are inspected outside the allowlist, and addNodes registers
+  them with config.addAuditor. omittedBeans does not exclude them — and cannot by
+  name, since EffectiveSpringConfig.auditors holds instances, not ids.
+* Not reproduced, but the same shape: for an annotation-driven context,
+  getBeanDefinitionNames() includes Spring's own internal processor beans, which
+  would be listed as beans the author should add to nodeBeans or ignoredBeans.
+
+The design note is right that one diagnostic naming twenty beans beats twenty
+warnings. The problem is which twenty.
+
+Related, and cheap: README.md's registry row claims "WARN (ERROR under strict)" and
+"Closes #20". There is no strict flag — springBeansNotSelected is called with
+strict=false (:271) and EffectiveSpringConfig.isStrict()/hasAllowlist() (:716, :720)
+are dead code, called from nowhere. TRACKER.md decision 5 explains why escalation was
+NOT wired to strictServiceBindings, and that reasoning is right; the registry row
+should stop advertising the mode that decision deferred, and #20 stays open on both
+its transitivity condition and its optional strictNodeBeans.
+
+
+================================================================================
+F4 · REQUIRED — the registry's "minimum structured fields" are not what is emitted
+================================================================================
+
+README.md's registry declares, per code: FLX-1001 -> mappedFields, constructor,
+ignoredFields?; FLX-1005 -> collidingNodes; FLX-1009 -> stateFields. Every one of
+them emits element.kind = NODE carrying nodeName and nodeClass and nothing else; the
+field names travel in `related` under roles MAPPED_FIELD, UNMAPPABLE_STATE_FIELD,
+CLASHING_FIELD, COLLIDING_NODE and UNSELECTED_BEAN. None of those five roles appears
+in wire-contract.md or in the schema's role examples, and SPRING_BEAN_NOT_SELECTED's
+element names only beanNames.get(0) (BuilderDiagnostics:162) — an arbitrary bean,
+alphabetically first, standing in for a list.
+
+A consumer implementing from the registry looks for element.stateFields and finds
+nothing; a consumer implementing from the schema does not learn that the field list
+is in `related` at all. The consumer contract calls this column "a promise, and a
+promise nothing checks is prose" — it is currently unchecked and unmet.
+
+Resolution: pick one place for the structured detail and make the registry, the wire
+contract and the emitter agree. Whichever way it goes, enumerate the role vocabulary
+in wire-contract.md, and say what SPRING_BEAN_NOT_SELECTED's element is when the
+diagnostic is about a set.
+
+
+================================================================================
+F5 · REQUIRED — nothing checks the emitter against the schema, and no fixture is
+                producer-generated
+================================================================================
+
+The schema is declared to be the contract ("the schema, not a Java class, is the
+public contract"), and nothing executes it. There is no JSON-schema validator on the
+module and no test that validates an emitted document against
+fluxtion-diagnostics-1.0.schema.json, so schema-versus-writer drift is unpoliced in
+both directions — F4 above is exactly that drift, and it was invisible to a green
+suite.
+
+All 9 wire-contract tests and all 7 constructor tests build a diagnostic by hand and
+serialise it. The only diagnostic reachable from a real compile today —
+SPRING_BEAN_NOT_SELECTED — is never serialised in any test. wire-contract.md's own
+acceptance list has four unticked boxes, and the first two are "golden JSON per Ready
+code, produced by running the compiler" and "a mutation test per rule", while
+TRACKER.md marks Slice 1 DONE.
+
+On the parser: SnakeYAML is genuinely independent of the writer, and that part of the
+argument holds. It is not a JSON parser. It accepts documents JSON rejects and, with
+default LoaderOptions, silently collapses duplicate keys — so a writer that emitted a
+key twice would pass every test here. It is a good check that the bytes parse; it is
+not a check that they are the published bytes.
+
+Resolution: add a test-scoped schema validator — test scope does not ship, so the
+CheerpJ/Java-8 constraint that (rightly) rules out Jackson in main does not apply —
+and validate every emitted document in the suite. Generate at least one fixture by
+compiling a graph that genuinely fails. This is the incremental version of the gate
+the consumer contract already agreed: each slice accepted when every code it
+implements has a producer-generated fixture.
+
+
+================================================================================
+F6 · REQUIRED — no consumer can reach any of this yet, and the tracker reads as if
+                one can
+================================================================================
+
+DiagnosticCollector is never instantiated in main code. FluxtionSpring.diagnosticCollector
+(:64) has no setter and is always null, so the Spring diagnostic is constructed,
+tested for null, dropped, and survives only as a log line (:268-272).
+DiagnosticJsonWriter.writeSidecar has no production caller — only a test. There is no
+API by which a build obtains a DiagnosticReport, and no sidecar is ever written by
+the compiler.
+
+That is a defensible slice boundary. It is not what "Slice 1 — DTO + rendering: DONE"
+and "Slice 2 — code existing failures: DONE" convey to a reader deciding whether the
+loop this exists to serve can be closed. The honest statement is that the structured
+carrier exists and nothing emits it yet; state it in the slice table, not only in the
+compatibility paragraph.
+
+
+================================================================================
+F7 · REQUIRED — FLX-1007 is unreachable for the cycle an author actually writes
+================================================================================
+
+Two nodes referencing each other (a.b = b; b.a = a), both registered, do not reach
+the new detector. They die first:
+
+    java.lang.StackOverflowError
+      at ...TopologicallySortedDependencyGraph.walkDependencies(...:965)   [self-recursive]
+      at ...TopologicallySortedDependencyGraph.walkDependencies(...:883)
+      at ...TopologicallySortedDependencyGraph.walkDependenciesForEventHandling(...:695)
+
+failOnDependencyCycle runs at :574, after both walk passes, so a cycle that exists in
+the OBJECT graph never gets there. The repro used for F1 had to build the cycle out of
+Anchors precisely so the object graph stayed acyclic.
+
+This is pre-existing behaviour and not caused by this branch — but it means the
+mutual-reference case, which is what an author writes by accident, still fails with a
+StackOverflowError and no diagnostic, and the branch has no test that would have shown
+it. Either the walk needs a visited-set that turns recursion into a reported cycle, or
+the registry should say which cycles FLX-1007 covers.
+
+
+================================================================================
+NOTES
+================================================================================
+
+N1. BuilderDiagnostics:205 renders the FLX-1007 message from the raw list while the
+element is rotated. Today both are alphabetical so they agree by accident; fixing F1
+makes them disagree unless the message is rendered from the rotated path.
+
+N2. Compatibility, one line missing from TRACKER.md's list. The three legacy messages
+it names are preserved byte-identical — I diffed all three expressions. The cycle is a
+fourth failure and it changed: it was
+org.jgrapht.traverse.NotDirectedAcyclicGraphException: "Graph is not a DAG", which
+extends IllegalArgumentException; it is now a DiagnosticException extending
+RuntimeException, thrown earlier. Any caller catching IllegalArgumentException around
+graph construction stops catching. Nothing in these repositories does, but the
+statement "no existing public signature changed" should carry it.
+
+N3. DiagnosticException:26 declares the diagnostic field transient, while
+FluxtionDiagnostic is Serializable and its javadoc says it is Serializable precisely
+because it crosses the remote boundary — and getDiagnostic()'s javadoc says "never
+null for exceptions this compiler raises". Serialise the exception and it is null.
+Latent today: RemoteGenerationResponse carries a String error, not a throwable. Either
+drop transient or drop the "never null" claim.
+
+N4. writeSidecar is documented as atomic and is not, quite: it deletes the target and
+then renames (DiagnosticJsonWriter:89-94), so a reader can observe the file absent,
+and a crash between the two loses the previous report. Files.move(REPLACE_EXISTING,
+ATOMIC_MOVE) exists at Java 8 and is atomic where the platform supports it. Also the
+temp file lands in the same directory as fluxtion-diagnostics*.json.tmp, which a
+directory-watching consumer may pick up; a dot-prefix or a sibling temp directory
+avoids it.
+
+N5. Dead code: EffectiveSpringConfig.hasAllowlist() and isStrict() (:716, :720).
+
+N6. Three tests assert less than their names claim, which matters because this suite
+is the branch's evidence:
+  * ConstructorDiagnosticsTest asserts no emitted JSON contains "/Users/" — no
+    diagnostic in that test can contain a path, so it passes on every machine
+    including one where the rule is broken;
+  * absentMeansAbsent asserts the whole document contains no substring "null", which
+    any future message legitimately using the word breaks;
+  * theSidecarIsWrittenAtomicallyAndLeavesNoTemporaryBehind checks leftovers, not
+    atomicity (see N4).
+
+N7. README.md's DTO example still shows an 11-argument public constructor and
+"equals/hashCode/toString omitted"; the shipped class is builder-only with none of
+the three. Harmless for the wire, but two diagnostics that describe the same failure
+are not equal, which a deduplicating consumer will notice.
+
+N8. On the two vocabularies, since TRACKER.md asks for a view rather than a decision.
+The wire contract should win as the transport and §A1b should keep its identifiers:
+its S*/V* semantic ids already satisfy the published code pattern, so they are `code`
+values, not a parallel scheme; `subject` becomes an `element` kind; `xpathHint` is an
+element property rather than a sourceRef, because a Spring XML location is not a
+file/line/column and pretending otherwise loses the XPath. That leaves one shape, one
+schema, and two id ranges — which is decision 4 already taken, applied to the other
+vocabulary. The cost of deciding late is that three implementations ship the shape
+first and the contract second.
+
+N9. The previous review's N1 (trailing whitespace, README.md:3-4) is fixed.
+
+
+================================================================================
+WHAT I VERIFIED
+================================================================================
+
+* Checked out feature/compiler_diagnostics at 096d741 and read the four documents,
+  the schema, the whole new diagnostic package, and every diff hunk in
+  LiveGraphSourceGenExtractor, TopologicallySortedDependencyGraph and FluxtionSpring.
+* Ran the full reactor offline: mvn -o test, BUILD SUCCESS. Tests run 105 / 21 / 14
+  and 3414 with 7 skipped, zero failures and zero errors — TRACKER.md's stability
+  claim is accurate as stated.
+* F1: drove failOnDependencyCycle over a real three-node cycle built from Anchors,
+  captured the thrown diagnostic, then read the graph's edge set back out by
+  reflection to compare the emitted order against the real edges.
+* F2: called LiveGraphSourceGenExtractor.localStateFields directly on a node holding
+  a parent, a list of parents, a value field and a state map; and again with a
+  value-equal-but-distinct parent to compare the mapper's contains() against the
+  classifier's identity check.
+* F3: built a Spring context with an allowlist, a referenced child bean and an
+  auditor bean, ran FluxtionSpring.addNodes, read the auditor map and node list,
+  computed omittedBeans over the same sets, then interpreted the context and init'd
+  the processor to prove the child bean is a live node.
+* F7: registered two mutually-referencing nodes and captured the failure and its
+  stack.
+* Read the exact body of telaminai/fluxtion issue #20 again, for the transitivity
+  clause F3 turns on.
+* Confirmed the three legacy messages are byte-identical by diffing the expressions,
+  and established the previous cycle failure type by running JGraphT's
+  TopologicalOrderIterator over a cyclic graph directly.
+* All probe files were deleted; the compiler worktree is unchanged (git status shows
+  only the pre-existing untracked tmp/).
+
+WHAT I DID NOT VERIFY
+
+* The annotation-config variant of F3 (Spring's internal bean definitions being
+  reported) is reasoned from getBeanDefinitionNames(), not run.
+* I did not measure the cost of running CycleDetector.detectCycles on every build —
+  TRACKER.md's second attack item. It is a linear DFS over an already-built graph and
+  the 3414-test run shows no visible change, but I did not time a large graph, and
+  the expensive part (findCycles per vertex) is on the failure path only.
+* Slices 3–7, the GraphML work and the replay work are unstarted and unreviewed here;
+  the previous review's F5 on the edge model stands unaddressed by design.
+* I did not review the spring-author-extended documents that arrived in the merge,
+  beyond the vocabulary question TRACKER.md raises.
+* No remote/serialised path was exercised: the remote half of Slice 1 is deliberately
+  not done, so the Kryo and Java-serialisation compatibility requirements the spec now
+  states are still untested.
