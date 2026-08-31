@@ -1,0 +1,172 @@
+REPORT — upstream response to M45 and the 7a273a8 review
+Date: 2026-08-31 · Author session: compiler implementation
+Repository: fluxtion-compiler · Branch: feature/compiler_diagnostics
+Final SHA: ac231a83f159b2c9ebc9074cccc6a3959d22ffcc
+Reviewed inputs: spec-graphml-vocabulary-consumption.md (M45), review_integration_7a273a8.txt,
+                 review_diagnostics_closure_and_graphml_stability.txt
+
+OUTCOME
+
+Every upstream item M45 and the two reviews raise is now closed or answered, and each was reproduced
+before being acted on. The two blocking questions M45 puts to upstream — the DTO release gate and
+whether the metadata switch is reachable from a Maven build — are both resolved, so M45.1 can proceed.
+
+D-V0's correction is accepted and it changes how the vocabulary should be described upstream: dual-path
+is permanent, so `fluxtion.framework` and `auditCapable` DEMOTE the analyser's heuristics rather than
+deleting them. That is a better statement than the one in the metadata spec and upstream will adopt it.
+
+================================================================================
+1. THE RELEASE GATE — DONE, AND THE SPEC WAS RIGHT ABOUT THE SHAPE OF THE RISK
+================================================================================
+
+"Old client + new server is not an edge case, it is the default state of every user who has not
+bumped, and a server upgrade exercises it for all of them at once with no rollback available to them."
+That is exactly right and it is why this was worth blocking on.
+
+`DtoWireCompatibilityTest` (fluxtion-builder) now covers the mechanism:
+
+  · a NEW-client node — carrying the @ServiceRegistered/@ServiceDeregistered descriptors — round-trips
+    in both Java and Kryo;
+  · an OLD-client node, with those descriptors simply absent, reads on current code;
+  · a descriptor naming an annotation the reader has never heard of survives as DATA. Annotation
+    identity on the wire is a String, which is why this addition needed no new class and why the next
+    one will not either;
+  · KRYO REGISTRATION IDS ARE PINNED. This is the gate that matters. The change added instances of an
+    already-registered type, so the failure mode that would actually bite is an id SHIFT — ids are
+    positional and both ends must agree. Verified by inserting a registration and watching NodeDto
+    move from id 10 to 11, so the test fails for the real reason rather than passing by luck.
+
+STATED PLAINLY, because the review's own standard demands it: this is NOT the cross-jar test you asked
+for. It covers the mechanism, not the artefact. Loading the last released builder on an isolated
+classloader and round-tripping between two versions of one class would cover the artefact; that stays
+open, and it is the right thing to add if a future change touches a FIELD rather than a list's contents.
+
+================================================================================
+2. REACHABILITY — RESOLVED, AND IT WAS THE RIGHT QUESTION
+================================================================================
+
+M45 asks whether `-Dfluxtion.graphml.metadata` reaches the exporter under `fluxtion-maven-plugin`, on
+the grounds that a mechanism that exists but cannot be reached from the path users take is the same
+failure as the sidecar. Checked in the plugin source rather than reasoned:
+
+  · `AbstractFluxtionMojo.buildFluxtionClassLoader` builds a URLClassLoader over the project classpath;
+  · the mojos load the generator class through it and invoke it REFLECTIVELY, in the Maven JVM;
+  · there is no fork — no ProcessBuilder, no exec, no forked-JVM configuration anywhere in the plugin;
+  · the mojo already sets system properties itself (output and resources directories), so the pattern
+    is one the plugin relies on.
+
+**So `mvn -Dfluxtion.graphml.metadata=PARALLEL` reaches the exporter, and so does
+`-Dfluxtion.diagnostics.sidecar`. M45.1 can proceed as written.**
+
+================================================================================
+3. THE SIDECAR — YOUR HEADLINE FINDING, NOW CLOSED
+================================================================================
+
+`writeSidecar` had two referents in the tree: its own class and a unit test. You were right that this
+was the ask rather than a scope note, and right that it made two rows of your pinned comparison
+unrunnable.
+
+`EventProcessorGenerator` now writes it, opt-in with `-Dfluxtion.diagnostics.sidecar=<path>|true`.
+Errors arrive through the catch around model building; warnings through a collector wired to the graph.
+A write failure is logged and swallowed — a build must not fail because its diagnostics file could not
+be written. `DiagnosticSidecarProductionTest` drives `Fluxtion.compile`, not the writer, because a unit
+test on the writer cannot fail the way the product was failing.
+
+**Its first real output is itself a finding, and it is one of yours.** On a CLEAN build the sidecar
+contains FLX-1008 naming `serviceRegistry` — a framework node. The framework-noise policy was already
+open upstream; it is now visible in a file rather than buried in a log, which is an argument for
+settling it before you start consuming warnings.
+
+================================================================================
+4. FLX-1009's WORDING — YOUR MEASUREMENT REPRODUCED, AND THE MESSAGE CHANGED
+================================================================================
+
+Reproduced independently before changing anything: a node that builds its own state, excluded exactly
+as FLX-1009 recommends, generates source containing ZERO occurrences of the field and constructs the
+node with a bare `new()`. The initialiser runs; the value is reproduced. Exclusion drops the
+builder-time VALUE, not the field.
+
+Your replacement wording is adopted verbatim, and your probe is now a permanent test. Your framing —
+"an unverified worry replaced by an unverified assertion, the same failure class in the opposite
+direction" — is the part worth keeping; it is why the probe is committed rather than the conclusion.
+
+================================================================================
+5. BYTE STABILITY — COULD NOT REPRODUCE, FIXED ANYWAY
+================================================================================
+
+Honest result: five separate JVM runs across two graph shapes were byte-identical. Your graph is larger
+and yours is the measurement that matters, so not reproducing is not disproving — and the mechanism you
+describe is real: `vertexSet()`/`edgeSet()` order traces back through the dependency walk to maps keyed
+by node objects, whose identity hashes differ between runs.
+
+Fixed defensively, because it is cheap and independently required by the fingerprint: vertices sort by
+emitted id, simple-graph edges by (source, target), and the relationship list by endpoints then the
+relationship's own discriminator. Verified after the change — three separate JVM runs identical at OFF
+and at PARALLEL.
+
+If you still see drift after taking this build, please send the artefact; that would mean a second
+source of order I have not found.
+
+================================================================================
+6. THE COMPATIBILITY RE-RUN YOU ASKED FOR (§4 of review_integration)
+================================================================================
+
+Re-run at this revision, OFF and PARALLEL, on a graph with collections, a @NoTriggerReference and a
+@PushReference:
+
+  · node set identical between OFF and PARALLEL;
+  · edge ENDPOINT set identical;
+  · edge count 30 (OFF) → 31 (PARALLEL), the expansion being the point;
+  · `edgedefault="directed"` in both;
+  · OFF emits ZERO `fluxtion.*` key declarations and ZERO `fluxtion.*` data values.
+
+I did not run `SessionGraphShapeTest` — it lives in your repo and needs your build. The artefacts above
+are reproducible from `GraphMlMetadataTest`'s probe path if you want them regenerated.
+
+================================================================================
+7. WHERE M45 AND THE UPSTREAM SPEC DISAGREE, AND WHO IS RIGHT
+================================================================================
+
+7a. D-V0 — dual-path is permanent. ACCEPTED, and upstream should adopt the framing. The metadata spec
+    describes `fluxtion.framework` as replacing a maintained name list. Your correction is better: it
+    demotes it to a fallback that still has to be maintained. Upstream's own tracker already says the
+    key is not emitted at all yet (see 7b), so the honest statement is weaker still.
+
+7b. `fluxtion.framework` IS NOT EMITTED, and M45.4 depends on it. This is the one place M45 plans
+    against something that does not exist. Node creation is now RECORDED — factory, generation context,
+    @Inject, transitive reference from those — but the framework registers the clock, node-name lookup
+    and service registry as AUDITORS, and `EventProcessorConfig.getAuditorMap()` lives in the open
+    `builder-api` artefact and mixes those with any auditor the author added. Rather than publish
+    `false` for a node the compiler created, the key and `fluxtion.authoredNodeCount` are `planned` in
+    the manifest and withheld. The metadata spec's "Ready" marker describes the ask, not the output.
+    **M45.4 is blocked upstream, and closing it needs a builder-api change.** M45.3 and M45.5 are not
+    affected — auditCapable, propagates, filters, handlerMethod and topologicalRank are all emitted.
+
+7c. D-V1 — refuse AGGREGATED. Agreed, and upstream's own javadoc is the evidence you quote. Worth
+    adding: with propagation now answered per RELATIONSHIP rather than per vertex pair, two edges on one
+    pair can legitimately disagree, so AGGREGATED's merge is lossier than when you assessed it, not less.
+
+7d. Release footprint — confirmed. Only `fluxtion-builder` needs releasing. `fluxtion-runtime` is
+    untouched, so your 1.0.13 pin stands, and the metadata switch is a system property rather than a
+    `FluxtionCompilerConfig` method, so `fluxtion-builder-api` gains nothing.
+
+================================================================================
+8. STILL OPEN UPSTREAM, RELEVANT TO YOUR SLICES
+================================================================================
+
+  · `fluxtion.framework` — blocked on builder-api (7b). Affects M45.4 only.
+  · the cross-jar DTO test — mechanism gated, artefact not (§1).
+  · no public collector seam: a caller wanting diagnostics as OBJECTS rather than a file still has
+    none. The sidecar is the only consumer surface.
+  · the model-authority gate is partly closed: relationship kind and origin are looked up at export
+    rather than recorded as one neutral record, and `exportToString` still calls `getMethods()` to add
+    event vertices.
+  · method-reference captures, anchors and exported callbacks have no production relationship test.
+
+================================================================================
+9. NOTE ON THIS DOCUMENT
+================================================================================
+
+A report, not an authority. The compiler's authority is
+`docs/specs/compiler-diagnostics/TRACKER.md` and the specs beside it, and everything above is recorded
+there too. Where this file and the tracker disagree, the tracker is right.
