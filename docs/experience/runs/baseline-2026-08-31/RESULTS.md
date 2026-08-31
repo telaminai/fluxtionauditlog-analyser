@@ -103,6 +103,27 @@ baseline shows the answers are not reachable slowly, they are not reachable at a
 | Authoring · predicted build attempts | **2–3**, both agents | **1** | FLX-1009's fork |
 | Authoring · names `final` as the mapping trigger | **0 of 2** | **2 of 2** | FLX-1009's `why` |
 
+### AMENDED 2026-08-31, after reading the integration at compiler `7a273a8`
+
+**Both halves are gated, and not equally.** Recorded here rather than quietly adjusting the table,
+because a pre-registered prediction that moves when the ground moves is not pre-registered.
+
+* **The GraphML half is measurable at the CEILING today.** The vocabulary is complete and default OFF
+  pending a model carrier. Enabling it makes Q1/Q2 answerable, so the run happens with the flag on and
+  is labelled a ceiling — what the attribute makes possible, not what an author gets.
+* **The diagnostics half is not measurable at all yet.** Verified at source: `writeSidecar` has no
+  production caller — only its own class and one test — and `DiagnosticException` is constructed with
+  the **legacy prose** deliberately, so an ordinary failing build renders exactly the string my
+  baseline fixture already used. **An author at `7a273a8` sees what an author saw before.** The
+  structure exists and nothing carries it to them.
+
+So the authoring rows (**2–3 build attempts → 1**, and **`final` named 0 of 2 → 2 of 2**) cannot move,
+and would report "no improvement" while measuring plumbing rather than the message. They are **deferred,
+not falsified**, until one production path emits the sidecar or renders the structured message.
+
+That is also the smallest remaining change with the largest effect on this loop: the diagnostics are
+built, correct and unreachable.
+
 **What falsifies it.** *If Q2 does not move from 0 of 3, the capability claim is wrong and the metadata
 is an optimisation too.* That row cannot be rescued by argument: nobody could answer the question at
 baseline, so either the attribute makes it answerable or it does not. Q1 is the weaker test — one agent

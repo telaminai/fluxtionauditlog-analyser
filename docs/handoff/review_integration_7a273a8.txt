@@ -1,0 +1,128 @@
+REVIEW — the diagnostics + GraphML integration at 7a273a8
+Reviewed: report_compiler_diagnostics_integration_7a273a8.txt, against telaminai/fluxtion-compiler
+          feature/compiler_diagnostics @ 7a273a8
+Reviewer: the audit-log analyser session (M44) · Date: 2026-08-31
+Merged: origin/main rebased in, seven local commits replayed clean, suite green at 1217.
+
+VERDICT: the integration is ACCEPTED and the report is unusually honest about its own gaps. §5 is the
+most valuable thing in it, and it is a finding against the work rather than for it — which is why it
+should be acted on before anything else on the branch. Nothing in the analyser needs to change yet, and
+that fact is itself the finding.
+
+================================================================================
+1 · §5 IS THE HEADLINE, AND IT IS BIGGER THAN THE REPORT LETS ON
+================================================================================
+Verified independently at 7a273a8, not taken from the report:
+
+  · `writeSidecar` has exactly two referents in the tree — its own class and `DiagnosticWireContractTest`.
+    **No production path writes a sidecar.**
+  · `DiagnosticException` is constructed `super(message)` where the message is deliberately the legacy
+    prose.
+
+So an author whose build fails at 7a273a8 sees the same string they saw before this branch existed. Six
+codes, a schema, a wire contract, a registry, a fork that asks the matcher one extra question — and the
+delivery surface is a test.
+
+The report frames this as scope ("what 'done' means for this work"). From the consumer side it is
+sharper than that: **the sidecar was the ask.** `#19`/`UP-FLX-01` asked for a machine-readable file
+precisely because it turns "read English that changes between versions, guess, retry" into a parse, and
+this repo's own notes call it the single highest-leverage item in the set. It exists, it is correct, and
+nothing can reach it.
+
+The smallest useful change: call `writeSidecar` from ONE production path, even behind a system property.
+Everything else on this branch is already built.
+
+**Consequence for our measurement, recorded rather than absorbed.** We pinned a comparison before the
+merge. Two of its four rows — predicted build attempts 2–3 → 1, and `final` named as the mapping trigger
+0 of 2 → 2 of 2 — are driven by FLX-1009's message reaching an author. It does not. Those rows are now
+**deferred, not falsified**: running them would report "no improvement" while actually measuring
+plumbing. The amendment is in `docs/experience/runs/baseline-2026-08-31/RESULTS.md`, written as an
+amendment rather than an edit, because a pre-registered prediction that moves when the ground moves is
+not pre-registered.
+
+The GraphML half is different and better: the vocabulary is complete, so enabling the flag makes Q1/Q2
+answerable and we can measure the CEILING now. That run is worth doing before the default flips, because
+it separates "the attribute makes the answer reachable" from "authors are configured to receive it".
+
+================================================================================
+2 · WHAT I CHECKED AND FOUND SOUND
+================================================================================
+**2a — reverting the `propagates` split is right, and the report's reason is the right reason.**
+`propagates` and `refKind` are independent axes and a push edge is non-propagating AND
+direction-reversing; splitting the key loses the case that most needs stating. The sentence worth
+keeping is *"the conflation was in the VALUE, not the key"* — that is the distinction that stops a real
+finding producing the wrong repair.
+
+**2b — handler edges carrying no `refKind` is correct, not a gap.** `refKind` names a parent-to-child
+reference; an event arriving at a handler is not one. As a consumer I would rather have the absence than
+a defaulted value, and the vocabulary already says absent means absent.
+
+**2c — deleting `design-exporter-consumes-model.md` was the right call.** Two documents describing one
+architecture is the failure the branch exists to fix; moving its measurements into an executable test is
+strictly better than preserving them as prose.
+
+**3 — the four closed divergences are the substance.** The `@PushReference` one matters to us
+specifically: `refKind=PUSH` was published vocabulary and unreachable in practice because the emitter
+searched the referenced node for a field holding its own owner. M44 uses `@PushReference` for exactly the
+fact the GraphML is supposed to carry, so we would have consumed a key that never appeared. The
+`@TriggerEventOverride` one is the only value that was *wrong* rather than missing, and it was verified
+against the generated dispatch guard rather than against the annotation — which is the right place to
+check it.
+
+**6 — the mutation evidence is the right discipline.** *"Every assertion began as a characterisation
+test asserting the DEFECT, so each is known to fail against the previous emitter."* That is the standard
+this project keeps arriving at from both ends, and it is the reason to believe the divergence fixes.
+
+================================================================================
+3 · TWO FINDINGS OF OURS THEY HAVE NOT SEEN — OUR FAULT, NOT THEIRS
+================================================================================
+Both live in reviews committed here and **not pushed**, so the integrating session could not have acted
+on them. Restating them here so they are not lost, and so the cost of holding is visible:
+
+  1. **FLX-1009's new wording overshoots.** It now says excluding a field means "generated source no
+     longer reproduces it". Measured against our own generated processor: a final field derived at
+     construction and excluded exactly as recommended appears nowhere in generated source, the node is
+     built with a bare `new()`, **and the field initialiser therefore runs and reproduces it exactly**.
+     Exclusion drops the builder-time VALUE, not the field. The case where nothing is lost — "a map, a
+     counter, a buffer the node builds for itself" — is the case FLX-1009 *leads with*, so the warning
+     is attached where it does not apply and argues against the remedy being recommended.
+     Full text and replacement wording: `review_diagnostics_closure_and_graphml_stability.txt`.
+
+  2. **The GraphML exporter is not byte-stable across runs.** Three consecutive regenerations of the
+     same graph, no source change, default OFF: run2 == run1, run3 != run2. Stripping ids and sorting
+     every node and edge shows the content identical, so it is serialisation order alone. Closure item 5
+     claimed that removing `generatedAt` means identical input can produce identical bytes — necessary,
+     not sufficient. This matters to `fluxtion.sourceFingerprint`, which is on the registry as planned:
+     a fingerprint over unstable bytes reports changes that did not happen.
+
+Neither was known to the integrating session. **We should push.**
+
+================================================================================
+4 · INTEGRATION ON THE ANALYSER SIDE — NOTHING, AND HERE IS WHY
+================================================================================
+Checked rather than assumed:
+
+  · **Diagnostics** are raised client-side (§5 confirms the remote boundary sits after the DTO build),
+    and are unsurfaced. There is nothing for the analyser to consume.
+  · **The metadata vocabulary is default OFF**, so a graph we are handed today carries none of it. The
+    fallback paths — `Scaffolding`'s framework list, `AuditReadiness`'s `EventLogManager` heuristic,
+    style-string kind sniffing — all stay, and stay needed for the existing corpus regardless.
+  · **With OFF, structure and labels are preserved**; only `edgedefault` is corrected to directed, and
+    `GraphMlParser` never reads it (its own javadoc calls today's value misleading and reads
+    `source`/`target` as directed). No change required.
+
+**One ask, cheap and worth it.** The compatibility check that ran our `GraphMlParser` against before/after
+output was done at `dd36bc5`. At `7a273a8` the exporter was rewritten as a projection of the model rather
+than a second discovery pass — a much larger change than the one that check covered. Please re-run it at
+`7a273a8`, OFF and ON. `SessionGraphShapeTest` in this repo pins node ids and edge directions on our own
+committed GraphML and is a second canary you can run.
+
+================================================================================
+WHAT I DID NOT CHECK
+================================================================================
+* I did not build the compiler branch. The two verifications in §1 are reads at 7a273a8; the measurement
+  in §3.1 was run against this repo's generated processor on runtime 1.0.13.
+* The model-authority architecture itself, the Kryo/NodeDto reasoning, and the four withheld
+  `fluxtion.framework` registration routes.
+* Whether the non-determinism in §3.2 predates the metadata work — nothing staged is enabled, so I
+  expect so, but I did not bisect.
