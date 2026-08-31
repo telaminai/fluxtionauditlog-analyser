@@ -1,0 +1,157 @@
+REVIEW + MEASURED RESULTS — the M45 upstream response, run rather than read
+Reviewed: report_m45_upstream_response_ac231a8.txt (amended, final SHA dbcbe17) and
+          review_m45_graphml_vocabulary_consumption.txt
+Compiler refs exercised: ac231a8 and dbcbe17, each built and installed from a detached worktree —
+          the compiler working tree was found MID-MERGE and was not touched.
+Reviewer: the audit-log analyser session (M44/M45) · Date: 2026-08-31
+
+VERDICT: both blockers confirmed cleared, by running them rather than accepting them. One of my two
+findings is closed with an explanation for the disagreement; the other is closed and I reproduced the
+defect it turned into. Both deferred measurement rows are now run and both predictions held. One new
+finding, small and cheap.
+
+================================================================================
+1 · M45.1 EXECUTED — reachability, from a real consumer's Maven build
+================================================================================
+`-Pregen process-classes` against builder 1.0.65-SNAPSHOT, through the real
+`fluxtion-maven-plugin:1.3.0:scan`:
+
+  -Dfluxtion.graphml.metadata=PARALLEL    -> REACHED. 17 distinct fluxtion.* keys, 281 occurrences.
+  -Dfluxtion.diagnostics.sidecar=<path>   -> REACHED, on the FAILING path. 2,906-byte sidecar written.
+
+**Your reachability answer is confirmed empirically**, from the consumer side and through the plugin,
+which is the path the starter template takes. M45.1's question is closed and the slice can proceed as
+written. Both keys emitted match the 17-emitted/9-planned count in the review.
+
+**One observed difference from your note.** On a CLEAN build of our graph, no sidecar was written at
+all — not an empty one. That is correct behaviour as far as I can tell, and it answers the question you
+asked me directly (§4).
+
+================================================================================
+2 · topologicalRank — REPRODUCED ON A PRODUCTION GRAPH, AND CONFIRMED FIXED
+================================================================================
+This is the most useful thing in this review, because you measured it on a probe graph and M44's is a
+real one that happens to use `@PushReference` for exactly the fact the GraphML is meant to carry.
+
+Generated at **ac231a8**, PARALLEL:
+
+    effectQueue        rank 2
+    sessionBoundary    rank 10
+
+The dispatch order is `sessionBoundary` **then** `effectQueue` — that is what the push reference is for,
+and this repo mutation-verified it by removing the annotation and watching the emitted arrow reverse.
+So the published rank is inverted, by 8 places, across exactly the push edge. **It is the only inversion
+in the graph**: operationGate(5) < activeProject(6) < effectOutcomes(7) < openGraph(8) < openLog(9) <
+sessionBoundary(10) are all correctly ordered against the generated dispatch.
+
+Regenerated at **dbcbe17**:
+
+    sessionBoundary    rank 9
+    effectQueue        rank 10     <- correct
+
+**Independent confirmation of both the defect and the fix, on a graph nobody wrote for the purpose.**
+
+Your §8 reasoning about why it mattered to M45 specifically is right and I would put it more strongly:
+D-V4 item 2 proposed to render this as a column. A column of integers reads as authoritative, and our
+own baseline is the reason it is the worst possible key to be quietly wrong — three of three agents
+could not answer sibling dispatch order at all, so shipping an inverted rank would have converted a
+measured "cannot tell" into "confidently wrong", which is strictly worse than the position we started
+from. M45.5 will pin the rank against the generated dispatch order rather than trusting it.
+
+================================================================================
+3 · BYTE INSTABILITY — closed, and here is why we disagreed
+================================================================================
+You could not reproduce it in five runs; I could. Both observations are correct, because we were
+measuring different builds.
+
+  builder 1.0.64          drift REPRODUCES — content identical once node/edge elements are sorted,
+                          serialisation order differs between runs (observed again today)
+  builder 1.0.65-SNAPSHOT stable across 4 runs at OFF and 3 at PARALLEL, byte-identical
+
+So the defensive sort you added did fix it, and you could not see the original because your build
+already contained the fix. **No artefact to send: there is no drift left on any build you would ship.**
+Worth recording only because "I could not reproduce it" and "it was real" were both true at once.
+
+================================================================================
+4 · YOUR QUESTION: is FLX-1008 on a framework node noise from where we sit?
+================================================================================
+It did not fire for us at all, and the reason is the useful part: **our graph calls
+`addEventAudit(LogLevel.INFO)`**, so the condition FLX-1008 tests — `auditLog` used in a graph built
+without audit — is false. A clean build wrote no sidecar.
+
+So the noise you are worried about appears only in graphs with audit OFF. From the analyser's seat that
+is not a marginal case, it is **the case we already consider the most important thing a graph can tell
+us**: a processor with no `EventLogManager` will write nothing at all, however carefully its nodes
+narrate themselves. That is what `AuditReadiness` exists to say, and it is the earliest catchable form
+of the mistake.
+
+So the answer is: **not noise, but pointed at the wrong element.** "serviceRegistry uses auditLog and
+audit is off" invites the author to fix `serviceRegistry`, which they did not write and cannot change.
+The useful form is the processor-level statement — *this build will record nothing* — raised once,
+against the graph, not once per framework node that happens to hold a logger.
+
+Suggestion: keep the check, move the element from the node to the processor, deduplicate to one
+occurrence, and let the framework nodes be the evidence rather than the subject.
+
+================================================================================
+5 · THE DEFERRED MEASUREMENT ROWS ARE RUN, AND BOTH PREDICTIONS HELD
+================================================================================
+Full write-up: docs/experience/runs/ceiling-2026-08-31/RESULTS.md. Summary:
+
+  predicted build attempts     baseline 2-3 (both agents)  ->  1 (both agents)     PREDICTED, CONFIRMED
+  names `final` as the trigger baseline 0 of 2             ->  2 of 2              PREDICTED, CONFIRMED
+
+The fixture was not hand-written: a failing node was added to this repo's own graph and the console text
+and sidecar handed to the agents are what that build actually emitted.
+
+**The secondary falsifier passes, and it is the one that decides whether this means anything.** The
+prediction was pinned with "if agents answer correctly while citing prior knowledge, the file has not
+been read and the result proves nothing". Both attributed the rule to the JSON unprompted — *"I am
+paraphrasing, not recalling"*, and *"without the json my rule would have been vaguer and probably wrong
+on the precedence point"*. The file supplied the rule rather than confirming one already held.
+
+Two things exceeded the prediction. Both agents produced the complete four-route rule including the
+`@ConstructorArg`/`@AssignToField` precedence. And both stated the **initializer-survives** semantics —
+the correction this repo measured and sent after the closure review turned an open question into an
+assertion — with one saying explicitly it would not have known it otherwise. That sentence is now
+carrying weight in the field.
+
+Both took the one-step route because the diagnostic CERTIFIED it: *"the compiler checked the remaining
+mapped fields against the available constructors, so this exclusion is a complete repair."* That is
+FLX-1009's fork doing exactly the job it was built for, and it is what turned 2-3 attempts into 1.
+
+================================================================================
+6 · NEW FINDING — one token would remove the last retry risk
+================================================================================
+Both agents named the same and only residual risk of a second build, and it is not about the graph:
+
+  "if com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore is the wrong package, the compile
+   fails on the import"
+
+Both said they would reach for `transient` first **specifically to avoid guessing an import**. So the
+message is steering authors away from the annotation it recommends, for want of a package name.
+
+`suggestedFix` names `@FluxtionIgnore`, `@ConstructorArg` and `@AssignToField`. Give each its
+fully-qualified name once, and the best-case path becomes a single build with nothing to guess. Cheapest
+item on the branch.
+
+================================================================================
+7 · ON THE LOCAL REVIEW OF M45 — accepted, and acted on
+================================================================================
+F1-F5 are correct and the slice plan is being re-planned against them; the spec and tracker are updated
+in the same commit as this file. Specifically: M45.4 has no input and is parked on the builder-api
+change; the "audit trio" is a duo and M45.3's product claim now depends on the log header rather than
+the GraphML; the gate is one ordered condition rather than two repos naming each other; and M45.1 needs
+an entitled key, so it cannot run in CI — which is worth saying out loud rather than letting a good
+question die of "nobody could run it".
+
+The conflict-of-interest disclosure was the right call and the mechanical checks were the right scope.
+
+WHAT I DID NOT CHECK
+* The DTO wire gate (DtoWireCompatibilityTest) beyond reading §1 — it pins Kryo registration ids, which
+  is necessary and not sufficient, and the old-client/new-server round trip is still the thing I would
+  gate a release on.
+* AGGREGATED, deliberately: D-V1 refuses it, and per your note it is now lossier than when assessed,
+  since propagation answers can legitimately disagree per relationship on one pair.
+* The compiler's own test suites. I built two refs and ran the analyser against them; I did not run
+  theirs.

@@ -130,7 +130,28 @@ flip is gated on**, so this milestone is a dependency in both directions._
   pair with a filtered and a default-case handler yields `filterType="matched,defaultCase"` with nothing
   saying which went with which. A consumer rendering that would be wrong without being able to detect it.
   **Read `PARALLEL` or read nothing.**
-- [M45.1] ☐ **Prove reachability, and measure the ceiling.** Install the branch, point `-Pregen` at it
+- [M45.1] ☑ **Reachability proved, ceiling measured — 2026-08-31.** Both properties reach the exporter
+  and the generator through the real `fluxtion-maven-plugin:scan`: `PARALLEL` emitted **17 keys / 281
+  occurrences**, and the diagnostics sidecar was written on the failing path. **The two deferred rows of
+  the pinned comparison are run and both predictions held** — predicted build attempts **2–3 → 1**, and
+  `final` named as the mapping trigger **0 of 2 → 2 of 2**
+  ([ceiling-2026-08-31](../experience/runs/ceiling-2026-08-31/RESULTS.md)). The secondary falsifier
+  passes too: both agents attributed the rule to the sidecar rather than prior knowledge — *"I am
+  paraphrasing, not recalling"* — which is what makes the numbers mean anything. **Caveat kept, not
+  buried:** the slice needs an entitled key, so it cannot run in CI or for a contributor; the answer is
+  recorded rather than reproducible.
+- [M45.1a] ☑ **topologicalRank reproduced and confirmed fixed, on our own graph.** At `ac231a8` the rank
+  was inverted across exactly the `@PushReference` edge — `effectQueue` 2 against `sessionBoundary` 10 —
+  and it was **the only inversion** in the graph. Fixed at `dbcbe17` (9 then 10). Upstream measured it on
+  a probe graph; this is a production one. **Rule this leaves behind: pin the rank against the generated
+  dispatch order, never trust it.** It was published, plausible and reversed, and our baseline is why
+  that is the worst key to be quietly wrong in — an inverted column turns a measured *cannot tell* into
+  *confidently wrong*.
+- [M45.1b] ☑ **Byte instability closed, with the reason we disagreed.** Reproduces at builder **1.0.64**
+  (content identical once sorted, order differs); **stable at 1.0.65-SNAPSHOT** across 4 runs at OFF and
+  3 at PARALLEL. Their defensive sort fixed it; they could not see the original because their build
+  already had the fix. No artefact to send.
+- [M45.1c] ☐ **Original slice text, for the record — prove reachability, and measure the ceiling.** Install the branch, point `-Pregen` at it
   with `-Dfluxtion.graphml.metadata=PARALLEL`, confirm our committed GraphML changes. A JVM system
   property is only usable if it reaches the JVM running the exporter, and **nobody has tested whether it
   survives `fluxtion-maven-plugin:scan`** — the same shape as the branch's own finding that
@@ -138,10 +159,14 @@ flip is gated on**, so this milestone is a dependency in both directions._
 - [M45.2] ☐ **Read the vocabulary, change no behaviour.** `metaVersion` (1.x reader accepts every 1.y;
   unknown MAJOR degrades to absent), node and edge keys, mode detection. Separating reading from acting
   is what makes the rest safe.
-- [M45.3] ☐ **The audit trio** — `auditCapable`/`auditCapableVia`/`eventAudit`. Lets a surface say
-  *ran and said nothing* instead of hedging three cases into one sentence. Where the product claim
-  actually improves.
-- [M45.4] ☐ **An honest coverage denominator** from `fluxtion.framework`.
+- [M45.3] ☐ **The audit trio is a DUO** — `auditCapable`/`auditCapableVia` are emitted, `eventAudit` is
+  **planned**. That is exactly the key separating *capable, audit off* from *capable and stayed silent*,
+  which is this slice's stated product claim, so it is re-scoped: the regime comes from the **log header**
+  (UP-FLX-11), not the GraphML. Still the slice where the claim improves.
+- [M45.4] ☐ **PARKED — no input.** `fluxtion.framework` is planned and withheld: upstream found its own
+  value was a package-prefix guess, deleted it, and is replacing it with recorded creation provenance
+  that needs a **`builder-api` change** to finish. The fact we want will be better than the one the spec
+  was written against, and it does not exist yet. `authoredNodeCount` went with it.
 - [M45.5] ☐ **Parallel edges and dispatch rank.** Checked, not assumed: `ProcessorTopology.of` does no
   edge dedup and `LayeredLayout`/`TopologyCanvas` draw straight from `edges()`, so a `PARALLEL` file
   overdraws a pair's arrow and inflates `edgeCount()`. Identity becomes
@@ -149,6 +174,16 @@ flip is gated on**, so this milestone is a dependency in both directions._
   measured agents could answer**.
 - [M45.6] ☐ **Bump `-Pregen` off builder 1.0.64**, regenerate, re-pin `SessionGraphShapeTest`.
   **Expected to fail first, by design** — that test is the downstream canary we offered upstream.
+  **Take `dbcbe17` or later**, and regenerate any fixture made with an earlier build: before it the
+  published `topologicalRank` was the wrong order (M45.1a).
+- [M45] ☐ **The default-flip gate is ONE ordered condition, not two repos naming each other.** Upstream
+  flips when relationships are captured at the decision point **and** one consumer *understands*
+  `PARALLEL`. M45.2 changes no behaviour, so reading is not understanding — **the gate is M45.5**.
+- [M45] ☐ **Raised upstream, cheapest item on the branch:** `suggestedFix` names `@FluxtionIgnore`,
+  `@ConstructorArg` and `@AssignToField` without their packages, and **both ceiling agents named the
+  import guess as their only remaining reason to need a second build** — both said they would reach for
+  `transient` first *to avoid guessing it*. One fully-qualified name per annotation removes the last
+  retry risk in the best case.
 - [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
   unconditional change is `edgedefault` corrected to directed, which our parser never reads; upstream ran
   our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That

@@ -142,7 +142,35 @@ unreachable from the path users take. M45.1 settles it empirically.
 
 ## Slices
 
-**M45.1 — prove reachability and measure the ceiling.** Install the branch locally, point this repo's
+### Re-planned 2026-08-31 against what upstream actually emits
+
+The slices below were written against the vocabulary as specified. Measured against what is **emitted**
+at `dbcbe17` — 17 keys emitted, 9 planned — three of them move:
+
+* **M45.4 has no input and is parked.** `fluxtion.framework` is *planned, withheld*. Upstream found its
+  own value was a package-prefix guess, deleted it, and is replacing it with recorded creation
+  provenance that is not finished — one creation route runs through `builder-api`'s auditor map, so
+  closing it needs a `builder-api` change. **The fact we want will be better than the one this spec was
+  written against, and it does not exist yet.** `authoredNodeCount` went with it.
+* **The "audit trio" is a duo.** `auditCapable`/`auditCapableVia` are emitted; `eventAudit` is planned —
+  and that is precisely the key separating *capable, audit off* from *capable and stayed silent*, which
+  is M45.3's stated product claim. Recoverable, but **from the log header, not the GraphML**
+  ([UP-FLX-11](../proposals/upstream-asks.md)). M45.3 is re-scoped accordingly rather than deferred.
+* **The gate closes later than this spec assumed, and it is ONE ordered condition, not two.** Upstream
+  flips the default when relationships are captured at the decision point *and* one consumer
+  **understands** `PARALLEL`. M45.2 explicitly changes no behaviour, so reading is not understanding —
+  the gate is **M45.5**. Written here so the two repos stop naming each other.
+
+**M45.1 — prove reachability and measure the ceiling. ☑ DONE 2026-08-31.** Both properties reach the
+exporter and the generator through the real `fluxtion-maven-plugin:scan`: `PARALLEL` emitted 17 keys,
+and the diagnostics sidecar was written on the failing path. The deferred authoring rows of the pinned
+comparison are **run and both predictions held** —
+[`ceiling-2026-08-31`](../experience/runs/ceiling-2026-08-31/RESULTS.md). **Caveat that must not be
+lost:** this slice needs an entitled Fluxtion key, so it cannot run in CI or for a contributor. The
+reachability question it answered was worth asking, and the answer has to be *recorded* rather than
+*reproducible*.
+
+**M45.1 — original text, for the record.** Install the branch locally, point this repo's
 `-Pregen` at it with `-Dfluxtion.graphml.metadata=PARALLEL`, and confirm the committed GraphML actually
 changes. That is a real Maven build driving a real consumer, and it answers the reachability question and
 unblocks the pinned comparison run in one step. **Nothing ships from this slice** — it is measurement.
@@ -162,7 +190,18 @@ column.
 
 **M45.6 — the builder bump.** Move `-Pregen` off 1.0.64, regenerate, re-pin `SessionGraphShapeTest`.
 **Expected to fail first**, by design — that test is the downstream canary we offered upstream, and a
-reviewer who has not read this line will think they broke something.
+reviewer who has not read this line will think they broke something. **Take `dbcbe17` or later**: before
+it, `topologicalRank` was an index into object-sorted order rather than dispatch order, and this repo
+reproduced the inversion on its own graph — `effectQueue` ranked 2 against `sessionBoundary` 10, across
+exactly the `@PushReference` edge, the only inversion present. Fixed at `dbcbe17` (9 then 10). **Any
+fixture generated with an earlier build carries the wrong rank.**
+
+**A rule this produced, which outlives the bug.** `topologicalRank` must be **pinned against the
+generated dispatch order**, not trusted. It was published, plausible, reversed, and nothing downstream
+would have said so — the same defect class as per-pair propagation and the `@TriggerEventOverride`
+demotion. A column of integers reads as authoritative, and our own baseline is why that is the worst
+place to be quietly wrong: three of three agents could not answer dispatch order at all, so an inverted
+rank converts a measured *cannot tell* into *confidently wrong*.
 
 ## Acceptance
 
