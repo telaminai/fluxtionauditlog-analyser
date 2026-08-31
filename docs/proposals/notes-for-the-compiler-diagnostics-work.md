@@ -158,9 +158,22 @@ thing here that we can offer rather than merely argue.**
 
 ## 8 · What I am not confident about
 
-- **I have read bytecode, not compiler source.** Everything about `LiveGraphSourceGenExtractor` came from
-  `javap` on 1.0.64. The throw sites, the two message shapes and the annotations the predicate reads are
-  solid; the predicate's full boolean structure is not, and nothing above depends on it.
+- ~~**I have read bytecode, not compiler source.**~~ **RESOLVED 2026-08-31, from two directions at once.**
+  The diagnostics branch read the mapping loop and reported that it skips **static, non-final and
+  transient** fields — so what reaches the constructor match is exactly the **final, non-transient,
+  non-ignored** set. Independently, M44 built a real six-node graph in this repo whose nodes are all
+  mutable private state, and the `transient` rule never fired once. Two different methods, same
+  predicate.
+
+  **That changes §2 above, and in the branch's favour.** *"Remove `final`"* — which two agents found
+  independently and which these notes filed as an undocumented workaround — is a **first-class fix**: a
+  non-final field is wired through its setter and was never constructor-mapped at all. So a message that
+  names only `transient` is steering authors away from the simpler remedy, not merely omitting one. The
+  owner's framing is the one to ship: *bean patterns are supported for non-final fields; use `transient`
+  or `@FluxtionIgnore` for final fields derived at construction.*
+
+  The one thing still worth attacking is the classification itself, because it decides which of **two
+  opposite** fixes an author is told to apply, and it has been wrong once already.
 - **n ≤ 9, one model family, one machine.** Enough to say three agents found three different fixes; not
   enough for an effect size on anything.
 - **I do not know your constraints** — backward compatibility of message text, tooling that parses it
