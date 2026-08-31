@@ -365,9 +365,27 @@ agents does — and that learning is the raw material for the template bootstrap
   one matters: skip the header strip and rule 1 fails, skip the fixtures and M45 fails against a graph
   that moved, skip the POM restore and the repo depends on an unreleased SNAPSHOT. Got wrong three
   times, which is three more than a script costs.
-  ☐ **Still to move:** log/graph OPENING, which waits on a driver that can carry an ASYNCHRONOUS
-  effect — the load is `Background.run` and the driver is synchronous single-in-flight by design, so
-  this is a design question to spec rather than a slice to write.
+- [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
+  driver change that lets log/graph OPENING become a decision. Declined twice on the same ground, which
+  is the right ground: the load is `Background.run` and the driver is synchronous single-in-flight by
+  design, so forcing it would have meant lying about when a load finished.
+  **Three pieces of v1 turn out to have been built for this.** The `opId` was added with the note that
+  *"if the driver later goes asynchronous the record does not silently start lying"* — this is that
+  later. `OperationGate` already refuses a stale result. And an accident worth naming: the gate
+  overwrites `expectedOpId` on each request, which was written to detect staleness and **also
+  implements supersede** — a second open makes the first's result arrive stale and be refused. The
+  policy fell out of the mechanism, and it is the policy we would have chosen for a person who picked
+  the wrong file.
+  **The design in one line: asynchrony is the ADAPTER's property, not the effect's.** A `Pending`
+  result means "started, will report later"; `FakeSessionAdapter` never returns one, so **every existing
+  replay test stays synchronous and deterministic**. A design that made effects intrinsically async
+  would have made the whole replay suite timing-dependent — and a flaky suite protecting a concurrency
+  change is worse than none.
+  One thread calls `onEvent` and it is the EDT, asserted rather than documented, because a record
+  interleaved from two threads would present two cycles as one. No executor, no queue, no timeout is
+  introduced: `Background.run` already marshals to the EDT, and that is the completion path used.
+  ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
+  be able to say *"opening /path — started, not yet completed"*.
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
   `AuditInstallationReadiness` / `CoverageClaim` (the review's F3 — three questions the first draft merged
   into one). Then move log and graph OPENING, which deletes `LogObserved`/`GraphObserved` and with them
