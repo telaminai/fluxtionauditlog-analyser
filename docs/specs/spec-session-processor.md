@@ -125,11 +125,30 @@ change unblocks. **The mirror was never the mechanism's fault; it was an event m
 `Function<String, Optional<String>>` parameter today — already service-shaped, just hand-carried. The
 graph must never mirror a source tree, and it only ever queries it. That is exactly (a).
 
-**Where we deliberately do NOT use (b).** Effects are drained after dispatch rather than invoked through
-an action service from inside a node. Calling an action service mid-cycle would put an irreversible act
-inside a dispatch that has not finished deciding, and would collapse the *asked* / *happened*
-distinction that `EffectOutcomes` exists to keep. That is a choice specific to a processor whose audit
-log is the product, not a general preference.
+**Where we deliberately do NOT use (b), with the reason CORRECTED.** Effects are drained after dispatch
+rather than invoked from inside a node. The reason first given here was that acting inside a node would
+put an irreversible act *"inside a dispatch that has not finished deciding"*.
+
+**That reason was wrong, and `@AfterEvent` is why** (owner, 2026-09-01). An event is processed in two
+phases: event-in, in topological order, then **after-event, in reverse topological order on the unwind**.
+An effect performed in `@AfterEvent` runs when every decision in the cycle has already been made — so
+"mid-decision" is exactly what the framework provides a phase to avoid, and the objection dissolves.
+(`@AfterTrigger` is the narrower form: same phase, but only when this instance's own event-in handler was
+on the execution path.)
+
+**Two reasons survive, and they are the real ones:**
+
+1. **The result must re-enter as a fact.** `EffectOutcomes` records *happened*, not only *asked*, so the
+   outcome has to arrive as a new event — which means something outside the cycle must feed it back
+   whatever phase initiated it.
+2. **Opening is asynchronous.** No in-graph phase can wait for a `Background.run` completion, so the
+   external driver is required for the case [`spec-async-session-driver.md`](spec-async-session-driver.md)
+   exists to enable.
+
+Given both, one external mechanism is better than an after-event path for synchronous effects plus a
+driver for asynchronous ones. **But for a graph whose effects are synchronous and fire-and-forget,
+`@AfterEvent` is the idiom and an external drain is machinery you did not need** — recorded so this
+choice is not read as a general recommendation.
 
 **A framework fact that constrains the driver, verified in source.** `DataFlow.setAuditLogProcessor`,
 `setAuditLogLevel`, `setAuditLogRecordEncoder` and `setAuditTimeFormatter` are **not setters** — each is

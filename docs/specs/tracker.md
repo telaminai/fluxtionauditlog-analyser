@@ -120,6 +120,20 @@ retrieval-dated evidence table, because those are live documents that can change
 - [UC2] ☐ **`audit-runtime.md`** — getting the log OUT. Six measured wirings, the `System.out` default
   sink, `logLevel()` after `init()` being a silent no-op, and the fact that the audit "setters" are
   dispatches. Evidence **re-verified unchanged 2026-09-01**.
+- [UC4] ☐ **`idioms-and-canonical-form.md`** — NEW 2026-09-01, owner-directed, and the one the other three
+  imply. They add FACTS; this maps **the shape you are trying to build** to **the construct that builds
+  it**. The thesis is measured: over one real twelve-node graph, *every* mistake worth recording was a
+  case where the structure was defensible and the framework had a better construct — none was a
+  misunderstanding of dispatch, and none would have been caught by a diagnostic. Each was found by being
+  corrected by someone who knew the idiom.
+  **Two undocumented facts decide half of it**, confirmed by retrieval: `reverse topological`,
+  `@AfterTrigger`, `processReentrantEvent` and `processAsNewEventCycle` are at **zero occurrences in all
+  three sources**, while `@OnTrigger` appears 21 times in `claude.txt`. The annotation reference is
+  strong; the two-phase execution model and re-dispatch are absent.
+  Six idioms: derive with one `@OnTrigger` rather than N handlers (with the generated OR-of-dirty guard
+  as evidence); state from events, services for query or action, plus the *state-snapshot-pretending-to-
+  be-an-event* smell; side effects belong in the after-event phase, and when to go outside instead;
+  re-dispatch and its two routes; the three threading options; and field wiring.
 - [UC3] ☐ **`node-field-wiring-and-workflow.md`** — NEW 2026-09-01. Two halves of one gap.
   **The rule:** *final* is the trigger for constructor mapping, and the word appears **nowhere** in any
   of the three sources — nor do `non-final`, JavaBean setter-wiring, or `@ConstructorArg`. The canon
