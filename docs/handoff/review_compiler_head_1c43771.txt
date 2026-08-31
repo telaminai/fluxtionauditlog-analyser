@@ -1,0 +1,113 @@
+REVIEW — compiler diagnostics / GraphML integration at 1c43771
+Reviewed branch: fluxtion-compiler feature/compiler_diagnostics
+Reviewed head: 1c437714ea55359213b33b795f82edec11634f90
+Paired public source: fluxtion-core origin/develop @ fc8d776
+Date: 2026-08-31
+
+VERDICT: CHANGES REQUIRED BEFORE RELEASE
+
+The old-client request golden is accepted and is already committed on the compiler branch at this
+reviewed head. The branch is buildable once the paired public 1.0.14-SNAPSHOT is installed. One
+GraphML fact is demonstrably false, however, and the base-version release gate described by the
+documents does not exist in executable form. Do not publish metadata version 1.0 or release this
+branch until F1 is fixed and pinned. F2 must be resolved as part of the release preparation.
+
+===============================================================================
+F1 — BLOCKER: replacing a framework auditor leaves an authored node marked framework
+===============================================================================
+
+This is now reproduced through the production GraphML emitter, not inferred from source.
+
+An EventProcessorConfig starts with its framework clock registered under the name `clock`.
+`addFrameworkAuditor` records that name in `frameworkAuditorNames`. If an author subsequently does:
+
+    config.addAuditor(new AuthorClock(), "clock");
+
+the auditor map contains the author's instance, but `addAuditor` does not remove `clock` from the
+framework-name set. The compiler consumes that stale set and emits the author's class as:
+
+    id=clock, class=...AuthorClock, fluxtion.framework=true
+
+That makes M45's authored-node coverage denominator wrong: a real authored node is excluded. The
+public API javadoc makes the opposite promise, saying an author-registered auditor is absent from the
+set even if it shares a framework name.
+
+The fix belongs at the single authority in the public API, not in the exporter. Plain `addAuditor`
+must make the resulting binding authored; `addFrameworkAuditor` must make it framework. Because the
+latter currently delegates to the former, change their ordering or use one internal registration
+method rather than adding a compiler-side exception. Pin both replacement directions in the public
+repository, then add a compiler test that overrides `clock` and inspects emitted GraphML. The present
+FrameworkProvenanceTest protects against package inference but does not exercise name replacement.
+
+===============================================================================
+F2 — RELEASE GATE: the documented BOM/base lockstep is not enforced
+===============================================================================
+
+The compiler parent uses `fluxtion.base.version=1.0.14-SNAPSHOT`, while fluxtion-bom deliberately
+still pins 1.0.13 during development. That asymmetry is reasonable. The design note and tracker,
+however, say parent and BOM were bumped together and say BomBaseVersionGateTest enforces lockstep.
+Neither statement matches the tree. The test checks that BOM pins are non-SNAPSHOT and that builder
+uses the compiler version property; it does not require the release BOM to select the same base line
+as the released compiler.
+
+Correct the documents to describe the intentional development asymmetry and add an executable
+release-time assertion. Otherwise a release can pair a compiler requiring public 1.0.14 with a BOM
+that continues to select public 1.0.13. The release order is now public 1.0.14 first, compiler/builder
+second, with the BOM aligned for release. Record `fc8d776` as the source revision paired with the
+current snapshot so another clean machine can reproduce the build.
+
+===============================================================================
+N1 — consolidate the manifest gate instead of creating a second parser
+===============================================================================
+
+GraphMlManifestGateTest adds a useful check: emitted `<data>` keys are reachable in PARALLEL and
+AGGREGATED output. Keep that assertion. Its regex/substring manifest parsing is order-sensitive and
+duplicates the parsed manifest authority already in GraphMlMetadataTest, which reads the JSON and
+checks declared/emitted status plus value types and enums. Fold the reachability assertion into that
+parsed authority so field reordering cannot break the gate and the vocabulary has one source of
+truth. The statement that the manifest was previously ungated should be narrowed accordingly.
+
+===============================================================================
+ACCEPTED — released-client DTO request golden
+===============================================================================
+
+Commit 1c43771 adds the exact 27,027-byte request produced by builder 1.0.64 and a HEAD reader test.
+The resource is versioned and append-only. Its SHA-256 is:
+
+    5ab5a79f7ede5ae8511c03e1076cabc988918d722ad9c9b6fb3f9552a4493f9b
+
+The first four bytes are `ac ed 00 05`, proving the released default request uses Java
+ObjectOutputStream rather than Kryo. ReleasedDtoWireGoldenTest verifies the bytes/checksum, reads the
+real RemoteSourceFromDtoRequest at HEAD, and pins the 14-node set, annotated methods and dispatch
+order. It passes at 1c43771 after installing the paired public snapshot. Capturing the response half
+can wait because its recovery window does not close with the next client release.
+
+===============================================================================
+EXECUTION EVIDENCE
+===============================================================================
+
+PASS — public snapshot build/install from fluxtion-core fc8d776:
+
+    ./mvnw -q -pl fluxtion-runtime,fluxtion-builder-api -am -DskipTests install
+
+This produces public coordinates including:
+
+    com.telamin.fluxtion:fluxtion-runtime:1.0.14-SNAPSHOT
+    com.telamin.fluxtion:fluxtion-builder-api:1.0.14-SNAPSHOT
+
+PASS — focused released-client compatibility test at compiler 1c43771:
+
+    ./mvnw -q -pl fluxtion-builder -Dtest=ReleasedDtoWireGoldenTest test
+
+EXPECTED FAIL — production-path auditor replacement probe: the emitted authored `clock` node carried
+`fluxtion.framework=true`, establishing F1.
+
+NOT GREEN — a subsequent full `./mvnw -q test` at 1c43771 ended with 3,465 integration tests run,
+166 errors and 7 skipped. The failures are generated-test compilation/class-loading errors such as
+NoClassDefFoundError for AggregateSeedingRegressionTest$Agg, not failures of the focused golden test.
+This review does not claim their cause. The earlier full reactor at afad4ba was green after installing
+fc8d776, so the current head must be rerun cleanly and either made green or the environmental cause
+demonstrated before release.
+
+Branch fact: compiler origin/main was still an ancestor; the combined Java diagnostics, Spring
+diagnostics and GraphML work reviewed here lives on feature/compiler_diagnostics.
