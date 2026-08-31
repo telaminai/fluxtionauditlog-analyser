@@ -209,6 +209,42 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <!--
+                      Strip the generator's attribution line from the source it just emitted.
+
+                      THIS REPO IS PUBLIC (rule 1). Every file the generator writes carries a copyright
+                      line with a personal address on an employer domain, and it comes back on every
+                      regeneration. It was a manual step for four regenerations and was forgotten on
+                      three of them; `GeneratedSourceIsPublishableTest` caught each one, which is the
+                      guard working — but a guard that fires every time is a step that should not have
+                      been manual.
+
+                      Bound after the scan goal in the same phase, so it runs on output that exists.
+                      Declaration order is execution order within a phase.
+                    -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>strip-generated-attribution</id>
+                                <phase>process-classes</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <replaceregexp flags="g" byline="false"
+                                                       match=" \* Copyright: ©[^\n]*\n" replace="">
+                                            <fileset dir="${project.basedir}/src/main/java/telamin/fluxtion/audit/analyser/analyser/session/generated"
+                                                     includes="*.java" erroronmissingdir="false"/>
+                                            <fileset dir="${project.basedir}/src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated"
+                                                     includes="*.java" erroronmissingdir="false"/>
+                                        </replaceregexp>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>

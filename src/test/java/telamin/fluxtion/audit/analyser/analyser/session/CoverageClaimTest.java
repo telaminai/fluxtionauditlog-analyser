@@ -2,7 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
+import telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy;
 
 import java.util.List;
 import java.util.Set;
@@ -36,7 +36,7 @@ class CoverageClaimTest {
         return new SessionEvents.LogObserved(true, "/l.yaml", "DECLARED", logged, sampled, total, level);
     }
 
-    private static CoverageClaim.Assessment assess(Object... facts) {
+    private static CoveragePolicy.Assessment assess(Object... facts) {
         SessionDriver d = driver();
         for (Object f : facts) {
             d.submit(f);
@@ -47,20 +47,20 @@ class CoverageClaimTest {
     @Test
     @DisplayName("no graph, or no log, and coverage has nothing to compare")
     void bothArtefactsAreRequired() {
-        assertEquals(CoverageClaim.Claim.REFUSED,
+        assertEquals(CoveragePolicy.Claim.REFUSED,
                 assess(log(Set.of("a"), "TRACE", 1, 1)).claim());
-        assertEquals(CoverageClaim.Claim.REFUSED,
+        assertEquals(CoveragePolicy.Claim.REFUSED,
                 assess(graph("OPENED", Set.of("a"), true)).claim());
     }
 
     @Test
     @DisplayName("an INFERRED graph is refused — the subtraction is empty by construction")
     void anInferredGraphMakesCoverageATautology() {
-        CoverageClaim.Assessment a = assess(
+        CoveragePolicy.Assessment a = assess(
                 graph("READER_INFERRED", Set.of("priceListener"), true),
                 log(Set.of("priceListener"), "TRACE", 1, 1));
 
-        assertEquals(CoverageClaim.Claim.REFUSED, a.claim());
+        assertEquals(CoveragePolicy.Claim.REFUSED, a.claim());
         assertFalse(a.allowed());
         assertTrue(a.reason().contains("inferred from what ran"), a.reason());
         // This rule already existed, in ActionExecutor.doCoverage. What is new is that it is now
@@ -70,11 +70,11 @@ class CoverageClaimTest {
     @Test
     @DisplayName("NEW — a graph whose processor cannot log at all is refused")
     void aProcessorThatWritesNothingCannotBeScored() {
-        CoverageClaim.Assessment a = assess(
+        CoveragePolicy.Assessment a = assess(
                 graph("OPENED", Set.of("priceListener"), false),
                 log(Set.of("priceListener"), "TRACE", 1, 1));
 
-        assertEquals(CoverageClaim.Claim.REFUSED, a.claim());
+        assertEquals(CoveragePolicy.Claim.REFUSED, a.claim());
         assertTrue(a.reason().contains("without audit logging"), a.reason());
         assertTrue(a.reason().contains("blame the nodes for the build"),
                 "and it must say why the number would be misleading, not just refuse: " + a.reason());
@@ -83,11 +83,11 @@ class CoverageClaimTest {
     @Test
     @DisplayName("NEW — a deliberately opened graph that does NOT describe this log is refused")
     void theM353ExceptionDoesNotLicenceScoring() {
-        CoverageClaim.Assessment a = assess(
+        CoveragePolicy.Assessment a = assess(
                 graph("OPENED", Set.of("supermarketTill", "shelfStock"), true),
                 log(Set.of("priceListener", "quotePublisher", "orderTracker"), "TRACE", 3, 3));
 
-        assertEquals(CoverageClaim.Claim.REFUSED, a.claim());
+        assertEquals(CoveragePolicy.Claim.REFUSED, a.claim());
         assertTrue(a.reason().contains("different system or build"), a.reason());
         // M35.3 keeps a graph a person opened against a mismatched log — announce, never forbid. That
         // is right, and it left a gap: coverage would score against it in silence. Keeping the graph
@@ -98,11 +98,11 @@ class CoverageClaimTest {
     @Test
     @DisplayName("a level below TRACE is QUALIFIED, not refused — the number is still computable")
     void aCoarseLevelQualifiesRatherThanRefuses() {
-        CoverageClaim.Assessment a = assess(
+        CoveragePolicy.Assessment a = assess(
                 graph("OPENED", Set.of("priceListener"), true),
                 log(Set.of("priceListener"), "INFO", 1, 1));
 
-        assertEquals(CoverageClaim.Claim.QUALIFIED, a.claim());
+        assertEquals(CoveragePolicy.Claim.QUALIFIED, a.claim());
         assertTrue(a.allowed(), "refusing a computable number is as much a failure as printing a "
                 + "meaningless one");
         assertTrue(a.reason().contains("not TRACE"), a.reason());
@@ -112,22 +112,22 @@ class CoverageClaimTest {
     @Test
     @DisplayName("a sampled pairing qualifies too — it is not a whole-log claim")
     void aSampledPairingQualifies() {
-        CoverageClaim.Assessment a = assess(
+        CoveragePolicy.Assessment a = assess(
                 graph("OPENED", Set.of("priceListener", "quotePublisher"), true),
                 log(Set.of("priceListener", "quotePublisher"), "TRACE", 500, 41_000));
 
-        assertEquals(CoverageClaim.Claim.QUALIFIED, a.claim());
+        assertEquals(CoveragePolicy.Claim.QUALIFIED, a.claim());
         assertTrue(a.reason().contains("first 500 of 41000"), a.reason());
     }
 
     @Test
     @DisplayName("declared, fitting, TRACE — the one case where coverage means what it says")
     void everythingHoldingIsFull() {
-        CoverageClaim.Assessment a = assess(
+        CoveragePolicy.Assessment a = assess(
                 graph("OPENED", Set.of("priceListener", "quotePublisher"), true),
                 log(Set.of("priceListener", "quotePublisher"), "TRACE", 2, 2));
 
-        assertEquals(CoverageClaim.Claim.FULL, a.claim());
+        assertEquals(CoveragePolicy.Claim.FULL, a.claim());
         assertTrue(a.allowed());
     }
 
@@ -137,10 +137,10 @@ class CoverageClaimTest {
         SessionDriver d = driver();
         d.submit(graph("OPENED", Set.of("priceListener"), true));
         d.submit(log(Set.of("priceListener"), "TRACE", 1, 1));
-        assertEquals(CoverageClaim.Claim.FULL, d.processor().coverageClaim.assessment().claim());
+        assertEquals(CoveragePolicy.Claim.FULL, d.processor().coverageClaim.assessment().claim());
 
         d.submit(new SessionEvents.GraphObserved(false, null, null, Set.of(), List.of()));
-        assertEquals(CoverageClaim.Claim.REFUSED, d.processor().coverageClaim.assessment().claim(),
+        assertEquals(CoveragePolicy.Claim.REFUSED, d.processor().coverageClaim.assessment().claim(),
                 "a claim granted against a graph must not outlive it");
     }
 

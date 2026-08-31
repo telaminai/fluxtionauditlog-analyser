@@ -361,6 +361,20 @@ agents does — and that learning is the raw material for the template bootstrap
   different answer.
   One visible change: the `ignored` list is ordered by **precedence** rather than by the declaration
   order of a constant. Same set; the new order tells a caller which act would have won.
+- [M44.2f] ☑ **The attribution strip is a build step, not a habit (owner: "this is usually a maven
+  profile for me").** A `maven-antrun-plugin` execution inside `-Pregen`, bound after the scan goal, so
+  every regeneration strips the generator's copyright line whether anyone remembers or not. It was
+  manual for four regenerations and forgotten on three; `GeneratedSourceIsPublishableTest` caught each
+  one, **which is the guard working and the step being in the wrong place**. The script now does only
+  the three-mode fixture capture, which is the part Maven cannot express without three near-identical
+  profiles to drift apart.
+- [M44.2g] ☑ **`CoveragePolicy` extracted — everything is not a node (owner).** The four-way policy and
+  its sentences are now a plain class with no state and no lifecycle: a pure function of six facts,
+  testable with **no processor, no driver and no events**. `CoverageClaim` is 78 lines of gathering from
+  parents and writing the record. Both halves are tested — the policy directly for the branches that are
+  awkward to stage as an event sequence, and through the real graph, because a policy nobody wired up is
+  a policy nobody applies. The direct test immediately earned itself: it asserted every refusal carries
+  an actionable reason, and found *"no log is open"* was the one that did not.
 - [M44.2e] ☑ **`tools/regen-session-processor.sh`** — the regeneration dance is five commands and every
   one matters: skip the header strip and rule 1 fails, skip the fixtures and M45 fails against a graph
   that moved, skip the POM restore and the repo depends on an unreleased SNAPSHOT. Got wrong three

@@ -64,10 +64,10 @@ public final class ActionExecutor implements RenderExecutor {
      * executor scores as before, because a missing opinion must not become a refusal.
      */
     private java.util.function.Supplier<
-            telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim.Assessment> coverageClaim;
+            telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Assessment> coverageClaim;
 
     public void bindCoverageClaim(java.util.function.Supplier<
-            telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim.Assessment> claim) {
+            telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Assessment> claim) {
         this.coverageClaim = claim;
     }
 
@@ -232,7 +232,7 @@ public final class ActionExecutor implements RenderExecutor {
         // A QUALIFIED number is computable and must carry what it hides — refusing it would be as much
         // a failure as printing it bare.
         if (claim != null && claim.claim()
-                != telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim.Claim.FULL) {
+                != telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Claim.FULL) {
             out.put("claim", claim.claim().name().toLowerCase(java.util.Locale.ROOT));
             out.put("claimNote", claim.reason());
         }
