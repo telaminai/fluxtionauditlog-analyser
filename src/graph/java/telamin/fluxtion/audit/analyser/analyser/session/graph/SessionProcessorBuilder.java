@@ -13,6 +13,7 @@ import com.telamin.fluxtion.builder.generation.config.EventProcessorConfig;
 import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
+import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
@@ -71,6 +72,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         Pairing pairing = new Pairing(gate);
         AuditInstallation auditInstallation = new AuditInstallation();
         LogArrival logArrival = new LogArrival(gate, pairing, openGraph, effects);
+        CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -84,6 +86,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(pairing, "pairing");
         cfg.addNode(auditInstallation, "auditInstallation");
         cfg.addNode(logArrival, "logArrival");
+        cfg.addNode(coverageClaim, "coverageClaim");
 
         // WITH a level: invocation tracing is compiled in, so every node that runs appears in the record
         // whether or not it made an auditLog call of its own. That is the regime in which absence from

@@ -2511,6 +2511,7 @@ public final class MainFrame extends JFrame {
         logProvenance = null;          // §E: it described THAT log, not the next one
         loggedNodeSample = java.util.Set.of();   // the sample described THAT log too
         loggedSampleScanned = 0;
+        observedLevel = null;
         logProvenanceSource = null;
         declinedSourceGraph = null;    // review N1: that offer came with the log that just closed
         timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
@@ -3635,6 +3636,17 @@ public final class MainFrame extends JFrame {
     private java.util.Set<String> loggedNodeSample = java.util.Set.of();
     private int loggedSampleScanned;
 
+    /**
+     * The most verbose level any record in the sample was written at — a LOWER BOUND on the capture
+     * threshold and nothing more, which is exactly why {@code CoverageClaim} qualifies rather than
+     * refuses on it. Sampled with the ids, so it costs no extra pass.
+     */
+    private String observedAuditLevel() {
+        return observedLevel;
+    }
+
+    private String observedLevel;
+
     private void refreshLoggedNodeSample() {
         java.util.Set<String> logged = new java.util.LinkedHashSet<>();
         int scan = 0;
@@ -3646,13 +3658,19 @@ public final class MainFrame extends JFrame {
         }
         loggedNodeSample = logged;
         loggedSampleScanned = scan;
+        java.util.List<String> levels = new java.util.ArrayList<>();
+        if (store != null) {
+            for (int row = 0; row < scan; row++) levels.add(store.record(row).level());
+        }
+        observedLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels).mostVerbose();
     }
 
     private void noteLogState() {
         if (session == null || session.isDispatching()) return;
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved(
                 store != null, logDisplayLocation, logProvenance,
-                loggedNodeSample, loggedSampleScanned, store == null ? 0 : store.size()));
+                loggedNodeSample, loggedSampleScanned, store == null ? 0 : store.size(),
+                store == null ? null : observedAuditLevel()));
     }
 
     /** As {@link #noteLogState()}, for the topology graph. */
@@ -3668,7 +3686,8 @@ public final class MainFrame extends JFrame {
             }
         }
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved(
-                open, graphFile == null ? null : graphFile.toString(), "OPENED",
+                open, graphFile == null ? null : graphFile.toString(),
+                topologyPanel.graphSource() == null ? null : topologyPanel.graphSource().name(),
                 open ? topologyPanel.authoredNodeIds() : java.util.Set.of(), types));
     }
 

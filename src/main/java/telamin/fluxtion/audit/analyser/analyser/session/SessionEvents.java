@@ -109,7 +109,8 @@ public final class SessionEvents {
      *                      drawn from a sample must never be stated as a whole-log claim
      */
     public record LogObserved(boolean open, String logPath, String provenance,
-                              java.util.Set<String> loggedNodeIds, int sampled, int total) {
+                              java.util.Set<String> loggedNodeIds, int sampled, int total,
+                              String mostVerboseLevel) {
 
         public LogObserved {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
@@ -117,7 +118,12 @@ public final class SessionEvents {
 
         /** The shape slice 1 used, for callers with nothing to say about pairing. */
         public LogObserved(boolean open, String logPath, String provenance) {
-            this(open, logPath, provenance, java.util.Set.of(), 0, 0);
+            this(open, logPath, provenance, java.util.Set.of(), 0, 0, null);
+        }
+
+        public LogObserved(boolean open, String logPath, String provenance,
+                           java.util.Set<String> loggedNodeIds, int sampled, int total) {
+            this(open, logPath, provenance, loggedNodeIds, sampled, total, null);
         }
     }
 

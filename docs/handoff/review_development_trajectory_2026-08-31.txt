@@ -116,6 +116,59 @@ working than the next slice will. It is also the only evidence that would surviv
 "did the diagnostics programme pay for itself".
 
 ================================================================================
+4 · ADDENDUM — `fluxtion.framework` is wrong for a replaced framework auditor
+================================================================================
+
+FOUND by the session building the 1.0.14 snapshot, by reading. REPRODUCED here end-to-end against
+the emitted artefact, with that snapshot installed. This section is evidence for their finding, not a
+second report of it.
+
+**The reproduction.** An author registers their own auditor under the framework's own name — a
+supported call, and replacing the clock is a legitimate thing to want — then the graph is compiled
+with `-Dfluxtion.graphml.metadata=PARALLEL` and the emitted GraphML read back:
+
+    c.addNode(new H(), "handler");
+    c.addAuditor(new MyClockAuditor(), "clock");    // the author's own class
+
+    PROBE id=clock    framework=true   class=…ZzProvenanceProbe$MyClockAuditor
+    PROBE id=handler  framework=false  class=…ZzProvenanceProbe$H
+
+The author's class is published as compiler-created.
+
+**The mechanism, and why the fix is not only a removal.** `EventProcessorConfig` tracks provenance in
+`Set<String> frameworkAuditorNames`, written only by `addFrameworkAuditor`; the constructor seeds it
+via `clock()` with the name `"clock"`. `getAuditorMap()` is *also* keyed by name, so
+`addAuditor(mine, "clock")` replaces the INSTANCE under a name that remains in the framework set.
+Provenance is tracked by name while the thing it describes is an instance. Everywhere else on this
+branch the same question is answered by identity — `compilerCreatedNodes` is an `IdentityHashMap` —
+and the auditor route is the one place it is not.
+
+**The guarantee is stated exactly where it fails.** `getFrameworkAuditorNames()` documents:
+
+  "An author-registered auditor is absent from this set even if it shares a name, because the set is
+   written only by `addFrameworkAuditor`."
+
+The premise is true and the conclusion does not follow. That is worse than an unstated guarantee: a
+reader checking whether this case is handled will conclude that it is.
+
+**Why it matters to THIS repository.** `fluxtion.framework` moved to `emitted` in slice 5, and M45.4
+consumes it as "an honest coverage denominator". A false `framework=true` EXCLUDES an authored node
+from the denominator, so the error flatters the coverage number — the direction `NodeLogging`'s
+"excluding a node requires proof" rule exists to prevent. The trigger is narrow: an author
+registering an auditor under `clock`, the service-registry or the event-log-manager name. The failure
+is silent.
+
+**The pattern this is the second instance of.** A `fluxtion.framework`-shaped fact has now been wrong
+twice in a week — first as a package-prefix guess, now as a name-keyed set — and both times the value
+was `emitted` before its authority was complete. `topologicalRank` was the same shape: emitted, and
+reversed. **M45 should gate on `emitted` AND a named authority, not on `emitted` alone.** That is a
+cheap amendment to D-V2's basis marker and it would have caught all three.
+
+The branch's `FrameworkProvenanceTest` is the natural home for the fixture: every class in it already
+sits in `com.telamin.fluxtion.*` so a regression to package inference has somewhere to fail, and this
+case needs the mirror — an authored class under a framework NAME.
+
+================================================================================
 WHAT I VERIFIED FOR THIS DOCUMENT
 ================================================================================
 
@@ -123,7 +176,9 @@ CI history and the failing run's log, read directly rather than inferred from ti
 reproduction of the same resolution failure, including a forced `-U` attempt against the configured
 remote; the paired public commit and its contents; a green full reactor at `afad4ba` once that commit
 was installed (3,465 integration tests plus 170/21/14, zero failures); the tracker's own fingerprint
-disposition; the commits cited in §1, read in full.
+disposition; the commits cited in §1, read in full. For §4: the reproduction above was run against
+the emitted GraphML at `afad4ba` with the 1.0.14 snapshot installed, and the mechanism read in the
+public source at `fc8d776`.
 
 NOT verified: I did not run this repo's suite, re-run the baseline, or review the Spring codes and the
 relationship carrier internals beyond noting they landed. The judgements in §2 and §3 are opinion
