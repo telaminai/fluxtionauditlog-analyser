@@ -2,12 +2,12 @@ COMPILER DIAGNOSTICS / GRAPHML COMPLETION REVIEW
 ================================================
 
 Reviewed compiler branch: feature/compiler_diagnostics
-Reviewed head: f9e297292d0ea46190d1f4981f662c96623a36df (f9e2972)
-Incoming range reviewed: 89373a9..f9e2972
+Reviewed head: 7c55b2fe329d57469b43f0b1a897af9bff6162e5 (7c55b2f)
+Incoming range reviewed: 89373a9..7c55b2f
 Review date: 2026-08-31
 
-VERDICT: CHANGES REQUIRED BEFORE THE REMOTE, MODEL-AUTHORITY, AND SPRING SLICES
-CAN BE CALLED COMPLETE. Do not start the fingerprint on the present carrier shape.
+VERDICT: CHANGES REQUIRED BEFORE THE REMOTE, MODEL-AUTHORITY, SPRING, AND FINGERPRINT
+SLICES CAN BE CALLED COMPLETE. Do not add the remaining fingerprint carriers on the present shape.
 
 The implementation has valuable, production-tested progress. In particular, anchor semantics,
 per-relationship propagation, deterministic GraphML output, the public Java capture entry point,
@@ -15,6 +15,10 @@ and the Spring exception-hierarchy decision are sound. The full reactor is green
 of completion do not survive production-path probes, and the tracker currently records mutually
 exclusive states. The common failure is reachability: compatibility and factory-level tests prove
 components in isolation while the public path does not use them.
+
+The review first completed at f9e2972. Commit 7c55b2f landed while this handoff was being published,
+so the active branch was fast-forwarded and the fingerprint delta was reviewed too. F7 is specific to
+that final commit; F1-F6 remain present at the newer head.
 
 
 F1 — BLOCKER — Remote diagnostics exist in the response DTO but never cross a production boundary
@@ -61,9 +65,9 @@ by TRACKER.md:94-100 and 115-133.
 
 This is not a current GraphML-output regression: the production fixtures pass, and a review probe
 proved an anchor plus an ordinary reference on the same vertex pair preserves both ANCHOR and
-TRIGGER. It is a drift and identity defect. Hashing this mixture would bless whichever combination
-of dead carrier, mutable carrier and exporter inference happened to run, defeating the purpose of a
-model fingerprint.
+TRIGGER. It is a drift and identity defect. Commit 7c55b2f now hashes this mixture, blessing whichever
+combination of dead carrier, mutable carrier and exporter inference happened to run. That defeats the
+purpose of a model fingerprint even if its current output is stable.
 
 Required closure: choose and use one relationship type rather than retaining NodeRelationship as a
 dead parallel model; carry facts already held by NodeDto instead of reflecting them again; include
@@ -133,6 +137,38 @@ the promised element and suggested fix. Add the same code-level production asser
 other two before saying all three Ready codes are pinned.
 
 
+F7 — BLOCKER — The new fingerprint does not implement or test its declared canonical contract
+----------------------------------------------------------------------------------------------
+
+Commit 7c55b2f says the fingerprint is ready in GraphML. ModelFingerprintTest passes, but three
+properties claimed by the source/spec are absent from the implementation or the test:
+
+* ModelFingerprint's class contract says node dispatch rank is covered, and the normative metadata
+  spec lists topological rank in the canonical generation inputs. canonicalForm appends variable
+  name, class and callback kinds, then sorts the lines; it never reads
+  dto.getEventDispatchPositionMap(). Two models whose observable sibling dispatch rank differs can
+  therefore compare equal under the stated contract.
+* theCanonicalFormLeaksNoPathTimestampOrMachineName never calls canonicalForm, does not enable
+  metadata, and asserts only that the generated GraphML does not contain user.home. It checks neither
+  timestamps nor machine names and cannot fail if either is added to the fingerprint input. The
+  comment and tracker say exclusions are tested; they are not.
+* the stability test performs two builds in one JVM. It does not test the stated cross-run/machine
+  property. A fixed canonical fixture or a forked-process comparison is needed for the boundary that
+  makes this useful as an artefact identity.
+
+There is also a reviewability and encoding defect: ModelFingerprint.java contains literal NUL bytes
+as field separators. Git consequently reports the Java file as binary (`Bin 0 -> 8523 bytes`), hiding
+the implementation from ordinary diffs. Values are concatenated without length-prefixing or escaping,
+so a legal annotation string containing a separator or newline can also make the canonical encoding
+ambiguous. Use a textual, collision-safe encoding (for example length-prefixed UTF-8 fields), keep the
+source itself ordinary text, and add a delimiter-containing value test.
+
+Required closure: finish F2 first; define the versioned canonical input from that authority; include
+every promised behavioral field or narrow the normative contract deliberately; then test exact
+canonical bytes, cross-process stability, one-at-a-time sensitivity for dispatch/relationship/filter
+facts, and collision resistance. Replacing SHA-256 is not requested—the defect is its input contract.
+
+
 WHAT PASSED REVIEW
 ------------------
 
@@ -151,6 +187,9 @@ WHAT PASSED REVIEW
 6. Keeping SpringDiagnosticException under IllegalArgumentException while sharing DiagnosticCarrier
    is the right compatibility boundary. It avoids both breaking callers and the graph code's
    IllegalArgumentException-to-cycle conversion trap.
+7. At 7c55b2f, the new ModelFingerprintTest itself passes and the builder packages successfully. F7
+   is about the untested/omitted contract, not a claim that SHA-256 or the exercised sensitivity case
+   fails.
 
 
 RECOMMENDED ORDER
@@ -158,7 +197,7 @@ RECOMMENDED ORDER
 
 1. Fix F3 and F4 so one public local capture contract works for Java and Spring.
 2. Fix F1 with one real server/client round-trip test.
-3. Complete F2 and only then define or implement the fingerprint.
+3. Complete F2, then repair F7 before adding descriptor, generated-source or runtime carriers.
 4. Add F6's missing assertion and reconcile TRACKER.md from the resulting production facts.
 
 Do not change the GraphML default from OFF as part of these fixes. A PARALLEL-aware consumer remains
@@ -168,11 +207,13 @@ a separate published gate.
 REVIEW METHOD AND LIMITS
 ------------------------
 
-The review inspected 89373a9..f9e2972, traced production call sites, ran the focused suite and full
-reactor, and used disposable tests in a detached worktree for the three disputed runtime properties.
-The Spring-capture and nested-capture tests failed against f9e2972 as described; the anchor-pair and
-inherited-handler tests passed. The disposable worktree and probe files were removed after recording
-the results; no compiler source was changed by this review.
+The review inspected 89373a9..7c55b2f, traced production call sites, ran the focused suite and full
+reactor at f9e2972, and used disposable tests in a detached worktree for the three disputed runtime
+properties. The Spring-capture and nested-capture tests failed against f9e2972 as described; the
+anchor-pair and inherited-handler tests passed. After 7c55b2f arrived, the active branch was
+fast-forwarded, the fingerprint implementation/spec/test were inspected, the builder packaging gate
+passed, and ModelFingerprintTest passed through its reactor dependencies. The disposable worktree and
+probe files were removed after recording the results; no compiler source was changed by this review.
 
 Not verified here: a deployed remote compiler service, Java/Kryo behavior against a real previously
 released RemoteGenerationResponse class, or analyser rendering of PARALLEL GraphML. Those remain
