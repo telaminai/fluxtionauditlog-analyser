@@ -1,0 +1,151 @@
+DESIGN REVIEW — the Fluxtion compiler/builder, as read from outside
+Reviewed repository: fluxtion-compiler
+Reviewed revision: feature/compiler_diagnostics @ 3091862
+Reviewer: audit-log analyser session · Date: 2026-08-31
+Deeper proposal: fluxtion-compiler design/model-rationalisation/README.md
+                 (written with this review; uncommitted at time of writing)
+
+WHAT THIS IS
+
+Not a review of a change. A view of the compiler/builder design formed while doing three pieces of
+work inside it this week — reviewing the diagnostics slices, adding GraphML metadata, and tracing why
+each of those went wrong the first time. Offered because a reader from outside notices different
+things, and because two of the three defects found this week turned out to share one cause.
+
+Scope is stated up front rather than at the end: I read the dependency graph, the source-gen
+extractor, the model and DTO types, the GraphML exporter, the Spring adapter and the diagnostic
+package. I did NOT read the source generators or templates, the runtime, the Maven plugin, or the
+WASM/browser paths. So this is a view of roughly a third of the system, and the third that was under
+active repair — which biases what stood out, because a subsystem being worked on shows its seams.
+
+================================================================================
+WHAT THE DESIGN GETS RIGHT
+================================================================================
+
+1 · The central bet is sound, and one sentence in the source explains it better than the docs do.
+
+From the FLX-1009 javadoc: "Fluxtion's source generation IS serialisation — to Java source — so a
+field it must reproduce has to be expressible as a constructor argument."
+
+That framing makes a whole family of otherwise-arbitrary rules obvious at once: why final fields must
+be constructor-injectable, why node-local state has to be excluded, why the constructor-match failure
+is the commonest authoring error, and why "add a constructor" and "stop mapping this field" are
+opposite remedies rather than alternatives. It deserves to be the first paragraph an author reads,
+not a comment on a diagnostic they only meet after failing.
+
+2 · The distribution boundary is designed, not accidental.
+
+fluxtion-builder ships to users and runs in the browser; generator-core depends DOWN onto it and is
+cloud-only; the DTO crosses; GraphML is generated client-side because it needs live instances. The
+module's own pom states that intent in its own words, which is why an earlier review could settle the
+DTO-ownership question by citing the project rather than inferring from a dependency graph.
+
+3 · Constraints are recorded WITH their residual risk.
+
+The Java 8 pin is tied in a comment to sun.misc.Unsafe and CheerpJ — and then states the trap it
+leaves behind: with -source/-target rather than --release, javac links against the modern
+bootclasspath, so a Java 9+ stdlib call compiles silently and fails at runtime under CheerpJ. Most
+codebases record the decision. Recording what the decision leaves broken is rare and worth keeping.
+
+4 · One model, two dispatch targets.
+
+DescriptorDeriver is written once so an interpreted processor carries the same descriptor as its AOT
+twin. That is exactly the seam where drift normally sets in, and it has been closed deliberately.
+
+5 · The test suite is a genuine asset.
+
+3,400+ tests in roughly two minutes. That is what made a risky exporter change attemptable at all
+this week, and it is why the diagnostics work could move as fast as it did. Speed is a design
+property here, not an accident.
+
+================================================================================
+THE ONE STRUCTURAL WEAKNESS, AND IT IS ALREADY BEING CLOSED
+================================================================================
+
+The builder decides things it does not record, so later stages re-derive them by reflection — and
+each re-derivation is a chance to reach a different answer than the code that actually decided.
+
+Three defects, three subsystems, three reviewers, one week, one cause:
+
+* FLX-1009 misfiled a collection of genuine graph parents, and a renderable value field, as
+  node-local state — because the diagnostic re-derived a classification the mapper had already made,
+  and the two disagreed on the rule itself (equals versus identity).
+
+* The GraphML exporter could not see what the graph knew — because it receives Object vertices and
+  payload-free edges, so push, @NoTriggerReference and per-field multiplicity had to be re-reflected.
+
+* SPRING_BEAN_NOT_SELECTED reported beans that were in the graph — because the rule ran before nodes
+  were added and read wiring metadata instead of asking the thing that decides.
+
+All three are the same shape: the authority and the consumer are different code, and the consumer
+guesses.
+
+The encouraging half is that the remedy has already been applied twice, correctly, without anyone
+naming it as a pattern. FLX-1009 now routes source generation and the diagnostic's counterfactual
+through one ConstructorMatch decision object, so there is no second classifier left to drift. The
+Spring rule now walks the live objects the compiler walks. Both fixes are "ask the authority", and
+both landed because a reviewer ran the code rather than reading it.
+
+The third instance is open and already recorded in the compiler's own tracker as an owner-confirmed
+architecture gate: capture the per-field relationship where the graph adds the edge, carry it through
+the DTO, make the exporter serialization-only, and do not flip the metadata default before that. This
+review agrees with that framing and does not restate it — design/model-rationalisation specifies it.
+
+================================================================================
+SMALLER OBSERVATIONS, WITH THEIR WEIGHT STATED
+================================================================================
+
+N1 · The carrier layer already exists and is bypassed by one consumer. NodeDto carries the canonical
+class, the event-handler flags, resolved filter id and string, annotated methods, parent and child
+sets and sorted dispatch order. That is most of what the GraphML emitter re-derives by reflection.
+The pattern is not missing from the codebase — it is skipped by the one stage that reads the graph
+object instead of the model. This makes the fix much cheaper than it first appears.
+
+N2 · Changing the graph's vertex and edge types is contained. The DTO carries lists, maps and the
+pre-generated GraphML string — NOT the graph. So the graph object never crosses the serialisation
+boundary, and there is no Kryo ordering or serialVersionUID exposure in touching it. I expected the
+opposite before checking, and it is the single most useful fact for anyone costing this work.
+
+N3 · Object vertices force instanceof Class downstream. Node instances, event classes and exported
+service interfaces share one vertex type, and consumers tell them apart by testing for Class. It is
+ugly, but the artefact problem is solvable without changing it, so it is noted rather than proposed.
+
+N4 · The dispatch map is stringly-typed in the middle — nested maps keyed by strings, and callback
+keys of the form "variableName::methodName". It works and it is well covered. I am NOT proposing to
+change it; an accessor layer would be the cheaper answer if interrogability ever becomes the problem.
+Mentioned only so the observation is on record rather than rediscovered.
+
+N5 · Coverage is uneven in a specific and predictable way: very deep on graph semantics and generated
+behaviour, until this week essentially absent on emitted ARTEFACTS. The GraphML writer had
+well-formedness and node-presence checks and no assertion about content, which is how
+edgedefault="undirected" survived on a directed graph. The artefact tests added this week caught two
+real defects on their first run — a manifest/emitter drift, and a byte-instability that appeared only
+in the full suite because Class.getMethods() has no defined order. Both were caught by tests written
+before the defect was known, which is the argument for that kind of test rather than for more of the
+existing kind.
+
+N6 · The Spring adapter validates before it discovers. loadSpringConfig validates, then addNodes
+adds. Any rule that needs to know what ended up in the graph cannot run in the first phase. That is
+ordering, not logic, and it is worth knowing before the spec-3 semantic ids land against it.
+
+================================================================================
+WHAT I WOULD DO FIRST
+================================================================================
+
+1. Close the open instance of the pattern — capture the relationship at the edge, carry it, make the
+   exporter serialization-only. It unblocks the metadata default and removes the last reflection
+   walker. Specified in design/model-rationalisation.
+2. Write down, once, which code owns each derived fact. The failure mode has not been complexity; it
+   has been that nobody knew a second derivation existed.
+3. Keep the artefact tests. They are the cheapest defence against the quietest defect class in this
+   codebase.
+
+================================================================================
+WHAT I DID NOT CHECK
+================================================================================
+
+* Any part of the generator, runtime, Maven plugin or browser path.
+* Whether the observations here hold on main or release; everything is read at a feature branch under
+  active change, which moved twice while this was being written.
+* Performance of anything. No claim in this document is about speed except the test-suite timing,
+  which is measured.
