@@ -1,0 +1,194 @@
+FOLLOW-UP REVIEW — GRAPH METADATA EXPORTER SPIKE
+================================================
+
+Verdict: VALID SPIKE; CHANGES REQUIRED BEFORE MERGE
+
+Reviewed material
+-----------------
+
+Compiler repository/branch:
+  /Users/greg/IdeaProjects/telamin/fluxtion/fluxtion-compiler
+  feature/compiler_diagnostics @ 096d7413475d3922a4a523aa11a0ad51dafaea73
+
+All four reviewed inputs were uncommitted. Exact bytes:
+
+  docs/specs/meta-data-improvements/README.md
+    sha256 afaf8fef8b46d127900a6333aa0b922070ec00dcc98244ba9f17b031d491802e
+  docs/specs/meta-data-improvements/schema/fluxtion-graphml-keys-1.0.json
+    sha256 3469fd9e6d0980f0e82fe84fab8c389d62df90c0c4cbb32312871ca1178054c2
+  GraphMlFacts.java
+    sha256 61f18833945f17ae63eb88e1f9a790f09ebd27957dd5d3ff1c70368da82f1c36
+  JgraphGraphMLExporter.java
+    sha256 7cadce204edd99514eaf3d4de99d4c8839fb93c66c3823fe33a0bc73ec62856f
+
+No compiler or spec file was edited by this review.
+
+Correction to the previous review
+---------------------------------
+
+The author is right about the file model, and the previous review was too restrictive on this point.
+GraphML permits parallel edges, and JgraphGraphMLExporter controls the list and ids it writes. The
+compiler's SimpleDirectedGraph does not need to become a multigraph merely to emit one XML edge per
+semantic relation. The spike proves that event handlers collapsed in the scheduling graph can be
+expanded into separate GraphML edges.
+
+The still-valid part of the previous finding is that the scheduling graph must remain unchanged and
+the artefact needs a lossless relation inventory. The open implementation question is how that
+inventory becomes authoritative. The current spike recreates dependency discovery later with a
+second reflection walk. That is where the blocking correctness problems lie.
+
+Findings
+--------
+
+F1 — BLOCKING — The reflection expander is already a different dependency compiler
+
+TopologicallySortedDependencyGraph.walkDependencies and GraphMlFacts.referenceFacts do not apply the
+same rules:
+
+* the compiler skips transient fields and fields annotated @FluxtionIgnore; GraphMlFacts skips only
+  static fields. If a real parent is also cached in a transient/ignored field, the exporter invents
+  an additional relationship that execution does not have;
+* the compiler handles arrays; GraphMlFacts handles direct values and Collection only;
+* the compiler has a distinct MethodReferenceReflection/captured-instance path; GraphMlFacts cannot
+  recover it by comparing the wrapper field directly with the captured parent;
+* normal references are parent -> owner, but @PushReference is inserted owner -> referenced node.
+  The exporter always calls referenceFacts(target, source), so a push edge searches the referenced
+  node for a field pointing back to its owner and normally emits no push metadata;
+* anchors, injected/factory nodes, canonicalized equal instances, and other discovery rules will
+  continue to drift if two walkers must be maintained.
+
+This conflicts with the purpose of the feature: replace downstream inference with compiler facts.
+Reflection is appropriate for annotation values, but the relationship inventory should be captured
+where the compiler recognizes each relationship, or both graph construction and export should
+consume one shared classification routine. Do not infer the execution model for a second time after
+the simple graph has discarded multiplicity.
+
+F2 — BLOCKING — The emitted 1.0 vocabulary violates its own manifest
+
+The manifest contains 26 keys and says every emitter declares every key. FLUXTION_KEYS declares 19.
+The seven missing declarations are generatorId, sourceFingerprint, eventAudit, eventAuditLevel,
+exportedServices, requiredServices, and sourceLocation. The emitted document nevertheless says
+`fluxtion.metaVersion=1.0`.
+
+This is not harmless incompleteness: under the spec, an undeclared key means the producer cannot
+compute it, while the same 1.0 manifest says declaration is mandatory. Resolve the slice/version
+model before any metadata-producing path becomes the default. Either publish 1.0 only when complete,
+assign later keys to later minor versions, or explicitly represent producer capabilities.
+
+The constant table also creates a second manual source of truth beside the JSON manifest. Generate
+the declarations from a checked/generated Java registry or add the promised exact two-way
+conformance test before merging.
+
+F3 — BLOCKING — `propagates` still conflates different contracts
+
+The spike writes `OnEventHandler.propagate()` on event-handler edges and derives reference-edge
+propagation as TRIGGER=true, DATA/PUSH=false. These are not the same question. One controls whether a
+handler result continues downstream; another controls whether a reference triggers its owner;
+exported service propagation is method-shaped; filtering is selection. A single edge boolean cannot
+truthfully answer “does an update cross this edge” for all of them.
+
+Split the vocabulary by real carrier before emitting it. In particular, `refKind=DATA` is sufficient
+to state @NoTriggerReference, and handler result propagation should be named as such. Do not publish
+a simple boolean that an analyser or LLM will inevitably treat as one universal routing rule.
+
+F4 — BLOCKING — Several emitted values are false or unstable
+
+* An unreadable/missing filterVariable emits the variable NAME as `filterValue`. That is not the
+  resolved value and violates the file's “absent means absent” rule. Omit it or emit a separately
+  named unresolved reference.
+* Integer filter id 1 and filter string "1" both become the same text. Carry value kind/type.
+* topologicalRank uses getObjectSortedDependents(), which the DTO builder identifies as node
+  field/source order. Event dispatch order is getSortedDependents(), accounting for push direction.
+* framework is the acknowledged package-prefix heuristic and has already misclassified test code.
+  It must not ship under a key whose promise is compiler creation provenance.
+* callbackKinds depends on reflection iteration order. Its de-duplication uses substring search:
+  if START_COMPLETE is appended before START, `indexOf("START")` suppresses the distinct START value.
+  Use an enum/set and a fixed canonical order. SERVICE_DEREGISTERED is still absent.
+* auditCapableVia recognizes only the exact directly implemented EventLogSource interface; custom
+  subinterfaces and inherited interface paths can be reported as baseClass.
+* toolchainVersion is taken from GraphMlFacts' package Implementation-Version. That is builder
+  packaging identity, may be null in development, and is not proof of which source generator
+  produced the code.
+* generatedAt uses Instant.now(), making otherwise identical GraphML change every build before the
+  reproducible-build policy has been decided.
+
+These are acceptable limitations in an explicitly disposable spike. They are not safe values to
+publish as compiler-authoritative metadata.
+
+F5 — REQUIRED — The analyser accepts the XML but does not render parallel semantics
+
+The change is not a parser crash or a GraphML-format break:
+
+* GraphMlParser retains every `<edge>` as a separate ProcessorTopology.Edge;
+* ProcessorTopology's adjacency maps are endpoint sets, so reachability/focus reasoning collapses
+  duplicate endpoints and remains structurally stable;
+* new `<key>`/`<data>` elements are ignored without colliding with legacy label/style attributes.
+
+But the renderer is not compatible with the promised user experience. A direct probe with two a->b
+edges produced three parsed edges total and one adjacency child, then LayeredLayout returned the two
+a->b EdgePaths with exactly identical point lists. TopologyCanvas therefore paints them directly on
+top of each other. The HUD reports both edges, while the picture looks like one; none of the new
+filter/reference data is parsed or shown. Duplicate edges also participate repeatedly in indegree,
+median and crossing calculations, so relation multiplicity can change layout weighting without
+creating visible distinction.
+
+Therefore:
+
+* this is not a hard backward-breaking change for the current analyser;
+* it is a visible semantic compatibility change and currently fails the feature's purpose;
+* coordinate the compiler output with an analyser model/parser change and a parallel-edge rendering
+  policy (offset/curved lanes, aggregation with an explicit multiplicity/details affordance, or a
+  selected-edge detail view);
+* add a producer-generated GraphML fixture to the analyser and test parse, adjacency, layout,
+  rendering semantics and edge count before enabling expanded edges by default.
+
+F6 — REQUIRED — The spike is globally enabled, not isolated
+
+exportToString always invokes GraphMlFacts and therefore changes every generated GraphML: new header
+vocabulary, graph timestamp, edge ids/order, corrected direction, and possibly expanded edge count.
+The older public export overload remains legacy, but the main generation path does not offer a flag
+or negotiated version.
+
+That is too early while the vocabulary is proposed and known values are wrong. Keep it as an
+experimental branch/spike, or gate it explicitly until the contract and consumer test pass. The
+`edgedefault` fix is independent, correct, and suitable for a separate small change now.
+
+Answer to the owner's questions
+-------------------------------
+
+Are these changes too early?
+
+* Not too early to spike: the experiment disproved an unnecessary multigraph redesign and is highly
+  valuable.
+* Too early to merge as production output: it emits known heuristics and false/ambiguous facts under
+  a versioned authoritative vocabulary, and it is enabled for every generated graph.
+* The direction fix can be separated and shipped. Other unquestionably additive node/graph facts can
+  follow only when their provenance and manifest version are honest.
+
+Are they breaking changes for the analyser renderer?
+
+* They do not break parsing, adjacency, focus traversal, or layout execution.
+* They do change visible semantics: parallel relations are counted separately but drawn on the same
+  pixels, metadata is discarded, and duplicate multiplicity can affect layout weighting.
+* Treat this as a coordinated renderer feature, not as transparent backward compatibility.
+
+Recommended order
+-----------------
+
+1. Preserve the spike and its probe as evidence; do not merge it unchanged.
+2. Merge the independent directed-graph correction with strict XML/GraphML tests.
+3. Finalize carrier-specific relation semantics and the manifest version/slice rules.
+4. Capture authoritative relations during dependency discovery or through one shared classifier.
+5. Extend ProcessorTopology.Edge and GraphMlParser, choose a visible parallel-edge treatment, and
+   add the compiler-produced cross-repository fixture.
+6. Enable versioned metadata output only after compiler and analyser acceptance pass together.
+
+Verification boundary
+---------------------
+
+This review read the uncommitted compiler/spec bytes and the analyser parser, topology, layout and
+canvas paths. It executed an analyser-side JShell probe with two parallel a->b edges: parsing retained
+both, adjacency returned one child, and layout returned coincident EdgePaths. It did not run the
+compiler suite because another independent reviewer was already exercising the same uncommitted
+worktree. The author's reported full-suite result is therefore recorded but not independently
+claimed here.
