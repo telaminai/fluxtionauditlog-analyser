@@ -378,13 +378,22 @@ Split:
       `sessionEndEcho`'s predict-before-the-switch capture. All nine project entrances — menu, recent,
       import dialog, template, new-project, new-project-exists, fork, close, socket — now state a
       `TransitionKind` and go through one funnel.
-- [ ] ~~**Behavioural characterisation tests written against the OLD implementation first.**~~ **NOT
-      DONE, and it could not be**: the old implementation is `MainFrame`, and rule 4 of this repo does
-      not unit-test Swing on headless CI. The replay suite is derived from reading the old code —
-      including its own comments, which is where `ADOPT_FOR_OPEN_LOG` came from — and equivalence is
-      verified by building and running the jar. **This is a real gap in the evidence and is recorded
-      rather than papered over**: what is proven is that the processor implements the rules as written
-      down, not that the rules as written down are byte-for-byte what the callbacks did.
+- [x] ~~**Behavioural characterisation tests written against the OLD implementation first.**~~ **Not
+      possible as asked, and closed a different way.** The old implementation is `MainFrame`, and rule 4
+      does not unit-test Swing on headless CI, so there was nothing to characterise against. Instead
+      **`tools/verify-session-transitions.py` drives the rules through the BUILT JAR** over the
+      assistant socket, which reaches the same `SessionDriver` and the same `SessionBoundary` node as
+      the menus — only the failure rendering differs. 23 checks, all passing: the switch closes, the
+      no-op does not, a bad path costs nothing, leaving restores, the echo reports what closed rather
+      than predicting it, and **nothing reaches stdout across the whole session**. Both load-bearing
+      claims are mutation-checked against a rebuilt jar: making `EXPLICIT_SWITCH` not end the session
+      fails four checks, and moving the sink attachment back after `init()` fails the stdout check.
+      **The residue, stated exactly:** five entrances exist only behind a dialog —
+      `ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`, `STARTUP_ACTIVATION` and the import dialog's *open as
+      project*. They reach the same decision node with a different kind, so the *rule* is covered;
+      whether each call site passes the *right kind* is verified by reading, not by running.
+      `ADOPT_FOR_OPEN_LOG` is the one worth a human's two minutes, because it is the exception a reader
+      is most likely to think is a bug.
 
 **Later slices** — one row per decision in §6, each deleting its old branch in the same commit.
 

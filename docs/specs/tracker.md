@@ -166,9 +166,16 @@ agents does — and that learning is the raw material for the template bootstrap
   Three framework facts came from reading runtime 1.0.13: the audit "setters" are dispatches; `logLevel()`
   after `init()` silently does nothing because loggers are stamped at registration; and the runtime prints
   to stdout when it handles an audit control event.
-  ☐ **Gap recorded, not papered over:** the review asked for behavioural characterisation tests against
-  the old implementation first. The old implementation is Swing, which rule 4 does not unit-test, so the
-  replay suite specifies the rules as read from the old code rather than proving byte-equivalence with it.
+  ☑ **The Swing evidence gap, closed the only way it could be.** The review asked for behavioural
+  characterisation against the old implementation; the old implementation is Swing, which rule 4 does not
+  unit-test. So **`tools/verify-session-transitions.py`** drives the rules through the **built jar** over
+  the assistant socket — the same driver and the same decision node the menus reach — under an isolated
+  `user.home` so it never touches a real configuration. 23 checks pass, including that **nothing reaches
+  stdout across ~20 transitions**, and both load-bearing claims are mutation-checked against a rebuilt
+  jar. ☐ **Residue:** the five dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`,
+  `STARTUP_ACTIVATION`, import-as-project) reach the same decision with a different kind — the rule is
+  covered, the per-call-site kind is read rather than run. `ADOPT_FOR_OPEN_LOG` is worth a human's two
+  minutes before release.
 - [M44.2] ☐ **Next slices:** `IgnoredParameters`, then split `GraphPairing` /
   `AuditInstallationReadiness` / `CoverageClaim` (the review's F3 — three questions the first draft merged
   into one). Then move log and graph OPENING, which deletes `LogObserved`/`GraphObserved` and with them
