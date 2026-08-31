@@ -1,0 +1,224 @@
+REVIEW — complete compiler diagnostics / Spring diagnostics / GraphML branch
+Compiler branch: feature/compiler_diagnostics
+Reviewed head: 8ff07e02682f6c6b2a7fce327e8d553bb7407a68
+Merge base / compiler origin/main: a0e6adcb1f28022bc1a737ff23ac24f3cecb129f
+Paired public source: fluxtion origin/develop @ 5a5b5ae2b4551c677c19bb07b698cf4cad08c9d3
+Date: 2026-09-01
+
+VERDICT: CHANGES REQUIRED BEFORE RELEASE OR ENABLING GRAPHML METADATA
+
+The direction is strong. The branch has replaced inferred compiler decisions with recorded model
+facts, made diagnostics structured without changing legacy prose, preserved both released wire
+formats, and put the fingerprint into GraphML and generated descriptors. A clean full reactor is
+green. This review nevertheless found two false public GraphML facts in that green run, plus one
+reachability gap in the normal remote compile path. Default metadata OFF remains the correct safety
+position. Do not flip it or call the diagnostics loop complete until F1–F3 are closed.
+
+Scope: origin/main...8ff07e0, 101 files, approximately 18,378 insertions. Earlier review rounds were
+read newest-first and their accepted fixes were checked at HEAD; this report concentrates on defects
+or contradictions that remain in the combined branch rather than replaying closed findings.
+
+===============================================================================
+F1 — BLOCKER: author-owned anchor nodes are emitted as framework plumbing
+===============================================================================
+
+The branch says `fluxtion.framework` is exact because provenance is recorded rather than inferred.
+The production GraphML fixture refutes that claim.
+
+`GraphMlRelationDivergenceTest.documentText` explicitly creates and registers fifteen authored
+nodes, including:
+
+    c.addNode(anchorFirst, "anchorFirst");
+    c.addNode(anchorSecond, "anchorSecond");
+    Anchor.anchor(anchorFirst, anchorSecond);
+
+The clean focused run emitted both authored classes with:
+
+    <node id="anchorFirst">  ... <data key="fluxtion.framework">true</data>
+    <node id="anchorSecond"> ... <data key="fluxtion.framework">true</data>
+
+and emitted `fluxtion.authoredNodeCount=13`, exactly two short of the fifteen calls above.
+
+Cause: `Anchor.anchor` sends the same instances through `GeneratorNodeCollection`. The graph
+constructor first adds them to `authoredNodes` from EventProcessorConfig, then unconditionally adds
+every `GenerationContext.getNodeList()` member to `compilerCreatedNodes`. `ModelView.isCompilerCreated`
+tests only membership in the latter, so dual registration is resolved in favour of framework even
+though the caller supplied the objects explicitly.
+
+Do not repair this in the exporter. Decide ownership at registration and carry it. At minimum, an
+explicit author registration must take precedence over the same identity arriving through the
+generation context. Before choosing a set subtraction, audit what GenerationContext actually owns:
+`Anchor.anchor` proves that “context node” is not synonymous with “compiler-created node”. Pin the
+exact production fixture above and assert both per-node values and authoredNodeCount. Also retain the
+existing auditor replacement test; it covers a different collision axis (name, not identity).
+
+This blocks `fluxtion.framework`, `authoredNodeCount`, and any analyser coverage result derived from
+them. The generated processor itself is unaffected.
+
+===============================================================================
+F2 — BLOCKER: the GraphML manifest excludes an emitted ANCHOR and its gate cannot see it
+===============================================================================
+
+The producer emits `fluxtion.refKind=ANCHOR` for the production anchor edge. The normative manifest
+entry has:
+
+    "type": "TRIGGER|DATA|PUSH|ANCHOR",
+    "values": ["TRIGGER", "DATA", "PUSH"]
+
+So ANCHOR appears in prose embedded in `type` but is absent from the machine-readable allowed values.
+The manifest convention used by the other finite vocabularies is `type: enum` plus `values`.
+
+`GraphMlMetadataTest.assertValueMatchesManifest` validates allowed values only when `type` is exactly
+`enum` or `list`. It therefore skips refKind completely, which is why the full suite is green while
+the producer emits a value the manifest's values array denies.
+
+Make refKind an enum, add ANCHOR to `values`, and drive the anchor-producing document through the
+manifest value check. The gate must validate every finite vocabulary from the manifest rather than
+recognising only two literal type spellings and silently treating every other spelling as free text.
+
+This is not merely documentation drift: the file is advertised as the machine-readable contract a
+consumer uses to implement GraphML 1.0.
+
+===============================================================================
+F3 — HIGH: remote diagnostics cross the endpoint but are discarded by Fluxtion.compile
+===============================================================================
+
+The side-band envelope is a sound answer to Kryo's positional field compatibility problem, and the
+direct endpoint test proves a report reaches `RemoteHttpCombinedGenerator.serverDiagnosticsJson`.
+No production caller consumes that field.
+
+`EventProcessorGenerator` invokes:
+
+    new RemoteHttpCombinedGenerator().generateSourceFromDto(dto, sgc)
+
+and immediately discards the generator. Repository-wide, the getter is read only by the direct HTTP
+test. On a coded server failure the client then throws an ordinary IllegalStateException, not a
+DiagnosticCarrier. Consequently:
+
+* `FluxtionDiagnostics.capture(() -> Fluxtion.compile(...))` cannot receive server diagnostics;
+* the diagnostic sidecar written by the normal compile path cannot contain them;
+* successful remote warnings are equally unreachable;
+* only a caller bypassing Fluxtion.compile and manually retaining the HTTP client can read the JSON.
+
+The tracker does disclose that merging the wire document into the local DiagnosticReport remains
+open, so this is not hidden work. It does mean “remote endpoint transport DONE” is not yet delivery
+through the public compiler seam. Add a wire-contract reader, merge the report at EventProcessorGenerator,
+and pin both success and coded-failure paths through Fluxtion.compile—not only through the lower-level
+HTTP client. Preserve the JSON document as the transport contract; parsing at the consumer boundary
+does not require putting diagnostic object graphs on the wire.
+
+===============================================================================
+F4 — MEDIUM: the active tracker and normative metadata spec contradict the code
+===============================================================================
+
+The tracker’s current-state table says the Spring collector is “NOT reached” and nested capture is
+“Broken”. Later in the same file they are marked DONE, and PublicCaptureContractTest proves the fixes.
+The same table calls model authority partly closed using three defects later recorded as closed.
+
+The fingerprint rows also mix generations of the design: current code and DescriptorFingerprintTest
+put the digest in GraphML and generated DescriptorSupport.Meta, while the metadata manifest/README
+still say the descriptor emits null or that those carriers remain open. The model-rationalisation
+authority table similarly carries earlier partial states after the tracker declares them complete.
+
+Rationalise from the code and current accepted decisions once, then remove the superseded status
+claims. Keep historical mistakes in review history, not in the current-state table. At present a cold
+implementer cannot tell which of two opposite statements is normative.
+
+===============================================================================
+F5 — MEDIUM: the event-walk cliff fix has no regression test for the graph that exposed it
+===============================================================================
+
+8ff07e0 adds `eventWalkCompleted` and reports a measured improvement from 117 seconds at 480 nodes to
+about 20 ms. The implementation is plausible and the broad parity goldens remain byte-identical, but
+the commit adds no test. Those goldens contain small graphs and cannot fail if the completed-node
+guard is removed and path-exponential traversal returns.
+
+Add a shared-subgraph/diamond fixture that actually has many paths, verifies the exact event edges,
+and proves pass 2 is not skipped after the completed set is cleared. Avoid a tight wall-clock
+assertion; expose/count completed visits or use a bounded large fixture with a generous timeout. The
+performance result is valuable enough to make executable, especially because this compiler runs in
+a metered remote service.
+
+===============================================================================
+N1 — harden the new envelope before production deployment
+===============================================================================
+
+The compatibility design is accepted: old clients send plain bodies and receive byte-identical plain
+responses; new facts ride beside untouched Java/Kryo payloads. Before deployment, add these pins:
+
+* a real old-server negotiation test: first request receives 415, second is plain and succeeds;
+* clear `serverDiagnosticsJson` at the start of every call, otherwise reuse after a plain fallback or
+  failed call exposes the previous call's report as “the last call”;
+* fix/test `meta(metaValue)` for carriage return (`escape` emits `\\r`, but `metaValue` currently
+  restores the letter `r` rather than CR), or replace the scanner with a small correct JSON reader;
+* run one acceptance through the deployed gateway with the custom content type. The local Javalin
+  endpoint proves the application but not that Cloudflare/RapidAPI preserves the new envelope type.
+
+These do not invalidate the envelope decision. They close its untested boundaries.
+
+===============================================================================
+WHAT HELD UP
+===============================================================================
+
+* Java hard diagnostics are production-wired; constructor classification now consumes mapper-owned
+  facts rather than reflecting a second answer. Mixed reference/state failures report both sides.
+* Cycle diagnostics use an edge-valid path and execute before recursion can overflow.
+* Spring diagnostics use live-object reachability where BeanDefinition metadata was insufficient.
+  The public capture scope now reaches successful Spring warnings and restores/forwards nested scopes.
+* GraphML relationship kind, field, multiplicity and propagation are carried by one compiler record;
+  the exporter projects it. Mixed relationships retain independent truth in PARALLEL and avoid an
+  invalid scalar boolean in AGGREGATED.
+* The source fingerprint canonical form now includes dispatch rank, is length-prefixed rather than
+  delimiter-ambiguous, and is compared across a forked JVM. The descriptor carrier matches GraphML.
+* The released 1.0.64 request golden is genuine Java ObjectOutputStream bytes and deserialises at HEAD.
+* Kryo field evolution was measured rather than assumed; removing the added response field and using
+  a negotiated side-band envelope preserves released payload shape.
+* The framework-auditor name-replacement defect from the prior review is fixed in public commit
+  5a5b5ae and pinned through the emitted artefact. F1 above is a separate generation-context identity
+  collision.
+
+===============================================================================
+EXECUTION EVIDENCE
+===============================================================================
+
+Focused production-path suite at 8ff07e0: PASS.
+
+    PublicCaptureContractTest
+    FrameworkProvenanceTest
+    GraphMlMetadataTest
+    GraphMlRelationDivergenceTest
+    ModelFingerprintTest
+    WireEnvelopeTest
+    ReleasedDtoWireGoldenTest
+    BomBaseVersionGateTest
+    Phase19RestCompilerTest
+
+Clean full reactor at 8ff07e0 with Java 21: PASS.
+
+    fluxtion-builder             193 tests, 0 failures/errors
+    fluxtion-generator-core       21 tests, 0 failures/errors
+    fluxtion-generator-http       16 tests, 0 failures/errors
+    fluxtion-integration-tests 3,473 tests, 0 failures/errors, 7 skipped
+
+Command:
+
+    env JAVA_HOME=<jdk-21> PATH=<jdk-21>/bin:/usr/bin:/bin ./mvnw -q clean test
+
+`git diff --check origin/main...8ff07e0` is clean. Compiler worktree was not edited; its only
+pre-existing entry remains untracked `tmp/`.
+
+===============================================================================
+RECOMMENDED ORDER
+===============================================================================
+
+1. Fix F1 at the provenance authority and add the anchor/author production assertion.
+2. Fix F2 and make manifest value validation cover every finite vocabulary.
+3. Route server reports into the public compile/capture/sidecar path (F3), with success and failure.
+4. Rationalise the tracker, model note and metadata spec (F4).
+5. Pin the event-walk regression and envelope boundaries (F5/N1).
+6. Rerun the clean reactor, the analyser’s compiler-produced GraphML shape test, and a live gateway
+   envelope acceptance. Keep metadata default OFF until the analyser accepts PARALLEL output.
+
+Still explicitly outside this completed branch: runtime audit fingerprint carrier (graph/log pairing),
+`fluxtion.eventAudit`, public per-code error documentation, replay diagnostics, FLX-1002 policy,
+FLX-1004, FLX-1020, and the accepted PARALLEL consumer/default flip.
