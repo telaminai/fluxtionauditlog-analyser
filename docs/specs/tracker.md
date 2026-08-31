@@ -109,7 +109,7 @@ Both are settled decisions rather than open work, so their rationale now lives i
 agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
 they produced are unchanged and remain under **Decisions** below.
 
-## M44 · Session transitions as a Fluxtion processor — ☐ SPEC'D 2026-08-30
+## M44 · Session transitions as a Fluxtion processor — ☐ SPEC'D 2026-08-30, REVISED 2026-08-31
 
 _The first application of the review's standing architecture rule, and the owner's reason for choosing it:
 **using Fluxtion in a real application accelerates what we learn about it far more than measuring other
@@ -120,20 +120,33 @@ agents does — and that learning is the raw material for the template bootstrap
   state, rules with consequences, and behaviour currently spread across Swing callbacks. **M35 spent
   eleven slices** getting these rules right and they still live in listeners rather than anywhere readable
   as rules.
-  **Feasibility settled first, because it decides the shape:** the analyser today has **no Fluxtion
-  dependency at all** — FlatLaf is its only runtime dep. This adds **`fluxtion-runtime` only** (owner,
-  2026-08-30), 0.6 MB against a 2.1 MB fatjar. Generation is a hosted service, so the processor is
-  generated once and **committed as source**, exactly as the starter bundle does: `mvn test` and CI stay
-  keyless, and a key is needed only to change the graph. **The analyser therefore eats its own dog food in
-  precisely the configuration it recommends** — if that arrangement is awkward for us it is awkward for
-  every user, and we find out first.
-  **Two deliverables**: the processor, and a record of what a real author hits. The spec registers its
-  learning predictions **before** the work so they can be wrong — the `transient` rule biting us despite
-  knowing about it, the adapter boundary being harder than the graph, effect requests multiplying, and
-  whether the audit log is genuinely useful for our own debugging. That last one is the claim we make to
-  buyers, so a negative answer is the most valuable result available.
-  **First slice moves ONE decision** — `SessionBoundary` — end to end, proving the boundary and the build
-  shape before anything depends on them. And we inherit [fluxtion#25](https://github.com/telaminai/fluxtion/issues/25)
+  **Feasibility, corrected by BUILDING it rather than reading POMs** (review, 2026-08-31): the analyser
+  today has **no Fluxtion dependency at all** — FlatLaf is its only runtime dep. This adds
+  **`fluxtion-runtime` 1.0.13** (owner, 2026-08-30) **plus `agrona` transitively, plus a repository this
+  project does not declare** — the artefact is not on Central. Measured shaded cost **+1,164,013 bytes**
+  (2.21 MB → 3.37 MB), not the 0.6 MB first claimed: that counted the direct jar and omitted its
+  transitive. Still acceptable; the description was not. Generation is a hosted service, so the processor
+  is generated once and **committed as source**: `mvn test` and CI stay keyless, and a key is needed only
+  to change the graph — with the graph builder in a `-Pregen` source root so the default build never
+  resolves the builder. **The analyser therefore eats its own dog food in precisely the configuration it
+  recommends.** ☐ **Blocker before the dependency lands:** the runtime's published POM declares AGPL-3.0
+  and the analyser is source-available commercial — record the combination decision (D-S1.2).
+  **The review's central finding, and the reason the spec was rewritten rather than patched:** requests,
+  fallible IO results, authoritative state and completed effects were collapsed together, so *"the first
+  audit log would describe intended transitions rather than what the application actually did"* — the
+  exact failure this product refuses in other people's systems. §0 is now a five-fact transaction model
+  (request → decision → effect request → adapter result → authoritative state), state nodes advance only
+  on completed facts, and `EffectOutcome` is the only record that proves anything happened.
+  **Two deliverables**: the processor, and a record of what a real author hits. **One prediction has
+  already scored:** *"effect requests will multiply"* — CONFIRMED at spec review before a line was
+  written, five effects and the whole result half of the event table missing, with restore-settings found
+  hiding in `closeProject()`. Three framework facts were also wrong or absent until someone read runtime
+  1.0.13: the dependency size, that the audit "setters" are `onEvent` dispatches, and that the no-arg
+  `EventLogManager()` **defaults its sink to `System.out`** — so a forgotten `setAuditLogProcessor` prints
+  every audit record to stdout instead of losing it. Rule 6 earning its place again.
+  **First slice moves ONE decision** — `SessionBoundary` — end to end with its **own independently green
+  acceptance set** (the first draft's acceptance described the finished graph, which would have left slice
+  one permanently red). And we inherit [fluxtion#25](https://github.com/telaminai/fluxtion/issues/25)
   immediately: tracing is fixed at generation time, so we live with the constraint we just filed.
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS

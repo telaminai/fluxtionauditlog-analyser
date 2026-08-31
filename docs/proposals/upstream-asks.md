@@ -1208,6 +1208,32 @@ Every rejection code should carry a stable URL (`fluxtion.dev/errors/FLX-1001`).
 semantics in `claude.txt` reachable **at the moment of failure**, rather than requiring an agent to have
 read them up front — which is precisely where inference creeps in.
 
+### UP-SHARED-03 ☐ The published POM declares a narrower licence than the source headers
+
+**Target** `fluxtion` release config · **Priority** medium — cheap to fix, awkward to discover late
+
+Found 2026-08-31 while settling M44's dependency question, by reading the artefact rather than the docs.
+
+`fluxtion-runtime` 1.0.13 ships two different licence statements:
+
+| where | says |
+|---|---|
+| published `fluxtion-runtime-1.0.13.pom` | `GNU AFFERO GENERAL PUBLIC LICENSE, version 3` — alone |
+| every source header in `-sources.jar` | `SPDX-License-Identifier: AGPL-3.0-only OR SSPL-1.0` |
+
+A consumer doing licence review reads the POM, because that is what tooling reads. **They therefore see a
+narrower grant than the sources actually offer**, and a dual-licence option that exists is invisible to
+exactly the audience it was added for. Every automated SBOM and licence scanner in the ecosystem will
+record AGPL-only.
+
+Ask: make the two agree — declare both licences in `<licenses>`, or correct the headers if the POM is the
+intended grant. Either direction is fine; the discrepancy is the defect, and it is one line of release
+config.
+
+*Adjacent, same file:* the source headers also carry a personal email on a **domain matching the fourth
+sweep term** of this repo's CLAUDE.md rule 1. That is upstream's call to make, not ours, but it is worth
+knowing that it ships in every `-sources.jar`.
+
 ---
 
 ## 5 · Mongoose — the agent-brokered dev loop
