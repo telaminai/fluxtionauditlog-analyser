@@ -146,4 +146,25 @@ not that a payload written by last month's client still reads.
 now and check them in **without** the test. Capturing them is only possible while 1.0.64 is still the
 last release; writing the test can wait. Losing the ability to capture them cannot.
 
+**DONE — step 1 is captured and is waiting for you.** `docs/handoff/artefacts/dto-wire-golden-builder-1.0.64.bin`,
+27,027 bytes: the exact payload a real `mvn -Pregen process-classes` on builder 1.0.64 puts on the wire,
+recorded by pointing `fluxtion.remote.host`/`port` at a forwarding proxy. Not constructed — recorded. It
+is parked in this repo because the compiler tree was mid-merge; **please move it.** Provenance and hygiene
+notes are beside it.
+
+**Capturing it changed the recommendation, which is the argument for capturing rather than reasoning.**
+The payload begins `ac ed 00 05` — `ObjectOutputStream` stream magic. **A default AOT Maven build takes
+the Java-serialization path, not Kryo.** `DtoWireCompatibilityTest` gates a Kryo registration-id shift and
+says in its own words that a `serialVersionUID` change is not the failure mode it worries about. That gate
+is correct, and its append-don't-insert rule is right — but it covers the format the default path does not
+use. Both are real; one has a golden, and this is the other.
+
+The Java path is not unguarded: `TopologicallySortedDependencyGraphDto` and `NodeDto` both pin
+`serialVersionUID`, which is the right mechanism. What a pinned UID does not cover is a changed field
+*type* or class hierarchy — which throws at the receiver just the same, and is what deserialising this
+file at HEAD would catch.
+
+So the four steps stand, with step 1 done and one correction: **the test to write first reads this file
+with Java serialization**, because that is the path a released client actually takes.
+
 If after that the answer is still "accepted risk", say it once and we will stop raising it.
