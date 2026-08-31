@@ -175,17 +175,17 @@ reachability question it answered was worth asking, and the answer has to be *re
 changes. That is a real Maven build driving a real consumer, and it answers the reachability question and
 unblocks the pinned comparison run in one step. **Nothing ships from this slice** — it is measurement.
 
-**M45.2 — read the vocabulary, change no behaviour.** Parse and expose `metaVersion`, node keys and edge
+**M45.2 — read the vocabulary, change no behaviour. ☑ DONE 2026-08-31.** Parse and expose `metaVersion`, node keys and edge
 keys; record which mode a file is in; refuse `AGGREGATED` per D-V1. Every existing surface keeps its
 current answer. This is the slice that makes the rest safe, because it separates *reading* from *acting*.
 
-**M45.3 — the audit trio.** `auditCapable`/`auditCapableVia`/`eventAudit` demote the `EventLogManager`
+**M45.3 — the audit duo. ☑ DONE 2026-08-31.** `auditCapable`/`auditCapableVia`/`eventAudit` demote the `EventLogManager`
 heuristic to a fallback and let a surface say *ran and said nothing* rather than hedging. Carries D-V2's
 basis marker. This is where the product claim actually improves.
 
 **M45.4 — the honest denominator.** `fluxtion.framework` demotes `Scaffolding`.
 
-**M45.5 — parallel edges and dispatch rank.** The rendering work of D-V3, plus `topologicalRank` as a
+**M45.5 — parallel edges and dispatch rank. ☑ DONE 2026-08-31 — this is the slice upstream's default-flip is gated on.** The rendering work of D-V3, plus `topologicalRank` as a
 column.
 
 **M45.6 — the builder bump.** Move `-Pregen` off 1.0.64, regenerate, re-pin `SessionGraphShapeTest`.

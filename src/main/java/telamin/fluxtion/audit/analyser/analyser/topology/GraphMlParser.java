@@ -73,7 +73,17 @@ public final class GraphMlParser {
             builder.setErrorHandler(SILENT);
             Document doc = builder.parse(
                     new ByteArrayInputStream(graphMlText.getBytes(StandardCharsets.UTF_8)));
-            return new ProcessorTopology(readNodes(doc), readEdges(doc));
+            java.util.List<ProcessorTopology.Edge> edges = readEdges(doc);
+            boolean aggregated = edges.stream()
+                    .anyMatch(e -> e.fact("fluxtion.relationshipCount") != null);
+            java.util.Map<String, ProcessorTopology.Node> nodes = readNodes(doc);
+            boolean anyFact = aggregated
+                    || edges.stream().anyMatch(e -> !e.facts().isEmpty())
+                    || nodes.values().stream().anyMatch(n -> !n.facts().isEmpty());
+            java.util.Map<String, String> graphFacts = readFluxtionData(firstGraphElement(doc));
+            anyFact = anyFact || !graphFacts.isEmpty();
+            return new ProcessorTopology(nodes, edges,
+                    GraphVocabulary.of(graphFacts, aggregated, anyFact));
         } catch (Exception e) {
             return ProcessorTopology.empty();
         }
@@ -110,11 +120,15 @@ public final class GraphMlParser {
             // the label's id: wins if present — it is the authoritative instanceId — but the attribute
             // is the fallback, and in every emitted graph seen so far they agree
             String instanceId = fields.getOrDefault("id", id);
+            java.util.Map<String, String> facts = readFluxtionData(node);
             nodes.put(instanceId, new ProcessorTopology.Node(
                     instanceId,
                     label == null ? "" : label,
-                    fields.get("class"),
-                    ProcessorTopology.Kind.fromStyle(style)));
+                    // the vocabulary's fluxtion.class is authoritative where present: it is the
+                    // compiler's own answer, where the label text is a rendering of it
+                    facts.getOrDefault("fluxtion.class", fields.get("class")),
+                    ProcessorTopology.Kind.fromStyle(style),
+                    facts));
         }
         return nodes;
     }
@@ -129,9 +143,36 @@ public final class GraphMlParser {
             if (source == null || target == null || source.isBlank() || target.isBlank()) continue;
             String id = edge.getAttribute("id");
             edges.add(new ProcessorTopology.Edge(
-                    id == null || id.isBlank() ? source + "->" + target : id, source, target));
+                    id == null || id.isBlank() ? source + "->" + target : id, source, target,
+                    readFluxtionData(edge)));
         }
         return edges;
+    }
+
+    /**
+     * Every {@code <data key="fluxtion.*">} that belongs to THIS element.
+     *
+     * <p>Direct children only. {@code getElementsByTagName} would descend, and on the {@code <graph>}
+     * element that would sweep up every node's and edge's facts into the graph-level set.
+     */
+    private static Map<String, String> readFluxtionData(Element owner) {
+        Map<String, String> out = new LinkedHashMap<>();
+        if (owner == null) return out;
+        org.w3c.dom.NodeList kids = owner.getChildNodes();
+        for (int i = 0; i < kids.getLength(); i++) {
+            if (!(kids.item(i) instanceof Element child)) continue;
+            if (!"data".equals(child.getTagName())) continue;
+            String key = child.getAttribute("key");
+            if (key == null || !key.startsWith("fluxtion.")) continue;
+            String value = child.getTextContent();
+            out.put(key, value == null ? "" : value.trim());
+        }
+        return out;
+    }
+
+    private static Element firstGraphElement(Document doc) {
+        NodeList graphs = doc.getElementsByTagName("graph");
+        return graphs.getLength() > 0 && graphs.item(0) instanceof Element g ? g : null;
     }
 
     /** The first non-empty value of {@code attribute} on any descendant element — the jGraph shape is nested. */

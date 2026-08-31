@@ -167,11 +167,11 @@ public final class CoverageScope {
                 drop(excluded, reasons, id, Reason.EVENT);
             } else if (kind == ProcessorTopology.Kind.EXPORT_SERVICE) {
                 drop(excluded, reasons, id, Reason.EXPORT_SERVICE);
-            } else if (source != null && node != null
-                    && NodeLogging.of(node.className(), source)
-                       == NodeLogging.Capability.SILENT_BY_CONSTRUCTION) {
-                // M40.2b — proven, not assumed: source in hand and the class declares no supertype, so
-                // there is nowhere an auditLog could come from. UNKNOWN never lands here.
+            } else if (node != null && silentByConstruction(node, topology, source)) {
+                // M40.2b — proven, not assumed. Two ways to prove it now, and neither is a guess:
+                // the graph DECLARED the node cannot log (M45, fluxtion.auditCapable=false), or the
+                // source is in hand and the class declares no supertype so there is nowhere an
+                // auditLog could come from. UNKNOWN never lands here.
                 drop(excluded, reasons, id, Reason.SILENT_BY_CONSTRUCTION);
             } else {
                 // NODE, EVENT_HANDLER, UNKNOWN: a node, or something we cannot rule out. Both stay —
@@ -180,6 +180,31 @@ public final class CoverageScope {
             }
         }
         return new Scope(loggable, excluded, reasons);
+    }
+
+    /**
+     * Is this node provably unable to log? M45 D-V2: ask the graph first, fall back to the source.
+     *
+     * <p>The fallback is why this is a method rather than a swap. A graph that predates the vocabulary
+     * — which is most of them, permanently, because the file is written by whichever builder its
+     * author pinned — has nothing to declare, and the source check is still the only evidence
+     * available. The vocabulary DEMOTES the heuristic; it does not retire it.
+     *
+     * <p>The gain is real even so: the source check fails closed to UNKNOWN whenever the source is
+     * missing, and missing source is the normal case for someone else's log. A declared answer needs
+     * no source at all.
+     */
+    private static boolean silentByConstruction(ProcessorTopology.Node node, ProcessorTopology topology,
+                                                java.util.function.Function<String, java.util.Optional<String>> source) {
+        GraphVocabulary vocabulary = topology == null ? GraphVocabulary.none() : topology.vocabulary();
+        if (vocabulary.trusted()) {
+            NodeLogging.Answer declared = NodeLogging.of(node, vocabulary, source);
+            if (declared.basis() == NodeLogging.Basis.DECLARED) {
+                return declared.capability() == NodeLogging.Capability.SILENT_BY_CONSTRUCTION;
+            }
+        }
+        return source != null
+                && NodeLogging.of(node.className(), source) == NodeLogging.Capability.SILENT_BY_CONSTRUCTION;
     }
 
     private static void drop(Map<String, String> excluded, Map<String, Reason> reasons,

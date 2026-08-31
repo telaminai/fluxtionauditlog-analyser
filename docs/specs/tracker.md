@@ -109,7 +109,7 @@ Both are settled decisions rather than open work, so their rationale now lives i
 agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
 they produced are unchanged and remain under **Decisions** below.
 
-## M45 · Consuming the GraphML vocabulary — ☐ SPEC'D 2026-08-31
+## M45 · Consuming the GraphML vocabulary — ◧ .1/.2/.3/.5 SHIPPED 2026-08-31
 
 _Design: **[spec-graphml-vocabulary-consumption.md](spec-graphml-vocabulary-consumption.md)**. The
 upstream half of §2c lands in `fluxtion-builder`; this is our half. **We are the consumer the default
@@ -156,10 +156,30 @@ flip is gated on**, so this milestone is a dependency in both directions._
   property is only usable if it reaches the JVM running the exporter, and **nobody has tested whether it
   survives `fluxtion-maven-plugin:scan`** — the same shape as the branch's own finding that
   `writeSidecar` has no production caller. Also unblocks the pinned comparison run. Ships nothing.
-- [M45.2] ☐ **Read the vocabulary, change no behaviour.** `metaVersion` (1.x reader accepts every 1.y;
+- [M45.2] ☑ **Read the vocabulary, change no behaviour — 2026-08-31.** `GraphVocabulary` carries mode,
+  `metaVersion` and the trust decision; `Node`/`Edge` carry their `fluxtion.*` facts through delegating
+  constructors so a dozen existing construction sites were untouched. **`AGGREGATED` is refused**, with a
+  reason that says how to get a usable file. An unknown MAJOR degrades to absent rather than failing the
+  open. **Absent is never false** — `propagates()` is boxed on purpose, because that is the fact
+  separating *did not run* from *could not have run* and a primitive would make an absent answer
+  masquerade as `false`.
+- [M45.2a] ☑ **The compatibility re-run, as a permanent test rather than a one-off.** Another session
+  flagged it as outstanding and now bigger, since the exporter was rewritten as a model projection after
+  the `dd36bc5` check. Both sides are committed fixtures and `GraphMlExporterCompatibilityTest` compares
+  them every build: same ids, kinds, class names, adjacency in both directions, same edge count and the
+  same audit verdict — and a companion assertion that `PARALLEL` genuinely differs, so the check has
+  range rather than passing vacuously.
+- [M45.2b] ☐ **Original slice text — read the vocabulary, change no behaviour.** `metaVersion` (1.x reader accepts every 1.y;
   unknown MAJOR degrades to absent), node and edge keys, mode detection. Separating reading from acting
   is what makes the rest safe.
-- [M45.3] ☐ **The audit trio is a DUO** — `auditCapable`/`auditCapableVia` are emitted, `eventAudit` is
+- [M45.3] ☑ **The audit duo shipped 2026-08-31.** `fluxtion.auditCapable` reaches the coverage
+  denominator: a node the graph says cannot log is excluded rather than counted as having stayed silent,
+  **and it works with no source at all** — which is the point, because `NodeLogging`'s text check fails
+  closed to UNKNOWN whenever source is missing, and missing source is the normal case for a stranger's
+  log. `NodeLogging.Answer` carries `DECLARED`/`INFERRED` so a measured fact and a guess never look
+  alike (D-V2). The refusal of `AGGREGATED` is asserted at this consumer too, not only where it was
+  written down.
+- [M45.3a] ☐ **Original slice text — the audit trio is a DUO** — `auditCapable`/`auditCapableVia` are emitted, `eventAudit` is
   **planned**. That is exactly the key separating *capable, audit off* from *capable and stayed silent*,
   which is this slice's stated product claim, so it is re-scoped: the regime comes from the **log header**
   (UP-FLX-11), not the GraphML. Still the slice where the claim improves.
@@ -167,12 +187,26 @@ flip is gated on**, so this milestone is a dependency in both directions._
   value was a package-prefix guess, deleted it, and is replacing it with recorded creation provenance
   that needs a **`builder-api` change** to finish. The fact we want will be better than the one the spec
   was written against, and it does not exist yet. `authoredNodeCount` went with it.
-- [M45.5] ☐ **Parallel edges and dispatch rank.** Checked, not assumed: `ProcessorTopology.of` does no
+- [M45.5] ☑ **Parallel edges and dispatch rank shipped 2026-08-31 — this closes the gate.** Upstream
+  flips the default when one consumer *understands* `PARALLEL`; this is that consumer. `layoutEdges()`
+  draws one line per pair while `edges()` stays faithful to the file, and `relationshipsFor` keeps both
+  relationships on a doubled pair distinguishable — they can legitimately disagree about `propagates`,
+  which is the fact worth showing. `relationshipCount()` is kept apart from `edgeCount()` so neither
+  quietly changes meaning. `topologicalRank` is exposed **and pinned against the dispatch order we
+  know**, never trusted.
+  **Five guards mutation-checked**, each rebuilt and watched to fail: trusting `AGGREGATED`, accepting
+  any MAJOR, dropping the layout dedup, ignoring the declared capability, and letting `relationshipKey`
+  collapse to the pair.
+- [M45.5a] ☐ **Original slice text — parallel edges and dispatch rank.** Checked, not assumed: `ProcessorTopology.of` does no
   edge dedup and `LayeredLayout`/`TopologyCanvas` draw straight from `edges()`, so a `PARALLEL` file
   overdraws a pair's arrow and inflates `edgeCount()`. Identity becomes
   `(source, target, refKind, referenceField)`. Plus `topologicalRank` as a column — the question **0 of 3
   measured agents could answer**.
-- [M45.6] ☐ **Bump `-Pregen` off builder 1.0.64**, regenerate, re-pin `SessionGraphShapeTest`.
+- [M45.6] ☐ **BLOCKED ON A RELEASE, deliberately.** The vocabulary only exists in `1.0.65-SNAPSHOT`, and
+  committing a SNAPSHOT dependency would make every other build depend on an artefact that is not
+  published. The fixtures above are **committed compiler output** instead, so M45.2/.3/.5 are fully
+  tested without the repo depending on an unreleased builder. Bump when `fluxtion-builder` releases.
+- [M45.6a] ☐ **Then: bump `-Pregen` off builder 1.0.64**, regenerate, re-pin `SessionGraphShapeTest`.
   **Expected to fail first, by design** — that test is the downstream canary we offered upstream.
   **Take `dbcbe17` or later**, and regenerate any fixture made with an earlier build: before it the
   published `topologicalRank` was the wrong order (M45.1a).

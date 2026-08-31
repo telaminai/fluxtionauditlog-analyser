@@ -195,7 +195,10 @@ public final class LayeredLayout {
         private List<List<int[]>> adjacency() {
             List<List<int[]>> out = new ArrayList<>(realCount);
             for (int i = 0; i < realCount; i++) out.add(new ArrayList<>());
-            List<ProcessorTopology.Edge> all = topology.edges();
+            // M45 D-V3: one line per PAIR. A PARALLEL graph carries a pair once per relationship, and
+            // drawing it twice makes a thicker arrow rather than a clearer picture — while the layered
+            // layout would also count the pair twice as an ordering constraint.
+            List<ProcessorTopology.Edge> all = topology.layoutEdges();
             for (int e = 0; e < all.size(); e++) {
                 ProcessorTopology.Edge edge = all.get(e);
                 Integer from = index.get(edge.source());

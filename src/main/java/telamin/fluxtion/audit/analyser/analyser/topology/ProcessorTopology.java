@@ -62,7 +62,41 @@ public final class ProcessorTopology {
      * One node. {@code id} is the {@code instanceId} seen in {@code nodeLogs}; {@code className} is the
      * fully-qualified type, which is what {@code SourceNavigation} needs to open the source.
      */
-    public record Node(String id, String label, String className, Kind kind) {
+    public record Node(String id, String label, String className, Kind kind,
+                      java.util.Map<String, String> facts) {
+
+        public Node {
+            facts = facts == null ? Map.of() : Map.copyOf(facts);
+        }
+
+        /**
+         * The shape every caller wrote before M45. Kept so adding the vocabulary did not touch a
+         * dozen construction sites that have nothing to say about it.
+         */
+        public Node(String id, String label, String className, Kind kind) {
+            this(id, label, className, kind, Map.of());
+        }
+
+        /**
+         * A {@code fluxtion.*} fact this node declared, or {@code null}.
+         *
+         * <p><b>Absent is not false.</b> The emitter's own contract is that a key it cannot answer is
+         * omitted rather than defaulted, so a caller must distinguish "said no" from "did not say" —
+         * which is why this returns null instead of a blank.
+         */
+        public String fact(String key) {
+            return facts.get(key);
+        }
+
+        /** The compiler's dispatch rank, or {@code -1}. See {@code GraphVocabulary#trusted()}. */
+        public int topologicalRank() {
+            String raw = facts.get("fluxtion.topologicalRank");
+            try {
+                return raw == null ? -1 : Integer.parseInt(raw.trim());
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
 
         /** The class name without package or outer classes — {@code Foo$Bar} → {@code Bar}. */
         public String simpleName() {
@@ -73,8 +107,67 @@ public final class ProcessorTopology {
         }
     }
 
-    /** A directed dependency: {@code source} feeds {@code target}. */
-    public record Edge(String id, String source, String target) { }
+    /**
+     * A directed dependency: {@code source} feeds {@code target}.
+     *
+     * <p>In a {@code PARALLEL} file one vertex pair may appear more than once — a node held through
+     * two fields is two relationships, and since upstream began answering propagation per
+     * relationship they can legitimately disagree about whether an update crosses them. So the pair
+     * is no longer an identity; {@link #relationshipKey()} is.
+     */
+    public record Edge(String id, String source, String target, java.util.Map<String, String> facts) {
+
+        public Edge {
+            facts = facts == null ? Map.of() : Map.copyOf(facts);
+        }
+
+        /** The shape every caller wrote before M45. */
+        public Edge(String id, String source, String target) {
+            this(id, source, target, Map.of());
+        }
+
+        public String fact(String key) {
+            return facts.get(key);
+        }
+
+        /** {@code TRIGGER} / {@code DATA} / {@code PUSH}, or {@code null} when not declared. */
+        public String refKind() {
+            return facts.get("fluxtion.refKind");
+        }
+
+        /** Which field carries this relationship, or {@code null} — absent means answered per PAIR. */
+        public String referenceField() {
+            return facts.get("fluxtion.referenceField");
+        }
+
+        /**
+         * Whether an update crosses this edge, or {@code null} when the file does not say.
+         *
+         * <p>Boxed deliberately. This is the fact that separates "did not run" from "could not have
+         * run", and a primitive would force an absent answer to masquerade as {@code false} — the one
+         * mistake that makes the distinction useless.
+         */
+        public Boolean propagates() {
+            String raw = facts.get("fluxtion.propagates");
+            return raw == null ? null : Boolean.valueOf(raw.trim());
+        }
+
+        /**
+         * What makes two edges the same relationship rather than the same pair.
+         *
+         * <p>Includes the carrying field, so a node held through a triggering field and a
+         * {@code @NoTriggerReference} one stays two relationships. Falls back to the pair when the
+         * file declares no field, which is exactly the case where the emitter itself answered at pair
+         * level — so the identity is no coarser than the data behind it.
+         */
+        public String relationshipKey() {
+            String field = referenceField();
+            String kind = refKind();
+            return source + "->" + target
+                    + (kind == null ? "" : "|" + kind)
+                    + (field == null ? "" : "|" + field);
+        }
+    }
 
     /**
      * How well a topology matches a log. A partial match usually means the GraphML came from a different
@@ -157,7 +250,70 @@ public final class ProcessorTopology {
     private final Map<String, Set<String>> children;    // id → ids it feeds
     private final Map<String, Set<String>> parents;     // id → ids that feed it
 
+    private final GraphVocabulary vocabulary;
+
+    /**
+     * What this file said about itself (M45). {@link GraphVocabulary#none()} for every graph emitted
+     * before the vocabulary existed, which is most of them and always will be — the file is written by
+     * whichever builder its author pinned, so there is no version at which this stops mattering.
+     */
+    public GraphVocabulary vocabulary() {
+        return vocabulary;
+    }
+
+    /**
+     * Adjacency counts PAIRS; this counts RELATIONSHIPS.
+     *
+     * <p>They differ only in a {@code PARALLEL} file, where one pair can carry two references that
+     * disagree about propagation. Kept separate because {@code edgeCount()} is read as "how connected
+     * is this graph" and would silently change meaning otherwise.
+     */
+    public int relationshipCount() {
+        java.util.Set<String> distinct = new LinkedHashSet<>();
+        for (Edge e : edges) {
+            distinct.add(e.relationshipKey());
+        }
+        return distinct.size();
+    }
+
+    /**
+     * One edge per vertex PAIR — what a drawing wants (M45 D-V3).
+     *
+     * <p>{@link #edges()} is faithful to the file, and in a {@code PARALLEL} graph that means a pair
+     * held through two fields appears twice. Layout and painting read this instead: drawing the same
+     * arrow twice produces a heavier line rather than more information, and the layered layout would
+     * count the pair twice as a constraint.
+     *
+     * <p><b>The relationships are not lost, they are relocated.</b> {@link #relationshipsFor} returns
+     * every relationship on a pair, which is what a label or a tooltip needs — the two can disagree
+     * about {@code propagates}, and that disagreement is exactly the fact worth showing.
+     *
+     * <p>For a legacy graph this returns {@link #edges()} unchanged, which is why nothing that
+     * predates the vocabulary can notice it.
+     */
+    public List<Edge> layoutEdges() {
+        Map<String, Edge> byPair = new LinkedHashMap<>();
+        for (Edge e : edges) {
+            byPair.putIfAbsent(e.source() + "->" + e.target(), e);
+        }
+        return List.copyOf(byPair.values());
+    }
+
+    /** Every relationship on one vertex pair, in document order. Usually one; two is the point. */
+    public List<Edge> relationshipsFor(String source, String target) {
+        List<Edge> out = new ArrayList<>();
+        for (Edge e : edges) {
+            if (e.source().equals(source) && e.target().equals(target)) out.add(e);
+        }
+        return List.copyOf(out);
+    }
+
     ProcessorTopology(Map<String, Node> nodes, List<Edge> edges) {
+        this(nodes, edges, GraphVocabulary.none());
+    }
+
+    ProcessorTopology(Map<String, Node> nodes, List<Edge> edges, GraphVocabulary vocabulary) {
+        this.vocabulary = vocabulary == null ? GraphVocabulary.none() : vocabulary;
         this.nodes = Collections.unmodifiableMap(new LinkedHashMap<>(nodes));
         this.edges = List.copyOf(edges);
 
@@ -393,7 +549,7 @@ public final class ProcessorTopology {
         for (Edge e : edges) {
             if (kept.contains(e.source()) && kept.contains(e.target())) keptEdges.add(e);
         }
-        return new ProcessorTopology(keptNodes, keptEdges);
+        return new ProcessorTopology(keptNodes, keptEdges, vocabulary);
     }
 
     /** Everything reachable from {@code seeds} following edges forward ({@code down}) or backward. */

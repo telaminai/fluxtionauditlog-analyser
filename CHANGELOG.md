@@ -6,6 +6,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **The analyser now reads the Fluxtion compiler's graph metadata when a `.graphml` carries it**, and
+  says when it does not. A processor built with a recent compiler can declare which nodes are able to
+  write audit output at all, what order nodes dispatch in, and whether an update crosses each edge —
+  facts the analyser previously had to work out by reading source, and often could not. **Coverage is
+  the visible difference:** a node the graph says cannot log is no longer counted as one that stayed
+  silent, and that now works without the source in hand, which is the normal case for someone else's
+  log. Graphs without the metadata — every graph produced before it existed — are read exactly as
+  before, and every answer says which of the two it came from.
+
 ### Changed
 - **Project transitions are now decided by an auditable Fluxtion processor, and the analyser can open
   its own audit log to see why.** The rule that a project switch closes the log and graph — and the

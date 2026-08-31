@@ -74,6 +74,62 @@ public final class NodeLogging {
      * @param source fqn → source text, or empty when it cannot be found (typically
      *               {@code SourceService::sourceForFqn}). Null is treated as "no source available".
      */
+    /**
+     * How an answer was reached — M45 D-V2. A surface that changes answer with the vocabulary must
+     * never let a measured fact and a heuristic one look alike.
+     */
+    public enum Basis {
+        /** The compiler said so, in the graph. */
+        DECLARED,
+        /** We worked it out by reading source, with all the limits stated above. */
+        INFERRED
+    }
+
+    /** A capability and how it was established. */
+    public record Answer(Capability capability, Basis basis) {
+
+        public boolean canLog() {
+            return capability == Capability.CAN_LOG;
+        }
+
+        /** For a surface that has to justify itself: "declared by the graph" / "read from source". */
+        public String because() {
+            return basis == Basis.DECLARED
+                    ? "declared by the processor's own graph (fluxtion.auditCapable)"
+                    : "read from the node's source — the graph did not say";
+        }
+    }
+
+    /**
+     * <b>Ask the graph first.</b> {@code fluxtion.auditCapable} is the compiler's own answer to the
+     * question the source-reading below can only approximate, and it needs no source at all — which
+     * matters because the honest limit of the text check is that it fails closed to
+     * {@link Capability#UNKNOWN} whenever the source is missing, and missing source is the normal
+     * case for a log someone else produced.
+     *
+     * <p>Only consulted when {@link GraphVocabulary#trusted()}: an aggregated file or an unreadable
+     * MAJOR falls through to the source check rather than being half-believed.
+     *
+     * @param node       the node as the graph declared it, or {@code null}
+     * @param vocabulary what the file said about itself
+     */
+    public static Answer of(ProcessorTopology.Node node, GraphVocabulary vocabulary,
+                            Function<String, Optional<String>> source) {
+        if (node != null && vocabulary != null && vocabulary.trusted()) {
+            String declared = node.fact("fluxtion.auditCapable");
+            if ("true".equalsIgnoreCase(declared)) {
+                return new Answer(Capability.CAN_LOG, Basis.DECLARED);
+            }
+            if ("false".equalsIgnoreCase(declared)) {
+                // The compiler knows the node's whole type hierarchy, which the text check does not.
+                // This is the case that was previously unreachable: a node the analyser could only
+                // ever call UNKNOWN, now stated.
+                return new Answer(Capability.SILENT_BY_CONSTRUCTION, Basis.DECLARED);
+            }
+        }
+        return new Answer(of(node == null ? null : node.className(), source), Basis.INFERRED);
+    }
+
     public static Capability of(String fqn, Function<String, Optional<String>> source) {
         if (fqn == null || fqn.isBlank() || source == null) return Capability.UNKNOWN;
 
