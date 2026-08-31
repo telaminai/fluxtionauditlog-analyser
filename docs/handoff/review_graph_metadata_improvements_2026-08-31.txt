@@ -1,0 +1,262 @@
+REVIEW — GRAPH METADATA IMPROVEMENTS SPEC
+=========================================
+
+Verdict: CHANGES REQUIRED BEFORE IMPLEMENTATION
+
+Reviewed material
+-----------------
+
+Compiler repository:
+  /Users/greg/IdeaProjects/telamin/fluxtion/fluxtion-compiler
+Branch/HEAD:
+  feature/compiler_diagnostics @ 096d7413475d3922a4a523aa11a0ad51dafaea73
+
+The proposed spec was deliberately uncommitted. To make this review reproducible, the exact
+reviewed bytes were:
+
+  docs/specs/meta-data-improvements/README.md
+    sha256 35b06f9c8d2eb3c97de36cb7dfea46d64ba99553b90a381f8d3dfcd7db879e81
+  docs/specs/meta-data-improvements/schema/fluxtion-graphml-keys-1.0.json
+    sha256 fe14b22dd00b66f2e00dc6273678adfba4c124fb97f02927dda9e5c587d8698f
+
+The spec files were not edited. The compiler worktree was not modified.
+
+Summary
+-------
+
+The product direction is correct and valuable. GraphML is already the durable description the
+analyser consumes, and declared semantic data removes inference from both UI and LLM workflows. The
+measured baseline is especially useful: the direction bug, collapsed filtered handlers, absent edge
+semantics, and indistinguishable framework nodes are real.
+
+The XML writer is not the limiting factor. JgraphGraphMLExporter.export can declare arbitrary
+GraphML keys and write arbitrary values as standard <data key="...">...</data> children. It should
+do that instead of inventing arbitrary XML attributes, which may violate GraphML's schema. The
+limiting factor is whether the export model contains the authoritative fact. The current export
+entry point receives only Graph<V,E> plus exportServiceSet; its E is DefaultEdge, parallel relations
+have already collapsed, and several proposed graph/node facts have not yet been captured.
+
+The spec should proceed, but not with Slice 1 as written. Keep the execution/scheduling graph simple
+and build a separate, lossless description projection for artefacts. That decision removes the
+largest regression risk while still allowing GraphML to contain parallel semantic edges.
+
+Findings
+--------
+
+F1 — BLOCKING — Do not replace the central scheduling graph with a multigraph
+
+TopologicallySortedDependencyGraph is not merely an intermediate representation for GraphML. Its
+SimpleDirectedGraph<Object,DefaultEdge> is the execution/scheduling model. getGraph() publicly
+returns that concrete type; getDirectParents/getDirectChildren derive generation DTO lists by
+iterating its edges; push handling clones and reverses edges; cycle detection and topological order
+also consume it. With parallel edges, the direct-parent/child methods return duplicate nodes and can
+change generated dispatch structures. Replacing the public return type is also a source/binary API
+change.
+
+Required correction:
+
+* preserve the simple execution graph and its existing public contract;
+* capture a separate list/multigraph of semantic relations while the graph is built, with stable
+  node identities and one record per reference, handler, or service relation;
+* render GraphML from an artefact projection containing execution vertices plus those semantic
+  relations. It may legitimately be a directed multigraph even though the scheduling graph is not;
+* prove the projection does not feed back into sorting or generated source.
+
+Do not aggregate a side table by (source,target): that repeats the information loss. Key a relation
+by its own stable identity and retain source, target, carrier/owner, field or method, and semantics.
+This is the answer to open question 1.
+
+F2 — BLOCKING — `propagates` is not one universal edge fact
+
+The spec combines mechanisms that act at different phases and on different carriers:
+
+* @NoTriggerReference describes whether a reference triggers its owner;
+* @PushReference changes reference direction/handling;
+* @OnEventHandler(propagate=false) describes downstream propagation after a handler invocation;
+* @NoPropagateFunction and @ExportService(propagate=false) describe exported service callbacks;
+* FilterType.matched/defaultCase describes handler selection, not static propagation.
+
+Putting all of these into one boolean on an arbitrary source-target edge will produce confident but
+false explanations. In particular, an event-to-handler edge still dispatches when the handler's
+result is configured not to propagate further.
+
+Required correction: define distinct relation kinds and attach policy to its real carrier. At a
+minimum separate reference trigger semantics, handler selection, handler result-propagation policy,
+and exported-method propagation. `refKind=DATA` already expresses no-trigger reference semantics.
+If a downstream UI wants to collapse framework chains, specify a separate semantic projection; do
+not make `framework` depend on a misleading generic boolean. Framework provenance is useful and can
+ship before chain collapsing is implemented.
+
+F3 — BLOCKING — The proposed fingerprint cannot satisfy any of its three strong claims yet
+
+There are three independent gaps:
+
+1. The proposed canonical inputs omit constructor signatures, field assignment/configuration, and
+   other source-generation inputs, yet acceptance requires a constructor change to move the digest.
+   Under the proposed definition that test must fail.
+2. Pairing “a log and a GraphML and no running processor” requires the same identifier inside the
+   exported audit artefact. Writing it only to GraphML and ProcessorDescriptor.Meta does not put it
+   in an offline YAML log.
+3. FLX-1021 fails during Maven compile against stale committed source, while regeneration currently
+   occurs at process-classes. A fingerprint recomputed after compile cannot diagnose a compile that
+   has already failed. The lifecycle/phase problem remains even when a fingerprint exists.
+
+Required correction:
+
+* define a canonical, versioned source-generation model that includes constructor/field mappings and
+  all values that can change generated behaviour;
+* decide whether the wanted identifier is a semantic-model fingerprint or an exact build identity.
+  Including generator/toolchain versions makes identical semantics differ after an upgrade, so two
+  identifiers may be clearer than one overloaded value;
+* add the pairing identifier to the runtime audit/export contract and test two files alone;
+* specify how the stale-source check runs before Java compilation, or narrow the FLX-1021 claim.
+
+F4 — REQUIRED — Several Slice 0 facts are not free, and one baseline statement is false
+
+`JgraphGraphMLExporter.export` can write the values, but the current caller cannot honestly derive
+all of them:
+
+* `fluxtion.framework`: the graph merges configured nodes, public/context nodes, factory-created
+  nodes and auditors without retaining creation provenance. Package/name heuristics would recreate
+  the downstream defect. Provenance must be recorded at node registration/creation and carried to
+  the export model. Define applicability for synthetic EVENT and EXPORT_SERVICE class vertices and
+  consequently what `authoredNodeCount` counts.
+* `fluxtion.generatorId` and authoritative toolchain identity: GraphML is produced in
+  TopologicallySortedDependencyGraphDtoBuilder before EventProcessorGenerator loads/selects the
+  SourceGenerator. Finalise the metadata after generator selection, or return generation identity
+  to a later artefact-writing step.
+* `fluxtion.topologicalRank`: the spec cites getObjectSortedDependents(), but the DTO builder itself
+  documents that this is node-field/source order. Event dispatch uses getSortedDependents(), which
+  accounts for push directionality. Use event-dispatch order if the key promises the dispatch
+  sibling tie-break, or rename the key to the narrower order it actually records.
+* Descriptor baseline: JavaSourceGenerator already emits
+  `new DescriptorSupport.Meta(null, toolchainVersion, null, null)`. The claim that the builder
+  populates none of Meta is incorrect.
+* `eventAuditLevel`: EventLogManager has a compiled invocation trace level and a separate business
+  log threshold; the latter can change at runtime and has no public getter. Split and name these
+  facts, and state which is an initial setting versus a fixed capability.
+
+These facts remain good additions. They need explicit model/timing work and acceptance, rather than
+being classified as emitter-only work.
+
+F5 — REQUIRED — Manifest rules make the proposed slices mutually inconsistent
+
+The manifest says every emitter declares every manifest key, every key has `since: 1.0`, and an
+undeclared key means the build could not compute it. But Slice 0 cannot compute the blocked/design-
+needed Slice 1–4 keys. It must either violate conformance by omitting them or declare capabilities it
+does not possess. `fluxtion.metaVersion=1.0` then cannot distinguish the two producers.
+
+Required correction: either publish 1.0 only after the complete vocabulary is implemented, assign
+keys to the minor version in which they become real and validate according to metaVersion, or define
+an explicit producer-capability mechanism. Do not use an empty key declaration as evidence that a
+producer can calculate the value.
+
+Also:
+
+* sourceFingerprint is “Design needed” in the prose but lacks readiness in the manifest;
+* define `required` (header declaration, graph value, or value on every applicable element);
+* validate data carriers, duplicate values, GraphML attr.type mapping, formats/patterns and enum/type
+  values, not just header set equality;
+* validate the manifest itself with a schema/meta-schema;
+* specify how a 1.x reader treats a 2.x document, not only unknown 1.x keys.
+
+The key-manifest approach is preferable to replacing GraphML's XSD, but it needs to be executable as
+a value contract rather than only an inventory.
+
+F6 — REQUIRED — Several value encodings lose information
+
+* Comma-separated lists with no escaping are ambiguous for Java method signatures, which naturally
+  contain commas. Use a canonical JSON array text, an escaped/length-delimited grammar, or repeated
+  structured relations. The encoding must also be canonical if it participates in a digest.
+* filterString "1" and integer filter id 1 are distinct runtime routes. `filterValue` as an
+  untyped string loses that distinction; `filterType` is match/default strategy, not value type.
+* Normal and push reference edges use opposite source/target orientation in the current graph. The
+  spec says `referenceField` but does not state whether the field belongs to source or target. Store
+  relation owner and referenced node explicitly, or define one normative orientation per relation
+  kind rather than asking consumers to infer it.
+
+F7 — REQUIRED — callbackKinds is incomplete and its order is not canonical
+
+The builder explicitly scans @StartComplete, but `START_COMPLETE` is absent from the manifest.
+`SERVICE_REGISTERED` is present while the corresponding `SERVICE_DEREGISTERED` callback is absent.
+EventHandlerNode supplies an on-event callback without requiring an annotated method, so its mapping
+also needs to be normative.
+
+Define the full supported set, how interface callbacks map, uniqueness, and a fixed serialization
+order. “Declared order” is not sufficient because reflection order is not an artefact contract.
+
+F8 — REQUIRED — generatedAt conflicts with reproducible artefacts
+
+`generatedAt` is marked Ready, but the spec leaves reproducible-build behaviour open. It changes
+otherwise identical GraphML bytes on every build and destabilises golden fixtures. Resolve this
+before Slice 0: for example, make it optional by default, honour SOURCE_DATE_EPOCH, and inject a
+clock in tests. Also do not describe an artefact as generated before remote/local source generation
+has succeeded.
+
+F9 — REQUIRED — Acceptance needs strict XML and a named cross-repository consumer check
+
+The existing exporter test primarily checks substrings. Add a strict XML parse plus GraphML schema
+validation, including directed and undirected graph fixtures; derive `edgedefault` from
+`g.getType().isDirected()`, not a concrete-class instanceof test.
+
+The analyser currently ignores unknown keys/data, so additive standard GraphML data is compatible.
+Name the exact analyser revision and command that proves this, and add a cross-repository fixture or
+bench so compatibility does not remain prose. Duplicate semantic edges will parse, but the analyser
+does not consume their semantics yet and adjacency sets may collapse them; distinguish “does not
+break” from “feature is usable downstream”.
+
+Responses to the open questions
+-------------------------------
+
+1. Use a separate lossless artefact relation model/multigraph. Do not replace the scheduling graph
+   and do not aggregate parallel relations.
+2. Define one normalized topology-description model, then render compatible GraphML from it. A JSON
+   sidecar can later be another rendering for deeply structured data; GraphML need not be abandoned
+   or made the internal source of truth.
+3. Split semantic model identity from exact generation/build identity unless one carefully defined
+   digest can genuinely answer both. Carry the pairing identity into audit output.
+4. This spec should own the vocabulary. The diagnostics spec should link here and retain diagnostic
+   codes only; do not maintain parallel key tables.
+5. Keep originCapable out of v1 until its static semantics are defined. Method-body capability is not
+   a free reflection fact.
+
+Accepted claims and useful corrections
+--------------------------------------
+
+* Adding declared GraphML `<key>` and `<data>` entries is the correct compatible mechanism.
+* `edgedefault="undirected"` is a real exporter defect.
+* Filtered handlers and repeated references require parallel artefact relations.
+* “data-only bean” would collide with @FluxtionDataOnly; `refKind=DATA` is the correct primitive.
+* Absolute source paths must not be emitted.
+* New semantic data must not reuse the legacy descendant attributes named `text` or `properties`.
+* A producer-generated fixture consumed independently is the correct acceptance shape.
+
+One precision note: the mismatched SAX endElement call for jGraph:Style is defective source and
+should be fixed, but the current TransformerHandler output inspected by this review is well-formed;
+describe it as serializer-dependent hygiene rather than an already-malformed emitted document.
+
+What this review did and did not verify
+---------------------------------------
+
+Verified by reading the exporter, dependency graph, DTO builder, generator selection flow, generated
+descriptor writer, annotation/filter models, runtime audit manager, and analyser GraphML parser.
+The manifest parses as JSON and contains 26 keys. A current generated GraphML resource contains the
+two stated keys, declares the graph undirected, and passes xmllint parsing. The focused existing
+exporter test also passed at the reviewed compiler revision:
+
+  ./mvnw -q -pl fluxtion-integration-tests -am \
+    -Dtest=com.telamin.fluxtion.builder.compile.exporter.JgraphGraphMLExporterTest \
+    -Dsurefire.failIfNoSpecifiedTests=false test
+
+This review did not implement the spec, did not modify its uncommitted files, did not run a remote
+source generation, and did not prove every proposed key against a generated fixture. The review is
+therefore a design/contract verdict, not implementation acceptance.
+
+Next order
+----------
+
+1. Replace Slice 1 with the separate artefact-description model and define relation carriers.
+2. Split propagation/filter/reference/service semantics; then revise the edge vocabulary.
+3. Repair the fingerprint and audit-log pairing contract, including Maven phase ordering.
+4. Correct the “free” fact inventory and version the manifest consistently with slices.
+5. Only then implement the small exporter changes and producer/consumer acceptance fixtures.
