@@ -1,0 +1,163 @@
+REVIEW — M45 and spec-graphml-vocabulary-consumption.md
+Reviewed: docs/specs/spec-graphml-vocabulary-consumption.md (PROPOSED 2026-08-31) and tracker.md ▸ M45
+Checked against: fluxtion-compiler origin/feature/compiler_diagnostics @ 5fc89a3
+Reviewer: compiler-side session · Date: 2026-08-31
+
+DISCLOSURE: I wrote the GraphML spike the vocabulary came from, and the upstream
+`meta-data-improvements` spec this milestone consumes. I am therefore NOT an independent reviewer of
+the upstream design. Everything below is mechanical — what upstream actually emits today versus what
+this spec plans to read — plus consequences that follow from that gap.
+
+VERDICT: ACCEPT THE DESIGN. RE-PLAN THE SLICES BEFORE STARTING.
+
+The reasoning is sound and the two hardest calls are right. D-V0's "dual-path is permanent" follows
+from the client-side/pinned-builder fact and corrects two earlier reviews, including mine. D-V1's
+refusal of `AGGREGATED` is correct and I would not soften it — I checked the javadoc it quotes and the
+sentence survives verbatim at the tip. D-V3 was checked against this repo's own code rather than
+assumed, which is why it found the overdraw.
+
+What has not survived is the slice plan. The branch has moved five commits since the spec was
+written, and against the vocabulary as it actually stands: **one slice has no input at all, one is
+two-thirds supported, and the gate the milestone claims to close needs a later slice than it thinks.**
+
+================================================================================
+F1 · BLOCKING for M45.4 — `fluxtion.framework` is not emitted, and was deliberately removed
+================================================================================
+
+M45.4 is "an honest coverage denominator from `fluxtion.framework`", demoting `Scaffolding`. The key
+manifest at the tip marks `fluxtion.framework` — and `fluxtion.authoredNodeCount`, which depended on
+it — as `planned`, not `emitted`. Seventeen keys are emitted; nine are planned; these are two of the
+nine.
+
+The reason is good news and makes the slice's premise stronger, not weaker. The exporter's own comment
+records it:
+
+  "NO fluxtion.framework. The compiler now RECORDS node creation — factory, generation … package-name
+   prefix was a guess. It is still incomplete: at least one framework node …"
+
+Upstream found its own `framework` value was a package-prefix heuristic, deleted it rather than ship
+it, and is replacing it with recorded creation provenance that is not finished. So the fact M45.4
+wants will be better than the one the spec was written against — and does not exist yet.
+
+Resolution: move M45.4 behind a named upstream dependency ("creation provenance complete and marked
+`emitted`"), keep `Scaffolding` as the sole path until then, and do not consume a `planned` key. The
+manifest's `emitted`/`planned` distinction exists precisely so a consumer can tell; use it as the
+gate rather than the key list in this spec.
+
+================================================================================
+F2 · M45.3's "audit trio" is a duo — `eventAudit` is planned
+================================================================================
+
+`auditCapable` and `auditCapableVia` are emitted. `eventAudit` and `eventAuditLevel` are planned.
+
+That matters for the specific claim the slice makes: letting a surface say *ran and said nothing*
+instead of hedging three cases. Capability alone separates "could not have logged" from the rest. It
+does not separate "capable, audit configured, stayed silent" from "capable, audit not configured",
+because that distinction is exactly what `eventAudit` carries.
+
+The analyser can still get the regime — it infers it today from the log (`AuditTrace`), and UP-FLX-11
+asks the runtime to declare it in the record header. But the slice as written implies the GraphML
+supplies it, and it does not.
+
+Resolution: scope M45.3 to the two keys that exist, name the regime source explicitly (log-derived
+until `eventAudit` is emitted or UP-FLX-11 lands), and carry that in D-V2's basis marker. Otherwise
+the slice quietly reintroduces the hedge it was written to remove.
+
+================================================================================
+F3 · The gate this milestone unblocks closes at M45.5, not M45.2
+================================================================================
+
+The Risks section says: "If M45.2 does not land, the vocabulary stays off by construction." True, and
+insufficient. Upstream's ranked open work 3 reads:
+
+  "Make one consumer understand PARALLEL. Use compiler-produced GraphML and the analyser's M44 shape
+   test; only then consider changing the default."
+
+M45.2 explicitly changes no behaviour. Reading keys without acting on them does not demonstrate that
+a consumer *understands* `PARALLEL`; rendering one arrow per distinct relationship does, and that is
+M45.5. Upstream's open work 1 — the model-authority gate — is also only **partly** closed at the tip
+and is ranked ahead of it.
+
+Resolution: state the unblock condition as M45.5 plus upstream's open work 1, so the two repos share
+one ordered condition instead of each describing the other as the blocker. The circularity the spec
+names is real, but it resolves in a specific order and the spec should say which.
+
+================================================================================
+F4 · The compatibility re-run target is already stale
+================================================================================
+
+The spec asks for the before/after parser check to be re-run "at `7a273a8`". The tip is `5fc89a3`,
+via `8e05abf` ("propagation is per relationship, not per vertex pair") and `5fc89a3` ("stabilise the
+bytes"). Both change emitted output, and the first changes `propagates` semantics — which is what
+D-V3's edge identity and M45.5's rendering are built on.
+
+Resolution: name the target as "the release candidate", not a SHA. A SHA pinned in a spec for a
+branch under daily change is stale the day after it is written; this one was stale within hours.
+
+================================================================================
+F5 · M45.1 can only be run by an entitled operator, and the spec does not say so
+================================================================================
+
+M45.1 is "install the branch locally, point `-Pregen` at it with `-Dfluxtion.graphml.metadata=PARALLEL`".
+`-Pregen` regenerates the processor, and generation is the hosted service that requires a subscribed
+key. So the reachability experiment — and the pinned comparison run it unblocks — is performable only
+by someone entitled, not by a contributor and not in CI.
+
+That is worth stating because M45.1 is the slice everything else depends on, and because the
+reachability question it settles (does `-D` survive `fluxtion-maven-plugin:scan`) is a genuinely good
+catch that should not be lost to "nobody could run it".
+
+Resolution: name who can run it, and record the outcome as a preserved artefact others can read
+rather than reproduce — the same discipline this repo already applies to the experience runs.
+
+================================================================================
+NOTES
+================================================================================
+
+N1 · The `AGGREGATED` refusal is well-founded. The quoted sentence — "The lists are sets, not
+index-aligned tuples" — is present verbatim in `GraphMlOptions` at the tip. D-V1 is the strongest
+decision in the document and the one most likely to be relitigated under delivery pressure; the spec
+is right to fix it once.
+
+N2 · It creates a cross-repo inconsistency worth surfacing upstream. `meta-data-improvements`
+positions `AGGREGATED` as the compatibility bridge, "for a consumer that renders edges but has not
+learned the vocabulary" — and its only intended consumer has now decided to refuse it. Either upstream
+keeps it knowingly for third-party readers, or it is a mode with no user and a maintenance cost.
+Cheap to settle now, expensive to discover during a release.
+
+N3 · Release footprint: substance confirmed, number aged. Diffed against `origin/main`,
+`fluxtion-runtime` and `fluxtion-builder-api` are untouched (0 files each) and `fluxtion-builder` is
+the only shippable module changed — so the 1.0.13 runtime dependency does stand and only the builder
+needs releasing. The "32 files" figure is 22 under `fluxtion-builder/src/main` at the tip; the claim's
+substance holds and only the count moved.
+
+N4 · The DTO-wire recommendation is the most valuable paragraph in the document, and it should leave
+this repo. Old-client/new-server is the default state under the cloud model, the `NodeDto.annotatedMethods`
+change is reasoned-but-untested, and the failure mode is simultaneous across every pinned user. It is
+not currently in upstream's ranked open work as a release gate — item 5 covers the remote *diagnostic*
+field, which is a different change. File it as an ask rather than leaving it in a spec upstream does
+not read.
+
+N5 · D-V2 may need a third basis value. `DECLARED`/`INFERRED` assumes a declared fact is
+authoritative. Upstream still has one reflective read in the exporter (the class-level `@FilterId`
+default) and describes its creation-provenance recording as incomplete. A value upstream derived
+heuristically, labelled `DECLARED` here, launders an inference across a repo boundary where the person
+reading the number can no longer see it. The sharpest instance — `framework` — is out of scope while
+it stays `planned` (F1), so this is a caution to carry into M45.3/.5 rather than a defect today.
+
+================================================================================
+WHAT I VERIFIED / WHAT I DID NOT
+================================================================================
+
+Verified at `5fc89a3`, from committed refs: the manifest's emitted/planned split (17/9) and every key
+in this milestone's shopping list; the `fluxtion.framework` deletion and its stated reason; the
+`AGGREGATED` javadoc sentence the spec quotes; that the default is still `OFF`; that one real
+reflection call remains in the exporter (two further `getMethods` mentions are comments); upstream's
+ranked open work 1 and 3; the release footprint by diff against `origin/main`.
+
+NOT verified: I ran nothing. The compiler working tree is mid-merge with an unresolved conflict in
+another session's hands, so I read committed refs only and did not build, test, or push a GraphML
+through this repo's parser. D-V3's claims about `ProcessorTopology.of`, `LayeredLayout` and
+`TopologyCanvas` I checked earlier in the week and they held then; I did not re-check them today. I
+did not assess the baseline measurement the spec cites, or whether `-D` survives the Maven plugin —
+that is M45.1's job and it remains the right first slice.
