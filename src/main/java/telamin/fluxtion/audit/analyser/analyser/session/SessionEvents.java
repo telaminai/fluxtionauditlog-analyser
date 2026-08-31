@@ -45,6 +45,20 @@ public final class SessionEvents {
     public record OpenProjectRequested(long opId, String profilePath, TransitionKind kind, String source) {
     }
 
+    /**
+     * A combined {@code open} request arrived, and these are the parameter names it supplied.
+     *
+     * <p>Only the NAMES. The decision this feeds is about which act a request means, not about any
+     * path or value — and keeping the values out means the record of that decision can be read by
+     * anyone without carrying a filesystem into it.
+     */
+    public record OpenRequestReceived(long opId, java.util.Set<String> supplied) {
+
+        public OpenRequestReceived {
+            supplied = supplied == null ? java.util.Set.of() : java.util.Set.copyOf(supplied);
+        }
+    }
+
     // ---------------------------------------------------------------- results
 
     /**

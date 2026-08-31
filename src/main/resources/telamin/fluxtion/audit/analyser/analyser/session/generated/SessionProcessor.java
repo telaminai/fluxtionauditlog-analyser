@@ -44,6 +44,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObser
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored;
@@ -53,6 +54,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
+import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
@@ -81,6 +83,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored
@@ -132,6 +135,7 @@ public class SessionProcessor
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
+  public final transient IgnoredParameters ignoredParameters = new IgnoredParameters();
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
   private boolean initCalled = false;
@@ -180,6 +184,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "OpenProjectRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "OpenRequestReceived",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived",
                 false),
             new ProcessorDescriptor.Input(
                 "ProfileApplied",
@@ -356,6 +364,9 @@ public class SessionProcessor
     } else if (event instanceof OpenProjectRequested) {
       OpenProjectRequested typedEvent = (OpenProjectRequested) event;
       handleEvent(typedEvent);
+    } else if (event instanceof OpenRequestReceived) {
+      OpenRequestReceived typedEvent = (OpenRequestReceived) event;
+      handleEvent(typedEvent);
     } else if (event instanceof ProfileApplied) {
       ProfileApplied typedEvent = (ProfileApplied) event;
       handleEvent(typedEvent);
@@ -410,6 +421,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(OpenProjectRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(OpenRequestReceived event) {
     processEvent(event);
   }
 
@@ -530,6 +546,14 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
     auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
     sessionBoundary.onOpenProjectRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(OpenRequestReceived typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(ignoredParameters, "ignoredParameters", "onOpenRequestReceived", typedEvent);
+    ignoredParameters.onOpenRequestReceived(typedEvent);
     afterEvent();
   }
 
@@ -681,6 +705,11 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onOpenProjectRequested(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onOpenProjectRequested", typedEvent);
       sessionBoundary.onOpenProjectRequested(typedEvent);
+    } else if (event instanceof OpenRequestReceived) {
+      OpenRequestReceived typedEvent = (OpenRequestReceived) event;
+      auditEvent(typedEvent);
+      auditInvocation(ignoredParameters, "ignoredParameters", "onOpenRequestReceived", typedEvent);
+      ignoredParameters.onOpenRequestReceived(typedEvent);
     } else if (event instanceof ProfileApplied) {
       ProfileApplied typedEvent = (ProfileApplied) event;
       auditEvent(typedEvent);
@@ -753,6 +782,7 @@ public class SessionProcessor
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
     auditor.nodeRegistered(effectOutcomes, "effectOutcomes");
     auditor.nodeRegistered(effectQueue, "effectQueue");
+    auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
     auditor.nodeRegistered(logArrival, "logArrival");
     auditor.nodeRegistered(openGraph, "openGraph");
     auditor.nodeRegistered(openLog, "openLog");

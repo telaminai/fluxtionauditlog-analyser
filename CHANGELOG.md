@@ -17,6 +17,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   before, and every answer says which of the two it came from.
 
 ### Changed
+- **When one `open` call names several things at once, the reply lists what it did not honour in the
+  order they would have been honoured** — largest act first — rather than in an arbitrary order. The same
+  parameters are reported; only the ordering changed, and it now tells you which act won.
 - **`coverage` now refuses to print a number in two more cases where it would have been misleading**, and
   qualifies it in a third. It already declined over a graph inferred from what ran. It now also declines
   over a graph whose processor was built without audit logging — every declared node would read as never

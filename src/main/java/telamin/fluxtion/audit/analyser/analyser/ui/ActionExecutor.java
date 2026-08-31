@@ -675,16 +675,37 @@ public final class ActionExecutor implements RenderExecutor {
                 : new LinkedHashMap<>();
     }
 
-    /** Every 'open' param; used to name the ones a lifecycle act (project, close) leaves unhonoured. */
-    private static final List<String> OPEN_PARAMS = List.of("log", "logs", "graphml", "processor",
-            "format", "provenance", "discover", "close", "project", "analysis", "bind");
+    /**
+     * M44.2 — which act a combined 'open' means, and what it therefore did not honour, is decided by
+     * the session processor ({@code IgnoredParameters}). This asks it.
+     *
+     * <p>The precedence order and the sentence explaining each one used to live in three
+     * near-identical blocks below, one per act. Three copies of a precedence order is three places
+     * for it to drift, and the sentence is the part a caller actually reads.
+     *
+     * <p><b>Unwired, it still decides — it just is not audited.</b> The first version returned null
+     * here and let the caller report nothing, which a test caught immediately: for coverage a missing
+     * opinion must not become a refusal, but here the harmful direction is the opposite. A parameter
+     * silently dropped reads to the caller exactly like one that was honoured, so falling back to
+     * silence would have reintroduced the defect this rule exists to prevent. The fallback is the same
+     * pure decision without the audit record, never a different answer.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters.Decision
+            openDecision(Map<String, Object> params) {
+        java.util.Set<String> supplied = new java.util.LinkedHashSet<>();
+        params.forEach((k, v) -> { if (v != null) supplied.add(k); });
+        return ignoredParameters == null
+                ? new telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters()
+                        .apply(supplied)
+                : ignoredParameters.apply(supplied);
+    }
 
-    private static List<String> otherOpenParams(Map<String, Object> params, String honoured) {
-        List<String> ignored = new ArrayList<>();
-        for (String k : OPEN_PARAMS) {
-            if (!k.equals(honoured) && params.get(k) != null) ignored.add(k);
-        }
-        return ignored;
+    private java.util.function.Function<java.util.Set<String>,
+            telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters.Decision> ignoredParameters;
+
+    public void bindIgnoredParameters(java.util.function.Function<java.util.Set<String>,
+            telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters.Decision> f) {
+        this.ignoredParameters = f;
     }
 
     /**
@@ -700,12 +721,11 @@ public final class ActionExecutor implements RenderExecutor {
         Map<String, String> bind = new LinkedHashMap<>();
         if (params.get("bind") instanceof Map<?, ?> m) m.forEach((k, v) -> { if (v != null) bind.put(String.valueOf(k), String.valueOf(v)); });
         ActionResult r = app.runAnalysis(str(params.get("analysis")), bind);
-        List<String> ignored = otherOpenParams(params, "analysis");
-        ignored.remove("bind");
-        if (r.ok() && !ignored.isEmpty()) {
+        var decision = openDecision(params);
+        if (r.ok() && decision != null && decision.anythingIgnored()) {
             Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("analysis")));
-            echo.put("ignored", ignored);
-            echo.put("ignoredWhy", "'analysis' was also given; its steps decide what opens");
+            echo.put("ignored", decision.ignored());
+            echo.put("ignoredWhy", decision.why());
             return ActionResult.ok("open", "analysis", echo);
         }
         return r;
@@ -719,12 +739,11 @@ public final class ActionExecutor implements RenderExecutor {
             // has no coherent reading: whatever the log arrived into would be swept away by the switch.
             // Sequence the calls instead; the ignored params are NAMED (M26.4, review R2).
             ActionResult r = app.openProject(str(params.get("project")));
-            List<String> ignored = otherOpenParams(params, "project");
-            if (r.ok() && !ignored.isEmpty()) {
+            var decision = openDecision(params);
+            if (r.ok() && decision != null && decision.anythingIgnored()) {
                 Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("opened")));
-                echo.put("ignored", ignored);
-                echo.put("ignoredWhy", "'project' was also given; a project switch is a session boundary, "
-                        + "so open the log and graph in a second call, inside the new project");
+                echo.put("ignored", decision.ignored());
+                echo.put("ignoredWhy", decision.why());
                 return ActionResult.ok("open", "opened", echo);
             }
             return r;
@@ -742,11 +761,11 @@ public final class ActionExecutor implements RenderExecutor {
             // review R2 / M26.4: "open and close at once" is incoherent and the useful reading is the
             // close — but a param that was silently dropped reads to the caller as one that was
             // honoured, so name them. Every verb in this surface owes the caller that.
-            List<String> ignored = otherOpenParams(params, "close");
-            if (r.ok() && !ignored.isEmpty()) {
+            var decision = openDecision(params);
+            if (r.ok() && decision != null && decision.anythingIgnored()) {
                 Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("applied")));
-                echo.put("ignored", ignored);
-                echo.put("ignoredWhy", "'close' was also given, and closing is what the request means");
+                echo.put("ignored", decision.ignored());
+                echo.put("ignoredWhy", decision.why());
                 return ActionResult.ok("open", "applied", echo);
             }
             return r;

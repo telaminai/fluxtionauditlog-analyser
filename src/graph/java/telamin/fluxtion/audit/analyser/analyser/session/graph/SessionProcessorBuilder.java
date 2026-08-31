@@ -18,6 +18,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
+import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
@@ -73,6 +74,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         AuditInstallation auditInstallation = new AuditInstallation();
         LogArrival logArrival = new LogArrival(gate, pairing, openGraph, effects);
         CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
+        IgnoredParameters ignoredParameters = new IgnoredParameters();
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -87,6 +89,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(auditInstallation, "auditInstallation");
         cfg.addNode(logArrival, "logArrival");
         cfg.addNode(coverageClaim, "coverageClaim");
+        cfg.addNode(ignoredParameters, "ignoredParameters");
 
         // WITH a level: invocation tracing is compiled in, so every node that runs appears in the record
         // whether or not it made an auditLog call of its own. That is the regime in which absence from

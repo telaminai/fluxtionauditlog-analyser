@@ -188,7 +188,12 @@ flip is gated on**, so this milestone is a dependency in both directions._
   **planned**. That is exactly the key separating *capable, audit off* from *capable and stayed silent*,
   which is this slice's stated product claim, so it is re-scoped: the regime comes from the **log header**
   (UP-FLX-11), not the GraphML. Still the slice where the claim improves.
-- [M45.4] ☐ **PARKED — no input.** `fluxtion.framework` is planned and withheld: upstream found its own
+- [M45.4] ☐ **STILL PARKED even though `fluxtion.framework` is now emitted** — it waits on a named
+  AUTHORITY, not on emission (spec ▸ D-V2 amendment). The compiler side reproduced an author's own
+  auditor registered under `clock` being published as compiler-created, because provenance is tracked by
+  name while the thing it describes is an instance. A false `framework=true` **excludes an authored node
+  from the denominator and flatters the number** — silent, and the direction our own "excluding requires
+  proof" rule exists to prevent. Third instance of an emitted-before-settled key. **Originally:** `fluxtion.framework` is planned and withheld: upstream found its own
   value was a package-prefix guess, deleted it, and is replacing it with recorded creation provenance
   that needs a **`builder-api` change** to finish. The fact we want will be better than the one the spec
   was written against, and it does not exist yet. `authoredNodeCount` went with it.
@@ -343,8 +348,26 @@ agents does — and that learning is the raw material for the template bootstrap
   logged, and had its output discarded, so the number is computable and must carry what it hides.
   **Refusing a computable number is as much a failure as printing a meaningless one**, and the
   REFUSED/QUALIFIED split is the whole value of the node. Four rules, four mutations, all caught.
-  ☐ **Still to move:** `IgnoredParameters`, and log/graph OPENING once the driver can carry an
-  asynchronous effect.
+- [M44.2d] ☑ **`IgnoredParameters` shipped 2026-08-31.** `open` is a compatibility surface carrying every
+  lifecycle act, so combinations are expressible that have no coherent reading — `open {project, log}`
+  cannot mean anything, because the switch would sweep away whatever the log arrived into. The
+  precedence order and the sentence explaining each act lived in **three near-identical blocks** of
+  `ActionExecutor.doOpen`; they are one table now, and the decision is audited.
+  **A regression caught by an existing test, and the fix is the interesting part.** Unwired, the first
+  version reported nothing ignored. For `CoverageClaim` a missing opinion must not become a refusal —
+  but here the harmful direction is the opposite: **a parameter silently dropped reads to the caller
+  exactly like one that was honoured**, and on the agent path nobody notices the log they asked for
+  never opened. The fallback now returns the same pure decision without the audit record, never a
+  different answer.
+  One visible change: the `ignored` list is ordered by **precedence** rather than by the declaration
+  order of a constant. Same set; the new order tells a caller which act would have won.
+- [M44.2e] ☑ **`tools/regen-session-processor.sh`** — the regeneration dance is five commands and every
+  one matters: skip the header strip and rule 1 fails, skip the fixtures and M45 fails against a graph
+  that moved, skip the POM restore and the repo depends on an unreleased SNAPSHOT. Got wrong three
+  times, which is three more than a script costs.
+  ☐ **Still to move:** log/graph OPENING, which waits on a driver that can carry an ASYNCHRONOUS
+  effect — the load is `Background.run` and the driver is synchronous single-in-flight by design, so
+  this is a design question to spec rather than a slice to write.
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
   `AuditInstallationReadiness` / `CoverageClaim` (the review's F3 — three questions the first draft merged
   into one). Then move log and graph OPENING, which deletes `LogObserved`/`GraphObserved` and with them

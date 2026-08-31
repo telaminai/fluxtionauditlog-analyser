@@ -101,6 +101,28 @@ it, `INFERRED` when we worked it out.
 upstream contract; an unknown MAJOR is treated as absent, not as an error, because a file from the
 future is still a file someone needs to open.
 
+### AMENDED 2026-08-31 — `emitted` is not enough; gate on a NAMED AUTHORITY
+
+Raised by the compiler-side session, and it is right. A `fluxtion.framework`-shaped fact has now been
+wrong **three times**, and every time the key was `emitted` before the thing behind it was settled:
+
+* first as a **package-prefix guess** — anything under `com.telamin.fluxtion.*` called framework;
+* then as a **name-keyed set** — an author registering their own auditor under `clock` is published as
+  compiler-created, because provenance is tracked by NAME while the thing it describes is an INSTANCE;
+* and `topologicalRank`, emitted and **reversed** across push edges, which this repo reproduced.
+
+**A false `framework=true` excludes an authored node from the coverage denominator, so the error
+flatters the number** — the exact direction `NodeLogging`'s *"excluding a node requires proof"* rule
+exists to prevent, and silent.
+
+**So the trust rule gains a second condition.** A key is consumed as DECLARED when the vocabulary is
+present at a supported MAJOR **and** the key has a named authority — a single place in the compiler
+that decides the fact, identified in the registry. `emitted` says a value appears; it does not say
+anything decides it. All three failures were keys whose authority was still being built.
+
+Practically: **M45.4 stays parked even now that `fluxtion.framework` is emitted.** It waits on the
+authority, not on the emission — which is exactly what this amendment is for.
+
 ## D-V3 — parallel edges are a rendering change, not only a parsing one
 
 Checked, not assumed: `ProcessorTopology.of` keeps edges in a `List` with a soundness filter and **no

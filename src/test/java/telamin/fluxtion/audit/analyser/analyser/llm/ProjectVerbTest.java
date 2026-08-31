@@ -72,7 +72,11 @@ class ProjectVerbTest {
         assertTrue(app.closed.isEmpty(), "and 'close' was not honoured beside it either");
         Map<String, Object> echo = r.payload();
         assertEquals("proj", echo.get("project"), "the app's echo is carried up, not replaced");
-        assertEquals(List.of("log", "graphml", "close"), echo.get("ignored"),
+        // M44.2: the SET is unchanged; the ORDER now follows the precedence the surface actually
+        // applies — largest act first — instead of the declaration order of a constant, which was
+        // arbitrary. A caller reading "close, log, graphml" is reading the order these would have been
+        // honoured in, which is information; the old order was none.
+        assertEquals(List.of("close", "log", "graphml"), echo.get("ignored"),
                 "a param silently dropped reads to the caller as one that was honoured");
         assertTrue(echo.get("ignoredWhy").toString().contains("session boundary"));
     }

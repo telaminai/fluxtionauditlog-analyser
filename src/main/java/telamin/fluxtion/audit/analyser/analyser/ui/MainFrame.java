@@ -184,6 +184,12 @@ public final class MainFrame extends JFrame {
         // before the fields its adapter performs against exist.
         actionExecutor.bindCoverageClaim(() -> session == null
                 ? null : session.processor().coverageClaim.assessment());
+        actionExecutor.bindIgnoredParameters(supplied -> {
+            var driver = session();
+            driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
+                    .OpenRequestReceived(driver.nextOpId(), supplied));
+            return driver.processor().ignoredParameters.decision();
+        });
         actionExecutor.bindExportPolicy(() -> config);   // B1: file-writing verbs are opt-in + confined
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
         readerRegistry.loadPlugins(java.nio.file.Path.of(
