@@ -1,0 +1,143 @@
+REVIEW — compiler diagnostics and GraphML metadata, post-merge
+Reviewed: fluxtion-compiler feature/compiler_diagnostics @ 89373a9
+Range since last review: 5fc89a3..89373a9 (7 commits, incl. three merges)
+Reviewer: compiler-side session · Date: 2026-08-31
+
+DISCLOSURE unchanged: I wrote the original GraphML spike and the meta-data-improvements spec, so on
+the GraphML half these are mechanical checks and measurements, not independent design judgement.
+
+VERDICT: NO BLOCKING FINDINGS. One documentation overclaim, one latent path, and one correction I owe
+on my own previous review.
+
+State, measured: full reactor green at this revision — 3,446 integration tests, 0 failures, 7 skipped,
+BUILD SUCCESS. Working tree clean; the merge conflict I found mid-flight last time is resolved.
+
+================================================================================
+1 · BOTH M45 ASKS WERE ACTED ON, AND THE WORK IS HONEST ABOUT ITS LIMITS
+================================================================================
+
+**The DTO wire gate (`ac231a8`).** `DtoWireCompatibilityTest` covers four things: a new-client node
+round-trips through Java serialisation and Kryo; an old-shaped node still reads on current code; an
+annotation the reader has never heard of survives as data; and the Kryo registration block's ids are
+pinned because they are positional.
+
+Two things make this better than the usual response to a review finding:
+
+* the gate was **mutation-verified** — a registration was inserted and `NodeDto` was watched moving
+  from id 10 to 11, so the test is known to fail for the reason it claims. That is the discipline
+  whose absence produced three "fixed" claims that were not, earlier on this branch;
+* the test's own javadoc states plainly what it is NOT: it does not load a previously released
+  builder jar and round-trip between two versions of one class on an isolated classloader. It says
+  that stronger check "stays open".
+
+**Reachability (`ac231a8`).** M45.1 asks whether `-Dfluxtion.graphml.metadata` survives
+`fluxtion-maven-plugin`. Answered: the plugin does not fork — the mojo builds a URLClassLoader over
+the project — so the property reaches the JVM running the exporter. This does not remove the value of
+M45.1's empirical run, which also unblocks the pinned comparison, but the question itself is settled
+and the slice can be scoped to measurement rather than discovery.
+
+**`topologicalRank` (`dbcbe17`) — the most valuable commit in the range, and it is a self-catch.**
+The value had been reported fixed and was not: the call site was renamed to `model.dispatchRank(...)`
+while the underlying accessor still returned `getObjectSortedDependents()`, the exact list an earlier
+review said was wrong. **The rename made it look fixed.** Measured impact recorded in the commit: on
+a graph with a push reference the published rank was the reverse of generated dispatch
+(`sink=7, joiner=8` against dispatch `… joiner, sink`), and worse pre-fix (`pusher=10, target=3`).
+
+I verified the repair rather than reading it. `eventDispatchPositionMap` is now built from
+`getSortedDependents()` — `topologicalHandlers`, the dispatch order that accounts for
+`@PushReference` directionality — and the DTO builder's comment states the distinction from
+`getObjectSortedDependents()` explicitly. The exporter reads only that map, with no fallback. A probe
+compile emitted ranks in dispatch order across event, framework and authored nodes.
+
+================================================================================
+2 · MY M45 FINDINGS F1 AND F2 STAND UNCHANGED
+================================================================================
+
+The manifest at this revision is still 17 `emitted` / 9 `planned`, and the three keys those findings
+turned on have not moved:
+
+    fluxtion.framework           planned
+    fluxtion.eventAudit          planned
+    fluxtion.authoredNodeCount   planned
+
+So M45.4 ("an honest coverage denominator from `fluxtion.framework`") still has no input, and M45.3's
+audit trio is still a duo. Neither is a defect here — upstream deliberately deleted the `framework`
+package-prefix guess rather than ship it, and is replacing it with recorded creation provenance that
+is not finished. It means the M45 slice re-plan stands as written.
+
+================================================================================
+3 · F1 · The tracker states the wire gate more strongly than the test does
+================================================================================
+
+`TRACKER.md`, Remote diagnostic transport row:
+
+  "`DtoWireCompatibilityTest` now GATES that: Kryo ids are positional … Append, never insert"
+
+The test's own javadoc is more careful, and it is the more accurate of the two:
+
+  "It does not load a previously released builder jar and round-trip between two versions of the same
+   class in one JVM. That is the stronger test the reviewer asked for and it is still open … This
+   class covers the mechanism; that one would cover the artefact."
+
+Both statements are true of different things, but a reader who checks the tracker and not the test
+concludes the release gate is closed. It is closed against an id shift — the failure mode that would
+actually bite for THIS change — and open against a real cross-version artefact.
+
+Resolution: carry the test's own boundary into the tracker row. One clause, and it prevents a future
+release decision resting on a gate that covers less than its summary implies. This is the same shape
+as the finding that produced the evidence rules in the first place.
+
+================================================================================
+4 · N1 · A latent sentinel in the rank map — PREDICTED, PROBED, DID NOT REPRODUCE
+================================================================================
+
+Recorded because the mechanism is real and the next person may meet it, and recorded as unreproduced
+because I tried to demonstrate it and failed.
+
+`TopologicallySortedDependencyGraphDtoBuilder` assigns registration listeners
+`putIfAbsent(name, Integer.MAX_VALUE)` — "auditors don't participate in event dispatch ordering" —
+and the exporter emits a rank whenever `rank >= 0`. `Integer.MAX_VALUE` passes that guard, so on
+paper an auditor could publish `fluxtion.topologicalRank=2147483647`, which a consumer rendering rank
+as a column would show to a user and a consumer computing a range would be poisoned by.
+
+It did not happen. A probe compile emitted ordinary ranks for every vertex including
+`nodeNameLookup`, a `NodeNameAuditor` — because `putIfAbsent` only applies when the auditor is absent
+from the dispatch list, and in an ordinary graph it is not. So the path requires a registration
+listener outside `getSortedDependents()`, which I could not construct and which may not be reachable.
+
+If it is reachable, the fix is the guard: omit the key rather than publish a sentinel, exactly as the
+absent case already does. No action needed unless someone finds the shape.
+
+================================================================================
+5 · N2 · A correction I owe on my own M45 review
+================================================================================
+
+In `review_m45_graphml_vocabulary_consumption.txt` I checked every key on M45's shopping list against
+the manifest and reported which were `emitted` versus `planned` — and treated `emitted` as usable.
+`fluxtion.topologicalRank` was emitted, so I passed it through to M45.5 without comment.
+
+At the moment I wrote that, its value was the **reverse** of dispatch order across every push edge.
+`dbcbe17` found it; I did not. Status is availability, not correctness, and I checked only the first.
+Had M45.5 been built against that review, it would have shipped a column answering — confidently and
+backwards — the single question the baseline found three of three agents unable to answer.
+
+The M45 findings themselves are unaffected: F1 and F2 are about keys that are absent, and absence is
+a fact about the manifest. But the review's implicit clearance of the emitted keys was worth less than
+it read, and anyone using it to plan M45.5 should re-verify the values, not the statuses.
+
+================================================================================
+WHAT I VERIFIED / WHAT I DID NOT
+================================================================================
+
+Verified at `89373a9`: full reactor suite green (3,446 tests, 0 failures) run here, not quoted; the
+manifest's emitted/planned split and the three keys above; the rank source chain from
+`getSortedDependents()` through `eventDispatchPositionMap` to the exporter, with no fallback; the
+absent-rank guard; the emitted rank ordering by probe compile in `PARALLEL`; `DtoWireCompatibilityTest`'s
+four assertions and its stated boundary; the reachability finding as recorded in the commit.
+
+NOT verified: I did not run this repo's suite or push a `89373a9`-produced GraphML through
+`GraphMlParser` — the before/after parser check the M45 spec asks to re-run at the release candidate
+is still outstanding, and it is now a bigger gap than when the spec was written, because the exporter
+has been rewritten as a model projection since the check that covered it. I did not attempt the
+cross-jar DTO round trip. I did not review the Spring contract unification in `9a4b42a` beyond noting
+it landed.
