@@ -1,0 +1,34 @@
+157a158,190
+> 
+> ## 6. Failures that compile, run, and are still wrong
+> 
+> These do not fail the build. Nothing warns you. That is the only reason they are written down.
+> 
+> ### A plain field reference IS a trigger
+> 
+> Holding another node in a field makes it a **trigger parent**: any change to it fires your `@OnTrigger`.
+> That is the surprising default exactly when you meant "read this, don't react to it" — a lookup table, a
+> price book, a config holder.
+> 
+> ```java
+> public class ReorderPolicy {
+>     private final StockLedger ledger;
+>     private final SkuCatalog catalog;   // intended as a lookup only
+>     @OnTrigger public boolean recompute() { ... }
+> }
+> ```
+> 
+> compiles to `guardCheck_reorderPolicy() { return isDirty_skuCatalog | isDirty_stockLedger; }` — so every
+> catalog change now recomputes the policy.
+> 
+> **Fix:** `@NoTriggerReference` (FQN `com.telamin.fluxtion.runtime.annotations.NoTriggerReference` — note
+> this is NOT in `annotations.builder`, unlike `@FluxtionIgnore`) on any reference you only read from.
+> 
+> ### One `@OnTrigger` per node, not one per parent
+> 
+> `@OnTrigger` is already an OR over **all** parent dirty flags, so a node with five parents needs **one**
+> method, not five. Writing one per parent does not give per-parent dispatch — every method fires on every
+> change, and each **overwrites the node's dirty flag**, so only the last return propagates.
+> 
+> **Fix:** one `@OnTrigger`. If you must know which parent changed, that is `@OnParentUpdate`, which takes
+> the parent's type as its single argument.
