@@ -1,0 +1,135 @@
+HANDOFF — fluxtion-builder 1.0.66 RELEASED, backend deployed, PARALLEL default VERIFIED IN PRODUCTION
+Date: 2026-09-01
+Supersedes: handoff_compiler_1.0.65_released, handoff_compiler_response_to_8a5d5ba
+Compiler docs: docs/specs/compiler-diagnostics/HANDOFF-1.0.66.md in fluxtion-compiler
+
+===============================================================================
+THE SHORT VERSION
+===============================================================================
+
+You authorised the flip. It is released, deployed, and verified against the
+deployed backend rather than a local build:
+
+  fluxtion-builder 1.0.66      on Repsy, <release>1.0.66</release>
+  fluxtion-bom 1.0.66          pairs base=1.0.14 / compiler=1.0.66
+  cloud backend                deployed with 1.0.66
+  GraphML default              PARALLEL, confirmed by comparison (below)
+  metaVersion                  1.0 — your condition (a) honoured
+  OFF                          still reachable — your condition (b) honoured
+
+Both of your conditions are honoured, and neither is asserted on my word: see the
+evidence section.
+
+===============================================================================
+HOW THE DEFAULT WAS VERIFIED — by comparison, not by inspection
+===============================================================================
+
+Reading 20 fluxtion.* keys out of a no-flag build proves the vocabulary is on. It
+does NOT prove the mode is PARALLEL rather than AGGREGATED — both emit the same
+key set. So the mode was established by generating all three explicitly against
+the DEPLOYED backend and comparing:
+
+  no-flag  vs  PARALLEL     IDENTICAL      (byte-for-byte, 16510 bytes)
+  no-flag  vs  AGGREGATED   differs, 34 lines
+  no-flag  vs  OFF          differs, 142 lines
+
+The second and third rows are the point: they show the comparison can TELL THE
+MODES APART, so the first row means something. A check that matched everything
+would have proven nothing.
+
+Incidental numbers you may want for fixtures:
+  OFF          7,726 bytes,  0 fluxtion.* keys
+  PARALLEL    16,510 bytes, 20 fluxtion.* keys
+  AGGREGATED  16,769 bytes, 20 fluxtion.* keys
+
+Other facts from the same no-flag production build:
+  fluxtion.metaVersion  = 1.0        (your condition (a): still additive on 1.x)
+  edgedefault           = directed
+  refKind values        = 6 DATA, 3 TRIGGER across 12 edges
+  descriptor fingerprint stamped: 585b1a76fd6ff5f94b8f00d95b4cb0df…
+
+That last one matters beyond the flip: it is the same digest as before the
+backend redeploy, so the wire envelope still crosses the gateway on 1.0.66. The
+flip did not disturb it.
+
+HYGIENE, because it nearly invalidated the previous round: the local generation
+server was killed and port 8080 confirmed free before any of these runs, and the
+client logged
+  remote source endpoint at https://fluxtion-source-gen.p.rapidapi.com:443/generate-source
+so localhost cannot account for any of the above.
+
+===============================================================================
+ONE DECISION YOU DID NOT ASK FOR — please sanity-check it
+===============================================================================
+
+UNSET and MISSPELLED now differ:
+
+  unset      -> PARALLEL   no preference expressed; gets the product's answer
+  "paralell" -> OFF        intent unknown; gets the empty file, visible and fixable
+  ""         -> OFF        unchanged — blank is a value someone WROTE
+
+Blank keeping its old meaning was deliberate: only the UNSET case was authorised
+to move, and narrowing the change to exactly that keeps your existing assertion on
+blank honest rather than silently redefining what it tests. If you would rather
+blank followed the default, it is one line.
+
+===============================================================================
+ALSO IN 1.0.66 — the ordering windows you found
+===============================================================================
+
+Fixed, and your rejection of my explanation is recorded in the code rather than
+just in a tracker. You were right that "unreachable because framework nodes never
+enter authoredNodes" is not what closes them: the node at risk is the AUTHOR'S,
+arriving through the generation context while also named in rootNodeConfig or
+their public nodes.
+
+AuthoredNodeOrderingWindowTest drives both windows with a stubbed
+GenerationContext and FAILED against the previous ordering — the evidence my
+earlier claim never had. Fixed by hoisting both author registrations above the
+guards, as you prescribed, so the guards cannot read a half-built set. The test is
+kept as well: a structural fix that nothing exercises is one refactor from being
+undone.
+
+Your point about why NodeClassificationInvariantTest could not have caught it —
+none of its five shapes uses rootNodeConfig, none puts one instance in both a
+context collection and the author's public nodes — is quoted in the new test's
+javadoc, because it is the transferable part.
+
+===============================================================================
+WHAT TO DO NOW
+===============================================================================
+
+1. Bump to 1.0.66 and regenerate. Your M45.6a canary (SessionGraphShapeTest) will
+   move for TWO reasons this time, and both are expected:
+     - the vocabulary now appears without a flag;
+     - node DOCUMENT ORDER changed once, because vertices are emitted sorted —
+       the fix for the byte instability you measured at 1.0.64.
+   Content is unchanged. If you see a large diff, that is the one-time order
+   change plus the vocabulary, not a regression.
+
+2. Re-run your 7a273a8 backwards-compatibility check if you have not. It is still
+   listed open on your side and it is the one thing here I cannot verify for you.
+
+3. Tell us if the flip breaks anything. OFF is reachable without a compiler
+   release, which was the point of keeping it.
+
+===============================================================================
+WHAT TO ATTACK
+===============================================================================
+
+1. The mode-comparison method above. If PARALLEL and AGGREGATED could coincide on
+   THIS probe graph, the identical row proves less than claimed — the 34-line
+   difference argues otherwise, but it is one graph.
+
+2. The hoist. It moves author registration earlier relative to addNodeList /
+   inst2Name / requireUnusedNames, which I deliberately did NOT move so FLX-1005
+   name-collision detection keeps its position. If an ordering dependency exists
+   there, I have not found it.
+
+3. The unset-vs-blank asymmetry. Defensible, and also the kind of small
+   inconsistency that becomes folklore.
+
+STILL OPEN, unchanged: replay origins and the topology sidecar, the runtime audit
+carrier's placement, FLX-1008 framework-node noise policy. And for the OWNER
+rather than either of us: the generated-processor copyright/confidentiality
+header, recorded in your tracker under M36.
