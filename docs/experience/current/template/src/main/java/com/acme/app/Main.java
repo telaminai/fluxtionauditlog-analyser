@@ -7,11 +7,13 @@ import java.util.*;
 /**
  * Running a graph, complete. Note the ORDER — the audit processor is attached BEFORE init().
  *
- * <p><b>Write Main LAST.</b> It imports the generated class, and {@code mvn process-classes}
- * compiles your sources before generating — so if Main exists and the generated class does not,
- * Main breaks the very step that would create it. This template ships the generated class already
- * present, so you will not hit that. If you ever delete it: move Main out of the tree, run
- * {@code mvn process-classes}, put Main back.
+ * <p><b>This class imports the generated processor, and the pom is set up so that is fine.</b>
+ * Generation runs at {@code process-classes}, which is AFTER {@code compile} — so ordinarily a class
+ * importing generated output cannot compile, and you are told to "write Main last". This build
+ * compiles in two passes instead: everything except {@code ${generated.dependents}} first, then
+ * generation, then the rest. It also deletes the previous generated source at {@code initialize}, so
+ * a processor left over from an older node shape can never break the build. Change a node's
+ * constructor and just run {@code mvn clean test}.
  */
 public class Main {
     public static void main(String[] args) throws Exception {

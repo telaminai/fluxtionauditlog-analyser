@@ -1,6 +1,6 @@
 # A Fluxtion project that already runs
 
-`./run.sh` builds, generates, tests and runs. It is green as it stands — start by running it, then
+`./run.sh` builds, generates, tests and runs. `mvn clean test` alone also works, from any state. It is green as it stands — start by running it, then
 change it. Every non-obvious rule this framework enforces is already applied here and commented at the
 place it applies, so the working code is the reference.
 
@@ -37,8 +37,11 @@ A short cycle is propagation correctly arrested. A node absent from a cycle did 
 
 All four are already handled in this template — this list is here so you recognise them if you break one.
 
-1. **Write `Main` last.** It imports the generated class; `process-classes` compiles before it
-   generates. The generated class ships here, so you start past this.
+1. **A class that imports the generated processor cannot normally compile**, because generation runs
+   after compilation — hence the usual advice to "write `Main` last". **This pom removes the problem**:
+   it compiles in two passes and deletes the stale generated source every build, so changing a node's
+   shape and running `mvn clean test` just works. If you copy the pom, copy the `generated.dependents`
+   property with it.
 2. **`com.telamin.fluxtion`, never `com.fluxtion`.** The latter is the pre-rename namespace: it is in
    old jars and probably in your memory, and it does not exist here.
 3. **Parents are fields.** A constructor argument you do not retain is not a parent —

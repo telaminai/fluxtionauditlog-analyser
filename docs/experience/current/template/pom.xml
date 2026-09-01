@@ -3,20 +3,65 @@
   <properties>
     <maven.compiler.source>21</maven.compiler.source><maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- anything that imports the generated processor: excluded from pass 1, compiled in pass 2 -->
+    <generated.dependents>**/Main.java</generated.dependents>
   </properties>
+
   <repositories><repository><id>repsy-fluxtion-public</id>
     <url>https://repo.repsy.io/mvn/fluxtion/fluxtion-public</url></repository></repositories>
   <pluginRepositories><pluginRepository><id>repsy-fluxtion-public</id>
     <url>https://repo.repsy.io/mvn/fluxtion/fluxtion-public</url></pluginRepository></pluginRepositories>
+
   <dependencies>
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.9.3</version><scope>test</scope></dependency>
     <dependency><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-runtime</artifactId><version>1.0.14</version></dependency>
     <dependency><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-builder</artifactId><version>1.0.66</version><scope>provided</scope></dependency>
   </dependencies>
+
   <build><plugins>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.3</version></plugin>
-    <plugin><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-maven-plugin</artifactId><version>1.3.0</version>
+
+    <!-- 1. a fresh build starts with NO generated source. A stale processor from a previous
+            node shape is the commonest way this build breaks: it still names classes or
+            constructors you have since changed, and the error points at generated code you
+            did not write. Deleting it every build makes that failure impossible. -->
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId>
+      <version>3.3.2</version>
+      <executions><execution>
+        <id>drop-stale-generated</id><phase>initialize</phase><goals><goal>clean</goal></goals>
+        <configuration>
+          <excludeDefaultDirectories>true</excludeDefaultDirectories>
+          <filesets>
+            <fileset><directory>src/main/java/com/acme/app/generated</directory><includes><include>**/*</include></includes></fileset>
+            <fileset><directory>src/main/resources/com/acme/app/generated</directory><includes><include>**/*</include></includes></fileset>
+          </filesets>
+        </configuration>
+      </execution></executions>
+    </plugin>
+
+    <!-- 3. generation. Declared before the second compiler execution, so within
+            process-classes it runs first. -->
+    <plugin><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-maven-plugin</artifactId>
+      <version>1.3.0</version>
       <executions><execution><phase>process-classes</phase><goals><goal>scan</goal></goals></execution></executions>
     </plugin>
+
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId>
+      <version>3.13.0</version>
+      <executions>
+        <!-- 2. pass one: everything EXCEPT the classes that import the generated processor.
+                Generation runs at process-classes, i.e. AFTER compile, so those classes
+                cannot compile yet. This is why "write Main last" is otherwise necessary. -->
+        <execution><id>default-compile</id>
+          <configuration><excludes><exclude>${generated.dependents}</exclude></excludes></configuration>
+        </execution>
+        <!-- 4. pass two: now the processor exists, compile the whole source tree. -->
+        <execution><id>compile-generated-dependents</id><phase>process-classes</phase>
+          <goals><goal>compile</goal></goals>
+        </execution>
+      </executions>
+    </plugin>
+
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId>
+      <version>3.5.3</version></plugin>
   </plugins></build>
 </project>
