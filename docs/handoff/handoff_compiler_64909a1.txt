@@ -1,0 +1,194 @@
+HANDOFF — compiler diagnostics / GraphML branch, response to three review rounds
+Compiler branch: feature/compiler_diagnostics
+Head: 64909a1
+Paired public source: fluxtion v1.0.14 (RELEASED — see "Release" below)
+Date: 2026-09-01
+
+STATUS: all BLOCKERS from the 8ff07e0 and c6bf306 reviews are closed. One HIGH (F3,
+remote diagnostics not reaching Fluxtion.compile) is deliberately still open and is
+described precisely rather than partly done. Full clean reactor: 194 / 21 / 16 / 3487,
+zero failures, built against the RELEASED public 1.0.14.
+
+===============================================================================
+RELEASE — public fluxtion 1.0.14 is out, and the compiler now pins it
+===============================================================================
+
+Published to Repsy, verified by resolving the artifacts rather than by the workflow's
+exit code:
+
+    fluxtion-runtime                 1.0.14  pom 200 / jar 200
+    fluxtion-builder-api             1.0.14  pom 200 / jar 200
+    fluxtion-builder-api-all-java8   1.0.14  pom 200 / jar 200
+
+fluxtion-runtime-java8 is absent and that is correct — this repository builds three
+modules and 1.0.13 has no runtime-java8 on Repsy either.
+
+Both copies of fluxtion.base.version moved to 1.0.14 together (parent pom and the
+deliberately parent-less fluxtion-bom). The compiler reactor then downloaded
+fluxtion-builder-api-1.0.14.jar and fluxtion-runtime-1.0.14.jar from
+repsy-fluxtion-public, so FrameworkProvenanceTest now resolves from a repository
+instead of a hand-built snapshot.
+
+TWO THINGS WORTH KNOWING, both mistakes made and corrected here:
+
+1. The first release attempt pushed to a branch named `release`, which triggers a
+   workflow named "Release to maven central". That workflow fails 401: this project's
+   distributionManagement targets Repsy, and no Fluxtion artifact has ever been on
+   Maven Central (checked 1.0.12 and 1.0.13 across four coordinates — all 404 on
+   Central, 200 on Repsy). The correct branch is `release-repsy`.
+
+   release:prepare had already run before the deploy failed, leaving tag v1.0.14 and a
+   version-bumped `release` branch with nothing published. Both were deleted and the
+   release re-run correctly.
+
+   ACTION FOR THE OWNER: the "Release to maven central" workflow is a live trap on a
+   plausible branch name. Delete it or point it at real Central coordinates.
+
+2. Nothing was published during the failed attempt — verified on both Repsy and
+   Central before cleaning up, not assumed from the failure.
+
+===============================================================================
+8ff07e0 REVIEW — F1, F2, F5, N1 closed; F3 open
+===============================================================================
+
+F1 (BLOCKER) — author-owned anchor nodes emitted as framework plumbing. FIXED.
+
+Your diagnosis was exactly right, including the part that mattered most: "context node"
+is not a synonym for "compiler-created node", and Anchor.anchor is the proof. It routes
+the AUTHOR'S OWN instances through GeneratorNodeCollection, so objects passed to addNode
+reappear in GenerationContext.getNodeList(); the constructor added every context node to
+compilerCreatedNodes unconditionally and membership there decided the answer.
+
+Fixed at registration, not in the exporter, as you asked: an explicit author registration
+now wins over the same identity arriving through the generation context. Both the
+per-node values and authoredNodeCount are pinned on the exact fixture you named
+(FrameworkProvenanceTest.nodesPassedToAnchorRemainTheAuthors), and mutation-checked. The
+auditor replacement test is retained — you were right that it covers a different axis
+(name, not identity).
+
+F2 (BLOCKER) — the manifest denied an emitted ANCHOR and its gate could not see it. FIXED.
+
+refKind is now type: enum with ANCHOR in values, and the gate validates ANY entry
+carrying a `values` array rather than recognising the two literal spellings "enum" and
+"list". A new test drives an anchor-producing document through the check, because none of
+the existing probes anchors — a vocabulary gate is only as good as the documents pushed
+through it. Mutation-checked by removing ANCHOR from the manifest.
+
+F5 (MEDIUM) — no regression test for the event-walk cliff. FIXED, and your instinct to
+ask for a real one was well founded: my FIRST fixture (41 nodes, 2^19 paths) PASSED with
+the completed guard removed, merely 14x slower. It would not have caught the defect
+returning. The cliff was measured at 240/480 nodes, so the fixture is now that size:
+0.3s with the guard, 60s timeout without. Size calibrated against the mutation.
+
+A second test covers the failure the fix could have introduced — the completed set is
+cleared between passes, so a second event still dispatches.
+
+N1 — envelope hardening. Two real defects fixed:
+
+  * metaValue restored the LETTER r where escape() wrote \r, so a report containing a
+    carriage return came back corrupted — silently, in the field whose entire purpose is
+    machine consumption. The round-trip test had omitted that one character; it now
+    covers every character escape() writes.
+  * serverDiagnosticsJson is cleared at the START of every call, so a plain fallback or a
+    mid-call failure can no longer expose the previous call's report as this one's.
+
+  STILL OPEN from N1, and we agree it should be closed before production: an old-server
+  negotiation test (415 then plain), and one acceptance through the DEPLOYED gateway with
+  the custom content type. The local Javalin endpoint proves the application, not that the
+  gateway preserves application/x-fluxtion-envelope. That is the same assumption the
+  envelope was chosen to avoid making about headers, so it should not be assumed about
+  content types either.
+
+F3 (HIGH) — remote diagnostics discarded by Fluxtion.compile. STILL OPEN, deliberately.
+
+EventProcessorGenerator constructs RemoteHttpCombinedGenerator, calls it, and drops the
+instance, so getServerDiagnosticsJson() is read only by the endpoint test. Your summary of
+the consequences is accurate and we are not disputing any of it.
+
+Closing it needs a wire-contract READER: the JSON stays the transport contract and the
+merge into the local DiagnosticReport happens at the consumer boundary. Not attempted
+half-way — a parser written in a hurry, for a contract this branch also publishes, is the
+wrong trade. Until it lands, "remote endpoint transport DONE" means the ENDPOINT and not
+delivery through the public compiler seam, and the tracker's current-state table says so
+in those words.
+
+F4 — tracker/spec contradictions. FIXED. The current-state table carried rows (Spring
+collector "NOT reached", nested capture "Broken", model authority "partly closed") that
+later sections and passing tests contradicted, and the metadata README still said the
+descriptor emits null. Rationalised from the code. Historical mistakes stay in the
+per-item narratives and in review history, not in the current-state table.
+
+===============================================================================
+c6bf306 REVIEW — you caught a false claim in a document whose whole pitch was rigour
+===============================================================================
+
+FLX-1005 documented AOT-only. YOU WERE RIGHT AND WE WERE WRONG. An interpreted build
+refuses a duplicate name too. The row was written from the rule rather than from
+behaviour, in error-scope.md — a page that opens by claiming to be "a rendering of
+measured behaviour, not a statement of intent". Corrected and now measured like the others.
+
+The scope test claimed six rows and exercised three, with two assertions able to pass for
+unrelated failures. Also right, and tightening them found TWO REAL DEFECTS that the loose
+assertions had been hiding. Both are now PINNED as current behaviour so a fix flips a
+test deliberately rather than the docs quietly going stale again:
+
+  1. A duplicate node name is refused UNCODED on BOTH paths — IllegalArgumentException
+     "value already present", before any diagnostic-producing stage runs. FLX-1005's coded
+     form is therefore reachable only through the DTO-builder path that SchemaConformanceTest
+     drives, NOT through Fluxtion.compile. The registry lists it as implemented, which is
+     true of the producer and false of the path a user takes.
+
+  2. A cycle on the INTERPRETED path is refused but reported as a duplicate
+     'nodeNameLookup' — a framework node the author never wrote. The AOT path diagnoses the
+     same graph correctly as FLX-1007, which is what makes this a defect rather than a
+     limitation.
+
+  The old assertion was assertFalse(buildSucceeds(...)). It passed on that wrong message,
+  so the row looked measured while measuring nothing. This is the clearest example in the
+  branch of why asserting the NAMED code beats asserting that a build failed.
+
+FLX-1002 — implemented, with the premise corrected. void and boolean pass;
+non-void/non-boolean is refused with the coded diagnostic BEFORE source generation, so the
+failure names the author's interface instead of a line inside generated code.
+
+It names an EXISTING failure rather than adding a rejection. Measured: boolean applyTick()
+compiles (and the generated dispatch discards the node's value, returning a hardcoded
+true), while String lastPrice() does not compile at all — the generator emits a void
+override and javac refuses the processor with "is not abstract and does not override
+abstract method". The registry's blocking premise ("non-void exported methods compile and
+run") held for boolean and for nothing else.
+
+Your point that the docs confused the wrapper's returned value with dirty-state propagation
+is fair and the wording is corrected.
+
+===============================================================================
+WHAT WE WOULD LIKE REVIEWED NEXT
+===============================================================================
+
+1. The two pinned defects above. They are behaviour decisions, not obvious bugs: should a
+   duplicate name route through the diagnostic path so FLX-1005 becomes reachable from
+   Fluxtion.compile, and should the interpreted cycle check run before the name map?
+
+2. The F1 fix's blast radius. "Author registration wins over context arrival" is a
+   precedence rule applied in two places in the graph constructor. We audited Anchor as the
+   route you named, but GenerationContext may own other identities where the opposite
+   precedence is correct.
+
+3. Whether the envelope's gateway acceptance can be run from your side, since it needs the
+   deployed service rather than a local endpoint.
+
+===============================================================================
+EVIDENCE
+===============================================================================
+
+Full clean reactor at 64909a1, against RELEASED public 1.0.14:
+
+    fluxtion-builder            194
+    fluxtion-generator-core      21
+    fluxtion-generator-http      16
+    fluxtion-integration-tests 3487  (5 skipped)
+    zero failures, zero errors
+
+Every fix in this handoff is mutation-checked: the change is reverted, the test is
+confirmed to fail, and the change is restored. Where a mutation did NOT fail the test
+(the 41-node walk fixture), that is recorded above rather than quietly fixed.
