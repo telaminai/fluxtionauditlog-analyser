@@ -1,0 +1,57 @@
+203a204,259
+> 
+> ## 6. Failures that compile, run, and are still wrong
+> 
+> Nothing below fails the build. Nothing warns you. That is the only reason it is written down.
+> 
+> ### 6.1 Excluding a field stops Fluxtion supplying its VALUE
+> 
+> §4.3 tells you to mark node-local state `transient` or `@FluxtionIgnore`. That is right for state a node
+> builds **for itself** — a counter, a cache, a rolling buffer — because its initialiser still runs in the
+> generated processor and nothing is lost.
+> 
+> **It is destructive for a value the BUILD supplied.** If your builder wrote
+> 
+> ```java
+> cfg.addNode(new DispatchPolicy(spread, fleet, 20, 35), "dispatchPolicy");
+> ```
+> 
+> then `20` and `35` exist only because the builder passed them. Exclude those fields and the generated
+> processor constructs the node without them: the build is green, the fields are `0`, and every rule that
+> depended on the limits quietly stops holding.
+> 
+> **So decide what the field IS before you reach for the annotation:**
+> 
+> | the field holds | fix | why |
+> |---|---|---|
+> | state the node builds itself | `transient` / `@FluxtionIgnore` | the initialiser still runs |
+> | a value the builder passed in | **a constructor that accepts it** | excluding it discards the value |
+> 
+> If the error names a field you passed a value to, the fix is never exclusion.
+> 
+> ### 6.2 Two constructor parameters of the same type
+> 
+> If two parameters share a type the generator cannot bind them by type. Annotate each with
+> `@AssignToField("fieldName")` (FQN `com.telamin.fluxtion.runtime.annotations.builder.AssignToField`) —
+> the string names the **field**, not the parameter.
+> 
+> The same ambiguity bites again at dispatch: `@OnParentUpdate` resolves the parent by the **argument's
+> type**, so with two parents of one type you must say which — `@OnParentUpdate("shortWindow")`. Without the
+> `value()` the binding is not deterministic, and nothing tells you which one you got.
+> 
+> ### 6.3 A plain field reference IS a trigger
+> 
+> Holding another node in a field makes it a **trigger parent**: any change to it fires your `@OnTrigger`.
+> That is the surprising default exactly when you meant "read this, don't react to it" — a lookup table, a
+> price book, a config holder.
+> 
+> **Fix:** `@NoTriggerReference` (FQN `com.telamin.fluxtion.runtime.annotations.NoTriggerReference` — note
+> this is NOT in `annotations.builder`, unlike `@FluxtionIgnore` and `@AssignToField`) on any reference you
+> only read from.
+> 
+> ### 6.4 One `@OnTrigger` per node, not one per parent
+> 
+> `@OnTrigger` is already an OR over **all** parent dirty flags, so a node with five parents needs **one**
+> method. Writing one per parent does not give per-parent dispatch — every method fires on every change and
+> each **overwrites the node's dirty flag**, so only the last return propagates. Use `@OnParentUpdate` when
+> you genuinely need to know which parent moved.
