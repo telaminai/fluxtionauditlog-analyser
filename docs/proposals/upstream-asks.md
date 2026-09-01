@@ -762,10 +762,12 @@ no ordering at all. The cost is to the *authoring docs* — the gap is invisible
 auditors, and until then the natural reading of `FirstAfterEvent` is that a symmetric `LastAfterEvent`
 exists.
 
-### UP-FLX-42 ● BUG — no recovery model for an exception thrown inside a cycle
+### UP-FLX-42 ◐ BUG — no recovery model for an exception thrown inside a cycle
+
+_Filed: https://github.com/telaminai/fluxtion/issues/30_
 
 **Target** `fluxtion-runtime` (semantics) → `fluxtion-compiler` (`javaTemplate.vsl`) ·
-**Priority** high — silent, permanent, and it takes the audit log with it
+**Priority** high — silent, permanent, and the audit log is quiet about exactly the failed cycle
 
 **Full report: [`upstream-content/bug-processing-flag-not-restored.md`](upstream-content/bug-processing-flag-not-restored.md).**
 Owner is fixing it next release (2026-09-01).
