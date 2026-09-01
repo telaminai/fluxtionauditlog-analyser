@@ -726,6 +726,42 @@ by decompiling the builder.
 its ordering is reconstructed where the compiler's is authoritative — see the dispatch-order-index note in
 §2c, which this ask now has evidence for.
 
+### UP-FLX-41 ○ An auditor can ask to be FIRST but cannot ask to be LAST
+
+**Target** `fluxtion-runtime` — `Auditor` · **Priority** medium — a real gap, but one with three
+workarounds, at least one of which is already first-class
+
+**What exists.** `Auditor.processingComplete()` is documented as being called *"following all the nodes
+annotated with `@AfterEvent` have been invoked"*, and `Auditor.FirstAfterEvent` is a marker interface that
+moves an auditor **before** them. So there is exactly one ordering control and it has one direction.
+
+**What is missing.** Among several ordinary auditors there is no defined order, and none of them can
+declare itself last. A processor with two auditors therefore has no single moment that means *"the audit
+record for this cycle has been published"* — the phrase names a different instant depending on which
+auditor you meant and an order nobody specified.
+
+**How we hit it.** This repo's session processor has one auditor, so the ordering holds, and we very
+nearly wrote a design note treating *"`@AfterEvent` runs before the record publishes"* as a framework
+guarantee. It is a guarantee about a processor with one auditor. The owner's objection is the ask:
+
+> *"there could be multiple auditors who all want to be last, how do you know which one to fire?"*
+
+**Four candidate answers, owner's, cheapest last.** Recorded together because the choice is a design
+call for the framework and not ours:
+
+| answer | shape |
+|---|---|
+| **an end-of-transaction event** | the boundary becomes an event rather than a phase position |
+| **an auditor re-dispatches one** | an auditor needing to be last raises an end-of-transaction event, which arrives as a fresh cycle after the current one has fully completed |
+| **`BatchHandler.batchEnd()`** | already exists, bound by `@OnBatchEnd`, already documented as a transaction boundary — the answer for *"publish once the set of events is complete"* |
+| **a preferred firing number on `Auditor`** | a sortable key so `afterEvent` emits auditors in a declared order; smallest change, and the only one that answers the question *as asked* |
+
+**Cost to us if unfixed** low today and it is worth saying so: our external effect drain runs after
+`onEvent` returns, which is after every phase and every auditor however many there are, so it depends on
+no ordering at all. The cost is to the *authoring docs* — the gap is invisible until you have two
+auditors, and until then the natural reading of `FirstAfterEvent` is that a symmetric `LastAfterEvent`
+exists.
+
 ---
 
 ## 2 · Fluxtion runtime — metadata the audit log should carry

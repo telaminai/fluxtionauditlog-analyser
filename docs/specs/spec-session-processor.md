@@ -150,11 +150,32 @@ private void afterEvent() {
 }
 ```
 
-**`@AfterEvent` runs BEFORE the cycle's audit record is published.** For a processor whose audit log is
-the product, that ordering is the wrong way round: the irreversible act would happen before the evidence
-of deciding it exists, and an effect that threw could cost the record of the decision as well as the
-effect. The external drain runs after `onEvent` returns — after `afterEvent()`, after the record is
-published — so it guarantees **decided, recorded, then acted.**
+**`@AfterEvent` runs before the cycle's audit record is published — and this is designed, not
+incidental.** `Auditor.processingComplete()`'s own javadoc: *"Normally the `processingComplete()` will be
+called following all the nodes annotated with `@AfterEvent` have been invoked."* `Auditor.FirstAfterEvent`
+is the marker that flips it for an auditor that wants to run before them.
+
+**But the guarantee is weaker than that reading suggests, and the correction is the owner's** (2026-09-01).
+`FirstAfterEvent` is a **binary** — first, or with-the-rest. Among several normal auditors there is no
+ordering, and **an auditor cannot declare itself last**. So "the audit record has published" is not a
+single moment in a processor with more than one auditor, and a design that depends on that moment is
+depending on something the framework does not currently let you express.
+
+Our processor has exactly one auditor today, so the ordering holds. **Building on it would be building
+on a property we happen to have rather than one we are promised** — which is the same mistake as reading
+a fixture's behaviour as a contract.
+
+So the reason stands but is restated: **the external drain does not depend on auditor ordering at all.**
+It runs after `onEvent` returns, which is after every phase and every auditor, however many there are.
+That guarantees **decided, recorded, then acted** without relying on an ordering that is not specified.
+
+**And there is a first-class primitive we should not pretend we knew about.** `BatchHandler.batchEnd()`
+(bound by `@OnBatchEnd`) is documented as *"a transaction of events have been received and complete… a
+common usage pattern is to process a set of events before publishing/exposing state changes outside of
+the Static Event Processor."* That is the transaction boundary this whole section is groping towards. It
+does not change our decision — our outcomes must re-enter as facts and one effect is asynchronous — but a
+graph wanting *"do the side effects once the transaction is done"* should reach for it before inventing a
+drain.
 
 **Two further reasons survive, and they are the general ones:**
 

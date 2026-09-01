@@ -214,10 +214,28 @@ private void afterEvent() {
 }
 ```
 
-**Your `@AfterEvent` runs before the audit record for that cycle is published**, and before the dirty
-flags reset. That is right for most things and decisive against one: if the audit log is evidence that
-someone relies on, an effect performed here happens *before* the record of deciding it exists — and an
-effect that throws can cost you the record as well.
+**Your `@AfterEvent` runs before an auditor's `processingComplete()`**, and before the dirty flags reset.
+That is documented rather than incidental — `Auditor.processingComplete()` says it is *"called following
+all the nodes annotated with `@AfterEvent` have been invoked"*, and `Auditor.FirstAfterEvent` is the
+marker that flips it for an auditor wanting to run first.
+
+**But do not build on "after the audit record".** `FirstAfterEvent` is a binary — first, or with the
+rest — so among several auditors there is no ordering, and **an auditor cannot declare itself last**.
+With more than one auditor, "the record has published" is not a single moment. If your side effect must
+follow the record, do not express that as a phase ordering; use a transaction boundary (below) or act
+outside the processor.
+
+### The transaction boundary you probably want
+
+If the question is *"do the side effects once this set of events is complete"*, there is a first-class
+answer: **`BatchHandler.batchEnd()`, bound by `@OnBatchEnd`** — documented as *"a transaction of events
+have been received and complete… process a set of events before publishing/exposing state changes
+outside of the Static Event Processor."*
+
+That is a stated transaction boundary rather than an inferred one, and it is what a "publish once
+everything has settled" design should reach for before inventing machinery. An auditor that genuinely
+needs to be last can also re-dispatch its own end-of-transaction event, which arrives as a new cycle
+after the current one has completed and published.
 
 **When to go outside the graph instead.** Three cases, and they are narrow:
 
