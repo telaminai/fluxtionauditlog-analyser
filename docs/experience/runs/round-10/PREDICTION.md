@@ -51,3 +51,45 @@ n=2 per cell, 8 runs total. Behaviours-only clearing task; no node list.
 n=2 per cell. This is a **trajectory and a direction**, not a rate, and certainly not significance. And my
 quantitative misses have been pessimistic **five rounds running** — so discount U1 and U5 toward the
 optimistic side rather than the other way.
+
+---
+
+# HARD CALLS — committed, no hedging
+
+Owner's challenge: *"make your predictions and stand by them."* Fair. The caveats above are real but I
+have been using them as cover. Below are point predictions with numbers. **Corrected for my own bias:**
+every quantitative miss across five rounds has been pessimistic, so I have deliberately moved each of
+these toward the optimistic side rather than splitting the difference.
+
+Scored right/wrong. No partial credit.
+
+| # | Call | Number |
+|---|---|---|
+| H1 | Opus builds green | **4 of 4** |
+| H2 | Opus satisfies all of M1–M6 | **4 of 4** |
+| H3 | **Haiku builds green** | **4 of 4** |
+| H4 | **Haiku satisfies all of M1–M6** | **2 of 4** |
+| H5 | Haiku-with-docs beats Haiku-without on behaviour | **haikuA 2/2, haikuB 0/2** |
+| H6 | Opus shows an arm difference | **no — 2/2 and 2/2** |
+| H7 | The analyser is run by anyone | **0 of 8** |
+| H8 | A defect is FIRST found via the audit log | **2 of 8** |
+| H9 | Reads the generated processor before declaring done | **Opus 4/4, Haiku 1/4** |
+| H10 | Single most-failed requirement | **M5** (the report is last) |
+| H11 | Median `mvn` attempts | **Opus 2, Haiku 4** |
+| H12 | Median application node count | **Opus 7, Haiku 5** |
+
+## The two that matter, stated as claims rather than ranges
+
+> **H4+H5 together are the whole hypothesis: Haiku fails this task without docs and passes it with them,
+> while Opus passes either way.** If that holds, the toolchain demonstrably substitutes for model
+> capability, and five null rounds were a ceiling effect rather than a verdict on the docs.
+
+> **H7: nobody runs the analyser.** I am predicting our own instrument goes unused by all eight agents
+> even though the task hands them the command line. If that is right it is the most actionable finding of
+> the whole exercise — availability is not adoption, and the loop has to *prompt* the layer, not offer it.
+
+## What I expect to be wrong about
+
+H3 (Haiku 4/4 green) is the riskiest. It is a nine-ish node graph from an empty directory with no node
+list. If Haiku comes in at 2/4 I will have over-corrected for my pessimism — which would be a new failure
+mode rather than the old one, and worth recording as such.
