@@ -115,6 +115,23 @@ _`docs/proposals/upstream-content/`. Drafted FOR the static authoring resources
 (`claude.txt`, the playground `CLAUDE.md`, the golden path), not for this repo. Each carries a
 retrieval-dated evidence table, because those are live documents that can change under a claim._
 
+- [UC-LANDED] ◧ **First cut is IN REVIEW upstream — [fluxtion-web PR #1](https://github.com/telaminai/fluxtion-web/pull/1)**
+  _(2026-09-01)_. Content went to the two resources that are in the AGREED SET — `/CLAUDE.md` (the
+  orientation) and `fluxtion-golden-path.md` — **not** to `claude.txt`, which `reference-set.json` records
+  as deliberately EXCLUDED ("redundant, not wrong"). Writing there would have been writing where no
+  generated project points. Branched from `main`, not the in-flight `feature/spring-author-extended`.
+  **Selected by D-AX1's discriminator — silent failures only:** the plain-reference-is-a-trigger rule
+  (`@NoTriggerReference`), one-`@OnTrigger`-not-many with the dirty-flag overwrite, audit wiring before
+  `init()`, and the bean-style→constructor workflow. **Plus one correction the run forced:** the triage
+  said constructor mapping is triggered by RENDERABILITY and that primitives are safe — a `final int`
+  failed FLX-1009 in the run, so the rule is FINALITY, and the old text sends an author looking elsewhere.
+  **Deliberately NOT written (D-AX3 shrink, first time with evidence):** the `@FluxtionIgnore` repair
+  itself. FLX-1009 named the field and its import unaided, three times, one-step repair each — prose that
+  pre-empts a good error message is dead weight. Evidence:
+  [`ASSESSMENT-diagnostics-2026-09-01.md`](../experience/runs/ASSESSMENT-diagnostics-2026-09-01.md).
+  ☐ **Still to place:** the phase/hook ordering table (filed separately as
+  [fluxtion#29](https://github.com/telaminai/fluxtion/issues/29), different destination), and UC1's
+  `EventLogSource` contract detail — partly carried now by FLX-1008's own `suggestedFix`.
 - [UC1] ☐ **`audit-authoring.md`** — how a node participates in the audit log. The three conditions, the
   `EventLogSource` contract, the `addEventAudit` overloads.
 - [UC2] ☐ **`audit-runtime.md`** — getting the log OUT. Six measured wirings, the `System.out` default
