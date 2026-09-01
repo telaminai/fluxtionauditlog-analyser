@@ -27,5 +27,7 @@ print(f"  node classes in …/node/        : {len(nodes)}")
 print(f"  emitter files                  : {len(emitters)}")
 print(f"  node-name literals in emitters : {len(viol)}" + (f"  e.g. {viol[:3]}" if viol else ""))
 print(f"  hand-typed path.add(\"…\")       : {typed}")
-ok = len(nodes)>=10 and not viol and typed==0
+# an engine with NO emitter cannot pass: both Fluxtion cells scored a vacuous PASS
+# because neither ever built one. Absence of the thing being checked is not compliance.
+ok = len(nodes)>=10 and not viol and typed==0 and len(emitters)>=1
 print(f"  ---- GATE {'PASS' if ok else 'FAIL'} ----")
