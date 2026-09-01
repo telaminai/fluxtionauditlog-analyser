@@ -26,8 +26,20 @@ class GraphVocabularyTest {
 
     private static final Path DIR = Path.of("src/test/resources/topology/vocabulary");
     /** Committed pre-vocabulary output — the shape most files in the world will always have. */
+    /**
+     * A genuinely PRE-VOCABULARY graph — the shape most files in the world will always have.
+     *
+     * <p>This used to point at the analyser's own committed processor GraphML, which worked only while
+     * the compiler's emission default was {@code OFF}. Builder 1.0.66 flipped that default to
+     * {@code PARALLEL}, so the committed processor now CARRIES the vocabulary and could no longer stand
+     * for a file without it — seven tests failed at once, correctly, because the fixture role had
+     * quietly become vacant rather than because anything regressed.
+     *
+     * <p>This file is the analyser's own graph as emitted immediately BEFORE that flip, so its
+     * provenance is exact: it is what this repository actually shipped when the default was OFF.
+     */
     private static final Path LEGACY = Path.of(
-            "src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml");
+            "src/test/resources/topology/vocabulary/session-processor-legacy-no-vocabulary.graphml");
 
     private static ProcessorTopology parallel() {
         return GraphMlParser.parse(DIR.resolve("session-processor-parallel.graphml"));

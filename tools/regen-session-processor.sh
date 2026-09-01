@@ -28,12 +28,17 @@ FIXTURES=src/test/resources/topology/vocabulary
 # else could resolve. 1.0.65 is released to the public Repsy repo and the pom pins it, so every mode
 # below is captured with the same builder the ordinary build uses.
 mkdir -p "$FIXTURES"
+# EVERY mode is passed EXPLICITLY. The OFF capture used to run with no flag and trust the emitter's
+# default — which was OFF until builder 1.0.66 flipped it to PARALLEL, at which point this script
+# silently wrote a PARALLEL file into session-processor-off-new-builder.graphml. Caught by
+# GraphMlExporterCompatibilityTest.offCarriesNoVocabulary, whose whole point is that OFF must mean
+# "the file I had before". Never capture a mode by omitting the flag: a default you do not control is
+# not a mode you selected.
 for mode in PARALLEL AGGREGATED OFF; do
+  mvn -q -Pregen process-classes "-Dfluxtion.graphml.metadata=$mode"
   if [ "$mode" = OFF ]; then
-    mvn -q -Pregen process-classes
     cp "$GRAPHML" "$FIXTURES/session-processor-off-new-builder.graphml"
   else
-    mvn -q -Pregen process-classes "-Dfluxtion.graphml.metadata=$mode"
     cp "$GRAPHML" "$FIXTURES/session-processor-$(echo "$mode" | tr 'A-Z' 'a-z').graphml"
   fi
   echo "   $mode"

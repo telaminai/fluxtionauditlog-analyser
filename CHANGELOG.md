@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Changed
+- **The analyser's own processor graph now ships with the compiler's full metadata vocabulary.** Builder
+  1.0.66 makes that the default, so the graph the analyser can open for itself carries which nodes are
+  framework plumbing, which can write audit output, and the dispatch order — the same facts it reads from
+  anyone else's graph. No change to what the application does.
 - **The analyser now builds against the released Fluxtion builder 1.0.65** instead of a pinned older
   one, and its own committed processor carries a build fingerprint for the first time. Nothing about
   the application behaves differently; the fingerprint is what lets a future build prove its generated

@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GraphMlExporterCompatibilityTest {
 
     private static final Path BEFORE = Path.of(
-            "src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml");
+            "src/test/resources/topology/vocabulary/session-processor-legacy-no-vocabulary.graphml");
     private static final Path AFTER = Path.of(
             "src/test/resources/topology/vocabulary/session-processor-off-new-builder.graphml");
 
