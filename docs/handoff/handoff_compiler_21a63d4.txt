@@ -1,0 +1,168 @@
+HANDOFF — compiler diagnostics / GraphML branch, ready for full review
+Compiler branch: feature/compiler_diagnostics
+Head: 21a63d4
+Paired public source: fluxtion v1.0.14 (RELEASED to Repsy 2026-09-01)
+Date: 2026-09-01
+
+STATUS: every blocker from four review rounds is closed. Reactor 213 / 21 / 17 / 3496, zero
+failures, built against the RELEASED public 1.0.14. This supersedes handoff_compiler_64909a1.
+
+Read the tracker first — docs/specs/compiler-diagnostics/TRACKER.md. Its current-state table is the
+authority and was corrected again for this handoff; several rows had gone stale in exactly the way
+earlier reviews caught, and that is called out below rather than hidden.
+
+===============================================================================
+NEW SINCE 64909a1
+===============================================================================
+
+1. F3 CLOSED — server diagnostics now reach Fluxtion.compile.
+
+   EventProcessorGenerator retained the client and merges the server's report into the active
+   capture; a coded rejection is rethrown as RemoteDiagnosticException, which stays an
+   IllegalStateException so existing callers keep catching it.
+
+   DiagnosticJsonReader parses at the CONSUMER boundary, as the review asked. The wire still carries
+   JSON, so a pinned client never needs diagnostic classes. It uses SnakeYAML — JSON is a subset of
+   YAML and it was already a declared dependency — rather than a hand-rolled parser: the reader of a
+   format this project PUBLISHES should not be the weakest implementation of it.
+
+   LIMIT, found by mutation and recorded: removing the merge line left the end-to-end test passing,
+   because the production server currently raises NO coded diagnostics of its own — a real round trip
+   carries an empty report, and an empty merge is indistinguishable from no merge. The wiring is
+   proven by RemoteDiagnosticMergeTest driving the same seam with content, mutation-checked there.
+
+2. FLX-1021 implemented as a callable check (StaleGeneratedSource).
+
+   Deliberately NOT wired into the regeneration path: there a differing digest is the EXPECTED state,
+   so raising would fail every legitimate change — worse than the confusing javac error it replaces.
+   Absence of a stamp is not evidence of staleness; pre-carrier files carry none.
+
+3. BOTH PINNED DEFECTS FIXED, and the second has a lesson in it.
+
+   FLX-1005 was documented as implemented and was unreachable from Fluxtion.compile: the node-name
+   map is a BiMap and the public-node merges put straight into it, so a duplicate surfaced as Guava's
+   "value already present" — no code, no element, naming neither colliding node. registerNode had
+   always applied the proper rule; the constructor's merges did not.
+
+   The interpreted cycle reported a duplicate 'nodeNameLookup' instead of the cycle. The cause was a
+   RETRY, not a detection problem: generateDependencyTree's guard was only set on success, so a failed
+   build was re-run by the next caller, re-registered the node factories, built a second auditor, and
+   raised the name clash instead of the original failure. The first failure is now sticky and replayed.
+
+   Worth generalising: a build step that failed and is asked again must report what actually went
+   wrong, not a symptom of being asked twice.
+
+4. Upstream issue 26 taken — every annotation a repair asks the author to WRITE now carries its
+   import, derived from the class so it cannot drift. The package split is the trap:
+   NoTriggerReference is in runtime.annotations while the other three are in
+   runtime.annotations.builder.
+
+5. Console output corrected. A failing build printed exactly one coded line and it was the WARNING;
+   the error that stopped the build appeared as bare prose that leaked an internal
+   Field{name=…, instance=…@34ab26a} toString. DiagnosticException now logs CODE: message where it is
+   constructed — the exception MESSAGE is untouched, so pinned parsers are unaffected — and the prose
+   names the node and its class.
+
+6. Error pages published, generated FROM THE PRODUCER.
+
+   Every diagnostic advertised documentationUrl https://fluxtion.com/errors/<CODE> and those pages did
+   not exist — measured 404, in machine-readable output, in every artefact.
+
+   There is deliberately no markdown spec the pages derive from: the generator calls the real
+   BuilderDiagnostics factory per code and renders rule/why/fix off the resulting object, so a page
+   shows exactly what a build emits. A table restating that wording would be a second source of truth
+   for text already written once — the failure this branch has spent its time removing elsewhere.
+
+   Two gates: an advertised URL must end with the code it documents, and every code the producer can
+   emit — SCANNED OUT OF BuilderDiagnostics, not from a list the test maintains — must have a page.
+   The first version of that second gate was satisfied by its own fixture list and could never have
+   noticed an addition.
+
+   Landed in the public site at fluxtion/docs/troubleshooting/errors (commit f3813d3) with the
+   diagnostics schema beside them. The GraphML key manifest is deliberately NOT published: that
+   vocabulary defaults to OFF and has no accepted consumer.
+
+   STILL OUTSTANDING: the site deploy and a URL mapping from /errors/<CODE>. Until then the
+   documentationUrl in every artefact still 404s.
+
+===============================================================================
+THE HARNESS — please use it, and please try to break it
+===============================================================================
+
+verification/remote-compiler-verify (new, inside the compiler repo) drives a LOCALLY-RUN generation
+server through the real remote client. It is the only thing that exercises the wire envelope end to
+end, because the deployed service runs the last compiler RELEASE, predates the envelope, answers 415,
+and the client silently falls back.
+
+    mvn clean install
+    ./verification/remote-compiler-verify/start-server.sh
+    cd verification/remote-compiler-verify && ./run-reports.sh
+
+It reads the compiler version from the reactor rather than pinning a copy, so it cannot quietly
+verify a stale build.
+
+TWO FINDINGS FROM IT THAT REASONING HAD NOT PRODUCED, and both change how to read evidence:
+
+  * GraphML and graph-build diagnostics are NOT evidence the envelope worked. Both are computed
+    client-side and appear identically in a fallback run — a fallback build still emits 16 GraphML
+    keys and FLX-1008. The stamped descriptor fingerprint is the ONLY artefact that distinguishes
+    them. We would have drawn the wrong conclusion without running it.
+  * The version floor is in builder-api, not the runtime. Downgrading fluxtion-runtime to 1.0.13
+    PASSES with full artefacts; only forcing fluxtion-builder-api 1.0.13 fails, with
+    NoSuchMethodError. The harness first asserted the opposite, written from the rule rather than
+    from a run, and the run corrected it.
+
+===============================================================================
+WHAT IS STILL OPEN — and none of it is ours alone to close
+===============================================================================
+
+1. GATEWAY ACCEPTANCE — the one we cannot answer. Whether the deployed gateway preserves
+   application/x-fluxtion-envelope is unanswerable until a server that UNDERSTANDS the envelope is
+   deployed; today's 415 comes from the old server on its own account, so the gateway never had to
+   forward a type it did not already know. Re-run the acceptance first thing after deployment.
+
+   Consequence worth stating: a remote AOT build against production currently stamps a NULL
+   descriptor fingerprint. Local generation is unaffected.
+
+2. PARALLEL default stays OFF until your side accepts the vocabulary. That is your call, not ours.
+
+3. Error pages need a site deploy and URL mapping.
+
+4. Policy items: framework treatment for FLX-1008, a strictness flag if wanted, source-path
+   traversal, FLX-1020, replay origins and topology sidecar.
+
+===============================================================================
+WHAT WE WOULD MOST LIKE THIS REVIEW TO ATTACK
+===============================================================================
+
+1. The F1 precedence rule's blast radius. "An explicit author registration wins over the same
+   identity arriving through the generation context" is applied in two places in the graph
+   constructor. Anchor was the route you named; GenerationContext may own other identities where the
+   opposite precedence is correct.
+
+2. The harness itself. It is now the evidence other work will lean on, and it has already been wrong
+   twice — once labelling the runtime as the version floor, once reporting every configuration as a
+   failure because an exit code arrived as a string. Treat its reports as claims, not results.
+
+3. Whether the two behaviour fixes in item 3 above are the RIGHT behaviour, not merely different
+   from before. Routing a name clash through the diagnostic path and making a failed tree-build
+   sticky are both defensible; neither is obviously the only answer.
+
+4. Anywhere a test asserts that something failed rather than asserting HOW. Three defects in this
+   branch were found exactly there, and we do not assume we caught the last one.
+
+===============================================================================
+EVIDENCE
+===============================================================================
+
+Full clean reactor at 21a63d4, against RELEASED public 1.0.14:
+
+    fluxtion-builder            213
+    fluxtion-generator-core      21
+    fluxtion-generator-http      17
+    fluxtion-integration-tests 3496  (5 skipped)
+    zero failures, zero errors
+
+Every fix is mutation-checked: revert the change, confirm the test fails, restore. Where a mutation
+did NOT fail a test — the 41-node walk fixture, the remote-diagnostic merge line — that is recorded
+in the tracker rather than quietly repaired.
