@@ -1118,6 +1118,47 @@ and the M43 menu-name question for the owner._
 
 ## Decisions (resolved)
 
+- **The commercial model, and where the analyser sits in it** _(owner, 2026-09-01)_. Recorded because it
+  bears on **D-S1.2**, the open licence choice that blocks a release, and because the reasoning would
+  otherwise be lost in conversation. **Owner's model:** the compiler is priced (hosted, or **hosted
+  on-prem for enterprises**, which removes generation friction while keeping enforcement); the analyser is
+  **per seat per month**; **redistribution/deployment licences are required for the generated event
+  processor and for Mongoose**; and auditors are a pricing dimension.
+  - **The deciding argument is redistribution, and it settles the shape.** *"One generation deployed in a
+    million drones."* Generation is a one-time act; the artefact replicates without limit. Pricing only
+    generation sells a million-unit fleet for the price of one build, so value capture has to sit at
+    deployment. That is enforced by contract, procurement and audit rights rather than by code — the
+    generated processor is committed Java in the customer's tree, with no wire to gate — which is a normal
+    enterprise model but a **different competence** from the rest of the stack, and should be resourced
+    deliberately rather than discovered at the first renewal.
+  - **Consequence the owner's own model implies: the compiler gate is then a tax on the funnel.** If the
+    revenue is at deployment, the drone customer pays regardless of what generation cost, while a public
+    repo or a thirty-node experiment never deploys anything and so collects nothing — the gate only
+    suppresses the reading and trying that feed the deployments. The narrow ask that survives is
+    **generation free for public repositories**, on evidence grounds rather than price sensitivity: an
+    open Fluxtion project is the only place a prospect can read a real graph, its annotations and its
+    generated dispatch before spending. **This repository is the case in point** — anyone can clone,
+    build, test and fix the analyser, and nobody without a key can add a node to the one part that
+    demonstrates the thesis.
+  - **Withdrawn after owner pushback: "free at entry is required".** That was reasoning from the
+    open-source-tooling era. Developers now pay per seat and per token for tooling as a matter of course,
+    so entry friction is a far weaker objection than it was, and on-prem hosting removes it for the buyer
+    who matters. The public-repo carve-out above is argued from *evidence access*, not from price.
+  - **The one part still argued against: charging per auditor.** Two reasons, the first specific to a
+    known framework constraint. **(1)** Invocation tracing is fixed at generation time (UP-FLX-37 /
+    `fluxtion#25`) — so a customer who wants more audit detail mid-incident must regenerate and redeploy.
+    Metering that means metering the thing they most need at the moment they can least obtain it, and the
+    incident where the product could not help is the story that travels. **(2)** Auditors are how the
+    audit log exists, and the audit log is what creates demand for analyser seats — the razor, not the
+    blade. Most graphs need exactly one auditor, so the revenue is small while the incentive it creates
+    ("use fewer auditors") points against *audit everything, always*, which is the strongest claim in the
+    product. **Node count is a cleaner complexity proxy** and tracks the measured value curve (≈0 glitch
+    sites under 10 nodes, ≈0.1/node above 50) without discouraging anything.
+  - **Per-seat for the analyser is right and needs no metering** — its value grows with graph size and
+    incident count, which seats already track.
+  - **One trade to state publicly rather than discover:** an on-prem compiler loses the "the generator
+    improves without every project upgrading a plugin" property that hosted generation provides.
+
 - **A processor with no source keeps offering "Add source", whatever the cause** _(owner, 2026-08-30;
   re-affirming 2026-08-27)_. The live v4 bundle raised a case the original decision may not have had in
   view — a declared processor class, no generated source shipped, and `src/main/java` already configured,
