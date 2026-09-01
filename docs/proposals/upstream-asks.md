@@ -762,6 +762,58 @@ no ordering at all. The cost is to the *authoring docs* — the gap is invisible
 auditors, and until then the natural reading of `FirstAfterEvent` is that a symmetric `LastAfterEvent`
 exists.
 
+### UP-FLX-42 ● BUG — no recovery model for an exception thrown inside a cycle
+
+**Target** `fluxtion-runtime` (semantics) → `fluxtion-compiler` (`javaTemplate.vsl`) ·
+**Priority** high — silent, permanent, and it takes the audit log with it
+
+**Full report: [`upstream-content/bug-processing-flag-not-restored.md`](upstream-content/bug-processing-flag-not-restored.md).**
+Owner is fixing it next release (2026-09-01).
+
+**Reproduced.** One exception from user code anywhere in a dispatch leaves `processing = true`, after
+which `processEvent` queues every later event to the callback stack and never drains it. `onEvent`
+returns normally and nothing happens — no exception, no log line, no degraded mode. Seven unguarded
+sites in the template, the worst being `beforeServiceCall`/`afterServiceCall`, where the set and the
+clear are in different methods.
+
+**But the flag is the smallest part, and the owner's framing is the right one: there is no recovery
+model at all.** A throw skips `afterEvent()`, so — in order of how much it matters — **the cycle's audit
+record is never published** (`eventLogger.processingComplete()` lives there), the **dirty flags are never
+reset** and poison the next cycle's `@OnTrigger` guards, and the callback stack retains a dead cycle's
+events for the next unrelated one to run.
+
+**The first of those is the one that stings.** A Fluxtion audit log is systematically silent about
+exactly the cycles that failed, in a framework whose claim is *"absence from the log means the node did
+not run"*. Whatever else is decided, the partial record should be flushed and marked failed.
+
+**Cost to us if unfixed** we already pay it: `EffectQueue` catches everything and stashes fatals for the
+driver to rethrow after `batchEnd()` returns. It works, and it is a workaround every author must invent
+independently and most will not know they need.
+
+### UP-FLX-43 ○ DOC — "The life of a single event": every hook point, in firing order
+
+**Target** `fluxtion` docs · **Priority** high — it is the cheapest ask here and it retires several others
+
+**Draft written and ready to submit: [`upstream-content/life-of-an-event.md`](upstream-content/life-of-an-event.md).**
+
+**The evidence that this page is missing is behavioural, not aesthetic.** The two-phase model IS
+documented — in `@OnParentUpdate`'s javadoc, which is not where anyone looks. Consequently:
+
+* this project built an **external effect drain** and defended it in a spec with three reasons, one of
+  which was that nobody had read `BatchHandler` (now `@OnBatchEnd`, four lines);
+* an independent LLM author on a different application hand-rolled a **read-then-write ordering dance**,
+  then found `@AfterEvent` and reported it was *"more correct than what I had written"* — same arc, one
+  step earlier, and that author never found `@OnBatchEnd` either;
+* **four of six sessions** inferred sibling dispatch order wrongly ([UP-FLX-36](#)).
+
+Three authors, three applications, one missing page — and every wrong turn was a **sequencing** fact,
+which is the thing this framework is most certain about because it compiles it.
+
+**One gap the page names but cannot close.** The boolean return is the propagation decision, and the
+compiler knows it; what `true` *means for a given node* — under which conditions it considers itself
+changed — exists only in prose. Independently reported by the other author as the artefact they would
+most like added.
+
 ---
 
 ## 2 · Fluxtion runtime — metadata the audit log should carry
