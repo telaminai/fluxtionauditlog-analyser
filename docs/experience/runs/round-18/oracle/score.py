@@ -18,7 +18,9 @@ def main(p):
     quiet=lambda i: not re.search(r'detector: E\d',recs[i-1])
     R.append(("P5 repeated ROSTER/LIMIT quiet", quiet(4) and quiet(21), f"c4={quiet(4)} c21={quiet(21)}"))
     def gate(i):
-        m=re.search(r'raised: (\d+), suppressed: (\d+)',recs[i-1]); return (int(m.group(1)),int(m.group(2))) if m else None
+        # order-independent: engines emit raised/suppressed in either order
+        r=re.search(r'raised: (\d+)',recs[i-1]); s=re.search(r'suppressed: (\d+)',recs[i-1])
+        return (int(r.group(1)) if r else 0, int(s.group(1)) if s else 0) if (r or s) else None
     raised_ok  = all((gate(i) or (0,0))[0]>=1 for i in (9,15,19))
     suppress_ok= all((gate(i) or (0,0))[1]>=1 for i in (14,16))
     R.append(("P6 raises 9/15/19, suppresses 14/16", raised_ok and suppress_ok,
