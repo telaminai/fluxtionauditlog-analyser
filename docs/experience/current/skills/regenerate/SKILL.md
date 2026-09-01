@@ -56,12 +56,35 @@ thrown away** — and the build passed. Reading the generated constructor is wha
 grep -nE "new [a-z0-9.]*\.[A-Z][A-Za-z]*\(" src/main/java/**/generated/*.java | head -20
 ```
 
-**If a generation goes bad, the next build fails on the OLD output.** Delete the generated directories
-before re-running, or the error will point at generated code rather than at your builder:
+**If a generation goes bad, the next build fails on the OLD output** — the error points at generated code
+rather than at your builder. Deleting the generated directories is the recovery, **but read the next
+paragraph before you do it.**
 
 ```bash
 rm -rf src/main/java/**/generated src/main/resources/**/generated && mvn process-classes
 ```
+
+**The bootstrap rule that makes that safe.** `compile` runs *before* `process-classes`, so **any
+hand-written class that imports the generated processor cannot be present during the generation that
+creates it.** If you have a `Main` that references `…generated.MyProcessor`, deleting the generated
+directory makes the next build fail in `compile` — on *your* file, pointing at a package that no longer
+exists — which is the exact confusion this section exists to prevent. Move the referencing class aside
+for one pass:
+
+```bash
+mv src/main/java/**/Main.java /tmp/ && rm -rf src/main/java/**/generated && mvn process-classes
+mv /tmp/Main.java src/main/java/…/ && mvn process-classes
+```
+
+The same rule explains why a fresh checkout with no committed processor cannot go green on the first
+build if it ships such a class. Generate first, add the caller second.
+
+**And after ANY graph change, run `mvn process-classes` twice before you run the app.** `compile`
+precedes `process-classes`, so `target/classes` holds the *previous* generation: the first run writes the
+new source, the second compiles it. A run in between executes the old graph and writes an audit log that
+silently describes a version of your graph you no longer have. Two independent measured runs hit this;
+one changed a trace level, rebuilt, ran, and got the old level back while the generated source showed the
+new one.
 
 ## If the build stops at `process-classes`, READ THE ERROR — the key is only one of the causes
 
