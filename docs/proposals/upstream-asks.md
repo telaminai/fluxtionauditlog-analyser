@@ -726,6 +726,46 @@ by decompiling the builder.
 its ordering is reconstructed where the compiler's is authoritative — see the dispatch-order-index note in
 §2c, which this ask now has evidence for.
 
+### UP-FLX-44 ● A node inside a COLLECTION argument is default-constructed, silently
+
+**Target** `fluxtion-builder` — source-gen extraction · **Priority** high — green build, wrong values, and
+the failure is invisible in the run that causes it
+
+**Measured 2026-09-01**, round 08 of the authoring experiment, by an agent that had not been told to look
+for it. A builder passed operator limits as nodes inside a `List`:
+
+```java
+new DispatchPolicy(spread, demand, fleet, List.of(new ZoneLimit("NORTH", 20.0),
+                                                  new ZoneLimit("SOUTH", 35.0)))
+```
+
+The generated processor emitted:
+
+```java
+new com.acme.grid.DispatchPolicy(spreadSignal, demandTracker, fleet,
+    Arrays.asList(new ZoneLimit(), new ZoneLimit()));
+```
+
+**Both limits are gone.** `ZoneLimit` has no no-arg constructor, so the generated file does not even
+compile — but `mvn process-classes` reported **SUCCESS**, because `compile` runs *before*
+`process-classes` and the file just written is not compiled until the next build. The author gets a green
+build and a processor that has silently discarded configuration.
+
+**Two things make this worse than an ordinary mistake.** The next `mvn process-classes` fails on the
+*previous* run's bad output, so the error points at generated code rather than at the builder; and the
+only repair — delete the generated directories first — is not obvious from the message. The agent
+recovered only by reading the generated constructor, which is not a step anything prompts.
+
+**What the compiler already knows.** It resolved the collection, so it knows the elements are nodes and
+knows their declared constructors. Either render them properly (the scalar path already does — a
+`Map<String,Double>` constructor argument renders correctly via `MapBuilder`), or refuse with a coded
+diagnostic naming the element type and the fix — register each element with `addNode` so it serialises
+by reference.
+
+**Cost to us if unfixed** this is the same class as UP-FLX-32…34: a silent value loss the author can only
+catch by inspection. It is also the one defect in two measured rounds that produced a *wrong business
+outcome* from a green build, so it is the highest-value diagnostic remaining.
+
 ### UP-FLX-41 ○ An auditor can ask to be FIRST but cannot ask to be LAST
 
 **Target** `fluxtion-runtime` — `Auditor` · **Priority** medium — a real gap, but one with three

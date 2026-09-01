@@ -120,9 +120,19 @@ Requirement 3 below applies to **both**. Requirements 1 and 2 are the Spring rou
 The packages are not guessable and are the most likely thing to cost you a compile cycle:
 
 ```java
+// the builder side
 import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;
 import com.telamin.fluxtion.builder.compile.config.FluxtionCompilerConfig;
 import com.telamin.fluxtion.builder.generation.config.EventProcessorConfig;
+// the runtime side — every one of these is needed by an ordinary node, and none is guessable
+import com.telamin.fluxtion.runtime.annotations.OnEventHandler;      // an EVENT enters the graph here
+import com.telamin.fluxtion.runtime.annotations.OnTrigger;           // a PARENT changed
+import com.telamin.fluxtion.runtime.annotations.OnParentUpdate;      // WHICH parent changed
+import com.telamin.fluxtion.runtime.annotations.NoTriggerReference;  // note: NOT in .annotations.builder
+import com.telamin.fluxtion.runtime.annotations.builder.AssignToField;
+import com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore;
+import com.telamin.fluxtion.runtime.audit.EventLogNode;              // supplies auditLog
+import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;      // .LogLevel for addEventAudit
 
 public class MyGraphBuilder implements FluxtionGraphBuilder {
     @Override public void buildGraph(EventProcessorConfig cfg) {
@@ -137,6 +147,20 @@ public class MyGraphBuilder implements FluxtionGraphBuilder {
         cfg.packageName("com.example.generated");
         cfg.outputDirectory("src/main/java");
         cfg.resourcesOutputDirectory("src/main/resources");      // writes the .graphml the analyser pairs with
+    }
+}
+```
+
+**An event gets INTO the graph through `@OnEventHandler`** — nothing else does it, and no example
+above shows it:
+
+```java
+public class DemandTracker extends EventLogNode {
+    @FluxtionIgnore private final Map<String, Double> mwByZone = new HashMap<>();
+    @OnEventHandler                       // one per event TYPE this node consumes
+    public boolean demandReading(DemandReading e) {
+        mwByZone.put(e.zone(), e.megawatts());
+        return true;                      // propagation, not success — see §2
     }
 }
 ```
