@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Changed
+- **The analyser now builds against the released Fluxtion builder 1.0.65** instead of a pinned older
+  one, and its own committed processor carries a build fingerprint for the first time. Nothing about
+  the application behaves differently; the fingerprint is what lets a future build prove its generated
+  source still matches the graph it was generated from.
 - **The analyser's own session audit log now shows where each transaction closed and its effects ran.**
   Effects the session processor decides on — closing a log, applying a project, showing a warning — used
   to be carried out entirely outside the audit record; only the decision appeared. They now run at the

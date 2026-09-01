@@ -21,33 +21,23 @@ cd "$(dirname "$0")/.."
 
 GRAPHML=src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml
 FIXTURES=src/test/resources/topology/vocabulary
-VOCAB_VERSION=1.0.65-SNAPSHOT
 
-if [ -f "$HOME/.m2/repository/com/telamin/fluxtion/fluxtion-builder/$VOCAB_VERSION/fluxtion-builder-$VOCAB_VERSION.jar" ]; then
-  echo "→ re-capturing the M45 fixtures with builder $VOCAB_VERSION"
-  cp pom.xml /tmp/regen-pom.bak
-  python3 - "$VOCAB_VERSION" <<'PY'
-import sys
-s = open('pom.xml').read()
-open('pom.xml', 'w').write(
-    s.replace('<fluxtion.builder.version>1.0.64</fluxtion.builder.version>',
-              '<fluxtion.builder.version>%s</fluxtion.builder.version>' % sys.argv[1]))
-PY
-  mkdir -p "$FIXTURES"
-  for mode in PARALLEL AGGREGATED OFF; do
-    if [ "$mode" = OFF ]; then
-      mvn -q -Pregen process-classes
-      cp "$GRAPHML" "$FIXTURES/session-processor-off-new-builder.graphml"
-    else
-      mvn -q -Pregen process-classes "-Dfluxtion.graphml.metadata=$mode"
-      cp "$GRAPHML" "$FIXTURES/session-processor-$(echo "$mode" | tr 'A-Z' 'a-z').graphml"
-    fi
-    echo "   $mode"
-  done
-  cp /tmp/regen-pom.bak pom.xml
-else
-  echo "→ skipping the fixtures: builder $VOCAB_VERSION is not installed locally"
-fi
+# M45.6 (2026-09-01): the pom-swapping workaround is GONE. It existed only because the vocabulary
+# needed builder 1.0.65-SNAPSHOT while the pom had to pin a released artefact, so the script edited
+# pom.xml, captured, and put it back — three chances to leave the repo depending on something nobody
+# else could resolve. 1.0.65 is released to the public Repsy repo and the pom pins it, so every mode
+# below is captured with the same builder the ordinary build uses.
+mkdir -p "$FIXTURES"
+for mode in PARALLEL AGGREGATED OFF; do
+  if [ "$mode" = OFF ]; then
+    mvn -q -Pregen process-classes
+    cp "$GRAPHML" "$FIXTURES/session-processor-off-new-builder.graphml"
+  else
+    mvn -q -Pregen process-classes "-Dfluxtion.graphml.metadata=$mode"
+    cp "$GRAPHML" "$FIXTURES/session-processor-$(echo "$mode" | tr 'A-Z' 'a-z').graphml"
+  fi
+  echo "   $mode"
+done
 
 echo "→ regenerating the committed processor with the pinned released builder"
 mvn -q -Pregen process-classes

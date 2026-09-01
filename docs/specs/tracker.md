@@ -266,8 +266,22 @@ flip is gated on**, so this milestone is a dependency in both directions._
   (`addFrameworkAuditor`), so they never enter `authoredNodes`, and the sets partition by construction.
   `NodeClassificationInvariantTest` asserts the partition across five graph shapes and pins
   `serviceRegistry` by name, because "no node in both sets" would also be satisfied by dropping it from
-  both. **What is still OURS:** confirming a false `framework=true` can no longer flatter the
-  denominator, on our own session graph rather than on their fixtures.
+  both.
+  ☑ **OUR HALF VERIFIED 2026-09-01, on the real session graph at released 1.0.65 — UNPARKED.** A false
+  `framework=true` cannot flatter the denominator, and the measurement says so in a stronger form than
+  "it happens to be right today". Comparing the graph's DECLARED framework set against our own
+  `Scaffolding` heuristic on the real graph:
+  **`declared-only` is EMPTY** — the compiler never claims framework for anything we call authored, so
+  adopting the fact cannot shrink the denominator in any direction that flatters.
+  `heuristic-only` is `[ClockStrategyEvent, EventLogControlEvent, ServiceListener]` — three framework
+  EVENT/service vertices. That difference is harmless because `CoverageScope` already drops
+  `Kind.EVENT` and `Kind.EXPORT_SERVICE` with named reasons, so they never reach the denominator by
+  either route. **The lesson for the implementation: `fluxtion.framework` is NODE-scoped.** Applied to
+  event vertices it would understate coverage — the safe direction, but still wrong. Adopt it for nodes
+  and leave the kind filter alone.
+  **What M45.4 actually buys**, now that the denominator is already correct: a declared fact replaces a
+  package-prefix guess (which misreads an author's class in a framework-shaped package, and a framework
+  class outside one), and `authoredNodeCount` gives an independent cross-check against our own count.
   **Originally:** it waits on a named AUTHORITY, not on emission (spec ▸ D-V2 amendment). The compiler side reproduced an author's own
   auditor registered under `clock` being published as compiler-created, because provenance is tracked by
   name while the thing it describes is an instance. A false `framework=true` **excludes an authored node
@@ -298,10 +312,19 @@ flip is gated on**, so this milestone is a dependency in both directions._
   fixtures can stay as the regression pin, but the dependency can now be a real one.
   **Originally:** the vocabulary only existed in `1.0.65-SNAPSHOT`; the fixtures above are committed
   compiler output instead, so M45.2/.3/.5 are fully tested without depending on an unreleased builder.
-- [M45.6a] ☐ **NOW ACTIONABLE — bump `-Pregen` off builder 1.0.64 to 1.0.65**, regenerate, re-pin `SessionGraphShapeTest`.
-  **Expected to fail first, by design** — that test is the downstream canary we offered upstream.
-  **Take `dbcbe17` or later**, and regenerate any fixture made with an earlier build: before it the
-  published `topologicalRank` was the wrong order (M45.1a).
+- [M45.6a] ☑ **DONE 2026-09-01 — bumped to released 1.0.65, regenerated, fixtures refreshed. THE CANARY
+  DID NOT FIRE, and that is the finding.** `SessionGraphShapeTest` passed unchanged; all 1272 tests
+  green. The reason is structural, not luck: it asserts graph SHAPE, and **at the product default of
+  `metadata=OFF` the emitted GraphML carries no `fluxtion.*` vocabulary at all** — two keys before the
+  bump, two after, 33 nodes and 57 edges either side. The only things that moved at OFF were
+  `edgedefault` and the document ORDER of nodes, and a shape test correctly reads neither. **So the
+  canary we offered upstream was insensitive by construction at the mode everyone builds in** — it
+  could only have fired had we regenerated in `PARALLEL`, the very default the two trackers deadlocked
+  over. Replaced by `DescriptorFingerprintTest`, which watches the artefact that *can* move.
+  **Also measured:** two consecutive regenerations against the deployed backend produce identical MD5s
+  for both artefacts — the byte instability found at 1.0.64 is fixed on the production path.
+  The pom-swapping workaround in `tools/regen-session-processor.sh` is deleted; every mode is now
+  captured with the same released builder the ordinary build uses.
 - [M45] ⚠ **THE GATE IS MET ON BOTH SIDES AND NEITHER TRACKER NOTICED — 2026-09-01.** The condition was
   ONE ordered thing, not two repos naming each other: upstream flips when relationships are captured at
   the decision point **and** one consumer *understands* `PARALLEL`. M45.2 changes no behaviour, so
@@ -310,8 +333,21 @@ flip is gated on**, so this milestone is a dependency in both directions._
   (their ranked item 1: three defects fixed and mutation-checked). So both halves are satisfied and the
   default is still `OFF`, because each tracker describes the OTHER repo's half as the outstanding one.
   Neither entry is wrong; the PAIR is stale — which is the failure mode a two-repo gate invites.
-  ☐ **Ours to close: say explicitly that we accept the vocabulary.** Upstream will not flip on
-  inference and has said so; it is waiting for nothing else.
+  ☑ **CLOSED 2026-09-01 — WE ACCEPT THE VOCABULARY. Flip the default to `PARALLEL`.** Said
+  explicitly because upstream will not flip on inference, and this position CHANGED on evidence: the
+  pre-release review recommended leaving it OFF, before the released build had been read by this
+  analyser. It now has. Measured today against released 1.0.65 on the real session graph — not a
+  fixture: `metaVersion` 1.0 so `GraphVocabulary.trusted()` holds, all 33 vertices classified
+  correctly, `authoredNodeCount` exactly 12, `AGGREGATED` handled fact-scoped, and the three-mode
+  fixtures regenerated and green.
+  **Two conditions we ask for in return, both cheap.** (1) Keep additive vocabulary on `1.x` — a
+  `metaVersion` MAJOR bump makes this analyser distrust the WHOLE vocabulary and fall back to the
+  source heuristic *silently*, which is worse than not shipping the keys. (2) `OFF` must remain
+  available as an opt-out, which it is.
+  **Why flipping is the right call and not merely permitted:** GraphML is emitted by default already —
+  `OFF` strips the vocabulary from a file every user already receives. The facts that make coverage
+  honest (`auditCapable`, `framework`) are therefore inert for anyone who does not know to set a flag,
+  which is everyone. A capability nobody's default reaches was not worth building.
 - [M45] ☑ **DONE upstream (issue 26) — every annotation a repair asks for now carries its import**, derived
   from the class so it cannot drift. The package split was the trap: `NoTriggerReference` is in
   `runtime.annotations`, the other three in `runtime.annotations.builder`.

@@ -5,8 +5,10 @@
     <key id="fluxtion.sourceFingerprint" for="graph" attr.name="fluxtion.sourceFingerprint" attr.type="string"/>
     <key id="fluxtion.toolchainVersion" for="graph" attr.name="fluxtion.toolchainVersion" attr.type="string"/>
     <key id="fluxtion.nodeCount" for="graph" attr.name="fluxtion.nodeCount" attr.type="int"/>
+    <key id="fluxtion.authoredNodeCount" for="graph" attr.name="fluxtion.authoredNodeCount" attr.type="int"/>
     <key id="fluxtion.kind" for="node" attr.name="fluxtion.kind" attr.type="string"/>
     <key id="fluxtion.class" for="node" attr.name="fluxtion.class" attr.type="string"/>
+    <key id="fluxtion.framework" for="node" attr.name="fluxtion.framework" attr.type="boolean"/>
     <key id="fluxtion.auditCapable" for="node" attr.name="fluxtion.auditCapable" attr.type="boolean"/>
     <key id="fluxtion.auditCapableVia" for="node" attr.name="fluxtion.auditCapableVia" attr.type="string"/>
     <key id="fluxtion.callbackKinds" for="node" attr.name="fluxtion.callbackKinds" attr.type="string"/>
@@ -21,8 +23,9 @@
     <key id="fluxtion.relationshipCount" for="edge" attr.name="fluxtion.relationshipCount" attr.type="int"/>
     <graph edgedefault="directed">
         <data key="fluxtion.metaVersion">1.0</data>
-        <data key="fluxtion.sourceFingerprint">a99fe33599ceb0c70f0c1c67ed58e5eb2f2d511a9bda98ab1e8eb38182e4f53a</data>
+        <data key="fluxtion.sourceFingerprint">7a01dd06a959f56e748b5588f5c6ef13e0b1f912a876d48dfdedf0143cd346ec</data>
         <data key="fluxtion.nodeCount">33</data>
+        <data key="fluxtion.authoredNodeCount">12</data>
         <node id="ClockStrategyEvent">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
@@ -187,6 +190,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -202,6 +206,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
@@ -217,6 +222,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.callback.CallbackDispatcherImpl</data>
+            <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.topologicalRank">0</data>
@@ -231,6 +237,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.time.Clock</data>
+            <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">INITIALISE,ON_EVENT</data>
@@ -246,6 +253,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.node.MutableDataFlowContext</data>
+            <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.topologicalRank">15</data>
@@ -260,6 +268,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
@@ -275,6 +284,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -290,6 +300,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">BATCH_END,SERVICE_REGISTERED</data>
@@ -305,6 +316,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.audit.EventLogManager</data>
+            <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -320,6 +332,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -335,6 +348,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -350,6 +364,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.audit.NodeNameAuditor</data>
+            <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.topologicalRank">3</data>
@@ -364,6 +379,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -379,6 +395,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -394,6 +411,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -409,6 +427,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.Pairing</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
@@ -424,6 +443,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.service.ServiceRegistryNode</data>
+            <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">EXPORT_SERVICE</data>
@@ -439,6 +459,7 @@
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
             <data key="fluxtion.class">telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary</data>
+            <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">interface</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
@@ -454,6 +475,7 @@
             </data>
             <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.input.SubscriptionManagerNode</data>
+            <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">SERVICE_REGISTERED,SERVICE_DEREGISTERED,TEAR_DOWN</data>

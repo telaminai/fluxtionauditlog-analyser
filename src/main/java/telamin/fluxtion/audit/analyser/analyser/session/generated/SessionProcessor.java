@@ -211,7 +211,11 @@ public class SessionProcessor
           },
           new ProcessorDescriptor.Sink[] {},
           new ProcessorDescriptor.Service[] {},
-          new DescriptorSupport.Meta(null, null, null, null));
+          new DescriptorSupport.Meta(
+              null,
+              null,
+              "7a01dd06a959f56e748b5588f5c6ef13e0b1f912a876d48dfdedf0143cd346ec",
+              null));
 
   @Override
   public ProcessorDescriptor getDescriptor() {

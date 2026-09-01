@@ -1,178 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><graphml xmlns="http://graphml.graphdrawing.org/xmlns" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd" xmlns:jGraph="http://www.jgraph.com/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <key id="vertex_label" for="node" attr.name="nodeData" attr.type="string"/>
     <key id="edge_label" for="edge" attr.name="edgeData" attr.type="string"/>
-    <graph edgedefault="undirected">
-        <node id="context">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:context&#10;class:com.telamin.fluxtion.runtime.node.MutableDataFlowContext"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="clock">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:clock&#10;class:com.telamin.fluxtion.runtime.time.Clock"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="activeProject">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:activeProject&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="operationGate">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:operationGate&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="openLog">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:openLog&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="openGraph">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:openGraph&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="sessionBoundary">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:sessionBoundary&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="effectQueue">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:effectQueue&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="effectOutcomes">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:effectOutcomes&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="pairing">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:pairing&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.Pairing"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="auditInstallation">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:auditInstallation&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="logArrival">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:logArrival&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="coverageClaim">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:coverageClaim&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="serviceRegistry">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:serviceRegistry&#10;class:com.telamin.fluxtion.runtime.service.ServiceRegistryNode"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="nodeNameLookup">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:nodeNameLookup&#10;class:com.telamin.fluxtion.runtime.audit.NodeNameAuditor"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="callbackDispatcher">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:callbackDispatcher&#10;class:com.telamin.fluxtion.runtime.callback.CallbackDispatcherImpl"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="subscriptionManager">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="id:subscriptionManager&#10;class:com.telamin.fluxtion.runtime.input.SubscriptionManagerNode"/>
-                    <jGraph:Style properties="NODE"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="eventLogger">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:eventLogger&#10;class:com.telamin.fluxtion.runtime.audit.EventLogManager"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="ignoredParameters">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:ignoredParameters&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
+    <graph edgedefault="directed">
         <node id="ClockStrategyEvent">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
@@ -182,29 +11,20 @@
                 </jGraph:ShapeNode>
             </data>
         </node>
-        <node id="ProfileApplied">
+        <node id="EffectFailed">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;ProfileApplied&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$ProfileApplied&#10;"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;EffectFailed&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$EffectFailed&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
         </node>
-        <node id="SettingsRestored">
+        <node id="EventLogControlEvent">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;SettingsRestored&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$SettingsRestored&#10;"/>
-                    <jGraph:Style properties="EVENT"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="LogClosed">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;LogClosed&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$LogClosed&#10;"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;EventLogControlEvent&#10;class:com.telamin.fluxtion.runtime.audit.EventLogControlEvent&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
@@ -218,20 +38,20 @@
                 </jGraph:ShapeNode>
             </data>
         </node>
-        <node id="StatusShown">
+        <node id="GraphObserved">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;StatusShown&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$StatusShown&#10;"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;GraphObserved&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$GraphObserved&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
         </node>
-        <node id="EffectFailed">
+        <node id="LogClosed">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;EffectFailed&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$EffectFailed&#10;"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;LogClosed&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$LogClosed&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
@@ -254,20 +74,29 @@
                 </jGraph:ShapeNode>
             </data>
         </node>
+        <node id="OpenRequestReceived">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;OpenRequestReceived&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$OpenRequestReceived&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="ProfileApplied">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;ProfileApplied&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$ProfileApplied&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
         <node id="ProfileLoaded">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
                     <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;ProfileLoaded&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$ProfileLoaded&#10;"/>
-                    <jGraph:Style properties="EVENT"/>
-                </jGraph:ShapeNode>
-            </data>
-        </node>
-        <node id="GraphObserved">
-            <data key="vertex_label">
-                <jGraph:ShapeNode>
-                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;GraphObserved&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$GraphObserved&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
@@ -281,305 +110,476 @@
                 </jGraph:ShapeNode>
             </data>
         </node>
-        <node id="EventLogControlEvent">
+        <node id="SettingsRestored">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;EventLogControlEvent&#10;class:com.telamin.fluxtion.runtime.audit.EventLogControlEvent&#10;"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;SettingsRestored&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$SettingsRestored&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
         </node>
-        <node id="OpenRequestReceived">
+        <node id="StatusShown">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;OpenRequestReceived&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$OpenRequestReceived&#10;"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;StatusShown&#10;class:telamin.fluxtion.audit.analyser.analyser.session.SessionEvents$StatusShown&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
         </node>
-        <edge id="1" source="clock" target="context">
+        <node id="activeProject">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:activeProject&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="auditInstallation">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:auditInstallation&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="callbackDispatcher">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:callbackDispatcher&#10;class:com.telamin.fluxtion.runtime.callback.CallbackDispatcherImpl"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="clock">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:clock&#10;class:com.telamin.fluxtion.runtime.time.Clock"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="context">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:context&#10;class:com.telamin.fluxtion.runtime.node.MutableDataFlowContext"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="coverageClaim">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:coverageClaim&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="effectOutcomes">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:effectOutcomes&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="effectQueue">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:effectQueue&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="eventLogger">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:eventLogger&#10;class:com.telamin.fluxtion.runtime.audit.EventLogManager"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="ignoredParameters">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:ignoredParameters&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="logArrival">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:logArrival&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="nodeNameLookup">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:nodeNameLookup&#10;class:com.telamin.fluxtion.runtime.audit.NodeNameAuditor"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="openGraph">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:openGraph&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="openLog">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:openLog&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="operationGate">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:operationGate&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="pairing">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:pairing&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.Pairing"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="serviceRegistry">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:serviceRegistry&#10;class:com.telamin.fluxtion.runtime.service.ServiceRegistryNode"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="sessionBoundary">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:sessionBoundary&#10;class:telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <node id="subscriptionManager">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:subscriptionManager&#10;class:com.telamin.fluxtion.runtime.input.SubscriptionManagerNode"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+        </node>
+        <edge id="1" source="ClockStrategyEvent" target="clock">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="2" source="operationGate" target="activeProject">
+        <edge id="2" source="EffectFailed" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="3" source="operationGate" target="openLog">
+        <edge id="3" source="EffectFailed" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="4" source="operationGate" target="openGraph">
+        <edge id="4" source="EventLogControlEvent" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="5" source="operationGate" target="sessionBoundary">
+        <edge id="5" source="GraphClosed" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="6" source="activeProject" target="sessionBoundary">
+        <edge id="6" source="GraphClosed" target="openGraph">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="7" source="openLog" target="sessionBoundary">
+        <edge id="7" source="GraphClosed" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="8" source="openGraph" target="sessionBoundary">
+        <edge id="8" source="GraphObserved" target="openGraph">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="9" source="sessionBoundary" target="effectQueue">
+        <edge id="9" source="GraphObserved" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="10" source="operationGate" target="effectOutcomes">
+        <edge id="10" source="LogClosed" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="11" source="openLog" target="pairing">
+        <edge id="11" source="LogClosed" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="12" source="openGraph" target="pairing">
+        <edge id="12" source="LogClosed" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="13" source="openGraph" target="auditInstallation">
+        <edge id="13" source="LogObserved" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="14" source="operationGate" target="logArrival">
+        <edge id="14" source="LogObserved" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="15" source="pairing" target="logArrival">
+        <edge id="15" source="LogObserved" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="16" source="openGraph" target="logArrival">
+        <edge id="16" source="OpenProjectRequested" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="17" source="logArrival" target="effectQueue">
+        <edge id="17" source="OpenProjectRequested" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="18" source="pairing" target="coverageClaim">
+        <edge id="18" source="OpenRequestReceived" target="ignoredParameters">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="19" source="auditInstallation" target="coverageClaim">
+        <edge id="19" source="ProfileApplied" target="activeProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="20" source="openGraph" target="coverageClaim">
+        <edge id="20" source="ProfileApplied" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="21" source="openLog" target="coverageClaim">
+        <edge id="21" source="ProfileApplied" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="22" source="context" target="serviceRegistry">
+        <edge id="22" source="ProfileLoaded" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="23" source="nodeNameLookup" target="context">
+        <edge id="23" source="ProfileLoaded" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="24" source="callbackDispatcher" target="context">
+        <edge id="24" source="ProfileLoaded" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="25" source="subscriptionManager" target="context">
+        <edge id="25" source="ServiceListener" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="26" source="context" target="effectQueue">
+        <edge id="26" source="SettingsRestored" target="activeProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="27" source="clock" target="eventLogger">
+        <edge id="27" source="SettingsRestored" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="28" source="ClockStrategyEvent" target="clock">
+        <edge id="28" source="SettingsRestored" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="29" source="ProfileApplied" target="activeProject">
+        <edge id="29" source="StatusShown" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="30" source="SettingsRestored" target="activeProject">
+        <edge id="30" source="StatusShown" target="operationGate">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="31" source="LogClosed" target="operationGate">
+        <edge id="31" source="activeProject" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="32" source="GraphClosed" target="operationGate">
+        <edge id="32" source="auditInstallation" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="33" source="StatusShown" target="operationGate">
+        <edge id="33" source="callbackDispatcher" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="34" source="EffectFailed" target="operationGate">
+        <edge id="34" source="clock" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="35" source="LogObserved" target="operationGate">
+        <edge id="35" source="clock" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="36" source="OpenProjectRequested" target="operationGate">
+        <edge id="36" source="context" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="37" source="ProfileLoaded" target="operationGate">
+        <edge id="37" source="context" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="38" source="ProfileApplied" target="operationGate">
+        <edge id="38" source="logArrival" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="39" source="SettingsRestored" target="operationGate">
+        <edge id="39" source="nodeNameLookup" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="40" source="GraphObserved" target="operationGate">
+        <edge id="40" source="openGraph" target="auditInstallation">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="41" source="LogClosed" target="openLog">
+        <edge id="41" source="openGraph" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="42" source="LogObserved" target="openLog">
+        <edge id="42" source="openGraph" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="43" source="GraphClosed" target="openGraph">
+        <edge id="43" source="openGraph" target="pairing">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="44" source="GraphObserved" target="openGraph">
+        <edge id="44" source="openGraph" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="45" source="OpenProjectRequested" target="sessionBoundary">
+        <edge id="45" source="openLog" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="46" source="ProfileLoaded" target="sessionBoundary">
+        <edge id="46" source="openLog" target="pairing">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="47" source="LogClosed" target="effectOutcomes">
+        <edge id="47" source="openLog" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="48" source="GraphClosed" target="effectOutcomes">
+        <edge id="48" source="operationGate" target="activeProject">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="49" source="StatusShown" target="effectOutcomes">
+        <edge id="49" source="operationGate" target="effectOutcomes">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="50" source="EffectFailed" target="effectOutcomes">
+        <edge id="50" source="operationGate" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="51" source="ProfileLoaded" target="effectOutcomes">
+        <edge id="51" source="operationGate" target="openGraph">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="52" source="ProfileApplied" target="effectOutcomes">
+        <edge id="52" source="operationGate" target="openLog">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="53" source="SettingsRestored" target="effectOutcomes">
+        <edge id="53" source="operationGate" target="sessionBoundary">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="54" source="LogObserved" target="logArrival">
+        <edge id="54" source="pairing" target="coverageClaim">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="55" source="ServiceListener" target="serviceRegistry">
+        <edge id="55" source="pairing" target="logArrival">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="56" source="EventLogControlEvent" target="eventLogger">
+        <edge id="56" source="sessionBoundary" target="effectQueue">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="57" source="OpenRequestReceived" target="ignoredParameters">
+        <edge id="57" source="subscriptionManager" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>

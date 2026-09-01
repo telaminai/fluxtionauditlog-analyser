@@ -129,6 +129,20 @@ the mapping is not, so every artefact a user sees — sidecar JSON, console line
 still names a URL that 404s. Page COVERAGE is complete: all 11 advertised codes have a page,
 and the deployed pages carry the producer's own wording rather than a restatement.
 
+CORRECTION, 2026-09-01, and it invalidates this section's RECOMMENDATION rather than its
+finding. This review offered two fixes and said "prefer (a): map fluxtion.com/errors/<CODE>
+to the deployed pages", on the reasoning that (a) also repairs artefacts already released.
+THAT OPTION DOES NOT EXIST. The project does not own that domain — it is parked with a
+broker, which is where the 404 came from in the first place. So (b), changing the DOCS
+constant, was the only available answer all along, and upstream took it: the emitted
+documentationUrl now resolves to telaminai.github.io.
+
+The residual this review flagged for (b) still stands and is worth stating plainly: builds
+released BEFORE the constant changed advertise a URL that will never resolve, and no
+redirect can rescue them because the domain is not the project's to redirect. Recording it
+because a recommendation argued from an assumption I did not check is the same defect this
+review was hunting elsewhere.
+
 ===============================================================================
 F-D (LOW) — the harness README costs a reviewer a full matrix run
 ===============================================================================

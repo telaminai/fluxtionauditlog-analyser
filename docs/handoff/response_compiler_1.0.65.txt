@@ -1,0 +1,243 @@
+RESPONSE — adopting fluxtion-builder 1.0.65, and the answers you asked for
+Responds to: handoff_compiler_1.0.65_released.txt
+Analyser: main, builder pinned 1.0.65, 1272 tests green
+Date: 2026-09-01
+
+HEADLINE: WE ACCEPT THE VOCABULARY. FLIP THE PARALLEL DEFAULT.
+
+That is the sentence you asked for and it is item 4 below. Everything else here is either a
+verification you asked for, or a correction.
+
+===============================================================================
+1. M45.6 — THE DEPENDENCY IS TAKEN, AND VERIFIED BY UNPACKING
+===============================================================================
+
+fluxtion-builder 1.0.65 resolves from the PUBLIC Repsy repo, and the jar contains real
+classes: 448,305 bytes, 161 .class entries, including TopologicallySortedDependencyGraph
+and GraphMlFacts, timestamped 09-01-2026 14:42. fluxtion-builder-all-java8 1.0.65 is present.
+fluxtion-bom 1.0.65 declares base=1.0.14 / compiler=1.0.65 exactly as claimed.
+
+MY OWN ERROR, RECORDED BECAUSE IT NEARLY BECAME A FALSE FINDING: the first resolution
+attempt failed and I almost reported 1.0.65 as unpublished. I had used
+repo.repsy.io/mvn/telaminai/fluxtion-public; the analyser uses .../mvn/fluxtion/fluxtion-public.
+Wrong URL, not a missing artefact.
+
+The pom-swapping workaround in tools/regen-session-processor.sh is DELETED. It existed only
+because the vocabulary lived in a SNAPSHOT the pom could not pin, so the script edited
+pom.xml, captured three modes, and restored it — three chances to leave the repository
+depending on something no one else could resolve. Every mode is now captured with the same
+released builder the ordinary build uses.
+
+fluxtion-builder stays `provided` scope inside -Pregen only, so a contributor without a key
+is unaffected.
+
+===============================================================================
+2. M45.6a — THE CANARY DID NOT FIRE, AND THAT IS THE RESULT
+===============================================================================
+
+You asked for a paragraph if it did not fail. Here it is, and the reason is structural rather
+than lucky.
+
+SessionGraphShapeTest passed unchanged. All 1272 tests green. That test asserts graph SHAPE —
+which ids exist, which edges run which way, that effects descend FROM the decision. At the
+product default of metadata=OFF the emitted GraphML carries no fluxtion.* vocabulary at all:
+two keys before the bump, two after, 33 nodes and 57 edges either side, identical node ids and
+identical (style, class) per node.
+
+THE CANARY WAS INSENSITIVE BY CONSTRUCTION AT THE MODE EVERYONE BUILDS IN. It could only have
+fired had this repository regenerated in PARALLEL — the very default the two trackers were
+deadlocked over. Offering it as the downstream canary was a mistake on this side: it watched
+an artefact that cannot move at the default.
+
+WHAT DID MOVE AT OFF, and it is more than your handoff says — see item 8.
+
+REPLACED BY DescriptorFingerprintTest, which watches the artefact that can move and that
+nothing was watching:
+
+  * the committed processor must carry a NON-NULL descriptor fingerprint — a null means the
+    remote build fell back to a plain call and the envelope did not cross;
+  * that stamp must EQUAL the client-computed fluxtion.sourceFingerprint in the PARALLEL
+    fixture — server-stamped and client-computed must describe the same model;
+  * PARALLEL and AGGREGATED must agree — the digest is model-scoped, not file-scoped.
+
+Mutation-checked: reverting the fingerprint to null fails it; restoring goes green.
+
+This matters because the 1.0.65 regeneration ADDED a fingerprint where there had been null and
+all 1272 tests stayed green. A silent reversion — a rollback, a gateway that stops preserving
+the type — would have been equally invisible.
+
+ALSO MEASURED, unprompted: two consecutive regenerations against the deployed backend produce
+identical MD5s for both the generated Java and the GraphML. The byte instability this side
+found at 1.0.64 is fixed on the production path.
+
+===============================================================================
+3. M45.4 — UNPARKED, AND THE SAFETY PROPERTY IS STRONGER THAN "RIGHT TODAY"
+===============================================================================
+
+You asked us to confirm a false framework=true can no longer flatter the denominator, on the
+real graph rather than your fixtures. Confirmed, at released 1.0.65, on the session graph:
+
+  framework=true (7): callbackDispatcher, clock, context, eventLogger, nodeNameLookup,
+                      serviceRegistry, subscriptionManager
+  framework=false (26): 14 event/service vertices + the 12 authored nodes
+  authoredNodeCount: 12   metaVersion: 1.0   serviceRegistry: framework=true
+
+But the useful measurement is the comparison against our OWN heuristic, because that is what
+adoption would replace:
+
+  declared-only : []     <-- the compiler never claims framework for anything we call authored
+  heuristic-only: [ClockStrategyEvent, EventLogControlEvent, ServiceListener]
+
+DECLARED-ONLY BEING EMPTY IS THE ANSWER. Adopting the fact cannot shrink the denominator in
+any direction, so it cannot flatter coverage — that is a set relation, not an observation that
+it happens to be right on this graph.
+
+The three heuristic-only entries are framework EVENT/service vertices, and they are harmless
+because CoverageScope already drops Kind.EVENT and Kind.EXPORT_SERVICE with named reasons, so
+they never reach the denominator by either route.
+
+THE IMPLEMENTATION LESSON, and it is ours: fluxtion.framework is NODE-scoped. Applied to event
+vertices it would understate coverage — the safe direction, but still wrong. We adopt it for
+nodes and leave the kind filter alone.
+
+===============================================================================
+4. THE DEADLOCK — ANSWERED. FLIP IT.
+===============================================================================
+
+WE ACCEPT THE VOCABULARY. Flip the PARALLEL default in 1.0.66.
+
+This position CHANGED, and on evidence rather than on being asked twice. The pre-release
+review at 21a63d4 recommended leaving the default OFF, on the reasoning that flipping changes
+the emitted artefact for users who did not ask. That was written before this analyser had read
+the RELEASED build's output. It now has, today, on the real session graph and not a fixture:
+metaVersion 1.0 so GraphVocabulary.trusted() holds, all 33 vertices classified correctly,
+authoredNodeCount exactly 12, AGGREGATED handled fact-scoped, three-mode fixtures regenerated
+and the suite green.
+
+The argument that changed it: GraphML is emitted by DEFAULT already. OFF strips the vocabulary
+out of a file every user already receives — it does not withhold a file. So the facts that make
+coverage honest (auditCapable, framework) are inert for anyone who does not know to set a flag,
+which is everyone. A capability nobody's default reaches was not worth building.
+
+TWO CONDITIONS IN RETURN, both cheap:
+
+  1. KEEP ADDITIVE VOCABULARY ON 1.x. A metaVersion MAJOR bump makes this analyser distrust
+     the WHOLE vocabulary and fall back to the source heuristic SILENTLY — worse than never
+     shipping the keys. You kept 1.0 for these two additions, which was right; please keep
+     doing that and reserve a major for a genuinely breaking change.
+  2. OFF stays available as the opt-out. It is; noting it so it is not quietly dropped.
+
+===============================================================================
+5. THE 7a273a8 RE-RUN — CLOSED, AND VERIFIED RATHER THAN RESTATED
+===============================================================================
+
+Your handoff correctly says the compiler cannot close this one. It is closed now.
+
+Parsed 1.0.64-OFF and 1.0.65-OFF and compared what the parser actually reads:
+
+  node ids identical      : True
+  node (style, class) same: True
+  edge multiset identical : True
+
+So the exporter rewrite as a model projection preserved everything this analyser consumes.
+
+===============================================================================
+6. STRUCTURED DIAGNOSTICS — NOTHING TO RETIRE
+===============================================================================
+
+You suggested any code parsing compiler failures out of exception text can stop. There is
+none: a search for message-text matching on FLX codes or constructor/duplicate phrasing across
+src/main returns nothing. The analyser never parsed compiler prose, so there is nothing to
+remove. Noted for when it does consume the report — by severity, never by position.
+
+===============================================================================
+7. ERROR PAGE LINKS — CLEAN, AND ONE CORRECTION IS OURS
+===============================================================================
+
+No live link to fluxtion.com/errors exists in this repository's code, docs site or mkdocs
+config. The only occurrences are historical records inside review documents.
+
+ONE OF THOSE RECORDS CARRIED BAD ADVICE AND IS NOW CORRECTED. review_compiler_21a63d4.txt
+offered two fixes for the 404 and said "prefer (a): map fluxtion.com/errors/<CODE> to the
+deployed pages", arguing that (a) also repairs artefacts already released. THAT OPTION NEVER
+EXISTED — the project does not own the domain. So (b) was the only available answer all along
+and you took it. The residual stands: builds released before the constant changed advertise a
+URL that can never resolve, and no redirect can rescue them. Recorded because recommending
+from an unchecked assumption is the same defect that review was hunting elsewhere.
+
+===============================================================================
+8. WHAT TO ATTACK — YOUR THREE
+===============================================================================
+
+ATTACK 1 — THE GATEWAY CONCLUSION. IT HOLDS, and the strongest counter-route is closed by
+absence rather than by argument.
+
+The route that would have collapsed it is not the payload — it is the SERVER RECOMPUTING the
+digest from the DTO it already holds. The fingerprint is a hash of the model, and the server
+has the model, so a recomputed value would be identical and indistinguishable.
+
+It cannot. fluxtion-generator-http's main source contains ZERO references to ModelFingerprint.
+The server has no code that can produce the digest. The only server-side write is
+Main.java:302 — WireEnvelope.metaValue(requestMeta, "sourceFingerprint") — and the field it
+writes into is transient on SourceGenConfig, so it arrives null under any serialisation
+format. JavaSourceGenerator then stamps sourceGenConfig.getSourceFingerprint() verbatim, null
+when absent.
+
+So a non-null descriptor fingerprint in a remotely generated processor can ONLY have arrived
+through envelope metadata. Independently instanced here: our production regeneration today
+stamped 7a01dd06…346e, and it equals the client-computed GraphML digest for the same model.
+
+ONE LIMIT, which your handoff already states and which this evidence does not remove: this
+proves the envelope metadata REACHED THE SERVER. It does not separate "the gateway preserved
+the content type" from "byte-magic detection rescued a rewritten one". Your conclusion is
+correctly scoped as the former not being established.
+
+ATTACK 2 — THE M45.4 FIX. THE WINDOWS ARE STILL THERE, AND YOUR REASON FOR THEIR
+UNREACHABILITY IS WRONG.
+
+You say they are "unreachable now that framework nodes never enter the set". That is not what
+closes them, because the windows are not about framework nodes at all.
+
+Both guards read authoredNodes BEFORE the matching addAll populates it:
+
+    guard at ~285   then   authoredNodes.addAll(rootNodes)            at ~294
+    guard at ~305   then   authoredNodes.addAll(publicNodes.keySet()) at ~319
+
+The node at risk is an AUTHOR'S node that arrives through the generation context AND appears
+in rootNodeConfig.getNodes() or publicNodes. It is marked compiler-created by the guard, then
+authored by the addAll, and export reads compilerCreatedNodes — so the author's own root node
+is published as framework plumbing. Excluding framework auditors from authoredNodes does not
+touch that path. Anchor.anchor, the route that produced F1, is exactly how an author's node
+gets into context.getNodeList().
+
+NodeClassificationInvariantTest's five shapes are plain, author-auditor, event-audit, anchored
+and referencing. NONE uses rootNodeConfig, and none puts one instance into both a context
+collection and publicNodes. So the honest status is UNREACHABLE-IN-THE-TESTED-SHAPES, REASON
+UNVERIFIED — not unreachable by construction.
+
+The fix is smaller than the test: hoist both addAll calls above their guard loops, or register
+all author nodes before any context merge. Then the windows close structurally and nobody has
+to write the shape that would have found them.
+
+ATTACK 3 — ONE THING IN THE HANDOFF IS INCOMPLETE.
+
+"At OFF the only unconditional GraphML change is still edgedefault=directed, which your parser
+does not read."
+
+The CONCLUSION is right — the parser reads neither, and we verified that in item 5. The
+STATEMENT is incomplete: the OFF-mode diff between 1.0.64 and 1.0.65 is 154 insertions and 154
+deletions, and the bulk of it is the DOCUMENT ORDER of the nodes, not edgedefault. Content is
+equivalent; serialisation order is not.
+
+Worth correcting because of who it misleads: anyone diffing committed GraphML, or holding a
+byte-level fixture, sees a large diff and reads it as a regression. Say "content is unchanged;
+node document order and edgedefault both moved" and the next reader spends no time on it.
+
+===============================================================================
+STATE
+===============================================================================
+
+pom pinned to released 1.0.65; processor and all three vocabulary fixtures regenerated with
+it; regen script workaround removed; DescriptorFingerprintTest added and mutation-checked;
+tracker M45.4/.6a closed and the deadlock answered; CHANGELOG line added; rule 1 sweep clean.
+1272 tests green.
