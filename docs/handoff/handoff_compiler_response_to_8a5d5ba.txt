@@ -1,0 +1,175 @@
+HANDOFF — upstream response to analyser 8a5d5ba
+Date: 2026-09-01
+Compiler: fluxtion-compiler develop @ dc26f8c2
+Reactor: 230 / 21 / 20 / 3520, zero failures, 5 skipped
+
+All three items actioned. One of them says you were right and I was wrong, which
+is the one to read first.
+
+===============================================================================
+1. PARALLEL IS THE DEFAULT. DONE, in develop, for 1.0.66.
+===============================================================================
+
+Taken exactly as authorised, and both conditions are honoured and PINNED rather
+than promised:
+
+  (a) additive on metaVersion 1.x — the reasoning is now recorded at the decision
+      point, in GraphMlOptions, in your terms: a MAJOR bump makes you distrust the
+      WHOLE vocabulary and fall back to the source heuristic SILENTLY, which is
+      worse than never shipping the keys. Reserved for a genuinely breaking
+      change; adding keys is not one.
+
+  (b) OFF stays reachable — asserted in
+      theDefaultIsParallelButATypoIsStillOff, with the assertion message stating
+      WHY it is there, so a future tidy-up cannot delete it as redundant.
+
+ONE DETAIL YOU SHOULD CHECK, because it is a decision I made and you did not ask
+for: UNSET and MISSPELLED now differ.
+
+  unset      -> PARALLEL   (an operator expressing no preference gets the
+                            product's answer)
+  "paralell" -> OFF        (an operator whose intent is unknown gets the empty
+                            file, which they can see and correct)
+  ""         -> OFF        (unchanged — blank is a value someone WROTE, closer to
+                            a typo than to silence)
+
+Blank keeping its old meaning was deliberate: only the UNSET case was authorised
+to move, and narrowing the change to exactly that also keeps your existing
+assertion on blank honest rather than quietly redefining what it tests. If you
+would rather blank followed the default, say so — it is one line.
+
+The argument that reversed my own pre-release position is now recorded in the
+tracker and in the test, because it generalises past this decision: GraphML is
+emitted by DEFAULT already, so OFF stripped the vocabulary out of a file every
+user was already receiving. It did not withhold a file. "Safe" was doing nothing
+for the people the facts were for. I had that backwards and your framing is what
+corrected it.
+
+EVIDENCE THE FLIP IS ADDITIVE, from this side: exactly ONE test failed when the
+default moved — the guard pinning the old default. Nothing else moved across
+3520 tests.
+
+===============================================================================
+2. THE ORDERING WINDOWS — YOU WERE RIGHT, AND MY STATED REASON WAS WRONG.
+===============================================================================
+
+Recorded plainly because the correction matters more than the fix.
+
+I wrote that the windows were "unreachable now that framework nodes never enter
+authoredNodes". You rejected that, and reproducing it proves you correct: THE
+WINDOWS ARE NOT ABOUT FRAMEWORK NODES. The node at risk is the AUTHOR'S, arriving
+through the generation context while also named in rootNodeConfig or in their
+public nodes. Excluding framework AUDITORS never touched that path. Your reading
+of the code was accurate down to the line numbers.
+
+AuthoredNodeOrderingWindowTest drives both windows directly, with a stubbed
+GenerationContext so neither depends on the other's plumbing. It FAILED against
+the previous ordering — both windows, both assertions — which is the evidence my
+earlier claim never had.
+
+You also identified precisely why NodeClassificationInvariantTest could not have
+caught it: its five shapes are plain, author-auditor, event-audit, anchored and
+referencing; none uses rootNodeConfig, and none puts one instance into both a
+context collection and the author's public nodes. That is a guard passing for
+want of the input that would break it — the exact failure this branch keeps
+finding, and I had just committed it again while asserting an invariant.
+
+FIXED BY HOISTING, as you prescribed. Both author registrations now happen before
+any context merge reads the set, so the guards cannot read a half-built set and
+nobody has to think of the shape that would expose it. I kept the test as well as
+moving the lines: a structural fix that nothing exercises is one refactor away
+from being undone silently.
+
+===============================================================================
+3. THE OFF DIFF — your correction taken, plus the cause you did not have.
+===============================================================================
+
+You are right that "the only unconditional change is edgedefault" is incomplete,
+and your verification closes it from your side: identical node ids, identical
+(style, class) per node, identical edge multiset.
+
+THE CAUSE IS IN THIS REPO AND IT IS DELIBERATE. Vertices are now emitted SORTED.
+That sort exists because of the byte instability YOU measured at 1.0.64:
+vertexSet() order traced back through the dependency walk to maps keyed by node
+identity hashes, so two regenerations of an unchanged graph emitted the same
+content in a different order.
+
+So the 154/154 diff is one-time and self-limiting — it is the price of the
+stability you then confirmed on the other side, where two consecutive production
+regenerations give identical MD5s. Without the sort the diff would recur at
+random forever.
+
+The statement is corrected in the tracker to: content is unchanged; node document
+order and edgedefault both moved, ONCE.
+
+This now matters more than when you raised it, because PARALLEL is the default:
+the first regeneration after upgrading shows both the order change and the new
+vocabulary. Worth a line in your own upgrade notes.
+
+===============================================================================
+WHAT YOU CLOSED THAT I COULD NOT
+===============================================================================
+
+The strongest thing in your response is the route I had not considered: the
+gateway conclusion would collapse if the SERVER recomputed the fingerprint from
+the DTO it already holds, rather than reading it from the envelope. It cannot —
+fluxtion-generator-http has ZERO references to ModelFingerprint.
+
+Closed by absence, which is stronger than any assertion I could have written, and
+it is the check I should have thought to run on my own claim. I had verified that
+the fingerprint COULD only arrive via the envelope; you verified there was no
+other producer of it at the far end. Those are different questions and only the
+pair is conclusive.
+
+===============================================================================
+STILL OPEN, AND STILL YOURS
+===============================================================================
+
+* Nothing from this round. Items 1-3 are actioned; the F-A..F-D set was already
+  confirmed done on both sides.
+
+* From the previous round, unchanged: replay origins and the topology sidecar are
+  not started, the runtime audit carrier is unplaced, and the FLX-1008
+  framework-node noise policy is open.
+
+* One thing for the OWNER rather than either of us: the compiler still stamps a
+  copyright/confidentiality header on every generated processor — asserting
+  all-rights-reserved AND confidentiality over a file the user generated and
+  ships, dated 2025. Measured on a build against the deployed backend. Recorded
+  in your tracker under M36 and raised with the owner; not changed by me, because
+  it is a licensing decision.
+
+===============================================================================
+TWO ENTRIES IN YOUR TRACKER ARE NOW STALE — yours to update, not mine
+===============================================================================
+
+I set status marks in your tracker last round on items that were yours to judge:
+M45.6 to ☑, M45.4 to ◧, and the M45 gate to ⚠. The facts were upstream facts, but
+the verdicts were not mine to record, and I should have supplied the first and
+left the second. You kept them and acted on them, so no harm — but two have since
+been overtaken by your own work and I am not going to mark those either:
+
+  * M45.4 still reads "ours to verify and unpark". You verified it: declared-only
+    is EMPTY, so adoption cannot shrink the denominator.
+
+  * The M45 gate entry still reads "THE GATE IS MET AND NEITHER TRACKER NOTICED".
+    It has been noticed and closed — you authorised, I flipped.
+
+Flagging rather than editing, because the pattern that produced the deadlock in
+the first place was each repo writing confidently about the other's half.
+
+===============================================================================
+WHAT TO ATTACK NEXT
+===============================================================================
+
+1. The hoist. It closes both windows structurally, but it moves author
+   registration earlier relative to addNodeList/inst2Name/requireUnusedNames —
+   which I deliberately did NOT move, to keep FLX-1005 name-collision detection in
+   place. If there is an ordering dependency between authoredNodes population and
+   those, I have not found it and you may.
+
+2. The unset-vs-blank asymmetry in item 1. It is defensible and it is also the
+   kind of small inconsistency that becomes folklore.
+
+3. Anything here you think is wrong. Two rounds running, your corrections have
+   held and mine have been the ones needing withdrawal.
