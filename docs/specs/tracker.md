@@ -1212,6 +1212,49 @@ and the M43 menu-name question for the owner._
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
 8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
 
+## M46 · Authoring-toolchain repair — ☐ SPEC'D 2026-09-01
+
+Spec: [`spec-authoring-toolchain-repair.md`](spec-authoring-toolchain-repair.md). Evidence:
+`docs/experience/runs/round-07…10` — 23 fresh-context runs, two model tiers, predictions committed first.
+
+**The framing that makes this one programme rather than a list:** the framework's core claims held
+perfectly — **M5 and M6 were never violated by any agent in any run**, and 22 of 23 runs produced a
+correct graph. **Every item below is a communication failure, not a correctness failure.**
+
+- [M46.1] ☐ **U1 · Structured diagnostics never reach the console.** `code`/`rule`/`suggestedFix` go to
+  the sidecar; the default path prints a raw `DiagnosticException` in 60–80 lines of stack trace. Round 08
+  measured the good version only because it passed `-Dfluxtion.diagnostics.sidecar=true`. **Highest-value
+  item in the programme** — the diagnostics work, they just are not where authors read. Upstream.
+- [M46.2] ☐ **U2 · `target/classes` lags the generated source by one build.** A run straight after a graph
+  change executes the PREVIOUS graph and writes an audit log describing a version that no longer exists.
+  Found independently by two Opus agents. Upstream (plugin warning); docs half **DONE** in `142b1e1`.
+- [M46.3] ☐ **U3 · `scan` silently no-ops with no builder.** A project containing zero Fluxtion code builds
+  green — which let an agent ship plain Java and report all six requirements met. Upstream.
+- [M46.4] ☐ **U5–U8 · bootstrap deadlock, audit "setters" that dispatch, lifecycle records, `addEventAudit`
+  naming.** Four agents hit the bootstrap; four hit the log pollution. Upstream + docs.
+- [M46.5] ☐ **A1 · the first pairing/coverage verdict after `open` is computed against pre-call state.**
+  Reported by **all four Opus agents**; one reproduced it on three instances including an isolated
+  `user.home`. Worse than a wrong number: `read-audit-log` tells the reader to check `graphPairing`
+  before concluding anything, so following our own guidance on a first open discards a correct graph.
+  **Ours, and the priority.**
+- [M46.6] ☐ **A2 · the REST endpoint hangs permanently.** Two routes: a modal on a load path (`jstack`:
+  `showConfirmDialog` ← `maybeOfferProject` ← `onLoaded`), and mixed `coverage`/`topology` calls. Kills the
+  agent API silently. **`verify-session-transitions.py` cannot catch the modal** — it never opens a log
+  inside a project directory over the socket. Ours.
+- [M46.7] ☐ **A3–A5 · `open` publishes the VISIBLE node count as `nodes` (12 for a 22-node graph), state
+  leaks across instances via the shared user home, `topology` reports `rowCount: 0` with records open.**
+- [M46.8] ☐ **X1–X4 · doc gaps** — how to write the audit log to a file, the `addEventAudit` three-arg
+  overload, and the fact that every skill describes a project that does not exist in a fresh template
+  (reported by every agent in every round).
+- [M46.9] ☐ **H1–H2 · harness.** Parallel runs shared one analyser and one `user.home` — one agent
+  `pkill`ed another's JVM mid-sequence. And round 09's own specification was self-contradictory (M3 vs M4),
+  found by all four Opus agents, who all invented the same repair. Isolate runs; check a behaviours spec
+  for internal consistency before using it as an oracle.
+
+**Deliberately not in scope:** making the compiler catch design errors. Four rounds produced no idiom
+error a diagnostic could have caught, and the one real design defect was caught by reading the generated
+source.
+
 ## Decisions (resolved)
 
 - **The commercial model, and where the analyser sits in it** _(owner, 2026-09-01)_. Recorded because it
