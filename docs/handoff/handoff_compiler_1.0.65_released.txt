@@ -1,0 +1,161 @@
+HANDOFF — fluxtion-builder 1.0.65 IS RELEASED, and the backend is deployed
+Date: 2026-09-01
+Supersedes: handoff_compiler_21a63d4 (which asked for a pre-release review)
+Compiler docs: docs/specs/compiler-diagnostics/HANDOFF-1.0.65-shipped.md in fluxtion-compiler
+
+===============================================================================
+THE SHORT VERSION — three of your blocked items are now unblocked
+===============================================================================
+
+1. M45.6 was "BLOCKED ON A RELEASE, deliberately". THE RELEASE HAPPENED.
+   fluxtion-builder 1.0.65 and fluxtion-builder-all-java8 1.0.65 are on Repsy,
+   with fluxtion-bom 1.0.65 pairing base=1.0.14 / compiler=1.0.65. You can drop
+   the committed-output fixtures workaround and depend on a published artefact.
+
+2. M45.4's blocker is FIXED at the source, not merely emitted. You parked it
+   waiting on a named AUTHORITY, because provenance was tracked by NAME while the
+   thing it describes is an INSTANCE — an author's own auditor registered under
+   `clock` was published as compiler-created. Your reading was right, and the same
+   class of defect was found again by your own review at 21a63d4 (F-A), where
+   `serviceRegistry` sat in BOTH authoredNodes and compilerCreatedNodes on 3315
+   graphs.
+
+   It was fixed by COLLAPSING the classification rather than giving one side
+   precedence: the framework already declares which auditors are its own
+   (`addFrameworkAuditor`), so those never enter `authoredNodes` at all. One
+   decision, at registration, and the two sets partition by construction.
+   `NodeClassificationInvariantTest` asserts the partition across plain,
+   author-auditor, event-audit, anchored and referencing graphs, and pins
+   `serviceRegistry` BY NAME as the compiler's — because "no node in both sets"
+   would also be satisfied by dropping it from both.
+
+3. The suggestedFix import item — your "cheapest item on the branch" — is DONE.
+   Every annotation a repair asks the author to WRITE now carries its import,
+   derived from the class so it cannot drift. The package split was the trap:
+   NoTriggerReference is in runtime.annotations, the other three in
+   runtime.annotations.builder.
+
+===============================================================================
+THE DEADLOCK NOBODY NOTICED — please read this one
+===============================================================================
+
+The PARALLEL default is still OFF, and BOTH SIDES ARE NOW WAITING ON EACH OTHER
+FOR A CONDITION THAT IS ALREADY MET.
+
+  Compiler (GraphMlOptions javadoc): "The default flips when the model-authority
+  tracker is closed AND at least one consumer reads the keys."
+
+  Analyser (M45): "The default-flip gate is ONE ordered condition... upstream
+  flips when relationships are captured at the decision point AND one consumer
+  understands PARALLEL. The gate is M45.5."
+
+Model authority: CLOSED on the compiler side (tracker ranked item 1, three
+defects fixed and mutation-checked).
+M45.5: SHIPPED on your side, 2026-08-31, with five guards mutation-checked.
+
+So both halves of the gate are satisfied and the default has not moved, because
+each tracker describes the OTHER repo's half as the outstanding one. Neither is
+wrong; the pair is stale. If you agree the gate is met, say so explicitly and the
+compiler will flip the default in 1.0.66 — that is the ONLY thing it is waiting
+for, and it will not flip on inference.
+
+===============================================================================
+THE BACKEND IS DEPLOYED, AND THE ENVELOPE CROSSES THE GATEWAY
+===============================================================================
+
+This is new since your last review and it changes what a remote build gives you.
+
+The wire envelope carries side-band facts beside the payload — the model
+fingerprint out, the server's diagnostic report back — because Kryo's default
+FieldSerializer is positional and the payload's shape is frozen. Until today it
+was inert in production: the deployed compiler predated it and answered 415, so
+every remote build fell back to a plain call.
+
+1.0.65 is deployed. Measured, not assumed:
+
+  * A production build now stamps a descriptor fingerprint. That is the ONLY
+    artefact that proves the envelope crossed — GraphML and client-side
+    diagnostics appear IDENTICALLY in a fallback run, so neither is evidence.
+    The fingerprint is computed client-side, its field is transient so it cannot
+    ride the payload in either format, and the only code that sets it server-side
+    reads it out of the envelope metadata.
+
+  * The response leg too: a deliberately broken graph returned FLX-1001 in the
+    sidecar as a structured wire-contract document, beside the client's own
+    FLX-1008. FLX-1001 is raised during SOURCE generation, which runs
+    server-side.
+
+  * A local server was listening on 8080 throughout and would have produced the
+    same fingerprint. Excluded three ways: the client logged the production
+    endpoint; the run was repeated with the local server killed, same digest; and
+    the service's own network log shows three POST /generate-source -> 200, ONE
+    PER BUILD. One request per build is itself proof of no fallback — a 415
+    produces two.
+
+NOT established, and the compiler tracker says so: whether the gateway PRESERVED
+the content type or whether byte-level magic detection rescued a REWRITTEN one.
+The magic and the envelope shipped together, so there is no envelope-aware client
+without it to test against. Both work; the measurement cannot separate them.
+
+WHAT THIS MEANS FOR YOU: a remote AOT build now returns the server's diagnostic
+report as a structured document, not just prose in an exception. If you have code
+that parses compiler failures out of message text, it can stop.
+
+===============================================================================
+THE DTO WIRE ROUND-TRIP YOU ASKED TO BE MADE A RELEASE GATE
+===============================================================================
+
+You wrote: "Ask upstream to make that round-trip a release gate: it is the only
+change on the branch whose failure mode is simultaneous." Reasonable, and it is
+now the case, though arrived at from the Kryo side rather than yours.
+
+Three gates run in the reactor on every build:
+  RemoteResponseCompatibilityTest  — the response's serialised shape is identical
+                                     to released 1.0.64, field names and order
+  DtoWireCompatibilityTest         — the DTO wire shape
+  ReleasedDtoWireGoldenTest        — pinned against the released 1.0.64 payload
+
+And the constraint behind them is measured rather than argued: KryoFieldEvolutionTest
+asserts that adding a field to a wire class BREAKS a pinned Kryo reader. That is
+why nothing new is ever added as a field, and why the envelope exists at all.
+
+Your backwards-compatibility assessment ("the DTO wire is the high-risk surface,
+because the server is always latest and every client is pinned") was the correct
+read, and it is the reason the wire shape is frozen rather than versioned.
+
+===============================================================================
+ALSO WORTH KNOWING
+===============================================================================
+
+* The error pages are LIVE at
+  https://telaminai.github.io/fluxtion/troubleshooting/errors/<CODE>
+  and the emitted documentationUrl resolves. If you ever saw a 404 there, it was
+  the old constant pointing at fluxtion.com — a domain the project does NOT own
+  (parked with a broker). Do not link to fluxtion.com/errors.
+
+* At OFF the only unconditional GraphML change is still edgedefault="directed",
+  which your parser does not read. Your ☐ item "that check needs re-running at
+  7a273a8" is still open on your side; the compiler cannot close it for you.
+
+* The full configuration matrix at 1.0.65 is in the compiler repo at
+  verification/remote-compiler-verify — ./start-server.sh then ./run-reports.sh.
+  Every envelope row now reads "accepted", including case 04 against production.
+  Two rows fail BY DESIGN: 03 is the builder-api version floor, 05 is a graph the
+  compiler refuses. Case 06 emitting 0 GraphML keys is the product default, not a
+  regression.
+
+===============================================================================
+WHAT TO ATTACK
+===============================================================================
+
+1. The gateway conclusion. It rests on one artefact and two corroborations. If
+   the fingerprint could reach the descriptor by any route other than the
+   envelope, it collapses.
+
+2. The M45.4 fix. The invariant is asserted, but the two ordering windows named
+   in your F-A finding (rootNodes and publicNodes adding to authoredNodes after
+   the guard loop reads it) still exist — they are unreachable now that framework
+   nodes never enter the set, which is a different guarantee from being removed.
+
+3. Anything in this document you think is wrong. The last review corrected two of
+   my premises, and both corrections were right.

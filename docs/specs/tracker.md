@@ -258,8 +258,17 @@ flip is gated on**, so this milestone is a dependency in both directions._
   **planned**. That is exactly the key separating *capable, audit off* from *capable and stayed silent*,
   which is this slice's stated product claim, so it is re-scoped: the regime comes from the **log header**
   (UP-FLX-11), not the GraphML. Still the slice where the claim improves.
-- [M45.4] ☐ **STILL PARKED even though `fluxtion.framework` is now emitted** — it waits on a named
-  AUTHORITY, not on emission (spec ▸ D-V2 amendment). The compiler side reproduced an author's own
+- [M45.4] ◧ **THE AUTHORITY NOW EXISTS (2026-09-01) — ours to verify and unpark.** It waited on a named
+  AUTHORITY, not on emission (spec ▸ D-V2 amendment), and upstream has supplied one. The name-vs-instance
+  defect we described was found a second time by our own 21a63d4 review (F-A): `serviceRegistry` sat in
+  BOTH `authoredNodes` and `compilerCreatedNodes` on 3315 graphs. Upstream fixed it by COLLAPSING the
+  classification rather than ranking the two sources — the framework declares its own auditors
+  (`addFrameworkAuditor`), so they never enter `authoredNodes`, and the sets partition by construction.
+  `NodeClassificationInvariantTest` asserts the partition across five graph shapes and pins
+  `serviceRegistry` by name, because "no node in both sets" would also be satisfied by dropping it from
+  both. **What is still OURS:** confirming a false `framework=true` can no longer flatter the
+  denominator, on our own session graph rather than on their fixtures.
+  **Originally:** it waits on a named AUTHORITY, not on emission (spec ▸ D-V2 amendment). The compiler side reproduced an author's own
   auditor registered under `clock` being published as compiler-created, because provenance is tracked by
   name while the thing it describes is an instance. A false `framework=true` **excludes an authored node
   from the denominator and flatters the number** — silent, and the direction our own "excluding requires
@@ -282,18 +291,31 @@ flip is gated on**, so this milestone is a dependency in both directions._
   overdraws a pair's arrow and inflates `edgeCount()`. Identity becomes
   `(source, target, refKind, referenceField)`. Plus `topologicalRank` as a column — the question **0 of 3
   measured agents could answer**.
-- [M45.6] ☐ **BLOCKED ON A RELEASE, deliberately.** The vocabulary only exists in `1.0.65-SNAPSHOT`, and
-  committing a SNAPSHOT dependency would make every other build depend on an artefact that is not
-  published. The fixtures above are **committed compiler output** instead, so M45.2/.3/.5 are fully
-  tested without the repo depending on an unreleased builder. Bump when `fluxtion-builder` releases.
-- [M45.6a] ☐ **Then: bump `-Pregen` off builder 1.0.64**, regenerate, re-pin `SessionGraphShapeTest`.
+- [M45.6] ☑ **UNBLOCKED 2026-09-01 — `fluxtion-builder` 1.0.65 IS RELEASED.** `fluxtion-builder`,
+  `fluxtion-builder-all-java8` and `fluxtion-bom` 1.0.65 are on Repsy (`<release>1.0.65</release>`;
+  the BOM pairs `base=1.0.14 / compiler=1.0.65`). The reason to hold — that committing a SNAPSHOT
+  would make every build depend on an unpublished artefact — no longer applies. The committed-output
+  fixtures can stay as the regression pin, but the dependency can now be a real one.
+  **Originally:** the vocabulary only existed in `1.0.65-SNAPSHOT`; the fixtures above are committed
+  compiler output instead, so M45.2/.3/.5 are fully tested without depending on an unreleased builder.
+- [M45.6a] ☐ **NOW ACTIONABLE — bump `-Pregen` off builder 1.0.64 to 1.0.65**, regenerate, re-pin `SessionGraphShapeTest`.
   **Expected to fail first, by design** — that test is the downstream canary we offered upstream.
   **Take `dbcbe17` or later**, and regenerate any fixture made with an earlier build: before it the
   published `topologicalRank` was the wrong order (M45.1a).
-- [M45] ☐ **The default-flip gate is ONE ordered condition, not two repos naming each other.** Upstream
-  flips when relationships are captured at the decision point **and** one consumer *understands*
-  `PARALLEL`. M45.2 changes no behaviour, so reading is not understanding — **the gate is M45.5**.
-- [M45] ☐ **Raised upstream, cheapest item on the branch:** `suggestedFix` names `@FluxtionIgnore`,
+- [M45] ⚠ **THE GATE IS MET ON BOTH SIDES AND NEITHER TRACKER NOTICED — 2026-09-01.** The condition was
+  ONE ordered thing, not two repos naming each other: upstream flips when relationships are captured at
+  the decision point **and** one consumer *understands* `PARALLEL`. M45.2 changes no behaviour, so
+  reading is not understanding — the gate is M45.5.
+  **M45.5 SHIPPED 2026-08-31** (five guards mutation-checked). **Model authority CLOSED upstream**
+  (their ranked item 1: three defects fixed and mutation-checked). So both halves are satisfied and the
+  default is still `OFF`, because each tracker describes the OTHER repo's half as the outstanding one.
+  Neither entry is wrong; the PAIR is stale — which is the failure mode a two-repo gate invites.
+  ☐ **Ours to close: say explicitly that we accept the vocabulary.** Upstream will not flip on
+  inference and has said so; it is waiting for nothing else.
+- [M45] ☑ **DONE upstream (issue 26) — every annotation a repair asks for now carries its import**, derived
+  from the class so it cannot drift. The package split was the trap: `NoTriggerReference` is in
+  `runtime.annotations`, the other three in `runtime.annotations.builder`.
+  **Originally, cheapest item on the branch:** `suggestedFix` names `@FluxtionIgnore`,
   `@ConstructorArg` and `@AssignToField` without their packages, and **both ceiling agents named the
   import guess as their only remaining reason to need a second build** — both said they would reach for
   `transient` first *to avoid guessing it*. One fully-qualified name per annotation removes the last
@@ -307,8 +329,16 @@ flip is gated on**, so this milestone is a dependency in both directions._
   every client is pinned, so *old client + new server* is not an edge case — it is the default state of
   every user who has not bumped, exercised for all of them at once by a server upgrade they cannot roll
   back. The branch changes `NodeDto.annotatedMethods`, and the integration report lists that as
-  **reasoned but not exercised by an old↔new test**. ☐ **Ask upstream to make that round-trip a release
-  gate**: it is the only change on the branch whose failure mode is simultaneous.
+  **reasoned but not exercised by an old↔new test**. ☑ **DONE — and arrived at from the Kryo side rather than ours.**
+  Three gates run in upstream's reactor on every build: `RemoteResponseCompatibilityTest` (response shape
+  identical to released 1.0.64, field names AND order), `DtoWireCompatibilityTest`, and
+  `ReleasedDtoWireGoldenTest` (pinned against the released 1.0.64 payload). The constraint behind them is
+  measured rather than argued: `KryoFieldEvolutionTest` asserts that ADDING a field breaks a pinned Kryo
+  reader — which is why nothing new is ever added as a field, and why the side-band envelope exists at all.
+  Our read ("the server is always latest and every client is pinned, so old-client + new-server is not an
+  edge case, it is the default state") is the reason the shape is FROZEN rather than versioned.
+  **Originally:** ask upstream to make that round-trip a release gate; it is the only change on the branch
+  whose failure mode is simultaneous.
   **Release footprint, checked against `main`:** `fluxtion-builder` only — 32 files, everything else docs
   and tests. `fluxtion-runtime` is untouched, so our 1.0.13 dependency stands, and `fluxtion-builder-api`
   gains nothing because the switch is a system property rather than a `FluxtionCompilerConfig` method.
@@ -884,8 +914,16 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
 
 ## M36 · Start page — follow-up (.1–.5 SHIPPED 2026-08-25; the milestone is in completed/tracker.md, design **[completed/spec-start-page.md](completed/spec-start-page.md)**)
 ### Rule 1 — owner decisions (raised M36, sharpened by the polish round; the two resolved ones are archived with M36)
-- ☐ **Ask upstream whether the compiler still emits that header** — every generated processor in every
-  user's repo carries it. An upstream ask, not an analyser one.
+- ⚠ **ANSWERED 2026-09-01: YES, it still does — measured on a build against the deployed 1.0.65 backend.**
+  Every generated processor opens with:
+      Copyright: © 2025.  Gregory Higgins <…> - All Rights Reserved
+      This source code is protected under international copyright law…
+      This file is confidential and only available to authorized individuals…
+  Stamped onto the USER'S generated code — an artefact derived from their graph, which upstream's own
+  positioning calls the deliverable. Two problems, and neither is the analyser's to fix: it asserts
+  all-rights-reserved and CONFIDENTIALITY over a file the user generated and ships, and the year reads
+  2025. Raised with the owner as a licensing decision rather than changed unilaterally.
+  **Originally:** an upstream ask, not an analyser one.
 
 ## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md, design **[completed/spec-portable-context.md](completed/spec-portable-context.md)**)
 - [M38.8] ➜ **ABSORBED BY M43.2** _(owner, 2026-08-28: "the skills binding to playbook at the same time")_.
