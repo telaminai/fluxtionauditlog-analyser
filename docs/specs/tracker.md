@@ -115,8 +115,13 @@ _`docs/proposals/upstream-content/`. Drafted FOR the static authoring resources
 (`claude.txt`, the playground `CLAUDE.md`, the golden path), not for this repo. Each carries a
 retrieval-dated evidence table, because those are live documents that can change under a claim._
 
-- [UC-LANDED] ◧ **First cut is IN REVIEW upstream — [fluxtion-web PR #1](https://github.com/telaminai/fluxtion-web/pull/1)**
-  _(2026-09-01)_. Content went to the two resources that are in the AGREED SET — `/CLAUDE.md` (the
+- [UC-LANDED] ☑ **MERGED AND LIVE 2026-09-01 — [fluxtion-web PR #1](https://github.com/telaminai/fluxtion-web/pull/1)**,
+  merged to `main` as `a4a124f` and deployed by Cloudflare (`5bf137a4`). **Verified on the live URLs**, not
+  just in the repo: `/CLAUDE.md` 20,453 → 25,059 bytes and `fluxtion-golden-path.md` 13,179 → 15,167, both
+  carrying `NoTriggerReference`, the finality rule and the green-build section. That distinction mattered —
+  the first check after merge showed the OLD text, because the repo and the site are separated by an
+  external deploy with its own timing. **The cascade is now real**: every project referencing the agreed set
+  gets this without being regenerated. Content went to the two resources that are in the AGREED SET — `/CLAUDE.md` (the
   orientation) and `fluxtion-golden-path.md` — **not** to `claude.txt`, which `reference-set.json` records
   as deliberately EXCLUDED ("redundant, not wrong"). Writing there would have been writing where no
   generated project points. Branched from `main`, not the in-flight `feature/spring-author-extended`.
