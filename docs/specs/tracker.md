@@ -449,6 +449,21 @@ agents does — and that learning is the raw material for the template bootstrap
   one matters: skip the header strip and rule 1 fails, skip the fixtures and M45 fails against a graph
   that moved, skip the POM restore and the repo depends on an unreleased SNAPSHOT. Got wrong three
   times, which is three more than a script costs.
+- [M44.2h] ☑ **The effect drain moved to `@OnBatchEnd` — the external drain was a framework feature
+  reimplemented (owner: "use batchEnd for the effect drain instead of the external one").** The driver
+  used to call `onEvent`, pull the queue off `EffectQueue` and perform every effect itself. Three reasons
+  were written down for that; **two were refuted in review and the third was that nobody had read
+  `BatchHandler`** — documented as *"a transaction of events have been received and complete… process a
+  set of events before publishing/exposing state changes outside of the Static Event Processor."* The
+  drain is now an `@OnBatchEnd` method on `EffectQueue`, the adapter arrives by `@ServiceRegistered`
+  rather than being held by the driver, and results re-enter through `processAsNewEventCycle`.
+  **The ordering claim survives on better grounds**: `onEvent` publishes the decision's record before it
+  returns and `batchEnd()` cannot be entered until it has, so *decided → recorded → acted* no longer
+  depends on auditor ordering — which [UP-FLX-41](../proposals/upstream-asks.md) shows you cannot depend
+  on anyway. **One new hazard, defended**: the generated `batchEnd()` sets `processing = true` with no
+  try/finally, so a throw escaping the method would wedge the processor silently; `EffectQueue` catches
+  everything and the driver rethrows once the flag is clear. All 1272 tests green and 23/23 on the built
+  jar with no behaviour change; seven new tests cover the properties the old shape got for free.
 - [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
   driver change that lets log/graph OPENING become a decision. Declined twice on the same ground, which
   is the right ground: the load is `Background.run` and the driver is synchronous single-in-flight by

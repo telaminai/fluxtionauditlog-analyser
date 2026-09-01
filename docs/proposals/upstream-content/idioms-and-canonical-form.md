@@ -225,25 +225,81 @@ With more than one auditor, "the record has published" is not a single moment. I
 follow the record, do not express that as a phase ordering; use a transaction boundary (below) or act
 outside the processor.
 
-### The transaction boundary you probably want
+### The transaction boundary you probably want — `@OnBatchEnd`
 
 If the question is *"do the side effects once this set of events is complete"*, there is a first-class
 answer: **`BatchHandler.batchEnd()`, bound by `@OnBatchEnd`** — documented as *"a transaction of events
 have been received and complete… process a set of events before publishing/exposing state changes
 outside of the Static Event Processor."*
 
-That is a stated transaction boundary rather than an inferred one, and it is what a "publish once
-everything has settled" design should reach for before inventing machinery. An auditor that genuinely
-needs to be last can also re-dispatch its own end-of-transaction event, which arrives as a new cycle
-after the current one has completed and published.
+**This is written from having got it wrong.** This project built an external drain — the host called
+`onEvent`, then pulled a queue off a node and performed each effect itself — and defended it in a design
+document with three reasons, two of which were refuted in review. The real reason it existed was that
+nobody had read `BatchHandler`. It is now `@OnBatchEnd`, and the driver is four lines shorter.
 
-**When to go outside the graph instead.** Three cases, and they are narrow:
+The emitted method, so you can see what you are getting:
 
-* **the audit record must precede the act** — see above. Draining after `onEvent` returns gives you
-  *decided, recorded, then acted*;
-* **the result must re-enter as a fact** — if you need to record that the effect *happened* and not only
-  that it was decided, the outcome has to arrive as a new event, so something outside must feed it back;
-* **the effect is asynchronous** — no in-graph phase can wait for it.
+```java
+public void batchEnd() {
+    auditEvent(Lifecycle.LifecycleEvent.BatchEnd);
+    processing = true;
+    myQueue.performRequestedEffects();            // your @OnBatchEnd method
+    afterEvent();                                 // the BatchEnd audit record publishes
+    callbackDispatcher.dispatchQueuedCallbacks(); // anything you re-dispatched runs here
+    processing = false;
+}
+```
+
+**Three things this buys you, and one it costs.**
+
+*Ordering, from structure rather than convention.* `onEvent` ends in its own `afterEvent()`, publishing
+the cycle's record, and `batchEnd()` cannot be entered until `onEvent` has returned. So *decided →
+recorded → acted* holds without depending on where anyone put a loop, and without depending on auditor
+ordering — which, per the section above, you cannot depend on anyway.
+
+*Results that re-enter properly.* Call `processAsNewEventCycle(result)` from your `@OnBatchEnd` method.
+With `processing == true` the framework queues it to the **back** of the callback stack and dispatches it
+after `afterEvent()`, as a full cycle with its own audit record. **Back, not front** — that is why it is
+`processAsNewEventCycle` and not `processReentrantEvent`: the latter pushes to the front and reverses a
+multi-effect batch, so the effect provoked by the first result is seen before the first result.
+
+*A visible boundary in the log.* `auditEvent(BatchEnd)` means a reader can see where the transaction
+closed. An external drain happens entirely outside the record.
+
+**The cost: a throw must not escape your `@OnBatchEnd` method.** `batchEnd()` sets `processing = true`
+with **no try/finally**. An exception leaving your method leaves that flag set, and every subsequent
+event is queued as re-entrant and never dispatched — the processor is wedged, silently, with no
+stacktrace pointing at the cause. Catch everything. If the host genuinely must see the exception, stash
+it in a field and let the host take it after `batchEnd()` returns:
+
+```java
+@OnBatchEnd
+public void performRequestedEffects() {
+    for (Effect e : drain()) {
+        try {
+            processAsNewEventCycle(adapter.perform(e));
+        } catch (RuntimeException fatal) {
+            this.fatal = fatal;      // NOT thrown: processing would stay true
+            return;
+        }
+    }
+}
+```
+
+**And bound the host's loop.** A result can provoke another effect, which lands in a fresh batch, so the
+host calls `batchEnd()` until nothing more is pending. Give that loop a limit. A runaway recursion ends
+in `StackOverflowError`, which is loud; a runaway `while` just hangs, and a UI that stops repainting
+tells nobody why.
+
+**When to go outside the graph instead.** Two cases, and they are narrower than they look:
+
+* **the effect is asynchronous** — no in-graph phase can wait for it. The usable shape is a batch-end
+  drain that *starts* the work and a result that arrives later on the host's completion path;
+* **it must happen even if the processor is wedged or torn down** — teardown, crash reporting, the
+  last-resort paths. Nothing inside a dispatch phase runs then.
+
+*"The audit record must precede the act"* is **not** on this list, and used to be. `batchEnd()` already
+gives you that, and it was the reason cited for building the drain that `batchEnd()` replaced.
 
 Otherwise the after-event phase is the idiom, and an external drain is machinery you did not need.
 

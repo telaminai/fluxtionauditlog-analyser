@@ -3,7 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
 import telamin.fluxtion.audit.analyser.analyser.session.generated.SessionProcessor;
 
-import java.util.List;
+import com.telamin.fluxtion.runtime.service.Service;
 
 /**
  * The only thing that talks to both sides: it feeds facts into the processor and performs the effects
@@ -11,22 +11,39 @@ import java.util.List;
  *
  * <h2>The cycle (M44 D-S0.4)</h2>
  * <pre>
- *   onEvent(fact)                    one dispatch
- *   batch = effectQueue.drain()      immutable snapshot, taken AFTER dispatch returns
- *   for each effect in batch:
- *       result = adapter.perform(effect)     OUTSIDE Fluxtion dispatch
- *       cycle(result)                        the result re-enters at the top
+ *   onEvent(fact)          one dispatch, ending in afterEvent() — the decision's record PUBLISHES
+ *   while effects pending:
+ *       batchEnd()         the framework's transaction boundary; EffectQueue performs and re-dispatches
  * </pre>
  *
- * <h2>Three prohibitions, and why they are here rather than in a comment on each node</h2>
+ * <h2>Why {@code batchEnd()} and not a loop here — the correction that produced this shape</h2>
+ * This class used to drain the queue itself and perform every effect inline, on the reasoning that an
+ * effect must not happen before the record of deciding it exists. <b>The reasoning was right; the
+ * mechanism was invented.</b> {@code BatchHandler.batchEnd()} is Fluxtion's own transaction boundary —
+ * <i>"process a set of events before publishing/exposing state changes outside of the Static Event
+ * Processor"</i> — and it was reimplemented here because nobody had read it. The ordering guarantee is
+ * unchanged and now rests on something specified: {@code onEvent} publishes the decision's record
+ * before it returns, so anything {@code batchEnd()} does afterwards is necessarily after it.
+ *
+ * <h2>Two prohibitions, and one that was RELAXED rather than quietly dropped</h2>
  * <ul>
- *   <li><b>No node calls an adapter.</b> A node that touched Swing or the filesystem would put an
- *       irreversible act inside a dispatch that has not finished deciding.</li>
- *   <li><b>No node calls {@code onEvent}.</b> Re-entrancy would become part of the model by accident,
- *       and the audit record would interleave two cycles with no way to tell them apart.</li>
- *   <li><b>No effect is performed before {@code onEvent} returns.</b> Which is why the queue is drained
- *       rather than pushed.</li>
+ *   <li><b>No node calls an adapter DURING EVENT DISPATCH.</b> This is the one that changed. It used to
+ *       read "no node calls an adapter", which was a stronger rule than the danger required: what must
+ *       not happen is an irreversible act inside a dispatch that has not finished deciding. The batch-end
+ *       phase is not that dispatch — it runs after it, by construction.</li>
+ *   <li><b>No node calls {@code onEvent} directly.</b> Results re-enter through
+ *       {@code processAsNewEventCycle}, which the framework queues and dispatches as its own cycle with
+ *       its own record. That is re-dispatch, which Fluxtion supports; it is not re-entrancy.</li>
+ *   <li><b>No effect is performed before {@code onEvent} returns.</b> Unchanged, and now structural
+ *       rather than conventional — {@code batchEnd()} cannot be entered until it has.</li>
  * </ul>
+ *
+ * <h2>The loop, and why it is bounded</h2>
+ * A result can cause another decision, which can ask for another effect. Those land in a fresh batch, so
+ * {@code batchEnd()} is called until nothing more is asked. <b>The bound exists because the failure mode
+ * changed.</b> The recursion this replaced ended a runaway in {@code StackOverflowError} — loud. A
+ * {@code while} loop would hang instead, and a desktop application that stops repainting tells nobody
+ * why. So a runaway throws {@link ProtocolViolation} naming the effect still being asked for.
  *
  * <h2>Single-in-flight, enforced rather than assumed</h2>
  * {@link #submit} refuses to be re-entered. That is what makes an {@code opId} mean something: with one
@@ -91,7 +108,6 @@ public final class SessionDriver {
 
     private final SessionProcessor processor = new SessionProcessor();
     private final SessionAuditSink sink;
-    private final Adapter adapter;
 
     private boolean dispatching;
     private long nextOpId = 1;
@@ -104,7 +120,6 @@ public final class SessionDriver {
         if (adapter == null || sink == null) {
             throw new IllegalArgumentException("adapter and sink are required");
         }
-        this.adapter = adapter;
         this.sink = sink;
         // Both BEFORE init(), and each by the route measured to be silent — see the class comment.
         // The sink goes through the documented DataFlow call; the level does NOT, because the
@@ -112,6 +127,11 @@ public final class SessionDriver {
         processor.setAuditLogProcessor(sink);
         processor.eventLogger.logLevel(EventLogControlEvent.LogLevel.INFO);
         processor.init();
+        // AFTER init(), because registerService is a dispatch into the service registry and the
+        // registry's nodes must exist first. The adapter reaches EffectQueue through @ServiceRegistered
+        // — a service, because it is a property of the running application rather than of the graph,
+        // and because that makes the test adapter arrive by exactly the route MainFrame does.
+        processor.registerService(new Service<>(adapter, Adapter.class));
     }
 
     /** Ids the caller stamps on a request; the results answering it must carry the same one. */
@@ -137,19 +157,35 @@ public final class SessionDriver {
         }
         dispatching = true;
         try {
-            cycle(fact);
+            processor.onEvent(fact);
+            int rounds = 0;
+            while (!processor.effectQueue.isEmpty()) {
+                if (++rounds > MAX_EFFECT_ROUNDS) {
+                    throw new ProtocolViolation(
+                            "effects did not settle after " + MAX_EFFECT_ROUNDS + " batchEnd rounds "
+                                    + "for " + fact.getClass().getSimpleName() + ". A result is "
+                                    + "provoking the decision that produced it; the audit log for this "
+                                    + "operation shows the loop.");
+                }
+                processor.batchEnd();
+                RuntimeException fatal = processor.effectQueue.takeFatal();
+                if (fatal != null) {
+                    // Thrown HERE rather than out of batchEnd(): the generated batchEnd sets
+                    // processing=true with no try/finally, so a throw from inside it would leave the
+                    // processor wedged. By the time control is back here the flag is clear.
+                    throw fatal;
+                }
+            }
         } finally {
             dispatching = false;
         }
     }
 
-    private void cycle(Object fact) {
-        processor.onEvent(fact);
-        List<SessionEffects> batch = processor.effectQueue.drain();
-        for (SessionEffects effect : batch) {
-            cycle(perform(effect));
-        }
-    }
+    /**
+     * Generous: the deepest real cascade is an open closing a log and a graph and reporting both. A
+     * bound is here to make a runaway loud, not to constrain legitimate work.
+     */
+    private static final int MAX_EFFECT_ROUNDS = 64;
 
     /**
      * Breaking the driver's contract, as distinct from an effect failing.
@@ -162,29 +198,13 @@ public final class SessionDriver {
      * the caller.
      */
     public static final class ProtocolViolation extends IllegalStateException {
-        ProtocolViolation(String message) {
+        public ProtocolViolation(String message) {
             super(message);
         }
     }
 
-    private SessionEvents.Result perform(SessionEffects effect) {
-        try {
-            SessionEvents.Result result = adapter.perform(effect);
-            if (result == null) {
-                return new SessionEvents.EffectFailed(effect.opId(), name(effect),
-                        "adapter returned no result — an effect must be answered");
-            }
-            return result;
-        } catch (ProtocolViolation e) {
-            throw e;
-        } catch (Exception e) {
-            String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-            return new SessionEvents.EffectFailed(effect.opId(), name(effect), reason);
-        }
-    }
-
     /** The effect's name in the audit vocabulary — the same word {@code EffectOutcomes} records. */
-    static String name(SessionEffects effect) {
+    public static String name(SessionEffects effect) {
         return switch (effect) {
             case SessionEffects.LoadProfileEffect ignored -> "loadProfile";
             case SessionEffects.CreateProfileEffect ignored -> "createProfile";

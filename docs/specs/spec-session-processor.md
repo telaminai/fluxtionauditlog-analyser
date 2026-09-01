@@ -125,71 +125,83 @@ change unblocks. **The mirror was never the mechanism's fault; it was an event m
 `Function<String, Optional<String>>` parameter today — already service-shaped, just hand-carried. The
 graph must never mirror a source tree, and it only ever queries it. That is exactly (a).
 
-**Where we deliberately do NOT use (b), with the reason CORRECTED.** Effects are drained after dispatch
-rather than invoked from inside a node. The reason first given here was that acting inside a node would
-put an irreversible act *"inside a dispatch that has not finished deciding"*.
+**Where we deliberately do NOT use (b) — and the answer we arrived at after being wrong twice.**
+Effects are not invoked from inside a node's event handler. **They are performed at
+`BatchHandler.batchEnd()`, by an `@OnBatchEnd` method on `EffectQueue`** (shipped 2026-09-01). Getting
+here took three corrections, and the sequence is the useful part.
 
-**That reason was wrong, and `@AfterEvent` is why** (owner, 2026-09-01). An event is processed in two
-phases: event-in, in topological order, then **after-event, in reverse topological order on the unwind**.
-An effect performed in `@AfterEvent` runs when every decision in the cycle has already been made — so
-"mid-decision" is exactly what the framework provides a phase to avoid, and the objection dissolves.
-(`@AfterTrigger` is the narrower form: same phase, but only when this instance's own event-in handler was
-on the execution path.)
+**Reason 1, given first and wrong.** *"Acting inside a node would put an irreversible act inside a
+dispatch that has not finished deciding."* Refuted by the owner: an event is processed in **two phases**
+— event-in in topological order, then **after-event in reverse topological order on the unwind**. An
+`@AfterEvent` method runs when every decision in the cycle has already been made, so "mid-decision" is
+exactly what the framework has a phase to avoid. (`@AfterTrigger` is the narrower form: same phase, but
+only when this instance's own event-in handler was on the execution path.)
 
-**A third reason, found by probing rather than reasoning, and it is the decisive one here.** An
-`@AfterEvent` method was added to `EffectQueue` and the graph regenerated. The emitted `afterEvent()`
-block orders the phase like this:
+**Reason 2, found by probing, and stated as a stronger claim than the evidence supported.** An
+`@AfterEvent` method was added to `EffectQueue` and the graph regenerated. The emitted block runs it
+*before* `eventLogger.processingComplete()` — before the cycle's audit record publishes. That much is
+documented: `Auditor.processingComplete()` says it is *"called following all the nodes annotated with
+`@AfterEvent` have been invoked"*, and `Auditor.FirstAfterEvent` is the marker that flips it.
+
+**The correction is the owner's.** `FirstAfterEvent` is a **binary** — first, or with-the-rest. Among
+several normal auditors there is no ordering, and **an auditor cannot declare itself last**. So "the
+audit record has published" is not a single moment in a processor with more than one auditor. Our
+processor has one, so the ordering holds; **building on it would be building on a property we happen to
+have rather than one we are promised**. Filed as [UP-FLX-41](../proposals/upstream-asks.md).
+
+**Reason 3 — the one that is actually right, and it names a primitive we had not read.**
+`BatchHandler.batchEnd()`, bound by `@OnBatchEnd`, is documented as *"a transaction of events have been
+received and complete… process a set of events before publishing/exposing state changes outside of the
+Static Event Processor."* That is this, exactly. **The external drain was a reimplementation of a
+framework feature, written because nobody had read `BatchHandler`.**
+
+So the drain moved into the graph. The emitted method, read rather than assumed:
 
 ```java
-private void afterEvent() {
-    effectQueue.probeAfterEvent();     // the @AfterEvent method
-    clock.processingComplete();
-    eventLogger.processingComplete();  // <-- the audit record for this cycle is PUBLISHED here
-    isDirty_activeProject = false;
-    ...
+public void batchEnd() {
+    auditEvent(Lifecycle.LifecycleEvent.BatchEnd);
+    processing = true;
+    effectQueue.performRequestedEffects();        // adapter called, results re-dispatched
+    afterEvent();                                 // the BatchEnd record publishes
+    callbackDispatcher.dispatchQueuedCallbacks(); // each result runs as its own audited cycle
+    processing = false;
 }
 ```
 
-**`@AfterEvent` runs before the cycle's audit record is published — and this is designed, not
-incidental.** `Auditor.processingComplete()`'s own javadoc: *"Normally the `processingComplete()` will be
-called following all the nodes annotated with `@AfterEvent` have been invoked."* `Auditor.FirstAfterEvent`
-is the marker that flips it for an auditor that wants to run before them.
+**The ordering guarantee is unchanged and now rests on something specified.** `onEvent` ends in its own
+`afterEvent()`, publishing the decision's record, and `batchEnd()` cannot be entered until `onEvent` has
+returned. **Decided → recorded → acted**, with no dependence on auditor ordering.
 
-**But the guarantee is weaker than that reading suggests, and the correction is the owner's** (2026-09-01).
-`FirstAfterEvent` is a **binary** — first, or with-the-rest. Among several normal auditors there is no
-ordering, and **an auditor cannot declare itself last**. So "the audit record has published" is not a
-single moment in a processor with more than one auditor, and a design that depends on that moment is
-depending on something the framework does not currently let you express.
+**What this cost, and it is a real cost.** The generated `batchEnd()` sets `processing = true` with **no
+try/finally**. An exception escaping the `@OnBatchEnd` method leaves that flag set, and every later event
+is queued as re-entrant and never dispatched — a permanently wedged processor, silently. `EffectQueue`
+therefore catches everything: an effect failure becomes `EffectFailed` as before, and a protocol
+violation is *stashed* for the driver to rethrow once `batchEnd()` has returned. The violation still
+reaches the caller; it no longer takes the processor with it. Pinned by
+`EffectDrainAtBatchEndTest.aViolationDoesNotLeaveProcessingStuckOn`, which submits a further event after
+the throw and asserts it dispatches.
 
-Our processor has exactly one auditor today, so the ordering holds. **Building on it would be building
-on a property we happen to have rather than one we are promised** — which is the same mistake as reading
-a fixture's behaviour as a contract.
+**Two properties the old shape got for free and the new one had to earn**, both now tested:
 
-So the reason stands but is restated: **the external drain does not depend on auditor ordering at all.**
-It runs after `onEvent` returns, which is after every phase and every auditor, however many there are.
-That guarantees **decided, recorded, then acted** without relying on an ordering that is not specified.
+1. **The result re-enters as a fact.** `EffectOutcomes` records *happened*, not only *asked*. Results
+   re-enter through `processAsNewEventCycle`, which — with `processing == true` — queues to the **back**
+   of the callback stack and dispatches after `afterEvent()`. Back, not front: `processReentrantEvent`
+   would reverse a multi-effect batch, so the graph close would be seen before the log close that
+   provoked it.
+2. **The cascade settles.** A result can provoke another effect, which lands in a fresh batch. The driver
+   calls `batchEnd()` until nothing more is asked, **bounded at 64 rounds** — because the recursion this
+   replaced ended a runaway in `StackOverflowError`, and an unbounded `while` would hang instead. A
+   desktop application that stops repainting tells nobody why.
 
-**And there is a first-class primitive we should not pretend we knew about.** `BatchHandler.batchEnd()`
-(bound by `@OnBatchEnd`) is documented as *"a transaction of events have been received and complete… a
-common usage pattern is to process a set of events before publishing/exposing state changes outside of
-the Static Event Processor."* That is the transaction boundary this whole section is groping towards. It
-does not change our decision — our outcomes must re-enter as facts and one effect is asynchronous — but a
-graph wanting *"do the side effects once the transaction is done"* should reach for it before inventing a
-drain.
+**What is still external, and it is the whole of M44.3.** Opening is asynchronous: no in-graph phase can
+wait for a `Background.run` completion. `batchEnd()` is the right home for a *synchronous* effect batch;
+the `Pending` result of [`spec-async-session-driver.md`](spec-async-session-driver.md) is how an
+asynchronous one declines to answer inside it. The two compose — the drain does not need to change.
 
-**Two further reasons survive, and they are the general ones:**
-
-1. **The result must re-enter as a fact.** `EffectOutcomes` records *happened*, not only *asked*, so the
-   outcome has to arrive as a new event — which means something outside the cycle must feed it back
-   whatever phase initiated it.
-2. **Opening is asynchronous.** No in-graph phase can wait for a `Background.run` completion, so the
-   external driver is required for the case [`spec-async-session-driver.md`](spec-async-session-driver.md)
-   exists to enable.
-
-Given both, one external mechanism is better than an after-event path for synchronous effects plus a
-driver for asynchronous ones. **But for a graph whose effects are synchronous and fire-and-forget,
-`@AfterEvent` is the idiom and an external drain is machinery you did not need** — recorded so this
-choice is not read as a general recommendation.
+**The general lesson, since the point of this section is to be reusable.** For a graph whose effects are
+synchronous, **`@OnBatchEnd` is the idiom and an external drain is machinery you did not need**. For
+fire-and-forget work with no result to feed back, `@AfterEvent` is simpler still. Reach for a driver-side
+loop only when something must genuinely happen outside every phase — and check `BatchHandler` first.
 
 **A framework fact that constrains the driver, verified in source.** `DataFlow.setAuditLogProcessor`,
 `setAuditLogLevel`, `setAuditLogRecordEncoder` and `setAuditTimeFormatter` are **not setters** — each is

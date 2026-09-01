@@ -105,7 +105,6 @@ public class SessionProcessor
   //Node declarations
   private final transient CallbackDispatcherImpl callbackDispatcher = new CallbackDispatcherImpl();
   public final transient Clock clock = new Clock();
-  public final transient EffectQueue effectQueue = new EffectQueue();
   public final transient EventLogManager eventLogger = new EventLogManager();
   public final transient NodeNameAuditor nodeNameLookup = new NodeNameAuditor();
   public final transient OperationGate operationGate = new OperationGate();
@@ -124,18 +123,19 @@ public class SessionProcessor
   public final transient CoverageClaim coverageClaim =
       new telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim(
           pairing, auditInstallation, openGraph, openLog);;
-  public final transient LogArrival logArrival =
-      new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
-          operationGate, pairing, openGraph, effectQueue);;
-  public final transient SessionBoundary sessionBoundary =
-      new telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary(
-          operationGate, activeProject, openLog, openGraph, effectQueue);;
   private final transient SubscriptionManagerNode subscriptionManager =
       new SubscriptionManagerNode();
   private final transient MutableDataFlowContext context =
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
+  public final transient EffectQueue effectQueue = new EffectQueue();
+  public final transient LogArrival logArrival =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
+          operationGate, pairing, openGraph, effectQueue);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
+  public final transient SessionBoundary sessionBoundary =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary(
+          operationGate, activeProject, openLog, openGraph, effectQueue);;
   public final transient IgnoredParameters ignoredParameters = new IgnoredParameters();
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
@@ -233,6 +233,7 @@ public class SessionProcessor
     eventLogger.clock = clock;
     context.setClock(clock);
     serviceRegistry.setDataFlowContext(context);
+    effectQueue.setDataFlowContext(context);
     //node auditors
     initialiseAuditor(clock);
     initialiseAuditor(eventLogger);
@@ -932,7 +933,7 @@ public class SessionProcessor
   public void batchEnd() {
     auditEvent(Lifecycle.LifecycleEvent.BatchEnd);
     processing = true;
-
+    effectQueue.performRequestedEffects();
     afterEvent();
     callbackDispatcher.dispatchQueuedCallbacks();
     processing = false;

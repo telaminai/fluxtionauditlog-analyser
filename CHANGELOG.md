@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **The analyser's own session audit log now shows where each transaction closed and its effects ran.**
+  Effects the session processor decides on — closing a log, applying a project, showing a warning — used
+  to be carried out entirely outside the audit record; only the decision appeared. They now run at the
+  processor's transaction boundary, so opening the analyser's own log shows the decision, the boundary
+  and each outcome in one sequence. No change to what the application does.
+
 ### Added
 - **The analyser now reads the Fluxtion compiler's graph metadata when a `.graphml` carries it**, and
   says when it does not. A processor built with a recent compiler can declare which nodes are able to

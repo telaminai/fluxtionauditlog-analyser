@@ -6,6 +6,14 @@ changes deliberately and in one place.
 
 ## Why this exists
 
+**Amended 2026-09-01, after the synchronous drain moved.** This spec was written against a driver that
+drained the effect queue itself in a loop after `onEvent`. That drain is now an `@OnBatchEnd` method on
+`EffectQueue` — Fluxtion's own transaction boundary — and the driver only calls `batchEnd()` until
+nothing more is pending (`spec-session-processor.md`, *Where we deliberately do NOT use (b)*). **Nothing
+in D-A1–D-A5 changes in substance**; what changes is *who* holds the `Pending` result, and D-A2 below
+says so. The two compose rather than competing: `batchEnd()` is the right home for a synchronous batch,
+and `Pending` is how an asynchronous effect declines to answer inside one.
+
 M44 has moved four decisions into the processor. The fifth — **what opening a log or a graph means** —
 has been declined twice, on the same ground both times, and the ground is worth stating rather than
 working around:
@@ -91,8 +99,14 @@ An effect does not declare itself slow. `SessionEvents.Result` gains one case:
 record Pending(long opId, String what) implements Result { }
 ```
 
-The driver, on receiving `Pending`, stops draining that branch and returns. The operation is *in
-flight*: nothing is closed, nothing is applied, and the processor knows only that it asked.
+**`EffectQueue`, not the driver, receives it** — that is the one line this amendment changes. On
+`Pending` the `@OnBatchEnd` method does not re-dispatch: it simply moves to the next effect in the batch
+and lets `batchEnd()` complete. The operation is *in flight*: nothing is closed, nothing is applied, and
+the processor knows only that it asked. The driver's loop then sees an empty queue and `submit` returns,
+which is exactly right — the work is outstanding, not pending in the graph.
+
+**The bounded round loop must not treat this as a runaway.** A `Pending` effect leaves the queue empty,
+so it never spins; a `Pending` that re-queued itself would, and must not.
 
 **Why this shape and not an `AsyncEffect` marker.** Whether opening a log is asynchronous is a fact
 about the implementation performing it, not about the request. The consequence is the one that
@@ -174,6 +188,8 @@ Not part of this spec, but this is what it unblocks, and the spec is only worth 
       suite has to be rewritten for this, the design is wrong.
 - [ ] A `Pending` result leaves state untouched: nothing closed, nothing applied, and the record shows
       the operation asked and suspended.
+- [ ] A `Pending` effect does not spin the driver's bounded `batchEnd()` loop, and a test proves the
+      round count for a suspended operation is 1.
 - [ ] A superseded operation's late result changes no state and is recorded as `staleResult` naming the
       superseding `opId`.
 - [ ] An operation that never completes leaves the application usable: the next request supersedes it,
