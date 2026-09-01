@@ -794,7 +794,9 @@ in a `catch`. That neither of us knew until the owner pointed at it is itself ev
 driver to rethrow after `batchEnd()` returns. It works, and it is a workaround every author must invent
 independently and most will not know they need.
 
-### UP-FLX-43 ○ DOC — "The life of a single event": every hook point, in firing order
+### UP-FLX-43 ◐ DOC — "The life of a single event": every hook point, in firing order
+
+_Filed: https://github.com/telaminai/fluxtion/issues/29_
 
 **Target** `fluxtion` docs · **Priority** high — it is the cheapest ask here and it retires several others
 
@@ -808,7 +810,8 @@ documented — in `@OnParentUpdate`'s javadoc, which is not where anyone looks. 
 * an independent LLM author on a different application hand-rolled a **read-then-write ordering dance**,
   then found `@AfterEvent` and reported it was *"more correct than what I had written"* — same arc, one
   step earlier, and that author never found `@OnBatchEnd` either;
-* **four of six sessions** inferred sibling dispatch order wrongly ([UP-FLX-36](#)).
+* **four of six sessions** inferred sibling dispatch order wrongly (UP-FLX-36, filed as
+  `fluxtion` issue 23 — the page carries that fact, so issue 29 may supersede it).
 
 Three authors, three applications, one missing page — and every wrong turn was a **sequencing** fact,
 which is the thing this framework is most certain about because it compiles it.
