@@ -6,9 +6,9 @@ place it applies, so the working code is the reference.
 
 ```
 src/main/java/com/acme/app/
-  Tick.java              an event — a plain record
-  PriceBook.java         a node: @OnEventHandler, transient state, boolean return stops the cycle
-  Alerter.java           a node: @OnTrigger, and a PARENT IS A FIELD
+  Reading.java              an event — a plain record
+  SensorState.java         a node: @OnEventHandler, transient state, boolean return stops the cycle
+  ThresholdAlert.java           a node: @OnTrigger, and a PARENT IS A FIELD
   AppGraphBuilder.java   the builder Maven calls — including the audit line you cannot omit
   Main.java              wiring the audit log, lifecycle, and onEvent(Object)
   generated/AppProcessor.java   written by the generator; edit nothing here
@@ -19,7 +19,7 @@ run.sh                   build + generate + test + run, with the classpath incan
 
 ## To build your own graph
 
-1. Replace `Tick` with your events, `PriceBook`/`Alerter` with your nodes.
+1. Replace `Reading` with your events, `SensorState`/`ThresholdAlert` with your nodes.
 2. Register the root of your instance tree in `AppGraphBuilder.buildGraph` — anything reachable by
    constructor reference from what you `addNode` is in the graph.
 3. `./run.sh`, then read `logs/audit.yaml`.

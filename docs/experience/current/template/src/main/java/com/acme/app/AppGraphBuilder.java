@@ -12,11 +12,11 @@ public class AppGraphBuilder implements FluxtionGraphBuilder {
 
     @Override
     public void buildGraph(EventProcessorConfig cfg) {
-        PriceBook book = new PriceBook();
+        SensorState state = new SensorState();
         // Name every node you care about. An unnamed node still works but appears in the audit log
         // with a generated suffix (priceBook_1), which makes the log harder to read and to assert on.
-        cfg.addNode(book, "priceBook");
-        cfg.addNode(new Alerter(book), "alerter");     // the tree is reachable from what you add
+        cfg.addNode(state, "sensorState");
+        cfg.addNode(new ThresholdAlert(state), "thresholdAlert");     // the tree is reachable from what you add
 
         // WITHOUT THIS LINE THE AUDIT LOG IS SILENTLY EMPTY. Nothing warns you.
         cfg.addEventAudit(EventLogControlEvent.LogLevel.INFO);

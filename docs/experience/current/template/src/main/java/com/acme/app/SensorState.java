@@ -12,16 +12,16 @@ import com.telamin.fluxtion.runtime.audit.EventLogNode;
  *   <li>the class and its constructor must be {@code public}</li>
  * </ul>
  */
-public class PriceBook extends EventLogNode {
+public class SensorState extends EventLogNode {
 
     public transient double last;          // transient: node-local state, not a parent
 
     /** Returning false STOPS the cycle here — nothing downstream runs. */
     @OnEventHandler
-    public boolean onTick(Tick tick) {
-        boolean changed = tick.price() != last;
-        last = tick.price();
-        auditLog.info("symbol", tick.symbol()).info("price", tick.price()).info("changed", changed);
+    public boolean onReading(Reading tick) {
+        boolean changed = tick.value() != last;
+        last = tick.value();
+        auditLog.info("sensorId", tick.sensorId()).info("value", tick.value()).info("changed", changed);
         return changed;
     }
 }

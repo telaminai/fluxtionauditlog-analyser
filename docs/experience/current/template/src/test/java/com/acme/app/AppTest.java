@@ -12,27 +12,27 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class AppTest {
 
-    private List<String> run(Tick... ticks) {
+    private List<String> run(Reading... ticks) {
         AppProcessor flow = new AppProcessor();
         List<String> audit = new ArrayList<>();
         flow.setAuditLogProcessor(r -> audit.add(r.toString()));
         flow.init();
-        for (Tick t : ticks) flow.onEvent(t);
+        for (Reading t : ticks) flow.onEvent(t);
         flow.tearDown();
         return audit;
     }
 
     @Test
     void unchangedPriceStopsTheCycle() {
-        List<String> audit = run(new Tick("DEMO1", 99.0), new Tick("DEMO1", 99.0));
+        List<String> audit = run(new Reading("SENSOR-1", 99.0), new Reading("SENSOR-1", 99.0));
         String second = audit.get(audit.size() - 1);
-        assertFalse(second.contains("alerter"), "unchanged tick must not reach the alerter");
+        assertFalse(second.contains("thresholdAlert"), "unchanged tick must not reach the thresholdAlert");
     }
 
     @Test
     void priceAboveThresholdAlerts() {
-        List<String> audit = run(new Tick("DEMO1", 120.0));
+        List<String> audit = run(new Reading("SENSOR-1", 120.0));
         assertTrue(audit.stream().anyMatch(r -> r.contains("alert: true")),
-                "a price over 100 must raise an alert in the audit log");
+                "a value over 100 must raise an alert in the audit log");
     }
 }

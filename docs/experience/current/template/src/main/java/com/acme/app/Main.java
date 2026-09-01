@@ -21,10 +21,10 @@ public class Main {
         flow.setAuditLogProcessor(rec -> audit.add("---\n" + rec));   // BEFORE init()
         flow.init();
 
-        // ONE dispatch method, taking Object. There is no onTick(Tick).
-        flow.onEvent(new Tick("DEMO1", 99.0));
-        flow.onEvent(new Tick("DEMO1", 99.0));    // unchanged -> PriceBook returns false, cycle stops
-        flow.onEvent(new Tick("DEMO1", 120.0));   // over 100 -> Alerter fires
+        // ONE dispatch method, taking Object. There is no onReading(Reading).
+        flow.onEvent(new Reading("SENSOR-1", 99.0));
+        flow.onEvent(new Reading("SENSOR-1", 99.0));    // unchanged -> SensorState returns false, cycle stops
+        flow.onEvent(new Reading("SENSOR-1", 120.0));   // over 100 -> ThresholdAlert fires
 
         flow.tearDown();     // lifecycle is init/start/stop/tearDown — there is no shutdown()
 
