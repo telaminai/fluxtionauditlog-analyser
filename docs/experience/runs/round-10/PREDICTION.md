@@ -93,3 +93,54 @@ Scored right/wrong. No partial credit.
 H3 (Haiku 4/4 green) is the riskiest. It is a nine-ish node graph from an empty directory with no node
 list. If Haiku comes in at 2/4 I will have over-corrected for my pessimism — which would be a new failure
 mode rather than the old one, and worth recording as such.
+
+---
+
+# OWNER'S PREDICTION — the arc, recorded before results
+
+> *"I often see that LLMs are undervaluing the Fluxtion philosophy at the beginning and grudgingly
+> respect it at the end."* — owner, 2026-09-01, before any round-09/10 result was visible.
+
+## Why I think this is right, and the mechanism
+
+**Fluxtion's cost is immediate and its benefit is deferred.** The cost lands in the first hour:
+annotations, a regeneration step, constructor-mapping rules, a build that calls out, a generated file you
+must not edit. The benefit lands later — at the first change to a working graph, the first incident, the
+first time someone asks *why is this number what it is*.
+
+Any evaluator who samples early therefore sees **cost without benefit**, and reports it honestly. That is
+not scepticism as a disposition; it is an accurate reading of an unrepresentative window.
+
+**Two long engagements support the arc, both documented.** The supermarket-poc author recorded a
+sceptical prior — *"a compile-time dataflow framework mostly relocates complexity into a build step"* —
+and closed with *"I started sceptical; the evidence moved me."* This session's author did the same, and
+the moment it turned was moving an effect drain through the middle of a live control layer with
+confidence, because a replay suite existed that only existed because the decisions were in a graph.
+
+## The design consequence, and it may explain the null rounds better than the ceiling effect does
+
+**Every round so far — 07, 08, 09, 10 — is GREENFIELD. Each builds from an empty directory.**
+
+That is the worst possible window for this framework's value proposition. Greenfield shows the cost in
+full and the benefit not at all, because the benefit *is change safety*: ordering that is derived rather
+than maintained, a graph that can be reasoned about after it grows, a log that explains a run nobody
+predicted. None of that can appear in a task that ends at the first green build.
+
+So a one-shot greenfield task may be structurally incapable of showing what the docs — or the framework —
+are worth. That is a sharper explanation for five nulls than the ceiling effect alone, and the two are
+compatible.
+
+## Falsifiable form, for these eight runs
+
+| | signal | where |
+|---|---|---|
+| **undervalues early** | hand-rolls something the framework provides; treats an annotation as ceremony; calls the regeneration step overhead | the "confusing / missing" section, and the transcript's first third |
+| **respects late** | credits a framework property for catching something it would otherwise have shipped; names the constraint as having bought something | the closing report |
+
+**Prediction: the arc will NOT show cleanly in these eight**, because a single greenfield task is too
+short a window — most runs go green on the first or second attempt and never reach the point where the
+benefit appears. Round 08's `armA-3` is the one prior case that did, and only because it went wrong.
+
+**The round that would test it properly is a CHANGE round**: hand an agent a working graph plus an audit
+log, and ask it to add a behaviour that reorders dispatch. That is where the framework pays, and no round
+so far has looked there.
