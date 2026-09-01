@@ -17,6 +17,34 @@ src/test/java/com/acme/app/
 run.sh                   build + generate + test + run, with the classpath incantation
 ```
 
+## What makes a node run — the whole of it
+
+A node's **fields are its parents**. By default **every parent is a trigger**: when a parent propagates,
+this node runs. That default is the right one for inputs and the wrong one for lookups, and choosing
+wrongly is the commonest correctness bug in this framework — it compiles, the tests pass, and only the
+audit log shows it.
+
+| annotation | on | what it does |
+|---|---|---|
+| `@OnEventHandler` | method | entry point for an event type. Returning `false` stops the cycle here |
+| `@OnTrigger` | method | runs after any triggering parent propagated. Returning `false` stops the cycle here |
+| `@OnParentUpdate` | method | called per parent that updated — use it when you must know *which* one |
+| **`@NoTriggerReference`** | **field** | **this parent is data only.** Read it; never be triggered by it |
+| `@TriggerEventOverride` | field | this parent is the *only* trigger; every other field is treated as `@NoTriggerReference`. One annotation instead of many |
+| `@AfterTrigger` | method | runs in the after-event phase, in reverse topological order |
+
+`ThresholdAlert` shows the distinction: `sensorState` triggers it, `limitStore` is
+`@NoTriggerReference`. Run `./run.sh` and read the log:
+
+```
+cycle 5: Reading(120.0)      ['sensorState', 'thresholdAlert']
+cycle 6: Limit(temp, 150.0)  ['limitStore']      <- the limit CHANGED and the alert did not run
+```
+
+Delete that one annotation and cycle 6 runs `thresholdAlert` too — re-judging the *previous* reading,
+on a cycle where nothing was measured. Three independent authors have shipped that bug.
+
+
 ## To build your own graph
 
 1. Replace `Reading` with your events, `SensorState`/`ThresholdAlert` with your nodes.

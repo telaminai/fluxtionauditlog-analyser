@@ -26,7 +26,9 @@ public class Main {
         // ONE dispatch method, taking Object. There is no onReading(Reading).
         flow.onEvent(new Reading("SENSOR-1", 99.0));
         flow.onEvent(new Reading("SENSOR-1", 99.0));    // unchanged -> SensorState returns false, cycle stops
-        flow.onEvent(new Reading("SENSOR-1", 120.0));   // over 100 -> ThresholdAlert fires
+        flow.onEvent(new Reading("SENSOR-1", 120.0));   // over the limit -> ThresholdAlert fires
+        flow.onEvent(new Limit("temp", 150.0));         // reference data: LimitStore runs, alert does NOT
+        flow.onEvent(new Limit("temp", 150.0));         // unchanged republish -> stops at LimitStore
 
         flow.tearDown();     // lifecycle is init/start/stop/tearDown — there is no shutdown()
 

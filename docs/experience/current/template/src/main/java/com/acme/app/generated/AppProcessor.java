@@ -8,6 +8,8 @@
  */
 package com.acme.app.generated;
 
+import com.acme.app.Limit;
+import com.acme.app.LimitStore;
 import com.acme.app.Reading;
 import com.acme.app.SensorState;
 import com.acme.app.ThresholdAlert;
@@ -56,6 +58,7 @@ import java.util.function.Consumer;
  * Event classes supported:
  *
  * <ul>
+ *   <li>com.acme.app.Limit
  *   <li>com.acme.app.Reading
  *   <li>com.telamin.fluxtion.runtime.audit.EventLogControlEvent
  *   <li>com.telamin.fluxtion.runtime.time.ClockStrategy.ClockStrategyEvent
@@ -77,6 +80,7 @@ public class AppProcessor
   private final transient CallbackDispatcherImpl callbackDispatcher = new CallbackDispatcherImpl();
   public final transient Clock clock = new Clock();
   public final transient EventLogManager eventLogger = new EventLogManager();
+  public final transient LimitStore limitStore = new LimitStore();
   public final transient NodeNameAuditor nodeNameLookup = new NodeNameAuditor();
   public final transient SensorState sensorState = new SensorState();
   private final transient SubscriptionManagerNode subscriptionManager =
@@ -86,7 +90,7 @@ public class AppProcessor
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
   public final transient ThresholdAlert thresholdAlert =
-      new com.acme.app.ThresholdAlert(sensorState);;
+      new com.acme.app.ThresholdAlert(sensorState, limitStore);;
   private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
   //Dirty flags
   private boolean initCalled = false;
@@ -109,6 +113,7 @@ public class AppProcessor
           AppProcessor.class,
           AppProcessor::new,
           new ProcessorDescriptor.Input[] {
+            new ProcessorDescriptor.Input("Limit", "com.acme.app.Limit", false),
             new ProcessorDescriptor.Input("Reading", "com.acme.app.Reading", false)
           },
           new ProcessorDescriptor.Sink[] {},
@@ -116,7 +121,7 @@ public class AppProcessor
           new DescriptorSupport.Meta(
               null,
               null,
-              "554f3c7c9fb35f2f1b099eb11bd227ba99beb52bc15a17744c5ee3be9852a8fe",
+              "6ece8e42e8196684c6c9945c7cd91216f6a8082713ca1a6d24634dccf2f21871",
               null));
 
   @Override
@@ -249,7 +254,10 @@ public class AppProcessor
 
   @Override
   public void onEventInternal(Object event) {
-    if (event instanceof Reading) {
+    if (event instanceof Limit) {
+      Limit typedEvent = (Limit) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof Reading) {
       Reading typedEvent = (Reading) event;
       handleEvent(typedEvent);
     } else if (event instanceof EventLogControlEvent) {
@@ -261,6 +269,11 @@ public class AppProcessor
     } else {
       unKnownEventHandler(event);
     }
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(Limit event) {
+    processEvent(event);
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
@@ -276,6 +289,14 @@ public class AppProcessor
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ClockStrategyEvent event) {
     processEvent(event);
+  }
+
+  public void handleEvent(Limit typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(limitStore, "limitStore", "onLimit", typedEvent);
+    limitStore.onLimit(typedEvent);
+    afterEvent();
   }
 
   public void handleEvent(Reading typedEvent) {
@@ -332,7 +353,12 @@ public class AppProcessor
   //EVENT BUFFERING - START
   public void bufferEvent(Object event) {
     buffering = true;
-    if (event instanceof Reading) {
+    if (event instanceof Limit) {
+      Limit typedEvent = (Limit) event;
+      auditEvent(typedEvent);
+      auditInvocation(limitStore, "limitStore", "onLimit", typedEvent);
+      limitStore.onLimit(typedEvent);
+    } else if (event instanceof Reading) {
       Reading typedEvent = (Reading) event;
       auditEvent(typedEvent);
       auditInvocation(sensorState, "sensorState", "onReading", typedEvent);
@@ -381,6 +407,7 @@ public class AppProcessor
 
   private void initialiseAuditor(Auditor auditor) {
     auditor.init();
+    auditor.nodeRegistered(limitStore, "limitStore");
     auditor.nodeRegistered(sensorState, "sensorState");
     auditor.nodeRegistered(thresholdAlert, "thresholdAlert");
     auditor.nodeRegistered(callbackDispatcher, "callbackDispatcher");

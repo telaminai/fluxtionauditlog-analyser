@@ -23,9 +23,9 @@
     <key id="fluxtion.relationshipCount" for="edge" attr.name="fluxtion.relationshipCount" attr.type="int"/>
     <graph edgedefault="directed">
         <data key="fluxtion.metaVersion">1.0</data>
-        <data key="fluxtion.sourceFingerprint">554f3c7c9fb35f2f1b099eb11bd227ba99beb52bc15a17744c5ee3be9852a8fe</data>
-        <data key="fluxtion.nodeCount">13</data>
-        <data key="fluxtion.authoredNodeCount">2</data>
+        <data key="fluxtion.sourceFingerprint">6ece8e42e8196684c6c9945c7cd91216f6a8082713ca1a6d24634dccf2f21871</data>
+        <data key="fluxtion.nodeCount">15</data>
+        <data key="fluxtion.authoredNodeCount">3</data>
         <node id="ClockStrategyEvent">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
@@ -47,6 +47,17 @@
             </data>
             <data key="fluxtion.kind">EVENT</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.audit.EventLogControlEvent</data>
+        </node>
+        <node id="Limit">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;Limit&#10;class:com.acme.app.Limit&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.acme.app.Limit</data>
         </node>
         <node id="Reading">
             <data key="vertex_label">
@@ -114,7 +125,7 @@
             <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
-            <data key="fluxtion.topologicalRank">6</data>
+            <data key="fluxtion.topologicalRank">7</data>
         </node>
         <node id="eventLogger">
             <data key="vertex_label">
@@ -132,6 +143,22 @@
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
             <data key="fluxtion.topologicalRank">2</data>
         </node>
+        <node id="limitStore">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:limitStore&#10;class:com.acme.app.LimitStore"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.acme.app.LimitStore</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">3</data>
+        </node>
         <node id="nodeNameLookup">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
@@ -145,7 +172,7 @@
             <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
-            <data key="fluxtion.topologicalRank">3</data>
+            <data key="fluxtion.topologicalRank">4</data>
         </node>
         <node id="sensorState">
             <data key="vertex_label">
@@ -161,7 +188,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">4</data>
+            <data key="fluxtion.topologicalRank">5</data>
         </node>
         <node id="serviceRegistry">
             <data key="vertex_label">
@@ -177,7 +204,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">EXPORT_SERVICE</data>
-            <data key="fluxtion.topologicalRank">7</data>
+            <data key="fluxtion.topologicalRank">8</data>
         </node>
         <node id="subscriptionManager">
             <data key="vertex_label">
@@ -193,7 +220,7 @@
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">SERVICE_REGISTERED,SERVICE_DEREGISTERED,TEAR_DOWN</data>
-            <data key="fluxtion.topologicalRank">5</data>
+            <data key="fluxtion.topologicalRank">6</data>
         </node>
         <node id="thresholdAlert">
             <data key="vertex_label">
@@ -209,7 +236,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">8</data>
+            <data key="fluxtion.topologicalRank">9</data>
         </node>
         <edge id="1" source="ClockStrategyEvent" target="clock">
             <data key="edge_label">
@@ -227,7 +254,15 @@
             <data key="fluxtion.handlerMethod">calculationLogConfig</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="3" source="Reading" target="sensorState">
+        <edge id="3" source="Limit" target="limitStore">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onLimit</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="4" source="Reading" target="sensorState">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -235,18 +270,10 @@
             <data key="fluxtion.handlerMethod">onReading</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="4" source="ServiceListener" target="serviceRegistry">
+        <edge id="5" source="ServiceListener" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
-        </edge>
-        <edge id="5" source="callbackDispatcher" target="context">
-            <data key="edge_label">
-                <jGraph:ShapeEdge/>
-            </data>
-            <data key="fluxtion.refKind">DATA</data>
-            <data key="fluxtion.propagates">false</data>
-            <data key="fluxtion.referenceField">dirtyStateMonitor</data>
         </edge>
         <edge id="6" source="callbackDispatcher" target="context">
             <data key="edge_label">
@@ -254,9 +281,17 @@
             </data>
             <data key="fluxtion.refKind">DATA</data>
             <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">dirtyStateMonitor</data>
+        </edge>
+        <edge id="7" source="callbackDispatcher" target="context">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">eventDispatcher</data>
         </edge>
-        <edge id="7" source="clock" target="context">
+        <edge id="8" source="clock" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -264,7 +299,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="8" source="clock" target="eventLogger">
+        <edge id="9" source="clock" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -272,7 +307,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="9" source="context" target="serviceRegistry">
+        <edge id="10" source="context" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -280,7 +315,15 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dataFlowContext</data>
         </edge>
-        <edge id="10" source="nodeNameLookup" target="context">
+        <edge id="11" source="limitStore" target="thresholdAlert">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">DATA</data>
+            <data key="fluxtion.propagates">false</data>
+            <data key="fluxtion.referenceField">limitStore</data>
+        </edge>
+        <edge id="12" source="nodeNameLookup" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -288,7 +331,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">nodeNameLookup</data>
         </edge>
-        <edge id="11" source="sensorState" target="thresholdAlert">
+        <edge id="13" source="sensorState" target="thresholdAlert">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -296,7 +339,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">sensorState</data>
         </edge>
-        <edge id="12" source="subscriptionManager" target="context">
+        <edge id="14" source="subscriptionManager" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
