@@ -174,7 +174,22 @@ record has published" is not a single moment.
   elsewhere as 295 of 574 cycles diverging, with plausible numbers and no exception.
 * **An exception has no defined behaviour.** There is no abort, no rollback, no failed state. A throw
   from any hook above skips `afterEvent()`, so the cycle's audit record is never published, the dirty
-  flags are never reset, and `processing` is never cleared. Filed separately.
+  flags are never reset, and `processing` is never cleared — after which the processor accepts every
+  later event and silently drops it. Filed separately.
+
+  **The record is not lost, though, and this is the least-known useful method in the API.**
+  `DataFlow#getLastAuditLogRecord()` returns the partial record for the cycle that threw — every node
+  that ran, in order, with everything it logged — and `EventLogManager#publishLastRecord()` flushes it
+  to the sink. Both are javadoc'd *"Useful when error handling if an exception is thrown"*. So:
+
+  ```java
+  try {
+      processor.onEvent(event);
+  } catch (RuntimeException e) {
+      log.error("cycle failed; partial record:\n{}", processor.getLastAuditLogRecord(), e);
+      throw e;
+  }
+  ```
 
 ## Five things authors reliably get wrong
 

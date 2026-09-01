@@ -1,0 +1,246 @@
+REVIEW — compiler diagnostics / GraphML closure after c6bf306
+Compiler branch: feature/compiler_diagnostics
+Reviewed range: c6bf306899f73f61ce1b7d7d7b76bfaf7da1c5fa..b1f82fb26d4bd008431df2fb660226281312d439
+Reviewed head: b1f82fb26d4bd008431df2fb660226281312d439
+Implementation commits: 65705a6, 64909a1; late tracker correction: b1f82fb
+Input handoff: handoff_compiler_64909a1.txt
+Prior reviews: review_compiler_branch_8ff07e0.txt,
+               review_compiler_diagnostic_scope_c6bf306.txt
+Date: 2026-09-01
+
+VERDICT: CHANGES REQUIRED BEFORE THE DIAGNOSTICS BRANCH IS RELEASED
+
+The GraphML anchor/manifest repairs, event-walk regression, envelope repairs and released 1.0.14
+pin all hold up. The author-precedence rule is coherent after tracing its registration routes. The
+diagnostics closure does not: two known user-path failures are characterised but deliberately left
+wrong, the new FLX-1002 producer violates the structured element contract, and the newest tracker
+marks public error documentation Done while every emitted per-code URL tested returns 404.
+
+This review started at 64909a1. b1f82fb arrived during the clean build and is included; it changes
+only TRACKER.md, so the clean reactor at 64909a1 is code-equivalent evidence for the reviewed head.
+The compiler worktree was not edited and its pre-existing untracked tmp/ was preserved.
+
+===============================================================================
+F1 — BLOCKER: the two “pinned defects” are defects to fix, not policy choices
+===============================================================================
+
+The handoff asks whether FLX-1005 should become reachable through Fluxtion.compile and whether an
+interpreted cycle should be checked before the name map. Yes to both. Neither changes which graph is
+accepted; both replace the wrong failure with the diagnostic this branch already declares as the
+contract. There is no compatibility trade-off that justifies shipping the wrong answer.
+
+Duplicate names
+---------------
+
+Both public paths reject a duplicate explicit name as an uncoded Guava BiMap failure:
+
+    IllegalArgumentException: value already present
+
+The coded FLX-1005 producer exists in TopologicallySortedDependencyGraph.registerNode but the public
+path bypasses it: config public nodes are merged with inst2Name.putAll(...), and the duplicate value
+fails inside HashBiMap before registerNode or the DTO diagnostic stage can run. The new test asserts
+"UNCODED" as current behaviour while the registry/current-state table says Java hard failures are
+Done and FLX-1005 names both colliding nodes. Those cannot both be release truth.
+
+Route the public-node merge through the same validation/diagnostic authority as registerNode, then
+assert FLX-1005 through Fluxtion.compile and FluxtionInterpreter. Preserve the raw failure only as a
+historical regression explanation, not as the expected result of an acceptance test.
+
+Interpreted cycles
+------------------
+
+The interpreted path rejects the cycle but reports a duplicate framework node named nodeNameLookup;
+the AOT path reports FLX-1007 for the same topology. A framework name the author never supplied is
+not an alternative policy—it is false attribution. Run cycle validation before the merge that masks
+it, or fix the merge collision, and require the exact FLX-1007 code through both public paths.
+
+The point of structured diagnostics is that an author can act on the first failure. Freezing two
+known wrong first failures would release the compiler in the state this project was created to remove.
+
+===============================================================================
+F2 — BLOCKER: FLX-1002 emits the wrong structured element
+===============================================================================
+
+BuilderDiagnostics.exportedServiceMethodReturnTypeNotGeneratable emits:
+
+    element(DiagnosticElement.node(nodeName, serviceInterface))
+
+That says kind=NODE and stores the SERVICE INTERFACE in the nodeClass property. The real node class
+is absent. The promised serviceInterface and method properties are absent too; method exists only as
+a RelatedRef. This violates the registry's minimum structured fields for FLX-1002 and gives a consumer
+a semantically false NODE element.
+
+The model already has exactly the right authority:
+
+    DiagnosticElement.service(serviceInterface, method, nodeName, serviceName)
+
+Use the SERVICE element. If the concrete node class is also useful, carry it as a correctly-labelled
+related reference rather than overloading nodeClass. Add FLX-1002 to SchemaConformanceTest's
+producer-generated fixture set and assert the JSON fields, kind and schema. The new tests check only
+message text and suggested-fix substrings, so this wire defect is invisible to all 3,718 green tests.
+
+===============================================================================
+F3 — BLOCKER: “Public error docs Done” points users at live 404s
+===============================================================================
+
+b1f82fb changes the current-state table to:
+
+    Public error docs | Done | error-scope.md is the per-code scope reference for
+    fluxtion.com/errors/, backed by DiagnosticScopeTest
+
+error-scope.md is source/reference content in this repository. It is not a deployed per-code page.
+Every BuilderDiagnostics entry emits a URL of the form https://fluxtion.com/errors/<CODE>. A live
+request to https://fluxtion.com/errors/FLX-1002 at review time returned HTTP 404. Search found no
+indexed FLX-1002 or FLX-1005 page on that host.
+
+Do not mark public docs Done until each emitted URL resolves to content for that code. Either deploy
+the pages before the compiler release, point DOCS at the actual owned documentation host, or keep the
+status open and omit/redirect documentationUrl until it is real. A diagnostic's repair link taking a
+new author to a dead domain is worse than no link because it advertises an unavailable support path.
+
+===============================================================================
+F4 — HIGH: the scope gate still does not execute every published row
+===============================================================================
+
+error-scope.md still says DiagnosticScopeTest “drives the same graph through both build paths and
+asserts each row below”. The table has six rows/families. The test covers FLX-1001, FLX-1009,
+FLX-1005 and FLX-1007. It does not cover FLX-1008 or any SPRING_* code. b1f82fb then uses that test as
+the evidence for declaring public error docs Done.
+
+The tightened 1005/1007 assertions are valuable and did expose real defects. They do not close the
+original finding that the contract claims more rows than it executes. Add exact code/severity tests
+for FLX-1008 through each stated path. Replace the wildcard Spring row with the actual published codes
+and drive each through the Spring public entry point, or narrow the page's claim to the rows tested.
+
+Several executable comments also still state the disproved rule:
+
+* DiagnosticScopeTest's class javadoc groups FLX-1005 with source-generation diagnostics;
+* TopologicallySortedDependencyGraphDtoBuilder's extractor comments do the same;
+* ExportedServiceReturnTypeTest says FLX-1002 is scoped “like FLX-1005”;
+* the tracker still has an early current section saying FLX-1005 is source-generation-only.
+
+A reader should not have to reach the review-history section to discover that the current section and
+test documentation are wrong.
+
+===============================================================================
+F5 — HIGH: FLX-1002's boolean exemption is asserted, not behaviour-tested
+===============================================================================
+
+The policy direction is sound: void and primitive boolean are the two signatures the generator can
+honour; other return types already fail and now deserve a coded pre-generation rejection. The test
+does not establish its load-bearing justification.
+
+aBooleanExportedMethodIsAcceptedBecauseItControlsPropagation asserts only that compilation succeeds.
+It never returns false, invokes the generated service, or observes whether a dependent fires. The
+class javadoc still says the node's boolean value is discarded, yet the production generator uses it
+in processor.setDirty(node, node.method(...)) when ExportService.propagate=true; only the wrapper's
+outward return is hardcoded true. The prose and behaviour remain conflated in the very fixture meant
+to settle them.
+
+There is also an unreconciled second rule: ValidateExportServiceVoidReturn and
+SubstrateLintExportServiceVoidTest still warn on every non-void @ExportService method and say exported
+services are command surfaces. The new diagnostic says boolean is a supported propagation idiom. One
+compiler must not teach both rules depending on which validation surface runs.
+
+Add runtime cases for boolean true/false with propagate=true and propagate=false, assert dependent
+invocation separately from the wrapper's outward return, and add a primitive non-boolean producer
+case. Then change the substrate lint to share the same void-or-boolean predicate and wording. Keep
+one authority for the rule.
+
+===============================================================================
+F6 — MEDIUM: active status/spec prose remains materially contradictory
+===============================================================================
+
+The late tracker correction fixed two real stale rows, but the same sweep stopped early:
+
+* README.md's registry still marks FLX-1002 Blocked, and Slice 2 still says it is not implemented;
+* TRACKER.md's early current section still says FLX-1002 is blocked and non-void methods compile;
+* the same tracker retains the withdrawn claim that a boolean author cannot suppress propagation;
+* the current-state table calls FLX-1005 production-wired while its public paths are explicitly
+  documented later as uncoded;
+* BomBaseVersionGateTest's javadoc says the two base-version copies “currently differ”; they are now
+  both 1.0.14;
+* the refKind manifest description still explains that an emitter publishes anchors as PUSH, while
+  this branch now emits and declares ANCHOR.
+
+Rationalise current truth from code once. Preserve the old premises in review history or visibly
+struck historical sections, not in current tables, production comments and test contracts.
+
+===============================================================================
+N1 — provenance precedence is accepted; add the inverse controls
+===============================================================================
+
+“Explicit author registration wins over the same identity arriving through GenerationContext” is a
+coherent ownership rule, and the Anchor fixture proves the collision that required it. Source audit
+found no reason to reverse the decision. The two constructor loops apply the same identity rule and
+markCompilerInfrastructure stops at an authored identity, which is internally consistent.
+
+The blast-radius evidence is narrower than the rule. The framework control in
+FrameworkProvenanceTest is the clock auditor, whose provenance comes from the separate
+frameworkAuditorNames channel. Add plain context-only and context-public-only nodes and assert they
+remain framework=true, beside the overlap case that becomes authored=false. That pins both sides of
+the precedence rule without relying on the auditor exception. This is additional hardening, not a
+finding that the current Anchor output is wrong.
+
+===============================================================================
+N2 — carried open remote boundary
+===============================================================================
+
+The handoff accurately keeps the prior F3 open: server diagnostics reach the low-level HTTP client
+but are discarded by Fluxtion.compile, so public capture and sidecars cannot receive them. The old-
+server 415→plain negotiation test and deployed-gateway envelope acceptance also remain open. The
+gateway check cannot validate this branch until the matching server code is deployed and an entitled
+request can be made; a local endpoint is not evidence about the gateway.
+
+===============================================================================
+WHAT HELD UP
+===============================================================================
+
+* The Anchor provenance fix is at the ownership boundary, not in the exporter, and the emitted node
+  facts/count now agree for the reviewed fixture.
+* refKind is a real enum containing ANCHOR. The validator now checks every manifest entry that carries
+  values, and an anchor-producing document crosses that gate.
+* The 481-node shared-subgraph fixture is calibrated against the removed-guard mutation; the smaller
+  failed attempt is honestly recorded. The second-event test covers completed-set lifetime.
+* WireEnvelope now round-trips carriage return, and RemoteHttpCombinedGenerator clears stale metadata
+  before all exits. Both directly close the reviewed faults.
+* The 1.0.14 pin is consistent in parent and parent-less BOM. Maven resolver metadata records both
+  fluxtion-builder-api and fluxtion-runtime jars as downloaded from repsy-fluxtion-public, and javap
+  confirms the released builder API contains addFrameworkAuditor/getFrameworkAuditorNames.
+* FLX-1002 reads the compiler's exportedFunctionMap rather than re-reflecting the rule. Its placement
+  before generation and its void/boolean predicate are the right architectural seam; F2/F5 concern
+  the emitted contract and proof, not that authority.
+
+===============================================================================
+EXECUTION EVIDENCE
+===============================================================================
+
+Clean full reactor at 64909a1 with Java 21 and released base 1.0.14: PASS. b1f82fb is docs-only.
+
+    fluxtion-builder             194 tests, 0 failures/errors
+    fluxtion-generator-core       21 tests, 0 failures/errors
+    fluxtion-generator-http       16 tests, 0 failures/errors
+    fluxtion-integration-tests 3,487 tests, 0 failures/errors, 7 skipped
+
+The handoff reports five skipped; Surefire XML records five in FilteringTest plus two in
+RuntimeMetaBoundaryGateTest, seven total. This does not change the pass verdict but should be corrected
+if counts remain in the handoff.
+
+Command:
+
+    env JAVA_HOME=<jdk-21> PATH=<jdk-21>/bin:/usr/bin:/bin ./mvnw -q clean test
+
+`git diff --check c6bf306..b1f82fb` is clean. Compiler worktree unchanged except pre-existing tmp/.
+
+===============================================================================
+RECOMMENDED ORDER
+===============================================================================
+
+1. Route duplicate-name and interpreted-cycle failures to FLX-1005/FLX-1007 on public paths (F1).
+2. Fix FLX-1002's SERVICE element and add it to producer/schema conformance (F2).
+3. Make every documentationUrl real before declaring/releasing public error docs (F3).
+4. Complete or narrow the executable scope matrix (F4).
+5. Prove boolean propagation and unify the substrate lint rule (F5).
+6. Rationalise current tables/comments once and add the provenance inverse controls (F6/N1).
+7. Then close remote delivery and gateway negotiation/acceptance before calling the diagnostic loop
+   end-to-end (N2).

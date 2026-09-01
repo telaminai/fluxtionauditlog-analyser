@@ -9,34 +9,75 @@ processor has **no defined behaviour after an exception escapes user code mid-cy
 rollback, no failed state, no way for a host to ask whether the processor is still usable. It simply
 carries on being called, with a half-updated graph and a flag that says a cycle is still running.
 
+**One piece of it already exists and was missing from the first draft of this report:** the failed
+cycle's audit record is intact and retrievable via `DataFlow#getLastAuditLogRecord()` /
+`EventLogManager#publishLastRecord()`, both javadoc'd for precisely this. §1 is corrected below, and it
+turns the most important symptom into a one-line fix rather than a design question.
+
 Everything below is what one throw leaves behind, in the order it matters.
 
 ---
 
-## 1. The audit record for the failed cycle is the one record you never get
+## 1. The failed cycle's audit record is never PUBLISHED — but it is not lost
 
-This is the headline, and for this framework it is close to the worst possible ordering.
+**This section previously claimed the record was destroyed. That was wrong, and the correction makes the
+fix much cheaper** (owner pointed at `DataFlow#getLastAuditLogRecord`, 2026-09-01).
 
-`eventLogger.processingComplete()` — the call that **publishes the cycle's audit record** — lives in
-`afterEvent()`, which is the last statement of every `handleEvent`:
+What is true: `eventLogger.processingComplete()` — which publishes the record and then clears it — lives
+in `afterEvent()`, the last statement of every `handleEvent`. A cycle that throws therefore reaches
+neither the publish nor the clear, and **nothing on the exception path publishes it**. A sink-driven
+consumer sees nothing at all for the cycle that failed.
+
+**But the record is intact, and the framework already has the two methods for exactly this**, both
+javadoc'd *"Useful when error handling if an exception is thrown"*:
 
 ```java
-public void handleEvent(GraphObserved typedEvent) {
-    auditEvent(typedEvent);
-    auditInvocation(operationGate, "operationGate", "onGraphObserved", typedEvent);
-    isDirty_operationGate = operationGate.onGraphObserved(typedEvent);
-    ...
-    afterEvent();          // <-- eventLogger.processingComplete() is in here
+public void publishLastRecord() {      // EventLogManager — flushes to the sink
+    logRecord.terminateRecord();
+    sink.processLogRecord(logRecord);
+    logRecord.clear();
+}
+public String lastRecordAsString() { return logRecord.toString(); }
+```
+
+`DataFlow#getLastAuditLogRecord()` is the public route to the second. **Verified**: with a sink that
+throws inside `afterEvent()`, after the cycle's nodes have run, `getLastAuditLogRecord()` returns the
+complete partial record —
+
+```
+eventLogRecord:
+    event: LogObserved
+    eventToString: LogObserved[open=true, logPath=/logs/run.yaml, provenance=DECLARED, ...]
+    nodeLogs:
+        - operationGate: { method: onLogObserved, fact: observation, what: LogObserved, open: true}
+        - openLog:       { method: onLogObserved, openLog: /logs/run.yaml, via: observation}
+        - pairing:       { method: recomputeOnStateChange, pairing: cannotSay, ...}
+        - coverageClaim: { method: recomputeOnStateChange, coverageClaim: REFUSED, ...}
+        - logArrival:    { method: onLogObserved, decision: noGraph, reason: nothingToJudge}
+```
+
+Every node that ran, in order, with everything it logged. **The evidence survives; it is simply not
+delivered.**
+
+**So the most valuable single change in this report is one line.** Whatever is decided about state and
+recovery below, the `finally` that §3 asks for should call `publishLastRecord()`, ideally with a marker
+saying the cycle aborted. The data is already in the field and the method is already named after this
+use case — it just has no caller.
+
+**And a host can do it today**, which is worth documenting even before the fix:
+
+```java
+try {
+    processor.onEvent(event);
+} catch (RuntimeException e) {
+    log.error("cycle failed; partial record follows:\n{}", processor.getLastAuditLogRecord(), e);
+    throw e;
 }
 ```
 
-So a cycle that throws publishes **nothing**. The auditors received `eventReceived` and a run of
-`nodeInvoked` calls and are left mid-record; the record is discarded.
-
-**A Fluxtion audit log is therefore systematically silent about exactly the cycles that failed.** For a
-framework whose central claim is *"absence from the log means the node did not run"*, that inverts the
-guarantee at the only moment anyone is reading the log. Whatever else changes, the partial record should
-be flushed and marked failed.
+That neither of us knew this until it was pointed out is itself the argument for
+[the life-of-an-event page](life-of-an-event.md): the method is public, on the main interface, with a
+javadoc naming this exact scenario, and it is not reachable from any path an author is likely to walk.
 
 ## 2. Dirty flags survive the failed cycle and poison the next one
 

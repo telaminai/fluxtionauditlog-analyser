@@ -782,9 +782,13 @@ record is never published** (`eventLogger.processingComplete()` lives there), th
 reset** and poison the next cycle's `@OnTrigger` guards, and the callback stack retains a dead cycle's
 events for the next unrelated one to run.
 
-**The first of those is the one that stings.** A Fluxtion audit log is systematically silent about
-exactly the cycles that failed, in a framework whose claim is *"absence from the log means the node did
-not run"*. Whatever else is decided, the partial record should be flushed and marked failed.
+**The record one is the cheapest to fix and was miscalled in the first draft.** The failed cycle's
+record is **not lost** — `DataFlow#getLastAuditLogRecord()` returns it in full, every node that ran with
+everything it logged (verified), and `EventLogManager#publishLastRecord()` flushes it to the sink. Both
+are javadoc'd *"Useful when error handling if an exception is thrown"*. So the framework anticipated
+this and the methods simply have no caller on the exception path: **the `finally` should call
+`publishLastRecord()`**, and that one line covers the symptom that matters most. Hosts can do it today
+in a `catch`. That neither of us knew until the owner pointed at it is itself evidence for UP-FLX-43.
 
 **Cost to us if unfixed** we already pay it: `EffectQueue` catches everything and stashes fatals for the
 driver to rethrow after `batchEnd()` returns. It works, and it is a workaround every author must invent
