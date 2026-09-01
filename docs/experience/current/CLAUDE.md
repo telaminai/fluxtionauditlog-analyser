@@ -103,7 +103,49 @@ Within one record, nodes appear in the order the compiler dispatched them — no
 declaration. That ordering is derived, guaranteed, and the reason the log can answer *why* a value is what
 it is. Read it as causal: a node listed after another ran after it, in the same cycle, on the same event.
 
-## 4. Adding a node: THREE requirements
+## 4. Adding a node
+
+**First work out which route this project uses — they are different and only one applies.** Check the
+`fluxtion-maven-plugin` goal in `pom.xml`:
+
+| goal | route | you write |
+|---|---|---|
+| `scan` | **Java builder** | a class implementing `FluxtionGraphBuilder` |
+| `springToFluxtion` | **Spring XML** | a `<bean>` in `src/main/fluxtion/designer/application-context.xml` |
+
+Requirement 3 below applies to **both**. Requirements 1 and 2 are the Spring route only.
+
+### 4.0 The Java builder route (goal `scan`)
+
+The packages are not guessable and are the most likely thing to cost you a compile cycle:
+
+```java
+import com.telamin.fluxtion.builder.compile.config.FluxtionGraphBuilder;
+import com.telamin.fluxtion.builder.compile.config.FluxtionCompilerConfig;
+import com.telamin.fluxtion.builder.generation.config.EventProcessorConfig;
+
+public class MyGraphBuilder implements FluxtionGraphBuilder {
+    @Override public void buildGraph(EventProcessorConfig cfg) {
+        StockLedger stock = new StockLedger();
+        ReorderPolicy policy = new ReorderPolicy(stock);
+        cfg.addNode(stock, "stockLedger");          // the name becomes the instanceId in nodeLogs
+        cfg.addNode(policy, "reorderPolicy");
+        cfg.addEventAudit(EventLogControlEvent.LogLevel.INFO);   // see §1
+    }
+    @Override public void configureGeneration(FluxtionCompilerConfig cfg) {
+        cfg.className("MyProcessor");
+        cfg.packageName("com.example.generated");
+        cfg.outputDirectory("src/main/java");
+        cfg.resourcesOutputDirectory("src/main/resources");      // writes the .graphml the analyser pairs with
+    }
+}
+```
+
+**The membership rule, which is the same in both routes:** a node is in the graph if it is `addNode`d
+**or reachable by constructor reference from something that is**. A node that is neither is silently
+absent.
+
+### 4.1–4.2 The Spring XML route (goal `springToFluxtion` only)
 
 1. `src/main/fluxtion/designer/application-context.xml` — add a `<bean>`. Its `<constructor-arg ref="..."/>`
    entries are the graph edges. `<constructor-arg value="..."/>` passes a plain value (a threshold, a
@@ -113,7 +155,10 @@ it is. Read it as causal: a node listed after another ran after it, in the same 
    Fluxtion nodes; **referenced children are still discovered by Fluxtion**"*. So a bean reached by a
    `constructor-arg ref` from a listed node **is** in the graph; a bean that is neither listed nor
    referenced is **not**, silently. List your node unless something already listed points at it.
-3. **Every non-transient field must be something the generator can supply.** The AOT generator rebuilds
+
+### 4.3 Both routes: every non-transient field must be generator-suppliable
+
+The AOT generator rebuilds
    each node, and it can supply a field three ways: a **constructor argument**, a **JavaBean setter**, or a
    **public member**. Use a setter when a constructor argument is awkward. A field that is none of those and
    is not excluded fails the build. So node-local state — a counter, a map, a running maximum — must be
@@ -136,7 +181,8 @@ it is. Read it as causal: a node listed after another ran after it, in the same 
    it is not; mark the state `transient`. **Neither shipped example shows this**, because `RootNode` and
    `RiskCheck` hold only null-at-construction state and never hit it.
 
-Then regenerate — see `regenerate` in `.claude/skills/`.
+Then regenerate with `mvn process-classes` (or see `regenerate` in `.claude/skills/` if this
+project ships one).
 
 ## 5. The generated processor exists in two places and both are outputs
 
