@@ -1,0 +1,202 @@
+REVIEW — compiler diagnostics / GraphML branch, release readiness
+Reviewed: feature/compiler_diagnostics @ 21a63d4 (84 ahead of origin/main @ a0e6adc)
+Reviewer environment: analyser main @ 273d70e, public fluxtion 1.0.14 from Repsy
+Responds to: handoff_compiler_21a63d4.txt
+Date: 2026-09-01
+
+VERDICT: READY TO MERGE AND RELEASE.
+
+Nothing found changes emitted behaviour. Four findings, none blocking: one latent
+classification hazard (F-A), one guard that never runs (F-B), one already-known URL gap
+(F-C), one harness doc error that costs a reviewer a full matrix run (F-D).
+
+Both behaviour fixes you flagged are RIGHT, not merely different, and the reasoning for each
+is below rather than asserted.
+
+===============================================================================
+VERIFIED INDEPENDENTLY — not read off the handoff
+===============================================================================
+
+  Reactor 213 / 21 / 17 / 3496, zero failures     CONFIRMED, counted from surefire XML
+  Envelope accepted, fingerprint stamped          CONFIRMED, rows 01/02/06/07/08
+  Fallback path stamps NO fingerprint             CONFIRMED, row 04
+  GraphML+diagnostics are not envelope evidence   CONFIRMED — row 04 carries 16 keys and
+                                                  FLX-1008 identically to row 01
+  AGGREGATED adds exactly one key                 CONFIRMED — fluxtion.relationshipCount
+  Every advertised code has a page                CONFIRMED — all 11; deployed pages carry
+                                                  the producer's wording, not a restatement
+
+ONE DRIFT: skipped is 7, not the 5 the handoff claims. Five are
+FilteringTest.testClassFilterBuffer[0..4]; the other two are F-B below. The handoff's own
+count did not notice two gates going quiet, which is the finding in miniature.
+
+DOWNSTREAM CONFORMANCE — the check only this side can run. The analyser's real 12-node
+session graph, regenerated against this branch's builder:
+
+    fluxtion.framework = true   (7)  callbackDispatcher, clock, context, eventLogger,
+                                     nodeNameLookup, serviceRegistry, subscriptionManager
+    fluxtion.framework = false (26)  14 event/service vertices + the 12 authored nodes
+    fluxtion.authoredNodeCount = 12  exactly the registrations in SessionProcessorBuilder
+
+Every one correct. F1 works on a graph that is not a fixture.
+
+===============================================================================
+F-A (MEDIUM, LATENT) — the F1 precedence blast radius. Your attack point 1.
+===============================================================================
+
+METHOD: rather than hunt one route, the invariant was asserted directly. A temporary probe
+in the TopologicallySortedDependencyGraph constructor recorded every case of
+authoredNodes ∩ compilerCreatedNodes != {}, and the full 3496-test corpus was swept.
+
+The probe was PROVEN LIVE first, by making it unconditional and confirming it fired (3319
+records from a single test class). Without that step a null result is indistinguishable from
+a probe that never ran — the same hollow-assertion failure this branch has been fixing, and
+the first run of it was in fact checking the wrong tmpdir and reported a false clean.
+
+RESULT: 3315 violations, every one the same node — serviceRegistry.
+
+CAUSE, and it is not GenerationContext. EventProcessorConfig's own constructor:
+
+    addFrameworkAuditor(serviceRegistryNode, ServiceRegistryNode.NODE_NAME);
+    addNode(serviceRegistryNode, ServiceRegistryNode.NODE_NAME);      <-- author-facing API
+
+That addNode puts the registry into inst2Name, so the constructor's
+`authoredNodes.addAll(inst2Name.keySet())` marks the framework's own node as AUTHORED. The
+auditor loop later adds it to compilerCreatedNodes because it is a framework auditor. Export
+consults only compilerCreatedNodes (GraphMlFacts.isCompilerCreated), so the emitted answer is
+right. The two sets disagree and nothing notices.
+
+THE ANSWER TO THE QUESTION AS ASKED: yes, there is an identity where the opposite precedence
+is correct, and it is serviceRegistry. But the sharper statement is:
+
+    authoredNodes does not mean "the author registered this".
+    It means "this reached addNode" — and the framework calls addNode itself.
+
+So the F1 guard `!authoredNodes.contains(contextNode)` has a live false-positive today. It is
+rescued only because the auditor loop runs afterwards and re-marks the node. Any future
+framework node that goes through addNode and is NOT also a framework auditor would be
+silently misclassified as authored: wrong fluxtion.framework, inflated authoredNodeCount, and
+no test would fail.
+
+TWO ORDERING WINDOWS COMPOUND IT — in both, authoredNodes.addAll runs AFTER the guard loop
+that reads authoredNodes:
+
+    rootNodes    addAll at ~269, guard loop at ~261
+    publicNodes  addAll at ~294, guard loop at ~281
+
+A node arriving through both routes is marked compiler-created and then marked authored, and
+compilerCreatedNodes wins. Not reachable in the current corpus; the shape is the same as the
+defect F1 fixed.
+
+SUGGESTED FIX, cheapest first: assert the invariant in the constructor. Better: collapse to a
+single classification function returning one answer, so the two sets cannot disagree.
+
+SEVERITY: latent, not live. The emitted GraphML is correct today on every graph tested,
+including the analyser's. This does not block the release.
+
+===============================================================================
+F-B (MEDIUM) — two architecture gates that never run anywhere. Your attack point 4.
+===============================================================================
+
+RuntimeMetaBoundaryGateTest gates #1 (runtime source tree has no runtime.meta) and #3
+(runtime pom declares no Kryo) are SKIPPED in every environment.
+
+telaminRoot() walks up six levels looking for  <p>/fluxtion/fluxtion-runtime
+the actual dev layout is                       <p>/fluxtion/fluxtion-core/fluxtion-runtime
+
+It misses at all six levels on the multi-repo dev workspace the gates were written for, and
+skips on CI by design. The javadoc says "PERMANENT CI regression guards" and "All three gates
+are ACTIVE". Two of the three are inert.
+
+THE INVARIANT ITSELF HOLDS — checked before calling it a regression, and against the released
+artefact rather than a possibly-stale local checkout: fluxtion-runtime 1.0.14 on Repsy has
+zero com/telamin/fluxtion/runtime/meta classes and no Kryo dependency (only an explanatory
+comment, which the test already excludes by matching the artifactId). So this is a dead
+guard, not a live regression. A local checkout that still carries runtime.meta is exactly
+what the gate should have caught, and did not.
+
+This is also the source of the 7-vs-5 skip drift above.
+
+===============================================================================
+F-C (LOW, already tracked) — every diagnostic still points at a 404
+===============================================================================
+
+BuilderDiagnostics advertises  https://fluxtion.com/errors/<CODE>        -> 404
+the pages are live at          https://telaminai.github.io/fluxtion/troubleshooting/errors/<CODE>/  -> 200
+
+The tracker lists "site deploy and URL mapping" as outstanding. The deploy half is now done;
+the mapping is not, so every artefact a user sees — sidecar JSON, console line, the wire —
+still names a URL that 404s. Page COVERAGE is complete: all 11 advertised codes have a page,
+and the deployed pages carry the producer's own wording rather than a restatement.
+
+===============================================================================
+F-D (LOW) — the harness README costs a reviewer a full matrix run
+===============================================================================
+
+The README says the localhost config "targets http://localhost:8080". FluxtionConfigManager
+composes baseUrl() as host + ":" + port, so configuring host with the port produces
+"8080:8080" and a MalformedURLException. All eight rows then fail, and the reports render it
+as "Build did not reach source generation, so there is nothing to infer" — which reads like a
+branch defect rather than a config error.
+
+The working config is  host=http://localhost  and  port=8080. One README line.
+
+Worth fixing because the harness is now the evidence other work leans on, and the first
+outside reviewer to run it lost a full matrix to this.
+
+===============================================================================
+YOUR ATTACK POINT 3 — are the two behaviour fixes RIGHT?
+===============================================================================
+
+FLX-1005 routed through the diagnostic path: RIGHT, and complete.
+  requireUnusedName returns early when existing == node, so idempotent re-registration still
+  works. requireUnusedNames force-puts provisionally, so a duplicate WITHIN one map collides
+  instead of reaching the BiMap. Both colliding class names are in the diagnostic.
+
+Failed dependency-tree build made sticky and replayed: RIGHT.
+  dependencyTreeFailure is an INSTANCE field and the graph is constructed per build, so a
+  cached failure cannot poison an unrelated build — the obvious objection, checked and
+  dismissed. It also makes failure symmetric with the existing `processed` success guard: the
+  method is build-once in both outcomes, which is principled rather than a patch.
+
+  ONE CAVEAT WORTH RECORDING: it masks rather than fixes the non-idempotence of
+  buildDependencyTree — re-running still re-registers node factories and builds a second
+  NodeNameAuditor. That is acceptable under build-once semantics, but the path is now
+  unreachable and therefore untested. Anyone who later wants retry semantics must fix the
+  non-idempotence first, and nothing will remind them.
+
+===============================================================================
+ATTACK POINT 4, BROADLY — tests asserting THAT rather than HOW
+===============================================================================
+
+The corpus is disciplined. Six broad assertThrows across the whole tree, no empty catch
+blocks, no fail() with a swallowed exception. KryoFieldEvolutionTest's assumeTrue is benign —
+all four of its tests ran, because Kryo moved to fluxtion-builder.
+
+F-B is the only instance of the family found: a guard whose absence is indistinguishable from
+success. The corpus-wide invariant sweep in F-A is the other half of this answer — it is the
+technique that finds what assertion review cannot, and it took one temporary probe.
+
+===============================================================================
+WHAT WAS NOT CHECKED — read this before weighting the verdict
+===============================================================================
+
+  * The model-building internals were read only where a finding led. Sibling ordering, the
+    topological sort itself and CbMethodHandle resolution were not reviewed.
+  * Test ADEQUACY across 3496 integration tests was not assessed; the conventions and
+    fixtures of that suite are unfamiliar to this side.
+  * Gateway acceptance remains unanswerable — today's 415 comes from the old server on its own
+    account, so the gateway never had to forward a type it did not know. The harness proves
+    the CLIENT and the NEW SERVER agree, which is the part that was previously unproven.
+  * Several items respond to earlier reviews from this side. Checking "did they do what was
+    asked" is not the same as checking "was the ask right", and this side is the wrong
+    reviewer for the second question.
+
+HOUSEKEEPING: both repos left pristine (21a63d4 / 273d70e). The temporary probe was reverted
+and a clean fluxtion-builder reinstalled to ~/.m2, verified by inspecting the installed jar.
+The local generation server was stopped.
+
+SEPARATE, AND NOT A BRANCH ISSUE: the PUBLISHED fluxtion-builder-api sources jar carries an
+employer-domain author email in its file headers — the domain of the fourth sweep term named
+in the analyser's CLAUDE.md rule 1. That is a public artefact, so it belongs in the same
+bucket as the git-metadata leak already recorded there. Naming it, not fixing it.
