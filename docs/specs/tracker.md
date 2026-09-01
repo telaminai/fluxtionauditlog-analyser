@@ -1255,6 +1255,33 @@ correct graph. **Every item below is a communication failure, not a correctness 
 error a diagnostic could have caught, and the one real design defect was caught by reading the generated
 source.
 
+## M47 — start from a template (proposed, owner's steer 2026-09-01)
+
+**The idea.** The analyser offers a set of Fluxtion project templates. A user picks one; that is what
+their AI client starts from, rather than an empty directory plus prose.
+
+**Why it belongs here rather than upstream.** A template that already runs produces an audit log on
+first execution — which is the one thing the analyser needs and cannot supply for itself. Today a new
+user has an analyser and nothing to open.
+
+**The measured case.** Round 16 (`docs/experience/runs/round-16/`) established that four blockers
+dominate authoring cost, and that all four are absent from the published reference: the bootstrap trap
+(`Main` imports the generated class, so compilation breaks generation), `com.fluxtion` vs
+`com.telamin.fluxtion`, parents-are-fields (FLX-1001), and how to run a Maven build. A working
+template removes all four **structurally** — there is no sentence to skim past. Two independent agents
+and one session author all hit the bootstrap trap *after reading a warning about it*, which is the
+strongest available argument that prose is the wrong instrument for this class.
+
+- [ ] **M47.1** the template itself — `docs/experience/current/template/` exists and is green today
+      (`./run.sh` builds, generates, tests, runs; two nodes, propagation arrest visible in its own log)
+- [ ] **M47.2** template picker in the analyser; scaffold to a chosen directory
+- [ ] **M47.3** the scaffolded project registers as a project profile, so its log opens on first run
+- [ ] **M47.4** more than one template — the shape catalogue, not just a hello-world
+
+**Open question, not yet answered:** whether a template plus a short pointer beats the full published
+doc set, or whether it is additive. That is what round 17 measures.
+
+
 ## Decisions (resolved)
 
 - **The commercial model, and where the analyser sits in it** _(owner, 2026-09-01)_. Recorded because it
