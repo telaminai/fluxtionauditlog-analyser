@@ -1,0 +1,103 @@
+REPORT — is public 1.0.14 releasable as it stands?
+Assessed: telaminai/fluxtion (public) origin/develop @ 5a5b5ae, against tag v1.0.13
+Consumer checked: fluxtion-compiler feature/compiler_diagnostics @ 8ff07e0
+Author: compiler-side session · Date: 2026-09-01
+
+Written because the assessment was made in conversation and existed nowhere else, while a release
+decision was being taken on it.
+
+ANSWER: nothing found that should block it. One cosmetic item worth fixing before the tag, because it
+is impossible to fix afterwards.
+
+================================================================================
+1 · WHAT IS IN THE RELEASE
+================================================================================
+
+`v1.0.13..origin/develop` touches exactly two main source files:
+
+    fluxtion-builder-api  .../generation/config/EventProcessorConfig.java   +53 -5
+    fluxtion-runtime      .../runtime/describe/DescriptorSupport.java       +17
+
+`EventProcessorConfig` gains framework-auditor provenance: `addFrameworkAuditor`,
+`getFrameworkAuditorNames`, and — in `5a5b5ae` — provenance following the LAST registration under a
+name, so an author who registers an auditor under a framework name owns that node.
+
+`DescriptorSupport.Meta` gains `schemaVersion`.
+
+Everything else on the branch since the tag is docs, tests and pom bumps.
+
+================================================================================
+2 · WHY IT LOOKS SAFE — the checks that were actually run
+================================================================================
+
+**The API is purely additive.** Nothing public was removed or had its signature changed. The one
+thing that could have been a break is not: `Meta` gained a field and a five-argument constructor, and
+the original four-argument constructor is RETAINED, delegating with
+`ProcessorDescriptor.CURRENT_SCHEMA_VERSION`. A client compiled against 1.0.13 still links.
+
+**No serialisation exposure.** `DescriptorSupport.Meta` is a plain final class — it does not implement
+`Serializable`, so adding a field carries no `serialVersionUID` consequence. This was the specific
+risk looked for, given how much of the compiler branch's recent work is about wire compatibility, and
+it is not present.
+
+**The public repo's own tests pass.** 86 + 12, zero failures, `BUILD SUCCESS`, run at `5a5b5ae`. Worth
+stating plainly because two earlier installs in this session used `-DskipTests`; this run did not.
+
+**The consumer is green against it.** The compiler at `8ff07e0` runs 3,470 integration tests plus
+171/21/16 with zero failures, built against exactly this snapshot.
+
+**Release order is satisfied.** The compiler's own tracker states it: publish public
+`fluxtion-builder-api` 1.0.14 FIRST, then the compiler/builder with both copies of the pin aligned.
+Releasing the public artefacts alone is the correct first step. It is also what unpins the compiler's
+`1.0.14-SNAPSHOT` and clears the CI failure caused by that snapshot being unresolvable from any
+repository.
+
+================================================================================
+3 · THE ONE THING TO FIX BEFORE TAGGING
+================================================================================
+
+Two commits on the release line carry EMPTY commit messages:
+
+    633510b   pom version bumps only
+    8adfc6f   adds a 234-line LambdaReflectionTest, plus a pom change
+
+Neither touches main sources, so there is no functional risk. But a released tag whose history
+contains an unexplained 234-line test is a cost paid by whoever next asks "why is this here". It is
+cheap to reword now and impossible after the tag exists.
+
+================================================================================
+4 · WHAT WAS NOT CHECKED
+================================================================================
+
+* the site/javadoc build, and the release plugin's own steps;
+* any consumer outside these two repositories — the compiler being green proves the PAIRING works, not
+  that 1.0.14 is right for consumers not visible from here;
+* whether `origin/main` and `origin/release-repsy`, both also on the 1.0.14 line, agree with `develop`;
+  only `develop` was assessed, and only `develop` carries the provenance fix.
+
+================================================================================
+5 · TWO LOOSE ENDS FROM THE SAME SESSION
+================================================================================
+
+**A stale worktree will install the WRONG public snapshot.** `fluxtion-core` has a worktree registered
+at `/private/tmp/fluxtion-core-1.0.14` pinned to `fc8d776` — the revision BEFORE the provenance fix.
+Anyone who builds and installs from there gets a 1.0.14-SNAPSHOT that fails
+`FrameworkProvenanceTest.anAuthorReplacingTheFrameworkClockOwnsThatNode` downstream, and the failure
+looks like a compiler defect rather than a stale dependency. That exact confusion cost this session
+twenty minutes. Remove or refresh it. The problem disappears entirely once 1.0.14 is a release rather
+than a snapshot, which is another argument for shipping it.
+
+**An intermittent test worth a look, not a blocker.** `Phase18ClientApiIntegrationTest` failed once
+across five full-suite runs with `SocketException: Unexpected end of file from server`. Established:
+it starts its own `com.sun.net.httpserver` stub on an ephemeral loopback port — no external network,
+and the suite IS hermetic — but it does so per TEST METHOD (14 start/stop cycles), calls
+`server.stop(0)` which drops in-flight exchanges rather than draining them, and mutates global system
+properties (`fluxtion.remote.host`/`.port`, api key, generator ids) around each one. Ruled out:
+cross-class interference, because surefire has no parallelism configured. NOT established: the actual
+trigger — one failure in five runs is not a diagnosis, and guessing further would be inventing one.
+If it recurs, the two cheap moves are `stop(1)` so exchanges drain, and hoisting the server to
+`@BeforeClass` so it starts once instead of fourteen times.
+
+Note for contrast: `RestCompilerIntegrationTest` and `LocalServerWireProtocolTest` start the REAL
+generator server in-process via `Main.start(0)`. The remote-protocol path is exercised against the
+genuine service on the classpath, not a cloud call.
