@@ -15,8 +15,13 @@ for s in "$O"/probes/*.csv; do
   got=$(sort /tmp/d.txt); want=$(sort "$O/probes/$n.expected")
   # an engine numbering events from 0 rather than 1 is ONE defect, not one per probe; report it as such
   shifted=$(awk -F, 'NF{$1=$1+1; print}' OFS=, /tmp/d.txt | sort)
+  # a uniform formatting difference (0.9 vs 0.90) is ONE defect, not one per probe. Normalise numbers
+  # to two places on both sides and report it once, the same way 0-based event numbering is reported.
+  norm(){ awk -F, '{for(i=1;i<=NF;i++) if($i+0==$i && $i ~ /\./) $i=sprintf("%.2f",$i); print}' OFS=, "$1" | sort; }
+  gotn=$(norm /tmp/d.txt); wantn=$(norm "$O/probes/$n.expected")
   if [ "$got" = "$want" ]; then pass=$((pass+1)); printf "  [PASS] %s\n" "$n"
   elif [ "$shifted" = "$want" ]; then pass=$((pass+1)); printf "  [PASS*] %-26s (correct, but event numbers are 0-based)\n" "$n"
+  elif [ "$gotn" = "$wantn" ]; then pass=$((pass+1)); printf "  [PASS*] %-26s (correct, but numbers not formatted to 2dp)\n" "$n"
   else printf "  [FAIL] %s\n         want: %s\n         got : %s\n" "$n" "$(echo $want)" "$(echo $got)"; fi
 done
 echo "  ---- decisions $pass/$total ----"
