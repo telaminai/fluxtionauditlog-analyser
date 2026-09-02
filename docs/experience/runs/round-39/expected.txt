@@ -1,9 +1,185 @@
-config|marketdata.configIn=3.500000|marketdata.vol=0.000000|risk.var=0.000000|capital.buffer=0.000000
-config|capital.configIn=0.250000|capital.charge=0.000000|capital.buffer=0.000000
-rate|pricing.rateIn=0.800000|risk.rateIn=0.800000|pricing.spread=0.000000|risk.var=0.000000|capital.buffer=0.000000
-tick|liquidity.tickIn=4.000000|marketdata.tickIn=4.000000|marketdata.depth=400.000000|liquidity.book=1600.000000|marketdata.mid=52.000000|pricing.adjusted=54.080000|risk.notional=52.000000|liquidity.score=7.008000|risk.exposure=52.364416|capital.charge=13.091104|pricing.spread=43.264000|marketdata.vol=1.820000|risk.var=76.242590|capital.buffer=13.853530
-trade|capital.tradeIn=250.000000|risk.tradeIn=250.000000|risk.notional=13000.000000|risk.exposure=13091.104000|capital.charge=3272.776000|risk.var=19060.647424|capital.buffer=50924.394560
-tick|liquidity.tickIn=1.000000|marketdata.tickIn=1.000000|marketdata.depth=100.000000|liquidity.book=100.000000|marketdata.mid=60.500000|pricing.adjusted=61.105000|risk.notional=15125.000000|liquidity.score=6.210500|risk.exposure=15218.933812|capital.charge=3804.733453|pricing.spread=48.884000|marketdata.vol=2.117500|risk.var=25780.873878|capital.buffer=68256.918149
-rate|pricing.rateIn=1.250000|risk.rateIn=1.250000|pricing.spread=76.381250|risk.var=40282.615435|capital.buffer=104511.272041
-trade|capital.tradeIn=10.000000|risk.tradeIn=10.000000|risk.notional=605.000000|risk.exposure=608.757352|capital.charge=152.189338|risk.var=1611.304617|capital.buffer=313.319800
-config|marketdata.configIn=1.000000|marketdata.vol=0.605000|risk.var=460.372748|capital.buffer=198.226613
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1788345621498
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.acme.Main$$Lambda/0x0000007801014630@4ac68d3e, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1788345621498
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1788345621498
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1788345621499
+eventLogRecord: 
+    eventTime: 1788345621499
+    logTime: 1788345621499
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs: 
+    endTime: 1788345621500
+eventLogRecord: 
+    eventTime: 1788345621504
+    logTime: 1788345621504
+    groupingId: null
+    event: Config
+    eventToString: Config[key=volFactor, value=3.5]
+    thread: main
+    nodeLogs: 
+        - cpConfig: { thread: main, method: onConfig}
+        - mdConfig: { thread: main, method: onConfig, stage: marketdata.configIn, value: 3.5}
+        - vol: { thread: main, method: calc, stage: marketdata.vol, value: 0.0}
+        - var: { thread: main, method: calc, stage: risk.var, value: 0.0}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 0.0}
+    endTime: 1788345621512
+eventLogRecord: 
+    eventTime: 1788345621512
+    logTime: 1788345621512
+    groupingId: null
+    event: Config
+    eventToString: Config[key=chargePct, value=0.25]
+    thread: main
+    nodeLogs: 
+        - cpConfig: { thread: main, method: onConfig, stage: capital.configIn, value: 0.25}
+        - mdConfig: { thread: main, method: onConfig}
+        - charge: { thread: main, method: calc, stage: capital.charge, value: 0.0}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 0.0}
+    endTime: 1788345621512
+eventLogRecord: 
+    eventTime: 1788345621512
+    logTime: 1788345621512
+    groupingId: null
+    event: Config
+    eventToString: Config[key=unrelatedKey, value=99.0]
+    thread: main
+    nodeLogs: 
+        - cpConfig: { thread: main, method: onConfig}
+        - mdConfig: { thread: main, method: onConfig}
+    endTime: 1788345621512
+eventLogRecord: 
+    eventTime: 1788345621512
+    logTime: 1788345621512
+    groupingId: null
+    event: Rate
+    eventToString: Rate[ccy=EUR, rate=0.8]
+    thread: main
+    nodeLogs: 
+        - pxRate: { thread: main, method: onRate, stage: pricing.rateIn, value: 0.8}
+        - rkRate: { thread: main, method: onRate, stage: risk.rateIn, value: 0.8}
+        - spread: { thread: main, method: calc, stage: pricing.spread, value: 0.0}
+        - var: { thread: main, method: calc, stage: risk.var, value: 0.0}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 0.0}
+    endTime: 1788345621512
+eventLogRecord: 
+    eventTime: 1788345621512
+    logTime: 1788345621512
+    groupingId: null
+    event: Tick
+    eventToString: Tick[symbol=DEMO, bid=50.0, ask=54.0]
+    thread: main
+    nodeLogs: 
+        - lqTick: { thread: main, method: onTick, stage: liquidity.tickIn, value: 4.0}
+        - mdTick: { thread: main, method: onTick, stage: marketdata.tickIn, value: 4.0}
+        - depth: { thread: main, method: calc, stage: marketdata.depth, value: 400.0}
+        - book: { thread: main, method: calc, stage: liquidity.book, value: 1600.0}
+        - mid: { thread: main, method: calc, stage: marketdata.mid, value: 52.0}
+        - adjusted: { thread: main, method: calc, stage: pricing.adjusted, value: 54.08}
+        - notional: { thread: main, method: calc, stage: risk.notional, value: 52.0}
+        - score: { thread: main, method: calc, stage: liquidity.score, value: 7.007999999999999}
+        - exposure: { thread: main, method: calc, stage: risk.exposure, value: 52.36441599999999}
+        - charge: { thread: main, method: calc, stage: capital.charge, value: 13.091103999999998}
+        - spread: { thread: main, method: calc, stage: pricing.spread, value: 43.264}
+        - vol: { thread: main, method: calc, stage: marketdata.vol, value: 1.82}
+        - var: { thread: main, method: calc, stage: risk.var, value: 76.242589696}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 13.853529896959998}
+    endTime: 1788345621516
+eventLogRecord: 
+    eventTime: 1788345621516
+    logTime: 1788345621516
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=250.0, price=52.0]
+    thread: main
+    nodeLogs: 
+        - cpTrade: { thread: main, method: onTrade, stage: capital.tradeIn, value: 250.0}
+        - rkTrade: { thread: main, method: onTrade, stage: risk.tradeIn, value: 250.0}
+        - notional: { thread: main, method: calc, stage: risk.notional, value: 13000.0}
+        - exposure: { thread: main, method: calc, stage: risk.exposure, value: 13091.104}
+        - charge: { thread: main, method: calc, stage: capital.charge, value: 3272.776}
+        - var: { thread: main, method: calc, stage: risk.var, value: 19060.647424000003}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 50924.39456}
+    endTime: 1788345621516
+eventLogRecord: 
+    eventTime: 1788345621516
+    logTime: 1788345621516
+    groupingId: null
+    event: Tick
+    eventToString: Tick[symbol=DEMO, bid=60.0, ask=61.0]
+    thread: main
+    nodeLogs: 
+        - lqTick: { thread: main, method: onTick, stage: liquidity.tickIn, value: 1.0}
+        - mdTick: { thread: main, method: onTick, stage: marketdata.tickIn, value: 1.0}
+        - depth: { thread: main, method: calc, stage: marketdata.depth, value: 100.0}
+        - book: { thread: main, method: calc, stage: liquidity.book, value: 100.0}
+        - mid: { thread: main, method: calc, stage: marketdata.mid, value: 60.5}
+        - adjusted: { thread: main, method: calc, stage: pricing.adjusted, value: 61.105000000000004}
+        - notional: { thread: main, method: calc, stage: risk.notional, value: 15125.0}
+        - score: { thread: main, method: calc, stage: liquidity.score, value: 6.2105}
+        - exposure: { thread: main, method: calc, stage: risk.exposure, value: 15218.933812499998}
+        - charge: { thread: main, method: calc, stage: capital.charge, value: 3804.7334531249994}
+        - spread: { thread: main, method: calc, stage: pricing.spread, value: 48.88400000000001}
+        - vol: { thread: main, method: calc, stage: marketdata.vol, value: 2.1175}
+        - var: { thread: main, method: calc, stage: risk.var, value: 25780.873878375}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 68256.9181490625}
+    endTime: 1788345621516
+eventLogRecord: 
+    eventTime: 1788345621516
+    logTime: 1788345621516
+    groupingId: null
+    event: Rate
+    eventToString: Rate[ccy=EUR, rate=1.25]
+    thread: main
+    nodeLogs: 
+        - pxRate: { thread: main, method: onRate, stage: pricing.rateIn, value: 1.25}
+        - rkRate: { thread: main, method: onRate, stage: risk.rateIn, value: 1.25}
+        - spread: { thread: main, method: calc, stage: pricing.spread, value: 76.38125000000001}
+        - var: { thread: main, method: calc, stage: risk.var, value: 40282.615434960935}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 104511.27204052733}
+    endTime: 1788345621516
+eventLogRecord: 
+    eventTime: 1788345621516
+    logTime: 1788345621516
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=10.0, price=60.5]
+    thread: main
+    nodeLogs: 
+        - cpTrade: { thread: main, method: onTrade, stage: capital.tradeIn, value: 10.0}
+        - rkTrade: { thread: main, method: onTrade, stage: risk.tradeIn, value: 10.0}
+        - notional: { thread: main, method: calc, stage: risk.notional, value: 605.0}
+        - exposure: { thread: main, method: calc, stage: risk.exposure, value: 608.7573524999999}
+        - charge: { thread: main, method: calc, stage: capital.charge, value: 152.18933812499998}
+        - var: { thread: main, method: calc, stage: risk.var, value: 1611.3046173984371}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 313.3197998648437}
+    endTime: 1788345621516
+eventLogRecord: 
+    eventTime: 1788345621516
+    logTime: 1788345621516
+    groupingId: null
+    event: Config
+    eventToString: Config[key=volFactor, value=1.0]
+    thread: main
+    nodeLogs: 
+        - cpConfig: { thread: main, method: onConfig}
+        - mdConfig: { thread: main, method: onConfig, stage: marketdata.configIn, value: 1.0}
+        - vol: { thread: main, method: calc, stage: marketdata.vol, value: 0.605}
+        - var: { thread: main, method: calc, stage: risk.var, value: 460.3727478281249}
+        - buffer: { thread: main, method: calc, stage: capital.buffer, value: 198.22661290781247}
+    endTime: 1788345621516

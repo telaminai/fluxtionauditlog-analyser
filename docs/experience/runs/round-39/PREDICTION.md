@@ -62,3 +62,58 @@ Two defects found while building the reference, both costing a build each, both 
 **a node never triggers itself** (six stages propagated dirty without recomputing, silently), and
 **`UP-FLX-27`** — colliding simple names across two vendors emit uncompilable code. The second is a
 result about the composition thesis, found independently of whichever arm wins.
+
+---
+
+## AMENDMENT, after the first launch was stopped and before the second
+
+**The first launch was killed a few minutes in and is not scored.** The reason is a defect in my
+task design, recorded here rather than quietly fixed.
+
+I had required both arms to emit a bespoke contract — `event|stage=value|...`. That breaks this
+repo's own convention, stated in round 18's task verbatim: *"Do not build a log format of your own.
+Enable the framework's audit log and write it out as it comes."* It is worse than a style slip,
+because the thesis under test is that **a supplier proves a subsystem works with audit logs**. Making
+the Fluxtion arm discard the evidence it gets for free and hand-rebuild it in my format cancels part
+of what the round exists to measure, and charges both arms for a formatter that has nothing to do
+with composition.
+
+**The contract now asks each arm for its native trace, unmodified:**
+
+| arm | evidence |
+|---|---|
+| FX | the framework's audit log, written out exactly as it comes — no summarising, filtering or reformatting |
+| VAN | the records the subsystems already emit to `com.vendor.Audit.SINK`, written as they come, plus one `EVENT,<type>` line before each incoming event |
+
+The scorer reads both natively and reduces them to the same structure. The asymmetry that remains is
+real and is now *measured* rather than erased: **Fluxtion frames the records by event for free; the
+plain-Java arm has to add that framing itself.**
+
+**P4 is amended.** It predicted vanilla costs ≥1.5× Fluxtion in weighted tokens. Removing a formatter
+that both arms would have paid for makes the comparison cleaner but the margin narrower in absolute
+terms. The direction stands; I am lowering confidence from medium to **low-medium**.
+
+## The off-camera cost is the supplier's, and is not charged to either arm
+
+I earlier said I would discount the Fluxtion arm for the two build failures I hit while building the
+subsystems (the collision, and the node that never triggers itself). **That was the wrong ledger.**
+Those are costs the *supplier* pays once, when publishing a component, and they are amortised across
+every consumer that ever integrates it. The integrator never pays them. This round measures
+**integration** cost, so supplier cost is recorded separately in `NOTES.md` and charged to neither
+arm.
+
+## The scorer, validated before either arm reported
+
+37 points: the event sequence, then per event — which stages ran, their values, their order, and
+whether any ran twice. Mutation-tested against the reference trace:
+
+| | score | |
+|---|---|---|
+| reference | **37/37** | must be full marks |
+| a stage never ran | 35/37 | caught |
+| one wrong value | 36/37 | caught |
+| two stages swapped | 33/37 | caught |
+| a stage ran twice | 35/37 | caught |
+
+The double-run check is not decoration: a topological sort gets the order right and can still run a
+stage once per path into it.

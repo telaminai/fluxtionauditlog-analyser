@@ -20,8 +20,8 @@ Two kinds of class:
 - **compute stages** — have `public boolean calc()` and a `public double value`. A stage must be
   recomputed when, and only when, something it depends on has changed in the current event.
 
-Every class writes its own name and new value to the shared trace sink when it runs. You do not write
-those lines; the subsystems do.
+**Every class already records its own name and new value when it runs.** You do not write those
+records and you must not invent a format of your own — see *Evidence* below.
 
 ## What arrives
 
@@ -49,16 +49,8 @@ One event per line, `#` comments ignored. **Every event type is consumed by more
 java -cp <classpath> <your.Main> <scenario-file> <output-file>
 ```
 
-Write **one line per event that produced any activity**, in the order the classes ran:
-
-```
-<eventtype>|stage=value|stage=value|...
-```
-
-`<eventtype>` is the lower-cased event name (`tick`, `trade`, `rate`, `config`). Values are formatted
-`%.6f`. An event where nothing ran produces **no line**. `sample-scenario.txt` is provided so you can
-exercise the engine; **its expected output is not provided**, and you will be scored on a different
-scenario you will never see.
+`sample-scenario.txt` is provided so you can exercise the engine; **its expected output is not
+provided**, and you will be scored on a different scenario you will never see.
 
 ## Deliverables
 
