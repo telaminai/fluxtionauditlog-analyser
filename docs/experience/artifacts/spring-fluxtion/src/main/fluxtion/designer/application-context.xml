@@ -6,25 +6,6 @@
 
     <bean id="fluxtionSpringConfig"
           class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
-        <property name="eventTypes">
-            <list>
-                <value>com.acme.app.Product</value>
-                <value>com.acme.app.Customer</value>
-                <value>com.acme.app.Carrier</value>
-                <value>com.acme.app.Receipt</value>
-                <value>com.acme.app.Adjust</value>
-                <value>com.acme.app.Count</value>
-                <value>com.acme.app.Order</value>
-                <value>com.acme.app.Amend</value>
-                <value>com.acme.app.Cancel</value>
-                <value>com.acme.app.Paid</value>
-                <value>com.acme.app.Payfail</value>
-                <value>com.acme.app.PickStart</value>
-                <value>com.acme.app.PickDone</value>
-                <value>com.acme.app.Dispatch</value>
-                <value>com.acme.app.Delivered</value>
-            </list>
-        </property>
         <property name="nodeBeans">
             <list>
                 <value>productStore</value>
@@ -40,6 +21,8 @@
                 <value>stockoutDecider</value>
             </list>
         </property>
+        <!-- logLevel is what enables the audit log. eventTypes is NOT required: handlers are found
+             from the @OnEventHandler annotations on the nodes below. -->
         <property name="logLevel" value="INFO"/>
     </bean>
 

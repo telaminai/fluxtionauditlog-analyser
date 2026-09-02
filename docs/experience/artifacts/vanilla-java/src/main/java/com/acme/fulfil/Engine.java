@@ -59,7 +59,7 @@ public class Engine {
     private void updateStateAndCheckRules(Event event) {
         if (event instanceof Event.ReceiptEvent re) {
             state.addStock(re.sku, re.quantity);
-            checkReleaseRuleForAllOrders();
+            ();
         } else if (event instanceof Event.AdjustEvent ae) {
             long oldStock = state.getOnHandStock(ae.sku);
             state.addStock(ae.sku, ae.delta);
@@ -100,7 +100,7 @@ public class Engine {
         }
     }
 
-    private void checkReleaseRuleForAllOrders() {
+    private void checkReleaseRulcheckReleaseRuleForAllOrderseForAllOrders() {
         for (String orderId : new ArrayList<>(state.orders.keySet())) {
             checkReleaseRule(orderId);
         }
