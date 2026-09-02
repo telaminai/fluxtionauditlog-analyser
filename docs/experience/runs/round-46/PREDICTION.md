@@ -37,10 +37,30 @@ so both arms were paying to rediscover it.
 The question is no longer *can a small model wire this up* — round 45 answered that. It is **whether
 the plain-Java approach is correct-able at all** on this problem shape, given a better author.
 
-> **Cost comparison is VOID this round and I will not report one.** Different models have different
-> token economics, and any figure across them measures the model, not the approach. Only correctness
-> is comparable. This is a deliberate trade: the series has now shown three times that the losing arm
-> is cheaper, so cost was never going to settle anything.
+> **CORRECTION, made before any result arrived.** I first wrote that cost comparison was *void* this
+> round because the arms run on different models. That was wrong, and the owner is right to reject it.
+>
+> **Token counts across models are not comparable. The priced cost of a correct result is — and that
+> is the commercial question.** The claim a buyer cares about is not "fewer tokens", it is *"this
+> approach reaches a correct answer on a cheaper model."* A cross-model comparison is the only
+> instrument that can measure that, and refusing to run it would be measuring the wrong thing
+> carefully.
+>
+> So this round reports **cost per correct result**, computed as follows. Let **R** be the price ratio
+> of the stronger model to Haiku 4.5 for the same token mix. With `F` = Fluxtion's tokens on Haiku and
+> `V` = the plain arm's tokens on the stronger model, the plain route costs more whenever
+> **`V × R > F`**, i.e. for any `R > F / V`. Because `F` and `V` have been within ~20% of each other
+> all series, the break-even lands near `R ≈ 1` — so **on any realistic price ratio the cheaper-model
+> route wins on cost, provided it is correct.** The whole commercial argument therefore rests on
+> correctness, not on token efficiency.
+>
+> Stated in the form that actually sells: **if Fluxtion is right on the cheap model and hand-wiring
+> needs the expensive one, the saving is the price ratio. If hand-wiring is wrong even on the
+> expensive model, there is no price at which it is a substitute** — and rounds 44 and 45 both ended
+> that way.
+>
+> I will report raw tokens per arm, name the model each ran on, and give the ratio rather than
+> asserting prices I cannot verify from here.
 
 ## Predictions
 
