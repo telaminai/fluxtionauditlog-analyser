@@ -68,3 +68,10 @@ docs/experience/current/*/src/main/resources/com/acme/app/generated/
 docs/experience/artifacts/*/src/main/resources/com/acme/generated/
 docs/experience/artifacts/*/src/main/java/com/acme/generated/
 docs/experience/artifacts/*/target/
+
+# Round 54 benchmark: Fluxtion-generated sources carry an upstream copyright header
+# whose domain is a sweep term (rule 1). Regenerate with gen/Gen.java, never commit.
+docs/experience/runs/round-54/generated/
+docs/experience/runs/round-54/generated2/
+docs/experience/runs/round-54/reach/
+docs/experience/runs/round-54/reach2/
