@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="fluxtionSpringConfig"
+          class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+        <property name="logLevel" value="INFO"/>
+    </bean>
+
+    <!-- FIVE vendor libraries. Their internals are theirs; this file never names a node. -->
+    <bean id="marketdata" class="com.vendor.marketdata.MarketData"/>
+    <bean id="pricing"    class="com.vendor.pricing.Pricing">
+        <constructor-arg ref="marketdata"/></bean>
+    <bean id="liquidity"  class="com.vendor.liquidity.Liquidity">
+        <constructor-arg ref="marketdata"/><constructor-arg ref="pricing"/></bean>
+    <bean id="risk"       class="com.vendor.risk.Risk">
+        <constructor-arg ref="marketdata"/><constructor-arg ref="liquidity"/></bean>
+    <bean id="capital"    class="com.vendor.capital.Capital">
+        <constructor-arg ref="risk"/></bean>
+</beans>
