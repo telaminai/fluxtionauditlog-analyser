@@ -1,0 +1,16 @@
+# held out. Exposure crosses the 250,000 limit up and down, so which subgraph is live
+# changes from event to event and cannot be predicted from the event type.
+CONFIG,volFactor,2.0
+CONFIG,chargePct,0.12
+TICK,DEMO,100.0,104.0
+RATE,USD,1.4
+TRADE,DEMO,1000.0,102.0
+TRADE,DEMO,4000.0,102.0
+STRATEGY,premium
+TRADE,DEMO,4500.0,103.0
+CONFIG,keyNobodyOwns,999.0
+TRADE,DEMO,100.0,103.0
+TICK,DEMO,101.0,106.0
+TRADE,DEMO,5000.0,104.0
+STRATEGY,default
+TRADE,DEMO,50.0,104.0
