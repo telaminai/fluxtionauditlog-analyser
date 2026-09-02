@@ -173,6 +173,49 @@ counters. Given the same library **with** one added `refresh()` method, an idiom
 For Fluxtion specifically this is structural rather than conventional: the recompute/handle split that
 had to be added by hand in that experiment is what `@OnTrigger` already is.
 
+### P3b — token counts are NOT comparable across model generations
+
+**Read from platform.claude.com this session, not recalled:**
+
+> **Context window:** 1M tokens is roughly 555k words … on the current tokenizer *(introduced with
+> Claude Opus 4.7)*; models before it fit about **750k words** in 1M tokens.
+
+Haiku 4.5 predates Opus 4.7, so the two arms of this study are tokenised differently:
+
+| | tokens/word | note |
+|---|---|---|
+| Opus 5 (comparison arm) | 1.802 | current tokenizer |
+| Haiku 4.5 (Fluxtion arm) | 1.333 | previous tokenizer |
+
+**Identical text yields 1.35× more tokens on the comparison arm.** Combined with Opus 5 costing 5×
+Haiku 4.5 per token ($5/$25 vs $1/$5 per MTok), **the same text costs 6.76× more on the comparison
+arm before any difference in behaviour.**
+
+**The weighted metric used throughout this project — `output×50 + input×10 + cache_read×1` — measures
+token VOLUME, not money.** Its *relative* weights are right (5 : 1 : 0.1 matches output : input :
+cache-read pricing exactly), but it applies the same absolute scale to both arms, so it silently
+prices an Opus token and a Haiku token identically.
+
+Three ratios follow, all defensible, answering different questions:
+
+| comparison | raw weighted units | **dollars** | tokenizer-adjusted work |
+|---|---|---|---|
+| round 48, plain Java | 1.88× | **9.39×** | 1.39× |
+| round 49, idiomatic Java | 2.71× | **13.54×** | 2.00× |
+
+**Every ratio this project has published to date is the raw-units column**, which understates the
+economic difference by 5× and overstates the like-for-like work difference by 1.35×.
+
+**Normative:**
+
+1. Any cross-model comparison MUST state which of the three it is quoting.
+2. **Dollars is the correct economic claim** — the entire thesis is that better instructions let a
+   *cheaper* model succeed, so the model difference is the result, not a confound. It MUST be
+   accompanied by the plain statement that different models were used.
+3. **Tokenizer-adjusted work is the correct efficiency claim** — and it is the modest one, 1.39×–2.00×.
+   Quoting the dollar figure as though it measured inherent efficiency would be dishonest.
+4. Raw weighted units SHOULD be retired from external use. They are neither measure and read as both.
+
 ## Artefact-side requirements
 
 These are not instructions but they dominate instruction cost, and the instruction set is only minimal
