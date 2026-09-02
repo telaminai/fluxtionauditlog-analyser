@@ -62,13 +62,20 @@ def main(path):
             bad.append(n)
     R.append(("O2 within a subject, depth never goes back", not bad, f"events {bad[:3]}" if bad else ""))
 
-    cbad = []
+    # absence of commits is a FAILURE, not a pass. An engine that never emits them has not implemented
+    # the after-event phase, and an "if commits and ..." check would score that as correct.
+    cbad, any_commit = [], False
     for n, v in rows.items():
         evals = [x for x in v if not x.startswith("commit:")]
         commits = [x[len("commit:"):] for x in v if x.startswith("commit:")]
-        if commits and commits != list(reversed(evals)):
-            cbad.append(n)
-    R.append(("O4 commits are the reverse of evaluation", not cbad, f"events {cbad[:3]}" if cbad else ""))
+        if commits:
+            any_commit = True
+            if commits != list(reversed(evals)):
+                cbad.append(n)
+        elif evals:
+            cbad.append(n)          # nodes evaluated but nothing committed
+    R.append(("O4 commits are the reverse of evaluation", any_commit and not cbad,
+              ("no commit entries emitted at all" if not any_commit else f"events {cbad[:3]}")))
 
     ok = sum(1 for _, p, _ in R if p)
     for a, p, d in R:
