@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="fluxtionSpringConfig"
+          class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+        <property name="eventTypes">
+            <list>
+                <value>com.acme.app.Product</value>
+                <value>com.acme.app.Customer</value>
+                <value>com.acme.app.Carrier</value>
+                <value>com.acme.app.Receipt</value>
+                <value>com.acme.app.Adjust</value>
+                <value>com.acme.app.Count</value>
+                <value>com.acme.app.Order</value>
+                <value>com.acme.app.Amend</value>
+                <value>com.acme.app.Cancel</value>
+                <value>com.acme.app.Paid</value>
+                <value>com.acme.app.Payfail</value>
+                <value>com.acme.app.PickStart</value>
+                <value>com.acme.app.PickDone</value>
+                <value>com.acme.app.Dispatch</value>
+                <value>com.acme.app.Delivered</value>
+            </list>
+        </property>
+        <property name="nodeBeans">
+            <list>
+                <value>productStore</value>
+                <value>customerStore</value>
+                <value>carrierStore</value>
+                <value>stockStore</value>
+                <value>orderStore</value>
+                <value>paidStore</value>
+                <value>releaseDecider</value>
+                <value>hazardBlockDecider</value>
+                <value>overweightDecider</value>
+                <value>slaBreachDecider</value>
+                <value>stockoutDecider</value>
+            </list>
+        </property>
+        <property name="logLevel" value="INFO"/>
+    </bean>
+
+    <!-- Reference data stores -->
+    <bean id="productStore" class="com.acme.app.ProductStore"/>
+    <bean id="customerStore" class="com.acme.app.CustomerStore"/>
+    <bean id="carrierStore" class="com.acme.app.CarrierStore"/>
+
+    <!-- Activity data stores -->
+    <bean id="stockStore" class="com.acme.app.StockStore"/>
+    <bean id="orderStore" class="com.acme.app.OrderStore"/>
+    <bean id="paidStore" class="com.acme.app.PaidStore">
+        <constructor-arg ref="orderStore"/>
+    </bean>
+
+    <!-- Decision nodes -->
+    <bean id="releaseDecider" class="com.acme.app.ReleaseDecider">
+        <constructor-arg ref="orderStore"/>
+        <constructor-arg ref="stockStore"/>
+        <constructor-arg ref="paidStore"/>
+        <constructor-arg ref="productStore"/>
+        <constructor-arg ref="customerStore"/>
+    </bean>
+
+    <bean id="hazardBlockDecider" class="com.acme.app.HazardBlockDecider">
+        <constructor-arg ref="orderStore"/>
+        <constructor-arg ref="productStore"/>
+        <constructor-arg ref="carrierStore"/>
+    </bean>
+
+    <bean id="overweightDecider" class="com.acme.app.OverweightDecider">
+        <constructor-arg ref="orderStore"/>
+        <constructor-arg ref="carrierStore"/>
+    </bean>
+
+    <bean id="slaBreachDecider" class="com.acme.app.SLABreachDecider">
+        <constructor-arg ref="orderStore"/>
+    </bean>
+
+    <bean id="stockoutDecider" class="com.acme.app.StockoutDecider">
+        <constructor-arg ref="stockStore"/>
+    </bean>
+
+</beans>

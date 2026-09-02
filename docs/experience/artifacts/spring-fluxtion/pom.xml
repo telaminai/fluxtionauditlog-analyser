@@ -1,0 +1,46 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion>
+  <groupId>com.acme</groupId><artifactId>springapp</artifactId><version>1.0</version>
+  <properties><maven.compiler.source>21</maven.compiler.source><maven.compiler.target>21</maven.compiler.target>
+  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  <generated.dependents>**/Main.java</generated.dependents></properties>
+  <repositories><repository><id>repsy</id><url>https://repo.repsy.io/mvn/fluxtion/fluxtion-public</url></repository></repositories>
+  <pluginRepositories><pluginRepository><id>repsy</id><url>https://repo.repsy.io/mvn/fluxtion/fluxtion-public</url></pluginRepository></pluginRepositories>
+  <dependencies>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.9.3</version><scope>test</scope></dependency>
+    <dependency><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-runtime</artifactId><version>1.0.14</version></dependency>
+    <dependency><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-builder</artifactId><version>1.0.66</version></dependency>
+  </dependencies>
+  <build><plugins>
+    <!-- a fresh build starts with NO generated source: a processor left from an older bean file
+         still names classes or methods you have since changed. -->
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.3.2</version>
+      <executions><execution><id>drop-stale-generated</id><phase>initialize</phase><goals><goal>clean</goal></goals>
+        <configuration><excludeDefaultDirectories>true</excludeDefaultDirectories>
+          <filesets><fileset><directory>src/main/java/com/acme/app/generated</directory><includes><include>**/*</include></includes></fileset></filesets>
+        </configuration></execution></executions>
+    </plugin>
+    <plugin><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-maven-plugin</artifactId><version>1.3.0</version>
+      <dependencies>
+        <dependency><groupId>com.telamin.fluxtion</groupId><artifactId>fluxtion-builder</artifactId><version>1.0.66</version></dependency>
+        <dependency><groupId>org.springframework</groupId><artifactId>spring-context</artifactId><version>6.2.7</version></dependency>
+        <dependency><groupId>org.springframework</groupId><artifactId>spring-beans</artifactId><version>6.2.7</version></dependency>
+      </dependencies>
+      <executions><execution><phase>process-classes</phase><goals><goal>springToFluxtion</goal></goals>
+        <configuration>
+          <springFile>src/main/fluxtion/designer/application-context.xml</springFile>
+          <className>AppProcessor</className>
+          <packageName>com.acme.app.generated</packageName>
+          <outputDirectory>src/main/java</outputDirectory>
+          <resourcesDirectory>src/main/resources</resourcesDirectory>
+        </configuration>
+      </execution></executions>
+    </plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.3</version></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version>
+      <executions>
+        <execution><id>default-compile</id><configuration><excludes><exclude>${generated.dependents}</exclude></excludes></configuration></execution>
+        <execution><id>compile-generated-dependents</id><phase>process-classes</phase><goals><goal>compile</goal></goals></execution>
+      </executions>
+    </plugin>
+  </plugins></build>
+</project>
