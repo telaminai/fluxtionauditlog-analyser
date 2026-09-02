@@ -48,3 +48,47 @@ most useful result of the series, and the cheapest thing to ship.
 
 **If no cell passes**, every document is load-bearing and 2,608 words is the honest adoption cost.
 That is also a result, and a quotable one.
+
+---
+
+## Phase 2 — local search, and when to start it
+
+**Written before cells G/H/I reported.**
+
+The ablation so far is coarse search: whole documents in or out. That is the right move while the
+gradient is steep — from 14.80M and a wrong answer down to 3.91M and correct, a 3.8× reduction from
+the instruction set alone on the same model and the same problem.
+
+**Coarse search stops being the right move once the surface flattens.** The owner's proposal, adopted:
+near an optimum, switch to **local search with introspection** — take the best cell and its nearest
+neighbours, and ask the model to explain *why* it failed or spent, rather than only measuring that it
+did.
+
+### The stopping criterion, fixed now so it cannot be chosen to fit a result
+
+Phase 1 continues while a new cell improves on the incumbent best by **more than 10% weighted cost**
+*at equal or better correctness*. When two consecutive cells fail to clear that, the surface is
+treated as flat and phase 2 begins.
+
+Incumbent at the time of writing: **B — 879 words, correct, 10 builds, 3.91M.**
+
+### What phase 2 asks
+
+Not "what was hard" — every report so far answers that with build errors already visible in the log.
+The directed questions are:
+
+1. **At each build failure, what did you not know?** Name the fact, not the symptom.
+2. **Which sentence of the manual, had it existed, would have prevented it?** Write the sentence.
+3. **Which parts of the manual did you read and not use?** Those are deletion candidates that a
+   whole-document ablation cannot find.
+
+Question 3 is the one coarse search cannot reach. Removing a document tests the document; only the
+model can say which *paragraphs* it never needed.
+
+### The known caveat
+
+Self-reports in this project have been unreliable in a specific way: they are accurate about what the
+model *did* and unreliable about *why*. Round 48's arm reported a generator bug that did not
+reproduce; cell E justified reflection with a constraint that did not exist. **Phase 2 answers are
+therefore hypotheses to test by ablation, not findings.** Each proposed sentence gets added or removed
+and re-measured — the introspection generates candidates, the measurement decides.
