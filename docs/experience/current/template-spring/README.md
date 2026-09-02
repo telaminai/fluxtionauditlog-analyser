@@ -143,9 +143,19 @@ All four are already handled in this template — this list is here so you recog
    after compilation — hence the usual advice to "write `Main` last". **This pom removes the problem**:
    it compiles in two passes and deletes the stale generated source every build, so changing a node's
    shape and running `mvn clean test` just works. If you copy the pom, copy the `generated.dependents`
-   property with it.
-2. **`com.telamin.fluxtion`, never `com.fluxtion`.** The latter is the pre-rename namespace: it is in
-   old jars and probably in your memory, and it does not exist here.
+   property with it. **Scope it by package, not by filename** — this template holds back `**/app/*.java`,
+   so anything importing the generated processor goes in `…app` and anything you want declared as a bean
+   goes anywhere else. Naming a single file there is what made six sessions rename a class to find out
+   why pass 2 could not see `com.acme.generated`; excluding *all* source is what then made a consumer
+   class impossible to declare as a bean.
+2. **Never type an annotation import from memory.** `com.telamin.fluxtion`, never `com.fluxtion` — the
+   latter is the pre-rename namespace, it is in old jars and probably in your memory, and it does not
+   exist here. Beyond that, the sub-package is easy to get wrong in both directions:
+   `@NoTriggerReference` is in `runtime.annotations`, `@FluxtionIgnore` is in
+   `runtime.annotations.builder`, `@ServiceRegistered` is in `runtime.annotations.runtime`.
+   **[`FQN.md`](FQN.md)** lists every one with its exact package, read out of the runtime jar rather
+   than written down; regenerate it with `python3 tools/gen-fqn.py`. This is the single most repeated
+   mistake in this project's history — it is loud, but it still costs a build every time.
 3. **Parents are constructor-arg refs in the XML, and fields in the class.** A constructor argument you do not retain is not a parent —
    `FLX-1001: cannot find a matching constructor`. Non-parent fields must be `transient`.
 4. **`cfg.addEventAudit(...)` is mandatory** and omitting it fails **silently**: empty log, no warning.
