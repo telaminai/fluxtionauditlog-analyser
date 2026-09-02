@@ -327,3 +327,44 @@ What the integrator genuinely does not pay: **any allocation** (0.0 bytes/event 
 configuration measured), **any GC** (0 collections in 500M events under a no-op collector), and **any
 dispatch code** — the ordering that the plain arms had to get right by hand is derived from the graph.
 Rounds 49 and 52 are the measurement of what that hand-ordering costs when it goes wrong.
+
+## 8. The clock, corrected — the author's rationale, and the measurements that support it
+
+§7 filed the clock as a 55%-of-dispatch defect. **That framing was wrong and is corrected here.**
+
+The author's design rationale: the auditors are on by default because **every node gets a data-driven
+clock it can consult for predictable time in replay mode**, and anyone who needs the last nanosecond
+can configure the auditors away. Both halves were testable, and both hold.
+
+| arm | throughput | ns/event |
+|---|---|---|
+| shipped, default wall-clock strategy | 57,785,590 /s | 17.31 |
+| **replay — `ClockStrategy.registerClockEvent(() -> t)`** | 117,687,130 /s | **8.50** |
+| auditor map cleared at build time | 121,624,745 /s | 8.22 |
+
+**Replay mode costs 0.28 ns more than deleting the clock outright.** The deterministic clock is ~3% of
+dispatch, not 55%. What §7 measured was not the clock abstraction, the auditor fan-out, or eager
+stamping — it was `System.currentTimeMillis()` inside the *default* strategy, which measures 12.32
+ns/call standalone here.
+
+The configuration escape hatch was verified rather than believed: `config.getAuditorMap().clear()`
+emits an `auditEvent` containing only `nodeNameLookup.eventReceived`, and runs at 8.22 ns.
+
+**So the corrected table for §7's question — what does the integrator pay?**
+
+| arm | ns/event | vs plain inline |
+|---|---|---|
+| plain inline, one method | 2.87 | 1.0× |
+| plain guarded (dirty flags + guards) | 7.25 | 2.5× |
+| **Fluxtion, replay mode** | **8.50** | **3.0×** |
+| **Fluxtion, auditors configured off** | **8.22** | **2.9×** |
+| Fluxtion, shipped default (live wall clock) | 17.31 | 6.0× |
+
+**Against hand-written code carrying the same guard semantics — the only fair comparison, because the
+guards are the correctness being bought — Fluxtion in replay mode is 8.50 vs 7.25 ns, within 17%.**
+
+**The lesson for this project, not the framework.** I measured a default, inferred a defect from it,
+and filed it as the largest finding in the benchmark — without asking what the default was *for*. The
+rationale was one question away and it inverted the conclusion. Rule 6 says read the source of truth
+before implementing against framework semantics; this is the same failure one level up: **read the
+design intent before scoring a design.**

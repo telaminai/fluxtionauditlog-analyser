@@ -1330,56 +1330,44 @@ to a node cannot ever trigger it; that deserves a build error, not a smaller gra
 
 ---
 
-## UP-FLX-45 — the clock is stamped on every event and costs 55% of dispatch
+## UP-FLX-45 — make the WALL-CLOCK read lazy (narrowed after the author's design rationale)
 
-**Measured, not inferred.** `docs/experience/runs/round-54/` — a 10-node graph, one reused event
-object, 200,000,000 events per arm under `-XX:+UseEpsilonGC`, all arms producing byte-identical
-outputs (`breaches=102,500,000 updates=102,500,000 buffer=11551.2267`) at **0.0 bytes/event**.
+**This entry was filed overclaiming and is corrected here rather than quietly edited.** It originally
+called an unconditional clock call "the single largest performance item" and framed it as a defect.
+Two things narrowed it: the author's stated rationale — *every node gets a data-driven clock it can
+consult for predictable time in replay mode, and anyone needing the last nanosecond can configure the
+auditors away* — and the measurements that rationale prompted, which **support it**.
 
-The generated dispatch opens with `auditEvent(typedEvent)`, which fans out to three auditors.
-Ablating them one at a time, from the generated source:
+**The feature is nearly free where it matters.** 10-node graph, one reused event, 200,000,000 events
+under `-XX:+UseEpsilonGC`, all arms byte-identical at 0.0 bytes/event:
 
-| `auditEvent` contains | ns/event | delta |
+| arm | throughput | ns/event |
 |---|---|---|
-| nothing | 7.76 | — |
-| `nodeNameLookup.eventReceived` only | 7.83 | +0.07 |
-| `serviceRegistry.eventReceived` only | 7.88 | +0.12 |
-| **`clock.eventReceived` only** | **17.19** | **+9.43** |
-| all three (as shipped) | 17.20 | +9.44 |
+| shipped, default wall-clock strategy | 57,785,590 /s | 17.31 |
+| **replay — `ClockStrategy.registerClockEvent(() -> t)`** | 117,687,130 /s | **8.50** |
+| auditor map cleared at build time | 121,624,745 /s | 8.22 |
 
-**`clock.eventReceived` is 9.43 ns of the 9.44 ns.** The other two auditors are free.
+**Replay mode costs 0.28 ns more than removing the clock entirely.** So the deterministic data-driven
+clock — the actual feature — is ~3% of dispatch, not 55%. The 9.43 ns measured earlier is
+**entirely `System.currentTimeMillis()`** in the default strategy; corroborated by that call measuring
+12.32 ns/call standalone on the same machine.
 
-**Mechanism, corroborated independently.** On the same machine `System.currentTimeMillis()` costs
-**12.32 ns/call** and `System.nanoTime()` **8.06 ns/call**. `Clock` holds `processTime` and a
-`wallClock` `ClockStrategy`; it stamps a system time on every event **whether or not any node reads
-it**. This benchmark's ten nodes never call `getProcessTime()`, `getEventTime()` or
-`getWallClockTime()`, and still pay for all of them.
+**Both escape hatches exist and were verified**, not taken on trust:
+`config.getAuditorMap().clear()` at build time emits an `auditEvent` containing only
+`nodeNameLookup.eventReceived` — `clock` and `serviceRegistry` are gone — and runs at 8.22 ns.
 
-**What it costs in context.** Against hand-written Java computing the identical arithmetic:
+**What remains, and it is narrow.** In **live** mode a graph that never consults the clock still pays
+~9.1 ns per event (53% of its dispatch) for a timestamp nothing reads. The ask is only: **read the
+wall clock lazily** — on first `getProcessTime()`/`getEventTime()`/`getWallClockTime()` request per
+cycle, then cache — so same-value-within-a-cycle is preserved exactly and non-time-reading live graphs
+pay nothing. Replay is already unaffected because the strategy is not a system call.
 
-| arm | ns/event | vs Fluxtion |
-|---|---|---|
-| plain inline, one method | 2.87 | 6.0× faster |
-| plain components, hand-wired objects | 3.50 | 4.9× faster |
-| plain with dirty-flags + guards, mirroring the emitted shape | 7.25 | 2.4× faster |
-| **Fluxtion with `auditEvent` ablated** | **7.76** | **1.07× — within 8%** |
-| Fluxtion as shipped | 17.20 | 1.0× |
+**Priority: low, and the author's "edge case" judgement is defensible.** The default trades ~9 ns for
+a uniform time source; the workaround is one line; and the users who care most about the nanosecond
+are the ones running replay, who already do not pay it. This is recorded as a measurement worth having
+rather than a change worth making.
 
-**The generated dispatch machinery is not the overhead.** Hand-written code replicating the emitted
-shape — per-node objects, `isDirty_` flags, `guardCheck_` methods — runs at 7.25 ns against the
-generated processor's 7.76 ns. Fluxtion's codegen is within 8% of what a careful human writes for the
-same semantics. **The entire remaining gap is one unconditional clock call.**
+**Evidence.** `docs/experience/runs/round-54/` — arms, ablations, and the generated sources.
 
-**The ask.** Make the timestamp lazy. A node that wants time calls `clock.getProcessTime()`; the clock
-reads the system source on first request per cycle and caches it, so ordering and
-same-value-within-a-cycle guarantees are preserved exactly. Graphs that never ask for time pay
-nothing.
-
-**Expected effect: 17.20 → ~7.8 ns/event, a 2.2× throughput improvement (58M → 129M events/sec) for
-every graph that does not read the clock**, at no cost to those that do. This is the single largest
-performance item found in the analyser's benchmarking to date, and it is one call site.
-
-**Caveat, stated.** Single machine (JDK 21 Corretto, macOS), one process per configuration, closed
-loop, no coordinated-omission correction. The ablation is a source edit to the generated file, so it
-demonstrates the cost rather than proposing that exact fix. The lazy-clock design is a suggestion; the
-measurement is the contribution.
+**Caveat.** Single machine (JDK 21 Corretto, macOS), one process per configuration, closed loop, no
+coordinated-omission correction.
