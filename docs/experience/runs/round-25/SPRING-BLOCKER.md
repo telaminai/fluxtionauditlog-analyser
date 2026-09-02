@@ -80,6 +80,45 @@ builder on the project classpath, but I did not confirm it.
 **Neither the design directory nor the published docs show how to enable audit from Spring XML** —
 searched `spring-authoring/*.md` and the reference XML.
 
+## Proof that the class itself is fine
+
+`java.beans.Introspector` — which is what Spring uses — loading `FluxtionSpringConfig` from
+`fluxtion-builder-1.0.66.jar` outside Maven:
+
+```
+class from: file:…/fluxtion-builder/1.0.66/fluxtion-builder-1.0.66.jar
+  auditors     read=List<Auditor>       write=setAuditors
+  eventTypes   read=List<String>        write=setEventTypes
+  logLevel     read=EventLogControlEvent$LogLevel  write=setLogLevel
+  nodeBeans    read=List<String>        write=setNodeBeans
+```
+
+**All four are writable.** Ruled out along the way:
+
+- the plugin does **not** bundle its own copy — zero `FluxtionSpringConfig` entries in the plugin jar;
+- the plugin declares **no** fluxtion dependencies of its own, and imports from the project classpath;
+- `dependency:build-classpath` resolves exactly **one** copy, from `fluxtion-builder-1.0.66`;
+- adding `fluxtion-builder:1.0.66` explicitly to the plugin's `<dependencies>` changes nothing.
+
+So the class is correct and introspectable; the failure is inside the classloader the plugin builds
+(`problem setting building fluxtion class loader`, realm `plugin>fluxtion-maven-plugin:1.3.0`,
+`SelfFirstStrategy`). **It is not reachable from a project POM.**
+
+### Minimal reproduction
+
+`pom.xml` binding `springToFluxtion` with `spring-context`/`spring-beans` as plugin dependencies, and a
+bean file containing only the documented config bean:
+
+```xml
+<bean id="fluxtionSpringConfig" class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+    <property name="eventTypes"><list><value>com.acme.app.Reading</value></list></property>
+</bean>
+```
+→ `NotWritablePropertyException: Invalid property 'eventTypes'`
+
+A bean file **without** the config bean builds a correct graph, so the route works; only the contract
+bean is unusable.
+
 ## Why this matters more than a missing feature
 
 Everything the harness has been built on depends on the audit log: `GraphExistsTest` asserts a node ran,
