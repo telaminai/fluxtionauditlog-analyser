@@ -4,21 +4,19 @@ Two components from different vendors. **You did not write them and you must not
 a root class whose constructor builds its own internal subtree of instances. You integrate them by
 constructing the roots and wiring them; what is inside is theirs.
 
-**Pricing** (`com.vendor.pricing.PricingComponent`) — internally: a mid-price stage, then a
-spread-adjusted stage.
+**Pricing** (`com.vendor.pricing.PricingComponent`) — publishes a mid price and a spread-adjusted
+price. Its constructor takes one source it needs from elsewhere.
 
-**Risk** (`com.vendor.risk.RiskComponent`) — internally: a notional stage, then a score stage.
+**Risk** (`com.vendor.risk.RiskComponent`) — publishes a notional and a score. Its constructor takes two
+sources it needs from elsewhere.
 
-They are mutually dependent **at their internal stages, not at their boundaries**:
+The two are mutually dependent: each needs something the other produces. **Neither can be evaluated as a
+unit** — running one component's stages to completion before the other's will give some stage a value
+from the previous tick rather than this one.
 
-```
-tick ──▶ pricing.mid ──▶ risk.notional ──▶ pricing.adjusted ──▶ risk.score
-```
+**Working out the correct order is your problem.** It is determined by which stage reads which, and
+that is expressed in the constructors. Nothing in this document tells you the answer.
 
-`risk.notional` reads `pricing.mid`. `pricing.adjusted` reads `risk.notional`. `risk.score` reads
-`pricing.adjusted`.
+## The stage names
 
-**So neither component can be run as a unit.** Running all of Pricing then all of Risk gives
-`risk.notional` a stale mid or `pricing.adjusted` a stale notional; running Risk first is worse. The
-correct order alternates between the two components' internals, and you do not get to see inside them
-to work that out by reading.
+Your evaluation file must use the names the stages report through `name()`.
