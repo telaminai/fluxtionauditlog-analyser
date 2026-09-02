@@ -12,10 +12,7 @@ public class Capital {
 
     public Capital(Risk risk) {
         this.risk = risk;
-        this.strategy = new FeeStrategy() {
-            public double fee(double e) { return e * 0.01; }
-            public String name() { return "default"; }
-        };
+        this.strategy = FeeStrategies.DEFAULT;
     }
     public void feeStrategy(FeeStrategy s) { this.strategy = s; }
     public void alertSink(AlertSink s) { this.alerts = s; }

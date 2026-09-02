@@ -1,0 +1,6 @@
+# volFactor changes AFTER the book is live - the case the first scenario never reached
+CONFIG,chargePct,0.12
+TICK,DEMO,100.0,104.0
+TRADE,DEMO,4000.0,102.0
+CONFIG,volFactor,8.0
+TRADE,DEMO,10.0,102.0
