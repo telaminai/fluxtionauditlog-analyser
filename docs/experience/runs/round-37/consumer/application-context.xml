@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The consumer's entire integration. Five vendor subsystems, delivered as jars with no source.
+     Nothing here declares events. Nothing here declares evaluation order. -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="fluxtionSpringConfig"
+          class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+        <property name="logLevel" value="INFO"/>
+    </bean>
+
+    <bean id="mid"      class="com.vendor.marketdata.Mid"/>
+    <bean id="depth"    class="com.vendor.marketdata.Depth"/>
+    <bean id="notional" class="com.vendor.risk.Notional"><constructor-arg ref="mid"/></bean>
+    <bean id="adjusted" class="com.vendor.pricing.Adjusted">
+        <constructor-arg ref="mid"/><constructor-arg ref="depth"/></bean>
+    <bean id="score"    class="com.vendor.liquidity.Score"><constructor-arg ref="adjusted"/></bean>
+    <bean id="exposure" class="com.vendor.risk.Exposure">
+        <constructor-arg ref="notional"/><constructor-arg ref="score"/></bean>
+    <bean id="charge"   class="com.vendor.capital.Charge"><constructor-arg ref="exposure"/></bean>
+</beans>
