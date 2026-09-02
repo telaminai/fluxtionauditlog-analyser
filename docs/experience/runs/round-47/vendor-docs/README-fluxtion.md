@@ -1,10 +1,11 @@
-# Integrating these five libraries with Fluxtion — read this first
+# Integrating these five libraries with Fluxtion
 
-## One bean per library. Five in total. Nothing else.
+## One entry point per library
 
-Each library publishes **exactly one entry-point class**, and that class is the unit you declare:
+Each library publishes **exactly one entry-point class**, and that class is the unit you declare.
+Construct it with the constructor named here:
 
-| library | entry point | constructor to use |
+| library | entry point | constructor |
 |---|---|---|
 | marketdata | `com.vendor.marketdata.MarketData` | **the no-argument one** |
 | pricing | `com.vendor.pricing.Pricing` | `Pricing(MarketData)` |
@@ -12,20 +13,7 @@ Each library publishes **exactly one entry-point class**, and that class is the 
 | risk | `com.vendor.risk.Risk` | `Risk(MarketData, Liquidity)` |
 | capital | `com.vendor.capital.Capital` | `Capital(Risk)` |
 
-```xml
-<bean id="marketdata" class="com.vendor.marketdata.MarketData"/>
-<bean id="pricing"    class="com.vendor.pricing.Pricing">
-    <constructor-arg ref="marketdata"/></bean>
-<bean id="liquidity"  class="com.vendor.liquidity.Liquidity">
-    <constructor-arg ref="marketdata"/><constructor-arg ref="pricing"/></bean>
-<bean id="risk"       class="com.vendor.risk.Risk">
-    <constructor-arg ref="marketdata"/><constructor-arg ref="liquidity"/></bean>
-<bean id="capital"    class="com.vendor.capital.Capital">
-    <constructor-arg ref="risk"/></bean>
-```
-
-That is the entire integration. The generator walks into each entry point and places every internal
-node in the global dispatch for you.
+The generator walks into each entry point and places every internal node in the global dispatch.
 
 ## Do not declare our internal nodes
 

@@ -46,9 +46,3 @@ processor.registerService(new Service<>(FeeStrategies.byName(n), FeeStrategy.cla
 AlertSink.PUBLISH = alert -> ...;      // you supply the destination
 ```
 
-## For Fluxtion users
-
-```xml
-<bean id="capital" class="com.vendor.capital.Capital">
-    <constructor-arg ref="risk"/></bean>
-```

@@ -19,9 +19,3 @@ new Pricing(marketData)                // takes marketdata; builds its own subtr
 | `adjusted` | `pricing.adjusted` | marketdata `mid`, `depth` |
 | `spread` | `pricing.spread` | our `rate`, `adjusted` |
 
-## For Fluxtion users
-
-```xml
-<bean id="pricing" class="com.vendor.pricing.Pricing">
-    <constructor-arg ref="marketdata"/></bean>
-```

@@ -26,13 +26,3 @@ new MarketData()                       // no arguments; it builds its own subtre
 
 Other libraries take `MarketData` in their constructor and read these.
 
-## For Fluxtion users
-
-Declare one bean:
-
-```xml
-<bean id="marketdata" class="com.vendor.marketdata.MarketData"/>
-```
-
-`MarketData` carries a second, all-fields constructor so the generator can reconstruct the subtree.
-Do not declare our internal nodes individually — the composite is the supported unit.

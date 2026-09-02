@@ -19,9 +19,3 @@ new Liquidity(marketData, pricing)
 | `book` | `liquidity.book` | our tick, marketdata `depth` |
 | `score` | `liquidity.score` | pricing `adjusted`, our `book` |
 
-## For Fluxtion users
-
-```xml
-<bean id="liquidity" class="com.vendor.liquidity.Liquidity">
-    <constructor-arg ref="marketdata"/><constructor-arg ref="pricing"/></bean>
-```

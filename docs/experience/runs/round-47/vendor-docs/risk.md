@@ -23,9 +23,3 @@ new Risk(marketData, liquidity)
 | `limitDetector` | `risk.limitDetector` | `exposure` | a detector. `calc()` reports whether `exposure` exceeds `limit` (default 250000). |
 | `streak` | `risk.streak` | `exposure`, `limitDetector` | **stateful**: consecutive breaches, and it resets |
 
-## For Fluxtion users
-
-```xml
-<bean id="risk" class="com.vendor.risk.Risk">
-    <constructor-arg ref="marketdata"/><constructor-arg ref="liquidity"/></bean>
-```
