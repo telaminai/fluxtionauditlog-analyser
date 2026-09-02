@@ -1,5 +1,6 @@
 package com.acme.app;
 
+import com.telamin.fluxtion.runtime.annotations.AfterTrigger;
 import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
 import com.telamin.fluxtion.runtime.audit.EventLogNode;
 
@@ -13,6 +14,14 @@ public class LimitStore extends EventLogNode {
         boolean changed = limit.threshold() != threshold;
         threshold = limit.threshold();
         auditLog.info("threshold", threshold).info("changed", changed);
+        Cycle.evaluated("limitStore");
         return changed;
+    }
+
+    /** After-event phase; see SensorState.commit(). */
+    @AfterTrigger
+    public void commit() {
+        auditLog.info("commit", "limitStore");
+        Cycle.committed("limitStore");
     }
 }

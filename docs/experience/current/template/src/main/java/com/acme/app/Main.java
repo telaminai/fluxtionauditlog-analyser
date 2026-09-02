@@ -24,9 +24,11 @@ public class Main {
         List<String> audit = new ArrayList<>();
         flow.setAuditLogProcessor(rec -> audit.add("---\n" + rec));   // BEFORE init()
         Decisions.reset();
+        Cycle.reset();
         flow.init();
 
         List<String> out = new ArrayList<>();
+        List<String> cycles = new ArrayList<>();
         int eventNumber = 0;
         for (String line : Files.readAllLines(scenario)) {
             line = line.trim();
@@ -41,12 +43,14 @@ public class Main {
             }
             // drain EVERY decision made in this cycle — one event may produce several
             for (String d : Decisions.drain()) out.add(eventNumber + "," + d);
+            cycles.add(eventNumber + "," + Cycle.drain());
         }
         flow.tearDown();     // lifecycle is init/start/stop/tearDown — there is no shutdown()
 
         for (Path p : List.of(decisions, auditPath))
             if (p.getParent() != null) Files.createDirectories(p.getParent());
         Files.write(decisions, out);
+        Files.write(Paths.get(decisions.toString().replace(".txt", "-cycles.txt")), cycles);
         Files.write(auditPath, audit);
         System.out.println("wrote " + out.size() + " decisions and " + audit.size() + " audit records");
     }

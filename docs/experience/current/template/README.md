@@ -104,6 +104,45 @@ Do not guess and do not restructure the builder hopefully. Work down the list; t
 `./trace.sh` is what you use **when a test fails**. It is not a substitute for tests: it shows you only
 the scenarios you thought to run, and the bugs that survive are always in the ones you did not.
 
+## The two phases: event-in, then unwind
+
+A cycle has **two** phases, and the second is the one people miss.
+
+**Event-in** runs your `@OnEventHandler` and `@OnTrigger` methods in **topological order** — parents
+before children. Returning `false` stops the cycle there.
+
+**After-event (the unwind)** runs `@AfterTrigger` methods in **reverse topological order** — children
+before parents. This is where you commit, flush, publish, or release: work that must happen only once
+the whole cascade has settled, and must happen inside-out.
+
+```java
+@AfterTrigger
+public void commit() {
+    auditLog.info("commit", "sensorState");
+    Cycle.committed("sensorState");
+}
+```
+
+Two properties you get for free, and both matter:
+
+- **Reverse order is derived**, not declared. `thresholdAlert` commits before `sensorState` because it
+  is downstream. You never write that ordering.
+- **Only what ran, commits.** `@AfterTrigger` fires only for nodes that were on the execution path this
+  cycle. The generated dispatch guards it — `if (isDirty_limitStore) { limitStore.commit(); }` under a
+  comment reading *"event stack unwind callbacks"*. A node that evaluated and propagated nothing does
+  not commit, so the commit record is an honest statement of what happened rather than a list of
+  everything that exists.
+
+Run `./run.sh` and read `logs/decisions-cycles.txt`:
+
+```
+2,sensorState|thresholdAlert|commit:thresholdAlert|commit:sensorState
+```
+
+Evaluation outward, commit inward. `@AfterEvent` is the sibling annotation that fires on **every**
+cycle regardless of the execution path — use it for housekeeping, not for commits.
+
+
 ## To build your own graph
 
 1. Replace `Reading` with your events, `SensorState`/`ThresholdAlert` with your nodes.

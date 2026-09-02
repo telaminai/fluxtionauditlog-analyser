@@ -1,5 +1,6 @@
 package com.acme.app;
 
+import com.telamin.fluxtion.runtime.annotations.AfterTrigger;
 import com.telamin.fluxtion.runtime.annotations.NoTriggerReference;
 import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.audit.EventLogNode;
@@ -41,8 +42,19 @@ public class ThresholdAlert extends EventLogNode {
         // EDGE: fires on the reading that first goes over, not on every reading while it stays over
         boolean breach = breached.roseFor(sensorState.lastSensorId, over);
         if (breach) Decisions.add("ALERT", sensorState.lastSensorId);
+        Cycle.evaluated("thresholdAlert");
         auditLog.info("value", sensorState.last).info("threshold", limitStore.threshold)
                 .info("over", over).info("alert", breach);
         return breach;
+    }
+
+    /**
+     * After-event phase. Because this node is DOWNSTREAM of sensorState, and the after-event phase runs
+     * in reverse topological order, this commits BEFORE sensorState does. Run ./trace.sh and read it.
+     */
+    @AfterTrigger
+    public void commit() {
+        auditLog.info("commit", "thresholdAlert");
+        Cycle.committed("thresholdAlert");
     }
 }
