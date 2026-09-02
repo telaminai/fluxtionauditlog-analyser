@@ -62,3 +62,9 @@ src/main/resources/**/generated/*.png
 # which the rule-1 sweep cannot see inside but does match. never commit them.
 docs/experience/current/*/src/main/java/com/acme/app/generated/
 docs/experience/current/*/src/main/resources/com/acme/app/generated/
+
+# generated build output: the Fluxtion generator stamps a vendor-domain copyright header
+# (repo rule 1), and it emits a .png the sweep cannot read. Never track it.
+docs/experience/artifacts/*/src/main/resources/com/acme/generated/
+docs/experience/artifacts/*/src/main/java/com/acme/generated/
+docs/experience/artifacts/*/target/
