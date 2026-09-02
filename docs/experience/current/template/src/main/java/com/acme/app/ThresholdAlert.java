@@ -22,8 +22,8 @@ import com.telamin.fluxtion.runtime.audit.EventLogNode;
  */
 public class ThresholdAlert extends EventLogNode {
 
-    /** The decision made in the current cycle, or null. Main reads it once per event and clears it. */
-    public static String lastAlert;
+    /** "Did it just go over?" — one EdgeDetector per rule, keyed by subject. */
+    private final transient EdgeDetector breached = new EdgeDetector();
 
 
     private final SensorState sensorState;                 // trigger: a new reading
@@ -37,10 +37,12 @@ public class ThresholdAlert extends EventLogNode {
     /** Returning false ARRESTS the cycle — nothing downstream of this node runs. */
     @OnTrigger
     public boolean onValueChanged() {
-        boolean breach = sensorState.last > limitStore.threshold;
-        if (breach) lastAlert = sensorState.lastSensorId;
+        boolean over = sensorState.last > limitStore.threshold;
+        // EDGE: fires on the reading that first goes over, not on every reading while it stays over
+        boolean breach = breached.roseFor(sensorState.lastSensorId, over);
+        if (breach) Decisions.add("ALERT", sensorState.lastSensorId);
         auditLog.info("value", sensorState.last).info("threshold", limitStore.threshold)
-                .info("alert", breach);
+                .info("over", over).info("alert", breach);
         return breach;
     }
 }

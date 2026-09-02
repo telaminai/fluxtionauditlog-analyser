@@ -23,6 +23,7 @@ public class Main {
         AppProcessor flow = new AppProcessor();
         List<String> audit = new ArrayList<>();
         flow.setAuditLogProcessor(rec -> audit.add("---\n" + rec));   // BEFORE init()
+        Decisions.reset();
         flow.init();
 
         List<String> out = new ArrayList<>();
@@ -38,11 +39,8 @@ public class Main {
                 case "LIMIT"   -> flow.onEvent(new Limit(f[1], Double.parseDouble(f[2])));
                 default -> throw new IllegalArgumentException("unknown event: " + f[0]);
             }
-            // a decision is whatever your engine decided in THIS cycle; read it once, then clear it
-            if (ThresholdAlert.lastAlert != null) {
-                out.add(eventNumber + ",ALERT," + ThresholdAlert.lastAlert);
-                ThresholdAlert.lastAlert = null;
-            }
+            // drain EVERY decision made in this cycle — one event may produce several
+            for (String d : Decisions.drain()) out.add(eventNumber + "," + d);
         }
         flow.tearDown();     // lifecycle is init/start/stop/tearDown — there is no shutdown()
 
