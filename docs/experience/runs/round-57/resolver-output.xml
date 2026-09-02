@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+  <bean id="marketdata" class="com.vendor.marketdata.MarketDataPlus"/>
+
+  <bean id="pricing" class="com.vendor.pricing.PricingFull">
+    <constructor-arg value="#{marketdata.mid}"/>
+    <constructor-arg value="#{marketdata.depth}"/>
+  </bean>
+
+  <bean id="liquidity" class="com.vendor.liquidity.LiquidityStd">
+    <constructor-arg value="#{marketdata.depth}"/>
+    <constructor-arg value="#{pricing.adjusted}"/>
+  </bean>
+
+  <bean id="risk" class="com.vendor.risk.RiskSupervised">
+    <constructor-arg value="#{marketdata.mid}"/>
+    <constructor-arg value="#{marketdata.vol}"/>
+    <constructor-arg value="#{liquidity.score}"/>
+  </bean>
+
+  <bean id="capital" class="com.vendor.capital.CapitalRegulated">
+    <constructor-arg value="#{risk.exposure}"/>
+    <constructor-arg value="#{risk.var}"/>
+    <constructor-arg value="#{risk.limitDetector}"/>
+  </bean>
+
+</beans>
