@@ -1,0 +1,6 @@
+Fluxtion-Entry-Point: com.vendor.marketdata.MarketData
+Fluxtion-Entry-Constructor: ()
+Fluxtion-Requires: (none)
+Fluxtion-Composite: true
+Implementation-Title: marketdata
+Implementation-Version: 1.0

@@ -1,0 +1,72 @@
+# Round 48 groundwork — two mechanisms verified before designing the round
+
+Both were checked against the live framework rather than inferred, per repo rule 6.
+
+## 1. The graph edge survives an interface
+
+**Question.** If subsystems depend on *shared interfaces* rather than on each other's concrete
+classes — the proper way to build a component market — does the generator still derive the node-level
+edges? Or does the abstraction hide them, leaving nothing to interleave?
+
+**Answer: the edge survives.** A shared `contracts` jar holds the event and a node contract:
+
+```java
+public record Tick(double bid, double ask) {}
+public interface MidApi { double mid(); }
+```
+
+The provider implements it (`class Mid extends EventLogNode implements MidApi`); the consumer depends
+only on the interface:
+
+```java
+public class Adjusted extends EventLogNode {
+    private final MidApi mid;                          // interface-typed parent
+    public Adjusted(MidApi mid) { this.mid = mid; }
+    @OnTrigger public boolean calc() { value = mid.mid() * 1.01; ... }
+}
+```
+
+Generated dispatch:
+
+```java
+public final transient Mid mid = new Mid();
+public final transient Adjusted adjusted = new com.acme.impl.Adjusted(mid);
+private boolean guardCheck_adjusted() { return isDirty_mid; }
+```
+
+and it runs: `mid = 101.0` → `adjusted = 102.01`. **`Adjusted` triggers on `Mid` while only ever
+knowing `MidApi`.** The generator resolves the interface-typed parameter to the concrete bean and
+keeps the trigger edge.
+
+**Why this matters.** It removes the objection recorded in round 42's notes — that all five suppliers
+depended on one `com.vendor.Events` class shipping inside marketdata's jar, so whoever owned the
+schema owned the market. Subsystems can now depend on a shared contracts artifact and on each other's
+*interfaces*, and the composition still works. That is a genuine component-market shape rather than a
+set of libraries that happen to know each other's classes.
+
+## 2. A jar can declare its own integration contract
+
+Each subsystem jar now carries the entry point in its manifest, next to the annotations, where it
+travels with the artifact:
+
+```
+Fluxtion-Entry-Point: com.vendor.pricing.Pricing
+Fluxtion-Entry-Constructor: (com.vendor.marketdata.MarketData)
+Fluxtion-Requires: marketdata
+Fluxtion-Composite: true
+```
+
+One command reads all five, and it cannot drift from the jar the way prose can. **Caveat found while
+building it:** manifest values wrap at 72 bytes, so a long constructor signature is split across
+continuation lines that begin with a space. A reader must unfold them — `grep '^Fluxtion'` silently
+truncates, which is exactly the class of quiet error this project keeps recording.
+
+## Consequences for the next round
+
+- The five libraries are rebuilt against a shared `contracts` artifact.
+- Integration metadata lives in the manifest; the prose README shrinks to what the manifest cannot
+  say.
+- The remaining causes of the Fluxtion arm's wasted builds are addressed at the source: `FQN.md` is
+  generated from the runtime jar, the `generated.dependents` scoping is documented by package, and
+  the strategy swap is a one-line `registerService` the docs already carried but the arm reimplemented
+  in 25 lines.

@@ -1,0 +1,6 @@
+Fluxtion-Entry-Point: com.vendor.capital.Capital
+Fluxtion-Entry-Constructor: (com.vendor.risk.Risk)
+Fluxtion-Requires: risk
+Fluxtion-Composite: true
+Implementation-Title: capital
+Implementation-Version: 1.0

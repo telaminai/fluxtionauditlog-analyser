@@ -1,0 +1,6 @@
+Fluxtion-Entry-Point: com.vendor.pricing.Pricing
+Fluxtion-Entry-Constructor: (com.vendor.marketdata.MarketData)
+Fluxtion-Requires: marketdata
+Fluxtion-Composite: true
+Implementation-Title: pricing
+Implementation-Version: 1.0

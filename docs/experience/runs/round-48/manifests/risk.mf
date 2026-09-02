@@ -1,0 +1,6 @@
+Fluxtion-Entry-Point: com.vendor.risk.Risk
+Fluxtion-Entry-Constructor: (com.vendor.marketdata.MarketData,com.vendor.liquidity.Liquidity)
+Fluxtion-Requires: marketdata,liquidity
+Fluxtion-Composite: true
+Implementation-Title: risk
+Implementation-Version: 1.0
