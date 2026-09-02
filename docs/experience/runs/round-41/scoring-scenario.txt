@@ -1,0 +1,12 @@
+# held out: never shown to either arm. Exercises the 2.0 spread multiplier.
+CONFIG,volFactor,2.0
+CONFIG,chargePct,0.15
+TICK,DEMO,100.0,104.0
+RATE,USD,1.5
+TRADE,DEMO,500.0,102.0
+CONFIG,spreadMult,4.0
+TICK,DEMO,90.0,95.0
+CONFIG,unrelatedKey,7.0
+RATE,USD,0.5
+TRADE,DEMO,25.0,92.5
+CONFIG,spreadMult,1.0
