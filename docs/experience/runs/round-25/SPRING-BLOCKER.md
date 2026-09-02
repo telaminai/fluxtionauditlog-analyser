@@ -32,7 +32,36 @@ every bean whose class is missing, deriving constructor parameters from `constru
 a node class and re-running it regenerates a compiling shell. This is the mechanical no-thought
 translation the owner described, and it needs no service.
 
-## What blocks it
+## What blocks it — diagnosed precisely
+
+**No property on `fluxtionSpringConfig` is writable, including `eventTypes`.** That is the most basic
+element of the published contract, so the failure is not about audit specifically — the whole
+`FluxtionSpringConfig` bean is unusable through `springToFluxtion` in this configuration.
+
+```
+Invalid property 'eventTypes' of bean class [FluxtionSpringConfig]:
+  Bean property 'eventTypes' is not writable or has an invalid setter method.
+```
+
+In `fluxtion-builder-1.0.66` every getter/setter pair matches exactly:
+
+```
+public java.util.List<java.lang.String> getEventTypes();
+public void setEventTypes(java.util.List<java.lang.String>);
+public EventLogControlEvent$LogLevel getLogLevel();
+public void setLogLevel(EventLogControlEvent$LogLevel);
+```
+
+So **the class the plugin introspects is not the one on the project classpath** — version skew between
+`fluxtion-maven-plugin:1.3.0` and `fluxtion-builder:1.0.66`. The published contract at
+`fluxtion-playground.dev/spring-authoring/contract.md` documents `logLevel` as *"Enables Fluxtion event
+audit at that level"* and `eventTypes` as a required list, and neither can be set.
+
+**A bean file with no `fluxtionSpringConfig` bean at all does build a working graph** — the plugin treats
+every bean as a node. So the simple wiring case works; the contract that carries event types, audit,
+service bindings and handler bindings does not.
+
+## Original symptom
 
 Enabling the audit log fails. Both documented-looking routes are rejected:
 

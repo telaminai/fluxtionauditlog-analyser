@@ -1,26 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- THIS FILE IS THE GRAPH. Every node is a bean; every parent is a constructor-arg ref.
-     Adding a node = adding a bean. Nothing else registers nodes. -->
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
            https://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <!-- WITHOUT THIS BEAN THE AUDIT LOG IS SILENTLY EMPTY. It is the Spring equivalent of
-         cfg.addEventAudit(...) on the Java route. -->
-    <bean id="fluxtionSpringConfig" class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
-        <property name="auditors">
+    <bean id="fluxtionSpringConfig"
+          class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+        <property name="eventTypes">
             <list>
-                <bean class="com.telamin.fluxtion.runtime.audit.EventLogManager"/>
+                <value>com.acme.app.Reading</value>
+                <value>com.acme.app.Limit</value>
             </list>
         </property>
+        <property name="nodeBeans">
+            <list>
+                <value>sensorState</value>
+                <value>limitStore</value>
+                <value>thresholdAlert</value>
+            </list>
+        </property>
+        <property name="logLevel" value="INFO"/>
     </bean>
 
     <bean id="sensorState" class="com.acme.app.SensorState"/>
     <bean id="limitStore"  class="com.acme.app.LimitStore"/>
-
-    <!-- two parents: sensorState triggers this node, limitStore is data only.
-         Which is which is decided in the Java class by @NoTriggerReference, not here. -->
     <bean id="thresholdAlert" class="com.acme.app.ThresholdAlert">
         <constructor-arg ref="sensorState"/>
         <constructor-arg ref="limitStore"/>
