@@ -107,14 +107,52 @@ Preventive text is invisible to the runs that need it least. **Only a measuremen
 author's report that a section was unused is not evidence for deletion; it is the expected report
 from a run the section protected.
 
-### P3 — cost tracks comprehension, not authoring
+### P3 — cost tracks TURNS, not words
 
 Introspection put reading and component selection at **32–50% of effort**, and writing the
-integration at **5–10%**. This is why manual size dominated every measurement and why **indexing the
-artefact beat every documentation change**.
+integration at **5–10%**.
 
-> **Move the answer into the artefact before writing prose about it.** Every instruction competes
-> with a manifest entry that would make it unnecessary.
+**An earlier draft of this spec said "manual size dominated every measurement". That is measurably
+wrong** and is corrected here, because the correction makes the argument stronger rather than weaker.
+Across the fifteen cells:
+
+| driver | correlation with weighted cost |
+|---|---|
+| **turns** | **r = +0.955** |
+| manual words | r = +0.687 |
+| `javap` calls | r = +0.528 |
+
+The decisive pair: **cell B (879 words, 85 turns, 4.17M) against cell C (2,342 words, 85 turns,
+4.13M)** — 2.7× the manual, same turns, fractionally *cheaper*. Words correlate at all only because
+large manuals *caused* more turns; they cost little directly.
+
+**The mechanism is prompt caching.** A stable prefix is re-read at 0.1× base input price, so a manual
+that does not change between turns is already amortised. Cutting words from it wins almost nothing;
+cutting *turns* wins everything. Cell J (848 words, 72 turns, 2.91M) beats cell B (879 words, 85
+turns, 4.17M) on **13 turns**, at a near-identical word count.
+
+> **Move the answer into the artefact before writing prose about it** — not to shorten the prompt, but
+> because a precomputed answer removes a turn and prose does not. Every instruction competes with a
+> manifest entry that would make a round-trip unnecessary.
+
+**Corollary — the tax argument is weaker than it looks, and the spec should not lean on it.** "Charged
+against every turn" is true at 0.1×, not 1×. An instruction that costs words but saves even one turn
+is worth keeping. The case for minimality rests on *harm* — the worked example at +28 turns, the
+procedure at 21 `javap` calls — not on prompt length.
+
+### P3a — do not optimise below the cache floor
+
+`Claude Haiku 4.5` has a **4,096-token minimum cacheable prefix**; below it, requests are *silently*
+processed uncached with no error. The measured optimum's manual is 659 words — roughly 880 tokens.
+
+A prefix trimmed under the floor pays **1×** on every token every turn instead of **0.1×**, so
+shrinking a manual can make each turn more expensive per token. In an agent loop the accumulating
+tool output usually crosses the floor within a few turns, which bounds the exposure to the opening
+turns — but the effect is real and non-monotonic, and it is invisible unless
+`usage.cache_read_input_tokens` is checked.
+
+**Any future round MUST record `cache_creation_input_tokens` and `cache_read_input_tokens`**, because
+a cost comparison between two prefix sizes is meaningless if one of them was silently uncached.
 
 ### P4 — tool knowledge is fair; task knowledge is not
 
