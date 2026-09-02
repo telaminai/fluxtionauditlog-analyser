@@ -1,9 +1,18 @@
 package com.vendor.marketdata;
-/** The published face of the marketdata subsystem: one class, its whole subtree inside. */
+/**
+ * The published face of the marketdata subsystem.
+ * Two constructors on purpose: the no-arg one is what a consumer declares, and it builds the
+ * subtree; the all-fields one is what the generator needs so it can reconstruct the subtree in
+ * the generated processor.
+ */
 public class MarketData {
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final MdTick   tick   = new MdTick();
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final MdConfig config = new MdConfig();
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Mid      mid    = new Mid(tick);
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Depth    depth  = new Depth(tick);
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Vol      vol    = new Vol(config, mid);
+    public final MdTick tick; public final MdConfig config;
+    public final Mid mid; public final Depth depth; public final Vol vol;
+    public MarketData() {
+        this.tick = new MdTick(); this.config = new MdConfig();
+        this.mid = new Mid(tick); this.depth = new Depth(tick); this.vol = new Vol(config, mid);
+    }
+    public MarketData(MdTick tick, MdConfig config, Mid mid, Depth depth, Vol vol) {
+        this.tick = tick; this.config = config; this.mid = mid; this.depth = depth; this.vol = vol;
+    }
 }

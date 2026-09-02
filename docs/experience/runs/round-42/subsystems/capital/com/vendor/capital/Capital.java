@@ -1,12 +1,14 @@
 package com.vendor.capital;
 import com.vendor.risk.Risk;
 public class Capital {
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final CpTrade  trade  = new CpTrade();
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final CpConfig config = new CpConfig();
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Charge   charge;
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Buffer   buffer;
+    public final CpTrade trade; public final CpConfig config;
+    public final Charge charge; public final Buffer buffer;
     public Capital(Risk risk) {
-        charge = new Charge(config, risk.exposure);
-        buffer = new Buffer(trade, charge, risk.var);
+        this.trade = new CpTrade(); this.config = new CpConfig();
+        this.charge = new Charge(config, risk.exposure);
+        this.buffer = new Buffer(trade, charge, risk.var);
+    }
+    public Capital(CpTrade trade, CpConfig config, Charge charge, Buffer buffer) {
+        this.trade = trade; this.config = config; this.charge = charge; this.buffer = buffer;
     }
 }

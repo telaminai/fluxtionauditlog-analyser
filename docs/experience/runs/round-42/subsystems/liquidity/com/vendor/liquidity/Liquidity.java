@@ -2,11 +2,13 @@ package com.vendor.liquidity;
 import com.vendor.marketdata.MarketData;
 import com.vendor.pricing.Pricing;
 public class Liquidity {
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final LqTick tick = new LqTick();
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Book   book;
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Score  score;
+    public final LqTick tick; public final Book book; public final Score score;
     public Liquidity(MarketData md, Pricing px) {
-        book  = new Book(tick, md.depth);
-        score = new Score(px.adjusted, book);
+        this.tick = new LqTick();
+        this.book = new Book(tick, md.depth);
+        this.score = new Score(px.adjusted, book);
+    }
+    public Liquidity(LqTick tick, Book book, Score score) {
+        this.tick = tick; this.book = book; this.score = score;
     }
 }

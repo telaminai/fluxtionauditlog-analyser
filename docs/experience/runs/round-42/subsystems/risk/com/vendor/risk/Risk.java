@@ -2,14 +2,16 @@ package com.vendor.risk;
 import com.vendor.marketdata.MarketData;
 import com.vendor.liquidity.Liquidity;
 public class Risk {
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final RkTrade  trade = new RkTrade();
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final RkRate   rate  = new RkRate();
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Notional notional;
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Exposure exposure;
-    @com.telamin.fluxtion.runtime.annotations.builder.FluxtionIgnore public final Var      var;
+    public final RkTrade trade; public final RkRate rate;
+    public final Notional notional; public final Exposure exposure; public final Var var;
     public Risk(MarketData md, Liquidity lq) {
-        notional = new Notional(trade, md.mid);
-        exposure = new Exposure(notional, lq.score);
-        var      = new Var(rate, exposure, md.vol);
+        this.trade = new RkTrade(); this.rate = new RkRate();
+        this.notional = new Notional(trade, md.mid);
+        this.exposure = new Exposure(notional, lq.score);
+        this.var = new Var(rate, exposure, md.vol);
+    }
+    public Risk(RkTrade trade, RkRate rate, Notional notional, Exposure exposure, Var var) {
+        this.trade = trade; this.rate = rate;
+        this.notional = notional; this.exposure = exposure; this.var = var;
     }
 }
