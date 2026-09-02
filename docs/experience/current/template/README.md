@@ -46,32 +46,53 @@ Delete that one annotation and cycle 6 runs `thresholdAlert` too — re-judging 
 on a cycle where nothing was measured. Three independent authors have shipped that bug.
 
 
-## How to check your engine — do this before reading any source
+## How to build this — follow the steps, in order
 
-`./trace.sh <scenario-file>` prints, for each event, which nodes ran and in what order, then the
-decisions produced. That is your orchestration as executed, not as intended.
+Do not design the whole engine and then build it. Build the skeleton, prove it runs, then fill it in.
+Each step below is cheap to check and rules out a whole class of failure, so a bug found at step *n*
+cannot be hiding behind anything from steps 1..n-1.
 
-Work through it in this order. Each step rules out a whole class of problem:
+**Step 1 — a graph exists and runs.** `GraphExistsTest` ships green and proves the generator produced a
+processor and at least one node ran in it. Keep it passing from your first commit. If it fails, nothing
+below is worth attempting: your builder registered nothing, or `configureGeneration` set no class name.
+This failure is otherwise silent and has cost two authors fifteen build cycles each.
 
-**1. Is there a log at all?** If `trace.sh` says there is none, you have not enabled auditing, and
-every other check below is blind. Fix that first.
+**Step 2 — shell nodes, no logic.** Write every node you think you need with **no implementation**: the
+fields that make it a parent, the `@OnEventHandler` or `@OnTrigger` method, one `auditLog.info(...)`
+line, and `return true` or a hardcoded value. Nothing else. This is quick and it is throwaway thinking
+only if you skip it.
 
-**2. Did the right nodes run, in the right order?** For each event, the nodes you expect should appear,
-and a node whose inputs did not move should not. A node that never appears is a **wiring** problem —
-it is not reachable, or its parent is not a field, or a `@NoTriggerReference` is on the wrong field.
-A node that appears when it should not is the opposite. **This is the only question the graph can get
-wrong, and the log answers it directly.**
+**Step 3 — prove the orchestration with the shells.** Register them, run `./trace.sh` on a scenario per
+event type, and check the audit log: **for each event, do exactly the nodes you expect appear, in the
+order you expect?** A node missing from a path is a wiring problem — not reachable, parent isn't a
+field, or a `@NoTriggerReference` on the wrong field. A node appearing where it should not is the
+reverse. **Fix all of this before writing a single line of business logic.** This is the only thing the
+graph can get wrong, and with empty nodes it is the *only* thing that can be wrong.
 
-**3. Did the right nodes run but the wrong decisions come out?** Then the orchestration is correct and
-the bug is in ordinary Java inside a node — a comparison, a boundary, a piece of state. The log tells
-you *which* node, so read that one.
+**Step 4 — implement one node, and unit test its logic directly.** Not through the graph. Construct the
+node, call its method, assert the result. This test does not involve the framework at all.
 
-**4. Did the right nodes run and no decisions come out?** The decision was computed and lost on the way
-to the output. Check the path from the node to the file; nothing in the graph is wrong.
+**Step 5 — test that the same node fires when driven by events.** Now through the graph: feed the events
+that should reach it, and assert from the audit log that it ran and decided what you expect. Steps 4 and
+5 are different questions and both are needed — a node whose logic is right can still never be reached.
 
-Run one scenario per rule, and check the decisions against what you expect **before** you believe a
-passing test. A test you wrote asserts what you already believed.
+**Step 6 — repeat 4 and 5 for every node**, then assemble and test the whole engine.
 
+## When something does not work, ask these in order
+
+Do not guess and do not restructure the builder hopefully. Work down the list; the first "no" is the bug.
+
+1. **Is the node's logic right?** Unit test it directly, no framework. If it is wrong here, the graph is
+   irrelevant.
+2. **Does the node fire when driven by events?** Feed the events through the graph and read the audit
+   log. If it never appears, it is a wiring problem, not a logic problem.
+3. **Is the graph built?** Run `GraphExistsTest`. If it fails, your builder registers nothing.
+4. **Does the orchestration behave?** `./trace.sh <scenario>` — per event, which nodes ran and what came
+   out. If the right nodes ran and no decision appeared, the decision is being lost between the node and
+   your output, and nothing in the graph is wrong.
+
+`./trace.sh` is what you use **when a test fails**. It is not a substitute for tests: it shows you only
+the scenarios you thought to run, and the bugs that survive are always in the ones you did not.
 
 ## To build your own graph
 
