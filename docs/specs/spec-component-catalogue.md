@@ -78,6 +78,89 @@ Fluxtion-Services: AlertSink.publish(String); FeeStrategy.fee(double)/name()
 
 so an adapter author never inspects a record to construct one.
 
+## Three annotations the goal needs, and only three
+
+Most of the catalogue is derivable from bytecode: field names, the interfaces a node implements,
+constructor parameter types, and the event types of `@OnEventHandler` methods. **Four facts are not**,
+and each gets one annotation. Nothing else is added — an annotation that restates something the
+compiler already knows is another thing that can drift.
+
+### `@FluxtionComponent` — on the entry-point class
+
+```java
+@FluxtionComponent(description = "adds volatility and a smoothed mid")
+public class MarketDataPlus { ... }
+```
+
+Marks a class as a **published entry point** rather than an internal holder, and carries the one-line
+description a consumer reads when choosing between variants. Detecting entry points by heuristic
+(public final node fields + two constructors) works but silently reclassifies any class that happens
+to fit the shape; declaring it is cheaper than debugging it. The description cannot come from javadoc
+because javadoc is not in the bytecode the goal reads.
+
+### `@ConsumerConstructor` — on the constructor a consumer calls
+
+```java
+@ConsumerConstructor
+public MarketDataPlus() { ... }                                   // yours
+public MarketDataPlus(MdTick t, MdConfig c, Mid m, ...) { ... }   // the generator's
+```
+
+Every entry point has two constructors and the distinction is invisible to bytecode — both are public,
+both take reference types. The goal must know which to publish as `Fluxtion-Constructor`, and a
+consumer who declares a bean against the wrong one gets `FLX-1001` at best and a silently smaller
+graph at worst.
+
+### `@EventFilter` — on a filtered event handler
+
+```java
+@OnEventHandler @EventFilter("volFactor")
+public boolean onConfig(Events.Config c) {
+    if (!"volFactor".equals(c.key())) return false;
+    ...
+}
+```
+
+A handler that accepts only some instances of an event type filters on a **string literal inside a
+method body**, which the goal cannot see without bytecode analysis. This is what lets the catalogue
+emit `Fluxtion-Consumes: Config[volFactor]`, and it is the fact that tells a consumer which component
+owns which configuration key. In round 48 an integrator that could not see this **hard-coded a
+whitelist of config keys into its own application** — the vendor's internal knowledge copied into the
+consumer's code, guaranteed to break on the vendor's next release.
+
+**Optional, and only if the framework wants it:** the same annotation could feed the generator's
+filter dispatch, replacing the hand-written `if (!"volFactor".equals(...)) return false;` guard. That
+is a separate change and this spec does not depend on it.
+
+## Publishing the instructions: what belongs in the AI-facing documentation
+
+The catalogue only pays off if the consumer knows how to read it. Round 48 measured which
+instructions are load-bearing, by deleting each and re-running. **The result is small enough to state
+in full**, and it belongs in Fluxtion's public AI documentation
+([`docs/claude.txt`](https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt)) —
+the file an agent reads before writing anything.
+
+| section | words | measured cost of removing it |
+|---|---|---|
+| **reading a catalogue** — the one unfolding command, and that `name=Interface` is *field name* and *published type* | ~120 | 111 → 72 turns when added; javap 12 → 6 |
+| **an entry point is not a node** — it carries no annotations, never becomes dirty, cannot be a trigger parent; wire `#{bean.field}`, never `ref="bean"` | ~170 | consumer declared **27 vendor internals** instead of 5 components |
+| **what you must not write** — no node classes, no event types, no aggregator, no reflection | ~166 | **wrong answer**, 3 failed builds, +5.8M tokens |
+| **the runner shape** — capture the audit log, register services before `init()`, pump events | ~200 | 130 → 102 turns |
+
+**Total ≈ 660 words.** That is the measured adoption cost of authoring correctly against Fluxtion as
+a component consumer, and it is the number worth quoting rather than any claim of superiority.
+
+Two things the same measurements say should **not** go in:
+
+- **A worked example.** It produced the fewest builds in the study (2) — and then became *harmful*
+  once the catalogue was indexed, because it teaches an agent to `javap` for facts the manifest now
+  answers. Discovery aids expire when discovery is precomputed.
+- **A step-by-step procedure.** Its "one `javap` per entry point" step produced the most `javap` calls
+  of any cell.
+
+Both were written to help and both became instructions to do unnecessary work. **Documentation that
+describes *how to find out* should be deleted the moment the artefact can *tell* you.**
+
 ## Validation the goal should perform, and fail the build on
 
 Each corresponds to a silent failure measured in round 48. **Every one of these currently produces a
