@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  THIS FILE IS THE GRAPH.
+
+  Every node is a bean. Every parent is a constructor-arg ref. Nothing here declares what the events
+  are, and nothing here declares what order anything runs in - both are derived from the annotations
+  and the references below.
+
+  That is the whole integration surface. Adding a node means adding a bean; the dispatch order is
+  recomputed. See docs/experience/runs/round-37 for the same thing done with five subsystems shipped
+  as jars with no source, where one vendor's stages end up split either side of another vendor's.
+-->
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
@@ -6,11 +17,14 @@
 
     <bean id="fluxtionSpringConfig"
           class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
-        <!-- The only property this graph needs. logLevel enables the audit log.
-             eventTypes is NOT required: handlers are found from the @OnEventHandler annotations.
-             nodeBeans is NOT required either: every bean below is a node, and its parents are its
-             constructor-arg refs. Both were present and inert; removing them took this file from
-             86 lines to 54 with no change in behaviour (6 tests green, 12/12 on the probes). -->
+        <!-- THE ONLY PROPERTY THIS GRAPH NEEDS. logLevel enables the audit log; without it the log
+             is silently empty and every check that reads it is blind.
+
+             Two properties that were here and did nothing:
+               eventTypes  - handlers are found from the @OnEventHandler annotations on the beans.
+               nodeBeans   - every bean below IS a node; its parents are its constructor-arg refs.
+             Both were inert. Removing them took this file from 86 lines to 57, with no change in
+             behaviour: 6 tests green, 12/12 on the boundary probes. Do not add them back. -->
         <property name="logLevel" value="INFO"/>
     </bean>
 
