@@ -229,6 +229,40 @@ if they hold. Full treatment in [`spec-component-catalogue.md`](spec-component-c
   fixture: a value silently truncated at 72 bytes, and a notation one author read as "this field does
   not exist", costing four lookups.
 
+### P4a — the assembly is free; instructions should only cover judgement
+
+**Measured after this spec was first written, and it narrows the spec's own scope.**
+[`tools/bean-resolver.py`](../../tools/bean-resolver.py) resolves `Fluxtion-Requires` against
+`Fluxtion-Provides` as a constraint solve and emits the bean file. Against the round-48 fixture it
+produces a **unique** selection **identical to the measured optimum in both components and wiring**;
+the build is green, and the alerts are **byte-identical to the expected output**.
+
+| | cell O — a model authored it | the resolver |
+|---|---|---|
+| turns | 51 | — |
+| `mvn` runs | 5 | — |
+| weighted cost | **1.98M** | **0** |
+
+Against round 55's fixture — six entry points sharing one type surface — it reports the ambiguity,
+isolates the undecided jar, prints the candidate descriptions, and **refuses to guess**.
+
+That is the boundary, and it is now measured rather than argued:
+
+| half | input → output | who |
+|---|---|---|
+| **assembly** | type surface → XML | a resolver — free, deterministic |
+| **selection** | business requirement → `Fluxtion-Description` | **a model, and only here** |
+
+**Normative consequence for this spec.** N1–N4 were earned on a task that included assembly. Assembly
+should not be in the task. **Future instruction sets SHOULD assume the bean file is generated and
+cover only selection**, and any future round SHOULD measure selection alone. N3 (the catalogue read)
+and N4 (the supplied runner) are candidates for retirement on that basis — both exist to help an
+author do work a resolver now does — and MUST be re-ablated against a selection-only task before
+being kept.
+
+**And the series headline is restated accordingly:** not "7.5× cheaper to author", but **the assembly
+is free and you pay only for judgement.**
+
 ## Protocol for changing this spec
 
 An instruction may be **added** only with a measurement showing that its absence costs correctness,
