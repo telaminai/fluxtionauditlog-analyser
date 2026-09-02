@@ -46,6 +46,27 @@ Delete that one annotation and cycle 6 runs `thresholdAlert` too — re-judging 
 on a cycle where nothing was measured. Three independent authors have shipped that bug.
 
 
+## Why the steps are in this order
+
+Building an event-driven app is a **combinatorial problem made of known parts**. You have an
+orchestration builder you trust and nodes you trust. You hand the nodes to the builder, it produces the
+graph, and then there are exactly two things that can be wrong and two places to look:
+
+| question | answer it with | if wrong, fix |
+|---|---|---|
+| **is the path right?** did the nodes you expect run, in the order you expect | the audit log / `./trace.sh` | the **orchestration** |
+| **is the behaviour right?** given that path, are the values and decisions correct | the audit log and your tests | the **node** |
+
+**Fix one or the other, never both at once.** That is the whole discipline. A wrong value in a node you
+have not proved is reachable tells you nothing — you cannot know whether the number is wrong or the node
+simply never ran with the inputs you assumed. Change both together and you learn nothing from the
+result, because two variables moved.
+
+This is why the build order puts shell nodes before logic. With every node empty, **the only thing that
+can be wrong is the path**, so a single trace answers the first question completely. Once the path is
+proved, every later failure is a node, and the log names which one. Authors who skip this — including
+the author of this file, on the first attempt — spend their build cycles unable to tell the two apart.
+
 ## How to build this — follow the steps, in order
 
 Do not design the whole engine and then build it. Build the skeleton, prove it runs, then fill it in.
