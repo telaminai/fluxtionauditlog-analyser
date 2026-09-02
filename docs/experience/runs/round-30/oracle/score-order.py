@@ -64,17 +64,25 @@ def main(path):
 
     # absence of commits is a FAILURE, not a pass. An engine that never emits them has not implemented
     # the after-event phase, and an "if commits and ..." check would score that as correct.
+    # O4 is the MIRROR of O2. Event-in goes shallow to deep per subject; the unwind goes deep to
+    # shallow per subject. Independent subjects (two books) may be in any relative order in both
+    # phases, so neither a global reverse nor globally descending depth is the right test - both were
+    # tried and both failed a correct engine.
     cbad, any_commit = [], False
     for n, v in rows.items():
-        evals = [x for x in v if not x.startswith("commit:")]
         commits = [x[len("commit:"):] for x in v if x.startswith("commit:")]
-        if commits:
-            any_commit = True
-            if commits != list(reversed(evals)):
-                cbad.append(n)
-        elif evals:
-            cbad.append(n)          # nodes evaluated but nothing committed
-    R.append(("O4 commits are the reverse of evaluation", any_commit and not cbad,
+        if not commits:
+            continue
+        any_commit = True
+        per = {}
+        for x in commits:
+            d = depth_of(x)
+            if d is None:
+                continue
+            per.setdefault(subject(x), []).append(d)
+        if any(seq != sorted(seq, reverse=True) for seq in per.values()):
+            cbad.append(n)
+    R.append(("O4 within a subject, commits unwind deep to shallow", any_commit and not cbad,
               ("no commit entries emitted at all" if not any_commit else f"events {cbad[:3]}")))
 
     ok = sum(1 for _, p, _ in R if p)
