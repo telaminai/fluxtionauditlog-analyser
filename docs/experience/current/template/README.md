@@ -49,7 +49,9 @@ on a cycle where nothing was measured. Three independent authors have shipped th
 
 1. Replace `Reading` with your events, `SensorState`/`ThresholdAlert` with your nodes.
 2. Register the root of your instance tree in `AppGraphBuilder.buildGraph` — anything reachable by
-   constructor reference from what you `addNode` is in the graph.
+   constructor reference from what you `addNode` is in the graph. **Keep a class implementing
+   `FluxtionGraphBuilder`**: it is what the Maven goal scans for, and with none present generation
+   silently produces nothing. Never hand-write into the `generated` package — that is output.
 3. `./run.sh`, then read `logs/audit.yaml`.
 
 ## What the audit log gives you free

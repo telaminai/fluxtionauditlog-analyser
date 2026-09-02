@@ -7,7 +7,15 @@ import com.telamin.fluxtion.builder.compile.config.FluxtionCompilerConfig;
 import com.telamin.fluxtion.builder.generation.config.EventProcessorConfig;
 import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
 
-/** Maven's {@code scan} goal finds this at {@code process-classes} and calls it. */
+/**
+ * Maven's {@code scan} goal finds this at {@code process-classes} and calls it.
+ *
+ * <p><b>This class is what makes generation happen.</b> The goal scans for implementations of
+ * {@link FluxtionGraphBuilder}; if there is none, it silently generates nothing and the build then
+ * fails as though the plugin were broken. Rename it or rewrite it freely, but keep a class that
+ * implements this interface. One author deleted it while replacing the example nodes, concluded the
+ * plugin did not work, and hand-wrote a processor into the generated package — which is never the fix.
+ */
 public class AppGraphBuilder implements FluxtionGraphBuilder {
 
     @Override
