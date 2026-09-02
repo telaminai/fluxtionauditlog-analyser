@@ -75,7 +75,7 @@ dispatch, and it also *serialises* — destroying the instruction-level overlap 
 - **batch≥50** gives true throughput, but its histogram is of 100-event *means*. One 5 µs event hiding
   among 99 fast ones would never appear.
 
-## 4. The audit log is NOT zero-GC — claim refuted
+## 4. The audit log is not zero-GC BY DEFAULT — and the default is a one-argument fix
 
 Asked directly whether the audit log allocates, I had asserted "by design" without measuring, and the
 `LogRecord` API argues the other way: it has `clear()`, a reusable buffer, and **primitive overloads**
@@ -123,10 +123,53 @@ The decomposition that follows: at ERROR the three nodes' own `info()` calls are
 so **184 B/event is framework tracing that happens regardless of what the nodes log**. INFO adds a
 further **276 B/event** for the three node log statements and publication.
 
-**The result that should go upstream is the ERROR row.** Nothing is published — the sink sees 2
-records in 20,000,000 events — and it still allocates **184 bytes per event** and provokes 12
-collections. Suppression by level is happening *after* the cost is paid. Attributing that precisely
-needs a profiler, so it is reported as measured and not diagnosed here.
+### Traced, and the conclusion I was about to file was wrong
+
+Asked to trace it. JFR allocation profiling (`jdk.ObjectAllocationSample`) names one site for 97.7%
+of the ERROR-level allocation:
+
+```
+java.lang.StringBuilder.toString()
+com.telamin.fluxtion.runtime.audit.LogRecord.triggerObject(Object)  line 210
+com.telamin.fluxtion.runtime.audit.EventLogManager.eventReceived(Object)
+com.bench2.gen.AuditProcessor.auditEvent(Object)          <- once per dispatch
+com.bench2.gen.AuditProcessor.handleEvent(MarketTick)
+```
+
+**The triggering event is stringified once per dispatch, before any level check.** That is the whole
+184 B/event.
+
+**It is a default, not a defect — and that correction only came from testing it.** `addEventAudit` has
+overloads taking booleans, and the second one controls exactly this. Same graph, same nodes, only the
+builder call differs:
+
+| builder call | level | throughput | ns/event | bytes/event | records |
+|---|---|---|---|---|---|
+| `addEventAudit(INFO)` | ERROR | 7,008,515 /s | 142.7 | **184.0** | 0 |
+| `addEventAudit(INFO, false)` | ERROR | 8,277,522 /s | 120.8 | **0.0** | 0 |
+| `addEventAudit(INFO, false, false)` | ERROR | 9,061,427 /s | 110.4 | **0.0** | 0 |
+| `addEventAudit(INFO)` | INFO | 2,265,304 /s | 441.4 | 460.0 | 10,000,000 |
+| `addEventAudit(INFO, false)` | INFO | 2,359,832 /s | 423.8 | **276.0** | 10,000,000 |
+| `addEventAudit(INFO, false, false)` | INFO | 2,798,140 /s | 357.4 | 276.0 | 10,000,000 |
+
+**So the audit machinery itself CAN be zero-GC.** With event-stringification off, an audit-enabled
+graph at a suppressing level allocates **0.0 bytes per event** — the §1 result survives with auditing
+compiled in and armed.
+
+The remaining **276 B/event at INFO is the cost of producing text**, which is what was actually asked
+for at that level. `DataFlow.setAuditLogRecordEncoder(LogRecord)` exists, so that is pluggable and a
+binary encoder is the obvious route; not measured here.
+
+The third boolean buys a further ~10 ns/event at no allocation change. What it controls is not
+established here and is deliberately not guessed.
+
+**What still deserves to go upstream, narrowed:** the default pays 184 B/event **at levels where
+nothing is published** — the sink saw 0 records in 10,000,000 events and the cost was charged anyway.
+The knob exists; the default is the wrong way round, and nothing in the docs points an author at it.
+
+**Retracted:** the earlier framing of this as "the audit log is not zero-GC, claim refuted" was too
+strong. Correct statement: *the audit log is not zero-GC by default, is zero-GC when configured, and
+costs 276 B/event when it is actually producing records.*
 
 Also worth stating: **audit compiled-in but set to NONE costs 37.0 ns/event against 17.9 ns for the
 build with no audit at all** — roughly 2×, at zero allocation. Availability is not free either.
