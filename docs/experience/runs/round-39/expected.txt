@@ -1,0 +1,9 @@
+config|marketdata.configIn=3.500000|marketdata.vol=0.000000|risk.var=0.000000|capital.buffer=0.000000
+config|capital.configIn=0.250000|capital.charge=0.000000|capital.buffer=0.000000
+rate|pricing.rateIn=0.800000|risk.rateIn=0.800000|pricing.spread=0.000000|risk.var=0.000000|capital.buffer=0.000000
+tick|liquidity.tickIn=4.000000|marketdata.tickIn=4.000000|marketdata.depth=400.000000|liquidity.book=1600.000000|marketdata.mid=52.000000|pricing.adjusted=54.080000|risk.notional=52.000000|liquidity.score=7.008000|risk.exposure=52.364416|capital.charge=13.091104|pricing.spread=43.264000|marketdata.vol=1.820000|risk.var=76.242590|capital.buffer=13.853530
+trade|capital.tradeIn=250.000000|risk.tradeIn=250.000000|risk.notional=13000.000000|risk.exposure=13091.104000|capital.charge=3272.776000|risk.var=19060.647424|capital.buffer=50924.394560
+tick|liquidity.tickIn=1.000000|marketdata.tickIn=1.000000|marketdata.depth=100.000000|liquidity.book=100.000000|marketdata.mid=60.500000|pricing.adjusted=61.105000|risk.notional=15125.000000|liquidity.score=6.210500|risk.exposure=15218.933812|capital.charge=3804.733453|pricing.spread=48.884000|marketdata.vol=2.117500|risk.var=25780.873878|capital.buffer=68256.918149
+rate|pricing.rateIn=1.250000|risk.rateIn=1.250000|pricing.spread=76.381250|risk.var=40282.615435|capital.buffer=104511.272041
+trade|capital.tradeIn=10.000000|risk.tradeIn=10.000000|risk.notional=605.000000|risk.exposure=608.757352|capital.charge=152.189338|risk.var=1611.304617|capital.buffer=313.319800
+config|marketdata.configIn=1.000000|marketdata.vol=0.605000|risk.var=460.372748|capital.buffer=198.226613

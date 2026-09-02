@@ -23,9 +23,9 @@
     <key id="fluxtion.relationshipCount" for="edge" attr.name="fluxtion.relationshipCount" attr.type="int"/>
     <graph edgedefault="directed">
         <data key="fluxtion.metaVersion">1.0</data>
-        <data key="fluxtion.sourceFingerprint">e43e5d9d2b7e1944d8b7253d0ba64e687c30520ca3f793660a0346b714aca15f</data>
-        <data key="fluxtion.nodeCount">18</data>
-        <data key="fluxtion.authoredNodeCount">7</data>
+        <data key="fluxtion.sourceFingerprint">26cde83f2e7f48acd8949242b8b3d67ec4c816ac7583dd38551e7299f34e4448</data>
+        <data key="fluxtion.nodeCount">34</data>
+        <data key="fluxtion.authoredNodeCount">20</data>
         <node id="ClockStrategyEvent">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
@@ -37,6 +37,17 @@
             <data key="fluxtion.kind">EVENT</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.time.ClockStrategy$ClockStrategyEvent</data>
         </node>
+        <node id="Config">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;Config&#10;class:com.vendor.Events$Config&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.vendor.Events$Config</data>
+        </node>
         <node id="EventLogControlEvent">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
@@ -47,6 +58,17 @@
             </data>
             <data key="fluxtion.kind">EVENT</data>
             <data key="fluxtion.class">com.telamin.fluxtion.runtime.audit.EventLogControlEvent</data>
+        </node>
+        <node id="Rate">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;Rate&#10;class:com.vendor.Events$Rate&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.vendor.Events$Rate</data>
         </node>
         <node id="ServiceListener">
             <data key="vertex_label">
@@ -63,12 +85,23 @@
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;Tick&#10;class:com.vendor.Tick&#10;"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;Tick&#10;class:com.vendor.Events$Tick&#10;"/>
                     <jGraph:Style properties="EVENT"/>
                 </jGraph:ShapeNode>
             </data>
             <data key="fluxtion.kind">EVENT</data>
-            <data key="fluxtion.class">com.vendor.Tick</data>
+            <data key="fluxtion.class">com.vendor.Events$Tick</data>
+        </node>
+        <node id="Trade">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;Event&gt;&gt;&#10;Trade&#10;class:com.vendor.Events$Trade&#10;"/>
+                    <jGraph:Style properties="EVENT"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT</data>
+            <data key="fluxtion.class">com.vendor.Events$Trade</data>
         </node>
         <node id="adjusted">
             <data key="vertex_label">
@@ -84,7 +117,39 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">5</data>
+            <data key="fluxtion.topologicalRank">11</data>
+        </node>
+        <node id="book">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:book&#10;class:com.vendor.liquidity.Book"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.vendor.liquidity.Book</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
+            <data key="fluxtion.topologicalRank">9</data>
+        </node>
+        <node id="buffer">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:buffer&#10;class:com.vendor.capital.Buffer"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.vendor.capital.Buffer</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
+            <data key="fluxtion.topologicalRank">26</data>
         </node>
         <node id="callbackDispatcher">
             <data key="vertex_label">
@@ -115,7 +180,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">10</data>
+            <data key="fluxtion.topologicalRank">19</data>
         </node>
         <node id="clock">
             <data key="vertex_label">
@@ -146,23 +211,55 @@
             <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
-            <data key="fluxtion.topologicalRank">12</data>
+            <data key="fluxtion.topologicalRank">22</data>
         </node>
-        <node id="depth">
+        <node id="cpConfig">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:depth&#10;class:com.vendor.marketdata.Depth"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:cpConfig&#10;class:com.vendor.capital.CpConfig"/>
                     <jGraph:Style properties="EVENTHANDLER"/>
                 </jGraph:ShapeNode>
             </data>
             <data key="fluxtion.kind">EVENT_HANDLER</data>
-            <data key="fluxtion.class">com.vendor.marketdata.Depth</data>
+            <data key="fluxtion.class">com.vendor.capital.CpConfig</data>
             <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
             <data key="fluxtion.topologicalRank">2</data>
+        </node>
+        <node id="cpTrade">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:cpTrade&#10;class:com.vendor.capital.CpTrade"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.vendor.capital.CpTrade</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">3</data>
+        </node>
+        <node id="depth">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:depth&#10;class:com.vendor.marketdata.Depth"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.vendor.marketdata.Depth</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
+            <data key="fluxtion.topologicalRank">8</data>
         </node>
         <node id="eventLogger">
             <data key="vertex_label">
@@ -178,7 +275,7 @@
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">3</data>
+            <data key="fluxtion.topologicalRank">4</data>
         </node>
         <node id="exposure">
             <data key="vertex_label">
@@ -194,23 +291,71 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">9</data>
+            <data key="fluxtion.topologicalRank">18</data>
+        </node>
+        <node id="lqTick">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:lqTick&#10;class:com.vendor.liquidity.LqTick"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.vendor.liquidity.LqTick</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">5</data>
+        </node>
+        <node id="mdConfig">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:mdConfig&#10;class:com.vendor.marketdata.MdConfig"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.vendor.marketdata.MdConfig</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">6</data>
+        </node>
+        <node id="mdTick">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:mdTick&#10;class:com.vendor.marketdata.MdTick"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.vendor.marketdata.MdTick</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">7</data>
         </node>
         <node id="mid">
             <data key="vertex_label">
                 <jGraph:ShapeNode>
                     <jGraph:Geometry height="70" width="160" x="20" y="20"/>
-                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:mid&#10;class:com.vendor.marketdata.Mid"/>
-                    <jGraph:Style properties="EVENTHANDLER"/>
+                    <jGraph:label text="id:mid&#10;class:com.vendor.marketdata.Mid"/>
+                    <jGraph:Style properties="NODE"/>
                 </jGraph:ShapeNode>
             </data>
-            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.kind">NODE</data>
             <data key="fluxtion.class">com.vendor.marketdata.Mid</data>
             <data key="fluxtion.framework">false</data>
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
-            <data key="fluxtion.callbackKinds">ON_EVENT</data>
-            <data key="fluxtion.topologicalRank">4</data>
+            <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
+            <data key="fluxtion.topologicalRank">10</data>
         </node>
         <node id="nodeNameLookup">
             <data key="vertex_label">
@@ -225,7 +370,7 @@
             <data key="fluxtion.framework">true</data>
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
-            <data key="fluxtion.topologicalRank">6</data>
+            <data key="fluxtion.topologicalRank">12</data>
         </node>
         <node id="notional">
             <data key="vertex_label">
@@ -241,7 +386,55 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">7</data>
+            <data key="fluxtion.topologicalRank">16</data>
+        </node>
+        <node id="pxRate">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:pxRate&#10;class:com.vendor.pricing.PxRate"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.vendor.pricing.PxRate</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">13</data>
+        </node>
+        <node id="rkRate">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:rkRate&#10;class:com.vendor.risk.RkRate"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.vendor.risk.RkRate</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">14</data>
+        </node>
+        <node id="rkTrade">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="&lt;&lt;EventHandle&gt;&gt;&#10;id:rkTrade&#10;class:com.vendor.risk.RkTrade"/>
+                    <jGraph:Style properties="EVENTHANDLER"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">EVENT_HANDLER</data>
+            <data key="fluxtion.class">com.vendor.risk.RkTrade</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_EVENT</data>
+            <data key="fluxtion.topologicalRank">15</data>
         </node>
         <node id="score">
             <data key="vertex_label">
@@ -257,7 +450,7 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
-            <data key="fluxtion.topologicalRank">8</data>
+            <data key="fluxtion.topologicalRank">17</data>
         </node>
         <node id="serviceRegistry">
             <data key="vertex_label">
@@ -273,7 +466,23 @@
             <data key="fluxtion.auditCapable">true</data>
             <data key="fluxtion.auditCapableVia">baseClass</data>
             <data key="fluxtion.callbackKinds">EXPORT_SERVICE</data>
-            <data key="fluxtion.topologicalRank">13</data>
+            <data key="fluxtion.topologicalRank">23</data>
+        </node>
+        <node id="spread">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:spread&#10;class:com.vendor.pricing.Spread"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.vendor.pricing.Spread</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
+            <data key="fluxtion.topologicalRank">20</data>
         </node>
         <node id="subscriptionManager">
             <data key="vertex_label">
@@ -289,7 +498,39 @@
             <data key="fluxtion.auditCapable">false</data>
             <data key="fluxtion.auditCapableVia">none</data>
             <data key="fluxtion.callbackKinds">SERVICE_REGISTERED,SERVICE_DEREGISTERED,TEAR_DOWN</data>
-            <data key="fluxtion.topologicalRank">11</data>
+            <data key="fluxtion.topologicalRank">21</data>
+        </node>
+        <node id="var">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:var&#10;class:com.vendor.risk.Var"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.vendor.risk.Var</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
+            <data key="fluxtion.topologicalRank">25</data>
+        </node>
+        <node id="vol">
+            <data key="vertex_label">
+                <jGraph:ShapeNode>
+                    <jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                    <jGraph:label text="id:vol&#10;class:com.vendor.marketdata.Vol"/>
+                    <jGraph:Style properties="NODE"/>
+                </jGraph:ShapeNode>
+            </data>
+            <data key="fluxtion.kind">NODE</data>
+            <data key="fluxtion.class">com.vendor.marketdata.Vol</data>
+            <data key="fluxtion.framework">false</data>
+            <data key="fluxtion.auditCapable">true</data>
+            <data key="fluxtion.auditCapableVia">baseClass</data>
+            <data key="fluxtion.callbackKinds">ON_TRIGGER</data>
+            <data key="fluxtion.topologicalRank">24</data>
         </node>
         <edge id="1" source="ClockStrategyEvent" target="clock">
             <data key="edge_label">
@@ -299,7 +540,23 @@
             <data key="fluxtion.handlerMethod">setClockStrategy</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="2" source="EventLogControlEvent" target="eventLogger">
+        <edge id="2" source="Config" target="cpConfig">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onConfig</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="3" source="Config" target="mdConfig">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onConfig</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="4" source="EventLogControlEvent" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -307,12 +564,28 @@
             <data key="fluxtion.handlerMethod">calculationLogConfig</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="3" source="ServiceListener" target="serviceRegistry">
+        <edge id="5" source="Rate" target="pxRate">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onRate</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="6" source="Rate" target="rkRate">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onRate</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="7" source="ServiceListener" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
         </edge>
-        <edge id="4" source="Tick" target="depth">
+        <edge id="8" source="Tick" target="lqTick">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -320,7 +593,7 @@
             <data key="fluxtion.handlerMethod">onTick</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="5" source="Tick" target="mid">
+        <edge id="9" source="Tick" target="mdTick">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -328,7 +601,23 @@
             <data key="fluxtion.handlerMethod">onTick</data>
             <data key="fluxtion.filterType">matched</data>
         </edge>
-        <edge id="6" source="adjusted" target="score">
+        <edge id="10" source="Trade" target="cpTrade">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onTrade</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="11" source="Trade" target="rkTrade">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.handlerMethod">onTrade</data>
+            <data key="fluxtion.filterType">matched</data>
+        </edge>
+        <edge id="12" source="adjusted" target="score">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -336,7 +625,23 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">adjusted</data>
         </edge>
-        <edge id="7" source="callbackDispatcher" target="context">
+        <edge id="13" source="adjusted" target="spread">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">adjusted</data>
+        </edge>
+        <edge id="14" source="book" target="score">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">book</data>
+        </edge>
+        <edge id="15" source="callbackDispatcher" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -344,7 +649,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dirtyStateMonitor</data>
         </edge>
-        <edge id="8" source="callbackDispatcher" target="context">
+        <edge id="16" source="callbackDispatcher" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -352,7 +657,15 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">eventDispatcher</data>
         </edge>
-        <edge id="9" source="clock" target="context">
+        <edge id="17" source="charge" target="buffer">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">charge</data>
+        </edge>
+        <edge id="18" source="clock" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -360,7 +673,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="10" source="clock" target="eventLogger">
+        <edge id="19" source="clock" target="eventLogger">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -368,7 +681,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">clock</data>
         </edge>
-        <edge id="11" source="context" target="serviceRegistry">
+        <edge id="20" source="context" target="serviceRegistry">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -376,7 +689,23 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">dataFlowContext</data>
         </edge>
-        <edge id="12" source="depth" target="adjusted">
+        <edge id="21" source="cpConfig" target="charge">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">cfg</data>
+        </edge>
+        <edge id="22" source="cpTrade" target="buffer">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">trade</data>
+        </edge>
+        <edge id="23" source="depth" target="adjusted">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -384,7 +713,15 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">depth</data>
         </edge>
-        <edge id="13" source="exposure" target="charge">
+        <edge id="24" source="depth" target="book">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">depth</data>
+        </edge>
+        <edge id="25" source="exposure" target="charge">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -392,7 +729,47 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">exposure</data>
         </edge>
-        <edge id="14" source="mid" target="adjusted">
+        <edge id="26" source="exposure" target="var">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">exposure</data>
+        </edge>
+        <edge id="27" source="lqTick" target="book">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">tick</data>
+        </edge>
+        <edge id="28" source="mdConfig" target="vol">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">cfg</data>
+        </edge>
+        <edge id="29" source="mdTick" target="depth">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">tick</data>
+        </edge>
+        <edge id="30" source="mdTick" target="mid">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">tick</data>
+        </edge>
+        <edge id="31" source="mid" target="adjusted">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -400,7 +777,7 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">mid</data>
         </edge>
-        <edge id="15" source="mid" target="notional">
+        <edge id="32" source="mid" target="notional">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -408,7 +785,15 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">mid</data>
         </edge>
-        <edge id="16" source="nodeNameLookup" target="context">
+        <edge id="33" source="mid" target="vol">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">mid</data>
+        </edge>
+        <edge id="34" source="nodeNameLookup" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -416,7 +801,7 @@
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">nodeNameLookup</data>
         </edge>
-        <edge id="17" source="notional" target="exposure">
+        <edge id="35" source="notional" target="exposure">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -424,7 +809,31 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">notional</data>
         </edge>
-        <edge id="18" source="score" target="exposure">
+        <edge id="36" source="pxRate" target="spread">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">rate</data>
+        </edge>
+        <edge id="37" source="rkRate" target="var">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">rate</data>
+        </edge>
+        <edge id="38" source="rkTrade" target="notional">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">trade</data>
+        </edge>
+        <edge id="39" source="score" target="exposure">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
@@ -432,13 +841,29 @@
             <data key="fluxtion.propagates">true</data>
             <data key="fluxtion.referenceField">score</data>
         </edge>
-        <edge id="19" source="subscriptionManager" target="context">
+        <edge id="40" source="subscriptionManager" target="context">
             <data key="edge_label">
                 <jGraph:ShapeEdge/>
             </data>
             <data key="fluxtion.refKind">DATA</data>
             <data key="fluxtion.propagates">false</data>
             <data key="fluxtion.referenceField">subscriptionManager</data>
+        </edge>
+        <edge id="41" source="var" target="buffer">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">var</data>
+        </edge>
+        <edge id="42" source="vol" target="var">
+            <data key="edge_label">
+                <jGraph:ShapeEdge/>
+            </data>
+            <data key="fluxtion.refKind">TRIGGER</data>
+            <data key="fluxtion.propagates">true</data>
+            <data key="fluxtion.referenceField">vol</data>
         </edge>
     </graph>
 </graphml>

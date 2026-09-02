@@ -1,0 +1,11 @@
+# held out: never shown to either arm
+CONFIG,volFactor,3.5
+CONFIG,chargePct,0.25
+CONFIG,unrelatedKey,99.0
+RATE,EUR,0.8
+TICK,DEMO,50.0,54.0
+TRADE,DEMO,250.0,52.0
+TICK,DEMO,60.0,61.0
+RATE,EUR,1.25
+TRADE,DEMO,10.0,60.5
+CONFIG,volFactor,1.0

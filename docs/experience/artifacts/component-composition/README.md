@@ -1,77 +1,73 @@
-# Five subsystems, plugged together
+# Component composition — five subsystems, twelve stages, four shared events
 
-**This is the composition artifact.** Five subsystems from five different vendors, each built and
-validated on its own, published as jars with no source, integrated by one bean file.
+**What this artifact is.** Five subsystems, each built and validated on its own, published as **jars
+with no source**. A consumer composes them into one running engine. It exists to test one claim:
 
-*(The sibling `spring-fluxtion/` artifact is a different thing: a single 12-rule engine written by one
-author, all in one package. Useful for what a Fluxtion project looks like — not an example of
-composition.)*
+> A component market needs the integration cost for the consumer to be near zero. The supplier proves
+> their subsystem works with audit logs and a fingerprint; the consumer should not have to re-derive
+> the global dispatch.
 
-## What the consumer received
+**Round 39 shape** (round 37's was 7 stages, one event type, one chain):
 
-```
-consumer/lib/
-  marketdata.jar   liquidity.jar   pricing.jar   risk.jar   capital.jar
-```
+| | |
+|---|---|
+| subsystems | 5 — marketdata, pricing, liquidity, risk, capital |
+| nodes | **20** (12 compute stages + 8 event adapters) |
+| event types | **4**, each consumed by **two** subsystems — no subsystem owns an entry point |
+| generated | **913 lines** from a 20-bean file and 5 jars |
+| consumer Java | none for the graph; only a `Main` that feeds events in |
 
-**8 classes, 0 `.java` files.** No source. The vendors' internals are not readable.
+## The events, and who consumes each
 
-`subsystems/` holds the sources for reference only — the consumer did not get them.
-
-## What the consumer wrote
-
-The whole of it, in [`consumer/src/main/fluxtion/designer/application-context.xml`](consumer/src/main/fluxtion/designer/application-context.xml):
-
-```xml
-<bean id="mid"      class="com.vendor.marketdata.Mid"/>
-<bean id="depth"    class="com.vendor.marketdata.Depth"/>
-<bean id="notional" class="com.vendor.risk.Notional"><constructor-arg ref="mid"/></bean>
-<bean id="adjusted" class="com.vendor.pricing.Adjusted">
-    <constructor-arg ref="mid"/><constructor-arg ref="depth"/></bean>
-<bean id="score"    class="com.vendor.liquidity.Score"><constructor-arg ref="adjusted"/></bean>
-<bean id="exposure" class="com.vendor.risk.Exposure">
-    <constructor-arg ref="notional"/><constructor-arg ref="score"/></bean>
-<bean id="charge"   class="com.vendor.capital.Charge"><constructor-arg ref="exposure"/></bean>
-```
-
-**Seven beans. No Java. No declared events. No declared order.** Only which subsystem supplies each
-input.
-
-## What the toolchain derived
-
-[`generated/AppProcessor.java`](generated/AppProcessor.java) — nobody wrote this:
-
-| # | stage | subsystem |
+| event | consumed by | fan-in measured |
 |---|---|---|
-| 1 | `depth` | marketdata |
-| 2 | `mid` | marketdata |
-| 3 | `adjusted` | pricing |
-| 4 | **`notional`** | **risk** |
-| 5 | `score` | liquidity |
-| 6 | **`exposure`** | **risk** |
-| 7 | `charge` | capital |
+| `TICK` | marketdata, liquidity | **14 nodes** |
+| `TRADE` | risk, capital | 7 |
+| `RATE` | pricing, risk | 5 |
+| `CONFIG` | marketdata, capital | 4 / 3 (each subsystem filters on its own key) |
 
-**`risk` runs at 4 and 6, with `liquidity` between them.** That is the point of the artifact. Any
-integration that treats a subsystem as a unit — run all of risk, then liquidity — gives `risk.exposure`
-a score from the previous tick. The correct order interleaves *stages* across vendors, and it is not
-something the consumer could read off: the jars have no source.
+Every subsystem is interleaved with at least two others, and three have stages at three different
+depths. A composition that ran subsystems as units would be wrong in several places at once.
 
-The build order was a clean chain — `marketdata → pricing → liquidity → risk → capital`, each compiled
-against only the jars before it. **The runtime order is not that chain.**
+## The verified dispatch
 
-## The test
+`generated/audit-trace.log` is the real audit log of `scenario.txt`. One `TICK` reaches all twelve
+stages across all five subsystems, in an order no one wrote down:
 
-[`consumer/src/test/java/com/acme/CompositionTest.java`](consumer/src/test/java/com/acme/CompositionTest.java) — three tests, green:
+```
+marketdata.depth  liquidity.book  marketdata.mid  pricing.adjusted  risk.notional
+liquidity.score   risk.exposure   capital.charge  pricing.spread    marketdata.vol
+risk.var          capital.buffer
+```
 
-- every stage runs once, and after its dependencies
-- **`liquidity` runs between `risk`'s two stages**, so risk cannot be run as a unit
-- the arithmetic is right through all five subsystems
+All twelve values were checked against an independent hand computation and match exactly.
 
-## What this does and does not establish
+## Two things this artifact records that cost a build each
 
-**Does:** integration of independently-built binary subsystems is a declaration of which supplies
-which, and the global dispatch — including one vendor's stages split across two others' — is derived.
+**1. A node never triggers itself.** The first version had six stages carrying both an
+`@OnEventHandler` and an `@OnTrigger`. A `CONFIG` event set the node's field, marked it dirty and
+propagated to its children — **without recomputing its own value**. `risk.var` read a `vol` of `0.0`
+and nothing failed. The fix is the eight adapter nodes: an adapter holds the event, a stage only ever
+computes under `@OnTrigger`, so nothing computes before its parents have settled.
 
-**Does not:** there is no comparison here. No hand-written arm has been run against these same jars.
-Doing so is the measurement that would test whether the alternative is materially harder, and it has
-not been done.
+The cheaper alternative — have the event handler call the trigger method — is correct on final values
+but **glitches wherever a node handles an event that also reaches it through a parent**. Here that is
+`Book` (handles `TICK`, parent `Depth` derives from `TICK`) and `Buffer`; the other four are safe
+either way. The glitch is visible in the audit log as a stale intermediate value, so the split is
+what this artifact uses.
+
+**2. Colliding simple names break the generated code.** Two vendors each shipping a `TickIn` is the
+ordinary case in a component market, and it does not compile — the generator qualifies the declared
+type and not the constructor. Filed as `UP-FLX-27` in `docs/proposals/upstream-asks.md`; worked
+around here by renaming the adapters (`MdTick`, `LqTick`, …), which a real consumer could not do.
+
+## Layout
+
+```
+consumer/lib/*.jar      the five subsystems, binaries only
+consumer/src/main/fluxtion/designer/application-context.xml   the whole integration
+generated/AppProcessor.java                                   913 lines, nobody wrote them
+generated/audit-trace.log                                     the proof
+subsystems/fx/          the Fluxtion sources - NOT given to the consumer
+subsystems/van/         plain-Java equivalents, identical constructor signatures, for the control arm
+```

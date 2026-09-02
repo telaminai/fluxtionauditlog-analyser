@@ -1820,3 +1820,47 @@ in 1.5.0 and its `ServiceLoader` path was exercised end to end by the M34.2 prob
 playground example reader) is the same kind of artefact and the two should share a build recipe.
 **Cost to us if unfixed:** every cycle carries an export beat and a temp file, and the analyse leg is
 a snapshot rather than a tail.
+
+### UP-FLX-27 ☐ Generated constructor calls are not qualified when simple names collide
+
+**Target** `fluxtion` (generator) · **Priority** high — it blocks the composition story at its
+selling point
+
+**Symptom.** Compose two independently-built subsystems that each ship a class with the same simple
+name — the ordinary case when two vendors publish separately — and the generated processor does not
+compile:
+
+```
+AppProcessor.java:[103,68] incompatible types:
+    com.vendor.capital.ConfigIn cannot be converted to com.vendor.marketdata.ConfigIn
+```
+
+**The defect, from the emitted source.** The generator *detects* the collision and qualifies the
+declared type. It does not qualify the constructor:
+
+```java
+public final transient com.vendor.marketdata.ConfigIn mdConfig = new ConfigIn();
+//                     ^^^^^^^^^^^^^^^^^^^^^ qualified          ^^^^^^^^^^^^^^^ not
+```
+
+`new ConfigIn()` then resolves through the import list to whichever `ConfigIn` was imported first, so
+every colliding bean is constructed as the wrong type. Four such lines in a 20-bean composition;
+`TickIn`, `ConfigIn`, `RateIn` and `TradeIn` each collided across two subsystems.
+
+Nodes constructed **with** arguments are emitted correctly — `new com.vendor.marketdata.Mid(mdTick)`
+is fully qualified. It is the **no-arg** construction path that emits the bare simple name.
+
+**Why it matters more than an ordinary codegen bug.** The consumer cannot fix it. They do not own
+either vendor's class, cannot rename it, and the bean file already says unambiguously which one it
+means (`class="com.vendor.marketdata.ConfigIn"`). The information needed is present and is discarded
+on one of two code paths. A component market makes simple-name collisions *likely*, not exceptional —
+`TickIn`, `Config`, `Event` are exactly the names independent vendors pick.
+
+**Mitigating: it is a loud failure.** javac rejects it, so it costs a build cycle, not a wrong answer.
+
+**The ask.** Emit the fully-qualified name on the construction side whenever the declaration side is
+qualified — the collision is already detected, so this is applying the existing decision to both
+halves of the line. Simplest correct form: always qualify constructor calls.
+
+**Evidence.** `docs/experience/runs/round-39/` — reproduced with five jars and a 20-bean composition;
+the generated source is quoted above verbatim.

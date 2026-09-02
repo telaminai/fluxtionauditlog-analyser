@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The consumer's entire integration. Five vendor subsystems, delivered as jars with no source.
-     Nothing here declares events. Nothing here declares evaluation order. -->
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
@@ -11,13 +9,43 @@
         <property name="logLevel" value="INFO"/>
     </bean>
 
-    <bean id="mid"      class="com.vendor.marketdata.Mid"/>
-    <bean id="depth"    class="com.vendor.marketdata.Depth"/>
-    <bean id="notional" class="com.vendor.risk.Notional"><constructor-arg ref="mid"/></bean>
+    <!-- marketdata -->
+    <bean id="mdTick"   class="com.vendor.marketdata.MdTick"/>
+    <bean id="mdConfig" class="com.vendor.marketdata.MdConfig"/>
+    <bean id="mid"      class="com.vendor.marketdata.Mid"><constructor-arg ref="mdTick"/></bean>
+    <bean id="depth"    class="com.vendor.marketdata.Depth"><constructor-arg ref="mdTick"/></bean>
+    <bean id="vol"      class="com.vendor.marketdata.Vol">
+        <constructor-arg ref="mdConfig"/><constructor-arg ref="mid"/></bean>
+
+    <!-- pricing -->
+    <bean id="pxRate"   class="com.vendor.pricing.PxRate"/>
     <bean id="adjusted" class="com.vendor.pricing.Adjusted">
         <constructor-arg ref="mid"/><constructor-arg ref="depth"/></bean>
-    <bean id="score"    class="com.vendor.liquidity.Score"><constructor-arg ref="adjusted"/></bean>
+    <bean id="spread"   class="com.vendor.pricing.Spread">
+        <constructor-arg ref="pxRate"/><constructor-arg ref="adjusted"/></bean>
+
+    <!-- liquidity -->
+    <bean id="lqTick"   class="com.vendor.liquidity.LqTick"/>
+    <bean id="book"     class="com.vendor.liquidity.Book">
+        <constructor-arg ref="lqTick"/><constructor-arg ref="depth"/></bean>
+    <bean id="score"    class="com.vendor.liquidity.Score">
+        <constructor-arg ref="adjusted"/><constructor-arg ref="book"/></bean>
+
+    <!-- risk -->
+    <bean id="rkTrade"  class="com.vendor.risk.RkTrade"/>
+    <bean id="rkRate"   class="com.vendor.risk.RkRate"/>
+    <bean id="notional" class="com.vendor.risk.Notional">
+        <constructor-arg ref="rkTrade"/><constructor-arg ref="mid"/></bean>
     <bean id="exposure" class="com.vendor.risk.Exposure">
         <constructor-arg ref="notional"/><constructor-arg ref="score"/></bean>
-    <bean id="charge"   class="com.vendor.capital.Charge"><constructor-arg ref="exposure"/></bean>
+    <bean id="var"      class="com.vendor.risk.Var">
+        <constructor-arg ref="rkRate"/><constructor-arg ref="exposure"/><constructor-arg ref="vol"/></bean>
+
+    <!-- capital -->
+    <bean id="cpTrade"  class="com.vendor.capital.CpTrade"/>
+    <bean id="cpConfig" class="com.vendor.capital.CpConfig"/>
+    <bean id="charge"   class="com.vendor.capital.Charge">
+        <constructor-arg ref="cpConfig"/><constructor-arg ref="exposure"/></bean>
+    <bean id="buffer"   class="com.vendor.capital.Buffer">
+        <constructor-arg ref="cpTrade"/><constructor-arg ref="charge"/><constructor-arg ref="var"/></bean>
 </beans>
