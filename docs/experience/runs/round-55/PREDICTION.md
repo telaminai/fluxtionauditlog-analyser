@@ -74,3 +74,40 @@ re-ablation whenever task complexity moves.
   a failure to the wrong cause once already this cycle.
 - **n is 1 per rung initially.** Any rung that fails MUST be repeated before the failure is reported as
   a result. A single failing run is a candidate, not a ceiling.
+
+---
+
+## AMENDMENT — design changed on owner instruction, BEFORE any run
+
+**No agent has been launched and no result exists at the time of writing.** Recorded rather than
+silently edited, because this project's protocol treats an uncommitted prediction as a contaminated
+one.
+
+The owner's steer — *"add more entry point jars in the jar, probably the easiest way to test"* — is
+both cheaper and harsher than the pair-based rungs above, and it titrates a single clean axis. The
+design changes to:
+
+**Rung = the number of entry points sharing ONE type surface, exactly one of which is correct.**
+
+Rung 1 as built: the pricing jar now carries **seven** entry points. `PricingSpot` is type-eliminable
+(it publishes no `SpreadApi`). The remaining **six — `PricingFull`, `PricingHedged`, `PricingNetted`,
+`PricingGross`, `PricingCapped`, `PricingSmoothed` — have byte-identical `Fluxtion-Provides`,
+`Fluxtion-Requires`, `Fluxtion-Constructor` and `Fluxtion-Consumes`.** Only `Fluxtion-Description`
+differs. Verified mechanically, not by eye.
+
+**The correct choice is `PricingHedged`, and it is deliberately not the obvious one.** `PricingFull`
+was correct in every previous round and is the plainest name in the family, so a "pick the default"
+prior selects wrongly. The brief specifies the desk's hedging overlay in business terms and never
+names a class.
+
+**Predictions S1–S5 stand unchanged in substance**, with S2's numbers now applying to a 1-in-6 choice
+rather than 1-in-2, which should make S1 harder rather than easier. **S5 is unchanged and is still the
+hypothesis that matters**: the manual's line *"the `Fluxtion-Requires` chain usually forces the
+choice"* is now false for six of the seven entry points in this jar, and it is the first thing the
+manual tells the reader to rely on.
+
+One prediction is **added**, because the new design admits a failure mode the old one did not:
+
+| # | Prediction | Confidence |
+|---|---|---|
+| S6 | **If it fails, it selects `PricingFull`** — the plainest name, correct in every prior round — rather than a randomly wrong sibling. A wrong-but-non-`PricingFull` answer would indicate it engaged with the descriptions and misread them, which is a different and less worrying failure. | medium |
