@@ -1,6 +1,10 @@
-Fluxtion-Entry-Point: com.vendor.liquidity.Liquidity
-Fluxtion-Entry-Constructor: (com.vendor.marketdata.MarketData,com.vendor.pricing.Pricing)
-Fluxtion-Requires: marketdata,pricing
-Fluxtion-Composite: true
 Implementation-Title: liquidity
-Implementation-Version: 1.0
+Fluxtion-Component: true
+
+Name: com/vendor/liquidity/LiquidityStd.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: book,score
+Fluxtion-Requires: DepthApi,AdjustedApi
+Fluxtion-Constructor: (DepthApi,AdjustedApi)
+Fluxtion-Consumes: Tick
+Fluxtion-Description: book depth and a liquidity score

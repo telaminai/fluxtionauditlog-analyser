@@ -1,6 +1,17 @@
-Fluxtion-Entry-Point: com.vendor.pricing.Pricing
-Fluxtion-Entry-Constructor: (com.vendor.marketdata.MarketData)
-Fluxtion-Requires: marketdata
-Fluxtion-Composite: true
 Implementation-Title: pricing
-Implementation-Version: 1.0
+Fluxtion-Component: true
+
+Name: com/vendor/pricing/PricingSpot.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: adjusted
+Fluxtion-Requires: MidApi,DepthApi
+Fluxtion-Constructor: (MidApi,DepthApi)
+Fluxtion-Description: the adjusted price only
+
+Name: com/vendor/pricing/PricingFull.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: adjusted,spread
+Fluxtion-Requires: MidApi,DepthApi
+Fluxtion-Constructor: (MidApi,DepthApi)
+Fluxtion-Consumes: Rate
+Fluxtion-Description: adds the spread; owns the RATE event

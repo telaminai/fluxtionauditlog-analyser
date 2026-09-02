@@ -1277,3 +1277,53 @@ silent one.
 
 **Evidence.** `docs/experience/runs/round-42/` — the five published roots, both failure modes, the
 generated source, and the identical-trace comparison.
+
+### UP-FLX-29 ☐ Let a component publish its nodes under namespaced bean names
+
+**Target** `fluxtion` (Spring extension) · **Priority** medium — it is the ergonomic half of the
+component story, and it makes the integration machine-generatable
+
+**The problem.** A component ships one entry-point class holding its subtree. Another component needs
+one of the *nodes* inside it — `Adjusted` needs marketdata's `mid`. The entry point cannot stand in:
+it carries no Fluxtion annotations, so it never becomes dirty and cannot be a trigger parent.
+Measured: wiring through the entry point generates 1083 lines that **compile, run, and silently fire
+8 stages instead of 17**, because `isDirty_marketdata` does not exist.
+
+**What works today** is a SpEL expression reaching inside the bean:
+
+```xml
+<bean id="pricing" class="com.vendor.pricing.PricingFull">
+    <constructor-arg value="#{marketdata.mid}"/>
+    <constructor-arg value="#{marketdata.depth}"/></bean>
+```
+
+That is correct — `guardCheck_adjusted() { return isDirty_depth | isDirty_mid; }` — but it has three
+costs. It is not discoverable; it breaks if the entry point also exposes a same-named accessor (SpEL
+prefers the property, and `#{marketdata.mid}` silently became a `Double`); and it reaches through a
+component boundary by field name, so the vendor cannot rename an internal field without breaking
+consumers.
+
+**The ask.** Let a component declare the nodes it publishes, and have the container register them
+under namespaced names, so cross-component wiring is an ordinary reference:
+
+```xml
+<constructor-arg ref="marketdata.mid"/>
+```
+
+The name is an **alias to the same instance**, so identity and the trigger edge are unchanged; it is
+only the addressing that improves. The publishing set is exactly what the jar's manifest already
+declares — `Fluxtion-Provides: mid,depth,vol,ewma` — so the container can register the aliases from
+metadata the component already ships, and a consumer never writes an expression.
+
+**What it buys beyond ergonomics.** With `provides`/`requires` in the manifest and aliases derived
+from them, **the bean file becomes derivable**: a small tool can resolve which entry points satisfy a
+stated set of required figures and emit the XML deterministically. That is a better answer than asking
+a language model to write it, and it is the shape of a real component market — resolution, not
+authorship.
+
+**Also worth a diagnostic.** Passing an entry-point class where a node is expected is always a
+mistake, and today it is silent. A class with no Fluxtion annotations used as a constructor argument
+to a node cannot ever trigger it; that deserves a build error, not a smaller graph.
+
+**Evidence.** `docs/experience/runs/round-48/` — both wirings, the generated guards for each, and the
+17-versus-8 stage counts.

@@ -1,6 +1,19 @@
-Fluxtion-Entry-Point: com.vendor.risk.Risk
-Fluxtion-Entry-Constructor: (com.vendor.marketdata.MarketData,com.vendor.liquidity.Liquidity)
-Fluxtion-Requires: marketdata,liquidity
-Fluxtion-Composite: true
 Implementation-Title: risk
-Implementation-Version: 1.0
+Fluxtion-Component: true
+
+Name: com/vendor/risk/RiskBasic.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: notional,exposure,var
+Fluxtion-Requires: MidApi,VolApi,ScoreApi
+Fluxtion-Constructor: (MidApi,VolApi,ScoreApi)
+Fluxtion-Consumes: Trade,Rate
+Fluxtion-Description: exposure and VaR, no limit supervision
+
+Name: com/vendor/risk/RiskSupervised.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: notional,exposure,var,limitDetector,streak
+Fluxtion-Publishes: LimitApi
+Fluxtion-Requires: MidApi,VolApi,ScoreApi
+Fluxtion-Constructor: (MidApi,VolApi,ScoreApi)
+Fluxtion-Consumes: Trade,Rate
+Fluxtion-Description: exposure, value-at-risk, limit supervision and a breach streak that resets on a clean event

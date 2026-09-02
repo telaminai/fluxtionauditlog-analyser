@@ -1,6 +1,18 @@
-Fluxtion-Entry-Point: com.vendor.capital.Capital
-Fluxtion-Entry-Constructor: (com.vendor.risk.Risk)
-Fluxtion-Requires: risk
-Fluxtion-Composite: true
 Implementation-Title: capital
-Implementation-Version: 1.0
+Fluxtion-Component: true
+
+Name: com/vendor/capital/CapitalCore.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: charge,buffer,fee
+Fluxtion-Requires: ExposureApi,VarApi
+Fluxtion-Constructor: (ExposureApi,VarApi)
+Fluxtion-Consumes: Trade,Config[chargePct]
+Fluxtion-Description: charge, buffer and fee; no breach reporting
+
+Name: com/vendor/capital/CapitalRegulated.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: charge,buffer,fee,breachCount,alert,alertCount
+Fluxtion-Requires: ExposureApi,VarApi,LimitApi
+Fluxtion-Constructor: (ExposureApi,VarApi,LimitApi)
+Fluxtion-Consumes: Trade,Config[chargePct]
+Fluxtion-Description: adds breach alerting and the reported counts
