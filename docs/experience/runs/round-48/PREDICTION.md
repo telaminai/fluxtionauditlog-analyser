@@ -102,8 +102,25 @@ So the task is **closed**:
 | X4 | **Component selection stays correct** — it was already right, and that was never the difficulty. | high |
 | X5 | **It writes no node class and uses no reflection.** If it does either after being told not to, that is a finding about instruction-following, not about Spring. | medium-high |
 
-**What this costs the comparison, stated plainly:** 48b's Fluxtion arm is more heavily scoped than the
-plain-Java arm, which was told only *"how you assemble the components is entirely your decision."*
-The two arms are no longer equally free. That is a deliberate trade — the question this round asks is
-whether the Fluxtion route is cheap **when the integrator knows what the route is**, and a
-capability comparison against an unconstrained arm is not what 48b measures.
+**On fairness, corrected by the owner.** I first recorded 48b's heavier scoping as a cost to the
+comparison, on the grounds that the two arms are no longer equally free. **That was the wrong
+measure.** The plain-Java arm's manual is in the weights — decades of Java is baked into the model,
+and that documentation cost nothing to supply. Fluxtion's is not, so it has to be shipped. What must
+be equalised is **access to knowledge of the tool**, not the number of words in the brief.
+
+That gives the rule this series has been missing:
+
+| kind of knowledge | fair to supply |
+|---|---|
+| **tool knowledge** — the framework's API, its build, its idioms | **yes, to both.** Java's arrives free; Fluxtion's must be written |
+| **task knowledge** — which components to select, which arguments are triggers, what the design should be | **no, to either** |
+
+Round 46 broke that rule and is why it was rerun: *"`Streak` hangs off exposure, not the detector"*
+is task knowledge, and giving it handed over the answer. `FQN.md`, the `process-classes` note and
+`registerService` are tool knowledge — the manual a buyer has on day one — and withholding them was
+never a fair test, only a slower one.
+
+**The commercial consequence:** adopting Fluxtion includes writing the manual that Java gets free from
+the training corpus. That is a real cost, and a **fixed** one — written once, amortised over every
+user — not a per-integration cost. It lands where the supplier-side argument landed: what matters is
+the recurring cost, and the framework's is lower provided correctness holds.
