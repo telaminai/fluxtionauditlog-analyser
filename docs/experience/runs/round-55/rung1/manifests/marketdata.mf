@@ -1,0 +1,16 @@
+Implementation-Title: marketdata
+Fluxtion-Component: true
+
+Name: com/vendor/marketdata/MarketDataCore.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: mid=MidApi, depth=DepthApi
+Fluxtion-Constructor: ()
+Fluxtion-Consumes: Tick
+Fluxtion-Description: mid price and book depth
+
+Name: com/vendor/marketdata/MarketDataPlus.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: mid=MidApi, depth=DepthApi, vol=VolApi, ewma=EwmaApi
+Fluxtion-Constructor: ()
+Fluxtion-Consumes: Tick, Config[volFactor]
+Fluxtion-Description: adds volatility and a smoothed mid

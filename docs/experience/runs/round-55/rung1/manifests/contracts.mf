@@ -1,0 +1,4 @@
+Implementation-Title: contracts
+Fluxtion-Contracts: true
+Fluxtion-Events: Events.Tick(String symbol, double bid, double ask); Events.Trade(String symbol, double qty, double price); Events.Rate(String ccy, double rate); Events.Config(String key, double value)
+Fluxtion-Services: AlertSink.publish(String); FeeStrategy.fee(double)/name()

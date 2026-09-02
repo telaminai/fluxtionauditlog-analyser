@@ -1,0 +1,18 @@
+Implementation-Title: risk
+Fluxtion-Component: true
+
+Name: com/vendor/risk/RiskBasic.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: notional=NotionalApi, exposure=ExposureApi, var=VarApi
+Fluxtion-Requires: MidApi, VolApi, ScoreApi
+Fluxtion-Constructor: (MidApi, VolApi, ScoreApi)
+Fluxtion-Consumes: Trade, Rate
+Fluxtion-Description: exposure and VaR, no limit supervision
+
+Name: com/vendor/risk/RiskSupervised.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: notional=NotionalApi, exposure=ExposureApi, var=VarApi, limitDetector=LimitApi, streak
+Fluxtion-Requires: MidApi, VolApi, ScoreApi
+Fluxtion-Constructor: (MidApi, VolApi, ScoreApi)
+Fluxtion-Consumes: Trade, Rate
+Fluxtion-Description: adds limit supervision and a breach streak
