@@ -1,0 +1,6 @@
+# one event per line, comma-separated, # starts a comment
+LIMIT,temp,100
+READING,SENSOR-1,99
+READING,SENSOR-1,99
+READING,SENSOR-1,120
+LIMIT,temp,150
