@@ -1864,3 +1864,48 @@ halves of the line. Simplest correct form: always qualify constructor calls.
 
 **Evidence.** `docs/experience/runs/round-39/` — reproduced with five jars and a 20-bean composition;
 the generated source is quoted above verbatim.
+
+### UP-FLX-28 ☐ No composite node: a supplier cannot publish a subtree as one declarable unit
+
+**Target** `fluxtion` (builder/generator) · **Priority** high — it is the load-bearing requirement of
+the component-composition story
+
+**The ask.** A way for a supplier to publish **one class that represents a subtree of nodes**, which
+a consumer declares as a single bean/node, with the generator walking into it and interleaving its
+internal nodes with everyone else's in the global dispatch.
+
+**Why.** The component-market claim is that integration cost for the consumer is near zero: name the
+component, get its behaviour. Today the consumer must declare **every node of every supplier** —
+twenty beans for five subsystems in `docs/experience/runs/round-39/` — which means every supplier's
+internal structure is part of the consumer's integration surface. A supplier cannot refactor its
+internals without every consumer editing their bean file, which is the opposite of what a component
+boundary is for.
+
+**Verified against the live reference first** (repo rule 6): `docs/claude.txt` is explicit —
+
+> *"**No such pattern is documented in this material.** … If you need to group a subtree, the standard
+> approach is to wire dependencies explicitly through a parent node's constructor."*
+
+and on self-constructed fields: *"self-constructed fields are not the idiomatic pattern. Fluxtion
+expects dependency injection via constructor arguments."*
+
+**What the two available shapes actually do**, measured on a 5-root / 20-node composition:
+
+| shape | result |
+|---|---|
+| root constructs its own children as plain fields | **FLX-1001** — *"cannot find a matching constructor for `Capital` — no constructor accepts the mapped fields [buffer, charge, config, trade]"*. Loud, build fails. |
+| same, with the documented `@FluxtionIgnore` on those fields | **generates 495 lines containing only the five roots.** All twelve compute stages absent from the graph. |
+
+The second row is the dangerous one. The generator also drops the roots' constructor arguments —
+emitting `new Pricing()` for `Pricing(MarketData)` — which fails to compile *for roots that take
+arguments*. **A root with a no-arg constructor compiles cleanly and silently contributes nothing**:
+`new MarketData()` is emitted, accepted, and its five nodes never dispatch. Green build, empty
+subtree, no diagnostic.
+
+**Minimum acceptable outcome if the feature is not wanted:** make the silent case loud. If
+`@FluxtionIgnore` is applied to a field whose type is a node (has `@OnEventHandler`/`@OnTrigger`
+methods), that is almost certainly a mistake and deserves a diagnostic rather than a quietly smaller
+graph.
+
+**Evidence.** `docs/experience/runs/round-42/` — the five published roots, the two failure modes and
+the generated source are all there.
