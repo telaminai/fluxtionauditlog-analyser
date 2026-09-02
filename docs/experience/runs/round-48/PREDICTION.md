@@ -59,3 +59,51 @@ showed the Fluxtion arm's token count is dominated by Haiku's step size (76 outp
 against 672), so raw totals across models measure granularity, not approach. **A third cell —
 Fluxtion on the stronger model — is what would make the priced comparison clean, and it is not in
 this round.**
+
+---
+
+## AMENDMENT — round 48b, after the Fluxtion arm was invalidated
+
+**The round-48 Fluxtion result is not a measurement and is not reported as one.** It took 16 builds,
+got the fee wrong, and violated the Evidence contract — and the causes were mine:
+
+| what it did | why |
+|---|---|
+| built an 87-line `OutputNode` re-emitting the 14 figures | FX's Evidence never said the components record themselves. **VAN's did.** I gave one arm a better brief than the other. |
+| reflected on `Buffer.value` / `Fee.value` | the arm's error — both are `public transient double`, directly readable |
+| built a `FeeStrategyNode` holding a string that nothing reads | the arm's error — `feeStrategy(FeeStrategy,String)` and `FeeStrategies.byName` are both in plain `javap`, and `registerService` needs no lookup at all |
+
+I initially proposed adding `Fluxtion-Accepts-Service` to the manifest. **That was wrong and is
+dropped.** A node declares `@ServiceRegistered`; the application sends a service; the framework
+delivers it to whatever accepts that type, or to nothing. There is no catalogue entry to consult and
+declaring one would rot separately from the annotation.
+
+## What changed for 48b
+
+The owner's point, and it reframes the whole sub-series: **this integration is a Spring bean file.**
+Writing Spring XML is among the best-represented tasks in any model's training data. When it takes 16
+builds, the instructions are the suspect — not the model, and not the framework.
+
+So the task is **closed**:
+
+- **What you write:** the bean file, and a ~40-line `Main` doing five listed things.
+- **What you must NOT write:** node classes, event types, any output/report/aggregator class,
+  reflection, a fat jar. With the reason attached — *"if you are writing a class with `@OnTrigger`,
+  you have misread the task."*
+- Evidence now states the components record themselves, matching what VAN was told.
+
+## Prediction for 48b
+
+| # | Prediction | Confidence |
+|---|---|---|
+| X1 | **≤3 `mvn` runs.** The remaining work is one XML file and boilerplate. | medium-high |
+| X2 | **Consumer Java under 60 lines**, against 199 in the invalid run. | medium-high |
+| X3 | **The fee is correct**, because `registerService` is now spelled out in the scope note. | high |
+| X4 | **Component selection stays correct** — it was already right, and that was never the difficulty. | high |
+| X5 | **It writes no node class and uses no reflection.** If it does either after being told not to, that is a finding about instruction-following, not about Spring. | medium-high |
+
+**What this costs the comparison, stated plainly:** 48b's Fluxtion arm is more heavily scoped than the
+plain-Java arm, which was told only *"how you assemble the components is entirely your decision."*
+The two arms are no longer equally free. That is a deliberate trade — the question this round asks is
+whether the Fluxtion route is cheap **when the integrator knows what the route is**, and a
+capability comparison against an unconstrained arm is not what 48b measures.
