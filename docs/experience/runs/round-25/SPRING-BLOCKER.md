@@ -1,134 +1,67 @@
-# The Spring route builds a graph but I could not enable its audit log
+# The Spring route works. The blocker was mine.
 
-Investigated as a harness variant: declare the graph in Spring XML, let tooling generate the node
-shells, and let generation itself be the orchestration proof. **The idea is sound and the wiring half
-works. It is blocked on audit.**
+**This file previously reported an upstream bug: that no property on `FluxtionSpringConfig` was
+writable, that `logLevel` could not enable the audit log, and that `springToFluxtion` was therefore
+unusable with the published contract. All of that was wrong.** The cause was a defect in the scaffold
+script I wrote an hour earlier. The record is corrected here rather than deleted.
 
-## What works
+## What actually happened
 
-`springToFluxtion` generates a correct processor from a bean file. Verified end to end:
+My `scaffold.sh` reads the bean file and writes a shell class for every bean whose class is missing. It
+checked only whether a **source file** existed. `fluxtionSpringConfig` is a bean like any other, so the
+script decided `com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig` was missing and
+**generated a stub of it into the project**:
 
-```xml
-<bean id="sensorState" class="com.acme.app.SensorState"/>
-<bean id="alerter" class="com.acme.app.Alerter">
-    <constructor-arg ref="sensorState"/>
-</bean>
 ```
-```java
-isDirty_sensorState = sensorState.onReading(typedEvent);
-  alerter.check();
+src/main/java/com/telamin/fluxtion/builder/extern/spring/FluxtionSpringConfig.java
 ```
 
-Two things the plugin needs that are not obvious and are undocumented in the design directory:
+A stub with no setters. It shadowed the real framework class, and Spring correctly reported every
+property as not writable. The error pointed at Fluxtion; the fault was upstream of it by one directory.
 
-1. **Spring must be on the *plugin's* classpath**, not the project's — without
-   `spring-context`/`spring-beans` as `<dependencies>` of the plugin itself, the goal dies with
+## How it was found
+
+`java.beans.Introspector` said all four properties were writable when loading from the jar. Loading the
+same XML with Spring 6.2.7 standalone **succeeded** — until `target/classes` was added to the
+classpath, at which point it failed identically. That one difference located it.
+
+## The fix
+
+The generator now resolves the dependency classpath and skips any bean whose class already exists:
+
+```
+skip com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig — provided by a dependency
+```
+
+## Verified working
+
+```
+ ev  event     nodes that ran, in dispatch order
+  1  LIMIT     ['limitStore']                        <- reference data: alert not triggered
+  2  READING   ['sensorState', 'thresholdAlert']
+  3  READING   ['sensorState']                       <- unchanged: cycle arrested
+  4  READING   ['sensorState', 'thresholdAlert']
+  5  LIMIT     ['limitStore']
+decisions emitted:  4,ALERT,SENSOR-1
+```
+
+`mvn clean test` green, 4 tests including `GraphExistsTest`. **The audit log is enabled from XML with
+`<property name="logLevel" value="INFO"/>`, exactly as the published contract documents.** So the whole
+harness — `GraphExistsTest`, `trace.sh`, the staged build order — works unchanged on the Spring route.
+
+## What remains genuinely undocumented
+
+Two real requirements, both hard stops, neither in the design directory or the published contract:
+
+1. **Spring must be on the *plugin's* classpath**, as `<dependencies>` of the plugin itself. Without it:
    `A required class was missing … org/springframework/context/ApplicationContext`.
-2. **Plugin declaration order still matters.** `springToFluxtion` must be declared before the compiler
-   execution bound to `process-classes`, exactly as with `scan`.
+2. **`springToFluxtion` must be declared before** any compiler execution bound to `process-classes`,
+   or the second compile pass runs before generation.
 
-**The stub generator is ~40 lines and works.** A script reads the bean file and writes a shell class for
-every bean whose class is missing, deriving constructor parameters from `constructor-arg ref`. Deleting
-a node class and re-running it regenerates a compiling shell. This is the mechanical no-thought
-translation the owner described, and it needs no service.
+## The lesson, which is not about Spring
 
-## What blocks it — diagnosed precisely
-
-**No property on `fluxtionSpringConfig` is writable, including `eventTypes`.** That is the most basic
-element of the published contract, so the failure is not about audit specifically — the whole
-`FluxtionSpringConfig` bean is unusable through `springToFluxtion` in this configuration.
-
-```
-Invalid property 'eventTypes' of bean class [FluxtionSpringConfig]:
-  Bean property 'eventTypes' is not writable or has an invalid setter method.
-```
-
-In `fluxtion-builder-1.0.66` every getter/setter pair matches exactly:
-
-```
-public java.util.List<java.lang.String> getEventTypes();
-public void setEventTypes(java.util.List<java.lang.String>);
-public EventLogControlEvent$LogLevel getLogLevel();
-public void setLogLevel(EventLogControlEvent$LogLevel);
-```
-
-So **the class the plugin introspects is not the one on the project classpath** — version skew between
-`fluxtion-maven-plugin:1.3.0` and `fluxtion-builder:1.0.66`. The published contract at
-`fluxtion-playground.dev/spring-authoring/contract.md` documents `logLevel` as *"Enables Fluxtion event
-audit at that level"* and `eventTypes` as a required list, and neither can be set.
-
-**A bean file with no `fluxtionSpringConfig` bean at all does build a working graph** — the plugin treats
-every bean as a node. So the simple wiring case works; the contract that carries event types, audit,
-service bindings and handler bindings does not.
-
-## Original symptom
-
-Enabling the audit log fails. Both documented-looking routes are rejected:
-
-```
-Invalid property 'logLevel' of bean class [FluxtionSpringConfig]:
-  Bean property 'logLevel' is not writable or has an invalid setter method.
-Invalid property 'auditors' of bean class [FluxtionSpringConfig]: … not writable …
-```
-
-`javap` on `fluxtion-builder-1.0.66` shows both setters present with matching getters
-(`setLogLevel(EventLogControlEvent$LogLevel)`, `setAuditors(List<Auditor>)`), and `LogLevel` is a real
-enum, so `value="INFO"` should convert. A `FieldRetrievingFactoryBean` for the constant fails
-identically. The most likely explanation is version skew between the class the plugin resolves and the
-builder on the project classpath, but I did not confirm it.
-
-**Neither the design directory nor the published docs show how to enable audit from Spring XML** —
-searched `spring-authoring/*.md` and the reference XML.
-
-## Proof that the class itself is fine
-
-`java.beans.Introspector` — which is what Spring uses — loading `FluxtionSpringConfig` from
-`fluxtion-builder-1.0.66.jar` outside Maven:
-
-```
-class from: file:…/fluxtion-builder/1.0.66/fluxtion-builder-1.0.66.jar
-  auditors     read=List<Auditor>       write=setAuditors
-  eventTypes   read=List<String>        write=setEventTypes
-  logLevel     read=EventLogControlEvent$LogLevel  write=setLogLevel
-  nodeBeans    read=List<String>        write=setNodeBeans
-```
-
-**All four are writable.** Ruled out along the way:
-
-- the plugin does **not** bundle its own copy — zero `FluxtionSpringConfig` entries in the plugin jar;
-- the plugin declares **no** fluxtion dependencies of its own, and imports from the project classpath;
-- `dependency:build-classpath` resolves exactly **one** copy, from `fluxtion-builder-1.0.66`;
-- adding `fluxtion-builder:1.0.66` explicitly to the plugin's `<dependencies>` changes nothing.
-
-So the class is correct and introspectable; the failure is inside the classloader the plugin builds
-(`problem setting building fluxtion class loader`, realm `plugin>fluxtion-maven-plugin:1.3.0`,
-`SelfFirstStrategy`). **It is not reachable from a project POM.**
-
-### Minimal reproduction
-
-`pom.xml` binding `springToFluxtion` with `spring-context`/`spring-beans` as plugin dependencies, and a
-bean file containing only the documented config bean:
-
-```xml
-<bean id="fluxtionSpringConfig" class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
-    <property name="eventTypes"><list><value>com.acme.app.Reading</value></list></property>
-</bean>
-```
-→ `NotWritablePropertyException: Invalid property 'eventTypes'`
-
-A bean file **without** the config bean builds a correct graph, so the route works; only the contract
-bean is unusable.
-
-## Why this matters more than a missing feature
-
-Everything the harness has been built on depends on the audit log: `GraphExistsTest` asserts a node ran,
-`trace.sh` shows what ran per cycle, and steps 1 and 3 of the build order are checks against it. **On the
-Spring route none of that is available**, so the variant cannot be compared against rounds 22–24 on
-equal terms — it would be measured without the instrument that produced the gains.
-
-## What I would ask upstream
-
-1. Is `logLevel` intended to be settable from XML in 1.0.66, and if so what is the correct declaration?
-2. If audit is meant to be enabled another way on this route, document it beside `addEventAudit`.
-3. The plugin needing Spring on its own classpath deserves a line in the authoring docs — it is a hard
-   stop with an error that points at Spring rather than at the plugin configuration.
+I spent a long stretch building a case against the framework from an error my own tool caused, and got
+as far as writing a reproduction and an upstream ticket. Two things would have caught it immediately:
+**generating into a framework package is never right**, and the first question about a "not found" or
+"not writable" symptom should be *what else is on the classpath* — which is exactly what the owner
+asked when he saw the report.

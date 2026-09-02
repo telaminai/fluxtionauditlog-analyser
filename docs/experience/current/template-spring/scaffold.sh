@@ -4,9 +4,14 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 XML="${1:-src/main/fluxtion/designer/application-context.xml}"
+# Resolve the dependency classpath so we can tell "this class does not exist yet" from
+# "this class ships with the framework". Generating a stub over a framework class shadows the real
+# one and produces baffling errors — FluxtionSpringConfig with no setters looks like a Fluxtion bug.
+[ -f cp.txt ] || mvn -q dependency:build-classpath -Dmdep.outputFile=cp.txt 2>/dev/null || true
+export FLUXTION_CP="$(cat cp.txt 2>/dev/null || true)"
 rm -rf src/main/java/com/acme/app/generated
 python3 - "$XML" <<'PY'
-import sys,re,pathlib
+import sys,re,pathlib,os,subprocess
 xml=pathlib.Path(sys.argv[1]).read_text()
 beans=re.findall(r'<bean\s+id="([^"]+)"\s+class="([^"]+)"',xml)
 # constructor-arg refs, per bean, in order
@@ -21,6 +26,12 @@ for bid,fqcn in beans:
     pkg,cls=fqcn.rsplit(".",1)
     path=pathlib.Path("src/main/java")/pkg.replace(".","/")/f"{cls}.java"
     if path.exists(): continue
+    # never stub a class that already exists on the dependency classpath
+    if os.environ.get("FLUXTION_CP") and subprocess.run(
+            ["javap","-cp",os.environ["FLUXTION_CP"],fqcn],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+        print(f"  skip {fqcn} — provided by a dependency")
+        continue
     path.parent.mkdir(parents=True,exist_ok=True)
     parents=[(r,byId[r].rsplit(".",1)[1]) for r in refs.get(bid,[]) if r in byId]
     fields="".join(f"    private final {t} {r};\n" for r,t in parents)
