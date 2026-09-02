@@ -5,36 +5,51 @@ import java.nio.file.*;
 import java.util.*;
 
 /**
- * Running a graph, complete. Note the ORDER — the audit processor is attached BEFORE init().
+ * Reads a scenario file, feeds it through the graph, and writes two things: the decisions your engine
+ * made, and the framework's audit log.
  *
- * <p><b>This class imports the generated processor, and the pom is set up so that is fine.</b>
- * Generation runs at {@code process-classes}, which is AFTER {@code compile} — so ordinarily a class
- * importing generated output cannot compile, and you are told to "write Main last". This build
- * compiles in two passes instead: everything except {@code ${generated.dependents}} first, then
- * generation, then the rest. It also deletes the previous generated source at {@code initialize}, so
- * a processor left over from an older node shape can never break the build. Change a node's
- * constructor and just run {@code mvn clean test}.
+ * <p>Keep this shape. Driving the engine from a file rather than hardcoded events is what lets someone
+ * else run it against inputs you have not seen — and lets {@code ./trace.sh} show you what ran.
+ *
+ * <p>Note the ORDER: the audit processor is attached BEFORE {@code init()}. The pom compiles in two
+ * passes so this class may import the generated processor; see README.
  */
 public class Main {
     public static void main(String[] args) throws Exception {
-        AppProcessor flow = new AppProcessor();
+        Path scenario  = Paths.get(args.length > 0 ? args[0] : "scenario.csv");
+        Path decisions = Paths.get(args.length > 1 ? args[1] : "logs/decisions.txt");
+        Path auditPath = Paths.get(args.length > 2 ? args[2] : "logs/audit.yaml");
 
+        AppProcessor flow = new AppProcessor();
         List<String> audit = new ArrayList<>();
         flow.setAuditLogProcessor(rec -> audit.add("---\n" + rec));   // BEFORE init()
         flow.init();
 
-        // ONE dispatch method, taking Object. There is no onReading(Reading).
-        flow.onEvent(new Reading("SENSOR-1", 99.0));
-        flow.onEvent(new Reading("SENSOR-1", 99.0));    // unchanged -> SensorState returns false, cycle stops
-        flow.onEvent(new Reading("SENSOR-1", 120.0));   // over the limit -> ThresholdAlert fires
-        flow.onEvent(new Limit("temp", 150.0));         // reference data: LimitStore runs, alert does NOT
-        flow.onEvent(new Limit("temp", 150.0));         // unchanged republish -> stops at LimitStore
-
+        List<String> out = new ArrayList<>();
+        int eventNumber = 0;
+        for (String line : Files.readAllLines(scenario)) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) continue;     // not events, not counted
+            String[] f = line.split(",");
+            eventNumber++;
+            switch (f[0]) {
+                // ONE dispatch method, taking Object. There is no onReading(Reading).
+                case "READING" -> flow.onEvent(new Reading(f[1], Double.parseDouble(f[2])));
+                case "LIMIT"   -> flow.onEvent(new Limit(f[1], Double.parseDouble(f[2])));
+                default -> throw new IllegalArgumentException("unknown event: " + f[0]);
+            }
+            // a decision is whatever your engine decided in THIS cycle; read it once, then clear it
+            if (ThresholdAlert.lastAlert != null) {
+                out.add(eventNumber + ",ALERT," + ThresholdAlert.lastAlert);
+                ThresholdAlert.lastAlert = null;
+            }
+        }
         flow.tearDown();     // lifecycle is init/start/stop/tearDown — there is no shutdown()
 
-        Path out = Paths.get(args.length > 0 ? args[0] : "logs/audit.yaml");
-        Files.createDirectories(out.getParent());
-        Files.write(out, audit);
-        System.out.println("wrote " + audit.size() + " records to " + out);
+        for (Path p : List.of(decisions, auditPath))
+            if (p.getParent() != null) Files.createDirectories(p.getParent());
+        Files.write(decisions, out);
+        Files.write(auditPath, audit);
+        System.out.println("wrote " + out.size() + " decisions and " + audit.size() + " audit records");
     }
 }

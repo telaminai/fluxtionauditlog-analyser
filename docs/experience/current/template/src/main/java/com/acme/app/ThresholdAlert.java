@@ -22,6 +22,10 @@ import com.telamin.fluxtion.runtime.audit.EventLogNode;
  */
 public class ThresholdAlert extends EventLogNode {
 
+    /** The decision made in the current cycle, or null. Main reads it once per event and clears it. */
+    public static String lastAlert;
+
+
     private final SensorState sensorState;                 // trigger: a new reading
     @NoTriggerReference private final LimitStore limitStore;  // data only: read, never triggers
 
@@ -34,6 +38,7 @@ public class ThresholdAlert extends EventLogNode {
     @OnTrigger
     public boolean onValueChanged() {
         boolean breach = sensorState.last > limitStore.threshold;
+        if (breach) lastAlert = sensorState.lastSensorId;
         auditLog.info("value", sensorState.last).info("threshold", limitStore.threshold)
                 .info("alert", breach);
         return breach;

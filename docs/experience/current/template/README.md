@@ -15,6 +15,7 @@ src/main/java/com/acme/app/
 src/test/java/com/acme/app/
   AppTest.java           tests that assert on the AUDIT LOG, not on node state
 run.sh                   build + generate + test + run, with the classpath incantation
+trace.sh                 show what actually ran, per event cycle — your first debugging tool
 ```
 
 ## What makes a node run — the whole of it
@@ -43,6 +44,33 @@ cycle 6: Limit(temp, 150.0)  ['limitStore']      <- the limit CHANGED and the al
 
 Delete that one annotation and cycle 6 runs `thresholdAlert` too — re-judging the *previous* reading,
 on a cycle where nothing was measured. Three independent authors have shipped that bug.
+
+
+## How to check your engine — do this before reading any source
+
+`./trace.sh <scenario-file>` prints, for each event, which nodes ran and in what order, then the
+decisions produced. That is your orchestration as executed, not as intended.
+
+Work through it in this order. Each step rules out a whole class of problem:
+
+**1. Is there a log at all?** If `trace.sh` says there is none, you have not enabled auditing, and
+every other check below is blind. Fix that first.
+
+**2. Did the right nodes run, in the right order?** For each event, the nodes you expect should appear,
+and a node whose inputs did not move should not. A node that never appears is a **wiring** problem —
+it is not reachable, or its parent is not a field, or a `@NoTriggerReference` is on the wrong field.
+A node that appears when it should not is the opposite. **This is the only question the graph can get
+wrong, and the log answers it directly.**
+
+**3. Did the right nodes run but the wrong decisions come out?** Then the orchestration is correct and
+the bug is in ordinary Java inside a node — a comparison, a boundary, a piece of state. The log tells
+you *which* node, so read that one.
+
+**4. Did the right nodes run and no decisions come out?** The decision was computed and lost on the way
+to the output. Check the path from the node to the file; nothing in the graph is wrong.
+
+Run one scenario per rule, and check the decisions against what you expect **before** you believe a
+passing test. A test you wrote asserts what you already believed.
 
 
 ## To build your own graph

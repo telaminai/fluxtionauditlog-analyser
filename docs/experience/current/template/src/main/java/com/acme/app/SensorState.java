@@ -14,14 +14,16 @@ import com.telamin.fluxtion.runtime.audit.EventLogNode;
  */
 public class SensorState extends EventLogNode {
 
-    public transient double last;          // transient: node-local state, not a parent
+    public transient double last;
+    public transient String lastSensorId;          // transient: node-local state, not a parent
 
     /** Returning false STOPS the cycle here — nothing downstream runs. */
     @OnEventHandler
-    public boolean onReading(Reading tick) {
-        boolean changed = tick.value() != last;
-        last = tick.value();
-        auditLog.info("sensorId", tick.sensorId()).info("value", tick.value()).info("changed", changed);
+    public boolean onReading(Reading reading) {
+        boolean changed = reading.value() != last;
+        last = reading.value();
+        lastSensorId = reading.sensorId();
+        auditLog.info("sensorId", reading.sensorId()).info("value", reading.value()).info("changed", changed);
         return changed;
     }
 }
