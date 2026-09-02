@@ -270,3 +270,60 @@ Three things worth saying about that table:
    That is a real price and no document in this repo had stated it. It is also, in fairness, the price
    of writing 15.5 billion characters of evidence — and it is a *runtime level*, so it can be off in
    the hot path and on when something is being investigated.
+
+## 7. Against hand-written Java — and where Fluxtion's overhead actually is
+
+**The question: what does the integrator pay for this?** Same arithmetic, same reused event, same JVM,
+200,000,000 events per arm under EpsilonGC. **Every arm produced byte-identical output**
+(`breaches=102,500,000 updates=102,500,000 buffer=11551.2267`) at **0.0 bytes/event**, so this compares
+implementations of the same function, not different functions.
+
+| arm | throughput | ns/event | vs Fluxtion |
+|---|---|---|---|
+| plain **inline** — one class, one method | 347,880,588 /s | **2.87** | 6.0× faster |
+| plain **components** — hand-wired objects | 285,971,643 /s | 3.50 | 4.9× faster |
+| plain **guarded** — dirty flags + guards, mirroring the emitted shape | 137,975,306 /s | 7.25 | 2.4× faster |
+| Fluxtion, `auditEvent` **ablated** | 128,805,353 /s | **7.76** | 1.07× |
+| **Fluxtion as shipped** | 57,956,422 /s | **17.20** | 1.0× |
+
+**Hand-written Java is 6× faster than Fluxtion as shipped.** That is the honest headline and it should
+not be softened. But the decomposition says something more useful than the headline:
+
+- **+0.63 ns** — object indirection (inline → components). Trivial.
+- **+3.75 ns** — the dirty-flag/guard machinery (components → guarded). **This is not overhead, it is
+  the feature**: it is what makes the detector arrest the tail correctly. The inline version gets the
+  same answer here only because a human hand-ordered ten computations correctly, which is precisely
+  what rounds 49–53 measured people and models getting wrong.
+- **+0.51 ns** — everything Fluxtion's codegen adds over that hand-written guarded shape. **Within
+  8%.** The generated dispatch is essentially as fast as a careful human writing the same semantics.
+- **+9.44 ns** — `auditEvent`, and 9.43 of it is one auditor.
+
+### The clock, and it is 55% of dispatch
+
+| `auditEvent` contains | ns/event | delta |
+|---|---|---|
+| nothing | 7.76 | — |
+| `nodeNameLookup` only | 7.83 | +0.07 |
+| `serviceRegistry` only | 7.88 | +0.12 |
+| **`clock` only** | **17.19** | **+9.43** |
+| all three (shipped) | 17.20 | +9.44 |
+
+Corroborated independently: `System.currentTimeMillis()` measures **12.32 ns/call** on this machine,
+`System.nanoTime()` **8.06 ns**. `Clock` stamps a system time on every event whether or not a node
+reads it — and none of these ten nodes ever does.
+
+Filed as **UP-FLX-45**. Making the timestamp lazy would take a non-time-reading graph from 17.20 to
+~7.8 ns/event — **2.2×, 58M → 129M events/sec — from one call site**, putting Fluxtion within 8% of
+hand-written Java.
+
+### So what does the integrator actually pay?
+
+**Not "nothing" — 6× against hand-written Java today, and ~2.2× of that is one fixable call.** After
+UP-FLX-45 it would be roughly 2.7× the inline version and **within 8% of hand-written code that
+replicates the same guard semantics**, which is the only fair comparison, because the guards are the
+correctness the integrator is buying.
+
+What the integrator genuinely does not pay: **any allocation** (0.0 bytes/event in every Fluxtion
+configuration measured), **any GC** (0 collections in 500M events under a no-op collector), and **any
+dispatch code** — the ordering that the plain arms had to get right by hand is derived from the graph.
+Rounds 49 and 52 are the measurement of what that hand-ordering costs when it goes wrong.
