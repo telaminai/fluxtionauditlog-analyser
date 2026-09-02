@@ -69,6 +69,14 @@ field, or a `@NoTriggerReference` on the wrong field. A node appearing where it 
 reverse. **Fix all of this before writing a single line of business logic.** This is the only thing the
 graph can get wrong, and with empty nodes it is the *only* thing that can be wrong.
 
+**Step 3b — for every EDGE rule, list what turns it OFF as well as ON.** An EDGE fires when something
+becomes true. Write down, per rule, the complete set of events that can make it *stop* being true and
+then true again — and check each of those paths reaches the deciding node in the trace. This is the one
+failure the shell-node trace cannot show you, because with empty nodes there is no "became true again"
+to observe. Two independent authors shipped engines that emitted a decision the first time and never
+again, because the node was reachable from the event that first satisfied it and not from the events
+that could re-satisfy it later.
+
 **Step 4 — implement one node, and unit test its logic directly.** Not through the graph. Construct the
 node, call its method, assert the result. This test does not involve the framework at all.
 
@@ -85,7 +93,9 @@ Do not guess and do not restructure the builder hopefully. Work down the list; t
 1. **Is the node's logic right?** Unit test it directly, no framework. If it is wrong here, the graph is
    irrelevant.
 2. **Does the node fire when driven by events?** Feed the events through the graph and read the audit
-   log. If it never appears, it is a wiring problem, not a logic problem.
+   log. If it never appears, it is a wiring problem, not a logic problem. Check every event that should
+   reach it, not just the obvious one — a node reachable from one path and not another produces a
+   decision that fires once and then never again.
 3. **Is the graph built?** Run `GraphExistsTest`. If it fails, your builder registers nothing.
 4. **Does the orchestration behave?** `./trace.sh <scenario>` — per event, which nodes ran and what came
    out. If the right nodes ran and no decision appeared, the decision is being lost between the node and
