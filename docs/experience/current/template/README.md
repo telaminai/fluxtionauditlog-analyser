@@ -67,6 +67,28 @@ can be wrong is the path**, so a single trace answers the first question complet
 proved, every later failure is a node, and the log names which one. Authors who skip this — including
 the author of this file, on the first attempt — spend their build cycles unable to tell the two apart.
 
+**Batch freely within a dimension. Never batch across one.**
+
+Build cycles are the dominant cost — over 90% of a run is re-reading the conversation, so every extra
+`mvn` round trip is charged the whole accumulated context. So do batch: write all your shell nodes
+before the first trace, implement several node bodies before rebuilding. Within one dimension a failure
+is still unambiguous, because the other dimension is already proved.
+
+What you must not do is change the path and a node in the same cycle. Then a wrong answer has two
+possible causes and the cycle taught you nothing — you pay for it and learn nothing, which is the worst
+trade available. The author of this file did exactly that on his first attempt at a large spec: thirteen
+nodes and their wiring in one pass, then three consecutive failed builds unable to distinguish a
+structural error from a logic one.
+
+The two places this matters most:
+
+- **Steps 4 and 5 are different dimensions and must not be collapsed.** Unit-testing a node's logic and
+  testing that it fires when driven by events are separate questions. A node whose logic is correct and
+  which is never reached passes the first and fails the second — that exact defect cost one author four
+  probes, with nine traces run and none on the path that mattered.
+- **Never fix a value in a node whose path you have not proved.** You cannot tell a wrong number from a
+  node that never ran with the inputs you assumed.
+
 ## How to build this — follow the steps, in order
 
 Do not design the whole engine and then build it. Build the skeleton, prove it runs, then fill it in.
