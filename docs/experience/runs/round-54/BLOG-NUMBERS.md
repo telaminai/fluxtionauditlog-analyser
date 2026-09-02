@@ -29,6 +29,7 @@ this is a throughput harness; tails under a paced arrival rate would differ.
 | hand-written Java, one inline method | 3.15 | 2.67 | 3.25 | 317,682,191 | **0.0** |
 | hand-written Java, dirty-flags + guards | 7.12 | 7.05 | 7.27 | 140,465,221 | **0.0** |
 | **Fluxtion, stream-driven clock** | **8.44** | 8.38 | 8.48 | **118,491,836** | **0.0** |
+| **Fluxtion, stream clock + dirty filtering off** | **5.98** | — | — | **167,322,011** | **0.0** | 
 | Fluxtion, default wall clock | 17.60 | 17.45 | 17.70 | 56,820,765 | **0.0** |
 
 - **Fluxtion with a stream-driven clock is within 19% of hand-written Java carrying the same guard
@@ -39,6 +40,35 @@ this is a throughput harness; tails under a paced arrival rate would differ.
   getting wrong.
 - **Fluxtion's variance is the tightest of any arm**: 8.38–8.48 ns, a 1.2% spread, against 2.67–3.25
   (18%) for the inline version.
+
+## Dirty filtering off — the fastest mode, and exactly what it changes
+
+`EventProcessorConfig.setSupportDirtyFiltering(false)` emits a flat, unconditional call sequence:
+**zero `guardCheck_` methods and zero `isDirty_` fields**, every node fires every cycle.
+
+| arm | ns/event | events/sec | breaches | bufferUpdates | final buffer |
+|---|---|---|---|---|---|
+| stream clock, **dirty on** | 8.45 | 118,276,009 | 102,500,000 | 102,500,000 | 11551.2267 |
+| stream clock, **dirty off** | **5.98** | **167,322,011** | 102,500,000 | **205,000,001** | 11551.2267 |
+| default clock, dirty on | 17.45 | 57,296,740 | 102,500,000 | 102,500,000 | 11551.2267 |
+| default clock, dirty off | 16.90 | 59,177,200 | 102,500,000 | 205,000,000 | 11551.2267 |
+
+**The semantic change is predictable and narrow.** Every computed value is identical — `breaches` and
+the final `buffer` are unchanged. What moves is *how often downstream ran*: 102.5M → 205M invocations.
+So **anything idempotent downstream is unaffected; counters and accumulators are not.** That is a rule
+an author can hold in their head, which is what makes the switch usable rather than dangerous.
+
+**An interaction worth knowing:** dirty filtering costs **2.47 ns/event** with the clock injected, but
+only **0.55 ns** with the default wall clock — the syscall masks it. Turning dirty support off while
+leaving the default clock in place looks nearly free and is not; the cost is hidden, not absent. Take
+the clock first.
+
+**Like-for-like, the two Fluxtion modes bracket the two hand-written arms:**
+
+| comparison | Fluxtion | hand-written | ratio |
+|---|---|---|---|
+| guarded semantics (arrest honoured) | 8.45 | 7.12 | **1.19×** |
+| unconditional (every node every cycle) | 5.98 | 3.50 | **1.71×** |
 
 ## Latency distribution (ns/event, batch=50, 200M events)
 
