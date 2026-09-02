@@ -57,3 +57,8 @@ __pycache__/
 # picture nothing reads at runtime, and rule 1's sweep cannot see inside an image — so it is regenerated,
 # never committed. The GraphML beside it is the reviewable artefact and IS committed.
 src/main/resources/**/generated/*.png
+
+# generated processors are build output and carry a vendor-domain copyright header,
+# which the rule-1 sweep cannot see inside but does match. never commit them.
+docs/experience/current/*/src/main/java/com/acme/app/generated/
+docs/experience/current/*/src/main/resources/com/acme/app/generated/
