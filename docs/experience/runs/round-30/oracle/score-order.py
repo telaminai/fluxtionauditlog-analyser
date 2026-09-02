@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""Score the EVALUATION file: the checks that only a correctly ordered graph can pass.
+"""Score the EVALUATION file.
 
-Decision correctness is scored separately. These are the properties that distinguish an engine which
-evaluates in dependency order, once per node, from one that propagates eagerly or recomputes blindly.
-Node names are matched by substring so an engine may name its nodes what it likes.
+CORRECTED. The first version required evaluation depth to be non-decreasing across a whole line and
+commit depth to be globally descending. Both are wrong when an event touches independent subgraphs: a
+PRICE affecting two books may evaluate one book's whole chain then the other's, and either interleaving
+is correct because the books do not depend on each other. It scored a correct engine as failing.
+
+The properties that actually matter:
+  O1 no node evaluates twice in one event
+  O2 within one subject (a book, or a book:instrument), depth never goes backwards
+  O4 the commit sequence is exactly the reverse of the evaluation sequence
 """
 import sys, re
 
@@ -16,6 +22,12 @@ def depth_of(name):
             return d
     return None
 
+def subject(name):
+    m = re.search(r'[(\[]([^)\]]+)[)\]]', name)
+    if m:
+        return m.group(1).split(":")[0]      # book, so a book's own chain is one subject
+    return ""
+
 def parse(path):
     rows = {}
     for line in open(path):
@@ -23,7 +35,7 @@ def parse(path):
         if not line or line.startswith("#"):
             continue
         num, _, rest = line.partition(",")
-        if not num.isdigit():
+        if not num.strip().isdigit():
             continue
         rows[int(num)] = [p for p in rest.split("|") if p]
     return rows
@@ -32,32 +44,35 @@ def main(path):
     rows = parse(path)
     R = []
 
-    dup = [(n, v) for n, v in rows.items()
+    dup = [n for n, v in rows.items()
            if len([x for x in v if not x.startswith("commit:")]) !=
               len({x for x in v if not x.startswith("commit:")})]
-    R.append(("O1 each node evaluates at most once per event", not dup,
-              f"repeats in events {[n for n,_ in dup][:3]}" if dup else ""))
+    R.append(("O1 no node evaluates twice in one event", not dup, f"events {dup[:3]}" if dup else ""))
 
     bad = []
     for n, v in rows.items():
-        seen = [d for d in (depth_of(x) for x in v if not x.startswith("commit:")) if d is not None]
-        if seen != sorted(seen):
+        evals = [x for x in v if not x.startswith("commit:")]
+        per = {}
+        for x in evals:
+            d = depth_of(x)
+            if d is None:
+                continue
+            per.setdefault(subject(x), []).append(d)
+        if any(seq != sorted(seq) for seq in per.values()):
             bad.append(n)
-    R.append(("O2 evaluation follows dependency depth", not bad,
-              f"out of order in events {bad[:3]}" if bad else ""))
+    R.append(("O2 within a subject, depth never goes back", not bad, f"events {bad[:3]}" if bad else ""))
 
     cbad = []
     for n, v in rows.items():
-        c = [depth_of(x[len("commit:"):]) for x in v if x.startswith("commit:")]
-        c = [d for d in c if d is not None]
-        if c and c != sorted(c, reverse=True):
+        evals = [x for x in v if not x.startswith("commit:")]
+        commits = [x[len("commit:"):] for x in v if x.startswith("commit:")]
+        if commits and commits != list(reversed(evals)):
             cbad.append(n)
-    R.append(("O4 commits run in reverse depth order", not cbad,
-              f"forward-ordered in events {cbad[:3]}" if cbad else ""))
+    R.append(("O4 commits are the reverse of evaluation", not cbad, f"events {cbad[:3]}" if cbad else ""))
 
     ok = sum(1 for _, p, _ in R if p)
     for a, p, d in R:
-        print(f"  [{'PASS' if p else 'FAIL'}] {a:<44} {d}")
+        print(f"  [{'PASS' if p else 'FAIL'}] {a:<42} {d}")
     print(f"  ---- {ok}/{len(R)} ----")
 
 if __name__ == "__main__":
