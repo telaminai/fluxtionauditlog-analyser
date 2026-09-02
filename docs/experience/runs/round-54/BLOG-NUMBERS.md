@@ -70,6 +70,35 @@ the clock first.
 | guarded semantics (arrest honoured) | 8.45 | 7.12 | **1.19×** |
 | unconditional (every node every cycle) | 5.98 | 3.50 | **1.71×** |
 
+## The floor — everything off
+
+`setSupportDirtyFiltering(false)` + `getAuditorMap().clear()`, then two hand-edits to the generated
+source to price an optimisation that **does not exist yet**: route the typed entry point straight to
+`handleEvent`, skipping `processEvent` (buffering check, re-entrancy flag, `callbackDispatcher`) and
+`onEventInternal` (the `instanceof` chain).
+
+| arm | ns/event | events/sec | updates |
+|---|---|---|---|
+| hand-written inline | 2.92 | 342,407,122 | 102,500,000 |
+| hand-written components | 3.51 | 285,078,967 | 102,500,000 |
+| Fluxtion floor, `onEvent(Object)` | 5.49 | 182,225,705 | 205,000,000 |
+| Fluxtion floor, `onEvent(MarketTick)` | 5.51 | 181,573,882 | 205,000,000 |
+| + typed → `handleEvent` direct *(hand-edited)* | 4.92 | 203,334,689 | 205,000,000 |
+| **+ last auditor removed** *(hand-edited)* | **4.88** | **204,737,629** | 205,000,000 |
+
+**The typed entry point currently buys nothing** — 5.51 vs 5.49. `onEvent(MarketTick)` still routes
+through `processEvent`, so the `instanceof` chain and re-entrancy machinery are paid regardless. The
+monomorphic win exists only if the typed method dispatches directly.
+
+**That optimisation is worth ~0.59 ns/event, about 11%.** It is real and it is not free: it removes
+re-entrancy and buffering support, so it is a mode rather than a default — and the caller must commit
+to a concrete event type to claim it.
+
+**Removing the final auditor buys 0.04 ns.** `nodeNameLookup` is effectively free.
+
+**Floor: 4.88 ns/event, 204,737,629 events/sec, zero allocation — 1.39× hand-written code doing the
+same unconditional work.**
+
 ## Latency distribution (ns/event, batch=50, 200M events)
 
 | arm | p50 | p90 | p99 | p99.9 | p99.99 | max |
