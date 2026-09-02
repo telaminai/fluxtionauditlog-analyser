@@ -1,4 +1,3 @@
 package com.vendor.contract;
-import java.util.function.Consumer;
-/** Where published alerts go. The application supplies the destination. */
-public class AlertSink { public static Consumer<String> PUBLISH = a -> {}; }
+/** Where published alerts go. Register an implementation as a service; the engine routes it. */
+public interface AlertSink { void publish(String alert); }

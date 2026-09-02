@@ -1,33 +1,43 @@
 eventLogRecord: 
     eventTime: -1
-    logTime: 1788366832623
+    logTime: 1788374439761
     groupingId: null
     event: EventLogControlEvent
-    eventToString: EventLogConfig{level=null, logRecordProcessor=com.acme.app.Main$$Lambda/0x000000d001017370@1c53fd30, sourceId=null, groupId=null}
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.acme.app.Main$$Lambda/0x0000007001016f00@77f03bb1, sourceId=null, groupId=null}
     thread: main
     nodeLogs: 
-    endTime: 1788366832623
+    endTime: 1788374439761
 eventLogRecord: 
     eventTime: -1
-    logTime: 1788366832623
+    logTime: 1788374439761
     groupingId: null
     event: EventLogControlEvent
     eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
     thread: main
     nodeLogs: 
-    endTime: 1788366832624
+    endTime: 1788374439762
 eventLogRecord: 
-    eventTime: 1788366832624
-    logTime: 1788366832624
+    eventTime: -1
+    logTime: 1788374439762
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: main
+    nodeLogs: 
+    endTime: 1788374439763
+eventLogRecord: 
+    eventTime: 1788374439764
+    logTime: 1788374439764
     groupingId: null
     event: LifecycleEvent
     eventToString: Init
     thread: main
     nodeLogs: 
-    endTime: 1788366832626
+    endTime: 1788374439766
 eventLogRecord: 
-    eventTime: 1788366832629
-    logTime: 1788366832629
+    eventTime: 1788374439769
+    logTime: 1788374439769
     groupingId: null
     event: Config
     eventToString: Config[key=volFactor, value=2.0]
@@ -38,10 +48,10 @@ eventLogRecord:
         - vol_9: { thread: main, method: calc, stage: marketdata.vol, value: 0.0}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 0.0}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 0.0}
-    endTime: 1788366832637
+    endTime: 1788374439777
 eventLogRecord: 
-    eventTime: 1788366832637
-    logTime: 1788366832637
+    eventTime: 1788374439777
+    logTime: 1788374439777
     groupingId: null
     event: Config
     eventToString: Config[key=chargePct, value=0.12]
@@ -51,10 +61,10 @@ eventLogRecord:
         - mdConfig_6: { thread: main, method: onConfig}
         - charge_26: { thread: main, method: calc, stage: capital.charge, value: 0.0}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 0.0}
-    endTime: 1788366832637
+    endTime: 1788374439777
 eventLogRecord: 
-    eventTime: 1788366832637
-    logTime: 1788366832637
+    eventTime: 1788374439777
+    logTime: 1788374439777
     groupingId: null
     event: Tick
     eventToString: Tick[symbol=DEMO, bid=100.0, ask=104.0]
@@ -78,10 +88,10 @@ eventLogRecord:
         - vol_9: { thread: main, method: calc, stage: marketdata.vol, value: 2.04}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 210.62024064}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 14.495628326399999}
-    endTime: 1788366832640
+    endTime: 1788374439780
 eventLogRecord: 
-    eventTime: 1788366832640
-    logTime: 1788366832640
+    eventTime: 1788374439780
+    logTime: 1788374439780
     groupingId: null
     event: Rate
     eventToString: Rate[ccy=USD, rate=1.4]
@@ -92,10 +102,10 @@ eventLogRecord:
         - spread_13: { thread: main, method: calc, stage: pricing.spread, value: 148.512}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 294.86833689599996}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 15.338109288959998}
-    endTime: 1788366832640
+    endTime: 1788374439780
 eventLogRecord: 
-    eventTime: 1788366832640
-    logTime: 1788366832640
+    eventTime: 1788374439780
+    logTime: 1788374439780
     groupingId: null
     event: Trade
     eventToString: Trade[symbol=DEMO, qty=1000.0, price=102.0]
@@ -111,10 +121,10 @@ eventLogRecord:
         - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 294868.33689599996}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 2961072.7948799995}
-    endTime: 1788366832640
+    endTime: 1788374439780
 eventLogRecord: 
-    eventTime: 1788366832640
-    logTime: 1788366832640
+    eventTime: 1788374439780
+    logTime: 1788374439780
     groupingId: null
     event: Trade
     eventToString: Trade[symbol=DEMO, qty=4000.0, price=102.0]
@@ -133,10 +143,10 @@ eventLogRecord:
         - streak_23: { thread: main, method: calc, stage: risk.streak, value: 1.0}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 1179473.3475839999}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 4.7228491607039995E7}
-    endTime: 1788366832646
+    endTime: 1788374439786
 eventLogRecord: 
     eventTime: -1
-    logTime: 1788366832646
+    logTime: 1788374439786
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -144,10 +154,10 @@ public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0
     thread: main
     nodeLogs: 
         - fee_28: { strategySwapped: premium}
-    endTime: 1788366832647
+    endTime: 1788374439786
 eventLogRecord: 
-    eventTime: 1788366832647
-    logTime: 1788366832647
+    eventTime: 1788374439786
+    logTime: 1788374439786
     groupingId: null
     event: Trade
     eventToString: Trade[symbol=DEMO, qty=4500.0, price=103.0]
@@ -166,10 +176,10 @@ eventLogRecord:
         - streak_23: { thread: main, method: calc, stage: risk.streak, value: 2.0}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 1326907.5160319998}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 5.9766590638079986E7}
-    endTime: 1788366832647
+    endTime: 1788374439786
 eventLogRecord: 
-    eventTime: 1788366832647
-    logTime: 1788366832647
+    eventTime: 1788374439786
+    logTime: 1788374439786
     groupingId: null
     event: Config
     eventToString: Config[key=keyNobodyOwns, value=999.0]
@@ -177,10 +187,10 @@ eventLogRecord:
     nodeLogs: 
         - cpConfig_25: { thread: main, method: onConfig}
         - mdConfig_6: { thread: main, method: onConfig}
-    endTime: 1788366832647
+    endTime: 1788374439786
 eventLogRecord: 
-    eventTime: 1788366832647
-    logTime: 1788366832647
+    eventTime: 1788374439786
+    logTime: 1788374439786
     groupingId: null
     event: Trade
     eventToString: Trade[symbol=DEMO, qty=100.0, price=103.0]
@@ -196,10 +206,10 @@ eventLogRecord:
         - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 29486.8336896}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 30725.7762816}
-    endTime: 1788366832647
+    endTime: 1788374439786
 eventLogRecord: 
-    eventTime: 1788366832647
-    logTime: 1788366832647
+    eventTime: 1788374439786
+    logTime: 1788374439786
     groupingId: null
     event: Tick
     eventToString: Tick[symbol=DEMO, bid=101.0, ask=106.0]
@@ -223,10 +233,10 @@ eventLogRecord:
         - vol_9: { thread: main, method: calc, stage: marketdata.vol, value: 2.07}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 30395.248805249998}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 31653.85124025}
-    endTime: 1788366832647
+    endTime: 1788374439786
 eventLogRecord: 
-    eventTime: 1788366832647
-    logTime: 1788366832647
+    eventTime: 1788374439786
+    logTime: 1788374439786
     groupingId: null
     event: Trade
     eventToString: Trade[symbol=DEMO, qty=5000.0, price=104.0]
@@ -245,10 +255,10 @@ eventLogRecord:
         - streak_23: { thread: main, method: calc, stage: risk.streak, value: 1.0}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 1519762.4402625}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 7.6051052134875E7}
-    endTime: 1788366832647
+    endTime: 1788374439786
 eventLogRecord: 
     eventTime: -1
-    logTime: 1788366832647
+    logTime: 1788374439786
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -256,10 +266,10 @@ public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0
     thread: main
     nodeLogs: 
         - fee_28: { strategySwapped: default}
-    endTime: 1788366832647
+    endTime: 1788374439786
 eventLogRecord: 
-    eventTime: 1788366832647
-    logTime: 1788366832647
+    eventTime: 1788374439786
+    logTime: 1788374439786
     groupingId: null
     event: Trade
     eventToString: Trade[symbol=DEMO, qty=50.0, price=104.0]
@@ -275,4 +285,4 @@ eventLogRecord:
         - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
         - var_21: { thread: main, method: calc, stage: risk.var, value: 15197.624402624999}
         - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 8228.1134188125}
-    endTime: 1788366832647
+    endTime: 1788374439787

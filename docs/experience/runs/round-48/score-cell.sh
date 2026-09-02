@@ -4,6 +4,8 @@ set -u
 W="$1"; LABEL="$2"
 D=/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/experience/runs/round-48
 cd "$W" || exit 1
+# rebuild first: a cell whose last command was `clean` has no target/classes
+mvn -q -o process-classes >/dev/null 2>&1
 mvn -q -o dependency:build-classpath -Dmdep.outputFile=cp.txt >/dev/null 2>&1
 rm -f sc-audit.txt sc-alerts.txt
 java -cp "target/classes:lib/contracts.jar:lib/marketdata.jar:lib/pricing.jar:lib/liquidity.jar:lib/risk.jar:lib/capital.jar:$(cat cp.txt 2>/dev/null)" \

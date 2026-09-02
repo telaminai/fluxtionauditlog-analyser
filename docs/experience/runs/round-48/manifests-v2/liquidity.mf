@@ -1,0 +1,10 @@
+Implementation-Title: liquidity
+Fluxtion-Component: true
+
+Name: com/vendor/liquidity/LiquidityStd.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: book=BookApi, score=ScoreApi
+Fluxtion-Requires: DepthApi, AdjustedApi
+Fluxtion-Constructor: (DepthApi, AdjustedApi)
+Fluxtion-Consumes: Tick
+Fluxtion-Description: book depth and a liquidity score

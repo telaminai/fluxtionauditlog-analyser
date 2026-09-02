@@ -1,5 +1,29 @@
 # Assembling components with Fluxtion — everything you need
 
+## Read the catalogue first — one command
+
+```
+for j in lib/*.jar; do unzip -p $j META-INF/MANIFEST.MF | perl -0pe 's/\r?\n //g'; done
+```
+
+The `perl` unfolds manifest values, which wrap at 72 bytes and are otherwise truncated. Each entry
+gives you everything needed to wire it:
+
+```
+Fluxtion-Provides: mid=MidApi, depth=DepthApi, vol=VolApi, ewma=EwmaApi
+Fluxtion-Requires: MidApi, DepthApi
+Fluxtion-Constructor: (MidApi, DepthApi)
+```
+
+`name=Interface` means **the field is called `name` and it publishes `Interface`**. A bare
+`name` with no `=` is a field that publishes no interface — it still exists and you can read it.
+So `mid=MidApi` means — that is the field name you put
+in `#{bean.mid}`, and the interface that satisfies another component's `Fluxtion-Requires`. **You do
+not need `javap` for any of this.**
+
+A component's `Fluxtion-Requires` chain usually forces thechoice: if only one variant publishes an
+interface a downstream component requires, that variant is the only one that works.
+
 ## What you write
 
 **The bean file, and a short runner.** Nothing else.
@@ -28,7 +52,7 @@ structure into your integration, so their next release breaks your bean file.
 **Each entry point has two constructors.** The one its manifest names is yours. The other takes every
 node field and exists only so the generator can rebuild the subtree — never declare a bean against it.
 
-### The runner — about 40 lines
+### The runner — about 40 lines, and this is its whole shape
 
 ```java
 import com.acme.generated.AppProcessor;
@@ -36,28 +60,35 @@ import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
 import com.telamin.fluxtion.runtime.service.Service;
 
 AppProcessor p = new AppProcessor();
-p.setAuditLogProcessor(r -> lines.add(r.asCharSequence().toString()));
+
+// 1. capture the audit log - the components write their own records into it
+p.setAuditLogProcessor(r -> auditLines.add(r.asCharSequence().toString()));
 p.setAuditLogLevel(EventLogControlEvent.LogLevel.INFO);
+
+// 2. register every service the engine needs, BEFORE init(). This is how a component
+//    receives anything it did not get through its constructor - an output destination,
+//    a strategy, a policy. The framework delivers each one to whichever node accepts
+//    that type; you never say which component that is.
+p.registerService(new Service<>((AlertSink) alertLines::add, AlertSink.class));
+p.registerService(new Service<>(FeeStrategies.byName("default"), FeeStrategy.class));
+
 p.init();
+
+// 3. pump events
+for (String line : Files.readAllLines(Path.of(scenario))) {
+    ...
+    p.onEvent(new Events.Tick(symbol, bid, ask));
+}
+
+// 4. a service can be swapped at any time, and takes effect from the next event
+p.registerService(new Service<>(FeeStrategies.byName("premium"), FeeStrategy.class));
+
+Files.writeString(Path.of(auditOut), String.join("\n", auditLines));
 ```
 
-Those three imports are the only framework packages you need. **Do not guess a package** — every
-other type you touch comes from the vendors' `contracts` jar.
-
-Then read the scenario, call `p.onEvent(...)`, and write the collected lines out.
-
-**To hand a service to a running engine** — a fee strategy, a policy, anything a component accepts:
-
-```java
-p.registerService(new Service<>(FeeStrategies.byName(name), FeeStrategy.class));
-```
-
-The component that wants it declares `@ServiceRegistered`; the framework delivers it to whatever
-accepts that type. **There is nothing to look up and nothing to wire.** A public method on the node
-(`p.capital.fee.feeStrategy(s, name)`) also works.
-
-**Reading state back:** every published figure is a `public` field — `p.capital.fee.value`,
-`p.risk.streak.streak`. Direct field access. Never reflection.
+**Those two `registerService` calls are the entire runtime-configuration story.** Any interface a
+component accepts is registered the same way. Look in the contracts jar for the interface; the
+catalogue does not list them because the framework, not the catalogue, does the routing.
 
 ## What you must NOT write
 
