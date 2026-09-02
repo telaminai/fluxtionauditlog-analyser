@@ -187,3 +187,86 @@ restructure the graph.
 - Ten nodes. Larger graphs are not measured, and dispatch is straight-line so this should scale
   linearly in node count, but that is a prediction, not a result.
 - One process per configuration, not repeated. The collector comparison is suggestive at this n.
+
+
+## 5. Build time or runtime? Both routes exist; only two of three work
+
+Asked which kind of flag `printEventToString` is. The clean generated diff between
+`addEventAudit(INFO)` and `addEventAudit(INFO, false)` is **one behavioural line, in the
+constructor** — not in `init()`:
+
+```java
+public PA(Map<Object, Object> contextMap) {
+    ...
+    eventLogger.setClearAfterPublish(false);
+    eventLogger.trace = true;
+    eventLogger.printEventToString = true;     // <- the only difference
+    eventLogger.printThreadName = true;        // <- what the THIRD boolean controls
+```
+
+That also names the third boolean, which §4 declined to guess: **`printThreadName`**.
+
+`LogRecord` keeps its **own** `protected boolean printEventToString`, and that is what decides the
+outcome. Three routes, measured on a processor built with the default, level=ERROR:
+
+| route | when | bytes/event | ns/event | works? |
+|---|---|---|---|---|
+| `addEventAudit(INFO, false)` | build | **0.0** | 118.6 | **yes** |
+| `mgr.printEventToString(false)` before `init()` | runtime | 208.0 | 151.0 | **no** |
+| `mgr.printEventToString(false)` after the control event | runtime | 208.0 | 146.9 | **no** |
+| `setAuditLogRecordEncoder(new LogRecord(clock))` with flag off | runtime | **0.0** | 113.0 | **yes, with a caveat** |
+| *(unchanged default, for reference)* | — | 184.0 | 143.3 | — |
+
+**Setting the manager's field is measurably not equivalent** — the field reads `false` in the printout
+and 208 bytes are still allocated, because the `LogRecord` already holds its own copy. Worse than
+leaving it alone, consistently, by 24 B/event. Why it rises rather than merely failing to fall is not
+established here.
+
+**The encoder route is the working runtime one — and it is a footgun.** Zero allocation and the
+fastest of all at a suppressing level, but at INFO, where records actually publish, it grows without
+bound and dies:
+
+```
+java.lang.OutOfMemoryError: Java heap space
+  at LogRecord.addSourceId(LogRecord.java:141)
+  at LogRecord.addTrace(LogRecord.java:131)
+  at EventLogger.logNodeInvocation(EventLogger.java:240)
+```
+
+Calling `r.clear()` in the sink does **not** fix it, and the *default* record survives the identical
+sink for 5,000,000 events. So a supplied `LogRecord` is not wired the way the generated one is. **This
+is recorded as measured, not diagnosed — the likeliest explanation is that the harness is misusing the
+API**, and the generated constructor's `setClearAfterPublish(false)` suggests there is a companion call
+that was not made. Either way it is a documentation gap: the API is reachable, plausible, and lethal.
+
+**Answer: treat it as a build-time flag.** `addEventAudit(level, false)` is the route that is both
+correct and safe.
+
+## 6. Every configuration, one table — what the audit log actually costs
+
+Same ten nodes, same reused event, G1 unless stated:
+
+| configuration | throughput | ns/event | bytes/event | vs no audit |
+|---|---|---|---|---|
+| **no audit in the graph at all** | **56,663,294 /s** | **17.9** | **0.0** | 1.0× |
+| audit built in, `LogLevel.NONE` | 27,024,086 /s | 37.0 | 0.0 | 2.1× slower |
+| audit, `addEventAudit(INFO,false,false)`, level ERROR | 9,061,427 /s | 110.4 | 0.0 | 6.2× |
+| audit, `addEventAudit(INFO,false)`, level ERROR | 8,277,522 /s | 120.8 | 0.0 | 6.7× |
+| audit default, level ERROR (nothing published) | 7,008,515 /s | 142.7 | 184.0 | 8.0× |
+| audit, `addEventAudit(INFO,false,false)`, level INFO | 2,798,140 /s | 357.4 | 276.0 | 20.0× |
+| audit default, level INFO (10M records) | 2,265,304 /s | 441.4 | 460.0 | 24.7× |
+
+**Answered directly: with no audit log the processor runs at 17.9 ns/event, 56.7M events/sec — and
+that is the same 25× that separates it from a fully-tracing INFO configuration.**
+
+Three things worth saying about that table:
+
+1. **Merely compiling audit in, with the level at NONE, costs 2.1×** (37.0 vs 17.9 ns) at zero
+   allocation. The `auditInvocation` call sites are emitted unconditionally — 27 of them in this
+   10-node graph — and the level is checked inside each. Availability is not free.
+2. **The whole 184 B/event default is avoidable with one boolean**, and the resulting configuration is
+   both allocation-free and 16% faster than the default at the same level.
+3. **The RCA artefact this project is built on costs ~25× throughput when it is actually recording.**
+   That is a real price and no document in this repo had stated it. It is also, in fairness, the price
+   of writing 15.5 billion characters of evidence — and it is a *runtime level*, so it can be off in
+   the hot path and on when something is being investigated.
