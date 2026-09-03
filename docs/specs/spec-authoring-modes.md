@@ -271,3 +271,68 @@ The three session inputs map exactly onto concepts the analyser already has: the
 mechanism for mapping the customer's words to the supplier's convention names. The authoring
 experience is therefore not a new subsystem — it is a new *view* over portable context that already
 exists, plus the harness as a runnable step.
+
+---
+
+## The architecture: a meta selector, then mode skills loaded on demand
+
+**Owner, 2026-09-03:** *"so we have a meta harness selector when using fluxtion to build, then once
+you select/choose your path the mode you are on is brought in as an optional skill?"*
+
+**Yes, and the measurements say this is the right shape rather than merely a tidy one.**
+
+### Why the split is load-bearing
+
+Round 48's optimum is **659 words**, and it was optimal for a task that **bundled assembly with
+selection**. Once assembly is resolved mechanically, most of those words are being charged to sessions
+that cannot use them. The ablation already showed what that costs: **a worked example went from
+best-in-study to +28 turns** the moment the catalogue answered what it taught. P1 states it as
+*discovery aids expire*. The mode split generalises it:
+
+> **An instruction is not globally good or bad. It is load-bearing in one mode and dead weight — or
+> actively harmful — in another.**
+
+### The shape
+
+| stage | what it is | cost |
+|---|---|---|
+| **meta selector** | `tools/fluxtion-harness.py` — a **tool**, not a prompt. Reads the catalogue, derives the mode per figure | **0 tokens, 38 ms** |
+| **mode skill** | loaded *after* the selector reports, and only the one(s) the session needs | paid only when used |
+
+**The selector must be a tool, not an instruction.** Anything that runs deterministically should never
+be spent as context — that is the same partial-evaluation move as the manifest itself, applied to the
+harness.
+
+### What each mode's skill has to carry
+
+| mode | skill needed | content | status |
+|---|---|---|---|
+| **0 / 0+** | **none** | nobody authors anything | — |
+| **1** | *selection only* | how to read a `Fluxtion-Description`, and that absence of a promise is a ruling-out — measured in round 55 | a fraction of the 659 words |
+| **2 / 3** | *node authoring* | N1 scope, N2 entry-point-is-not-a-node, the two-constructor idiom, `@NoTriggerReference`, one `@OnTrigger`, the harness loop | **does not exist yet** |
+
+Two consequences worth stating plainly:
+
+**Mode 0 needs no instructions at all.** The cheapest session is one where the skill system loads
+nothing, because there is nothing for a model to do. That is the strongest form of the result.
+
+**The mode-2/3 skill has never been written, let alone ablated.** Everything measured in this series —
+including the 659 words and every N-item in `spec-minimal-authoring-instructions.md` — is
+**assembly** guidance. The node-authoring content that modes 2 and 3 need is a different document,
+and its ablation is the unmeasured work.
+
+### The mixed case
+
+A mixed session loads the mode-2/3 skill **for the gap only**, while the resolved half needs nothing.
+So instruction cost scales with the size of the gap, not the size of the graph — which is the same
+scoping property the harness already applies to the authoring work itself.
+
+### Consequence for the delivery order
+
+This does not move the tiers, but it sharpens two of them:
+
+- **Tier 0, item 1** becomes *write the mode-1 selection skill* — small, and most of the 659 words do
+  not belong in it.
+- **Tier 2, items 2/3/4** become *write and then ablate the mode-2/3 authoring skill*. That is where
+  both the unfound ceiling and the unmeasured instruction set live, and they should be measured
+  together: an ablation over authoring instructions, on a task the catalogue cannot satisfy.
