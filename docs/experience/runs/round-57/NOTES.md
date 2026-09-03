@@ -263,3 +263,39 @@ Round 57 reported it could not run the figure-by-figure comparison because the S
 audit configuration. **That was false** — see UP-FLX-47, withdrawn. `FluxtionSpringConfig.logLevel` in
 the bean file is all that was needed. The comparison is now unblocked and tracked as M48.11; it is
 also the `ExpectationScorer`'s first exercise against a real log rather than synthetic snapshots.
+
+---
+
+# Addendum 3 — the resolver's wall-clock time, recorded
+
+A reviewer noted that "38 milliseconds" appears in published material while **no committed note
+carried the measurement**. This project's own rules make that a defect regardless of whether the
+number is right. Measured here, on the committed fixture, ten runs:
+
+```
+python3 tools/bean-resolver.py \
+    --manifests docs/experience/runs/round-48/manifests-v2 --figures <the 18 figures>
+```
+
+| | ms |
+|---|---|
+| median | **39** |
+| min | 33 |
+| max | 47 |
+
+**Includes Python interpreter start**, which dominates: the resolve itself is a constraint solve over
+9 entry points. Machine as for round 54 (JDK 21 Corretto, macOS). A reviewer independently timed
+~30 ms, which is the same magnitude on different hardware.
+
+**Use "under 40 ms" in prose**, not a bare 38 — the spread is 33–47 and the figure is interpreter-bound
+rather than a property of the algorithm.
+
+## Entry-point counts, since two fixtures get conflated
+
+| fixture | entry points | jars |
+|---|---|---|
+| **round 48** — the headline reproduction | **9** | 5 |
+| round 55 — after adding six ambiguous pricing variants | 14 | 5 |
+
+The 206 → 51 → resolver result is the **round-48** catalogue. Published material saying "fourteen
+entry points" for that fixture is wrong.
