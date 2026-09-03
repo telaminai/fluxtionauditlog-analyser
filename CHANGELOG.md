@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Compare two audit logs on business outcomes, headlessly.** `ScoreCommand` reads both logs through
+  the shipped reader and parser and reports whether every published figure agrees after every scored
+  event. It reads Fluxtion's natural form (`book: { mid: 17.1}` → `book.mid`) and a tagged
+  `stage`/`value` convention. **It refuses to report a score it cannot stand behind**: unequal event
+  counts, an empty expectation, or a figure that was never published are each a distinct verdict
+  rather than a silently favourable number. Exit codes: `0` pass, `1` differences, `2` untrustworthy.
+
 ### Changed
 - **The analyser's own processor graph now ships with the compiler's full metadata vocabulary.** Builder
   1.0.66 makes that the default, so the graph the analyser can open for itself carries which nodes are
