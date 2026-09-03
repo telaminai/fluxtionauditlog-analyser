@@ -59,19 +59,24 @@ vendors cannot both ship a `Spread` node.
 
 ## The eleven items, as deliverables
 
-| # | owner's item | deliverable | notes |
+| # | owner's item | deliverable | status 2026-09-03 |
 |---|---|---|---|
-| 1 | Spring authoring efficiency | **`spec-integrator-authoring.md`** | 80% written — `spec-minimal-authoring-instructions.md` + round 57's P4a. Must be rewritten as **mode 1 = selection only** |
-| 2 | starter style, author writes nodes | **`spec-mode-starter.md`** | needs 4 first |
-| 3 | Java builder, author writes nodes | **`spec-mode-builder.md`** | needs 4 first |
-| 4 | the development harness loop | **`spec-fluxtion-dev-harness.md`** | the big one; defines 2 and 3 |
-| 5 | namespace collision bug | **upstream issue, reproduction in hand** | ready to file |
-| 6 | the blog | **two posts, not one** | see below |
-| 7 | analyser / toolbench first-class | **`spec-authoring-in-analyser.md`** | needs 1, 4, 8 settled |
-| 8 | manifest builder + annotations | **extend `spec-component-catalogue.md`** | **highest leverage** |
-| 9 | process-class ordering | **fold into 1 and 4** | half-solved above |
-| 10 | what was missed | below | |
-| 11 | order | below | |
+| 1 | Spring authoring efficiency | mode-0/0+/1 specs + resolver | **largely DONE** — resolver built & verified, selector built, walkthrough written. Remains: the **mode-1 selection asset** |
+| 2 | starter style, author writes nodes | mode-2 asset + ablation | **not started**; the playground's `spring-authoring/*` is the baseline |
+| 3 | Java builder, author writes nodes | mode-3 asset + ablation | **not started**; `CLAUDE.md` + golden path is the baseline |
+| 4 | the development harness loop | `spec-fluxtion-dev-harness.md` | **not started** — the big one; defines 2 and 3 |
+| 5 | namespace collision bug | **UP-FLX-46, with a 12-line repro** | **repro built, ask written** — not yet lodged upstream (needs owner go-ahead: public repo) |
+| 6 | the blog | two posts | **blocked** on M3 (n=1) and P3b restatement |
+| 7 | analyser / toolbench first-class | `spec-authoring-mode-selector.md` §toolbench | **spec'd** — R6–R9, and the arithmetic that settles it. Remains: the analyser view |
+| 8 | manifest builder + annotations | `spec-component-catalogue.md` + V-A/V-B | **de-risked** — `Fluxtion-Convention` mechanism built & verified. Remains: the annotation + plugin goal |
+| 9 | process-class ordering | measured | **half DONE** — `generate-sources` verified for modes 0/1. Remains: update the template pom; design for 2/3 |
+| 10 | what was missed | M1–M10 below | recorded |
+| 11 | order | below | **DONE**, refreshed here |
+
+**Artefacts produced 2026-09-03:** `tools/bean-resolver.py`, `tools/fluxtion-harness.py`,
+`spec-authoring-modes.md`, `spec-authoring-mode-selector.md`,
+`spec-authoring-session-walkthrough.md`, `assessment-playground-ai-prompts.md`, UP-FLX-46,
+catalogue validations V-A/V-B, rounds 55 and 57.
 
 ### Item 4 — the harness loop, stated as the owner described it
 
@@ -149,14 +154,22 @@ toolbench packaging).
 
 Ordered by *what unblocks the most per hour*, not by importance.
 
-### Tier 0 — this week. Cheap, and three of them unblock everything else.
+### Tier 0 — what is actually left, in this order
 
-1. **M2, the shared scorer.** Five defects, all flattering. Every number below depends on it. Half a day.
-2. **Item 5, file the collision bug.** Reproduction is in hand; it is a component-market blocker. One hour.
-3. **Item 9 → fold in.** Rebind mode-0/1 generation to `generate-sources` and delete the workaround
-   from the template. Measured tonight. One hour.
-4. **Item 1, `spec-integrator-authoring.md`.** Rewrite as *mode 1 = selection only*. 80% exists.
-5. **M1, cache accounting in the harness.** Half a day, and it gates every future round.
+1. **M2, the shared scorer.** *Not started, and still first.* Five scoring defects, three in one
+   session, **every one in the direction of agreeing with me** — including one that printed
+   "12/12 identical" while comparing 12 events against 0. Tier 2 is entirely measurement; none of it
+   is trustworthy until this exists. Half a day.
+2. **Item 9, finish it.** Rebind the template pom to `generate-sources` and delete the
+   `generated.dependents` workaround. Measured and verified; ~1 hour. Do it early because it removes
+   friction from every experiment that follows — it cost me a build tonight.
+3. **M1, cache accounting.** Record `cache_creation_input_tokens` / `cache_read_input_tokens`. Half a
+   day, and it gates every future round: Haiku silently uncaches below 4,096 tokens, so any
+   prefix-size comparison without it is meaningless.
+4. **Item 5, lodge UP-FLX-46 upstream.** Written with a reproduction. **Needs a decision, not work** —
+   it means opening a public issue on `telaminai/fluxtion`.
+5. **Item 1, the mode-1 selection asset.** Small: how to read a `Fluxtion-Description`, that absence
+   of a promise rules a candidate out, and how an answer becomes a profile line.
 
 ### Tier 1 — the enabler. Do this before modes 2 and 3.
 
