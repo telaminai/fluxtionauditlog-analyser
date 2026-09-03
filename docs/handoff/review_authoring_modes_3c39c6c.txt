@@ -186,3 +186,17 @@ and says so — its Spring-wiring-rule finding is plausible from my compiler-sid
 untested here too); UP-FLX-45/46/48's compiler-side validity beyond reading them (46's repro is
 the namespace collision, which matches a generator behaviour I believe is real); the MkDocs and
 Swing gates (nothing in the range touches either, matching the author's account).
+
+================================================================================
+REVISED 2026-09-03, after the analyser-side follow-up (17209c5)
+================================================================================
+
+One verification in §1 above was WRONG and the follow-up's F6 caught it: I checked
+"10,000 ÷ 58 M/s ≈ 172 µs ✓" — arithmetic that reproduces the spec's line but combines INFO's
+460 B/event with the NO-AUDIT default-clock rate. At the measured INFO rate (2.19 M events/s,
+round-54 NOTES line 91) those 10,000 logged events take ~4.6 ms, ~27× longer. The capacity
+conclusion is unaffected; the µs framing is not supportable and my tick endorsed it. The spec line
+(spec-authoring-mode-selector.md:220) is still uncorrected as of 4c1c9d8.
+
+Findings 5 and 6 were fixed by the author in 180a1e7/4c1c9d8 after this review was filed; the
+verification of those fixes is in review_response_180a1e7_4c1c9d8.txt.

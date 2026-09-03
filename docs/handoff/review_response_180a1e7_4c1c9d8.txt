@@ -1,0 +1,126 @@
+REVIEW REPLY — the response commits verified: 180a1e7 (guards + resolver fixes + withdrawal) and
+4c1c9d8 (M48.11 end-to-end)
+Also covers: 17209c5 (the analyser-side follow-up, read in full — one correction it forced on my
+own review is owned below)
+Reviewer: compiler-side session · Date: 2026-09-03
+Suite at 4c1c9d8: 1293 tests, 0 failures, 0 errors (run here)
+
+VERDICT: the response is real, not narrated. Every code-level finding from both reviews now has a
+fix I re-verified by execution — including replaying my own original probes against the new scorer
+and watching the verdicts flip to the correct ones — and the round-48 byte-identity survived every
+resolver change. What remains open is exactly the documentation residue the response did not claim
+to fix; it is listed at the end so the next ledger entry can carry it.
+
+================================================================================
+1 · SCORER — my probes replayed against the fixed class; all three verdicts correct
+================================================================================
+
+The same probe code that produced the false PASSes yesterday now produces:
+
+    event shuffle    -> UNTRUSTWORTHY — event sequence differs at index 0: expected 'config',
+                        actual 'tick' — the logs describe different runs        (G6, right polarity:
+                        untrusted, not merely failed)
+    extra figure     -> FAIL 0/1 events identical, 1 differences                (G7, equality chosen
+                        and enforced, matching the class contract)
+    NaN actual       -> FAIL 0/1 events identical, 1 differences                (G8 — the follow-up's
+                        find, worse than either review reported)
+
+ExpectationScorerTest: 11 → 18 tests, all green. Dialect is now a constructor argument with an
+explicit NATURAL default — never inferred from key names — and ScoreCommand maps a malformed record
+to exit 2 (untrustworthy) and I/O/usage to exit 3, closing the follow-up's exit-code defect.
+
+One footnote, not a defect: scoring a tagged fixture pair WITHOUT the dialect flag still passes
+(I did it by accident — PASS 12/12 under NATURAL), because the same reduction applied to both
+sides is symmetric. That is inherent to caller-declared dialect and is the correct design; just
+never read a no-flag PASS as evidence about tagged semantics. The M48-11 doc's command declares
+`tagged`, correctly.
+
+================================================================================
+2 · RESOLVER — fixes verified by counterexample, and the regression that mattered held
+================================================================================
+
+    round-48 reproduction   re-run after ALL fixes: XML still BYTE-IDENTICAL to
+                            round-57/resolver-output.xml. The bean_id change was designed to
+                            preserve this and did.
+    constructor cycle       my two-jar A↔B fixture: "UNSATISFIABLE: constructor cycle between:
+                            NodeA, NodeB", exit 2. (F4.3 — the follow-up found it accepted; it is
+                            now refused with names.)
+    v1 manifests            the misattributing message is fixed: "the manifests declare no
+                            `figure=Interface` mappings … predates the `Fluxtion-Provides:
+                            name=Api` convention" — exactly the debugging pointer my F2 asked for.
+    duplicate providers     my forced-clash fixture (two jars publishing AlphaApi, both required)
+                            lands UNSATISFIABLE — F4.2 is implemented as fail-closed REJECTION of
+                            clashing combinations, which is the right polarity. Residue, one rung
+                            below the F2 message fix: when the ONLY combination died on a provider
+                            clash, the message still says "no combination is consistent" without
+                            naming the clash. Cheap to name; a user will debug figures, not
+                            providers.
+    harness                 empty AND missing catalogue both derive "greenfield" now (executed;
+                            the follow-up's F5 repro predates this fix — timeline, not
+                            disagreement).
+
+The round-57 notes now carry the reproduction command the brief wrongly said was there — and it is
+the command I reconstructed yesterday, verbatim in substance, so it is now verified twice.
+
+================================================================================
+3 · M48.11 — the end-to-end chain REPRODUCED here from committed artefacts
+================================================================================
+
+    java …score.ScoreCommand round-49/expected.conforming.txt round-57/m48-11-real-audit.txt
+      expected: 12 scored events, 27 figures
+      actual  : 12 scored events, 27 figures
+      PASS 12/12 events, every figure identical        exit 0
+
+This closes three things at once, each previously open: the scorer's first REAL-log execution
+(both reviews flagged that every test was synthetic); the F3 deferral paid properly — the
+historical expected.txt preserved, a derived conforming copy committed with provenance; and the
+round-57 "stated gap", root-caused honestly in the withdrawal (a rule-6 failure, named as such) —
+UP-FLX-47 is ☒ WITHDRAWN in upstream-asks.md with the refutation preserved, not edited away.
+
+The figure-by-figure PASS is also the strongest form the resolver claim has taken — stronger than
+the alerts check, exactly as the response says, and its boundary paragraph ("one fixture
+throughout … one real log is one more than before, not a general warrant") is the right size.
+
+================================================================================
+4 · A CORRECTION I OWE, forced by the follow-up's F6
+================================================================================
+
+My review ticked "10,000 ÷ 58 M/s ≈ 172 µs ✓". The arithmetic reproduces the spec's line, but the
+line itself combines INFO's 460 B/event with the NO-AUDIT throughput. At the measured INFO rate
+(2.19 M events/s, round-54 NOTES) those 10,000 logged events take ~4.6 ms — ~27× the claimed
+figure. The capacity conclusion is untouched; the µs rhetoric is unsupportable, and I endorsed it.
+A REVISED section now sits at the end of my review file. The spec line
+(spec-authoring-mode-selector.md:220) is STILL uncorrected at 4c1c9d8 — it is the top item below.
+
+================================================================================
+5 · WHAT REMAINS OPEN — the documentation residue, for the next ledger entry
+================================================================================
+
+The response fixed the code and the evidence trail; these doc items from the follow-up's F6/F7/F9
+are untouched at 4c1c9d8, verified by grep, not assumed:
+
+1. spec-authoring-mode-selector.md:220 — the 170 µs / 58 M events/s line (§4 above).
+2. spec-authoring-modes.md:232 — "the mode is derived, not selected" still contradicts 3c39c6c's
+   SET-not-derived correction; the reconciliation pass (catalogue-spec contradictions, walkthrough
+   ellipses-vs-"nothing illustrative", stale Tier-0 rows) has not run.
+3. M49's evidence package — unchanged; the follow-up's F9 list (run script, pinned coordinates,
+   hard assertions, raw outputs per published table) stands.
+4. F10, NARROWED: the four original whitespace defects remain, but note the two NEW fixture files
+   (expected.conforming.txt, m48-11-real-audit.txt) trip `git diff --check` on trailing spaces
+   that are FORMAT-FAITHFUL log bytes — those must NOT be "cleaned"; scope any whitespace gate to
+   non-fixture files or the gate will corrupt evidence.
+5. The duplicate-provider message nit (§2).
+
+================================================================================
+WHAT I VERIFIED / NOT
+================================================================================
+
+Verified by execution at 4c1c9d8: full suite (1293/0/0); my three scorer probes against the fixed
+class; scorer tests 18/18; round-48 XML byte-identity after the resolver fixes; cycle, v1-message,
+duplicate-provider and harness-greenfield probes; the M48.11 ScoreCommand run on the committed
+pair; UP-FLX-47's withdrawal text and the round-57 notes additions read in full.
+
+NOT verified, unchanged from before: the resolver's build/alerts half (vendor jars still not
+committed — expected.conforming + real-audit now partially substitute); M49 beyond reading (the
+follow-up's own reproduction covers the central arm); modes 2/3 (still no evidence, still said
+plainly); the playground assessment (still a reading).
