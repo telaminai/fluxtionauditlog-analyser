@@ -1,0 +1,125 @@
+FOLLOW-UP REVIEW — response to authoring architecture review
+Reviewed: 6f45fe4 against review_authoring_architecture_ef6e3f1.txt
+Date: 2026-09-03
+
+VERDICT: NOT YET CLOSED — THE FOUR HEADLINE DIRECTIONS ARE ACCEPTED, BUT TWO ARE ONLY HALF APPLIED
+AND THE ORIGINAL RATIONALISATION FINDINGS F5/F6 WERE NOT ANSWERED
+
+Accepted and closed:
+
+  * The scoring joint is now correctly split into detect-divergence (pinned) and detect-to-correct
+    (unpinned).
+  * The eight-stage table now explicitly says it covers composition, not modes 2/3 authoring.
+  * The authority table now says the audit log owns what the run RECORDED, not everything that happened.
+  * The withdrawn Spring audit claim is marked withdrawn at its original location.
+  * The scorer is no longer listed as not started; its ten guards/21 tests are recorded.
+
+Three small but load-bearing corrections remain, followed by the unaddressed document-rationalisation
+work.
+
+================================================================================
+C1 · HIGH — THE FINGERPRINT CORRECTION INVENTS A NEW NAME AND STILL CONFLATES TWO IDENTITIES
+================================================================================
+
+spec-authoring-modes.md:51-63 and tracker.md:843-852 now say sourceFingerprint was missed because the
+capability ships as `descriptorFingerprint`. There is no product capability or contract field with that
+name. The only occurrences are a private helper method in DescriptorFingerprintTest and the new prose.
+The producer's shared identity is still named `sourceFingerprint`:
+
+  * GraphML key: fluxtion.sourceFingerprint
+  * generated descriptor API: DescriptorSupport.Meta.sourceFingerprint()
+  * wire-envelope metadata: sourceFingerprint
+
+`DescriptorFingerprintTest` is the TEST name because it inspects the descriptor carrier; it did not
+rename the capability. The original search also could have found the literal name in this repository's
+GraphML fixtures and GraphVocabularyTest. Correct the account rather than replacing one name error with
+another.
+
+The more consequential half remains unchanged. The text says the new audit-log carrier removes
+`report.LogFingerprint`'s recomputation. It must not. These identities answer different questions:
+
+  sourceFingerprint  = which compiled model?
+  LogFingerprint     = which particular captured log/report observation?
+
+Many logs from separate runs should share one sourceFingerprint. A persisted report must still refuse a
+different log from the same model. Add sourceFingerprint alongside LogFingerprint and use both where the
+claim requires both.
+
+Finally, spec-authoring-modes.md:101 still says "compiler identity -> runtime artefact" is wholly
+unpinned. The generated processor descriptor is a runtime artefact and its equality with GraphML is
+exactly what DescriptorFingerprintTest pins. Replace that row with the two actual joints:
+
+  compiler model -> GraphML + generated descriptor     PINNED
+  generated model identity -> audit-log header         UNPINNED
+
+================================================================================
+C2 · HIGH — COMPOSITION IS SCOPED IN THE CANON, BUT THE OVERVIEW STILL CLAIMS ALL JUDGEMENT HAS TWO HOMES
+================================================================================
+
+The new paragraph at spec-authoring-modes.md:108-114 correctly says modes 2/3 are not decomposed and the
+architecture covers half the problem. spec.md:77-88 still says human/model judgement is required in
+"Two places, and only two" and "Everything between those two points is mechanical or should become so."
+
+Those statements are what the composition correction was meant to retract. They still exclude component
+behaviour/API/algorithm design, author/vendor semantic declarations, and diagnosis/repair. Either scope
+that overview section explicitly to composing existing components, or replace "only" with the bounded
+claim the evidence supports. The canonical and its overview must not disagree on whether the other half
+exists.
+
+================================================================================
+C3 · REQUIRED — THE LATER OVERVIEW STILL UNDOES THE AUDIT/ALLOCATION QUALIFICATIONS
+================================================================================
+
+The ownership row is fixed. The combined proposition immediately above it, added in ed67689 and present
+at the response head, still promises "predictable allocation-free dispatch" and evidence "to inspect
+what actually happened" (spec.md:41-43).
+
+The benchmark's own corrected contract is "no measured per-event allocation" in one fixture, and the
+audit correction is "what the run recorded". Use those same phrases in the proposition. A canonical
+overview should not be more confident than either source result.
+
+================================================================================
+C4 · REQUIRED — THE DOCUMENT SET IS STILL NOT RATIONALISED
+================================================================================
+
+The response closes two stale rows but leaves the rest of the original F5 intact:
+
+  * spec-authoring-modes.md:317 says "M4-M9 are real" and M4 is first to promote, after marking M4 false.
+  * spec-component-catalogue.md still says "No new source annotations" before requiring three, says
+    three annotations cover four facts, calls the now-built resolver a separate future proposal, and
+    says genuine ambiguity has not been tested.
+  * The mode-selector and minimal-instructions specs still retain overlapping architecture under a
+    supersession banner rather than separating unique evidence from obsolete normative text.
+
+The point of the prior finding was not merely to mark two famous mistakes. It was to leave one usable
+implementation authority. Strike/update the remaining live contradictions or move them into a clearly
+historical corrections appendix.
+
+================================================================================
+C5 · REQUIRED — THE SMALL DOCUMENT/HANDOFF DEFECTS ARE UNCHANGED
+================================================================================
+
+  * spec-minimal-authoring-instructions.md:13-14 still has a detached "- fifteen measured cells..."
+    sentence introduced by ef6e3f1.
+  * spec.md still has adjacent horizontal rules and a Last updated date of 2026-08-12.
+  * REVIEWER-ORIENTATION.md still calls the already-reviewed M48/M49 range wholly unreviewed and
+    describes the pre-correction scorer.
+  * The response exists only as a commit message/user-session report, not as the handoff response file
+    the repository protocol says travels with delegated work.
+
+================================================================================
+VERIFICATION
+================================================================================
+
+  PASS  mvn test — 1,296 tests, zero failures/errors.
+  PASS  SpecLinksResolveTest as part of the suite.
+  PASS  git show --check 6f45fe4.
+  PASS  source/name check: no product `descriptorFingerprint`; sourceFingerprint is present in GraphML,
+        descriptor API, envelope, analyser fixtures and tests.
+  PASS  four accepted corrections above read against current spec/tracker text.
+
+NOT RE-RUN: resolver, M48.11 application, M49 benchmark, Swing or MkDocs. This response changes only
+spec markdown; the full Java suite exercises the link test, and no site/UI surface changed.
+
+NEXT: make C1-C5 as one narrow documentation reconciliation, then request closure review. No code or
+architecture redesign is required.
