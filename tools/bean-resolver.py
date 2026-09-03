@@ -141,7 +141,11 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
             continue
         valid.append(sel)
     if not valid:
-        return [], "no selection satisfies the required figures"
+        coverable = set().union(*(e.figures for e in eps)) if eps else set()
+        missing = sorted(wanted - coverable)
+        if missing:
+            return [], "UNPROVIDED:" + ",".join(missing)
+        return [], "no selection satisfies the required figures (all figures exist, but no combination is consistent)"
     fewest = min(len(s) for s in valid)
     valid = [s for s in valid if len(s) == fewest]
     # prefer the least over-provisioned selection: fewest figures beyond what was asked for
