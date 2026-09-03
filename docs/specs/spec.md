@@ -24,6 +24,32 @@ explainable event history.
 _Canonical statement: **[spec-authoring-modes.md](spec-authoring-modes.md) ▸ THE TARGET
 ARCHITECTURE**. This section answers the four questions a reader should not have to reconstruct._
 
+### 0 · Why the authoring and runtime results belong together
+
+They are usually read as two research programmes. They are one direction, and each link is measured
+or explicitly marked as not:
+
+| | |
+|---|---|
+| metadata and a resolver | remove mechanical authoring work |
+| generated dispatch | removes handwritten ordering as independent mutable state |
+| the runtime | makes the resulting structure cheap enough to keep — **8.44 ns/event, no measured per-event allocation** |
+| the audit path | produces evidence, at an explicitly measured cost |
+| this tool | makes that evidence queryable at a scale no reader can hold |
+| human or model judgement | reserved for requirements and policy |
+
+**The combined proposition:** *mechanically resolve what can be decided, compile correctness-bearing
+structure into predictable allocation-free dispatch, and preserve enough identity and runtime evidence
+to inspect what actually happened.*
+
+The runtime measurements live in
+[`round-54/BLOG-NUMBERS.md`](../experience/runs/round-54/BLOG-NUMBERS.md) and are deliberately **not**
+merged into the authoring argument — they are a separate benchmark with their own method and their own
+limits. The headline defensible claim there: **with a stream-driven clock a ten-node graph dispatched
+at 8.44 ns/event with no measured per-event allocation — 19% slower than hand-written Java implementing
+the same dirty-guard semantics.** The 2.92 ns inline loop is a useful physical floor, but it does not
+purchase the same semantics.
+
 ### 1 · Which decisions are mechanical?
 
 **Selection and wiring, wherever declared metadata and policy determine a unique answer.** Measured on
