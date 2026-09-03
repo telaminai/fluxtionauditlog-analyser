@@ -1,0 +1,206 @@
+ADVERSARIAL FOLLOW-UP — analyser response commits and compiler-side review reply
+Target implementation: 180a1e7 + 4c1c9d8
+Also reviewed: e01ced0 (review_response_180a1e7_4c1c9d8.txt)
+Reviewer: independent Codex session · Date: 2026-09-03
+
+VERDICT: CHANGES REQUIRED before M48.3/M48.4 can be treated as trustworthy tools.
+
+The important experimental result survives. At the target commit, the committed real-log pair
+reproduces PASS 12/12 with 27 figures under the declared TAGGED dialect, and the round-48 resolver
+still emits XML byte-identical to resolver-output.xml. UP-FLX-47's withdrawal is correct. The
+response also correctly closes the three concrete scorer probes from the first review.
+
+But the response repeated the same structural mistake one layer outward: its new checks sit above
+paths that still bypass them. An explicitly TAGGED comparison can still pass with no figures; the
+machine-readable harness can still declare a constructor cycle RESOLVED; and both event and bean
+identity are collapsed before comparison/emission. These are executable counterexamples, not
+design preferences.
+
+================================================================================
+F1 · BLOCKING — G5 still permits a vacuous PASS: scored events, zero figures
+================================================================================
+
+ExpectationScorer.java:149-163 builds a Snapshot for every scored event even when the declared
+dialect extracts no figures. score():213 checks only expected.isEmpty(), not whether the expected
+contract contains a figure. Therefore a wrong dialect, or a correctly tagged log that publishes no
+tagged business value, is treated as a successful comparison.
+
+Reproduced through ScoreCommand with identical one-record inputs:
+
+    event: Tick
+    nodeLogs:
+      - book: { mid: 17.1}
+
+and the explicit `tagged` argument:
+
+    exit 0
+    expected: 1 scored events, 0 figures
+    actual  : 1 scored events, 0 figures
+    PASS 1/1 events, every figure identical
+
+This is the exact polarity the scorer exists to prevent. There is an event list, so the current G5
+does not fire, but there is no obligation to compare. e01ced0's footnote about a tagged pair being
+symmetrically reducible under NATURAL is not this case: this probe explicitly declares TAGGED and
+extracts nothing.
+
+Required: after reduction, refuse an expected snapshot set whose union of figures is empty. Do not
+require every event to contain a figure — an early silent event followed by a publication is valid.
+Pin both cases through ScoreCommand's production reader path.
+
+================================================================================
+F2 · BLOCKING — the mode-selector handoff says a constructor cycle is RESOLVED
+================================================================================
+
+bean-resolver.py:187-206 detects cycles only in order(). solve():118-184 accepts them as valid.
+fluxtion-harness.py's JSON success path (159-168) does not call order() unless `--xml` is also given.
+The same two-entry catalogue therefore has two incompatible answers from the same implementation:
+
+    A provides IA, constructor requires IB
+    B provides IB, constructor requires IA
+
+    bean-resolver.py              -> UNSATISFIABLE: constructor cycle between A, B
+    fluxtion-harness.py --json    -> exit 0, branch catalogue, modes ["0"],
+                                     resolved_figures ["fa", "fb"]
+    fluxtion-harness.py           -> prints "MODE 0 — RESOLVED. Nobody authors anything",
+                                     then exits 1 with a ValueError traceback
+
+The JSON form is the handoff a skill loader consumes, so this is the most consequential path. A
+downstream model is told to load no skill and do no work for an application Spring cannot construct.
+
+Required: make constructibility part of the resolver result itself. Do not add a third cycle check
+to the harness. solve() (or one typed result immediately beneath it) must be the single authority for
+valid/ambiguous/unsatisfiable, and every renderer must consume that result. Exclude cyclic selections
+before minimality/ambiguity is decided; otherwise a cyclic candidate can create a false ambiguity.
+Add executable tests for both human and JSON surfaces — the Python tools still have no test suite.
+
+Smaller diagnostic point: order() names every node still blocked, not necessarily the actual cycle.
+A downstream node waiting on A will be reported as part of an A/B cycle. An SCC or real cycle path
+would keep the new refusal's explanation honest.
+
+================================================================================
+F3 · BLOCKING — G6 compares simple names, not the event identity the format carries
+================================================================================
+
+Format 1 permits `event` to carry an event class name. ExpectationScorer.simpleEventName():198-205
+throws away the package/outer-class prefix and lowercases before storing the Snapshot identity.
+That is useful for deciding whether an event belongs to the fixture's four scored kinds; it is not a
+safe equality key.
+
+Reproduced through ScoreCommand with equal values:
+
+    expected event: com.alpha.Tick
+    actual event:   com.beta.Tick
+
+    exit 0
+    PASS 1/1 events, every figure identical
+
+The two records name different classes, so G6's stated rule — "event names must match at every
+index" — is not implemented.
+
+Required: separate inclusion classification from comparison identity. It is reasonable to classify
+both as a `tick` fixture event, but the Snapshot must retain enough declared identity to fail closed
+when the two logs disagree. Do not try to reconstruct the discarded name later.
+
+================================================================================
+F4 · MAJOR — valid selections can emit duplicate Spring bean ids
+================================================================================
+
+bean_id():209-220 strips every non-alphanumeric character from the jar name and checks only whether
+one jar contributes several entries. It never validates uniqueness across jars. Two independently
+selectable entries from jars `a-b` and `ab`, providing distinct interfaces, both receive id `ab`:
+
+    <bean id="ab" class="x.C"/>
+    <bean id="ab" class="x.D"/>
+
+The resolver reports this selection RESOLVED and emits a bean file in which one selected component
+cannot be addressed reliably (a loader either rejects or overrides the duplicate). Two classes with
+the same simple name inside one multi-entry jar collide by the same mechanism.
+
+Required: allocate ids once from the complete selected set and validate uniqueness before rendering.
+The emitter and reference generation must consume that allocation; repeated calls to bean_id() are
+another opportunity for drift. Add the two collision shapes as tests. This is the resolver-side
+version of the simple-name collision already filed upstream as UP-FLX-46.
+
+================================================================================
+F5 · MAJOR EVIDENCE DEFECT — expected.conforming.txt is accepted, not Format-1 conforming
+================================================================================
+
+docs/experience/runs/round-49/expected.conforming.txt begins with nine provenance comment lines.
+Format 1 permits one optional audit header immediately before eventLogRecord; it has no banner or
+comment-block position. The reader is lenient enough to accept the file, but acceptance is not
+conformance. Worse, RecordParser consumes the first provenance line as the first record's header:
+
+    HeaderParser.parse("# DERIVED, NOT ORIGINAL EVIDENCE.")
+      -> level="DERIVED,", logger="NOT ORIGINAL EVIDENCE."
+
+I confirmed those exact values on the first parsed record. The scorer ignores that control record,
+so the 12/12 result is unaffected. The problem is the artefact's name and claim: it is not a clean
+golden for the published format and it injects invented metadata into the historical record.
+
+Required: put provenance beside the log (README/sidecar) and keep the text container to records and
+legal headers, or deliberately extend Format 1 and its conformance suite. Do not rely on parser
+leniency while calling the result conforming. I independently verified that after removing the nine
+provenance lines and the inserted separator lines, every original byte of expected.txt remains; the
+historical values themselves were preserved.
+
+================================================================================
+F6 · REQUIRED RECONCILIATION — live records still describe the pre-response state
+================================================================================
+
+These are mechanical stale-residuals, not new design disagreements:
+
+  * docs/specs/tracker.md M48.4 still says five guards / 11 tests. The class has eight guards and
+    ExpectationScorerTest has 18 tests.
+  * The commit and evidence call the new work M48.11, but the live tracker stops at M48.10. A finished
+    item must be ticked here under rule 7; otherwise M48.11 exists only in a commit message/file name.
+  * docs/experience/runs/round-57/NOTES.md still calls bean-resolver.py "240 lines"; it is 322.
+  * CHANGELOG.md was not changed in 180a1e7 although the public ScoreCommand acquired an explicit
+    dialect argument, three refusal/difference guards, and exit code 3. Its current line lists only
+    exits 0/1/2. That violates rule 2 and leaves the shipped CLI contract stale.
+
+The earlier compiler-side reply already lists the 170 microseconds/58M mismatch, SET-vs-derived
+spec contradiction, M49 evidence gaps and duplicate-provider message. Those remain open; this report
+does not duplicate their analysis.
+
+================================================================================
+N1 · RANGE HYGIENE — the evidence files trip diff --check
+================================================================================
+
+`git diff --check 17209c5..4c1c9d8` reports trailing whitespace throughout both new log files. The
+spaces are inherited/generated log bytes, so silently stripping them would weaken the provenance
+claim. But leaving the range red without declaring an exception also makes "diff-check clean" cease
+to mean one thing. Choose explicitly: record a path-scoped whitespace policy for raw audit evidence,
+or document normalization as part of capture. The response report's "do not clean evidence" instinct
+is sound; the missing part is a mechanical, reviewable exception rather than a permanent red gate.
+
+================================================================================
+WHAT HELD / WHAT I VERIFIED
+================================================================================
+
+Held, by execution:
+
+  * `mvn -q -o clean test`: 1,293 tests, zero failures/errors/skips.
+  * M48.11 committed pair under TAGGED: 12 scored events, 27 figures, PASS 12/12, exit 0.
+  * round-48 resolver reproduction: generated XML is byte-identical to
+    docs/experience/runs/round-57/resolver-output.xml.
+  * Empty catalogue derives greenfield.
+  * The original G6/G7/G8 fixes are present and their focused tests pass.
+  * Rule-1 four-term sweep: clean.
+
+New executable counterexamples:
+
+  * explicit TAGGED + one scored event + zero tagged figures -> false PASS, exit 0;
+  * com.alpha.Tick vs com.beta.Tick -> false PASS, exit 0;
+  * constructor cycle through harness JSON -> false RESOLVED, exit 0;
+  * the same cycle through the human harness -> RESOLVED text then traceback;
+  * `a-b` + `ab` jars -> duplicate emitted bean ids;
+  * expected.conforming first record -> invented level/logger from the provenance preamble.
+
+Not verified: rebuilding the vendor application that produced m48-11-real-audit.txt (the executable
+jar workspace is still absent); the historical alert-output run; M49 measurements; modes 2/3; Swing
+(no UI changed); MkDocs (no docs/site change).
+
+Bottom line: the measured five-jar result is stronger after M48.11 and should be retained. The
+general lesson is also reinforced: decisions must live in one authoritative model. The remaining
+failures are all caused by classifying in one place and validating/rendering later from a reduced or
+independently re-derived view.
