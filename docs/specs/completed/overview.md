@@ -15,7 +15,7 @@ your job is to design the spec for a fluxtion log analyser app with these requir
   - The event processor this relates to seed from initially /Users/greghiggins/IdeaProjects/market-maker-lib/src/main/java/com/acme/marketmaker/strategy
   - Add the ability to add a FQN for an event processor
   - The default eventprocessor FQN is com.acme.marketmaker.strategy.DemoMarketMakerStrategy
-- The logs will be rendered in a jtable with a row for each eventLogRecord and the columns will be 
+- The logs will be rendered in a jtable with a row for each eventLogRecord and the columns will be
   - eventTime, render as a date/time
   - logTime, render as a date/time
   - groupingId
@@ -26,7 +26,7 @@ your job is to design the spec for a fluxtion log analyser app with these requir
   - endTime, render as a date/time
 - Clicking a log will show the full nodeLogs entry for that eventLogRecord in a text area that is coloured yaml to make it easier to read
 - Filtering on log time using a draggable date-time range picker
-- Filering by event type will be supported use the pair   
+- Filering by event type will be supported use the pair
     event: ExportFunctionAuditEvent
     eventToString: public boolean com.acme.tradecalculator.api.lib.node.hedging.VenueHedgeMonitorCalculator.orderVenueConnected(com.fluxtion.server.plugin.trading.service.order.OrderVenueConnectedEvent)
     to form the filter, if eventToString is a method signature then use that to build grouping by callback type in the case above orderVenueConnected otherwise it is a plain event type

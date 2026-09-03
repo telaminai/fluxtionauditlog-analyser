@@ -21,7 +21,18 @@ still check**.
 
 ---
 
-_No entries awaiting review._
+## ☑ reviewed 2026-09-03 · `180a1e7`, `4c1c9d8` · review response + M48.11
+
+**Review:** [`review_response_180a1e7_4c1c9d8.txt`](review_response_180a1e7_4c1c9d8.txt) — verified by
+execution, not by reading: the reviewer's original probe binaries were replayed unchanged against the
+fixed scorer and flipped to the correct verdicts; round-48 XML held byte-identical through all four
+resolver fixes; M48.11 reproduced independently (PASS 12/12, exit 0).
+
+**Verdict: accepted, with residue.** Follow-up review `review_analyser_response_4c1c9d8_followup.txt`
+then found six further defects, all since fixed (G9/G10, the `--json` cycle path, bean-id collisions,
+and the derived fixture whose provenance had become record metadata).
+
+_No further entries awaiting review._
 
 ---
 

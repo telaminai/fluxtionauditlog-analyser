@@ -2,7 +2,12 @@
 
 **Companion to** [`spec-authoring-mode-selector.md`](spec-authoring-mode-selector.md).
 **Every "behind the scenes" block below is real output** from `tools/fluxtion-harness.py` against the
-round-55 fixture, captured 2026-09-03. Nothing here is illustrative.
+round-55 fixture, captured 2026-09-03.
+
+**One qualification, added 2026-09-03 after review.** The command lines are shown with the figure list
+elided (`--figures mid,depth,…,alertCount`) because it is 18 names long and would dominate the page.
+**The outputs are verbatim; the commands as printed are not runnable as-is.** The full list, and a
+runnable form, are in [`round-57/NOTES.md`](../experience/runs/round-57/NOTES.md) ▸ *Addendum 2*.
 
 > **Writing this found three defects that the prose had hidden** — see *What simulating it exposed* at
 > the end. That is the argument for walkthroughs over descriptions.

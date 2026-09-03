@@ -32,7 +32,7 @@ Status is one of four things, and they are not interchangeable:
 | 3 | semantic facts compilation cannot infer — descriptions, conventions, constructor intent | author / vendor | **PROPOSED**, mechanism **MEASURED**: `Fluxtion-Convention` + a site profile resolves a six-way type-identical ambiguity |
 | 4 | deterministic selection and connection where metadata and policy decide | resolver | **MEASURED on one fixture family** — byte-identical XML, audit log identical figure by figure. **Prototype, not product** |
 | 5 | compile the declared graph; own dependency identity, relationship kind, propagation, provenance, ordering | Fluxtion | **IMPLEMENTED and substantially consumed here** — M45.1/.2/.3/.5 |
-| 6 | runtime artefacts carry the compiler's identity forward | runtime + log format | **PARTLY IMPLEMENTED** — descriptor fingerprint ships and is test-pinned; **the audit-log header carrier is the gap** |
+| 6 | runtime artefacts carry the compiler's identity forward | runtime + log format | **PARTLY IMPLEMENTED** — `fluxtion.sourceFingerprint` is pinned compiler → GraphML/descriptor; the **audit-log header carrier is unpinned** |
 | 7 | reduce logs and graph metadata to bounded evidence; refuse what it cannot establish | the analyser | **IMPLEMENTED** — verbs, coverage, reports; verification only against an explicit expectation |
 | 8 | irreducible intent and genuine ambiguity, recorded as reviewable policy | the model | **PROPOSED**; the recording half is measured (a convention becomes a profile line) |
 
@@ -43,29 +43,34 @@ on breach"* into the figures, policies and open choices that follow from it has 
 measured** — not once in 57 rounds. It is listed first because it is upstream of everything else, and
 labelled HYPOTHESIS because presenting it as an established LLM role would be inventing evidence.
 
-### Stage 6 — CORRECTED. Fingerprinting is shipped; the audit-log carrier is the gap
+### Stage 6 — corrected TWICE, and the second correction was also wrong
 
-**An earlier version of this section said `sourceFingerprint` "appears nowhere in this repository" and
-marked the whole stage PROPOSED. That was wrong, and it is corrected here rather than edited away.**
+**Two errors, both mine, recorded because the pattern is the lesson.** First I wrote that
+`sourceFingerprint` "appears nowhere in this repository" — I had grepped `src/main/java` and the site
+docs, and missed that it is a **GraphML graph fact**. Then I "corrected" that to say the capability
+ships as `descriptorFingerprint` — which is a **private test-helper name**, not the contract.
 
-I searched for the name I expected, did not find it, and concluded the capability was absent. The
-capability ships under a different name — **`descriptorFingerprint`** — and is pinned by tests:
+**The contract is `fluxtion.sourceFingerprint`.** It is emitted by the compiler into the GraphML and
+the generated descriptor, it appears in committed `.graphml` artefacts, and it is pinned by
+`GraphVocabularyTest` (reading `graphFacts().get("fluxtion.sourceFingerprint")`) and by
+`DescriptorFingerprintTest`, which parses it out of the GraphML to prove the envelope crossed the
+gateway.
 
-- **`DescriptorFingerprintTest` (M45.6a)** — the digest is computed client-side, travels as envelope
-  metadata on a `transient` field so it cannot ride the payload, and is stamped server-side into
-  `DescriptorSupport.Meta`. The generating server holds no code that could recompute it, so a value
-  here *proves the envelope crossed the gateway*. Verified emitted by compiler 1.0.66.
-- **`GraphVocabularyTest`** — GraphML vocabulary trust, per edge, with aggregated edges refused.
+**Three identities, none of which replaces another:**
 
-**What is genuinely missing is narrower: the audit-log fingerprint CARRIER.** The record format's
-header does not carry the compiler's identity, so `report.LogFingerprint` derives log identity from
-the log's own contents — name, record count, first and last `logTime`, provenance. That is the one
-recomputation stage 6 removes.
+| identity | answers | status |
+|---|---|---|
+| `fluxtion.sourceFingerprint` | *which compiled model is this?* | **PINNED** — compiler → GraphML / generated descriptor |
+| the audit-log header | *which model produced this run?* | **UNPINNED** — the header carries no model identity |
+| `report.LogFingerprint` | *which log was this report authored against?* | shipped, and a **different question** — name, record count, first/last `logTime`, provenance |
 
-> **This is the second time in one session I concluded a capability was absent because I searched for
-> the name I expected.** The first produced a false upstream ask (UP-FLX-47). Recorded as a working
-> rule: *absence of a name is not absence of a capability — find what the thing is called before
-> reporting a gap.*
+**So the unpinned joint is narrower than either of my earlier statements: `generated model →
+audit-log header`.** Compiler-to-descriptor is already pinned; `LogFingerprint` is not a substitute
+for the missing carrier and was never trying to be.
+
+> **Working rule, earned twice in one session.** *Absence of a name is not absence of a capability —
+> and presence of a similar name is not presence of the contract.* The first error produced a false
+> upstream ask (UP-FLX-47); the second produced a false correction to it.
 
 ## Duplicated authority — the actual examples
 
@@ -98,7 +103,8 @@ distinction decides which fix is right — a guard, versus moving the decision u
 | run → inspect | shipped reader parses it; 12/12 figure comparison | **pinned** |
 | inspect → **detect divergence** | mutation-tested scoring: 5 of 5 caught on a real log | **pinned** |
 | **detect → correct** | nothing | **UNPINNED** — catching a divergence is not evidence that the loop closes on a fix |
-| **compiler identity → runtime artefact** | nothing | **UNPINNED** — no fingerprint carrier |
+| compiler → GraphML / generated descriptor | `fluxtion.sourceFingerprint`, `GraphVocabularyTest`, `DescriptorFingerprintTest` | **pinned** |
+| **generated model → audit-log header** | nothing | **UNPINNED** — the header carries no model identity |
 | **build → component metadata** | nothing | **UNPINNED** — manifests are hand-authored |
 | **goal → declaration** | nothing | **UNPINNED** — never measured |
 
@@ -244,7 +250,7 @@ fixed before publication.**
   the config bean the goal consumes was not.
 - **M5 — the audit default is the wrong way round.** `addEventAudit(level, true)` is the default and
   costs **184 bytes/event even at levels where nothing is published**; `addEventAudit(level, false)` is
-  allocation-free. No doc points at it. (Round 54.)
+  showed no measured per-event allocation. No doc points at it. (Round 54.)
 - **M6 — the audit log's cost is undocumented**: 26× throughput and 460 B/event at INFO. Nothing in
   this repo said so before round 54.
 - **M7 — `setAuditLogRecordEncoder(new LogRecord(clock))` is a footgun**: zero-allocation at a
@@ -344,7 +350,14 @@ The first row deserves naming: **turning "we need a risk engine that alerts on b
 list is itself a selection problem**, and it is upstream of everything measured so far. Every round in
 this series was handed the figure list. That step has never been measured.
 
-### Refinement 1 — the mode is derived, not selected
+### Refinement 1 — the AUTHORING mode is derived; the ANALYSER's posture is set
+
+**Corrected 2026-09-03.** An earlier version headed this "the mode is derived, not selected" and
+applied it to both. The single authority is
+[`spec-authoring-mode-selector.md`](spec-authoring-mode-selector.md) ▸ R10: the **authoring** mode is a
+fact about a catalogue and is derived; the **analyser's posture** is SET by either party through MCP or
+the UI, with derivation only as a fallback default — because derivation lags intent, and a person
+saying "let's build something new" is known before any artefact changes.
 
 The harness runs the catalogue first, always, and the mode falls out:
 

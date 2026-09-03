@@ -1,7 +1,7 @@
 # Spec — Connect an AI client: local MCP setup from the analyser
 
 **Status:** SHIPPED 2026-08-28
-**Milestone:** M42  
+**Milestone:** M42
 **Extends:** [M13 MCP transport](../spec-assistant-actions-mcp.md), [Start page](spec-start-page.md), and [the connection guide](../../site/connect-an-llm.md).
 **Does not reopen:** M41 native installation. JBang remains the supported way to install the application.
 
@@ -90,7 +90,7 @@ must not wait behind a dialog. M42 keeps that rule.
 
 The Start page gains a normal, non-modal card:
 
-> **Work with an AI client**  
+> **Work with an AI client**
 > Let Codex, Claude, or another MCP client query and render into this analyser window. The connection
 > stays on this machine; you approve the setup and the client's own tool calls.
 >

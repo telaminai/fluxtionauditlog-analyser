@@ -74,25 +74,25 @@ keys the node logged under its `instanceId`:
 
 ```yaml
 ---
-eventLogRecord: 
+eventLogRecord:
     eventTime: 1787696934848
     logTime: 1787696934848
     groupingId: null
     event: Temperature
     eventToString: Temperature[sensor=hall, celsius=21.5]
     thread: main
-    nodeLogs: 
+    nodeLogs:
         - thermostat: { sensor: hall, celsius: 21.5, heating: false}
     endTime: 1787696934849
 ---
-eventLogRecord: 
+eventLogRecord:
     eventTime: 1787696934849
     logTime: 1787696934849
     groupingId: null
     event: Temperature
     eventToString: Temperature[sensor=hall, celsius=16.0]
     thread: main
-    nodeLogs: 
+    nodeLogs:
         - thermostat: { sensor: hall, celsius: 16.0, heating: true}
     endTime: 1787696934849
 ```

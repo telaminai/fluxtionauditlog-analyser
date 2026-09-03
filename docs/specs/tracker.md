@@ -843,13 +843,14 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       with derivation only as the default (R7 revised, R10)
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
-- [M48.12] ☐ **audit-log fingerprint CARRIER** — narrower than first recorded. Descriptor
-      fingerprinting **ships and is test-pinned** (`DescriptorFingerprintTest` M45.6a; emission
-      verified against compiler 1.0.66), as does GraphML vocabulary trust (`GraphVocabularyTest`).
-      What is missing is the **audit-log header carrier**: the log does not carry the compiler's
-      identity, so `report.LogFingerprint` derives identity from the log's own contents.
-      **Stage 6.** *(An earlier version of this entry claimed no fingerprinting existed at all — I
-      searched for `sourceFingerprint` and it ships as `descriptorFingerprint`.)*
+- [M48.12] ☐ **audit-log header fingerprint carrier** — narrowed twice. The contract is
+      **`fluxtion.sourceFingerprint`**, emitted into the GraphML and generated descriptor and pinned by
+      `GraphVocabularyTest` and `DescriptorFingerprintTest`. **Compiler → descriptor is already
+      pinned.** What is unpinned is **generated model → audit-log header**: the log header carries no
+      model identity. `report.LogFingerprint` answers a *different* question — which log a report was
+      authored against — and is not a substitute. **Stage 6.**
+      *(Recorded twice wrong: first "no fingerprinting exists" — I grepped `src/` and it is a GraphML
+      fact; then "it ships as `descriptorFingerprint`" — that is a private test-helper name.)*
 - [M48.13] ☐ **compiler-generated component manifests** — today's are hand-authored. Until the build
       emits them, the resolver result is conditional on a convention nobody's toolchain enforces.
       **Stage 2.** Spec: [`spec-component-catalogue.md`](spec-component-catalogue.md).

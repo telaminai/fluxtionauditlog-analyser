@@ -33,14 +33,14 @@ or explicitly marked as not:
 |---|---|
 | metadata and a resolver | remove mechanical authoring work |
 | generated dispatch | removes handwritten ordering as independent mutable state |
-| the runtime | makes the resulting structure cheap enough to keep — **8.44 ns/event, no measured per-event allocation** |
+| the runtime | makes the resulting structure cheap enough to keep — **8.44 ns/event, with no per-event allocation measured in the tested configuration** |
 | the audit path | produces evidence, at an explicitly measured cost |
 | this tool | makes that evidence queryable at a scale no reader can hold |
 | human or model judgement | reserved for requirements and policy |
 
 **The combined proposition:** *mechanically resolve what can be decided, compile correctness-bearing
-structure into predictable allocation-free dispatch, and preserve enough identity and runtime evidence
-to inspect what actually happened.*
+structure into dispatch that was predictable and showed no measured per-event allocation, and preserve enough identity and runtime evidence
+to inspect what a run recorded.*
 
 The runtime measurements live in
 [`round-54/BLOG-NUMBERS.md`](../experience/runs/round-54/BLOG-NUMBERS.md) and are deliberately **not**
@@ -76,7 +76,9 @@ relationship re-derivation, topological-rank inference, service-registry reclass
 
 ### 3 · Where is human or model judgement genuinely required?
 
-Two places, and **only** two:
+Two places **in the composition path**. That qualifier is load-bearing: modes 2 and 3 — where the
+author writes the components — are not decomposed by this architecture at all, so **how many judgement
+points authoring contains is unknown**, and "only two" is a claim about half the problem:
 
 - **Turning an informal goal into explicit figures, policies and open choices.** *This is the largest
   evidence gap in the programme.* Every experiment to date was handed the figure list; this step has

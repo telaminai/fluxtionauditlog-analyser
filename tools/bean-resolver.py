@@ -129,6 +129,7 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
         options.append(subsets)
     valid = []
     profile = profile or {}
+    clashes = []
     for combo in itertools.product(*options):
         sel = [e for grp in combo for e in grp]
         if not sel:
@@ -152,13 +153,14 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
         # is ambiguous even when the component set is not: the emitter would silently pick the
         # lexically later one. Reject the combination rather than guess. (Review F4.2.)
         seen_iface = {}
-        clash = False
+        clash = None
         for e in sel:
             for iface in e.interfaces:
                 if iface in seen_iface:
-                    clash = True
+                    clash = (iface, seen_iface[iface].simple, e.simple)
                 seen_iface[iface] = e
         if clash:
+            clashes.append(clash)
             continue
         valid.append(sel)
     if not valid:
@@ -169,6 +171,11 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
         # Distinguish "no consistent combination" from "the manifests carry no figure=Interface
         # mapping at all", which is what a v1 catalogue looks like and which previously reported
         # the wrong cause. (Review F2.)
+        if clashes:
+            iface, a, b = clashes[0]
+            return [], ("provider clash: %s and %s both publish `%s`, so the wiring would be ambiguous "
+                        "even though the component set is not. Every valid combination was rejected for "
+                        "this reason." % (a, b, iface))
         mapped = any(i for e in eps for i in e.provides.values() if i)
         if not mapped:
             return [], ("the manifests declare no `figure=Interface` mappings, so no requirement can "

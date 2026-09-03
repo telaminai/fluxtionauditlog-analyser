@@ -49,7 +49,7 @@ per-run output is NOT committed** — a real gap, listed at the end.
 | hand-written Java, one inline method | 3.15 | 2.67 | 3.25 | 317,682,191 | **0.0** |
 | hand-written Java, dirty-flags + guards | 7.12 | 7.05 | 7.27 | 140,465,221 | **0.0** |
 | **Fluxtion, stream-driven clock** | **8.44** | 8.38 | 8.48 | **118,491,836** | **0.0** |
-| **Fluxtion, stream clock + dirty filtering off** | **5.98** | — | — | **167,322,011** | **0.0** | 
+| **Fluxtion, stream clock + dirty filtering off** | **5.98** | — | — | **167,322,011** | **0.0** |
 | Fluxtion, default wall clock | 17.60 | 17.45 | 17.70 | 56,820,765 | **0.0** |
 
 - **Fluxtion with a stream-driven clock is within 19% of hand-written Java carrying the same guard

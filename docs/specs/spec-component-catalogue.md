@@ -180,7 +180,12 @@ smaller graph and a green build**, which is the wrong failure mode for this fram
 
 - **The consumer still writes the bean file.** With `Provides`/`Requires` in the manifest the wiring
   is a resolution rather than an authoring task, so a small tool could emit the XML from a list of
-  required figures. That is a separate proposal and it is the natural next step.
+  required figures. **Built and measured since this was written** (2026-09-03):
+`tools/bean-resolver.py` reproduces the measured-optimal selection and wiring from these manifests
+alone, byte-identically, at zero model tokens — see
+[`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET ARCHITECTURE* stage 4. It is a
+prototype with known gaps, not a product, and it is no longer a *separate* proposal: this catalogue is
+its input contract, and the two specs stand or fall together.
 - **It does not make anything more correct.** Round 48 measured no correctness advantage from the
   catalogue; it measured a large *cost* advantage. The correctness argument for Fluxtion rests
   elsewhere — on dispatch being derived rather than stored (round 41).
