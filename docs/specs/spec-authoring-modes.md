@@ -196,3 +196,78 @@ if mode-1 users hit it.
 **Fix the instruments, remove the work that should not exist, then measure the half that is still
 unknown.** Tiers 0 and 1 delete work; Tier 2 is the only place a model's ceiling is still an open
 question; Tier 3 publishes what by then will be true.
+
+---
+
+## The session protocol — how a session opens
+
+**Owner, 2026-09-03:** *"we start a session with working out what the user wants to build, what
+resources are available and then select the authoring mode for that session?"*
+
+Correct in shape, with two refinements that the harness now implements.
+
+### Three inputs, established once at the top of a session
+
+| input | how it is obtained | cost |
+|---|---|---|
+| **the figures the business needs** | from the requirement — **this is judgement**, and the first place a model earns its place | one-time |
+| **the catalogue** | scan the jars on the path; mechanical | free |
+| **the site profile** | the conventions in force — `spread=hedged` | one-time per installation |
+
+The first row deserves naming: **turning "we need a risk engine that alerts on breach" into a figure
+list is itself a selection problem**, and it is upstream of everything measured so far. Every round in
+this series was handed the figure list. That step has never been measured.
+
+### Refinement 1 — the mode is derived, not selected
+
+The harness runs the catalogue first, always, and the mode falls out:
+
+```
+RESOLVED               -> mode 0    nobody writes anything
+RESOLVED (+ profile)   -> mode 0+   one line decided it
+AMBIGUOUS              -> mode 1    one question needs judgement
+UNSATISFIABLE          -> mode 2/3  author nodes for the named gap
+```
+
+**You never author what you could have resolved**, and you learn which figures need authoring before
+writing a line.
+
+### Refinement 2 — the mode is per FIGURE, not per session
+
+The realistic case is mixed, and treating it as a single mode would be wrong. The harness resolves
+the covered subset and scopes authoring to the remainder:
+
+```
+  MIXED SESSION — 18 of 20 figures resolve mechanically, 2 require authoring.
+
+  MODE 0+ for 18 figures — resolved, nobody authors:
+      marketdata MarketDataPlus / pricing PricingHedged / liquidity LiquidityStd
+      risk RiskSupervised / capital CapitalRegulated
+      -> a buildable bean file
+
+  MODE 2/3 for 2 figures no component provides:
+      hedgeRatio, netPosition
+```
+
+**Authoring is scoped to the gap.** The resolved half is already buildable; the new nodes join it
+rather than replacing it. That is the difference between "this project needs a graph written" and
+"this project needs two nodes written" — and it is the difference the whole catalogue exists to make.
+
+### Cost, measured
+
+| | tokens | weighted | wall clock |
+|---|---|---|---|
+| cell O — a model authored it | ~2.0M | 1,980,000 | minutes, 51 turns |
+| **mode 0 / 0+** | **0** | **0** | **38 ms** |
+| deciding the profile line | ~2–5k | — | once per *installation* |
+
+The profile is written once and reused by every subsequent build, jar upgrade and rebuild. **The
+per-build authoring cost is zero.**
+
+### What this means for item 7 (the analyser)
+
+The three session inputs map exactly onto concepts the analyser already has: the **project profile**
+(M20, M38) holds the conventions and the catalogue location, and **M38.2's vocabulary pointer** is the
+mechanism for mapping the customer's words to the supplier's convention names. The authoring
+experience is therefore not a new subsystem — it is a new *view* over portable context that already
+exists, plus the harness as a runnable step.

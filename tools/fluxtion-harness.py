@@ -44,12 +44,26 @@ def main():
     sols, err = R.solve(eps, wanted, profile)
 
     if err and err.startswith("UNPROVIDED:"):
-        missing = err.split(":", 1)[1].split(",")
-        print(f"\n  MODE 2 / 3 — the catalogue cannot meet this requirement.\n")
-        print(f"  {len(missing)} figure(s) no component provides:")
+        missing = sorted(err.split(":", 1)[1].split(","))
+        covered = wanted - set(missing)
+        # A session is normally MIXED: most figures resolve, a few need authoring. Resolve the
+        # covered subset so the author sees a real bean file and a scoped work list, not a refusal.
+        sub, suberr = R.solve(eps, covered, profile)
+        print(f"\n  MIXED SESSION — {len(covered)} of {len(wanted)} figures resolve mechanically,")
+        print(f"  {len(missing)} require authoring.\n")
+        if sub and len(sub) == 1:
+            print(f"  MODE {'0+' if profile else '0'} for {len(covered)} figures — resolved, nobody authors:")
+            for e in R.order(sub[0]):
+                print(f"      {e.jar:12} {e.simple}")
+            if a.xml:
+                pathlib.Path(a.xml).write_text(R.emit_xml(sub[0]) + "\n")
+                print(f"      -> {a.xml} (the resolved half, ready to build)")
+        elif sub:
+            print(f"  MODE 1 for {len(covered)} figures — {len(sub)} candidate selections; needs a profile.")
+        print(f"\n  MODE 2 / 3 for {len(missing)} figure(s) no component provides:")
         for m in missing:
             print(f"      {m}")
-        print(f"\n  You must author {len(missing)} node(s). The harness loop from here:")
+        print(f"\n  Author {len(missing)} node(s). The harness loop from here:")
         print("      1. create a node shell for each figure above (if missing)")
         print("      2. build the orchestration graph")
         print("      3. CHECK THE GRAPH  — assert dispatch shape before any test runs")
@@ -57,8 +71,8 @@ def main():
         print("      5. wrong figure  -> fix the node")
         print("         wrong ordering-> fix the orchestration")
         print("      6. re-test")
-        print("\n  Everything the catalogue CAN supply is still resolved mechanically;")
-        print("  authoring is scoped to the gap, not to the whole graph.")
+        print("\n  Authoring is scoped to the gap. The resolved half above is already a")
+        print("  buildable bean file; the new nodes join it rather than replacing it.")
         return 2
 
     if err:
