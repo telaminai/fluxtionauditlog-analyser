@@ -21,6 +21,9 @@ still check**.
 
 ## ☐ `f645cce^..3c39c6c` (32 commits) · 2026-09-03 · authoring modes, the catalogue resolver, and the runtime benchmark
 
+**Review brief:** [`prompt_review_authoring_modes.md`](prompt_review_authoring_modes.md) — the
+authoring programme is new; a reviewer who last saw M40/M42/M43 has not met any of it.
+
 **What & why.** One long session covering two separable bodies of work, both committed straight to
 `main` with no brief → report → review cycle. **They are independent and can be reviewed separately.**
 
