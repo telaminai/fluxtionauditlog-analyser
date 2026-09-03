@@ -78,4 +78,4 @@ reproduced in 12 lines and **lodged upstream** as
 
 ---
 
-_Reviewed entries are retired to [`completed/unreviewed-changes-reviewed.md`](completed/unreviewed-changes-reviewed.md)._
+_Reviewed entries are retired to [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._

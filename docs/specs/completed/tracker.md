@@ -2281,7 +2281,7 @@ _The first application of the review's standing architecture rule, and the owner
 **using Fluxtion in a real application accelerates what we learn about it far more than measuring other
 agents does — and that learning is the raw material for the template bootstrap documents.**_
 
-- [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
+- [M44] ☐ **Spec written: [`spec-session-processor.md`](../spec-session-processor.md).** Session transitions
   are the right first subject on the rule's own test — several inputs whose ordering matters, evolving
   state, rules with consequences, and behaviour currently spread across Swing callbacks. **M35 spent
   eleven slices** getting these rules right and they still live in listeners rather than anywhere readable
@@ -2336,7 +2336,7 @@ agents does — and that learning is the raw material for the template bootstrap
   `setAuditLogProcessor` before `init()` is clean and catches one record more than reaching for the
   auditor. The driver now uses the documented call. Six measured wirings, and the gap they expose in the
   three static bootstrap sources, are written up for upstream as
-  [`upstream-content/audit-runtime.md`](../proposals/upstream-content/audit-runtime.md).
+  [`upstream-content/audit-runtime.md`](../../proposals/upstream-content/audit-runtime.md).
   ☑ **The Swing evidence gap, closed the only way it could be.** The review asked for behavioural
   characterisation against the old implementation; the old implementation is Swing, which rule 4 does not
   unit-test. So **`tools/verify-session-transitions.py`** drives the rules through the **built jar** over
@@ -2421,12 +2421,12 @@ agents does — and that learning is the raw material for the template bootstrap
   rather than being held by the driver, and results re-enter through `processAsNewEventCycle`.
   **The ordering claim survives on better grounds**: `onEvent` publishes the decision's record before it
   returns and `batchEnd()` cannot be entered until it has, so *decided → recorded → acted* no longer
-  depends on auditor ordering — which [UP-FLX-41](../proposals/upstream-asks.md) shows you cannot depend
+  depends on auditor ordering — which [UP-FLX-41](../../proposals/upstream-asks.md) shows you cannot depend
   on anyway. **One new hazard, defended**: the generated `batchEnd()` sets `processing = true` with no
   try/finally, so a throw escaping the method would wedge the processor silently; `EffectQueue` catches
   everything and the driver rethrows once the flag is clear. All 1272 tests green and 23/23 on the built
   jar with no behaviour change; seven new tests cover the properties the old shape got for free.
-- [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
+- [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](../spec-async-session-driver.md)** — the
   driver change that lets log/graph OPENING become a decision. Declined twice on the same ground, which
   is the right ground: the load is `Background.run` and the driver is synchronous single-in-flight by
   design, so forcing it would have meant lying about when a load finished.
@@ -2456,7 +2456,7 @@ agents does — and that learning is the raw material for the template bootstrap
 
 ## M45 · Consuming the GraphML vocabulary — ◧ .1/.2/.3/.5 SHIPPED 2026-08-31
 
-_Design: **[spec-graphml-vocabulary-consumption.md](spec-graphml-vocabulary-consumption.md)**. The
+_Design: **[spec-graphml-vocabulary-consumption.md](../spec-graphml-vocabulary-consumption.md)**. The
 upstream half of §2c lands in `fluxtion-builder`; this is our half. **We are the consumer the default
 flip is gated on**, so this milestone is a dependency in both directions._
 
@@ -2485,7 +2485,7 @@ flip is gated on**, so this milestone is a dependency in both directions._
   occurrences**, and the diagnostics sidecar was written on the failing path. **The two deferred rows of
   the pinned comparison are run and both predictions held** — predicted build attempts **2–3 → 1**, and
   `final` named as the mapping trigger **0 of 2 → 2 of 2**
-  ([ceiling-2026-08-31](../experience/runs/ceiling-2026-08-31/RESULTS.md)). The secondary falsifier
+  ([ceiling-2026-08-31](../../experience/runs/ceiling-2026-08-31/RESULTS.md)). The secondary falsifier
   passes too: both agents attributed the rule to the sidecar rather than prior knowledge — *"I am
   paraphrasing, not recalling"* — which is what makes the numbers mean anything. **Caveat kept, not
   buried:** the slice needs an entitled key, so it cannot run in CI or for a contributor; the answer is
