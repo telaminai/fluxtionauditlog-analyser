@@ -65,7 +65,7 @@ vendors cannot both ship a `Spread` node.
 | 2 | starter style, author writes nodes | mode-2 asset + ablation | **not started**; the playground's `spring-authoring/*` is the baseline |
 | 3 | Java builder, author writes nodes | mode-3 asset + ablation | **not started**; `CLAUDE.md` + golden path is the baseline |
 | 4 | the development harness loop | `spec-fluxtion-dev-harness.md` | **not started** — the big one; defines 2 and 3 |
-| 5 | namespace collision bug | **UP-FLX-46, with a 12-line repro** | **repro built, ask written** — not yet lodged upstream (needs owner go-ahead: public repo) |
+| 5 | namespace collision bug | **UP-FLX-46, with a 12-line repro** | **☑ DONE** — lodged 2026-09-03 as [telaminai/fluxtion#31](https://github.com/telaminai/fluxtion/issues/31) |
 | 6 | the blog | two posts | **blocked** on M3 (n=1) and P3b restatement |
 | 7 | analyser / toolbench first-class | `spec-authoring-mode-selector.md` §toolbench | **spec'd** — R6–R9, and the arithmetic that settles it. Remains: the analyser view |
 | 8 | manifest builder + annotations | `spec-component-catalogue.md` + V-A/V-B | **de-risked** — `Fluxtion-Convention` mechanism built & verified. Remains: the annotation + plugin goal |
@@ -166,9 +166,7 @@ Ordered by *what unblocks the most per hour*, not by importance.
 3. **M1, cache accounting.** Record `cache_creation_input_tokens` / `cache_read_input_tokens`. Half a
    day, and it gates every future round: Haiku silently uncaches below 4,096 tokens, so any
    prefix-size comparison without it is meaningless.
-4. **Item 5, lodge UP-FLX-46 upstream.** Written with a reproduction. **Needs a decision, not work** —
-   it means opening a public issue on `telaminai/fluxtion`.
-5. **Item 1, the mode-1 selection asset.** Small: how to read a `Fluxtion-Description`, that absence
+4. **Item 1, the mode-1 selection asset.** Small: how to read a `Fluxtion-Description`, that absence
    of a promise rules a candidate out, and how an answer becomes a profile line.
 
 ### Tier 1 — the enabler. Do this before modes 2 and 3.

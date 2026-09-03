@@ -1374,9 +1374,10 @@ coordinated-omission correction.
 
 ---
 
-## UP-FLX-46 ● BUG — same simple name in two packages emits uncompilable code, with no diagnostic
+## UP-FLX-46 ☑ **LODGED** — same simple name in two packages emits uncompilable code, with no diagnostic
 
-**Target** `fluxtion` (generator) · **Priority** high · **Reproduction**
+**Target** `fluxtion` (generator) · **Priority** high · **Filed** 2026-09-03 as
+[telaminai/fluxtion#31](https://github.com/telaminai/fluxtion/issues/31) · **Reproduction**
 [`docs/experience/runs/round-57/collision-repro/`](../experience/runs/round-57/collision-repro/)
 
 Two node classes with the **same simple name in different packages** produce a generated processor
