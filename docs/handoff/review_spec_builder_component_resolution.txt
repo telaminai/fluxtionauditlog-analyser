@@ -1,0 +1,136 @@
+REVIEW — spec-builder-component-resolution.md (+ the four reconciled documents)
+Reviewed: working tree, uncommitted, at analyser main e01ced0
+Reviewer: compiler-side session · Date: 2026-09-03
+
+WHY THIS REVIEW IS WORTH MORE THAN USUAL: this spec places new code inside `fluxtion-builder` —
+my repository, not the analyser's. Every claim about that jar is checkable here, and I checked the
+load-bearing ones by reading the module rather than the spec.
+
+VERDICT: the DECISION is right and the ownership table is the best thing in it. Two blocking
+findings, both about the module the spec is placing code into; three corrections; one convergence
+worth stating once rather than twice.
+
+================================================================================
+B1 · BLOCKING — `fluxtion-builder` compiles at JAVA 8, and the spec's model cannot
+================================================================================
+
+`fluxtion-builder/pom.xml` pins `<source>1.8</source> <target>1.8</target>` with
+`<release combine.self="override"/>`, and the comment beside it states the reason:
+
+  "MAIN stays at 1.8: this module ships to users and runs under CheerpJ in the browser playground,
+   which is the constraint the whole module is shaped by."
+
+(Tests are 17; only MAIN is pinned.) The module already carries the same decision in prose —
+`FluxtionDiagnostic`'s javadoc opens: *"Not a record, deliberately. This module compiles at Java 8
+because the pom pins it there … trading a shipped capability for punctuation."*
+
+The spec's §5 model is written as a sum type — `SpringValue = ScalarValue | BeanReference |
+ExposedFieldReference | ListValue | …` — which is sealed-interface-plus-records in every modern
+Java reading of it, and §1's `ComponentDescriptor`/`ComponentResolutionResult` read the same way.
+**None of that compiles in this module.** The spec must either state the Java 8 constraint and
+describe the model in Java-8 terms (abstract class + subclasses, static factories, explicit
+`equals`/`hashCode`), or argue for a new module — and a new module contradicts its own "single
+existing jar" decision.
+
+This is not a style point: it decides the shape of every type in §1 and §5, and it is the first
+thing an implementer will hit.
+
+================================================================================
+B2 · BLOCKING — "JDK XML facilities only" is unverified under the constraint that
+                shapes the module
+================================================================================
+
+§5's parser-security section is otherwise excellent (XXE, entity expansion, bounded input, no class
+loading — exactly right). But the module's stated reason for existing at Java 8 is that it **runs
+under CheerpJ in the browser**, and the spec asserts a JDK-XML-only parser without checking that
+`javax.xml.parsers` behaves there. CheerpJ's Java 8 surface is not the desktop JRE.
+
+Two acceptable resolutions, both cheap: (a) run one probe under the playground before slice 3 and
+record the result in the spec; or (b) declare that the parser is NOT required in the browser build
+and say which surfaces need it. What is not acceptable is discovering it in slice 3.
+
+Note this is a real asymmetry with the analyser's own `GraphMlParser`, which does exactly this
+hardening successfully — but runs on desktop Java 21, not CheerpJ.
+
+================================================================================
+C1 · The identity defect the spec cites has a TWIN in the compiler, fixed today
+================================================================================
+
+§"Why this is now an upstream feature" records: *"When identity lived in the XML writer, two
+fully-qualified classes sharing a simple name received the same bean id."*
+
+The Fluxtion source generator had the SAME defect class at the same time, independently: the
+declared type qualified on a clash but the CONSTRUCTOR was emitted by simple name, so
+`com.b.Spread spreadB = new Spread()` bound to whichever class won the import — uncompilable
+output, no diagnostic (`fluxtion#31` / UP-FLX-46). Fixed on compiler branch
+`fix/consolidated-open-work` (`FieldSerializer.typeRef`, pinned by `SimpleNameClashTest`).
+
+The transferable rule is one sentence and should be stated ONCE, in this spec, since it now owns
+identity: **a simple name is never an identity; every emitted reference to a type must make the
+same qualification decision as its declaration.** Two components discovering it separately is the
+evidence that it belongs in the contract rather than in each renderer.
+
+================================================================================
+C2 · `#{bean.field}` — the semantics are right, the mechanism is unstated
+================================================================================
+
+The distinction §5 draws is correct and load-bearing (I have hit the wrong half of it: wiring a
+bought-in component through its top-level bean compiles and silently produces a smaller graph).
+What the spec never says is that `#{…}` is **Spring SpEL, evaluated by Spring at context load** —
+the builder writes it, but `FluxtionSpring`'s existing loader (spring-context, `provided`) is what
+resolves it.
+
+Consequence the spec should carry: the "no transitive Spring dependency" rule holds for the
+RESOLVER and WRITER, but the exposed-field reference is only meaningful in a context where Spring
+evaluates it. A consumer parsing that document without Spring gets a structural fact, not a value.
+Verified today: `spring-context` is `provided` scope in `fluxtion-builder/pom.xml`, so the no-
+transitive claim is true as written.
+
+================================================================================
+C3 · `StitchToSpring` migration — agreed, with one condition
+================================================================================
+
+§6 is right that it is a projection and should become an adapter to `SpringBeanDocument` rather
+than keep a private XML authority. Condition: its determinism is currently PINNED
+(`TransformContractTest` asserts byte-identical output across runs, flattened compositions
+included), and the stitch demos build from those exact bytes. The migration must either preserve
+those bytes or re-baseline the fixtures deliberately in the same commit — not discover the diff
+afterwards. Worth one line in the slice-6 description.
+
+================================================================================
+WHAT I AGREE WITH, EXPLICITLY
+================================================================================
+
+- **The ownership table** is the strongest part and the right instrument: one authority per fact,
+  "a renderer MUST NOT rediscover any fact present in the resolution". That is the compiler's own
+  model-authority rule (decide once, carry forward) applied to a second domain, and it is the
+  reason the two prototype defects it cites disappeared.
+- **Fail-closed on ambiguity, cycles, missing providers and unsupported constructs**, with location
+  and no partial output. Correct polarity, and it matches the resolver's measured behaviour.
+- **"The catalogue producer is required for completion"** (§8) — strongly agreed, and it is the
+  item I independently recommended compiler-side (tracker "Open work 2026-09-03" item 8): the
+  builder already knows provides/requires/constructor at build time, so emitting the manifest is
+  the same act as emitting GraphML. Moving only the resolver would leave hand-authored metadata as
+  the weak link, exactly as §8 says.
+- **The scoping discipline** — one measured fixture family, modes 2/3 unmeasured, prototype is
+  evidence not a second supported implementation. Consistent with the review cycle's findings.
+- **Non-goals** are the right non-goals, particularly "implementing the whole Spring Beans
+  language".
+
+================================================================================
+WHAT I DID NOT CHECK
+================================================================================
+
+The starter's parser behaviour (`ref` edges vs `#{}` as scalar) — fluxtion-web, not accessible from
+here; taken on the spec's word and flagged as a downstream claim. The four reconciled documents
+were read for contradiction with this spec, not audited in full. No implementation exists yet, so
+nothing was verified by execution beyond the module facts above. The Maven-goal surface (§7) is
+plausible but I did not check it against the plugin's current parameter model.
+
+================================================================================
+RECOMMENDATION
+================================================================================
+
+Do not commit as-is. B1 changes the type model and B2 may change the parser's placement — both are
+cheaper to fix in the document than after slice 1. C1–C3 are one or two sentences each. With those,
+this is a spec I would implement from.
