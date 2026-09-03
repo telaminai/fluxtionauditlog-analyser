@@ -220,7 +220,7 @@ def bean_id(e: EntryPoint, selection=None) -> str:
     return base
 
 
-def emit_xml(sel: list) -> str:
+def emit_xml(sel: list, audit_level: str = None) -> str:
     provider = {}
     for e in sel:
         for iface in e.interfaces:
@@ -244,6 +244,13 @@ def emit_xml(sel: list) -> str:
                 lines.append(f'    <constructor-arg value="{ref}"/>')
             lines.append('  </bean>')
         lines.append('')
+    if audit_level:
+        # Enables the audit log for the generated processor. FluxtionSpring.addNodes reads this
+        # property and calls EventProcessorConfig.addEventAudit with it.
+        lines.append('  <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">')
+        lines.append(f'    <property name="logLevel" value="{audit_level}"/>')
+        lines.append('  </bean>')
+        lines.append('')
     lines.append('</beans>')
     return "\n".join(lines)
 
@@ -255,6 +262,9 @@ def main():
     ap.add_argument("--figures", required=True,
                     help="comma-separated figure names the business requires")
     ap.add_argument("--xml", help="write the bean file here")
+    ap.add_argument("--audit", metavar="LEVEL",
+                    help="emit a FluxtionSpringConfig bean with this logLevel (INFO, ERROR, NONE...). "
+                         "The Spring route DOES expose audit configuration -- see UP-FLX-47, withdrawn.")
     ap.add_argument("--conventions", default="",
                     help="site profile, e.g. 'spread=hedged' -- fixes a convention per figure")
     a = ap.parse_args()
@@ -299,7 +309,7 @@ def main():
     print("  RESOLVED — one minimal selection:\n")
     for e in ordered:
         print(f"    {e.jar:12} {e.simple}")
-    xml = emit_xml(sel)
+    xml = emit_xml(sel, a.audit)
     if a.xml:
         pathlib.Path(a.xml).write_text(xml + "\n")
         print(f"\n  wrote {a.xml}")

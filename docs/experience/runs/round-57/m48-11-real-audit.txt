@@ -1,0 +1,305 @@
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1788433480408
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.acme.app.Main$$Lambda/0x0000007001016f00@17ed40e0, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1788433480408
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1788433480408
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1788433480408
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1788433480408
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: main
+    nodeLogs: 
+    endTime: 1788433480410
+---
+eventLogRecord: 
+    eventTime: 1788433480410
+    logTime: 1788433480410
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs: 
+    endTime: 1788433480412
+---
+eventLogRecord: 
+    eventTime: 1788433480415
+    logTime: 1788433480415
+    groupingId: null
+    event: Config
+    eventToString: Config[key=volFactor, value=2.0]
+    thread: main
+    nodeLogs: 
+        - cpConfig_25: { thread: main, method: onConfig}
+        - mdConfig_6: { thread: main, method: onConfig, stage: marketdata.configIn, value: 2.0}
+        - vol_9: { thread: main, method: calc, stage: marketdata.vol, value: 0.0}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 0.0}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 0.0}
+    endTime: 1788433480423
+---
+eventLogRecord: 
+    eventTime: 1788433480423
+    logTime: 1788433480423
+    groupingId: null
+    event: Config
+    eventToString: Config[key=chargePct, value=0.12]
+    thread: main
+    nodeLogs: 
+        - cpConfig_25: { thread: main, method: onConfig, stage: capital.configIn, value: 0.12}
+        - mdConfig_6: { thread: main, method: onConfig}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 0.0}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 0.0}
+    endTime: 1788433480423
+---
+eventLogRecord: 
+    eventTime: 1788433480423
+    logTime: 1788433480423
+    groupingId: null
+    event: Tick
+    eventToString: Tick[symbol=DEMO, bid=100.0, ask=104.0]
+    thread: main
+    nodeLogs: 
+        - lqTick_14: { thread: main, method: onTick, stage: liquidity.tickIn, value: 4.0}
+        - mdTick_5: { thread: main, method: onTick, stage: marketdata.tickIn, value: 4.0}
+        - depth_8: { thread: main, method: calc, stage: marketdata.depth, value: 400.0}
+        - book_15: { thread: main, method: calc, stage: liquidity.book, value: 1600.0}
+        - mid_7: { thread: main, method: calc, stage: marketdata.mid, value: 102.0}
+        - adjusted_12: { thread: main, method: calc, stage: pricing.adjusted, value: 106.08}
+        - ewma_10: { thread: main, method: calc, stage: marketdata.ewma, value: 102.0}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 102.0}
+        - score_16: { thread: main, method: calc, stage: liquidity.score, value: 12.208}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 103.245216}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 12.389425919999999}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 1.03245216}
+        - limitDetector_22: { thread: main, method: calc}
+        - spread_13: { thread: main, method: calc, stage: pricing.spread, value: 106.08}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
+        - vol_9: { thread: main, method: calc, stage: marketdata.vol, value: 2.04}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 210.62024064}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 14.495628326399999}
+    endTime: 1788433480426
+---
+eventLogRecord: 
+    eventTime: 1788433480426
+    logTime: 1788433480426
+    groupingId: null
+    event: Rate
+    eventToString: Rate[ccy=USD, rate=1.4]
+    thread: main
+    nodeLogs: 
+        - pxRate_11: { thread: main, method: onRate, stage: pricing.rateIn, value: 1.4}
+        - rkRate_18: { thread: main, method: onRate, stage: risk.rateIn, value: 1.4}
+        - spread_13: { thread: main, method: calc, stage: pricing.spread, value: 148.512}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 294.86833689599996}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 15.338109288959998}
+    endTime: 1788433480426
+---
+eventLogRecord: 
+    eventTime: 1788433480426
+    logTime: 1788433480426
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=1000.0, price=102.0]
+    thread: main
+    nodeLogs: 
+        - cpTrade_24: { thread: main, method: onTrade, stage: capital.tradeIn, value: 1000.0}
+        - rkTrade_17: { thread: main, method: onTrade, stage: risk.tradeIn, value: 1000.0}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 102000.0}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 103245.216}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 12389.42592}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 1032.45216}
+        - limitDetector_22: { thread: main, method: calc}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 294868.33689599996}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 2961072.7948799995}
+    endTime: 1788433480427
+---
+eventLogRecord: 
+    eventTime: 1788433480427
+    logTime: 1788433480427
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=4000.0, price=102.0]
+    thread: main
+    nodeLogs: 
+        - cpTrade_24: { thread: main, method: onTrade, stage: capital.tradeIn, value: 4000.0}
+        - rkTrade_17: { thread: main, method: onTrade, stage: risk.tradeIn, value: 4000.0}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 408000.0}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 412980.864}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 49557.70368}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 4129.80864}
+        - limitDetector_22: { thread: main, method: calc, stage: risk.limitDetector, value: 412980.864}
+        - alert_30: { thread: main, method: calc, stage: capital.alert, value: 49557.70368}
+        - alertCount_31: { thread: main, method: calc, stage: capital.alertCount, value: 1.0}
+        - breachCount_29: { thread: main, method: calc, stage: capital.breachCount, value: 1.0}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 1.0}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 1179473.3475839999}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 4.7228491607039995E7}
+    endTime: 1788433480432
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1788433480432
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: main
+    nodeLogs: 
+        - fee_28: { strategySwapped: premium}
+    endTime: 1788433480433
+---
+eventLogRecord: 
+    eventTime: 1788433480433
+    logTime: 1788433480433
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=4500.0, price=103.0]
+    thread: main
+    nodeLogs: 
+        - cpTrade_24: { thread: main, method: onTrade, stage: capital.tradeIn, value: 4500.0}
+        - rkTrade_17: { thread: main, method: onTrade, stage: risk.tradeIn, value: 4500.0}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 459000.0}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 464603.472}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 55752.416639999996}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 23230.173600000002}
+        - limitDetector_22: { thread: main, method: calc, stage: risk.limitDetector, value: 464603.472}
+        - alert_30: { thread: main, method: calc, stage: capital.alert, value: 55752.416639999996}
+        - alertCount_31: { thread: main, method: calc, stage: capital.alertCount, value: 2.0}
+        - breachCount_29: { thread: main, method: calc, stage: capital.breachCount, value: 2.0}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 2.0}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 1326907.5160319998}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 5.9766590638079986E7}
+    endTime: 1788433480433
+---
+eventLogRecord: 
+    eventTime: 1788433480433
+    logTime: 1788433480433
+    groupingId: null
+    event: Config
+    eventToString: Config[key=keyNobodyOwns, value=999.0]
+    thread: main
+    nodeLogs: 
+        - cpConfig_25: { thread: main, method: onConfig}
+        - mdConfig_6: { thread: main, method: onConfig}
+    endTime: 1788433480433
+---
+eventLogRecord: 
+    eventTime: 1788433480433
+    logTime: 1788433480433
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=100.0, price=103.0]
+    thread: main
+    nodeLogs: 
+        - cpTrade_24: { thread: main, method: onTrade, stage: capital.tradeIn, value: 100.0}
+        - rkTrade_17: { thread: main, method: onTrade, stage: risk.tradeIn, value: 100.0}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 10200.0}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 10324.5216}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 1238.9425919999999}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 516.22608}
+        - limitDetector_22: { thread: main, method: calc}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 29486.8336896}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 30725.7762816}
+    endTime: 1788433480433
+---
+eventLogRecord: 
+    eventTime: 1788433480433
+    logTime: 1788433480433
+    groupingId: null
+    event: Tick
+    eventToString: Tick[symbol=DEMO, bid=101.0, ask=106.0]
+    thread: main
+    nodeLogs: 
+        - lqTick_14: { thread: main, method: onTick, stage: liquidity.tickIn, value: 5.0}
+        - mdTick_5: { thread: main, method: onTick, stage: marketdata.tickIn, value: 5.0}
+        - depth_8: { thread: main, method: calc, stage: marketdata.depth, value: 500.0}
+        - book_15: { thread: main, method: calc, stage: liquidity.book, value: 2500.0}
+        - mid_7: { thread: main, method: calc, stage: marketdata.mid, value: 103.5}
+        - adjusted_12: { thread: main, method: calc, stage: pricing.adjusted, value: 108.67500000000001}
+        - ewma_10: { thread: main, method: calc, stage: marketdata.ewma, value: 102.44999999999999}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 10350.0}
+        - score_16: { thread: main, method: calc, stage: liquidity.score, value: 13.367500000000001}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 10488.353625}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 1258.602435}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 524.41768125}
+        - limitDetector_22: { thread: main, method: calc}
+        - spread_13: { thread: main, method: calc, stage: pricing.spread, value: 152.145}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
+        - vol_9: { thread: main, method: calc, stage: marketdata.vol, value: 2.07}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 30395.248805249998}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 31653.85124025}
+    endTime: 1788433480433
+---
+eventLogRecord: 
+    eventTime: 1788433480433
+    logTime: 1788433480433
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=5000.0, price=104.0]
+    thread: main
+    nodeLogs: 
+        - cpTrade_24: { thread: main, method: onTrade, stage: capital.tradeIn, value: 5000.0}
+        - rkTrade_17: { thread: main, method: onTrade, stage: risk.tradeIn, value: 5000.0}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 517500.0}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 524417.68125}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 62930.12175}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 26220.8840625}
+        - limitDetector_22: { thread: main, method: calc, stage: risk.limitDetector, value: 524417.68125}
+        - alert_30: { thread: main, method: calc, stage: capital.alert, value: 62930.12175}
+        - alertCount_31: { thread: main, method: calc, stage: capital.alertCount, value: 3.0}
+        - breachCount_29: { thread: main, method: calc, stage: capital.breachCount, value: 3.0}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 1.0}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 1519762.4402625}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 7.6051052134875E7}
+    endTime: 1788433480433
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1788433480433
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: main
+    nodeLogs: 
+        - fee_28: { strategySwapped: default}
+    endTime: 1788433480433
+---
+eventLogRecord: 
+    eventTime: 1788433480433
+    logTime: 1788433480433
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=DEMO, qty=50.0, price=104.0]
+    thread: main
+    nodeLogs: 
+        - cpTrade_24: { thread: main, method: onTrade, stage: capital.tradeIn, value: 50.0}
+        - rkTrade_17: { thread: main, method: onTrade, stage: risk.tradeIn, value: 50.0}
+        - notional_19: { thread: main, method: calc, stage: risk.notional, value: 5175.0}
+        - exposure_20: { thread: main, method: calc, stage: risk.exposure, value: 5244.1768125}
+        - charge_26: { thread: main, method: calc, stage: capital.charge, value: 629.3012175}
+        - fee_28: { thread: main, method: calc, stage: capital.fee, value: 52.441768125}
+        - limitDetector_22: { thread: main, method: calc}
+        - streak_23: { thread: main, method: calc, stage: risk.streak, value: 0.0}
+        - var_21: { thread: main, method: calc, stage: risk.var, value: 15197.624402624999}
+        - buffer_27: { thread: main, method: calc, stage: capital.buffer, value: 8228.1134188125}
+    endTime: 1788433480433
