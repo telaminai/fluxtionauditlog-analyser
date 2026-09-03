@@ -18,7 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ExpectationScorerTest {
 
-    private final ExpectationScorer scorer = new ExpectationScorer();
+    private final ExpectationScorer scorer =
+            new ExpectationScorer(ExpectationScorer.Dialect.TAGGED);
+    private final ExpectationScorer natural = new ExpectationScorer();
 
     /** Build records through the real parser, so the tests exercise the shipped reader path. */
     private List<LogRecord> parse(String... recordTexts) {
@@ -111,10 +113,14 @@ class ExpectationScorerTest {
 
         assertTrue(r.trustworthy());
         assertFalse(r.pass());
-        assertEquals(1, r.differences().size());
-        assertNull(r.differences().get(0).actual(), "an unpublished figure must report as absent");
-        assertTrue(r.differences().get(0).toString().contains("NEVER PUBLISHED"),
-                r.differences().get(0).toString());
+        // Under equality semantics this fixture has BOTH problems: the contracted figure is
+        // absent, and actual publishes one the contract does not name.
+        assertEquals(2, r.differences().size());
+        var absent = r.differences().stream().filter(d -> d.actual() == null).findFirst().orElseThrow();
+        assertEquals("marketdata.mid", absent.figure());
+        assertTrue(absent.toString().contains("NEVER PUBLISHED"), absent.toString());
+        var extra = r.differences().stream().filter(d -> d.expected() == null).findFirst().orElseThrow();
+        assertEquals("some.other.figure", extra.figure());
     }
 
     // ---------------------------------------------------------------- G5
@@ -186,7 +192,7 @@ class ExpectationScorerTest {
                   nodeLogs:
                     - book: { mid: 17.1, depth: 4}
                 """);
-        var snaps = scorer.snapshots(recs);
+        var snaps = natural.snapshots(recs);
         assertEquals(1, snaps.size());
         assertEquals(17.1, snaps.get(0).figures().get("book.mid"), 1e-9);
         assertEquals(4.0, snaps.get(0).figures().get("book.depth"), 1e-9);
@@ -197,12 +203,108 @@ class ExpectationScorerTest {
         // End to end through YamlAuditReader + RecordParser, on a committed conformance fixture.
         var path = java.nio.file.Path.of("src/test/resources/conformance/c05-untimed.yaml");
         var records = ScoreCommand.read(path);
-        var snaps = scorer.snapshots(records);
+        var snaps = natural.snapshots(records);
         assertEquals(2, snaps.size(), "two Tick events; the LifecycleEvent is not scored");
         assertEquals(1.0, snaps.get(0).figures().get("book.mid"), 1e-9);
         assertEquals(3.0, snaps.get(1).figures().get("book.mid"), 1e-9);
 
-        var self = scorer.score(snaps, snaps);
+        var self = natural.score(snaps, snaps);
         assertTrue(self.pass(), self.summary());
+    }
+
+    // ======================= added after independent review =======================
+    // Each of these reproduces a false PASS found by a reviewer executing against the
+    // first five guards. All erred toward agreement — the historical direction.
+
+    @Test
+    void g6_shuffledEventSequenceIsFatal_notAPass() {
+        // REVIEWER PROBE: expected [tick] vs actual [trade] with coinciding values -> "PASS 1/1".
+        List<Snapshot> expected = scorer.snapshots(parse(record("Tick", "m", "marketdata.mid", "100.0")));
+        List<Snapshot> actual   = scorer.snapshots(parse(record("Trade", "m", "marketdata.mid", "100.0")));
+
+        Result r = scorer.score(expected, actual);
+        assertFalse(r.trustworthy(), "two logs describing different runs must not score");
+        assertTrue(r.fatal().contains("event sequence differs"), r.fatal());
+    }
+
+    @Test
+    void g6_sameLengthDifferentOrderIsFatal() {
+        List<Snapshot> expected = scorer.snapshots(parse(
+                record("Config", "m", "f", "1.0"), record("Tick", "m", "f", "1.0")));
+        List<Snapshot> actual = scorer.snapshots(parse(
+                record("Tick", "m", "f", "1.0"), record("Config", "m", "f", "1.0")));
+        assertFalse(scorer.score(expected, actual).trustworthy());
+    }
+
+    @Test
+    void g7_extraFigureInActualIsADifference_notASilentPass() {
+        // REVIEWER PROBE: actual publishes a rogue figure -> "PASS, every figure identical".
+        List<Snapshot> expected = scorer.snapshots(parse(record("Tick", "m", "marketdata.mid", "100.0")));
+        List<Snapshot> actual = scorer.snapshots(parse("""
+                eventLogRecord:
+                  logTime: 1000
+                  event: Tick
+                  nodeLogs:
+                    - m: { stage: marketdata.mid, value: 100.0}
+                    - r: { stage: risk.var, value: 999.0}
+                """));
+
+        Result r = scorer.score(expected, actual);
+        assertTrue(r.trustworthy());
+        assertFalse(r.pass(), "a figure outside the contract is a difference");
+        assertEquals(1, r.differences().size());
+        assertNull(r.differences().get(0).expected());
+        assertTrue(r.differences().get(0).toString().contains("NOT IN THE CONTRACT"),
+                r.differences().get(0).toString());
+    }
+
+    @Test
+    void g8_nanNeverComparesEqual() {
+        // Math.abs(NaN - 100.0) > tol is FALSE, so NaN previously passed as identical.
+        List<Snapshot> expected = scorer.snapshots(parse(record("Tick", "m", "marketdata.mid", "100.0")));
+        List<Snapshot> actual   = scorer.snapshots(parse(record("Tick", "m", "marketdata.mid", "NaN")));
+
+        Result r = scorer.score(expected, actual);
+        assertTrue(r.trustworthy());
+        assertFalse(r.pass(), "NaN is not identical to 100.0");
+        assertEquals(1, r.differences().size());
+    }
+
+    // ======================= dialect is declared, never inferred =======================
+
+    @Test
+    void naturalRecordUsingTheWordsStageAndValueIsNotMisread() {
+        // REVIEWER PROBE: a CONFORMING record whose ordinary keys happen to be stage/value
+        // was reduced to {3=4.0} instead of {book.stage=3.0, book.value=4.0}.
+        var snaps = natural.snapshots(parse("""
+                eventLogRecord:
+                  logTime: 1000
+                  event: Tick
+                  nodeLogs:
+                    - book: { stage: 3, value: 4}
+                """));
+        var figures = snaps.get(0).figures();
+        assertEquals(3.0, figures.get("book.stage"), 1e-9);
+        assertEquals(4.0, figures.get("book.value"), 1e-9);
+        assertFalse(figures.containsKey("3"), "the format reserves no key names");
+    }
+
+    @Test
+    void halfWrittenTagIsFatal_notSilentlyEmpty() {
+        // A malformed tag in the EXPECTED log previously deleted that figure from the contract.
+        assertThrows(ExpectationScorer.MalformedRecordException.class, () ->
+                scorer.snapshots(parse("""
+                        eventLogRecord:
+                          logTime: 1000
+                          event: Tick
+                          nodeLogs:
+                            - book: { stage: mid, mid: 17.1}
+                        """)));
+    }
+
+    @Test
+    void nonNumericTaggedValueIsFatal() {
+        assertThrows(ExpectationScorer.MalformedRecordException.class, () ->
+                scorer.snapshots(parse(record("Tick", "m", "marketdata.mid", "STARTED"))));
     }
 }

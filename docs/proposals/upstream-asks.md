@@ -1418,7 +1418,43 @@ rather than a `javac` error in generated source.
 
 ---
 
-## UP-FLX-47 ◐ `springToFluxtion` offers no way to enable the audit log
+## UP-FLX-47 ☒ **WITHDRAWN — the ask was FALSE.** Narrowed to a documentation residue
+
+**Withdrawn 2026-09-03**, refuted by execution in two independent reviews and re-verified here.
+
+**What I claimed:** that the Spring route "offers no way to enable the audit log", based on the
+`springToFluxtion` goal's parameter list.
+
+**What is true:** the audit level is a property of the config bean the Spring file already declares.
+
+```xml
+<bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+    <property name="logLevel" value="INFO"/>
+</bean>
+```
+
+Verified against the released builder on the classpath: `FluxtionSpringConfig` exposes
+`getLogLevel()`/`setLogLevel(LogLevel)`, and `FluxtionSpring.addNodes` calls
+`EventProcessorConfig.addEventAudit` with it. One reviewer additionally ran it live and saw records
+on the first event.
+
+**How I got it wrong, recorded because the rule it breaks is written down.** I read the *goal's*
+parameters, found no audit option, and concluded none existed — without reading the config bean the
+goal consumes. This repo's rule 6 says read the live source of truth before implementing against a
+vendor API, and I inferred a surface from an adjacent one. The workarounds in round 57 then "failed
+for exactly the reasons observed", which I read as confirmation instead of as a signal I was on the
+wrong path.
+
+**Consequence:** round 57's stated audit gap was self-inflicted. The resolver need only emit that
+bean for the figure-by-figure comparison to run — which is also the `ExpectationScorer`'s first
+real-log exercise. Tracked as M48.11.
+
+**What survives, narrowed:** the goal's documentation never mentions `logLevel`, and neither does any
+Spring-route example. That is a discoverability defect worth fixing, and it is all that is left.
+
+### Original ask, retained for the record
+
+`springToFluxtion` offers no way to enable the audit log
 
 **Target** `fluxtion-maven-plugin` · **Priority** medium · **Found** 2026-09-03, round 57
 

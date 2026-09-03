@@ -10,8 +10,10 @@ surface, this reports the ambiguity and stops rather than guessing -- which is e
 it draws the line between the half a resolver can do and the half that needs a model.
 
 Usage:
-    bean-resolver.py --manifests DIR --figures f1,f2,... [--jar-order a,b,c] [--xml OUT]
-    bean-resolver.py --jars DIR/*.jar --figures ...
+    bean-resolver.py --manifests DIR --figures f1,f2,... [--conventions k=v,...] [--xml OUT]
+    bean-resolver.py --jars DIR      --figures f1,f2,... [--conventions k=v,...] [--xml OUT]
+
+Both --manifests and --jars take a DIRECTORY.
 """
 from __future__ import annotations
 import argparse, itertools, pathlib, re, subprocess, sys, zipfile
@@ -116,12 +118,19 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
     for e in eps:
         by_jar.setdefault(e.jar, []).append(e)
     jars = sorted(by_jar)
-    # each jar contributes one entry point or none
-    options = [by_jar[j] + [None] for j in jars]
+    # A jar is a CATALOGUE: it may contribute any subset of its entry points, including more than
+    # one. The earlier "one per jar" assumption was fixture-shaped -- two independent entry points
+    # in one jar, each needed for a different figure, returned UNSATISFIABLE. (Review F4.1.)
+    options = []
+    for j in jars:
+        subsets = [()]
+        for e in by_jar[j]:
+            subsets = subsets + [t + (e,) for t in subsets]
+        options.append(subsets)
     valid = []
     profile = profile or {}
     for combo in itertools.product(*options):
-        sel = [e for e in combo if e]
+        sel = [e for grp in combo for e in grp]
         if not sel:
             continue
         # A site profile fixes a convention for a figure. An entry point that PUBLISHES that figure
@@ -139,12 +148,32 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
         # every constructor argument must be satisfiable by some selected field
         if any(not any(o.field_for(i) for o in sel) for e in sel for i in e.ctor):
             continue
+        # PROVIDER UNIQUENESS. If two selected components publish the same interface, the wiring
+        # is ambiguous even when the component set is not: the emitter would silently pick the
+        # lexically later one. Reject the combination rather than guess. (Review F4.2.)
+        seen_iface = {}
+        clash = False
+        for e in sel:
+            for iface in e.interfaces:
+                if iface in seen_iface:
+                    clash = True
+                seen_iface[iface] = e
+        if clash:
+            continue
         valid.append(sel)
     if not valid:
         coverable = set().union(*(e.figures for e in eps)) if eps else set()
         missing = sorted(wanted - coverable)
         if missing:
             return [], "UNPROVIDED:" + ",".join(missing)
+        # Distinguish "no consistent combination" from "the manifests carry no figure=Interface
+        # mapping at all", which is what a v1 catalogue looks like and which previously reported
+        # the wrong cause. (Review F2.)
+        mapped = any(i for e in eps for i in e.provides.values() if i)
+        if not mapped:
+            return [], ("the manifests declare no `figure=Interface` mappings, so no requirement can "
+                        "be matched to a provider -- this catalogue predates the `Fluxtion-Provides: "
+                        "name=Api` convention")
         return [], "no selection satisfies the required figures (all figures exist, but no combination is consistent)"
     fewest = min(len(s) for s in valid)
     valid = [s for s in valid if len(s) == fewest]
@@ -169,14 +198,26 @@ def order(sel: list) -> list:
             deps = {provider[i] for i in e.ctor if i in provider and provider[i] is not e}
             if deps <= done:
                 out.append(e); done.add(e); remaining.remove(e); progressed = True
-        if not progressed:                       # cycle: emit in declared order
-            out += remaining
-            break
+        if not progressed:
+            # A constructor cycle cannot be instantiated by Spring. Emitting it in declared order
+            # produced a bean file that always fails at runtime. Fail loudly instead. (Review F4.3.)
+            names = ", ".join(sorted(e.simple for e in remaining))
+            raise ValueError("constructor cycle between: " + names)
     return out
 
 
-def bean_id(e: EntryPoint) -> str:
-    return e.jar[0].lower() + re.sub(r"[^A-Za-z0-9]", "", e.jar)[1:]
+def bean_id(e: EntryPoint, selection=None) -> str:
+    """Jar name when that jar contributes exactly one entry point, else jar+class.
+
+    Allowing several entry points from one jar (review F4.1) made the jar name ambiguous and
+    emitted duplicate bean ids. Disambiguating ONLY when needed keeps single-entry-point
+    catalogues -- including the round-48 fixture -- byte-identical to their previous output.
+    """
+    base = re.sub(r"[^A-Za-z0-9]", "", e.jar)
+    base = base[0].lower() + base[1:] if base else "bean"
+    if selection is not None and sum(1 for o in selection if o.jar == e.jar) > 1:
+        return base + e.simple
+    return base
 
 
 def emit_xml(sel: list) -> str:
@@ -191,7 +232,7 @@ def emit_xml(sel: list) -> str:
              '       https://www.springframework.org/schema/beans/spring-beans.xsd">',
              '']
     for e in order(sel):
-        bid = bean_id(e)
+        bid = bean_id(e, sel)
         if not e.ctor:
             lines.append(f'  <bean id="{bid}" class="{e.cls}"/>')
         else:
@@ -199,7 +240,7 @@ def emit_xml(sel: list) -> str:
             for iface in e.ctor:
                 src = provider.get(iface)
                 fld = src.field_for(iface) if src else None
-                ref = f"#{{{bean_id(src)}.{fld}}}" if src else f"UNRESOLVED:{iface}"
+                ref = f"#{{{bean_id(src, sel)}.{fld}}}" if src else f"UNRESOLVED:{iface}"
                 lines.append(f'    <constructor-arg value="{ref}"/>')
             lines.append('  </bean>')
         lines.append('')
@@ -226,7 +267,11 @@ def main():
     profile = dict(c.split("=", 1) for c in a.conventions.split(",") if "=" in c)
     if profile:
         print(f"  site profile: " + ", ".join(f"{k}={v}" for k, v in profile.items()) + "\n")
-    solutions, err = solve(eps, wanted, profile)
+    try:
+        solutions, err = solve(eps, wanted, profile)
+    except ValueError as cycle:
+        print(f"  UNSATISFIABLE: {cycle}")
+        return 2
     if err:
         print(f"  UNSATISFIABLE: {err}")
         return 2
@@ -246,8 +291,13 @@ def main():
         return 3
 
     sel = solutions[0]
+    try:
+        ordered = order(sel)
+    except ValueError as cycle:
+        print(f"  UNSATISFIABLE: {cycle}")
+        return 2
     print("  RESOLVED — one minimal selection:\n")
-    for e in order(sel):
+    for e in ordered:
         print(f"    {e.jar:12} {e.simple}")
     xml = emit_xml(sel)
     if a.xml:

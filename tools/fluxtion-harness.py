@@ -69,6 +69,18 @@ def main():
         print(f"  profile   : {', '.join(f'{k}={v}' for k, v in profile.items()) or '(none)'}")
         print(BAR)
 
+    # An EMPTY catalogue is greenfield, not an unsatisfiable catalogue. Reporting
+    # catalogue/unsatisfiable told an author with no jars to revise their requirement, when the
+    # right answer is that there is nothing to resolve against. (Review.)
+    if not eps:
+        if a.json:
+            return handoff("greenfield", ["2/3"], [], sorted(wanted)) or 2
+        print("\n  MODE 2 / 3 — GREENFIELD. No component catalogue was found on the path,")
+        print("  so there is nothing to resolve against and every figure must be authored.\n")
+        for m in sorted(wanted):
+            print(f"      {m}")
+        return 2
+
     sols, err = R.solve(eps, wanted, profile)
 
     if err and err.startswith("UNPROVIDED:"):

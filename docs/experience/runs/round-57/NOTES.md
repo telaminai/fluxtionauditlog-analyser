@@ -197,3 +197,69 @@ The site profile is not a new concept here — it is the **project profile** (M2
 context), which already records what is in force and travels with the project. `spread=hedged` is
 exactly the kind of fact it exists to hold, and M38.2's vocabulary pointer is exactly the mechanism
 for the supplier/customer word mapping.
+
+---
+
+# Addendum 2 — corrections from independent review, 2026-09-03
+
+Two independent reviews attacked this round. **The central result survived: one reviewer derived the
+figure list from the manifests without reading it here, ran the resolver, and got XML byte-identical
+to the committed output.** An independent derivation of the inputs landing on the identical artefact
+is a stronger reproduction than the original.
+
+Everything below is a correction they forced.
+
+## The reproduction command, which was missing
+
+The brief claimed "the commands are in the notes". They were not. Here it is, verified:
+
+```
+python3 tools/bean-resolver.py \
+    --manifests docs/experience/runs/round-48/manifests-v2 \
+    --figures mid,depth,vol,ewma,adjusted,spread,book,score,notional,exposure,var,streak,\
+charge,buffer,fee,breachCount,alert,alertCount \
+    --xml out.xml
+```
+
+The 18 figures are the 14 published figures plus `alert` (requirement 2) and
+`breachCount`/`streak`/`alertCount` (requirement 3). `limitDetector` is **wiring, not a figure**, and
+is excluded.
+
+## The v2 manifest convention is load-bearing, and was undisclosed
+
+Against `manifests/` (v1 — bare figure names, no `figure=Api` mapping) the identical run is
+UNSATISFIABLE. **The claim needs its qualifier: the resolver does the job GIVEN the
+`Fluxtion-Provides: name=Api` convention.** Checked and not retro-fitted — `manifests-v2` dates from
+round 48 itself (`88f34b7`), before any resolver existed.
+
+The error message previously misattributed the cause ("all figures exist, but no combination is
+consistent"). It now names the real one, so a user hitting it debugs the right thing.
+
+## Four contract defects the fixture never exercised
+
+All found by executable counterexample, all now fixed and verified:
+
+| | defect | now |
+|---|---|---|
+| F4.1 | at most **one entry point per jar** — two independent ones in a single jar returned UNSATISFIABLE | any subset; bean ids disambiguate only when a jar contributes more than one, so single-entry catalogues stay byte-identical |
+| F4.2 | two components providing the same interface → **silently wired the lexically later one** | the combination is rejected; wiring ambiguity is not resolved by accident |
+| F4.3 | a **constructor cycle was accepted as RESOLVED** and emitted in declared order, producing a bean file Spring cannot instantiate | reported as UNSATISFIABLE, naming the cycle |
+| F4.4 | `--jar-order` advertised and does not exist; `--jars DIR/*.jar` advertised but a directory is required | usage corrected |
+
+**`Consumes` is parsed and never used.** Selection is driven only by output figures, so event
+ownership cannot participate. Stated rather than fixed — deciding whether required events are an
+input is a design question, not a bug.
+
+## The adoption cost of "silence is not a match"
+
+Both reviewers accepted the rule and its polarity — it fails closed, which is right in a domain where
+a false alert is a reportable incident. One named a cost this round did not: **a site profile over a
+legacy fleet with no `Fluxtion-Convention` fields anywhere is unsatisfiable by construction.**
+Vendors must label before customers can profile. A sequencing constraint, not a free lunch.
+
+## The audit gap was self-inflicted
+
+Round 57 reported it could not run the figure-by-figure comparison because the Spring route exposed no
+audit configuration. **That was false** — see UP-FLX-47, withdrawn. `FluxtionSpringConfig.logLevel` in
+the bean file is all that was needed. The comparison is now unblocked and tracked as M48.11; it is
+also the `ExpectationScorer`'s first exercise against a real log rather than synthetic snapshots.
