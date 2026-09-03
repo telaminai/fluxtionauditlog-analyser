@@ -31,7 +31,7 @@ or explicitly marked as not:
 
 | | |
 |---|---|
-| metadata and a resolver | remove mechanical authoring work |
+| builder-emitted metadata and a builder-owned resolver | remove mechanical authoring work |
 | generated dispatch | removes handwritten ordering as independent mutable state |
 | the runtime | makes the resulting structure cheap enough to keep — **8.44 ns/event, with no per-event allocation measured in the tested configuration** |
 | the audit path | produces evidence, at an explicitly measured cost |
@@ -57,6 +57,13 @@ one fixture family: a resolver reproduced the components, the wiring and byte-id
 from jar manifests alone, and the resulting application's audit log matched figure by figure. Where
 the metadata does *not* decide — genuine ambiguity, a missing convention, a cycle, an unsatisfied
 requirement — **the resolver fails closed and says which**, rather than guessing.
+
+The production target is specified in
+[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md): catalogue generation,
+the typed resolution result, and a dependency-free Spring document parser/writer live in the existing
+Java-8-compatible `fluxtion-builder` jar. The Java parser is a desktop build/API surface; the starter
+consumes the same document contract through its JavaScript parser and retains browser layout and
+editing concerns. A CheerpJ smoke gate protects the builder jar's existing browser capability.
 
 ### 2 · Which component owns each fact?
 

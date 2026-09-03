@@ -1,7 +1,13 @@
-# SPEC (PROPOSED) — `fluxtion-component-maven-plugin`: a catalogue a jar carries about itself
+# SPEC (PROPOSED) — a catalogue a Fluxtion component jar carries about itself
 
-**Status** proposed · **Target** a new goal in `fluxtion-maven-plugin`, or a sibling plugin
+**Status** proposed · **Target** the existing `fluxtion-builder` jar, exposed by a new goal in
+`fluxtion-maven-plugin`
 **Evidence** `docs/experience/runs/round-48/` — fifteen measured cells, one model, one problem
+
+**Paired output contract:**
+[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md). This document owns
+what a component publishes; that spec owns how the builder validates, resolves and renders it. The
+two are one build-time feature, not competing proposals.
 
 ## The problem, measured
 
@@ -25,9 +31,11 @@ lookups checking.
 
 ## What the plugin does
 
-A goal — `fluxtion:catalogue` — bound to `package`. It scans the module's compiled classes and writes
-per-entry sections into the jar manifest. **No new source annotations**: everything it emits is
-already derivable from the node annotations and the published types.
+A goal — `fluxtion:catalogue` — bound to `package`. Its implementation lives in the existing
+`fluxtion-builder` jar; the Maven plugin invokes that implementation rather than owning another
+catalogue generator. It scans the module's compiled classes and writes per-entry sections into the
+jar manifest. Most fields are derived from bytecode and the compiler model. Three small declarations
+carry the semantic facts those sources cannot establish; they are specified below.
 
 ### Detection
 
@@ -82,8 +90,10 @@ so an adapter author never inspects a record to construct one.
 
 Most of the catalogue is derivable from bytecode: field names, the interfaces a node implements,
 constructor parameter types, and the event types of `@OnEventHandler` methods. **Four facts are not**,
-and each gets one annotation. Nothing else is added — an annotation that restates something the
-compiler already knows is another thing that can drift.
+and three annotations carry them: entry-point intent and description share `@FluxtionComponent`,
+constructor intent uses `@ConsumerConstructor`, and a semantic event filter uses `@EventFilter`.
+Nothing else is added — an annotation that restates something the compiler already knows is another
+thing that can drift.
 
 ### `@FluxtionComponent` — on the entry-point class
 
@@ -178,19 +188,19 @@ smaller graph and a green build**, which is the wrong failure mode for this fram
 
 ## What this does not solve
 
-- **The consumer still writes the bean file.** With `Provides`/`Requires` in the manifest the wiring
-  is a resolution rather than an authoring task, so a small tool could emit the XML from a list of
-  required figures. **Built and measured since this was written** (2026-09-03):
-`tools/bean-resolver.py` reproduces the measured-optimal selection and wiring from these manifests
-alone, byte-identically, at zero model tokens — see
-[`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET ARCHITECTURE* stage 4. It is a
-prototype with known gaps, not a product, and it is no longer a *separate* proposal: this catalogue is
-its input contract, and the two specs stand or fall together.
+- **Production resolution is not built yet.** `tools/bean-resolver.py` now proves that the consumer
+  need not write the bean file: it reproduces the measured-optimal selection and wiring from these
+  manifests alone, byte-identically, at zero model tokens. The reviewed production target is the
+  existing `fluxtion-builder` jar, with its own dependency-free Spring document parser/writer and the
+  typed result specified in
+  [`spec-builder-component-resolution.md`](spec-builder-component-resolution.md). The Python tool
+  remains evidence until that builder path passes its end-to-end gate.
 - **It does not make anything more correct.** Round 48 measured no correctness advantage from the
   catalogue; it measured a large *cost* advantage. The correctness argument for Fluxtion rests
   elsewhere — on dispatch being derived rather than stored (round 41).
-- **The measurements are n=1 per cell**, one model, one problem shape, and the fixture's dependency
-  chain forces every component choice. A catalogue with genuine ambiguity has not been tested.
+- **The measurements are n=1 per cell**, one model and one problem shape. Round 55 subsequently
+  tested a six-way type-identical ambiguity and round 57 recorded it as a convention/profile choice;
+  that establishes one refusal-and-policy mechanism, not general selection behaviour.
 
 ## Why the vendor should pay for this
 
@@ -217,4 +227,3 @@ any tool. The defect was invisible in the `.mf` file, which contained the line.
 Both are second independent arguments for this spec's central claim — **manifests must be generated,
 not hand-written** — and V-B extends it: *generated is not sufficient; the generator must read back
 what it wrote.*
-

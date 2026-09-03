@@ -32,7 +32,14 @@ resolver fixes; M48.11 reproduced independently (PASS 12/12, exit 0).
 then found six further defects, all since fixed (G9/G10, the `--json` cycle path, bean-id collisions,
 and the derived fixture whose provenance had become record metadata).
 
-## ☐ `6f45fe4^..HEAD` · 2026-09-03 · review-residue closure, resolver restructure, new gates
+## ☑ reviewed 2026-09-03 · `6f45fe4^..4224196` + spec response · resolver, gates and builder spec
+
+**Review:** [`review_spec_builder_component_resolution.txt`](review_spec_builder_component_resolution.txt)
+checked the production spec against the target builder module and accepted its architecture with two
+Java-8/CheerpJ blockers and three contract corrections. **Response:**
+[`review_response_spec_builder_component_resolution.txt`](review_response_spec_builder_component_resolution.txt)
+made Java 8 mandatory, separated the desktop Java parser from the browser surface, pinned SpEL and
+Stitch byte semantics, and additionally corrected remote transport to the frozen-DTO/side-band rule.
 
 **What & why.** Closing the residue from four review rounds. Three parts:
 
@@ -48,15 +55,18 @@ and the derived fixture whose provenance had become record metadata).
   `eventLogRecord:`, a failure if `git ls-files` returns nothing, and every byte-sensitive fixture
   pinned with a missing file treated as failure rather than a skip.
 - **Documentation** reconciled: the fingerprint three-way distinction, orientation §6, volatile line
-  counts removed.
+  counts removed. A new canonical production spec places catalogue generation, typed resolution and a
+  dependency-free Spring document parser/writer in the existing `fluxtion-builder` jar. It keeps the
+  starter as a downstream editor and makes `#{bean.field}` a typed exposed-field reference rather than
+  an opaque scalar.
 
 **Verified.** `mvn -q test` green · `python3 tools/test_tools.py` 24/24 · **round-48 XML byte-identical
 after every resolver change** · sweep clean.
 
-**What the reviewer must still check.** Whether `Resolution` is the right seam or whether resolution
-belongs upstream in the build toolchain entirely (see `spec-component-catalogue.md` — the owner has
-proposed moving it); the id-escalation ladder's fourth level is a guaranteed-unique fallback that
-produces ugly names and has no test; and M49's evidence package remains unbuilt.
+**Review residue carried as delivery gates, not present claims.** The prototype id-escalation ladder's
+fourth level still produces ugly names and has no direct test; `Fluxtion-Consumes` is still unused in
+solving; the Java/JavaScript conformance corpus, dependency-tree proof, CheerpJ smoke and Stitch
+byte-parity migration are specified but unbuilt; M49's evidence package remains unbuilt.
 
 _No further entries awaiting review._
 

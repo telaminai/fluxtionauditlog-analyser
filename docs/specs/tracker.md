@@ -797,6 +797,8 @@ decomposed by them and is not measured.
 Specs: **[`spec-authoring-modes.md`](spec-authoring-modes.md)** (the taxonomy, the owner's eleven items,
 the delivery order), **[`spec-authoring-mode-selector.md`](spec-authoring-mode-selector.md)** (the end
 state, the handoff contract, the analyser's role),
+**[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md)** (the builder-owned
+resolver, typed Spring document and production acceptance gates),
 **[`spec-authoring-session-walkthrough.md`](spec-authoring-session-walkthrough.md)** (four sessions, real
 output). Evidence: `docs/experience/runs/round-5[3-7]/`.
 
@@ -853,9 +855,17 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       fact; then "it ships as `descriptorFingerprint`" — that is a private test-helper name.)*
 - [M48.13] ☐ **compiler-generated component manifests** — today's are hand-authored. Until the build
       emits them, the resolver result is conditional on a convention nobody's toolchain enforces.
-      **Stage 2.** Spec: [`spec-component-catalogue.md`](spec-component-catalogue.md).
-- [M48.14] ☐ **resolver productisation + tests** — the prototype has no test suite; its evidence is
-      end-to-end reproduction on one fixture. `Fluxtion-Consumes` is parsed and unused in solving.
+      **Stage 2.** Implementation belongs in the existing `fluxtion-builder` jar and is exposed by the
+      Maven plugin. Spec: [`spec-component-catalogue.md`](spec-component-catalogue.md).
+- [M48.14] ☐ **resolver + Spring document productisation** — the Python prototype now has **24 smoke
+      checks wired into CI**, including reviewed cycle, identity and machine-readable-path regressions;
+      that does not substitute for the production test matrix. Port one typed resolution authority to
+      the existing `fluxtion-builder` jar, add its own JDK parser/canonical writer for the supported
+      Spring subset with **no Spring transitive dependency**, and make the starter a conformance-tested
+      consumer. Builder main remains Java 8 compatible; the Java parser is a desktop build/API surface,
+      with a CheerpJ load-and-normal-compile smoke gate because its classes share the browser-loaded jar.
+      `Fluxtion-Consumes` remains parsed and unused in solving. Spec:
+      [`spec-builder-component-resolution.md`](spec-builder-component-resolution.md).
 - [M48.15] ☐ **one-command experiment reproduction** — round 57 lacks its jar workspace; M49 lacks a
       run script, pinned dependency provenance and raw output for several tables.
 - [M48.16] ☐ **measure goal → formal requirements** — **the largest evidence gap.** Every round in
@@ -877,6 +887,16 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 12-line reproduction.
 
 ## Decisions (resolved)
+
+- **Component resolution and Spring manipulation live in the single existing `fluxtion-builder` jar**
+  _(owner, 2026-09-03)_. The builder owns catalogue generation, the typed resolution result and a small
+  parser/canonical writer for the supported Fluxtion Spring authoring subset. It adds no transitive
+  Spring dependency. The Maven plugin is an invocation surface, not a second implementation; the
+  starter remains the browser editor and consumes the shared document contract and conformance corpus.
+  Builder main remains Java 8 compatible; the JDK parser is not a browser surface, and a CheerpJ smoke
+  test guards against breaking the jar that the playground loads. `fluxtion-runtime` is untouched.
+  Canonical production spec:
+  [`spec-builder-component-resolution.md`](spec-builder-component-resolution.md).
 
 - **The commercial model, and where the analyser sits in it** _(owner, 2026-09-01)_. Recorded because it
   bears on **D-S1.2**, the open licence choice that blocks a release, and because the reasoning would

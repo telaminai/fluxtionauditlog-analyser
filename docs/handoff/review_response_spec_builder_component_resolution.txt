@@ -1,0 +1,53 @@
+REVIEW RESPONSE — builder component-resolution production spec
+Review: review_spec_builder_component_resolution.txt (4224196)
+Response: working tree on analyser main 4224196 · Date: 2026-09-03
+
+VERDICT: the review is substantially valid. All requested constraints are now explicit. B1's module
+fact is correct, although its claim that the original model “cannot compile” reads language-neutral
+spec notation as proposed Java syntax and overlooks §1's existing ordinary-class escape. The weakness
+was real: Java 8 is mandatory, not conditional, so the response strengthens it rather than arguing
+over the severity label.
+
+ACCEPTED AND CHANGED
+
+1. JAVA 8 IS NOW A CONTRACT, NOT AN ESCAPE HATCH
+
+The spec now says every shipped type and implementation in fluxtion-builder uses Java 8 language,
+bytecode and library surfaces; records, sealed types and Java 9+ library calls are forbidden. The
+SpringValue sum is explicitly conceptual notation implemented as Java-8-compatible variants. Delivery
+and acceptance now include bytecode/API compatibility and a normal CheerpJ playground compile.
+
+2. THE XML PARSER'S BROWSER BOUNDARY IS EXPLICIT
+
+The Java parser is a desktop Maven/builder-API capability. The starter continues to use its JavaScript
+parser and does not call the Java entry point. Because the classes still share the jar loaded by
+CheerpJ, slice 3 must prove the normal playground loads and compiles with them present and without
+eager unsupported JAXP linkage. That smoke is deliberately not described as proof that the Java
+parser works under CheerpJ; a browser-callable parser would require a separate functional probe.
+
+3. IDENTITY, SPEL AND STITCH ARE PINNED AT THEIR REAL BOUNDARIES
+
+The identity rule is now literal: a simple name is never an identity, and every emitted type use makes
+the declaration's qualification decision. #{bean.field} is named as Spring SpEL: the writer serialises
+the typed structural reference, Spring's provided-scope context loader evaluates it, and a non-Spring
+parser can preserve but not evaluate it. Stitch migration must preserve TransformContractTest's exact
+bytes or deliberately re-baseline them in the same reviewed commit.
+
+ONE ADDITIONAL CORRECTION FOUND WHILE ANSWERING THE REVIEW
+
+The compatibility section allowed an append-only DTO field if Java and Kryo goldens remained green.
+That is not an available option: compiler work has already measured nullable-field evolution failing
+under positional Kryo and frozen the DTO payload. The spec now requires a negotiated WireEnvelope
+side-band (or another explicitly versioned carrier) for any remotely transported resolution fact,
+with the existing payload byte-identical.
+
+WHAT DID NOT CHANGE
+
+The architectural decision remains: catalogue generation, one typed resolution authority, and the
+supported Spring document model live in the single existing builder jar; the Maven plugin invokes it;
+the starter edits the shared contract; fluxtion-runtime is untouched. The review explicitly agrees
+with that decision, the ownership table, fail-closed refusals, catalogue generation and the n=1 scope.
+
+No implementation was added. The CheerpJ, Spring dependency-tree, shared Java/JavaScript conformance,
+Stitch byte parity and end-to-end application checks remain future delivery gates, not claims of
+present verification.

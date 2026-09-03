@@ -83,7 +83,7 @@ docs/handoff/               briefs, reports, reviews — the cycle
 docs/handoff/unreviewed-changes.md   the ledger: changes on main that have NOT had a review
 docs/site/                  the published documentation (mkdocs)
 tools/bench/loop-bench.py   the cross-repo loop, as a PASS/FAIL test
-tools/bean-resolver.py      resolves a Fluxtion bean file from jar manifests (M48); no model involved
+tools/bean-resolver.py      reviewed prototype for M48; production target is the existing builder jar
 tools/fluxtion-harness.py   derives the authoring mode from the catalogue; --json is the handoff record
 tools/verify-m43.py         drives the real app over the socket; --eyeball for the checks a script cannot make
 ```
@@ -121,11 +121,15 @@ around twenty defects, all fixed or explicitly documented as not-fixed. **Do not
 scratch**; read the ledger and the reports first. Two independent bodies of work:
 
 - **M48 · authoring modes** (`spec-authoring-modes.md`, `spec-authoring-mode-selector.md`,
+  `spec-builder-component-resolution.md`,
   `spec-authoring-session-walkthrough.md`). The claim to test: **the bean-file half of component
   integration is a constraint solve, not a model task.** `tools/bean-resolver.py` reproduces the
   measured-optimal selection and wiring from manifests alone, at zero token cost, with byte-identical
   alerts. If that holds, every "authoring cost" figure this project has published was measuring a model
-  doing a resolver's job. **The strategy argument rests on it, and it has had no independent read.**
+  doing a resolver's job. The prototype has since had four independent review rounds and 24 smoke
+  checks; the builder production spec has also had a compiler-side review and response
+  (`review_spec_builder_component_resolution.txt`,
+  `review_response_spec_builder_component_resolution.txt`). Its implementation gates remain open.
 - **M49 · runtime performance** (`docs/experience/runs/round-54/BLOG-NUMBERS.md`). The first runtime
   measurement here — 8.44 ns/event, zero allocation, 500M events under a no-op collector. **No analyser
   code changed.** Numbers are reproducible from the directory.

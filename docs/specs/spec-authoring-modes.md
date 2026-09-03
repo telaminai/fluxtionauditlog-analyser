@@ -28,9 +28,9 @@ Status is one of four things, and they are not interchangeable:
 | # | stage | who owns it | status |
 |---|---|---|---|
 | 1 | informal goal → explicit figures, policies, unresolved choices | human or model | **HYPOTHESIS — the largest evidence gap.** See below |
-| 2 | mechanically derivable component metadata emitted at build | compiler / build tooling | **PROPOSED** — `spec-component-catalogue.md`; today's manifests are hand-authored |
+| 2 | mechanically derivable component metadata emitted at build | compiler / build tooling | **PROPOSED** — `spec-component-catalogue.md`; implementation belongs in the existing builder jar; today's manifests are hand-authored |
 | 3 | semantic facts compilation cannot infer — descriptions, conventions, constructor intent | author / vendor | **PROPOSED**, mechanism **MEASURED**: `Fluxtion-Convention` + a site profile resolves a six-way type-identical ambiguity |
-| 4 | deterministic selection and connection where metadata and policy decide | resolver | **MEASURED on one fixture family** — byte-identical XML, audit log identical figure by figure. **Prototype, not product** |
+| 4 | deterministic selection and connection where metadata and policy decide | builder-owned resolver | **MEASURED on one fixture family** — byte-identical XML, audit log identical figure by figure. Production API/parser/writer **PROPOSED** in `spec-builder-component-resolution.md` |
 | 5 | compile the declared graph; own dependency identity, relationship kind, propagation, provenance, ordering | Fluxtion | **IMPLEMENTED and substantially consumed here** — M45.1/.2/.3/.5 |
 | 6 | runtime artefacts carry the compiler's identity forward | runtime + log format | **PARTLY IMPLEMENTED** — `fluxtion.sourceFingerprint` is pinned compiler → GraphML/descriptor; the **audit-log header carrier is unpinned** |
 | 7 | reduce logs and graph metadata to bounded evidence; refuse what it cannot establish | the analyser | **IMPLEMENTED** — verbs, coverage, reports; verification only against an explicit expectation |
@@ -42,6 +42,18 @@ Status is one of four things, and they are not interchangeable:
 on breach"* into the figures, policies and open choices that follow from it has **never been
 measured** — not once in 57 rounds. It is listed first because it is upstream of everything else, and
 labelled HYPOTHESIS because presenting it as an established LLM role would be inventing evidence.
+
+### Stages 2–4 — builder ownership is decided
+
+Catalogue generation, component resolution and the typed Spring document live in the **single
+existing `fluxtion-builder` jar**. The Maven plugin exposes those operations; it does not reimplement
+them. Shipped builder code remains Java 8 compatible. Its small JDK parser/writer is a desktop
+build/API capability for the supported Fluxtion Spring authoring subset and adds **no transitive Spring
+dependency**; the browser starter keeps its JavaScript parser, while a CheerpJ smoke gate proves the
+added classes do not break builder loading or normal playground compilation. The starter remains a
+downstream interactive consumer and shares conformance fixtures rather than becoming the production
+resolver. See
+[`spec-builder-component-resolution.md`](spec-builder-component-resolution.md).
 
 ### Stage 6 — corrected TWICE, and the second correction was also wrong
 
