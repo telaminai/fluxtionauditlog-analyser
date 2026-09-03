@@ -1,0 +1,14 @@
+Machine-drift control, 2026-09-03 18:47, ~25 min after the run-1 ladder, same binary,
+same flags, same classes/ directory (GraalBench harness, NOT FlatBench).
+
+  plainGuarded          7.1491 7.1603 7.2569 7.2366 7.2225   median 7.22   (run 1: 7.04)
+  fluxtionStreamClock   8.7576 8.7975 8.8301 8.8251 8.7679   median 8.79   (run 1: 8.58)
+
+  load average 2.28 4.29 4.17 -- three native-image builds (631% CPU) had just completed.
+
+CONCLUSION: ~2.4% drift between sessions on identical code. The FlatBench harness read
+~8% high against run 1, so ~2% is drift and ~6% is harness difference (extra class loaded,
+different dispatch profile at the DataFlow call site).
+
+RULE FOR THIS ROUND: compare only WITHIN a single CSV. all-results.csv and flat-results.csv
+were collected in different machine states and their absolute numbers are NOT comparable.

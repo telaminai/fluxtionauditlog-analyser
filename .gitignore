@@ -75,3 +75,7 @@ docs/experience/runs/round-54/generated/
 docs/experience/runs/round-54/generated2/
 docs/experience/runs/round-54/reach/
 docs/experience/runs/round-54/reach2/
+
+# round-58's flattened processor is DERIVED from the generated one and inherits its
+# vendor-domain copyright header (rule 1). Regenerate with scripts/flatten.py.
+docs/experience/runs/round-58/flat/

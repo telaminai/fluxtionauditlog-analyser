@@ -1,0 +1,4 @@
+[
+  { "name": "com.bench.gen.BenchProcessor", "allDeclaredFields": true, "allPublicFields": true },
+  { "name": "com.telamin.fluxtion.runtime.time.Clock", "allDeclaredFields": true, "allPublicFields": true }
+]
