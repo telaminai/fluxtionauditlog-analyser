@@ -1282,6 +1282,85 @@ strongest available argument that prose is the wrong instrument for this class.
 doc set, or whether it is additive. That is what round 17 measures.
 
 
+## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ PART SHIPPED 2026-09-03
+
+Specs: **[`spec-authoring-modes.md`](spec-authoring-modes.md)** (the taxonomy, the owner's eleven items,
+the delivery order), **[`spec-authoring-mode-selector.md`](spec-authoring-mode-selector.md)** (the end
+state, the handoff contract, the analyser's role),
+**[`spec-authoring-session-walkthrough.md`](spec-authoring-session-walkthrough.md)** (four sessions, real
+output). Evidence: `docs/experience/runs/round-5[3-7]/`.
+
+**The finding that reorganises the programme.** The bean-file half of component integration is a
+**constraint solve, not a model task**. `tools/bean-resolver.py` reproduces the measured-optimal
+selection *and* wiring from jar manifests alone, builds green, and produces **byte-identical alerts** to
+the reference — at **zero token cost** against the measured optimum's 1.98M weighted / 51 turns. Where
+the declared surface cannot decide, it reports the ambiguity and refuses to guess.
+
+**So four modes, and which one you are in is derived, not chosen:**
+
+| mode | who writes what | model needed | status |
+|---|---|---|---|
+| 0 / 0+ | nobody; a resolver emits the bean file | **no** | **built, verified** |
+| 1 | selects components, writes beans | selection only | measured (r55, r57) |
+| 2 | describes beans, then writes the nodes | yes | **unmeasured** — playground's `spring-authoring/*` is the baseline |
+| 3 | writes a Java builder and the nodes | yes | **unmeasured** — `CLAUDE.md` + golden path is the baseline |
+
+- [M48.1] ☑ **the resolver** — `tools/bean-resolver.py`; unique selection identical to the optimum,
+      green build, byte-identical alerts (round 57)
+- [M48.2] ☑ **selection is memoisable** — a `Fluxtion-Convention` manifest field plus a one-line site
+      profile resolves round 55's six-way type-identical ambiguity; changing the profile word changes the
+      selected component (round 57 addendum)
+- [M48.3] ☑ **the mode selector** — `tools/fluxtion-harness.py`; derives the mode per FIGURE, emits a
+      machine-readable handoff record, verified on four scenarios
+- [M48.4] ☑ **the shared scorer** — `analyser.score.ExpectationScorer` / `ScoreCommand`, built on the
+      shipped reader. Five guards, one per historical scoring defect; 11 tests. **Analyser code.**
+- [M48.5] ☐ **the mode-1 selection asset** — small; how to read a `Fluxtion-Description`, that absence of
+      a promise rules a candidate out, how an answer becomes a profile line
+- [M48.6] ☐ **`generate-sources` rebind** — measured: in modes 0/1 nothing the author writes is a
+      generator input, so a plain `mvn compile` works and the whole ordering workaround
+      (`generated.dependents`, the `default-compile` exclusion, the second compiler execution) can go.
+      **The analyser ships the template, so this is ours.**
+- [M48.7] ☐ **`analyser_context` handoff section** — the selector's record as shared canvas state,
+      readable by the LLM through `context`, rendered for the human; posture SETTABLE by either party
+      with derivation only as the default (R7 revised, R10)
+- [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
+      tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
+- [M48.9] ☐ **modes 2/3 — spec, asset, and ABLATION.** The unmeasured half, and where the Haiku ceiling
+      actually is. **Every ablation this project has run was over *assembly* guidance**; no authoring
+      instruction has ever been ablated.
+- [M48.10] ☐ **the dev harness loop** (owner's item 4). The analyser contributes exactly two things — a
+      queryable graph and a queryable log. Every judgement in the loop is the LLM's or the human's.
+
+**Relationship to M46/M47.** M46 is *toolchain repair* — communication failures found by measuring
+authoring. M47 is *start from a template*. M48 is upstream of both: it says which mode an author is in,
+and for modes 0/0+ there is nothing to author at all.
+
+**Upstream filed from this work:** **UP-FLX-45** (the wall clock is 55% of dispatch by default; replay
+mode already avoids it — low priority, the author's default is defensible) and **UP-FLX-46**, lodged as
+[telaminai/fluxtion#31](https://github.com/telaminai/fluxtion/issues/31) — two classes sharing a simple
+name in different packages emit uncompilable code with no diagnostic; a component-market blocker with a
+12-line reproduction.
+
+## M49 · Runtime performance — ☑ MEASURED 2026-09-03 (no analyser change)
+
+Sheet: **[`round-54/BLOG-NUMBERS.md`](../experience/runs/round-54/BLOG-NUMBERS.md)**. Notes:
+`round-54/NOTES.md`. **The first runtime measurement in this project — every prior round measured
+tokens**, and "high performance, zero GC" had been asserted and never checked.
+
+- **Zero allocation confirmed the hard way:** 500,000,000 events under `-XX:+UseEpsilonGC -Xmx64m`, zero
+  collections. Allocation is *constant* (35,008 bytes) across 10M/40M/160M events, so it is startup, not
+  per-event.
+- **8.44 ns/event, 118M events/sec** with a stream-driven clock; **within 19%** of hand-written Java
+  carrying the same guard semantics. Hand-inlined Java is 2.68× faster, and that gap is the price of not
+  hand-ordering ten computations correctly.
+- **The collector becomes unobservable** — Epsilon, G1 and Serial all did zero collections. **ZGC is 17%
+  slower**, its read barrier paid on every reference load in a design with no garbage.
+- **The audit log costs 26× throughput and 460 B/event at INFO** — undocumented anywhere until now — and
+  `addEventAudit(level, false)` makes an audit-enabled graph allocation-free at a suppressing level.
+
+**Claims this does NOT support** are listed in the sheet, including that "the integrator pays nothing" is
+not one of them.
+
 ## Decisions (resolved)
 
 - **The commercial model, and where the analyser sits in it** _(owner, 2026-09-01)_. Recorded because it
