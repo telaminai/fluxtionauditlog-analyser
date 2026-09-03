@@ -2653,3 +2653,48 @@ flip is gated on**, so this milestone is a dependency in both directions._
   **Release footprint, checked against `main`:** `fluxtion-builder` only — 32 files, everything else docs
   and tests. `fluxtion-runtime` is untouched, so our 1.0.13 dependency stands, and `fluxtion-builder-api`
   gains nothing because the switch is a system property rather than a `FluxtionCompilerConfig` method.
+
+---
+
+_Retired from the live tracker 2026-09-03 (rule 7: the live tracker holds in-progress and future work only)._
+
+## M49 · Runtime performance — ☑ MEASURED 2026-09-03 (no analyser change)
+
+Sheet: **[`round-54/BLOG-NUMBERS.md`](../../experience/runs/round-54/BLOG-NUMBERS.md)**. Notes:
+`round-54/NOTES.md`. **The first runtime measurement in this project — every prior round measured
+tokens**, and "high performance, zero GC" had been asserted and never checked.
+
+- **Zero allocation confirmed the hard way:** 500,000,000 events under `-XX:+UseEpsilonGC -Xmx64m`, zero
+  collections. Allocation is *constant* (35,008 bytes) across 10M/40M/160M events, so it is startup, not
+  per-event.
+- **8.44 ns/event, 118M events/sec** with a stream-driven clock; **within 19%** of hand-written Java
+  carrying the same guard semantics. Hand-inlined Java is 2.68× faster, and that gap is the price of not
+  hand-ordering ten computations correctly.
+- **The collector becomes unobservable** — Epsilon, G1 and Serial all did zero collections. **ZGC is 17%
+  slower**, its read barrier paid on every reference load in a design with no garbage.
+- **The audit log costs 26× throughput and 460 B/event at INFO** — undocumented anywhere until now — and
+  `addEventAudit(level, false)` makes an audit-enabled graph allocation-free at a suppressing level.
+
+**Claims this does NOT support** are listed in the sheet, including that "the integrator pays nothing" is
+not one of them.
+
+
+## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md, design **[completed/spec-portable-context.md](spec-portable-context.md)**)
+- [M38.8] ➜ **ABSORBED BY M43.2** _(owner, 2026-08-28: "the skills binding to playbook at the same time")_.
+  The menu is the first surface that must ASK for a description, so shipping the storage separately would
+  add an entry point needing immediate revision. Spec: **[completed/spec-ai-menu.md](spec-ai-menu.md)** ▸ D-AI5.
+  Original note follows — a
+  runbook pointer is skill-shaped in storage but not in discovery: a model must open every file to know which
+  is relevant. Add optional `runbook.N.description` (inert, gated like the name), serve it in
+  `context.runbooks[]`, show it on the Project-panel row. The file-shape convention (frontmatter `name`/
+  `description`, so a pointer may target a `SKILL.md`) is documented ahead of it, so no runbook needs
+  rewriting. Content delivery stays as it is: the analyser serves the pointer, never the instructions.
+
+
+## M18 · Mongoose server link ☒ CLOSED · M41 · One-command install ☒ WITHDRAWN — archived 2026-08-30
+
+Both are settled decisions rather than open work, so their rationale now lives in
+[`completed/tracker.md`](tracker.md) per rule 7. M18 closed 2026-08-22 in favour of the
+agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
+they produced are unchanged and remain under **Decisions** below.
+

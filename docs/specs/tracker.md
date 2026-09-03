@@ -102,13 +102,6 @@ diagnose → fix → prove framing). The edit loop lives in the dev env (Claude 
   gates**; **AOT regeneration** when an edit adds a handler/node; guardrail **propose → prove → human
   approves, never autonomous merge** (review the diff of **behaviour**, not just code)._
 
-## M18 · Mongoose server link ☒ CLOSED · M41 · One-command install ☒ WITHDRAWN — archived 2026-08-30
-
-Both are settled decisions rather than open work, so their rationale now lives in
-[`completed/tracker.md`](completed/tracker.md) per rule 7. M18 closed 2026-08-22 in favour of the
-agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
-they produced are unchanged and remain under **Decisions** below.
-
 ## Upstream template content — three drafts, ready to be taken
 
 _`docs/proposals/upstream-content/`. Drafted FOR the static authoring resources
@@ -490,9 +483,6 @@ Design: **[completed/spec-external-series.md](completed/spec-external-series.md)
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
 - [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
 
-## M35 · Log + graph lifecycle — ☑ SHIPPED 2026-08-25, all eleven slices + §E (archived)
-_Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing open._
-
 ## M36 · Start page — follow-up (.1–.5 SHIPPED 2026-08-25; the milestone is in completed/tracker.md, design **[completed/spec-start-page.md](completed/spec-start-page.md)**)
 ### Rule 1 — owner decisions (raised M36, sharpened by the polish round; the two resolved ones are archived with M36)
 - ⚠ **ANSWERED 2026-09-01: YES, it still does — measured on a build against the deployed 1.0.65 backend.**
@@ -505,17 +495,6 @@ _Everything in [completed/tracker.md](completed/tracker.md) ▸ M35. Nothing ope
   all-rights-reserved and CONFIDENTIALITY over a file the user generated and ships, and the year reads
   2025. Raised with the owner as a licensing decision rather than changed unilaterally.
   **Originally:** an upstream ask, not an analyser one.
-
-## M38 · Portable context — follow-up (M38.1–.7 shipped 2026-08-27; the milestone is in completed/tracker.md, design **[completed/spec-portable-context.md](completed/spec-portable-context.md)**)
-- [M38.8] ➜ **ABSORBED BY M43.2** _(owner, 2026-08-28: "the skills binding to playbook at the same time")_.
-  The menu is the first surface that must ASK for a description, so shipping the storage separately would
-  add an entry point needing immediate revision. Spec: **[completed/spec-ai-menu.md](completed/spec-ai-menu.md)** ▸ D-AI5.
-  Original note follows — a
-  runbook pointer is skill-shaped in storage but not in discovery: a model must open every file to know which
-  is relevant. Add optional `runbook.N.description` (inert, gated like the name), serve it in
-  `context.runbooks[]`, show it on the Project-panel row. The file-shape convention (frontmatter `name`/
-  `description`, so a pointer may target a `SKILL.md`) is documented ahead of it, so no runbook needs
-  rewriting. Content delivery stays as it is: the analyser serves the pointer, never the instructions.
 
 ## M43 · The AI menu — follow-up (COMPLETE 2026-08-28; the milestone is in completed/tracker.md, design **[completed/spec-ai-menu.md](completed/spec-ai-menu.md)**)
 - ☐ **Owner question: the menu's name** — shipped as `AI` (proposed over *AI assistant*, since "assistant" names the
@@ -871,26 +850,6 @@ mode already avoids it — low priority, the author's default is defensible) and
 [telaminai/fluxtion#31](https://github.com/telaminai/fluxtion/issues/31) — two classes sharing a simple
 name in different packages emit uncompilable code with no diagnostic; a component-market blocker with a
 12-line reproduction.
-
-## M49 · Runtime performance — ☑ MEASURED 2026-09-03 (no analyser change)
-
-Sheet: **[`round-54/BLOG-NUMBERS.md`](../experience/runs/round-54/BLOG-NUMBERS.md)**. Notes:
-`round-54/NOTES.md`. **The first runtime measurement in this project — every prior round measured
-tokens**, and "high performance, zero GC" had been asserted and never checked.
-
-- **Zero allocation confirmed the hard way:** 500,000,000 events under `-XX:+UseEpsilonGC -Xmx64m`, zero
-  collections. Allocation is *constant* (35,008 bytes) across 10M/40M/160M events, so it is startup, not
-  per-event.
-- **8.44 ns/event, 118M events/sec** with a stream-driven clock; **within 19%** of hand-written Java
-  carrying the same guard semantics. Hand-inlined Java is 2.68× faster, and that gap is the price of not
-  hand-ordering ten computations correctly.
-- **The collector becomes unobservable** — Epsilon, G1 and Serial all did zero collections. **ZGC is 17%
-  slower**, its read barrier paid on every reference load in a design with no garbage.
-- **The audit log costs 26× throughput and 460 B/event at INFO** — undocumented anywhere until now — and
-  `addEventAudit(level, false)` makes an audit-enabled graph allocation-free at a suppressing level.
-
-**Claims this does NOT support** are listed in the sheet, including that "the integrator pays nothing" is
-not one of them.
 
 ## Decisions (resolved)
 

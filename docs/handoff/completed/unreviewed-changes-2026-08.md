@@ -1012,3 +1012,103 @@ template generator, outside this analyser-only change.
 Eleven earlier reviewed entries are archived verbatim in
 [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md), together with
 their review detail files.
+
+---
+
+_Retired 2026-09-03._
+
+## ☑ reviewed 2026-09-03 · CHANGES REQUIRED · `f645cce^..3c39c6c` (32 commits) · authoring modes, the catalogue resolver, and the runtime benchmark
+
+**Report:** [`report_authoring_modes_m48_m49.txt`](report_authoring_modes_m48_m49.txt) — written late, after three review rounds, and says so.
+**Review brief:** [`prompt_review_authoring_modes.md`](prompt_review_authoring_modes.md) — the
+authoring programme is new; a reviewer who last saw M40/M42/M43 has not met any of it.
+
+**Reviews:** [`review_authoring_modes_3c39c6c.txt`](review_authoring_modes_3c39c6c.txt) (compiler-side)
+and [`review_authoring_modes_3c39c6c_followup.txt`](review_authoring_modes_3c39c6c_followup.txt)
+(independent adversarial follow-up). Verdict: the fixture result and M49 direction survive, but the
+scorer has false-PASS paths, the resolver/selector do not yet satisfy their general contracts,
+UP-FLX-47 is refuted by released 1.0.64 bytecode, and the strategy specs require reconciliation.
+
+**What & why.** One long session covering two separable bodies of work, both committed straight to
+`main` with no brief → report → review cycle. **They are independent and can be reviewed separately.**
+
+**A · runtime benchmark (rounds 54).** The first runtime measurement in this project — every prior round
+measured tokens. Confirms zero-allocation dispatch (500M events under EpsilonGC, 0 collections),
+decomposes Fluxtion's cost against hand-written Java, and files **UP-FLX-45** (the wall clock is 55% of
+dispatch by default; replay mode avoids it). Deliverables: `docs/experience/runs/round-54/NOTES.md`,
+`BLOG-NUMBERS.md`, and a published artifact.
+
+**B · authoring modes (rounds 55–57 + specs).** Names four authoring modes; shows the bean-file wiring is
+a **constraint solve, not a model task** (`tools/bean-resolver.py` reproduces the measured-optimal
+selection and wiring, builds green, produces byte-identical alerts, at zero token cost); shows selection
+is memoisable via a `Fluxtion-Convention` manifest field plus a site profile; and adds
+`tools/fluxtion-harness.py`, which derives the mode from the catalogue rather than asking.
+
+**C · analyser code — the only `src/` change.** `ExpectationScorer` + `ScoreCommand`
+(`analyser.score`): headless comparison of two audit logs on business outcomes, built on the shipped
+`YamlAuditReader`/`RecordParser`. Motivated by **five scoring defects in this project's experiment
+history, three in one session, every one erring toward agreeing with its author**. 11 tests, one per
+guard, each reproducing a defect that actually occurred.
+
+**Files.** `src/main/java/.../analyser/score/` (2 new), `src/test/java/.../analyser/score/` (1 new),
+`CHANGELOG.md`, `tools/bean-resolver.py`, `tools/fluxtion-harness.py`, `docs/specs/spec-authoring-modes.md`,
+`spec-authoring-mode-selector.md`, `spec-authoring-session-walkthrough.md`,
+`spec-minimal-authoring-instructions.md`, `spec-component-catalogue.md` (V-A/V-B),
+`docs/proposals/upstream-asks.md` (UP-FLX-45, UP-FLX-46), `docs/proposals/assessment-playground-ai-prompts.md`,
+`docs/experience/runs/round-5[3-7]/`.
+
+**Verified.** Full `mvn -q -o test` green at every commit. Rule-1 sweep clean throughout. Resolver output
+verified end to end: `mvn process-classes` green, 222 dirty flags in the generated processor, alerts
+byte-identical to `round-48/expected.alerts`. Harness verified on four scenarios. Scorer: 11 tests
+including an end-to-end run through the shipped reader on a committed conformance fixture. UP-FLX-46
+reproduced in 12 lines and **lodged upstream** as
+[telaminai/fluxtion#31](https://github.com/telaminai/fluxtion/issues/31).
+
+**What the reviewer MUST still check.**
+
+1. **The specs are unreviewed and argue for a strategy.** `spec-authoring-mode-selector.md` claims the
+   analyser is *required* for verification on a capacity argument (a 10k-event log is 5.8× Haiku's
+   context). If that framing is wrong, say so — it is the most consequential claim written here.
+2. **`ExpectationScorer`'s figure extraction is heuristic.** It reads two shapes — the natural
+   `instanceId.key` form and a tagged `stage`/`value` convention — and picks by whether the tag keys are
+   present. That rule is asserted, not derived from the format spec; check it against
+   `src/test/resources/conformance/` and the published format spec.
+3. **Round-49's `expected.txt` is not in the analyser's record format** (18 blocks, zero `---`
+   separators) — recorded in `round-49/FORMAT-NOTE.md`, **not repaired**. Confirm that deferral is right.
+4. **Nothing in `docs/site/` was touched**, so no MkDocs build was run. Confirm none of this needs to
+   reach the published docs yet.
+5. **No Swing/UI change**, so rule 4's build-and-run gate was not exercised for this range.
+6. **The resolver and harness are Python in `tools/`, untested by `mvn test`.** They have no test suite;
+   their evidence is the end-to-end verification above. Decide whether that is sufficient for tools that
+   now carry an argument about product strategy.
+---
+
+
+---
+
+_Reviewed entries are retired to [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
+
+**RESOLUTION 2026-09-03 — changes made and verified.** Three review rounds found fifteen defects.
+All are fixed or explicitly documented as not-fixed. Verified at HEAD by execution, not by reading:
+
+- **Scorer:** five further guards added (G6 event sequence, G7 extra figures, G8 non-finite, G9 full
+  event identity, G10 vacuous figure set); dialect is now caller-declared; exit codes 2/3 separated.
+  21 tests. **Five of ten guards came from reviewers, and every one erred toward agreeing with the
+  author.**
+- **Resolver:** entry-point cardinality, duplicate providers, constructor cycles (both CLI and the
+  `--json` path), bean-id collisions between distinct jars, usage text. **Round-48 XML re-verified
+  byte-identical after every change.**
+- **Harness:** an empty catalogue now derives greenfield rather than catalogue/unsatisfiable.
+- **UP-FLX-47 ☒ withdrawn** — the ask was false, refuted by execution and re-verified here. A rule-6
+  failure: the config bean the goal consumes was never read.
+- **M48.11** closes the gap that ask had invented: the full chain runs and the comparison **passes
+  12/12 events, 27 figures**, with 5 of 5 mutations caught.
+- **Evidence:** the derived fixture's provenance moved to a sidecar after review found the log's
+  comment header being absorbed into record 1 as metadata.
+
+**Not fixed, and deliberately so:** `Fluxtion-Consumes` remains parsed but unused in solving; the
+resolver claim stays conditional on the v2 manifest convention; neither Python tool has tests; modes
+2/3 remain unmeasured. All are listed in
+[`report_authoring_modes_m48_m49.txt`](report_authoring_modes_m48_m49.txt) §4.
+
+**Report written late** — after the reviews rather than before, which the report declares first.
