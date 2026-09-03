@@ -31,6 +31,7 @@ SKILL = {
     "2":   "fluxtion-spring-scaffold",    # playground: spring-authoring/skill.md
     "3":   "fluxtion-node-authoring",     # playground: CLAUDE.md + golden path
     "2/3": "fluxtion-node-authoring",     # greenfield gap; 2 vs 3 is a user preference
+    "unsatisfiable": None,                # nothing to load; the requirement needs revisiting
 }
 
 
@@ -77,8 +78,13 @@ def main():
         # covered subset so the author sees a real bean file and a scoped work list, not a refusal.
         sub, suberr = R.solve(eps, covered, profile)
         if a.json:
-            m = ["0+" if profile else "0"] if (sub and len(sub) == 1) else ["1"]
-            return handoff("catalogue", m + ["2/3"], covered, missing) or 2
+            if sub and len(sub) == 1:
+                m = ["0+" if profile else "0"]
+            elif sub:
+                m = ["1"]
+            else:
+                m = ["unsatisfiable"]      # the covered subset has no consistent selection
+            return handoff("catalogue", m + ["2/3"], covered if sub else [], missing) or 2
         print(f"\n  MIXED SESSION — {len(covered)} of {len(wanted)} figures resolve mechanically,")
         print(f"  {len(missing)} require authoring.\n")
         if sub and len(sub) == 1:
@@ -106,7 +112,11 @@ def main():
         return 2
 
     if err:
+        if a.json:
+            return handoff("catalogue", ["unsatisfiable"], [], sorted(wanted)) or 2
         print(f"\n  UNSATISFIABLE — {err}")
+        print("  Every required figure exists in the catalogue, but no consistent selection")
+        print("  satisfies them together — most often a site profile no variant declares.")
         return 2
 
     if len(sols) > 1:

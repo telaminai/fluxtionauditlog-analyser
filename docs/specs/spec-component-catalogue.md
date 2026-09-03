@@ -193,3 +193,23 @@ The component author performs the analysis once, at the moment it is certain, an
 Every consumer stops repeating it. That is the same trade the framework already makes twice — binding
 time analysis shipped in `@NoTriggerReference`, dispatch specialisation shipped in the generated
 processor — applied to **discovery**, which the measurements say is the expensive half.
+
+---
+
+## Additional build-failing validations (added 2026-09-03, both found by measurement)
+
+**V-A — every entry point sharing a type surface MUST declare a `Fluxtion-Convention`.**
+Round 55 + round 57 addendum: where two entry points have identical `Provides`/`Requires`/
+`Constructor`/`Consumes`, only a declared convention can discriminate them, and **silence is not a
+match** — an undeclared variant becomes unselectable at any site carrying a profile for that figure.
+The generator can detect the sharing and must refuse to emit an undeclared variant.
+
+**V-B — the generator MUST verify attributes survive into the JAR, not merely into the source.**
+A manifest file without a trailing blank line **silently loses its last attribute**: `jar` dropped
+`Fluxtion-Convention: spread=smoothed`, and `PricingSmoothed` became unselectable with no warning from
+any tool. The defect was invisible in the `.mf` file, which contained the line.
+
+Both are second independent arguments for this spec's central claim — **manifests must be generated,
+not hand-written** — and V-B extends it: *generated is not sufficient; the generator must read back
+what it wrote.*
+
