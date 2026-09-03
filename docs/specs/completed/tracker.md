@@ -2270,3 +2270,386 @@ _Verbatim, per rule 7, while M19 itself remains in progress._
   and nobody has yet clicked the Swing cancellation flow. **The review was late because it was
   reported in conversation instead of written here** — the milestone sat awaiting a verdict already
   reached, which is the same failure as a decision made, committed and not pushed.
+
+---
+
+_Archived from the live tracker 2026-09-03: the shipped detail below was still occupying the live file._
+
+## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31
+
+_The first application of the review's standing architecture rule, and the owner's reason for choosing it:
+**using Fluxtion in a real application accelerates what we learn about it far more than measuring other
+agents does — and that learning is the raw material for the template bootstrap documents.**_
+
+- [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
+  are the right first subject on the rule's own test — several inputs whose ordering matters, evolving
+  state, rules with consequences, and behaviour currently spread across Swing callbacks. **M35 spent
+  eleven slices** getting these rules right and they still live in listeners rather than anywhere readable
+  as rules.
+  **Feasibility, corrected by BUILDING it rather than reading POMs** (review, 2026-08-31): the analyser
+  today has **no Fluxtion dependency at all** — FlatLaf is its only runtime dep. This adds
+  **`fluxtion-runtime` 1.0.13** (owner, 2026-08-30) **plus `agrona` transitively, plus a repository this
+  project does not declare** — the artefact is not on Central. Measured shaded cost **+1,164,013 bytes**
+  (2.21 MB → 3.37 MB), not the 0.6 MB first claimed: that counted the direct jar and omitted its
+  transitive. Still acceptable; the description was not. Generation is a hosted service, so the processor
+  is generated once and **committed as source**: `mvn test` and CI stay keyless, and a key is needed only
+  to change the graph — with the graph builder in a `-Pregen` source root so the default build never
+  resolves the builder. **The analyser therefore eats its own dog food in precisely the configuration it
+  recommends.** ☐ **Blocker before the dependency lands:** the runtime's published POM declares AGPL-3.0
+  and the analyser is source-available commercial — record the combination decision (D-S1.2).
+  **The review's central finding, and the reason the spec was rewritten rather than patched:** requests,
+  fallible IO results, authoritative state and completed effects were collapsed together, so *"the first
+  audit log would describe intended transitions rather than what the application actually did"* — the
+  exact failure this product refuses in other people's systems. §0 is now a five-fact transaction model
+  (request → decision → effect request → adapter result → authoritative state), state nodes advance only
+  on completed facts, and `EffectOutcome` is the only record that proves anything happened.
+  **Two deliverables**: the processor, and a record of what a real author hits. **One prediction has
+  already scored:** *"effect requests will multiply"* — CONFIRMED at spec review before a line was
+  written, five effects and the whole result half of the event table missing, with restore-settings found
+  hiding in `closeProject()`. Three framework facts were also wrong or absent until someone read runtime
+  1.0.13: the dependency size, that the audit "setters" are `onEvent` dispatches, and that the no-arg
+  `EventLogManager()` **defaults its sink to `System.out`** — so a forgotten `setAuditLogProcessor` prints
+  every audit record to stdout instead of losing it. Rule 6 earning its place again.
+  **First slice moves ONE decision** — `SessionBoundary` — end to end with its **own independently green
+  acceptance set** (the first draft's acceptance described the finished graph, which would have left slice
+  one permanently red). And we inherit [fluxtion#25](https://github.com/telaminai/fluxtion/issues/25)
+  immediately: tracing is fixed at generation time, so we live with the constraint we just filed.
+- [M44.1] ☑ **Slice 1 shipped 2026-08-31.** Seven nodes, generated AOT and committed; a synchronous
+  single-in-flight driver; a bounded audit sink that snapshots for inspection; 23 tests. All nine project
+  entrances now state a `TransitionKind` instead of the rule being inferred, and the three old homes of
+  the session-boundary rule are deleted — `afterProjectChange`'s `endsSession` block, the
+  `applyProjectResult` overload's unnamed `false`, and `sessionEndEcho`'s predict-before-the-switch.
+  **Measured cost +1,217,297 bytes shaded** (2.43 → 3.64 MB). Every guard mutation-checked, including
+  regenerating the graph without `@PushReference` to confirm the arrow really reverses.
+  **What it taught us, scored against predictions written first** (spec ▸ *SCORED*): the `transient` rule
+  did **not** bite, because the predicate takes *final, non-transient, non-ignored* fields — so ordinary
+  mutable node state never participates, and *"remove `final`"* is a first-class fix rather than the
+  workaround our upstream note called it. The adapter boundary was not the hard part; **re-entrancy** was,
+  because a partially-migrated app has two ways into the same state and only one of them is inside a
+  dispatch. Effect requests multiplied a second time. And **two defects were ours**: the single-in-flight
+  guard threw an exception the effect-failure handler swallowed, and the sink was attached one line too
+  late — `init()` audits, so the analyser printed audit records to stdout. Both found by running it.
+  Three framework facts came from reading runtime 1.0.13: the audit "setters" are dispatches; `logLevel()`
+  after `init()` silently does nothing because loggers are stamped at registration; and the runtime prints
+  to stdout when it handles an audit control event. **All three re-verified by measurement 2026-08-31, and
+  one conclusion drawn from them was wrong**: the `DataFlow` route is not the problem, the ordering is —
+  `setAuditLogProcessor` before `init()` is clean and catches one record more than reaching for the
+  auditor. The driver now uses the documented call. Six measured wirings, and the gap they expose in the
+  three static bootstrap sources, are written up for upstream as
+  [`upstream-content/audit-runtime.md`](../proposals/upstream-content/audit-runtime.md).
+  ☑ **The Swing evidence gap, closed the only way it could be.** The review asked for behavioural
+  characterisation against the old implementation; the old implementation is Swing, which rule 4 does not
+  unit-test. So **`tools/verify-session-transitions.py`** drives the rules through the **built jar** over
+  the assistant socket — the same driver and the same decision node the menus reach — under an isolated
+  `user.home` so it never touches a real configuration. 23 checks pass, including that **nothing reaches
+  stdout across ~20 transitions**, and both load-bearing claims are mutation-checked against a rebuilt
+  jar. ☐ **Residue:** the five dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`,
+  `STARTUP_ACTIVATION`, import-as-project) reach the same decision with a different kind — the rule is
+  covered, the per-call-site kind is read rather than run. `ADOPT_FOR_OPEN_LOG` is worth a human's two
+  minutes before release.
+- [M44.2] ◧ **The M35.2 rule and the review's F3 shipped 2026-08-31.** Three nodes: `Pairing` (does this
+  graph describe this log), `AuditInstallation` (can this processor log at all — **answerable without a
+  log**, which is the property F3 said merging would destroy), and `LogArrival`, which is
+  `MainFrame.repairLoadedGraph`'s rule moved into the graph. A log arriving judges an open graph as
+  *residue* and closes it if it does not fit; a graph arriving against a log is *intent* and is kept with
+  a warning. One comparison, two verbs, and now replayable rather than only checkable by running the app.
+  **What deliberately did NOT move: the load itself.** It is `Background.run` — asynchronous — and the
+  driver is synchronous and single-in-flight by design (D-S0.3). Making the open an effect would have
+  meant either an asynchronous driver or a lie about when the load finished. Moving the decision without
+  the load is the honest half, and the observations stop being scaffolding: `LogObserved`/`GraphObserved`
+  now carry the ids and node types the verdicts need, which is the shape the spec always specified.
+  Also cached the 500-record pairing sample per log rather than per menu refresh — the observation funnel
+  has ten call sites.
+  **A hollow assertion of my own, found by mutation and worth recording.** Deleting `LogArrival`'s
+  `!canSay()` branch changed nothing, because it is unreachable: the node only fires on an open log, so a
+  verdict always exists. My test for it matched `cannotSay` anywhere in the sink and passed on a line
+  `Pairing` writes when it first sees the graph, before any log. The empty-log protection actually lives
+  in `GraphPairing.of`, which returns *applies* for a log with no node output because a silent log cannot
+  convict a graph. Branch kept as null-safety and **documented as null-safety rather than as a rule**;
+  test rewritten to assert the decision line.
+- [M44.2c] ☑ **`CoverageClaim` shipped 2026-08-31 — F3's third question, and the only one that is a
+  POLICY rather than a fact.** Coverage is *declared minus observed*, and that subtraction stops meaning
+  anything four separate ways. Only one was checked before, in `ActionExecutor.doCoverage`: an INFERRED
+  graph, where the declared set IS what ran. **Two of the other three had no home at all** — a graph
+  whose processor was built without an auditor (every declared node reads as never-logged, and the
+  number blames the nodes for the build), and a graph a person deliberately opened against a log it does
+  not describe. That second one is **the gap M35.3's own exception created**: keeping such a graph is
+  right — announce, never forbid — and scoring against it silently was not. Keeping the graph and
+  refusing the number are the same respect for intent.
+  The fourth is a **QUALIFIED**, not a refusal: a capture level below TRACE means a node may have run,
+  logged, and had its output discarded, so the number is computable and must carry what it hides.
+  **Refusing a computable number is as much a failure as printing a meaningless one**, and the
+  REFUSED/QUALIFIED split is the whole value of the node. Four rules, four mutations, all caught.
+- [M44.2d] ☑ **`IgnoredParameters` shipped 2026-08-31.** `open` is a compatibility surface carrying every
+  lifecycle act, so combinations are expressible that have no coherent reading — `open {project, log}`
+  cannot mean anything, because the switch would sweep away whatever the log arrived into. The
+  precedence order and the sentence explaining each act lived in **three near-identical blocks** of
+  `ActionExecutor.doOpen`; they are one table now, and the decision is audited.
+  **A regression caught by an existing test, and the fix is the interesting part.** Unwired, the first
+  version reported nothing ignored. For `CoverageClaim` a missing opinion must not become a refusal —
+  but here the harmful direction is the opposite: **a parameter silently dropped reads to the caller
+  exactly like one that was honoured**, and on the agent path nobody notices the log they asked for
+  never opened. The fallback now returns the same pure decision without the audit record, never a
+  different answer.
+  One visible change: the `ignored` list is ordered by **precedence** rather than by the declaration
+  order of a constant. Same set; the new order tells a caller which act would have won.
+- [M44.2f] ☑ **The attribution strip is a build step, not a habit (owner: "this is usually a maven
+  profile for me").** A `maven-antrun-plugin` execution inside `-Pregen`, bound after the scan goal, so
+  every regeneration strips the generator's copyright line whether anyone remembers or not. It was
+  manual for four regenerations and forgotten on three; `GeneratedSourceIsPublishableTest` caught each
+  one, **which is the guard working and the step being in the wrong place**. The script now does only
+  the three-mode fixture capture, which is the part Maven cannot express without three near-identical
+  profiles to drift apart.
+- [M44.2g] ☑ **`CoveragePolicy` extracted — everything is not a node (owner).** The four-way policy and
+  its sentences are now a plain class with no state and no lifecycle: a pure function of six facts,
+  testable with **no processor, no driver and no events**. `CoverageClaim` is 78 lines of gathering from
+  parents and writing the record. Both halves are tested — the policy directly for the branches that are
+  awkward to stage as an event sequence, and through the real graph, because a policy nobody wired up is
+  a policy nobody applies. The direct test immediately earned itself: it asserted every refusal carries
+  an actionable reason, and found *"no log is open"* was the one that did not.
+- [M44.2e] ☑ **`tools/regen-session-processor.sh`** — the regeneration dance is five commands and every
+  one matters: skip the header strip and rule 1 fails, skip the fixtures and M45 fails against a graph
+  that moved, skip the POM restore and the repo depends on an unreleased SNAPSHOT. Got wrong three
+  times, which is three more than a script costs.
+- [M44.2h] ☑ **The effect drain moved to `@OnBatchEnd` — the external drain was a framework feature
+  reimplemented (owner: "use batchEnd for the effect drain instead of the external one").** The driver
+  used to call `onEvent`, pull the queue off `EffectQueue` and perform every effect itself. Three reasons
+  were written down for that; **two were refuted in review and the third was that nobody had read
+  `BatchHandler`** — documented as *"a transaction of events have been received and complete… process a
+  set of events before publishing/exposing state changes outside of the Static Event Processor."* The
+  drain is now an `@OnBatchEnd` method on `EffectQueue`, the adapter arrives by `@ServiceRegistered`
+  rather than being held by the driver, and results re-enter through `processAsNewEventCycle`.
+  **The ordering claim survives on better grounds**: `onEvent` publishes the decision's record before it
+  returns and `batchEnd()` cannot be entered until it has, so *decided → recorded → acted* no longer
+  depends on auditor ordering — which [UP-FLX-41](../proposals/upstream-asks.md) shows you cannot depend
+  on anyway. **One new hazard, defended**: the generated `batchEnd()` sets `processing = true` with no
+  try/finally, so a throw escaping the method would wedge the processor silently; `EffectQueue` catches
+  everything and the driver rethrows once the flag is clear. All 1272 tests green and 23/23 on the built
+  jar with no behaviour change; seven new tests cover the properties the old shape got for free.
+- [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
+  driver change that lets log/graph OPENING become a decision. Declined twice on the same ground, which
+  is the right ground: the load is `Background.run` and the driver is synchronous single-in-flight by
+  design, so forcing it would have meant lying about when a load finished.
+  **Three pieces of v1 turn out to have been built for this.** The `opId` was added with the note that
+  *"if the driver later goes asynchronous the record does not silently start lying"* — this is that
+  later. `OperationGate` already refuses a stale result. And an accident worth naming: the gate
+  overwrites `expectedOpId` on each request, which was written to detect staleness and **also
+  implements supersede** — a second open makes the first's result arrive stale and be refused. The
+  policy fell out of the mechanism, and it is the policy we would have chosen for a person who picked
+  the wrong file.
+  **The design in one line: asynchrony is the ADAPTER's property, not the effect's.** A `Pending`
+  result means "started, will report later"; `FakeSessionAdapter` never returns one, so **every existing
+  replay test stays synchronous and deterministic**. A design that made effects intrinsically async
+  would have made the whole replay suite timing-dependent — and a flaky suite protecting a concurrency
+  change is worse than none.
+  One thread calls `onEvent` and it is the EDT, asserted rather than documented, because a record
+  interleaved from two threads would present two cycles as one. No executor, no queue, no timeout is
+  introduced: `Background.run` already marshals to the EDT, and that is the completion path used.
+  ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
+  be able to say *"opening /path — started, not yet completed"*.
+- [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
+  `AuditInstallationReadiness` / `CoverageClaim` (the review's F3 — three questions the first draft merged
+  into one). Then move log and graph OPENING, which deletes `LogObserved`/`GraphObserved` and with them
+  the observation funnel that exists only because slice 1 does not own those paths yet.
+- [M44.3] ☐ **Owner decision still open:** the runtime's published POM declares AGPL-3.0 and the analyser
+  is source-available commercial (D-S1.2). Recorded rather than inferred from common ownership.
+
+## M45 · Consuming the GraphML vocabulary — ◧ .1/.2/.3/.5 SHIPPED 2026-08-31
+
+_Design: **[spec-graphml-vocabulary-consumption.md](spec-graphml-vocabulary-consumption.md)**. The
+upstream half of §2c lands in `fluxtion-builder`; this is our half. **We are the consumer the default
+flip is gated on**, so this milestone is a dependency in both directions._
+
+- [M45] ☐ **The vocabulary answers as DATA what we answer by HEURISTIC** — framework-generated nodes,
+  whether an update crosses an edge, whether a node can log at all, filter values, dispatch order. Every
+  one is an ask this repo filed.
+  **Two facts decide the shape, and neither is a preference.** The GraphML is emitted **client-side by
+  the author's pinned builder**, and the compiler is always latest-stable in the cloud (owner,
+  2026-08-31). So the analyser opens files from every builder version ever released, forever, and cannot
+  require a stranger to regenerate. **Dual-path is permanent, not transitional** — which corrects a claim
+  made in two reviews here: `fluxtion.framework` and `auditCapable` do **not** let us delete
+  `Scaffolding`'s class list or `AuditReadiness`'s `EventLogManager` heuristic. They demote them to
+  fallbacks, which still have to be maintained.
+  **The trap, decided once: `AGGREGATED` is refused.** It looks like the safe step — legacy shape, new
+  facts — and upstream's own javadoc says the merged facts are *sets, not index-aligned tuples*, so a
+  pair with a filtered and a default-case handler yields `filterType="matched,defaultCase"` with nothing
+  saying which went with which. A consumer rendering that would be wrong without being able to detect it.
+  **Read `PARALLEL` or read nothing.** ☑ **CORRECTED 2026-08-31 by measurement:** the refusal is
+  **fact-scoped, not file-scoped**. Node facts are bit-for-bit identical between the two shapes —
+  aggregation touches only edges — so `auditCapable` and the rest are exact in either, and refusing them
+  cost the whole audit-capability win on an aggregated graph for nothing. Edge facts are refused from
+  `PARALLEL`-less files only where `relationshipCount > 1`, which is the case that actually merged and
+  which the data announces.
+- [M45.1] ☑ **Reachability proved, ceiling measured — 2026-08-31.** Both properties reach the exporter
+  and the generator through the real `fluxtion-maven-plugin:scan`: `PARALLEL` emitted **17 keys / 281
+  occurrences**, and the diagnostics sidecar was written on the failing path. **The two deferred rows of
+  the pinned comparison are run and both predictions held** — predicted build attempts **2–3 → 1**, and
+  `final` named as the mapping trigger **0 of 2 → 2 of 2**
+  ([ceiling-2026-08-31](../experience/runs/ceiling-2026-08-31/RESULTS.md)). The secondary falsifier
+  passes too: both agents attributed the rule to the sidecar rather than prior knowledge — *"I am
+  paraphrasing, not recalling"* — which is what makes the numbers mean anything. **Caveat kept, not
+  buried:** the slice needs an entitled key, so it cannot run in CI or for a contributor; the answer is
+  recorded rather than reproducible.
+- [M45.1a] ☑ **topologicalRank reproduced and confirmed fixed, on our own graph.** At `ac231a8` the rank
+  was inverted across exactly the `@PushReference` edge — `effectQueue` 2 against `sessionBoundary` 10 —
+  and it was **the only inversion** in the graph. Fixed at `dbcbe17` (9 then 10). Upstream measured it on
+  a probe graph; this is a production one. **Rule this leaves behind: pin the rank against the generated
+  dispatch order, never trust it.** It was published, plausible and reversed, and our baseline is why
+  that is the worst key to be quietly wrong in — an inverted column turns a measured *cannot tell* into
+  *confidently wrong*.
+- [M45.1b] ☑ **Byte instability closed, with the reason we disagreed.** Reproduces at builder **1.0.64**
+  (content identical once sorted, order differs); **stable at 1.0.65-SNAPSHOT** across 4 runs at OFF and
+  3 at PARALLEL. Their defensive sort fixed it; they could not see the original because their build
+  already had the fix. No artefact to send.
+- [M45.1c] ☐ **Original slice text, for the record — prove reachability, and measure the ceiling.** Install the branch, point `-Pregen` at it
+  with `-Dfluxtion.graphml.metadata=PARALLEL`, confirm our committed GraphML changes. A JVM system
+  property is only usable if it reaches the JVM running the exporter, and **nobody has tested whether it
+  survives `fluxtion-maven-plugin:scan`** — the same shape as the branch's own finding that
+  `writeSidecar` has no production caller. Also unblocks the pinned comparison run. Ships nothing.
+- [M45.2] ☑ **Read the vocabulary, change no behaviour — 2026-08-31.** `GraphVocabulary` carries mode,
+  `metaVersion` and the trust decision; `Node`/`Edge` carry their `fluxtion.*` facts through delegating
+  constructors so a dozen existing construction sites were untouched. **`AGGREGATED` is refused**, with a
+  reason that says how to get a usable file. An unknown MAJOR degrades to absent rather than failing the
+  open. **Absent is never false** — `propagates()` is boxed on purpose, because that is the fact
+  separating *did not run* from *could not have run* and a primitive would make an absent answer
+  masquerade as `false`.
+- [M45.2a] ☑ **The compatibility re-run, as a permanent test rather than a one-off.** Another session
+  flagged it as outstanding and now bigger, since the exporter was rewritten as a model projection after
+  the `dd36bc5` check. Both sides are committed fixtures and `GraphMlExporterCompatibilityTest` compares
+  them every build: same ids, kinds, class names, adjacency in both directions, same edge count and the
+  same audit verdict — and a companion assertion that `PARALLEL` genuinely differs, so the check has
+  range rather than passing vacuously.
+- [M45.2b] ☐ **Original slice text — read the vocabulary, change no behaviour.** `metaVersion` (1.x reader accepts every 1.y;
+  unknown MAJOR degrades to absent), node and edge keys, mode detection. Separating reading from acting
+  is what makes the rest safe.
+- [M45.3] ☑ **The audit duo shipped 2026-08-31.** `fluxtion.auditCapable` reaches the coverage
+  denominator: a node the graph says cannot log is excluded rather than counted as having stayed silent,
+  **and it works with no source at all** — which is the point, because `NodeLogging`'s text check fails
+  closed to UNKNOWN whenever source is missing, and missing source is the normal case for a stranger's
+  log. `NodeLogging.Answer` carries `DECLARED`/`INFERRED` so a measured fact and a guess never look
+  alike (D-V2). The refusal of `AGGREGATED` is asserted at this consumer too, not only where it was
+  written down.
+- [M45.3a] ☐ **Original slice text — the audit trio is a DUO** — `auditCapable`/`auditCapableVia` are emitted, `eventAudit` is
+  **planned**. That is exactly the key separating *capable, audit off* from *capable and stayed silent*,
+  which is this slice's stated product claim, so it is re-scoped: the regime comes from the **log header**
+  (UP-FLX-11), not the GraphML. Still the slice where the claim improves.
+- [M45.4] ◧ **THE AUTHORITY NOW EXISTS (2026-09-01) — ours to verify and unpark.** It waited on a named
+  AUTHORITY, not on emission (spec ▸ D-V2 amendment), and upstream has supplied one. The name-vs-instance
+  defect we described was found a second time by our own 21a63d4 review (F-A): `serviceRegistry` sat in
+  BOTH `authoredNodes` and `compilerCreatedNodes` on 3315 graphs. Upstream fixed it by COLLAPSING the
+  classification rather than ranking the two sources — the framework declares its own auditors
+  (`addFrameworkAuditor`), so they never enter `authoredNodes`, and the sets partition by construction.
+  `NodeClassificationInvariantTest` asserts the partition across five graph shapes and pins
+  `serviceRegistry` by name, because "no node in both sets" would also be satisfied by dropping it from
+  both.
+  ☑ **OUR HALF VERIFIED 2026-09-01, on the real session graph at released 1.0.65 — UNPARKED.** A false
+  `framework=true` cannot flatter the denominator, and the measurement says so in a stronger form than
+  "it happens to be right today". Comparing the graph's DECLARED framework set against our own
+  `Scaffolding` heuristic on the real graph:
+  **`declared-only` is EMPTY** — the compiler never claims framework for anything we call authored, so
+  adopting the fact cannot shrink the denominator in any direction that flatters.
+  `heuristic-only` is `[ClockStrategyEvent, EventLogControlEvent, ServiceListener]` — three framework
+  EVENT/service vertices. That difference is harmless because `CoverageScope` already drops
+  `Kind.EVENT` and `Kind.EXPORT_SERVICE` with named reasons, so they never reach the denominator by
+  either route. **The lesson for the implementation: `fluxtion.framework` is NODE-scoped.** Applied to
+  event vertices it would understate coverage — the safe direction, but still wrong. Adopt it for nodes
+  and leave the kind filter alone.
+  **What M45.4 actually buys**, now that the denominator is already correct: a declared fact replaces a
+  package-prefix guess (which misreads an author's class in a framework-shaped package, and a framework
+  class outside one), and `authoredNodeCount` gives an independent cross-check against our own count.
+  **Originally:** it waits on a named AUTHORITY, not on emission (spec ▸ D-V2 amendment). The compiler side reproduced an author's own
+  auditor registered under `clock` being published as compiler-created, because provenance is tracked by
+  name while the thing it describes is an instance. A false `framework=true` **excludes an authored node
+  from the denominator and flatters the number** — silent, and the direction our own "excluding requires
+  proof" rule exists to prevent. Third instance of an emitted-before-settled key. **Originally:** `fluxtion.framework` is planned and withheld: upstream found its own
+  value was a package-prefix guess, deleted it, and is replacing it with recorded creation provenance
+  that needs a **`builder-api` change** to finish. The fact we want will be better than the one the spec
+  was written against, and it does not exist yet. `authoredNodeCount` went with it.
+- [M45.5] ☑ **Parallel edges and dispatch rank shipped 2026-08-31 — this closes the gate.** Upstream
+  flips the default when one consumer *understands* `PARALLEL`; this is that consumer. `layoutEdges()`
+  draws one line per pair while `edges()` stays faithful to the file, and `relationshipsFor` keeps both
+  relationships on a doubled pair distinguishable — they can legitimately disagree about `propagates`,
+  which is the fact worth showing. `relationshipCount()` is kept apart from `edgeCount()` so neither
+  quietly changes meaning. `topologicalRank` is exposed **and pinned against the dispatch order we
+  know**, never trusted.
+  **Five guards mutation-checked**, each rebuilt and watched to fail: trusting `AGGREGATED`, accepting
+  any MAJOR, dropping the layout dedup, ignoring the declared capability, and letting `relationshipKey`
+  collapse to the pair.
+- [M45.5a] ☐ **Original slice text — parallel edges and dispatch rank.** Checked, not assumed: `ProcessorTopology.of` does no
+  edge dedup and `LayeredLayout`/`TopologyCanvas` draw straight from `edges()`, so a `PARALLEL` file
+  overdraws a pair's arrow and inflates `edgeCount()`. Identity becomes
+  `(source, target, refKind, referenceField)`. Plus `topologicalRank` as a column — the question **0 of 3
+  measured agents could answer**.
+- [M45.6] ☑ **UNBLOCKED 2026-09-01 — `fluxtion-builder` 1.0.65 IS RELEASED.** `fluxtion-builder`,
+  `fluxtion-builder-all-java8` and `fluxtion-bom` 1.0.65 are on Repsy (`<release>1.0.65</release>`;
+  the BOM pairs `base=1.0.14 / compiler=1.0.65`). The reason to hold — that committing a SNAPSHOT
+  would make every build depend on an unpublished artefact — no longer applies. The committed-output
+  fixtures can stay as the regression pin, but the dependency can now be a real one.
+  **Originally:** the vocabulary only existed in `1.0.65-SNAPSHOT`; the fixtures above are committed
+  compiler output instead, so M45.2/.3/.5 are fully tested without depending on an unreleased builder.
+- [M45.6a] ☑ **DONE 2026-09-01 — bumped to released 1.0.65, regenerated, fixtures refreshed. THE CANARY
+  DID NOT FIRE, and that is the finding.** `SessionGraphShapeTest` passed unchanged; all 1272 tests
+  green. The reason is structural, not luck: it asserts graph SHAPE, and **at the product default of
+  `metadata=OFF` the emitted GraphML carries no `fluxtion.*` vocabulary at all** — two keys before the
+  bump, two after, 33 nodes and 57 edges either side. The only things that moved at OFF were
+  `edgedefault` and the document ORDER of nodes, and a shape test correctly reads neither. **So the
+  canary we offered upstream was insensitive by construction at the mode everyone builds in** — it
+  could only have fired had we regenerated in `PARALLEL`, the very default the two trackers deadlocked
+  over. Replaced by `DescriptorFingerprintTest`, which watches the artefact that *can* move.
+  **Also measured:** two consecutive regenerations against the deployed backend produce identical MD5s
+  for both artefacts — the byte instability found at 1.0.64 is fixed on the production path.
+  The pom-swapping workaround in `tools/regen-session-processor.sh` is deleted; every mode is now
+  captured with the same released builder the ordinary build uses.
+- [M45] ⚠ **THE GATE IS MET ON BOTH SIDES AND NEITHER TRACKER NOTICED — 2026-09-01.** The condition was
+  ONE ordered thing, not two repos naming each other: upstream flips when relationships are captured at
+  the decision point **and** one consumer *understands* `PARALLEL`. M45.2 changes no behaviour, so
+  reading is not understanding — the gate is M45.5.
+  **M45.5 SHIPPED 2026-08-31** (five guards mutation-checked). **Model authority CLOSED upstream**
+  (their ranked item 1: three defects fixed and mutation-checked). So both halves are satisfied and the
+  default is still `OFF`, because each tracker describes the OTHER repo's half as the outstanding one.
+  Neither entry is wrong; the PAIR is stale — which is the failure mode a two-repo gate invites.
+  ☑ **CLOSED 2026-09-01 — WE ACCEPT THE VOCABULARY. Flip the default to `PARALLEL`.** Said
+  explicitly because upstream will not flip on inference, and this position CHANGED on evidence: the
+  pre-release review recommended leaving it OFF, before the released build had been read by this
+  analyser. It now has. Measured today against released 1.0.65 on the real session graph — not a
+  fixture: `metaVersion` 1.0 so `GraphVocabulary.trusted()` holds, all 33 vertices classified
+  correctly, `authoredNodeCount` exactly 12, `AGGREGATED` handled fact-scoped, and the three-mode
+  fixtures regenerated and green.
+  **Two conditions we ask for in return, both cheap.** (1) Keep additive vocabulary on `1.x` — a
+  `metaVersion` MAJOR bump makes this analyser distrust the WHOLE vocabulary and fall back to the
+  source heuristic *silently*, which is worse than not shipping the keys. (2) `OFF` must remain
+  available as an opt-out, which it is.
+  **Why flipping is the right call and not merely permitted:** GraphML is emitted by default already —
+  `OFF` strips the vocabulary from a file every user already receives. The facts that make coverage
+  honest (`auditCapable`, `framework`) are therefore inert for anyone who does not know to set a flag,
+  which is everyone. A capability nobody's default reaches was not worth building.
+- [M45] ☑ **DONE upstream (issue 26) — every annotation a repair asks for now carries its import**, derived
+  from the class so it cannot drift. The package split was the trap: `NoTriggerReference` is in
+  `runtime.annotations`, the other three in `runtime.annotations.builder`.
+  **Originally, cheapest item on the branch:** `suggestedFix` names `@FluxtionIgnore`,
+  `@ConstructorArg` and `@AssignToField` without their packages, and **both ceiling agents named the
+  import guess as their only remaining reason to need a second build** — both said they would reach for
+  `transient` first *to avoid guessing it*. One fully-qualified name per annotation removes the last
+  retry risk in the best case.
+- [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
+  unconditional change is `edgedefault` corrected to directed, which our parser never reads; upstream ran
+  our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
+  check needs re-running at `7a273a8`**, where the exporter was rewritten as a model projection — a far
+  larger change than it covered.
+  **The DTO wire is the high-risk surface, because of the cloud model.** The server is always latest and
+  every client is pinned, so *old client + new server* is not an edge case — it is the default state of
+  every user who has not bumped, exercised for all of them at once by a server upgrade they cannot roll
+  back. The branch changes `NodeDto.annotatedMethods`, and the integration report lists that as
+  **reasoned but not exercised by an old↔new test**. ☑ **DONE — and arrived at from the Kryo side rather than ours.**
+  Three gates run in upstream's reactor on every build: `RemoteResponseCompatibilityTest` (response shape
+  identical to released 1.0.64, field names AND order), `DtoWireCompatibilityTest`, and
+  `ReleasedDtoWireGoldenTest` (pinned against the released 1.0.64 payload). The constraint behind them is
+  measured rather than argued: `KryoFieldEvolutionTest` asserts that ADDING a field breaks a pinned Kryo
+  reader — which is why nothing new is ever added as a field, and why the side-band envelope exists at all.
+  Our read ("the server is always latest and every client is pinned, so old-client + new-server is not an
+  edge case, it is the default state") is the reason the shape is FROZEN rather than versioned.
+  **Originally:** ask upstream to make that round-trip a release gate; it is the only change on the branch
+  whose failure mode is simultaneous.
+  **Release footprint, checked against `main`:** `fluxtion-builder` only — 32 files, everything else docs
+  and tests. `fluxtion-runtime` is untouched, so our 1.0.13 dependency stands, and `fluxtion-builder-api`
+  gains nothing because the switch is a system property rather than a `FluxtionCompilerConfig` method.
