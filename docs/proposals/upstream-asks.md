@@ -1371,3 +1371,46 @@ rather than a change worth making.
 
 **Caveat.** Single machine (JDK 21 Corretto, macOS), one process per configuration, closed loop, no
 coordinated-omission correction.
+
+---
+
+## UP-FLX-46 ● BUG — same simple name in two packages emits uncompilable code, with no diagnostic
+
+**Target** `fluxtion` (generator) · **Priority** high · **Reproduction**
+[`docs/experience/runs/round-57/collision-repro/`](../experience/runs/round-57/collision-repro/)
+
+Two node classes with the **same simple name in different packages** produce a generated processor
+that does not compile. The generator qualifies the declared *type* but not the *constructor call*:
+
+```java
+public final transient Spread spreadA = new Spread();
+public final transient com.b.Spread spreadB = new Spread();   // resolves to com.a.Spread
+```
+
+```
+CollideProcessor.java:83: error: incompatible types:
+    com.a.Spread cannot be converted to com.b.Spread
+```
+
+**Input is twelve lines.** Two classes, one `@OnEventHandler` each, both `addNode`d. Generation
+reports success; the failure appears only when the emitted source is compiled, and the message points
+at the generator's output rather than at anything the author wrote.
+
+**Why this is high priority rather than cosmetic.** It is a **component-market blocker**: two vendors
+cannot both ship a node called `Spread`, `Position` or `Book`, and neither can discover the clash
+until their jars are used together by a third party. The consumer who hits it has no source for either
+class and no diagnostic naming the real cause.
+
+**The fix is local.** The emitter already knows the fully-qualified name — it uses it on the left-hand
+side. Qualifying the constructor call the same way resolves it:
+
+```java
+public final transient com.b.Spread spreadB = new com.b.Spread();
+```
+
+Fully qualifying **every** constructor call, and dropping the single-class import optimisation, would
+be simplest and costs only source verbosity in a file nobody reads by hand.
+
+**Second, smaller ask:** `FLX-1005` already covers *duplicate node name*. A simple-name clash across
+packages deserves the same treatment — a build-time diagnostic naming both fully-qualified classes,
+rather than a `javac` error in generated source.

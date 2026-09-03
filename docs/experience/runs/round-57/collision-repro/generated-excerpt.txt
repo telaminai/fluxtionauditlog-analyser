@@ -1,0 +1,11 @@
+  private final transient MutableDataFlowContext context =
+      new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
+          nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
+  public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
+  public final transient Spread spreadA = new Spread();
+  public final transient com.b.Spread spreadB = new Spread();
+  private final transient ExportFunctionAuditEvent functionAudit = new ExportFunctionAuditEvent();
+  //Dirty flags
+  private boolean initCalled = false;
+  private boolean processing = false;
+  private boolean buffering = false;
