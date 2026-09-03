@@ -32,7 +32,7 @@ Status is one of four things, and they are not interchangeable:
 | 3 | semantic facts compilation cannot infer — descriptions, conventions, constructor intent | author / vendor | **PROPOSED**, mechanism **MEASURED**: `Fluxtion-Convention` + a site profile resolves a six-way type-identical ambiguity |
 | 4 | deterministic selection and connection where metadata and policy decide | resolver | **MEASURED on one fixture family** — byte-identical XML, audit log identical figure by figure. **Prototype, not product** |
 | 5 | compile the declared graph; own dependency identity, relationship kind, propagation, provenance, ordering | Fluxtion | **IMPLEMENTED and substantially consumed here** — M45.1/.2/.3/.5 |
-| 6 | runtime artefacts carry the compiler's identity forward | runtime + log format | **PROPOSED — and today's gap is concrete.** No `sourceFingerprint` exists anywhere in this repo |
+| 6 | runtime artefacts carry the compiler's identity forward | runtime + log format | **PARTLY IMPLEMENTED** — descriptor fingerprint ships and is test-pinned; **the audit-log header carrier is the gap** |
 | 7 | reduce logs and graph metadata to bounded evidence; refuse what it cannot establish | the analyser | **IMPLEMENTED** — verbs, coverage, reports; verification only against an explicit expectation |
 | 8 | irreducible intent and genuine ambiguity, recorded as reviewable policy | the model | **PROPOSED**; the recording half is measured (a convention becomes a profile line) |
 
@@ -43,14 +43,29 @@ on breach"* into the figures, policies and open choices that follow from it has 
 measured** — not once in 57 rounds. It is listed first because it is upstream of everything else, and
 labelled HYPOTHESIS because presenting it as an established LLM role would be inventing evidence.
 
-### Stage 6 is a real gap with a concrete name
+### Stage 6 — CORRECTED. Fingerprinting is shipped; the audit-log carrier is the gap
 
-`sourceFingerprint` appears **nowhere** in this repository — not in the source, not in the published
-format spec. What exists instead is `report.LogFingerprint`: name, record count, first and last
-`logTime`, provenance — **identity the analyser computes from the log's own contents because the
-compiler supplies none.** That is precisely the recomputation stage 6 exists to remove. The ask is
-that the compiler's identity travel in the audit-log header and every downstream surface consume it
-rather than re-derive its own.
+**An earlier version of this section said `sourceFingerprint` "appears nowhere in this repository" and
+marked the whole stage PROPOSED. That was wrong, and it is corrected here rather than edited away.**
+
+I searched for the name I expected, did not find it, and concluded the capability was absent. The
+capability ships under a different name — **`descriptorFingerprint`** — and is pinned by tests:
+
+- **`DescriptorFingerprintTest` (M45.6a)** — the digest is computed client-side, travels as envelope
+  metadata on a `transient` field so it cannot ride the payload, and is stamped server-side into
+  `DescriptorSupport.Meta`. The generating server holds no code that could recompute it, so a value
+  here *proves the envelope crossed the gateway*. Verified emitted by compiler 1.0.66.
+- **`GraphVocabularyTest`** — GraphML vocabulary trust, per edge, with aggregated edges refused.
+
+**What is genuinely missing is narrower: the audit-log fingerprint CARRIER.** The record format's
+header does not carry the compiler's identity, so `report.LogFingerprint` derives log identity from
+the log's own contents — name, record count, first and last `logTime`, provenance. That is the one
+recomputation stage 6 removes.
+
+> **This is the second time in one session I concluded a capability was absent because I searched for
+> the name I expected.** The first produced a false upstream ask (UP-FLX-47). Recorded as a working
+> rule: *absence of a name is not absence of a capability — find what the thing is called before
+> reporting a gap.*
 
 ## Duplicated authority — the actual examples
 
@@ -81,13 +96,22 @@ distinction decides which fix is right — a guard, versus moving the decision u
 | resolve → compile | green build from resolver output | **pinned** |
 | compile → run | real audit log produced from the generated processor | **pinned** |
 | run → inspect | shipped reader parses it; 12/12 figure comparison | **pinned** |
-| inspect → correct | mutation-tested scoring: 5 of 5 caught on a real log | **pinned** |
+| inspect → **detect divergence** | mutation-tested scoring: 5 of 5 caught on a real log | **pinned** |
+| **detect → correct** | nothing | **UNPINNED** — catching a divergence is not evidence that the loop closes on a fix |
 | **compiler identity → runtime artefact** | nothing | **UNPINNED** — no fingerprint carrier |
 | **build → component metadata** | nothing | **UNPINNED** — manifests are hand-authored |
 | **goal → declaration** | nothing | **UNPINNED** — never measured |
 
 Compatibility goldens exist and are real: `src/test/resources/conformance` (record format) and
 `src/test/resources/formula-golden`. They pin the format and formula surfaces, not the loop's joints.
+
+### The architecture above covers COMPOSITION, not authoring
+
+**Stages 2–4 assume the components exist.** Modes 2 and 3 — where the author writes the nodes — are
+not decomposed by these eight stages at all, and nothing in them is measured. The authoring path has
+its own unaddressed questions: what a node shell must contain, how graph correctness is asserted
+before any test runs, and how "fix the node" is distinguished from "fix the orchestration". Those are
+M48.9 and M48.10, and until they are specified this architecture describes **half** the problem.
 
 ## Scope of the whole decomposition
 
@@ -214,10 +238,10 @@ fixed before publication.**
 
 **Product / usability gaps found in passing:**
 
-- **M4 — `springToFluxtion` has no audit option.** A bean-declared `EventLogManager` leaves its
-  `LogRecord` null and NPEs; `setAuditLogRecordEncoder` does not reach that instance. This blocked
-  round 57's figure-by-figure verification. **Mode-1 authors cannot enable the audit log** — which is
-  awkward for a product whose value proposition is the audit log.
+- **M4 — ☒ WITHDRAWN, the finding was false.** It claimed `springToFluxtion` exposes no audit
+  configuration. `FluxtionSpringConfig.logLevel` in the bean file is all that is needed; see UP-FLX-47.
+  Retained here because how it was wrong is the transferable part — the goal's parameters were read,
+  the config bean the goal consumes was not.
 - **M5 — the audit default is the wrong way round.** `addEventAudit(level, true)` is the default and
   costs **184 bytes/event even at levels where nothing is published**; `addEventAudit(level, false)` is
   allocation-free. No doc points at it. (Round 54.)
@@ -246,10 +270,11 @@ Ordered by *what unblocks the most per hour*, not by importance.
 
 ### Tier 0 — what is actually left, in this order
 
-1. **M2, the shared scorer.** *Not started, and still first.* Five scoring defects, three in one
-   session, **every one in the direction of agreeing with me** — including one that printed
-   "12/12 identical" while comparing 12 events against 0. Tier 2 is entirely measurement; none of it
-   is trustworthy until this exists. Half a day.
+1. **M2, the shared scorer — ☑ SHIPPED.** `analyser.score.ExpectationScorer` / `ScoreCommand`, built
+   on the shipped reader. **Ten guards, 21 tests.** Five of the ten were added by independent reviewers
+   who found the earlier implementation producing false passes, and **every one of those five erred
+   toward agreeing with its author** — the same direction as the five historical defects it was written
+   to stop. Dialect is caller-declared. First real-log run is M48.11.
 2. **Item 9, finish it.** Rebind the template pom to `generate-sources` and delete the
    `generated.dependents` workaround. Measured and verified; ~1 hour. Do it early because it removes
    friction from every experiment that follows — it cost me a build tonight.

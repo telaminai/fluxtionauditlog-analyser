@@ -789,7 +789,10 @@ doc set, or whether it is additive. That is what round 17 measures.
 **Canonical architecture:** [`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET
 ARCHITECTURE* — eight stages, each marked MEASURED / IMPLEMENTED / PROPOSED / HYPOTHESIS, with the
 `declare → resolve → compile → run → inspect → correct` loop's joints marked pinned or unpinned.
-**Stages 5 and 7 are substantially shipped; stages 1, 2 and 6 are the open work below.**
+**Stages 5 and 7 are substantially shipped, and stage 6 is PARTLY shipped** — descriptor and GraphML
+fingerprinting are test-pinned; only the audit-log header carrier is missing. **Stages 1 and 2 are the
+open work**, and the eight stages describe COMPOSITION only: component authoring (modes 2/3) is not
+decomposed by them and is not measured.
 
 Specs: **[`spec-authoring-modes.md`](spec-authoring-modes.md)** (the taxonomy, the owner's eleven items,
 the delivery order), **[`spec-authoring-mode-selector.md`](spec-authoring-mode-selector.md)** (the end
@@ -840,10 +843,13 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       with derivation only as the default (R7 revised, R10)
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
-- [M48.12] ☐ **audit-log fingerprint carrier** — `sourceFingerprint` exists NOWHERE in this repo.
-      `report.LogFingerprint` is the analyser computing log identity from the log's own contents
-      because the compiler supplies none. The compiler's identity should travel in the header and
-      every surface consume it rather than re-derive. **Stage 6 of the canonical architecture.**
+- [M48.12] ☐ **audit-log fingerprint CARRIER** — narrower than first recorded. Descriptor
+      fingerprinting **ships and is test-pinned** (`DescriptorFingerprintTest` M45.6a; emission
+      verified against compiler 1.0.66), as does GraphML vocabulary trust (`GraphVocabularyTest`).
+      What is missing is the **audit-log header carrier**: the log does not carry the compiler's
+      identity, so `report.LogFingerprint` derives identity from the log's own contents.
+      **Stage 6.** *(An earlier version of this entry claimed no fingerprinting existed at all — I
+      searched for `sourceFingerprint` and it ships as `descriptorFingerprint`.)*
 - [M48.13] ☐ **compiler-generated component manifests** — today's are hand-authored. Until the build
       emits them, the resolver result is conditional on a convention nobody's toolchain enforces.
       **Stage 2.** Spec: [`spec-component-catalogue.md`](spec-component-catalogue.md).

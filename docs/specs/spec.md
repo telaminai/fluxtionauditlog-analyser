@@ -66,7 +66,7 @@ requirement — **the resolver fails closed and says which**, rather than guessi
 | descriptions, business conventions, constructor intent | **author or vendor** — the semantic residue compilation cannot infer |
 | which components, wired how | **the resolver**, where policy decides; otherwise escalated |
 | dependency identity, relationship kind, propagation, ordering, provenance | **Fluxtion** — authoritative model facts, substantially consumed here |
-| what actually happened in a run | **the audit log** |
+| what a run RECORDED | **the audit log** — evidence, not a complete account of what happened: an arrested path logs nothing, and a suppressing level records nothing at all |
 | what the evidence establishes, and what it does not | **this tool** |
 
 **The rule:** decide each fact once at the component with authority, serialise it, and have every
