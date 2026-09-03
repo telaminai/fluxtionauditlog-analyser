@@ -1,0 +1,202 @@
+REVIEW — canonical authoring architecture rationalisation
+Reviewed commit: ef6e3f1
+Current main while reviewing: ed67689 (later commit overlaps only spec.md and the M49 results sheet)
+Date: 2026-09-03
+
+VERDICT: CHANGES REQUIRED BEFORE THIS BECOMES THE CANONICAL PROJECT DIRECTION
+
+The direction is sound and worth retaining: decide mechanical facts once at their authority, resolve
+what metadata and policy determine, compile ordering rather than hand-maintaining it, carry identity
+forward, and make runtime evidence queryable without calling the analyser a correctness oracle. The
+status vocabulary and one-fixture qualification are also materially better than the documents they
+replace.
+
+The rationalisation is not yet internally true. Its most important new factual claim is refuted by the
+released compiler and by this repository's own tests; one claimed loop joint tests detection rather than
+correction; and the eight-stage architecture describes composition while claiming to cover authoring.
+The older material was given a supersession banner but was not actually reconciled, leaving a withdrawn
+upstream claim and a completed scorer listed as live work inside the new canonical document.
+
+================================================================================
+F1 · BLOCKING — GRAPHML/DESCRIPTOR FINGERPRINTING IS SHIPPED; ONLY THE LOG CARRIER IS OPEN
+================================================================================
+
+spec-authoring-modes.md:35 and :46-53, tracker.md:843-846, and the ef6e3f1 commit message infer from
+"not in this repo" that the compiler supplies no sourceFingerprint. That inference is false in three
+independent, executable ways:
+
+  * released compiler v1.0.66 writes fluxtion.sourceFingerprint from GraphMlFacts into GraphML;
+  * the generated DescriptorSupport.Meta carries the same compiler-computed value;
+  * this repository already has session-processor PARALLEL/AGGREGATED GraphML fixtures containing the
+    key, GraphVocabularyTest reads it, and DescriptorFingerprintTest asserts the graph value equals the
+    generated descriptor value.
+
+The exact open gap is narrower and more useful: the audit-log record/header carries no compiler model
+fingerprint, so the analyser cannot prove that a selected graph and a log came from the same generated
+model. Split the stage and joint accordingly:
+
+  compiler model -> GraphML + generated descriptor     IMPLEMENTED and pinned
+  generated model identity -> audit-log carrier        PROPOSED and unpinned
+  graph fingerprint == log fingerprint                 therefore currently undecidable
+
+report.LogFingerprint is not a failed re-derivation of the compiler model digest. It binds a persisted
+report to a particular log observation (name, record span, times and provenance). Two separate runs of
+one generated model should share sourceFingerprint while having different LogFingerprints. Keep both:
+one answers "which model produced this?", the other "which captured log does this report describe?".
+Replacing every downstream identity with sourceFingerprint would introduce a new conflation while
+removing the old one.
+
+================================================================================
+F2 · HIGH — MUTATION-TESTED SCORING DOES NOT PIN inspect -> correct
+================================================================================
+
+spec-authoring-modes.md:84 says the final loop joint is pinned because five mutations of a real log were
+caught. M48-11 proves the scorer detects five kinds of divergence. It does not diagnose the responsible
+node, select a repair, change source or wiring, rebuild, rerun, and demonstrate closure. That is the
+meaning of inspect -> correct, and M48.10 still records the development-harness loop as open.
+
+Rename the measured joint to run/inspect -> compare (or inspect -> detect divergence). Mark
+inspect -> correct UNPINNED until an evidence-linked correction loop is executed. This distinction is
+the same discipline the spec applies to the analyser itself: detecting a mismatch is not proving the
+right remedy.
+
+Also split "compiler identity -> runtime artefact": the generated processor descriptor is already a
+runtime artefact and is pinned by DescriptorFingerprintTest. What is absent is specifically the
+processor identity -> audit-log carrier joint.
+
+================================================================================
+F3 · HIGH — THE CANONICAL "AUTHORING" ARCHITECTURE HAS NO COMPONENT-AUTHORING STAGE
+================================================================================
+
+The eight stages move from goal/formal figures directly to metadata, resolution and compilation. That
+is a coherent composition pipeline when suitable components already exist. It is not the complete
+architecture for modes 2 and 3, where the document itself says an author designs and writes nodes.
+
+spec.md:77-88 consequently says judgement exists in "two places, and only two" and that everything
+between them is or should become mechanical. The evidence does not support that universal claim:
+
+  * stage 3 already assigns semantic declarations and constructor intent to an author/vendor;
+  * modes 2/3 require component behaviour, algorithms, state and API design, all unmeasured;
+  * an observed mismatch may require diagnosis and implementation, not merely resolution of catalogue
+    ambiguity.
+
+Either scope the eight stages explicitly to component COMPOSITION, or add the missing branch:
+
+  unsatisfied formal requirement -> design/author component -> build/emit metadata -> re-resolve
+
+Then describe the current evidence honestly: mechanical work is removed where a declared contract
+decides it; the remaining judgement surface has not yet been bounded. "Two places only" is a proposed
+product ambition at best, not a result.
+
+================================================================================
+F4 · HIGH — THE AUDIT LOG DOES NOT OWN "WHAT ACTUALLY HAPPENED"
+================================================================================
+
+spec.md:69 assigns "what actually happened in a run" to the audit log, and the later ed67689 overview
+repeats "inspect what actually happened". This contradicts the analyser's established execution model:
+a node appears in nodeLogs only when it writes at the audit regime in force. Silence is not proof that a
+node did not execute; lifecycle/after-event callbacks and suppressed audit levels widen that gap.
+
+The log is authoritative for what the runtime RECORDED. Claims about execution combine declared graph
+facts, audit capability/regime, log observations and, where a verdict is wanted, an explicit invariant
+or expectation. Use that narrower wording in the authority table and combined proposition. It preserves
+the renderer-not-verifier correction instead of undoing it one row earlier.
+
+The ed67689 phrase "predictable allocation-free dispatch" also drops the benchmark's deliberate
+qualification. The measured claim is no detectable per-event allocation in one fixture/configuration;
+the results sheet explicitly refuses mathematical zero. The overview should retain "no measured
+per-event allocation".
+
+================================================================================
+F5 · HIGH — A SUPERSESSION BANNER DID NOT RATIONALISE THE LIVE CONTRADICTIONS
+================================================================================
+
+spec-authoring-modes.md is now canonical, but later in that same file it still says:
+
+  * M2/the shared scorer is "Not started" and first in Tier 0 (:249-252), while tracker M48.4 records
+    ten guards and 21 passing tests;
+  * M4 says springToFluxtion has no audit option (:217-220), although UP-FLX-47 was withdrawn after
+    FluxtionSpringConfig.logLevel was executed and M48.11 used it end to end;
+  * M4-M9 are all called real (:292-293), reasserting that withdrawn M4 claim.
+
+The same file cannot be both the current authority and its own unmarked historical counterexample.
+Preserving corrections is valuable, but a false claim must be visibly struck/retracted at the claim,
+not left active beneath a "the section above wins" rule. Update the delivery order from tracker state
+and move historical wrong turns into an explicitly dated evidence/corrections appendix if they remain
+useful.
+
+The two deferred specs retain substantial overlapping architecture and merely say another document
+wins. That establishes precedence, not a single source of truth. At minimum, label every retained
+normative/historical section; preferably reduce them to evidence and decisions unique to each document.
+
+The component catalogue needs the same pass before stage 2 points at it as the implementation contract:
+it says "No new source annotations" and then requires three; says three annotations cover four facts;
+and its derivation boundary needs to distinguish structural bytecode facts from author-declared entry
+point, consumer-constructor, filtered-event and business-convention intent.
+
+================================================================================
+F6 · REQUIRED — SMALL DOCUMENT/PROTOCOL DEFECTS UNDERCUT THE HANDOFF CLAIM
+================================================================================
+
+  * spec-minimal-authoring-instructions.md:13-14 leaves "— fifteen measured cells..." detached beneath
+    the new blockquote. Restore it to the Evidence line or make it a complete paragraph.
+  * spec.md contains two adjacent horizontal rules and still says Last updated 2026-08-12 after adding
+    the canonical 2026-09-03 overview.
+  * REVIEWER-ORIENTATION.md:117 still calls f645cce^..3c39c6c wholly unreviewed even though two reviews
+    and their response cycle are present. Its scorer description is the pre-guard version.
+  * ef6e3f1 was committed directly to main without a committed report or an unreviewed-changes ledger
+    entry. This review now supplies the missing independent read, but the repository's own protocol
+    should not describe the block as having travelled through a report it does not contain.
+
+================================================================================
+WHAT HOLDS
+================================================================================
+
+  * "Correctness should increasingly be structural rather than remembered" is the right strategic
+    rule, provided "increasingly" remains and does not become a claim that all correctness is structural.
+  * The analyser is correctly positioned as an evidence renderer/query surface, not an oracle.
+  * MEASURED / IMPLEMENTED / PROPOSED / HYPOTHESIS is the right status vocabulary.
+  * The resolver claim is appropriately scoped to one fixture family and called a prototype.
+  * The duplicated-authority distinction is useful, and excluding the scorer identity bug from that
+    category is correct.
+  * Compiler/build tooling should emit mechanically derivable structural metadata; authors/vendors own
+    semantic declarations that bytecode cannot establish.
+  * The end goal should remain one coherent, machine-checkable loop, with every joint named separately
+    enough that a green test cannot be credited to a neighbouring joint.
+
+================================================================================
+VERIFICATION
+================================================================================
+
+  PASS  mvn test at ef6e3f1/current transition — 1,296 tests, zero failures/errors.
+  PASS  SpecLinksResolveTest as part of that suite.
+  PASS  git diff --check ef6e3f1^..ef6e3f1.
+  PASS  four-term tracked-file public-data sweep — no non-exempt matches.
+  PASS  compiler v1.0.66 source inspection: GraphMlFacts emits sourceFingerprint.
+  PASS  analyser production/test inspection: GraphMlParser preserves graph facts;
+        GraphVocabularyTest reads sourceFingerprint; DescriptorFingerprintTest compares GraphML and
+        generated descriptor values.
+  PASS  M48.11 evidence read: real log, 12 scored events/27 figures, five mutations caught.
+
+================================================================================
+NOT VERIFIED
+================================================================================
+
+  * The resolver and M48.11 applications were not rebuilt in this review; their executable workspace is
+    already recorded as absent. Earlier independent reviews reproduced the resolver XML only.
+  * Modes 2 and 3 were not exercised; no measurement exists to exercise.
+  * The M49 benchmark was not rerun. ed67689 arrived during this review and is outside the target range
+    except that its overlapping spec.md wording is called out above.
+  * No Swing or docs/site files changed, so no visual or MkDocs gate was run.
+
+================================================================================
+REQUIRED REVISION ORDER
+================================================================================
+
+1. Correct the fingerprint state and preserve LogFingerprint as a separate log-instance identity.
+2. Split the identity joints and mark inspect -> correct unpinned.
+3. Scope the architecture to composition or add the missing component-authoring branch; remove "only
+   two" until modes 2/3 establish it.
+4. Narrow the audit log's authority to recorded evidence.
+5. Reconcile, strike or archive stale material inside the canonical/deferred specs and current tracker.
+6. Repair the small formatting/orientation/protocol defects, then ask for a focused closure review.
