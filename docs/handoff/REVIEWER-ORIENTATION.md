@@ -114,8 +114,11 @@ Recently landed and **already reviewed** (do not re-review unless you disagree):
 runbook descriptions + skill discovery; M40 audit readiness and coverage scope; M42 connect-an-AI-client;
 M33.7 report table sources.
 
-**Landed 2026-09-03, wholly unreviewed — `f645cce^..3c39c6c`, 32 commits, ledger entry filed.** Two
-independent bodies of work; review them separately:
+**Landed 2026-09-03 — `f645cce^..3c39c6c` and the response commits that followed. FOUR review rounds
+have since run** (`review_authoring_modes_3c39c6c*.txt`, `review_response_180a1e7_4c1c9d8.txt`,
+`review_analyser_response_4c1c9d8_followup.txt`, `review_authoring_architecture_*.txt`), finding
+around twenty defects, all fixed or explicitly documented as not-fixed. **Do not re-review from
+scratch**; read the ledger and the reports first. Two independent bodies of work:
 
 - **M48 · authoring modes** (`spec-authoring-modes.md`, `spec-authoring-mode-selector.md`,
   `spec-authoring-session-walkthrough.md`). The claim to test: **the bean-file half of component

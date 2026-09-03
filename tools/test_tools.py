@@ -173,6 +173,63 @@ Fluxtion-Constructor: ()
     check("...with unique bean ids", len(ids) == len({l.split('"')[1] for l in ids}), str(ids))
 
 
+def test_cyclic_candidate_does_not_discard_a_valid_one(tmp: pathlib.Path) -> None:
+    """A cyclic 2-component candidate once beat a valid 3-component one on minimality, and the
+    valid answer was then thrown away downstream. Constructibility is now decided inside solve()."""
+    d = manifest(tmp, "cyc2", """Implementation-Title: cyc2
+Fluxtion-Component: true
+
+Name: com/v/A.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: a=AApi
+Fluxtion-Requires: BApi
+Fluxtion-Constructor: (BApi)
+
+Name: com/v/B.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: b=BApi
+Fluxtion-Requires: AApi
+Fluxtion-Constructor: (AApi)
+
+Name: com/v/A2.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: a=AApi
+Fluxtion-Requires: SeedApi
+Fluxtion-Constructor: (SeedApi)
+
+Name: com/v/Seed.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: seed=SeedApi
+Fluxtion-Constructor: ()
+""")
+    code, out = resolver("--manifests", str(d), "--figures", "a,b")
+    check("a cyclic candidate does not discard the valid acyclic answer",
+          code == 0 and "A2" in out and "Seed" in out and "UNSATISFIABLE" not in out,
+          out.strip()[-160:])
+
+
+def test_same_simple_name_in_one_jar_gets_distinct_ids(tmp: pathlib.Path) -> None:
+    """com.alpha.Node and com.beta.Node in ONE jar both emitted `bundleNode`. The earlier test used
+    two DIFFERENTLY named classes and missed it -- the same defect class as fluxtion#31 and G9."""
+    d = manifest(tmp, "bundle", """Implementation-Title: bundle
+Fluxtion-Component: true
+
+Name: com/alpha/Node.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: x=XApi
+Fluxtion-Constructor: ()
+
+Name: com/beta/Node.class
+Fluxtion-Entry-Point: true
+Fluxtion-Provides: y=YApi
+Fluxtion-Constructor: ()
+""")
+    code, out = resolver("--manifests", str(d), "--figures", "x,y")
+    ids = [l.split('"')[1] for l in out.splitlines() if "<bean id=" in l]
+    check("same simple name, different packages, one jar -> distinct bean ids",
+          len(ids) == 2 and len(set(ids)) == 2, str(ids))
+
+
 def test_bean_ids_survive_jar_name_collision() -> None:
     e1 = R.EntryPoint("a-b", "com.A", {}, [], [], [])
     e2 = R.EntryPoint("ab", "com.B", {}, [], [], [])
@@ -218,6 +275,8 @@ def main() -> int:
         test_constructor_cycle_is_refused(tmp)
         test_duplicate_providers_name_the_clash(tmp)
         test_two_entry_points_from_one_jar(tmp)
+        test_cyclic_candidate_does_not_discard_a_valid_one(tmp)
+        test_same_simple_name_in_one_jar_gets_distinct_ids(tmp)
         test_bean_ids_survive_jar_name_collision()
         test_harness_derives_the_modes(tmp)
     print()

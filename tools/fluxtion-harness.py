@@ -81,15 +81,8 @@ def main():
             print(f"      {m}")
         return 2
 
-    try:
-        sols, err = R.solve(eps, wanted, profile)
-        for candidate in sols or []:
-            R.validate(candidate)          # a cycle must never be reported as RESOLVED (review F2)
-    except ValueError as cycle:
-        if a.json:
-            return handoff("catalogue", ["unsatisfiable"], [], sorted(wanted)) or 2
-        print(f"\n  UNSATISFIABLE — {cycle}")
-        return 2
+    # solve() returns only CONSTRUCTIBLE resolutions -- constructibility is decided there, not here.
+    sols, err = R.solve(eps, wanted, profile)
 
     if err and err.startswith("UNPROVIDED:"):
         missing = sorted(err.split(":", 1)[1].split(","))
@@ -109,7 +102,7 @@ def main():
         print(f"  {len(missing)} require authoring.\n")
         if sub and len(sub) == 1:
             print(f"  MODE {'0+' if profile else '0'} for {len(covered)} figures — resolved, nobody authors:")
-            for e in R.order(sub[0]):
+            for e in sub[0].ordered:
                 print(f"      {e.jar:12} {e.simple}")
             if a.xml:
                 pathlib.Path(a.xml).write_text(R.emit_xml(sub[0]) + "\n")
@@ -142,8 +135,8 @@ def main():
     if len(sols) > 1:
         if a.json:
             cands = {}
-            for jar in sorted({e.jar for x in sols for e in x}):
-                picks = sorted({e.simple for x in sols for e in x if e.jar == jar})
+            for jar in sorted({e.jar for x in sols for e in x.selection}):
+                picks = sorted({e.simple for x in sols for e in x.selection if e.jar == jar})
                 if len(picks) > 1:
                     cands[jar] = [{"class": p,
                                    "description": next(x for x in eps if x.simple == p).description,
@@ -152,8 +145,8 @@ def main():
             return handoff("catalogue", ["1"], wanted, [], cands) or 3
         print(f"\n  MODE 1 — {len(sols)} equally minimal selections. Assembly is mechanical;")
         print("  selection is not. One question needs judgement:\n")
-        for jar in sorted({e.jar for s in sols for e in s}):
-            picks = {e.simple for s in sols for e in s if e.jar == jar}
+        for jar in sorted({e.jar for r in sols for e in r.selection}):
+            picks = {e.simple for r in sols for e in r.selection if e.jar == jar}
             if len(picks) > 1:
                 print(f"      jar '{jar}' — {len(picks)} candidates:")
                 for p in sorted(picks):
@@ -167,10 +160,10 @@ def main():
     mode = "0+" if profile else "0"
     if a.json:
         if a.xml:
-            pathlib.Path(a.xml).write_text(R.emit_xml(sel) + "\n")
+            pathlib.Path(a.xml).write_text(R.emit_xml(sols[0]) + "\n")
         return handoff("catalogue", [mode], wanted, []) or 0
     print(f"\n  MODE {mode} — RESOLVED. Nobody authors anything.\n")
-    for e in R.order(sel):
+    for e in sols[0].ordered:
         print(f"      {e.jar:12} {e.simple}")
     xml = R.emit_xml(sel)
     if a.xml:

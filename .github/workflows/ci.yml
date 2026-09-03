@@ -19,6 +19,10 @@ jobs:
           cache: maven
       - name: Test generated-bundle contract preflight
         run: python3 -m unittest tools/bench/test_bundle_bench.py
+      # M48: the resolver and mode selector carry a product argument. Without this line a
+      # regression only fails when somebody remembers a separate command.
+      - name: Resolver and mode-selector smoke tests
+        run: python3 tools/test_tools.py
       # UI classes are only constructed, never shown, so the headless ubuntu runner is fine.
       - run: mvn -B verify
 

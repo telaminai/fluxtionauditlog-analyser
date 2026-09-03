@@ -4,8 +4,9 @@
 declared surface decides, a constraint solve emits the bean file; where it does not, the resolver
 should refuse to guess.
 
-**Both halves hold.** [`tools/bean-resolver.py`](../../../tools/bean-resolver.py), 240 lines, no
-dependencies.
+**Both halves hold.** [`tools/bean-resolver.py`](../../../tools/bean-resolver.py), a small dependency-free
+Python prototype. *(An earlier version quoted a line count here; it is volatile — the file has roughly
+doubled under review guards — so it is no longer stated.)*
 
 ## Half one — where the descriptors decide, the answer is unique and correct
 

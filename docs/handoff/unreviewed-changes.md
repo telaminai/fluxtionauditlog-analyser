@@ -32,6 +32,32 @@ resolver fixes; M48.11 reproduced independently (PASS 12/12, exit 0).
 then found six further defects, all since fixed (G9/G10, the `--json` cycle path, bean-id collisions,
 and the derived fixture whose provenance had become record metadata).
 
+## ☐ `6f45fe4^..HEAD` · 2026-09-03 · review-residue closure, resolver restructure, new gates
+
+**What & why.** Closing the residue from four review rounds. Three parts:
+
+- **Resolver restructured, not patched.** A review found a cyclic 2-component candidate beating a
+  valid 3-component one on minimality — the valid answer was then discarded downstream as
+  UNSATISFIABLE. **Constructibility is now a validity constraint inside `solve()`**, and `solve()`
+  returns a typed `Resolution` carrying selection, emission order and id allocation. Renderers consume
+  it; none re-validates. The same review found `com.alpha.Node` and `com.beta.Node` in one jar both
+  emitting `bundleNode` — ids are now allocated once from full class identity and escalate only as far
+  as needed, so single-entry-point catalogues keep their committed output.
+- **New gates.** `tools/test_tools.py` (24 checks) **wired into CI**; `TrailingWhitespaceTest`
+  hardened — `.txt` scanned, audit logs detected structurally rather than by any mention of
+  `eventLogRecord:`, a failure if `git ls-files` returns nothing, and every byte-sensitive fixture
+  pinned with a missing file treated as failure rather than a skip.
+- **Documentation** reconciled: the fingerprint three-way distinction, orientation §6, volatile line
+  counts removed.
+
+**Verified.** `mvn -q test` green · `python3 tools/test_tools.py` 24/24 · **round-48 XML byte-identical
+after every resolver change** · sweep clean.
+
+**What the reviewer must still check.** Whether `Resolution` is the right seam or whether resolution
+belongs upstream in the build toolchain entirely (see `spec-component-catalogue.md` — the owner has
+proposed moving it); the id-escalation ladder's fourth level is a guaranteed-unique fallback that
+produces ugly names and has no test; and M49's evidence package remains unbuilt.
+
 _No further entries awaiting review._
 
 ---

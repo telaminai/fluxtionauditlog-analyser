@@ -112,6 +112,55 @@ def load(manifest_dir=None, jar_dir=None) -> list:
     return eps
 
 
+@dataclass(eq=False)
+class Resolution:
+    """One valid, CONSTRUCTIBLE answer: what to select, in what order, under which ids.
+
+    Constructibility and identifier allocation are part of the answer, not checks bolted on
+    afterwards. An earlier version left both to the renderers, which had two consequences a review
+    found by execution: a cyclic 2-component candidate beat a valid 3-component one on minimality and
+    the valid answer was then discarded downstream; and two classes sharing a simple name inside one
+    jar emitted the same bean id twice.
+    """
+    selection: list
+    ordered: list
+    ids: dict          # EntryPoint -> bean id, unique across the selection
+
+
+def allocate_ids(selection: list) -> dict:
+    """Deterministic, unique bean ids derived from FULL class identity.
+
+    Escalates only as far as it must, so a catalogue with one entry point per jar keeps the plain jar
+    name and its previously committed output stays byte-identical:
+      1. the jar name
+      2. jar + simple class name        (two entry points from one jar)
+      3. jar + dotted package tail      (same simple name in different packages -- review finding 2)
+      4. jar + full class, punctuation stripped (guaranteed unique; the fallback)
+    """
+    def variants(e):
+        base = _base_id(e)
+        pkg = e.cls.rsplit(".", 1)[0].rsplit(".", 1)[-1] if e.cls.count(".") >= 1 else ""
+        return [base,
+                base + e.simple,
+                base + pkg[:1].upper() + pkg[1:] + e.simple if pkg else base + e.simple,
+                base + re.sub(r"[^A-Za-z0-9]", "", e.cls)]
+    for level in range(4):
+        ids = {e: variants(e)[level] for e in selection}
+        if len(set(ids.values())) == len(selection):
+            return ids
+    raise ValueError("cannot allocate unique bean ids for: "
+                     + ", ".join(sorted(e.cls for e in selection)))
+
+
+def constructible(sel: list) -> bool:
+    """Can this selection be emitted at all? A constructor cycle cannot."""
+    try:
+        order(sel)
+        return True
+    except ValueError:
+        return False
+
+
 def solve(eps: list, wanted: set, profile: dict | None = None):
     """Every minimal selection satisfying: figures covered, and every requirement met."""
     by_jar = {}
@@ -130,6 +179,7 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
     valid = []
     profile = profile or {}
     clashes = []
+    cyclic = []
     for combo in itertools.product(*options):
         sel = [e for grp in combo for e in grp]
         if not sel:
@@ -162,6 +212,11 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
         if clash:
             clashes.append(clash)
             continue
+        # CONSTRUCTIBILITY IS VALIDITY, not a downstream check. Testing it after minimality let a
+        # cyclic 2-component candidate win on size and discard a valid 3-component answer.
+        if not constructible(sel):
+            cyclic.append(sel)
+            continue
         valid.append(sel)
     if not valid:
         coverable = set().union(*(e.figures for e in eps)) if eps else set()
@@ -171,6 +226,10 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
         # Distinguish "no consistent combination" from "the manifests carry no figure=Interface
         # mapping at all", which is what a v1 catalogue looks like and which previously reported
         # the wrong cause. (Review F2.)
+        if cyclic and not clashes:
+            names = ", ".join(sorted(e.simple for e in cyclic[0]))
+            return [], ("every covering selection contains a constructor cycle (e.g. %s), so none can "
+                        "be instantiated" % names)
         if clashes:
             iface, a, b = clashes[0]
             return [], ("provider clash: %s and %s both publish `%s`, so the wiring would be ambiguous "
@@ -188,7 +247,8 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
     def excess(s):
         return len(set().union(*(e.figures for e in s)) - wanted)
     low = min(excess(s) for s in valid)
-    return [s for s in valid if excess(s) == low], None
+    chosen = [s for s in valid if excess(s) == low]
+    return [Resolution(sel, order(sel), allocate_ids(sel)) for sel in chosen], None
 
 
 def validate(sel: list) -> None:
@@ -241,7 +301,9 @@ def bean_id(e: EntryPoint, selection=None) -> str:
     return base + e.simple
 
 
-def emit_xml(sel: list, audit_level: str = None) -> str:
+def emit_xml(res, audit_level: str = None) -> str:
+    """Render a Resolution. Order and ids come FROM the resolution; nothing is recomputed here."""
+    sel, ordered, ids = res.selection, res.ordered, res.ids
     provider = {}
     for e in sel:
         for iface in e.interfaces:
@@ -252,8 +314,8 @@ def emit_xml(sel: list, audit_level: str = None) -> str:
              '       xsi:schemaLocation="http://www.springframework.org/schema/beans',
              '       https://www.springframework.org/schema/beans/spring-beans.xsd">',
              '']
-    for e in order(sel):
-        bid = bean_id(e, sel)
+    for e in ordered:
+        bid = ids[e]
         if not e.ctor:
             lines.append(f'  <bean id="{bid}" class="{e.cls}"/>')
         else:
@@ -261,13 +323,11 @@ def emit_xml(sel: list, audit_level: str = None) -> str:
             for iface in e.ctor:
                 src = provider.get(iface)
                 fld = src.field_for(iface) if src else None
-                ref = f"#{{{bean_id(src, sel)}.{fld}}}" if src else f"UNRESOLVED:{iface}"
+                ref = f"#{{{ids[src]}.{fld}}}" if src else f"UNRESOLVED:{iface}"
                 lines.append(f'    <constructor-arg value="{ref}"/>')
             lines.append('  </bean>')
         lines.append('')
     if audit_level:
-        # Enables the audit log for the generated processor. FluxtionSpring.addNodes reads this
-        # property and calls EventProcessorConfig.addEventAudit with it.
         lines.append('  <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">')
         lines.append(f'    <property name="logLevel" value="{audit_level}"/>')
         lines.append('  </bean>')
@@ -298,11 +358,7 @@ def main():
     profile = dict(c.split("=", 1) for c in a.conventions.split(",") if "=" in c)
     if profile:
         print(f"  site profile: " + ", ".join(f"{k}={v}" for k, v in profile.items()) + "\n")
-    try:
-        solutions, err = solve(eps, wanted, profile)
-    except ValueError as cycle:
-        print(f"  UNSATISFIABLE: {cycle}")
-        return 2
+    solutions, err = solve(eps, wanted, profile)
     if err:
         print(f"  UNSATISFIABLE: {err}")
         return 2
@@ -310,10 +366,10 @@ def main():
         print(f"  AMBIGUOUS — {len(solutions)} equally minimal selections. "
               f"The declared surface does not decide; this needs judgement.\n")
         for i, s in enumerate(solutions, 1):
-            print(f"    candidate {i}: " + ", ".join(sorted(e.simple for e in s)))
+            print(f"    candidate {i}: " + ", ".join(sorted(e.simple for e in s.selection)))
         # show exactly which slot is undecided
-        for jar in sorted({e.jar for s in solutions for e in s}):
-            picks = {e.simple for s in solutions for e in s if e.jar == jar}
+        for jar in sorted({e.jar for r in solutions for e in r.selection}):
+            picks = {e.simple for r in solutions for e in r.selection if e.jar == jar}
             if len(picks) > 1:
                 print(f"\n    undecided jar '{jar}': {len(picks)} candidates")
                 for p in sorted(picks):
@@ -321,16 +377,12 @@ def main():
                     print(f"      {p:18} {d}")
         return 3
 
-    sel = solutions[0]
-    try:
-        ordered = order(sel)
-    except ValueError as cycle:
-        print(f"  UNSATISFIABLE: {cycle}")
-        return 2
+    res = solutions[0]
+    ordered = res.ordered
     print("  RESOLVED — one minimal selection:\n")
     for e in ordered:
         print(f"    {e.jar:12} {e.simple}")
-    xml = emit_xml(sel, a.audit)
+    xml = emit_xml(res, a.audit)
     if a.xml:
         pathlib.Path(a.xml).write_text(xml + "\n")
         print(f"\n  wrote {a.xml}")

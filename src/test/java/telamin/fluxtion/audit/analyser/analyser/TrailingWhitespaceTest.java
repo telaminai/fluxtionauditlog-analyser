@@ -36,7 +36,7 @@ class TrailingWhitespaceTest {
             "/generated/",
             ".diff");
 
-    private static final List<String> TEXT = List.of(".java", ".md", ".py", ".sh", ".xml", ".yml", ".yaml");
+    private static final List<String> TEXT = List.of(".java", ".md", ".py", ".sh", ".xml", ".yml", ".yaml", ".txt");
 
     @Test
     void noTrailingWhitespaceOutsideEvidenceFixtures() throws IOException {
@@ -49,8 +49,11 @@ class TrailingWhitespaceTest {
             tracked = new java.io.BufferedReader(new java.io.InputStreamReader(git.getInputStream()))
                     .lines().toList();
         } catch (IOException noGit) {
-            return;                       // not a checkout; nothing to gate
+            throw new AssertionError("git ls-files failed, so this gate would silently pass: " + noGit);
         }
+        assertTrue(tracked.size() > 100,
+                "git ls-files returned " + tracked.size() + " paths — the gate is not seeing the repo "
+                + "and would pass vacuously");
         {
             for (String rel : tracked) {
                 Path p = Path.of(rel);
@@ -62,7 +65,10 @@ class TrailingWhitespaceTest {
                 // CONTENT, not path: an audit log is format-faithful wherever it lives, and a
                 // path list is whack-a-mole -- three separate directories held one before this
                 // rule replaced them.
-                if (lines.stream().limit(40).anyMatch(l -> l.contains("eventLogRecord:"))) continue;
+                // A LOG, not a file that MENTIONS logs. The earlier rule exempted any file with
+                // "eventLogRecord:" in its first 40 lines, which silently excused Java sources,
+                // the Python tools and the format documentation.
+                if (isAuditLog(lines)) continue;
                 for (int i = 0; i < lines.size(); i++) {
                     String line = lines.get(i);
                     if (!line.isEmpty() && (line.endsWith(" ") || line.endsWith("\t"))) {
@@ -76,13 +82,37 @@ class TrailingWhitespaceTest {
                         offenders.subList(0, Math.min(20, offenders.size()))));
     }
 
+    /** A log is records, not prose about records: the FIRST content line opens one. */
+    private static boolean isAuditLog(List<String> lines) {
+        for (String l : lines) {
+            String t = l.strip();
+            if (t.isEmpty() || t.startsWith("#") || t.equals("---")) continue;
+            return t.startsWith("eventLogRecord:");
+        }
+        return false;
+    }
+
+    /** Every byte-sensitive fixture, pinned. A missing one is a FAILURE, not a skip. */
+    private static final List<String> BYTE_SENSITIVE = List.of(
+            "docs/experience/runs/round-49/expected.txt",
+            "docs/experience/runs/round-49/expected.conforming.txt",
+            "docs/experience/runs/round-57/m48-11-real-audit.txt",
+            "src/main/resources/demo/demo-quote-audit-traced.yaml",
+            "src/test/resources/topology/demo-quote-audit-traced.yaml");
+
     @Test
-    void theEvidenceFixturesStillCarryTheirTrailingBytes() throws IOException {
-        Path p = Path.of("docs/experience/runs/round-49/expected.txt");
-        if (!Files.exists(p)) return;
-        boolean any = Files.readAllLines(p, StandardCharsets.UTF_8).stream()
-                .anyMatch(l -> !l.isEmpty() && l.endsWith(" "));
-        assertTrue(any, "expected.txt lost its format-faithful trailing whitespace — evidence was "
-                + "rewritten, most likely by a formatter or a whitespace gate that forgot the exclusion");
+    void everyByteSensitiveFixtureStillCarriesItsTrailingBytes() throws IOException {
+        List<String> lost = new ArrayList<>();
+        for (String rel : BYTE_SENSITIVE) {
+            Path p = Path.of(rel);
+            assertTrue(Files.exists(p), "pinned evidence fixture is MISSING: " + rel
+                    + " — a silent skip here is how evidence disappears unnoticed");
+            boolean any = Files.readAllLines(p, StandardCharsets.UTF_8).stream()
+                    .anyMatch(l -> !l.isEmpty() && (l.endsWith(" ") || l.endsWith("\t")));
+            if (!any) lost.add(rel);
+        }
+        assertTrue(lost.isEmpty(), "these fixtures lost their format-faithful trailing whitespace — "
+                + "evidence was rewritten, most likely by a formatter or a gate missing its exclusion: "
+                + lost);
     }
 }
