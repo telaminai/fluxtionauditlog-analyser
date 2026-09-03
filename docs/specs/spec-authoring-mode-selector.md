@@ -187,3 +187,112 @@ unselectable. (Belongs in [`spec-component-catalogue.md`](spec-component-catalog
   Java is unmeasured; if one dominates, the branch collapses to a single mode.
 - **`n` is small throughout.** Mode 0 is deterministic and needs no replication; every mode-1 result
   rests on single runs.
+
+---
+
+## The toolbench: not needed to author, required to know you authored correctly
+
+**Owner's question, 2026-09-03:** *"does the LLM need the toolbench to author, or does the toolbench
+make the whole experience much better as it has mechanical tools the LLM author can use?"*
+
+**Both halves have an answer, and they are different answers.**
+
+### Authoring: the toolbench is not needed
+
+Round 57 produced a correct application — unique selection, green build, **byte-identical alerts** —
+with no analyser involved at any point. Modes 0 and 0+ need **no tool and no asset**; mode 1 needs one
+description read. **Authoring is toolbench-independent, and it should stay that way**, because a
+selector that required a GUI would not run in CI, in an agent loop, or on a build server.
+
+### Verification: the toolbench is not optional, and the reason is arithmetic
+
+Round 54 measured the audit log at **460 bytes per event** at INFO. Against Haiku 4.5's 200,000-token
+context:
+
+| run size | audit bytes | ~tokens | × the context window |
+|---|---|---|---|
+| 10,000 events | 4.6 MB | 1,150,000 | **5.8×** |
+| 100,000 | 46 MB | 11,500,000 | **57×** |
+| 1,000,000 | 460 MB | 115,000,000 | **575×** |
+| 10,000,000 | 4.6 GB | 1,150,000,000 | **5,750×** |
+
+**A ten-thousand-event run already exceeds the context by nearly six times** — and ten thousand events
+is *170 microseconds* of throughput at the measured 58M events/sec. There is no run small enough to be
+interesting and small enough to read.
+
+> **The LLM cannot verify its own work at any realistic scale, because the evidence does not fit.**
+> This is not a preference or an efficiency argument; it is a capacity limit.
+
+And verification is exactly where the failures live. `CLAUDE.md`'s own words: three failure modes
+*"produce a green build and a graph that is not the one you described. **Nothing will ever warn
+you**"*. The compile/run loop cannot catch them. **Something must read the graph and the log
+mechanically, and that is what the toolbench is.**
+
+### Which makes the toolbench the fourth partial evaluation
+
+The pattern is now consistent across four domains, and this is the clean statement of it:
+
+| what is memoised | into | amortised across | measured |
+|---|---|---|---|
+| discovery | the jar manifest | every integrator | `javap` 12 → 0 |
+| dispatch | the generated processor | every event | 8.44 ns/event, 0 bytes |
+| assembly | the resolver | every build | 1.98M weighted → **0** |
+| **evidence** | **the toolbench** | **every record** | **an unreadable log becomes one answer** |
+
+The toolbench turns *"read ten million records"* into *"ask a question, receive an aggregate"*. Same
+move, fourth domain — and the only one of the four where the alternative is not expensive but
+**impossible**.
+
+### The division of labour, stated so it can be built against
+
+| task | LLM | toolbench |
+|---|---|---|
+| requirement → figure list | **yes** — and unmeasured | no |
+| select a component (mode 1) | **yes** | can *present* candidates |
+| assemble the graph | **neither** — the resolver | hosts the resolver |
+| verify graph SHAPE | expensive: read generated source | **cheap: topology view, coverage (M40)** |
+| verify BEHAVIOUR from logs | **impossible at scale** | **its purpose** |
+| triangulate code + GraphML + log | very expensive | **its purpose** |
+| local deploy and run | no | **template + shell runner** |
+
+### The loop this closes, and where it already exists
+
+The toolbench downloads a **template — a shell Mongoose / data-connector project** — which the
+authoring tool uses for local deploy. That makes item 4's harness loop real rather than aspirational,
+because the same tool supplies both the runner and the analyser:
+
+```
+select mode → author the gap → deploy to the template locally → run → audit log
+     ↑                                                                  │
+     └──────── fix node / fix orchestration ←── analyser triangulates ───┘
+```
+
+**This is already partly specified and must not be re-specified here:**
+
+- [`spec-template-from-analyser.md`](spec-template-from-analyser.md) — *File ▸ New project from
+  template…*, **IMPLEMENTED**; the analyser already acquires and opens a template project.
+- [`spec-agent-brokered-dev-loop.md`](spec-agent-brokered-dev-loop.md) — §C2 the template catalogue,
+  §C3 the loop end to end, §E the analyser-side slice this creates.
+- [`spec-portable-context.md`](completed/spec-portable-context.md) — the project profile that holds
+  the site conventions the selector reads (M20, M38).
+
+**What this spec adds to them is one thing:** the loop above currently starts at *"author"*. It should
+start at **"select mode"**, and for modes 0 and 0+ the authoring step is empty. The template is still
+needed — to deploy and run — but nothing is written.
+
+### Requirements
+
+**R6 — the selector MUST run headless.** A CLI tool with `--json`, usable from CI, an agent loop or the
+analyser. The analyser calls it; it never depends on the analyser.
+
+**R7 — the analyser SHOULD surface the handoff record** as a first-class view: mode(s) in force,
+figures resolved, the authoring gap, and the one selection question when there is one. This is a view
+over the same JSON, not a second implementation.
+
+**R8 — verification steps MUST be expressed as toolbench operations, not as prose for a model.**
+"Confirm no false alert was published" is an analyser query over the log; asking a model to read the
+log is the thing the arithmetic above rules out.
+
+**R9 — the site profile lives in the project profile.** `spread=hedged` is exactly the class of fact
+M38's portable context exists to carry, and M38.2's vocabulary pointer is the mechanism for mapping a
+customer's words to a supplier's convention names.
