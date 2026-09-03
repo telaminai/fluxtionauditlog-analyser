@@ -21,6 +21,7 @@ still check**.
 
 ## ☑ reviewed 2026-09-03 · CHANGES REQUIRED · `f645cce^..3c39c6c` (32 commits) · authoring modes, the catalogue resolver, and the runtime benchmark
 
+**Report:** [`report_authoring_modes_m48_m49.txt`](report_authoring_modes_m48_m49.txt) — written late, after three review rounds, and says so.
 **Review brief:** [`prompt_review_authoring_modes.md`](prompt_review_authoring_modes.md) — the
 authoring programme is new; a reviewer who last saw M40/M42/M43 has not met any of it.
 

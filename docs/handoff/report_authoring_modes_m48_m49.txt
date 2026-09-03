@@ -1,0 +1,126 @@
+REPORT — M48 authoring modes, M49 runtime benchmark, and three rounds of review response
+Range: f645cce^..HEAD on main · Author session: 2026-09-02/03
+Brief: prompt_review_authoring_modes.md · Ledger: unreviewed-changes.md (entry filed)
+
+PROCESS DEFECT, DECLARED FIRST: this report is late. The cycle here is brief -> report -> review,
+and I wrote the brief and then let three review rounds happen without ever writing the report. A
+reviewer had to ask. Everything below was therefore reconstructed from commits rather than written
+alongside the work, which is exactly the failure mode the cycle exists to prevent.
+
+================================================================================
+1 · WHAT WAS BUILT
+================================================================================
+
+M49 · runtime benchmark (docs/experience/runs/round-54/). The first runtime measurement in this
+project; every prior round measured tokens. No analyser code changed.
+
+M48 · authoring modes. Four specs, two Python tools, one src/ change:
+  tools/bean-resolver.py     resolves a bean file from jar manifests; no model
+  tools/fluxtion-harness.py  derives the authoring mode from the catalogue; --json handoff
+  analyser.score.*           ExpectationScorer + ScoreCommand -- the only analyser code
+
+The load-bearing result: the bean-file half of component integration is a constraint solve. The
+resolver reproduces the measured optimum's selection AND wiring, builds green, and produces an audit
+log identical figure by figure -- at zero model tokens against 51 turns / 1.98M weighted.
+
+================================================================================
+2 · WHAT THE REVIEWS FOUND, AND WHAT IT COST
+================================================================================
+
+Three rounds of adversarial review. They found FIFTEEN defects in work I had already committed and
+described as done. Every finding was settled by execution, not argument.
+
+SCORER -- built specifically to stop instruments flattering their authors:
+  first five guards      mine, from historical defects
+  G6 event sequence      reviewer -- shuffled events scored PASS
+  G7 extra figures       reviewer -- a rogue figure passed as "every figure identical"
+  G8 non-finite          ME, while reproducing theirs -- NaN compared EQUAL to anything
+  G9 full event identity reviewer -- com.a.Tick == com.b.Tick
+  G10 vacuous figures    reviewer -- zero figures compared, PASS reported
+  Also: dialect was INFERRED from key names, mis-reading a CONFORMING record.
+
+  FIVE OF TEN GUARDS CAME FROM REVIEWERS, AND EVERY ONE OF THOSE FIVE ERRED TOWARD AGREEING WITH ME
+  -- the same direction as the five historical defects the class was written to stop. G9 is the same
+  defect class as fluxtion#31, which I filed upstream myself a week earlier.
+
+RESOLVER -- six contract defects the single fixture never exercised: one entry point per jar;
+duplicate providers silently wired lexically; constructor cycles accepted as RESOLVED; the --json
+path still accepting cycles after the CLI was fixed; distinct jar names colliding on bean id;
+advertised flags that do not exist.
+
+EVIDENCE -- the derived fixture I created to be format-conforming was neither conforming nor honest
+about itself: its provenance header was absorbed into record 1 as metadata.
+
+UPSTREAM -- UP-FLX-47 was FALSE and is withdrawn. I read the maven goal's parameters, found no audit
+option, and concluded none existed without reading the config bean the goal consumes. Rule 6 says
+read the live source of truth; I inferred a surface from an adjacent one. Worse: the workarounds then
+failed "for exactly the reasons observed", and I read that as confirmation rather than as evidence
+the model was wrong. Round 57's audit gap was self-inflicted.
+
+================================================================================
+3 · WHAT IS TRUE NOW (each verified by execution at HEAD)
+================================================================================
+
+- round-48 XML byte-identical to the committed output, re-verified after every resolver change
+- M48.11 full chain: FluxtionSpringConfig.logLevel -> processor -> real log -> shipped reader ->
+  declared dialect -> scorer = PASS 12/12 events, 27 figures
+- 5 of 5 mutations of that real log caught, each by its intended guard
+- resolver median 39 ms (33-47), interpreter-bound; committed to round-57 NOTES
+- fixture counts: round 48 has NINE entry points across five jars; round 55 has fourteen after the
+  ambiguity variants. Published material saying "fourteen" for the headline fixture was wrong.
+- suite green, sweep clean
+
+================================================================================
+4 · WHAT IS NOT FIXED, STATED SO IT IS NOT MISTAKEN FOR DONE
+================================================================================
+
+- Fluxtion-Consumes is parsed and NEVER USED in solving. Event ownership cannot participate in
+  selection. Documented, not repaired -- it is a design question.
+- The resolver claim is CONDITIONAL on the v2 `Provides: name=Api` convention. Against v1 manifests
+  the same run is unsatisfiable. Checked: v2 dates from round 48, so not retro-fitted.
+- The duplicate-provider rejection does not name the clashing interface in its message.
+- Neither Python tool has a test suite. Their evidence is end-to-end reproduction on one fixture.
+- Modes 2/3 are entirely unmeasured; the Haiku authoring ceiling is unfound. Every ablation this
+  project has run was over ASSEMBLY guidance.
+- Plain-Java comparison is n=1, and that arm has since passed a task it previously failed.
+- Prompt-caching mechanism is uninstrumented -- correlation only; cache tokens never recorded.
+- M49 has no run script, no pinned dependency provenance, and no raw output for several tables.
+
+================================================================================
+5 · PROTECTIVE NOTES FOR WHOEVER TOUCHES THIS NEXT
+================================================================================
+
+- expected.txt and expected.conforming.txt trip `git diff --check` on trailing whitespace that is
+  FORMAT-FAITHFUL. Any whitespace gate MUST exclude them or it will silently corrupt evidence.
+- expected.txt is preserved unrepaired on purpose. The conforming derivative sits beside it with
+  provenance in a SIDECAR, because a header inside the log became record metadata.
+- A derived evidence file contains only evidence. Anything said about it belongs beside it.
+
+================================================================================
+6 · THE TRANSFERABLE LESSONS, WHICH ARE NOT ABOUT THIS CODE
+================================================================================
+
+1. FAILED WORKAROUNDS ARE NOT CONFIRMATION. When three attempts to work around a limitation all
+   fail "for exactly the reasons expected", that is evidence the model of the problem is wrong, not
+   evidence that the limitation is real. This cost a false upstream ask and a fabricated blocker.
+
+2. AN INSTRUMENT BUILT TO STOP BIAS WILL STILL CARRY IT. The scorer's whole purpose was to stop
+   comparisons flattering their author. It shipped with five more ways to do exactly that, all found
+   by someone else executing against it. Adversarial execution is not optional for instruments.
+
+3. FIXING A STATEMENT IS NOT FIXING AN ARGUMENT. I corrected a claim in the blog and left the
+   paragraph that depended on it standing 200 lines later, directly contradicting the correction.
+
+4. A CORRECTION THAT LIVES ONLY IN GIT HISTORY IS NOT A CORRECTION. Applied by both sides here: a
+   reviewer appended a REVISED section to their own file after the follow-up caught them approving a
+   line whose arithmetic mixed two configurations.
+
+================================================================================
+7 · SUGGESTED NEXT
+================================================================================
+
+Tier 0 remaining: the generate-sources template rebind (measured, ~1 hour); cache accounting (gates
+every future round); the mode-1 selection asset.
+Tier 1: the manifest builder -- the Fluxtion-Convention mechanism is built and verified, so this is
+productisation, not design risk.
+Tier 2: modes 2/3 specced, written AND ablated. Both open research questions live there.
