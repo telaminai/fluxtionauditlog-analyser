@@ -6,6 +6,13 @@ branches beneath it mostly exist
 [`assessment-playground-ai-prompts.md`](../proposals/assessment-playground-ai-prompts.md)
 **Companion** [`spec-authoring-modes.md`](spec-authoring-modes.md) — the mode taxonomy and delivery order
 
+> **Superseded in part.** The canonical target architecture is
+> [`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET ARCHITECTURE*. Where this
+> document's architectural claims disagree with it, that one wins. What remains authoritative here
+> is the **measured evidence and the corrections**, which are preserved as historical record —
+> including the ones that were wrong, because how they were wrong is the transferable part.
+
+
 ## The end state
 
 ```

@@ -786,6 +786,11 @@ doc set, or whether it is additive. That is what round 17 measures.
 
 ## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ PART SHIPPED 2026-09-03
 
+**Canonical architecture:** [`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET
+ARCHITECTURE* — eight stages, each marked MEASURED / IMPLEMENTED / PROPOSED / HYPOTHESIS, with the
+`declare → resolve → compile → run → inspect → correct` loop's joints marked pinned or unpinned.
+**Stages 5 and 7 are substantially shipped; stages 1, 2 and 6 are the open work below.**
+
 Specs: **[`spec-authoring-modes.md`](spec-authoring-modes.md)** (the taxonomy, the owner's eleven items,
 the delivery order), **[`spec-authoring-mode-selector.md`](spec-authoring-mode-selector.md)** (the end
 state, the handoff contract, the analyser's role),
@@ -835,6 +840,19 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       with derivation only as the default (R7 revised, R10)
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
+- [M48.12] ☐ **audit-log fingerprint carrier** — `sourceFingerprint` exists NOWHERE in this repo.
+      `report.LogFingerprint` is the analyser computing log identity from the log's own contents
+      because the compiler supplies none. The compiler's identity should travel in the header and
+      every surface consume it rather than re-derive. **Stage 6 of the canonical architecture.**
+- [M48.13] ☐ **compiler-generated component manifests** — today's are hand-authored. Until the build
+      emits them, the resolver result is conditional on a convention nobody's toolchain enforces.
+      **Stage 2.** Spec: [`spec-component-catalogue.md`](spec-component-catalogue.md).
+- [M48.14] ☐ **resolver productisation + tests** — the prototype has no test suite; its evidence is
+      end-to-end reproduction on one fixture. `Fluxtion-Consumes` is parsed and unused in solving.
+- [M48.15] ☐ **one-command experiment reproduction** — round 57 lacks its jar workspace; M49 lacks a
+      run script, pinned dependency provenance and raw output for several tables.
+- [M48.16] ☐ **measure goal → formal requirements** — **the largest evidence gap.** Every round in
+      this programme was handed the figure list. Stage 1, and a hypothesis until measured.
 - [M48.9] ☐ **modes 2/3 — spec, asset, and ABLATION.** The unmeasured half, and where the Haiku ceiling
       actually is. **Every ablation this project has run was over *assembly* guidance**; no authoring
       instruction has ever been ablated.

@@ -7,6 +7,96 @@ This is the plan document for the authoring-experience work. It names the modes,
 eleven items onto deliverables, adds what the list missed, and **commits to an order** with the
 reasoning that produced it.
 
+---
+
+# THE TARGET ARCHITECTURE — canonical
+
+**This section is the single agreed statement of where the authoring work is going.** Where any other
+document in this repo disagrees with it, this wins and that document is stale. It replaces the
+overlapping architecture narratives that had accumulated across three specs.
+
+**Working rule, applied throughout:** *correctness should increasingly be structural rather than
+something an author or model must remember. Decide each fact once, at the component with authority
+over it, serialise it, and make every downstream surface consume the same typed result.*
+
+## The eight stages, and the honest status of each
+
+Status is one of four things, and they are not interchangeable:
+**MEASURED** (a result exists) · **IMPLEMENTED** (code ships, not necessarily measured) ·
+**PROPOSED** (specified, not built) · **HYPOTHESIS** (believed, no evidence).
+
+| # | stage | who owns it | status |
+|---|---|---|---|
+| 1 | informal goal → explicit figures, policies, unresolved choices | human or model | **HYPOTHESIS — the largest evidence gap.** See below |
+| 2 | mechanically derivable component metadata emitted at build | compiler / build tooling | **PROPOSED** — `spec-component-catalogue.md`; today's manifests are hand-authored |
+| 3 | semantic facts compilation cannot infer — descriptions, conventions, constructor intent | author / vendor | **PROPOSED**, mechanism **MEASURED**: `Fluxtion-Convention` + a site profile resolves a six-way type-identical ambiguity |
+| 4 | deterministic selection and connection where metadata and policy decide | resolver | **MEASURED on one fixture family** — byte-identical XML, audit log identical figure by figure. **Prototype, not product** |
+| 5 | compile the declared graph; own dependency identity, relationship kind, propagation, provenance, ordering | Fluxtion | **IMPLEMENTED and substantially consumed here** — M45.1/.2/.3/.5 |
+| 6 | runtime artefacts carry the compiler's identity forward | runtime + log format | **PROPOSED — and today's gap is concrete.** No `sourceFingerprint` exists anywhere in this repo |
+| 7 | reduce logs and graph metadata to bounded evidence; refuse what it cannot establish | the analyser | **IMPLEMENTED** — verbs, coverage, reports; verification only against an explicit expectation |
+| 8 | irreducible intent and genuine ambiguity, recorded as reviewable policy | the model | **PROPOSED**; the recording half is measured (a convention becomes a profile line) |
+
+### Stage 1 is the largest evidence gap, and must not be presented otherwise
+
+**Every experiment in this programme was handed the figure list.** Turning *"a risk engine that alerts
+on breach"* into the figures, policies and open choices that follow from it has **never been
+measured** — not once in 57 rounds. It is listed first because it is upstream of everything else, and
+labelled HYPOTHESIS because presenting it as an established LLM role would be inventing evidence.
+
+### Stage 6 is a real gap with a concrete name
+
+`sourceFingerprint` appears **nowhere** in this repository — not in the source, not in the published
+format spec. What exists instead is `report.LogFingerprint`: name, record count, first and last
+`logTime`, provenance — **identity the analyser computes from the log's own contents because the
+compiler supplies none.** That is precisely the recomputation stage 6 exists to remove. The ask is
+that the compiler's identity travel in the audit-log header and every downstream surface consume it
+rather than re-derive its own.
+
+## Duplicated authority — the actual examples
+
+The failure this architecture removes is **two components deciding the same fact independently**.
+Real instances, from this repo's own history:
+
+- **GraphML relationship re-derivation** — the analyser inferring relationship kind from adjacency
+  when the compiler already knows it and can emit it.
+- **Topological-rank inference** — dispatch order reconstructed downstream rather than read from the
+  model that computed it.
+- **Service-registry reclassification** — a node's service role decided a second time by a surface
+  that did not create it.
+
+**Not an example of this:** the scorer comparing event names instead of full types. That was a missing
+identity guard in one component, not two components claiming the same authority. Recorded because the
+distinction decides which fix is right — a guard, versus moving the decision upstream.
+
+## The end goal, stated so it is checkable
+
+> **Make `declare → resolve → compile → run → inspect → correct` one coherent loop whose boundaries
+> are machine-checkable.**
+
+**The loop is not verified end to end, and this document does not claim it is.** Joint by joint:
+
+| joint | pinned by | status |
+|---|---|---|
+| declare → resolve | byte-identical XML reproduction from committed manifests | **pinned** |
+| resolve → compile | green build from resolver output | **pinned** |
+| compile → run | real audit log produced from the generated processor | **pinned** |
+| run → inspect | shipped reader parses it; 12/12 figure comparison | **pinned** |
+| inspect → correct | mutation-tested scoring: 5 of 5 caught on a real log | **pinned** |
+| **compiler identity → runtime artefact** | nothing | **UNPINNED** — no fingerprint carrier |
+| **build → component metadata** | nothing | **UNPINNED** — manifests are hand-authored |
+| **goal → declaration** | nothing | **UNPINNED** — never measured |
+
+Compatibility goldens exist and are real: `src/test/resources/conformance` (record format) and
+`src/test/resources/formula-golden`. They pin the format and formula surfaces, not the loop's joints.
+
+## Scope of the whole decomposition
+
+**It rests principally on one fixture family** — the round-48 catalogue (nine entry points across five
+jars) and its round-55 extension (fourteen, after six ambiguous pricing variants were added). Modes 2
+and 3 are unmeasured. The plain-Java comparison is n=1. Treat the decomposition as a well-evidenced
+hypothesis about where boundaries belong, not as a general result.
+
+
 ## The four modes, and what each costs
 
 The series has been measuring one mode without naming it. Naming all four is the first useful act,

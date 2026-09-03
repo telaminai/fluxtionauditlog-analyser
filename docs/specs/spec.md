@@ -16,6 +16,71 @@ explainable event history.
 
 ---
 
+
+---
+
+## Where this tool sits in the authoring architecture
+
+_Canonical statement: **[spec-authoring-modes.md](spec-authoring-modes.md) ▸ THE TARGET
+ARCHITECTURE**. This section answers the four questions a reader should not have to reconstruct._
+
+### 1 · Which decisions are mechanical?
+
+**Selection and wiring, wherever declared metadata and policy determine a unique answer.** Measured on
+one fixture family: a resolver reproduced the components, the wiring and byte-identical configuration
+from jar manifests alone, and the resulting application's audit log matched figure by figure. Where
+the metadata does *not* decide — genuine ambiguity, a missing convention, a cycle, an unsatisfied
+requirement — **the resolver fails closed and says which**, rather than guessing.
+
+### 2 · Which component owns each fact?
+
+| fact | authority |
+|---|---|
+| what a component provides, requires, consumes; eligible constructors | **compiler / build tooling** (proposed; hand-authored today) |
+| descriptions, business conventions, constructor intent | **author or vendor** — the semantic residue compilation cannot infer |
+| which components, wired how | **the resolver**, where policy decides; otherwise escalated |
+| dependency identity, relationship kind, propagation, ordering, provenance | **Fluxtion** — authoritative model facts, substantially consumed here |
+| what actually happened in a run | **the audit log** |
+| what the evidence establishes, and what it does not | **this tool** |
+
+**The rule:** decide each fact once at the component with authority, serialise it, and have every
+downstream surface consume that same typed result. Where two components decide the same fact
+independently, they will eventually disagree — this repo has three instances on record (GraphML
+relationship re-derivation, topological-rank inference, service-registry reclassification).
+
+### 3 · Where is human or model judgement genuinely required?
+
+Two places, and **only** two:
+
+- **Turning an informal goal into explicit figures, policies and open choices.** *This is the largest
+  evidence gap in the programme.* Every experiment to date was handed the figure list; this step has
+  never been measured, and is a hypothesis rather than an established role.
+- **Settling ambiguity the metadata cannot** — which of several type-identical components matches the
+  business intent. Once settled, the answer is **recorded as reviewable policy** so no later build
+  repeats the inference.
+
+Everything between those two points is mechanical or should become so.
+
+### 4 · What evidence can establish that the application behaves as intended?
+
+**This tool is an evidence renderer and query surface, not a general correctness verifier**, and the
+distinction is load-bearing rather than modest.
+
+It reduces logs and graph metadata into bounded evidence — aggregates, coverage, topology, series —
+and answers questions about them at a scale no reader or model can hold: at 460 bytes per event, a
+ten-thousand-event run exceeds a 200k-token context roughly six times.
+
+**Verification happens only where an explicit expectation, invariant or oracle exists.** With one, the
+tool can state a verdict and defend it: `ExpectationScorer` compares two logs on published figures and
+**refuses to score** a comparison it cannot trust — mismatched lengths, differing event sequences,
+differing event identity, an empty or figure-less expectation, a figure outside the contract, a
+non-finite value. Ten guards, five of them added by independent reviewers who found the earlier
+version producing false passes.
+
+**Without an expectation there is no verdict, and the tool says so rather than implying one.** "The
+graph looks reasonable" is not a claim it makes.
+
+
 ## 1. Purpose & scope
 
 - Load a Fluxtion audit log file (best‑effort‑parse; the format *aims* at YAML but is not

@@ -3,7 +3,14 @@
 **Status** proposed · **Target** the public Fluxtion AI instructions (`docs/claude.txt` and the
 golden path), plus the artefact-side conventions in
 [`spec-component-catalogue.md`](spec-component-catalogue.md)
-**Evidence** [`docs/experience/runs/round-48/`](../experience/runs/round-48/) — fifteen measured
+**Evidence** [`docs/experience/runs/round-48/`](../experience/runs/round-48/)
+
+> **Superseded in part.** The canonical target architecture is
+> [`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET ARCHITECTURE*. Where this
+> document's architectural claims disagree with it, that one wins. What remains authoritative here
+> is the **measured evidence and the corrections**, which are preserved as historical record —
+> including the ones that were wrong, because how they were wrong is the transferable part.
+ — fifteen measured
 cells, one model, one problem; replication n=4 on the optimum; ablations in `ABLATION.md`
 
 ## What this specifies
