@@ -1,0 +1,188 @@
+REVIEW — authoring modes (M48), runtime benchmark (M49), ExpectationScorer
+Reviewed: f645cce^..3c39c6c (32 commits) on main, per prompt_review_authoring_modes.md
+Reviewer: compiler-side session · Date: 2026-09-03
+Suite at review head: 1286 tests, 0 failures, 0 errors (run here, not quoted)
+
+DISCLOSURE: I am the compiler-side session. I did not write any of this range, but I built the
+compiler features some of it measures, and this week I built a Spring-XML-emitting pipeline of my
+own — which is why finding 5 below was cheap for me to settle and easy for the author to miss.
+
+CONCURRENCY NOTE: another reviewer is active in this repo (untracked round-52/ is theirs). This
+review deliberately creates ONE new file and edits nothing shared. The ☐ ledger entry in
+unreviewed-changes.md is NOT ticked here — whoever consolidates should tick it citing this file,
+rather than two sessions racing one document.
+
+VERDICT: the load-bearing claims survive independent attack — one reproduced byte-for-byte from
+committed inputs. Two defects found in the scorer by execution, one filed upstream ask refuted by
+execution, and one reproducibility gap in the resolver evidence. Nothing found that reverses the
+strategy conclusion.
+
+================================================================================
+1 · CLAIM 1 — the capacity arithmetic HOLDS; the overreach was already retracted
+================================================================================
+
+Verified by calculation: 460 B/event × 10,000 = 4.6 MB ≈ 1.15 M tokens at 4 B/token = 5.75× a
+200K context ✓. 10,000 events ÷ 58 M/s ≈ 172 µs ✓. The 460 B figure traces to a measured row in
+round-54/NOTES.md (INFO: 460.0 B/event over 22,000,003 lines) ✓.
+
+The inference I came to attack — "cannot read the evidence" ⇒ "the toolbench VERIFIES" — was
+retracted before I arrived: 3c39c6c rewrites the role as renderer-not-verifier on owner steer, and
+the correction sits IN the spec beside the section it corrects, not only in git history. The
+corrected form is sound: the arithmetic mandates *tools*; what stays with the model is deciding
+what to ask and what an answer means. One residual nit: the selector spec's "58M events/sec" is
+the default-clock arm (59.2M in BLOG-NUMBERS) — trivially rounded, not wrong.
+
+================================================================================
+2 · CLAIM 2 — the resolver REPRODUCES, byte-identical, from committed inputs
+================================================================================
+
+Reproduced independently, and the reproduction is stronger for having been partly reverse-
+engineered: the notes do not record the figure list, so I derived it from the manifests myself
+(union of every Fluxtion-Provides, minus `limitDetector`, which is wiring not a figure — 18 names)
+and ran:
+
+    python3 tools/bean-resolver.py \
+        --manifests docs/experience/runs/round-48/manifests-v2 \
+        --figures mid,depth,vol,ewma,adjusted,spread,book,score,notional,exposure,var,streak,charge,buffer,fee,breachCount,alert,alertCount \
+        --xml <out>
+
+Result: RESOLVED, the same five components as cell O, and the emitted XML is BYTE-IDENTICAL to the
+committed round-57/resolver-output.xml. An independent derivation of the inputs landing on the
+identical artefact is about as good as a reproduction gets.
+
+Three findings from the exercise:
+
+**F1 · The reproduction command is not in the notes.** The brief says "the commands are in the
+notes"; they are not — neither the manifests-v2 path nor the figure list appears in
+round-57/NOTES.md (only the --conventions variant is shown). Record the command above; it is now
+verified to work.
+
+**F2 · The resolver depends on the v2 manifest convention, and the notes never say so.** Against
+`manifests/` (v1 — bare figure names, no `figure=Api` mapping) the identical run is UNSATISFIABLE,
+with a message that misattributes the cause ("all figures exist, but no combination is
+consistent" — the true cause is that nothing maps `Requires: MidApi` onto a provider of `mid`).
+Two consequences: (a) the error message should name the missing mapping, because a user hitting it
+will debug the wrong thing; (b) the claim "every authoring-cost figure was measuring a model doing
+a resolver's job" needs one qualifier — the resolver does the job GIVEN the v2 `Provides:
+figure=Api` convention. Checked: manifests-v2 dates from round 48 itself (88f34b7), so it is not
+retro-fitted for the resolver — but the notes should state which manifest generation cell O's jars
+carried, because that decides how directly the token comparison reads.
+
+**Not re-run:** the build-green and byte-identical-alerts half — the jar workspace is not in the
+repo. Taken on the notes' word; the XML byte-match makes it plausible but it remains unreproduced
+outside the authoring session.
+
+================================================================================
+3 · CLAIM 3 — "silence is not a match" is the right rule, with one adoption cost
+================================================================================
+
+The claimed basis checks out: round-55/NOTES.md quotes the model excluding PricingFull for
+providing "no specification of hedge inclusion" — discrimination on absence of a promise, exactly
+what the resolver encodes. And the rule fails CLOSED: an undeclared variant under a profile
+degrades to a visible AMBIGUOUS/UNSATISFIABLE, never a silent wrong pick — in a domain where the
+notes themselves say a false alert is a reportable incident, that is the correct polarity. The
+alternative (silence matches) would silently select unlabelled variants, which is the same defect
+class as the five scoring bugs.
+
+The cost the spec should state: a site profile over a LEGACY fleet (no Fluxtion-Convention fields
+anywhere) is unsatisfiable by construction. Adoption therefore requires vendors to label before
+customers can profile — fine as a strategy, but it is a sequencing constraint, not a free lunch.
+
+================================================================================
+4 · CLAIM 4 — the taxonomy is half derived, half imported; the table says which
+================================================================================
+
+"Derived rather than chosen" is accurate for modes 0/0+/1, which fall out of measurements (rounds
+48/55/57). Modes 2/3 are better described as IMPORTED from the product's own surfaces (the starter
+and the builder API) — they were not derived from anything measured here, and the spec's own
+status column says "unmeasured" for both, which is the honest marking. The single-fixture risk is
+real but bounded: the decomposition dimension (who writes what) is structural, not fixture-shaped;
+what the fixture cannot tell you is where mode 1 ends and mode 2 begins in practice, and that
+boundary stays unknown until mode 2 is measured. I did not find a post-hoc tidy; I found an
+honest table with two empty rows.
+
+================================================================================
+5 · UP-FLX-47 IS WRONG, refuted by execution — and it unblocks the stated gap
+================================================================================
+
+The ask says the Spring route "offers no way to enable the audit log". It does. The audit level is
+a property of the config bean the Spring file already declares:
+
+    <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+        <property name="logLevel" value="INFO"/>
+    </bean>
+
+`FluxtionSpring.addNodes` reads it and calls `config.addEventAudit(springConfig.logLevel)` — the
+wiring the round-57 workarounds tried to do by hand (raw EventLogManager bean, runtime
+setAuditLogLevel), which fail for exactly the reasons observed. Executed today against released
+fluxtion-builder 1.0.66: a bean file containing ONE node plus the config bean above produced a
+processor whose audit listener received records on the first event. No goal parameter, no code.
+
+Caveat: my probe ran the interpreted path; the maven goal takes the AOT path — but both share
+`addNodes`, where the read happens. Recommend: re-test with this bean, then WITHDRAW or narrow
+UP-FLX-47 (a legitimate residue might be "the goal's docs never mention it"). This also unblocks
+round-57's stated gap — the resolver need only emit that bean and the full figure-by-figure
+audit comparison can run, which is worth doing because it would give the ExpectationScorer its
+first real-log execution (see §6).
+
+================================================================================
+6 · THE SCORER — guards are real; TWO defects found by execution
+================================================================================
+
+11/11 tests pass; G1–G5 are all implemented and each matches its named defect; G3's carry-forward
+is genuinely forward-only (verified in code, not just javadoc). ScoreCommand's exit codes
+distinguish untrusted(2) from fail(1), which is the right shape. But the brief asked whether the
+five guards are the right five. They are five of SEVEN:
+
+**D1 · Missing guard: event-sequence identity.** `score()` compares snapshots by index and never
+compares event NAMES. Executed probe: expected [config, tick] against actual [tick, config] with
+figure values arranged to coincide → "PASS 2/2 events, every figure identical". Two logs that are
+semantically misaligned but equal in length score clean. This is the exact defect class G1/G2
+exist for, and it errs toward agreement — the direction every historical defect erred. Fix is one
+guard: `e.event().equals(a.event())` per index, hard failure like G1. No existing test covers it.
+
+**D2 · Half-tagged node-logs silently shrink the contract.** `sawTag` fires when EITHER tag key is
+present; if only one of stage/value appears (or value is non-numeric), the node-log contributes
+NOTHING — and the natural-form fallback is skipped because sawTag is true. A malformed tag pair in
+the EXPECTED log deletes that figure from the contract, and the comparison passes vacuously for
+it. That is an err-toward-agreement path of the kind the class exists to close. (Code-read, not
+probed; no test covers it.) Fix: a half-tag should be a hard failure, or at minimum fall through
+to natural form.
+
+Minor, documented here rather than filed: extra figures in `actual` are invisible by design
+(probe: PASS with a rogue figure present) — defensible since expected defines the contract, but
+unstated; ScoreCommand's printed figure counts partially surface it.
+
+**And a structural observation: the scorer has never scored a real log.** All 11 tests build
+synthetic snapshots; round-49's expected.txt is unreadable by its own FORMAT-NOTE; round-57's
+comparison was blocked by the UP-FLX-47 belief. §5 removes that blocker. The FORMAT-NOTE's
+deferral (don't repair a historical evidence artefact) is the right call — but the deferral's
+cost should be paid with a NEW conforming fixture, not carried indefinitely.
+
+================================================================================
+7 · M49 spot-check, and process checks
+================================================================================
+
+M49: every ns/event ↔ events/sec pair in BLOG-NUMBERS is reciprocal-consistent (8.44↔118.5M,
+5.98↔167.3M, 16.90↔59.2M, 4.88↔204.7M). Benchmarks NOT re-run; internal coherence and the
+committed harness are what I checked.
+
+Corrections carried into documents, verified: UP-FLX-45 corrects itself in upstream-asks.md
+("filed overclaiming and is corrected here rather than quietly edited"); P3 and P3b sit in
+spec-minimal-authoring-instructions.md; round-53 records 17/17 beside the scorer's earlier false
+FAILs; the round-56 owner-steer correction is in its NOTES. The a5298fc rule-4 slip is disclosed
+in the brief and repaired in 4d6887a; the suite at head is green (1286/0/0), so nothing else of
+that kind is live.
+
+================================================================================
+WHAT I DID NOT CHECK
+================================================================================
+
+The resolver's build/alerts half (jars not in repo — §2); the benchmarks by execution; modes 2/3
+(unmeasured by the author's own account — the Haiku authoring ceiling remains unfound);
+fluxtion-harness.py beyond a skim (like bean-resolver.py it has NO tests, and both now carry a
+strategy argument — a smoke test each is cheap insurance); the playground assessment (a reading,
+and says so — its Spring-wiring-rule finding is plausible from my compiler-side knowledge but
+untested here too); UP-FLX-45/46/48's compiler-side validity beyond reading them (46's repro is
+the namespace collision, which matches a generator behaviour I believe is real); the MkDocs and
+Swing gates (nothing in the range touches either, matching the author's account).
