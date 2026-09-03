@@ -296,3 +296,60 @@ log is the thing the arithmetic above rules out.
 **R9 — the site profile lives in the project profile.** `spread=hedged` is exactly the class of fact
 M38's portable context exists to carry, and M38.2's vocabulary pointer is the mechanism for mapping a
 customer's words to a supplier's convention names.
+
+---
+
+## Correction — the analyser is the renderer, not the intelligence
+
+**Owner, 2026-09-03:** *"the analyser is a shared canvas with context the LLM can access via MCP…
+the LLM / human is the intelligence, the analyser is the tool/renderer."*
+
+**The §toolbench section above overstates the analyser's role and is corrected here.** Its arithmetic
+stands — a 10,000-event log is 5.8× Haiku's context, so the evidence genuinely cannot be held. But
+"the toolbench verifies" is the wrong verb. **The analyser does not verify. It answers questions about
+evidence that is too large to hold.** Deciding what to ask, and what an answer means, stays with the
+LLM or the human.
+
+That distinction is not pedantic: it decides what gets built. A verifying analyser would need to know
+what "correct" means for a given graph. A rendering analyser needs only to be **queryable**, which it
+already is.
+
+### What the analyser contributes to the dev-harness loop — exactly two things
+
+| loop step (owner's words) | analyser | who judges |
+|---|---|---|
+| single node shell, create if missing | — | LLM writes files |
+| build the orchestration graph | — | the build tool |
+| **check correctness of the graph** | **a queryable graph** — GraphML, topology, `coverage` (M40: which nodes can log, the verdict from the graph) | **LLM** — "is `X` a trigger parent of `Y`?" is a query; whether that is *right* is judgement |
+| **put under test, check the app** | **a queryable log** — `aggregate`, series, `breach_count`, and now `ScoreCommand` | **LLM** — the analyser reports what happened, not whether it should have |
+| fix node / fix orchestration | **triangulation** — code, GraphML and log side by side | **LLM** — the analyser makes the distinction *visible*; it does not draw it |
+| re-test | — | — |
+
+**Two things, then: a queryable graph and a queryable log.** Everything else in the loop is the LLM's
+or the human's. That is a much smaller analyser ask than §toolbench implied, and most of it exists.
+
+### What "the handoff view" meant, and what it should be instead
+
+R7 above proposed the analyser *render* the selector's JSON record. **Given the shared canvas that is
+the wrong shape.** The handoff record should not be a panel showing a CLI's output; it should be
+**context on the canvas** — a section of `analyser_context`, readable by the LLM through the existing
+`context` verb and rendered for the human from the same state.
+
+The difference is that both parties then act on one object. When the LLM answers the mode-1 selection
+question, it writes the convention back to the project profile; the human sees the mode change from 1
+to 0+ on the canvas, without a second implementation or a refresh.
+
+**R7 (revised)** — the handoff record is **shared context, not a view**: one piece of state, rendered
+for the human, exposed to the LLM through `context`, and writable by either.
+
+### Mode is SET, with derivation only as the default
+
+**§"the mode is derived, not selected" was too strong when applied to the analyser.** It is right for
+the *authoring* mode, which is a fact about a catalogue. It is wrong for the analyser's posture,
+because **derivation lags intent**: when someone says *"let's build something new"*, the LLM knows
+immediately and no artefact has changed yet.
+
+**R10 — either party may set the analyser's posture (research/support · authoring/deploy), through
+MCP or the UI, and derivation is only the fallback when nothing has been set.** The derived default
+remains useful — log open and no project is support; a buildable project open is authoring — but it is
+a starting guess, not a constraint.
