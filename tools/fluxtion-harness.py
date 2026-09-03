@@ -81,7 +81,15 @@ def main():
             print(f"      {m}")
         return 2
 
-    sols, err = R.solve(eps, wanted, profile)
+    try:
+        sols, err = R.solve(eps, wanted, profile)
+        for candidate in sols or []:
+            R.validate(candidate)          # a cycle must never be reported as RESOLVED (review F2)
+    except ValueError as cycle:
+        if a.json:
+            return handoff("catalogue", ["unsatisfiable"], [], sorted(wanted)) or 2
+        print(f"\n  UNSATISFIABLE — {cycle}")
+        return 2
 
     if err and err.startswith("UNPROVIDED:"):
         missing = sorted(err.split(":", 1)[1].split(","))

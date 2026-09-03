@@ -836,7 +836,15 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
 - [M48.3] ☑ **the mode selector** — `tools/fluxtion-harness.py`; derives the mode per FIGURE, emits a
       machine-readable handoff record, verified on four scenarios
 - [M48.4] ☑ **the shared scorer** — `analyser.score.ExpectationScorer` / `ScoreCommand`, built on the
-      shipped reader. Five guards, one per historical scoring defect; 11 tests. **Analyser code.**
+      shipped reader. **Ten** guards, 21 tests. Five guards were added by three rounds of independent
+      review, each reproducing a false PASS by execution: event-sequence identity, extra figures,
+      non-finite values, fully-qualified event identity, and a vacuous zero-figure comparison.
+      **Every defect found erred toward agreeing with the author** — the same direction as the five
+      historical ones the class was written to stop. Dialect is now caller-declared. **Analyser code.**
+- [M48.11] ☑ **the full chain, end to end** — `FluxtionSpringConfig.logLevel` → generated processor →
+      real audit log → shipped reader → declared dialect → scorer. **PASS 12/12 events, 27 figures**;
+      5 of 5 mutations of that real log caught. The historical reference is preserved and a
+      provenance-carrying conforming derivative added beside it. See `round-57/M48-11.md`.
 - [M48.5] ☐ **the mode-1 selection asset** — small; how to read a `Fluxtion-Description`, that absence of
       a promise rules a candidate out, how an answer becomes a profile line
 - [M48.6] ☐ **`generate-sources` rebind** — measured: in modes 0/1 nothing the author writes is a

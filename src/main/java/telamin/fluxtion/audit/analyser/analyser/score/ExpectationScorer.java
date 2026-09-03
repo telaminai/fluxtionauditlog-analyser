@@ -102,8 +102,15 @@ public final class ExpectationScorer {
         this.tolerance = tolerance;
     }
 
-    /** One scored event: its lowercase event name and every figure's value as at that event. */
-    public record Snapshot(String event, Map<String, Double> figures) {}
+    /**
+     * One scored event. {@code event} is the lowercase simple name, used only to decide whether an
+     * event is scored at all; {@code eventType} is the identity as the log carries it.
+     *
+     * <p><b>G9</b> — comparing simple names made {@code com.a.Tick} and {@code com.b.Tick} equal,
+     * which is the same defect class as the generator bug this project filed upstream: a simple name
+     * is not an identity when packages differ.
+     */
+    public record Snapshot(String event, String eventType, Map<String, Double> figures) {}
 
     /**
      * A single disagreement. Either side may be {@code null}: {@code actual} null means the figure was
@@ -158,7 +165,8 @@ public final class ExpectationScorer {
                 if (dialect == Dialect.TAGGED) reduceTagged(nl, running, recordIndex);
                 else reduceNatural(nl, running);
             }
-            out.add(new Snapshot(event, new LinkedHashMap<>(running)));
+            out.add(new Snapshot(event, r.event() == null ? "" : r.event().trim(),
+                                 new LinkedHashMap<>(running)));
         }
         return out;
     }
@@ -213,12 +221,18 @@ public final class ExpectationScorer {
         if (expected.isEmpty()) {                                             // G5
             return untrustworthy("expected log has no scored events — a vacuous comparison", 0);
         }
+        if (figuresIn(expected).isEmpty()) {                                  // G10
+            return untrustworthy(
+                    "expected log has %d scored events but publishes NO figures — nothing would be compared. "
+                    .formatted(expected.size())
+                    + "Most often the declared dialect does not match the log", expected.size());
+        }
         if (expected.size() != actual.size()) {                               // G1
             return untrustworthy("event count differs: expected %d, actual %d — refusing to score a misaligned pair"
                     .formatted(expected.size(), actual.size()), expected.size());
         }
-        for (int i = 0; i < expected.size(); i++) {                           // G6
-            String e = expected.get(i).event(), a = actual.get(i).event();
+        for (int i = 0; i < expected.size(); i++) {                           // G6 + G9
+            String e = expected.get(i).eventType(), a = actual.get(i).eventType();
             if (!e.equals(a)) {
                 return untrustworthy(
                         "event sequence differs at index %d: expected '%s', actual '%s' — the logs describe different runs"

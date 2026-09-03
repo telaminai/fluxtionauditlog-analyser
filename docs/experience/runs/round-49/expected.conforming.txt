@@ -1,12 +1,3 @@
-# DERIVED, NOT ORIGINAL EVIDENCE.
-# source        : docs/experience/runs/round-49/expected.txt (UNCHANGED, still authoritative)
-# source sha256 : 3eaea891435d1d31 (first 16 hex)
-# records       : 18
-# transform     : insert the '---' document separator between records. NOTHING else is altered:
-#                 no value, key, ordering or timestamp is touched.
-# why           : the original was written with String.join("\\n", ...), so the shipped reader
-#                 parses the whole file as ONE record. See round-49/FORMAT-NOTE.md.
-# generated     : 2026-09-03, M48.11
 eventLogRecord: 
     eventTime: -1
     logTime: 1788374439761

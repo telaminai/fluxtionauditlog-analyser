@@ -20,3 +20,15 @@ event where there are 12.
 **Not repaired here.** Rewriting committed reference logs would invalidate the comparisons already
 published against them; the note records the constraint instead, and the requirement lands on the next
 round's harness.
+
+---
+
+## Do not run a whitespace gate over the log fixtures
+
+`expected.txt` and `expected.conforming.txt` both trip `git diff --check` on trailing whitespace.
+**Those bytes are format-faithful** — the audit writer emits them, and the shipped reader is specified
+against them. Stripping them would silently alter evidence and could change what the conformance
+suite is testing.
+
+**Any whitespace or formatting gate MUST exclude these fixtures.** Flagged by a reviewer before it
+could bite; recorded here because the next person to add such a gate will not know.

@@ -307,4 +307,42 @@ class ExpectationScorerTest {
         assertThrows(ExpectationScorer.MalformedRecordException.class, () ->
                 scorer.snapshots(parse(record("Tick", "m", "marketdata.mid", "STARTED"))));
     }
+
+    // ================== added after a third review; both reproduced first ==================
+
+    @Test
+    void g9_sameSimpleNameDifferentPackagesIsNotTheSameEvent() {
+        // REVIEWER PROBE: com.a.Tick vs com.b.Tick scored "PASS 1/1". Comparing simple names made two
+        // different event types identical — the same defect class as the generator bug filed upstream.
+        List<Snapshot> e = scorer.snapshots(parse(
+                "eventLogRecord:\n  logTime: 1\n  event: com.a.Tick\n  nodeLogs:\n    - m: { stage: f, value: 1.0}\n"));
+        List<Snapshot> a = scorer.snapshots(parse(
+                "eventLogRecord:\n  logTime: 1\n  event: com.b.Tick\n  nodeLogs:\n    - m: { stage: f, value: 1.0}\n"));
+
+        Result r = scorer.score(e, a);
+        assertFalse(r.trustworthy(), "different fully-qualified event types are different runs");
+        assertTrue(r.fatal().contains("com.a.Tick"), r.fatal());
+    }
+
+    @Test
+    void g9_innerClassEventsStillScoreWhenIdentical() {
+        var recs = parse(
+                "eventLogRecord:\n  logTime: 1\n  event: com.v.Events$Tick\n  nodeLogs:\n    - m: { stage: f, value: 1.0}\n");
+        assertTrue(scorer.score(scorer.snapshots(recs), scorer.snapshots(recs)).pass());
+    }
+
+    @Test
+    void g10_scoredEventsWithNoFiguresIsFatal_notAVacuousPass() {
+        // REVIEWER PROBE: TAGGED dialect against a log carrying no tags -> "PASS 1/1, every figure
+        // identical" while comparing nothing at all.
+        List<Snapshot> e = scorer.snapshots(parse(
+                "eventLogRecord:\n  logTime: 1\n  event: Tick\n  nodeLogs:\n    - n: { other: 1}\n"));
+        List<Snapshot> a = scorer.snapshots(parse(
+                "eventLogRecord:\n  logTime: 1\n  event: Tick\n  nodeLogs:\n    - n: { other: 2}\n"));
+
+        assertEquals(0, e.get(0).figures().size(), "precondition: the dialect matched nothing");
+        Result r = scorer.score(e, a);
+        assertFalse(r.trustworthy(), "a comparison that compares nothing must not pass");
+        assertTrue(r.fatal().contains("NO figures"), r.fatal());
+    }
 }

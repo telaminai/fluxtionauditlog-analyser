@@ -184,6 +184,11 @@ def solve(eps: list, wanted: set, profile: dict | None = None):
     return [s for s in valid if excess(s) == low], None
 
 
+def validate(sel: list) -> None:
+    """Raise if the selection cannot be emitted. Called before any RESOLVED verdict is reported."""
+    order(sel)
+
+
 def order(sel: list) -> list:
     """Topological: a bean is emitted after everything it constructs from."""
     provider = {}
@@ -206,18 +211,27 @@ def order(sel: list) -> list:
     return out
 
 
-def bean_id(e: EntryPoint, selection=None) -> str:
-    """Jar name when that jar contributes exactly one entry point, else jar+class.
-
-    Allowing several entry points from one jar (review F4.1) made the jar name ambiguous and
-    emitted duplicate bean ids. Disambiguating ONLY when needed keeps single-entry-point
-    catalogues -- including the round-48 fixture -- byte-identical to their previous output.
-    """
+def _base_id(e: EntryPoint) -> str:
     base = re.sub(r"[^A-Za-z0-9]", "", e.jar)
-    base = base[0].lower() + base[1:] if base else "bean"
-    if selection is not None and sum(1 for o in selection if o.jar == e.jar) > 1:
-        return base + e.simple
-    return base
+    return base[0].lower() + base[1:] if base else "bean"
+
+
+def bean_id(e: EntryPoint, selection=None) -> str:
+    """A bean id unique across the SELECTION, and stable for single-entry-point catalogues.
+
+    Two rounds of review found two ways this collided. Allowing several entry points from one jar
+    made the jar name ambiguous (F4.1); and normalising away punctuation made DISTINCT jars collide
+    -- `market-data` and `marketdata` both became `marketdata` (F4). Disambiguation is therefore
+    driven by the emitted ids actually clashing, not by a proxy for it, and it applies only to the
+    colliding beans, so single-entry-point catalogues keep their previous output byte-for-byte.
+    """
+    if selection is None:
+        return _base_id(e)
+    base = _base_id(e)
+    clashes = [o for o in selection if _base_id(o) == base]
+    if len(clashes) <= 1:
+        return base
+    return base + e.simple
 
 
 def emit_xml(sel: list, audit_level: str = None) -> str:

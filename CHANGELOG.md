@@ -10,9 +10,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Compare two audit logs on business outcomes, headlessly.** `ScoreCommand` reads both logs through
   the shipped reader and parser and reports whether every published figure agrees after every scored
   event. It reads Fluxtion's natural form (`book: { mid: 17.1}` → `book.mid`) and a tagged
-  `stage`/`value` convention. **It refuses to report a score it cannot stand behind**: unequal event
-  counts, an empty expectation, or a figure that was never published are each a distinct verdict
-  rather than a silently favourable number. Exit codes: `0` pass, `1` differences, `2` untrustworthy.
+  `stage`/`value` convention — **the dialect is declared by the caller, never inferred from key names**,
+  because the record format reserves none. **It refuses to report a score it cannot stand behind**: an
+  event-sequence mismatch, a differing event type, an empty expectation, an expectation carrying no
+  figures at all, a figure never published, a figure outside the contract, and any non-finite value are
+  each a distinct verdict rather than a silently favourable number. Ten guards, one per comparison
+  defect found in this project's history — **five of them found by independent reviewers executing
+  against the first implementation.** Exit codes: `0` pass, `1` differences, `2` untrustworthy,
+  `3` usage or I/O.
 
 ### Changed
 - **The analyser's own processor graph now ships with the compiler's full metadata vocabulary.** Builder

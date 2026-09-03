@@ -216,9 +216,17 @@ context:
 | 1,000,000 | 460 MB | 115,000,000 | **575×** |
 | 10,000,000 | 4.6 GB | 1,150,000,000 | **5,750×** |
 
-**A ten-thousand-event run already exceeds the context by nearly six times** — and ten thousand events
-is *170 microseconds* of throughput at the measured 58M events/sec. There is no run small enough to be
-interesting and small enough to read.
+**A ten-thousand-event run already exceeds the context by nearly six times.**
+
+**Correction, 2026-09-03.** An earlier version added "and ten thousand events is *170 microseconds* at
+58M events/sec". The arithmetic was right and the premise was not: **58M/sec is the throughput with no
+audit log, while 460 B/event is the cost of one at INFO.** A run producing that log measures
+2.19M events/sec, so ten thousand events is about **4.6 ms** — roughly 27× the figure quoted. The
+capacity conclusion is untouched, because it depends only on bytes against context; the speed clause
+was comparing two different configurations and is removed rather than restated. *Found by a reviewer
+auditing their own earlier tick of this line.*
+
+There is no run small enough to be interesting and small enough to read.
 
 > **The LLM cannot verify its own work at any realistic scale, because the evidence does not fit.**
 > This is not a preference or an efficiency argument; it is a capacity limit.

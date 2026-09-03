@@ -1,0 +1,45 @@
+Implementation-Title: vendor
+Component-Catalogue: true
+
+Name: com/vendor/MarketData.class
+Component: true
+Provides: mid, depth, vol, ewma
+Constructor: ()
+Consumes: Tick, Config[volFactor]
+Description: mid, depth, volatility and a smoothed mid
+
+Name: com/vendor/Pricing.class
+Component: true
+Provides: adjusted, spread
+Requires: MarketData
+Constructor: (MarketData)
+Consumes: Tick, Rate
+Description: the adjusted price and the spread
+
+Name: com/vendor/Liquidity.class
+Component: true
+Provides: book, score
+Requires: MarketData, Pricing
+Constructor: (MarketData, Pricing)
+Consumes: Tick
+Description: book depth and a liquidity score
+
+Name: com/vendor/Risk.class
+Component: true
+Provides: notional, exposure, var, streak
+Requires: MarketData, Liquidity
+Constructor: (MarketData, Liquidity)
+Consumes: Tick, Trade, Rate
+Reads: MarketData.mid, MarketData.vol, Liquidity.score
+Description: exposure, VaR and the breach streak; limitBreached() is a query, not a signal
+Note: recomputes ONLY on the events it consumes. It does not consume Config.
+
+Name: com/vendor/Capital.class
+Component: true
+Provides: charge, buffer, fee, breachCount, alertCount
+Requires: Risk
+Constructor: (Risk)
+Consumes: Tick, Trade, Rate, Config[chargePct]
+Reads: Risk.exposure, Risk.var, Risk.limitBreached
+Description: capital charge, buffer, fee, breach alerting and the reported counts
+Note: publishes alerts itself to the AlertSink you install; do not publish alerts yourself
