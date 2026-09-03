@@ -15,6 +15,7 @@ Fluxtion-Requires: MidApi, DepthApi
 Fluxtion-Constructor: (MidApi, DepthApi)
 Fluxtion-Consumes: Rate
 Fluxtion-Description: adds the spread; owns the RATE event
+Fluxtion-Convention: spread=raw
 
 Name: com/vendor/pricing/PricingHedged.class
 Fluxtion-Entry-Point: true
@@ -23,6 +24,7 @@ Fluxtion-Requires: MidApi, DepthApi
 Fluxtion-Constructor: (MidApi, DepthApi)
 Fluxtion-Consumes: Rate
 Fluxtion-Description: adds the spread including the desk hedging overlay; owns the RATE event
+Fluxtion-Convention: spread=hedged
 
 Name: com/vendor/pricing/PricingNetted.class
 Fluxtion-Entry-Point: true
@@ -31,6 +33,7 @@ Fluxtion-Requires: MidApi, DepthApi
 Fluxtion-Constructor: (MidApi, DepthApi)
 Fluxtion-Consumes: Rate
 Fluxtion-Description: adds the spread net of the standing inventory offset; owns the RATE event
+Fluxtion-Convention: spread=netted
 
 Name: com/vendor/pricing/PricingGross.class
 Fluxtion-Entry-Point: true
@@ -39,6 +42,7 @@ Fluxtion-Requires: MidApi, DepthApi
 Fluxtion-Constructor: (MidApi, DepthApi)
 Fluxtion-Consumes: Rate
 Fluxtion-Description: adds the spread gross of execution fees; owns the RATE event
+Fluxtion-Convention: spread=gross
 
 Name: com/vendor/pricing/PricingCapped.class
 Fluxtion-Entry-Point: true
@@ -47,6 +51,7 @@ Fluxtion-Requires: MidApi, DepthApi
 Fluxtion-Constructor: (MidApi, DepthApi)
 Fluxtion-Consumes: Rate
 Fluxtion-Description: adds the spread capped at the venue ceiling; owns the RATE event
+Fluxtion-Convention: spread=capped
 
 Name: com/vendor/pricing/PricingSmoothed.class
 Fluxtion-Entry-Point: true
@@ -55,3 +60,4 @@ Fluxtion-Requires: MidApi, DepthApi
 Fluxtion-Constructor: (MidApi, DepthApi)
 Fluxtion-Consumes: Rate
 Fluxtion-Description: adds the spread with the smoothing factor applied; owns the RATE event
+Fluxtion-Convention: spread=smoothed

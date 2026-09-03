@@ -116,3 +116,84 @@ Round 55 showed `javap` going 0 → 11 the moment descriptions had to be read. *
 criterion too** — a `Fluxtion-Convention:` field beside `Fluxtion-Provides` — and the resolver decides
 the pricing jar as well. That would push the last judgement step into the artefact and close the
 ladder: discovery, dispatch, assembly, selection.
+
+---
+
+# Addendum — selection is memoisable too. The ladder closes.
+
+Round 55 left one judgement step: six entry points sharing a type surface, discriminated only by
+prose. The resolver correctly refused to guess. **That step is now mechanical as well**, and it took
+one manifest field and one flag.
+
+**Supplier side** — each variant declares the convention it implements, once:
+
+```
+Name: com/vendor/pricing/PricingHedged.class
+Fluxtion-Provides: adjusted=AdjustedApi, spread=SpreadApi
+Fluxtion-Convention: spread=hedged
+```
+
+**Customer side** — a site profile fixes the convention for a figure, once per installation:
+
+```
+bean-resolver.py --jars lib --figures ... --conventions spread=hedged
+```
+
+**Result on the round-55 fixture, unchanged in every other respect:**
+
+| | outcome |
+|---|---|
+| no profile | AMBIGUOUS — 6 candidates, refuses to guess |
+| `spread=hedged` | **RESOLVED — `PricingHedged`** |
+| `spread=netted` | `PricingNetted` |
+| `spread=capped` | `PricingCapped` |
+| `spread=raw` | `PricingFull` |
+
+**One word in a profile decides the build.** The same fixture that cost a model 11 `javap` calls and
+a paragraph of reasoning is now a dictionary lookup.
+
+## The matching rule, and why it is this one
+
+> A site profile fixes a convention for a figure. An entry point that **publishes** that figure must
+> **declare** a matching convention. **Silence is not a match.**
+
+That is not an arbitrary choice — it reproduces exactly how the model reasoned in round 55, which
+ruled `PricingFull` out because its description *"provides no specification of hedge inclusion"*.
+Discrimination on absence of a promise, not presence of a keyword.
+
+**Its cost is a real obligation on suppliers:** a variant that declares no convention becomes
+unselectable at any site that has a profile for that figure. `PricingFull` needed an explicit
+`spread=raw`. **The catalogue generator must therefore require a convention on every variant that
+shares a type surface with another** — which is checkable at build time, and belongs in
+[`spec-component-catalogue.md`](../../specs/spec-component-catalogue.md) as a build-failing validation.
+
+## What is left that is genuinely irreducible
+
+Two things, and both are **once per installation, not once per build**:
+
+1. **Deciding the convention.** "This desk hedges" is a business fact. No artefact can memoise it,
+   because it does not live in any artefact — it lives in the customer.
+2. **Mapping the customer's words to the supplier's vocabulary.** A brief saying *"we hedge every
+   position"* must be linked to `spread=hedged` once. A model does that well (round 55 measured it),
+   and the answer is then a stable line of config.
+
+So the honest final statement of the ladder:
+
+| rung | memoised into | status |
+|---|---|---|
+| discovery | the manifest | ✅ measured |
+| dispatch | the generated processor | ✅ measured |
+| assembly | the resolver | ✅ measured |
+| **selection** | **the manifest + a site profile** | ✅ **measured** |
+| **intent** | **a human, once per installation** | **irreducible** |
+
+**Authoring is mechanical. The judgement did not disappear — it moved from per-build inference to a
+one-line, reviewable, version-controlled declaration.** That is a better place for it: it can be
+diffed, audited and explained, which prose in a bean file never could.
+
+## Where this lands in this repo
+
+The site profile is not a new concept here — it is the **project profile** (M20, M38 portable
+context), which already records what is in force and travels with the project. `spread=hedged` is
+exactly the kind of fact it exists to hold, and M38.2's vocabulary pointer is exactly the mechanism
+for the supplier/customer word mapping.

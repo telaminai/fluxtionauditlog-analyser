@@ -15,6 +15,7 @@ because the instructions, the harness and the ceiling are different in each.
 | mode | who writes what | model needed? | status |
 |---|---|---|---|
 | **0 — resolved** | nobody. A resolver reads manifests and emits the bean file | **no** | **built and verified** (round 57) |
+| **0+ — resolved with a profile** | nobody; a one-line site profile decides conventions | **no** | **built and verified** (round 57 addendum) |
 | **1 — integrator** | the author selects components and writes the bean file | only for **selection** | measured (rounds 48, 55) |
 | **2 — starter** | the author describes beans that generate node classes, then writes the nodes | yes | **unmeasured** |
 | **3 — builder** | the author writes a Java `FluxtionGraphBuilder` and the nodes | yes | **unmeasured** |
@@ -163,6 +164,15 @@ Ordered by *what unblocks the most per hour*, not by importance.
    **a `Fluxtion-Convention:` field carrying the selection criterion.** Round 55 measured `javap`
    going 0 → 11 the moment descriptions had to be read; this closes the last judgement rung and makes
    mode 0 total. It is also step one of the mode-2/3 loop, so items 2, 3 and 4 all sit on it.
+
+   **De-risked 2026-09-03: the mechanism is already built and measured** (round 57 addendum). A
+   `Fluxtion-Convention: spread=hedged` line plus a one-word site profile resolves round 55's
+   six-way ambiguity uniquely, and changing the profile word changes the selected component. Tier 1
+   is now specification and productisation of a working mechanism, not a design risk.
+
+   **It carries one new build-failing validation:** a variant sharing a type surface with another
+   MUST declare a convention, because silence is not a match and an undeclared variant becomes
+   unselectable at any site with a profile for that figure.
 
 ### Tier 2 — the unmeasured half.
 

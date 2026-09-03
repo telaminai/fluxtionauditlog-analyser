@@ -27,6 +27,7 @@ class EntryPoint:
     ctor: list               # interface names, IN CONSTRUCTOR ORDER
     consumes: list
     description: str = ""
+    conventions: dict = dc_field(default_factory=dict)
 
     @property
     def simple(self) -> str:
@@ -84,8 +85,13 @@ def parse_manifest(text: str, jar: str) -> list:
         ctor_raw = grab("Fluxtion-Constructor").strip("()")
         ctor = [c.strip() for c in ctor_raw.split(",") if c.strip()]
         consumes = [c.strip() for c in grab("Fluxtion-Consumes").split(",") if c.strip()]
+        conventions = {}
+        for item in [c.strip() for c in grab("Fluxtion-Convention").split(",") if c.strip()]:
+            if "=" in item:
+                f, v = item.split("=", 1)
+                conventions[f.strip()] = v.strip()
         eps.append(EntryPoint(jar_name, cls, provides, requires, ctor, consumes,
-                              grab("Fluxtion-Description")))
+                              grab("Fluxtion-Description"), conventions))
     return eps
 
 
@@ -104,7 +110,7 @@ def load(manifest_dir=None, jar_dir=None) -> list:
     return eps
 
 
-def solve(eps: list, wanted: set):
+def solve(eps: list, wanted: set, profile: dict | None = None):
     """Every minimal selection satisfying: figures covered, and every requirement met."""
     by_jar = {}
     for e in eps:
@@ -113,9 +119,16 @@ def solve(eps: list, wanted: set):
     # each jar contributes one entry point or none
     options = [by_jar[j] + [None] for j in jars]
     valid = []
+    profile = profile or {}
     for combo in itertools.product(*options):
         sel = [e for e in combo if e]
         if not sel:
+            continue
+        # A site profile fixes a convention for a figure. An entry point that PUBLISHES that figure
+        # must DECLARE a matching convention; silence is not a match. This mirrors exactly how the
+        # model ruled PricingFull out in round 55 -- on absence of a promise, not presence of a word.
+        if any(f in e.figures and e.conventions.get(f) != v
+               for e in sel for f, v in profile.items()):
             continue
         figures = set().union(*(e.figures for e in sel))
         if not wanted <= figures:
@@ -197,6 +210,8 @@ def main():
     ap.add_argument("--figures", required=True,
                     help="comma-separated figure names the business requires")
     ap.add_argument("--xml", help="write the bean file here")
+    ap.add_argument("--conventions", default="",
+                    help="site profile, e.g. 'spread=hedged' -- fixes a convention per figure")
     a = ap.parse_args()
 
     eps = load(a.manifests, a.jars)
@@ -204,7 +219,10 @@ def main():
     print(f"  {len(eps)} entry points across {len({e.jar for e in eps})} jars")
     print(f"  {len(wanted)} required figures\n")
 
-    solutions, err = solve(eps, wanted)
+    profile = dict(c.split("=", 1) for c in a.conventions.split(",") if "=" in c)
+    if profile:
+        print(f"  site profile: " + ", ".join(f"{k}={v}" for k, v in profile.items()) + "\n")
+    solutions, err = solve(eps, wanted, profile)
     if err:
         print(f"  UNSATISFIABLE: {err}")
         return 2
