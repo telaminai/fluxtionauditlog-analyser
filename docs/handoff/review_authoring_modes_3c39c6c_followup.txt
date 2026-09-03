@@ -1,0 +1,270 @@
+FOLLOW-UP REVIEW — M48 authoring modes, M49 runtime benchmark, ExpectationScorer
+Reviewed: f645cce^..3c39c6c (32 commits), at analyser main 3f15f8d
+Reviewer: independent analyser-side review · Date: 2026-09-03
+Companion review: review_authoring_modes_3c39c6c.txt (compiler-side, produced concurrently)
+
+VERDICT: CHANGES REQUIRED before the M48 tools or scorer carry a product contract, and before the
+strategy claims are published. The important underlying observation survives in a narrower form:
+the round-48 fixture's assembly is mechanically resolvable, and a catalogue-first authoring flow is
+promising. The implementation and evidence do not yet support the general claim that component
+assembly is solved, that four modes have been derived, or that the analyser is required for
+verification.
+
+M49 is separate and substantially stronger. I reproduced its central dispatch result, including a
+500M-event Epsilon/64 MB run. Treat it as a local microbenchmark whose direction is established, not
+yet as a citable or fully reproducible result sheet.
+
+The compiler-side review arrived while this review was running. I did not edit it. Where it reached a
+different conclusion, this report gives the command or source observation that decides the point.
+
+================================================================================
+F1 · BLOCKING — ExpectationScorer still produces false PASS verdicts
+================================================================================
+
+ExpectationScorer.java:161-173 aligns only by list index and compares only keys present in expected.
+It neither compares Snapshot.event nor rejects extra figures in actual. I executed both cases through
+RecordParser and the real scorer:
+
+    expected Tick / actual Trade, same figure value
+      -> PASS 1/1 events, every figure identical
+
+    expected marketdata.mid; actual marketdata.mid plus risk.var=999
+      -> PASS 1/1 events, every figure identical
+
+The first is the same misalignment class G1/G2 claim to prevent. The second contradicts the class
+contract ("the value of every published figure") and the PASS text ("every figure identical"). If
+actual is deliberately allowed to publish additional figures, that is expectation-as-subset
+semantics and must be named; the current API and report promise equality.
+
+Required: compare event identity at every index; define equality versus subset explicitly; if
+equality, compare both key sets. Pin both counterexamples through the production score path, not only
+snapshot helpers. Consider non-finite values too: Math.abs(NaN - expected) > tolerance is false.
+
+================================================================================
+F2 · BLOCKING — automatic tagged/natural detection contradicts Format 1
+================================================================================
+
+The published format says every top-level numeric key is an ordinary `instanceId.key` series. It
+reserves neither `stage` nor `value`. ExpectationScorer.java:108-125 changes dialect when EITHER key
+appears. A conforming natural record:
+
+    - book: { stage: 3, value: 4 }
+
+was executed through RecordParser and reduced to `{3=4.0}`, not `{book.stage=3.0,
+book.value=4.0}`. A half tag, or a non-numeric tagged value, suppresses the whole node log instead of
+failing, so a malformed EXPECTED record can delete an obligation and bias the result toward PASS.
+
+Required: Format 1 remains the default and source of truth. Make the fixture dialect explicit at the
+call boundary (or convert the fixtures to Format 1); never infer a dialect from user-controlled key
+names. A malformed explicit tagged record must be untrustworthy, not empty.
+
+================================================================================
+F3 · HIGH — the scorer has not closed the historical evidence loop; UP-FLX-47 is false
+================================================================================
+
+The decision not to rewrite round-49/expected.txt in place is right: historical evidence should not
+be silently altered. The deferral is incomplete. Preserve it, add a derived conforming copy with
+provenance, and make that a golden input for ScoreCommand. Today the new scorer has never scored the
+real experiment pair it was introduced to protect.
+
+The stated blocker is not real. Released fluxtion-builder 1.0.64 exposes
+`FluxtionSpringConfig.setLogLevel(LogLevel)`, and javap -c shows FluxtionSpring.addNodes invoking
+EventProcessorConfig.addEventAudit with that configured level. The compiler-side companion reviewer
+also ran a live Spring probe. A Spring bean can therefore enable auditing:
+
+    <bean class="com.telamin.fluxtion.builder.extern.spring.FluxtionSpringConfig">
+      <property name="logLevel" value="INFO"/>
+    </bean>
+
+Withdraw UP-FLX-47 or narrow it to documentation/discoverability, rerun round 57 with the audit
+configuration, and exercise ScoreCommand end to end on the resulting real log.
+
+Smaller contract defect: ScoreCommand documents exit 3 for I/O/usage errors, but main throws I/O and
+number-format exceptions; the JVM exits 1, indistinguishable from a comparison failure.
+
+================================================================================
+F4 · HIGH — the resolver proves one fixture, but silently guesses or rejects valid general cases
+================================================================================
+
+The positive reproduction holds. From committed manifests-v2 and an independently reconstructed
+18-figure list, bean-resolver.py emitted XML byte-identical to round-57/resolver-output.xml and chose
+the same five components.
+
+Three minimal executable counterexamples bound that result:
+
+1. `options = [by_jar[j] + [None]]` (lines 115-124) permits at most one entry point per jar. Two
+   independent entry points in one jar, each required for a different figure, return UNSATISFIABLE.
+2. Provider maps at lines 158-170 and 182-203 overwrite by interface. When two selected components
+   both provide X, solve reports one unique solution and XML silently wires the lexically later
+   provider. The relationship is ambiguous even if the component set is not.
+3. A constructor cycle is accepted as RESOLVED. order() detects that it cannot progress, then emits
+   the cyclic constructor beans in declared order (lines 172-174); Spring cannot instantiate that
+   graph.
+
+`Consumes` is parsed but never used, so the only requirement input is a set of output figure names;
+event ownership cannot participate in selection. The code also advertises `--jar-order`, which does
+not exist, and advertises `--jars DIR/*.jar` while argparse accepts one value and load() expects a
+directory.
+
+Required: state and enforce the catalogue cardinality and provider-uniqueness contract, reject
+constructor cycles, decide whether required events are an input, and test the negative cases. Until
+then the supported claim is: "this measured fixture is a constraint solve under the v2 manifest
+assumptions." It is not yet "the bean-file half of integration is solved."
+
+================================================================================
+F5 · HIGH — the selector violates its own first branch and the mixed contract is incomplete
+================================================================================
+
+The spec's decision procedure says no catalogue -> greenfield. Executed with a missing/empty
+catalogue, `fluxtion-harness.py --json` returns:
+
+    {"branch":"catalogue", "modes":["unsatisfiable","2/3"], ...}
+
+with exit 2. That is not one of the documented handoff examples and can make an orchestrator treat a
+normal greenfield session as a failed catalogue run. Mixed mode also exits 2 even when it has
+successfully produced the intended handoff. No exit-code contract says whether that is data or tool
+failure.
+
+More fundamentally, "mode is per figure" has only been demonstrated as a JSON partition. The tool
+emits an XML file for the resolved subset, but it carries no contract describing how an authored gap
+is joined back into that graph. This is a useful hypothesis, not yet an end-to-end mixed authoring
+mode.
+
+Required tests: no catalogue, missing catalogue path, mixed session, duplicate providers, two entry
+points from one jar, constructor cycle, real jar loading, and the explicit exit-code contract. The
+four happy-path invocations I ran do match the documented fixture results.
+
+================================================================================
+F6 · HIGH — the context arithmetic is right; "the analyser is required" does not follow
+================================================================================
+
+460 B/event x 10,000 = 4.6 MB; at the stated 4 B/token estimate that is 1.15M tokens, 5.75x a 200K
+window. Anthropic's current official material also identifies Haiku 4.5 as a 200K-context model. The
+raw-ingestion capacity point holds.
+
+Two inferences do not:
+
+- The spec says 10,000 logged events are 170 microseconds of throughput by combining INFO's
+  460 B/event with the no-audit/default-clock rate of 58M events/s. The measured INFO producer is
+  about 2.2M events/s, so those 10,000 logged events take about 4.6 ms. The capacity conclusion does
+  not need this incompatible comparison.
+- A log not fitting in one context proves that direct ingestion is unsuitable. It does not prove an
+  LLM cannot verify its work, nor that this analyser is the only necessary tool. Streaming assertions,
+  purpose-built tests, sampling, indexes, and other query engines also avoid raw ingestion.
+
+The later renderer-not-intelligence correction is directionally right but does not retract the
+earlier necessity language. Reframe: realistic logs require a mechanical query/aggregation layer;
+the analyser/toolbench is this product's shared, queryable implementation. Humans/LLMs choose the
+questions and judge the answers. That is a strong product position without claiming logical
+necessity.
+
+================================================================================
+F7 · MEDIUM — the in-flight corrections were recorded, but the specs were not reconciled
+================================================================================
+
+The good news: the audit-allocation and wall-clock retractions are visibly preserved in round 54 and
+UP-FLX-45, and round 56 preserves the correction from graph semantics to descriptor-to-XML work.
+
+Current contradictions still matter because these files are meant to direct implementation:
+
+- 3c39c6c says analyser posture is SET and derivation is fallback. spec-authoring-modes.md and the
+  live M48 tracker still say mode is derived, not chosen.
+- spec-authoring-modes.md Tier 0 says the scorer is "Not started" after M48.4 and the source shipped.
+- spec-component-catalogue.md first says "No new source annotations", then specifies three; the next
+  heading says three annotations are needed for "four facts"; its "separate proposal" resolver and
+  "ambiguity has not been tested" limits are now stale.
+- spec-authoring-session-walkthrough.md says every output is real and nothing illustrative, but the
+  commands contain ellipses and the JSON excerpts omit fields. They are explanatory excerpts, not
+  captured output.
+- UP-FLX-47 and every downstream statement that Spring auditing is unavailable must be corrected.
+
+Rationalise the companion specs and tracker from one authority before implementing the website or
+analyser-context work. The mode taxonomy itself should be labelled a proposed decomposition: 0/0+/1
+come from one assembly fixture; 2/3 are existing product surfaces and remain wholly unmeasured.
+
+================================================================================
+F8 · MEDIUM — "silence is not a match" is a defensible policy, not a measured law
+================================================================================
+
+The fail-closed polarity is appropriate for a risk-oriented resolver: an unlabelled component should
+not silently satisfy a declared site convention. Round 55 shows one model reasonably excluded an
+unspecified variant. That does not derive the universal supplier rule from data; it motivates it.
+
+Record it as a contract decision with its adoption cost: applying a site profile to legacy jars with
+no Fluxtion-Convention makes them all unselectable. Also distinguish "unknown" from a deliberately
+declared `raw` convention. V-A is valid only once the component contract owns that requirement and
+the rollout order is explicit.
+
+================================================================================
+F9 · MEDIUM — M49's direction reproduces; its published evidence package does not
+================================================================================
+
+I compiled the committed benchmark, plain arms, and committed generated processor against
+fluxtion-runtime 1.0.13 with JDK 21. A 20M-event spot check reproduced the ordering and approximate
+ratios (3.36 / 7.25 / 9.05 / 20.02 ns for inline / guarded / stream clock / default clock). The
+500M-event stream-clock arm completed under Epsilon with a 64 MB heap:
+
+    RESULT fluxtionStreamClock 8.7148 0.000002 ...
+
+That supports fixed rather than per-event allocation and the central direction of the result.
+
+But BLOG-NUMBERS says every arm's output is asserted; BlogBench.java only prints it. A changed result
+still produces a timing. The directory contains raw output for only four throughput arms, while its
+tables also publish dirty-off, floor, latency, collector, clock, and audit results. There is no run
+script or command record and no pinned runtime/builder coordinate, so I had to reconstruct compilation
+and execution from source and the parent repo.
+
+Required for "citable and reproducible": one script; pinned JDK/runtime/builder and generated-source
+provenance; hard outcome assertions; raw outputs for every published table; machine/CPU and run-order
+record. Say "no detectable per-event allocation / fixed allocation over the tested range" rather than
+mathematically absolute zero. The one-process-per-configuration and no-paced-arrival limits are already
+disclosed correctly.
+
+================================================================================
+F10 · LOW — the committed range is not whitespace-clean
+================================================================================
+
+`git diff --check f645cce^..HEAD` reports four committed defects:
+
+- round-54/BLOG-NUMBERS.md:32 trailing whitespace
+- round-54/src/com/bench/Charge.java:4 trailing whitespace
+- round-54/src2/com/bench2/Charge.java:4 trailing whitespace
+- spec-component-catalogue.md:215 blank line at EOF
+
+This is smaller than the substantive findings, but it is another thing that passed the session's
+reported gates after the disclosed a5298fc rule-4 violation.
+
+================================================================================
+WHAT WAS VERIFIED
+================================================================================
+
+- `mvn test`: 1,286 tests, zero failures/errors.
+- Resolver output byte-identical to committed round-57 XML from manifests-v2 and 18 figures.
+- Harness happy paths: resolved/profile, ambiguous, mixed, and unsatisfiable.
+- Resolver adversarial probes: same-jar multiplicity, duplicate provider, constructor cycle.
+- Scorer adversarial probes through RecordParser: wrong event, extra actual figure, natural reserved
+  keys.
+- M49: committed source compiled and four throughput arms run on JDK 21; 500M stream-clock Epsilon run.
+- Released builder 1.0.64 bytecode: Spring logLevel -> addEventAudit.
+- No docs/site or Swing/UI changes in the range; MkDocs and visual run gates are not applicable.
+- The current official Haiku 4.5 context-window value is 200K.
+
+================================================================================
+NOT VERIFIED
+================================================================================
+
+- Round 57's build-green / byte-identical-alert execution: its vendor jars and build workspace are not
+  committed. The XML reproduction is not a substitute.
+- M49's audit, collector, latency, dirty-off, and floor arms; the 20M/500M runs above cover only the
+  central dispatch result.
+- Modes 2 and 3, any authoring-asset ablation, or the Haiku authoring ceiling: no evidence exists, as
+  the specs correctly disclose.
+- The playground assessment in its native setting; it remains a reading and should stay labelled so.
+- A replicated plain-Java comparison arm. n=1 versus Fluxtion n=4 and the P3b raw-unit caveat continue
+  to block publication of comparative ratios.
+- UP-FLX-45, 46, and 48 beyond the committed evidence reviewed here. UP-FLX-47 alone was directly
+  contradicted by released bytecode and the companion live probe.
+
+Closure condition: fix F1-F5; withdraw/narrow UP-FLX-47; reconcile F6-F8 in the specs/tracker; make
+M49's evidence package reproduce its published tables before calling it citable. The strategy can
+continue as a proposed, testable direction while those changes land.

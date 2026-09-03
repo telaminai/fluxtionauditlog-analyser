@@ -19,10 +19,16 @@ still check**.
 
 ---
 
-## ☐ `f645cce^..3c39c6c` (32 commits) · 2026-09-03 · authoring modes, the catalogue resolver, and the runtime benchmark
+## ☑ reviewed 2026-09-03 · CHANGES REQUIRED · `f645cce^..3c39c6c` (32 commits) · authoring modes, the catalogue resolver, and the runtime benchmark
 
 **Review brief:** [`prompt_review_authoring_modes.md`](prompt_review_authoring_modes.md) — the
 authoring programme is new; a reviewer who last saw M40/M42/M43 has not met any of it.
+
+**Reviews:** [`review_authoring_modes_3c39c6c.txt`](review_authoring_modes_3c39c6c.txt) (compiler-side)
+and [`review_authoring_modes_3c39c6c_followup.txt`](review_authoring_modes_3c39c6c_followup.txt)
+(independent adversarial follow-up). Verdict: the fixture result and M49 direction survive, but the
+scorer has false-PASS paths, the resolver/selector do not yet satisfy their general contracts,
+UP-FLX-47 is refuted by released 1.0.64 bytecode, and the strategy specs require reconciliation.
 
 **What & why.** One long session covering two separable bodies of work, both committed straight to
 `main` with no brief → report → review cycle. **They are independent and can be reviewed separately.**
