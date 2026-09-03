@@ -12,7 +12,7 @@ on is decided by what the catalogue can answer, not by a flag:
 So the harness always runs the catalogue first. That is the point: you never author what you could
 have resolved, and you learn which figures actually need authoring before writing a line.
 """
-import argparse, importlib.util, pathlib, sys
+import argparse, importlib.util, json, pathlib, sys
 
 _spec = importlib.util.spec_from_file_location(
     "resolver", pathlib.Path(__file__).parent / "bean-resolver.py")
@@ -22,6 +22,17 @@ _spec.loader.exec_module(R)
 
 BAR = "─" * 78
 
+# Which skill each mode needs. Mode 0/0+ needs NONE - nobody authors anything, so the cheapest
+# session loads nothing at all. The greenfield skills are the playground's existing assets.
+SKILL = {
+    "0":   None,
+    "0+":  None,
+    "1":   "fluxtion-selection",          # read a description; absence of a promise rules out
+    "2":   "fluxtion-spring-scaffold",    # playground: spring-authoring/skill.md
+    "3":   "fluxtion-node-authoring",     # playground: CLAUDE.md + golden path
+    "2/3": "fluxtion-node-authoring",     # greenfield gap; 2 vs 3 is a user preference
+}
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -29,17 +40,33 @@ def main():
     ap.add_argument("--figures", required=True)
     ap.add_argument("--conventions", default="")
     ap.add_argument("--xml")
+    ap.add_argument("--json", action="store_true",
+                    help="emit the machine-readable handoff: branch, modes, skills to load, work list")
     a = ap.parse_args()
 
     eps = R.load(a.manifests, a.jars)
     wanted = {f.strip() for f in a.figures.split(",") if f.strip()}
     profile = dict(c.split("=", 1) for c in a.conventions.split(",") if "=" in c)
 
-    print(BAR)
-    print(f"  catalogue : {len(eps)} entry points across {len({e.jar for e in eps})} jars")
-    print(f"  required  : {len(wanted)} figures")
-    print(f"  profile   : {', '.join(f'{k}={v}' for k, v in profile.items()) or '(none)'}")
-    print(BAR)
+    def handoff(branch, modes, resolved, gap, candidates=None):
+        """The contract a skill loader consumes. Modes are per-figure, so `modes` is a list."""
+        print(json.dumps({
+            "branch": branch,                       # "catalogue" | "greenfield"
+            "modes": modes,                         # e.g. ["0+"] or ["0+", "2/3"]
+            "skills": [SKILL[m] for m in modes],
+            "resolved_figures": sorted(resolved),
+            "authoring_required": sorted(gap),
+            "selection_candidates": candidates or {},
+        }, indent=2))
+
+    if a.json:
+        pass
+    else:
+        print(BAR)
+        print(f"  catalogue : {len(eps)} entry points across {len({e.jar for e in eps})} jars")
+        print(f"  required  : {len(wanted)} figures")
+        print(f"  profile   : {', '.join(f'{k}={v}' for k, v in profile.items()) or '(none)'}")
+        print(BAR)
 
     sols, err = R.solve(eps, wanted, profile)
 
@@ -49,6 +76,9 @@ def main():
         # A session is normally MIXED: most figures resolve, a few need authoring. Resolve the
         # covered subset so the author sees a real bean file and a scoped work list, not a refusal.
         sub, suberr = R.solve(eps, covered, profile)
+        if a.json:
+            m = ["0+" if profile else "0"] if (sub and len(sub) == 1) else ["1"]
+            return handoff("catalogue", m + ["2/3"], covered, missing) or 2
         print(f"\n  MIXED SESSION — {len(covered)} of {len(wanted)} figures resolve mechanically,")
         print(f"  {len(missing)} require authoring.\n")
         if sub and len(sub) == 1:
@@ -80,6 +110,16 @@ def main():
         return 2
 
     if len(sols) > 1:
+        if a.json:
+            cands = {}
+            for jar in sorted({e.jar for x in sols for e in x}):
+                picks = sorted({e.simple for x in sols for e in x if e.jar == jar})
+                if len(picks) > 1:
+                    cands[jar] = [{"class": p,
+                                   "description": next(x for x in eps if x.simple == p).description,
+                                   "conventions": next(x for x in eps if x.simple == p).conventions}
+                                  for p in picks]
+            return handoff("catalogue", ["1"], wanted, [], cands) or 3
         print(f"\n  MODE 1 — {len(sols)} equally minimal selections. Assembly is mechanical;")
         print("  selection is not. One question needs judgement:\n")
         for jar in sorted({e.jar for s in sols for e in s}):
@@ -95,6 +135,10 @@ def main():
 
     sel = sols[0]
     mode = "0+" if profile else "0"
+    if a.json:
+        if a.xml:
+            pathlib.Path(a.xml).write_text(R.emit_xml(sel) + "\n")
+        return handoff("catalogue", [mode], wanted, []) or 0
     print(f"\n  MODE {mode} — RESOLVED. Nobody authors anything.\n")
     for e in R.order(sel):
         print(f"      {e.jar:12} {e.simple}")
