@@ -1,0 +1,61 @@
+INDEPENDENT REVIEW BRIEF — shared evidence canvas thesis
+Date: 2026-09-04
+Work under review: the new thesis committed with this brief
+  docs/specs/spec-shared-evidence-canvas.md
+
+PURPOSE
+
+One session has synthesised the compiler, resolver, portable-context, assistant-action and trust work
+into an overall product thesis: the compiler externalises mechanical decisions while the analyser is
+the persistent shared canvas on which a human and an LLM exchange context, evidence, findings and
+decisions. Nothing in this synthesis has had an independent read.
+
+START HERE, IN ORDER
+
+1. docs/specs/spec-shared-evidence-canvas.md — the new thesis; attack it rather than polishing it.
+2. docs/specs/completed/spec-portable-context.md — especially D-C1, D-C2, D-C7 and the “not per-user
+   notes” non-goal. The new project-context proposal must not smuggle executable or unreviewed prompt
+   content into the profile.
+3. docs/specs/completed/spec-assistant-actions.md and current VerbSchemas.java — verify the claim that
+   both parties already manipulate one filter/graph/topology/finding/report model.
+4. docs/specs/spec-authoring-modes.md §§ target architecture and pinned/unpinned joints — verify every
+   status in the thesis table rather than inheriting it.
+5. docs/specs/spec-trust-structure.md D-T1–D-T5 — check that “shared canvas” has not weakened the
+   evidence/testimony boundary or reintroduced the withdrawn claim that the analyser verifies an app.
+6. In the compiler repo, check the claimed compiler authority and remaining model→audit identity gap
+   against source/trackers, not this analyser document.
+
+CLAIMS TO ATTACK FIRST
+
+1. “One model with two participants.” Find every context key or mutable investigation object available
+   to only the human or only the agent. A parity slogan is false if either side has a hidden state.
+2. “The promoted state of the conversation should survive.” Decide whether the proposed project-owned
+   context document is genuinely new value or an ill-defined mixture of project profile, reports,
+   handoffs and a wiki. Test it against the existing pointer-not-content and not-per-user-notes rules.
+3. “Both can write.” Identify which writes exist today, which persist, which are merely reversible UI
+   state, and which the document accidentally describes as shipped. Judge whether direct durable model
+   writes should exist at all and where human acceptance belongs.
+4. The authority table. Look for facts with two owners, especially identity, finding text, filters,
+   project policy and correction status. Look also for facts with no owner.
+5. The priority order. The document puts cold project context before catalogue resolution and the
+   audit-log fingerprint carrier. Say whether that follows from the thesis or merely from the newest
+   idea.
+6. The acceptance tests. Prefer an executable cold-handoff/parity probe over an argument. Say which
+   tests are capable of falsifying the thesis and which only demonstrate plumbing.
+
+KNOWN LIMITS — CONFIRM OR CONTRADICT
+
+- Goal→formal-requirement translation and free-form authoring modes 2/3 are unmeasured.
+- Deterministic component resolution is measured on one fixture family and not yet a builder product.
+- The compiler fingerprint reaches GraphML/generated descriptor but not the audit-log header.
+- Detection is mutation-tested; detect→correct→new-run closure is not pinned.
+- The current profile is typed portable context, not a conversation store. The context document is a
+  proposal, not a shipped capability.
+- The analyser does not establish log origin/completeness or general application correctness.
+
+REVIEW OUTPUT
+
+Write one review under docs/handoff/. Lead with a verdict. Rank findings by what rests on them, include
+source/commands for every factual disagreement, say what was not checked, and keep proposed fixes
+separate from findings. Do not edit the thesis during the independent pass. Commit only the review file
+if using the shared working tree.
