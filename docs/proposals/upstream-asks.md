@@ -1509,3 +1509,41 @@ JFR attributes 97.7% of the ERROR-level allocation to one site — `LogRecord.tr
 
 **Not a defect** — the knob exists and works. The default is the wrong way round for the common case, and
 the cost is undocumented.
+
+---
+
+## UP-FLX-49 — the entry wrapper dominates AOT dispatch cost (four changes)
+
+**Evidence:** [`round-58`](../experience/runs/round-58/NOTES.md), spec:
+[`spec-generated-dispatch-performance.md`](../specs/spec-generated-dispatch-performance.md).
+~500 measured runs across 9 runtimes, every arm output-verified before timing.
+
+**The generated dispatch is not the cost.** Disassembled, `handleEvent` is **276 instructions with no
+un-inlined calls — fewer than a hand-written equivalent's 288**, identical floating-point work. Every
+cost found is in the runtime scaffolding around it.
+
+**1. Guard the callback drain** (no flag, no semantic change — **−17.8% native, −10.8% PGO**).
+`processEvent` calls `dispatchQueuedCallbacks()` every event; its empty path does
+`invokeinterface Deque.isEmpty()` on `myStack` plus an unconditional `dispatching = false` store.
+Gate it on a boolean field set by the callback path. Also: declare `myStack` as `ArrayDeque` so the
+call is direct, and skip the store on the empty path (both unmeasured, likely additive).
+
+**2. A `noReentrancy` build flag** (**−26% native, −7% JIT**). Omit the wrapper when no node can raise
+a re-entrant event or register a callback — decidable from the graph the generator already holds.
+**Fail the build** naming the offending node rather than degrading silently; keep a runtime guard that
+throws, because detection cannot be complete; default off.
+
+**3. Interface-typed fields read on the event path are a systematic AOT hazard.** `myStack` (`Deque`)
+and **`Clock.wallClock` (`ClockStrategy`, called every event, still open)** are two instances. A JIT
+folds them to one concrete type; closed-world AOT leaves real dispatch. Worth auditing the runtime for
+the whole pattern. Related: `Deque<Supplier<Boolean>>` **boxes a boolean per callback**, so the
+re-entrant path allocates — `BooleanSupplier` fixes it.
+
+**4. Document the performance configuration.** `@OnTrigger(failBuildIfMissingBooleanReturn = false)`
+plus `setSupportDirtyFiltering(false)` plus native-image with PGO takes the same graph from **9.41 to
+1.55 ns/event (646M/sec)** — within **0.6%** of hand-written single-method Java, ranges overlapping.
+These knobs exist today and are nowhere presented as a coherent choice.
+
+**Not asked for: `@AlwaysInline`.** Raising the inlining thresholds globally is strictly stronger than
+annotating methods and bought only 3.8%; it would also make the runtime jar depend on GraalVM
+internals.

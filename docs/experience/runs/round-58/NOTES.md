@@ -736,3 +736,64 @@ Note the base case is *slower* than Addendum 5's arm on JIT and native (4.75 vs 
 strictly more work — `charge` and `buffer` fire on every event rather than only on a breach. It is a
 different semantic, chosen deliberately. Under PGO that extra work disappears into the inlining and
 the base case wins outright.
+
+---
+
+# Addendum 7 — the processor as a native shared library, embedded in C++
+
+**Setup.** The base-case processor (void triggers, no dirty filtering, no auditors, no wrapper) built
+with `native-image --shared` and `@CEntryPoint`, producing a 5.6 MB `.dylib` with C headers. Embedded
+in a C++ harness alongside a hand-optimised C++ implementation of the same arithmetic. Buffer value
+asserted identical (11551.2267) before timing. `clang++ -O3 -march=native -std=c++17`.
+
+| arm | ns/event | events/sec | vs C++ |
+|---|---|---|---|
+| **hand-optimised C++** | **1.66** | 602M | — |
+| Fluxtion native lib, batch (loop inside the library) | **3.10** | 323M | 1.87× |
+| Fluxtion native lib, per-event across the C ABI | 7.02 | 142M | 4.2× |
+
+## Two separate costs
+
+**The C boundary costs ~3.9 ns per call** (7.02 − 3.10). An integrator calling event-by-event from C++
+pays more for the boundary than for the processor. Batching across it recovers that entirely — which
+is the design guidance: cross the ABI per batch, not per event.
+
+**The processor itself is 1.87× hand C++ — in the un-profiled configuration.**
+
+## The limitation that matters: this is NOT the fast configuration
+
+PGO is what closed the gap in the Java comparison (6.39 → 1.55 ns, Addendum 6). **It could not be
+applied to the shared library here**, and the result is therefore the configuration already known to
+be ~2× off:
+
+- `-R:ProfilesDumpFile` is accepted at build time, but **the dump did not fire** on
+  `graal_tear_down_isolate`, with either an absolute or a relative path. No profile was produced.
+- Reusing the profile from the equivalent **executable** made things worse, not better —
+  2.85 → 4.19 ns. `fx_run_batch` does not appear in that profile, so it was treated as cold and
+  deoptimised. **PGO profiles are entry-point specific; a mismatched profile is worse than none.**
+  That is a genuine finding and a trap for anyone applying PGO to a library.
+- `-march=native` on the image changed nothing (2.996 → 3.030), as it did not for the executable.
+
+The 1.87× ratio matches the un-profiled Java ratio almost exactly (native 6.39 vs hand-Java 3.18 =
+2.01×), which is consistent with the shared library simply being the un-profiled configuration.
+
+## What is and is not established
+
+**Established:** a Fluxtion processor compiles to a self-contained 5.6 MB native shared library with a
+C ABI, embeds in C++, produces identical results, and runs at **323M events/sec un-profiled** —
+1.87× a hand-written C++ implementation of the same arithmetic.
+
+**Not established: parity with C++.** The Java measurement of **1.55 ns/event under PGO** sits in the
+same range as this harness's hand C++ at **1.66 ns**, which is suggestive — but they come from
+different harnesses and different clocks (`System.nanoTime` vs `steady_clock`) and were never run head
+to head. **Do not quote it as C++ parity.** The experiment that would settle it is a PGO-enabled
+shared library, and that requires resolving the profile dump first.
+
+## Follow-up needed
+
+1. Get `--pgo-instrument` to emit a profile from a shared library — via `graal_create_isolate`
+   parameters, or by exercising the same entry points from an executable built from the same sources.
+2. Re-run this comparison with the PGO library. **That is the experiment that tests the C++ parity
+   claim.**
+3. Consider a batched `@CEntryPoint` taking an array of ticks, since the per-event boundary cost
+   (~3.9 ns) dominates the processor.
