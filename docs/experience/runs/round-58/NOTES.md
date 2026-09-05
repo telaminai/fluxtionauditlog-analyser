@@ -1401,3 +1401,89 @@ components arriving as opaque pre-compiled jars.**
 That is the composition worth reporting: *the integration thesis and the performance thesis are only
 simultaneously true under ahead-of-time compilation.* On a JIT you must choose between integrating
 vendor components and reaching the floor. Under native + PGO the choice disappears.
+
+---
+
+# Addendum 16 — the C++ comparison, finished: PGO on a shared library is catastrophic
+
+Addendum 7 left this open: the shared library ran at 4.19 ns against C++ at 1.66, but that was the
+**un-profiled** build, because PGO could not be applied. This resolves it, and the answer is the
+opposite of what was assumed.
+
+## Two changes made it work
+
+1. **A batch entry point that constructs the processor inside the call.** A `@CEntryPoint` holding
+   state across calls must keep it in a static field — the 3.10 ns shape (Addendum 13). A batch API
+   (`fx_local(n)`) can create the processor locally, so it never escapes. Construction amortises to
+   nothing over 200M events.
+2. **Not applying PGO at all.**
+
+## Measured: one process, one clock, interleaved, output verified identical
+
+10 rounds, all arms in the same C++ harness, `bufFx == bufC` asserted every round.
+
+| arm | median | min | max |
+|---|---|---|---|
+| **Fluxtion, shared library, non-escaping batch** | **1.4798** | 1.4717 | 1.4943 |
+| hand-written C++ (`-O3 -march=native`) | 1.5717 | 1.5701 | 1.5822 |
+| hand-written Java, same library | 2.3553 | 2.3405 | 2.3952 |
+| Fluxtion, shared library, static-held | 3.1004 | 3.0795 | 3.1376 |
+
+**The generated processor compiled into a native shared library ran ~6% faster than the hand-written
+C++ arm**, ranges non-overlapping. It also beat hand-written Java in the same library by 1.6×.
+
+clang was given the same class of optimisation Graal applies: `-funroll-loops` changed nothing
+(1.571), and its best configuration — `-Ofast -march=native -fno-fast-math -funroll-loops` — reached
+1.554. `-ffast-math` was **not** used: it reassociates floating point and the outputs would no longer
+match.
+
+**Scope this honestly.** The C++ arm is an idiomatic struct-based implementation of the same
+arithmetic, compiled at `-O3 -march=native`. It is not "the best possible C++" — a specialist with
+manual SIMD, `__restrict`, or a different data layout might do better. The claim is that **the
+generated processor was not slower than a competent hand-written C++ implementation of the same
+computation in this fixture**, which is a considerably weaker and more defensible statement than
+"beats C++".
+
+## The PGO finding, which is the practical warning
+
+Same library, same code, same harness, only the profile differs:
+
+| | fx_local | fx_static | java_hand | cpp_hand |
+|---|---|---|---|---|
+| **no profile** | **1.48** | 3.10 | 2.36 | 1.57 |
+| profile from an executable built from the *same static methods* | **6.28** | 6.25 | 3.14 | 1.59 |
+
+**A profile collected from an executable made the shared library 4× slower.** Every Java arm degraded;
+the C++ arm, untouched by it, did not. The build log confirms the profile was accepted
+(`PGO: user-provided`).
+
+This sharpens Addendum 7's observation from "a mismatched profile is worse than none" into something
+sharper: **a profile collected from a different image kind is actively harmful, even when it names the
+same methods.** Profiles appear to be bound to the image they were collected from, not merely to
+method identities.
+
+**Practical rule: do not carry a profile across image kinds. For a shared library, either collect the
+profile from that library, or ship it without PGO.** Shipping it without PGO is not a compromise here
+— the no-profile library is the fastest configuration measured in this entire round.
+
+## What this changes
+
+The spec's *"parity with hand-optimised C++ is not established"* can be retired. **In this fixture,
+with a non-escaping batch entry point and no PGO, the generated processor matched and slightly
+exceeded a hand-written C++ implementation of the same arithmetic.** The remaining honest caveats are
+the fixture size, the single machine, and the quality of the C++ comparator.
+
+## Clock, closed out (Addendum 9's open item)
+
+In-situ cost of `clock.eventReceived`, one call per event, stream clock injected, measured by
+difference against an otherwise identical processor:
+
+| runtime | with clock | without | cost |
+|---|---|---|---|
+| CE 25.3 Graal JIT | 7.79 | 7.54 | **+0.25 ns** |
+| Oracle native, no PGO | 12.69 | 11.37 | +1.33 ns |
+| Oracle native + PGO | 8.62 | 8.37 | **+0.25 ns** |
+
+Third-order, as the isolated probe predicted (Addendum 9 measured the interface-vs-concrete field at
+~0.1 ns). Worth fixing only in the un-profiled native configuration, which is not a configuration
+anyone should deploy. **It stays on the list, below the guarded drain.**
