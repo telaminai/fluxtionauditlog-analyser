@@ -322,3 +322,107 @@ unexplained, not explained-and-small.**
 concrete), `src/AudBench.java`, `src/TypedBench.java`, `src/BareBench.java`. The `NoAud` and `Bare`
 processors are hand-edited experimental variants derived from the generated source — **not shipped
 shapes** — and are gitignored with the rest of `flat/` for the same rule-1 reason.
+
+---
+
+# Addendum 2 — the AOT penalty found: it is the generic entry wrapper
+
+**Question:** with all auditors removed, native was still 11.21 ns against 7.90 ns hand-written.
+Addendum 1 left that unexplained. This resolves it, from the compiled machine code.
+
+## The dispatch method is not the problem
+
+Both binaries rebuilt with `-H:-DeleteLocalSymbols`, dispatch methods extracted with `objdump`
+(`asm/asm-gen.txt`, `asm/asm-hand.txt`):
+
+| | instructions | real calls | fp arith | loads | stores | branches |
+|---|---|---|---|---|---|---|
+| generated `handleEvent` | **276** | 0 (23 `bl` are cold NPE stubs) | 24 | 46 | 34 | 31 |
+| hand-written `onTick` | 288 | 0 (23 cold NPE stubs) | 24 | 49 | 44 | 32 |
+
+**The generated dispatch compiles to fewer instructions than the hand-written equivalent**, with
+identical floating-point work and no un-inlined calls. Nothing is wrong with the emitted dispatch.
+
+## The cost is the wrapper around it
+
+Hand-written hot loop: `main → PlainGuarded_onTick`. One call to a leaf.
+
+Generated hot loop: `main → processEvent`, which makes four un-inlined calls **per event**:
+
+```
+processEvent
+  ├─ bl CallbackDispatcherImpl_queueReentrantEvent
+  ├─ bl BenchProcessorBare_triggerCalculation
+  ├─ bl onEventInternal ──→ bl handleEvent   (plus blr x30, an indirect call)
+  └─ bl CallbackDispatcherImpl_dispatchQueuedCallbacks
+```
+
+This is re-entrancy queueing and callback draining, executed on every event whether or not the graph
+has any re-entrant callbacks.
+
+## Measured (`EntryBench`: same processor, wrapper vs direct `handleEvent`)
+
+| runtime | via generic entry | direct to dispatch | wrapper costs |
+|---|---|---|---|
+| JIT | 7.29 | 6.89 | **0.40 ns** (−5.5%) |
+| **native** | **11.22** | **7.84** | **3.38 ns (−30.1%)** |
+| native + PGO | 8.16 | 7.39 | 0.77 ns (−9.4%) |
+
+Hand-written native is **7.90 ns**. Calling the generated dispatch directly gives **7.84 ns** — the
+generated processor is **faster than the hand-written equivalent** once the wrapper is bypassed.
+
+**The entry wrapper is 3.38 ns of the 3.31 ns gap.** It accounts for the whole thing. A JIT inlines it
+and folds the always-empty queue check to a predictable branch; closed-world AOT without profiles
+leaves four real calls. PGO recovers most but not all of it.
+
+This is the same effect round-54 saw on a JIT and correctly called small — *"the typed entry point
+buys nothing today, because it still routes through the generic path, paying the type dispatch and
+re-entrancy machinery anyway"*, worth ~0.59 ns. **Under AOT the same machinery is worth 3.38 ns.**
+
+## Auditors: the earlier reading was wrong
+
+`DefaultProbe` isolates the six auditor calls with unremovable work in the loop:
+
+| | work only | +6 inherited defaults | +6 explicit overrides |
+|---|---|---|---|
+| JIT | 1.3152 | 1.3065 | 1.2883 |
+| native | 1.4752 | 1.4526 | 1.4475 |
+| native + PGO | 1.3455 | 1.2549 | 1.3157 |
+
+**Empty default-method calls are free on every runtime, native included**, and inherited defaults are
+indistinguishable from explicit overrides. Generating no-op auditor calls was a sound decision.
+Addendum 1's *"remove all six auditors → −20% on native"* conflated the five free ones with
+`clock.eventReceived`, which does real work (an interface call into `ClockStrategy`). Consolidating
+auditor call sites would not help: there is nothing there to save.
+
+A first attempt at this probe measured **0.0000 ns on every arm** — both compilers deleted the entire
+loop, because six calls that do nothing have no observable effect. That null result is retained as the
+reason the probe carries a `work()` accumulator.
+
+## The better shape, and it is statically decidable
+
+**Emit a typed entry that calls the dispatch directly, and omit the re-entrancy wrapper when the graph
+provably has no re-entrant callbacks.** Whether any node queues a re-entrant event or registers a
+callback is known at generation time — if none does, `queueReentrantEvent` and
+`dispatchQueuedCallbacks` are dead code on every event, and the queue is provably always empty.
+
+That is the same partial-evaluation move the generator already makes for dispatch order: decide it
+once, at build time, where the information is. Worth **30% on native**, ~5% on a JIT, and it makes the
+generated processor faster than hand-written code of the same semantics.
+
+Ranked, for the generated arm on native:
+
+| lever | worth |
+|---|---|
+| **omit the entry wrapper when no re-entrant callbacks exist** | **−30%** |
+| PGO | −36% (and −9% more on top of the above) |
+| omit empty auditor calls | ~0% — they are already free |
+| flatten to one method | −1.8% |
+| raise inlining limits | −3.8% |
+| `@AlwaysInline` | not needed, and not worth the GraalVM-internals dependency |
+
+## Files
+
+`src/EntryBench.java`, `src/DefaultProbe.java`, `src/LeanBench.java`, `asm/asm-gen.txt`,
+`asm/asm-hand.txt`. Symbol-preserving builds used `-H:-DeleteLocalSymbols`; JIT assembly was **not**
+obtained (no `hsdis` present), so the machine-code comparison is native-to-native.
