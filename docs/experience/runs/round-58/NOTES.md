@@ -1237,3 +1237,77 @@ is a deployment-shape decision for AOT builds specifically, not general Java adv
 
 **The best achievable base case is 1.58 ns / 633M events/sec, native-image + PGO, with the processor
 non-escaping — within 1% of hand-rolled Java in the same binary.** The JIT floor is 4.80 ns / 208M.
+
+---
+
+# Addendum 14 — lowering the JIT floor: flat-state codegen
+
+**Question:** the JIT floor is 4.80 ns while native+PGO reaches 1.58. Can the JIT be brought down?
+
+## No flag moves it
+
+GraalVM CE 25.3 Graal JIT, base case, median of 5:
+
+| setting | fluxtion | hand |
+|---|---|---|
+| baseline | 4.58 | 2.26 |
+| `MaximumInliningSize=3000` (default 300) | 4.62 | 2.28 |
+| `TrivialInliningSize=200` (default 10) | 4.64 | 2.29 |
+| both raised | 4.64 | 2.30 |
+| **`PartialEscapeAnalysis=false`** | **4.66** | 2.28 |
+| `-XX:-TieredCompilation` | 4.72 | 2.33 |
+
+**Turning partial escape analysis off changes nothing**, which is the diagnostic: the JIT was never
+scalar-replacing the node graph, so there is nothing to tune. The floor is structural — ten objects'
+worth of field traffic — and no JVM flag reaches it.
+
+## What does move it: hoist node state into the processor
+
+`FlatStateProcessor` emits the same graph with node **state** as primitive fields of the processor and
+node **bodies** as private methods over those fields. Same dependency order, same arithmetic, same
+semantics. One object instead of eleven. Output verified identical on all three arms.
+
+| runtime | **flat state** | node objects | hand-rolled | flat vs hand |
+|---|---|---|---|---|
+| **GraalVM CE 25.3, Graal JIT** | **2.50** · 401M/s | 4.82 · 207M/s | 2.34 | **+6.8%** |
+| Corretto 21.0.9, C2 | **3.26** · 307M/s | 5.34 · 187M/s | 3.10 | +5.3% |
+| Oracle native-image + PGO | **1.57** · 635M/s | 7.73 | 1.56 | **+1.2%** |
+
+**The JIT floor drops from 4.82 to 2.50 ns — a 48% cut, 208M → 401M events/sec — and lands within
+6.8% of hand-written Java.** On native+PGO it is within 1.2%.
+
+(The node-objects column reads 7.73 here rather than the 1.70 of Addendum 12 because in this binary
+two other arms are also hot; the shape sensitivity documented in Addendum 13 applies. Compare within
+rows only.)
+
+## Why it works, and what it costs
+
+The JIT cannot prove the ten node objects non-escaping, so every `node.calc()` reads and writes
+through a pointer. Hoisting the state removes the objects, so the same arithmetic runs on fields of a
+single receiver — exactly the shape the hand-written comparator has, which is why the numbers converge.
+
+**Native+PGO already achieved this via scalar replacement.** Flat-state codegen does statically what
+PGO does dynamically — which is why it changes native+PGO barely at all (1.57 vs 1.56) and the JIT
+enormously.
+
+**The cost is node addressability.** With state hoisted there is no `Mid` instance to hand back, so
+`getNodeById` cannot return one. Two things are *not* lost: node **names** are compile-time known and
+can still be emitted into audit calls, and the topology/GraphML is a build-time artefact unaffected by
+runtime layout. What goes is runtime object identity — the same trade as every other lever in this
+round, and it should be a mode, not a default.
+
+## The complete set of levers, ranked
+
+| lever | JIT | native | keeps semantics? |
+|---|---|---|---|
+| **flat-state codegen** | **−48%** | ~0 (PGO already does it) | yes; loses node object identity |
+| PGO at deploy | n/a | **−36%** | yes — no code change |
+| omit entry wrapper (`noReentrancy`) | −7% | −26% | only if no re-entrant callbacks |
+| guarded callback drain | −2% | −18% | **yes, unconditionally** |
+| void triggers + dirty filtering off | large | large | no — app developer's choice |
+| concrete `ClockStrategy` field | 0% | −10 to −15% of the clock read | yes |
+| hoist auditor calls | 0% | 0% | yes; 35% smaller bytecode |
+| `@AlwaysInline` / inlining flags | ~0% | −3.8% | — not worth it |
+
+**For a JIT deployment the ranking is: flat-state codegen first, then the guarded drain. For native,
+PGO first, then the entry wrapper.**
