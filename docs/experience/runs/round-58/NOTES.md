@@ -1014,3 +1014,91 @@ JIT**, the worst cell in the table.
 **Recommendation:** `getClass()` identity compares for typical graphs; consider a hash lookup on class
 identity beyond ~32 event types. Do not adopt an interface-returned event id — it is slower than what
 it replaces at every count except 64-under-AOT.
+
+---
+
+# Addendum 11 — matched holding, and the 1.58 ns figure is not reproducible
+
+## Test environment, stated plainly
+
+| label | VM |
+|---|---|
+| "JIT" | **GraalVM CE 25.3.4.1** (JDK 25.0.4.1, `jvmci-25.3-b22`), Graal JIT + libgraal |
+| "native", "native+PGO" | **Oracle GraalVM 25.0.4 LTS** native-image (Substrate VM) |
+| earlier C2 rows | Amazon Corretto 21.0.9, OpenJDK 25.0.2 |
+
+## Does a `private final` instance field preserve the fast path? No — and holding does not matter
+
+Oracle GraalVM native-image + PGO, processor held four ways:
+
+| holding | ns |
+|---|---|
+| `App` local, `private final` field, no accessor | 4.78 |
+| `App` in a static field, `private final` | 4.78 |
+| `App` in a static field, **non-final** | 4.77 |
+| bare `static final` processor, no wrapper object | **2.57** |
+
+**`final` makes no difference at all.** Indirection through any object field costs the same as a
+non-final one. On the CE JIT every shape including `static final` is ~4.7 — the JIT never gets the
+benefit that Substrate's build-time image heap gives `static final`.
+
+## The fair comparison: both implementations stateful, both held identically, same binary
+
+The hand-written arm is also stateful and must store its values somewhere, so it is eligible for the
+same optimisations. Earlier comparisons put a local C++/Java struct against a static Fluxtion
+processor — not like for like. Corrected:
+
+| shape | Fluxtion generated | hand-rolled Java | ratio |
+|---|---|---|---|
+| **native+PGO**, local | 4.86 | **1.56** | **3.1×** |
+| **native+PGO**, `private final` field | 4.74 | **1.57** | **3.0×** |
+| CE JIT, local | 4.78 | 2.34 | 2.0× |
+| CE JIT, `private final` field | 4.76 | 2.35 | 2.0× |
+
+**At matched holding, hand-rolled Java is 2.0× faster on the JIT and 3.0–3.1× faster on native+PGO.**
+Holding shape is irrelevant to both arms; the hand-written implementation is simply faster.
+
+## The 1.58 ns figure does not reproduce, and I cannot control what produces it
+
+`fxLocal` above is the **identical source shape** to `PureLocal`, which measured **1.58 ns**. In this
+binary it is **4.86 ns**. Observed range for nominally the same work:
+
+| binary | ns |
+|---|---|
+| `PureLocal` / `TwoAlloc` / `StaticProc` — minimal, one use of the type | **1.58** |
+| `BaseBench` — 2 arms | 1.50 |
+| `ShapeB` — `static final`, loop in a method | 2.62 |
+| `FieldShape` `staticFinal` — 4 arms | 2.57 |
+| `SingletonBench` (3 arms), `EscapeBench` (4), `FairShape` (4) | 4.7–4.9 |
+| single-entry-point shared library | 4.19 |
+
+Hypotheses eliminated by experiment: unused static declarations; a second live instance;
+several competing hot paths; the loop being in a separate method; `final` vs non-final; local vs
+field. **None of them explains it.** The remaining explanation is whole-program compilation and PGO
+profile allocation — decisions Substrate makes across the entire image that I cannot isolate with the
+tools used here.
+
+**Practical consequence: 1.55–1.58 ns / 650M events/sec must not be quoted.** It appears only in
+minimal binaries containing a single use of the processor type, and vanishes in every binary
+resembling an application.
+
+## The defensible statement
+
+> In a binary containing more than a trivial single use of the processor, the generated event
+> processor in its fastest configuration (void triggers, no dirty filtering, no auditors, no
+> re-entrancy wrapper) runs at **~4.8 ns/event (~208M events/sec)**, which is **2–3× a hand-written
+> single-method Java implementation** of the same semantics, and roughly **3× hand-optimised C++**
+> (1.66 ns). Embedded as a native shared library it is 4.19 ns (239M/sec).
+
+What still stands unchanged, because those comparisons were internally valid:
+
+- The generated **dispatch method** compiles to fewer instructions than hand-written (276 vs 288).
+- The **entry wrapper** is the AOT cost; the guarded drain recovers 17.8% of it.
+- **PGO is worth 31–36%** on the generated arm, and a mismatched profile is worse than none.
+- The generated processor **beats hand-written code carrying the same per-node object structure**
+  (Addendum 5) — the gap is the object graph itself, not the generated dispatch.
+
+**The honest summary of this round: the cost of the graph is the ten node objects, and no compiler
+setting removes it in a realistic binary.** That is the price of nodes being addressable, observable
+and independently testable — which is what Addendum 5 said before Addendum 6 briefly suggested
+otherwise on the strength of a benchmark that does not represent a program.
