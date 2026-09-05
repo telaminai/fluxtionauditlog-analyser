@@ -519,3 +519,82 @@ at build time, where the information is — applied to a capability rather than 
 With the wrapper bypassed and auditors removed, the generated processor runs **7.84 ns** against a
 hand-written implementation of the same semantics at **7.90 ns** (Addendum 2, native). **The generated
 dispatch is not slower than hand-written code; the generic entry path is.**
+
+---
+
+# Addendum 4 — scan for other latency, and was monomorphic dispatch the right call?
+
+## Was generating concrete-typed, monomorphic dispatch a good choice? Yes, and the assembly proves it
+
+This is the decision the whole result rests on. Every node is a `public final transient <ConcreteType>`
+field, so every `node.calc()` is a direct call, and the generated `handleEvent` compiles to **276
+instructions with zero un-inlined calls** — *fewer* than the hand-written equivalent's 288, with
+identical floating-point work (Addendum 2).
+
+Had nodes been held behind an interface, they would have hit exactly the failure this round
+documents three times over: interface-typed fields on a hot path are folded by a profiling JIT and
+left as real dispatch by closed-world AOT. The generated dispatch is immune to that by construction.
+**The generated code was never the problem; everything found in this round is in the runtime
+scaffolding around it.**
+
+## The recurring pattern: interface-typed fields called every event
+
+| site | field | per-event call | status |
+|---|---|---|---|
+| `CallbackDispatcherImpl.myStack` | `java.util.Deque` | `Deque.isEmpty()` | **found, measured** (Addendum 3) |
+| `Clock.wallClock` | `ClockStrategy` | `getWallClockTime()` | **found here, not yet measured** |
+| `ServiceRegistryNode` maps | `Map`/`List` | none — not touched per event | not an issue |
+
+`Clock.wallClock` is the third instance and it is on the audit path of every event. With
+`setClockStrategy(() -> …)` the receiver is a lambda, and several `ClockStrategy` implementations are
+reachable. This is very likely why `clock.eventReceived` was the one auditor call that cost anything
+(~0.7 ns on JIT) while the other five were free.
+
+**This pattern is worth grepping the whole runtime for**: an interface-typed field, read on the
+event path, is invisible on a JIT and real under AOT.
+
+## Boxing on the re-entrant path
+
+`CallbackDispatcherImpl.myStack` is `Deque<Supplier<Boolean>>` — draining it does
+`Supplier.get()` → `Boolean.booleanValue()`, so **every callback boxes a boolean**. Off the fast path,
+but it means the re-entrant path allocates, which matters for the zero-allocation claim if anything
+uses callbacks. A `BooleanSupplier` (primitive-specialised) removes it.
+
+## Event-type dispatch: not a scaling risk
+
+`onEventInternal` is a linear `instanceof` chain, so the concern is cost growing with event-type
+count. Measured with a genuinely unknown receiver type and N distinct types live (`ChainProbe`):
+
+| | 2 types | 5 | 9 | 16 | switch on type id |
+|---|---|---|---|---|---|
+| JIT | 1.3976 | 1.3667 | 1.3920 | 1.6555 | 3.4826 |
+| native | 3.6242 | 4.3602 | 3.5111 | 2.8721 | 2.4707 |
+
+**JIT grows 0.26 ns from 2 to 16 types** — real but small, and the switch-on-id alternative is
+*worse* there. The native row is non-monotonic, so it is dominated by branch prediction over the
+cycled types rather than by chain length. **No action recommended**, and no claim that a switch is
+better.
+
+## Methodological note — three probes folded away
+
+Two probes in this round returned exactly 0.0000 ns or unusable numbers because the compiler
+deleted what they were trying to measure:
+
+- `DefaultProbe` v1: six empty calls with no observable effect — whole loop eliminated.
+- `ChainProbe` v1: receiver declared as its concrete type, so every `instanceof` folded to a constant.
+
+Both are kept in `src/` in fixed form. **Microbenchmarking things that are nearly free is
+adversarial**: the compiler's job is to delete exactly what you are trying to time, and a suspiciously
+clean zero is a broken probe, not a result.
+
+## Ranked work, all measured on the generated arm
+
+| change | native | JIT | note |
+|---|---|---|---|
+| omit entry wrapper (no-re-entrancy flag) | **−26%** | −7% | needs build-time proof + runtime guard |
+| PGO at deploy | **−36%** | n/a | no code change at all |
+| guarded drain (keeps re-entrancy) | **−18%** | −2% | no flag, no semantic change — do this first |
+| `ClockStrategy` field devirtualisation | untested | untested | third instance of the pattern |
+| hoist auditors | ~0% | ~0% | **35% smaller bytecode per handler** — size, not speed |
+| flatten to one method | −1.8% | ~0% | not worth it |
+| `@AlwaysInline` | — | — | not needed |
