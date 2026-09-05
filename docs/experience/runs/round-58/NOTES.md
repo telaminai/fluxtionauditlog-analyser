@@ -248,3 +248,77 @@ scripts/build-pgo.sh                                   # 3-stage PGO
 ```
 
 `scripts/flatten.py` was verified to reproduce the exact file that was measured, byte for byte.
+
+---
+
+# Addendum — is there a better *shape* for the generated code?
+
+**Question:** PGO recovers 31–36% under AOT. Is that compensating for something wrong with the
+generated code's shape, and is there an annotation that would fix it at the source?
+
+**Answer: the shape is essentially fine. Four hypotheses were tested and four failed. The only two
+levers that matter are PGO and not emitting auditor calls.**
+
+## Hypotheses tested and killed
+
+| hypothesis | test | result |
+|---|---|---|
+| node calls aren't devirtualised | read the generated field declarations | **dead** — every node field is a concrete type (`public final transient Mid mid`), so `mid.calc()` is already a direct call. Nothing to devirtualise. |
+| guard methods aren't inlined | hand-inline all nine (`flatten.py`) | **dead** — −1.8% on native. Inlining them by hand is what an inliner would do. |
+| pre-analysis inlining limits are too tight | `-H:InlineBeforeAnalysisAllowedNodes=200 AllowedInvokes=40 AllowedDepth=40` (defaults are 1/1/20) | **dead** — −3.8%. |
+| `DataFlow` interface dispatch can't be devirtualised under closed world | `TypedBench`: same processor, one implementation, reference held as interface vs concrete vs typed-arg | **dead** — native 14.06 (interface) vs 14.03 (typed). **0.2%.** |
+
+The interface hypothesis was the most plausible and is worth recording as wrong: an earlier reading
+blamed a harness with three `DataFlow` implementations loaded for a penalty that grew from +77% to
++138%. That shift was **machine drift, not polymorphism** — `TypedBench` isolates the type situation
+and finds nothing.
+
+One number reframes the whole question: **hand-written is 6.25 ns native vs 6.47 ns JIT.** Native
+compiles the actual arithmetic *faster*. The penalty is entirely in the machinery around the
+computation — and it is not the machinery's shape.
+
+## The ladder of levers (native, generated arm)
+
+| lever | ns | vs stock |
+|---|---|---|
+| stock native | 14.06 | — |
+| flatten to one method | 14.62¹ | −1.8% |
+| raise inlining limits | 14.32¹ | −3.8% |
+| remove 4 bookkeeping auditor calls | 13.89¹ | −6.7% |
+| **remove ALL 6 auditor calls** | **11.21** | **−20%** |
+| **PGO** | **9.34** | **−36%** |
+| **no auditors + PGO** | **8.12** | **−42%** |
+
+¹ measured in the `aud-results.csv` batch against a 14.89 stock baseline; percentages are within-file.
+
+**Best native configuration reaches +2.8% of hand-written** (8.12 vs 7.90 ns, both native, both
+measured back to back). On the JIT, removing all six auditor calls is worth 9% (7.83 → 7.12).
+
+## What that means for the generator
+
+1. **PGO is the deployment lever, not a code-shape problem.** Nothing generated differently comes
+   close to it. Document it for native users; it is worth 36% and costs one extra build stage.
+2. **Auditor emission is the one real codegen lever** — 20% on native, 9% on JIT. The generated
+   dispatch currently calls three auditors' `eventReceived` and three `processingComplete` on
+   **every event**, hard-coded into `handleEvent`/`afterEvent`. Note this is emitted structure, so
+   clearing `getAuditorMap()` at runtime cannot remove these call sites; only generating without them
+   can. A build-time switch that omits the calls when nothing audits would capture this.
+3. **Do not reach for `@AlwaysInline`.** It exists in `com.oracle.svm.core.annotate`, but raising the
+   inlining thresholds globally — a strictly stronger intervention than annotating individual
+   methods — bought 3.8%. It would also make the runtime jar depend on GraalVM internals, which is a
+   poor trade for a framework that must run on stock HotSpot.
+
+## Still unexplained
+
+With **all six auditor calls removed**, native is still 11.21 ns against 7.90 ns hand-written —
+**+42% with no auditors at all**. No shape hypothesis tested here accounts for that residual, and PGO
+closes most of it without any shape change. Identifying it would need the compiled machine code for
+both arms compared directly (`-H:+PrintAssembly` or `perf`), which was not done. **The residual is
+unexplained, not explained-and-small.**
+
+## Files
+
+`results/aud-results.csv` (auditor + inlining ablations), `results/typed-results.csv` (interface vs
+concrete), `src/AudBench.java`, `src/TypedBench.java`, `src/BareBench.java`. The `NoAud` and `Bare`
+processors are hand-edited experimental variants derived from the generated source — **not shipped
+shapes** — and are gitignored with the rest of `flat/` for the same rule-1 reason.

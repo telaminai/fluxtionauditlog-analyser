@@ -26,3 +26,8 @@ inner = inner.replace('    afterEvent();', after)
 out = out[:m.start(2)] + inner + out[m.end(2):]
 pathlib.Path(sys.argv[2]).write_text(out)
 print(f"inlined {len(guards)} guards + auditEvent + afterEvent -> {sys.argv[2]}")
+
+# Round-58 addendum: two further ablations were derived from the flattened output --
+#   BenchProcessorNoAud  = flat, minus nodeNameLookup+serviceRegistry calls (4/event)
+#   BenchProcessorBare   = flat, minus ALL six auditor calls
+# Both are hand-edited EXPERIMENTAL variants, not shipped shapes. See NOTES.md § Addendum.
