@@ -797,3 +797,86 @@ shared library, and that requires resolving the profile dump first.
    claim.**
 3. Consider a batched `@CEntryPoint` taking an array of ticks, since the per-event boundary cost
    (~3.9 ns) dominates the processor.
+
+---
+
+# Addendum 8 — CORRECTION: the 1.55 ns headline was a benchmark artefact
+
+**Addendum 6 claimed the generated processor reaches 1.55 ns/event (646M/sec), within 0.6% of
+hand-written Java. That number does not survive a realistic object graph, and the claim is withdrawn
+in the form it was made.**
+
+## What broke it
+
+Putting all arms in one C++ process with one clock produced a Java hand-rolled figure of 3.11 ns —
+double the 1.54 ns measured in the Java executable, for the same source. Chasing that found the cause.
+
+`EscapeBench` runs the identical source shapes but adds **static fields holding a second instance** of
+each class. Back-to-back on the same machine, native+PGO:
+
+| binary | arm | ns/event |
+|---|---|---|
+| `BaseBench` (Addendum 6) | generatedBase | **1.50** |
+| `BaseBench` | handBase | 1.49 |
+| `EscapeBench` | localFluxtion — *same source shape* | **4.56** |
+| `EscapeBench` | staticFluxtion | 2.50 |
+| `EscapeBench` | localHand | 1.55 |
+| `EscapeBench` | staticHand | 1.85 |
+| shared library, via C++ | fluxtion generated | 4.20 |
+
+**The hand-written arm barely moves (1.49 → 1.55). The generated arm moves 3×.**
+
+## Why
+
+`HandBase` is one flat object of primitive fields; instance count barely matters. `BaseProcessor` holds
+**ten node objects**, and its cost depends entirely on what the compiler can prove about them:
+
+- **`BaseBench`** — exactly one `BaseProcessor` is ever created, inside the measured method, never
+  stored. Analysis proves it non-escaping and **scalar-replaces the whole graph**: ten objects become
+  registers. → 1.50 ns.
+- **`EscapeBench` static** — `SP` is built at image-build time (`--initialize-at-build-time`), so it
+  lives in the image heap at **known constant addresses**. → 2.50 ns.
+- **`EscapeBench` local** — a second instance exists, escape analysis fails, field access goes through
+  real pointers. → 4.56 ns.
+- **Shared library** — processor in static state, reachable from C entry points. → 4.20 ns.
+
+**The 646M events/sec figure required the processor to be provably unique and non-escaping.** No
+deployed processor is: it is held in a field, it escapes, and its classes may have several instances.
+
+## The honest numbers
+
+For a realistically-held processor, native + PGO, base case (void triggers, dirty filtering off):
+
+| | ns/event | events/sec |
+|---|---|---|
+| **Fluxtion generated, realistic** | **4.2 – 4.6** | **217 – 238M** |
+| Fluxtion generated, image-heap static | 2.50 | 400M |
+| hand-rolled Java, realistic | 1.55 – 1.85 | 540 – 645M |
+| **hand-optimised C++** | **1.59** | **629M** |
+
+**So the C++ premise was right and my Java figure was wrong.** In one process with one clock, C++ at
+1.59 ns beats both hand-rolled Java (3.11 in-library) and the generated processor (4.20). clang PGO
+changed nothing (1.59 → 1.58) — that loop was already optimal.
+
+## What still stands
+
+- The generated dispatch compiles to **fewer instructions than hand-written** (276 vs 288, Addendum 2).
+- The **entry wrapper**, not the dispatch, is the AOT cost (Addendum 2/3), and the guarded drain
+  (−17.8% native) is real.
+- **PGO is worth 31–36%** on the generated arm (Addendum 1) and a mismatched profile is worse than none.
+- The generated processor **beats hand-written code of the same shape** when both hold per-node objects
+  (Addendum 5) — that comparison is unaffected, because both arms carry the same object structure.
+
+## What is withdrawn
+
+- "**The graph costs nothing**" (Addendum 6). It costs whatever the compiler cannot prove away, and in
+  a realistic program it cannot prove much. **~2.6 ns of object-field traffic against hand-rolled Java.**
+- "**646M events/sec**" as a headline. It is reproducible only under single-instance scalar replacement.
+- Any suggestion of **C++ parity**. C++ is ~2.6× the realistic generated figure.
+
+## The lesson for every number in this round
+
+**Microbenchmarks of object-graph code measure the compiler's escape analysis as much as the code.**
+A benchmark that creates one instance in one method is the best case that will ever exist, and it is
+not the case anyone deploys. Every future measurement here must hold the processor the way a
+deployment does — in a field, escaping, with the possibility of siblings.
