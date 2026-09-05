@@ -1487,3 +1487,64 @@ difference against an otherwise identical processor:
 Third-order, as the isolated probe predicted (Addendum 9 measured the interface-vs-concrete field at
 ~0.1 ns). Worth fixing only in the un-profiled native configuration, which is not a configuration
 anyone should deploy. **It stays on the list, below the guarded drain.**
+
+---
+
+# Addendum 17 — the lever is the escape shape, not PGO
+
+Addendum 6 said *"PGO is what makes the graph free"*. Addendum 16 then found the fastest configuration
+in the whole round has **no profile at all**. Both cannot be right. This isolates it: same static
+methods, same classes, only image kind and PGO differ.
+
+| arm | executable, no PGO | executable, PGO | shared lib, no PGO | shared lib, PGO |
+|---|---|---|---|---|
+| **`batchLocal`** — processor created in the call, never escapes | 1.53 | 1.64 | **1.41** | 6.28 |
+| `batchStatic` — processor in a `static final` field | 3.10 | 2.51 | 3.10 | 6.25 |
+| `batchHand` — hand-written Java, same holding as `batchLocal` | 2.44 | 1.49 | 2.36 | 3.14 |
+
+**Three things follow, and they replace the earlier reading.**
+
+1. **A non-escaping processor reaches ~1.4–1.5 ns in both image kinds with no profile.** The escape
+   shape is the lever. PGO is not required for it.
+2. **PGO helps only the shapes that block the optimisation.** It moves `batchStatic` 3.10 → 2.51 and
+   `batchHand` 2.44 → 1.49, but makes `batchLocal` *worse* in both image kinds — mildly in an
+   executable (1.53 → 1.64), catastrophically in a library (1.41 → 6.28).
+3. **Addendum 6's 6.34 → 1.70 was a property of that harness, not of PGO.** Its loop sat inside a
+   multi-arm `switch` in `main`; the compiler did not exploit the non-escaping shape there without a
+   profile. In a small dedicated method it does. **Both readings were measurements of code shape.**
+
+## The corrected best-case figures
+
+| configuration | ns/event | events/sec |
+|---|---|---|
+| **Fluxtion, shared library, non-escaping batch, NO PGO** | **1.4141** | **707M** |
+| Fluxtion, executable, non-escaping, no PGO | 1.53 | 654M |
+| hand-written Java, best measured (executable + PGO) | 1.49 | 671M |
+| hand-written C++ (`-O3 -march=native`) | 1.5722 | 636M |
+| hand-written Java, same library as the Fluxtion best | 2.3067 | 434M |
+| Fluxtion, static-held | 3.02–3.10 | 323–331M |
+
+**707M events/sec is the number**, and the earlier "646M / 636M under PGO" figures should not be
+quoted — they came from harnesses whose code shape, not whose compiler settings, produced them.
+
+Within the single strongest comparison — one process, one clock, 20 interleaved rounds, output
+verified identical every round — the generated processor at **1.4141 ns** ran **10.1% faster than the
+hand-written C++ arm** at 1.5722, faster in **20 of 20 rounds**, ranges non-overlapping.
+
+## Practical guidance, revised
+
+- **Structure the hot path so the processor does not escape** — construct it inside the method that
+  drives the event loop, or in a batch entry point. This is worth more than every compiler flag in
+  this round combined: 3.10 → 1.41 ns.
+- **Do not assume PGO helps.** Measure it. It is worth 20–40% on shapes that block the optimisation
+  and is harmful on shapes that do not.
+- **Never carry a profile across image kinds.** Executable profile applied to a shared library: 4×
+  slower.
+
+## Honest note on this round's method
+
+This is the third reframing of the same headline number, each caused by measuring a different code
+shape and generalising from it. The stable finding underneath all three is that **this workload's cost
+is dominated by whether the compiler can dissolve the component objects, and that depends on
+program shape far more than on compiler configuration.** Any figure quoted from this round must name
+its shape.
