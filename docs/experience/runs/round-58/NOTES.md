@@ -1548,3 +1548,79 @@ shape and generalising from it. The stable finding underneath all three is that 
 is dominated by whether the compiler can dissolve the component objects, and that depends on
 program shape far more than on compiler configuration.** Any figure quoted from this round must name
 its shape.
+
+---
+
+# Addendum 18 — C++ fully optimised, and the final numbers
+
+Addendum 16 compared against an idiomatic C++ struct implementation and flagged that a specialist
+might do better. This gives C++ every lever short of changing the algorithm.
+
+## What was tried on the C++ side
+
+| lever | result |
+|---|---|
+| `-O3 -march=native` | 1.5725 baseline |
+| `-funroll-loops` | no change |
+| `-flto -fno-exceptions -fno-rtti` | no change |
+| **hand-scalarised** — all state in locals, nothing in a struct | **1.5619** (−0.7%) |
+| **clang PGO** — instrument, train on this exact workload, rebuild | 1.5673 (no gain) |
+
+**Hand-scalarising bought 0.7%**: clang was already register-allocating the struct fields, so doing it
+manually changed almost nothing. **clang PGO bought nothing.** C++ is at its plateau for this
+implementation.
+
+`-ffast-math` was **not** used. It reassociates floating point and the arms would stop producing
+identical output, which is the gate every measurement in this round has to pass.
+
+## Final numbers — 20 rounds, one process, one clock, all outputs verified identical
+
+| | median ns | min | max | events/sec |
+|---|---|---|---|---|
+| **Fluxtion, native shared library, non-escaping batch, no PGO** | **1.4224** | 1.3545 | 1.4715 | **703M** |
+| C++ hand-scalarised to locals — *best C++* | 1.5619 | 1.5602 | 1.5652 | 640M |
+| C++ struct fields, `-O3 -march=native -funroll-loops` | 1.5725 | 1.5705 | 1.6049 | 636M |
+| C++ with clang PGO | 1.5673 | 1.5655 | 1.5724 | 638M |
+| hand-written Java, same shared library | 2.3067 | 2.3014 | 2.3208 | 434M |
+
+**The generated processor ran 8.9% faster than the best C++ configuration measured**, ranges
+non-overlapping, every round.
+
+## Why this is a fair comparison, and where it still favours C++
+
+**The loop-carried dependency blocks SIMD for both sides equally.** `ewma` depends on the previous
+`ewma`, so neither compiler can vectorise across iterations. Manual SIMD is not available to a C++
+specialist here either without changing the algorithm.
+
+**The comparison actually favours C++ on work done.** The Java arm mutates a `MarketTick` event object
+every iteration (`e.set(bid, ask, seq)`) because that is the framework's API; the C++ arm passes two
+doubles directly. Java does strictly more work per event and is still faster.
+
+**What would still beat it:** a different algorithm, a different data layout, or accepting
+`-ffast-math`. Those are not comparisons of the same computation.
+
+## The defensible claim
+
+> In this fixture, a Fluxtion processor generated from a declared component graph and compiled into a
+> native shared library ran at **703M events/sec (1.42 ns/event)** — **8.9% faster than the fastest
+> hand-written C++ implementation of the same arithmetic measured here** (640M, 1.56 ns), in the same
+> process, against the same clock, with identical output asserted every round.
+
+Scope: one fixture, ten nodes, one machine, single core, closed loop, non-escaping compilation shape,
+no PGO on the Java side and every optimisation tried on the C++ side.
+
+## Standing summary of the whole round
+
+| configuration | ns/event | events/sec |
+|---|---|---|
+| **Fluxtion, shared library, non-escaping, no PGO** | **1.42** | **703M** |
+| best hand-written C++ | 1.56 | 640M |
+| Fluxtion, executable, non-escaping, no PGO | 1.53 | 654M |
+| hand-written Java, best measured | 1.49 | 671M |
+| Fluxtion, static-held | 3.02–3.10 | 323–331M |
+| Fluxtion, best JIT (Graal CE 25.3) | 4.80 | 208M |
+| Fluxtion, stock configuration, JIT | 7.86 | 127M |
+
+**Between the top and bottom row is a factor of 5.5, and none of it is the graph.** It is
+configuration (auditors, dirty guards, re-entrancy wrapper), compilation shape (escaping or not), and
+runtime (JIT or AOT).
