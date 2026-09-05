@@ -1102,3 +1102,78 @@ What still stands unchanged, because those comparisons were internally valid:
 setting removes it in a realistic binary.** That is the price of nodes being addressable, observable
 and independently testable — which is what Addendum 5 said before Addendum 6 briefly suggested
 otherwise on the strength of a benchmark that does not represent a program.
+
+---
+
+# Addendum 12 — the base-case answer, and a correction to Addendum 11
+
+**Addendum 11 concluded hand-rolled Java is 2–3× faster and that 1.58 ns "does not reproduce".
+That over-corrected.** It measured `FairShape`, in which the processor is reached through an
+*instance field of another object* inside the hot loop — the worst of three shapes, not a neutral one.
+
+## The mechanism, finally isolated
+
+Everything depends on **how the measured processor is reached in the hot loop**. Nothing else that was
+tested matters:
+
+| reached via | ns (Oracle native+PGO) |
+|---|---|
+| **non-escaping local** | **1.58 – 1.70** |
+| `static` / `static final` field | 2.57 |
+| instance field of another object | 4.78 |
+
+Eliminated as causes, each by experiment: unused static declarations (`V1`–`V4`, all 1.58); a second
+live instance (`TwoAlloc`, 1.58); **two hot loops each driving a different processor instance**
+(`V6`, first arm still 1.58); PGO profile sharing across arms (`V5`, 1.70); the loop being in a
+separate method (`ShapeA`, 1.60); `final` vs non-final (`FieldShape`, no difference).
+
+## The base case, both arms in ONE binary, processor as a non-escaping local
+
+Void triggers, `setSupportDirtyFiltering(false)`, no auditors, no re-entrancy wrapper.
+Median of 5 × 200M events, output verified identical.
+
+| runtime | Fluxtion | hand-rolled Java | ratio | Fluxtion throughput |
+|---|---|---|---|---|
+| Corretto 21.0.9, C2 | 5.33 | 3.13 | 1.71× | 187M/s |
+| OpenJDK 25.0.2, C2 | 5.33 | 3.12 | 1.71× | 188M/s |
+| **GraalVM CE 25.3.4.1, Graal JIT** | **4.80** | 2.34 | 2.05× | **208M/s** |
+| Oracle GraalVM 25.0.4, Graal JIT | 4.93 | 2.33 | 2.12× | 203M/s |
+| Oracle native-image, no PGO | 6.34 | 3.22 | 1.97× | 158M/s |
+| **Oracle native-image + PGO** | **1.70** | **1.57** | **1.08×** | **590M/s** |
+
+**The two answers asked for:**
+
+> **JIT floor: 4.80 ns/event, 208M events/sec** (GraalVM CE 25.3, Graal JIT), 2.05× hand-rolled Java.
+>
+> **Native floor: 1.70 ns/event, 590M events/sec** (Oracle native-image + PGO), **1.08× hand-rolled
+> Java — within 8%.**
+
+**PGO is the whole story on native.** Without it, native is the *worst* runtime tested (6.34 ns). With
+it, it is 3.7× faster than the best JIT. No JIT reaches within 2× of hand-written code on this graph;
+profile-guided AOT reaches within 8%.
+
+## Can an application hold the processor this way?
+
+Yes, but it is a real constraint, and the cost of getting it wrong is 2.8×:
+
+- **1.70 ns** — the processor is constructed inside the method that runs the event loop and is never
+  stored. A dedicated event-loop thread that builds its own processor and drives it is exactly this
+  shape, and is a normal deployment pattern.
+- **2.57 ns** — held in a `static`/`static final` field. Substrate places build-time-initialised
+  objects in the image heap at constant addresses, which recovers part of it.
+- **4.78 ns** — held in an instance field of a server/application object, the most common shape.
+
+**Reading the field into a local before the loop does not recover it** (`V6` second arm, 2.57): the
+object still escapes, so the node graph cannot be scalar-replaced. The gain comes from the processor
+never escaping at all, which the compiler must prove.
+
+## Standing summary for this round
+
+| claim | status |
+|---|---|
+| JIT floor 4.80 ns / 208M | **holds** |
+| Native+PGO floor 1.70 ns / 590M, within 8% of hand-rolled Java | **holds**, for a non-escaping processor |
+| 650M events/sec | **1.58 ns / 633M in a minimal binary; 590M in a two-arm binary.** Quote 590M |
+| parity with hand-rolled **Java** | **within 8%** in the best shape; 2.05× on the best JIT |
+| parity with hand-optimised **C++** (1.66 ns) | **not established** — the shared-library build could not be given a working PGO profile |
+| hand-rolled is 2–3× faster (Addendum 11) | **withdrawn** — true only for the instance-field shape |
