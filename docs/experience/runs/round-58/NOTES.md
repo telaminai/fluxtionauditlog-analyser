@@ -598,3 +598,72 @@ clean zero is a broken probe, not a result.
 | hoist auditors | ~0% | ~0% | **35% smaller bytecode per handler** — size, not speed |
 | flatten to one method | −1.8% | ~0% | not worth it |
 | `@AlwaysInline` | — | — | not needed |
+
+---
+
+# Addendum 5 — floor vs floor: strip everything and compare to the lowest hand-rolled code
+
+**Setup.** Generated processor with auditors removed, entry wrapper bypassed, and the dirty-flag
+machinery removed — reduced to the single branch that can actually arrest. Compared against both
+hand-written arms. **All three produce identical output** (1,050,000 breaches / 1,050,000 updates /
+buffer 11551.2267), verified before timing. 7 reps, median [min-max].
+
+| runtime | GENERATED minimum | hand-written, guarded shape | hand-written, fully inlined |
+|---|---|---|---|
+| JIT | **4.12** [4.00-4.19] · 243M/s | 7.14 [6.69-7.29] · 140M/s | **2.07** [2.06-2.10] · 484M/s |
+| native | **5.71** [5.66-5.76] · 175M/s | 8.00 [7.98-8.06] · 125M/s | **3.03** [2.91-3.07] · 331M/s |
+| native + PGO | **3.95** [3.92-4.00] · 253M/s | 8.64 [8.61-8.68] · 116M/s | **1.49** [1.47-1.50] · 671M/s |
+
+## Two findings, and the second is the bigger one
+
+**1. The minimum generated processor beats hand-written code of the same shape, on every runtime** —
+by 42% on JIT, 29% on native, 54% under PGO. That is the strongest form of the result in this round:
+strip the scaffolding and the generator wins outright against a human writing the same structure.
+
+**2. The dirty-flag machinery is the largest single cost in the system.** Both `generatedMin` and
+`handGuarded` use the same ten node objects and the same arithmetic. The only difference is that
+`handGuarded` maintains nine `isDirty_*` flags, evaluates nine guard expressions and resets all nine
+every event, while `generatedMin` keeps the one branch that can be false. That difference is
+**3.0 ns on JIT and 4.7 ns under PGO** — larger than the entry wrapper (3.38 ns native, 0.40 ns JIT)
+and far larger than auditors (~0).
+
+## Why that matters for the generator
+
+In this graph, **eight of the nine guards can never be false.** `TickIn.onTick` always returns `true`,
+so every node up to `limit` fires on every event; only `charge`/`buffer` are ever arrested.
+`PlainInline` reproduces the entire semantics with a single `if (exposure <= limit) return`.
+
+So the machinery is paying, per event, for nine flags to express what one branch expresses. **A guard
+whose predicate is statically always true is dead code**, and eliding it is the same partial-evaluation
+move as everything else here.
+
+Whether that is decidable depends on the framework's contract, and **this needs checking against the
+Fluxtion reference rather than inferred** (rule 6): if a trigger method returning `void` means
+*always propagate*, then its dirty flag is statically `true` and both the flag and every guard term
+referencing it can be elided at generation time. Nodes returning `boolean` remain undecidable in
+general — the generator cannot prove user code always returns `true`.
+
+**This was not measurable before this round** because the entry wrapper and auditor costs were
+sitting on top of it.
+
+## The remaining gap to the absolute floor
+
+`generatedMin` 4.12 vs `handInline` 2.07 on JIT — a 2× gap that is **not dispatch and not
+orchestration**. Both run identical arithmetic; the difference is that the fully-inlined version keeps
+everything in locals in one method, while the generated version loads and stores fields across ten
+separate node objects. That is the price of nodes being addressable, observable, independently
+testable units — which is the thing the framework exists to provide.
+
+It is a real cost and worth stating plainly: **the graph structure itself costs about 2 ns per event
+in this fixture, independent of every mechanism examined in this round.**
+
+## Revised ladder (JIT, generated arm)
+
+| configuration | ns | |
+|---|---|---|
+| stock generated | 7.86 | |
+| guarded drain | 7.74 | −2% |
+| entry wrapper removed | 7.31 | −7% |
+| **+ auditors removed** | ~7.1 | −10% |
+| **+ dirty machinery elided where statically true** | **4.12** | **−48%** |
+| hand-written fully inlined (absolute floor) | 2.07 | the graph structure costs the rest |
