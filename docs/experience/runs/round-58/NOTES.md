@@ -667,3 +667,72 @@ in this fixture, independent of every mechanism examined in this round.**
 | **+ auditors removed** | ~7.1 | −10% |
 | **+ dirty machinery elided where statically true** | **4.12** | **−48%** |
 | hand-written fully inlined (absolute floor) | 2.07 | the graph structure costs the rest |
+
+---
+
+# Addendum 6 — the TRUE base case: void triggers + dirty filtering off
+
+**Correction to Addendum 5.** That addendum kept one branch to preserve semantics. That was the wrong
+baseline. Removing dirty support is **the application developer's choice** — the semantics change, and
+that is the point of the switch, not an accident to be worked around. The framework supports it
+directly, and the API was read rather than inferred (rule 6):
+
+```
+@OnTrigger(failBuildIfMissingBooleanReturn = false)        // void trigger permitted
+@OnEventHandler(failBuildIfMissingBooleanReturn = false)   // same on the entry handler
+EventProcessorConfig.setSupportDirtyFiltering(false)
+```
+
+A void trigger returns no boolean, so there is no dirty flag and no guard: **every node fires every
+event, unconditionally.** That is the true base case.
+
+## Setup
+
+Ten nodes with void `@OnTrigger` methods; the processor calls them in dependency order with no flags,
+no guards, no auditors and no re-entrancy wrapper. Compared against the lowest hand-rolled equivalent
+**at the same semantics** — one method, everything unconditional, no objects. Output verified
+identical on both arms (1,050,000 breaches / 2,100,000 updates / buffer 11551.2267) before timing.
+7 reps.
+
+| runtime | GENERATED base (10 node objects) | hand-rolled, one method | gap |
+|---|---|---|---|
+| JIT | 4.75 [4.74-4.77] · 210M/s | 2.32 [2.31-2.34] · 432M/s | +105.2% |
+| native | 6.39 [6.35-6.47] · 156M/s | 3.18 [3.11-3.19] · 315M/s | +101.4% |
+| **native + PGO** | **1.55** [1.54-1.57] · **646M/s** | **1.54** [1.53-1.57] · **649M/s** | **+0.6%** |
+
+## The result
+
+**Under PGO the graph costs nothing.** 1.55 ns against 1.54 ns, ranges overlapping — ten addressable
+node objects and ten calls are indistinguishable from a single hand-written method doing the same
+arithmetic in locals. **646M events/sec.**
+
+Addendum 5 attributed a ~2 ns floor to "the graph structure itself — the price of nodes being
+addressable, observable, independently testable." **That was wrong, or rather it was a statement about
+compilers, not about structure.** The structure costs ~2.4 ns on a JIT and ~3.2 ns on un-profiled AOT,
+and **zero** once the compiler has profiles. PGO inlines the ten node methods and the object boundaries
+stop existing.
+
+Two things follow:
+
+1. **The strongest configuration is void triggers + dirty filtering off + native-image + PGO**, and at
+   that setting there is no measurable abstraction penalty at all. The developer chooses this by
+   turning off a feature they do not need; the compiler does the rest.
+2. **PGO is not a native-image detail — it is the thing that makes the graph free.** The JIT never
+   closes this gap (4.75 vs 2.32); only profile-guided AOT does. That reverses the usual assumption
+   that a JIT with runtime profiles beats AOT.
+
+## Where each configuration lands (generated arm, ns/event)
+
+| configuration | JIT | native | native+PGO |
+|---|---|---|---|
+| stock (auditors, guards, wrapper) | 7.86 | 12.89 | 9.41 |
+| guarded drain | 7.74 | 10.59 | 8.39 |
+| wrapper removed | 7.31 | 9.52 | 6.87 |
+| guards kept, everything else stripped | 4.12 | 5.71 | 3.95 |
+| **void triggers, dirty filtering off** | **4.75** | **6.39** | **1.55** |
+| hand-rolled floor, same semantics | 2.32 | 3.18 | 1.54 |
+
+Note the base case is *slower* than Addendum 5's arm on JIT and native (4.75 vs 4.12) because it does
+strictly more work — `charge` and `buffer` fire on every event rather than only on a breach. It is a
+different semantic, chosen deliberately. Under PGO that extra work disappears into the inlining and
+the base case wins outright.
