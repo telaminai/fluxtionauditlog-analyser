@@ -1311,3 +1311,93 @@ round, and it should be a mode, not a default.
 
 **For a JIT deployment the ranking is: flat-state codegen first, then the guarded drain. For native,
 PGO first, then the entry wrapper.**
+
+---
+
+# Addendum 15 — flat codegen vs vendor jars, and why the two closed-world systems need each other
+
+## What flat codegen would actually be
+
+Not a rewrite of the compiler's front half. Discovery, dependency resolution and total-order
+derivation are unchanged — the graph is the graph. It is a second **emission mode** in the back end:
+
+```java
+// today: node objects, state inside them
+public final transient Mid mid = new com.bench.Mid(tickIn_9);
+...
+mid.calc();
+
+// flat mode: state hoisted, body emitted as a private method
+private double mid_value;                      // was Mid.value
+private void calc_mid() { mid_value = (tickIn_bid + tickIn_ask) * 0.5; }
+...
+calc_mid();
+```
+
+**But it changes what the generator needs from a node**, and that is the fundamental part. Today it
+needs only the *signature surface* — annotations, constructor parameters, dependency edges. Flat mode
+needs the **method body and the private field layout**, so it can hoist state and re-emit logic. That
+is a different contract with the node author: *"I read your declarations"* becomes *"I read your
+implementation"*.
+
+## Vendor jars: flat codegen cannot do it
+
+A vendor component ships as compiled classes with private fields. There is no source to inline and no
+legitimate way to hoist `Mid.value` out of a class you do not own. Bytecode rewriting could in
+principle, but it breaks encapsulation, versioning and any signature the vendor ships.
+
+**So flat codegen is available only for nodes whose source the build controls — and that directly
+contradicts the integration thesis this project exists to demonstrate.**
+
+## But it is not needed, because AOT gets there anyway
+
+Nodes packaged in a pre-compiled jar, nothing else changed:
+
+| | native + PGO | CE 25.3 Graal JIT |
+|---|---|---|
+| **nodes from a vendor jar** | **1.57** | 4.74 |
+| same nodes, source on the classpath | 1.58 | 4.82 |
+| hand-rolled single method | 1.56 | 2.34 |
+
+**Scalar replacement crosses the jar boundary.** Substrate's points-to analysis is whole-program, so
+it does not care that `Mid` arrived pre-compiled — it proves the instance non-escaping and dissolves
+it regardless. Vendor components run at hand-written speed with **no source access and no codegen
+change at all**.
+
+## The two routes, and when each applies
+
+| | needs node source | JIT | native + PGO |
+|---|---|---|---|
+| **flat-state codegen** | **yes** | 2.50 | 1.57 |
+| **PGO scalar replacement** | **no** | not available | **1.57** |
+| neither | no | 4.74–4.82 | 1.57 |
+
+They reach the same destination by different means. Flat codegen does statically what PGO does
+dynamically — which is why stacking them gains nothing (1.57 either way).
+
+**The practical rule:**
+
+- **Deploying native + PGO?** Do nothing. Vendor jars, your own nodes, either way: ~1.57 ns.
+  Flat codegen would be wasted work.
+- **Deploying on a JIT with nodes you own?** Flat codegen halves it, 4.82 → 2.50.
+- **Deploying on a JIT with vendor jars?** **There is no lever.** 4.74 ns is the floor, and this is
+  the one configuration where the integration story and the performance story genuinely conflict.
+
+## Why this is the strongest evidence for the Graal thesis in the round
+
+Two closed-world systems, at different scales, and **neither reaches the goal alone**:
+
+- **Fluxtion** closes the world at the **graph** level: dispatch order resolved at build time, emitted
+  as straight-line code. It cannot dissolve the node objects, because they are the user's components
+  and it may not have their source.
+- **Graal native-image** closes the world at the **program** level: whole-program points-to analysis
+  and scalar replacement. It cannot derive dispatch order, because that is a domain fact the graph
+  declares.
+
+Fluxtion alone on a JIT with vendor components: **4.74 ns**. Graal alone without a declared graph: it
+has nothing to compile ahead of time. **Together: 1.57 ns, within 1% of hand-written code, with the
+components arriving as opaque pre-compiled jars.**
+
+That is the composition worth reporting: *the integration thesis and the performance thesis are only
+simultaneously true under ahead-of-time compilation.* On a JIT you must choose between integrating
+vendor components and reaching the floor. Under native + PGO the choice disappears.
