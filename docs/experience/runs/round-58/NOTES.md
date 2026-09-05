@@ -1177,3 +1177,63 @@ never escaping at all, which the compiler must prove.
 | parity with hand-rolled **Java** | **within 8%** in the best shape; 2.05× on the best JIT |
 | parity with hand-optimised **C++** (1.66 ns) | **not established** — the shared-library build could not be given a working PGO profile |
 | hand-rolled is 2–3× faster (Addendum 11) | **withdrawn** — true only for the instance-field shape |
+
+---
+
+# Addendum 13 — it is the escape chain, not local-vs-field
+
+**Question:** is the fast shape "processor local to the method", or "private field of a class that
+never escapes"?
+
+**Answer: a `private final` field works, provided the object holding it never escapes.** The
+distinction is not local-vs-field; it is whether the compiler can prove the whole chain non-escaping.
+
+Oracle GraalVM 25.0.4 native-image + PGO:
+
+| shape | ns | events/sec |
+|---|---|---|
+| processor local to `main` | **1.58** | 633M |
+| **`private final` field of an `Engine` that never escapes** | **1.58** | **633M** |
+| `private final` field of an `Engine` held in a `static` | 4.82 | 207M |
+| processor itself in a `static` field | 2.57 | 389M |
+
+GraalVM CE 25.3 Graal JIT: **4.78 for all three shapes** — the JIT performs none of this analysis, so
+structuring for it buys nothing on a JIT.
+
+Interesting ordering: a processor held **directly** in a static (2.57) beats one held **indirectly**
+through a statically-held object (4.82). Each level of indirection the analysis cannot see through
+costs again.
+
+## What this means for an application
+
+**The shape is achievable, and it is a normal one.** An event-loop worker that constructs its own
+engine and never publishes the reference qualifies:
+
+```java
+final class Engine {                       // instance never stored, never returned
+    private final MyProcessor p = new MyProcessor();
+    private final MyEvent     e = new MyEvent();
+    void loop(Feed feed) { while (feed.next(e)) p.handleEvent(e); }
+}
+// on the event-loop thread:
+new Engine().loop(feed);                   // reference never escapes
+```
+
+**What breaks it:** storing the engine in a static or a registry; returning it from a factory the
+compiler cannot see through; handing it to a thread pool; exposing a getter that is actually called.
+**Reading the field into a local before the loop does not help** — the object still escapes.
+
+**And it only pays on native-image with PGO.** On any JIT the number is 4.78–4.80 regardless, so this
+is a deployment-shape decision for AOT builds specifically, not general Java advice.
+
+## Consolidated: the base-case floor
+
+| | JIT (best: CE 25.3 Graal) | native + PGO |
+|---|---|---|
+| non-escaping processor | 4.80 ns · 208M/s | **1.58–1.70 ns · 590–633M/s** |
+| processor in a static field | ~4.8 ns · 208M/s | 2.57 ns · 389M/s |
+| processor behind a held object | ~4.8 ns · 208M/s | 4.82 ns · 207M/s |
+| hand-rolled Java, same binary | 2.34 ns | 1.57 ns |
+
+**The best achievable base case is 1.58 ns / 633M events/sec, native-image + PGO, with the processor
+non-escaping — within 1% of hand-rolled Java in the same binary.** The JIT floor is 4.80 ns / 208M.
