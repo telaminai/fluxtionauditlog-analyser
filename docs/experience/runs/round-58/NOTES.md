@@ -880,3 +880,50 @@ changed nothing (1.59 → 1.58) — that loop was already optimal.
 A benchmark that creates one instance in one method is the best case that will ever exist, and it is
 not the case anyone deploys. Every future measurement here must hold the processor the way a
 deployment does — in a field, escaping, with the possibility of siblings.
+
+---
+
+# Addendum 9 — the clock strategy: concrete typing measured, and what `mapClass` can actually reach
+
+**Question:** `Clock.wallClock` is declared as the `ClockStrategy` **interface** and read every event.
+`EventProcessorConfig.mapClass(String, String)` exists (with `getClass2replace()`). If the declaration
+were mapped to the concrete type, would the wall-clock call become monomorphic and faster?
+
+## Measured
+
+`ClockProbe`: identical work, several `ClockStrategy` implementations reachable, all state static and
+escaping (the realistic shape per Addendum 8). Only the **declared type of the strategy field** differs.
+
+| runtime | interface-typed | concrete-typed | gain |
+|---|---|---|---|
+| JIT | 0.6877 | 0.6872 | **0%** |
+| native | 0.8012 | 0.7230 | **−9.7%** |
+| native + PGO | 0.7102 | 0.5999 | **−15.5%** |
+
+**Directionally correct and real under AOT — but worth ~0.08–0.11 ns/event.** A JIT devirtualises it
+without help, which is why this has never shown up. For scale: the entry wrapper is 3.38 ns and
+object-field traffic is ~2.6 ns. This is a third-order item.
+
+## The catch: `mapClass` cannot reach this field
+
+`mapClass` rewrites class names in the **generated source**. `wallClock` is a private field inside the
+runtime's own `com.telamin.fluxtion.runtime.time.Clock`, and the virtual call happens *inside* `Clock`.
+No builder-side mapping can change a field declaration in runtime source. Three routes that do work:
+
+1. **Reachability.** If only one `ClockStrategy` implementation is reachable in the image, closed-world
+   analysis devirtualises it with no API at all. This is the cheapest fix and needs no code change —
+   it is a property of what the application links, not of how it is declared.
+2. **Upstream declaration change.** Declare `Clock.wallClock` as a concrete final type, or give `Clock`
+   a `long` fast-path field written by the strategy.
+3. **Generate the clock update inline**, with the processor holding its own concrete-typed strategy
+   field. **Then `mapClass` is exactly the right hook**, because that field is in generated source.
+
+Route 1 costs nothing and is worth checking first for anyone building natively.
+
+## Also found while reading the config: dispatch strategy is already configurable
+
+`EventProcessorConfig.setDispatchStrategy(...)` accepts `CLASS_NAME`, `INSTANCE_OF`, `PATTERN_MATCH`,
+and `setInstanceOfDispatch(boolean)` exists alongside it. Addendum 4 measured the `instanceof` chain
+and found **no scaling problem** (JIT grew 0.26 ns from 2 to 16 event types, and a switch-on-id was
+*worse* on JIT). So the alternatives already exist and, on that evidence, there is no reason to change
+the default — but the knob is there if a graph with many event types ever shows otherwise.
