@@ -426,3 +426,96 @@ Ranked, for the generated arm on native:
 `src/EntryBench.java`, `src/DefaultProbe.java`, `src/LeanBench.java`, `asm/asm-gen.txt`,
 `asm/asm-hand.txt`. Symbol-preserving builds used `-H:-DeleteLocalSymbols`; JIT assembly was **not**
 obtained (no `hsdis` present), so the machine-code comparison is native-to-native.
+
+---
+
+# Addendum 3 — can re-entrancy be made cheap, and should auditors be hoisted?
+
+## Why the wrapper costs what it does
+
+`dispatchQueuedCallbacks()` is called on **every** event. Its empty fast path is not free:
+
+```
+getfield  eventProcessor          ; null check
+getfield  myStack                 ; declared as java.util.Deque -- an INTERFACE
+invokeinterface Deque.isEmpty()   ; <-- interface call, cannot be folded without profiles
+putfield  dispatching = false     ; unconditional store even when nothing was queued
+```
+
+A JIT profiles `myStack` to one concrete type and folds the whole thing to a load and a branch.
+Closed-world AOT without profiles leaves the interface call standing.
+
+## Measured: three wrapper shapes, one binary, identical auditors and dispatch
+
+Medians of 5 × 200M events. Arms differ **only** in the entry wrapper.
+
+| runtime | stock | guarded drain | wrapper removed |
+|---|---|---|---|
+| JIT | 7.86 | 7.74 (−1.6%) | 7.31 (−7.1%) |
+| **native** | **12.89** | **10.59 (−17.8%)** | **9.52 (−26.1%)** |
+| native + PGO | 9.41 | 8.39 (−10.8%) | 6.87 (−27.0%) |
+
+`guarded drain` keeps full re-entrancy semantics; it only replaces the always-taken empty check with
+a field read:
+
+```java
+processing = true;
+onEventInternal(event);
+if (callbackPending) {                 // plain boolean field on the processor
+    callbackDispatcher.dispatchQueuedCallbacks();
+    callbackPending = false;
+}
+processing = false;
+```
+
+**The guard recovers 68% of the wrapper cost on native (2.29 of 3.37 ns) with no loss of
+functionality**, and 40% under PGO. Removing the wrapper entirely is better still, but requires
+knowing no re-entrant callback can occur.
+
+Two cheaper variants of the same idea, not measured here, likely additive:
+declare `myStack` as `ArrayDeque` rather than `Deque` so the call is direct; and skip the
+`dispatching = false` store on the empty path.
+
+## Q1 — hoisting auditors to one expanded call
+
+**Performance: no.** `DefaultProbe` (Addendum 2) shows empty default-method calls cost nothing on any
+runtime. There is nothing to recover. Confirmed independently here: the *original* generated shape
+already **is** the hoisted form — one `auditEvent(typedEvent)` call that internally calls three
+auditors — and flattening it into three inline calls measured −1.8% on native, i.e. nothing.
+
+**Code size: yes, modestly.** Hoisted vs inlined `handleEvent` bytecode:
+
+| | bytes |
+|---|---|
+| hoisted (one `auditEvent` + one `afterEvent` call) | **180** |
+| inlined at the call site | 276 |
+
+**96 bytes per event handler, ~35%.** The generator emits one handler per event type, so the saving
+scales with event-type count, not node count. Worth keeping for size; it buys no speed.
+
+## Q2 — a "no re-entrancy" compiler flag
+
+Warranted by the measurement: worth up to **−26% on native**, −7% on a JIT. Design:
+
+1. **Compile-time detection.** Whether any node can raise a re-entrant event or register a callback is
+   visible in the graph the generator already holds — nodes injecting `EventProcessorContext`,
+   `Callback`, or `DirtyStateMonitor`, or invoking the re-entrant dispatch API. If none does, the
+   queue is provably always empty and the wrapper is dead code.
+2. **Fail at build time, not runtime.** With the flag set and a re-entrant use detected, the generator
+   should refuse to compile and name the offending node. That is the whole point: the cost is being
+   removed on a proof, so violating the proof must be a build failure.
+3. **Runtime backstop.** Detection cannot be complete — a node could reach the dispatcher
+   reflectively or through a service. The generated processor should retain a guard that throws
+   rather than silently dropping a queued event. A field check on an already-loaded field is close to
+   free, as the `guarded` arm demonstrates.
+4. **Default off.** This trades a capability for throughput; the safe default is the current
+   behaviour.
+
+This is the same partial-evaluation move the generator already makes for dispatch order — decide once
+at build time, where the information is — applied to a capability rather than an ordering.
+
+## Standing result
+
+With the wrapper bypassed and auditors removed, the generated processor runs **7.84 ns** against a
+hand-written implementation of the same semantics at **7.90 ns** (Addendum 2, native). **The generated
+dispatch is not slower than hand-written code; the generic entry path is.**
