@@ -927,3 +927,90 @@ and `setInstanceOfDispatch(boolean)` exists alongside it. Addendum 4 measured th
 and found **no scaling problem** (JIT grew 0.26 ns from 2 to 16 event types, and a switch-on-id was
 *worse* on JIT). So the alternatives already exist and, on that evidence, there is no reason to change
 the default — but the knob is there if a graph with many event types ever shows otherwise.
+
+---
+
+# Addendum 10 — what the 1.55 ns actually depended on, and the dispatch-strategy answer
+
+Addendum 8 withdrew the headline and blamed "a second instance existing". **That diagnosis was wrong**
+and is corrected here. The effect is real but the trigger is different, and it is now isolated.
+
+## Hypotheses tested and eliminated
+
+| hypothesis | test | result |
+|---|---|---|
+| an unused `static` **declaration** of the type defeats it | `StaticProc` / `StaticEvent` / `StaticBoth` | **no** — all 1.57–1.63 |
+| a **second instance** existing defeats it | `TwoAlloc`, with and without | **no** — 1.58 either way |
+| several competing **hot paths** in one image defeat it | single-entry-point shared library | **no** — still 4.19 |
+| the loop being in a **separate method** defeats it | `ShapeA` | **no** — 1.60 |
+
+## What it actually is
+
+| shape | ns/event | events/sec |
+|---|---|---|
+| processor is a **non-escaping local** | **1.58** | 633M |
+| local, loop in a separate method | 1.60 | 625M |
+| processor in a **`static final` field** | **2.62** | 382M |
+| same, compiled as a **shared library** | **4.19** | 239M |
+
+**Two independent effects, each about 1–1.6 ns:**
+
+1. **Escape analysis (+1.0 ns).** A processor that never escapes lets the compiler scalar-replace the
+   node graph — ten objects become registers. Held in a field, it cannot.
+2. **Shared-library code model (+1.6 ns).** The same source shape costs 4.19 as a `.dylib` against 2.62
+   as an executable — position-independent code and indirect access to statics.
+
+## The honest headline
+
+**The number depends on how the processor is held, by up to 2.6×.** Reference points, native + PGO,
+base case (void triggers, no dirty filtering, no auditors, no wrapper), all output-verified:
+
+| | ns/event | events/sec |
+|---|---|---|
+| hand-rolled C++ | 1.66 | 602M |
+| Fluxtion, non-escaping local *(benchmark shape only)* | 1.58 | 633M |
+| hand-rolled Java, static field | ~1.85 | 540M |
+| **Fluxtion, `static final` field — a realistic Java deployment** | **2.62** | **382M** |
+| Fluxtion, embedded in C++ as a shared library | 4.19 | 239M |
+
+**650M events/sec is real but requires the processor to be a non-escaping local** — true in a
+microbenchmark, not in an application that stores it. **382M is the number to quote for a deployed
+Java service.** Against hand-rolled Java at 540M that is +41%; against hand C++ at 602M, +58%.
+
+Addendum 6's claim of parity stands only for the non-escaping shape. Addendum 8's *mechanism* was
+wrong; its *conclusion* — that the headline needed qualifying — was right.
+
+## Dispatch strategy (`DISPATCH_STRATEGY` already exists: `CLASS_NAME`, `INSTANCE_OF`, `PATTERN_MATCH`)
+
+Four strategies, receiver type genuinely unknown, 256-slot cycled `Object[]`, real work per dispatch:
+
+| runtime | strategy | 4 types | 16 types | 64 types |
+|---|---|---|---|---|
+| JIT | instanceof chain | 1.485 | **1.498** | 4.594 |
+| JIT | **id switch** (interface `getId()`) | 1.438 | **4.569** | 4.863 |
+| JIT | **getClass() identity** | 1.474 | **1.490** | **4.534** |
+| JIT | pattern switch | 1.479 | 1.503 | 7.289 |
+| native+PGO | instanceof chain | 1.815 | 2.425 | 6.413 |
+| native+PGO | id switch | 1.726 | 1.833 | **4.240** |
+| native+PGO | **getClass() identity** | **1.482** | **1.492** | 4.530 |
+| native+PGO | pattern switch | 1.472 | 1.621 | 5.209 |
+
+**`getClass()` identity comparison is the most consistently good** — best or tied at 4 and 16 types on
+both runtimes, and competitive at 64. It avoids the interface call entirely, because `getClass()` is a
+JVM intrinsic rather than a virtual dispatch, and each `c == E.class` is a single pointer compare.
+
+**The reservation about `getEventId()` was well founded.** The id switch is the *worst* option on a JIT
+at 16 types (4.569 vs 1.490) — the interface call costs more than the linear scan it replaces. It only
+wins at 64 types under AOT, where O(1) finally beats 64 pointer compares.
+
+Note also that `instanceof` on a **final** class is already a single class-word compare, so the chain is
+much better than "linear scan" suggests — which is why it holds up to 16 types.
+
+**You cannot `switch` on a `Class` in Java.** The options are a chain of `c == X.class` compares (what
+was measured), a hash lookup on the class identity for large N, or Java 21 pattern switch — which
+compiles to `invokedynamic typeSwitch` and measured well at small N but **7.29 ns at 64 types on a
+JIT**, the worst cell in the table.
+
+**Recommendation:** `getClass()` identity compares for typical graphs; consider a hash lookup on class
+identity beyond ~32 event types. Do not adopt an interface-returned event id — it is slower than what
+it replaces at every count except 64-under-AOT.
