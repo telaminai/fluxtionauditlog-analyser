@@ -262,6 +262,43 @@ All proven, so effort does not go the wrong way.
 
 ---
 
+## The floor is demonstrated, but not yet reliably attainable — read this before quoting a number
+
+**A generated processor reaches 1.57 ns/event — about 637M events/sec — from a separately compiled
+vendor node library, with full capability and no auditors.** That matches hand-rolled flat Java at 1.55
+and round 58's hand-optimised C++ at 1.57. It has been observed in five independent harnesses.
+
+**It is not yet reliably reached, and the reason is not understood.** Three native images, same vendor
+jar, same generated processor, same `switch` dispatch, each profiled from its own arms:
+
+| binary | generated event loops in it | ns/event |
+|---|---|---|
+| two identical loops + hand-rolled arm | 2 | **1.57 / 1.57** |
+| one loop + hand-rolled arm | 1 | **5.58** |
+| one loop, nothing else | 1 | **5.55** |
+
+The loops are byte-identical. **A binary containing two copies of the loop optimises both; a binary
+containing one optimises neither.** The single-loop shape is the one a real deployment has.
+
+**What has been ruled out**, each by direct measurement:
+
+| candidate | test | result |
+|---|---|---|
+| profile coverage | deliberately excluding an arm | real effect (1.59 → 7.20) but **not this** — the slow arms are profiled |
+| profile volume | 5× longer profiling run | no change (5.55 → 5.67) |
+| profile count | 1, 2, 3 merged profiles of the same path | no change (5.50 / 5.55 / 5.56) |
+| inlining budget | `-H:MaximumInliningSize` 1000 and 3000, `TrivialInliningSize=100` | no change |
+| vendor packaging | nodes from a separate jar vs local source | **not this** — the fast case is from the jar |
+| source shape | identical methods | **not this** — identical bytecode, different outcome |
+
+The remaining hypothesis is a per-compilation decision inside GraalVM that dissolves the processor for
+some compilations and not others. Nothing measured here controls it.
+
+**So, when quoting:** *"a generated Fluxtion processor is capable of 1.57 ns/event, matching hand-written
+C++"* is supported. *"your application will run at 637M events/sec"* is **not** — today the realistic
+single-loop shape measures 5.5. Closing that gap is the open item, and it is worth more than any
+remaining configuration work on this page.
+
 ## Honest numbers, and one correction
 
 Measured on macOS/aarch64, Oracle GraalVM 25.0.4, output verified identical on every arm.

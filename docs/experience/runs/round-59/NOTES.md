@@ -1105,3 +1105,49 @@ what the code is capable of, and the conditions that produce it are not fully id
 **This is the gap to close before the number is published**, and it is the fourth harness-shape effect
 this round has found — after the timing-call placement, the arm count, and profile coverage. Every one
 of them looked like a framework property and none was.
+
+---
+
+## 17. §16 corrected, and the stability problem isolated
+
+**§16.2 was measured through a broken harness.** Six of its seven "identical arms" were never wired
+into `main` — repeated string replacement hit the same first occurrence each time — so `g2`…`g6` fell
+through to the `else` branch and all ran `generated`. There were only ever two distinct measurements,
+and `generated` additionally carried 7× the profile weight. §16.2's table is withdrawn.
+
+Rebuilt with an explicit `switch` and a throwing `default`, so every arm is reachable and no arm is a
+fall-through:
+
+| binary | generated loops | ns/event |
+|---|---|---|
+| `Twin` — alpha + beta + hand | **2 identical** | alpha **1.57**, beta **1.57** |
+| `Twin2` — alpha + hand | 1 | **5.58** |
+| `Twin3` — alpha only | 1 | **5.55** |
+
+**The vendor-jar conclusion survives and is now clean:** two identical loops from a separately compiled
+vendor jar both reach 1.57, against hand-rolled 1.55.
+
+**The stability problem also survives, and is sharper.** A binary with two copies of the loop optimises
+both; a binary with one optimises neither. The loops are byte-identical and the single-loop shape is
+what a real deployment has.
+
+### 17.1 What has been ruled out
+
+| candidate | test | verdict |
+|---|---|---|
+| profile coverage (§15) | exclude an arm from the profile | real (1.59 → 7.20) but **not the cause** — slow arms are profiled |
+| profile volume | 5× longer instrumented run | no change: 5.55 → 5.67 |
+| profile count | 1 / 2 / 3 merged profiles of the same path | no change: 5.50 / 5.55 / 5.56 |
+| inlining budget | `MaximumInliningSize` 1000, 3000; `TrivialInliningSize` 100 | no change |
+| vendor packaging | separate jar vs local source | **not the cause** — the fast case is from the jar |
+| source shape | byte-identical methods | **not the cause** |
+| dispatch form | `if/else` vs `switch` with throwing default | no change |
+
+### 17.2 Standing conclusion
+
+**Capability is proven; attainability is not.** 1.57 ns from generated code, from a vendor jar, with
+full capability, is real and reproduced in five harnesses. Getting it *on demand* is unsolved, and the
+single-loop deployment shape currently lands at 5.5.
+
+**This is now the most valuable open item in the whole round** — worth more than any remaining elision
+or configuration work, because it is the difference between a capability and a product claim.
