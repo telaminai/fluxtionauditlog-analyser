@@ -132,6 +132,16 @@ contribution first. Necessary but not sufficient for replay — leaves return-va
 choice; `tools/bench` harness fixes compilation shape, interleaves arms in one binary, asserts output
 equivalence before timing, and fails on a suspiciously clean zero._
 
+**[M46.11] ☐ W14 — manifest optimisation metadata** ·
+_[spec-manifest-optimisation-metadata.md](spec-manifest-optimisation-metadata.md). The facts W4/W5/W11/W13c
+would otherwise rediscover by scanning vendor bytecode are computed once by the component's own build and
+published in its manifest. Absence means UNKNOWN and strict modes fail on it, never assume. Two new
+annotation ATTRIBUTES only — `deterministic` on `@ExportService`, `ambient` on `@OnTrigger` — no new
+annotation types. Worktree `~/IdeaProjects/telamin/worktrees/mavenplugin-w14`, branch
+`spec/w14-manifest-optimisation-metadata`, **base possibly stale — see spec §7, confirm the repository and
+fetch before implementing.** Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation,
+not a prerequisite._
+
 **Blocking question before branching:** does a generated service auditor move
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
