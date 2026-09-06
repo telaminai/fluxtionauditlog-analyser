@@ -60,6 +60,36 @@ tidies.)_
 
 ---
 
+### M46 · working directories — for the reviewing LLM
+
+**Work is in git worktrees, not in the primary checkouts.** The primary checkouts were left on their
+existing branches and are undisturbed (`fluxtion-core` on `feature/java_8_compatability`,
+`fluxtion-compiler` on `experiment/determination-placement`).
+
+| worktree | branch | base | repo it belongs to |
+|---|---|---|---|
+| `~/IdeaProjects/telamin/worktrees/core-w2w3w8` | `perf/w2-w3-w8-runtime-internals` | `origin/main` @ `4b38aeb` (2026-09-01) | `~/IdeaProjects/telamin/fluxtion/fluxtion-core` |
+| `~/IdeaProjects/telamin/worktrees/compiler-w12` | `perf/w12-auditor-switch` | `origin/main` @ `9a16035` (2026-09-01) | `~/IdeaProjects/telamin/fluxtion/fluxtion-compiler` |
+| `~/IdeaProjects/telamin/worktrees/analyser-w10` | `perf/w10-conformance-bench` | `main` @ `c0851b5` | `~/IdeaProjects/telamin/fluxtionauditlog-analyser` |
+
+**Version lines, verified — do not assume:** `fluxtion-core` `origin/main` is **1.0.15-SNAPSHOT**, the
+line producing the `fluxtion-runtime` **1.0.14** that round 58 measured. The primary checkout's
+`feature/java_8_compatability` branch is **0.9.33-SNAPSHOT**, a different line — changing it would not
+affect what the compiler consumes. `fluxtion-compiler` pins `fluxtion.base.version=1.0.14`, i.e. it
+consumes the runtime as a published artifact.
+
+**`git fetch` was NOT run.** Bases are the remote-tracking refs as they stood locally, dated
+2026-09-01. Both are recorded above by full commit so the work can be rebased if the remotes have
+moved.
+
+**Item → worktree map:** W2/W3/W8 → `core-w2w3w8` · W12 → `compiler-w12` · W9/W10 → `analyser-w10`.
+Land W10 first: until the harness exists, no performance claim on the other branches is reproducible.
+
+Handoff briefs, one per repo, will be written to `docs/handoff/` following the established
+brief-plus-report convention.
+
+---
+
 ## M46 · Compiler & runtime optimisation — ☐ SPEC COMPLETE, branch not started
 
 Spec: **[spec-generated-dispatch-performance.md](spec-generated-dispatch-performance.md)** — Part IV §19
