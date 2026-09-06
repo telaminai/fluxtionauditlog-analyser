@@ -8,8 +8,8 @@ runs across 9 runtimes, every arm output-verified before timing.
 
 ## The thesis
 
-> **Give the integrator every lever that preserves vendor-library integration. For performance
-> equivalent to hand-rolled Java, deploy native-image with PGO.**
+> **Give the integrator every lever that preserves vendor-library integration. For maximum
+> performance, compile ahead of time and keep the processor non-escaping on the hot path.**
 
 Two closed-world systems compose, and neither is sufficient alone:
 
@@ -18,9 +18,10 @@ Two closed-world systems compose, and neither is sufficient alone:
 - **GraalVM native-image** closes it at the **program** level — whole-program points-to analysis and
   scalar replacement. It cannot derive dispatch order; that is a domain fact the graph declares.
 
-Fluxtion alone, on a JIT, with vendor components: **4.74 ns/event**.
-Both together: **1.57 ns/event — within 1% of hand-written Java — with components arriving as opaque
-pre-compiled jars.**
+Fluxtion alone, on a JIT, with vendor components: **4.80 ns/event (208M/s)**.
+Both together, non-escaping shape, no PGO: **1.42 ns/event (703M/s)** — **8.9% faster than the best
+hand-written C++ implementation of the same arithmetic measured here** — with components arriving as
+separately compiled jars.
 
 **The integration thesis and the performance thesis are only simultaneously true under ahead-of-time
 compilation.**
@@ -38,19 +39,37 @@ no auditors, no re-entrancy wrapper. Processor non-escaping. Median of 5 × 200M
 | OpenJDK 25.0.2, C2 | 5.33 | 3.12 | 1.71× | 188M/s |
 | **GraalVM CE 25.3.4.1, Graal JIT** | **4.80** | 2.34 | 2.05× | **208M/s** |
 | Oracle GraalVM 25.0.4, Graal JIT | 4.93 | 2.33 | 2.12× | 203M/s |
-| Oracle native-image, **no PGO** | 6.34 | 3.22 | 1.97× | 158M/s |
-| **Oracle native-image + PGO** | **1.57–1.70** | 1.56 | **1.01–1.08×** | **590–635M/s** |
+| Oracle native-image, no PGO, loop in a multi-arm `main` | 6.34 | 3.22 | 1.97× | 158M/s |
+| Oracle native-image + PGO, same harness | 1.70 | 1.56 | 1.08× | 590M/s |
+| **Oracle native-image, no PGO, dedicated method, non-escaping** | **1.42** | 1.49 | **0.95×** | **703M/s** |
 
-**JIT floor: 4.80 ns (208M/s). Native+PGO floor: 1.57 ns (635M/s), within 1% of hand-written Java.**
+Note rows 5–7: the same source in three harnesses. **Every figure from this round must name its
+compilation shape**; quoting one without it is how three successive drafts of the article got the
+headline wrong.
 
-Every 1.5x figure in this document is **native-image + PGO**. No JIT configuration reaches it.
+**JIT floor: 4.80 ns (208M/s). AOT floor: 1.42 ns (703M/s).**
 
-**Without PGO, native-image is the *worst* runtime measured** (6.34 ns). PGO is not a tuning detail;
-it is the entire difference.
+### The lever is compilation shape, not PGO
 
-## 2. Vendor jars cost nothing under AOT
+Same static methods, same classes, only image kind and PGO differ:
 
-Node classes packaged as a pre-compiled jar — no source, the real integration case:
+| arm | exe, no PGO | exe, PGO | shared lib, no PGO | shared lib, PGO |
+|---|---|---|---|---|
+| **processor created in the call, never escapes** | 1.53 | 1.64 | **1.42** | 6.28 |
+| processor in a `static final` field | 3.10 | 2.51 | 3.10 | 6.25 |
+| hand-written Java, same holding | 2.44 | 1.49 | 2.31 | 3.14 |
+
+- **A non-escaping processor reaches ~1.4–1.5 ns in both image kinds with no profile.**
+- **PGO helps only shapes that block the optimisation** and *hurts* the one that does not — mildly in
+  an executable, catastrophically in a shared library (1.42 → 6.28).
+- **Never carry a profile across image kinds.** An executable's profile applied to a shared library
+  cost 4×.
+
+**Do not assume PGO helps. Measure it.**
+
+## 2. Separately compiled vendor jars had no measurable cost
+
+Node classes packaged as a pre-compiled jar — the real integration case:
 
 | | native + PGO | Graal JIT |
 |---|---|---|
@@ -58,8 +77,31 @@ Node classes packaged as a pre-compiled jar — no source, the real integration 
 | same nodes, source on the classpath | 1.58 | 4.82 |
 | hand-rolled single method | 1.56 | 2.34 |
 
-Substrate's points-to analysis is whole-program: it proves the vendor node instance non-escaping and
-dissolves it regardless of where it was compiled. **No source access, no codegen change, no loss.**
+Java compilers consume **bytecode**, so removing `.java` files proves nothing on its own. The finding
+is that whole-program analysis sees through **separately compiled package and jar boundaries** well
+enough to remove the measured component-object overhead. Components are opaque to the integrator and
+available to the optimiser as bytecode.
+
+## 2a. Versus hand-written C++
+
+Native shared library, non-escaping batch entry, no PGO, 20 rounds in one process, output asserted
+identical every round. C++ given every lever short of changing the algorithm.
+
+| | median ns | events/sec |
+|---|---|---|
+| **Fluxtion generated** | **1.4224** | **703M** |
+| C++ hand-scalarised to locals — *best C++* | 1.5619 | 640M |
+| C++ struct, `-O3 -march=native -funroll-loops` | 1.5725 | 636M |
+| C++ with clang PGO trained on this workload | 1.5673 | 638M |
+
+**8.9% faster than the best C++ measured**, ranges non-overlapping. Hand-scalarising bought C++ 0.7%
+(clang already register-allocated the struct); clang PGO bought nothing. `-ffast-math` was not used —
+it reassociates floating point and the outputs would stop matching.
+
+Two notes on fairness: the loop-carried `ewma` dependency blocks SIMD for **both** sides, and the Java
+arm mutates an event object every iteration where the C++ arm passes two doubles — **Java does more
+work per event and is still faster.** What would still win: a different algorithm or data layout,
+which is no longer the same comparison.
 
 ---
 
@@ -69,14 +111,15 @@ Ranked by measured value. All keep semantics unless stated.
 
 | # | lever | JIT | native | notes |
 |---|---|---|---|---|
-| 1 | **PGO at deploy** | — | **−36%** | no code change at all; the single biggest item |
+| 1 | **non-escaping hot path** | ~0% | **−54%** (3.10 → 1.42) | deployment shape, not a flag; worth more than everything below combined |
 | 2 | **`noReentrancy` build flag** | −7% | **−26%** | only when no node can raise a re-entrant event |
 | 3 | **guarded callback drain** | −2% | **−18%** | **unconditional — no flag, no semantic change** |
+| 3a | PGO at deploy | — | −32% on blocking shapes, **+340% on non-blocking** | measure it; never carry across image kinds |
 | 4 | concrete `ClockStrategy` field | 0% | −10–15% of the clock read | third-order |
 | 5 | hoist auditor calls | 0% | 0% | **35% smaller bytecode/handler**; size only |
 | 6 | inlining flags / `@AlwaysInline` | ~0% | −3.8% | not worth a GraalVM-internals dependency |
 
-**Implementation order: 3, then 1 (documentation), then 2.** The guarded drain needs no user decision
+**Implementation order: 3 (code), then 1 and 3a (documentation), then 2.** The guarded drain needs no user decision
 and is pure gain; PGO is documentation rather than code; `noReentrancy` needs build-time proof plus a
 runtime guard.
 
@@ -194,9 +237,9 @@ is no lever at all** (4.74 ns), and that is the single configuration where the t
 The published benchmark states derived orchestration costs **+1.32 ns / 19%** on one JDK. That is one
 cell. The range is **+1% (native+PGO) to +105% (JIT)**, governed by compiler and configuration.
 
-**Not established:** parity with hand-optimised **C++**. The shared-library build reached 4.19 ns
-against C++ at 1.66, but PGO could not be applied to it — `-R:ProfilesDumpFile` did not fire on
-`graal_tear_down_isolate`. That is the experiment that would settle it.
+**Now established** (§2a): the generated processor was **not slower** than the best hand-written C++
+implementation of the same arithmetic measured here — 1.42 vs 1.56 ns. Scope: one fixture, ten nodes,
+one machine, non-escaping shape, and a competent but not expert-tuned C++ comparator.
 
 **Also known:** the C ABI boundary costs ~3.9 ns per call, more than the processor. **Cross the ABI per
 batch, not per event.**
