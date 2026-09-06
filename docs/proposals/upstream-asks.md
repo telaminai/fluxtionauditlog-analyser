@@ -1547,3 +1547,29 @@ These knobs exist today and are nowhere presented as a coherent choice.
 **Not asked for: `@AlwaysInline`.** Raising the inlining thresholds globally is strictly stronger than
 annotating methods and bought only 3.8%; it would also make the runtime jar depend on GraalVM
 internals.
+
+**Implementation plan added 2026-09-06.** UP-FLX-49 now has a full branch plan in
+[`spec-generated-dispatch-performance.md`](../specs/spec-generated-dispatch-performance.md) Part II:
+ten work items scoped by module (W1–W10), ordered as a performance spine (W1→W2→W4) and a determinism
+spine (W5→W6→W7), with compatibility classified — **no item is breaking, the release is additive**.
+
+Two items were added that are not performance work:
+
+- **W5 ambient-read scan** — fail the build when a method reachable from a trigger reads wall clock,
+  randomness, filesystem, network or mutable static state. Turns *"there is no state change without
+  events"* from convention into a verified property, and works on vendor bytecode.
+- **W6 compiler-derived replay capture set** — derive the output-reaching non-deterministic set from
+  the declared graph and an explicit observable contract; emit a plan the recorder and analyser both
+  consume, plus a report of what is and is not captured.
+
+**Service registration (§9)** is rolled in as W7 but **gated on measurement**: the static-binding half
+shares the modules and gates, but exported service-call cost is unmeasured, and every other item in
+the spec is measured. The stronger argument for W7 is determinism rather than speed — service
+registration order is a realised non-deterministic choice, and static binding eliminates it rather
+than requiring it to be captured. A redesign of the *dynamic* service lifecycle is explicitly **not**
+in scope for this release.
+
+Also newly documented as guarantees rather than work: **interface separation between components is
+free** (proven from machine code — zero indirect branches with a single implementor, no profile
+needed), and **event-type dispatch is not a scaling risk** (+0.26 ns from 2 to 16 types; the
+switch-on-id alternative is worse). Both exist so nobody optimises in the wrong direction.
