@@ -350,7 +350,7 @@ The generator knows its own fully-qualified class name at build time, so it can 
 the same partial-evaluation move the rest of this page describes, applied to the compiler's own
 configuration. That is open work (M50), not something the generator does today.
 
-## Honest numbers, and one correction## Honest numbers, and one correction## Honest numbers, and one correction
+## Honest numbers
 
 Measured on macOS/aarch64, Oracle GraalVM 25.0.4, output verified identical on every arm.
 
@@ -362,9 +362,9 @@ Measured on macOS/aarch64, Oracle GraalVM 25.0.4, output verified identical on e
 | hand-rolled flat equivalent | 2.05 | 2.46 |
 
 **A note on provenance.** Round 58's published figures of 1.41–1.55 ns were measured on
-`BaseProcessor`, a hand-written stand-in, not on generated code. That gap is now closed: with the
-configuration above **the generator itself produces 1.57 ns**, matching that control (1.58) and
-hand-rolled flat code (1.55).
+`BaseProcessor`, a hand-written stand-in, not on generated code. **That gap is closed**: with the
+configuration above the generator itself produces **1.57 ns**, repeatably, matching that control (1.58)
+and hand-rolled flat code (1.55).
 
 Quote the shape, not the best number in the table.
 
