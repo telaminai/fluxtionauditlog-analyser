@@ -1582,6 +1582,14 @@ switch-on-id alternative is worse). Both exist so nobody optimises in the wrong 
 **Draft supplied:** [`fluxtion-performance-configuration.md`](fluxtion-performance-configuration.md) —
 publishable as-is; this ask is to take it, not to write it.
 
+**Updated 2026-09-06 (round 59)** with a decision the first draft omitted, and it is now the FIRST one:
+the `Clock` auditor is in every generated processor and, absent a supplied `ClockStrategy`, reads
+`System.currentTimeMillis()` on **every event**. Measured on a real generated processor: **29.08 ns
+default vs 5.03 ns with a strategy — the clock is 83% of the cost.** Round 58 measured the same on
+seven runtimes (19.01 vs 7.71 on Graal JIT); it is the largest single line item in its results file and
+no document said so. **This is the one lever a user loses by doing nothing**, so its absence from the
+documentation costs more than any other item here.
+
 **Evidence — measured.** [`round-58`](../experience/runs/round-58/NOTES.md), ~700 runs, medians of
 5 × 200M events with verified output. A Fluxtion processor was measured from **9.41 ns/event**
 (native-image + PGO, stock: auditors, guards, re-entrancy wrapper) down to **1.42 ns/event**

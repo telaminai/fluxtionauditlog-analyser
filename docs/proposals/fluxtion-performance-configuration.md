@@ -34,7 +34,41 @@ chose above it.
 
 ---
 
-## The five decisions
+## The six decisions
+
+### 0 · Supply a `ClockStrategy` — the one that costs nothing and is lost by default
+
+**Free. Both runtimes. −83% measured on JIT (29.08 → 5.03 ns), and it is ON by default.**
+
+This is first because it is the only decision on the list you are making *by not making it*:
+
+```java
+// Clock.java — the default
+@Initialise public void init() { wallClock = System::currentTimeMillis; }
+@Override public void eventReceived(Object event) {
+    processTime = getWallClockTime();     // System.currentTimeMillis() on EVERY event
+    eventTime   = processTime;
+}
+```
+
+The `Clock` auditor is present in every generated processor, and unless you supply a strategy it reads
+the **system wall clock on every event**. Measured on a real generated 10-node processor (round 59):
+**29.08 ns/event default vs 5.03 ns with a supplied strategy** — the clock is 83% of the cost.
+
+```java
+processor.onEvent(ClockStrategy.registerClockEvent(() -> myStreamTime));
+```
+
+Round 58 measured the same thing on **seven** runtimes and it is the largest single line item in its
+results file — 19.01 vs 7.71 on Graal JIT, 18.45 vs 8.58 on C2, 20.87 vs 13.98 on native-image.
+
+**Take it whenever your events carry their own time**, which is every replayable system — and if they
+do not, you are reading the wall clock inside the event path anyway, which is the ambient read that
+makes a run non-reproducible. The performance argument and the determinism argument point the same way.
+
+**Caveat:** `System.currentTimeMillis()` cost is platform-dependent. The 24 ns delta is macOS/aarch64;
+round 58's ~11 ns on comparable hardware is the conservative figure. The *dominance* held on every
+runtime measured; the magnitude is not a portable constant.
 
 ### 1 · Deployment shape — the largest lever, and it is not a flag
 
@@ -184,6 +218,7 @@ overlap rather than presenting the medians as a win.
 
 | decision | cost to you | JIT | native |
 |---|---|---|---|
+| **supply a `ClockStrategy`** | none if events carry time | **−83%** | large |
 | non-escaping processor | none — structural | — | **−54%** |
 | guarded callback drain | none — framework | −2% | −18% |
 | `noReentrancy` | build must prove it | −7% | −26% |
@@ -191,5 +226,10 @@ overlap rather than presenting the medians as a win.
 | PGO | must be measured per shape | — | −32% or **+340%** |
 | drop auditors | **the audit log** | — | — |
 
-**Start with deployment shape.** It is free, it is the largest single lever, and it is the one most
-often lost by accident.
+**Start with the clock, then deployment shape.** The clock is free, it is the largest lever on a
+default-configured processor, and it is the only one you lose by doing nothing. Deployment shape is the
+largest lever once the clock is dealt with, and the one most often lost by accident.
+
+Both were measured on this project's own evidence before the page was written, and the clock was
+missing from the first draft of this document — the data existed in round 58 and the conclusion had not
+been drawn from it.
