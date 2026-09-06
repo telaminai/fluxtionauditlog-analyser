@@ -932,3 +932,60 @@ reproducible on demand.
   allocation (§12.3) and not the node-name map (§11) — it is record-level work that a level check
   should be eliding and currently is not.
 - **This is an upstream ask, not an analyser change**, and it belongs with the other framework items.
+
+---
+
+## 14. Baseline (no auditors): generated code meets C++ and hand-rolled
+
+**Baseline is defined as no auditors.** §13's audit work is a separate question and is not part of it.
+
+Two-arm native binary, accurate PGO, epsilon GC, output verified identical:
+
+| arm | ns/event | events/sec |
+|---|---|---|
+| **generated processor, full capability** | **1.58** | **633M** |
+| hand-rolled flat Java | 1.54 | 649M |
+| hand-optimised C++ `-O3 -march=native` (round 58, addendum 17) | 1.5722 | 636M |
+
+**The generated processor is at parity.** 1.58 against C++'s 1.57 and hand-rolled Java's 1.54 — a 2.6%
+spread across three implementations of the same arithmetic, one of them generated from a declarative
+node graph with `getNodeById`, `lookupInstanceName`, re-entrancy, subscriptions and buffering all live.
+
+The C++ figure is from a different harness and clock and is quoted for scale, not as a head-to-head;
+round 58's own caution against claiming C++ parity from mismatched harnesses still stands. **What is a
+head-to-head is generated 1.58 against hand-rolled Java 1.54, same binary, same clock, 200M events.**
+
+### 14.1 An unexplained 3.5× effect — recorded, not resolved
+
+The two arms below are the same processor, the same loop, the same binary. The only difference is that
+one calls the lookup methods **once, before the timed loop**:
+
+```java
+p.getInstanceById("mid");
+p.getNodeById("exposure");
+p.lookupInstanceName(p.buffer);
+```
+
+| arm | ns/event |
+|---|---|
+| lookup methods touched once before the loop | **1.58** |
+| identical, not touched | **5.65** |
+| hand-rolled | 1.54 |
+
+Three reps each, tight variance, and it reproduces the earlier six-arm result. **Three method calls
+before a 200-million-iteration loop change the loop by 3.5×.**
+
+I cannot explain it. It is not the calls' own cost — that is three invocations against 200M events. It
+is some compilation-shape effect the calls trip, and it is the *fast* case that needs explaining, not
+the slow one: 5.65 is where §9's escape-analysis budget already sits.
+
+**Consequences.**
+
+- **The 1.58 figure is real and reproducible** — it is the same number reached independently in a
+  six-arm binary (§11.6) with a different harness.
+- **But it is not reached reliably**, and a user writing the obvious loop gets 5.65. Until this is
+  understood, "generated code reaches 1.58" carries the caveat that the harness shape decides it —
+  which is the third distinct harness-shape effect this round has found (§7.1 the timing call, §8.2
+  the arm count, and now this).
+- **This is the next thing to investigate.** It is worth more than any remaining elision: it is the
+  difference between the floor being available and being an accident.
