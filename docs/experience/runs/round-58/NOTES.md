@@ -1689,3 +1689,38 @@ caught. The rule is now unambiguous:
 
 Both flawed and clean sources are kept: `src/IfaceBench.java` (multi-arm, produced +115%),
 `src/Conc.java`, `src/Iface1.java`, `src/IfaceN.java` (single-purpose, produced ±0.03 ns/site).
+
+## Addendum 19a — the interface result, proven from machine code
+
+Bytecode first: `Chain$IfaceProcessor` declares all ten node fields as interfaces and `handleEvent`
+emits **ten `invokeinterface`** instructions, against ten `invokevirtual` in the concrete processor.
+The comparison is what it claims to be.
+
+Machine code of `handleEvent`, Oracle native-image, no PGO, symbols preserved:
+
+| binary | instructions | direct `bl` | **indirect `blr`** | fp ops | node bodies inlined? |
+|---|---|---|---|---|---|
+| concrete node fields | 240 | 23 (all NPE stubs) | **0** | 24 | yes |
+| **interface, 1 implementor** | 272 | 27 (all NPE stubs) | **0** | 27 | **yes** |
+| **interface, 3 implementors** | 172 | 10 | **10** | **0** | **no** |
+
+`blr` is an indirect branch through a register — an interface call that was *not* resolved.
+
+**This proves the mechanism rather than inferring it from timings:**
+
+- With **one implementor**, closed-world analysis resolved all ten interface calls to direct code and
+  then inlined the bodies. The method contains 27 floating-point operations and **zero** indirect
+  branches. **No profile was involved.**
+- With **three implementors**, all ten calls remained indirect and nothing was inlined — the method
+  contains **zero** floating-point operations, because the arithmetic is still behind the calls.
+
+The timings follow: 6.32 ns (1 implementor, fully resolved) vs 6.80 ns (3 implementors, ten live
+indirect calls) — **0.048 ns per un-devirtualised interface call**, cheap because the branch target is
+perfectly predicted.
+
+**Verdict on the predictions:** the disagreement is settled by the machine code. Closed-world AOT
+*does* devirtualise interface dispatch statically when the hierarchy permits, with no profile. The
+predicted linear rise appears only when the hierarchy genuinely is ambiguous, and even then costs
+~0.05 ns per site rather than anything approaching the +115% the flawed multi-arm harness reported.
+
+Disassembly retained: `asm/asm-iface-concrete.txt`, `asm/asm-iface-1impl.txt`, `asm/asm-iface-3impl.txt`.
