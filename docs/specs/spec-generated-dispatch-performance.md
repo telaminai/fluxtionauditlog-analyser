@@ -764,3 +764,90 @@ useful once W13 exists, because the set it derives is then something the system 
 - whether recorded returns should be value-copied or reference-captured, and the cost of the former
 - whether a graph with generated service auditors changes `fluxtion.sourceFingerprint` — if it does,
   W13 is a graph change and cannot ship under gate 11.5 with the additive items
+
+---
+
+## 18. W12 precisely diagnosed — one asymmetry causes all three reflection sites
+
+Verified across **three** generated processors from different projects and generator runs
+(`round-54/BenchProcessor`, `artifacts/spring-fluxtion/AppProcessor`,
+`artifacts/component-composition/AppProcessor`). All three are byte-for-byte identical in this area.
+**They are not reflection-free today.**
+
+### 18.1 What is actually reflective
+
+| method | primary path | reflective? |
+|---|---|---|
+| `getNodeById(id)` | `nodeNameLookup.getInstanceById(id)` | **no** for real nodes |
+| `getNodeById(id)` | fallback `getClass().getField(id).get(this)` | **yes** — auditors only |
+| `getAuditorById(id)` | `getClass().getField(id).get(this)` | **yes**, always |
+| `newInstance(...)` | `getClass().getField(EventLogManager.NODE_NAME).get(this)` | **yes** |
+
+Node lookup is already generated and fast. **Every reflective site exists to reach an auditor.**
+
+### 18.2 The root cause is a one-directional registration
+
+The generator emits, for each auditor, a registration of every **node**:
+
+```java
+private void initialiseAuditor(Auditor auditor) {
+    auditor.nodeRegistered(buffer, "buffer");
+    auditor.nodeRegistered(charge, "charge");
+    ...
+}
+```
+
+But **the auditors themselves are never registered by name with anything.** They exist only as public
+fields — `clock`, `nodeNameLookup`, `serviceRegistry`. So `nodeNameLookup.getInstanceById("clock")`
+misses, and the generated code falls back to a reflective field probe. The generated comment says so
+explicitly:
+
+> *"Auditors live on the SEP as public fields rather than in nodeNameLookup. Fall back to a reflective
+> field probe so callers have a single unified lookup path."*
+
+**The asymmetry is the defect. The reflection is the symptom.**
+
+### 18.3 The fix
+
+The generator declares every auditor field, so it knows every name. Emit the lookup directly:
+
+```java
+@SuppressWarnings("unchecked")
+public <A extends Auditor> A getAuditorById(String id) throws NoSuchFieldException {
+    switch (id) {
+        case "clock":           return (A) clock;
+        case "nodeNameLookup":  return (A) nodeNameLookup;
+        case "serviceRegistry": return (A) serviceRegistry;
+        default: throw new NoSuchFieldException(id);
+    }
+}
+```
+
+`getNodeById`'s fallback then delegates to that switch instead of reflecting, and `newInstance`'s
+`EventLogManager` lookup does the same. **Three reflection sites removed by generating a switch over
+names the generator already emits as field declarations.**
+
+Alternatively, register auditors with the name lookup alongside nodes — one extra generated line per
+auditor — which removes the fallback rather than reimplementing it. Either is acceptable; the switch
+is more direct and does not depend on `NodeNameAuditor`'s internals.
+
+### 18.4 Why this is worth doing despite being small
+
+- **It is what forced `reflect-config.json` in round 58.** The native build failed with
+  `NoSuchFieldException: clock` on the first attempt, from `getAuditorById`. Any user introspecting a
+  graph under native-image hits the same wall, and the failure appears at runtime, not build time.
+- **`getNodeById` and `getAuditorById` are the analyser's and MCP bridge's entry points.** Tooling
+  that inspects a running graph is precisely the code that trips this.
+- **It is a few tens of generated lines**, with no semantic change and no runtime dependency.
+
+### 18.5 Scope correction
+
+W12 was previously stated as *"audit every reflection site reachable from init, registration or
+lifecycle"*. That is still the right sweep, but the finding narrows it usefully:
+
+> **In the generated processor, all known reflection exists to reach auditors by name, and is removed
+> by generating an auditor-name switch. The remaining sweep is for reflection in the *runtime*, of
+> which service registration (W11) is the confirmed instance.**
+
+Generated-code reflection and runtime reflection are therefore separate work with the same
+justification, and W12 is the smaller of the two.
