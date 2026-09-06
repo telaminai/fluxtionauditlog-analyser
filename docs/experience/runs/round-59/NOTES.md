@@ -873,3 +873,62 @@ into the reusable buffer.
 **So the trade is CPU, not garbage.** An audited processor can be zero-allocation and still cost
 hundreds of nanoseconds, and those are different objections with different remedies. §12's framing
 conflated them.
+
+---
+
+## 13. "Everything at lowest level should still be 1.57 ns" — NOT currently true
+
+The expectation is reasonable: an auditor that is compiled in but not logging should cost nothing.
+**It does not hold today.** Native + accurate PGO, epsilon GC, no registration escape:
+
+| configuration | ns/event | allocation |
+|---|---|---|
+| no audit at all | 5.5 (this binary) / **1.57** (§11) | zero |
+| audit compiled in, `tracingOff()`, stringify off, thread name off | **120.7** | zero |
+| audit compiled in, same, plus `LogLevel.NONE` sent at runtime | **120.6** | zero |
+| audit at INFO with tracing + registration, defaults | 885 | 208 B |
+
+**~120 ns to have an auditor present that is recording nothing.**
+
+### 13.1 The mechanism, as far as it is established
+
+`EventLogManager.init()` builds its record with the **single-argument** constructor:
+
+```java
+logRecord = new LogRecord(clock);          // -> this(clock, LogLevel.INFO)
+```
+
+and `LogRecord.loggingEnabled()` is `logLevel != NONE`. So the record's level defaults to **INFO**, and
+`tracingOff()` does **not** turn it off — `tracingOff()` only clears `canTrace`, which gates *per-node*
+invocation logging. Record-level work (`triggerObject`, `terminateRecord`) stays enabled.
+
+That explains why `tracingOff()` alone leaves 120 ns on the table. It is a plausible upstream fix:
+**default the record to `NONE` and raise it when logging is switched on**, so a compiled-in auditor is
+free until used.
+
+### 13.2 An inconsistency I could not resolve, recorded rather than smoothed over
+
+Sending `EventLogControlEvent(LogLevel.NONE)` at runtime gave **two different answers** in two
+configurations that differ only in whether nodes are registered:
+
+| | with node registration | without |
+|---|---|---|
+| audit, `LogLevel.NONE` at runtime | **19.1** | **120.6** |
+| audit, default INFO | 122.0 | 120.9 |
+
+Both generated processors contain the `EventLogControlEvent` handler, so the event is dispatchable in
+both. The registered variant responded to `NONE` and the unregistered one did not, which is the
+opposite of what the escape story would predict. **I do not have an explanation**, and the 19.1 ns
+figure should not be quoted until it is understood.
+
+What is safe to say: **there is a configuration in which a compiled-in auditor costs ~19 ns rather than
+~120**, so the ~120 is not irreducible — but the route to it is not currently understood or
+reproducible on demand.
+
+### 13.3 What this means for the claim
+
+- **Today: no.** A processor with audit compiled in does not reach 1.57 ns at any level tested.
+- **The target looks reachable**, and §13.1 names a concrete mechanism to attack. The cost is not
+  allocation (§12.3) and not the node-name map (§11) — it is record-level work that a level check
+  should be eliding and currently is not.
+- **This is an upstream ask, not an analyser change**, and it belongs with the other framework items.
