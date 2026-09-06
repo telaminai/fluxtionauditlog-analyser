@@ -540,3 +540,114 @@ build check must not treat build-registration as evidence of determinism.
 - whether purity can be established for vendor services from bytecode alone, or must be declared
 - whether an exported-invocation-as-event changes the graph's declared topology, and therefore
   `fluxtion.sourceFingerprint`
+
+---
+
+## 16. W11 — generate the service registration dispatch
+
+**This is the highest-value service item, and unlike W7 it needs no measurement to justify.**
+
+### 16.1 What the runtime does today
+
+Verified from the runtime bytecode (1.0.14):
+
+```java
+class ServiceRegistryNode$Callback {
+    java.lang.reflect.Method method;      // ← reflective dispatch target
+    Object node;
+    String nodeName;
+    boolean namedService;
+    void invoke(Object, String);          // ← Method.invoke
+}
+```
+
+Consumers are discovered from `@ServiceRegistered` / `@ServiceDeregistered` on node methods, held in
+`Map<RegistrationKey, List<Callback>>`, and dispatched by map lookup followed by **reflective
+invocation**.
+
+**Every input to that decision is available at compile time.** The generator holds every node, every
+annotated method, and the service class and name. Which node receives which registration is a
+determination that currently binds at runtime, by reflection, on every registration — and it could
+bind once, in the generator.
+
+### 16.2 What generation produces instead
+
+```java
+public void registerService(Service<?> svc) {
+    Class<?> c = svc.serviceClass();
+    String n = svc.serviceName();
+    Object i = svc.instance();
+    if (c == FxRates.class && "primary".equals(n)) {
+        pricingNode.fxRatesRegistered((FxRates) i);      // direct call, declared order
+        hedgeNode.fxRatesRegistered((FxRates) i);
+    } else if (c == CreditLimits.class) {
+        creditNode.limitsRegistered((CreditLimits) i);
+    }
+}
+```
+
+No `Method`, no `Map`, no `List`, no reflection.
+
+### 16.3 Three independent justifications
+
+**1. It removes a native-image configuration burden.** Reflective dispatch requires reflection
+metadata, so users must supply JSON config for service registration or hit runtime failures. This is
+the same class of problem round 58 hit directly: `getAuditorById` uses `Class.getField`, the native
+build failed with `NoSuchFieldException: clock`, and a `reflect-config.json` was required. **Removing
+reflection removes the configuration, and configuration a user can get wrong is an adoption tax.**
+
+**2. It removes non-determinism the framework itself introduces.** Discovery walks declared methods,
+and the JDK explicitly does **not** guarantee the order `getDeclaredMethods()` returns. When two nodes
+register for the same service, the order they are notified is therefore not guaranteed stable across
+JVMs or versions. If any node's registration handler has effects another node observes, that is
+**output-reaching non-determinism produced by the framework, arriving through no event, and captured
+nowhere.**
+
+That is a Corollary 2 violation in the current runtime. Generated dispatch fixes it by construction:
+the order becomes declared, stable, and visible in the generated source.
+
+*Scope note: the mechanism is real and follows from the JDK contract. Whether any production graph
+today depends on that order is unmeasured.*
+
+**3. It removes the maps, the callback lists and the reflective machinery** from the image heap and
+from startup. Registration is not on the per-event path (§3.3), so this is a startup and footprint
+argument, not a throughput one — and it should not be sold as throughput.
+
+### 16.4 Relationship to W7
+
+| | W7 static binding | **W11 generated dispatch** |
+|---|---|---|
+| applies when services are **build**-registered | yes | yes |
+| applies when services are **runtime**-registered | no | **yes** |
+| removes registration-order non-determinism | yes | **yes** |
+| removes reflection and native-image config | partially | **yes** |
+| needs a measurement to justify | **yes** | **no** |
+
+**W11 is strictly broader and lower risk than W7, and should be done first.** W7 then becomes an
+optimisation on top of a graph that is already reflection-free, rather than the vehicle for removing
+reflection.
+
+### 16.5 The pattern this belongs to
+
+Round 58 found reflection in three places in the generated processor — `getNodeById`'s fallback,
+`getAuditorById`, and `newInstance` — **none on the dispatch path, all on introspection and lifecycle
+paths**, and all requiring native-image configuration from the user.
+
+Service registration is the fourth. That is a pattern, not four coincidences:
+
+> **W12 — audit every reflection site reachable from `init`, registration or lifecycle, and generate
+> the dispatch instead.** Each site removed is one less line of native-image configuration a user can
+> get wrong, and one less place where JDK-unspecified ordering can leak into behaviour.
+
+The dispatch path is already reflection-free and fast. **The remaining reflection is all in the paths
+that decide *what is connected to what* — which is exactly the class of determination the generator
+should be binding.**
+
+### 16.6 Revised work item table entries
+
+| # | item | module | kind | justification | depends on |
+|---|---|---|---|---|---|
+| **W11** | generate service registration/deregistration dispatch | generator | additive | native-image config removed; framework-introduced ordering non-determinism removed | — |
+| **W12** | audit and generate remaining reflective lifecycle dispatch (`getNodeById`, `getAuditorById`, `newInstance`) | generator + runtime | additive | same | W11 |
+
+**W11 moves ahead of W7 in the determinism spine: W5 → W11 → W6 → W7.**
