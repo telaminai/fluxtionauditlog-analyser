@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The dispatch conformance bench — M46/W10, spec-generated-dispatch-performance §12.
+"""The dispatch conformance bench — M50/W10, spec-generated-dispatch-performance §12.
 
 Round 58 measured the same source at 1.42, 2.57, 4.82 and 6.34 ns depending on compilation
 shape, and four successive drafts of the public write-up carried wrong headline figures because
@@ -99,7 +99,7 @@ def main(argv: list[str] | None = None) -> int:
 
     arms = [s.strip() for s in a.arms.split(",") if s.strip()]
 
-    print("dispatch conformance bench — M46/W10")
+    print("dispatch conformance bench — M50/W10")
     print(f"  arms    : {', '.join(arms)}")
     print(f"  rounds  : {a.rounds} interleaved   warm={a.warm:,}  iters={a.iters:,}")
 

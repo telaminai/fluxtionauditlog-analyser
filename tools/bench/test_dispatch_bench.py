@@ -1,4 +1,4 @@
-"""Tests for the dispatch conformance bench — M46/W10.
+"""Tests for the dispatch conformance bench — M50/W10.
 
 Each test corresponds to a trap round 58 actually fell into. The bench exists to fail on these,
 so the tests assert that it does. A fake "benchable" program stands in for a JVM or native image:
