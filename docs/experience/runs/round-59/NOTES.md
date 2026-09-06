@@ -247,3 +247,91 @@ the other measured a model of it.
 **This is an owner call, not a defect finding.** The modelling is legitimate and labelled inside round
 58. The risk is only in how the number travels: the floor table's column heading is "Fluxtion", and
 that is the form the figure has been quoted in.
+
+---
+
+## 7. The target is reachable: 1.87 ns from GENERATED node structure, beating hand-rolled
+
+**Correction to §6.2, and to two negative results earlier in this round.** Both were harness artefacts.
+
+### 7.1 The harness shape was masking everything
+
+Round 58's 1.41/1.53 figures come from `cpp/FxLib2.java` `batchLocal`:
+
+```java
+public static void batchLocal(long n) {
+    BaseProcessor p = new BaseProcessor(); MarketTick e = new MarketTick();
+    for (long i = 0; i < n; i++) p.handleEvent(e.set(...));
+    outBuf = p.buffer.value; ...
+}
+```
+
+**Construction and loop are adjacent, and the caller does the timing.** My harness called
+`System.nanoTime()` *between* constructing the processor and entering the loop. That is an opaque call
+between an allocation and its use, and it stops the compiler proving the processor never escapes.
+
+Same code, only the harness changed:
+
+| | nanoTime inside the method | nanoTime outside (round 58's shape) |
+|---|---|---|
+| stripped processor, `handleEvent` | 6.27 | **1.87** |
+
+**3.3× from where the clock call sits.** Two conclusions I published earlier in this round — "the
+constructor self-publication changed nothing" and "removing the framework fields buys ~1%" — were both
+measured through the blocked harness and are **withdrawn**. They were measurements of the harness.
+
+### 7.2 The decomposition, with the harness fixed
+
+Native, no PGO, `batchLocal` shape, output identical on every arm, 3 reps:
+
+| arm | ns | what it isolates |
+|---|---|---|
+| `batchGenerated` — full W4 baseline generated, via `onEvent` | 5.59 | everything |
+| `batchGenDirect` — full generated, `handleEvent` called directly | 6.32 | the guard is not the cost |
+| `batchStripGuard` — framework fields removed, via `onEvent` + guard | **1.88** | the guard is FREE |
+| `batchDirect` — framework fields removed, `handleEvent` | **1.87** | the floor for this node graph |
+| `batchHand` — hand-rolled flat | 2.47 | reference |
+
+**Three results.**
+
+1. **The seven framework fields are the entire remaining gap: 5.59 → 1.87, a 3.7 ns / 66% cost.**
+   `callbackDispatcher`, `clock`, `nodeNameLookup`, `subscriptionManager`, `context`,
+   `serviceRegistry`, `functionAudit`. None is on the hot path — only two no-op auditor calls are —
+   so this is not work being done. It is that a processor holding seven live heap objects cannot be
+   dissolved, and once it can be, the ten node objects dissolve with it.
+
+2. **The re-entrancy guard is free**, 1.88 vs 1.87. Round 58 predicted exactly this: "a field check on
+   an already-loaded field is close to free". W4 keeps its safety backstop at no measured cost.
+
+3. **The generated node structure at 1.87 ns beats hand-rolled Java at 2.47 by 24%** — on the
+   generator's own field layout and its own topological dispatch order, not on a hand-written model.
+   Round 58's "generated dispatch is not slower than hand-written" now holds for generated code.
+
+### 7.3 What the generator has to do to get there
+
+The target is **not** blocked on dispatch, codegen shape, PGO, or the guard. It is one change:
+
+> **Do not emit a framework field the graph does not use.**
+
+Each is statically decidable at generation time, which is the same partial-evaluation move the
+generator already makes for dispatch order:
+
+| field | emit only when |
+|---|---|
+| `callbackDispatcher` | re-entrancy support is on |
+| `subscriptionManager` | subscription support is on |
+| `context` | a node injects `DataFlowContext`, or something above needs it |
+| `clock` | a node injects `Clock`, or an auditor reads it |
+| `nodeNameLookup` | `getNodeById` by node name is required |
+| `serviceRegistry` | the graph consumes or exports a service |
+| `functionAudit` | the graph exports a service |
+
+W4 already added the two flags that decide the first two. The rest are graph properties the builder
+holds. **This is the remaining work, and it is now measured rather than assumed: 3.7 ns of 5.59.**
+
+### 7.4 Guidance this changes
+
+The performance page must say **where you put the clock call matters**, not only where the processor
+lives. Construct the processor and run the loop with nothing between them; time from the caller. A
+profiler or a timing call placed inside that method silently costs 3.3×, and it will look like a
+framework cost.
