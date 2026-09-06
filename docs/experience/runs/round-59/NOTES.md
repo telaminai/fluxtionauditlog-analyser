@@ -1355,10 +1355,19 @@ becomes one they cannot fall off. **Implemented and verified end to end.**
 
 ### 21.1 What it does
 
-`EventProcessorCompilation` writes, beside the generated source, into the resources root:
+**Corrected after the first attempt broke two tests.** The first version wrote the file
+unconditionally from `EventProcessorCompilation`, which failed
+`ReachabilityMetadataGenerationTest.noFileWhenFlagOff` and `WasmHostGenerationTest` — because the
+codebase **already has a native-image metadata mechanism**, gated on
+`FluxtionCompilerConfig.generateReachabilityMetadata` (default false), writing to
+`META-INF/native-image/<fqn>/reachability-metadata.json`.
+
+Reading that first would have saved the detour. The directive now rides with it: same directory, same
+output root, same flag.
 
 ```
-META-INF/native-image/com.telamin.fluxtion/<fqn>/native-image.properties
+META-INF/native-image/<fqn>/native-image.properties      <- new, the inlining directive
+META-INF/native-image/<fqn>/reachability-metadata.json   <- existing
 ```
 
 ```properties
@@ -1399,3 +1408,28 @@ told what the producing build already knows.*
 The emitted directive uses `<fqn>.*` rather than a curated method list, because §20.4 measured the
 curated form failing outright (5.55 — no better than nothing) with **identical image size**. A
 generator emitting a method list would be both harder and wrong.
+
+### 21.5 Final verification, and the gate it sits behind
+
+Emitted by the generator with `generateReachabilityMetadata(true)`, both files side by side:
+
+```
+<resources>/META-INF/native-image/com.bench.autogen2.BenchProcessor/native-image.properties
+<resources>/META-INF/native-image/com.bench.autogen2.BenchProcessor/reachability-metadata.json
+```
+
+`native-image` invoked with **zero `-H:` options**:
+
+| build | ns/event |
+|---|---|
+| **generated resources on the classpath** | **1.58** |
+| identical build, resources tree removed | **5.65** |
+
+**Opt-in, deliberately.** It rides the existing `generateReachabilityMetadata` flag rather than
+introducing a second one, so a project that has asked for native-image metadata gets the directive
+automatically, and one that has not is unaffected. That also keeps
+`ReachabilityMetadataGenerationTest.noFileWhenFlagOff` meaningful: **no `META-INF/native-image` tree
+appears unless the build asked for it.**
+
+Tests: `ReachabilityMetadataGenerationTest` 2/2 · `WasmHostGenerationTest` 2/2, both previously failing
+against the first attempt.
