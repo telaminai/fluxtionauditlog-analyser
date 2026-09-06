@@ -1151,3 +1151,60 @@ single-loop deployment shape currently lands at 5.5.
 
 **This is now the most valuable open item in the whole round** — worth more than any remaining elision
 or configuration work, because it is the difference between a capability and a product claim.
+
+---
+
+## 18. The stability problem, isolated to a one-line reproducer
+
+Not solved, but reduced to a single controlled difference and a minimal reproducer. All builds below:
+vendor jar nodes, native-image, `--gc=epsilon`, each built with **its own** profile collected from
+**its own** instrumented image, verified output-identical, and **reproducible across fresh rebuilds**.
+
+| binary | contents | `alpha` |
+|---|---|---|
+| `Twin` | alpha + **beta** (byte-identical second hot loop) + hand | **1.57** |
+| `Twin2` | alpha + hand | **5.55** |
+| `Twin3` | alpha alone | **5.55** |
+| `Twin4` | alpha + a second allocation site that is **cold** (argv-guarded, never runs) | **5.55** |
+| `Twin5` | alpha alone, moved to its **own class** | **5.60** |
+
+**The trigger is a second HOT, PROFILED loop over the same processor class.** Adding one takes the
+first loop from 5.55 to 1.57. A cold second allocation site does not do it (`Twin4`); neither does a
+second call site of the same method (`Twin3`'s main calls `alpha` twice).
+
+### 18.1 Ruled out, each by direct measurement
+
+| candidate | test | verdict |
+|---|---|---|
+| profile coverage | exclude an arm from the profile | real effect (1.59 → 7.20) but **not this** — slow arms are profiled |
+| profile volume | 5× longer instrumented run | no change (5.55 → 5.67) |
+| profile count | 1 / 2 / 3 merged profiles of the same path | no change (5.50 / 5.55 / 5.56) |
+| inlining budget | `MaximumInliningSize` 1000 & 3000, `TrivialInliningSize` 100 | no change |
+| vendor packaging | separate jar vs local source | **not this** — the fast case is from the jar |
+| source shape | byte-identical methods | **not this** |
+| dispatch form | `if/else` vs `switch` with throwing default | no change |
+| allocation-site count | second, cold `new BenchProcessor()` | **not this** (`Twin4`) |
+| inlining into `main` | hot loop moved to its own class | **not this** (`Twin5`) |
+| build nondeterminism | three fresh rebuilds, same inputs | **not this** — stable to ±0.15 ns |
+
+### 18.2 What it therefore is
+
+A **deterministic GraalVM compilation decision** that dissolves the processor's object graph for some
+compilations and not others, keyed on something about the set of hot methods in the image rather than
+on the method being compiled. Nothing in the Fluxtion source, the generated code, the configuration or
+the profile controls it.
+
+### 18.3 Status, and the honest claim
+
+- **Capability: proven.** 1.57 ns/event — ~637M events/sec — from generated code, vendor-jar nodes,
+  full capability, matching hand-rolled Java (1.55) and round 58's hand-optimised C++ (1.57). Five
+  harnesses.
+- **Attainability: unsolved.** The single-hot-loop shape a real deployment has measures **5.5**.
+- **Workaround: real but absurd** — a second hot loop over the same processor makes the first fast. It
+  is recorded because it is a **precise reproducer**, not because anyone should ship it.
+
+**This is an upstream GraalVM question**, and §18 is small enough to file as one: two byte-identical
+static methods, one binary, one profiled → 5.55; two profiled → 1.57 each.
+
+**Nothing in this repo's or the framework's control has been shown to fix it.** Until it is understood,
+the publishable claim is the capability, not the throughput a user will see.

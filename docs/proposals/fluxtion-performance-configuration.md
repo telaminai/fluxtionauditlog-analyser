@@ -291,8 +291,15 @@ containing one optimises neither.** The single-loop shape is the one a real depl
 | vendor packaging | nodes from a separate jar vs local source | **not this** — the fast case is from the jar |
 | source shape | identical methods | **not this** — identical bytecode, different outcome |
 
-The remaining hypothesis is a per-compilation decision inside GraalVM that dissolves the processor for
-some compilations and not others. Nothing measured here controls it.
+Also ruled out since: a second **cold** allocation site (no change), moving the hot loop to its **own
+class** (no change), and **build nondeterminism** — three fresh rebuilds from identical inputs are
+stable to ±0.15 ns.
+
+**The trigger has been isolated to one thing:** a *second hot, profiled loop over the same processor
+class* in the same image takes the first loop from 5.55 to 1.57. That is a deterministic GraalVM
+compilation decision keyed on the set of hot methods in the image, not on the method being compiled —
+and nothing in Fluxtion's source, generated code, configuration or profile controls it. It is an
+upstream question, reduced to a two-method reproducer.
 
 **So, when quoting:** *"a generated Fluxtion processor is capable of 1.57 ns/event, matching hand-written
 C++"* is supported. *"your application will run at 637M events/sec"* is **not** — today the realistic
