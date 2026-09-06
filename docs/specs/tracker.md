@@ -132,17 +132,32 @@ contribution first. Necessary but not sufficient for replay — leaves return-va
 choice; `tools/bench` harness fixes compilation shape, interleaves arms in one binary, asserts output
 equivalence before timing, and fails on a suspiciously clean zero._
 
-**[M50.11] ☐ W14 — manifest optimisation metadata** ·
+**[M50.11] ☐ W14 — manifest optimisation metadata** · SPEC COMPLETE 2026-09-06 ·
 _[spec-manifest-optimisation-metadata.md](spec-manifest-optimisation-metadata.md). The facts W4/W5/W11/W13c
 would otherwise rediscover by scanning vendor bytecode are computed once by the component's own build and
-published in its manifest. Absence means UNKNOWN and strict modes fail on it, never assume. Two new
-annotation ATTRIBUTES only — `deterministic` on `@ExportService`, `ambient` on `@OnTrigger` — no new
-annotation types. Worktree `~/IdeaProjects/telamin/worktrees/mavenplugin-w14`, branch
-`spec/w14-manifest-optimisation-metadata`, reset onto the fetched `origin/main` — repo CONFIRMED
-(`telaminai/dataflow-mavenplugin`, now `com.telamin.fluxtion:fluxtion-maven-plugin:1.3.1-SNAPSHOT`).
-Surveying it added **W14a0: the `fluxtion:catalogue` goal does not exist** — the plugin writes no manifest
-entries at all today, so W14 and the component-catalogue spec share one piece of new machinery (spec §7.1). Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation,
-not a prerequisite._
+published in its manifest. **R2 — absence is not a claim:** every attribute is three-valued and unknown
+POISONS the graph-level fold, so a build cannot become permissive by adding an unanalysed dependency.
+Manifest carries short verdicts (72-byte wrap makes it a poor list carrier); a sidecar carries the evidence.
+Normative derivation rule per attribute, a verification algorithm, and a 12-fixture conformance suite of
+which `unresolvable-call`, `manifest-lies` and `no-metadata` are the three that matter._
+
+_**Reading the annotation source reversed both of the first draft's answers.** `@ExportService` is
+`@Target(TYPE_USE)` — it annotates `implements @ExportService Foo`, not the interface — so a `deterministic`
+attribute there would be asserted by each implementor, the wrong binding point twice over. **One new
+annotation type is required, `@ServiceContract` on the interface**, defaulting to `deterministic=false` so
+silence is pessimism. Conversely the proposed `ambient` attribute on `@OnTrigger` is **withdrawn**: the
+framework `Clock` is deterministic under replay and identifiable by receiver type, so approved-vs-unapproved
+is derivable and an attribute would be a second authority. Net: one new annotation type, zero new attributes
+on existing ones — the opposite of the first answer on both counts._
+
+_**W14a0 — the `fluxtion:catalogue` goal does not exist.** The plugin's three mojos all generate a
+processor; it writes no manifest entries at all. W14 and [spec-component-catalogue.md](spec-component-catalogue.md)
+therefore share one piece of new machinery and must agree on it (spec §2, §10.1). Analysis belongs in
+`fluxtion-builder` so the same code serves the producing build and the consumer's verification pass; the mojo
+is an adapter. Worktree `~/IdeaProjects/telamin/worktrees/mavenplugin-w14`, branch
+`spec/w14-manifest-optimisation-metadata`, on `origin/main` @ `d635950` — repo CONFIRMED
+`telaminai/dataflow-mavenplugin`, now `com.telamin.fluxtion:fluxtion-maven-plugin:1.3.1-SNAPSHOT`.
+Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not a prerequisite._
 
 **Blocking question before branching:** does a generated service auditor move
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
