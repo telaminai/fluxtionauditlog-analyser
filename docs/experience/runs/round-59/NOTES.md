@@ -652,3 +652,89 @@ Items 5 and 6 are jointly necessary: 5 without 6 measures no better, and 6 witho
 
 Reading either as "framework overhead" and applying the other's remedy gets nothing. **This is why the
 progressive harness was worth keeping.**
+
+---
+
+## 11. The lookup problem is SOLVED, and the capability trades were unnecessary
+
+§10 reached the floor by turning node-name lookup **off**. That was the wrong fix. The right one keeps
+every capability and costs nothing.
+
+### 11.1 Generate the mapping as code, not as data
+
+`NodeNameAuditor` stores name↔node in two `HashMap`s, which publishes every node and stops the graph
+being dissolved. But the generator **knows every name and every field at build time**, so it can emit
+the mapping as code that reads a field on demand and stores no reference:
+
+```java
+public <T> T getNodeByIdGenerated(String id) throws NoSuchFieldException {
+    switch (id) {
+        case "mid": return (T) mid;
+        ...
+    }
+}
+public String lookupInstanceNameGenerated(Object node) {
+    if (node == mid) { return "mid"; }
+    ...
+}
+```
+
+**This is the same move W12 made for `getAuditorById`**, and the same one the generator already makes
+for dispatch order: decide it at build time, where the information is.
+
+**On "a switch does not scale":** it never runs on the event path — only when someone asks for a node
+by name — so its cost is irrelevant. What matters is that it holds nothing. A Java string switch is a
+`hashCode` lookupswitch plus `equals` and is fine at thousands of cases; the reverse identity chain is
+linear but equally off the hot path.
+
+### 11.2 With the switch in place, every capability can stay on
+
+Four configurations, generated end to end, native + accurate PGO, lookup **verified live** before
+timing (`getNodeById("mid")` asserted non-null):
+
+| config | re-entrancy | subscriptions | buffering | node registration | ns |
+|---|---|---|---|---|---|
+| A | off | off | off | off | 1.57 |
+| B | off | **on** | off | off | 1.57 |
+| **D** | **on** | **on** | **on** | off | **1.57** |
+| C | off | on | off | **on** | 5.55 |
+| hand-rolled flat | — | — | — | — | 1.55 |
+
+**Registration is the only variable that matters.** Re-entrancy, subscriptions and buffering are all
+free — config D carries the full wrapper, the subscription manager and the buffering branch and still
+lands on 1.57.
+
+### 11.3 What this retracts
+
+The recipe in §10.4 asked for four capability trades. **Three were unnecessary:**
+
+- `setSupportReentrancy(false)` — **not needed for performance.** The wrapper is free. (The flag is
+  still worth having: it removes a capability some deployments genuinely do not want, and the guard
+  it leaves behind is also free.)
+- `setSupportSubscriptions(false)` — **not needed.**
+- `setSupportNodeNameLookup(false)` — **not needed once lookup is generated.** The flag traded away a
+  capability to buy something a codegen change gives for free.
+
+Only the two that were always **semantic** choices remain real: void triggers and
+`setSupportDirtyFiltering(false)` change what the graph does, and that is the developer's call.
+
+**The conclusion the owner reached before the measurement did:** it is all escape analysis. Nothing
+here was framework overhead in the sense of work being performed. It was one data structure holding
+references that the compiler needed to be free of, and generating that structure as code removes it
+without removing anything else.
+
+### 11.4 Also tested: `isDirty("test")` in `init()`
+
+A generated `init()` contains `isDirty("test")` — "initialise dirty lookup map". Removing it from a
+real generated processor changed nothing (1.57 either way), because with dirty filtering off the maps
+are already elided (§9) and the call resolves to a constant. **Not a factor**, though it is dead code
+in that configuration and should not be emitted.
+
+### 11.5 Remaining limitation, stated honestly
+
+Registration is skipped for the name lookup because the generator replaces it. **Any OTHER auditor that
+consumes `nodeRegistered` — an audit log that names its nodes — still receives the calls, and will
+still publish every node.** So a fully audited processor does not reach 1.57 by this route.
+
+That is the correct trade and it is the one the analyser's whole product rests on: the audit log is
+worth the nanoseconds. But it should be measured rather than assumed, and it has not been.

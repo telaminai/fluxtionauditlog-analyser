@@ -31,17 +31,15 @@ config.setSupportDirtyFiltering(false);                      // and no dirty-fla
 // 2 — NO AUDITORS DOING WORK: supply a clock instead of reading the system clock per event
 processor.onEvent(ClockStrategy.registerClockEvent(() -> myStreamTime));
 
-// 3 — OPTIMISED RE-ENTRANCY: no wrapper on the event path, guard retained
-config.setSupportReentrancy(false);
+// 3 — node-name lookup is generated as a switch rather than a populated map. This is the
+//     single largest cost and it is now handled by the generator: nothing to configure,
+//     no capability lost. See §6.
 
-// 4 — no event buffering
-config.setSupportBufferAndTrigger(false);
-
-// 5 — no event-feed subscription (also removes an escape, see §Deployment shape)
-config.setSupportSubscriptions(false);
-
-// 6 — NO NODE-NAME REGISTRATION: the single largest cost, and invisible without a profile
-config.setSupportNodeNameLookup(false);
+// The three below are NOT needed for performance — all measured free. Set them only if you
+// genuinely do not want the capability:
+//   config.setSupportReentrancy(false);        // wrapper is free; guard is free
+//   config.setSupportBufferAndTrigger(false);  // free
+//   config.setSupportSubscriptions(false);     // free
 
 // 7 — deployment shape: construct the processor inside the method that runs the loop (§below)
 // 8 — build the native image with an ACCURATE PGO profile (§below)
@@ -94,22 +92,26 @@ widening to `Object` and recovering the type with an `instanceof` chain.
 dispatcher through a service or reflectively — so a re-entrant event fails loudly rather than
 vanishing.
 
-### 6 · No node-name registration — the largest single cost
+### 6 · Node-name lookup generated as code — the largest single cost, and it costs you nothing
 
-`setSupportNodeNameLookup(false)`. **Measured: 5.07 → 1.57 ns on a real generated processor.**
+**Measured: 5.55 → 1.57 ns on a real generated processor, with lookup still working.**
 
 `initialiseAuditor` registers **every node** with each auditor, and `NodeNameAuditor` stores them in
 two `HashMap`s. Every node object is then published into a live heap structure, so none can be
 scalar-replaced and the whole graph materialises as real allocations.
 
-**It is invisible unless you build with PGO.** Without a profile the processor measures 5.55 ns whether
-the registration is there or not — that configuration is already slow for other reasons — so a
-benchmark without PGO will tell you this is free. It is not.
+**It is invisible unless you build with PGO.** Without a profile the processor measures ~5.5 ns either
+way — that configuration is already slow for other reasons — so a benchmark without PGO will tell you
+this is free. It is not.
 
-**What you give up:** anything that resolves a node by name — `getNodeById`,
-`DataFlow.getServiceById`, and any auditor that uses `nodeRegistered`, including an audit log that
-names its nodes. For a processor that is driven purely through `onEvent` and read through its own
-fields, nothing is lost.
+**You give up nothing.** The generator knows every name and field at build time, so it emits the
+mapping as a switch that reads a field on demand and stores no reference. `getNodeById` keeps working.
+The switch never runs on the event path, so its cost is irrelevant — what matters is that it holds
+nothing.
+
+**The one case still to pay for it:** an auditor that consumes `nodeRegistered` — an audit log that
+names its nodes — still receives every node and still publishes them. An audited processor does not
+reach 1.57 by this route, and that is a trade worth making.
 
 ### 4 · No buffering · 5 · No subscriptions
 
