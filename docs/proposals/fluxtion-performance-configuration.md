@@ -231,9 +231,17 @@ a measurement:
   property of *unprofiled* AOT, not of AOT.
 - **A non-escaping processor reaches ~1.4–1.9 ns with no profile at all**, so PGO is not *required* —
   but it is what makes the result robust to structure rather than dependent on it.
-- **A mismatched profile is worse than no profile.** An executable's profile applied to a shared
-  library took 1.41 → 6.28, the worst configuration measured anywhere in this work. **Never carry a
-  profile across image kinds**, and collect it from a run that exercises what you actually deploy.
+- **A mismatched or INCOMPLETE profile is worse than no profile.** This is the single biggest trap
+  here, and it was measured three separate times: an executable's profile applied to a shared library
+  (1.41 → 6.28), and twice a path that was *in the image but not in the profile* (1.83 → 6.19 and
+  1.59 → 7.20). In every case the result was **worse than building with no profile at all**, because
+  GraalVM reads absent profile data as coldness and compiles that path for size — so the escape
+  analysis that reaches 1.57 never runs.
+
+  > **Every code path you deploy must be exercised during profile collection.**
+
+  Collect from a run that exercises what you actually ship, and never carry a profile across image
+  kinds. If one entry point is slow and the others are fast, suspect the profile before the code.
 - Round 58 saw PGO make its fastest shape slightly *worse* (1.53 → 1.64) with a narrower profile.
   Both observations hold: the profile's accuracy is the variable, not PGO itself.
 

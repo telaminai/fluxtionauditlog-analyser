@@ -989,3 +989,65 @@ the slow one: 5.65 is where §9's escape-analysis budget already sits.
   the arm count, and now this).
 - **This is the next thing to investigate.** It is worth more than any remaining elision: it is the
   difference between the floor being available and being an accident.
+
+---
+
+## 15. §14.1 EXPLAINED — it was profile coverage, not the "touch"
+
+The 3.5× effect is **retracted as a source-shape phenomenon**. It was one mechanism this round has now
+seen three times, and the owner named it before any of them: *a bad profile is worse than no profile.*
+
+### 15.1 The isolation
+
+Eight arms, one binary, identical loop, differing only in what they call before it:
+
+| build | `generated` | `generatedTouched` | others | `hand` |
+|---|---|---|---|---|
+| **no PGO** | 6.77 | 7.56 | 6.8–7.1 | 2.34 |
+| **PGO, all 8 arms profiled** | **1.59** | 1.57 | 1.55–1.63 | 1.52 |
+| **PGO, `generated` LEFT OUT of the profile** | **7.20** | 1.57 | — | 1.52 |
+
+**Three readings settle it.**
+
+1. **Without PGO the effect does not exist** — every generated arm is 6.7–7.6, and `generatedTouched`
+   is if anything *slower*. So it was never a property of the source.
+2. **With full profile coverage every arm reaches ~1.57**, plain `generated` included. The touch buys
+   nothing.
+3. **Deliberately excluding one arm from the profile reproduces the slow number exactly** — 7.20,
+   *worse than the 6.77 that same code gets with no profile at all.*
+
+The earlier 5.65 was simply an arm that was missing or thin in its merged profile. Five isolation
+variants — id lookup only, name lookup only, an empty try/catch, a field read, an unrelated call — all
+land at 1.55–1.63 once profiled, so no element of the "touch" was ever doing anything.
+
+### 15.2 The same mechanism, three times in one round
+
+| where | symptom | factor |
+|---|---|---|
+| round 58 | executable's profile applied to a shared library | 1.41 → 6.28, **4.4×** |
+| §9.7 | `P3NameLookup` present in the binary, absent from the profile | 1.83 → 6.19, **3.4×** |
+| §14.1 | `generated` absent from the merged profile | 1.59 → 7.20, **4.5×** |
+
+**An unprofiled path in a PGO image is not merely un-optimised — it is deoptimised below the no-PGO
+baseline.** GraalVM treats absence of profile data as evidence of coldness, so the path is compiled for
+size and the escape analysis that reaches 1.57 never runs.
+
+### 15.3 The rule this produces
+
+> **Every code path you deploy must be exercised during profile collection. A path in the image but
+> not in the profile is slower than if you had used no profile at all.**
+
+That is a stronger and more actionable statement than "measure PGO". It also explains why round 58's
+`build-pgo.sh` collected from **all four arms and merged** — the comment there says it was to avoid
+flattering the result, but it was also load-bearing for correctness.
+
+### 15.4 What this does to §14's headline
+
+**Nothing — it strengthens it.** The generated processor reaches **1.58–1.59 ns** reliably, in three
+independent harnesses, whenever its own path is in the profile. The caveat in §14.1 that "a user
+writing the obvious loop gets 5.65" is **withdrawn**: they get 1.59, provided their build profiles the
+code they ship. If it does not, that is a PGO configuration error with a known signature and a known
+fix, not a property of generated code.
+
+**Baseline, no auditors, native + accurate PGO: generated 1.58, hand-rolled Java 1.54, round 58's
+hand-optimised C++ 1.57.**
