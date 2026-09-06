@@ -357,7 +357,7 @@ and defer the codegen.
 | **W2** | `myStack` → `ArrayDeque`; drop the `dispatching=false` store on the empty path | `fluxtion-runtime` | internal | unmeasured, likely additive to W1 | W1 |
 | **W3** | `Deque<Supplier<Boolean>>` → `BooleanSupplier` | `fluxtion-runtime` | internal | removes per-callback boxing | — |
 | **W4** | `noReentrancy` build flag + build failure + runtime guard | generator + `builder-api` | **additive, default off** | **−26% native**, −7% JIT | W1 |
-| **W5** | ambient-read scan → determinism precondition | generator | **new gate, opt-in** | correctness, not speed | — |
+| **W5** | ambient-read scan **+ service boundary check** → determinism precondition | generator | **new gate, opt-in** | correctness, not speed | — |
 | **W6** | compiler-derived replay capture set + determinism report | generator + `builder-api` | new artifact | correctness | W5 |
 | **W7** | static service binding when all services are build-registered | generator | additive | **unmeasured — gate first** | W5 |
 | **W8** | concrete `ClockStrategy` field or `long` fast path | `fluxtion-runtime` | internal | +0.25 ns; third-order | — |
@@ -436,3 +436,107 @@ Stated so the branch does not silently acquire unmeasured claims:
 - whether a `noReentrancy` graph and a guarded-drain graph compose, or overlap
 - whether any of this holds beyond ten nodes
 - whether the replay capture set derived in W6 matches what the recorder captures today
+
+---
+
+# Part III — the service boundary
+
+## 14. Services breach the invariant in two directions
+
+The property everything rests on is:
+
+> **There is no state change without events.**
+
+Combined with a single point of consumption per graph, that makes the recorded event sequence the
+complete determinant of the state trajectory. Services are the two places it can be false.
+
+### 14.1 Direction one — consumed services (graph calls out)
+
+A node holds an injected service and calls it during dispatch:
+
+```java
+double rate = fxRates.lookup("EURUSD");     // arrived without being an event
+```
+
+The **return value is external input that did not enter through the event path.** On replay the
+service may be absent, may return something else, or may not be callable at all. Recording *that the
+call happened* is insufficient — the graph's state depends on **what came back**.
+
+### 14.2 Direction two — exported services (outside calls in)
+
+A graph exports a service interface and external code invokes it:
+
+```java
+graph.pricingControl().setSpreadFloor(0.02);   // mutates graph state, not an event
+```
+
+This is a state change with no event. Worse, it has a **position**: if it lands between event 5 and
+event 6, replay must place it there. Recording the invocation without its ordering relative to the
+event stream does not reproduce the run.
+
+## 15. W5 — the service boundary check
+
+The build must detect both directions and **fail**, unless the service is fully auditable and
+replayable.
+
+### 15.1 What "fully auditable and replayable" requires
+
+| direction | must be captured |
+|---|---|
+| **consumed service** | the invocation, its arguments, and **the return value** |
+| **exported service** | the invocation, its arguments, **and its position in the event sequence** |
+| **registration lifecycle** | `registerService` / `deRegisterService` calls, in order, as recorded events |
+
+All three are serialisations of method invocations against the graph. That is the unifying
+requirement: **every interaction with the graph that is not already an event must become a recorded,
+ordered invocation, and consumed-service calls must additionally record what they returned.**
+
+### 15.2 The build-check disposition
+
+For each service reachable from the graph, classify and act:
+
+| situation | non-determinism introduced | disposition |
+|---|---|---|
+| build-registered, pure function of its arguments | none | **pass** — no capture required |
+| build-registered, reads external state | return value | **pass only if returns are captured** |
+| runtime-registered | registration order and timing, plus returns | **pass only if lifecycle and returns are captured** |
+| exported, callable from outside | invocation, arguments, ordering | **pass only if invocations are serialised into the event sequence** |
+| any of the above without declared capture | unknown | **FAIL the build, naming the service and method** |
+
+Purity cannot be assumed; it must be declared and, where possible, checked by the same ambient-read
+scan applied to the service implementation when its bytecode is available.
+
+### 15.3 The design consequence worth taking
+
+The cleanest resolution is not to build a second capture channel.
+
+> **Make exported service invocations events.**
+
+If every interaction enters through the same single point of consumption, the invariant is restored by
+construction, the existing recorder captures them with correct ordering for free, and replay needs no
+new mechanism. A separate invocation log would have to be merged with the event log on replay, and
+merging two orderings is exactly the second-representation problem this architecture exists to avoid.
+
+Consumed-service returns cannot be handled this way — they are inputs arriving mid-dispatch. They need
+genuine return-value capture, which is the harder half and should be scoped accordingly.
+
+### 15.4 Consequence for W7
+
+Static service binding no longer stands on a performance argument it has not earned. It stands on
+this:
+
+- it removes **registration-order** non-determinism entirely, rather than requiring it to be captured;
+- it leaves **return-value** non-determinism untouched, so a statically bound service that reads
+  external state still requires capture.
+
+**Static binding is necessary but not sufficient for a replayable graph.** W7 should say so, and the
+build check must not treat build-registration as evidence of determinism.
+
+### 15.5 Open questions, unmeasured
+
+- return-value capture for **mutable** returns: capturing a reference is not capturing a value, and
+  collections need ordering as well as contents
+- cost of serialising exported invocations into the event stream
+- whether purity can be established for vendor services from bytecode alone, or must be declared
+- whether an exported-invocation-as-event changes the graph's declared topology, and therefore
+  `fluxtion.sourceFingerprint`
