@@ -17,33 +17,46 @@ So: **a figure without its shape is not a result.** Every number below carries o
 
 ---
 
-## The configuration, in one place
+## The baseline configuration, in one place
 
-Six switches. The first three are the ones that matter most, and each **changes behaviour** — that is
-the point of them, not a side effect.
+**This is the configuration to start from for best performance.** Five items. Two of them change
+behaviour and are your decision; three are free.
 
 ```java
-// 1 — NO DIRTY FLAGS: every node fires on every event, unconditionally
+// ---- 1. SEMANTIC CHOICES — these change what the graph does ------------------------------
+
+// 1a  NO DIRTY FLAGS: every node fires on every event, unconditionally
 @OnTrigger(failBuildIfMissingBooleanReturn = false)          // void trigger, no dirty flag, no guard
 @OnEventHandler(failBuildIfMissingBooleanReturn = false)
 config.setSupportDirtyFiltering(false);                      // and no dirty-flag machinery at all
 
-// 2 — NO AUDITORS DOING WORK: supply a clock instead of reading the system clock per event
+// 1b  IF YOU AUDIT: turn off event stringification and thread name.
+//     This is BASELINE, not an optimisation to consider later: it is the difference between
+//     zero allocation and 208 bytes/event, and it removes about a third of the audit cost.
+config.addEventAudit(LogLevel.INFO, false, false);           // printEventToString, printThreadName
+
+// ---- 2. FREE — no capability lost ---------------------------------------------------------
+
+// 2a  SUPPLY A CLOCK: otherwise the Clock auditor reads the system clock on EVERY event
 processor.onEvent(ClockStrategy.registerClockEvent(() -> myStreamTime));
 
-// 3 — node-name lookup is generated as a switch rather than a populated map. This is the
-//     single largest cost and it is now handled by the generator: nothing to configure,
-//     no capability lost. See §6.
+// 2b  DEPLOYMENT SHAPE: construct the processor inside the method that runs the event loop,
+//     and time from the caller. Nothing between the constructor and the loop.       (§below)
 
-// The three below are NOT needed for performance — all measured free. Set them only if you
-// genuinely do not want the capability:
-//   config.setSupportReentrancy(false);        // wrapper is free; guard is free
+// 2c  BUILD WITH AN ACCURATE PGO PROFILE, collected from what you actually deploy.  (§below)
+
+// ---- Handled for you, nothing to configure ------------------------------------------------
+// Node-name lookup is generated as a switch rather than a populated map. It was the single
+// largest cost; the generator now emits it as code and no capability is lost.          (§6)
+
+// ---- NOT needed — all measured free. Set only if you don't want the capability -------------
+//   config.setSupportReentrancy(false);        // wrapper free, guard free
 //   config.setSupportBufferAndTrigger(false);  // free
 //   config.setSupportSubscriptions(false);     // free
-
-// 7 — deployment shape: construct the processor inside the method that runs the loop (§below)
-// 8 — build the native image with an ACCURATE PGO profile (§below)
 ```
+
+**Measured end state:** ~1.6 ns/event unaudited, ~550 ns fully traced-and-audited, both
+zero-allocation, both from generated code.
 
 ### 1 · No dirty flags
 
