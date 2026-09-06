@@ -1,6 +1,6 @@
 # Spec — manifest optimisation metadata: integrating a jar without introspecting it
 
-**Status:** PROPOSED · **Item:** M46/W14 · **Date:** 2026-09-06
+**Status:** PROPOSED · **Item:** M50/W14 · **Date:** 2026-09-06
 **Extends** [`spec-component-catalogue.md`](spec-component-catalogue.md), which covers *capability*
 metadata (`Fluxtion-Provides`, `Requires`, `Constructor`, `Consumes`). This spec covers *optimisation
 and assurance* metadata — the facts a consuming build would otherwise have to rediscover by
@@ -12,7 +12,7 @@ introspecting vendor bytecode.
 
 ## 1. The problem this removes
 
-Four items in the M46 plan need facts about components the integrator did not write:
+Four items in the M50 plan need facts about components the integrator did not write:
 
 | item | needs to know | currently would |
 |---|---|---|

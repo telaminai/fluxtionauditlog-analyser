@@ -60,7 +60,7 @@ tidies.)_
 
 ---
 
-### M46 · working directories — for the reviewing LLM
+### M50 · working directories — for the reviewing LLM
 
 **Work is in git worktrees, not in the primary checkouts.** The primary checkouts were left on their
 existing branches and are undisturbed (`fluxtion-core` on `feature/java_8_compatability`,
@@ -90,7 +90,7 @@ brief-plus-report convention.
 
 ---
 
-## M46 · Compiler & runtime optimisation — ☐ SPEC COMPLETE, branch not started
+## M50 · Compiler & runtime optimisation — ☐ SPEC COMPLETE, branch not started
 
 Spec: **[spec-generated-dispatch-performance.md](spec-generated-dispatch-performance.md)** — Part IV §19
 is the single work list. Evidence: **[round-58](../experience/runs/round-58/NOTES.md)**, ~700 measured
@@ -98,41 +98,41 @@ runs across 9 runtimes, disassembly, every wrong answer preserved. Cross-repo: *
 
 All items **additive**; W4/W5/W7 opt-in, defaulting to current behaviour. Ship W12 first.
 
-**[M46.1] ☐ W12 — auditor-name switch, stop reflecting** · _`getNodeById`/`getAuditorById`/`newInstance`
+**[M50.1] ☐ W12 — auditor-name switch, stop reflecting** · _`getNodeById`/`getAuditorById`/`newInstance`
 reflection-free; the `reflect-config.json` round 58 needed is no longer required; graph introspection
 works under native-image without user config._
 
-**[M46.2] ☐ W1 — guarded callback drain** · _−18% native, −2% JIT; no flag, no semantic change; audit
+**[M50.2] ☐ W1 — guarded callback drain** · _−18% native, −2% JIT; no flag, no semantic change; audit
 record stream unchanged._
 
-**[M46.3] ☐ W2/W3/W8 — runtime internals** · _`ArrayDeque` + dropped empty-path store; `BooleanSupplier`
+**[M50.3] ☐ W2/W3/W8 — runtime internals** · _`ArrayDeque` + dropped empty-path store; `BooleanSupplier`
 removes per-callback boxing; concrete `ClockStrategy`. No API change._
 
-**[M46.4] ☐ W4 — `noReentrancy` flag** · _−26% native; build fails naming the offending node when a
+**[M50.4] ☐ W4 — `noReentrancy` flag** · _−26% native; build fails naming the offending node when a
 re-entrant use is detected; runtime guard throws; default off._
 
-**[M46.5] ☐ W5 — ambient-read scan + service boundary check** · _build fails on wall clock, randomness,
+**[M50.5] ☐ W5 — ambient-read scan + service boundary check** · _build fails on wall clock, randomness,
 IO or mutable static reachable from a trigger, and on un-capturable service boundaries. Works on vendor
 bytecode._
 
-**[M46.6] ☐ W11 — generate service registration dispatch** · _no runtime reflection, no native-image JSON
+**[M50.6] ☐ W11 — generate service registration dispatch** · _no runtime reflection, no native-image JSON
 for registration; notification order declared and stable rather than `getDeclaredMethods()` order._
 
-**[M46.7] ☐ W13a/b/c — generated service auditors** · _exported invocations recorded in event-stream
+**[M50.7] ☐ W13a/b/c — generated service auditors** · _exported invocations recorded in event-stream
 position; consumed-service **returns** captured and replayed; build fails naming non-recordable
 signatures._
 
-**[M46.8] ☐ W6 — compiler-derived replay capture set + determinism report** · _ablation pair passes:
+**[M50.8] ☐ W6 — compiler-derived replay capture set + determinism report** · _ablation pair passes:
 removing an output-reaching capture diverges, removing a non-reaching one does not._
 
-**[M46.9] ☐ W7 — static service binding** · _**gated**: measure exported service-call cost and image-heap
+**[M50.9] ☐ W7 — static service binding** · _**gated**: measure exported service-call cost and image-heap
 contribution first. Necessary but not sufficient for replay — leaves return-value non-determinism._
 
-**[M46.10] ☐ W9/W10 — docs + conformance bench** · _the performance configuration documented as a coherent
+**[M50.10] ☐ W9/W10 — docs + conformance bench** · _the performance configuration documented as a coherent
 choice; `tools/bench` harness fixes compilation shape, interleaves arms in one binary, asserts output
 equivalence before timing, and fails on a suspiciously clean zero._
 
-**[M46.11] ☐ W14 — manifest optimisation metadata** ·
+**[M50.11] ☐ W14 — manifest optimisation metadata** ·
 _[spec-manifest-optimisation-metadata.md](spec-manifest-optimisation-metadata.md). The facts W4/W5/W11/W13c
 would otherwise rediscover by scanning vendor bytecode are computed once by the component's own build and
 published in its manifest. Absence means UNKNOWN and strict modes fail on it, never assume. Two new
