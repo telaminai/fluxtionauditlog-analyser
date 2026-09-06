@@ -482,3 +482,41 @@ The work item is no longer "elide seven fields". It is narrower and better found
 4. **The budget is finite and shared.** Removing any three of these may be enough; removing the wrong
    three achieves nothing. **Elision has to be measured, not counted** — which is exactly what the
    progressive harness above is for, and it should be kept.
+
+### 9.5 The cliff is AOT-only — and that inverts the usual assumption
+
+Everything in §9 is **`native-image`, no PGO, epsilon GC**. Graal's *partial escape analysis* is what
+dissolves the processor, and the same compiler backs both native-image AOT and Graal JIT — so the
+obvious question is whether the cliff exists on the JIT. **It does not.** Same classes, same harness,
+same machine:
+
+| arm | Graal JIT | native-image |
+|---|---|---|
+| P0 nothing | 4.64 | **1.87** |
+| P4 `subscriptionManager` | 4.68 | 1.87 |
+| Q3Fields — the combination that falls off the cliff | **4.55** | **6.22** |
+| P8 all seven | 4.74 | 6.43 |
+| `batchBase` — the control | 4.57 | 1.87 |
+| `batchHand` — hand-rolled flat | **2.09** | 2.45 |
+
+**On the JIT every arm is flat at ~4.6 ns**, whether the processor carries zero extra fields or all
+seven. There is no cliff because **the JIT never dissolves the processor to begin with** — the ten node
+objects stay real, so adding more objects costs nothing. There is nothing left to lose.
+
+**AOT dissolves them and the JIT does not.** 1.87 vs 4.57 for identical code, a 2.4× advantage to
+native-image — and note the JIT is *faster* than AOT on the flat hand-rolled arm (2.09 vs 2.45), so
+this is not "AOT is faster". It is specifically that only AOT removes the graph's object structure.
+
+This restates round 58 addendum 6 — *"the JIT never closes this gap; only profile-guided AOT does,
+which reverses the usual assumption that a JIT with runtime profiles beats AOT"* — with two additions:
+it happens **without PGO**, and the resulting optimisation is **fragile in a way the JIT's is not**.
+
+**Consequences for the work.**
+
+- **Field elision pays on native-image only.** On a JIT it buys nothing measurable. The work item is
+  worth doing, and it is worth saying plainly that it is an AOT optimisation.
+- **A JIT deployment cannot reach 1.87 by configuration.** Its floor for this graph is ~4.6, and the
+  only lever that ever moved it was flat-state codegen (round 58 addendum 14), which is rejected
+  because it cannot be applied to components you do not own.
+- **The performance page must separate the two runtimes here**, or a JIT user will spend effort on an
+  elision that does nothing for them.
