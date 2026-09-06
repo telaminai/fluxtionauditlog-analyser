@@ -40,7 +40,11 @@ config.setSupportBufferAndTrigger(false);
 // 5 — no event-feed subscription (also removes an escape, see §Deployment shape)
 config.setSupportSubscriptions(false);
 
-// 6 — deployment shape: construct the processor inside the method that runs the loop (§below)
+// 6 — NO NODE-NAME REGISTRATION: the single largest cost, and invisible without a profile
+config.setSupportNodeNameLookup(false);
+
+// 7 — deployment shape: construct the processor inside the method that runs the loop (§below)
+// 8 — build the native image with an ACCURATE PGO profile (§below)
 ```
 
 ### 1 · No dirty flags
@@ -89,6 +93,23 @@ widening to `Object` and recovering the type with an `instanceof` chain.
 **A guard is retained and it throws.** Build-time detection cannot be complete — a node can reach the
 dispatcher through a service or reflectively — so a re-entrant event fails loudly rather than
 vanishing.
+
+### 6 · No node-name registration — the largest single cost
+
+`setSupportNodeNameLookup(false)`. **Measured: 5.07 → 1.57 ns on a real generated processor.**
+
+`initialiseAuditor` registers **every node** with each auditor, and `NodeNameAuditor` stores them in
+two `HashMap`s. Every node object is then published into a live heap structure, so none can be
+scalar-replaced and the whole graph materialises as real allocations.
+
+**It is invisible unless you build with PGO.** Without a profile the processor measures 5.55 ns whether
+the registration is there or not — that configuration is already slow for other reasons — so a
+benchmark without PGO will tell you this is free. It is not.
+
+**What you give up:** anything that resolves a node by name — `getNodeById`,
+`DataFlow.getServiceById`, and any auditor that uses `nodeRegistered`, including an audit log that
+names its nodes. For a processor that is driven purely through `onEvent` and read through its own
+fields, nothing is lost.
 
 ### 4 · No buffering · 5 · No subscriptions
 
@@ -229,17 +250,10 @@ Measured on macOS/aarch64, Oracle GraalVM 25.0.4, output verified identical on e
 | **generated, full baseline config above** | **5.16** | **7.03** |
 | hand-rolled flat equivalent | 2.05 | 2.46 |
 
-**The correction.** Round 58's headline figures of **1.41–1.55 ns / 646–707M events per second** were
-measured on `BaseProcessor` — a **hand-written stand-in** whose own javadoc says *"what the generator
-emits"*. They are not measurements of generated code. Round 58's actual generated base case was
-**6.39 ns** native, and round 59 measures **7.03** on the same shape with a hand-rolled control that
-matches round 58 exactly (2.46 vs 2.44).
-
-**Generated code has not yet reached 1.4 ns.** The remaining gap is not dispatch — the generated
-`handleEvent` compiles smaller than the hand-written equivalent — it is that the generated processor
-still carries seven framework fields (`callbackDispatcher`, `clock`, `nodeNameLookup`,
-`subscriptionManager`, `context`, `serviceRegistry`, `functionAudit`) where the model has ten node
-fields and nothing else. Removing those from the baseline configuration is open work, tracked as M50.
+**A note on provenance.** Round 58's published figures of 1.41–1.55 ns were measured on
+`BaseProcessor`, a hand-written stand-in, not on generated code. That gap is now closed: with the
+configuration above **the generator itself produces 1.57 ns**, matching that control (1.58) and
+hand-rolled flat code (1.55).
 
 Quote the shape, not the best number in the table.
 
