@@ -60,33 +60,50 @@ tidies.)_
 
 ---
 
-### M50 · working directories — for the reviewing LLM
+### M50 · working directories and review briefs — for the reviewing LLM
+
+**START AT** [`docs/handoff/report_m50_INDEX.txt`](../handoff/report_m50_INDEX.txt) — four briefs, one
+per repo, each stating what was verified, what was **not**, and what to attack.
 
 **Work is in git worktrees, not in the primary checkouts.** The primary checkouts were left on their
 existing branches and are undisturbed (`fluxtion-core` on `feature/java_8_compatability`,
 `fluxtion-compiler` on `experiment/determination-placement`).
 
-| worktree | branch | base | repo it belongs to |
+| worktree | branch | base | brief |
 |---|---|---|---|
-| `~/IdeaProjects/telamin/worktrees/core-w2w3w8` | `perf/w2-w3-w8-runtime-internals` | `origin/main` @ `4b38aeb` (2026-09-01) | `~/IdeaProjects/telamin/fluxtion/fluxtion-core` |
-| `~/IdeaProjects/telamin/worktrees/compiler-w12` | `perf/w12-auditor-switch` | `origin/main` @ `9a16035` (2026-09-01) | `~/IdeaProjects/telamin/fluxtion/fluxtion-compiler` |
-| `~/IdeaProjects/telamin/worktrees/analyser-w10` | `perf/w10-conformance-bench` | `main` @ `c0851b5` | `~/IdeaProjects/telamin/fluxtionauditlog-analyser` |
+| `~/IdeaProjects/telamin/worktrees/core-w2w3w8` | `perf/w2-w3-w8-runtime-internals` | `origin/main` @ `4b38aeb` | [core](../handoff/report_m50_core_w2w3w8.txt) |
+| `~/IdeaProjects/telamin/worktrees/compiler-w12` | `perf/w12-auditor-switch` | `origin/main` @ `9a16035` | [compiler](../handoff/report_m50_compiler_w12.txt) |
+| `~/IdeaProjects/telamin/worktrees/analyser-w10` | `perf/w10-conformance-bench` | **local** `main` @ `c0851b5` | [analyser](../handoff/report_m50_analyser_w9w10.txt) |
+| `~/IdeaProjects/telamin/worktrees/mavenplugin-w14` | `spec/w14-manifest-optimisation-metadata` | `origin/main` @ `d635950` | [plugin](../handoff/report_m50_mavenplugin_w14.txt) |
+
+**Gates, run in full:** core `fluxtion-runtime` **98/98** · compiler `fluxtion-generator-core` **21/21**,
+`fluxtion-builder` **230/230**, `fluxtion-integration-tests` **3518/3520** (the 2 are
+`RuntimeMetaBoundaryGateTest`, **environmental** — it finds a sibling repo at `~/IdeaProjects/fluxtion`
+but no `fluxtion-runtime` in a layout it knows, because the runtime is at
+`~/IdeaProjects/telamin/fluxtion/fluxtion-core/`) · analyser bench **11/11**.
+
+**The two pre-split goldens were updated deliberately** (W12 changes generated source on purpose). The
+`.java.txt` goldens moved; `.behaviour.txt` and `.dto.txt` are **byte-identical**, which is the evidence
+that the behaviour did not. An earlier report of "2 baseline failures" was wrong — there were 4, two of
+them these goldens, caused by W12.
 
 **Version lines, verified — do not assume:** `fluxtion-core` `origin/main` is **1.0.15-SNAPSHOT**, the
 line producing the `fluxtion-runtime` **1.0.14** that round 58 measured. The primary checkout's
-`feature/java_8_compatability` branch is **0.9.33-SNAPSHOT**, a different line — changing it would not
-affect what the compiler consumes. `fluxtion-compiler` pins `fluxtion.base.version=1.0.14`, i.e. it
-consumes the runtime as a published artifact.
+`feature/java_8_compatability` is **0.9.33-SNAPSHOT**, a different line. `fluxtion-compiler` pins
+`fluxtion.base.version=1.0.14`.
 
-**`git fetch` was NOT run.** Bases are the remote-tracking refs as they stood locally, dated
-2026-09-01. Both are recorded above by full commit so the work can be rebased if the remotes have
-moved.
+**The analyser's local `main` is 33 commits AHEAD of `origin/main` and unpushed** — round 58, the
+performance spec and this tracker section are all in that history. A reviewer cloning from GitHub sees
+none of it; compare the analyser branch against **local** `main`.
 
-**Item → worktree map:** W2/W3/W8 → `core-w2w3w8` · W12 → `compiler-w12` · W9/W10 → `analyser-w10`.
-Land W10 first: until the harness exists, no performance claim on the other branches is reproducible.
+**`git fetch` was NOT run** for core or compiler; bases are the local remote-tracking refs as of
+2026-09-01, recorded by commit so the work can be rebased. It **was** run for the maven plugin, and
+doing so changed the answer to which repo that is.
 
-Handoff briefs, one per repo, will be written to `docs/handoff/` following the established
-brief-plus-report convention.
+**Item → worktree:** W2/W3 → `core-w2w3w8` (W8 deferred, reason in the brief) · W12 → `compiler-w12` ·
+W9/W10 → `analyser-w10` · W14 → `mavenplugin-w14` (spec only).
+Land W10 first: until the harness exists, no performance claim on the other branches is reproducible —
+and note the brief's admission that **the bench has never been run against a real processor**.
 
 ---
 
@@ -128,7 +145,7 @@ removing an output-reaching capture diverges, removing a non-reaching one does n
 **[M50.9] ☐ W7 — static service binding** · _**gated**: measure exported service-call cost and image-heap
 contribution first. Necessary but not sufficient for replay — leaves return-value non-determinism._
 
-**[M50.10] ☐ W9/W10 — docs + conformance bench** · _the performance configuration documented as a coherent
+**[M50.10] ◧ W9/W10 — docs + conformance bench** · _both on `perf/w10-conformance-bench`; W9 filed as UP-FLX-50_ · · _the performance configuration documented as a coherent
 choice; `tools/bench` harness fixes compilation shape, interleaves arms in one binary, asserts output
 equivalence before timing, and fails on a suspiciously clean zero._
 

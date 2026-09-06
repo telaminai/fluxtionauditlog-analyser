@@ -1,0 +1,92 @@
+REPORT — M50 · W2/W3 runtime internals (W8 deferred), open for independent review
+Date: 2026-09-06 · Repo: fluxtion-core · Branch: perf/w2-w3-w8-runtime-internals
+Base: origin/main @ 4b38aeb (remote-tracking ref as of 2026-09-01; NO git fetch was run)
+Worktree ON THIS MACHINE: ~/IdeaProjects/telamin/worktrees/core-w2w3w8
+Primary checkout is UNDISTURBED on feature/java_8_compatability.
+
+STATUS: IMPLEMENTATION COMPLETE, OPEN FOR INDEPENDENT REVIEW. Nothing merged, nothing pushed.
+
+VERSION LINE — CHECK THIS FIRST, IT IS THE EASIEST THING TO GET WRONG
+  origin/main is 1.0.15-SNAPSHOT — the line that produces fluxtion-runtime 1.0.14, which is what
+  round 58 measured and what fluxtion-compiler pins as fluxtion.base.version. The primary checkout
+  sits on feature/java_8_compatability at 0.9.33-SNAPSHOT, a DIFFERENT line; work done there would
+  not reach the compiler. This branch is deliberately cut from origin/main. Verify with:
+      git -C ~/IdeaProjects/telamin/worktrees/core-w2w3w8 show HEAD:pom.xml | grep -m1 version
+
+ORIENT FIRST
+  · docs/specs/spec-generated-dispatch-performance.md §3.1 and §3.3 (in the ANALYSER repo) — the
+    measurement and the argument. §3.3 is the one that matters: interface-typed fields on the event
+    path are a systematic AOT hazard, and this is one of three instances found.
+  · docs/experience/runs/round-58/NOTES.md — the evidence, including four wrong headline figures
+    that are preserved rather than tidied away, each with the mechanism that produced it.
+
+WHAT CHANGED — one file, 16 insertions, 12 deletions
+  fluxtion-runtime/.../callback/CallbackDispatcherImpl.java
+
+  W2  `Deque<Supplier<Boolean>> myStack` -> `ArrayDeque<BooleanSupplier> myStack`.
+      The field was declared as the INTERFACE. A JIT profiles it to one concrete type and folds
+      the call; closed-world AOT without profiles leaves a real invokeinterface standing on a path
+      that runs on EVERY event.
+
+  W2  Early return when the queue is empty, replacing an unconditional `dispatching = false` store.
+      dispatchQueuedCallbacks() is called on every event and the queue is almost always empty.
+
+  W3  `Supplier<Boolean>` -> `BooleanSupplier`. Every wrapper's dispatch() already returns primitive
+      boolean, so the generic queue boxed a Boolean on every callback. This is a CORRECTNESS item,
+      not a performance one: it means the re-entrant path allocated, which contradicts the
+      zero-steady-state-allocation claim the project makes elsewhere.
+
+W8 IS DEFERRED, DELIBERATELY, AND THE REASON IS RECORDED
+  W8 was to give Clock a concrete ClockStrategy field. It cannot be done without an API break —
+  ClockStrategy is the published extension point. Measured in situ it is +0.25 ns on JIT and on
+  native+PGO, and +1.33 ns only on native-WITHOUT-PGO, a configuration §1 of the spec already rules
+  out. So the deployable cost is +0.25 ns and the price is a breaking change. Not taken. If a
+  reviewer disagrees, the argument to attack is "third-order, do it only if the field is being
+  touched anyway" in spec §3.3.
+
+TESTS ADDED — 12, in CallbackDispatcherEmptyPathTest (new file, 174+ lines)
+  They pin BEHAVIOUR, not speed. Throughput is the conformance bench's job (W10), which asserts
+  output equivalence before it believes any timing.
+
+  Two of the twelve were added late, after review of the diff found the claim underpinned:
+
+    theInFlightItemStaysOnTheQueueDuringItsOwnDispatch
+    fireIteratorCallbackDuringDispatchGoesToTheFrontOfTheQueue
+
+  Here is why they exist, and this is THE THING TO ATTACK ON THIS BRANCH:
+
+  `dispatching` is not a debug flag. fireIteratorCallback() reads it to decide whether an iterator
+  goes to the FRONT of the queue (a dispatch is in progress, so this must run before queued work) or
+  the BACK. The old code executed `dispatching = false` unconditionally, including on the empty path;
+  the new code returns before it. That is only safe if a NESTED call cannot reach the early return
+  while an outer dispatch is running — otherwise the inner call clears the outer's flag and a
+  subsequent iterator is queued to the wrong end. Silent reordering, not a crash.
+
+  It cannot happen, because the in-flight item is removed only AFTER its dispatch() returns false, so
+  the queue is never empty when observed from inside a callback. That premise is now a test rather
+  than a paragraph: if a future change removes the item first, the test fails instead of the ordering
+  drifting unnoticed.
+
+  This reasoning is MINE and has not been independently checked. If it is wrong, the change is a
+  latent reordering bug in the re-entrant path. Attack it first.
+
+  The other reachability question, stated for completeness: the early return also skips the store when
+  `eventProcessor == null`. Reaching that with `dispatching == true` requires nulling a public field
+  from inside a callback. Judged pathological, not defended.
+
+GATES RUN HERE
+  mvn test -pl fluxtion-runtime  ->  98 tests, 0 failures, 0 errors (19 classes)
+  CallbackDispatcherEmptyPathTest -> 12 tests, 0 failures
+
+WHAT WAS **NOT** DONE — do not let these pass silently
+  · NO throughput measurement of this branch. The −18% figure in the spec is from round 58's
+    PROTOTYPE of the guarded drain, not from this code. W10's bench should be pointed at this branch
+    before any number is attached to it. Quoting −18% for this commit would repeat exactly the error
+    round 58 made four times.
+  · NO allocation measurement. W3 is justified as removing boxing by reading the types, not by
+    running under EpsilonGC and observing bytes. That measurement is cheap and has not been done.
+  · NO audit-log record-stream comparison. Spec §6 gate 2 requires the record stream to be unchanged
+    at every level. This change is on the callback path, so it plausibly cannot move it — but
+    "plausibly cannot" is not the gate, and the gate has not been run.
+  · W1 (the guarded drain proper — a `callbackPending` flag on the processor) is NOT in this branch.
+    W2/W3 are the two cheap wins beside it. W1 is a separate item and touches the generated code.

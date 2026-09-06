@@ -1,0 +1,94 @@
+REPORT — M50 · W14 manifest optimisation metadata: SPEC ONLY, no code. Open for review.
+Date: 2026-09-06 · Repo: dataflow-mavenplugin (publishes com.telamin.fluxtion:fluxtion-maven-plugin)
+Branch: spec/w14-manifest-optimisation-metadata · Base: origin/main @ d635950
+Worktree ON THIS MACHINE: ~/IdeaProjects/telamin/worktrees/mavenplugin-w14
+
+STATUS: SPEC COMPLETE, NO IMPLEMENTATION. The worktree is empty of changes on purpose — it exists so
+the implementation has somewhere to land and so the base was verified before anyone starts.
+The spec itself lives in the ANALYSER repo: docs/specs/spec-manifest-optimisation-metadata.md.
+
+THE REPOSITORY QUESTION — resolved, and the wrong answer is instructive
+  ~/IdeaProjects/dataflow-mavenplugin IS the source of the published plugin. A first reading said
+  otherwise: its pom showed com.fluxtion.dataflow:dataflow-maven-plugin while the published artifact
+  is com.telamin.fluxtion:fluxtion-maven-plugin:1.3.0, and the only com.telamin string in the file
+  was an SCM URL. The local remote-tracking ref was 18 months stale, from 2025-03-02, and predated a
+  rebrand. After git fetch, origin/main is com.telamin.fluxtion:fluxtion-maven-plugin:1.3.1-SNAPSHOT
+  with v1.3.0 tagged.
+
+  Note for anyone looking: ~/IdeaProjects/fluxtion-mavenplugin is the pre-donation ancestor on the
+  previous owner's GitHub org. It is NOT the source of the published plugin.
+
+WHAT THE SPEC PROPOSES
+  The facts W4, W5, W11 and W13c need about components the integrator did not write — can any node
+  raise a re-entrant event; does anything trigger-reachable read clock, randomness, IO or mutable
+  static; which methods handle which service registrations; are the service signatures recordable —
+  are already known to the COMPONENT'S OWN BUILD, which has the source and the annotations.
+  Rediscovering them at every integration is a determination re-derived below its binding point.
+
+  So: the producing build computes them once and publishes them; the consuming build reads them, and
+  can re-check them.
+
+THE TWO RULES THAT CARRY THE DESIGN
+  R2 — ABSENCE IS NOT A CLAIM. Every attribute is three-valued (true/false/unknown) and unknown
+  POISONS the graph-level fold. A build cannot become permissive by adding an unanalysed dependency.
+  Without this the whole thing degrades into a trust system, which is the usual failure of metadata
+  schemes and the first thing to attack.
+
+  R4 — THE CONSUMER HOLDS THE BYTECODE AND MUST BE ABLE TO RE-CHECK. Every attribute has a derivation
+  rule precise enough to reimplement, so a manifest that lies is DETECTABLE rather than trusted.
+
+CARRIER — a detail that changed the design
+  java.util.jar.Manifest wraps at 72 bytes with BYTE-oriented continuation, which can split a
+  multibyte character. Good for a short scalar verdict, bad for a list of signatures. So the manifest
+  carries VERDICTS and META-INF/fluxtion/component.json carries EVIDENCE. If they disagree the jar was
+  rewritten after emission: sidecar wins, build fails.
+
+TWO DESIGN ANSWERS WERE REVERSED BY READING THE ANNOTATION SOURCE — check both
+  The first draft said "two attributes on existing annotations, no new types". Both halves were wrong.
+
+  1. @ExportService is @Target(TYPE_USE). It annotates `implements @ExportService Foo`, not the
+     interface declaration. A `deterministic` attribute there would be asserted by each IMPLEMENTING
+     component — the wrong binding point twice over, since the claim is about the interface's contract
+     and a consumer of the interface cannot see the implementor's annotation at all. So ONE new
+     annotation type IS required: @ServiceContract on the interface, defaulting deterministic=false so
+     that silence is pessimism.
+
+  2. The proposed `ambient` attribute on @OnTrigger is WITHDRAWN. Its job was to mark an APPROVED
+     ambient read, but the framework Clock is deterministic under replay and distinguishable from
+     System.currentTimeMillis BY RECEIVER TYPE. The fact is derivable, so an attribute for it would be
+     a second authority that can disagree with the scan.
+
+  Net: one new annotation type, zero new attributes on existing ones — the opposite of the first
+  answer on both counts, and a smaller surface than it proposed.
+
+W14a0 — THE STEP NOBODY HAD COSTED
+  Surveying the plugin found its three mojos are all *ToGenMojo: they GENERATE a processor. The plugin
+  writes NO manifest entries at all today and there is no catalogue goal. So W14a is not an extension
+  of an existing goal — the goal must be built, and spec-component-catalogue.md's capability
+  attributes are equally unimplemented. The two specs share one piece of new machinery and must agree
+  on it rather than each inventing one. That is a larger first step than either spec assumed.
+
+  Two decisions recorded before implementation:
+    · The analysis lives in fluxtion-builder, not the mojo, so the SAME code answers the question for
+      the producing build and for the consumer's verification pass. A mojo cannot be called from the
+      generator. The plugin invokes; it does not reimplement.
+    · FluxtionScanToGenMojo already walks the classpath to find nodes, and what it learns overlaps
+      heavily with Trigger-Kind / Service-Consumes / Service-Exports. Emitting those first is much
+      cheaper than the Reentrant/Ambient analyses, which is why the work items split there.
+
+WHAT TO ATTACK
+  · R2's three-valued fold. If unknown does not poison, the scheme is worthless. Try to construct a
+    build that becomes MORE permissive by adding a dependency.
+  · The conformance suite's three load-bearing fixtures — unresolvable-call (must be unknown, never
+    false), manifest-lies, no-metadata. A suite without those tests only the happy path.
+  · Fluxtion-Allocation is deliberately the weakest attribute and says so in its own value
+    (free:syntactic). If you think a weak attribute should not exist at all, that is a fair argument
+    and the spec does not make it.
+  · Whether @ServiceContract should live in fluxtion-runtime (every service interface then takes a
+    runtime dependency to be marked) or a separate tiny artifact. Recorded as an owner call, not
+    decided.
+
+SEQUENCING — do not start this yet
+  W14 makes W4/W5/W11/W13c practical ACROSS VENDOR JARS. Those items can ship without it by scanning
+  bytecode directly. W14 is the optimisation of the optimisation, not a prerequisite. It should be
+  sequenced after they work, when there is something to optimise.

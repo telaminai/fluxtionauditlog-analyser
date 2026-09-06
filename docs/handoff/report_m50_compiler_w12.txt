@@ -1,0 +1,91 @@
+REPORT — M50 · W12 generated auditor switch: the processor stops reflecting. Open for review.
+Date: 2026-09-06 · Repo: fluxtion-compiler · Branch: perf/w12-auditor-switch
+Base: origin/main @ 9a16035 (remote-tracking ref as of 2026-09-01; NO git fetch was run)
+Worktree ON THIS MACHINE: ~/IdeaProjects/telamin/worktrees/compiler-w12
+Primary checkout is UNDISTURBED on experiment/determination-placement.
+
+STATUS: IMPLEMENTATION COMPLETE, OPEN FOR INDEPENDENT REVIEW. Nothing merged, nothing pushed.
+This is the item the spec says to ship FIRST: smallest, no dependencies, removes an adoption tax today.
+
+ORIENT FIRST
+  · docs/specs/spec-generated-dispatch-performance.md §18 (ANALYSER repo) — W12 diagnosed precisely.
+    §18.2 is the part that matters: ONE asymmetry causes all three reflection sites. Auditors are
+    registered onto the SEP as fields but never into nodeNameLookup, so every by-name lookup has to
+    fall back to a reflective field probe. The fix is to close the asymmetry at generation time.
+
+WHY IT IS WORTH DOING, AND IT IS NOT PERFORMANCE
+  Round 58 could not run the graph under native-image until a hand-written reflect-config.json was
+  supplied. That is an adoption tax paid by every native-image user, for a lookup the compiler could
+  have resolved statically. Worse, the failure is at RUNTIME and says NoSuchFieldException, not at
+  build time where a generator error belongs. This item removes the requirement rather than
+  documenting it.
+
+WHAT CHANGED — two files, 25 insertions, 11 deletions
+  fluxtion-generator-core/.../javasrc/JavaSourceGenerator.java   (+12)
+      A new `auditorIdSwitch` model property, built inside buildNodeRegistrationListeners() from
+      model.getNodeRegistrationListenerFields() — the same list that already declares the auditor
+      fields. Initialised to "" at the field, NOT left null: buildNodeRegistrationListeners() returns
+      early when a graph has no auditors, and a null would have reached the template.
+
+  fluxtion-generator-core/src/main/resources/template/base/javaTemplate.vsl   (+24/-11)
+      getAuditorById  -> a switch over auditor names, default throws NoSuchFieldException
+      getNodeById     -> its auditor fallback delegates to getAuditorById(id)
+      getLastAuditLogRecord -> likewise, instead of getField(EventLogManager.NODE_NAME)
+
+  Net: three reflective sites become zero.
+
+THE SOUNDNESS QUESTION, ASKED AND ANSWERED — attack this if you attack anything
+  Reflection found ANY public field. The switch lists only auditors. That is a narrowing, and a
+  narrowing can be a regression.
+
+  It is not, because the switch is DERIVED from the same collection that declares the auditor fields
+  and drives initialiseAuditor / tearDown / processingComplete / eventReceived. It is not a
+  hand-maintained parallel list that can fall out of step; if a field is an auditor it is in the
+  switch, by construction.
+
+  Checked against the generated corpus rather than argued: 32 generated sources carry a switch, every
+  one listing exactly clock, nodeNameLookup and serviceRegistry.
+
+  Residual, and stated because it is the honest edge: getNodeById's fallback previously found a
+  PUBLIC NON-AUDITOR field by reflection if one was absent from nodeNameLookup. It no longer will.
+  A graph node should always be in nodeNameLookup — the fallback existed for auditors — so the
+  narrowing is the intent. If you can construct a graph where a node is a public field AND missing
+  from nodeNameLookup, that is a real finding and I have not found one.
+
+  A trap for the reader: EventLogManager.NODE_NAME is "eventLogger", not "eventLogManager". No
+  generated file in the suite declares an eventLogger field or has an eventLogger case, so
+  getLastAuditLogRecord threw NoSuchFieldException in these graphs before and throws it now.
+
+GATES RUN HERE, IN FULL
+  fluxtion-generator-core       21/21    green
+  fluxtion-builder             230/230   green
+  fluxtion-integration-tests  3518/3520  2 failures, both ENVIRONMENTAL — RuntimeMetaBoundaryGateTest
+      finds a sibling repo at ~/IdeaProjects/fluxtion but no fluxtion-runtime in a layout it knows,
+      because that path holds a different project and the runtime lives at
+      ~/IdeaProjects/telamin/fluxtion/fluxtion-core/fluxtion-runtime. Unrelated; not fixable here.
+
+THE GOLDENS WERE UPDATED, DELIBERATELY — verify this, do not take it on trust
+  PreSplitGoldenParityTest failed, correctly: it exists to catch structural drift in generated source,
+  and this changes generated source on purpose. Its own javadoc warns that regenerating goldens is how
+  a real regression gets waved through, so the diff was read in full first — 32 lines per golden,
+  entirely the three W12 sites and the comment above them, nothing else moved.
+
+  The evidence that this is a TEXT change and not a BEHAVIOUR change is that the suite separates them:
+  each case has three goldens and only .java.txt moved. imperative.behaviour.txt, dsl.behaviour.txt,
+  imperative.dto.txt and dsl.dto.txt are BYTE-IDENTICAL.
+
+  A correction to this branch's earlier report, which claimed 2 pre-existing baseline failures: there
+  were 4, and two were these goldens — caused by W12. The earlier count was taken before the template
+  change reached the integration module. The 2 that ARE environmental are the ones above.
+
+WHAT WAS **NOT** DONE
+  · NOT run under native-image. The whole justification is that reflect-config.json becomes
+    unnecessary, and that has NOT been demonstrated on this branch — it is inferred from removing the
+    three reflective sites. Someone should build a native image from a graph generated by this branch
+    with NO reflection config and confirm getNodeById / getAuditorById / getLastAuditLogRecord work.
+    Until then the headline claim is reasoned, not tested.
+  · newInstance() was in W12's original scope and is NOT addressed. See spec §18.5 (scope correction).
+  · fluxtion.sourceFingerprint: NOT checked. Spec §6 gate 3 requires it unmoved where the graph is
+    unchanged. The generated TEXT moved here; whether the fingerprint covers emitted source or only
+    the model is exactly the open question the tracker records for W13, and it applies to W12 too.
+    If the fingerprint moves, this is a graph change and needs its own release. UNRESOLVED.

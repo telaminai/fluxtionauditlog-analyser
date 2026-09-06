@@ -1,0 +1,98 @@
+REPORT — M50 · W10 conformance bench + W9 performance configuration. Open for review.
+Date: 2026-09-06 · Repo: fluxtionauditlog-analyser · Branch: perf/w10-conformance-bench
+Base: local main @ c0851b5
+Worktree ON THIS MACHINE: ~/IdeaProjects/telamin/worktrees/analyser-w10
+
+STATUS: IMPLEMENTATION COMPLETE, OPEN FOR INDEPENDENT REVIEW.
+
+READ THIS BEFORE CLONING ANYTHING
+  The analyser's local main is 33 COMMITS AHEAD OF origin/main and NOT PUSHED. That includes all of
+  round 58, the whole of spec-generated-dispatch-performance.md, and the M50 tracker section. A
+  reviewer who clones from GitHub will see none of it. Work from the local checkout at
+  ~/IdeaProjects/telamin/fluxtionauditlog-analyser, and compare this branch against LOCAL main —
+  comparing against origin/main yields a 67-file, 6461-line diff that is almost entirely main's own
+  unpushed history, not this branch's work.
+
+  This branch against local main is 3 commits, 5 files, 552 insertions.
+
+ORIENT FIRST
+  · docs/specs/spec-generated-dispatch-performance.md §12 — "W10, the harness, and why it is not
+    optional". §1 for the floor table, and the note under it: every figure must name its
+    compilation shape.
+  · docs/experience/runs/round-58/NOTES.md — 19 addenda, ~700 runs. The four wrong headlines are
+    preserved with the mechanism that produced each. That is the material W10 exists because of.
+
+WHY W10 EXISTS — the failure it prevents actually happened, to us, four times
+  Round 58 measured the same source at 1.42, 2.57, 4.82 and 6.34 ns depending on compilation shape.
+  Four successive drafts of the public write-up carried a wrong headline figure. NONE was an
+  arithmetic error. Each was a true measurement of a different shape, quoted without naming the shape.
+  A harness that reports timings without pinning shape reproduces that error indefinitely.
+
+WHAT W10 IS — tools/bench/dispatch-bench.py (192 lines) + test_dispatch_bench.py (119 lines)
+  Four traps, each encoded as a gate that FAILS rather than warns:
+
+  T1 CROSS-BINARY      Arms in different binaries are not comparable — a multi-arm binary and a
+                       single-purpose binary gave 4.86 vs 1.58 ns for IDENTICAL source. Arms must be
+                       selected by -Darm= within ONE command, and rounds are INTERLEAVED with the
+                       order alternating each round to cancel drift. The reported statistic is the
+                       PAIRED difference, not a comparison of medians.
+  T2 CROSS-IMAGE-KIND  An executable's PGO profile applied to a shared library made it 4x SLOWER
+                       (1.42 -> 6.28). Exactly one of --native/--main is accepted, and the runtime
+                       kind is recorded in the report.
+  T3 UNVERIFIED OUTPUT Two arms computing different things are not a comparison. Every arm must emit
+                       identical check fields, and this is gated BEFORE any timing is reported —
+                       ordering that matters, because a timing you have already read is hard to
+                       un-believe.
+  T4 ELIMINATION       Twice in round 58 a probe measured 0.0000 ns because the compiler deleted the
+                       loop whose result nothing read. Anything below 0.05 ns fails as a broken probe.
+
+  It also reports when two arms' ranges OVERLAP and says to treat that as indistinguishable rather
+  than a win — the failure mode one notch subtler than the four above.
+
+TESTS — 11, one per trap plus the parser contract; wired into .github/workflows/ci.yml
+  A fake benchable program honours the same contract (-Darm=, -Dwarm=, -Diters=, one RESULT line), so
+  the harness is tested with no JVM or native toolchain present. 11/11 green, re-run after the
+  M46->M50 renumber.
+
+  One test worth noting: test_floor_is_below_the_fastest_credible_measurement asserts the elimination
+  floor stays under 1.41 ns, round 58's fastest REAL figure. A floor that creeps up would start
+  rejecting true results, and that is the way this particular guard fails.
+
+W9 — docs/proposals/fluxtion-performance-configuration.md (195 lines), filed as UP-FLX-50
+  The spec recorded "9.41 -> 1.42 ns is currently undocumented as a coherent choice". Tracing both
+  ends shows why the wording matters: 9.41 is native+PGO STOCK and 1.42 is native NO-PGO,
+  non-escaping, base case. The span crosses a configuration change, a deployment-shape change and a
+  PGO change AT ONCE. Presenting it as one lever would be the same error as the four headlines.
+
+  So it is written as five independent decisions, each naming its shape and its cost. Two are worth
+  the reviewer's attention:
+    · The largest lever is NOT a flag. It is where the processor reference lives (-54%, AOT only),
+      and it is lost by ordinary structure — a static field, a registry, a thread pool, a getter that
+      is actually called. Reading the field into a local does not recover it.
+    · PGO is presented as "measure it", not "enable it", because on the FASTEST shape it is a 4x loss.
+
+  It goes to docs/proposals/ because it belongs to the framework repo, per the standing rule that
+  anything owned by another repo lives in the holding pen until filed. The ask is to TAKE the
+  document, not to write it.
+
+  ONE PARAGRAPH IS AN OPINION AND IS LABELLED AS ONE. The auditor section says dropping auditors buys
+  throughput at the cost of the audit log, and recommends a deployment split rather than a compromise.
+  That is written from a repo whose product is reading those logs; the page says so. Hoisting auditor
+  calls measured 0% on both runtimes, so there is no partial retreat — but the RECOMMENDATION is a
+  judgement and upstream may reword it. Challenge it if you disagree; do not let it pass as measured.
+
+GATES
+  python3 -m unittest test_dispatch_bench  ->  11/11 green
+  sweep (four-term, exemption-free form)   ->  clean
+  NOT run: mvn test — this branch touches no Java. NOT run: mkdocs build — the new page is in
+  docs/proposals/, which is not part of the site build. Both gates are inapplicable, not skipped.
+
+WHAT WAS **NOT** DONE
+  · THE BENCH HAS NEVER BEEN RUN AGAINST A REAL FLUXTION PROCESSOR. It is tested against a fake
+    program that honours the RESULT contract. Round 58's actual benchmark sources exist under
+    docs/experience/runs/round-58/src/ but have NOT been adapted to the -Darm= contract. Until that
+    is done, W10 is a harness that is known to catch the four traps and is NOT known to be usable on
+    the thing it was built for. This is the largest gap on the branch and should be closed before
+    W10 is called done — the spec says W10 lands before any number is re-quoted.
+  · No numbers in the W9 document were re-measured for it; all are quoted from round 58 with their
+    shapes attached.

@@ -1,0 +1,58 @@
+INDEX — M50 · compiler & runtime optimisation: four review briefs, four repos
+Date: 2026-09-06
+
+Read REVIEWER-ORIENTATION.md first if you have not reviewed this stack before.
+
+MILESTONE NUMBER: M50, not M46. The tracker had TWO milestones numbered M46 — this one and
+"Authoring-toolchain repair" (spec'd 2026-09-01), each with sub-items .1 through .9+, so "M46.5" was
+ambiguous between the ambient-read scan and the first-open pairing bug. The authoring milestone was
+there first; this one was renumbered to M50. Anything you find still saying M46 about PERFORMANCE is
+stale.
+
+  report_m50_core_w2w3w8.txt       fluxtion-core      W2/W3 runtime internals; W8 deferred with reason
+  report_m50_compiler_w12.txt      fluxtion-compiler  generated auditor switch; three reflection sites
+  report_m50_analyser_w9w10.txt    this repo          conformance bench + performance configuration
+  report_m50_mavenplugin_w14.txt   dataflow-mavenplugin  SPEC ONLY, no code
+
+WORKTREES — the work is NOT in the primary checkouts, which are undisturbed on their own branches.
+
+  ~/IdeaProjects/telamin/worktrees/core-w2w3w8      perf/w2-w3-w8-runtime-internals   base 4b38aeb
+  ~/IdeaProjects/telamin/worktrees/compiler-w12     perf/w12-auditor-switch           base 9a16035
+  ~/IdeaProjects/telamin/worktrees/analyser-w10     perf/w10-conformance-bench        base c0851b5
+  ~/IdeaProjects/telamin/worktrees/mavenplugin-w14  spec/w14-...                      base d635950
+
+TWO FACTS THAT WILL WASTE YOUR TIME IF YOU DO NOT KNOW THEM
+
+  1. The analyser's local main is 33 commits AHEAD of origin/main and unpushed. Round 58, the whole
+     performance spec and the M50 tracker section are all in that unpushed history. Cloning from
+     GitHub shows you none of it. Compare the analyser branch against LOCAL main.
+
+  2. fluxtion-core has two version lines. origin/main is 1.0.15-SNAPSHOT, which produces the
+     fluxtion-runtime 1.0.14 that round 58 measured and that fluxtion-compiler pins. The primary
+     checkout sits on feature/java_8_compatability at 0.9.33-SNAPSHOT — a DIFFERENT line. Work done
+     there would not reach the compiler. The branch is cut from origin/main deliberately.
+
+  git fetch was NOT run for core or compiler. Bases are the local remote-tracking refs as they stood
+  on 2026-09-01, recorded above by commit so the work can be rebased if the remotes have moved. It
+  WAS run for the maven plugin, and doing so changed the answer to which repo that is — see that brief.
+
+WHERE THE ARGUMENT LIVES
+  docs/specs/spec-generated-dispatch-performance.md  — Parts I-IV; §19 is the consolidated work list
+  docs/specs/spec-manifest-optimisation-metadata.md  — W14 in full
+  docs/experience/runs/round-58/NOTES.md             — the evidence, ~700 runs, 19 addenda
+
+  Round 58 produced FOUR wrong headline figures before the right one. All four are preserved in the
+  notes with the mechanism that produced each, rather than tidied away. If you are checking whether a
+  number in these briefs is trustworthy, that file is the reason to be suspicious and also the means.
+
+THE THREE THINGS MOST WORTH ATTACKING, ACROSS ALL FOUR BRIEFS
+  · core: the argument that a nested dispatchQueuedCallbacks() can never observe an empty queue. If
+    it is wrong, W2's early return is a silent reordering bug on the re-entrant path. Reasoned by me,
+    now pinned by a test, NOT independently checked.
+  · compiler: W12's justification is that reflect-config.json becomes unnecessary under native-image,
+    and that has NOT been demonstrated — only inferred from removing three reflective sites.
+  · analyser: the conformance bench has NEVER been run against a real Fluxtion processor, only
+    against a fake program honouring its contract.
+
+  Each is stated in its own brief too. None is a reason not to review; all three are reasons not to
+  merge on the strength of these briefs alone.
