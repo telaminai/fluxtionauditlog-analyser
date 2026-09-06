@@ -1,235 +1,189 @@
-# The performance configuration — a ladder, not a switch
+# Achieving optimal performance with a Fluxtion processor
 
-**Status** DRAFT for the Fluxtion docs site · **Item** M50/W9 · **Date** 2026-09-06
-**Evidence** [`round-58`](../experience/runs/round-58/NOTES.md) — ~700 measured runs, medians of
-5 × 200M events, output verified on every arm.
-**Belongs upstream** (`telaminai/fluxtion`); held here per `docs/proposals/upstream-asks.md`.
-
----
-
-## Read this first
-
-A Fluxtion processor has been measured from **9.41 ns/event down to 1.42 ns/event** — 106M to 703M
-events per second on one core.
-
-**That span is not a switch.** It is five independent decisions, three of which are free and two of
-which cost you something real. Quoting the endpoints as though one flag connects them is the mistake
-this page exists to prevent: while round 58 was being written up, **four successive drafts carried a
-wrong headline figure**, every one of them a true measurement of a different shape, generalised too
-far.
-
-So every number below names its shape. **A figure without its shape is not a result.**
-
-| | ns/event | events/sec | shape |
-|---|---|---|---|
-| stock | 9.41 | 106M | native-image + PGO, auditors + guards + re-entrancy wrapper |
-| **floor** | **1.42** | **703M** | native-image, **no PGO**, non-escaping processor, base case |
-| JIT floor | 4.80 | 208M | GraalVM CE 25.3.4.1, Graal JIT, base case |
-| hand-written Java at the same floor | 1.49 | 671M | — |
-
-The last row is the one worth pausing on: at the floor, **generated dispatch is 0.95× the cost of
-hand-written Java** — marginally faster, because the generator emits a smaller method than a person
-writes. You are not paying for the framework at that point. You are paying for the configuration you
-chose above it.
+**Status** DRAFT for the Fluxtion docs site · **Item** M50/W9 · **Updated** 2026-09-06
+**Evidence** [`round-58`](../experience/runs/round-58/NOTES.md) (~700 runs, 19 addenda) and
+[`round-59`](../experience/runs/round-59/NOTES.md) (verification on generated code).
+**Harness** `tools/bench/dispatch-bench.py` — every figure here was produced by it or by round 58.
 
 ---
 
-## The six decisions
+## Read this first: every figure names its shape
 
-### 0 · Supply a `ClockStrategy` — the one that costs nothing and is lost by default
+The same processor source has measured anywhere from **1.4 to 29 ns per event** depending on
+configuration and deployment shape. While round 58 was written up, **four successive drafts carried a
+wrong headline figure** — each a true measurement of a different shape, quoted without naming it.
 
-**Free. Both runtimes. −83% measured on JIT (29.08 → 5.03 ns), and it is ON by default.**
+So: **a figure without its shape is not a result.** Every number below carries one.
 
-This is first because it is the only decision on the list you are making *by not making it*:
+---
 
-```java
-// Clock.java — the default
-@Initialise public void init() { wallClock = System::currentTimeMillis; }
-@Override public void eventReceived(Object event) {
-    processTime = getWallClockTime();     // System.currentTimeMillis() on EVERY event
-    eventTime   = processTime;
-}
-```
+## The configuration, in one place
 
-The `Clock` auditor is present in every generated processor, and unless you supply a strategy it reads
-the **system wall clock on every event**. Measured on a real generated 10-node processor (round 59):
-**29.08 ns/event default vs 5.03 ns with a supplied strategy** — the clock is 83% of the cost.
+Six switches. The first three are the ones that matter most, and each **changes behaviour** — that is
+the point of them, not a side effect.
 
 ```java
+// 1 — NO DIRTY FLAGS: every node fires on every event, unconditionally
+@OnTrigger(failBuildIfMissingBooleanReturn = false)          // void trigger, no dirty flag, no guard
+@OnEventHandler(failBuildIfMissingBooleanReturn = false)
+config.setSupportDirtyFiltering(false);                      // and no dirty-flag machinery at all
+
+// 2 — NO AUDITORS DOING WORK: supply a clock instead of reading the system clock per event
 processor.onEvent(ClockStrategy.registerClockEvent(() -> myStreamTime));
+
+// 3 — OPTIMISED RE-ENTRANCY: no wrapper on the event path, guard retained
+config.setSupportReentrancy(false);
+
+// 4 — no event buffering
+config.setSupportBufferAndTrigger(false);
+
+// 5 — no event-feed subscription (also removes an escape, see §Deployment shape)
+config.setSupportSubscriptions(false);
+
+// 6 — deployment shape: construct the processor inside the method that runs the loop (§below)
 ```
 
-Round 58 measured the same thing on **seven** runtimes and it is the largest single line item in its
-results file — 19.01 vs 7.71 on Graal JIT, 18.45 vs 8.58 on C2, 20.87 vs 13.98 on native-image.
+### 1 · No dirty flags
 
-**Take it whenever your events carry their own time**, which is every replayable system — and if they
-do not, you are reading the wall clock inside the event path anyway, which is the ambient read that
-makes a run non-reproducible. The performance argument and the determinism argument point the same way.
+`setSupportDirtyFiltering(false)` plus void triggers. **Removes the guards.** A void trigger returns
+no boolean, so there is no dirty flag to store, no guard to test, and no dirty-flag maps on the
+processor.
 
-**Caveat:** `System.currentTimeMillis()` cost is platform-dependent. The 24 ns delta is macOS/aarch64;
-round 58's ~11 ns on comparable hardware is the conservative figure. The *dominance* held on every
-runtime measured; the magnitude is not a portable constant.
+**What you give up: conditional propagation.** Every node fires on every event. If your graph relies on
+a node declining to propagate, this changes results, not just speed. Take it when the graph is a
+pipeline that recomputes everything anyway.
 
-### 1 · Deployment shape — the largest lever, and it is not a flag
+### 2 · No auditors doing real work
 
-**Free. AOT only. Worth more than everything below combined: −54% (3.10 → 1.42 ns).**
+Every generated processor carries the `Clock`, `NodeNameLookup` and `ServiceRegistry` auditors, and
+calls them on every event. **Five of those six calls are free** — round 58 measured inherited no-op
+default methods as indistinguishable from no call at all on every runtime, native included, so **do
+not try to hand-optimise them away.**
 
-Where the processor reference lives decides whether the compiler can scalar-replace it:
+The sixth is not free. `Clock.init()` sets `wallClock = System::currentTimeMillis`, and
+`Clock.eventReceived` calls it **on every event**:
 
-| processor reached via | native + PGO |
+| | ns/event | events/sec |
+|---|---|---|
+| default clock (reads the system clock per event) | 29.08 | 34M |
+| supplied `ClockStrategy` | **5.03** | 199M |
+
+**The clock is 83% of the default cost on a JIT** — measured on a real generated processor
+(round 59), and round 58 measured the same on all seven runtimes it tested (19.01 → 7.71 on Graal JIT).
+**This is the lever you lose by doing nothing**, and it was undocumented until now.
+
+Supply a stream time whenever your events carry their own. If they do not, you are performing an
+ambient clock read inside the event path, which is also what makes a run non-reproducible — the
+performance argument and the determinism argument coincide.
+
+### 3 · Optimised re-entrancy
+
+`setSupportReentrancy(false)`. Worth **−26% on native**, −7% on a JIT.
+
+`processEvent` runs on every event and, with support on, tests a flag, may queue a re-entrant event,
+and drains a callback queue. When no node in the graph can raise a re-entrant event that queue is
+provably always empty and all of it is dead code. With the flag off the generated processor also
+**dispatches the typed entry directly** — `onEvent(MarketTick)` calls `handleEvent(event)` instead of
+widening to `Object` and recovering the type with an `instanceof` chain.
+
+**A guard is retained and it throws.** Build-time detection cannot be complete — a node can reach the
+dispatcher through a service or reflectively — so a re-entrant event fails loudly rather than
+vanishing.
+
+### 4 · No buffering · 5 · No subscriptions
+
+`setSupportBufferAndTrigger(false)` removes the buffering branch.
+`setSupportSubscriptions(false)` stops the constructor publishing the processor to the subscription
+manager — which matters for more than one reason, see below.
+
+---
+
+## Deployment shape — worth more than every flag combined
+
+**Construct the processor inside the method that drives the event loop.**
+
+| processor reached via | native |
 |---|---|
-| **a local that never escapes, or a private field of an object that never escapes** | **1.57** |
-| a `static` / `static final` field | 2.57 |
+| a local that never escapes the method driving the loop | **1.41–1.53** |
+| a `static` / `static final` field | 3.10 |
 | an instance field of a statically-held object | 4.82 |
 
-A `private final` field is fine **provided the holding object never escapes** — an event-loop worker
-that builds its own processor and never publishes the reference. It is broken by storing the processor
-in a static, a registry, an opaque factory, a thread pool, or a getter that anything actually calls.
+If the processor escapes, the compiler cannot dissolve the node objects. It escapes by being stored in
+a static, a registry, a factory, a thread pool, or a getter that anything calls — **and the escape
+happens at construction, so reading the field into a local before the loop does not recover it.**
 
-**Reading the field into a local before the loop does not help.** The escape happened at construction.
+On a JIT every shape measures about the same; this is an AOT consideration.
 
-On a JIT every shape measures ~4.8 ns. **This is an AOT-only consideration** — and it is the one most
-likely to be given away by ordinary-looking application structure.
+---
 
-### 2 · The guarded callback drain
+## PGO — measure it, and a bad profile is worse than none
 
-**Free. No flag. No semantic change. −18% native, −2% JIT.**
-
-Nothing to configure — it is a framework change (W1). It is on this list so you can tell whether your
-version has it: the processor gates `dispatchQueuedCallbacks()` on a boolean the callback path sets,
-rather than calling into the dispatcher on every single event and discovering the queue is empty.
-
-### 3 · `noReentrancy`
-
-**−26% native, −7% JIT. Opt-in, and the build proves you may have it.**
-
-Omits the re-entrancy wrapper when no node can raise a re-entrant event or register a callback. The
-build **fails and names the offending node** if that is not true, and a runtime guard still throws,
-because build-time detection cannot be complete.
-
-Semantics are unchanged *given the proof*. If the build refuses, the flag is not for you — that is the
-mechanism working.
-
-### 4 · The base case — void triggers and no dirty filtering
-
-**This one changes behaviour. It is your decision, not a defect.**
-
-```java
-@OnTrigger(failBuildIfMissingBooleanReturn = false)        // void trigger: no dirty flag, no guard
-@OnEventHandler(failBuildIfMissingBooleanReturn = false)
-config.setSupportDirtyFiltering(false);
-```
-
-**What you give up: every node fires on every event.** Conditional propagation is gone. If your graph
-relies on a node declining to propagate — and most graphs that model real logic do — this changes
-results, not just speed.
-
-Take it when the graph is a pipeline that recomputes everything anyway. Do not take it because it is
-the fastest row in a table.
-
-### 5 · PGO — measure it, and never carry a profile across image kinds
-
-**PGO is not a free win, and on the fastest shape it is a catastrophic loss.**
+**For an AOT Fluxtion processor a bad profile is worse than no profile.** This is not a caution, it is
+a measurement:
 
 | arm | exe, no PGO | exe, PGO | shared lib, no PGO | shared lib, PGO |
 |---|---|---|---|---|
-| **non-escaping processor** | 1.53 | 1.64 | **1.42** | **6.28** |
+| non-escaping processor | 1.53 | 1.64 | **1.41** | **6.28** |
 | processor in a `static final` field | 3.10 | 2.51 | 3.10 | 6.25 |
 
-PGO helps the shapes that **block** scalar replacement (−32%) and hurts the one that does not — mildly
-in an executable, and **4× worse in a shared library**. An executable's profile applied to a shared
-library was the single worst configuration measured in the whole round.
-
-**Two rules.** Never assume PGO helps; measure it against your own shape. Never reuse a profile across
-image kinds.
-
----
-
-## The decision you should think hardest about: auditors
-
-Removing auditors is on the fast path. **It also removes the audit log** — the record stream that makes
-a run explainable, replayable and reviewable after the fact.
-
-This page is written from a repo whose entire product is reading those logs, so take the bias into
-account and then take the point anyway: **the audit log is usually worth more than the nanoseconds.**
-Hoisting auditor calls was measured at **0% on both runtimes** — it only makes generated handlers ~35%
-smaller — so there is no throughput argument for a partial retreat. Auditors are close to a binary
-choice, and the honest framing is *what is this run for* rather than *how fast can it go*.
-
-If you need both, the answer is a deployment split — audited runs for investigation and replay,
-unaudited for the throughput path — not a compromise inside one binary.
+- **A non-escaping processor reaches ~1.4 ns with no profile at all.** PGO is not required for it.
+- **PGO helps only shapes that block the optimisation**, and hurts the one that does not — mildly in
+  an executable, **4× in a shared library**.
+- **Never carry a profile across image kinds.** An executable's profile applied to a shared library was
+  the worst configuration measured anywhere in this work.
 
 ---
 
-## Two things you do NOT need to optimise
+## What you do NOT need to do
 
-Both were proven from machine code, so that nobody spends effort in the wrong direction.
+All proven, so effort does not go the wrong way.
 
-**Interface separation between components is free.** Splitting a computation behind interfaces costs
-**~0.03 ns per call site**. With a single implementor visible, the AOT compiler emits **zero indirect
-branches** — verified by counting `blr` instructions in the disassembly — and needs no profile to do
-it. Structure your components for clarity.
-
-The caveat that makes it a real claim rather than a slogan: this holds for a **single implementor**.
-Three implementations of the same interface reachable in one image left 10 indirect branches standing
-and cost +115%. Closed-world AOT devirtualises what is provably monomorphic, and nothing more.
-
-**Event-type dispatch is not a scaling risk.** Going from 2 to 16 event types cost **+0.26 ns** total.
-The switch-on-type-id alternative measured worse. Add event types freely.
+- **Interface separation between components is free** — ~0.03 ns per call site, and **zero** indirect
+  branches with a single implementor, verified by counting `blr` in the disassembly. Structure your
+  components for clarity. (With three implementations reachable in one image it costs +115%: AOT
+  devirtualises what is provably monomorphic and nothing more.)
+- **Event-type dispatch is not a scaling risk** — 2 to 16 event types cost +0.26 ns total.
+- **Empty auditor calls are already free.** Do not hand-optimise them.
+- **Flattening the graph into one method is not needed** — worth −1.8%, and it cannot be applied to
+  components you do not own.
 
 ---
 
-## JIT deployment
+## Honest numbers, and one correction
 
-The JIT floor is **4.80 ns (208M/s)** on GraalVM CE 25.3.4.1 with Graal JIT — the fastest JIT measured;
-C2 on Corretto 21 and OpenJDK 25 both sat at 5.33 ns.
+Measured on macOS/aarch64, Oracle GraalVM 25.0.4, output verified identical on every arm.
 
-Decisions 1 and 5 do not apply — deployment shape is irrelevant on a JIT, which profiles and folds what
-AOT must prove. Decisions 2, 3 and 4 apply with smaller effects (−2%, −7%, and the base case
-respectively).
+| shape | JIT | native (no PGO) |
+|---|---|---|
+| generated, default clock, all support on | 29.08 | 16.07 |
+| generated + `ClockStrategy` | 5.03 | 8.92 |
+| **generated, full baseline config above** | **5.16** | **7.03** |
+| hand-rolled flat equivalent | 2.05 | 2.46 |
 
-**One honest gap.** The largest JIT lever found — hoisting node state into the processor and re-emitting
-bodies as private methods — takes the JIT from 4.82 to **2.50 ns**, within 6.8% of hand-written. It is
-**not recommended and not planned**, because it requires the node's method body and private field
-layout: *"I read your declarations"* would become *"I read your implementation"*, which cannot be done
-to a component you do not own. So for **JIT deployment with vendor jars there is currently no lever at
-all** (4.74 ns). If that is your configuration, the number above is the number.
+**The correction.** Round 58's headline figures of **1.41–1.55 ns / 646–707M events per second** were
+measured on `BaseProcessor` — a **hand-written stand-in** whose own javadoc says *"what the generator
+emits"*. They are not measurements of generated code. Round 58's actual generated base case was
+**6.39 ns** native, and round 59 measures **7.03** on the same shape with a hand-rolled control that
+matches round 58 exactly (2.46 vs 2.44).
 
----
+**Generated code has not yet reached 1.4 ns.** The remaining gap is not dispatch — the generated
+`handleEvent` compiles smaller than the hand-written equivalent — it is that the generated processor
+still carries seven framework fields (`callbackDispatcher`, `clock`, `nodeNameLookup`,
+`subscriptionManager`, `context`, `serviceRegistry`, `functionAudit`) where the model has ten node
+fields and nothing else. Removing those from the baseline configuration is open work, tracked as M50.
 
-## Verifying it yourself
-
-**Do not take these figures on trust, including from us.** The four wrong headlines were not sloppy
-arithmetic; each was a real measurement whose shape went unnamed.
-
-`tools/bench/dispatch-bench.py` in the analyser repo exists to make that failure mode impossible. It
-refuses to report unless: both arms ran **in one binary** (a multi-arm binary and a single-purpose
-binary gave 4.86 vs 1.58 ns for identical source); the runtime kind is **single and recorded**; every
-arm emits **identical check values** before any timing is believed; and no arm falls below an
-elimination floor — twice in round 58 a probe measured 0.0000 ns because the compiler had deleted the
-loop whose result nothing read.
-
-It reports **paired differences from interleaved rounds**, and says so explicitly when two ranges
-overlap rather than presenting the medians as a win.
+Quote the shape, not the best number in the table.
 
 ---
 
-## Summary
+## Reproducing this
 
-| decision | cost to you | JIT | native |
-|---|---|---|---|
-| **supply a `ClockStrategy`** | none if events carry time | **−83%** | large |
-| non-escaping processor | none — structural | — | **−54%** |
-| guarded callback drain | none — framework | −2% | −18% |
-| `noReentrancy` | build must prove it | −7% | −26% |
-| void triggers + no dirty filtering | **every node fires every event** | large | large |
-| PGO | must be measured per shape | — | −32% or **+340%** |
-| drop auditors | **the audit log** | — | — |
+Nothing here should be taken on trust. `tools/bench/dispatch-bench.py` refuses to report unless both
+arms ran in one binary, the runtime kind is single and recorded, every arm emits identical check
+values before any timing is believed, and no arm falls below an elimination floor — a probe measuring
+0.0000 ns is a deleted loop, not a result, and that happened twice in round 58.
 
-**Start with the clock, then deployment shape.** The clock is free, it is the largest lever on a
-default-configured processor, and it is the only one you lose by doing nothing. Deployment shape is the
-largest lever once the clock is dealt with, and the one most often lost by accident.
-
-Both were measured on this project's own evidence before the page was written, and the clock was
-missing from the first draft of this document — the data existed in round 58 and the conclusion had not
-been drawn from it.
+**Example project: TO BE NAMED.** This page should point at a runnable repository containing the graph,
+the two arms and the build scripts, so a reader reproduces rather than believes. That repository does
+not exist yet and its home is an owner decision — round 58's own workspace did not survive, which is
+precisely the argument for creating it.
