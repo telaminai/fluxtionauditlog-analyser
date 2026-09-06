@@ -335,3 +335,70 @@ The performance page must say **where you put the clock call matters**, not only
 lives. Construct the processor and run the loop with nothing between them; time from the caller. A
 profiler or a timing call placed inside that method silently costs 3.3×, and it will look like a
 framework cost.
+
+---
+
+## 8. The control, run here — and the generated structure is already AT the target
+
+§7 left a residual doubt: the stripped generated processor measured 1.87 while round 58 reported 1.53.
+Round 58's control was available, so it was run rather than reasoned about.
+
+### 8.1 Round 58's control reproduces exactly on this machine
+
+`cpp/FxLib2.java` + `cpp/ExeRun.java` verbatim (only the `@CEntryPoint` wrappers removed, which carry
+no work), `BaseProcessor`, native, no PGO:
+
+| arm | round 58 | this machine |
+|---|---|---|
+| `batchLocal` | 1.53 | **1.53** |
+| `batchStatic` | 3.10 | **3.11** |
+| `batchHand` | 2.44 | **2.46** |
+
+The machine is not the variable. **1.5 ns is reachable here.**
+
+### 8.2 In ONE binary, the generated structure and the control are the same number
+
+The 1.53-vs-1.87 difference was **binary composition** — the control binary has three arms, the
+comparison binary six. Round 58 measured the same effect (4.86 vs 1.58 for identical source). Put both
+in one binary and the question answers itself:
+
+| arm | ns | |
+|---|---|---|
+| `batchBase` — **round 58's `BaseProcessor`, the control** | **1.87** | |
+| `batchDirect` — generated node structure, framework fields stripped | **1.87** | identical to the control |
+| `batchStripGuard` — as above, plus the W4 re-entrancy guard | **1.87** | the guard is free |
+| `batchGenerated` — full generated processor as it ships today | 5.52 | |
+| `batchHand` — hand-rolled flat | 2.49 | both beat it by 25% |
+
+**Three statements are now measured, not inferred.**
+
+1. **The generator's node structure is already at parity with the hand-written model.** 1.87 vs 1.87,
+   same binary, same clock, identical output. There is no residual codegen penalty to remove — not
+   dispatch order, not field layout, not the typed entry. §7.2's phrase "the floor for this node graph"
+   was too weak: it is *the same floor as the model*.
+2. **The W4 guard costs nothing**, confirmed a second way.
+3. **The whole remaining gap is the seven framework fields: 5.52 → 1.87.** Nothing else.
+
+### 8.3 What this means for the target
+
+**The target is not a target for the codegen. It is a target for what the generator EMITS ALONGSIDE
+the codegen.** Given a graph that uses none of them, a processor carrying no `callbackDispatcher`,
+`clock`, `nodeNameLookup`, `subscriptionManager`, `context`, `serviceRegistry` or `functionAudit`
+lands on the control's number today, with W4's guard still in place.
+
+That makes §7.3's work item the whole job, and it is now bounded: **emit no framework field the graph
+does not use.** W4 supplies the two flags that decide `callbackDispatcher` and `subscriptionManager`;
+the other five are graph properties the builder already holds.
+
+### 8.4 A methodological note, because it bit twice in one round
+
+Two figures in this round were wrong for two *different* harness reasons, and both looked like
+framework costs:
+
+- `System.nanoTime()` placed between constructing the processor and entering the loop — **3.3×**
+  (§7.1), because an opaque call between an allocation and its use blocks the escape proof.
+- The number of arms compiled into the binary — **1.53 vs 1.87 for identical source** (§8.2).
+
+Neither is a property of Fluxtion. Both are properties of the measuring program. Round 58's rule —
+*every figure must name its shape* — is now demonstrated to extend to the harness itself, and the
+conformance bench's insistence on one binary is what makes the arms above comparable at all.
