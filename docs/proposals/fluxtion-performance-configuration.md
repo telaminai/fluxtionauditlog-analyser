@@ -45,6 +45,9 @@ processor.onEvent(ClockStrategy.registerClockEvent(() -> myStreamTime));
 
 // 2c  BUILD WITH AN ACCURATE PGO PROFILE, collected from what you actually deploy.  (§below)
 
+// 2d  FORCE THE DISPATCH CHAIN TO INLINE — without this you lose 3.5x:            (§below)
+//     native-image -H:PriorityForceInline='com.your.pkg.YourProcessor.*'
+
 // ---- Handled for you, nothing to configure ------------------------------------------------
 // Node-name lookup is generated as a switch rather than a populated map. It was the single
 // largest cost; the generator now emits it as code and no capability is lost.          (§6)
@@ -262,51 +265,37 @@ All proven, so effort does not go the wrong way.
 
 ---
 
-## The floor is demonstrated, but not yet reliably attainable — read this before quoting a number
+## Force the dispatch chain to inline — without this you lose 3.5×
 
-**A generated processor reaches 1.57 ns/event — about 637M events/sec — from a separately compiled
-vendor node library, with full capability and no auditors.** That matches hand-rolled flat Java at 1.55
-and round 58's hand-optimised C++ at 1.57. It has been observed in five independent harnesses.
+```
+native-image -H:PriorityForceInline='com.your.pkg.YourProcessor.*'  ...
+```
 
-**It is not yet reliably reached, and the reason is not understood.** Three native images, same vendor
-jar, same generated processor, same `switch` dispatch, each profiled from its own arms:
+**Measured on a single-processor, single-event-loop application — the shape a real deployment has:**
 
-| binary | generated event loops in it | ns/event |
-|---|---|---|
-| two identical loops + hand-rolled arm | 2 | **1.57 / 1.57** |
-| one loop + hand-rolled arm | 1 | **5.58** |
-| one loop, nothing else | 1 | **5.55** |
+| build | ns/event |
+|---|---|
+| **accurate PGO + `PriorityForceInline`** | **1.57** |
+| accurate PGO only | 5.56 |
+| `PriorityForceInline` only | 6.53 |
+| neither | 6.79 |
 
-The loops are byte-identical. **A binary containing two copies of the loop optimises both; a binary
-containing one optimises neither.** The single-loop shape is the one a real deployment has.
+**Both are required, and neither alone is close.**
 
-**What has been ruled out**, each by direct measurement:
+GraalVM's priority inliner decides, from its cost model, not to inline
+`onEvent → processEvent → onEventInternal → handleEvent` into your loop. Any link left out of line
+receives the processor as an argument, so **it escapes** — and the node objects stop being
+scalar-replaced. That is the whole 3.5×. Forcing the inline removes the decision.
 
-| candidate | test | result |
-|---|---|---|
-| profile coverage | deliberately excluding an arm | real effect (1.59 → 7.20) but **not this** — the slow arms are profiled |
-| profile volume | 5× longer profiling run | no change (5.55 → 5.67) |
-| profile count | 1, 2, 3 merged profiles of the same path | no change (5.50 / 5.55 / 5.56) |
-| inlining budget | `-H:MaximumInliningSize` 1000 and 3000, `TrivialInliningSize=100` | no change |
-| vendor packaging | nodes from a separate jar vs local source | **not this** — the fast case is from the jar |
-| source shape | identical methods | **not this** — identical bytecode, different outcome |
+It is genuinely fragile without the flag: the same code reached 1.57 in a binary that happened to
+contain a second hot loop over the same processor, and 5.5 in one that did not. Do not rely on the
+inliner choosing correctly.
 
-Also ruled out since: a second **cold** allocation site (no change), moving the hot loop to its **own
-class** (no change), and **build nondeterminism** — three fresh rebuilds from identical inputs are
-stable to ±0.15 ns.
+**Knobs that do NOT substitute for it** (all measured, all left it at 5.5–5.7): `IPEAMaxForce`,
+`BaseTargetSpending`, `CallGraphSizeLimit`, `CallGraphCompilerNodeLimit`, `ContextAwareInlining`,
+`EscapeAnalysisIterations`, `MaximumInliningSize`, `TrivialInliningSize`.
 
-**The trigger has been isolated to one thing:** a *second hot, profiled loop over the same processor
-class* in the same image takes the first loop from 5.55 to 1.57. That is a deterministic GraalVM
-compilation decision keyed on the set of hot methods in the image, not on the method being compiled —
-and nothing in Fluxtion's source, generated code, configuration or profile controls it. It is an
-upstream question, reduced to a two-method reproducer.
-
-**So, when quoting:** *"a generated Fluxtion processor is capable of 1.57 ns/event, matching hand-written
-C++"* is supported. *"your application will run at 637M events/sec"* is **not** — today the realistic
-single-loop shape measures 5.5. Closing that gap is the open item, and it is worth more than any
-remaining configuration work on this page.
-
-## Honest numbers, and one correction
+## Honest numbers, and one correction## Honest numbers, and one correction
 
 Measured on macOS/aarch64, Oracle GraalVM 25.0.4, output verified identical on every arm.
 

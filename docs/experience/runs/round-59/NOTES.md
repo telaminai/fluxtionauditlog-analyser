@@ -1208,3 +1208,64 @@ static methods, one binary, one profiled → 5.55; two profiled → 1.57 each.
 
 **Nothing in this repo's or the framework's control has been shown to fix it.** Until it is understood,
 the publishable claim is the capability, not the throughput a user will see.
+
+---
+
+## 19. SOLVED — the dispatch chain was not being inlined. One flag fixes it.
+
+§18 left the floor unattainable in the single-hot-loop shape a real deployment has. **It is attainable,
+and the cause is inlining, not escape analysis directly.**
+
+### 19.1 The fix
+
+```
+-H:PriorityForceInline=<your.generated.Processor>.*
+```
+
+GraalVM's priority inliner decides, from its profile-driven cost model, not to inline
+`onEvent → processEvent → onEventInternal → handleEvent` into the caller's loop. When any link is left
+out of line, the processor is passed as a receiver to an un-inlined callee — **it escapes**, and the
+ten node objects can no longer be scalar-replaced. Forcing the inline removes the decision.
+
+Measured on `VendorApp` — one processor, one event loop, vendor-jar nodes, the shape a real deployment
+has. Output identical on all four:
+
+| build | ns/event |
+|---|---|
+| **PGO + `PriorityForceInline`** | **1.57** |
+| PGO only | 5.56 |
+| `PriorityForceInline`, no PGO | 6.53 |
+| neither | 6.79 |
+
+**Both are required.** PGO alone does not inline it; forcing the inline without a profile does not
+optimise the inlined code. Together they reach the floor **in the single-loop shape**, which is what
+§18 could not do.
+
+### 19.2 Why the two-loop binary was fast without the flag
+
+The priority inliner's cost model is fed by profile data. With two hot loops over the same processor
+the model evidently rated the dispatch chain worth inlining; with one it did not. That is a cost-model
+threshold, not a property of the code — which is why §18's sweep of `IPEAMaxForce`,
+`BaseTargetSpending`, `CallGraphSizeLimit`, `ContextAwareInlining` and `EscapeAnalysisIterations` all
+changed nothing: **none of them overrides the inlining decision, and `PriorityForceInline` does.**
+
+**The owner's reading — that the harness and the profile were not aligning — is the right shape of
+explanation.** The flag works precisely because it bypasses the profile-driven decision. What remains
+unproven is exactly which profile signal falls short; that is now a well-posed question rather than a
+mystery, and it no longer blocks anything.
+
+### 19.3 Knobs that did NOT work, recorded so nobody repeats them
+
+`IPEAMaxForce` 10/50 · `BaseTargetSpending=2000` · `CallGraphSizeLimit=20000` ·
+`CallGraphCompilerNodeLimit=200000` · `ContextAwareInlining` · `EscapeAnalysisIterations=8` ·
+`MaximumInliningSize` 1000/3000 · `TrivialInliningSize=100`. All left the single-loop case at 5.5–5.7.
+
+### 19.4 The claim, now fully supported
+
+**A Fluxtion processor generated from a separately compiled vendor node library, with full capability
+and no auditors, runs at 1.57 ns/event — about 637M events/sec — in the single-loop shape a real
+application has**, matching hand-rolled flat Java (1.55) and round 58's hand-optimised C++ (1.57).
+
+The recipe is complete and reproducible: **void triggers + dirty filtering off + a supplied
+`ClockStrategy` + an accurate PGO profile + `-H:PriorityForceInline=<Processor>.*` + construct the
+processor inside the method that runs the loop.**
