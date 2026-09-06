@@ -67,9 +67,16 @@ def step(name: str, ok: bool, detail: str = "") -> bool:
     return ok
 
 
-def run_arm(cmd: list[str], arm: str, warm: int, iters: int) -> tuple[float, tuple[str, ...]]:
-    """Run one arm once. Returns (ns_per_event, check_fields)."""
-    full = cmd + [f"-Darm={arm}", f"-Dwarm={warm}", f"-Diters={iters}"]
+def run_arm(prefix: list[str], suffix: list[str], arm: str, warm: int, iters: int) -> tuple[float, tuple[str, ...]]:
+    """Run one arm once. Returns (ns_per_event, check_fields).
+
+    The -D flags go BETWEEN prefix and suffix, never simply appended. On a JVM the main class
+    must come LAST: `java -cp CP Main -Darm=x` passes -Darm=x to main(String[]) as a program
+    argument, so System.getProperty returns the default and EVERY ARM MEASURES THE SAME CODE.
+    That is a silent wrong-answer of exactly the kind this harness exists to prevent, and it was
+    a real defect here — found the first time the bench was pointed at a real processor.
+    """
+    full = prefix + [f"-Darm={arm}", f"-Dwarm={warm}", f"-Diters={iters}"] + suffix
     proc = subprocess.run(full, capture_output=True, text=True)
     for line in proc.stdout.splitlines():
         m = RESULT_RE.match(line.strip())
@@ -108,15 +115,17 @@ def main(argv: list[str] | None = None) -> int:
         print("\n  [FAIL] exactly one of --native or --main is required")
         return 2
     if a.native:
-        kind, cmd = "native-image", [os.path.abspath(a.native)]
+        # a native image parses -D properties from its own command line, so nothing follows them
+        kind, prefix, suffix = "native-image", [os.path.abspath(a.native)], []
     else:
         if not a.classpath:
             print("\n  [FAIL] --classpath is required with --main")
             return 2
         kind = "jvm"
-        cmd = [a.java] + a.jvm_args.split() + ["-cp", a.classpath, a.main]
+        prefix = [a.java] + a.jvm_args.split() + ["-cp", a.classpath]
+        suffix = [a.main]                      # main class LAST — see run_arm
     print(f"  runtime : {kind}   {a.label}")
-    print(f"  command : {' '.join(cmd)}\n")
+    print(f"  command : {' '.join(prefix)} -Darm=<arm> ... {' '.join(suffix)}\n")
     print("GATES")
 
     if len(arms) < 2:
@@ -133,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
         for r in range(a.rounds):
             order = arms if r % 2 == 0 else list(reversed(arms))   # alternate to cancel drift
             for arm in order:
-                ns, chk = run_arm(cmd, arm, a.warm, a.iters)
+                ns, chk = run_arm(prefix, suffix, arm, a.warm, a.iters)
                 samples[arm].append(ns)
                 checks[arm].add(chk)
     except RuntimeError as e:

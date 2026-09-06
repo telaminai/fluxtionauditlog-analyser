@@ -99,7 +99,50 @@ class DispatchBenchTest(unittest.TestCase):
         table = {"fx": ("1.59", "1 1 1.0")}          # "hand" will produce no RESULT
         prog = fake_program(table, self.tmp)
         with self.assertRaises(Exception):
-            dispatch_bench.run_arm([prog], "hand", 1, 1)
+            dispatch_bench.run_arm([prog], [], "hand", 1, 1)
+
+    # ---- the -D flags must reach the JVM, not the program -----------------------------
+    def test_jvm_property_flags_precede_the_main_class(self):
+        """`java -cp CP Main -Darm=x` makes -Darm=x a PROGRAM argument, so getProperty returns
+        the default and every arm silently measures the same code. Found for real the first time
+        this bench ran against a generated Fluxtion processor."""
+        captured = {}
+        real = dispatch_bench.subprocess.run
+
+        def fake_run(argv, **kw):
+            captured["argv"] = argv
+            class R:
+                stdout = "RESULT a 1.0 chk"
+                stderr = ""
+            return R()
+
+        dispatch_bench.subprocess.run = fake_run
+        try:
+            dispatch_bench.run_arm(["java", "-cp", "CP"], ["MainClass"], "a", 1, 1)
+        finally:
+            dispatch_bench.subprocess.run = real
+        argv = captured["argv"]
+        self.assertEqual("MainClass", argv[-1], "main class must be last")
+        self.assertLess(argv.index("-Darm=a"), argv.index("MainClass"),
+                        "-D flags must precede the main class or the JVM never sees them")
+
+    def test_native_mode_appends_flags_after_the_binary(self):
+        captured = {}
+        real = dispatch_bench.subprocess.run
+
+        def fake_run(argv, **kw):
+            captured["argv"] = argv
+            class R:
+                stdout = "RESULT a 1.0 chk"
+                stderr = ""
+            return R()
+
+        dispatch_bench.subprocess.run = fake_run
+        try:
+            dispatch_bench.run_arm(["/bin/img"], [], "a", 1, 1)
+        finally:
+            dispatch_bench.subprocess.run = real
+        self.assertEqual(["/bin/img", "-Darm=a", "-Dwarm=1", "-Diters=1"], captured["argv"])
 
     # ---- the parser contract ----------------------------------------------------------
     def test_result_line_parsing(self):
