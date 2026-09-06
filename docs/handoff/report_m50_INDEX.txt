@@ -49,10 +49,15 @@ THE THREE THINGS MOST WORTH ATTACKING, ACROSS ALL FOUR BRIEFS
   · core: the argument that a nested dispatchQueuedCallbacks() can never observe an empty queue. If
     it is wrong, W2's early return is a silent reordering bug on the re-entrant path. Reasoned by me,
     now pinned by a test, NOT independently checked.
-  · compiler: W12's justification is that reflect-config.json becomes unnecessary under native-image,
-    and that has NOT been demonstrated — only inferred from removing three reflective sites.
-  · analyser: the conformance bench has NEVER been run against a real Fluxtion processor, only
-    against a fake program honouring its contract.
+  · compiler: CLOSED 2026-09-06 by round 59 — demonstrated on three native images, and the claim holds
+    but for ONE of the three sites, not all three. See the brief.
+  · analyser: CLOSED 2026-09-06 by round 59 — and closing it found a real defect in the bench that
+    would have made every arm measure the same code. See the brief.
+
+  NEW, and the one now most worth attacking: round 59 found that generation SILENTLY FALLS BACK TO A
+  REMOTE SERVICE when no local SourceGenerator is on the classpath, logging it at DEBUG only. A green
+  build emits a processor from the PUBLISHED template, so a local compiler change can be inert and
+  unmeasured. This affects how anyone verifies ANY compiler-side item in M50.
 
   Each is stated in its own brief too. None is a reason not to review; all three are reasons not to
   merge on the strength of these briefs alone.

@@ -87,7 +87,27 @@ GATES
   NOT run: mvn test — this branch touches no Java. NOT run: mkdocs build — the new page is in
   docs/proposals/, which is not part of the site build. Both gates are inapplicable, not skipped.
 
-WHAT WAS **NOT** DONE
+UPDATE 2026-09-06 — THE GAP BELOW IS CLOSED, AND CLOSING IT FOUND A BUG IN THE BENCH
+  Round 59 (docs/experience/runs/round-59/NOTES.md) ran the bench against a REAL generated processor.
+  The first run failed on the bench's own gate, and the cause was a defect in the bench: it put the
+  -D flags AFTER the main class, where a JVM passes them to main(String[]) as program arguments. Every
+  arm would have measured the same code. Fixed; 2 regression tests; suite 13/13.
+
+  Result, all gates passed, three arms with identical checks:
+      generated (default clock)        29.08 ns   34M/s
+      generated + ClockStrategy         5.03 ns  199M/s
+      hand-rolled flat                  2.19 ns  458M/s
+  The middle arm at 5.03 sits beside round 58's recorded JIT base case of 4.80 — the cross-validation
+  the harness previously lacked.
+
+  IT ALSO CORRECTED W9. The 24 ns gap is the Clock auditor reading System.currentTimeMillis() on every
+  event. Round 58 measured this on seven runtimes and it is the largest line item in its results file;
+  no document said so. Supplying a ClockStrategy is now decision 0 in the W9 page.
+
+  STILL NOT DONE: no native-image throughput arm. Section 2 is JIT only; the 1.42 ns native floor is
+  NOT re-measured and nothing here should be quoted against it.
+
+WHAT WAS **NOT** DONE (as written before the update above)
   · THE BENCH HAS NEVER BEEN RUN AGAINST A REAL FLUXTION PROCESSOR. It is tested against a fake
     program that honours the RESULT contract. Round 58's actual benchmark sources exist under
     docs/experience/runs/round-58/src/ but have NOT been adapted to the -Darm= contract. Until that
