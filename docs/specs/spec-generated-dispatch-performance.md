@@ -851,3 +851,87 @@ lifecycle"*. That is still the right sweep, but the finding narrows it usefully:
 
 Generated-code reflection and runtime reflection are therefore separate work with the same
 justification, and W12 is the smaller of the two.
+
+---
+
+# Part IV — consolidated work list
+
+Supersedes the partial tables in §10, §16.6 and §17.6. **This is the single list.**
+
+Every item is **additive**: no existing behaviour changes unless a new flag is set. Items marked
+**gate** must be measured before implementation; every other item has a justification that does not
+depend on a measurement.
+
+## 19. The work list
+
+| id | item | module | kind | justification | depends |
+|---|---|---|---|---|---|
+| **W1** | guarded callback drain | runtime | perf | **−18% native**, −2% JIT | — |
+| **W2** | `myStack` → `ArrayDeque`; drop `dispatching=false` on empty path | runtime | perf | unmeasured, additive to W1 | W1 |
+| **W3** | `Deque<Supplier<Boolean>>` → `BooleanSupplier` | runtime | correctness | removes per-callback boxing; restores zero-alloc on the re-entrant path | — |
+| **W4** | `noReentrancy` build flag, build failure, runtime guard | generator | perf, opt-in | **−26% native**, −7% JIT | W1 |
+| **W5** | ambient-read scan **+ service boundary check** | generator | correctness gate | makes "no state change without events" a verified property; works on vendor bytecode | — |
+| **W6** | compiler-derived replay capture set + determinism report | generator | correctness | Corollary 2 as a feature; minimal sufficient record | W5, W13 |
+| **W7** | static service binding when all services build-registered | generator | perf | **gate** — removes registration-order non-determinism, but not return-value | W11 |
+| **W8** | concrete `ClockStrategy` field or `long` fast path | runtime | perf | +0.25 ns; third-order, do only if touching the field | — |
+| **W9** | document the performance configuration | docs | adoption | 9.41 → 1.42 ns is currently undocumented as a coherent choice | — |
+| **W10** | conformance benchmark harness | `tools/bench` | reproducibility | without it these numbers do not reproduce, including for us | — |
+| **W11** | generate service registration/deregistration dispatch | generator | correctness + adoption | removes runtime reflection → **removes native-image JSON config**; removes framework-introduced ordering non-determinism | — |
+| **W12** | generated auditor-name switch; `getNodeById`/`getAuditorById`/`newInstance` stop reflecting | generator | correctness + adoption | **removes the `reflect-config.json` round 58 required**; unblocks graph introspection under native-image | — |
+| **W13a** | generated auditor for exported service invocations, recorded in event-stream position | generator | correctness | replay covers invocations, single record stream | W11 |
+| **W13b** | generated recorder/replayer proxies for consumed services, capturing **returns** | generator | correctness | closes the last hole in replay fidelity | W11, W13a |
+| **W13c** | build failure on non-recordable service signatures | generator | correctness | names what cannot be captured instead of silently under-recording | W13a, W13b |
+
+## 20. Ordering
+
+```
+W12 ──────────────────────────────► ship first: self-contained, no design decisions,
+                                     removes a native-image config requirement today
+
+performance spine    W1 ─► W2 ─► W4
+                      │
+                      └─► W3, W8   (independent, small)
+
+determinism spine    W5 ─► W11 ─► W13a ─► W13b ─► W13c ─► W6 ─► W7(gate)
+
+standalone           W9, W10       (W10 should land before any number is re-quoted)
+```
+
+**W12 first** — smallest, no dependencies, removes an adoption tax immediately.
+**Then the determinism spine** — it is worth more than the performance spine and everything above the
+verification layer depends on it.
+**Performance spine in parallel** — independent modules, no interaction.
+
+## 21. Release shape
+
+**All items are additive.** W4, W5, W7 are opt-in and default to current behaviour. W1, W2, W3, W8,
+W11, W12 are internal with no API change. W6, W13 emit new artifacts.
+
+**One open question decides whether this is one release or two** (§17.7): does a generated service
+auditor change `fluxtion.sourceFingerprint`? If yes, W13 is a **graph** change, fails gate 11.5, and
+must ship separately from the additive set. **Resolve before branching.**
+
+## 22. Definition of done, per item
+
+Every item must satisfy §6 and §11. Restated as a checklist:
+
+- [ ] output byte-identical to the stock build, or — for flagged items — identical when the flag is off and verified against its own expectation when on
+- [ ] **audit log record stream unchanged**: same records, same order, same node names
+- [ ] `fluxtion.sourceFingerprint` unmoved where the graph is unchanged
+- [ ] zero steady-state allocation retained under EpsilonGC
+- [ ] M34.3 record-format conformance passing
+- [ ] **`blr == 0`** in the compiled dispatch for a single-implementor graph (gate 11.3)
+- [ ] **vendor-jar case measured, not assumed** (gate 11.8)
+- [ ] replay reproduces recorded processing time exactly; for W6/W13, the ablation pair passes
+- [ ] the measured claim in the justification column reproduced by the W10 harness
+
+## 23. Still unmeasured — do not let the branch acquire these silently
+
+- exported service-call cost and native-image heap contribution of the service registry (W7)
+- W2 separately from W1
+- whether `noReentrancy` and the guarded drain compose or overlap
+- whether any of this holds beyond ten nodes
+- whether W6's derived capture set matches what the recorder captures today
+- cost of recording exported invocations and service returns at production volumes
+- value-copy versus reference-capture for recorded returns
+- whether any production graph currently depends on `getDeclaredMethods()` ordering (W11's determinism claim)
