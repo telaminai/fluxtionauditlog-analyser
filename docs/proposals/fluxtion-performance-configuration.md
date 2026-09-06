@@ -310,18 +310,28 @@ profile, output verified identical on all of them:
 And across **three independent full build cycles** of the same application — fresh profile, fresh
 instrumented image, fresh optimised image each time: **1.56, 1.56, 1.57** (spread 1.556–1.633).
 
-### You choose which methods to force
+### Use the whole-class wildcard. Naming individual methods does NOT work.
 
-The pattern is GraalVM's `MethodFilter` syntax — `package.Class.method`, `*` wildcards, comma-separated
-for several — so the set is entirely yours to pick:
+The pattern is GraalVM's `MethodFilter` syntax, so it is tempting to force only the event-path methods.
+**Measured, that fails** — and it fails silently, at full speed-loss:
+
+| pattern | ns/event | image size |
+|---|---|---|
+| `YourProcessor.*` | **1.57** | 9706 KB |
+| `YourProcessor.onEvent,…processEvent,…onEventInternal,…handleEvent` | 5.55 | 9706 KB |
+| `YourProcessor.handleEvent` | 5.58 | 9706 KB |
+| no flag at all | 5.56 | 9706 KB |
+
+**The image is the same size either way**, so there is nothing to gain by narrowing it and a 3.5×
+regression to lose. Use:
 
 ```
--H:PriorityForceInline='com.your.pkg.YourProcessor.*'                       # sufficient
--H:PriorityForceInline='com.your.pkg.YourProcessor.*,com.your.nodes.*.*'    # also fine, no gain here
+-H:PriorityForceInline='com.your.pkg.YourProcessor.*'
 ```
 
-**The processor class alone is sufficient.** Adding the node classes measured 1.56 against 1.55 — no
-benefit. Quote the pattern in a shell, or `*` will glob.
+Adding the node classes as well (`,com.your.nodes.*.*`) is harmless but gains nothing — 1.56 against
+1.55. **The processor class alone, with the wildcard, is the setting.** Quote it in a shell or `*` will
+glob.
 
 ### Better: ship the directive with the processor, so nobody has to know
 

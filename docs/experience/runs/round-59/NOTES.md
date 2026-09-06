@@ -1323,3 +1323,25 @@ a 3.5× cliff that a user must know about into one they cannot fall off.
 compiled vendor node library, full capability, no auditors, in the single-loop shape a real application
 has, runs at **1.57 ns/event — about 637M events/sec** — matching hand-rolled flat Java (1.55) and
 round 58's hand-optimised C++ (1.57), repeatably across independent build cycles.
+
+### 20.4 Narrowing the pattern to "hot methods only" does not work
+
+A natural refinement — the generator knows which methods are on the event path, so emit a directive
+naming just those. **Measured, it fails**, and there is no size argument for trying:
+
+| pattern | ns/event | image |
+|---|---|---|
+| `BenchProcessor.*` | **1.57** | 9706 KB |
+| `BenchProcessor.onEvent,…processEvent,…onEventInternal,…handleEvent` | 5.55 | 9706 KB |
+| `BenchProcessor.handleEvent` | 5.58 | 9706 KB |
+| no flag | 5.56 | 9706 KB |
+
+**The image is byte-identical in size in all four cases**, so narrowing buys nothing and costs the
+whole 3.5×. Why the explicit list fails is not established — candidates are the comma separator not
+being honoured for this option, or the chain needing methods beyond the four named (the generated class
+carries both `onEvent(Object)` and a typed `onEvent(MarketTick)` overload). **Not worth pursuing: the
+wildcard works, is free, and is what the generator would emit anyway.**
+
+**Consequence for the M50 work item (§20.2):** the emitted `native-image.properties` should carry the
+**whole-class wildcard**, not a curated method list. Simpler to generate and it is the only form
+measured to work.
