@@ -1051,3 +1051,57 @@ fix, not a property of generated code.
 
 **Baseline, no auditors, native + accurate PGO: generated 1.58, hand-rolled Java 1.54, round 58's
 hand-optimised C++ 1.57.**
+
+---
+
+## 16. The vendor-jar test — and a stability problem that qualifies the headline
+
+### 16.1 Vendor packaging works
+
+The nodes were compiled into a **separate 12-class jar** and the generator saw them only as bytecode —
+no shared source, no shared compilation unit. Generation succeeded and the processor is correct.
+**A vendor-supplied node library reaches the same floor**: 1.58 ns, proven by the `g1` arm below.
+
+### 16.2 But the floor is not reliably reached, and §15 was an incomplete explanation
+
+Seven **byte-identical** generated arms in one binary — `generated`, `g1`…`g6`, same class, same loop,
+same everything — all present in the merged profile, native + accurate PGO:
+
+| arm | ns |
+|---|---|
+| `generated` | 5.50 |
+| **`g1`** | **1.58** |
+| `g3` | 5.46 |
+| `g6` | 5.49 |
+| hand-rolled | 1.54 |
+
+**One of seven identical methods gets the optimisation.** This rules out every explanation offered so
+far:
+
+- **not source shape** — the methods are identical
+- **not profile coverage** (§15) — all eight arms were profiled, and enriching the profile 5× changed
+  nothing (5.55 → 5.67)
+- **not vendor packaging** — `g1` is fast *from the vendor jar*
+- **not arm count** — an earlier 8-arm binary built from local source had *all* arms fast
+
+The remaining candidate is a **per-compilation budget**: GraalVM appears to perform the inlining and
+scalar replacement that dissolves the processor for some call sites and abandon it for others, and
+which ones win is not controlled by anything measured here.
+
+**§15's conclusion is therefore narrowed.** Profile coverage is real — deliberately excluding an arm
+reproduced 7.20 against 1.59 — but it is *not sufficient*. A profiled path can still be slow.
+
+### 16.3 What can honestly be claimed
+
+**Supported:** a Fluxtion processor generated from a separately-compiled vendor node library, with full
+capability (`getNodeById`, `lookupInstanceName`, re-entrancy, subscriptions, buffering) and no
+auditors, **reaches 1.58 ns — about 633M events/sec — matching hand-rolled Java at 1.54 and round 58's
+hand-optimised C++ at 1.57.** That has been observed in four independent harnesses.
+
+**Not supported:** that it reaches it *reliably*. In the vendor binary six of seven identical call
+sites sat at ~5.5 ns. **Quoting 630M events/sec as what a user will get is not yet warranted** — it is
+what the code is capable of, and the conditions that produce it are not fully identified.
+
+**This is the gap to close before the number is published**, and it is the fourth harness-shape effect
+this round has found — after the timing-call placement, the arm count, and profile coverage. Every one
+of them looked like a framework property and none was.
