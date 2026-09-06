@@ -501,7 +501,7 @@ For each service reachable from the graph, classify and act:
 | build-registered, reads external state | return value | **pass only if returns are captured** |
 | runtime-registered | registration order and timing, plus returns | **pass only if lifecycle and returns are captured** |
 | exported, callable from outside | invocation, arguments, ordering | **pass only if invocations are serialised into the event sequence** |
-| any of the above without declared capture | unknown | **FAIL the build, naming the service and method** |
+| any of the above without declared capture | unknown | **generate the capture (§17), or FAIL naming the service and method** |
 
 Purity cannot be assumed; it must be declared and, where possible, checked by the same ambient-read
 scan applied to the service implementation when its bytecode is available.
@@ -651,3 +651,116 @@ should be binding.**
 | **W12** | audit and generate remaining reflective lifecycle dispatch (`getNodeById`, `getAuditorById`, `newInstance`) | generator + runtime | additive | same | W11 |
 
 **W11 moves ahead of W7 in the determinism spine: W5 → W11 → W6 → W7.**
+
+---
+
+## 17. W13 — generated service auditors: replay covers invocations, not just events
+
+§15 framed the service boundary as something the build must **detect and reject**. It can do better
+than that: in most cases it can **generate the capture**, and the machinery on both sides already
+exists.
+
+### 17.1 The two assets that already exist
+
+**Mongoose already converts events into method invocations on a graph** via its dispatch strategies.
+The mapping between an invocation and a serialisable record is therefore already modelled on the way
+in — this work makes the reverse direction a generation target rather than new infrastructure.
+
+**The recorder is already an `Auditor`.** `YamlReplayRecordWriter` implements
+`com.telamin.fluxtion.runtime.audit.Auditor` and is registered in the same slot as any other auditor.
+A *generated* auditor lands in an existing extension point, not a new one.
+
+### 17.2 Exported services — generated auditor, invocations become records
+
+The generator knows the exported interface and every method on it. It emits an auditor that captures
+each invocation with its arguments into the same log as events, **in event-stream position**:
+
+```
+--- !ReplayRecord   event: !MarketTick {bid: 100.0, ask: 100.5}      wallClockTime: 1788683000975
+--- !ReplayRecord   invocation: pricingControl.setSpreadFloor(0.02)   wallClockTime: 1788683001102
+--- !ReplayRecord   event: !MarketTick {bid: 100.1, ask: 100.6}      wallClockTime: 1788683001139
+```
+
+Replay re-issues the invocation at its recorded position. **Ordering relative to events is preserved
+because there is one record stream, not two** — which is what §15.3 required and the reason a separate
+invocation log was rejected.
+
+### 17.3 Consumed services — generated recording proxy, calls *and* returns
+
+The same generation trick solves the harder direction. The generator knows the consumed interface, so
+it can emit a recording decorator and a replaying stub from the same signature:
+
+```java
+// record: delegate, capture the return
+final class FxRates$Recorder implements FxRates {
+    public double lookup(String k) {
+        double r = delegate.lookup(k);
+        auditor.recordReturn("fxRates.lookup", k, r);
+        return r;
+    }
+}
+// replay: no delegate, return what was recorded
+final class FxRates$Replayer implements FxRates {
+    public double lookup(String k) { return (double) replaySource.nextReturn("fxRates.lookup", k); }
+}
+```
+
+On replay the graph never calls out. It consumes recorded returns, in order, and reproduces exactly.
+**This is the piece §14.1 identified as missing and §15.1 could only demand rather than provide.**
+
+### 17.4 What this does to the build check
+
+The disposition changes from *reject* to *generate, or reject if generation is impossible*:
+
+| service situation | build action |
+|---|---|
+| build-registered, declared pure | pass, generate nothing |
+| consumed, recordable signature | **generate recorder + replayer** |
+| exported, recordable signature | **generate auditor; invocations enter the record stream** |
+| runtime-registered | **generate lifecycle capture** (W11 already makes the dispatch static) |
+| **signature not recordable** | **FAIL, naming the service and method** |
+
+**"Recordable signature" is the decidable criterion**, and it is a property of types the generator
+already inspects. Expected failure cases:
+
+- arguments or returns that cannot be serialised
+- returns that are **mutable and later mutated** — capturing a reference is not capturing a value
+- callback- or stream-shaped services (`Consumer`, `Observer`, reactive returns) where the interaction
+  is not a single call/return pair
+- services that return other services
+
+These should fail loudly and name the method. A service whose signature cannot be recorded is a hole
+in the replay claim, and the build is the right place to say so.
+
+### 17.5 Why this is the strongest item in Part III
+
+It converts the entire service boundary from *a caveat on the replay claim* into *generated code*, and
+it does so without new runtime infrastructure — a generated auditor in an existing slot, and generated
+proxies from signatures the generator already reads.
+
+The resulting claim is materially stronger than today's:
+
+> **Replay reproduces the graph's inputs completely: events, exported invocations in stream position,
+> service returns, and registration lifecycle — or the build fails and names what it could not
+> capture.**
+
+That is the precondition every verification, property-checking and formal-layer ambition rests on, and
+it is reachable with the machinery already in place.
+
+### 17.6 Revised items and ordering
+
+| # | item | module | depends on |
+|---|---|---|---|
+| **W13a** | generated auditor for exported service invocations, recorded in event-stream position | generator | W11 |
+| **W13b** | generated recorder/replayer proxies for consumed services, capturing returns | generator | W11, W13a |
+| **W13c** | build failure on non-recordable signatures, naming service and method | generator | W13a, W13b |
+
+**Determinism spine, final: W5 → W11 → W13 → W6 → W7.** W6's capture-set derivation becomes much more
+useful once W13 exists, because the set it derives is then something the system can actually record.
+
+### 17.7 Unmeasured
+
+- cost of recording exported invocations and service returns at production volumes
+- whether recorded returns should be value-copied or reference-captured, and the cost of the former
+- whether a graph with generated service auditors changes `fluxtion.sourceFingerprint` — if it does,
+  W13 is a graph change and cannot ship under gate 11.5 with the additive items
