@@ -1624,3 +1624,68 @@ no PGO on the Java side and every optimisation tried on the C++ side.
 **Between the top and bottom row is a factor of 5.5, and none of it is the graph.** It is
 configuration (auditors, dirty guards, re-entrancy wrapper), compilation shape (escaping or not), and
 runtime (JIT or AOT).
+
+---
+
+# Addendum 19 — interfaces in the pricing chain: predictions, a flawed run, and the answer
+
+**Predictions registered before building.**
+
+| | prediction |
+|---|---|
+| **Owner** | JIT devirtualises monomorphic sites; native **without** PGO cannot, so latency rises **linearly with indirect call sites**; accurate PGO brings native back down. |
+| **This session** | Agreed on the JIT. **Disagreed on native**: closed-world analysis knows the whole type hierarchy statically, so with a **single implementor** it should devirtualise with no profile; the rise should appear only with several implementors. Also predicted escape analysis would break and **dominate** the devirtualisation question. |
+
+## The first run said the owner was right. It was wrong.
+
+One binary with three arms (`concrete`, `iface1`, `ifaceN`) gave native-without-PGO **6.37 → 13.72 ns**,
+a +115% penalty, and `ifaceN ≈ iface1` — apparently killing the single-implementor argument.
+
+**That binary could not test the hypothesis.** All three implementations are constructed by the
+`ifaceN` arm, so they are reachable in the image *whichever arm runs*. The "iface1" arm was never
+single-implementor. This is the same multi-arm contamination documented in Addendum 17, and it was
+reported as a result before being checked.
+
+A second probe (`Mixed`, interface-typed fields initialised from known concrete types) then measured
+**+0.02 ns per call site** — irreconcilable with +115%, which is what prompted the rebuild.
+
+## The clean test: one single-purpose binary per condition
+
+| shape | Graal JIT | native, no PGO | native + PGO |
+|---|---|---|---|
+| concrete node fields | 4.7843 | 6.5358 | 1.5752 |
+| **interface, 1 implementor** | 4.6777 | **6.3188** | 1.7070 |
+| **interface, 3 implementors** | 4.7431 | **6.8017** | 1.5677 |
+
+Per interface call site, native without PGO, across 10 sites:
+
+- **1 implementor: −0.0217 ns** (faster than concrete)
+- **3 implementors: +0.0266 ns**
+
+## Scoring the predictions
+
+| prediction | verdict |
+|---|---|
+| JIT absorbs monomorphic interface dispatch | **both correct** — within ±2%, all shapes |
+| native without PGO rises **linearly** with call sites | **wrong** — ±0.027 ns per site, i.e. nothing |
+| single implementor lets closed-world devirtualise statically | **supported** — 1-implementor is *faster* than concrete |
+| PGO needed to recover it | **moot** — there is nothing to recover |
+| escape analysis breaks and dominates | **wrong in emphasis** — but shape *did* dominate, and it is what produced the false +115% |
+
+**Interface indirection in the pricing chain costs essentially nothing on any runtime tested**, in any
+implementor configuration. The non-monotonic PGO column (1.707 with one implementor, 1.568 with three)
+is noise, not an interface effect.
+
+## The methodological finding, which is the real output
+
+This is the **fourth** time in this round that a multi-arm benchmark binary produced a number that a
+single-purpose binary contradicted, and the second time a wrong answer was reported before being
+caught. The rule is now unambiguous:
+
+> **Any claim about whole-program optimisation must be measured in a binary that contains only the
+> program being claimed about.** Multi-arm harnesses are valid for comparing arms that share a shape;
+> they are invalid for any claim about what the optimiser can prove, because every arm's reachable
+> types are in the image whichever arm runs.
+
+Both flawed and clean sources are kept: `src/IfaceBench.java` (multi-arm, produced +115%),
+`src/Conc.java`, `src/Iface1.java`, `src/IfaceN.java` (single-purpose, produced ±0.03 ns/site).
