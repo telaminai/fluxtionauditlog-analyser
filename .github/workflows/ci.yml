@@ -19,6 +19,9 @@ jobs:
           cache: maven
       - name: Test generated-bundle contract preflight
         run: python3 -m unittest tools/bench/test_bundle_bench.py
+
+      - name: dispatch bench harness tests (M46/W10)
+        run: python3 -m unittest tools/bench/test_dispatch_bench.py
       # M48: the resolver and mode selector carry a product argument. Without this line a
       # regression only fails when somebody remembers a separate command.
       - name: Resolver and mode-selector smoke tests
