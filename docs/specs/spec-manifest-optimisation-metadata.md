@@ -180,13 +180,14 @@ which keeps the surface small and avoids a second vocabulary.
 
 | id | item | where |
 |---|---|---|
-| **W14a** | compute and emit the optimisation attributes in `fluxtion:catalogue` | plugin + `fluxtion-builder` |
+| **W14a0** | **build the `fluxtion:catalogue` goal — it does not exist** (§7.1); analysis in `fluxtion-builder`, mojo as adapter | plugin + `fluxtion-builder` |
+| **W14a** | emit the optimisation attributes from it, starting with what the existing scan already knows | plugin + `fluxtion-builder` |
 | **W14b** | consume them in the generator; fall back to scanning only when absent | generator |
 | **W14c** | verification mode — re-derive from bytecode and fail on mismatch | plugin or generator |
 | **W14d** | `deterministic` on `@ExportService`, `ambient` on `@OnTrigger`/`@OnEventHandler` | runtime annotations |
 | **W14e** | strict modes fail on **absent** attributes, naming the component (R2) | generator |
 
-**Ordering:** W14a → W14b → W14c. W14d only if §5's two cases survive review. W14e last, because it
+**Ordering:** W14a0 → W14a → W14b → W14c. W14d only if §5's two cases survive review. W14e last, because it
 changes build outcomes and needs the ecosystem populated first.
 
 **Dependency:** W14 makes W4, W5, W11 and W13c *practical across vendor jars*. Those items can ship
@@ -205,12 +206,35 @@ prerequisite.** Sequence it after they work.
 - **Multi-release and shaded jars.** Which classes the attributes describe is ambiguous when a jar has
   several class trees.
 - **`Fluxtion-Allocation` soundness** — see §3.6; the syntactic form is proposed deliberately weak.
-- **Repository.** The published plugin is `com.telamin.fluxtion:fluxtion-maven-plugin:1.3.0`
-  (`goalPrefix: fluxtion`). The nearest local source, `~/IdeaProjects/dataflow-mavenplugin`, is
-  `com.fluxtion.dataflow:dataflow-maven-plugin` at a ref dated **2025-03-02** and no `git fetch` has
-  been run. A worktree exists at `~/IdeaProjects/telamin/worktrees/mavenplugin-w14` on branch
-  `spec/w14-manifest-optimisation-metadata`, **based on a possibly stale ref**. Confirm the repository
-  and fetch before implementing.
+
+### 7.1 Repository — RESOLVED, and what the survey found
+
+`~/IdeaProjects/dataflow-mavenplugin` **is** the right repo (`github.com/telaminai/dataflow-mavenplugin`).
+The local ref was 18 months stale; after `git fetch` its `origin/main` is
+`com.telamin.fluxtion:fluxtion-maven-plugin:1.3.1-SNAPSHOT` with tag `v1.3.0` present — the rebrand from
+`com.fluxtion.dataflow:dataflow-maven-plugin` happened after the stale ref. (`~/IdeaProjects/fluxtion-mavenplugin`
+is the pre-donation ancestor on the old vendor's GitHub org; **not** the source of the published plugin.)
+
+Worktree `~/IdeaProjects/telamin/worktrees/mavenplugin-w14`, branch
+`spec/w14-manifest-optimisation-metadata`, is reset onto the fetched `origin/main` (`d635950`).
+
+**Surveying it changes §6.** The plugin has three mojos — `FluxtionScanToGenMojo`,
+`FluxtionSpringToGenMojo`, `FluxtionYamlToGenMojo` — all of which *generate a processor*. It writes
+**no manifest entries at all today**, and there is no `catalogue` goal. So W14a is not an extension of
+an existing goal; **the goal has to be built**, and the component catalogue's capability attributes are
+equally unimplemented. That is a larger first step than §6 assumed, and it means W14 and the catalogue
+spec share one piece of new machinery rather than layering.
+
+Two consequences worth deciding before implementing:
+
+- **Where the analysis lives.** A mojo is a thin adapter; the scanning and the checks belong in
+  `fluxtion-builder`, where the generator's own analysis already sits, so the same code answers the
+  question for the producing build and for the verification pass (R4). The plugin should invoke, not
+  reimplement.
+- **The scan-to-gen mojos already scan.** `FluxtionScanToGenMojo` walks the classpath to find nodes.
+  Whatever it learns there overlaps heavily with what §3 wants published, so the first increment may be
+  cheaper than it looks — emit what the existing scan already knows (`Fluxtion-Service-Consumes`,
+  `Fluxtion-Trigger-Kind`) before building the harder analyses (`Ambient`, `Allocation`).
 
 ---
 

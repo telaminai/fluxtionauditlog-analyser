@@ -138,8 +138,10 @@ would otherwise rediscover by scanning vendor bytecode are computed once by the 
 published in its manifest. Absence means UNKNOWN and strict modes fail on it, never assume. Two new
 annotation ATTRIBUTES only — `deterministic` on `@ExportService`, `ambient` on `@OnTrigger` — no new
 annotation types. Worktree `~/IdeaProjects/telamin/worktrees/mavenplugin-w14`, branch
-`spec/w14-manifest-optimisation-metadata`, **base possibly stale — see spec §7, confirm the repository and
-fetch before implementing.** Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation,
+`spec/w14-manifest-optimisation-metadata`, reset onto the fetched `origin/main` — repo CONFIRMED
+(`telaminai/dataflow-mavenplugin`, now `com.telamin.fluxtion:fluxtion-maven-plugin:1.3.1-SNAPSHOT`).
+Surveying it added **W14a0: the `fluxtion:catalogue` goal does not exist** — the plugin writes no manifest
+entries at all today, so W14 and the component-catalogue spec share one piece of new machinery (spec §7.1). Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation,
 not a prerequisite._
 
 **Blocking question before branching:** does a generated service auditor move
