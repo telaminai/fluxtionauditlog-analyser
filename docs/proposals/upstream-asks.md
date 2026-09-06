@@ -1573,3 +1573,46 @@ Also newly documented as guarantees rather than work: **interface separation bet
 free** (proven from machine code — zero indirect branches with a single implementor, no profile
 needed), and **event-type dispatch is not a scaling risk** (+0.26 ns from 2 to 16 types; the
 switch-on-id alternative is worse). Both exist so nobody optimises in the wrong direction.
+
+---
+
+### UP-FLX-50 ☐ The performance configuration is undocumented as a coherent choice
+
+**Target** `fluxtion` (docs site) · **Priority** medium — adoption, not correctness
+**Draft supplied:** [`fluxtion-performance-configuration.md`](fluxtion-performance-configuration.md) —
+publishable as-is; this ask is to take it, not to write it.
+
+**Evidence — measured.** [`round-58`](../experience/runs/round-58/NOTES.md), ~700 runs, medians of
+5 × 200M events with verified output. A Fluxtion processor was measured from **9.41 ns/event**
+(native-image + PGO, stock: auditors, guards, re-entrancy wrapper) down to **1.42 ns/event**
+(native-image, **no PGO**, non-escaping processor, void triggers, no dirty filtering) — 106M to 703M
+events/sec. At that floor generated dispatch is **0.95× the cost of hand-written Java**.
+
+**Why it is a documentation ask and not a feature.** Every one of those levers already exists and is
+already supported. What does not exist is any statement that they form a **ladder of five independent
+decisions**, three free and two costing something real. A user today can find `failBuildIfMissingBooleanReturn`
+in the javadoc and cannot find out that it changes propagation semantics, or that the largest single
+lever is not a flag at all but **where the processor reference lives** (−54%, AOT only, and given away
+by ordinary application structure such as a static field or a thread pool).
+
+**Two facts that actively mislead if left undocumented:**
+
+- **PGO is not a free win.** It helps shapes that block scalar replacement (−32%) and **hurts the
+  fastest shape** — 1.42 → 6.28 ns when an executable's profile was applied to a shared library, the
+  worst configuration in the round. "Enable PGO for production" is advice that makes the best case 4×
+  worse.
+- **Interface separation is free** (~0.03 ns/site, zero indirect branches with a single implementor,
+  proven by counting `blr` in the disassembly) **and event-type dispatch is not a scaling risk**
+  (+0.26 ns from 2 to 16 types). Both are in the draft so nobody optimises in the wrong direction.
+
+**Cost to us if unfixed.** This repo's own write-up of round 58 shipped **four successive wrong headline
+figures** in draft, each a true measurement of a different compilation shape quoted without naming it.
+That is the failure mode the absence of this page produces in anyone who benchmarks Fluxtion — and they
+will publish the number, as we nearly did. The draft names the shape on every figure for that reason,
+and points at `tools/bench/dispatch-bench.py` so the numbers can be reproduced rather than believed.
+
+**One item in the draft is upstream's call, not ours.** It says plainly that dropping auditors buys
+throughput at the cost of the audit log, and recommends a deployment split over a compromise. That
+recommendation is written from a repo whose product is reading those logs; the draft says so. Reword it
+if you disagree — but the trade-off should not go unstated, and hoisting auditor calls was measured at
+**0% on both runtimes**, so there is no partial retreat that recovers the cost.
