@@ -116,7 +116,51 @@ On a JIT every shape measures about the same; this is an AOT consideration.
 
 ---
 
-## PGO — measure it, and a bad profile is worse than none
+## Which runtime you deploy on decides which advice applies
+
+**These are two different optimisation problems.** Measured on identical classes, same machine:
+
+| | Graal JIT | native-image, no PGO | native-image + accurate PGO |
+|---|---|---|---|
+| processor carrying no framework fields | 4.64 | **1.86** | **1.56** |
+| processor carrying all seven | 4.74 | **6.20** | **1.58** |
+| hand-rolled flat equivalent | 2.09 | 2.45 | 1.55 |
+
+**On a JIT, none of the structural tuning below matters.** Every configuration lands at ~4.6 ns,
+because the JIT never dissolves the processor's object structure — so nothing you remove was being
+optimised away in the first place. Its floor for a ten-node graph is ~4.6 and no flag reaches past it.
+
+**On native-image the structure is everything**, because AOT *does* dissolve it — reaching 1.86 ns,
+**faster than hand-rolled flat code at 2.45.** That is also what makes it fragile: see the cliff below.
+
+Note the JIT beats AOT on the flat hand-rolled arm (2.09 vs 2.45). This is not "AOT is faster". It is
+specifically that only AOT removes the graph's object structure.
+
+## The escape-analysis cliff — native without PGO only
+
+Without a profile, a native image's escape analysis has a **finite budget**, and past it the processor
+stops being dissolved. It is a cliff, not a gradient — nothing lands between 1.9 and 6.2 ns:
+
+| processor carries | ns |
+|---|---|
+| nothing extra | 1.87 |
+| any ONE framework field (each tested separately) | 1.86–1.88 |
+| `callbackDispatcher` + `clock` + `nodeNameLookup` | 1.87 |
+| **`callbackDispatcher` + `nodeNameLookup` + `subscriptionManager`** | **6.22** |
+| all seven | 6.20 |
+| all seven **minus** `subscriptionManager` | 6.16 |
+
+Two things follow that are easy to get wrong:
+
+- **No single field is expensive.** Every one of the seven is free on its own. What costs is the total
+  size of the allocation graph — `SubscriptionManagerNode` alone brings an `ArrayList` and three
+  `HashMap`s, where `Clock` brings none.
+- **Removing the expensive one is not enough.** Dropping `subscriptionManager` from the full set
+  changes nothing (6.16 vs 6.20). Once past the cliff you must get back under it, not shave it.
+
+**This is why elision has to be measured rather than counted.**
+
+## PGO — an accurate profile removes the cliff; a bad one is worse than none
 
 **For an AOT Fluxtion processor a bad profile is worse than no profile.** This is not a caution, it is
 a measurement:
@@ -126,11 +170,17 @@ a measurement:
 | non-escaping processor | 1.53 | 1.64 | **1.41** | **6.28** |
 | processor in a `static final` field | 3.10 | 2.51 | 3.10 | 6.25 |
 
-- **A non-escaping processor reaches ~1.4 ns with no profile at all.** PGO is not required for it.
-- **PGO helps only shapes that block the optimisation**, and hurts the one that does not — mildly in
-  an executable, **4× in a shared library**.
-- **Never carry a profile across image kinds.** An executable's profile applied to a shared library was
-  the worst configuration measured anywhere in this work.
+- **An accurate profile makes the cliff disappear.** With profiles collected from every arm and
+  merged, the processor carrying **all seven** framework fields runs at **1.58 ns** — the same as one
+  carrying none (1.56), and the same as hand-rolled (1.55). The structural sensitivity above is a
+  property of *unprofiled* AOT, not of AOT.
+- **A non-escaping processor reaches ~1.4–1.9 ns with no profile at all**, so PGO is not *required* —
+  but it is what makes the result robust to structure rather than dependent on it.
+- **A mismatched profile is worse than no profile.** An executable's profile applied to a shared
+  library took 1.41 → 6.28, the worst configuration measured anywhere in this work. **Never carry a
+  profile across image kinds**, and collect it from a run that exercises what you actually deploy.
+- Round 58 saw PGO make its fastest shape slightly *worse* (1.53 → 1.64) with a narrower profile.
+  Both observations hold: the profile's accuracy is the variable, not PGO itself.
 
 ---
 
