@@ -1269,3 +1269,57 @@ application has**, matching hand-rolled flat Java (1.55) and round 58's hand-opt
 The recipe is complete and reproducible: **void triggers + dirty filtering off + a supplied
 `ClockStrategy` + an accurate PGO profile + `-H:PriorityForceInline=<Processor>.*` + construct the
 processor inside the method that runs the loop.**
+
+---
+
+## 20. Repeatable and attainable — verified, and shippable as a resource
+
+### 20.1 Repeatability
+
+Every shape that previously measured ~5.5, each rebuilt with **its own instrumented image and its own
+freshly collected profile**, output identical on all:
+
+| shape | without flag | with `PriorityForceInline` |
+|---|---|---|
+| `VendorApp` — one processor, one loop (the real deployment shape) | 5.55 | **1.57** |
+| `Twin2` — one loop + an unrelated hot loop | 5.58 | **1.57** |
+| `Twin3` — one loop alone | 5.55 | **1.58** |
+| `Twin5` — loop in its own class | 5.60 | **1.57** |
+
+**Three independent full build cycles** of `VendorApp` — fresh profile, fresh instrumented image, fresh
+optimised image each — gave **1.56 / 1.56 / 1.57**, spread 1.556–1.633, checks identical.
+
+*(An intermediate sweep reported `Twin2` still slow with the flag. That was a harness bug — a shared
+instrumented image and a stale profile file. Re-tested cleanly with three different inline patterns it
+is 1.57 in every case.)*
+
+### 20.2 The directive can ship WITH the processor
+
+`native-image` reads `META-INF/native-image/**/native-image.properties` from the classpath. Placing:
+
+```properties
+Args = -H:PriorityForceInline=com.bench.vendorgen.BenchProcessor.*
+```
+
+on the classpath and building with **no flag on the command line** gives **1.585 / 1.577 / 1.587** —
+against 5.55 for the identical build without the resource. **Verified end to end.**
+
+**This answers the owner's question directly: yes, the compiler directives can be produced from what
+the generator already knows.** The generator has the processor's fully-qualified name at build time,
+so it can emit this file beside the generated source. The user then never types a flag and cannot
+forget one.
+
+It is the same move as W12's auditor switch, the §11 node-name switch, and W14's manifest metadata:
+**decide it at build time, where the information is, and publish the result.** Here the consumer is
+the AOT compiler rather than another build.
+
+**Work item (M50):** emit `META-INF/native-image/<group>/<artifact>/native-image.properties` carrying
+the `PriorityForceInline` directive for the generated processor. Small, self-contained, and it converts
+a 3.5× cliff that a user must know about into one they cannot fall off.
+
+### 20.3 Status
+
+**Capability AND attainability are both established.** A Fluxtion processor generated from a separately
+compiled vendor node library, full capability, no auditors, in the single-loop shape a real application
+has, runs at **1.57 ns/event — about 637M events/sec** — matching hand-rolled flat Java (1.55) and
+round 58's hand-optimised C++ (1.57), repeatably across independent build cycles.

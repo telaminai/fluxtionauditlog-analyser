@@ -265,7 +265,9 @@ All proven, so effort does not go the wrong way.
 
 ---
 
-## Force the dispatch chain to inline — without this you lose 3.5×
+## Force the dispatch chain to inline — the single most important native-image setting
+
+Without it you lose **3.5×**, and the loss is silent.
 
 ```
 native-image -H:PriorityForceInline='com.your.pkg.YourProcessor.*'  ...
@@ -280,22 +282,65 @@ native-image -H:PriorityForceInline='com.your.pkg.YourProcessor.*'  ...
 | `PriorityForceInline` only | 6.53 |
 | neither | 6.79 |
 
-**Both are required, and neither alone is close.**
+**Both are required; neither alone is close.**
+
+### Why
 
 GraalVM's priority inliner decides, from its cost model, not to inline
 `onEvent → processEvent → onEventInternal → handleEvent` into your loop. Any link left out of line
-receives the processor as an argument, so **it escapes** — and the node objects stop being
-scalar-replaced. That is the whole 3.5×. Forcing the inline removes the decision.
+receives the processor as an argument, so **the processor escapes** and its node objects stop being
+scalar-replaced. That is the entire 3.5×. Forcing the inline removes the decision.
 
-It is genuinely fragile without the flag: the same code reached 1.57 in a binary that happened to
-contain a second hot loop over the same processor, and 5.5 in one that did not. Do not rely on the
+**It is genuinely unreliable without the flag** — the same code measured 1.57 in a binary that happened
+to contain a second hot loop over the same processor, and 5.5 in one that did not. Do not rely on the
 inliner choosing correctly.
 
-**Knobs that do NOT substitute for it** (all measured, all left it at 5.5–5.7): `IPEAMaxForce`,
-`BaseTargetSpending`, `CallGraphSizeLimit`, `CallGraphCompilerNodeLimit`, `ContextAwareInlining`,
-`EscapeAnalysisIterations`, `MaximumInliningSize`, `TrivialInliningSize`.
+### Verified repeatable
 
-## Honest numbers, and one correction## Honest numbers, and one correction
+Every shape that previously failed, each with its own instrumented image and its own freshly collected
+profile, output verified identical on all of them:
+
+| program shape | without flag | **with flag** |
+|---|---|---|
+| single processor, single event loop (`VendorApp`) | 5.55 | **1.57** |
+| one loop + an unrelated hot loop | 5.58 | **1.57** |
+| one loop, nothing else | 5.55 | **1.58** |
+| loop in its own class | 5.60 | **1.57** |
+
+And across **three independent full build cycles** of the same application — fresh profile, fresh
+instrumented image, fresh optimised image each time: **1.56, 1.56, 1.57** (spread 1.556–1.633).
+
+### You choose which methods to force
+
+The pattern is GraalVM's `MethodFilter` syntax — `package.Class.method`, `*` wildcards, comma-separated
+for several — so the set is entirely yours to pick:
+
+```
+-H:PriorityForceInline='com.your.pkg.YourProcessor.*'                       # sufficient
+-H:PriorityForceInline='com.your.pkg.YourProcessor.*,com.your.nodes.*.*'    # also fine, no gain here
+```
+
+**The processor class alone is sufficient.** Adding the node classes measured 1.56 against 1.55 — no
+benefit. Quote the pattern in a shell, or `*` will glob.
+
+### Better: ship the directive with the processor, so nobody has to know
+
+`native-image` reads `META-INF/native-image/**/native-image.properties` from the classpath. A generated
+processor can carry its own directive:
+
+```properties
+# META-INF/native-image/com.telamin.fluxtion/generated-processor/native-image.properties
+Args = -H:PriorityForceInline=com.your.pkg.YourProcessor.*
+```
+
+**Verified end to end**: with only that resource on the classpath and **no flag on the command line**,
+the same application builds at **1.58 ns** instead of 5.55.
+
+The generator knows its own fully-qualified class name at build time, so it can emit this file itself —
+the same partial-evaluation move the rest of this page describes, applied to the compiler's own
+configuration. That is open work (M50), not something the generator does today.
+
+## Honest numbers, and one correction## Honest numbers, and one correction## Honest numbers, and one correction
 
 Measured on macOS/aarch64, Oracle GraalVM 25.0.4, output verified identical on every arm.
 
