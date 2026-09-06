@@ -833,3 +833,43 @@ That is a stronger statement than the timing: audited runs need a collector.
 - **One fixture, ten nodes**, and the tracing cost scales with node count.
 - The 5.49 ns unaudited figure in this binary is **not** comparable to §11's 1.57 — different binary,
   more arms, §8.2's composition effect. Compare within the table, not across tables.
+
+### 12.3 CORRECTION — audit does NOT allocate per event. `printEventToString` does.
+
+§12 claimed "audit allocates per event" on the strength of an `OutOfMemoryError` under epsilon GC.
+**That was wrong**, and the owner said so before the measurement did. The allocation came from two
+**configuration defaults**, not from the auditor.
+
+Bytes per event, JVM, `ThreadMXBean.getThreadAllocatedBytes`, no-op sink:
+
+| configuration | bytes/event |
+|---|---|
+| no audit | **0.000** |
+| `addEventAudit()` — defaults | 208 |
+| `addEventAudit(INFO)` — defaults | 208 |
+| **`addEventAudit(INFO, printEventToString=false, printThreadName=false)`** | **0.006** |
+
+`LogRecord` was designed for this: one reusable `StringBuilder`, `clear()` does `sb.setLength(0)`,
+`clearAfterPublish` defaults true, and `timeFormatter` is `StringBuilder::append` on a `long`. Nothing
+in that path allocates. What allocates is `event.toString()` once per event and
+`Thread.currentThread().getName()` — both switched on by default.
+
+**Confirmed the other way too:** with those two off, the audited processor runs 200M events under
+**epsilon GC** without dying — the same harness that killed the default-configured audit arms.
+
+### 12.4 The corrected audit numbers
+
+| configuration | ns/event | bytes/event | epsilon-safe |
+|---|---|---|---|
+| no audit | 5.49 | 0.000 | yes |
+| `addEventAudit()` — records, defaults | 155.7 | 208 | **no** |
+| `addEventAudit(INFO)` + registration — defaults | 884.7 | 208 | **no** |
+| **`addEventAudit(INFO, false, false)` + registration** | **~550** | **0.006** | **yes** |
+
+**Turning off event stringification removes all the allocation and about a third of the time**
+(885 → 550 ns for full tracing). What remains is genuine work: building the record text for ten nodes
+into the reusable buffer.
+
+**So the trade is CPU, not garbage.** An audited processor can be zero-allocation and still cost
+hundreds of nanoseconds, and those are different objections with different remedies. §12's framing
+conflated them.
