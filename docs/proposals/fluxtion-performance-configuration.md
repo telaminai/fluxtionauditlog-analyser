@@ -150,15 +150,34 @@ stops being dissolved. It is a cliff, not a gradient — nothing lands between 1
 | all seven | 6.20 |
 | all seven **minus** `subscriptionManager` | 6.16 |
 
-Two things follow that are easy to get wrong:
+### It is cumulative — no single field is the culprit, in either direction
 
-- **No single field is expensive.** Every one of the seven is free on its own. What costs is the total
-  size of the allocation graph — `SubscriptionManagerNode` alone brings an `ArrayList` and three
-  `HashMap`s, where `Clock` brings none.
-- **Removing the expensive one is not enough.** Dropping `subscriptionManager` from the full set
-  changes nothing (6.16 vs 6.20). Once past the cliff you must get back under it, not shave it.
+Tested exhaustively, both ways round, all arms in one binary:
 
-**This is why elision has to be measured rather than counted.**
+| | ns |
+|---|---|
+| **adding** any ONE of the seven to a bare processor | 1.86–1.88 — every one free |
+| **removing** any ONE of the seven from the full set | 6.12–6.29 — every one useless |
+| the full set | 6.20 |
+| none of them | **1.87** |
+
+So there is no expensive field and no cheap win. Adding one costs nothing; removing one saves nothing.
+What decides the outcome is the **total size of the allocation graph** the compiler must dissolve:
+
+| framework object | objects it allocates |
+|---|---|
+| `ServiceRegistryNode` | 6 — four `HashMap`s plus a lock |
+| `SubscriptionManagerNode` | 5 — an `ArrayList` and three `HashMap`s |
+| `NodeNameAuditor` | 3 — two `HashMap`s |
+| `CallbackDispatcherImpl` | 2 — an `ArrayDeque` |
+| `Clock`, `ExportFunctionAuditEvent` | 1 each |
+
+Three fields can be fine or fatal depending which three: `callbackDispatcher + clock + nodeNameLookup`
+stays at 1.87, while `callbackDispatcher + nodeNameLookup + subscriptionManager` falls to 6.22.
+
+**The practical consequence: you cannot shave your way back. You have to get under the budget.**
+Elision has to be measured, not counted — and on an unprofiled native image it is close to
+all-or-nothing.
 
 ## PGO — an accurate profile removes the cliff; a bad one is worse than none
 

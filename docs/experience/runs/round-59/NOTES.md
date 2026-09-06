@@ -520,3 +520,59 @@ it happens **without PGO**, and the resulting optimisation is **fragile in a way
   because it cannot be applied to components you do not own.
 - **The performance page must separate the two runtimes here**, or a JIT user will spend effort on an
   elision that does nothing for them.
+
+### 9.6 Leave-one-out: no single field helps either
+
+§9.2 showed each field is free when ADDED alone. The reverse was tested too — remove exactly one from
+the full seven, all arms in one binary, native, no PGO:
+
+| dropped | ns | | dropped | ns |
+|---|---|---|---|---|
+| none (all seven) | 6.20 | | `context` | 6.17 |
+| `callbackDispatcher` | 6.18 | | `serviceRegistry` | 6.23 |
+| `clock` | 6.27 | | `functionAudit` | 6.28 |
+| `nodeNameLookup` | 6.14 | | **nothing at all** | **1.87** |
+
+**Every removal is useless and every addition is free.** The effect is purely cumulative: the budget is
+consumed by the total allocation graph, and once past it no single removal recovers anything.
+Confirmed against the earlier partial results — all-minus-`subscriptionManager` 6.16, and
+all-minus-`subscriptionManager`-and-`clock` 6.23.
+
+**On `nodeNameLookup` being the one that is populated at construction:** a fair hypothesis, and these
+variants do not model it — they construct `new NodeNameAuditor()` with **empty** maps, because
+`nodeRegistered` is never called. In the real generated processor `initialiseAuditor(nodeNameLookup)`
+populates them. But population cannot be what triggers the cliff, because **removing the field
+entirely does not help** (6.14). Whether population makes the *real* processor worse still is
+untested and is a separate question from the cliff.
+
+**Consequence for the work item.** "Emit no framework field the graph does not use" remains right, but
+its payoff profile is now known: on an unprofiled native image it is **all-or-nothing**, so partial
+elision delivers nothing measurable. Either get under the budget or use PGO (§9.7), which removes the
+sensitivity entirely.
+
+### 9.7 An accurate profile removes the cliff completely
+
+Profiles collected per arm and merged, as round 58's `build-pgo.sh` did:
+
+| arm | native, no PGO | native + merged PGO |
+|---|---|---|
+| no framework fields | 1.86 | **1.56** |
+| **all seven framework fields** | **6.20** | **1.58** |
+| `batchBase` — round 58's control | 1.84 | 1.58 |
+| `batchHand` — hand-rolled flat | 2.45 | 1.55 |
+| `batchGenerated` — the real generated processor | 5.52 | 4.84 |
+
+**With an accurate profile the field composition stops mattering** — 1.56 against 1.58, and both match
+round 58 addendum 6's 1.55 exactly. The structural sensitivity documented in §9.2–9.6 is a property of
+**unprofiled** AOT, not of AOT.
+
+This does not contradict "a bad profile is worse than none": these profiles were collected from every
+arm and merged, so they are accurate for what was measured. A profile from the wrong entry point took
+1.41 → 6.28 in round 58. **The variable is the profile's accuracy, not PGO.**
+
+**One arm did not converge.** `batchGenerated` — the actual generated processor — stays at 4.84 even
+with the profile, while a hand-built class carrying the same seven fields reaches 1.58. The difference
+is what the real constructor does beyond declaring fields: `serviceRegistry.setDataFlowContext(context)`
+publishes `context` into `serviceRegistry`, and `initialiseAuditor(nodeNameLookup)` runs. Those are
+reference-graph edges the P-variants do not have. **That is the next thing to test**, and it is a
+better-founded target than field elision.
