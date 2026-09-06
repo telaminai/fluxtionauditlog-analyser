@@ -779,3 +779,57 @@ The two `PreSplitGoldenParityTest` goldens moved again, as they must: this chang
 purpose. **`imperative.behaviour.txt`, `dsl.behaviour.txt`, `imperative.dto.txt` and `dsl.dto.txt` are
 all BYTE-IDENTICAL**, which is the evidence that behaviour and the model did not move — only the
 emitted text.
+
+---
+
+## 12. What audit actually costs — and it is not 4.5 ns
+
+§11.5 left the audited case untested and guessed it was "worth the nanoseconds". **Measured, it is not
+nanoseconds.** It was also easy to mistake the earlier 4.5–5.1 ns figures for an audit cost: those came
+from node **registration** (§10, an escape-analysis effect), not from audit logging.
+
+Four configurations, generated end to end, native + accurate PGO, **no-op log sink** so this measures
+record BUILDING and not IO:
+
+| configuration | ns/event | vs base case |
+|---|---|---|
+| no audit (base case, §11) | 1.57 | — |
+| no audit, in this binary | 5.49 | binary composition, §8.2 |
+| `addEventAudit()` — records, no method tracing | **155.7** | ~100× |
+| `addEventAudit(INFO)` — tracing on, nodes NOT registered | **174.5** | |
+| **`addEventAudit(INFO)` + node registration — a real audit log** | **884.7** | **~560×** |
+| hand-rolled flat | 1.54 | |
+
+**Two things to take from the table.**
+
+**1. Tracing without registration is nearly useless AND still costs.** With no `nodeRegistered` calls
+the `EventLogManager` resolves every node to `NullEventLogger.INSTANCE`, so the log records almost
+nothing — yet the arm still costs 174 ns. **Audit and the node-name switch of §11 are in tension:**
+removing registration is what buys 1.57 ns, and an audit log that names its nodes needs exactly that
+registration. The switch solves `NodeNameLookup`; it does not solve `EventLogManager`.
+
+**2. Audit allocates per event.** Every audited arm **died with `OutOfMemoryError` under epsilon GC**,
+which never collects — the same harness in which every unaudited arm runs 200M events cleanly. The
+zero-steady-state-allocation property holds for the base case and **does not hold with audit enabled**.
+That is a stronger statement than the timing: audited runs need a collector.
+
+### 12.1 What this changes
+
+- **"The audit log is worth the nanoseconds" was the wrong framing**, and this repo's own performance
+  page said it. It is worth hundreds of nanoseconds. That may still be the right trade — for an
+  investigation, a replay, a support question, 884 ns/event is irrelevant — but it must be stated at
+  the right order of magnitude.
+- **The deployment split the page recommends is now quantified**: ~1.6 ns unaudited against ~885 ns
+  fully audited is a 560× difference, not a rounding error. Splitting audited and throughput
+  deployments is not a compromise, it is the only sane arrangement.
+- **A per-node logging cost of ~88 ns** (884 over ten nodes) is the number worth attacking if audit
+  throughput ever matters. Nothing in this round examined it.
+
+### 12.2 Caveats, because these are large numbers
+
+- **No-op sink.** Real IO is on top. This is the framework's own record-building cost.
+- **Serial GC** (epsilon is impossible here, see above), so allocation and collection are included —
+  which is honest for an audited deployment but not separable from the timing.
+- **One fixture, ten nodes**, and the tracing cost scales with node count.
+- The 5.49 ns unaudited figure in this binary is **not** comparable to §11's 1.57 — different binary,
+  more arms, §8.2's composition effect. Compare within the table, not across tables.
