@@ -738,3 +738,44 @@ still publish every node.** So a fully audited processor does not reach 1.57 by 
 
 That is the correct trade and it is the one the analyser's whole product rests on: the audit log is
 worth the nanoseconds. But it should be measured rather than assumed, and it has not been.
+
+### 11.6 Both directions, generated, full capability — 1.57 ns
+
+The generated processor now **implements `NodeNameLookup` itself**, so the interface's two methods are
+generated rather than backed by maps:
+
+```java
+public class BenchProcessor implements … , NodeNameLookup {
+    @Override public <T> T getInstanceById(String id) { switch (id) { case "mid": return (T) mid; … } }
+    @Override public String lookupInstanceName(Object node) { if (node == mid) { return "mid"; } … }
+}
+```
+
+Measured with **both directions asserted live before timing** — `getInstanceById("mid")`,
+`getNodeById("exposure")`, `lookupInstanceName(buffer)`, `lookupInstanceName(limit)` — and with
+re-entrancy, subscriptions and buffering all **enabled**:
+
+| config | ns |
+|---|---|
+| **E — both switches live, every capability on** | **1.57** |
+| D — id lookup only, every capability on | 1.57 |
+| C — registration still populating the maps | 5.49 |
+| `BaseProcessor` control | 1.59 |
+| hand-rolled flat | 1.55 |
+
+**The answer is yes.** A static switch for node id and an identity chain for instance lookup give the
+full `NodeNameLookup` capability at 1.57 ns — the same as having no lookup at all, the same as the
+hand-written control, and within 1.5% of hand-rolled flat code.
+
+**It is a config option, not a redesign.** Everything else stays on.
+
+### 11.7 Gates after the change
+
+`fluxtion-generator-core` 21/21 · `fluxtion-builder` 230/230 ·
+`fluxtion-integration-tests` **3518/3520** — the two `RuntimeMetaBoundaryGateTest` failures are the
+environmental ones, unrelated to this work.
+
+The two `PreSplitGoldenParityTest` goldens moved again, as they must: this changes generated source on
+purpose. **`imperative.behaviour.txt`, `dsl.behaviour.txt`, `imperative.dto.txt` and `dsl.dto.txt` are
+all BYTE-IDENTICAL**, which is the evidence that behaviour and the model did not move — only the
+emitted text.
