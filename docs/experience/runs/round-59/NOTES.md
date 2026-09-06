@@ -402,3 +402,83 @@ framework costs:
 Neither is a property of Fluxtion. Both are properties of the measuring program. Round 58's rule —
 *every figure must name its shape* — is now demonstrated to extend to the harness itself, and the
 conformance bench's insistence on one binary is what makes the arms above comparable at all.
+
+---
+
+## 9. Progressive isolation — it is an escape-analysis CLIFF, not "the framework fields"
+
+§7 and §8 said "the seven framework fields cost 3.7 ns". **That framing is wrong and is corrected
+here.** Testing them one at a time, all arms in one binary, native, no PGO, output identical:
+
+| variant — 10 node objects plus… | ns |
+|---|---|
+| P0 nothing | 1.87 |
+| P1 `callbackDispatcher` | 1.88 |
+| P2 `clock` | 1.86 |
+| P3 `nodeNameLookup` | 1.86 |
+| P4 `subscriptionManager` | 1.87 |
+| **P5 `context` (+ its 3 constructor args)** | **6.18** |
+| P6 `serviceRegistry` | 1.86 |
+| P7 `functionAudit` | 1.87 |
+| **P8 all seven** | **6.43** |
+| `batchBase` — round 58's control | 1.87 |
+| `batchHand` | 2.45 |
+
+**Six of the seven are free.** Every one of them, individually, costs nothing.
+
+### 9.1 It is not `context` either
+
+`P9CtxArgsOnly` — context's three constructor args, with **no context field at all** — measures
+**6.20**, the same as P5. `P10CtxNulls` — context constructed with four nulls — measures 6.18. So
+`MutableDataFlowContext` is not the cause; the objects around it are.
+
+### 9.2 It is a threshold, and it is sharp
+
+| combination | ns |
+|---|---|
+| `subscriptionManager` alone | 1.87 |
+| `subscriptionManager` + `callbackDispatcher` | 1.88 |
+| `subscriptionManager` + `nodeNameLookup` | 1.88 |
+| **`subscriptionManager` + `callbackDispatcher` + `nodeNameLookup`** | **6.22** |
+| `callbackDispatcher` + `clock` + `nodeNameLookup` — also three | **1.87** |
+
+Three extra fields are fine or fatal **depending on which three**. Nothing lands between 1.9 and 6.2;
+it is a cliff.
+
+The distinguishing property is the size of the allocation graph, not the field count.
+`SubscriptionManagerNode` allocates **five** objects of its own — an `ArrayList` and three `HashMap`s,
+plus a `DataFlow` reference — where `Clock` allocates none and `NodeNameAuditor` and
+`CallbackDispatcherImpl` one each. Past some total, **GraalVM's escape analysis stops dissolving the
+processor**, and the ten node objects that were being scalar-replaced become real allocations again.
+
+**That is why the cost is 3.7 ns and yet nothing extra runs on the event path.** No work was added. The
+compiler simply stopped removing work it had been removing.
+
+### 9.3 What is actually on the event path
+
+Confirmed by reading the generated dispatch, for the `MarketTick` path:
+
+- `nodeNameLookup.eventReceived(typedEvent)` — inherited default, **no-op**
+- `nodeNameLookup.processingComplete()` — inherited default, **no-op**
+- `clock.eventReceived(...)` — **the only real work**, and only when the Clock auditor is registered;
+  it calls `System.currentTimeMillis()` (§4)
+
+Nothing else. The re-entrancy guard is a field test and is **free**: `batchStripGuard` 1.87 against
+`batchDirect` 1.87, confirming round 58's prediction for a check on an already-loaded field.
+
+**And with no auditors the clock should not be emitted at all.** Today the baseline configuration
+removes it from the auditor *map* — so no per-event call — but the *field* is still generated. It is
+free on its own (P2), but it is one more object in the allocation graph that decides the cliff.
+
+### 9.4 What this changes about the work
+
+The work item is no longer "elide seven fields". It is narrower and better founded:
+
+1. **Emit no framework field the graph does not use** — still correct, and now the reason is that each
+   one consumes escape-analysis budget rather than that each one costs time.
+2. **`subscriptionManager` is the expensive one to keep**, because it brings five objects. It is the
+   first to elide, and W4's `supportSubscriptions=false` already decides it.
+3. **Drop the `clock` field when no auditor and no node needs it**, per §9.3.
+4. **The budget is finite and shared.** Removing any three of these may be enough; removing the wrong
+   three achieves nothing. **Elision has to be measured, not counted** — which is exactly what the
+   progressive harness above is for, and it should be kept.
