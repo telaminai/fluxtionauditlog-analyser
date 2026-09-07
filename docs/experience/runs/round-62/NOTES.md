@@ -129,3 +129,67 @@ state rather than references to other nodes"*. It did not merely say "no matchin
 leave me to guess; it told me which of my beliefs was wrong. **Two minutes to fix, because the message
 contained the fix.** That is the standard the rest of the diagnostics work is aiming at, and a data
 point that at least one of them is already there.
+
+---
+
+## 5. Native + PGO results — three of five predictions wrong, and the retraction was the worst of them
+
+`LOWEST_LATENCY`, the generated inlining directive, PGO collected for every arm, 2 cycles, all arms
+agreeing bit-for-bit.
+
+| arm | native | vs fixed | JIT | vs fixed | native speed-up |
+|---|---|---|---|---|---|
+| fixed | **0.7656** | 1.00× | 11.5264 | 1.00× | **15.1×** |
+| runtimeMono | 0.7299 | 0.95× | 12.1300 | 1.05× | 16.6× |
+| **generated** | **1.1337** | **1.48×** | 11.8212 | 1.03× | 10.4× |
+| **runtimePoly** | **7.3640** | **9.62×** | 13.6061 | 1.18× | 1.8× |
+| **generic** | **30.0746** | **39.28×** | 36.9636 | 3.21× | 1.2× |
+
+### 5.1 Scoring
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| R1 | fixed ≈ generated within 5% | **1.48×** | **WRONG** |
+| **R2** | runtimePoly ≤ 1.25× fixed; AOT handles 4 receivers well | **9.62×** | **WRONG, and it was a retraction of a correct prediction** |
+| R3 | generic ≥ 2.5× fixed | 39.3× | **RIGHT** |
+| R4 | native within ±20% of JIT | 15× faster on `fixed` | **WRONG** |
+| R5 | ranking unchanged | `runtimeMono` overtook `fixed`; `generated` fell behind both | **WRONG** |
+
+**R2 is the one to learn from.** §2's Q2 predicted `runtimePoly ≥ 1.5×` natively. An hour later I
+retracted it on a plausible-sounding argument — `MaxPolymorphicDispatches` defaults to 4, the site has
+exactly 4 receivers, so PGO should let Graal inline the cascade. **Measured: 9.62×.** The original
+prediction was right and the reasoning that overturned it was wrong. *Reading an option's default and
+constructing a mechanism from it is exactly the move that failed nine times in round 61.*
+
+### 5.2 What the numbers actually say — and it is the owner's thesis, larger than predicted
+
+**Read the last column.** Native + PGO makes the *specialised* arithmetic **15× faster** than the JIT
+managed. It makes the *generic* loop **1.2×** faster. The compiler can only optimise what is statically
+apparent, and 4×4 unrolled arithmetic is; a loop over a runtime `n` is not.
+
+That produces the result the round was built to test, and it is far larger on AOT than on the JIT:
+
+| what the code cannot know at build time | JIT penalty | **AOT penalty** |
+|---|---|---|
+| which implementation (4 receivers, unpredictable) | 1.18× | **9.62×** |
+| the matrix order (generic loop) | 3.21× | **39.3×** |
+
+**Closed-world AOT punishes late binding an order of magnitude harder than a JIT does**, because the
+JIT can speculate on what it observes at runtime and the AOT compiler cannot go beyond what the profile
+recorded. Every unresolved decision that a generator could have made at build time is paid for, at
+native speed, for ever.
+
+**So the Babylon-style argument is not merely supported; the JIT measurement understated it by roughly
+8×.** The generated processor is not competing with `fixed` — a human who knew the order and gave up
+generality — it is competing with what a *library* can ship, and that is 9.6× or 39× behind.
+
+### 5.3 The one honest debit: the generated processor pays 1.48× fixed
+
+`generated` at 1.1337 against `fixed` at 0.7656 is **+0.368 ns**, and that is the Fluxtion event
+wrapper — `onEvent → processEvent → guard → onEventInternal → instanceof → handleEvent → mat.onEvent`.
+It is consistent with the 0.12–0.43 ns of dispatch overhead measured all day on a different graph.
+
+It is a real cost and it should be quoted, not buried: **a processor costs about 0.37 ns more per event
+than a bare method call doing the same arithmetic.** Against 6.6 ns for late-bound dispatch or 29 ns for
+an unspecialised body, it is the cheap part — but it is the part this project can still shrink, and
+rounds 61's W1 is where that work lives.

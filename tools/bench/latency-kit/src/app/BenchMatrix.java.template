@@ -1,0 +1,92 @@
+package app;
+
+import com.bench.MatrixEvent;
+import com.benchv.HandMatrix;
+import __PKG__.MatrixProcessor;
+
+/**
+ * Round 62 — build-time node selection against runtime selection.
+ *
+ * <p>Every arm computes the SAME 4x4 product and accumulates the same checksum; {@code -Darm=verify}
+ * proves it before any timing is believed. What differs is only how the implementation is bound.
+ */
+public class BenchMatrix {
+    static double outChecksum;
+
+    static void generated(long n) {
+        MatrixProcessor p = new MatrixProcessor();
+        p.init();
+        MatrixEvent e = new MatrixEvent();
+        for (long i = 0; i < n; i++) {
+            p.onEvent(e.set(1.0 + (i & 15), i));
+        }
+        outChecksum = p.mat.checksum;
+    }
+
+    static void fixed(long n) {
+        HandMatrix.Fixed h = new HandMatrix.Fixed();
+        MatrixEvent e = new MatrixEvent();
+        for (long i = 0; i < n; i++) { h.onEvent(e.set(1.0 + (i & 15), i)); }
+        outChecksum = h.checksum;
+    }
+
+    static void generic(long n) {
+        HandMatrix.Generic h = new HandMatrix.Generic(Integer.getInteger("order", 4));
+        MatrixEvent e = new MatrixEvent();
+        for (long i = 0; i < n; i++) { h.onEvent(e.set(1.0 + (i & 15), i)); }
+        outChecksum = h.checksum;
+    }
+
+    static void runtimeMono(long n) {
+        HandMatrix.RuntimeMono h = new HandMatrix.RuntimeMono();
+        MatrixEvent e = new MatrixEvent();
+        for (long i = 0; i < n; i++) { h.onEvent(e.set(1.0 + (i & 15), i)); }
+        outChecksum = h.checksum;
+    }
+
+    static void runtimePoly(long n) {
+        HandMatrix.RuntimePoly h = new HandMatrix.RuntimePoly();
+        MatrixEvent e = new MatrixEvent();
+        for (long i = 0; i < n; i++) { h.onEvent(e.set(1.0 + (i & 15), i)); }
+        outChecksum = h.checksum;
+    }
+
+    /** The gate: all five arms must agree bit-for-bit, or no timing below means anything. */
+    static int verify(long n) {
+        double[] got = new double[5];
+        generated(n); got[0] = outChecksum;
+        fixed(n);     got[1] = outChecksum;
+        generic(n);   got[2] = outChecksum;
+        runtimeMono(n); got[3] = outChecksum;
+        runtimePoly(n); got[4] = outChecksum;
+        String[] names = {"generated", "fixed", "generic", "runtimeMono", "runtimePoly"};
+        int bad = 0;
+        for (int i = 1; i < got.length; i++) {
+            if (Double.doubleToLongBits(got[i]) != Double.doubleToLongBits(got[0])) {
+                System.out.printf("DIVERGED %s=%s vs generated=%s%n", names[i], got[i], got[0]);
+                bad++;
+            }
+        }
+        System.out.printf(bad == 0 ? "CORRECT all 5 arms agree over %d events, checksum=%.6f%n"
+                : "FAILED %d arm(s) diverged over %d events%n", bad == 0 ? n : bad, bad == 0 ? got[0] : (double) n);
+        return bad;
+    }
+
+    public static void main(String[] a) {
+        String arm = System.getProperty("arm", "generated");
+        long w = Long.getLong("warm", 2_000_000L), it = Long.getLong("iters", 50_000_000L);
+        if ("verify".equals(arm)) {
+            System.exit(verify(Long.getLong("events", 200_000L)) == 0 ? 0 : 1);
+        }
+        long t0, ns;
+        switch (arm) {
+            case "generated":   generated(w);   t0 = System.nanoTime(); generated(it);   ns = System.nanoTime() - t0; break;
+            case "fixed":       fixed(w);       t0 = System.nanoTime(); fixed(it);       ns = System.nanoTime() - t0; break;
+            case "generic":     generic(w);     t0 = System.nanoTime(); generic(it);     ns = System.nanoTime() - t0; break;
+            case "runtimeMono": runtimeMono(w); t0 = System.nanoTime(); runtimeMono(it); ns = System.nanoTime() - t0; break;
+            case "runtimePoly": runtimePoly(w); t0 = System.nanoTime(); runtimePoly(it); ns = System.nanoTime() - t0; break;
+            default: throw new IllegalArgumentException("unknown arm: " + arm);
+        }
+        System.out.printf("RESULT %s %.4f chk=%.6f%n", arm, (double) ns / it, outChecksum);
+    }
+}
