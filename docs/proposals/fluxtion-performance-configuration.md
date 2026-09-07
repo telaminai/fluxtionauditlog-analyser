@@ -45,6 +45,13 @@ buffering all live.
 | GraalVM 25.0.4 native-image, no PGO | 7.76 | 2.55 | 3.0× |
 | **GraalVM 25.0.4 native-image + PGO** | 6.22 | **1.57** | 4.0× |
 
+!!! warning "Native-image is only faster if you configure it — otherwise it is SLOWER than a JIT"
+    In the sweep above, **native without PGO (7.76 ns) is slower than every JIT measured**, including
+    plain Temurin. Native-image beats a JIT only when **both** an accurate PGO profile **and** the
+    inlining directive are supplied, and even then it is not guaranteed (see below). If you cannot
+    supply a representative profile, **a JIT is the safer choice** — Graal JIT at 5.56 ns is the best
+    unconditional number on this graph.
+
 **Read those two tables together.** The 1.57 ns headline is real and reproducible in several
 harnesses; it is *not* what an arbitrary program gets. On this kit the same configuration lands at
 6.22 — see *It works in most shapes* below. **Build it and measure it; do not assume the number.**
