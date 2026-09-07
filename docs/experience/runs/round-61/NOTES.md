@@ -149,3 +149,34 @@ crossover because both are O(N/2); that reasoning ignored the per-test constant,
    dispatches against hand-written code that was handed the answer. Entered the same way, the honest
    multi-type gap is 5.935 against 4.102.
 4. **Test the crossover properly** — 2, 4, 8, 16 event types, both arms through `Object`.
+
+---
+
+## 4. Second round of predictions — committed before §5
+
+The owner's direction: *"If optimising the guard is required record it and build it as default for the
+generated."* So the guard's 0.409 ns has to be decomposed before anything is designed — the mistake in
+§1 was designing against an assumed cost.
+
+**What the guard is made of**, per event, on the 100% non-re-entrant path:
+
+```java
+if (processing) { … }                                   // field load + branch
+processing = true;                                      // store
+onEventInternal(event);
+callbackDispatcher.dispatchQueuedCallbacks();           // call into ANOTHER object; returns immediately
+processing = false;                                     // store
+```
+
+| # | Prediction | Confidence |
+|---|---|---|
+| **P7** | The **call** is the majority of the 0.409 ns, not the flag machinery. Removing only the drain call (X7, guard kept) recovers **≥ 0.25 ns**. | medium |
+| **P8** | `dispatchQueuedCallbacks()` is **not being inlined because of its loop**. Splitting it — a tiny `isEmpty` fast path that inlines, a cold `drainQueue()` that does not — recovers **≥ 0.20 ns with no semantic change at all**. This is the shippable form. | medium |
+| **P9** | On native + PGO the whole 0.409 ns **disappears**: the processor is scalar-replaced, `processing` becomes a register and the call is inlined. Predict X5 − baseline **< 0.05 ns** natively, against −0.373 on the JIT. | medium |
+
+**A design that was considered and rejected before measuring, recorded so it is not re-proposed:**
+having the generated processor keep its own `pendingCallbacks` flag set at the moment it queues, and
+skip the drain when clear. **It is not safe.** Nodes reach `CallbackDispatcherImpl` directly through the
+injected dispatcher — `processReentrantEvent`, `processReentrantEvents`, `fireIteratorCallback` — so a
+processor-local flag would miss queueing it never saw, and the callback would be silently dropped. The
+split in P8 is safe precisely because the emptiness test stays with the queue that owns it.
