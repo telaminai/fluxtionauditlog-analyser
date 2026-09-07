@@ -198,9 +198,17 @@ generated processor: four `auditEvent(typedEvent);` call sites gone and three bo
 the `nodeNameLookup` field retained so `getNodeById` and `lookupInstanceName` still work. **That
 separation is the point:** keeping node-name lookup used to force the auditor onto the event path._
 
-_Honest about the size of it: on the JIT it is 5.11 → 5.10 ns, inside noise, because the JIT inlines
-two empty virtual calls away. The win is structural and AOT-side — the calls are gone from the
-source rather than removed by a compiler that may or may not._
+_**Honest about the size of it: there is no measurable throughput in it, on either runtime.** JIT
+5.1096 → 5.0976, inside noise. Native + PGO, a landed build: 1.6867, inside the 1.54–1.68 spread of
+the shipped variant's own landed builds, with the hand-rolled control at 1.5645 in the same build so
+the machine state was comparable. Round 59 had already measured that empty auditor calls are free at
+runtime. **The case is not throughput** — it is that the calls are gone from the generated source
+rather than left for a compiler to remove, and that wanting node-name lookup no longer puts an auditor
+on the event path._
+
+_Suite: compiler 3520 run, 2 failures — the two pre-existing `RuntimeMetaBoundaryGateTest` environment
+failures, down from 4. **Both `.behaviour.txt` goldens byte-identical**, which is the evidence that
+matters: source shape changed, behaviour did not. Core: 6 new unit tests green._
 
 _Branches: core `perf/w4-baseline-config` (Auditor, NodeNameAuditor, SourceField, Field), compiler
 `perf/w1-w4-baseline-shape` (AuditorDto, DTO builder, SimpleEventProcessorModel, JavaSourceGenerator).

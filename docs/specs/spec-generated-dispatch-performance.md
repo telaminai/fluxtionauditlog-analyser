@@ -794,11 +794,24 @@ elided, and only when no auditor wants it.
 one boolean. An auditor wanting only one of them returns true and takes both. No runtime auditor is
 in that position.
 
-**Honest about the win.** On the JIT it is worth nothing measurable — 5.11 → 5.10 ns, inside noise,
-because the JIT inlines two empty virtual calls away. The value is AOT-side and structural: fewer call
-sites in the generated source, and the event path no longer touches an object that exists only for
-name lookup. Round 59 already measured that *empty auditor calls are free at runtime*; this removes
-them from the source rather than relying on a compiler to remove them from the code.
+**Honest about the win: there is no measurable throughput in it, on either runtime.**
+
+| runtime | shipped | with W15 |
+|---|---|---|
+| JIT, deterministic, 200M events | 5.1096 | 5.0976 |
+| native + PGO, a landed build | 1.54 – 1.68 *(many builds)* | 1.6867 *(one build)* |
+
+The JIT figure is inside noise because the JIT inlines two empty virtual calls away. The native figure
+sits inside the spread of the shipped variant's own landed builds, and one sample cannot resolve a
+difference smaller than that spread — the hand-rolled control read 1.5645 in the same build, so the
+machine state was comparable. Round 59 had already measured that **empty auditor calls are free at
+runtime**, and this is consistent with it.
+
+**So the case for W15 is not throughput.** It is that the calls are gone from the *generated source*
+rather than left for a compiler to remove, that the generated processor is smaller and easier to read,
+and — the substantive part — that **wanting node-name lookup no longer puts an auditor on the event
+path.** Those are worth having on their own; quoting a speedup here would be quoting a number the
+change did not produce.
 
 **Determinism spine, final: W5 → W11 → W13 → W6 → W7.** W6's capture-set derivation becomes much more
 useful once W13 exists, because the set it derives is then something the system can actually record.
