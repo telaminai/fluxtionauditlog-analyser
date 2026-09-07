@@ -577,3 +577,68 @@ system.
 performance one, and it is the reason the 9.45× measured in §12 is more representative of a real
 alternative than the 8.6% measured against hand-written flat code: the flat shape exists, it is faster
 than Fluxtion, and it survives contact with exactly one refactor.
+
+---
+
+## 14. The realistic graph at scale — and the rule that now explains every result
+
+Built to the owner's stated shape: **54 nodes, 12 event types, depth 8 max / 1 min / 3.6 average, 32
+fan-in nodes**, and Fluxtion emitted **7 `commonDispatchTail` methods** factoring the shared suffixes.
+Correctness gated; both arms identical.
+
+| | JIT *(3 reps)* | native + PGO *(3 attempts)* | native speed-up |
+|---|---|---|---|
+| generated | 15.03 | **12.79** | 1.18× |
+| library | 38.94 | 32.67 | 1.19× |
+| **ratio** | **2.59×** | **2.55×** | |
+
+The three native attempts span 12.74–12.82 — **0.6%, so this is structural, not the lottery.**
+
+### 14.1 The rule
+
+Every result in rounds 62 now falls out of one thing: **whether the graph fits the compiler's inlining
+budget.**
+
+| graph | nodes | generated (native) | ratio |
+|---|---:|---:|---:|
+| RealGraph | 14 | 2.12 | **9.45×** |
+| LaneGraph | 10 | 0.44 | **27.6×** |
+| LaneGraph | 25 | 0.77 | **36.2×** |
+| **LaneGraph** | **49** | **21.9** | **2.7×** |
+| **DAG, 12 event types** | **54** | **12.8** | **2.55×** |
+| Fleet, heavy nodes | 50 | 488 | 0.76× |
+
+**Under the budget the graph dissolves into the dispatch method and the advantage is an order of
+magnitude. Over it, the advantage is ~2.5×.** The boundary for light nodes is somewhere around 25–30
+nodes; for heavy nodes it arrives at five.
+
+**Common-tail factoring did not move the boundary.** Seven tails were emitted and the 54-node graph
+still landed above the budget. It reduces emitted *statements* — 30 for an event type whose plan is 35
+nodes — but the tail bodies still have to be inlined somewhere, and total inlined size is what the
+budget counts.
+
+### 14.2 What this does to the claim
+
+**The 9.45× headline is a small-graph number.** It was measured at 14 nodes. At the owner's stated
+scale — 50-ish nodes, many event types — the honest figure is **2.5×**, and it is stable rather than
+lottery-dependent.
+
+That is still a real advantage and it is still the right architectural argument: the library arm gets
+**1.19× from AOT** and the generated arm **1.18×** — at this size *neither* benefits much, and the
+generated arm's lead comes from binding rather than from inlining. But **an order of magnitude is not
+available at 50 nodes on this evidence**, and any published claim should say which regime it is quoting.
+
+### 14.3 In the deployment that exists
+
+Mongoose measures **p50 250 ns** publish-to-handler and ~10M msgs/sec sustained
+(`telaminai.github.io/mongoose/reports/server-benchmarks-and-performance/`). Against that envelope:
+
+| | 14-node graph | 54-node graph |
+|---|---|---|
+| generated | 2.12 ns — **0.8% of p50** | 12.8 ns — **5% of p50** |
+| library | 20.06 ns — 8% of p50 | 32.7 ns — 13% of p50 |
+
+At 10M msgs/sec the budget is 100 ns per message, so the same figures are **13% versus 33% of the
+throughput budget** on the larger graph. **The advantage shows up as throughput headroom, not as p50
+latency** — and the p99.9+ percentiles are OS-jitter dominated on that hardware, so nothing in the graph
+reaches them.
