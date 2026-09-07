@@ -755,6 +755,51 @@ it is reachable with the machinery already in place.
 | **W13b** | generated recorder/replayer proxies for consumed services, capturing returns | generator | W11, W13a |
 | **W13c** | build failure on non-recordable signatures, naming service and method | generator | W13a, W13b |
 
+### W15 · let an auditor decline the event path
+
+**Owner's design, 2026-09-07:** *"add another default method … default is Boolean return true.
+NodeNameAuditor overrides and only returns false. The generated code then is even more optimal."*
+
+The precedent is already in the interface. `Auditor#auditInvocations()` is a build-time boolean read
+against the **live** auditor instance, and the generator emits `nodeInvoked` call sites only for
+auditors that return true. W15 is the same move for the event path:
+
+```java
+default boolean auditEventReceipt() { return true; }   // Auditor
+public  boolean auditEventReceipt() { return false; }  // NodeNameAuditor
+```
+
+**The two defaults point opposite ways on purpose** — `auditInvocations()` defaults false (opt in),
+`auditEventReceipt()` defaults true (opt out) — because each preserves the behaviour an auditor had
+before its flag existed. Getting either backwards changes every generated processor.
+
+**Exactly one auditor in the runtime changes.** `Clock` implements `eventReceived` (both overloads)
+and `EventLogManager` implements `eventReceived` and `processingComplete`, so both keep the default
+and their call sites. `NodeNameAuditor` implements neither — it maps nodes to names during
+registration and inherits pure no-ops — so it declines.
+
+**Measured effect on generated source**, `tools/bench/latency-kit`, same graph, before and after:
+four `auditEvent(typedEvent);` call sites gone from the event path, and three method bodies emptied
+(`auditEvent(Object)`, `auditEvent(Event)`, `afterEvent()`). The `nodeNameLookup` field stays, so
+`getNodeById` and `lookupInstanceName` keep working — **which is the point**: today, keeping
+node-name lookup forces the auditor onto the event path. This separates the two.
+
+**The methods are still emitted, empty.** The template calls `auditEvent` unconditionally from the
+lifecycle methods; guarding that produced source referencing a method that did not exist (the defect
+round 59 hit when the auditor was dropped wholesale). Only the *call site in the dispatch path* is
+elided, and only when no auditor wants it.
+
+**One coarseness, stated rather than discovered:** the flag gates `eventReceived` **and**
+`processingComplete` together, exactly as `auditInvocations()` gates all `nodeInvoked` callbacks with
+one boolean. An auditor wanting only one of them returns true and takes both. No runtime auditor is
+in that position.
+
+**Honest about the win.** On the JIT it is worth nothing measurable — 5.11 → 5.10 ns, inside noise,
+because the JIT inlines two empty virtual calls away. The value is AOT-side and structural: fewer call
+sites in the generated source, and the event path no longer touches an object that exists only for
+name lookup. Round 59 already measured that *empty auditor calls are free at runtime*; this removes
+them from the source rather than relying on a compiler to remove them from the code.
+
 **Determinism spine, final: W5 → W11 → W13 → W6 → W7.** W6's capture-set derivation becomes much more
 useful once W13 exists, because the set it derives is then something the system can actually record.
 
@@ -881,6 +926,7 @@ depend on a measurement.
 | **W13a** | generated auditor for exported service invocations, recorded in event-stream position | generator | correctness | replay covers invocations, single record stream | W11 |
 | **W13b** | generated recorder/replayer proxies for consumed services, capturing **returns** | generator | correctness | closes the last hole in replay fidelity | W11, W13a |
 | **W13c** | build failure on non-recordable service signatures | generator | correctness | names what cannot be captured instead of silently under-recording | W13a, W13b |
+| **W15** | `Auditor#auditEventReceipt()` — an auditor declares whether it wants the event path at all; the generator emits the call sites only for those that do | generator + runtime | perf + generated-code size | `NodeNameAuditor` does all its work in `nodeRegistered` and inherits both `eventReceived` no-ops, so **every** generated processor carried two inherited virtual calls per event for an auditor with nothing to do | — |
 
 ## 20. Ordering
 

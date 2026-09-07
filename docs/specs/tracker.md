@@ -183,6 +183,35 @@ contribution first. Necessary but not sufficient for replay — leaves return-va
 choice; `tools/bench` harness fixes compilation shape, interleaves arms in one binary, asserts output
 equivalence before timing, and fails on a suspiciously clean zero._
 
+**[M50.12] ◧ W15 — an auditor can decline the event path** · IMPLEMENTED 2026-09-07, on branch ·
+_Owner's design: **"add another default method … default is Boolean return true. NodeNameAuditor
+overrides and only returns false. The generated code then is even more optimal."** `Auditor` gains
+`default boolean auditEventReceipt() { return true; }`; the generator emits `eventReceived` and
+`processingComplete` call sites only for auditors that return true, exactly as `auditInvocations()`
+already gates `nodeInvoked`. **The two defaults point opposite ways on purpose** — one opts in, one
+opts out — because each preserves the behaviour an auditor had before its flag existed._
+
+_**Exactly one runtime auditor changes.** `Clock` implements `eventReceived`, `EventLogManager`
+implements both; each keeps the default and its call sites. `NodeNameAuditor` implements neither —
+it works in `nodeRegistered` and inherits pure no-ops — so it declines. Measured on the kit's
+generated processor: four `auditEvent(typedEvent);` call sites gone and three bodies emptied, with
+the `nodeNameLookup` field retained so `getNodeById` and `lookupInstanceName` still work. **That
+separation is the point:** keeping node-name lookup used to force the auditor onto the event path._
+
+_Honest about the size of it: on the JIT it is 5.11 → 5.10 ns, inside noise, because the JIT inlines
+two empty virtual calls away. The win is structural and AOT-side — the calls are gone from the
+source rather than removed by a compiler that may or may not._
+
+_Branches: core `perf/w4-baseline-config` (Auditor, NodeNameAuditor, SourceField, Field), compiler
+`perf/w1-w4-baseline-shape` (AuditorDto, DTO builder, SimpleEventProcessorModel, JavaSourceGenerator).
+Two `.dto.txt` goldens updated after verifying byte-identity apart from the new field._
+
+_**Open, owner's call: `ServiceRegistryNode` is the same case** — it implements only `nodeRegistered`
+and inherits all three no-ops, so it is the obvious second opt-out, one line. Not applied: it is a
+`@Preview` node and the decision is whether it should stay reachable on the event path for future
+use. **The hazard is documented on the flag** — a subclass overriding `eventReceived` while
+inheriting a `false` loses its callbacks silently, so overriding a callback means overriding the flag._
+
 **[M50.11] ☐ W14 — manifest optimisation metadata** · SPEC COMPLETE 2026-09-06 ·
 _[spec-manifest-optimisation-metadata.md](spec-manifest-optimisation-metadata.md). The facts W4/W5/W11/W13c
 would otherwise rediscover by scanning vendor bytecode are computed once by the component's own build and
