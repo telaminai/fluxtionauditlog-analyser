@@ -588,9 +588,29 @@ left to do, `Auditor` comes off the class, and the registry leaves the auditor s
 - no `initialiseAuditor(serviceRegistry)` in the constructor
 - no `serviceRegistry.eventReceived(typedEvent)` and no `serviceRegistry.processingComplete()`
 - no `serviceRegistry` case in `getAuditorById`
-- and — the one that matters most for §14 — **`ServiceRegistryNode` allocates 6 objects (four
-  `HashMap`s plus a lock), the largest single contributor in the escape-analysis cliff table.** They
-  leave the processor's allocation graph with it.
+- and its 6 allocated objects (four `HashMap`s plus a lock) leave the processor's allocation graph
+
+**That last point buys nothing measurable, and §14's own table says why.** The post-W11 shape was
+emulated on the kit — registry field, context wiring and lookup cases removed, the exported API kept
+with the empty body a generated dispatch would have in a graph with no `@ServiceRegistered`
+consumers — and measured against the shipped shape:
+
+| | shipped | registry removed |
+|---|---|---|
+| JIT (`generated − hand`, 3 interleaved reps) | 1.645 | 1.685 *(own spread 1.585–1.761)* |
+| native + PGO, landed build | 1.54 – 1.68 | 1.6900 |
+| **native, NO PGO — where the cliff lives** | **6.4776** | **6.4032** |
+| image size, no PGO | 13,637,536 | 13,637,536 — *identical* |
+
+**§14.1 predicted this**: *removing any ONE of the seven framework fields leaves you at 6.12–6.29;
+adding one costs nothing; what decides the outcome is the total size of the allocation graph.* The
+emulation removes exactly one. The 6.48 → 6.40 is that prediction coming true, not a win — and the
+identical image size says the same thing.
+
+**So W11's case is not throughput, and this spec should stop implying it is.** It is the removal of
+`Method.invoke` from service dispatch (which this bench cannot measure — the kit has no
+`@ServiceRegistered` consumers), the removal of the native-image reflection config, and the removal of
+framework-introduced ordering non-determinism. All three are worth it on their own terms.
 
 **So the open W15 question answers itself: do not opt `ServiceRegistryNode` out of the event path.**
 It is not staying. W15 is the interim measure for `NodeNameAuditor`, which has no such exit; W11 is the

@@ -218,8 +218,11 @@ _**`ServiceRegistryNode` is NOT opted out, and should not be** — owner, 2026-0
 service registration becomes statically generated in the event processor the service registry will not
 be an auditor."* Confirmed against the source: it implements `Auditor` solely because `nodeRegistered`
 is its hook for the reflection-heavy `@ServiceRegistered` scan. **W11 removes the reason**, so it
-leaves the auditor set entirely — taking its 6 allocated objects, the largest contributor in the
-escape-analysis cliff table, out of the processor's allocation graph with it. W15 is the interim
+leaves the auditor set entirely, taking its 6 allocated objects with it. **Measured, that buys
+nothing** — the post-W11 shape emulated on the kit reads 6.4032 against 6.4776 unprofiled (where the
+cliff lives), 1.6900 landed, and an identical image size, because §14.1 already established that
+removing any ONE of the seven framework fields saves nothing. **W11's case is reflection removal,
+native-image config removal and determinism, not throughput.** W15 is the interim
 measure for `NodeNameAuditor`, which has no such exit. Spec §16.1a, which also names the one job W11
 does not yet cover: `nodeRegistered` also pushes `DataFlowContextListener.currentContext(...)`, and
 that needs a generated home before the hook can go._
