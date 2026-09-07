@@ -434,3 +434,30 @@ injected configuration.
 
 **That is the test worth building**, and it is the one that matches the owner's framing. Recorded here
 before building it so the design cannot drift toward whichever arm the first numbers favour.
+
+---
+
+## 11. The realistic test — predictions committed before building
+
+Restores the five axes §10 listed. **Same node classes in both arms**; the only difference is how they
+are wired and dispatched.
+
+- **12 light nodes** (a few flops each, like a real graph and unlike §9's matrices) so the inlining
+  budget is *not* the binding constraint and the wiring difference is what shows.
+- **Dependency edges** — nodes read other nodes' outputs, so order matters.
+- **Three event types** reaching different subsets.
+- **Config-driven wiring**: each of two nodes takes its strategy from injected configuration.
+- **Library arm written the way a competent engineer would**: topologically pre-sorted arrays, a switch
+  on event type to a subscriber array, dependencies held as interface fields set at wiring time. No
+  reflection, no per-event map lookup. It simply cannot bind statically, because its wiring is data.
+
+| # | Prediction | Confidence |
+|---|---|---|
+| **T1** | Generated lands **under 4 ns/event** natively — 12 light nodes inline and scalar-replace, as the original 10-node kit does at 1.67. | medium |
+| **T2** | The library pays roughly the §7 rate per node: **≥ 50 ns/event** natively. | medium |
+| **T3** | **Ratio > 10× in the generator's favour** — this is the case §9 could not show, because §9's nodes were too heavy to inline for either arm. | medium |
+| **T4** | On the JIT the ratio is **under 3×**, because the JIT devirtualises what it observes. The AOT/JIT divergence is the point. | high |
+
+**If T3 fails, the "real app" claim does not hold on this evidence** and the honest position becomes that
+Fluxtion's measured advantage is the 8.6% dispatch figure plus provable receivers on graphs small enough
+to inline — which is a much narrower claim than the one being made.
