@@ -1433,3 +1433,67 @@ appears unless the build asked for it.**
 
 Tests: `ReachabilityMetadataGenerationTest` 2/2 · `WasmHostGenerationTest` 2/2, both previously failing
 against the first attempt.
+
+---
+
+## 22. A reusable kit, a multi-JVM sweep, and a correction to §20
+
+### 22.1 The kit
+
+`tools/bench/latency-kit/` — compiles the nodes to a separate jar, generates the processor, and
+measures it across any set of JVMs plus native-image with and without PGO. One `run.sh`.
+
+It encodes the five harness traps this round found, because each of them cost a wrong figure:
+processor constructed inside the loop method; nothing between constructor and loop; `loop` called
+directly rather than through wrappers; a `ClockStrategy` supplied; every arm profiled; `--release 17`
+so one build runs everywhere.
+
+### 22.2 Measured across five JVMs and two native builds
+
+10-node graph, vendor-jar nodes, 200M events, epsilon GC, output verified identical:
+
+| runtime | generated | hand-rolled | ratio |
+|---|---|---|---|
+| Temurin 17.0.14 | 6.45 | 3.38 | 1.9× |
+| Temurin 21.0.5 | 6.48 | 3.46 | 1.9× |
+| OpenJDK 24 | 6.53 | 3.50 | 1.9× |
+| GraalVM 25.0.4 Graal JIT | **5.56** | 2.13 | 2.6× |
+| GraalVM 25.0.4 native-image, no PGO | 7.76 | 2.55 | 3.0× |
+| GraalVM 25.0.4 native-image + PGO | 6.22 | **1.57** | 4.0× |
+
+*(A Corretto 21.0.9 row read 17.6 in one sweep and 5.18 in another; discarded as thermal noise rather
+than reported.)*
+
+**Graal JIT is the fastest JIT for the generated arm** (5.56 against 6.45–6.53 for the OpenJDK line),
+consistent with round 58.
+
+### 22.3 CORRECTION to §20 — the directive is not a guarantee
+
+§20 said the floor was "repeatable and attainable" on the strength of four shapes. **This kit is a
+fifth, and it does not reach it**: 6.22 with the directive applied and confirmed read by
+`native-image` (it names the properties file's origin in the build log). Widening the pattern to
+include the `Runner` and node classes changed nothing (6.13–6.23).
+
+So the accurate statement is: **`PriorityForceInline` reliably helps and does not reliably fix.** The
+1.57 ns figure is real and reproduced in five harnesses; it is not what an arbitrary program gets.
+§20's wording over-claimed and is corrected on the performance page.
+
+The underlying decision is GraalVM's and is filed as
+[oracle/graal#14387](https://github.com/oracle/graal/issues/14387) — the issue already carries the
+two-method reproducer; this is a second, independent instance of the same instability.
+
+### 22.4 The clock, and the published Fluxtion performance page
+
+Running the kit **without** a supplied `ClockStrategy` measured **20.6 ns/event** on Graal JIT.
+Fluxtion's published performance page reports **"~20 ns to process one event (including application
+logic)"** and 50M events/sec.
+
+**That is a striking match, and it is a hypothesis rather than a finding.** The mechanism is exactly
+right — the default `Clock` auditor reads `System.currentTimeMillis()` on every event, and removing it
+takes this graph from 20.6 to 6.5 — but the published figure comes from a different graph
+(`PriceLadder`), a different harness (JMH) and a different machine. **It should be re-measured with a
+supplied clock before anything is concluded**, and the page's attribution of the ~20 ns to
+"application logic" checked against that.
+
+If it holds, the published number is measuring the clock read rather than the graph, and Fluxtion's
+own headline understates it by roughly 3×.

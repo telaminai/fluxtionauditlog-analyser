@@ -1,0 +1,25 @@
+package app;
+
+import com.bench.MarketTick;
+import com.telamin.fluxtion.runtime.time.ClockStrategy;
+import __PKG__.BenchProcessor;
+
+/** Generated per processor package so the hot loop is a direct, statically-typed call. */
+public final class Runner {
+    static double outBuf; static long outBreaches, outUpdates;
+
+    /** stream time: supplied so the Clock auditor does not read the system clock per event.
+     *  Without this the processor measures ~29 ns instead of ~5 on a JIT — 83% of the cost. */
+    private static final long[] STREAM_TIME = {0L};
+
+    static void loop(long n) {
+        BenchProcessor p = new BenchProcessor();
+        p.init();
+        p.onEvent(ClockStrategy.registerClockEvent(() -> STREAM_TIME[0]));
+        MarketTick e = new MarketTick();
+        for (long i = 0; i < n; i++) p.onEvent(e.set(100.0 + (i & 15), 100.5 + (i & 15), i));
+        outBuf = p.buffer.value; outBreaches = p.limit.breaches; outUpdates = p.buffer.updates;
+    }
+    // NOTE: no warm()/timed() wrappers. Delegating through a second method measured 6.2 ns
+    // against 1.6 for the identical loop -- the caller must invoke loop() directly.
+}
