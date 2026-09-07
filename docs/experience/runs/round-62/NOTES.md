@@ -517,3 +517,63 @@ Both results are true and they bound the claim from either side:
 
 - **light nodes (realistic): 9.45× on AOT**, and the library gains nothing from AOT at all;
 - **heavy nodes: the advantage is capped by the inlining budget** and can invert.
+
+---
+
+## 13. Light nodes at scale, and why the fast hand-rolled shape is fragile
+
+### 13.1 The cliff for light nodes sits between 25 and 49
+
+Fan-out of uniform 3-node lanes, one event type. Native + PGO, 3 attempts each.
+
+| nodes | generated (best) | library | ratio | gen/node | all three attempts |
+|---:|---:|---:|---:|---:|---|
+| 10 | 0.4438 | 12.25 | **27.6×** | 0.044 | 5.85, 5.76, **0.44** |
+| 25 | 0.7739 | 28.01 | **36.2×** | 0.031 | 1.28, **0.77**, 1.32 |
+| 49 | 21.9485 | 60.02 | **2.7×** | 0.448 | **21.95, 21.97, 22.01** |
+
+**The attempts column is the evidence.** At 10 and 25 the spread is the build lottery. At 49 all three
+agree to 0.3% — **a hard structural cap, not a lottery** — and per-node cost jumps 14×.
+
+Three regimes now measured, all consistent with one rule (a budget on total inlined code size):
+
+| | inlines | ratio |
+|---|---|---|
+| ≤ 25 light nodes | yes | 27–36× |
+| ~50 light nodes | no | 2.7× |
+| ≥ 5 heavy nodes | no | 1.1×, inverting to 0.76× at 50 |
+
+**Caveat on shape:** this is a pipeline fan-out — one event type, uniform depth, no fan-in. A DAG with
+several event types puts only the reachable subset in each `handleEvent`, which may move the cliff. That
+test is outstanding.
+
+### 13.2 The fast hand-rolled shape is real, and it is one refactor deep
+
+**Owner:** *"When a user builds a hand-rolled calculation they use interfaces and indirection a lot.
+Only if they use pure pull and no object creation do they get close to Fluxtion. If they built
+something from scratch it would be so bespoke it could not be refactored easily and would miss
+optimisations in many places."*
+
+The first half is an assertion about how code is typically written and is not measured here. **The
+second half — that the fast shape is fragile and easily lost — was demonstrated twice today, by
+accident, in this round's own harness:**
+
+| what changed | before | after | cost |
+|---|---|---|---|
+| `private final MatMul impl = new Mat4A();` → the same single implementation reached from an **array** | 0.73 ns | 7.29 ns | **10×** |
+| `private final int n = 4;` → the same value taken from a **constructor parameter** | 11.53 ns | 36.96 ns | **3.2×** |
+
+Neither is a change a reviewer would question. Moving an implementation into a collection and passing a
+size as a parameter are both ordinary, sensible refactorings. Each cost an order of magnitude or close
+to it, **and neither produced any diagnostic**.
+
+**Both were mine**, made while deliberately writing fast code and knowing what to watch for. That is the
+strongest available evidence for the claim: the fast hand-rolled shape requires holding several
+invariants at once — concrete types on the path, no collection indirection, constants inline, no
+interface fields — every one of them invisible when broken, and none of them expressible in the type
+system.
+
+**A generator re-derives all of them on every build.** That is a maintainability argument rather than a
+performance one, and it is the reason the 9.45× measured in §12 is more representative of a real
+alternative than the 8.6% measured against hand-written flat code: the flat shape exists, it is faster
+than Fluxtion, and it survives contact with exactly one refactor.
