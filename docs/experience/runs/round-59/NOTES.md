@@ -1628,3 +1628,60 @@ yet measure 1.43 and 5.45 stably over five alternating reps. Nothing in the emit
 
 Quote the JIT number without qualification. Quote 1.6 only with "when the profile lands well", until
 the Graal issue resolves.
+
+---
+
+## 25. §24 WITHDRAWN — dropping the last auditor was a regression
+
+§24 reported that removing `NodeNameAuditor` took the fast-mode rate from 0% to 50% and called it an
+improvement. **It is the opposite.** That 3-of-6 sample was noise around a regression I had introduced.
+
+### 25.1 The measurement
+
+Same kit, same single-arm harness, same everything except whether the auditor is retained. Each cycle
+is an independent profile collection and native build:
+
+| | fast (≈1.6 ns) | slow (≈5.5 ns) | rate |
+|---|---|---|---|
+| `NodeNameAuditor` **dropped** | 0 | 5 | **0%** |
+| `NodeNameAuditor` **retained** | **11** | 2 | **85%** |
+
+That is a large enough difference not to be a sampling artefact, unlike the 3-of-6 that produced §24.
+
+**Reverted.** What is kept is the correctness fix the attempt uncovered: a graph with no registration
+listeners generated source that could not compile — imports and `eventClassName` established after the
+early return, `auditEvent`/`initialiseAuditor` never emitted though the template calls them, and the
+append guarded on `auditingEvent`. No test covered it because the path was unreachable.
+
+### 25.2 Why the result holds — as far as it is understood
+
+**It is counter-intuitive and I have no mechanism for it.** The *faster* configuration executes strictly
+more code: two inherited no-op virtual calls per event (`nodeNameLookup.eventReceived`,
+`processingComplete`) that the slower configuration does not have.
+
+What can be said, and no more:
+
+- **The graph sits on the compiler's dissolution threshold.** Ten node objects plus framework fields is
+  right at the boundary where partial escape analysis either collapses the whole processor into
+  registers (~1.6 ns) or gives up entirely (~5.5 ns). Nothing lands between the two.
+- **Hand-rolled never wavers because it is one object** with primitive fields — far below any
+  threshold, so it measures 1.55 in every build.
+- **Perturbing the allocation graph tips it either way**, and *which* way is not predictable from the
+  change. Removing three objects made it worse here; that is not a principle, it is this graph.
+
+**Do not read "retain the auditor" as a tuning rule.** It is a local accident of this fixture. The
+transferable statement is the one above: the generated processor is near a compiler threshold, so
+**measure the build you ship**.
+
+### 25.3 Four wrong conclusions in this round, all the same shape
+
+| § | claim | actual |
+|---|---|---|
+| 7.1 | escape shape | `nanoTime()` placement in the harness |
+| 15 | directive unreliable | an arm missing from the profile |
+| 23 | compiler unstable | two missing configuration settings |
+| **24** | **dropping the auditor helps** | **it is a regression; the sample was noise** |
+
+Three were mine, one was the compiler's. **The pattern is reading a small sample as a mechanism.**
+§24 rested on 6 cycles; 13 cycles reversed it. For a bimodal measurement, five samples cannot
+distinguish 0% from 50%, and I twice acted as though they could.
