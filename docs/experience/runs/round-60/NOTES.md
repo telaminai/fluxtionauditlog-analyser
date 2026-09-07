@@ -13,54 +13,85 @@ flags and *the same profile file* produce 1.60 ns on one build and 5.66 on the n
 
 ---
 
-## 1. The mode is decided by the build, not by the source and not by the profile
+## 1. The PGO profile decides it — and my first answer to this was wrong
 
-This is the finding that reframes everything else. `base1` measured **1.60**. Its profile pair was kept
-and fed back to two further builds — same instrumented image, same classes, same flags, nothing else
-changed:
+**Corrected 2026-09-07, after the owner pushed back:** *"I'm still confused why the compiler with
+deterministic rules produces different outputs. I feel the input jar is the same, the only difference
+is pgo or config."* That is exactly right, and the reason this section originally said otherwise is a
+bug in my own harness, not a property of GraalVM.
 
-| build | profile | generated | hand |
-|---|---|---|---|
-| `base1` | freshly collected | **1.60** | 1.57 |
-| `base2` | freshly collected | **1.67** | 1.57 |
-| `base3` | freshly collected | **1.68** | 1.59 |
-| `rp_base1` | **`base1`'s own profile, reused** | 6.66 | 1.59 |
-| `rp_base1b` | **`base1`'s own profile, reused** | 5.66 | 1.56 |
-| `rp_a1` / `rp_a1b` | `aud_a1`'s profile, reused | 5.68 / 5.70 | 1.56 / 1.57 |
+### 1.1 The harness bug
 
-**A profile that produced 1.60 produces 5.66 on a rebuild.** Two builds from one profile also differ in
-SHA while measuring the same, so `native-image` is not byte-reproducible; the nondeterminism reaches
-the inlining decision that decides whether the processor dissolves.
+`cycle4.sh` was supposed to reuse a saved profile when one was supplied. Its guard read
 
-That kills the two explanations round 59 offered in turn — that the node graph sits at a size
-threshold, and that the profile collection varies. Neither survives: the input is identical and the
-output is not.
+```bash
+prof="$D/$name.iprof"
+if [ ! -f "$prof" ]; then   # ← this file NEVER exists; the collected pair is $name.g/.h.iprof
+```
 
-### 1.1 It is baked into the binary once built
+so every run took the collect branch and **overwrote the profiles I had just copied in.** `base1`'s
+profile was written at 07:21; the file the "reuse" build actually consumed was written at 07:28. The
+experiment reused nothing. Every conclusion drawn from it is void, and they were the headline ones.
 
-Not run-to-run luck, and not address luck. Each of the 13 surviving images from round 59 was
-re-measured three times, interleaved: `v6` gives 5.34 / 5.46 / 5.43 and `v7` gives 1.43 / 1.44 / 1.44,
-every time. Padding the environment from 16 B to 16 KB (shifting the stack) and varying
-`-XX:MaxHeapSize` from 128m to 1g (shifting the heap) leave `v6` at 5.34–5.49 throughout.
+### 1.2 What a correct experiment shows
 
-### 1.2 Two different failure signatures, told apart by the hand-rolled arm
+Profile passed explicitly, no collection anywhere, the profile's SHA verified unchanged across the
+build:
 
-The hand-rolled arm contains no processor and no auditor, so it says which decision was lost:
+| profile | three rebuilds | image size |
+|---|---|---|
+| the one that produced 1.60 (`base1`) | **1.5987 / 1.6552 / 1.6804** | 10270136, all three |
+| the one that produced 5.70 (`aud_a1`) | **5.7102 / 5.6310 / 5.6136** | 10270152, all three |
+
+**The compiler is deterministic in the decision that matters.** Hold the profile and the mode is
+reproduced, three times out of three, in both directions, and the image comes out the same size every
+time. The images are not byte-identical — the SHAs differ — so layout or ordering is nondeterministic,
+but nothing that changes the outcome is.
+
+### 1.3 So what varies is the profile, and it varies a lot
+
+The two profiles above were collected from the *same instrumented image*, running the *same workload*,
+minutes apart:
+
+| section | landing profile | missing profile | differ | only in landing | only in missing |
+|---|---|---|---|---|---|
+| `callCountProfiles` | 7,988 | 7,887 | **1,190** | 162 | 61 |
+| `conditionalProfiles` | 6,160 | 6,046 | **1,194** | 158 | 44 |
+| `samplingProfiles` | 6 | 8 | 7 | 1 | 3 |
+
+Round 59 said these profiles were "identical on every hot counter". **They are not**, and that claim
+came from comparing *section lengths and the four hottest methods*, never the contexts. The four hot
+methods do match at 21,000,000 each; over a thousand contexts around them do not.
+
+That is not mysterious either. Collecting a profile means running an instrumented binary, so the
+profile is a **measurement**, and measurements of a JVM-shaped startup vary: class initialisation,
+deoptimisation, GC and sampling all land differently run to run. It only takes one of those
+differences to sit on an inlining decision.
+
+### 1.4 The consequence, which is better than the thing it replaces
+
+**Keep the profile, not just the binary.** A landing profile is a reproducible input: commit it,
+rebuild from it, get the result again. A landing binary is one artifact that goes stale the moment the
+classes change. `tools/bench/land-native.py` now keeps both, and takes `--profile` to rebuild from a
+known-good one with no collection and no lottery.
+
+### 1.5 What survives from the original section
+
+- **The mode is fixed once the image is built.** Each of round 59's 13 images re-measured three times,
+  interleaved: `v6` gives 5.34 / 5.46 / 5.43, `v7` gives 1.43 / 1.44 / 1.44. Padding the environment
+  from 16 B to 16 KB and varying `-XX:MaxHeapSize` from 128m to 1g move neither.
+- **Two failure signatures, told apart by the hand-rolled arm** (it holds no processor, so it says
+  which decision was lost):
 
 | | generated | hand-rolled | what failed |
 |---|---|---|---|
 | directive missing (`nf_base`) | 5.59 | **1.56** | the dispatch chain — arm-specific |
-| a bad build, directive present (`aud_a1..a4`, `rp_*`) | 5.58–6.66 | **1.56** | the dispatch chain, again |
-| a bad build, round 59's images (`v6`, `v11`) | 5.41 | **5.41** | **both arms** — `onTick` too |
+| a missing build, directive present | 5.6 | **1.56** | the dispatch chain, again |
+| round 59's `v6`, `v11` | 5.41 | **5.41** | **both arms** — `onTick` too |
 
-The published mechanism covers the first row and is confirmed. The third row is the one round 59
-mis-explained: it loses the hand-rolled arm as well, and hand-rolled is a single object with primitive
-fields. **Round 59 §25.2 is therefore withdrawn** — "hand-rolled is one object so it always lands" is a
-good story that this measurement kills.
-
-Unified reading, and no more than the evidence carries: the priority inliner's decisions vary between
-builds, and *which* call site it declines to inline varies with them. `PriorityForceInline` removes the
-decision for the class you name; it does not remove it anywhere else.
+- **Round 59 §25.2 stays withdrawn.** "Ten node objects sit at a size threshold, hand-rolled is one
+  object so it always lands" is killed by that third row: in those builds the hand-rolled arm does not
+  land either, and it has nothing to dissolve.
 
 ## 2. Levers: six knobs, none of them work
 
@@ -88,8 +119,10 @@ and not one moves a processor the priority inliner has decided not to inline.
 
 ### 2.1 Nor does forcing more inlining, up to and including all of it
 
-These were run *during* the slow run described in §2.3, with `base1`'s profile fixed as the input — so
-a knob that rescues dissolution would show as 1.6 against a floor of 5.6. None did.
+These were run *during* the run of misses described in §2.3. Each is a full fresh cycle with its own
+collected profile (the `--profile` reuse path did not exist yet, and the guard that was supposed to
+provide it was broken — §1.1), so each row is one sample of a knob against a background that was
+producing ~5.6 unaided. None of them rescued it.
 
 | flag | generated | hand |
 |---|---|---|
@@ -110,19 +143,29 @@ Three candidate sources were checked and none of them is it:
 
 | suspect | test | result |
 |---|---|---|
-| build parallelism | `-H:NumberOfThreads=1`, twice, same profile | 5.61 / 5.51 — **and the two images still differ in SHA**, so the build is not deterministic even single-threaded |
-| build parallelism | `-H:NumberOfThreads=4`, twice | 5.47 / 5.60, different sizes |
+| build parallelism | `-H:NumberOfThreads=1`, twice | 5.61 / 5.51 |
+| build parallelism | `-H:NumberOfThreads=4`, twice | 5.47 / 5.60 |
 | builder heap (sized from *available* RAM, so it drifts) | read back from each build log | 9.28–9.65 GB, and it does not sort: `base3` at 9.31 GB is fast, `rp_base1` at 9.32 GB is slow |
 
 The kit's inputs were verified unmodified for the whole session (`find -newermt` over `target/classes`
-and `target/res` finds nothing).
+and `target/res` finds nothing). These four builds each had their own freshly collected profile, so by
+§1.2 they are four different inputs and prove nothing about determinism — they are listed only as
+knobs that did not rescue a run of misses.
+
+**Byte-reproducibility, stated correctly:** two builds from one explicitly supplied profile
+(`p7a`/`p7b`, and again `fx_a1..a3`) come out the same size and measure the same, with different
+SHA-1s. Ordering or layout is nondeterministic; the optimisation decisions are not.
 
 ### 2.3 One thing that is not explained
 
-The outcomes are not independent. `base1..3` were fast; every one of the fifteen builds after them was
-slow, across four separate batches, with the identical command and unmodified inputs. An i.i.d. coin
-does not do that in either direction. Something about the machine's state persists across builds and
-changes slowly, and none of the three suspects above is it.
+The outcomes are not independent. `base1..3` landed; every build after them missed, across four
+batches, with the identical command and unmodified classes. By §1.2 each of those had its own freshly
+collected profile, so the thing that clustered is **profile collection**, not the compiler — but that
+only moves the question. Something about the machine's state biased twenty consecutive collections the
+same way. The instrumented image, the workload, the iteration counts and the machine were all
+unchanged; what differed is that from the second batch onward there was always a background
+poll loop running while the profiles were collected. That is a hypothesis with one supporting
+coincidence and no test behind it.
 
 **That is recorded as unexplained, not as a mechanism.** It is also the strongest argument on this page
 for the rule that follows from it: the build you measured is the only build you know about.
@@ -171,9 +214,9 @@ the experiment controlled. §24 and §25 are both superseded by §1 here.
 
 ## 5. What this changes on the published page
 
-- The 1.57 claim stands, qualified, and the qualification is stronger than "85%": the landing rate is
-  itself not a stable property. Round 59 measured 11 of 13; this round measured 3 fast and then **15
-  slow in a row** for the identical configuration and unmodified inputs.
+- The 1.57 claim stands. The qualification is now precise: **it is a property of the profile**, so a
+  landing profile is worth keeping and rebuilding from, and the landing *rate* of fresh collections is
+  not a stable number (11 of 13 in round 59; 3 and then a long run of misses here).
 - **Verify the build you ship** stops being advice and becomes the method. Rebuild until it lands, and
   keep the binary that did — the mode is fixed once built (§1.1).
 - Do not spend time on the escape-analysis and inliner knobs (§2), the wider force-inline patterns

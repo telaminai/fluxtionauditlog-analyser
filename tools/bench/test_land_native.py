@@ -106,5 +106,32 @@ class BestAndSummary(unittest.TestCase):
         self.assertIn("LANDED", text)
 
 
+class KeepProfiles(unittest.TestCase):
+    """The profile is the reproducible input; keeping only the binary loses the result."""
+
+    def test_the_profile_pair_is_copied_next_to_the_binary(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            root = pathlib.Path(d)
+            srcs = []
+            for arm in ("generated", "hand"):
+                f = root / f"{arm}.iprof"
+                f.write_text(f"profile for {arm}")
+                srcs.append(str(f))
+            kept = land.keep_profiles(srcs, root / "bench.profiles")
+            self.assertEqual([k.name for k in kept], ["generated.iprof", "hand.iprof"])
+            self.assertEqual((root / "bench.profiles" / "hand.iprof").read_text(), "profile for hand")
+
+    def test_the_destination_is_created(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            root = pathlib.Path(d)
+            src = root / "generated.iprof"
+            src.write_text("p")
+            dest = root / "nested" / "bench.profiles"
+            land.keep_profiles([str(src)], dest)
+            self.assertTrue((dest / "generated.iprof").is_file())
+
+
 if __name__ == "__main__":
     unittest.main()

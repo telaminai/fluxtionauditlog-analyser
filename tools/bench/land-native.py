@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Build a native image until it LANDS in the fast mode, and keep the one that did — M50/W9.
 
-Round 60 established that a GraalVM native image built from identical classes, identical flags and
-an identical PGO profile lands at either ~1.6 ns/event or ~5.5, and that nothing measurable
-distinguishes the two before you run them. See docs/experience/runs/round-60/NOTES.md and
-https://github.com/oracle/graal/issues/14387.
+Round 60 established that a GraalVM native image lands at either ~1.6 ns/event or ~5.5 — and that
+**the PGO profile decides which.** Hold the profile fixed and three rebuilds reproduce the mode
+(1.60/1.66/1.68 from one profile, 5.71/5.63/5.61 from another). The compiler is deterministic in the
+decision that matters; what varies is the profile, because collecting one means running an
+instrumented binary, and two collections of the same workload differ in over a thousand call-count
+contexts. See docs/experience/runs/round-60/NOTES.md and https://github.com/oracle/graal/issues/14387.
 
-Determinism would be better. Until it exists, this is the pragmatic route: **build, measure, keep
-the binary that landed.** A binary reproduces its own mode exactly for ever, so one that lands is
-one you can ship.
+So the route is: **collect profiles until one lands, then keep the PROFILE.** A landing profile is a
+reproducible input you can commit and rebuild from; a landing binary is only one artifact. This
+harness does both — it keeps the binary and it keeps the profile pair that produced it.
 
 What it refuses to do, because round 59 and 60 each lost a day to one of these:
 
@@ -17,14 +19,22 @@ What it refuses to do, because round 59 and 60 each lost a day to one of these:
 * **believe an elimination.** A measurement at or below ``--floor`` is a deleted loop, not a result.
 * **cap coverage silently.** Every attempt is printed, and exhausting the attempts is a non-zero
   exit with the best-so-far kept and named.
-* **reuse a profile across a rebuild of the instrumented image.** Profiles are collected fresh from
-  the instrumented image in force for that attempt; reused across a rebuild they measured 8.0 ns,
-  worse than no profile at all.
+* **reuse a profile across a rebuild of the instrumented image.** Profiles belong to the instrumented
+  image that produced them; carried across a rebuild of *that* image they measured 8.0 ns, worse than
+  no profile at all. Reuse against the same instrumented image, or with ``--profile`` for a final
+  build, is exactly what you want and is how a landing result is reproduced.
 
 Usage::
 
+    # search: collect profiles until one lands; keeps target/bench and target/bench.profiles/
     land-native.py --graal-home $GRAAL --cp "$CP" --main app.Bench --out target/bench \\
                    --arm generated --arm hand --target 2.0 --attempts 10
+
+    # reproduce: rebuild from the profile that landed, no collection, no lottery
+    land-native.py --graal-home $GRAAL --cp "$CP" --main app.Bench --out target/bench \\
+                   --arm generated --arm hand --target 2.0 --attempts 1 \\
+                   --profile target/bench.profiles/generated.iprof \\
+                   --profile target/bench.profiles/hand.iprof
 
 Exit 0 when an attempt lands, 1 when none does (the best is still kept).
 """
@@ -119,6 +129,21 @@ def build_instrumented(ni, cp, main, out, extra):
         raise RuntimeError(f"instrumented build failed:\n{r.stdout[-2000:]}{r.stderr[-2000:]}")
 
 
+def keep_profiles(profiles, destination):
+    """Copy the profile pair that produced a result next to the binary it produced.
+
+    The binary is one artifact; the profile is the reproducible input. Keeping only the binary is
+    how a landing result becomes unrepeatable the moment the classes change.
+    """
+    destination.mkdir(parents=True, exist_ok=True)
+    kept = []
+    for src in profiles:
+        dst = destination / pathlib.Path(src).name
+        shutil.copy2(src, dst)
+        kept.append(dst)
+    return kept
+
+
 def collect_profiles(instr, arms, work, warm, iters):
     profiles = []
     for arm in arms:
@@ -167,6 +192,9 @@ def main(argv=None):
     ap.add_argument("--profile-warm", type=int, default=1_000_000)
     ap.add_argument("--profile-iters", type=int, default=20_000_000)
     ap.add_argument("--flag", action="append", default=[], help="extra native-image flag, repeatable")
+    ap.add_argument("--profile", action="append", default=[],
+                    help="use this profile instead of collecting one; repeatable, one per arm. "
+                         "This is how a landing result is reproduced.")
     a = ap.parse_args(argv)
 
     arms = a.arm or ["generated"]
@@ -176,7 +204,15 @@ def main(argv=None):
     work = out.parent / f"{out.name}.land"
     work.mkdir(parents=True, exist_ok=True)
     instr = work / "instrumented"
-    rebuilds = instrumented_attempts(a.attempts, a.reinstrument_every)
+    kept_profiles = pathlib.Path(f"{a.out}.profiles")
+    fixed = [str(pathlib.Path(p).resolve()) for p in a.profile]
+    for f in fixed:
+        if not pathlib.Path(f).is_file():
+            print(f"no profile at {f}", file=sys.stderr)
+            return 2
+    rebuilds = [] if fixed else instrumented_attempts(a.attempts, a.reinstrument_every)
+    if fixed:
+        print(f"using {len(fixed)} supplied profile(s); collecting none", flush=True)
 
     history = []
     for attempt in range(1, a.attempts + 1):
@@ -186,7 +222,7 @@ def main(argv=None):
             if attempt in rebuilds:
                 print(f"attempt {attempt}: building the instrumented image", flush=True)
                 build_instrumented(ni, a.cp, a.main, instr, a.flag)
-            profiles = collect_profiles(instr, arms, work, a.profile_warm, a.profile_iters)
+            profiles = fixed or collect_profiles(instr, arms, work, a.profile_warm, a.profile_iters)
             build_final(ni, a.cp, a.main, candidate, profiles, a.flag)
             results = measure(candidate, arms, a.warm, a.iters)
             if not checks_agree(results):
@@ -205,10 +241,13 @@ def main(argv=None):
             print(f"attempt {attempt}: {arms_str}", flush=True)
             if landed(results, primary, a.target):
                 shutil.copy2(candidate, out)
+                saved = keep_profiles(profiles, kept_profiles)
                 print(f"\nLANDED on attempt {attempt} of {a.attempts} "
                       f"({primary}={results[primary][0]:.4f} ns <= {a.target})")
                 print(summarise(history, primary, a.target))
                 print(f"kept: {out}")
+                print(f"kept the profile that produced it — rebuild from it with "
+                      f"{' '.join('--profile ' + str(p) for p in saved)}")
                 return 0
         else:
             print(f"attempt {attempt}: DISCARDED — {note['discarded']}", flush=True)

@@ -7,13 +7,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
-- **Build a native image until it lands, and keep the one that did.** `tools/bench/land-native.py`
-  answers the one thing GraalVM will not: an image built from identical classes, identical flags and an
-  identical PGO profile lands at either ~1.6 ns/event or ~5.5, and nothing measurable tells the two
-  apart before you run them ([oracle/graal#14387](https://github.com/oracle/graal/issues/14387)).
-  Because a binary reproduces its own mode for ever, one good build is a shippable build — so the
-  harness builds, measures and keeps the binary that landed, optionally rebuilding the instrumented
-  image every N attempts. **It refuses rather than reports**: arms that disagree on output are
+- **Collect a PGO profile until the native build lands, then keep the profile.**
+  `tools/bench/land-native.py`. A GraalVM image lands at either ~1.6 ns/event or ~5.5, and **the
+  profile decides which**: hold it fixed and four rebuilds reproduce it (1.60/1.66/1.68/1.67), while a
+  profile that misses reproduces that too (5.71/5.63/5.61). The compiler is deterministic in the
+  decision that matters; what varies is profile *collection*, which is a measurement — two collections
+  of one workload minutes apart differ in over a thousand call-count contexts. So the harness collects,
+  builds and measures until one lands, then keeps **both** the binary and the profile pair that produced
+  it, and prints the `--profile` command that rebuilds it with nothing left to chance. **It refuses rather than reports**: arms that disagree on output are
   discarded unmeasured, a figure at or below the elimination floor is a deleted loop and not a result,
   a run that produced no `RESULT` line is a failure and never a zero, and every attempt — including
   every discarded one — is printed, so exhausting the attempts cannot read as coverage.
