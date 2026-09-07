@@ -1576,6 +1576,27 @@ switch-on-id alternative is worse). Both exist so nobody optimises in the wrong 
 
 ---
 
+### UP-GRAAL-01 ◐ Priority inliner leaves the dispatch chain out of line, defeating escape analysis
+
+_Filed: https://github.com/oracle/graal/issues/14387_
+
+**Target** `oracle/graal` (native-image) · **Priority** high — it is a silent 3.5x on every AOT
+deployment of a generated processor.
+
+Not a defect so much as a cost-model outcome: the chain
+`onEvent -> processEvent -> onEventInternal -> handleEvent` is not inlined into the caller's loop, so
+the processor is passed to a non-inlined callee, escapes, and its node objects stop being
+scalar-replaced. `-H:PriorityForceInline=<Class>.*` recovers it fully — 1.57 ns against 5.56 — and the
+generator now emits that directive automatically (M50/W4), so the workaround costs users nothing.
+
+The issue carries the minimal reproducer (two byte-identical methods: one profiled gives 5.55, two give
+1.57 each), the eleven knobs ruled out by measurement, and a second observation that may be its own
+bug — naming the chain's methods individually has **no effect** while the whole-class wildcard works,
+with byte-identical image size.
+
+**Cost to us if unfixed: none, now.** The directive ships with the generated processor. This is filed
+because the failure is silent for anyone who does not know the flag, not because we are blocked.
+
 ### UP-FLX-51 ◐ EventLogManager costs ~120 ns/event when recording nothing
 
 _Filed: https://github.com/telaminai/fluxtion/issues/32_
