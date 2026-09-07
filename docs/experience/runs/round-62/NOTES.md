@@ -461,3 +461,59 @@ are wired and dispatched.
 **If T3 fails, the "real app" claim does not hold on this evidence** and the honest position becomes that
 Fluxtion's measured advantage is the 8.6% dispatch figure plus provable receivers on graphs small enough
 to inline — which is a much narrower claim than the one being made.
+
+---
+
+## 12. The realistic test — results
+
+14 nodes, three event types, dependency edges, injected strategies. **Same node classes in both arms.**
+Outputs identical on all five published values.
+
+| | JIT *(3 reps)* | native + PGO *(3 attempts)* | native speed-up |
+|---|---|---|---|
+| **generated** | 6.221 | **2.123** | **2.93×** |
+| **library** | 18.841 | 20.057 | **0.94× — slower** |
+| **ratio** | **3.03×** | **9.45×** | |
+
+### 12.1 The result
+
+**On a realistic graph the generated processor is 3× faster than a competently-written library on a
+JIT, and 9.5× faster on native + PGO.**
+
+**The line that matters is the last column.** Native + PGO makes the generated processor **2.93×
+faster**. It makes the library **6% slower**. The library gets *nothing* from ahead-of-time compilation
+— everything it does is decided by data the compiler cannot see, so there is nothing for AOT to
+specialise, and it pays the closed world's costs without collecting any of its benefits.
+
+That is the owner's argument, measured, on the shape it was claimed for.
+
+### 12.2 Scoring
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| T1 | generated under 4 ns natively | 1.96–2.21 | **RIGHT** |
+| T2 | library ≥ 50 ns natively | 19.4–21.0 | **WRONG** |
+| T3 | ratio > 10× native | 9.45× | **marginally wrong** |
+| T4 | ratio < 3× on JIT | 3.03× | **marginally wrong** |
+
+**T2 is wrong for a reason worth keeping.** I scaled from §7's *6 ns per unprovable call site* — but
+that figure was measured on a 4×4 matrix multiply, where the penalty is dominated by an un-inlined body
+doing real work. These nodes are a few flops each, and the measured penalty is **1.28 ns/node**. So the
+per-site cost of an unprovable receiver is not a constant: **it is roughly the cost of the work that
+fails to inline with it.** Light nodes, small penalty; heavy nodes, large penalty.
+
+T3 and T4 both missed by under 5% and in the direction of the claim being slightly weaker than
+predicted. Recorded as misses rather than rounded into wins.
+
+### 12.3 What §9 got wrong, and why this test is the right one
+
+§9 measured 1.31× **against** the generator at 50 nodes and could not show a wiring advantage at all.
+The difference is node weight: §9's nodes were 4×4 matrix multiplies, far too heavy for either arm to
+inline, so both reverted to un-inlined per-node cost and the wiring difference was invisible underneath.
+**These nodes are light, which is what a real graph looks like**, so the wiring difference is the
+dominant term and the generated arm inlines the lot.
+
+Both results are true and they bound the claim from either side:
+
+- **light nodes (realistic): 9.45× on AOT**, and the library gains nothing from AOT at all;
+- **heavy nodes: the advantage is capped by the inlining budget** and can invert.
