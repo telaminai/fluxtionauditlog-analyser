@@ -183,6 +183,28 @@ contribution first. Necessary but not sufficient for replay — leaves return-va
 choice; `tools/bench` harness fixes compilation shape, interleaves arms in one binary, asserts output
 equivalence before timing, and fails on a suspiciously clean zero._
 
+**[M50.13] ☐ Owner decision — should `LOWEST_LATENCY` also set buffer/subscriptions?** _(raised
+2026-09-07 by measurement)_ · _The profile sets exactly three things and leaves `supportBufferAndTrigger`
+and `supportReentrancy` at `true`, so the generated `processEvent` still carries a buffer guard, a
+re-entrancy guard and a callback drain per event. **Measured on the JIT, 3 interleaved reps, output
+identical: 5.141 ns with them against 4.893 without — ~5%, ranges not overlapping.** It is the only
+measurable win found in a day of measuring. It is **invisible on a landed native build** (1.6706 against
+1.6867/1.6900), because scalar replacement turns those fields into registers and folds the branches._
+
+_Two of the three are plain config today (`setSupportBufferAndTrigger(false)`,
+`setSupportSubscriptions(false)`) and the page's checklist now names them — that omission was the
+defect. The third, re-entrancy, is W4 and needs its build-time detection before a profile should turn
+it off. **The decision is whether a profile named LOWEST_LATENCY should give up two more capabilities
+by default**, given it already gives up the audit log and conditional propagation and says so._
+
+**[M50.14] ☐ The end of source-level tuning, and what follows from it** _(2026-09-07)_ · _Four shapes of
+one graph, each a real build with identical output: shipped, W15, post-W11, and guards-removed. **On a
+landed native build the generated arm sits 0.12–0.14 ns above hand-rolled and nothing moves it** — not
+auditor calls, not the service registry, not the guards. With an accurate profile and the directive the
+processor is scalar-replaced whole and there is nothing left for a source change to remove. **Every
+remaining M50 item should therefore be justified by correctness, determinism or generated-code clarity,
+not by a promised nanosecond.** W11's own entry has already been rewritten on that basis._
+
 **[M50.12] ◧ W15 — an auditor can decline the event path** · IMPLEMENTED 2026-09-07, on branch ·
 _Owner's design: **"add another default method … default is Boolean return true. NodeNameAuditor
 overrides and only returns false. The generated code then is even more optimal."** `Auditor` gains
