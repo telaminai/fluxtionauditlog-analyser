@@ -642,3 +642,26 @@ At 10M msgs/sec the budget is 100 ns per message, so the same figures are **13% 
 throughput budget** on the larger graph. **The advantage shows up as throughput headroom, not as p50
 latency** — and the p99.9+ percentiles are OS-jitter dominated on that hardware, so nothing in the graph
 reaches them.
+
+---
+
+## 15. 30 nodes, 5 event types, all paths converging on one common tail — prediction first
+
+Owner's design, and it is aimed at the boundary §14 found: **30 nodes sits between the 25 that landed
+(36×) and the 49 that did not (2.7×)**, and *every* event path ending in the same tail is the maximum
+case for Fluxtion's common-tail factoring. If tail sharing can move the inlining boundary, this shape is
+where it shows.
+
+Structure: 5 roots, chains of length 6/3/4/1/5 giving genuinely different path depths, then a shared
+6-node tail every path converges on. 30 nodes, depth 12 max / 7 min.
+
+| # | Prediction | Confidence |
+|---|---|---|
+| **U1** | **It lands.** With one shared tail the distinct inlined bodies are ~25 (19 chain + 6 tail) rather than 30, and 25 landed at 36×. Predict generated **under 2 ns** natively. | medium |
+| **U2** | Ratio **> 8×**, i.e. the small-graph regime, not §14's 2.5×. | medium |
+| **U3** | The generated arm gets **> 2× from AOT**; the library gets **< 1.2×**. That divergence is the signature of being under the budget — it was 2.93× vs 0.94× at 14 nodes and 1.17× vs 1.19× at 54. | medium |
+| **U4** | Fluxtion emits **one** common tail method covering all five event types. | high |
+
+**If U1 fails at 30 nodes with maximal sharing**, the boundary is lower than §14 suggested and tail
+factoring does not move it — which would make the order-of-magnitude regime a small-graph phenomenon
+only, and worth saying plainly.
