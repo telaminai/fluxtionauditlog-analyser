@@ -107,6 +107,40 @@ and note the brief's admission that **the bench has never been run against a rea
 
 ---
 
+## M51 · The native-ready starter template — ☐ SPEC DRAFTED, cross-repo
+
+Spec: **[spec-native-ready-template.md](spec-native-ready-template.md)**. Raised by the owner
+2026-09-07: the playground template the analyser downloads should be *the best one for native use*.
+
+Read live: the catalogue entry named **"Fluxtion AOT (native-ready)"** carries `compileMode: "aot"` and
+`auditLogging: true` and **none of the eight settings that decide whether a native image reaches
+1.6 ns/event**. A user who picks it, builds native and measures gets 5.5–29 ns — 3.5× to 18× off — and
+nothing tells them. The name is a promise the artifact does not keep.
+
+The template's real job is not to hand over a fast binary. Round 60 established that the **PGO profile
+decides the mode** and the compiler reproduces it (four rebuilds from a landing profile: 1.60/1.66/1.68/1.67;
+three from a missing one: 5.71/5.63/5.61) — what varies is *collection*. So the template ships **the loop
+that finds a good profile and the place to keep it**, plus a benchmark that fails when a build misses,
+because a missing build is 3.5× slower and invisible.
+
+**[M51.1] ☐ UP-PG-05 — the honest catalogue field** · _`native: "ready"|"capable"|"none"` on each entry,
+and relabel `fluxtion-aot.starter.json`, which is `capable` today. One field and one name; can land alone._
+
+**[M51.2] ☐ UP-PG-04 — the `native` block in the starter schema** · _generator emits the two Maven
+profiles (`native-maven-plugin` `compile-no-fork`), the shaped builder, void-trigger nodes, the loop-shaped
+`Main`, `tools/collect-pgo.sh`, `src/pgo/` and its staleness README, and `Bench.java`. Absent block ⇒
+today's behaviour, so no existing template changes shape._
+
+**[M51.3] ☐ `template-bench.py --native`** · _E1–E5 static and run by default; E6–E8 need a GraalVM and are
+opt-in. **E8 gates on the measurement**, never on the profile merely being present._
+
+**Decided in the spec, not deferred:** the default shape stays **`audited`** (`performanceProfile(AUDITED)`
++ `addAuditedEventLog(INFO)`, ~5.2 ns, keeps the log without the 208 bytes/event) with `fastest`
+(`LOWEST_LATENCY`, ~1.6 ns, no audit log) opt-in. A starter that emits nothing to analyse would fail the
+pathway the catalogue exists to serve.
+
+---
+
 ## M50 · Compiler & runtime optimisation — ☐ SPEC COMPLETE, branch not started
 
 Spec: **[spec-generated-dispatch-performance.md](spec-generated-dispatch-performance.md)** — Part IV §19

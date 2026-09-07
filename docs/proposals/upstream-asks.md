@@ -1668,3 +1668,68 @@ throughput at the cost of the audit log, and recommends a deployment split over 
 recommendation is written from a repo whose product is reading those logs; the draft says so. Reword it
 if you disagree — but the trade-off should not go unstated, and hoisting auditor calls was measured at
 **0% on both runtimes**, so there is no partial retreat that recovers the cost.
+
+---
+
+## UP-PG-04 ☐ The starter schema has no way to say "native", so the native template is not one
+
+**Target** `fluxtion-web` (playground) · **Spec** [`spec-native-ready-template.md`](../specs/spec-native-ready-template.md) §D1–D2 · **Milestone** M51.2
+
+**Evidence — read live, 2026-09-07.** `starter-templates/fluxtion-aot.starter.json` is the catalogue
+entry named *"Fluxtion AOT (native-ready)"*. Its entire native content is `"compileMode": "aot"`, and it
+sets `"auditLogging": true`. Of the eight settings that decide whether a native image reaches
+1.6 ns/event, it carries none, and that last one is the most expensive default available.
+
+**The ask.** An optional `native` block in the starter schema, absent ⇒ today's behaviour exactly:
+
+```json
+"native": { "enabled": true, "shape": "audited", "gc": "serial",
+            "pgo": { "dir": "src/pgo", "collectScript": true, "attempts": 10 },
+            "benchmark": { "enabled": true, "targetNs": 2.0 } }
+```
+
+When present the generator emits: the builder with `performanceProfile(...)` per `shape` and
+`generateReachabilityMetadata(true)`; nodes whose `@OnTrigger`/`@OnEventHandler` set
+`failBuildIfMissingBooleanReturn = false`; a `Main` with the processor constructed inside the loop
+method and nothing between the constructor and the loop; a `pom.xml` with `native-maven-plugin`
+`instrumented`/`native` profiles pointing `--pgo` at a **committed** `src/pgo/app.iprof` rather than a
+regenerated `default.iprof`; `tools/collect-pgo.sh`; and a benchmark with a threshold.
+
+**Why the script rather than a shipped profile.** The PGO profile decides which mode the image lands
+in, and the compiler reproduces it — four rebuilds from a landing profile measured 1.60/1.66/1.68/1.67,
+three from a missing one 5.71/5.63/5.61. What varies is *collection*. A profile is also only valid for
+the graph that produced it, so a template that shipped one would be lying by the user's first edit.
+The template's job is the loop that finds a good profile and the place to keep it.
+
+**Cost to us if unfixed.** Anyone following the analyser's own onboarding into native gets 5.5–29
+ns/event instead of 1.6, silently — the program is correct, just 3.5× to 18× slower, with no warning in
+the build log. Evidence: [`round-58`](../experience/runs/round-58/NOTES.md) …
+[`round-60`](../experience/runs/round-60/NOTES.md) and
+[`fluxtion-performance-configuration.md`](fluxtion-performance-configuration.md).
+
+## UP-PG-05 ☐ The catalogue cannot say which templates are native-ready, and one name overclaims
+
+**Target** `fluxtion-web` (playground) · **Spec** [`spec-native-ready-template.md`](../specs/spec-native-ready-template.md) §D3 · **Milestone** M51.1
+
+**Evidence.** `index.json` (`catalogue: 1`, 14 entries) carries `name`, `description`, `file`, `type`,
+`mode`. Nothing distinguishes *will build a native image* from *is configured to be fast as one*, and
+`fluxtion-aot.starter.json` is currently named as though it were the second while being the first.
+
+**The ask.** One field per entry, absent ⇒ `"none"`:
+
+```json
+"native": "ready" | "capable" | "none"
+```
+
+`ready` = generated from a `native` block and passing the M51.3 bench; `capable` = AOT, builds natively,
+carries none of the configuration. **And relabel `fluxtion-aot.starter.json`** — either it earns
+`ready` by carrying UP-PG-04, or the parenthetical *(native-ready)* comes off the name. Shipping the
+current name beside a truthful field would be worse than either.
+
+**Why it is separable.** UP-PG-05 is one field and one string; it can land alone and immediately, and it
+makes the catalogue honest while UP-PG-04 is built. The analyser's `File ▸ New project from template…`
+(M19.5) can then badge and filter on it.
+
+**Cost to us if unfixed.** The analyser's template picker cannot tell a user which template to start
+from for native work, so the recommendation has to live in prose that nobody reads at the moment of
+choosing.
