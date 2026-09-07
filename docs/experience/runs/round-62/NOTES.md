@@ -291,3 +291,50 @@ independent of how many implementations exist.
 inlining boundary at k=4; both were built from an option default (`MaxPolymorphicDispatches=4`) rather
 than from a measurement. The control that settles it — `runtimeMono` — had already been measured in §5
 and I did not think to compare against it until the sweep made the shape obvious.
+
+---
+
+## 8. Two corrections to how this round has been framed
+
+**Owner, 2026-09-07:** *"Remember — this is human vs human, it will be Babylon vs human. Imagine a graph
+with 50 nodes and a human trying to optimise all of that."*
+
+Both are right and both change the reading of §3–§7.
+
+### 8.1 What has been measured is human vs human, so it is a LOWER bound
+
+Every arm in this round is code a person wrote. The builder's contribution is only that it **selects**
+between human-written implementations using build context. **The node bodies are not derived by
+anything.**
+
+So this round measures the *selection* axis alone, and the selection axis alone is worth **6.35×**
+(unprovable receiver) to **26×** (unspecialised body). **The Babylon claim — deriving a specialised body
+from a code model — is a second axis this round does not touch at all.** Everything here is a floor
+under that argument, not a test of it.
+
+### 8.2 `fixed` is not a ceiling anyone can reach at scale, and I have been quoting it as one
+
+I have repeatedly written that `fixed` beats `generated` by 1.48×, as though a human specialising by
+hand were the standard to beat. **For one 4×4 matrix that is true and it is also irrelevant.**
+
+The costs behave completely differently as a graph grows:
+
+| | scales with | measured here |
+|---|---|---|
+| Fluxtion event wrapper | **per event** — constant | ~0.37 ns, once, however many nodes |
+| unprovable receiver | **per node** | ~6.1 ns each |
+| unspecialised body | **per node** | ~29 ns each at 4×4 |
+
+**A human hand-specialising one node is a weekend. Fifty nodes, each with its own configuration, kept
+consistent as the configuration changes, is not a thing that happens** — and the penalty for not doing
+it is paid fifty times while the processor's own overhead is paid once.
+
+That is the claim worth measuring next, and it is testable: **hold the node work constant and scale the
+node count.** If the wrapper is per-event and the penalty is per-node, the two curves diverge linearly,
+and the 1.48× I have been quoting is an artifact of a single-node graph — the worst case for the
+generator and the best case for the hand-written arm.
+
+**Prediction, committed before building it:** at 50 nodes the generated processor's overhead is still
+~0.37 ns of wrapper, while a library-shaped equivalent pays ~50 × 6.1 ns. Predict the ratio moves from
+today's 1.48× *against* the generator at one node to **> 5× in its favour at fifty**, with the crossover
+below ten nodes.
