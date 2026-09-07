@@ -41,11 +41,10 @@ java -cp "$OUT/classes:$OUT/vendor-nodes.jar:$COMPILER_CP" \
      -DsrcDir="$OUT/gen" -DresDir="$OUT/res" -Dpkg="$PKG" app.Generate
 
 echo "== 3. compile the benchmark"
-sed "s/__PKG__/$PKG/" "$HERE/src/app/Runner.java.template" > "$OUT/app/Runner.java"
+sed "s/__PKG__/$PKG/" "$HERE/src/app/Bench.java.template" > "$OUT/app/Bench.java"
 RT=$(tr ':' '\n' <<< "$COMPILER_CP" | grep 'fluxtion-runtime' | head -1)
 "$JAVAC" -nowarn --release "$RELEASE" -d "$OUT/classes" -cp "$OUT/vendor-nodes.jar:$RT" \
-    $(find "$OUT/gen" -name '*.java') "$HERE"/src/com/benchv/HandBase.java \
-    "$OUT/app/Runner.java" "$HERE/src/app/Bench.java"
+    $(find "$OUT/gen" -name '*.java') "$HERE"/src/com/benchv/HandBase.java "$OUT/app/Bench.java"
 CP="$OUT/classes:$OUT/res:$OUT/vendor-nodes.jar:$RT"
 
 echo

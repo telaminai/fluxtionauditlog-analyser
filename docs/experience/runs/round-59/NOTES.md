@@ -1467,7 +1467,7 @@ than reported.)*
 **Graal JIT is the fastest JIT for the generated arm** (5.56 against 6.45–6.53 for the OpenJDK line),
 consistent with round 58.
 
-### 22.3 CORRECTION to §20 — the directive is not a guarantee
+### 22.3 CORRECTION to §20 — *withdrawn, see §23*
 
 §20 said the floor was "repeatable and attainable" on the strength of four shapes. **This kit is a
 fifth, and it does not reach it**: 6.22 with the directive applied and confirmed read by
@@ -1497,3 +1497,66 @@ supplied clock before anything is concluded**, and the page's attribution of the
 
 If it holds, the published number is measuring the clock read rather than the graph, and Fluxtion's
 own headline understates it by roughly 3×.
+
+---
+
+## 23. §22.3 WITHDRAWN — the kit was misconfigured, not the compiler unstable
+
+§22.3 reported the kit at 6.22 ns with the inlining directive applied, and concluded that
+`PriorityForceInline` "reliably helps and does not reliably fix". **That conclusion was wrong, and it
+was my own harness at fault for the third time this round.**
+
+### 23.1 What was missing
+
+The kit's `Generate.java` applied only `setSupportDirtyFiltering(false)`. Two settings from the
+documented baseline were absent:
+
+| added | ns/event (native + PGO) |
+|---|---|
+| — starting point | 6.22 |
+| strip the framework auditors (`Clock`, `NodeNameLookup`, `ServiceRegistry`) | 5.61 |
+| **`setSupportNodeNameLookup(false)`** | **1.62** |
+
+The second is the one that mattered, and §10 had already established why: `initialiseAuditor` calls
+`nodeRegistered(node, name)` for every node, publishing each into two `HashMap`s, so no node can be
+scalar-replaced. **PGO cannot rescue a genuine escape**, which is exactly why the directive appeared
+not to work.
+
+### 23.2 The measured result, from the reusable kit
+
+Five JVMs and two native builds, 10-node graph, nodes from a separately compiled jar, 200M events,
+output verified identical across arms:
+
+| runtime | generated | hand-rolled | ratio |
+|---|---|---|---|
+| Temurin 17.0.14 | 5.60 | 3.57 | 1.6× |
+| Temurin 21.0.5 | 5.58 | 3.69 | 1.5× |
+| Corretto 21.0.9 | 5.58 | 3.82 | 1.5× |
+| OpenJDK 24 | 5.58 | 3.77 | 1.5× |
+| GraalVM 25.0.4 Graal JIT | **5.47** | 2.18 | 2.5× |
+| GraalVM 25.0.4 native-image, no PGO | 6.54 | 2.54 | 2.6× |
+| **GraalVM 25.0.4 native-image + PGO** | **1.62** | **1.57** | **1.03×** |
+
+**Generated dispatch is within 3% of hand-rolled flat Java**, from a reusable kit anyone can re-run.
+Every JIT lands at 5.5–5.6 regardless of vendor; Graal JIT is marginally best. Native without a
+profile is *slower than every JIT*.
+
+### 23.3 The lesson, which is the same one three times
+
+| # | symptom | actual cause |
+|---|---|---|
+| §7.1 | 6.27 vs 1.87 | `System.nanoTime()` between the constructor and the loop |
+| §8.2 | 1.53 vs 1.87 | number of arms compiled into the binary |
+| §15 | 1.59 vs 7.20 | an arm present in the image but absent from the profile |
+| **§23** | **6.22 vs 1.62** | **two missing configuration settings** |
+
+**A missing configuration setting is indistinguishable from an unstable compiler**, and I concluded
+"unstable compiler" before checking the configuration. The check is cheap and should come first.
+
+### 23.4 What still stands
+
+The two-identical-methods observation in
+[oracle/graal#14387](https://github.com/oracle/graal/issues/14387) is unaffected — it was measured on a
+correctly configured processor, where one profiled method compiled at 5.55 and two at 1.57 each. That
+remains unexplained and worth the issue. **§22.3's claim that the kit was a second instance of it is
+withdrawn.**

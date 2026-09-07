@@ -1,0 +1,53 @@
+package app;
+
+import com.bench.MarketTick;
+import com.benchv.HandBase;
+import __PKG__.BenchProcessor;
+
+/**
+ * The measured loop. Generated per processor package so BOTH arms and {@code main} live in ONE class.
+ *
+ * <p>That is not cosmetic. With the loop in a separate class AND a branch in {@code main}, GraalVM
+ * leaves the loop out of line: the fast image inlines it into an 784-byte {@code main} with every
+ * object dissolved, while the split shape compiles two 15,536-byte copies with the objects real —
+ * 1.57 ns against 6.22 for identical source. See round 59 §23.
+ *
+ * <p>Other shape rules that each cost a wrong figure when broken:
+ * <ul>
+ *   <li>the processor is constructed INSIDE the loop method and never escapes it;</li>
+ *   <li>NOTHING sits between the constructor and the loop — the caller does the timing;</li>
+ *   <li>a {@code ClockStrategy} is supplied, else the Clock auditor reads the system clock per event.</li>
+ * </ul>
+ */
+public class Bench {
+    static double outBuf;
+    static long outBreaches, outUpdates;
+
+    static void generated(long n) {
+        BenchProcessor p = new BenchProcessor();
+        p.init();
+        MarketTick e = new MarketTick();
+        for (long i = 0; i < n; i++) p.onEvent(e.set(100.0 + (i & 15), 100.5 + (i & 15), i));
+        outBuf = p.buffer.value; outBreaches = p.limit.breaches; outUpdates = p.buffer.updates;
+    }
+
+    static void hand(long n) {
+        HandBase h = new HandBase();
+        MarketTick e = new MarketTick();
+        for (long i = 0; i < n; i++) h.onTick(e.set(100.0 + (i & 15), 100.5 + (i & 15), i));
+        outBuf = h.buffer; outBreaches = h.breaches; outUpdates = h.updates;
+    }
+
+    public static void main(String[] a) {
+        String arm = System.getProperty("arm", "generated");
+        long w = Long.getLong("warm", 5_000_000L), it = Long.getLong("iters", 200_000_000L);
+        long t0, ns;
+        switch (arm) {
+            case "hand":      hand(w);      t0 = System.nanoTime(); hand(it);      ns = System.nanoTime() - t0; break;
+            case "generated": generated(w); t0 = System.nanoTime(); generated(it); ns = System.nanoTime() - t0; break;
+            default: throw new IllegalArgumentException("unknown arm: " + arm);
+        }
+        System.out.printf("RESULT %s %.4f buf=%.4f upd=%d brch=%d%n",
+                arm, (double) ns / it, outBuf, outUpdates, outBreaches);
+    }
+}
