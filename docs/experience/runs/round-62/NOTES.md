@@ -91,3 +91,41 @@ library pays both penalties — polymorphic dispatch *and* an unspecialised body
 is largely recoverable by PGO when the receiver count is small, and the durable advantage is R3 — the
 **specialised body**, which no profile can reconstruct. That would make the second axis the load-bearing
 one, not the first.
+
+---
+
+## 4a. The Fluxtion compiler caught a semantic error the harness could not have
+
+Worth recording separately, because it is the only error today caught by *the framework* rather than by
+a measurement.
+
+The first `Mat4Node` declared its state as ordinary fields:
+
+```java
+public final double[] a = new double[16], b = new double[16], out = new double[16];
+```
+
+Generation failed:
+
+```
+FLX-1009: cannot find a matching constructor for com.benchv.MatrixNodes$Mat4Node
+          — the fields [a, b, out] look like node-local state rather than references to other nodes
+```
+
+**The compiler was right and I was wrong about the model.** In Fluxtion a node's non-transient fields
+*are the graph edges* — they are how the compiler discovers what a node depends on. I had written them
+as private implementation state, which is the habit from ordinary Java, and the model does not work
+that way. `transient` is how a node says "this is state, not an edge".
+
+**This is exactly the failure CLAUDE.md rule 6 is about** — *"this app's model of dispatch, audit
+logging and propagation is only correct if the framework's is… every defect in the M21 topology work
+came from inferring instead of reading"*. I spent the whole day insisting on measuring rather than
+inferring, and then inferred the node model.
+
+**And the diagnostic did its job**, which is worth saying given M46's finding that the framework's
+problems are communication failures rather than correctness failures. This one reached the console,
+named the offending fields, and named the likely cause in the same sentence — *"look like node-local
+state rather than references to other nodes"*. It did not merely say "no matching constructor" and
+leave me to guess; it told me which of my beliefs was wrong. **Two minutes to fix, because the message
+contained the fix.** That is the standard the rest of the diagnostics work is aiming at, and a data
+point that at least one of them is already there.
