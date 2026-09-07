@@ -47,3 +47,47 @@ JIT devirtualised the call and the claimed advantage is not there on that runtim
 **What would falsify the claim as stated:** if `hand-runtime` matches `generated` on native + PGO, then
 build-time selection buys nothing that PGO does not already recover, and the advantage is confined to
 the second axis (code-model specialisation of the node body) rather than node selection.
+
+---
+
+## 3. JIT results, and a harness defect found by a wrong prediction
+
+| arm | mean ns | vs fixed |
+|---|---|---|
+| fixed *(human, unrolled — not a library)* | 11.5264 | 1.00× |
+| **generated** *(build-time selected)* | **11.8212** | **1.03×** |
+| runtimeMono | 12.1300 | 1.05× |
+| runtimePoly *(4 receivers, unpredictable)* | 13.6061 | 1.18× |
+| **generic** *(order not known)* | **36.9636** | **3.21×** |
+
+**Q1 ✓ Q3 ✓ Q4 ✓ Q5 ✓ on the JIT.** The claim holds and by a wide margin: the generated processor is
+**3.13× faster than the library that cannot know the order**, and within 3% of a human who hand-unrolled
+and abandoned generality to do it.
+
+**Q4 only scored right after a harness fix, and the bug was the mechanism Q4 predicted.** The first
+`Generic` arm declared `private final int n = 4;` — a compile-time constant, which javac and the JIT
+fold, unrolling the loop into exactly the specialised code the arm existed to be slower than. It
+measured **1.03×** and the round nearly concluded generic loops are free. Taking `n` from the
+constructor moved it to **3.21×**. *I predicted constant-folding would matter and then wrote a constant
+into my own control arm.*
+
+**The owner's branch-prediction constraint is what makes the dispatch axis visible.** `runtimeMono` is
+only 5% behind because a monomorphic site is devirtualised outright; `runtimePoly` costs 18%. A real
+library pays both penalties — polymorphic dispatch *and* an unspecialised body.
+
+## 4. Predictions for native + PGO — committed before the run reported
+
+`LOWEST_LATENCY`, the generated inlining directive, and a PGO profile collected for **every** arm.
+
+| # | Prediction | Confidence |
+|---|---|---|
+| **R1** | `fixed` and `generated` land within **5%** of each other, as on the JIT. | high |
+| **R2** | **§2's Q2 will FAIL.** `runtimePoly` will *not* be ≥1.5× `fixed` natively; predict **≤ 1.25×**, i.e. no worse than the JIT's 1.18× and possibly better. Reason: `-H:MaxPolymorphicDispatches` defaults to **4** and this site has exactly 4 receivers, so PGO hands Graal a complete type profile and it can emit a guarded inline cascade covering all of them. **Closed-world AOT may handle this site *better* than the JIT, not worse.** | medium |
+| **R3** | `generic` stays **≥ 2.5×** `fixed`. PGO records which branches are taken; it does not constant-fold a loop bound that genuinely varies. Specialising the *body* is not something a profile recovers. | high |
+| **R4** | Absolute figures land within **±20%** of the JIT's for the arithmetic-heavy arms. This work is 64 multiply-adds, not allocation, so scalar replacement — worth 3.3× on the dispatch benchmark — has almost nothing to win here. | medium |
+| **R5** | The ranking is unchanged: `fixed ≈ generated < runtimeMono < runtimePoly ≪ generic`. | high |
+
+**If R2 is right, it qualifies the Babylon argument in a way worth stating:** the *node-selection* axis
+is largely recoverable by PGO when the receiver count is small, and the durable advantage is R3 — the
+**specialised body**, which no profile can reconstruct. That would make the second axis the load-bearing
+one, not the first.
