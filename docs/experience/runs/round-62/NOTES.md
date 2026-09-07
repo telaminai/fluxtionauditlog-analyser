@@ -402,3 +402,35 @@ target and I read past it.
 `-H:PriorityForceInline` on the *node* class should lift it. The page currently records that adding node
 classes to the directive "gains nothing" — but that was measured on trivial nodes, where nothing needed
 lifting.
+
+---
+
+## 10. §9's library arm is not a library — five advantages the benchmark handed it
+
+**Owner:** *"I think we are giving hand rolled all the advantages. For a real app with multiple
+directions of freedom and injected items, different event types and specialisation, I'm sure Fluxtion
+wins."*
+
+Reviewing §9's `Fleet` against what a hand-written system actually has to do, this is correct, and the
+bias is structural rather than a detail:
+
+| what §9's library arm got | what a real one faces |
+|---|---|
+| **a flat loop over a homogeneous array** — one call site, one type, sequential memory | 50 *different* node types with different signatures; no loop can express that, so it becomes a graph walk, a visitor, or a chain of conditionals |
+| **50 independent cells, no edges** | dependency edges — node B reads node A's output, so somebody must order the calls and propagate |
+| **one event type** | many, each reaching a different subset; the library must resolve type → subscribers at runtime |
+| **no configuration** | injected services, conditional wiring, per-deployment options — every one a runtime decision for a library and a build-time constant for a generator |
+| **every node fires every event** | conditional propagation, so a library carries dirty checks the generator can emit or omit at build time |
+
+**§9 removed, by construction, every axis on which the generator differs from a library, and then
+measured the one axis left.** That axis — per-node specialisation — turned out to be capped by the
+inliner, which is a true and useful result. It is not a result about real systems.
+
+**What still stands from §9, and it applies to both sides:** the inlining budget is real, and at 50
+heavy nodes neither arm's arithmetic inlines. So at that scale the specialisation axis is not where the
+argument can be won for *either* party — and Fluxtion's advantage has to come from the axes §9 deleted:
+build-time dispatch per event type, build-time topological ordering, and build-time resolution of
+injected configuration.
+
+**That is the test worth building**, and it is the one that matches the owner's framing. Recorded here
+before building it so the design cannot drift toward whichever arm the first numbers favour.
