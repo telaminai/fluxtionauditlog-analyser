@@ -17,6 +17,66 @@ So: **a figure without its shape is not a result.** Every number below carries o
 
 ---
 
+## At a glance
+
+**A generated Fluxtion processor runs at 1.57 ns/event — about 637M events per second — matching
+hand-written flat Java and hand-optimised C++.** The nodes can come from a vendor jar the generator
+only saw as bytecode, with `getNodeById`, `lookupInstanceName`, re-entrancy, subscriptions and
+buffering all live.
+
+| | ns/event | events/sec |
+|---|---|---|
+| **generated Fluxtion processor** | **1.57** | **637M** |
+| hand-rolled flat Java, same arithmetic | 1.55 | 645M |
+| hand-optimised C++ `-O3 -march=native` | 1.57 | 636M |
+| the same processor, misconfigured | 5.6 – 29 | 34M – 179M |
+
+That last row is the point of this page. **Every step below is worth 2× or more, and getting one wrong
+is silent** — the program is correct, just slower.
+
+### The whole configuration
+
+```java
+// ---- build ------------------------------------------------------------------
+@OnTrigger(failBuildIfMissingBooleanReturn = false)         // void trigger: no dirty flag, no guard
+@OnEventHandler(failBuildIfMissingBooleanReturn = false)
+
+config.setSupportDirtyFiltering(false);                     // no dirty-flag machinery at all
+config.addEventAudit(LogLevel.INFO, false, false);          // IF auditing: stringify + thread name OFF
+
+// ---- runtime ----------------------------------------------------------------
+processor.onEvent(ClockStrategy.registerClockEvent(() -> myStreamTime));   // else it reads the
+                                                                           // system clock per event
+// ---- the event loop: construct the processor INSIDE the method that loops ----
+static void run(long n) {
+    MyProcessor p = new MyProcessor();      // must not escape this method
+    MyEvent e = new MyEvent();
+    for (long i = 0; i < n; i++) p.onEvent(e.set(...));
+}
+```
+
+```bash
+native-image --pgo=app.iprof \
+  '-H:PriorityForceInline=com.your.pkg.MyProcessor.*' \
+  -cp ... MyApp
+```
+
+**What each step is worth**, measured, on a real generated processor:
+
+| step | cost of omitting it | where |
+|---|---|---|
+| force the dispatch chain to inline | **3.5×** (1.57 → 5.56) | native only |
+| supply a `ClockStrategy` | **5.8×** (5.03 → 29.08) | both |
+| accurate PGO profile | **4.2×** (1.57 → 6.53) | native only |
+| non-escaping processor | **2–3×** | native only |
+| void triggers + no dirty filtering | large; changes semantics | both |
+| `printEventToString(false)` when auditing | 208 bytes/event, rules out epsilon GC | both |
+
+**None of these is a micro-optimisation.** The first three are each worth more than everything else on
+this page combined, and the first is now emitted automatically by the generator (§*ship the directive*).
+
+---
+
 ## The baseline configuration, in one place
 
 **This is the configuration to start from for best performance.** Five items. Two of them change
@@ -108,6 +168,14 @@ widening to `Object` and recovering the type with an `instanceof` chain.
 dispatcher through a service or reflectively — so a re-entrant event fails loudly rather than
 vanishing.
 
+### 4 · No buffering  ·  5 · No subscriptions
+
+`setSupportBufferAndTrigger(false)` removes the buffering branch.
+`setSupportSubscriptions(false)` stops the constructor publishing the processor to the subscription
+manager — which matters for more than one reason, see below.
+
+---
+
 ### 6 · Node-name lookup generated as code — the largest single cost, and it costs you nothing
 
 **Measured: 5.55 → 1.57 ns on a real generated processor, with lookup still working.**
@@ -128,14 +196,6 @@ nothing.
 **The one case still to pay for it:** an auditor that consumes `nodeRegistered` — an audit log that
 names its nodes — still receives every node and still publishes them. An audited processor does not
 reach 1.57 by this route, and that is a trade worth making.
-
-### 4 · No buffering · 5 · No subscriptions
-
-`setSupportBufferAndTrigger(false)` removes the buffering branch.
-`setSupportSubscriptions(false)` stops the constructor publishing the processor to the subscription
-manager — which matters for more than one reason, see below.
-
----
 
 ## Deployment shape — worth more than every flag combined
 
