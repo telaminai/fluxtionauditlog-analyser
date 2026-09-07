@@ -214,11 +214,18 @@ _Branches: core `perf/w4-baseline-config` (Auditor, NodeNameAuditor, SourceField
 `perf/w1-w4-baseline-shape` (AuditorDto, DTO builder, SimpleEventProcessorModel, JavaSourceGenerator).
 Two `.dto.txt` goldens updated after verifying byte-identity apart from the new field._
 
-_**Open, owner's call: `ServiceRegistryNode` is the same case** — it implements only `nodeRegistered`
-and inherits all three no-ops, so it is the obvious second opt-out, one line. Not applied: it is a
-`@Preview` node and the decision is whether it should stay reachable on the event path for future
-use. **The hazard is documented on the flag** — a subclass overriding `eventReceived` while
-inheriting a `false` loses its callbacks silently, so overriding a callback means overriding the flag._
+_**`ServiceRegistryNode` is NOT opted out, and should not be** — owner, 2026-09-07: *"eventually when
+service registration becomes statically generated in the event processor the service registry will not
+be an auditor."* Confirmed against the source: it implements `Auditor` solely because `nodeRegistered`
+is its hook for the reflection-heavy `@ServiceRegistered` scan. **W11 removes the reason**, so it
+leaves the auditor set entirely — taking its 6 allocated objects, the largest contributor in the
+escape-analysis cliff table, out of the processor's allocation graph with it. W15 is the interim
+measure for `NodeNameAuditor`, which has no such exit. Spec §16.1a, which also names the one job W11
+does not yet cover: `nodeRegistered` also pushes `DataFlowContextListener.currentContext(...)`, and
+that needs a generated home before the hook can go._
+
+_**The hazard is documented on the flag** — a subclass overriding `eventReceived` while inheriting a
+`false` loses its callbacks silently, so overriding a callback means overriding the flag._
 
 **[M50.11] ☐ W14 — manifest optimisation metadata** · SPEC COMPLETE 2026-09-06 ·
 _[spec-manifest-optimisation-metadata.md](spec-manifest-optimisation-metadata.md). The facts W4/W5/W11/W13c

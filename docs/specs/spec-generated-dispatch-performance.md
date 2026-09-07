@@ -570,6 +570,46 @@ annotated method, and the service class and name. Which node receives which regi
 determination that currently binds at runtime, by reflection, on every registration — and it could
 bind once, in the generator.
 
+### 16.1a W11 takes `ServiceRegistryNode` out of the auditor set entirely
+
+**Owner, 2026-09-07:** *"Eventually when service registration becomes statically generated in the
+event processor the service registry will not be an auditor."* Confirmed against the runtime source,
+and it is a larger consequence than it first sounds.
+
+`ServiceRegistryNode implements Auditor` for exactly one reason: `nodeRegistered` is its hook for
+scanning every node's methods for `@ServiceRegistered`/`@ServiceDeregistered` and pre-building the
+callback plan. Its own comments say so — *"scan the node's methods (reflection-heavy)"*, *"maps are
+only mutated during `nodeRegistered()` — typically at init time"*. **It is not an auditor because it
+audits anything. It is an auditor because that was the only build-time-ish hook available.**
+
+W11 removes the reason. Once the generator binds registration statically, `nodeRegistered` has nothing
+left to do, `Auditor` comes off the class, and the registry leaves the auditor set:
+
+- no `initialiseAuditor(serviceRegistry)` in the constructor
+- no `serviceRegistry.eventReceived(typedEvent)` and no `serviceRegistry.processingComplete()`
+- no `serviceRegistry` case in `getAuditorById`
+- and — the one that matters most for §14 — **`ServiceRegistryNode` allocates 6 objects (four
+  `HashMap`s plus a lock), the largest single contributor in the escape-analysis cliff table.** They
+  leave the processor's allocation graph with it.
+
+**So the open W15 question answers itself: do not opt `ServiceRegistryNode` out of the event path.**
+It is not staying. W15 is the interim measure for `NodeNameAuditor`, which has no such exit; W11 is the
+structural one. They are complementary, and W11 subsumes the registry half.
+
+**One thing W11 as specified does not yet cover.** `nodeRegistered` does *two* jobs, and only the first
+is the service scan:
+
+```java
+if (node instanceof DataFlowContextListener) {
+    ((DataFlowContextListener) node).currentContext(getDataFlowContext());
+}
+```
+
+`BaseNode`, `CallBackNode` and `NamedFeedEventHandlerNode` all implement that interface, so this is not
+a rare path. It is just as build-time determinable — the generator knows which node types implement it
+— but it needs a generated home of its own before the auditor hook can be removed. **Naming it here so
+it is not discovered when the hook is deleted.**
+
 ### 16.2 What generation produces instead
 
 ```java
@@ -788,6 +828,10 @@ node-name lookup forces the auditor onto the event path. This separates the two.
 lifecycle methods; guarding that produced source referencing a method that did not exist (the defect
 round 59 hit when the auditor was dropped wholesale). Only the *call site in the dispatch path* is
 elided, and only when no auditor wants it.
+
+**`ServiceRegistryNode` is deliberately not opted out** — see §16.1a: W11 removes it from the auditor
+set altogether, so opting it out of the event path would be work with a shorter life than the review
+of it.
 
 **One coarseness, stated rather than discovered:** the flag gates `eventReceived` **and**
 `processingComplete` together, exactly as `auditInvocations()` gates all `nodeInvoked` callbacks with
