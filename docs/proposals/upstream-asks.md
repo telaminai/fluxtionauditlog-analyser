@@ -1576,6 +1576,29 @@ switch-on-id alternative is worse). Both exist so nobody optimises in the wrong 
 
 ---
 
+### UP-FLX-51 ◐ EventLogManager costs ~120 ns/event when recording nothing
+
+_Filed: https://github.com/telaminai/fluxtion/issues/32_
+
+**Target** `fluxtion` (runtime) · **Priority** high — it decides whether audit capability can ship on a
+throughput path at all.
+
+`EventLogManager.init()` uses `new LogRecord(clock)`, which delegates to `LogLevel.INFO`, and
+`loggingEnabled()` is `logLevel != NONE`. `tracingOff()` only clears `canTrace` (per-node logging), so
+record-level work runs on every event regardless. Measured 120.7 ns/event for an auditor recording
+nothing, against 1.57 with no auditor. Suggested fix: default the record to `NONE`.
+
+### UP-FLX-52 ◐ printEventToString defaults on — 208 bytes/event, and rules out epsilon GC
+
+_Filed: https://github.com/telaminai/fluxtion/issues/33_
+
+**Target** `fluxtion` (runtime) · **Priority** medium
+
+`LogRecord` is allocation-free by design; the whole 208 bytes/event is `event.toString()` and
+`Thread.currentThread().getName()`, both on by default. With them off an audited processor is
+0.006 bytes/event and runs 200M events under epsilon GC; with them on it exhausts a 256 MB heap.
+Turning them off also removes ~a third of the time (885 → 550 ns for full tracing).
+
 ### UP-FLX-50 ☐ The performance configuration is undocumented as a coherent choice
 
 **Target** `fluxtion` (docs site) · **Priority** medium — adoption, not correctness
