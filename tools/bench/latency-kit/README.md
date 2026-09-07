@@ -42,3 +42,36 @@ For a gated comparison — output equivalence asserted before any timing is beli
 `../dispatch-bench.py` against `app.Bench`.
 
 Evidence: `docs/experience/runs/round-58/NOTES.md` and `round-59/NOTES.md`.
+
+## The three-event-type graph
+
+The single-type graph measures dispatch down a straight line. `MultiNodes` measures what a real system
+does: **three event types taking three different paths**, converging on a shared tail.
+
+```bash
+# 1. generate            -DsrcDir= -DresDir= -Dpkg=  →  app.GenerateMulti
+# 2. PROVE THEY AGREE — every field, after every event, bit-exact
+java -cp <cp> -Devents=200000 app.CorrectnessMulti
+# 3. only then measure
+java -cp <cp> -Darm=generated -Diters=100000000 app.BenchMulti
+java -cp <cp> -Darm=hand      -Diters=100000000 app.BenchMulti
+```
+
+**Step 2 is not optional and it is not the same check as the throughput harness's.** `BenchMulti`
+prints five values at the end of a run; `CorrectnessMulti` compares fourteen fields after every one of
+200,000 interleaved events. An ordering error that cancels out by the final event passes the first and
+fails the second.
+
+**The hand-rolled arm's firing order was read off the generated source.** Two orderings are not what a
+person writes by hand — the tick path fires `mid, ewma, spread, notional, vol`, and the shared tail
+puts `limit` last — so writing `HandMulti` from the graph definition rather than from the generated
+dispatch would have produced a plausible, silently different answer.
+
+Measured on this machine, mixed stream, outputs identical, 3 of 3 native cycles landed:
+
+| | JIT | native + PGO |
+|---|---|---|
+| generated | 5.541 | 1.681 (595 M/s) |
+| hand-rolled | 2.680 | 1.372 |
+
+The generated cost is the same as the single-type graph's (1.666); the hand-rolled floor is what drops.
