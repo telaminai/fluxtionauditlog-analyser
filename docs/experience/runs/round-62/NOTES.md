@@ -230,3 +230,64 @@ its most favourable?
 **S6 is the one worth having:** if the wrapper is constant, then the heavier the node, the less the
 processor costs in relative terms — and the 1.48× measured at N=4 is close to the worst case rather
 than typical.
+
+---
+
+## 7. The receiver-count sweep — there is no cliff, and receiver count is not the variable
+
+All arms agree bit-for-bit. Native + PGO, profile collected for every k, 2 cycles.
+
+| arm | native | vs fixed | JIT | JIT vs fixed | AOT penalty ÷ JIT penalty |
+|---|---|---|---|---|---|
+| fixed | 1.1469 | 1.00× | 11.7683 | 1.00× | — |
+| **k1** | **7.2878** | **6.35×** | 12.6299 | 1.07× | **5.9×** |
+| k2 | 7.2850 | 6.35× | 12.4811 | 1.06× | 6.0× |
+| k4 | 7.3082 | 6.37× | 13.3029 | 1.13× | 5.6× |
+| k8 | 7.8490 | 6.84× | 13.1584 | 1.12× | 6.1× |
+| k16 | 8.4823 | 7.40× | 13.1901 | 1.12× | 6.6× |
+
+**k=1 is already 6.35×.** A site with exactly one implementation, profiled, in a closed world, pays
+almost the entire penalty. Going from 1 receiver to 16 adds 17%; having the indirection at all costs
+535%.
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| S1 | k=1 within 5% of fixed | 6.35× | **WRONG** |
+| S2 | cliff between k=2 and k=4 | no cliff anywhere; penalty present at k=1 | **WRONG** |
+| S3 | k=16 ≤ 1.5× k=4 | 1.16× | **RIGHT** |
+| S4 | JIT curve far gentler | 1.07–1.13× against 6.35–7.40× | **RIGHT** |
+
+### 7.1 What it actually is — and §5 already contained the control
+
+Compare two arms that differ **only** in how the receiver is reached:
+
+| | how the receiver is obtained | native | vs fixed |
+|---|---|---|---|
+| §5 `runtimeMono` | `private final MatMul impl = new Mat4A();` | **0.7299** | **0.95×** |
+| §7 `k1` | `impls[pick]` — one element, but an **array load** | **7.2878** | **6.35×** |
+
+Identical arithmetic, identical receiver count, identical PGO treatment. **The only difference is
+whether the compiler can prove the receiver type statically.** A `final` field initialised with
+`new Mat4A()` is provable, so it devirtualises and inlines. An array element is not, so it does not —
+and an un-inlined 4×4 multiply pays real array accesses instead of being folded into its caller.
+
+**So the variable is static provability of the receiver, not the number of implementations**, and
+**PGO does not recover it.** That is a simpler rule than the one this round set out to find, and a
+sharper one:
+
+> On closed-world AOT, any call the compiler cannot resolve statically costs about 6 ns here — whether
+> it has one possible target or sixteen. A JIT hides this almost entirely, because it watches what
+> actually happens; AOT bills you for what it cannot prove.
+
+### 7.2 Consequence for the Babylon argument
+
+This strengthens it and simplifies it. The generator's advantage is not that it avoids *polymorphism* —
+it is that **build-time selection produces a statically provable receiver**, which is the thing AOT
+requires and cannot infer. A library that resolves an implementation from a map, an array, a registry
+or a config lookup is unprovable by construction, and on AOT that is a 6× tax on the work behind it,
+independent of how many implementations exist.
+
+**And my mechanism was wrong for the fourth time today.** §5 blamed receiver count; §6.1 blamed the
+inlining boundary at k=4; both were built from an option default (`MaxPolymorphicDispatches=4`) rather
+than from a measurement. The control that settles it — `runtimeMono` — had already been measured in §5
+and I did not think to compare against it until the sweep made the shape obvious.
