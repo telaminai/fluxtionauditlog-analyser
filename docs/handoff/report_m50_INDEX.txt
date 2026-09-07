@@ -16,9 +16,9 @@ stale.
 
 WORKTREES — the work is NOT in the primary checkouts, which are undisturbed on their own branches.
 
-  ~/IdeaProjects/telamin/worktrees/core-w2w3w8      perf/w2-w3-w8-runtime-internals   base 4b38aeb
-  ~/IdeaProjects/telamin/worktrees/compiler-w12     perf/w12-auditor-switch           base 9a16035
-  ~/IdeaProjects/telamin/worktrees/analyser-w10     perf/w10-conformance-bench        base c0851b5
+  ~/IdeaProjects/telamin/worktrees/core-baseline     perf/w4-baseline-config       (contains W2/W3)
+  ~/IdeaProjects/telamin/worktrees/compiler-baseline perf/w1-w4-baseline-shape     (contains W12)
+  ~/IdeaProjects/telamin/worktrees/analyser-w10      perf/m50-dispatch-performance (bench + specs)
   ~/IdeaProjects/telamin/worktrees/mavenplugin-w14  spec/w14-...                      base d635950
 
 TWO FACTS THAT WILL WASTE YOUR TIME IF YOU DO NOT KNOW THEM
@@ -61,3 +61,26 @@ THE THREE THINGS MOST WORTH ATTACKING, ACROSS ALL FOUR BRIEFS
 
   Each is stated in its own brief too. None is a reason not to review; all three are reasons not to
   merge on the strength of these briefs alone.
+
+================================================================================
+BRANCHES RATIONALISED 2026-09-07 — THREE, ONE PER REPO
+================================================================================
+There were six. Four were redundant: in each of core and compiler the narrow branch was a strict
+ANCESTOR of the wider one, and in the analyser the two branches touched disjoint files and rebased
+cleanly. Nothing was lost; the deleted refs' content is contained in what remains.
+
+  telaminai/fluxtion            perf/w4-baseline-config        (contains W2/W3 + the W4 config flags)
+  telaminai/fluxtion-compiler   perf/w1-w4-baseline-shape      (contains W12 + the W4 codegen)
+  telaminai/fluxtionauditlog-analyser
+                                perf/m50-dispatch-performance  (specs, briefs, bench, round-58/59)
+
+DELETED, because their content is contained above:
+  perf/w2-w3-w8-runtime-internals · perf/w12-auditor-switch · perf/w10-conformance-bench
+
+THE ONE HARD ORDERING CONSTRAINT — the compiler branch depends on the core branch. Its pom is
+repointed to fluxtion.base.version 1.0.15-SNAPSHOT for the new EventProcessorConfig flags
+(supportReentrancy, supportSubscriptions, supportNodeNameLookup). CORE MUST BE RELEASED FIRST, and the
+pom pin must be restored to a released version before the compiler branch merges.
+
+Review order: perf/w4-baseline-config -> release core -> perf/w1-w4-baseline-shape.
+The analyser branch is independent of both and can be reviewed at any time.
