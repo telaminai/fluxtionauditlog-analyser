@@ -338,3 +338,67 @@ generator and the best case for the hand-written arm.
 ~0.37 ns of wrapper, while a library-shaped equivalent pays ~50 × 6.1 ns. Predict the ratio moves from
 today's 1.48× *against* the generator at one node to **> 5× in its favour at fifty**, with the crossover
 below ten nodes.
+
+---
+
+## 9. The 50-node test — my scaling prediction is FALSIFIED, and the reason is the real finding
+
+Same work per node (a 4×4 multiply), same implementation class in both arms. The only difference is
+whether the receiver is a concrete field (generated) or an array element (library). Native + PGO,
+3 attempts per point, all node counts correctness-gated.
+
+| nodes | generated | library | gen/node | lib/node | ratio |
+|---:|---:|---:|---:|---:|---:|
+| 1 | **1.39** | 8.84 | **1.39** | 8.84 | **0.16×** |
+| 5 | 41.48 | 37.70 | 8.30 | 7.54 | 1.10× |
+| 10 | 80.23 | 74.91 | 8.02 | 7.49 | 1.07× |
+| 25 | 197.00 | 186.57 | 7.88 | 7.46 | 1.06× |
+| 50 | 487.94 | 372.48 | 9.76 | 7.45 | **1.31×** |
+
+**§8 predicted the ratio would move from 1.48× against the generator at one node to > 5× in its favour
+at fifty, crossing over below ten. The opposite happened.** At one node the generator is **6.4× faster**;
+by five nodes the advantage is gone; at fifty the generator is **1.31× slower**.
+
+### 9.1 What actually happens: the advantage is bounded by the inliner's budget, not by node count
+
+Read the per-node columns. The library costs a flat **~7.5 ns/node at every n** — it never inlines,
+exactly as §7 established, and it never gets worse. The generated processor costs **1.39 ns at n=1 and
+~8–9.8 ns/node from n=5 onward.** Its per-node cost rises **six-fold between one node and five**.
+
+**The specialisation does not compose.** One 4×4 multiply inlines into the dispatch method and vectorises
+(1.39 ns, the 10× native speed-up §5 found). Five of them do not: the total inlined body exceeds what
+the compiler will take, the calls stay out of line, and each one reverts to roughly what the un-inlined
+library pays.
+
+**This is consistent with everything else measured today and it is the same threshold under a different
+name** — round 58's "dissolution cliff", §5's 15× vectorisation win, and `PriorityForceInline` being the
+only lever that works. **It is a budget on total inlined code size, not a property of nodes.** The
+original 10-node latency kit reaches 1.67 ns/event — 0.167 ns/node — because those nodes are a few
+flops each. Fifty trivial nodes inline; five matrix nodes do not.
+
+### 9.2 What this costs the argument, stated plainly
+
+The "50 nodes a human could never hand-optimise" case is **not** demonstrated by this measurement. On
+heavy nodes the generator's per-node advantage disappears at n≥5 and inverts slightly by n=50. The
+result stands as measured:
+
+- **the provable-receiver advantage is real and large (6.4×) while the work still inlines;**
+- **it is capped by the compiler's inlining budget, and the cap arrives early for heavy nodes.**
+
+### 9.3 Two process failures in this section, both mine
+
+**I ran the first sweep with `--attempts 1`.** This morning I built the landing harness *because* a
+fresh collection lands only sometimes, wrote "collect until it lands" into the docs and the checklist,
+and then ran the round's most important test with a single attempt. The n=1 point read 12.04 on that
+attempt and 1.39 on the next two — a 8.7× artifact I was one paragraph away from publishing as
+"the library beats the generated processor at scale".
+
+**What caught it was a cross-check, not the harness.** A 4×4 multiply costs ~11.5 ns on a JIT and
+~1.15 ns native. The native n=1 reading of 12.00 had *no* native speed-up in it, which is only possible
+if the build missed. The harness reported every arm as `[missed]` against my deliberately-unreachable
+target and I read past it.
+
+**Next test, and it follows directly:** if the cap is the inlining budget, then
+`-H:PriorityForceInline` on the *node* class should lift it. The page currently records that adding node
+classes to the directive "gains nothing" — but that was measured on trivial nodes, where nothing needed
+lifting.
