@@ -1560,3 +1560,71 @@ The two-identical-methods observation in
 correctly configured processor, where one profiled method compiled at 5.55 and two at 1.57 each. That
 remains unexplained and worth the issue. **§22.3's claim that the kit was a second instance of it is
 withdrawn.**
+
+---
+
+## 24. Zero auditors — reachable now, and it roughly halves the failure rate
+
+### 24.1 It was not reachable before, and the reason was a latent defect
+
+`performanceProfile(LOWEST_LATENCY)` removes `Clock` and `ServiceRegistry` from the auditor map, but
+**`NodeNameAuditor` survived** — it arrives through the required node factories, not
+`addFrameworkAuditor`, so `removeAll(frameworkAuditorNames)` never reached it. Its two per-event calls
+are inherited no-ops (free, per round 58), but it and its two `HashMap`s stayed in the allocation graph
+the escape analysis has to dissolve.
+
+Dropping it exposed **a latent defect: a graph with no auditors generated source that did not compile.**
+Three separate causes, all downstream of one early return in `buildNodeRegistrationListeners`:
+
+1. the class-level imports (`DataFlow`, `CloneableDataFlow`, `InternalEventProcessor`, `BatchHandler`,
+   `Consumer`, `Auditor` …) were added *after* the return, so an auditor-free graph lost them;
+2. `auditEvent`/`initialiseAuditor` were never emitted, yet the template calls them unconditionally
+   from every lifecycle method;
+3. `buildEventDispatch` appended the audit methods only `if (auditingEvent)`.
+
+Fixed by hoisting the imports, emitting **empty** audit methods when there are no auditors, and
+appending them unconditionally. **This is a real bug fix independent of performance** — nobody could
+generate an auditor-free processor before.
+
+The hot dispatch is now clean:
+
+```java
+public void handleEvent(MarketTick typedEvent) {
+    tickIn.onTick(typedEvent);
+    mid.calc(); ewma.calc(); spread.calc(); notional.calc(); vol.calc();
+    exposure.calc(); charge.calc(); buffer.calc(); limit.calc();
+    afterEvent();
+}
+```
+
+### 24.2 It changes the odds, and that is the real result
+
+The native+PGO number is **bimodal** — ~1.6 ns or ~5.6 ns, nothing between — and which one you get
+varies per profile collection. Measured across independent profile+build cycles:
+
+| configuration | fast (≈1.6) | slow (≈5.6) | rate |
+|---|---|---|---|
+| `LOWEST_LATENCY`, `NodeNameAuditor` still present | 0 | 5 | **0%** |
+| earlier kit, three flags hand-set | ~2 | ~10 | ~17% |
+| **zero auditors** | **3** | 3 | **50%** |
+
+Removing the last auditor takes it from never to a coin flip. That is consistent with §9: the
+allocation graph the compiler must dissolve is what decides it, and `NodeNameAuditor` contributes three
+objects.
+
+**It is still not deterministic**, and that remains
+[oracle/graal#14387](https://github.com/oracle/graal/issues/14387). Two binaries built from identical
+classes, differing only in which profile they were given, have byte-identical hot methods (1456 B, 364
+instructions, same 21 memory ops, same 7 safepoint calls) and differ only in **function layout order** —
+yet measure 1.43 and 5.45 stably over five alternating reps. Nothing in the emitted code explains it.
+
+### 24.3 Honest status of the headline
+
+- **JIT: solid.** 5.5–5.6 ns on every JVM tested, no vendor differing by more than 2%. Deterministic.
+- **native + PGO: bimodal.** ~1.6 ns about half the time with zero auditors, ~5.6 otherwise. The 1.6
+  figure is real, reproduced in six harnesses, and **not something a build can be relied on to hit**.
+- **The lowest single measurement in the whole round is 1.4334 ns**, on a correctly configured
+  processor — faster than the hand-rolled arm in the same binary.
+
+Quote the JIT number without qualification. Quote 1.6 only with "when the profile lands well", until
+the Graal issue resolves.
