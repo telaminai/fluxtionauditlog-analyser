@@ -957,6 +957,25 @@ Spec: [`spec-authoring-toolchain-repair.md`](spec-authoring-toolchain-repair.md)
 perfectly — **M5 and M6 were never violated by any agent in any run**, and 22 of 23 runs produced a
 correct graph. **Every item below is a communication failure, not a correctness failure.**
 
+- [M46.1a] ◑ **U1 REFINED by outside evidence — the message DOES reach the console; the `suggestedFix`
+  does not** _(round 62, 2026-09-07)_ — four diagnostics hit while building a benchmark graph, all four
+  correct, all four naming the offending fields, two of them naming the likely cause
+  (*"the fields [a, b, out] look like node-local state rather than references to other nodes"*,
+  *"these fields share a type, so the binding is ambiguous: [b, a]"*). Each took about two minutes to
+  act on and none required reading Fluxtion source to **understand**.
+
+  **But the remedy required reading the source, and the remedy was already written.**
+  `BuilderDiagnostics` carries a `suggestedFix` for FLX-1001 saying *"annotate the parameters with
+  `@AssignToField` when two share a type… a field not explicitly opted into constructor mapping can be
+  made NON-FINAL and wired through its JavaBean setter"* — exactly what was needed. `@AssignToField`
+  was found by grepping the runtime instead. **The registry holds `rule`, `why`, `suggestedFix` and
+  `documentationUrl`; the console received `message` alone.**
+
+  Scorecard from four independent encounters: correctness 4/4, offending element named 4/4, likely
+  cause named 2/4, **remedy named 0/4 — though it is written for all of them**. So U1 is narrower and
+  cheaper than recorded: this is not "diagnostics do not reach the console", it is **"the fix text
+  exists, is good, and is not printed"**. Printing it is the whole remaining job.
+
 - [M46.1] ☐ **U1 · Structured diagnostics never reach the console.** `code`/`rule`/`suggestedFix` go to
   the sidecar; the default path prints a raw `DiagnosticException` in 60–80 lines of stack trace. Round 08
   measured the good version only because it passed `-Dfluxtion.diagnostics.sidecar=true`. **Highest-value
