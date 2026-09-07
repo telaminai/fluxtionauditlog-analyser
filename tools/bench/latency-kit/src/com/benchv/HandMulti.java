@@ -63,6 +63,23 @@ public class HandMulti {
         }
     }
 
+    /**
+     * The FAIR entry point. The three methods above are bound statically by the call site, which
+     * hands the hand-rolled arm a fact the generated processor is not given: the concrete type. Real
+     * systems usually receive {@code Object} off a queue or a socket, and then somebody has to
+     * dispatch. This is what that costs when a person writes it — the same {@code instanceof} chain
+     * the generator emits, in frequency order because a person would put the common case first.
+     */
+    public void onEvent(Object event) {
+        if (event instanceof MarketTick) {
+            onTick((MarketTick) event);
+        } else if (event instanceof TradeEvent) {
+            onTrade((TradeEvent) event);
+        } else if (event instanceof LimitEvent) {
+            onLimit((LimitEvent) event);
+        }
+    }
+
     private void tail() {
         exposure = notional * (1.0 + vol * 0.001) + net * 10.0;
         charge = exposure * 0.08;

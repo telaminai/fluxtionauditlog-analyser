@@ -292,3 +292,64 @@ every queueing path, rather than by the processor guessing about paths it never 
 **So it is required for JIT deployments and pointless for native ones.** Recorded here rather than
 assumed either way, because the same measurement would have justified the opposite conclusion if only
 the JIT column had been taken.
+
+---
+
+## 7. Built — W1, and what it actually delivered
+
+Owner: *"Optimise the guard so it is correct but minimum cost on aot. Should be a small core change."*
+It is three files, all additive.
+
+**Runtime.** `InternalEventProcessor.callbacksPending(boolean)` — a `default` no-op, so every existing
+processor is unaffected and keeps draining unconditionally. `CallbackDispatcherImpl` marks at all six
+queueing paths and clears when the drain empties the queue.
+
+**Generated.** `if (callbacksPending) { callbackDispatcher.dispatchQueuedCallbacks(); }` — a load of a
+field the processor owns, replacing the walk into the dispatcher and its `ArrayDeque`.
+
+**The dispatcher owns the write, and that is the whole safety argument.** It sees every queueing path;
+a node holding the dispatcher directly can queue without the processor observing the call. The
+processor-local flag rejected in §4 would have dropped exactly those callbacks, silently.
+
+### 7.1 Measured
+
+| | JIT *(3 reps)* | native + PGO *(2 cycles)* |
+|---|---|---|
+| baseline, unconditional drain | 5.6146 | 1.6546 |
+| **W1, flag on the processor** | **5.5166** | **1.6639** |
+| X7 no drain call at all *(ceiling)* | 5.4197 | — |
+| X5 no guard at all | 5.2433 | — |
+
+**JIT: −0.098 ns, 1.7% — half of the 0.195 ns ceiling.** Half rather than all because the replacement is
+not free: reading `callbacksPending` is still a load and a branch. It is a *near* load, on the same
+object as `processing` and almost certainly the same cache line, instead of two hops into another
+object and its deque — which is the part that was worth 0.217 ns.
+
+**Native: +0.009 ns — no measurable difference**, inside the ±0.04 ns spread landed builds show anyway.
+The hand-rolled control held at 1.362–1.366 across all four builds, so the machine was steady. **This
+is the outcome predicted in §6 and it is not a disappointment: there was never a chase to remove on a
+scalar-replaced processor.** Two cycles cannot resolve 0.009 ns and no claim is made either way.
+
+### 7.2 The number in the generated comment was wrong before it shipped
+
+The template first carried *"Measured: 0.217ns of a 5.60ns event"*. **0.217 is the chase being removed,
+not the saving delivered** — the replacement costs about half of it back. Corrected to 0.098 before the
+goldens were regenerated. Generated code is the worst possible place for an optimistic figure: it
+outlives the commit message and the next reader takes it as fact.
+
+### 7.3 Gates
+
+- `CallbackDispatcherPendingTest`, 6 green. The last test enumerates the dispatcher's public methods by
+  **reflection** and fails on any that grows the queue without marking — so a queueing method added
+  later is covered without editing a list. That is the failure mode this change introduces.
+- `CorrectnessMulti`: 200,000 events, three types, fourteen fields after every event, bit-exact.
+- Core suite 110 + 12 green. Compiler suite 3520 run, 2 failures, both the pre-existing environment
+  ones. **Both `.behaviour.txt` goldens byte-identical** — the generated processors behave exactly as
+  before; only their source shape changed.
+- The `.java.txt` goldens were checked to differ by the field, the guarded branch and the override
+  **and nothing else** before being updated.
+
+### 7.4 Verdict
+
+**Ship it: correct, additive, small, 1.7% on the JIT and free on native.** But the proposal in §6 quoted
+3.9% and it delivered 1.7%, which is worth recording as the last wrong number of the round.

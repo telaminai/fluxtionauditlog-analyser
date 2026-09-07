@@ -57,12 +57,74 @@ public class BenchMulti {
         outBreaches = h.breaches; outUpdates = h.updates; outFills = h.fills;
     }
 
+    /** Generated arm entered through {@code onEvent(Object)} — the fair comparison with handObj. */
+    static void generatedObj(long n) {
+        MultiProcessor p = new MultiProcessor();
+        p.init();
+        MarketTick tick = new MarketTick();
+        TradeEvent trade = new TradeEvent();
+        LimitEvent limit = new LimitEvent();
+        for (long i = 0; i < n; i++) {
+            Object e;
+            if ((i & 1023) == 17) { e = limit.set(90_000.0 + (i & 255) * 100.0); }
+            else if ((i & 7) < 2) { e = trade.set(100.0 + (i & 31), 10.0 + (i & 7), (i & 1) == 0 ? 1 : -1); }
+            else { e = tick.set(100.0 + (i & 15), 100.5 + (i & 15), i); }
+            p.onEvent(e);
+        }
+        outBuf = p.buffer.value; outExposure = p.exposure.value;
+        outBreaches = p.limit.breaches; outUpdates = p.buffer.updates; outFills = p.position.fills;
+    }
+
+    /** Hand-rolled arm doing its OWN type dispatch — what a person writes when the queue hands over Object. */
+    static void handObj(long n) {
+        HandMulti h = new HandMulti();
+        MarketTick tick = new MarketTick();
+        TradeEvent trade = new TradeEvent();
+        LimitEvent limit = new LimitEvent();
+        for (long i = 0; i < n; i++) {
+            Object e;
+            if ((i & 1023) == 17) { e = limit.set(90_000.0 + (i & 255) * 100.0); }
+            else if ((i & 7) < 2) { e = trade.set(100.0 + (i & 31), 10.0 + (i & 7), (i & 1) == 0 ? 1 : -1); }
+            else { e = tick.set(100.0 + (i & 15), 100.5 + (i & 15), i); }
+            h.onEvent(e);
+        }
+        outBuf = h.buffer; outExposure = h.exposure;
+        outBreaches = h.breaches; outUpdates = h.updates; outFills = h.fills;
+    }
+
+    /**
+     * Diagnostic for a question worth its own arm: <b>why does entering through {@code Object} cost
+     * the generated processor anything at all?</b> It widens to {@code Object} internally either way.
+     *
+     * <p>This arm casts to {@code Object} at THREE separate call sites instead of merging into one
+     * local. If the cost were the cast, this would be as slow as {@code generatedObj}. If the cost is
+     * the merge — one call site seeing three types, so the JIT can no longer fold the
+     * {@code instanceof} chain it could fold when the type was exact — this lands near the typed arm.
+     */
+    static void generatedObjSplit(long n) {
+        MultiProcessor p = new MultiProcessor();
+        p.init();
+        MarketTick tick = new MarketTick();
+        TradeEvent trade = new TradeEvent();
+        LimitEvent limit = new LimitEvent();
+        for (long i = 0; i < n; i++) {
+            if ((i & 1023) == 17) { p.onEvent((Object) limit.set(90_000.0 + (i & 255) * 100.0)); }
+            else if ((i & 7) < 2) { p.onEvent((Object) trade.set(100.0 + (i & 31), 10.0 + (i & 7), (i & 1) == 0 ? 1 : -1)); }
+            else { p.onEvent((Object) tick.set(100.0 + (i & 15), 100.5 + (i & 15), i)); }
+        }
+        outBuf = p.buffer.value; outExposure = p.exposure.value;
+        outBreaches = p.limit.breaches; outUpdates = p.buffer.updates; outFills = p.position.fills;
+    }
+
     public static void main(String[] a) {
         String arm = System.getProperty("arm", "generated");
         long w = Long.getLong("warm", 5_000_000L), it = Long.getLong("iters", 200_000_000L);
         long t0, ns;
         switch (arm) {
-            case "hand":      hand(w);      t0 = System.nanoTime(); hand(it);      ns = System.nanoTime() - t0; break;
+            case "hand":         hand(w);         t0 = System.nanoTime(); hand(it);         ns = System.nanoTime() - t0; break;
+            case "handObj":      handObj(w);      t0 = System.nanoTime(); handObj(it);      ns = System.nanoTime() - t0; break;
+            case "generatedObj": generatedObj(w); t0 = System.nanoTime(); generatedObj(it); ns = System.nanoTime() - t0; break;
+            case "generatedObjSplit": generatedObjSplit(w); t0 = System.nanoTime(); generatedObjSplit(it); ns = System.nanoTime() - t0; break;
             case "generated": generated(w); t0 = System.nanoTime(); generated(it); ns = System.nanoTime() - t0; break;
             default: throw new IllegalArgumentException("unknown arm: " + arm);
         }
