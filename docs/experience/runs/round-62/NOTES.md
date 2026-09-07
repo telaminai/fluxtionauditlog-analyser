@@ -193,3 +193,40 @@ It is a real cost and it should be quoted, not buried: **a processor costs about
 than a bare method call doing the same arithmetic.** Against 6.6 ns for late-bound dispatch or 29 ns for
 an unspecialised body, it is the cheap part — but it is the part this project can still shrink, and
 rounds 61's W1 is where that work lives.
+
+---
+
+## 6. Two follow-up tests — predictions committed before building
+
+### 6.1 The receiver-count cliff
+
+`runtimePoly` at 4 receivers cost **6.6 ns** over `fixed` natively. That is far too much for an indirect
+branch (a few cycles). **So the cost is almost certainly not the branch — it is that the callee stops
+being inlined**, and an un-inlined 4×4 multiply runs with real array accesses and no cross-inlining
+with the caller, instead of being folded into it.
+
+If that is right, the interesting boundary is where **inlining** stops, not where
+`MaxPolymorphicDispatches=4` says dispatch changes shape. All arms now pay the identical selector
+computation and index a k-element array, so k is the only variable — this also removes the two-ALU-op
+bias charged against `runtimePoly` in §5.
+
+| # | Prediction | Confidence |
+|---|---|---|
+| **S1** | k=1 lands within 5% of `fixed` — a one-element array is monomorphic and inlines. | high |
+| **S2** | **The cliff is between k=2 and k=4, not at k=5.** Bimorphic inlining is routine, so k=2 stays under 2× `fixed`; k=4 is already ≥ 5×. | medium |
+| **S3** | k=8 and k=16 are **not much worse than k=4** — once inlining is lost the extra receivers cost only a bigger dispatch table, not another cliff. Predict k=16 ≤ 1.5× k=4. | medium |
+| **S4** | The JIT shows a far gentler curve than AOT at every k, because it can speculate on what it observes. | high |
+
+### 6.2 The matrix-order sweep
+
+Does the 39× generic penalty survive a larger matrix, or is it an artifact of N=4 where unrolling is at
+its most favourable?
+
+| # | Prediction | Confidence |
+|---|---|---|
+| **S5** | **The generic/fixed ratio shrinks as order grows.** At N=8 the loop does 8× the arithmetic per iteration of overhead, so the overhead amortises. Predict N=8 gives **under half** the ratio N=4 gives. | medium |
+| **S6** | **`generated` stays ≈ 0.37 ns above `fixed` at every order.** The Fluxtion event wrapper is a constant per event and does not scale with the node's work, so its *relative* cost falls as the node does more. | high |
+
+**S6 is the one worth having:** if the wrapper is constant, then the heavier the node, the less the
+processor costs in relative terms — and the 1.48× measured at N=4 is close to the worst case rather
+than typical.
