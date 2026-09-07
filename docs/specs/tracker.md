@@ -183,7 +183,18 @@ contribution first. Necessary but not sufficient for replay — leaves return-va
 choice; `tools/bench` harness fixes compilation shape, interleaves arms in one binary, asserts output
 equivalence before timing, and fails on a suspiciously clean zero._
 
-**[M50.13] ☐ Owner decision — should `LOWEST_LATENCY` also set buffer/subscriptions?** _(raised
+**[M50.13] ☑ DECIDED and DONE 2026-09-07 — owner: "add any missing to the profile"** · _`LOWEST_LATENCY`
+now also sets `setSupportBufferAndTrigger(false)` and `setSupportSubscriptions(false)`.
+`setSupportReentrancy(false)` deliberately **not** added: it is the one that can break a working graph
+(re-entrant dispatch throws instead of queueing) and build-time detection cannot be complete._
+
+_**And the measurement withdrew the reason for doing it.** The 5% figure below came from a hand-edited
+emulation that also removed the re-entrancy GUARD; the real configuration keeps that guard, and the
+guard is where the cost sat. Generated for real: 5.124–5.143 JIT against 5.124 shipped, and 1.7176
+native inside the usual band — **nothing**. The two settings stay because the generated code is smaller
+and neither can change a result, not because they are faster. The docs carry the mistake as a warning._
+
+**[M50.13-original] ☑ superseded — the question as first raised** _(raised
 2026-09-07 by measurement)_ · _The profile sets exactly three things and leaves `supportBufferAndTrigger`
 and `supportReentrancy` at `true`, so the generated `processEvent` still carries a buffer guard, a
 re-entrancy guard and a callback drain per event. **Measured on the JIT, 3 interleaved reps, output
