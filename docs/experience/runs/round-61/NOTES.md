@@ -180,3 +180,115 @@ skip the drain when clear. **It is not safe.** Nodes reach `CallbackDispatcherIm
 injected dispatcher — `processReentrantEvent`, `processReentrantEvents`, `fireIteratorCallback` — so a
 processor-local flag would miss queueing it never saw, and the callback would be silently dropped. The
 split in P8 is safe precisely because the emptiness test stays with the queue that owns it.
+
+---
+
+## 5. Results, part 2 — the guard decomposed, and the `Object` question settled
+
+### 5.1 The owner was right: casting to `Object` costs nothing
+
+*"I am surprised object to generated costs anything — the generated is built to handle object. So
+unless you are adding a cast to object for generate it should be zero cost."*
+
+Correct, and the +0.353 ns I reported earlier was not the cast. Three arms, same processor:
+
+| arm | mean | vs typed |
+|---|---|---|
+| typed entry, 3 call sites | 5.5679 | — |
+| **`Object` cast, 3 call sites** | **5.5432** | **−0.025 — noise** |
+| **`Object`, ONE merged call site** | **5.9671** | **+0.399** |
+
+**The cast is free. The entire cost is the merge.** With three call sites each holding an exact type,
+the JIT folds the `instanceof` chain to nothing after inlining. With one site seeing three types it
+cannot, and the chain becomes real work.
+
+**This also explains P1's null result**, which had no explanation when it was recorded: forcing direct
+typed dispatch bought nothing *because the chain was already being folded away* in that arm.
+
+**And it means the typed arm flatters the generated processor**, not only the hand-rolled one. A real
+system receives `Object` off a queue at one site. The merged number is the realistic one for both
+sides.
+
+### 5.2 The guard: it is the pointer chase, not the call
+
+| variant | mean | vs baseline |
+|---|---|---|
+| baseline | 5.6007 | — |
+| X9 — call to a dispatcher method touching **no state** | 5.5811 | −0.020 |
+| X7 — **no call at all** | 5.3645 | −0.236 |
+
+| component | cost |
+|---|---|
+| the call itself | **0.020 ns** — nothing |
+| the **dependent load chain** it forces | **0.217 ns** |
+| the `processing` flag machinery | 0.172 ns |
+| **guard + drain, total** | **0.430 ns** |
+
+`dispatchQueuedCallbacks()` costs almost nothing to *call*. It costs 0.217 ns to make the CPU walk
+`processor → callbackDispatcher → myStack → ArrayDeque head/tail` — two or three dependent loads —
+only to be told the queue is empty, which it is on 100% of events in this benchmark.
+
+**P8 predicted that splitting the method so the fast path inlines would recover ≥ 0.20 ns. It recovered
+nothing (+0.035) and has been reverted.** The prediction was built on the assumption that the call was
+the cost. It is not, and inlining cannot remove a pointer chase. *A shippable change that measured
+nothing was reverted rather than shipped with a comment claiming a win.*
+
+### 5.3 P9 — and it decides whether any of this is worth building
+
+| variant | native + PGO *(2 cycles each)* | JIT |
+|---|---|---|
+| baseline | 1.6641 / 1.6630 → **1.6636** | 5.6007 |
+| X7 no drain call | 1.6430 / 1.6415 → **1.6423** | 5.3645 |
+| X5 no guard at all | 1.6469 / 1.6473 → **1.6471** | 5.1375 |
+
+**P9 RIGHT.** Predicted < 0.05 ns; measured **0.017–0.021 ns**. The hand-rolled control held at
+1.358–1.364 across all six builds, so the machine was stable.
+
+**The 0.430 ns is a JIT-deployment cost and essentially does not exist on native + PGO.** Scalar
+replacement turns `processing` into a register and dissolves the dispatcher along with the rest of the
+graph, so there is no object to chase.
+
+### 5.4 Scoring, part 2
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| **P7** | the call is the majority; removing it recovers ≥ 0.25 | 0.258 ns removed — **but for the wrong reason**: it is the loads, not the call | **right number, wrong mechanism** |
+| **P8** | splitting to inline the fast path recovers ≥ 0.20 | +0.035 — nothing. Reverted | **WRONG** |
+| **P9** | the cost vanishes on native + PGO (< 0.05) | 0.017–0.021 | **RIGHT** |
+
+**Two prediction sets, nine predictions, three right.** The three that were right (P2, P9, and P7's
+number) share a property: they were about *whether something would matter*, not about *why*. Every
+prediction about mechanism was wrong. That is worth recording as a bias — on this hardware, at this
+scale, my intuitions about where time goes are not reliable, and the harness is.
+
+## 6. The optimisation, and what it is worth
+
+**Design — the flag moves to the processor, and the dispatcher writes it.**
+
+```java
+// InternalEventProcessor
+default void callbacksPending(boolean pending) {}      // additive, default no-op
+
+// CallbackDispatcherImpl — every queueing path already goes through here
+queueReentrantEvent / processReentrantEvent / processReentrantEvents / fireIteratorCallback
+        → eventProcessor.callbacksPending(true)
+drain completes empty                                  → eventProcessor.callbacksPending(false)
+
+// generated processor
+if (callbacksPending) { callbackDispatcher.dispatchQueuedCallbacks(); }   // reads its OWN field
+```
+
+One load of a field the processor already owns, instead of a three-deep chase into two other objects.
+**It is safe where §4's rejected design was not**: the flag is written by the dispatcher, which sees
+every queueing path, rather than by the processor guessing about paths it never observes.
+
+**What it is worth, measured, before it is built:**
+
+| deployment | gain |
+|---|---|
+| **JIT** | **0.217 ns of 5.60 — 3.9%**, and up to 0.430 (7.7%) if the flag machinery goes too |
+| **native + PGO** | **~0.02 ns — nothing** |
+
+**So it is required for JIT deployments and pointless for native ones.** Recorded here rather than
+assumed either way, because the same measurement would have justified the opposite conclusion if only
+the JIT column had been taken.
