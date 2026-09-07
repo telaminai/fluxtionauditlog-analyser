@@ -112,6 +112,8 @@ so the only way to know you have them all is to check.
 **Verify — do not assume**
 
 - [ ] run `tools/bench/latency-kit/run.sh` against your own graph
+- [ ] **native only: check the build LANDED, and ship that binary** — `tools/bench/land-native.py`
+      builds until it does and keeps the one that did; a build that missed is 3.5× slower and silent
 - [ ] compare arms with `tools/bench/dispatch-bench.py`, which refuses to report until the arms
       produce identical output
 - [ ] **if a number surprises you, check this list before concluding anything about the compiler** —
@@ -405,9 +407,31 @@ consecutive misses on inputs that had just produced three hits. The outcomes are
 they arrive in runs — and nothing measurable separates a good build from a bad one: the profiles are
 identical on every hot counter, the images are the same size, the builder gets the same memory.
 
-**So verify the build you ship.** That is not a caution to add to the method; on this platform it *is*
-the method. Build, measure with `tools/bench/latency-kit/run.sh`, keep the binary that lands, rebuild
-when it doesn't.
+### The pragmatic route: build until it lands, keep the one that did
+
+Determinism would be better and is asked for upstream. Until it arrives, the lottery has one property
+that makes it entirely workable: **a binary reproduces its own mode for ever.** So a build that lands
+is a build you can ship — you only have to notice which one it was.
+
+```bash
+tools/bench/land-native.py --graal-home "$GRAAL_HOME" --cp "$CP" --main app.Bench \
+    --out target/bench --arm generated --arm hand --target 2.0 \
+    --attempts 10 --reinstrument-every 3
+```
+
+It builds, measures, and keeps the first binary that reaches the target; exit 0 when one lands, 1 when
+none does — with the best of them still kept and named, so a CI job can either gate on it or accept a
+slower binary knowingly. `--reinstrument-every` rebuilds the instrumented image periodically: after a
+run of 19 consecutive misses on unchanged inputs, a fresh instrumented image was followed by two hits
+in three. Whether that *causes* the re-roll is unproven — one sample — but it costs one build to try.
+
+**It refuses rather than reports**, because each refusal is a day this project already lost: arms that
+disagree on output are discarded unmeasured, a figure at or below the elimination floor is a deleted
+loop and not a result, a run with no `RESULT` line is a failure and never a zero, and every attempt is
+printed — including the discarded ones, so exhausting the attempts cannot read as coverage.
+
+Budget for it. An attempt is one instrumented run plus one image build; ten attempts is tens of minutes,
+not seconds, and belongs in a release job rather than an inner loop.
 
 ### The knobs that do not work
 

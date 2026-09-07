@@ -10,6 +10,8 @@ record format got one (M34.3).
 | `mongoose-stub.py` | the **server** — reduced to the contract | the fixture: writes a `~/.mongoose/servers/<name>` file (UP-MNG-01 shape, mode 600) and serves the export endpoints from the in-tree demo set. Not a Mongoose; a statement of what one must do |
 | `bundle-bench.py` | the **static half of M19 P3** | checks a generated directory or zip against `m19-bundle/3`: safe inventory, exact profile ABI, contract/mirror, source/GraphML, skills/frontmatter/provenance/version, executable commands and no placeholders. It does not claim the live run |
 | `bundle-client-bench.py` | the **fresh-analyser/MCP half of M19 P3** | opens a producer-run bundle in a disposable analyser home, verifies profile/runbooks/provenance, log/GraphML pairing and coverage, then proves the packaged MCP bridge sees the same state |
+| `dispatch-bench.py` | the **M50/W10 dispatch bench** | the gated comparison: both arms in one binary, runtime kind recorded, identical check values before any timing is believed, an elimination floor below which a figure is a deleted loop rather than a result |
+| `land-native.py` | the **M50/W9 native build lottery** | the pragmatic route to 1.6 ns: build, measure, keep the binary that landed. A GraalVM image built from identical classes, flags and profile lands in either mode ([oracle/graal#14387](https://github.com/oracle/graal/issues/14387)); a binary that landed reproduces its own mode for ever, so one good build is shippable |
 | `template-bench.py` | the **M19.5 template-picker boundary** | always runs the catalogue/version and hostile-ZIP tests; `--live` also downloads the deployed onboarding template and opens its profile through `ProjectSession` |
 
 ## Preflight the analyser template picker

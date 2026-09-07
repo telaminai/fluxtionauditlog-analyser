@@ -180,3 +180,25 @@ the experiment controlled. §24 and §25 are both superseded by §1 here.
   (§2.1), the build's thread count or its heap (§2.2). Thirteen configurations, none of them a lever.
   A day each is what those tables are worth.
 - Add the third profile-provenance clause (§3).
+
+## 6. The pragmatic route, and the one thing that broke the run
+
+After 19 consecutive misses on unmodified inputs, the instrumented image was rebuilt — the one input
+that had been held constant since `base1`, because every attempt so far had collected its profiles from
+the same `mi`. Three cycles from the new one:
+
+| build | generated | hand |
+|---|---|---|
+| `m2a` | 5.65 | 1.50 |
+| `m2b` | **1.66** | 1.53 |
+| `m2c` | **1.68** | 1.56 |
+
+The run ended. **Whether the fresh instrumented image caused that is unproven** — one sample, and `m2a`
+missed on the same new image — but it is the only input that had not been varied, and it costs one build
+to try. That is why `--reinstrument-every` exists rather than being asserted as a fix.
+
+The route itself does not depend on knowing: **a binary reproduces its own mode for ever** (§1.1), so a
+build that lands is shippable. `tools/bench/land-native.py` builds, measures, keeps the binary that
+landed, and exits non-zero if none did — with the best still kept and named, and every attempt printed
+including the discarded ones. Its refusals are one per defect this project has already paid for:
+disagreeing arms, the elimination floor, a missing `RESULT` line read as a zero, and silent caps.

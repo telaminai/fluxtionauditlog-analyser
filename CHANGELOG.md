@@ -7,6 +7,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Build a native image until it lands, and keep the one that did.** `tools/bench/land-native.py`
+  answers the one thing GraalVM will not: an image built from identical classes, identical flags and an
+  identical PGO profile lands at either ~1.6 ns/event or ~5.5, and nothing measurable tells the two
+  apart before you run them ([oracle/graal#14387](https://github.com/oracle/graal/issues/14387)).
+  Because a binary reproduces its own mode for ever, one good build is a shippable build — so the
+  harness builds, measures and keeps the binary that landed, optionally rebuilding the instrumented
+  image every N attempts. **It refuses rather than reports**: arms that disagree on output are
+  discarded unmeasured, a figure at or below the elimination floor is a deleted loop and not a result,
+  a run that produced no `RESULT` line is a failure and never a zero, and every attempt — including
+  every discarded one — is printed, so exhausting the attempts cannot read as coverage.
 - **Compare two audit logs on business outcomes, headlessly.** `ScoreCommand` reads both logs through
   the shipped reader and parser and reports whether every published figure agrees after every scored
   event. It reads Fluxtion's natural form (`book: { mid: 17.1}` → `book.mid`) and a tagged
