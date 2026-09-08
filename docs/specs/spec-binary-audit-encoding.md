@@ -120,21 +120,42 @@ The generator MUST emit `Clock.eventReceived(...)` **before any other auditor's*
 assert it, because the failure is silent: `logTime` would quietly become the *previous* event's
 timestamp.
 
-### 6.3 Wire format (informative — the prototype's shape)
+### 6.3 Wire format — long slots, as implemented
 
-Names are not written. Node names and property keys intern to a `short` id; only the id goes on the
-wire, and the dictionary is published separately (it is fixed after warm-up, since generated code
-passes String constants).
+**Corrected.** An earlier draft of this section specified a packed 13-byte layout
+(`nodeId:u16, keyId:u16, tag:u8, bits`). The implementation writes **16-byte entries as two aligned
+`long` slots**, because that measured 51 ns/event faster on native than byte assembly and beats a
+`VarHandle` byte-array view by 19.7 ns while staying Java 8 (§7B.4).
 
 ```
-record := header, entry*, terminator
-header := 0x01, eventTime:i64, logTime:i64, eventTypeId:u16
-entry  := nodeId:u16, keyId:u16, tag:u8, bits
-term   := 0x00, endTime:i64
+entry := slot0, slot1                     always exactly 16 bytes
+
+slot0 :  bits 63..48   nodeId   (u16)
+         bits 47..32   keyId    (u16)
+         bits 31..8    reserved, zero
+         bits  7..0    tag      (u8)
+
+slot1 :  the value's raw bits
+           TAG_DOUBLE(1)  Double.doubleToRawLongBits
+           TAG_LONG(2)    the long
+           TAG_INT(3)     the int, sign-extended
+           TAG_CHAR(4)    the char
+           TAG_BOOL(7)    0 or 1
 ```
 
-54 bytes against 193 characters for the same content. **A reader is required before this format is
-usable** — see §9.
+**Every entry is exactly two slots whatever the value type.** That is the property a reader depends on:
+it can skip an entry without decoding it, which is what makes filtering cheap.
+
+Names are not written. A node name or property key is resolved to a `u16` id **once per logger**
+(§7A), and only the id goes in the slot.
+
+`BinaryRecordDecoder` reads this back and is tested round-trip against the encoder — including doubles
+bit-exact, ids at the 16-bit boundary, and three failure modes that must be reported rather than
+silently mishandled: a truncated record, a length past the buffer, and an empty record.
+
+**Three bytes per entry are unused** (`slot0` bits 31..8). That is the cost of whole-`long` alignment,
+and it bought 51 ns/event — a 23% larger record for a 3× faster write. Room for a sequence number or a
+timestamp delta later without changing the entry size.
 
 The `Object` overload is the one case that cannot avoid text; it is encoded as a length-prefixed
 string. A deployment targeting this profile should not be logging `Object`.

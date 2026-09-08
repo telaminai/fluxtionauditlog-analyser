@@ -13,7 +13,7 @@ with the profile SHA recorded, and every build input verified in the build log r
 | Machine | Apple M4 |
 | JIT | OpenJDK 25.0.2 (build 25.0.2+10-69) |
 | Native | Oracle GraalVM 25.0.4+7.1 · `native-image 25.0.4` |
-| Harness | **h4** — adds a no-op record arm; h3 fixed the escaping processor |
+| Harness | **h5** — stamps a runtime digest as well as its own version; h4 — adds a no-op record arm; h3 fixed the escaping processor |
 
 ## After the id-path fix (round 63 §20) — harness h4
 
@@ -88,7 +88,20 @@ pure cost of guards with zero benefit, and a guard breaks even only when
 | **audited** | **53.42 · 18.7 M/s** | **66.12 · 15.1 M/s** |
 | audit cost | 33.70 | 48.34 |
 
-Verified per run: `recPerEvent=1.000`, 188 bytes/record (11.75 × 16), matching graph checksum.
+Verified per run: `recPerEvent=1.000`, 188 bytes/record (11.75 × 16), matching graph checksum, and the
+harness version and runtime digest stamped on the result line.
+
+**Measured repeatability**, three batches of six, minimum per batch:
+
+| | spread of minima | CV |
+|---|---:|---:|
+| native audited | **0.053 ns** | **0.05%** |
+| native baseline | 0.106 ns | 0.31% |
+| JIT audited | 6.673 ns | 5.49% |
+
+So native figures are quoted to three decimals and **JIT figures are quoted as approximate** — at 5.49%
+they are not repeatable to the precision this table would otherwise imply. `measure.sh` enforces 2%
+native / 6% JIT and refuses anything looser.
 
 ## Known inputs that change the answer — isolate one at a time
 

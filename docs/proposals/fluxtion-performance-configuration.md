@@ -257,6 +257,50 @@ changes, and the harness rolls it for you until it lands.
 **What that buys, measured:** ~1.67 ns/event, 600M events/sec on one core, **8.6% off hand-written
 flat Java** — from a processor generated out of a jar the compiler only saw as bytecode.
 
+### How these audit figures were taken — and how to reproduce them
+
+Every audit number on this page comes from `tools/bench/latency-kit`, through a harness that **refuses
+to report what it cannot prove**. The gates exist because each of them caught something real:
+
+| gate | what it refuses | why it is there |
+|---|---|---|
+| **load** | a run above half the core count | one round-63 measurement was taken at load average 83, with two orphaned native builds running |
+| **identity** | a result carrying no harness version or runtime digest | the harness changed five times and the runtime six; neither appears in a build log or a flag list |
+| **repeatability** | a run whose *minimum* varies more than the toolchain's measured limit | a single rep cannot see the ±8 ns build lottery |
+| **arms** | a comparison where more than one declared input differs | three wrong conclusions in one round came from two-variable comparisons |
+
+```bash
+KIT_OUT=<scratch> tools/bench/latency-kit/measure.sh "label" "<command>" [reps]
+tools/bench/latency-kit/compare-arms.sh "A" "<cmd A>" "B" "<cmd B>" [reps] [varying-key]
+tools/bench/latency-kit/validate-controls.sh      # gate before trusting anything else
+```
+
+#### Measured repeatability — native is ~100× tighter than JIT
+
+Three batches of six, minimum per batch, on the 30-node converging graph:
+
+| | batch minima | spread | CV |
+|---|---|---:|---:|
+| **native**, audited | 63.825 / 63.827 / 63.878 | **0.053 ns** | **0.05%** |
+| **native**, baseline | 17.047 / 17.153 / 17.110 | 0.106 ns | 0.31% |
+| **JIT**, audited | 57.502 / 60.650 / 64.175 | 6.673 ns | **5.49%** |
+
+**A JIT difference under about 5% on this graph is not a difference**, and the harness says so rather
+than letting it be reported as one. Thresholds are therefore set from measurement — **2% native, 6% JIT**
+— not from a round number. For a deployment that cares about tail latency rather than median
+throughput, that flatness is itself the result.
+
+!!! warning "The harness is an input, and it is versioned like one"
+    Round 63 measured the same graph at 3.41 ns in one session and 9.7 ns in another with **every
+    recorded input identical** — same profile, PGO, GC, flags, graph and machine. The difference was
+    the harness: the newer one constructed the processor in `main` and passed it in, so it escaped and
+    its nodes could no longer be scalar-replaced. **Worth 4.3× on native, nothing on JIT, and invisible
+    in every build log.**
+
+    `HarnessVersion` now stamps a version and a runtime digest on every result:
+    `RESULT harness=h5 rt:4ca35f6085 …`. **A figure from a different harness version is not comparable
+    and the tooling refuses to compare it.**
+
 ### What each profile includes — the capability matrix
 
 A profile is a named bundle of settings. This is the whole bundle, so the trade is visible before you
@@ -330,7 +374,7 @@ min of 8 interleaved reps.
 | dirty filtering, **no audit** | **7.7 ns** | **7.6 ns** | native 25.66 → 18.02 |
 | dirty filtering, **with audit** | ~0 | **~0** | 144.11 vs 142.83 — inside the ±8 ns lottery |
 | per-node method tracing | ~184 ns | — | the expensive half of auditing |
-| the audit record itself (binary) | ~35 ns | **~70 ns** | after the id-path fix and `BinaryEventLogger` |
+| the audit record itself (binary) | **33.7 ns** | **48.3 ns** | current core: id path, `BinaryEventLogger`, `long[]` slots |
 | a concrete record field (`BinaryEventLogger`) | **0.3 ns** | **59.8 ns** | automatic when the record is binary — HotSpot devirtualises anyway, native cannot |
 | the audit record itself (text) | ~384 ns | ~681 ns | **7.0× the binary record** at this density |
 | name resolution before the id-path fix | 26 ns | 27 ns | **now ~0** — resolved once per node |
