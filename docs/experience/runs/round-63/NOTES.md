@@ -549,3 +549,57 @@ measured through the shipped `EventLogControlEvent` path with a correctness chec
 half of the target is **not yet measured**. Given §6.5's `TextProbe` result — AOT is *slower* than JIT
 at text formatting and faster at dispatch — removing the text is expected to help AOT more than JIT,
 which makes it the more interesting arm and the one still outstanding.
+
+## 8. Native AOT with PGO — and the text penalty lands where it was predicted
+
+GraalVM was never deleted; the path was lost. Oracle GraalVM **25.0.4+7.1** (the PGO-capable build)
+is at `scratchpad/graalvm/graalvm-jdk-25.0.4+7.1/Contents/Home`, now pinned in
+`scratchpad/GRAALVM_HOME.txt` so it cannot be mislaid again.
+
+Method: one shared `--pgo-instrument` image; each arm collects **its own** profile; each final image is
+built with `--pgo=<that arm's profile>` only, because round 60 established that the profile decides the
+AOT mode. Profile SHA verified unchanged across every build. 3 reps × 3M events, `-Dwarm=500000`.
+
+| Arm | JIT ns | JIT msg/s | **Native ns** | **Native msg/s** | native ÷ JIT |
+|---|---:|---:|---:|---:|---:|
+| text, live clock | 153.5 | 6.5M | **221.7** | 4.51M | **1.44× slower** |
+| text, `getProcessTime()` | 139.8 | 7.2M | **221.5** | 4.51M | 1.58× slower |
+| binary, live clock | 59.6 | 16.8M | **90.6** | 11.04M | 1.52× slower |
+| **binary + `getProcessTime()`** | **49.2** | **20.3M** | **78.1** | **12.8M** | 1.59× slower |
+
+### 8.1 The 10M target
+
+**Met on both.** 20.3M/s on JIT and **12.8M/s native**, fully audited, zero allocation, 54 bytes per
+record, excluding disk and network. The text encoder reaches neither: 6.5M and 4.5M.
+
+### 8.2 AOT is slower at building records — exactly as the isolated probe said
+
+`TextProbe` (§6, no Fluxtion in it) measured AOT **1.44× slower than JIT at text formatting**. The
+text record arm here comes in at **1.44×**. That is the same number from an independent experiment, and
+it is worth stating plainly because the intuition runs the other way: on this graph AOT is *2.9× faster
+at dispatch* (3.4 ns vs 10.0) and *simultaneously* 1.44× slower at making the record.
+
+The penalty is not confined to text. The binary arm is 1.59× slower on AOT too — raw byte stores, no
+formatting. So **AOT's disadvantage here is record construction generally**, not string conversion
+specifically; text is simply where there is most of it.
+
+Scoring the one prediction §7.6 recorded about this:
+
+| Predicted | Measured | |
+|---|---|---|
+| removing the text helps **AOT more than JIT** | absolute: AOT saves **143.6 ns**, JIT **104.3 ns** ✅ · ratio: AOT **2.84×**, JIT **3.12×** ❌ | ➗ |
+
+Right in nanoseconds, wrong in multiples. The absolute saving is what a latency budget is spent in, so
+the useful half held — but the claim as written was ambiguous between the two and should not have been.
+
+### 8.3 An unexplained asymmetry, recorded rather than explained away
+
+The `getProcessTime()` change is worth **13.7 ns on JIT text** and **~0 ns on native text**
+(221.985 / 221.215 — inside noise), while on the binary arm it is worth **10.4 ns on JIT** and
+**12.5 ns on native**. So the same edit pays on three arms out of four and vanishes on exactly one.
+
+No measurement here explains that. The plausible story is that the native text path is long enough for
+two clock reads to hide inside it entirely, which is consistent with §7.5's finding that a 12.3 ns
+read costs only ~5 ns marginally when surrounded by work — but that is a hypothesis, and this note
+records it as one. It does not change the recommendation: the change is a correctness fix that happens
+to pay on three arms and costs nothing on the fourth.

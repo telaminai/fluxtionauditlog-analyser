@@ -67,20 +67,29 @@ public class BenchBinary {
         long t0 = System.nanoTime();
         run(p, it);
         long ns = System.nanoTime() - t0;
-        long bytes = allocated() - b0;
+        long a1 = allocated();
+        long bytes = (b0 < 0 || a1 < 0) ? -1L : a1 - b0;
 
         double perRecord = (double) sink / (it + w);
-        System.out.printf("RESULT %-6s %8.3f nsPerEvent  %8.2f msgPerSec  allocB=%6.3f  recordBytes=%.1f%s%n",
-                mode, (double) ns / it, 1e9 / ((double) ns / it) / 1e6, (double) bytes / it, perRecord,
+        System.out.printf("RESULT %-8s %8.3f nsPerEvent  %8.2f msgPerSec  allocB=%s  recordBytes=%.1f%s%n",
+                mode + "/" + com.benchv.BinaryLogRecord.clockMode, (double) ns / it,
+                1e9 / ((double) ns / it) / 1e6,
+                bytes < 0 ? "n/a" : String.format("%.3f", (double) bytes / it), perRecord,
                 bin == null ? "" : String.format("  dict=%d cacheHit=%.4f%% overflow=%b",
                         bin.dictionarySize(),
                         100.0 * bin.cacheHits() / (bin.cacheHits() + bin.cacheMisses()),
                         bin.overflowed()));
     }
 
+    /** Native image may not expose the management bean; a missing allocation figure must not
+     *  silently become a zero-allocation claim, so it reports -1 and the caller prints it as such. */
     static long allocated() {
-        com.sun.management.ThreadMXBean bean =
-                (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
-        return bean.getThreadAllocatedBytes(Thread.currentThread().getId());
+        try {
+            com.sun.management.ThreadMXBean bean =
+                    (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
+            return bean.getThreadAllocatedBytes(Thread.currentThread().getId());
+        } catch (Throwable t) {
+            return -1L;
+        }
     }
 }
