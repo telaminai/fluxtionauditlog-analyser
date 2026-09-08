@@ -2539,3 +2539,58 @@ three is proposed.
 
 **And the two options that were going to be needed are now unnecessary.** The multi-release jar and the
 generated writer both existed to reach `VarHandle`; a pure Java 8 record beats `VarHandle` by 19.7 ns.
+
+## 31. Harness rigour — identity, stability, repeatability
+
+Three gates added, each because something got past its absence.
+
+### 31.1 Identity — a result must say what produced it
+
+`HarnessVersion` now stamps **both** the harness version and a **runtime digest** on every RESULT line:
+
+```
+RESULT harness=h5 rt:4ca35f6085 store=... graph=conv record=core ...
+```
+
+The runtime changed **six times** in this round — the id path, the specialised logger, the slot record —
+and nothing in a build log or a flag list shows which one produced a figure. `measure.sh` **refuses**
+a result carrying no harness version or runtime digest, and it caught a native binary built at h4 being
+compared against h5 numbers within minutes of being written.
+
+### 31.2 Stability — gate on the statistic actually reported
+
+The first version gated on the CV of every rep and refused a JIT run at **11.88%**. That was the wrong
+statistic: JIT warm-up variance is inherent, which is *why* the minimum is reported. So the gate is now
+**K batches of N reps, minimum per batch, CV across the batch minima** — which is repeatability, the
+thing actually being claimed.
+
+### 31.3 Repeatability, measured — and the owner's expectation confirmed quantitatively
+
+| | batch minima | spread | CV |
+|---|---|---:|---:|
+| **native**, audited | 63.825 / 63.827 / 63.878 | **0.053 ns** | **0.05%** |
+| **native**, baseline | 17.047 / 17.153 / 17.110 | 0.106 ns | 0.31% |
+| **JIT**, audited | 57.502 / 60.650 / 64.175 | **6.673 ns** | **5.49%** |
+
+**Native is roughly 100× more repeatable than JIT.** Thresholds are therefore set from measurement, not
+from a round number: **2% native, 6% JIT.**
+
+Two consequences:
+
+1. **A JIT difference under ~5% is not a difference.** Several comparisons in this round sat in that
+   band and were reported as though they were results. The harness now refuses them.
+2. **It is a product property, not only a benchmarking nuisance.** A deployment that cares about the
+   tail rather than the median gets a far flatter distribution from AOT — consistent with §10.5, where
+   native's spread was already 10× tighter before any of this work.
+
+### 31.4 Current numbers, through the gated harness
+
+| | native | JIT |
+|---|---:|---:|
+| baseline, no auditor | **17.047 ns · 58.7 M/s** (CV 0.31%) | ~19.7 |
+| **audited** | **63.825 ns · 15.7 M/s** (CV 0.05%) | ~57.5 (CV 5.49%) |
+| audit cost | **46.78 ns** | ~37.8 |
+
+The native figures are stated with their CV because they earned it. **The JIT figures are quoted as
+approximate**, because at 5.49% they are not repeatable to the precision this round has been quoting
+them at.

@@ -42,6 +42,8 @@ public class BenchConvLocal {
             records++;
             if (r instanceof com.benchv.NoOpLogRecord) {
                 recordBytes += ((com.benchv.NoOpLogRecord) r).entries();   // proves the chain ran
+            } else if (r instanceof com.telamin.fluxtion.runtime.audit.BinaryLogRecord) {
+                recordBytes += ((com.telamin.fluxtion.runtime.audit.BinaryLogRecord) r).length();
             } else if (binary) {
                 recordBytes += ((BinaryLogRecord) r).length();
             } else {
@@ -62,8 +64,13 @@ public class BenchConvLocal {
         }
         boolean binary = "binary".equals(want);
         boolean noop = "noop".equals(want);
-        if (!binary && !noop && !"text".equals(want)) {
-            throw new IllegalStateException("-Drecord must be binary|text|noop, was " + want);
+        // record=core installs the CORE BinaryLogRecord, which EventLogManager pairs with
+        // BinaryEventLogger — a concrete record field, so the per-entry write is a direct call.
+        // record=binary installs the bench copy, which is functionally identical but is NOT the core
+        // type, so the generic EventLogger is used. The delta between them is the specialised logger.
+        boolean core = "core".equals(want);
+        if (!binary && !noop && !core && !"text".equals(want)) {
+            throw new IllegalStateException("-Drecord must be binary|core|text|noop, was " + want);
         }
         String graphName = System.getProperty("graph", "conv");
         long w = Long.getLong("warm", 500_000L), it = Long.getLong("iters", 3_000_000L);
@@ -79,11 +86,11 @@ public class BenchConvLocal {
             throw new IllegalStateException("clock mode did not take: asked " + clock
                     + " resolved " + resolvedClock);
         }
-        run(binary, noop, theSink, graphName, w);
+        run(binary, core, noop, theSink, graphName, w);
         long r0 = records;
         long b0 = allocated();
         long t0 = System.nanoTime();
-        run(binary, noop, theSink, graphName, it);
+        run(binary, core, noop, theSink, graphName, it);
         long ns = System.nanoTime() - t0;
         long a1 = allocated();
         long produced = records - r0;
@@ -98,9 +105,9 @@ public class BenchConvLocal {
         long bytes = (b0 < 0 || a1 < 0) ? -1 : a1 - b0;
 
         System.out.printf(
-                "RESULT harness=%s graph=%s record=%s clock=%s %8.3f ns %7.2f Mmsg/s recPerEvent=%.3f "
+                "RESULT harness=%s %s store=%s graph=%s record=%s clock=%s %8.3f ns %7.2f Mmsg/s recPerEvent=%.3f "
                         + "avgRecBytes=%.1f allocB=%s v=%.4f%n",
-                HarnessVersion.tag(), graphName, want, resolvedClock, (double) ns / it, 1e9 / ((double) ns / it) / 1e6,
+                HarnessVersion.tag(), HarnessVersion.runtimeTag(), BinaryLogRecord.storeMode(), graphName, want, resolvedClock, (double) ns / it, 1e9 / ((double) ns / it) / 1e6,
                 (double) produced / it, (double) recordBytes / records,
                 bytes < 0 ? "n/a" : String.format("%.3f", (double) bytes / it), out);
     }
@@ -111,7 +118,7 @@ public class BenchConvLocal {
      * under native AOT (2.26 ns local against 9.79 escaping); this measures what it is worth once the
      * audit machinery is on the path too.
      */
-    static void run(boolean binary, boolean noop, com.telamin.fluxtion.runtime.audit.LogRecordListener sink,
+    static void run(boolean binary, boolean core, boolean noop, com.telamin.fluxtion.runtime.audit.LogRecordListener sink,
                     String graphName, long n) throws Exception {
         com.bench.conv.ConvProcessor p = new com.bench.conv.ConvProcessor();
         EventLogManager m = p.getAuditorById(EventLogManager.NODE_NAME);
@@ -119,6 +126,9 @@ public class BenchConvLocal {
         p.init();
         if (binary) {
             p.onEvent(new EventLogControlEvent(new BinaryLogRecord(m.clock, 8192)));
+        } else if (core) {
+            p.onEvent(new EventLogControlEvent(
+                    new com.telamin.fluxtion.runtime.audit.BinaryLogRecord(m.clock, 8192)));
         } else if (noop) {
             noOpRecord = new com.benchv.NoOpLogRecord(m.clock);
             p.onEvent(new EventLogControlEvent(noOpRecord));

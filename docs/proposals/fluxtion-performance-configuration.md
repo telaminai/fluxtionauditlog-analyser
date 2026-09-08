@@ -73,9 +73,25 @@ the disk or network write**. Two audit densities, because it turns out to be the
 | Graph | Record | JIT ns | JIT M/s | native ns | native M/s | bytes/rec |
 |---|---|---:|---:|---:|---:|---:|
 | one node logs | text | 147.2 | 6.8 | — | — | 193 |
-| one node logs | **binary** | **47.6** | **21.0** | 70.9 | 14.1 | 54 |
+| one node logs | binary | 47.6 | 21.0 | 70.9 | 14.1 | 54 |
 | **every node logs** | text | 403.0 | 2.5 | 698.6 | 1.4 | 548 |
-| **every node logs** | **binary** | **79.4** | **12.6** | 149.5 | 6.7 | 181 |
+| **every node logs** | **binary** | **~57.5** | **~17.4** | **63.8** | **15.7** | 188 |
+
+The binary row is the current core implementation: `LOW_LATENCY_AUDIT`, `BinaryEventLogger`, and a
+record writing `long` slots. **Audit cost is ~37.8 ns on JIT and 46.8 ns on native**, on a baseline of
+19.7 / 17.0.
+
+!!! note "Why the native figures carry more precision than the JIT ones"
+    Measured repeatability of the reported minimum, three batches of six:
+
+    | | spread | CV |
+    |---|---:|---:|
+    | native | **0.053 ns** | **0.05%** |
+    | JIT | 6.673 ns | 5.49% |
+
+    **Native is ~100× more repeatable.** A JIT difference under ~5% on this graph is not a difference,
+    and `tools/bench/latency-kit/measure.sh` refuses to report one. For a deployment that cares about
+    the tail rather than the median, that flatness is a result in its own right.
 
 - **The record format is most of the cost, and its importance grows with audit density.** Binary beats
   text by 3.2× when one node logs and **5.1× when every node does**. Per logged value the marginal cost

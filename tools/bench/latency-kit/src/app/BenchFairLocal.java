@@ -54,7 +54,7 @@ public class BenchFairLocal {
         long ns = System.nanoTime() - t0;
         if (out == 0.0) { throw new IllegalStateException("graph produced nothing — not measuring work"); }
         System.out.printf(
-                "RESULT harness=%s fair-baseline no-audit %8.3f ns %7.2f Mmsg/s v=%.4f%n",
-                HarnessVersion.tag(), (double) ns / it, 1e9 / ((double) ns / it) / 1e6, out);
+                "RESULT harness=%s %s fair-baseline no-audit %8.3f ns %7.2f Mmsg/s v=%.4f%n",
+                HarnessVersion.tag(), HarnessVersion.runtimeTag(), (double) ns / it, 1e9 / ((double) ns / it) / 1e6, out);
     }
 }
