@@ -2426,3 +2426,116 @@ types, every node on the path logging, zero allocation, 181 bytes per record.
   are marked, and they need re-measuring before anything calibrates against them.
 - **Nothing has been run on a second machine.** Every coefficient is Apple-M4-specific until shown
   otherwise, which is the assumption most likely to be wrong.
+
+## 30. Is `VarHandle` required? — two Java 8 alternatives
+
+`VarHandle` buys one thing: writing 8 bytes as **one store with one bounds check** instead of eight of
+each. It is worth **−34.5 ns on native** and cannot ship in core, which targets Java 8. So: is there a
+Java 8 way to get the same effect?
+
+Two candidates, both pure Java 8:
+
+**C — `ByteBuffer.putLong(index, value)`.** A heap `ByteBuffer` wrapping the same array. HotSpot
+intrinsifies it; GraalVM native-image has its own intrinsics for it too. One call, one store.
+
+**D — `long[]` slots instead of `byte[]`.** Stop writing bytes at all. Pack
+`nodeId(16) | keyId(16) | tag(8)` into one `long` and put the value in the next, so an entry is **two
+aligned `long` array stores** — the simplest thing a JIT or an AOT compiler can emit, with no unaligned
+handling and no byte assembly. The record becomes 16 bytes per entry instead of 13, and bytes are
+produced only at publish.
+
+### 30.1 Predictions
+
+| # | Prediction | Basis |
+|---|---|---|
+| Q1 | `long[]` slots beat the byte loop on native by **> 25 ns** | it removes the same 8 bounds checks `VarHandle` does, and adds nothing |
+| Q2 | `long[]` slots **beat `VarHandle` too** | aligned array stores need no unaligned-access handling, and there is no `VarHandle` indirection for a JIT to pay for |
+| Q3 | `ByteBuffer.putLong` lands **between** the byte loop and `long[]` | intrinsified, but through more layers than a bare array store |
+| Q4 | on JIT all four are **within ~5 ns** | HotSpot already folds the byte loop — §21.3 measured `VarHandle` as 8.6 ns *worse* there |
+| Q5 | the record grows **~23%** (13 → 16 bytes per entry) | packing to whole longs wastes 3 bytes per entry |
+
+**Q2 is the one that would settle it.** If `long[]` beats `VarHandle`, then `VarHandle` is not required,
+core can ship the fast path, and the multi-release-jar and generated-writer options both become
+unnecessary.
+
+### 30.2 Results — `VarHandle` is not required, and Java 8 beats it
+
+| store | JIT ns | native ns | vs the byte loop core ships |
+|---|---:|---:|---:|
+| bytewise *(core today, Java 8)* | 61.00 | 123.20 | — |
+| `ByteBuffer.putLong` *(Java 8)* | 72.45 | 118.60 | −4.60 |
+| `VarHandle` *(not shippable in core)* | 64.14 | 91.52 | −31.67 |
+| **`long[]` slots *(Java 8)*** | **60.72** | **71.77** | **−51.42** |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| Q1 | `long[]` beats the byte loop by > 25 ns on native | **51.42** | ✅ |
+| Q2 | `long[]` **beats `VarHandle`** | **19.75 ns better** | ✅ |
+| Q3 | `ByteBuffer` lands between | −4.60, between byte loop and `VarHandle` | ✅ |
+| Q4 | all four within ~5 ns on JIT | `ByteBuffer` is 11.4 off | ❌ |
+| Q5 | record grows ~23% | 172 vs 180.8 — **not cleanly measured**, the arm is partial | — |
+
+**So `VarHandle` is not required, and the multi-release jar and the generated writer are both
+unnecessary** — a pure Java 8 record beats the option core could not ship.
+
+**Caveat, and it matters:** the `longslot` arm only converts the *entries*. The header and terminator
+still go through the byte path, which is why the record reads 172 bytes against 180.8. **71.77 is not a
+shippable number** until the whole record moves to slots.
+
+### 30.3 The combination has not been measured
+
+Every store arm above ran with the **generic** `EventLogger`, because `-Drecord=binary` installs the
+bench record, not the core type. And `BinaryEventLogger` (§28) was measured only against the **core**
+record, which is bytewise. **So `BinaryEventLogger` + `long[]` slots is unmeasured**, and it is the
+shippable configuration.
+
+| # | Prediction | Basis |
+|---|---|---|
+| R1 | they are **largely additive** — native audit cost lands **40–55 ns** | they address different things: the logger removes the virtual `addRecord`, the slots remove byte assembly *inside* it |
+| R2 | the combined saving is **slightly less than the sum** (59.76 + 51.42) | the −51.42 was measured through a virtual call that is now direct, so part of it was call overhead |
+| R3 | JIT is **unchanged, ~40 ns audit cost** | both changes are worth ~0 on JIT separately |
+| R4 | **native clears 10M msg/sec** on the fully-audited converging graph | 40–55 ns audit on a 17 ns baseline is 57–72 ns total |
+
+**R4 is the one that matters** — it is the target this graph shape has been missing on native.
+
+### 30.4 Results — they combine, and native clears the target
+
+`BinaryEventLogger` + `long[]` slots, both in core, both pure Java 8, no generation.
+
+| | JIT | native |
+|---|---:|---:|
+| baseline, no auditor | 19.72 | 17.77 |
+| audited | 53.42 | 66.12 |
+| **audit cost** | **33.70** | **48.34** |
+| throughput | 18.7 M/s | **15.12 M/s** |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| R1 | native audit cost **40–55 ns** | **48.34** | ✅ |
+| R2 | combined saving **less than the sum** (59.76 + 51.42 = 111.2) | **99.85** | ✅ |
+| R3 | JIT unchanged at ~40 ns | **33.70** — improved more than predicted | ❌ |
+| R4 | **native clears 10M msg/sec** | **15.12 M/s** | ✅ |
+
+**Native audit cost: 148.19 → 48.34 ns, 3.07×.** Native/JIT on audit cost: **3.55× → 1.43×**.
+
+R3 is worth noting: the `long[]` slots helped JIT too (40.09 → 33.70), which the separate measurement
+had shown as ~0. Two changes that each looked JIT-neutral were not neutral together.
+
+### 30.5 Are we at the end of the line?
+
+No, but the remaining headroom needs machinery that does not exist.
+
+| | native audit cost |
+|---|---:|
+| where the round started | 148.19 |
+| **now — core, Java 8, no generation** | **48.34** |
+| inline ceiling (§22, hand-edited nodes) | 14.24 |
+
+**Everything reachable without generation has been taken.** What is left between 48.34 and 14.24 is the
+`auditLog.info` virtual call, the level check, and the header/terminator — and closing it needs
+something that sees node method bodies: an annotation processor, bytecode transformation, or an API
+change moving the key out of the call site. §23 established the generator cannot do it, and none of the
+three is proposed.
+
+**And the two options that were going to be needed are now unnecessary.** The multi-release jar and the
+generated writer both existed to reach `VarHandle`; a pure Java 8 record beats `VarHandle` by 19.7 ns.

@@ -77,6 +77,19 @@ identical nodes (13/10/11), because each event reaches its chain by topology. So
 pure cost of guards with zero benefit, and a guard breaks even only when
 `P(skip) × cost(node) > ~1.4 ns` (JIT). Light nodes: never. Heavy nodes (~34 ns): at ~4% skip rate.
 
+## Current shippable configuration — core, Java 8, no generation
+
+`LOW_LATENCY_AUDIT` (guards off) + `BinaryEventLogger` + `BinaryLogRecord` with `long[]` slots.
+30 nodes, 5 event types, every node on the path logging, 11.75 entries/record, harness h4.
+
+| | JIT | native |
+|---|---:|---:|
+| baseline, no auditor | 19.72 · 50.7 M/s | 17.77 · 56.3 M/s |
+| **audited** | **53.42 · 18.7 M/s** | **66.12 · 15.1 M/s** |
+| audit cost | 33.70 | 48.34 |
+
+Verified per run: `recPerEvent=1.000`, 188 bytes/record (11.75 × 16), matching graph checksum.
+
 ## Known inputs that change the answer — isolate one at a time
 
 Hold every other column in `binaries.tsv` equal; the difference is then attributable.

@@ -278,14 +278,49 @@ native cannot speculate, so it gained 40%. Native/JIT audit cost: **3.55× → 2
 There is no option to make. The specialised logger is selected automatically whenever the record is
 binary, costs nothing on JIT, and **generates no classes**, so the code-cache question does not arise.
 
-### 7B.4 What is still out of reach, and what it is worth
+### 7B.4 `VarHandle` turned out not to be required — SOLVED in Java 8
 
-`VarHandle` value stores need the stores out of core — a generated writer or a multi-release jar.
-Measured separately: **−34.5 ns native, +8.6 ns JIT**, so it must stay native-only if pursued.
+The remaining term was the value stores, thought to need `VarHandle` and therefore a multi-release jar
+or a generated writer. **Neither is needed.** Writing entries as **two aligned `long` stores** — header
+packing `nodeId | keyId | tag` into one slot, value in the next — is pure Java 8 and beats `VarHandle`:
 
-**Predicted** (round 63 §28.4, not measured): native audit cost **50–58 ns**, closing native/JIT to
-~1.3×, with the combined saving coming in **under** 34.5 ns because that figure was measured against a
-virtual `addRecord` that is now direct.
+| store | JIT ns | native ns |
+|---|---:|---:|
+| bytewise | 61.00 | 123.20 |
+| `ByteBuffer.putLong` | 72.45 | 118.60 |
+| `VarHandle` *(not shippable in core)* | 64.14 | 91.52 |
+| **`long[]` slots** | **60.72** | **71.77** |
+
+Two aligned array stores are the simplest thing either compiler can emit — no unaligned access, no byte
+assembly, nothing to recognise and fold. HotSpot folds the byte loop already so gains nothing;
+native-image does not, so gains 51 ns.
+
+### 7B.5 Where the audit path stands
+
+`BinaryEventLogger` + `long[]` slots, both core, both Java 8, no generation:
+
+| | JIT | native |
+|---|---:|---:|
+| baseline, no auditor | 19.72 | 17.77 |
+| audited | 53.42 | 66.12 |
+| **audit cost** | **33.70** | **48.34** |
+| throughput | 18.7 M/s | **15.1 M/s** |
+
+**Native audit cost 148.19 → 48.34 ns (3.07×); native/JIT 3.55× → 1.43×.** The 10M msg/sec target is
+met on both toolchains for a graph where every node on the path logs.
+
+### 7B.6 What is left, and it needs machinery that does not exist
+
+| | native audit cost |
+|---|---:|
+| where this started | 148.19 |
+| **now** | **48.34** |
+| inline ceiling (hand-edited nodes, §22) | 14.24 |
+
+**Everything reachable without generation has been taken.** The remainder is the `auditLog.info` virtual
+call, the level check and the header/terminator, and closing it needs something that sees node method
+bodies — an annotation processor, bytecode transformation, or an API change moving the key out of the
+call site. None is proposed.
 
 ## 8. Out of scope for core — the Mongoose side
 
@@ -328,7 +363,7 @@ This cuts both ways and both are worth saying:
 | 9 | **`VarHandle` value stores in the encoder** — **measured 25.9% off native**, done in the prototype | core | 4 |
 | 10 | build-time ids as a **reader** convenience (§7A.4) | compiler | 8 |
 | 11 | **`BinaryEventLogger`** (§7B) — **DONE**, 40% off native audit cost, no generation | core | — |
-| 12 | `VarHandle` stores out of core (§7B.4) — native-only, est. under 34.5 ns | compiler | 11 |
+| 12 | ~~`VarHandle` stores out of core~~ — **NOT NEEDED**, `long[]` slots beat it in Java 8 (§7B.4) | — | — |
 
 1, 2, 3 and 7 are independently shippable. 6 is the one that must wait for a reader.
 
