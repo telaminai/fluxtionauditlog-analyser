@@ -281,15 +281,33 @@ A hand-written stand-in for generated output, 30-node converging graph, every no
 **It is a ceiling, not a promise.** The stand-in has no level check, no record swap, no sink contract
 and no header or terminator; real generated code adds some back.
 
+!!! danger "Correction — the generator cannot see property keys"
+    §7B.2's 14.24 ns ceiling was measured by editing the node source. **A generator cannot do that.**
+    The property key is a literal inside the node's own method body (`auditLog.info("v", v)`), and
+    `fluxtion-generator-core` contains **zero** bytecode analysis — it never reads a node's method
+    bodies. Node *names* are known and emitted as literals; keys are not.
+
+    So the ceiling is withdrawn as an achievable target. What remains reachable is §7B.3 below: a
+    **generated `EventLogger` subclass per node**, which the generator can emit because it controls
+    which logger each node receives. Estimated at **35–45 ns of the 65.70 ns** native audit cost —
+    the `VarHandle` term plus part of the dispatch term — rather than the 51 ns the ceiling implied.
+
+    Reaching the full ceiling needs something that sees node method bodies: an annotation processor on
+    user sources, bytecode transformation, or an API change that moves the key out of the call site.
+    None is proposed.
+
 ### 7B.3 Normative
 
-1. The generator MUST be able to emit a direct writer for `EventLogSource` nodes whose keys it can see
-   at build time, assigning node and key ids as literals.
-2. It MUST fall back to the `EventLogger` path for anything it cannot resolve — dynamic keys,
+1. The generator MUST be able to emit a specialised `EventLogger` subclass per logging node, with the
+   **node id as a literal**. Property keys MUST still be resolved through `LogRecord.internName`, once
+   per logger, because the generator cannot see them.
+2. `EventLogManager` MUST gain a factory hook so a generated processor can supply its own
+   `EventLogger` instances; today it constructs them directly.
+3. It MUST fall back to the stock `EventLogger` for anything it cannot resolve — dynamic keys,
    hand-written nodes, `Object` values. **The API is not replaced.**
-3. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
+4. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
    contract, so a generated processor and an interpreted one produce the same records.
-4. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
+5. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
 
 ### 7B.4 It supersedes the multi-release jar
 
@@ -336,7 +354,7 @@ This cuts both ways and both are worth saying:
 | 8 | **name resolution in `EventLogger`** (§7A) — **DONE**, −24% JIT / −57% native audit cost | core | — |
 | 9 | **`VarHandle` value stores in the encoder** — **measured 25.9% off native**, done in the prototype | core | 4 |
 | 10 | build-time ids as a **reader** convenience (§7A.4) | compiler | 8 |
-| 11 | **generate the audit writer** (§7B) — measured ceiling **4.6× on native audit cost**, and it retires the multi-release-jar option | compiler | 8 |
+| 11 | **generated `EventLogger` per node** (§7B) — est. **35–45 ns of 65.70** native; retires the multi-release-jar option because the writer leaves core either way | compiler + core | 8 |
 
 1, 2, 3 and 7 are independently shippable. 6 is the one that must wait for a reader.
 

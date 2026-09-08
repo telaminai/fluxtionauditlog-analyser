@@ -1925,3 +1925,76 @@ absolute number should not be quoted as an achievable result.
 **And it does not remove the API.** `EventLogger` stays for hand-written nodes, dynamic keys and any
 node the generator did not compile. The generated path is an optimisation of the common case, not a
 replacement for the seam.
+
+## 23. Correction — the inline ceiling assumed information the generator does not have
+
+"Can that be easily generated in place in the event processor?" Checking rather than assuming, and the
+answer forces a correction to §7B.
+
+### 23.1 Three facts
+
+1. **The property key is a literal inside the node's own method body**: `auditLog.info("v", v)` lives in
+   `DagNodesConverging.R0.on(E0)`, compiled separately from the processor.
+2. **The generator does not parse method bodies.** Zero ASM usages in `fluxtion-generator-core`. It sees
+   a node as a class with annotations and fields; it never reads the bytecode of `on(E0)`.
+3. **Node names, by contrast, ARE known** — the generator emits `auditor.nodeRegistered(c1_0, "c1_0")`
+   as literals.
+
+**So the generator cannot know that node `t5` logs key `"v"`.** §7B.3's normative "assigning node and
+key ids as literals" is not implementable as written for keys, and §22's 14.24 ns ceiling was reached by
+editing the node source — which is exactly what a generator cannot do.
+
+**That withdraws the ceiling as an achievable target.** The comparison against the multi-release jar
+does not survive unqualified either; what survives is below.
+
+### 23.2 What IS generatable, and it is not nothing
+
+The generator controls **which `EventLogger` each node receives** — `EventLogManager.nodeRegistered`
+constructs it, and that is core code a factory hook can open. So a generator can emit, per node:
+
+```java
+final class EventLogger_c1_0 extends EventLogger {          // compiled by the USER's toolchain
+    @Override public EventLogger log(String key, double v, LogLevel level) {
+        if (canLog(level)) {
+            // node id is a literal; key resolved once as today; VarHandle is legal HERE
+            record.writeDouble(17, keyRef(key), v);
+        }
+        return this;
+    }
+}
+```
+
+That reaches:
+
+| term | native ns | reachable by a generated `EventLogger`? |
+|---|---:|---|
+| value encoding (`VarHandle` stores) | ~34.5 | **yes** — generated code is not bound by core's Java 8 |
+| `LogRecord.addRecord` virtual call | part of 27.58 | **yes** — the writer can target a concrete record |
+| `auditLog.info` virtual call on `EventLogger` | rest of 27.58 | **no** — `EventLogNode.auditLog` is typed `EventLogger`, and N generated subclasses make it polymorphic. §9 measured provability at ~2 ns, so this is small |
+| name resolution | ~0 | already fixed in §20; the generator cannot improve on once-per-node |
+
+**So the honest estimate is the `VarHandle` term plus part of the dispatch term — call it 35–45 ns of
+the 65.70 ns native audit cost, not the 51 ns the ceiling suggested.** That is still the largest
+remaining win, and it still makes the multi-release jar unnecessary, because the writer moves out of
+core either way.
+
+### 23.3 What would reach the full ceiling
+
+Only something that sees the node's method body:
+
+- **an annotation processor** running on the user's node sources, which sees `auditLog.info("v", v)`
+  and can rewrite or index it;
+- **build-time bytecode transformation**, which the project has no precedent for and which would
+  undermine the "read the generated source" property the whole toolchain leans on;
+- **an API change** that puts the key where the generator can see it — e.g. keys declared as fields or
+  in an annotation rather than passed as literals at the call site. That changes node code, which is
+  the thing §20 was careful not to do.
+
+None is proposed here. Recorded so the ceiling is not mistaken for a plan.
+
+### 23.4 Answering the question directly
+
+**Easily? No.** A generated `EventLogger` subclass per node is a real, contained change — a factory hook
+in `EventLogManager`, and emission in the generator — and it is worth an estimated 35–45 ns of the
+65.70. **The remaining ~20 ns needs the generator to see inside node method bodies, which it does not
+do and has no machinery for.**
