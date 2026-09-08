@@ -339,21 +339,44 @@ auditPlan:
     - nodeName: "t5"     nodeId: 23
 ```
 
-**Template — the only place a language appears:**
+**Template — the only place a language appears.** A Java target emits **one** logger class; a C++ target
+would take the same plan and use metaprogramming (`template<int NodeId> struct AuditWriter`),
+specialising in *its* compiler rather than in the generator. The plan does not change between them,
+which is what makes it replaceable.
 
 ```velocity
-#foreach($w in ${MODEL.auditPlan.writers})
-private static final class AuditWriter_${w.nodeName} extends EventLogger { … }
-#end
+private static final class GeneratedAuditLogger extends EventLogger {
+    private final int nodeId;                            // per instance, free since §7A
+    private final ${MODEL.auditPlan.recordClass} rec;    // concrete — format is a build input
+    …
+}
 ```
+
+!!! warning "Emit ONE logger class, not one per node — and not a nested class"
+    `StringCompilation` creates a **single** `JavaByteObject` per class name; its batch path
+    pre-populates outputs for top-level names only and sends everything else to **one shared**
+    `fallbackOutput`. So nested classes compiled from a single source overwrite each other and cannot be
+    loaded by name. A per-node nested writer class would break the in-memory
+    `EventProcessorFactory.compile()` path used by tests and interpreted mode.
+
+    The AOT path is unaffected — it writes source to disk and the user's build compiles it — but the
+    in-memory path is how most of the suite runs.
+
+    It is also unnecessary: the per-node part (the node id) is already free after §7A, and the two terms
+    worth generating — `VarHandle` stores and the concrete record type — are **not** per-node. One
+    top-level class captures both, and the batch compile path already accepts multiple sources.
+
+    Fixing `StringCompilation` to create outputs on demand is worth doing regardless: **any** generated
+    nested class hits this today.
 
 ### 7B.3 Normative
 
-1. The **model** MUST carry a declarative `auditPlan` — record format, entry layout, and one writer
-   entry per logging node with its name and id. It MUST contain **no target-language source**.
-2. The **template** MUST render the writers from that plan. Emitting a specialised `EventLogger`
-   subclass per logging node, with the **node id as a literal** and the **concrete record type**, is a
-   property of the Java template, not of the generator. Property keys MUST still be resolved
+1. The **model** MUST carry a declarative `auditPlan` — record format, record class, entry layout, and
+   one entry per logging node with its name and id. It MUST contain **no target-language source**, and
+   MUST NOT assume how a target chooses to specialise: a Java target emits a class, a C++ target may
+   use metaprogramming, and the plan is identical for both.
+2. The **template** MUST render the writer from that plan. The Java template MUST emit **one top-level
+   logger class**, not one per node and not a nested class — see the warning above. Property keys MUST still be resolved
    through `LogRecord.internName`, once per logger, because the generator cannot see them.
 3. `EventLogManager` MUST gain a factory hook so a generated processor can supply its own
    `EventLogger` instances; today it constructs them directly.

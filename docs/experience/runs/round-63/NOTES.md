@@ -2136,3 +2136,86 @@ This is a **principle applied to one new feature**, not a migration. The existin
 teardown and event-handler sections still hand the template Java text, and nothing here changes that or
 proposes to. Claiming the template is "replaceable" after this work would be false; claiming the audit
 section is model-first would be true.
+
+## 26. Two corrections from the owner — "replaceable" is achievable, and the compile trap is real
+
+### 26.1 I was wrong that the template is not replaceable
+
+§25 argued the Java template is not replaceable because the model hands it pre-rendered Java. That is
+true of the **existing dispatch code** and I over-generalised it into a claim about the design.
+
+The owner's point: **a C++ target would not specialise in the generator** — it would take the same
+declarative plan and use metaprogramming, e.g. `template<int NodeId> struct AuditWriter`. The
+specialisation happens in the *target's* compiler, not in `JavaSourceGenerator`. So a plan carrying
+`{nodeName, nodeId, recordFormat, entryLayout}` is genuinely language-neutral, and "replaceable" is a
+property of the **plan**, not of how many classes each target chooses to emit.
+
+That also removes the objection §25.3 raised about value types. A target that uses metaprogramming does
+not need the plan to enumerate `double` vs `long` per node — it overrides or instantiates for all of
+them. **The plan stays smaller than §25 claimed it needed to be.**
+
+### 26.2 The compile trap the owner predicted — confirmed in the code
+
+> *"The one issue I found was compiling in process for multiple classes in a single file."*
+
+`StringCompilation.compileWithProcessors`:
+
+```java
+final JavaByteObject byteObject = new JavaByteObject(className);   // ONE object, ONE name
+JavaFileManager fileManager = createFileManager(standardFileManager, byteObject);
+…
+final ClassLoader inMemoryClassLoader = createClassLoader(byteObject);
+return inMemoryClassLoader.loadClass(className);
+```
+
+**One `JavaByteObject` for one class name.** A nested class compiled from the same source is written to
+that same object. The batch entry point is no better in the case that matters:
+
+```java
+for (String name : classNames) { outputs.put(name, new JavaByteObject(name)); }   // top-level only
+…
+JavaByteObject o = outputs.get(className);
+return o != null ? o : fallbackOutput;      // nested classes → ONE SHARED fallback
+```
+
+`fallbackOutput` is a single object named `__fluxtion_lint_fallback`. Every nested class overwrites the
+last, and none is retrievable by name. **So §24's "nested writer class per node" would break the
+in-memory compile path**, exactly as predicted.
+
+### 26.3 And the owner's second point is also right — the AOT path does not care
+
+The performance work targets the AOT path, which sets `setWriteSourceToFile(true)`: the generator
+**writes source**, the user's build compiles it, and nothing is loaded in process. The trap is confined
+to the in-memory `EventProcessorFactory.compile()` path used by tests and interpreted mode.
+
+But "confined to tests" is not "safe to ignore" — the in-memory path is how most of the suite runs.
+
+### 26.4 The design refinement this forces, and it is an improvement
+
+§24 proposed **one writer class per logging node**. That maximises exposure to the trap for no benefit,
+because the per-node part — the node id — is already free after §20 (resolved once per logger).
+
+The two terms actually worth generating are the `VarHandle` stores and the concrete record type, and
+**neither is per-node**. So:
+
+```java
+// ONE generated logger class, not one per node
+private static final class GeneratedAuditLogger extends EventLogger {
+    private final int nodeId;              // constructor arg — already free since §20
+    private final BinaryLogRecord rec;     // CONCRETE — the format is a build input since §21
+    @Override public EventLogger log(String key, double v, LogLevel lvl) {
+        if (canLog(lvl)) { rec.writeDouble(nodeId, keyRef(key), v); }
+        return this;
+    }
+}
+```
+
+**One extra class instead of N**, capturing both large terms. Emitted as a **top-level class alongside
+the processor**, the batch compile path already handles it — `classNames` and `sources` are lists.
+
+### 26.5 What still needs fixing either way
+
+`StringCompilation` should handle multiple classes per compilation unit properly: create a
+`JavaByteObject` on demand for any class name rather than falling back to one shared object, and serve
+all of them to the classloader. That is a latent defect independent of this work — **any** generated
+nested class hits it today. Recorded as such.
