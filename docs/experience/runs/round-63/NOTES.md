@@ -971,3 +971,166 @@ strength of the build's own advice without measuring — which is what I nearly 
 | text record, JIT (where this round started) | 153.5 | 6.5M |
 
 **3.1× from where the round started, and the 10M target is met twice over on both toolchains.**
+
+## 12. The profile disabled the audit log — and §10/§11 measured a graph with no audit
+
+### 12.1 The bug
+
+`LOW_LATENCY_AUDIT` set `setSupportNodeNameLookup(false)`, reading it as "drop a lookup map". It is not
+that. **It stops node registration**, and `EventLogManager.nodeRegistered(node, name)` is what
+constructs each node's `EventLogger` and calls `setLogger` on it. With registration off, every node's
+`auditLog` is the null logger: the processor runs, the sink is installed, and **nothing is ever
+published**.
+
+Measured directly on the generated source:
+
+| profile | `auditor.nodeRegistered` calls | audit records published |
+|---|---:|---:|
+| `AUDITED` | 33 | 1.000 per event |
+| `LOW_LATENCY_AUDIT` (as shipped in §10) | **0** | **0** |
+
+**So the "5.4 ns/event that `LOW_LATENCY_AUDIT` saves over `AUDITED`" was the cost of the audit log,
+removed.** And every §10/§11 figure built on that profile — including "native beats JIT by 13%" — timed
+a graph that was not auditing. Those numbers are withdrawn.
+
+### 12.2 The second fault found at the same time: `-D` after the main class
+
+`java -cp … app.BenchMonoBin -Dclock=process` puts `-Dclock=process` in `argv`. **It is not a system
+property.** Proved directly:
+
+```
+after the main class :  clock property = <unset>   argv=[-Dclock=process]
+before the main class:  clock property = process   argv=[]
+```
+
+A GraalVM native image *does* parse a trailing `-D` as a property. So in every §10/§11 comparison
+**native ran `clock=process` and JIT ran `clock=live`** — the JIT arm carried an extra live wall-clock
+read per record that the native arm did not. The comparison was never like-for-like in either direction.
+
+### 12.3 Why the tests did not catch it
+
+`LowLatencyAuditProfileTest` asserted the profile's *flags*. It did not assert its *behaviour*. Five
+green tests, and the profile disabled the thing it exists to preserve.
+
+Fixed in three places, each mutation-verified to fail without the fix:
+
+- the profile no longer touches node registration, with the reasoning in the code;
+- `LowLatencyAuditProfileTest.mustNotDisableNodeRegistrationBecauseThatSilentlyKillsTheAuditLog`;
+- `AuditNeedsNodeRegistrationTest` in the runtime pins the premise both ways — a registered node logs,
+  an unregistered one publishes nothing and reports nothing.
+
+### 12.4 The harness now refuses to report what it cannot prove
+
+Four silent harness faults in one round is a pattern, not bad luck. `BenchAudited` throws rather than
+prints unless:
+
+- `-Drecord` and `-Dclock` are actually set as properties — a `-D` in the wrong place is now fatal,
+  not silently ignored;
+- the resolved clock mode equals the requested one;
+- **the sink saw a non-zero number of records**, and they were non-empty;
+- the graph checksum matches across arms.
+
+The zero-records check found the profile bug on its first run.
+
+### 12.5 Predictions for the real graph, recorded before measuring
+
+Two graphs, both 30 nodes / 5 event types / one shared tail, both `LOW_LATENCY_AUDIT` (fixed):
+
+- **tail** — one node logs, 2 entries per record. Verified reference: `AUDITED` + binary + `clock=process`
+  on JIT is **42.2 ns, 23.7M/s, 54 bytes/record, 1.000 records/event**.
+- **converging** — **every node on the path logs into the same record**, ~8 entries. The realistic shape.
+
+| # | Prediction | Basis |
+|---|---|---|
+| S1 | converging binary record is **100–160 bytes** | 54 bytes at 2 entries; an entry is 13 bytes; ~8 entries |
+| S2 | converging binary on JIT lands **70–95 ns → still above 10M/s** | ~6 more entries at ~4–6 ns each on top of 42 |
+| S3 | converging **text** on JIT lands **250–400 ns → below 10M/s** | text pays a node name, a key and a formatted double per entry |
+| S4 | the binary:text ratio is **larger on the converging graph than the 3.1× seen at 2 entries** — predict **> 3.5×** | per-entry text cost multiplies while the header amortises |
+| S5 | native lands **within ±10% of JIT** on the converging binary arm | §11's 13% claim is withdrawn; with the `-D` fault corrected I have no basis for a directional call |
+| S6 | **the converging graph, binary, exceeds 10M msg/sec on both toolchains** | the owner's target, and the one that matters |
+
+S6 is the target. S3 is the one that decides whether the binary encoder is optional or necessary.
+
+**Build inputs to be verified in the log for every native arm, not assumed:** `PGO: user-provided`,
+`Garbage collector: Epsilon GC`, `-H:PriorityForceInline` origin line, and `target machine: armv8.1-a`
+(not `-march=native`, measured a regression in §11.4).
+
+### 12.6 Results — with the audit log actually on
+
+Every arm verified by the harness: `recPerEvent=1.000`, zero allocation, matching graph checksum
+(`v=117.4865`) across all six. Every native build verified in its log for PGO, epsilon, the inlining
+directive and target machine. Interleaved, 6 reps, minimum reported.
+
+| Graph | Record | JIT ns | JIT Mmsg/s | native ns | native Mmsg/s | bytes/record |
+|---|---|---:|---:|---:|---:|---:|
+| tail (2 entries) | binary | **47.6** | **21.0** | 70.9 | 14.1 | 54 |
+| tail (2 entries) | text | 147.2 | 6.8 | — | — | 193 |
+| **converging (~11.75 entries)** | **binary** | **79.4** | **12.6** | 149.5 | 6.7 | 181 |
+| **converging (~11.75 entries)** | **text** | 403.0 | 2.5 | 698.6 | 1.4 | 548 |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| S1 | converging binary record 100–160 bytes | **180.8** — the path is ~11.75 entries, not the 8 I assumed | ❌ |
+| S2 | converging binary on JIT 70–95 ns, above 10M/s | **79.4 ns, 12.6M/s** | ✅ |
+| S3 | converging text on JIT 250–400 ns, below 10M/s | **403.0 ns, 2.5M/s** — 0.75% over the band | ➗ |
+| S4 | binary:text ratio > 3.5× on the converging graph | **5.08×**, against 3.20× on the tail graph | ✅ |
+| S5 | native within ±10% of JIT | **1.88× slower** | ❌ |
+| S6 | converging binary above 10M/s **on both toolchains** | **JIT 12.6M ✅ · native 6.7M ❌** | ➗ |
+
+### 12.7 The target, answered honestly
+
+**On a realistically audited 30-node graph — every node on the path logging into one record — the
+binary encoder reaches 12.6M msg/sec on JIT and 6.7M on native.** The owner's 10M target is **met on
+JIT and missed on native**.
+
+The lighter tail shape clears it on both (21.0M / 14.1M), so the target is not out of reach for AOT; it
+is the density of audit entries that decides.
+
+**And the text encoder cannot reach it on any toolchain**: 2.5M/s on JIT, 1.4M native. On a graph where
+every node logs, **the binary encoder is not an optimisation, it is the difference between 2.5M and
+12.6M** — a 5.08× gap that widens with audit density (3.20× at 2 entries, 5.08× at 11.75).
+
+### 12.8 Native AOT is slower on the audited path — confirmed, with a harness that checks itself
+
+§8.2 claimed this, §9.3 withdrew it, §9.6 reinstated it, §10.5 withdrew it again after finding the
+interleaving fault, and §11 claimed the opposite. **It is now confirmed with every input verified**:
+native is 1.49× slower on the tail graph, 1.73× on converging text, 1.88× on converging binary.
+
+The §10/§11 result that said otherwise was measuring a graph whose audit log had been silently disabled
+by the profile. Once the audit is genuinely on, AOT is behind on every shape measured, and the gap grows
+with the amount of record-building work.
+
+**Concrete receivers do not explain it.** A monomorphic image — `ConvProcessor` typed concretely, the
+other processor physically absent from the class tree — measures **151.5 ns against the polymorphic
+image's 149.5**. That is the third time provability has been proposed as the explanation here and the
+third time it has measured ~nothing. Round 62's finding does not reach this workload.
+
+### 12.9 On the record data structure
+
+The owner asked whether `LogRecord`'s structure is optimal. The marginal cost per logged value, from
+the two graph shapes (+9.75 entries between them):
+
+| Record | marginal ns per audit entry |
+|---|---:|
+| text `LogRecord` | **26.2** |
+| `BinaryLogRecord` | **3.4** |
+
+**The `StringBuilder` itself is not the problem.** It reuses capacity — `clear()` calls `setLength(0)`,
+so after warm-up there is no reallocation, and allocation measures zero on every arm. The container is
+fine.
+
+**The format is the problem, and so is the timing.** Per entry the text record writes a node name, a
+key, punctuation and a `Ryu`-formatted double — 26 ns of character generation — and it does it
+**inside the event cycle**, on the thread that is trying to process events.
+
+That points at a structural option the binary record only half takes:
+
+> Collect `(nodeId, keyId, tagged value)` into a primitive buffer during the cycle, and **format only at
+> publish** — or never, if the record is filtered out downstream.
+
+`BinaryLogRecord` already does the first half, which is where its 3.4 ns comes from. The second half is
+the larger prize and it is not measured here: a filtered-out record currently pays full formatting cost
+before anything gets to reject it. On a system that audits everything and reads back a fraction, that is
+most of the cost of auditing spent on records nobody will ever open.
+
+Recorded as a design observation, not a result — nothing here measures a filtering sink.

@@ -62,30 +62,32 @@ harnesses:
     across those five cycles as the machine warmed — so **`generated − hand` is the quantity that
     travels**: 0.118 – 0.156 ns, mean 0.131, all day, across every shape measured.
 
-### With the audit log on — 20 million events/sec, and AOT ahead of JIT
+### With the audit log on — and audit density is what decides
 
 The figures above are dispatch with no audit log. The deployed question is usually different: *what does
 it cost to keep the audit trail?*
 
-30 nodes, 5 event types, one shared tail, `LOW_LATENCY_AUDIT`, a binary log record, zero allocation,
-54 bytes per record, **excluding the disk or network write**. Interleaved arms, minimum of 8 reps:
+30 nodes, 5 event types, one shared tail, `LOW_LATENCY_AUDIT`, no-op sink, zero allocation, **excluding
+the disk or network write**. Two audit densities, because it turns out to be the variable that matters:
 
-| | ns/event | events/sec |
-|---|---:|---:|
-| **native AOT** — PGO, epsilon, inlining directive | **49.9** | **20.1 M** |
-| JIT | 57.1 | 17.5 M |
-| the stock **text** record on JIT, where this started | 153.5 | 6.5 M |
+| Graph | Record | JIT ns | JIT M/s | native ns | native M/s | bytes/rec |
+|---|---|---:|---:|---:|---:|---:|
+| one node logs | text | 147.2 | 6.8 | — | — | 193 |
+| one node logs | **binary** | **47.6** | **21.0** | 70.9 | 14.1 | 54 |
+| **every node logs** | text | 403.0 | 2.5 | 698.6 | 1.4 | 548 |
+| **every node logs** | **binary** | **79.4** | **12.6** | 149.5 | 6.7 | 181 |
 
-Three things worth taking from that table:
-
-- **Full audit costs about 47 ns/event on top of a 3.4 ns graph** and stays zero-allocation. For most
-  applications that is an affordable trade for a deterministic record of every event.
-- **The record format is most of the cost, not the audit machinery.** The stock record renders YAML text
-  inside the event cycle; a record that writes bits is **3.1× faster and 3.6× smaller**. See
-  *spec-binary-audit-encoding*.
-- **AOT is 13% faster than JIT here, on minimum, median and worst case** — but only after the code-shape
-  rule in the checklist is applied. Before it, AOT trailed by 13%. One `switch` on a mutable `static`
-  was the whole difference.
+- **The record format is most of the cost, and its importance grows with audit density.** Binary beats
+  text by 3.2× when one node logs and **5.1× when every node does**. Per logged value the marginal cost
+  is **26.2 ns for text against 3.4 ns binary** — the text record formats a node name, a key and a
+  double *inside the event cycle*.
+- **Native AOT is 1.5–1.9× slower here**, and the gap widens with audit density. It has a much tighter
+  spread (~1.5 ns against ~7), so it is the right choice when tail latency matters more than median
+  throughput — but on this workload it is not the faster one. Receiver provability does not explain it:
+  a monomorphic image measures 151.5 ns against 149.5 polymorphic.
+- **These numbers replace an earlier version of this section** that reported 20.1M/s and AOT ahead of
+  JIT. That was measured against a `LOW_LATENCY_AUDIT` profile which had **silently disabled the audit
+  log** — see the checklist entry below, and round 63 §12.
 
 ### Multiple event types and branching paths — the gap depends on your alternative, not on the processor
 
@@ -301,6 +303,19 @@ so the only way to know you have them all is to check.
       the instrumented image** — a stale profile measured 8.0 ns, worse than no profile at all, and the
       build reports `PGO: user-provided` without a warning
 
+**Verify the audit log is actually running — it can be switched off silently**
+
+- [ ] **`LOW_LATENCY_AUDIT` must NOT be combined with `setSupportNodeNameLookup(false)`.** That flag
+      stops **node registration**, and node registration is how `EventLogManager` gives every node its
+      `EventLogger`. Turn it off and every `auditLog` is the null logger: the processor runs, the sink
+      is installed, and nothing is ever published. The first version of the profile did this, and a
+      benchmark measuring the cost of auditing measured a graph with no audit — reporting the missing
+      work as a speed-up.
+- [ ] **Count `auditor.nodeRegistered` in the generated source.** A working audited processor has one
+      per node (33 on the reference graph). Zero means the audit log is dead.
+- [ ] **Assert your harness sees records.** `recordsPublished > 0` and `recordBytes > 0`, checked, not
+      eyeballed. This is the check that found the bug above on its first run.
+
 **Verify — do not assume**
 
 - [ ] run `tools/bench/latency-kit/run.sh` against your own graph
@@ -317,8 +332,14 @@ so the only way to know you have them all is to check.
       that was actually AOT being 13% *faster*
 - [ ] **check the machine is idle before believing anything** — one run in round 63 was taken at load
       average 83 with two orphaned `native-image` builds still going, and the numbers were meaningless
+- [ ] **put `-D` flags BEFORE the main class.** `java -cp … MyBench -Dfoo=bar` puts `-Dfoo=bar` in
+      `argv`; it is **not** a system property and is silently ignored. A GraalVM native image *does*
+      accept a trailing `-D`, so the same command line configures the native arm and not the JIT one —
+      which is exactly how one round produced a JIT-vs-native comparison where the two arms ran
+      different configurations
 - [ ] **if a number surprises you, check this list before concluding anything about the compiler** —
-      four times in round 59 a missing setting or a harness defect looked exactly like one
+      four times in round 59, and five more times in round 63, a missing setting or a harness defect
+      looked exactly like a compiler result
 
 ### The whole configuration
 

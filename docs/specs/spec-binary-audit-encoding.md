@@ -50,25 +50,30 @@ Three things were verified by reading the source and are load-bearing here:
 30 nodes, 5 event types, one shared tail; minimal audit profile; no sink write. JIT is OpenJDK 25.0.2;
 native is Oracle GraalVM 25.0.4+7.1 with per-arm PGO.
 
-| Encoder | JIT ns | JIT msg/s | Native ns | Native msg/s | bytes/record |
-|---|---:|---:|---:|---:|---:|
-| text (today) | 153.5 | 6.5M | — | — | 193 |
-| text + §5 clock fix | 139.8 | 7.2M | — | — | 193 |
-| **binary + §5 clock fix + §7 profile** | **57.3** | **17.5M** | **58.0** | **17.2M** | **54** |
+| Graph | Record | JIT ns | JIT Mmsg/s | native ns | native Mmsg/s | bytes/rec |
+|---|---|---:|---:|---:|---:|---:|
+| tail — 1 node logs | text | 147.2 | 6.8 | — | — | 193 |
+| tail — 1 node logs | **binary** | **47.6** | **21.0** | 70.9 | 14.1 | 54 |
+| **converging — every node logs** | text | 403.0 | 2.5 | 698.6 | 1.4 | 548 |
+| **converging — every node logs** | **binary** | **79.4** | **12.6** | 149.5 | 6.7 | 181 |
 
-Native figures are **minimum of 8 interleaved reps** with `LOW_LATENCY_AUDIT`, `--gc=epsilon`, per-arm
-PGO and the generated inlining directive on the classpath. Earlier drafts of this spec quoted native as
-1.4× slower than JIT; that was three harness faults and a missing profile, corrected in round 63 §10.
-The text arm's native figures are withdrawn rather than restated, because they were never re-measured
-under the corrected method.
+All arms `LOW_LATENCY_AUDIT`, `logTime` from `getProcessTime()`, no-op sink, zero allocation,
+`recPerEvent` verified at 1.000 and graph checksums verified equal. Native: per-arm PGO, `--gc=epsilon`,
+the generated inlining directive, `armv8.1-a`, each **verified in the build log**. Interleaved, minimum
+of 6 reps.
+
+**Earlier drafts of this spec quoted native as faster than JIT. That was measured against a profile
+that had silently disabled the audit log** (round 63 §12.1) — withdrawn.
 
 Two results worth carrying forward because they are counter-intuitive:
 
-- **Native AOT matches JIT on throughput and is ~10× tighter in spread.** Final interleaved runs: native
-  min 58.03 / median 58.41 / spread **0.99 ns**; JIT min 57.26 / median 59.82 / spread **9.91 ns**. On
-  median and on worst case native wins; on minimum JIT wins by 1.3%. **For a latency-sensitive
-  deployment the spread is the result that matters**, and it is the argument for shipping this profile
-  as a native binary. (An earlier claim that AOT was 1.4× slower is withdrawn — round 63 §10.)
+- **Native AOT is 1.5–1.9× slower than JIT on the audited path**, and the gap grows with audit density
+  (1.49× at 2 entries per record, 1.88× at 11.75). Native's spread is much tighter — ~1.5 ns against
+  ~7 ns — so it is the better choice where the tail latency matters more than the median, but it is
+  **not** the faster option here. Receiver provability does not explain the gap: a monomorphic image
+  measures 151.5 ns against 149.5 polymorphic.
+- **The 10M msg/sec target is met on JIT (12.6M) and missed on native (6.7M)** for a graph where every
+  node logs. The lighter shape clears it on both (21.0M / 14.1M), so audit density is what decides.
 - **Sink-side encoding is a separate 571 ns.** Handing Chronicle a 221-char wire string costs 665 ns/append;
   handing it a 221-byte blob writing the identical bytes to the identical file costs 96.8. That is
   `ValueOut.text(CharSequence)` at ~2.6 ns/char, and it is Mongoose's call to make, not core's (§8).
@@ -149,9 +154,19 @@ string. A deployment targeting this profile should not be logging `Object`.
 `LOWEST_LATENCY` **gives up the audit log**, so there is no named configuration for "I want the audit
 log and I want it cheap" — which is the deployed case.
 
-**Status: IMPLEMENTED.** `PerformanceProfile.LOW_LATENCY_AUDIT` plus `addLowLatencyEventLog(level)`.
-Measured against `AUDITED` on the reference graph: **5.4 ns/event on JIT, ~12 ns on native**, by removing
-the per-event buffer-and-trigger branch and the subscription publish (generated source 1302 → 1146 lines).
+**Status: IMPLEMENTED**, and corrected after shipping broken. `PerformanceProfile.LOW_LATENCY_AUDIT`
+plus `addLowLatencyEventLog(level)`.
+
+!!! danger "The first version disabled the audit log"
+    It set `setSupportNodeNameLookup(false)`, which does not merely drop a lookup map — it stops **node
+    registration**, and `EventLogManager.nodeRegistered` is what gives every node its `EventLogger`. The
+    generated processor emitted **zero** `nodeRegistered` calls against 33 for `AUDITED`, so no node
+    ever logged and nothing was ever published. The benchmark measuring "the cost of auditing" was
+    measuring a graph with no audit, and reported the missing work as a 5.4 ns speed-up.
+
+    Five tests passed over it, because they asserted the profile's **flags** and not its **behaviour**.
+    Now pinned in three places, each mutation-verified. **§7.1's "MUST NOT" list is normative for this
+    reason**: the failure is completely silent.
 
 ### 7.1 Normative
 
@@ -166,6 +181,8 @@ the per-event buffer-and-trigger branch and the subscription publish (generated 
 
 It MUST NOT:
 
+- set `setSupportNodeNameLookup(false)` — **it stops node registration, which silently disables the
+  audit log**; this is not a tuning choice, it is a correctness requirement;
 - set `setSupportDirtyFiltering(false)` — that changes propagation semantics, and an audit profile must
   not alter what the graph computes;
 - set `setSupportReentrancy(false)` — the same reasoning `LOWEST_LATENCY` already documents: it is the
