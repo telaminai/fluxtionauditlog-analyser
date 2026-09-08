@@ -107,6 +107,44 @@ and note the brief's admission that **the bench has never been run against a rea
 
 ---
 
+## M52 · Binary audit encoding + the reader that makes it usable — ☐ SPEC'D 2026-09-08, cross-repo
+
+Specs: **[spec-binary-audit-encoding.md](spec-binary-audit-encoding.md)** (core + mongoose) and
+**[spec-binary-audit-reader.md](spec-binary-audit-reader.md)** (a new `fluxtion-audit-reader` module in
+the compiler repo). Evidence: `docs/experience/runs/round-63/NOTES.md` §6–§8.
+
+Measured, on a 30-node 5-event-type graph with a converging tail: an audited processor runs at **6.5M
+events/sec (JIT) / 4.5M (native AOT)**, where the graph itself dispatches in 10.0 / 3.4 ns. **94% of JIT
+cost and 98% of native is building a text audit record.** Swapping the encoder for one that writes bits
+— through `EventLogControlEvent(LogRecord)`, a seam that already ships — reaches **20.3M/s (JIT) and
+12.8M/s (native)**, zero allocation, 54 bytes/record against 193.
+
+Shipped already: **the `logTime` fix** (core `8e328de`) — `logTime` now comes from
+`Clock.getProcessTime()`, the reading `Clock.eventReceived` already took, instead of a second later one.
+A correctness fix that is also worth 13.7 ns/event to every existing user of the text record.
+
+Open, in dependency order:
+
+- ☐ **M52.1** generator emits `clock.eventReceived` first, with a test — the `logTime` fix depends on
+  the order and the generator does not enforce it; the failure is silent
+- ☐ **M52.2** `LOW_LATENCY_AUDIT` profile (core builder-api) — audit on, tracing off, neither allocating
+  default, and explicitly *not* touching dirty filtering or reentrancy
+- ☐ **M52.3** a record may express itself as bytes — `LogRecord` abstract or an encoder interface, plus a
+  byte-facing `LogRecordListener` path so a sink need not downcast to a vendor class
+- ☐ **M52.4** `fluxtion-audit-reader` — a new compiler-repo module; the filter pipeline is itself a
+  generated Fluxtion graph, AOT native, text sink by default and pluggable at build time
+- ☐ **M52.5** the analyser's binary reader (**UP-RDR-01**, still unfiled) + format-spec extension and
+  conformance suite
+- ☐ **M52.6** mongoose: `ValueOut.text(cs)` → `bytes(...)` (**2.20×** measured, byte-identical queue
+  file) and drop the per-record `Instant.now()` (3% of time, **100% of the allocation**)
+
+**M52.6 is independent of everything else** and is the cheapest win on the list. M52.3 must not ship
+ahead of M52.5: a binary record with no reader is a log nobody can open.
+
+**Owner decision needed** (spec-binary-audit-reader §11): does the analyser's binary reader and the CLI
+share a cursor/dictionary library — a fourth artifact nobody has budgeted for — or does each carry its
+own decoder?
+
 ## M51 · The native-ready starter template — ☐ SPEC DRAFTED, cross-repo
 
 Spec: **[spec-native-ready-template.md](spec-native-ready-template.md)**. Raised by the owner

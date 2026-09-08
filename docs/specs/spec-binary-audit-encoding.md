@@ -201,7 +201,7 @@ This cuts both ways and both are worth saying:
 | 2 | auditor ordering made normative + generator test | compiler | — |
 | 3 | `LOW_LATENCY_AUDIT` without the binary record | core builder-api | — |
 | 4 | byte-facing record + listener path | core | 2 |
-| 5 | binary reader + conformance suite | analyser | 4 |
+| 5 | binary reader + conformance suite | analyser | 4 · CLI reader spec'd in [spec-binary-audit-reader.md](spec-binary-audit-reader.md) |
 | 6 | `LOW_LATENCY_AUDIT` selects the binary record | core | 4, 5 |
 | 7 | `bytes` not `text`; drop `Instant.now()` | mongoose | — (independent) |
 
@@ -209,8 +209,12 @@ This cuts both ways and both are worth saying:
 
 ## 11. Open questions
 
-- **Dictionary publication.** The prototype holds the id table in memory and hands it to the decoder
-  directly. A real queue needs it on the wire — as a header record, or re-emitted on roll. Unresolved.
+- ~~**Dictionary publication.**~~ **RESOLVED** by
+  [`spec-binary-audit-reader.md`](spec-binary-audit-reader.md) §3, which had to settle it: a reader that
+  cannot resolve id → name cannot print anything. A `0x02` dictionary-entry record on first intern, the
+  full dictionary re-emitted at every roll, and an unknown id rendered `#<id>` rather than treated as an
+  error — because the common reason to read an audit log is that something went wrong and the file is
+  exactly as complete as the process managed to make it.
 - **Is `AUDITED` still the right default?** With §5 landed it gets 13.7 ns for free; with §6 it could
   become "binary by default, text on request". Not proposed here — it would change the on-disk format
   for every existing user.
