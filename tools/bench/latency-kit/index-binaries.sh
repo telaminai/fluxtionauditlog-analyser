@@ -23,8 +23,9 @@ set -euo pipefail
 SP=${KIT_OUT:?set KIT_OUT to the directory holding the nimg* directories}
 TAG=${TAG:-$(git describe --always --dirty 2>/dev/null || echo "untagged")}
 STAMP=${STAMP:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
+TAB=$'\t'
 
-printf "tag\tstamp\tbinary\tsha1\tbytes\tprofile_sha1\tgc\tpgo\ttarget\tinline\tisolates\tgraph\trecord\tclock\tns\n"
+printf "tag\tstamp\tbinary\tharness\truntime\tsha1\tbytes\tprofile_sha1\tgc\tpgo\ttarget\tinline\tisolates\tgraph\trecord\tclock\tns\n"
 for img in "$SP"/nimg*/*; do
   [ -f "$img" ] && [ -x "$img" ] || continue
   case "$img" in *.log|*.iprof|*.collect|*_inst) continue;; esac
@@ -44,7 +45,20 @@ for img in "$SP"/nimg*/*; do
   rec=$([ -f "$col" ] && grep -o "record=[a-z]*" "$col" | head -1 | cut -d= -f2 || echo "-")
   clk=$([ -f "$col" ] && grep -o "clock=[a-z]*" "$col" | head -1 | cut -d= -f2 || echo "-")
   ns=$([ -f "$img.ns" ] && cat "$img.ns" || echo "-")
-  printf "%s\t%s\t%s/%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-      "$TAG" "$STAMP" "$dir" "$name" "$sha" "$size" "$psha" "${gc:--}" "${pgo:--}" "${tgt:--}" \
-      "$inl" "$iso" "${graph:--}" "${rec:--}" "${clk:--}" "$ns"
+  # The harness and runtime the BINARY reports, not what a build log claims. These are the two inputs
+  # that changed most often in round 63 and neither appears in any build artefact — a row without them
+  # records how a binary was built but not what was built, which is how a 3.41 ns figure and a 9.7 ns
+  # figure came to look like the same configuration.
+  probe=$({ "$img" -Diters=2000 -Dwarm=1000 -Drecord=core -Dclock=process -Dgraph=conv 2>/dev/null \
+           || "$img" -Diters=2000 -Dwarm=1000 2>/dev/null; } || true)
+  # || true on every grep: the script runs under `set -e` with pipefail, and a grep that finds
+  # nothing exits 1. Without these the whole index silently produced a header and no rows.
+  harness=$(grep -o 'harness=[a-z0-9]*' <<<"$probe" | head -1 | cut -d= -f2 || true)
+  rtid=$(grep -o 'rt:[0-9a-f]*' <<<"$probe" | head -1 || true)
+  # Assembled field by field with an explicit tab. A previous version used one long printf with
+  # 17 placeholders for 18 arguments, so every column after "binary" shifted by one and the
+  # index looked populated while being wrong — the exact failure this file exists to prevent.
+  # A later version used "\t" inside a bash assignment, where it is a literal backslash-t.
+  row="$TAG${TAB}$STAMP${TAB}$dir/$name${TAB}${harness:-NONE}${TAB}${rtid:-NONE}${TAB}$sha${TAB}$size${TAB}$psha${TAB}${gc:--}${TAB}${pgo:--}${TAB}${tgt:--}${TAB}$inl${TAB}$iso${TAB}${graph:--}${TAB}${rec:--}${TAB}${clk:--}${TAB}$ns"
+  printf "%s\n" "$row"
 done

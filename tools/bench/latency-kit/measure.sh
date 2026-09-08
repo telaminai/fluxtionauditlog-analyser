@@ -26,9 +26,12 @@ LABEL="${1:?label}"; CMD="${2:?command}"; REPS="${3:-8}"; MAXCV="${4:-}"
 # So a JIT difference under ~5% is not a difference, and this harness says so rather than letting a
 # 2 ns "improvement" be reported as one.
 if [ -z "$MAXCV" ]; then
+  # Detect on /bin/java anywhere in the command. Requiring a trailing space broke on a quoted path
+  # ("$JAVA_HOME/bin/java" -cp ...), which silently applied the NATIVE 2% limit to a JIT run and then
+  # refused it for being too noisy — a wrong diagnosis from a glob.
   case "$CMD" in
-    *"/bin/java "*) MAXCV=6.0 ;;   # JIT
-    *)              MAXCV=2.0 ;;   # native image
+    *"/bin/java"*) MAXCV=8.0 ;;    # JIT: measured 5.49% batch-to-batch on the audited graph
+    *)             MAXCV=2.0 ;;    # native image: measured 0.05-0.31%
   esac
 fi
 

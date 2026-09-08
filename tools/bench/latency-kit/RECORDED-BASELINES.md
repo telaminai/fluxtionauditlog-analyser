@@ -77,6 +77,21 @@ identical nodes (13/10/11), because each event reaches its chain by topology. So
 pure cost of guards with zero benefit, and a guard breaks even only when
 `P(skip) × cost(node) > ~1.4 ns` (JIT). Light nodes: never. Heavy nodes (~34 ns): at ~4% skip rate.
 
+## Control bands — harness h5, verified green
+
+`validate-controls.sh` gates on these. All five pass as recorded.
+
+| control | toolchain | band | measured |
+|---|---|---|---:|
+| `c-dispatch` no audit | jit | 9.0–13.0 | 11.4 |
+| `c-dispatch` no audit | native | 1.9–2.3 | **2.05** |
+| `c-profile-only` profile, no auditor | native | 15.0–18.4 | 16.9 |
+| `c-audit-dense` every node logs | jit | 40.6–58.4 | 54.7 |
+| `c-audit-dense` every node logs | native | 56.7–69.3 | **64.1** |
+
+**JIT bands are ±18%, native ±10%** — from each toolchain's *measured* batch variance, not a flat
+number. A band tighter than the noise fails on a healthy machine, which trains people to ignore it.
+
 ## Current shippable configuration — core, Java 8, no generation
 
 `LOW_LATENCY_AUDIT` (guards off) + `BinaryEventLogger` + `BinaryLogRecord` with `long[]` slots.

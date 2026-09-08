@@ -25,8 +25,14 @@ a1=$(eval "$CA" 2>/dev/null); b1=$(eval "$CB" 2>/dev/null)
 
 echo "== declared inputs"
 mismatch=0
-for k in harness graph record clock; do
-  va=$(field "$a1" "$k"); vb=$(field "$b1" "$k")
+# rt = the runtime digest. It changed six times in round 63 and appears in no build log,
+# so a comparison across two runtimes is exactly as wrong as one across two harnesses.
+for k in harness rt graph record clock; do
+  if [ "$k" = rt ]; then
+    va=$(grep -o 'rt:[0-9a-f]*' <<<"$a1" | head -1); vb=$(grep -o 'rt:[0-9a-f]*' <<<"$b1" | head -1)
+  else
+    va=$(field "$a1" "$k"); vb=$(field "$b1" "$k")
+  fi
   if [ "$va" != "$vb" ] && [ "$k" != "$VARY" ]; then
     printf "   %-9s %-14s %-14s  <-- DIFFERS and is not the declared variable\n" "$k" "${va:-<none>}" "${vb:-<none>}"
     mismatch=1
@@ -40,11 +46,20 @@ if [ -z "$(field "$a1" harness)" ] || [ -z "$(field "$b1" harness)" ]; then
   echo "            the harness is worth 4.3x on native and nothing else records it."
   exit 3
 fi
+if ! grep -q 'rt:' <<<"$a1" || ! grep -q 'rt:' <<<"$b1"; then
+  echo "   REFUSED: an arm carries no runtime digest. The runtime changed six times in round 63 and"
+  echo "            a figure taken before one of those is not comparable to one taken after."
+  exit 3
+fi
 [ "$mismatch" = 0 ] || { echo; echo "REFUSED: more than one variable differs. Fix the inputs, not the conclusion."; exit 4; }
 
 # also refuse if the arms did different work
 for k in recPerEvent avgRecBytes v; do
-  va=$(field "$a1" "$k"); vb=$(field "$b1" "$k")
+  if [ "$k" = rt ]; then
+    va=$(grep -o 'rt:[0-9a-f]*' <<<"$a1" | head -1); vb=$(grep -o 'rt:[0-9a-f]*' <<<"$b1" | head -1)
+  else
+    va=$(field "$a1" "$k"); vb=$(field "$b1" "$k")
+  fi
   [ -z "$va" ] && continue
   [ "$va" = "$vb" ] || { echo; echo "REFUSED: $k differs ($va vs $vb) — the arms did not do the same work."; exit 5; }
 done
