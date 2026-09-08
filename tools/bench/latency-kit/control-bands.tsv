@@ -1,0 +1,7 @@
+# control	toolchain	harness	low_ns	high_ns	command
+# Bands are min-of-5 on an idle Apple M4. JIT OpenJDK 25.0.2; native Oracle GraalVM 25.0.4+7.1.
+# A band is only valid for the harness version it was recorded under - see HarnessVersion.CHANGES.
+c-dispatch	jit	h3	11.5	14.0	"$JAVA_HOME/bin/java" -cp "$SP/plainonly:$RT" -Diters=3000000 -Dwarm=500000 app.BenchPlainLocal
+c-dispatch	native	h3	2.0	2.6	$SP/nimg14/local1 -Diters=3000000 -Dwarm=500000
+c-audit-dense	jit	h3	78.0	92.0	"$JAVA_HOME/bin/java" -cp "$SP/convonly:$RT" -Drecord=binary -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchConvLocal
+c-audit-dense	native	h3	115.0	130.0	$SP/nimg15/convlocal1 -Drecord=binary -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000

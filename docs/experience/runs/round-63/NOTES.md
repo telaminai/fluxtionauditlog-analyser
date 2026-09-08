@@ -1134,3 +1134,221 @@ before anything gets to reject it. On a system that audits everything and reads 
 most of the cost of auditing spent on records nobody will ever open.
 
 Recorded as a design observation, not a result — nothing here measures a filtering sink.
+
+## 13. Are the PGO and the compiler args actually optimal? — sweeping the audit regime
+
+The owner's challenge: *"You have an accurate pgo and optimal compiler args."* Read as a question, the
+honest answer is **the PGO is verified accurate; the args are verified applied, not verified optimal.**
+
+The knob sweep in round 60 (`§ The knobs that do not work`) was run against the **dispatch** regime at
+~1.6 ns/event. This is the **audit** regime at 80–150 ns/event, and §9.7 and §12.8 have already shown
+twice that a finding does not survive the move between them. So the sweep has to be redone here.
+
+Three candidates that were never tested and are plausible for an object-heavy record path:
+
+| | Candidate | Why it could matter here and not in round 60 |
+|---|---|---|
+| A | `-H:-SpawnIsolates` | isolates put a **heap-base offset on every object reference**. The dispatch benchmark scalar-replaces its objects away; the audit path constantly touches `LogRecord`, `EventLogger` and the name/key strings, so it cannot |
+| B | `--initialize-at-build-time` for the audit and bench classes | native-image emits a **class-initialisation check before static access** for runtime-initialised classes. `BinaryLogRecord.clockMode`, the `LogLevel` enums and the record statics are all on the hot path |
+| C | `-H:PriorityForceInline` widened to `EventLogManager`/`EventLogger`/`BinaryLogRecord` | the shipped directive names **only the processor class**. On JIT the audit call chain inlines by profile; nothing forces it under AOT. Round 60 measured widening as "no effect" — on a path where the audit classes were not being called at all |
+
+### 13.1 Predictions
+
+| # | Prediction | Basis |
+|---|---|---|
+| U1 | `-H:-SpawnIsolates` worth **> 5 ns** | one base-register add per object access, on a path doing many |
+| U2 | build-time init of the audit classes worth **> 3 ns** | a load-and-branch per static access, several per record |
+| U3 | widening the inline directive to the audit classes worth **> 10 ns** — the largest of the three | the audit chain is 90% of the work and nothing forces it to inline |
+| U4 | **none of them alone closes the 70 ns gap to JIT** (149.5 → 79.4) | if one did, the gap was never about AOT code quality |
+
+U3 is the one with a design consequence: if it lands, the generator should emit the audit classes into
+the directive it already writes, and every audited native build in the world is currently missing it.
+
+### 13.2 Results — the args were NOT optimal; isolates cost 16.7%
+
+30-node converging graph (every node logs, ~11.75 entries/record), binary record, `clock=process`,
+per-arm PGO verified, epsilon, inlining directive, `armv8.1-a`. Interleaved, 5 reps, minimum.
+
+| Arm | min ns | Mmsg/s | vs base |
+|---|---:|---:|---:|
+| JIT | **75.9** | **13.2** | — |
+| native base | 145.8 | 6.9 | — |
+| **native `-H:-SpawnIsolates`** | **121.4** | **8.2** | **−24.4 ns, 16.7% faster** |
+| native `--initialize-at-build-time` | 155.4 | 6.4 | +9.6 ns **worse** |
+| native widened inline directive | 150.2 | 6.7 | +4.4 ns **worse** |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| U1 | `-H:-SpawnIsolates` worth > 5 ns | **24.4 ns** — the largest AOT lever found in this work | ✅ |
+| U2 | build-time init worth > 3 ns | **9.6 ns worse** | ❌ |
+| U3 | widened inline directive worth > 10 ns, the largest | **4.4 ns worse**, and the smallest | ❌ |
+| U4 | none alone closes the 70 ns gap | closes 24.4 of ~70 | ✅ |
+
+**The answer to "you have optimal compiler args" is: I did not.** `-H:-SpawnIsolates` removes the
+heap-base offset that isolate-mode adds to every object reference. The round-60 sweep never found it
+because the dispatch benchmark scalar-replaces its objects away and has almost no references left to
+offset; the audit path touches `LogRecord`, `EventLogger` and the interned strings on every entry and
+cannot.
+
+**That is the third finding in this round that did not survive the move between the dispatch regime and
+the audit regime** — after provability (§9.7) and the inlining directive (§10.6). The pattern is now
+strong enough to state as a rule: *a native-image flag sweep is only valid for the workload shape it was
+run against.*
+
+U3 is worth noting for the opposite reason: widening `PriorityForceInline` to the audit classes made
+things **worse**, which is consistent with round 62's inlining-budget finding — forcing more code in
+pushes something else out.
+
+Native is still 1.60× behind JIT (121.4 against 75.9), so isolates were not the whole story either.
+
+### 13.3 Clarification — "lighter shape" meant fewer audit entries, not lighter nodes
+
+Both graphs in §12.6 use **identical nodes**: `v = p.v * 1.05 + 0.5`, one multiply and one add. The
+"tail" and "converging" shapes differ **only** in how many nodes call `auditLog.info` — one against all
+of them. So every figure in this round is for a **light-node** graph, and the variable being swept is
+**audit density**, not computation weight.
+
+That leaves node weight untested in the audit regime, and round 62 found node weight to be regime-
+defining on the dispatch path (≤25 light nodes → 27–36× against a library; ~50 → 2.5×; heavy nodes
+invert the result entirely). It is the obvious next axis and is **not** measured here.
+
+## 14. Node weight — the axis the audit work had never varied
+
+§13.3 admitted every figure so far used **light nodes** (one multiply, one add) and varied only audit
+density. `DagNodesHeavy` keeps the graph, the shape and the converging logs identical and replaces the
+node body with a 24-iteration Horner loop — real arithmetic, no allocation, no data-dependent branches.
+
+### 14.1 JIT, measured
+
+| Nodes | Record | ns/event | Mmsg/s | bytes/rec | text ÷ binary |
+|---|---|---:|---:|---:|---:|
+| light | binary | **83.2** | 12.0 | 181 | — |
+| light | text | 401.5 | 2.5 | 548 | **4.83×** |
+| heavy | binary | **487.9** | 2.1 | 181 | — |
+| heavy | text | 760.3 | 1.3 | 609 | **1.56×** |
+
+**The record format matters most when the nodes are light.** Node work adds ~405 ns, and it is the same
+~405 ns whichever record is in use — so it dilutes the format difference from 4.83× down to 1.56×.
+
+That is a useful thing for a reader to know before quoting either number: *the binary encoder's value is
+inversely proportional to how much work your nodes do.* A graph of thin transforms gets 4.8×; a graph
+doing real computation per node gets 1.6×.
+
+It also reframes the 10M target. **10M events/sec with full audit is reachable only for light-node
+graphs** — heavy nodes cost 405 ns of arithmetic before any audit at all, which is a 2M/s ceiling
+regardless of encoder. That is not an audit cost and no record format can recover it.
+
+### 14.2 Predictions for the native arm
+
+Round 62 found node weight to be regime-defining on the dispatch path, and AOT to be strong on
+arithmetic and weak on record building. Heavy nodes shift the mix decisively toward arithmetic.
+
+| # | Prediction | Basis |
+|---|---|---|
+| V1 | the native ÷ JIT ratio **improves markedly** with heavy nodes — better than the 1.60× measured on light nodes | the added 405 ns is arithmetic, which §12.8 never showed AOT to be bad at |
+| V2 | native **beats JIT** on the heavy-node binary arm | if AOT's deficit is confined to record building, a path that is 83% arithmetic should invert |
+| V3 | `-H:-SpawnIsolates` is worth **less in absolute ns** here than the 24.4 ns on light nodes | the added work is register arithmetic, not object references, so there are no extra heap-base offsets to remove |
+
+V2 is the interesting one: it would mean AOT-versus-JIT on an audited Fluxtion graph is decided by the
+**ratio of computation to record-building**, not by auditing as such.
+
+## 15. The baseline, and where the audit cost actually lands
+
+The owner's methodological catch: the audit numbers had **no denominator on this shape**. Without a
+no-audit baseline built the same way, "audit costs X" is not a measurement.
+
+`DagNodesPlain` is the same 30-node converging graph with the same node bodies, but the nodes do not
+extend `EventLogNode` and make no `auditLog` call at all, built with `LOWEST_LATENCY`. The generated
+processor has empty `auditEvent` methods and zero `eventLogger` references. **Checksum verified equal to
+the audited arm at the same iteration count** (`v=111.4572`), so it computes identical work.
+
+| | baseline (no audit) | audited (binary, converging) | **audit cost** |
+|---|---:|---:|---:|
+| JIT | 12.42 ns · 80.5M/s | 75.31 ns · 13.3M/s | **62.9 ns** |
+| native, `-H:-SpawnIsolates` | **8.86 ns · 112.8M/s** | 121.65 ns · 8.2M/s | **112.8 ns** |
+| native, base | 9.51 ns · 105.1M/s | 145.77 ns · 6.9M/s | 136.3 ns |
+
+**This is the decomposition that was missing, and it inverts the story:**
+
+- **Native is 1.40× FASTER than JIT at the graph** — 8.86 ns against 12.42. AOT dispatch is not the
+  problem and never was.
+- **Native is 1.79× SLOWER than JIT at the audit** — 112.8 ns against 62.9.
+
+Every "AOT is slower" figure in this round was those two effects netted together, at a mix that happened
+to favour JIT. The owner's ~12 ns target for a light 30-node graph is met on both: **12.42 JIT, 8.86
+native.**
+
+### 15.1 The owner's hypothesis, and the heavy-node result that motivates it
+
+The heavy-node arm (§14) came out at native 1.07× JIT, against 1.60× on light nodes — i.e. adding
+arithmetic *helped* AOT relatively. The owner's reading is that this is backwards if AOT were simply
+worse at code, and that **the audit is interfering with inlining**, which shows up most when the graph
+itself is small.
+
+The decomposition above is consistent with that: the audit penalty is roughly constant in absolute terms,
+so it dominates a light graph and is diluted by a heavy one.
+
+`-H:PriorityForceInline=<Processor>.*` forces **every method of the processor class** to inline into its
+caller. In an audited processor those methods contain the audit dispatch, so the forced-inline body is
+substantially larger — and round 62 established that the inlining budget governs which regime a build
+lands in. Forcing a bigger body could push something else out.
+
+### 15.2 Predictions
+
+| # | Prediction | Basis |
+|---|---|---|
+| W1 | removing the inline directive from the **audited** build changes it by **less than 5 ns** | §10.6 measured the directive at ~0 on an audited path |
+| W2 | if the owner's hypothesis holds instead, removing it **helps by more than 5 ns** | a smaller forced body leaves budget for the audit chain |
+| W3 | removing the directive from the **baseline** build **hurts badly, > 3×** | this is the dispatch regime, where the directive is worth 3.5× |
+| W4 | a **method-level** `PriorityForceInline` pattern is still rejected or ignored on 25.0.4 | the performance page records that naming individual methods does not work; the owner wants this to change |
+
+W1 and W2 are mutually exclusive by design — this is the test that decides between them.
+
+## 16. The baseline drift — the harness was the variable
+
+The owner asked whether the new baselines matched what was recorded for this shape earlier. They did
+not: **9.7 ns today against 3.41 ns recorded**. Four independent profile-and-build cycles all landed at
+9.64–9.79, so it was not the build lottery — every build agreed.
+
+The difference was **the harness**. `BenchPlain` constructs the processor in `main` and passes it into
+the loop method; the older `BenchTail_*` constructed it **inside** the method running the loop. That is
+the runtime-shape rule already on the performance-page checklist — *"processor constructed inside the
+method that runs the event loop, and never escapes it"* — and I broke it while writing a cleaner harness.
+
+| 30-node converging graph, no audit | native ns | Mmsg/s |
+|---|---:|---:|
+| processor **local** to the loop method (build 1) | **2.263** | 442 |
+| processor **local** to the loop method (build 2) | **2.265** | 442 |
+| processor **escapes** into the loop method | 9.790 | 102 |
+| JIT, either shape | 12.418 | 81 |
+
+**A 4.3× penalty, from where a variable is declared.** And two independent builds of the local shape
+agree to 0.002 ns, so it is not a lottery effect either.
+
+Two consequences:
+
+1. **Native AOT is 5.5× faster than JIT on this graph** — 2.26 ns against 12.42 — once the shape is
+   right. Every native-vs-JIT figure in §§8–15 was measured with the processor escaping, which cost the
+   native arm 7.5 ns and the JIT arm nothing.
+2. **The audited arms are measured with the same fault** and are being re-run.
+
+### 16.1 Why this one was invisible
+
+Every recorded input matched: same profile, same PGO, same GC, same flags, same graph, same machine.
+The build log cannot show it and the binary index as first written could not either — it indexes how a
+binary was **built**, not what was **built**. The harness is an input, and it was the only unversioned
+one.
+
+`HarnessVersion` now stamps a version onto every RESULT line (`harness=h3`), with a changelog naming
+what each version altered and why it could move a number:
+
+```
+h3 - processor constructed inside the loop method and never escaping; 4.3x on native, 0 on JIT
+h2 - refuses to report unless it can prove what it measured
+h1 - original; -D after the main class silently ignored, arms not interleaved
+```
+
+Five silent harness faults in one round — a swallowed system property, a mismatched arm, un-interleaved
+runs, a missing build-classpath entry, and now an escaping local — all produced plausible numbers and
+wrong conclusions. **The failure mode of this work is not a wrong measurement, it is a right measurement
+of the wrong thing.**
