@@ -37,6 +37,12 @@ public final class BinaryLogRecord extends LogRecord {
      *  {@code none} = no wall-clock read at all. Z-arm switch for round 63 §7.4. */
     public static String clockMode = System.getProperty("clock", "live");
 
+    /** Resolved once at construction. The String switch this replaces cost a hash and an equals on
+     *  every header and every terminator — twice per record — and was an artifact of the class
+     *  carrying three experiment modes. A real encoder has one mode. */
+    private final boolean useProcessTime = "process".equals(clockMode);
+    private final boolean noClock = "none".equals(clockMode);
+
     private final byte[] buf;
     private int pos;
     private boolean overflow;
@@ -109,11 +115,9 @@ public final class BinaryLogRecord extends LogRecord {
     }
 
     private long now() {
-        switch (clockMode) {
-            case "process": return clock.getProcessTime();
-            case "none":    return 0L;
-            default:        return clock.getWallClockTime();
-        }
+        if (useProcessTime) { return clock.getProcessTime(); }
+        if (noClock) { return 0L; }
+        return clock.getWallClockTime();
     }
 
     private void head(String sourceId, String propertyKey) {

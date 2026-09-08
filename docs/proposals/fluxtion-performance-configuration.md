@@ -62,6 +62,31 @@ harnesses:
     across those five cycles as the machine warmed — so **`generated − hand` is the quantity that
     travels**: 0.118 – 0.156 ns, mean 0.131, all day, across every shape measured.
 
+### With the audit log on — 20 million events/sec, and AOT ahead of JIT
+
+The figures above are dispatch with no audit log. The deployed question is usually different: *what does
+it cost to keep the audit trail?*
+
+30 nodes, 5 event types, one shared tail, `LOW_LATENCY_AUDIT`, a binary log record, zero allocation,
+54 bytes per record, **excluding the disk or network write**. Interleaved arms, minimum of 8 reps:
+
+| | ns/event | events/sec |
+|---|---:|---:|
+| **native AOT** — PGO, epsilon, inlining directive | **49.9** | **20.1 M** |
+| JIT | 57.1 | 17.5 M |
+| the stock **text** record on JIT, where this started | 153.5 | 6.5 M |
+
+Three things worth taking from that table:
+
+- **Full audit costs about 47 ns/event on top of a 3.4 ns graph** and stays zero-allocation. For most
+  applications that is an affordable trade for a deterministic record of every event.
+- **The record format is most of the cost, not the audit machinery.** The stock record renders YAML text
+  inside the event cycle; a record that writes bits is **3.1× faster and 3.6× smaller**. See
+  *spec-binary-audit-encoding*.
+- **AOT is 13% faster than JIT here, on minimum, median and worst case** — but only after the code-shape
+  rule in the checklist is applied. Before it, AOT trailed by 13%. One `switch` on a mutable `static`
+  was the whole difference.
+
 ### Multiple event types and branching paths — the gap depends on your alternative, not on the processor
 
 The figures above are a single event type down a straight line. A second graph in the kit has **three
@@ -234,8 +259,28 @@ so the only way to know you have them all is to check.
       provably never re-enters
 - [ ] **void triggers on every node** — `@OnTrigger(failBuildIfMissingBooleanReturn = false)` and the
       same on `@OnEventHandler`. **The profile cannot set this for you**; it lives on your classes.
-- [ ] If you need the audit log instead: `performanceProfile(AUDITED)` +
-      `addAuditedEventLog(LogLevel.INFO)` — keeps the log, drops the 208 bytes/event
+- [ ] If you need the audit log instead, pick the right one of the two audit profiles:
+      - `performanceProfile(AUDITED)` + `addAuditedEventLog(LogLevel.INFO)` — keeps method tracing.
+        The development profile: readable when you do not yet know what you are looking for.
+      - `performanceProfile(LOW_LATENCY_AUDIT)` + `addLowLatencyEventLog(LogLevel.INFO)` — the
+        production profile. Tracing off, no event `toString`, no thread name, no runtime name map, no
+        buffer-and-trigger, no subscriptions. **Measured 5.4 ns/event faster than `AUDITED` on JIT and
+        ~12 ns on native**; it keeps dirty filtering and re-entrancy deliberately, because an audit
+        profile must not change what the graph computes.
+
+**Code shape — the largest single lever found, and the one nothing warns you about**
+
+- [ ] **Every value that is constant for the life of the run is a `final` field resolved in the
+      constructor — never a mutable `static` read on the event path.** A JIT profiles such a read,
+      observes one value, and constant-folds it. **Native-image cannot speculate and pays the full cost
+      forever.** Measured: one `switch` on a `static String` set from a system property, evaluated twice
+      per audit record, cost **native 8.2 ns/event and JIT 0.17 ns** — a 48× asymmetry, and it was the
+      entire reason native trailed JIT on the audited path.
+- [ ] This is *more* important for generated code than hand-written code, and it is an advantage a
+      hand-rolled application cannot systematically get: a generator knows at build time which values
+      are fixed and can emit them `final`.
+- [ ] Concrete, provable receivers help too, but far less — measured at **~2 ns** on the same graph.
+      Worth having; not worth restructuring for.
 
 **Runtime shape**
 
@@ -246,6 +291,9 @@ so the only way to know you have them all is to check.
 **Native image** *(skip all of this if you deploy on a JIT — none of it applies)*
 
 - [ ] `--pgo=<profile>` from a run that exercises **every path you deploy**
+- [ ] `--gc=epsilon` if the event path is genuinely zero-allocation — Serial GC adds card-marking write
+      barriers. Measured at ~0–14 ns depending on the graph, and **verify the zero-allocation claim
+      first**, because epsilon does not collect: a leak becomes an OOM, not a slowdown
 - [ ] `-H:PriorityForceInline=<YourProcessor>.*` — emitted for you in
       `META-INF/native-image/…/native-image.properties` when `generateReachabilityMetadata` is on
 - [ ] whole-class wildcard, **not** a curated method list — naming methods individually does not work
@@ -262,6 +310,13 @@ so the only way to know you have them all is to check.
       input, and it is the only thing that makes the result reproducible
 - [ ] compare arms with `tools/bench/dispatch-bench.py`, which refuses to report until the arms
       produce identical output
+- [ ] **interleave the arms and report the MINIMUM, never the mean.** Running each arm in a block
+      compares two machine states as well as two compilers: on an Apple M4 the *same* native binary read
+      90.8 ns and 82.4 ns minutes apart, on core placement and thermal state alone. This single method
+      failure produced **three** wrong headlines in round 63, including a published "AOT is 1.4× slower"
+      that was actually AOT being 13% *faster*
+- [ ] **check the machine is idle before believing anything** — one run in round 63 was taken at load
+      average 83 with two orphaned `native-image` builds still going, and the numbers were meaningless
 - [ ] **if a number surprises you, check this list before concluding anything about the compiler** —
       four times in round 59 a missing setting or a harness defect looked exactly like one
 
@@ -658,12 +713,41 @@ Each was measured on a full fresh cycle, at 4–6× its default, against a floor
 | `-H:PriorityForceInline` widened to the nodes, the framework, the loop's own class | no effect |
 | **`-H:+InlineEverything`** | **no effect** |
 | `-H:NumberOfThreads=1` or `=4` *(hoping for a deterministic build)* | no effect, and still not byte-reproducible |
+| **`-march=native`** | **a small, consistent regression** — see below |
 
 `InlineEverything` failing to move it is the informative row: whatever bails is not reachable by
 turning inlining up.
 
-**`-H:PriorityForceInline=<YourProcessor>.*` is the only lever that works** — it is worth 3.5× and it
-is not optional. It is also not sufficient, which is what the rest of this section is about.
+!!! warning "`-march=native` is recommended by the build itself, and does not pay here"
+    Every native build prints `CPU: Enable more CPU features with '-march=native' for improved
+    performance` in its recommendations block, and every build in this work reported
+    `target machine: armv8.1-a` on an Apple M4. It looks like an obvious win — a JIT always compiles
+    for the CPU it is running on, so surely AOT should too.
+
+    Measured on the audited binary-record path, 8 interleaved reps each: **`armv8.1-a` 49.86 ns min,
+    `-march=native` 50.62 ns min**, slower in all eight and with a wider spread. It is recorded here
+    because the build's own advice will otherwise talk you into it, as it nearly did us.
+
+    This is a result for one workload on one CPU with one compiler version. Measure it; do not assume
+    it either way.
+
+**`-H:PriorityForceInline=<YourProcessor>.*` is the only *flag* that works** — it is worth 3.5× on the
+dispatch path and it is not optional. It is also not sufficient, which is what the rest of this section
+is about.
+
+!!! note "Scope: it is a dispatch lever, not a universal one"
+    The directive exists so the processor does not escape into an un-inlined callee, which is what lets
+    its **node objects be scalar-replaced**. On an *audited* path the dominant object is the
+    `LogRecord`, which is a field on `EventLogManager` and lives for the whole run — escape analysis has
+    nothing to win, and the directive measured **no change at all** (71.3 ns with, 70.0 without).
+
+    Keep it on the classpath regardless: it costs nothing, and the dispatch half of any real graph still
+    needs it. Just do not expect it to move an encode-bound path.
+
+**The largest lever on an audited path is not a flag at all — it is the code shape.** See the checklist:
+a `switch` on a mutable `static String` that never changes cost **native 8.2 ns/event and JIT 0.17 ns**.
+A JIT discovers the constant by profiling; AOT cannot speculate and pays forever. Resolve run-constants
+into `final` fields at construction.
 
 ## PGO — an accurate profile removes the cliff; a bad one is worse than none
 

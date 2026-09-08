@@ -876,3 +876,98 @@ which is to say the number was wrong because the thing being measured was not th
   latency-sensitive deployment the profile is aimed at.
 - Every future native measurement in this work MUST interleave arms and report minimum. §8, §9 and the
   first half of §10 all failed this and all three produced a wrong headline.
+
+## 11. Can AOT overtake JIT? Two levers, one of which the build log asked for
+
+The owner asked whether AOT can actually get ahead, and whether code shape or concrete classes would do
+it. Two things on the table that §10 did not test, found by re-reading the build log I had already been
+quoting:
+
+**Lever 1 — the target machine.** Every native build in this round reports
+`target machine: armv8.1-a`. The machine is an **Apple M4**. The build's own recommendation block says
+`CPU: Enable more CPU features with '-march=native' for improved performance` and I ignored it four
+builds running. **A JIT always compiles for the CPU it is running on**; AOT was compiling for a generic
+2016 baseline. That is not an AOT limitation, it is a flag I did not pass.
+
+**Lever 2 — a benchmark artifact on the hot path.** `BinaryLogRecord.now()` does
+`switch (clockMode)` on a **String**, twice per record (header and terminator). That is a hash plus an
+equals on every call, in both arms, and it exists only because the class carries three experiment modes.
+A real encoder resolves this at construction.
+
+### 11.1 Predictions
+
+| # | Prediction | Basis |
+|---|---|---|
+| R1 | `-march=native` is worth **> 2 ns** on native, enough to put its minimum below JIT's 57.26 | the JIT has always had this advantage; the gap to close is 0.77 ns |
+| R2 | replacing the String switch with a `final boolean` is worth **> 3 ns on both arms** | two String switches per record |
+| R3 | with both, native beats JIT on **minimum, median and worst case** | R1 + native's already-tighter spread |
+| R4 | making the record receiver provable is still worth **< 3 ns** | §9 measured exactly this at ~2 ns; the owner's "concrete classes" idea is real but small |
+
+R4 is the direct answer to "would concrete classes help": measured already, and the answer is *a little*.
+R1 is the one that should decide it.
+
+### 11.2 Results — AOT overtakes JIT, and it was the code shape
+
+Interleaved, 8 reps, binary record, `clock=process`, `LOW_LATENCY_AUDIT`, epsilon, PGO, directive.
+
+| Arm | min | max | spread | msg/sec |
+|---|---:|---:|---:|---:|
+| **native, `armv8.1-a`** | **49.86** | 51.76 | 1.90 | **20.1M** |
+| native, `-march=native` | 50.62 | 53.04 | 2.42 | 19.8M |
+| JIT | 57.09 | 58.59 | 1.50 | 17.5M |
+
+**Native is 12.7% faster than JIT on minimum, 13% on median, and 12% on worst case.** The answer to
+"can AOT overtake JIT" is yes, and on this workload it now does on every statistic.
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| R1 | `-march=native` worth > 2 ns | **−0.8 ns — consistently *slower***, all 8 reps | ❌ |
+| R2 | removing the String switch worth > 3 ns **on both arms** | **native 8.2 ns, JIT 0.17 ns** | ❌ as stated — and the miss is the finding |
+| R3 | native beats JIT on min, median and worst case | **all three** | ✅ |
+| R4 | concrete classes worth < 3 ns | §9 measured ~2 ns; not re-run | ✅ standing |
+
+### 11.3 The finding: AOT cannot speculate on a runtime constant, and JIT can
+
+R2 predicted the String switch would cost both arms about the same. It cost **native 8.2 ns and JIT
+0.17 ns** — a 48× asymmetry, and it is the whole reason native was behind.
+
+```java
+public static String clockMode = System.getProperty("clock", "live");   // read once, never changes
+private long now() { switch (clockMode) { case "process": ... } }        // twice per record
+```
+
+HotSpot profiles that switch, observes one value for millions of events, and **constant-folds it away**.
+Native-image sees a mutable static `String` whose value is only known at run time, cannot speculate, and
+pays a hash and an equals twice per record — forever, with no deoptimisation guard to buy it back.
+
+Resolving it once into a `final boolean` at construction costs JIT nothing and hands AOT 8.2 ns.
+
+**This is the direct answer to "would the shape of the code help?" — yes, decisively, and it is the
+single largest lever found in this round.** The general rule:
+
+> **Anything that is constant for the life of a run must be a `final` field resolved at construction,
+> not a mutable static read on the hot path.** A JIT will discover the constant for you. An AOT compiler
+> cannot, and the loss is silent.
+
+That rule is *more* important for generated code than hand-written code, because a generator knows at
+build time which values are fixed and can emit them as `final` — which is exactly the advantage a
+hand-rolled application cannot systematically get.
+
+### 11.4 `-march=native` is not a lever here — it is a small regression
+
+R1 was the confident one and it was wrong in the wrong direction: `-march=native` was **slower in all 8
+reps** (min 50.62 against 49.86) and had a wider spread. The build log recommends it generically; on this
+workload, for this compiler version, it does not pay. It is recorded here so nobody adds it on the
+strength of the build's own advice without measuring — which is what I nearly did.
+
+### 11.5 Where this leaves the numbers
+
+**Binary record, `LOW_LATENCY_AUDIT`, fully audited, zero allocation, 54 bytes/record, no disk:**
+
+| | ns/event | msg/sec |
+|---|---:|---:|
+| **native AOT** | **49.86** | **20.1M** |
+| JIT | 57.09 | 17.5M |
+| text record, JIT (where this round started) | 153.5 | 6.5M |
+
+**3.1× from where the round started, and the 10M target is met twice over on both toolchains.**
