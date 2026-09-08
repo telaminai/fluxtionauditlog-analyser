@@ -336,3 +336,216 @@ measurements; this time the JDK is stated in the section, and the missing one is
 Chronicle also needs a long list of `--add-opens` / `--add-exports` on JDK 25 (`java.base/jdk.internal.misc`
 for Agrona, `java.lang.reflect` for Chronicle core). That is worth knowing before anyone proposes it as
 a native-image target.
+
+## 7. The encoder, not the sink — and the seam already exists
+
+### 7.1 What the source says (read, not inferred)
+
+Three questions were asked. The audit sources answer all three.
+
+**"Is it the thing that encodes that makes the difference?"** Yes, and the source shows why the sink
+cannot help. `LogRecord.addRecord(String, String, double)` is:
+
+```java
+public void addRecord(String sourceId, String propertyKey, double value) {
+    addSourceId(sourceId, propertyKey);   // appends "\n        - node: { key: "
+    sb.append(value);                     // Ryu double -> text, into a StringBuilder
+}
+```
+
+The characters are written **during the cycle**, by the node doing the logging. There are seven such
+overloads (`double`, `long`, `int`, `char`, `CharSequence`, `Object`, `boolean`) and every one ends in
+`sb.append`.
+
+**"Is the Chronicle processor too late to affect the bytes we write?"** **Yes — categorically.** It is a
+`LogRecordListener`, and `EventLogManager.processingComplete()` calls
+`sink.processLogRecord(logRecord)` only after `terminateRecord()`. By then all 221 characters exist.
+That is exactly why §6.2 measured `asCharSequence()` at 3.6 ns: nothing is left to do. (It is also in
+mongoose **core**, `ChronicleAuditCaptureService`, not the web admin plugin.)
+
+**"I thought the auditor allowed a plugin encoder."** **It does, and the memory is right.**
+`EventLogControlEvent` has a public constructor taking a `LogRecord`, and `EventLogManager` swaps it in:
+
+```java
+LogRecord newLogRecord = newConfig.getLogRecord();
+if (newLogRecord != null) {
+    newLogRecord.updateLogLevel(logRecord.getLogLevel());
+    newLogRecord.replaceBuffer(logRecord.sb);
+    this.logRecord = newLogRecord;
+    this.logRecord.setClock(clock);
+    updateLogRecord();            // re-points every node's EventLogger at the new record
+}
+```
+
+So a record subclass that overrides the seven primitives and writes **bits instead of characters** can
+be installed today, as an ordinary event, with **no core change**. Whether that is the right long-term
+shape is a separate question (§7.4) — but it is testable now, which means it gets measured before it
+gets designed.
+
+### 7.2 The target, and predictions recorded before building
+
+Goal, as set: **10M+ msgs/sec fully audited**, excluding the actual disk or network write — i.e.
+**≤ 100 ns/event** for graph + record construction + encode into a buffer.
+
+Where that stands today on this graph (JIT, OpenJDK 25.0.2): graph alone **10.0 ns**; graph + text
+record **151.7 ns** = **6.6M/s**. The text record build is ~142 ns and is the entire gap.
+
+| # | Prediction | Basis |
+|---|---|---|
+| Y1 | a binary record build costs **35–60 ns/event** | `sb.append(double)` is a Ryu conversion (tens of ns); a raw 8-byte store is ~1 ns. The keys and node names become small ids instead of appended strings |
+| Y2 | graph + binary record totals **< 100 ns — the 10M/s goal is met on JIT** | 10.0 + Y1 |
+| Y3 | it is **zero-allocation** | nothing on the path allocates once the buffer is reused |
+| Y4 | the encoded record is **< 80 bytes** against 221 characters | 2-byte ids for names, 8 bytes for a double instead of ~17 characters |
+| Y5 | the **`==` identity cache on `sourceId` hits ~100%** | generated code passes interned String constants, and calls cluster by node |
+
+Y2 is the one that matters. If it holds, the 10M/s target is not a stretch goal — it is what the
+existing seam delivers once the encoder stops making text.
+
+### 7.3 Results — the goal is met, at 16.6M/s
+
+`BinaryLogRecord extends LogRecord` overrides all seven `addRecord` overloads plus `addTrace`,
+`triggerEvent`, `triggerObject`, `terminateRecord` and `clear`, and never touches the inherited
+`StringBuilder`. Node names and property keys intern to `short` ids; values are a type tag plus raw
+bits. It is installed with `p.onEvent(new EventLogControlEvent(binaryRecord))` — **the seam that
+already exists, no core change**. No-op sink in both arms: nothing is written to disk or network,
+which is what the target excludes.
+
+| Record | ns/event | msg/sec | alloc B/event | bytes/record |
+|---|---:|---:|---:|---:|
+| stock `LogRecord` (text) | 155.7 | **6.4M** | 0 | 193.2 |
+| **`BinaryLogRecord`** | **60.4** | **16.6M** | **0** | **54.0** |
+
+**2.58× on time, 3.6× on size, still zero-allocation.**
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| Y1 | binary record build 35–60 ns | **50.4 ns** (60.4 total − 10.0 graph) | ✅ |
+| Y2 | total < 100 ns, 10M/s met | **60.4 ns → 16.6M/s** | ✅ |
+| Y3 | zero-allocation | **0.000 B/event** | ✅ |
+| Y4 | record < 80 bytes | **54.0** vs 193.2 | ✅ |
+| Y5 | the `==` identity cache hits ~100% | **0%**, then **50%** after a fix — and neither mattered | ❌ |
+
+**Y5 is the instructive failure.** The first cache hit 0% because `head()` calls `idOf(sourceId)` then
+`idOf(propertyKey)`, alternating, so a one-slot cache is defeated on every call — a design defect, not
+a measurement. Split into two slots it reaches 50%: the key repeats, the node alternates between the
+two nodes that log. **And the fix changed the time by nothing measurable** (60.4 → 61.5, inside noise).
+So interning was never on the critical path, and the tempting optimisation of a perfect id cache is
+worth zero. That is only knowable because the prediction was wrong out loud.
+
+### 7.4 Where the remaining 50 ns goes — predictions
+
+The record holds two property writes (the minimal profile logs on two nodes), a header and a
+terminator: 54 bytes, ~20 field writes. That should not cost 50 ns. Reading `Clock` says why it might:
+
+```java
+public long getWallClockTime() { return wallClock.getWallClockTime(); }   // -> System::currentTimeMillis
+```
+
+`LogRecord` calls it **twice per record** — `logTime` in the header, `endTime` in the terminator —
+through a `ClockStrategy` interface, live, every time. And `Clock.eventReceived` **already read the
+wall clock once** for this event and cached it in `processTime`. So one of the two reads is redundant
+with work the framework has already done.
+
+| # | Prediction | Basis |
+|---|---|---|
+| Z1 | `System.currentTimeMillis()` costs **15–30 ns** here | macOS arm64, through an interface call |
+| Z2 | `logTime` from `getProcessTime()` instead of a live read drops the binary arm to **40–48 ns → 21–25M/s** | removes one of two live reads |
+| Z3 | removing both live reads gives **28–35 ns → ~30M/s** | removes the other |
+| Z4 | the **text arm improves by the same absolute amount**, ~155.7 → ~125 | if it is the clock, it is the clock in both encoders |
+
+Z4 is the control. If the text arm does not move by the same number of nanoseconds, the clock is not
+what Z1–Z3 say it is.
+
+### 7.5 Results — the clock, and the correctness gate
+
+`ClockProbe`, 50M reads, nothing else on the path:
+
+```
+viaClockStrategy = 12.293 ns      directCurrentTimeMillis = 12.344 ns
+```
+
+The `ClockStrategy` interface indirection costs **nothing** — it inlines away completely. The 12.3 ns
+is `System.currentTimeMillis()` itself.
+
+| Arm | ns/event | msg/sec | bytes/record |
+|---|---:|---:|---:|
+| text, stock `LogRecord` | 153.5 | 6.5M | 193.2 |
+| text, `logTime`/`endTime` from `getProcessTime()` | **139.8** | **7.2M** | 193.2 |
+| binary, live clock | 59.6 | 16.8M | 54.0 |
+| **binary + `getProcessTime()`** | **49.2** | **20.3M** | **54.0** |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| Z1 | a wall-clock read costs 15–30 ns | **12.3 ns**, and the interface indirection is free | ❌ low |
+| Z2 | binary drops to 40–48 ns / 21–25M | **49.2 ns / 20.3M** — just outside both bands | ❌ marginal |
+| Z3 | removing the second read gives 28–35 ns | **48.1 ns** — no further gain | ❌ **mis-specified** |
+| Z4 | the text arm improves by the same absolute amount | binary saved **10.4 ns**, text saved **13.7 ns** | ✅ control holds |
+
+**Z3 failed because the arm was wrong, not because the hypothesis was.** `now()` serves *both*
+`logTime` and `endTime`, so `clock=process` had already removed both live reads; `clock=none` only
+removed a field read, and measured accordingly. Z2 and Z3 were never separable as written.
+
+One real number falls out of the gap between Z1 and Z2: two reads at 12.3 ns each in isolation cost
+**10.4 ns together** inside the record build. The marginal cost of a clock read surrounded by real work
+is about half its isolated cost — the core has other things to be getting on with while it waits.
+
+**Correctness gate.** `CorrectnessBinary` drives the same 40 events through both encoders, decodes the
+binary form through its id dictionary, and asserts every node/key/value appears in the text record with
+the same rendered value:
+
+```
+PASS  records=40  entries verified=80
+
+eventLogRecord:                                  same record, decoded from 54 bytes:
+    eventTime: 1788853484794                     event=com.bench.E0
+    logTime: 1788853484794                       [Entry[node=t5, key=v, value=7.917840894551858],
+    groupingId: null                              Entry[node=t5, key=n, value=1]]
+    event: E0
+    nodeLogs:
+        - t5: { v: 7.917840894551858, n: 1}
+    endTime: 1788853484794
+```
+
+The double round-trips to the last digit — raw bits are exact by construction, where the text path is
+exact only because `Double.toString` happens to be round-trip safe.
+
+### 7.6 What this says for core
+
+**The goal is met and then some: 20.3M msg/sec fully audited, zero allocation, 54 bytes/record,**
+excluding disk and network — against a 10M target. Two changes get there, and they are very different
+in size.
+
+**One is a core one-liner and is arguably a correctness fix, not an optimisation.** `logTime` means
+"when processing began". `Clock.eventReceived` **already read the wall clock for this event** and cached
+it as `processTime`. `LogRecord` ignores that and takes a *second, later* reading — so today's `logTime`
+is not the time processing began, it is some moments after. Using `getProcessTime()` is both more
+correct and **13.7 ns cheaper on the existing text path, for every user, with no API change**.
+`endTime` is different: it genuinely needs a live read, because `endTime − logTime` is the processing
+duration. Keep it live, or make it optional under the latency profile.
+
+**The other is the encoder, and the seam is real but not shaped for it.** `BinaryLogRecord` needed no
+core change to *run*, but three things say core should own the abstraction rather than leaving it to
+subclasses:
+
+| Friction | Why it bites |
+|---|---|
+| `protected final StringBuilder sb` | every binary record carries a `StringBuilder` it will never write to |
+| `EventLogManager` calls `newLogRecord.replaceBuffer(logRecord.sb)` on swap | the swap path pushes *text* into a record that has no text |
+| `asCharSequence()` is the only expression channel | a binary record must throw from it, and every sink must downcast to get at the bytes |
+
+So the core change to specify is: **let a record express itself as bytes, not only as characters.**
+Either `LogRecord` becomes abstract with the YAML behaviour in a `TextLogRecord` subclass, or the
+encoder becomes an interface behind it. Either way `LogRecordListener` needs a byte-facing path so a
+sink can write a record without downcasting to a vendor class.
+
+That is worth doing *because* the seam already works: the 20.3M/s number is not a design sketch, it is
+measured through the shipped `EventLogControlEvent` path with a correctness check attached.
+
+**And it composes with §6.** A 54-byte binary record handed to Chronicle as `bytes` rather than a
+221-char wire string removes both text costs at once — the ~104 ns of building characters *and* the
+571 ns of encoding them. §6 and §7 are the same finding from two ends.
+
+**Scope note:** all of §7 is JIT, OpenJDK 25.0.2. GraalVM is not installed on this machine, so the AOT
+half of the target is **not yet measured**. Given §6.5's `TextProbe` result — AOT is *slower* than JIT
+at text formatting and faster at dispatch — removing the text is expected to help AOT more than JIT,
+which makes it the more interesting arm and the one still outstanding.
