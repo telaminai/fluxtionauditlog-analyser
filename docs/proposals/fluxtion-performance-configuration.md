@@ -249,6 +249,7 @@ pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile
 | Capability | `DEFAULT` | `AUDITED` | `LOW_LATENCY_AUDIT` | `LOWEST_LATENCY` |
 |---|:---:|:---:|:---:|:---:|
 | **Audit log** (records at all) | ✅ | ✅ | ✅ | ❌ |
+| **Binary record** (`AuditRecordFormat.BINARY`) | ❌ | ❌ | **✋ opt-in** | — |
 | **Per-node method tracing** | ✅ | ✅ | ❌ | ❌ |
 | Event `toString()` in each record | ✅ | ❌ | ❌ | — |
 | Thread name in each record | ✅ | ❌ | ❌ | — |
@@ -263,7 +264,34 @@ pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile
 
 **How to read the ✋ rows.** `setSupportReentrancy(false)` is the one setting that can turn a working
 graph into an `IllegalStateException`, so no profile sets it for you. Void triggers live on your node
-classes, not in the config, so no profile can.
+classes, not in the config, so no profile can. And the **binary record is opt-in for a reason that is
+not performance** — see below.
+
+#### The record format is a build input
+
+```java
+config.performanceProfile(LOW_LATENCY_AUDIT)
+      .addLowLatencyEventLog(LogLevel.INFO);                          // TEXT   — the default
+      .addLowLatencyEventLog(LogLevel.INFO, AuditRecordFormat.BINARY); // BINARY
+```
+
+`EventLogManager` builds the chosen record at `init()`. The runtime swap through
+`EventLogControlEvent` still works and is still how you change format on a *running* processor; this is
+how you start in the right one.
+
+| record, every node on the path logging | JIT | native | bytes/record |
+|---|---:|---:|---:|
+| `TEXT` | 403.0 ns · 2.5M/s | 698.6 ns · 1.4M/s | 548 |
+| **`BINARY`** | **54.6 ns · 18.3M/s** | **115.8 ns · 8.6M/s** | **181** |
+
+!!! danger "`TEXT` is the default because nothing can read the binary form yet"
+    The analyser registers only a YAML reader and the Chronicle reader is unfiled. A processor built
+    with `BINARY` produces a log **no existing tool can open**. Choose it when you have a reader, not
+    because it is faster.
+
+**Node code is identical either way.** `auditLog.info("v", v)` is unchanged — the format is chosen at
+build time, and `EventLogger` resolves each node and key name to an id **once per node** rather than
+once per event, which is worth 24% of the audit cost on JIT and 57% on native.
 
 **Two rows carry a semantic consequence, not just a cost:**
 
@@ -286,8 +314,10 @@ min of 8 interleaved reps.
 | dirty filtering, **no audit** | **7.7 ns** | **7.6 ns** | native 25.66 → 18.02 |
 | dirty filtering, **with audit** | ~0 | **~0** | 144.11 vs 142.83 — inside the ±8 ns lottery |
 | per-node method tracing | ~184 ns | — | the expensive half of auditing |
-| the audit record itself (binary) | ~59 ns | ~94 ns | 11.75 entries/event; 4.5 / 8.0 ns per entry |
-| the audit record itself (text) | ~318 ns | — | **5.1× the binary record** at this density |
+| the audit record itself (binary) | ~35 ns | ~98 ns | after the id-path fix; 11.75 entries/event |
+| the audit record itself (text) | ~384 ns | ~681 ns | **7.0× the binary record** at this density |
+| name resolution before the id-path fix | 26 ns | 27 ns | **now ~0** — resolved once per node |
+| `VarHandle` value stores vs a byte loop | **−8.6 ns** (worse) | **+34.5 ns** (better) | core ships the byte loop; it targets Java 8 |
 
 !!! warning "How the dirty-filtering row was got wrong twice"
     A first attempt compared `LOW_LATENCY_AUDIT` against a `LOWEST_LATENCY` baseline and reported the

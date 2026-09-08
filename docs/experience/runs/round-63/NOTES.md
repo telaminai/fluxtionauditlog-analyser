@@ -1774,3 +1774,61 @@ which is a generator concern, not an encoder one.
 - the id path records the same information as the String path;
 - more distinct keys than the logger has cache slots still resolve correctly;
 - a record that declines ids keeps the String path untouched.
+
+## 21. Wiring it up — what was actually shipped, and one thing that could not be
+
+The owner asked whether the binary recorder is stored in the profile. It was not: `BinaryLogRecord`
+lived only in the analyser's bench kit, and `addLowLatencyEventLog` installed a text record regardless —
+so **none of the measured binary numbers were reachable through a supported API**.
+
+### 21.1 Now shipped
+
+- `BinaryLogRecord` is in **core**, `com.telamin.fluxtion.runtime.audit`.
+- The format is a **build input**:
+  `addLowLatencyEventLog(LogLevel.INFO, AuditRecordFormat.BINARY)`.
+- `EventLogManager` builds it at `init()`. The runtime `EventLogControlEvent` swap still works and is
+  still how you change format on a *running* processor.
+- **`TEXT` stays the default**, and not for performance reasons: nothing can read the binary form yet.
+  A test pins the default so it cannot drift.
+
+### 21.2 Repeatability
+
+Independent re-measure an hour after the recorded figures, same binaries:
+
+| | recorded | re-measured | delta |
+|---|---:|---:|---:|
+| JIT id path | 61.06 | 64.96 | +3.90 |
+| native id path | 82.21 | 79.45 | −2.77 |
+
+Both inside run-to-run variance. The result reproduces.
+
+### 21.3 What could not ship — and it is not a straightforward loss
+
+`fluxtion-runtime` targets **Java 8**, enforced mechanically by animal-sniffer (deliberately: the
+browser bundle and agrona compatibility depend on it). So the `VarHandle` byte-array views worth 25.9%
+on native **cannot go into core**, and it writes the byte loop instead.
+
+Measured with the id path on in both arms and only the store path varying:
+
+| | bytewise | VarHandle | |
+|---|---:|---:|---|
+| JIT | **54.59** | 63.19 | the byte loop is **8.6 ns faster** |
+| native | 115.80 | **81.34** | VarHandle is **34.5 ns faster** |
+
+**HotSpot already folds the byte loop and then pays for the `VarHandle` indirection; native-image does
+not fold it.** So core ships the better choice for a JIT deployment and the worse one for native, and
+the 34 ns is available only through a multi-release jar or a separate module. Recorded in the javadoc on
+`i64()` as a known gap.
+
+That also revises §19.4: "VarHandle stores are worth 25.9% on native" is true, and incomplete — they
+cost JIT 8.6 ns, which the first measurement (+1.8%, inside noise) did not resolve because the id path
+was not yet in place to shrink everything else.
+
+### 21.4 Where the profile now stands, measured
+
+| record, every node on the path logging | JIT | native | bytes |
+|---|---:|---:|---:|
+| `TEXT` (default) | 403.0 ns · 2.5M/s | 698.6 ns · 1.4M/s | 548 |
+| **`BINARY`** | **54.6 ns · 18.3M/s** | **115.8 ns · 8.6M/s** | **181** |
+
+**Node code is identical either way.**

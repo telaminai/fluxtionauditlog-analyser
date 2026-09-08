@@ -13,7 +13,21 @@ with the profile SHA recorded, and every build input verified in the build log r
 | Machine | Apple M4 |
 | JIT | OpenJDK 25.0.2 (build 25.0.2+10-69) |
 | Native | Oracle GraalVM 25.0.4+7.1 · `native-image 25.0.4` |
-| Harness | **h3** — processor constructed inside the loop method, never escaping |
+| Harness | **h4** — adds a no-op record arm; h3 fixed the escaping processor |
+
+## After the id-path fix (round 63 §20) — harness h4
+
+`EventLogger` resolves each node and key name to an id **once per node**, not once per event.
+
+| arm, 30-node converging, every node logs | JIT ns | native ns |
+|---|---:|---:|
+| fair baseline, no auditor | 19.42 | 17.64 |
+| binary record, String path (before) | 74.35 | 167.82 |
+| **binary record, id path (now)** | **54.6–61.1** | **82.2–115.8** |
+| text record | 403.0 | 698.6 |
+
+The native binary range spans the value-store choice: **81.3 with `VarHandle`, 115.8 with the byte
+loop** that core must ship for Java 8. JIT is the other way round — 54.6 byte loop, 63.2 `VarHandle`.
 
 > **Bands are only valid for the harness version they were recorded under.** h1/h2 numbers are not
 > comparable to h3: h2 let the processor escape its loop method, which costs **4.3× on native** and
