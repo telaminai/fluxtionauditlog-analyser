@@ -52,16 +52,23 @@ native is Oracle GraalVM 25.0.4+7.1 with per-arm PGO.
 
 | Encoder | JIT ns | JIT msg/s | Native ns | Native msg/s | bytes/record |
 |---|---:|---:|---:|---:|---:|
-| text (today) | 153.5 | 6.5M | 221.7 | 4.5M | 193 |
-| text + §5 clock fix | 139.8 | 7.2M | 221.5 | 4.5M | 193 |
-| binary | 59.6 | 16.8M | 90.6 | 11.0M | 54 |
-| **binary + §5 clock fix** | **49.2** | **20.3M** | **78.1** | **12.8M** | **54** |
+| text (today) | 153.5 | 6.5M | — | — | 193 |
+| text + §5 clock fix | 139.8 | 7.2M | — | — | 193 |
+| **binary + §5 clock fix + §7 profile** | **57.3** | **17.5M** | **58.0** | **17.2M** | **54** |
+
+Native figures are **minimum of 8 interleaved reps** with `LOW_LATENCY_AUDIT`, `--gc=epsilon`, per-arm
+PGO and the generated inlining directive on the classpath. Earlier drafts of this spec quoted native as
+1.4× slower than JIT; that was three harness faults and a missing profile, corrected in round 63 §10.
+The text arm's native figures are withdrawn rather than restated, because they were never re-measured
+under the corrected method.
 
 Two results worth carrying forward because they are counter-intuitive:
 
-- **Native AOT is slower than JIT at building records** — 1.44× on text, 1.59× on binary — while being
-  2.9× *faster* at dispatch on the same graph. An independent probe with no Fluxtion in it measured the
-  same 1.44× for text formatting alone.
+- **Native AOT matches JIT on throughput and is ~10× tighter in spread.** Final interleaved runs: native
+  min 58.03 / median 58.41 / spread **0.99 ns**; JIT min 57.26 / median 59.82 / spread **9.91 ns**. On
+  median and on worst case native wins; on minimum JIT wins by 1.3%. **For a latency-sensitive
+  deployment the spread is the result that matters**, and it is the argument for shipping this profile
+  as a native binary. (An earlier claim that AOT was 1.4× slower is withdrawn — round 63 §10.)
 - **Sink-side encoding is a separate 571 ns.** Handing Chronicle a 221-char wire string costs 665 ns/append;
   handing it a 221-byte blob writing the identical bytes to the identical file costs 96.8. That is
   `ValueOut.text(CharSequence)` at ~2.6 ns/char, and it is Mongoose's call to make, not core's (§8).
@@ -141,6 +148,10 @@ string. A deployment targeting this profile should not be logging `Object`.
 `EventProcessorConfig.PerformanceProfile` today offers `DEFAULT`, `AUDITED` and `LOWEST_LATENCY`.
 `LOWEST_LATENCY` **gives up the audit log**, so there is no named configuration for "I want the audit
 log and I want it cheap" — which is the deployed case.
+
+**Status: IMPLEMENTED.** `PerformanceProfile.LOW_LATENCY_AUDIT` plus `addLowLatencyEventLog(level)`.
+Measured against `AUDITED` on the reference graph: **5.4 ns/event on JIT, ~12 ns on native**, by removing
+the per-event buffer-and-trigger branch and the subscription publish (generated source 1302 → 1146 lines).
 
 ### 7.1 Normative
 

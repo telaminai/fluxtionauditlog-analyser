@@ -169,10 +169,12 @@ matter, then hand that to the analyser" a single command.
 | P3 | allocation per record, steady state | **zero** |
 | P4 | native AOT vs JIT | reported both ways |
 
-P4 is reported rather than targeted deliberately. Round 63 §8 measured native AOT at **1.44× slower
-than JIT at building text records** and 1.59× slower at building binary ones, while being 2.9× faster at
-dispatch. A reader is dispatch-light and encode-heavy, so **it is genuinely unclear which way AOT will
-land**, and this spec declines to guess. Startup time will favour native regardless, which for a CLI run
+P4 is reported rather than targeted deliberately. Round 63 §10 — after correcting three harness faults —
+found native AOT and JIT **equal on throughput** for an encode-heavy audit path, with native's spread
+**~10× tighter** (0.99 ns against 9.91). So the expected result for a reader is parity on rate and a much
+flatter distribution, but the workload differs enough (mapped I/O, no graph mutation) that this spec
+still declines to guess. **Measurements MUST interleave arms and report minimum** — the same method
+failure produced three wrong headlines in round 63. Startup time will favour native regardless, which for a CLI run
 against a small file may dominate everything else.
 
 ## 8. Command line

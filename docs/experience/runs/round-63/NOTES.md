@@ -745,3 +745,134 @@ performance claim and must not be quoted as one.
 *(Regenerating also caught a stale toolchain: the first attempt used the `~/.m2` builder jar and emitted
 `nodeNameLookup.eventReceived` — pre-W15 output. A measurement against that would have shown a bigger
 "win" from a compiler that was simply older.)*
+
+## 10. The AOT gap was mostly harness — three errors, and the owner named the biggest one
+
+The owner pushed back on §9: AOT audit *should* beat JIT, the binary figure moved 78 → 90 between
+sections, and ~30 ns unexplained is too much to accept. All three concerns were justified. Three
+separate faults, in ascending order of size.
+
+### 10.1 Fault 1 — 78 vs 90 was my reporting, not instability
+
+§8's 78.1 ns is the **`clock=process`** arm. §9's `mono_bin` runs passed no `-Dclock`, so
+`BinaryLogRecord.clockMode` defaulted to `"live"`, and 90.8 is the **live** arm. I compared them as
+though they were the same measurement. On one binary, both arms:
+
+```
+clock=live     82.4  82.6
+clock=process  68.7  70.1
+```
+
+There was no regression to explain.
+
+### 10.2 Fault 2 — measurements were not interleaved, on a machine with P and E cores
+
+The same native binary read **90.8** in §9 and **82.4** minutes later. Nothing changed but machine
+state. This is an Apple M4: core placement and thermal state move a benchmark ~10%, and §8/§9 ran each
+arm in a block, one toolchain after the other — so every JIT-vs-native ratio in them compares two
+*different machine states* as well as two compilers.
+
+Interleaved, alternating JIT and native, idle machine, `clock=process`, 6 reps each:
+
+```
+jit     62.232  61.529  60.313  63.377  63.948  64.739     min 60.3
+native  68.182  69.752  69.331  69.186  71.104  69.917     min 68.2
+```
+
+**1.13×, not the 1.44× §9.6 reported.** §9.6's ratio is withdrawn: it measured thermal drift as well as
+compilers. **Minimum, not mean, is the honest statistic here**, and interleaving is mandatory from now on.
+
+### 10.3 Fault 3 — the generated inlining directive was never on the build classpath
+
+The generator emits `META-INF/native-image/<processor>/native-image.properties`:
+
+```
+# Forces the event-dispatch chain to inline into the caller's event loop. Without it the
+# processor is passed to an un-inlined callee, escapes, and its node objects can no longer
+# be scalar-replaced: 5.55 ns/event against 1.57 with it, and the loss is silent.
+Args = -H:+UnlockExperimentalVMOptions -H:PriorityForceInline=<processor>.*
+```
+
+Every native build in §8 and §9 used a classpath of `tclasses:tvendor:runtime` or
+`binclasses:runtime`. **None of those contains `META-INF/native-image`** — the generated resource
+directory was never on it. So every AOT number in this round was built **without** the one directive
+whose own generated comment says it is worth 3.5× on dispatch and that losing it is silent.
+
+The comment was right about the silence. Nothing in the build log says the directive is absent, because
+an absent directive is indistinguishable from one that was never generated.
+
+### 10.4 Predictions, before the rebuild
+
+| # | Prediction | Basis |
+|---|---|---|
+| Q1 | with the directive, native binary `process` drops from **68.2 to 55–63 ns** | the directive restores scalar replacement; the dispatch portion is ~3.4 ns of the total so the win should be smaller than the 3.5× seen on a dispatch-only graph, but escape analysis affects the record path too |
+| Q2 | native **beats JIT** (60.3) on at least one arm | the owner's expectation, and the reason for looking |
+| Q3 | the directive is worth **more on the text arm in absolute ns** than on the binary arm | more code on the path to keep un-escaped |
+| Q4 | run-to-run spread stays ~1 ns within a binary, so 10.2's drift really was machine state | if the spread is now large, something else is loose |
+
+Q2 is the one that decides whether AOT audit is worth recommending at all.
+
+### 10.5 Results — the gap closes, and it was never mostly AOT
+
+All arms `clock=process`, binary record, interleaved, 8 reps, **minimum** reported (the honest statistic
+once §10.2 showed the mean carries machine drift).
+
+| Step | JIT min | native min | native spread |
+|---|---:|---:|---:|
+| §9 as reported (not interleaved) | 63.0 | 90.8 | — |
+| interleaved, `AUDITED` profile, no directive | 61.7 | 70.0 | 2.4 |
+| + inlining directive | 61.7 | **71.3** — no change | 2.4 |
+| **+ `LOW_LATENCY_AUDIT` profile** | **57.3** | **58.0** | **0.99** |
+
+Full final runs:
+
+```
+native  58.949 58.028 58.453 58.261 58.375 58.251 59.014 58.552   min 58.03  median 58.41  spread 0.99
+jit     60.012 67.168 59.612 57.255 59.864 59.633 58.999 61.756   min 57.26  median 59.82  spread 9.91
+```
+
+**Native and JIT are the same speed on this workload — 17.2M vs 17.5M msg/sec — and native's spread is
+ten times tighter.** On median native is *faster* (58.41 vs 59.82); on worst case it is much faster
+(59.01 vs 67.17). The originally reported "1.44× slower" was three harness faults and a missing profile.
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| Q1 | the directive drops native to 55–63 ns | **71.3 — no change at all** | ❌ |
+| Q2 | native beats JIT on at least one arm | median ✅ and worst case ✅; minimum ❌ (58.03 vs 57.26) | ➗ |
+| Q3 | the directive is worth more on the text arm | **not run** — recorded as unmeasured, not assumed | — |
+| Q4 | within-binary spread ~1 ns, so §10.2's drift was machine state | **0.99 ns native**, 9.91 JIT | ✅ |
+
+### 10.6 Why the inlining directive does nothing here
+
+Q1 was confidently wrong and the reason is worth keeping. The directive exists to stop the processor
+escaping into an un-inlined callee so its **node objects can be scalar-replaced** — worth 5.55 → 1.57 ns
+on a dispatch-only graph. On the audit path the dominant object is the `LogRecord`, which is a **field on
+`EventLogManager` and lives for the whole run**. Escape analysis has nothing to win on a long-lived
+object, so the directive has nothing to give.
+
+It should still always be on the classpath — it costs nothing and the dispatch half of any real graph
+still needs it. But it is not an audit-path lever, and §10.3's framing of it as "the missing
+optimisation" was too strong: it was *a* missing input, worth ~0 here.
+
+### 10.7 Scoring the owner's five hypotheses
+
+| Hypothesis | Verdict |
+|---|---|
+| Bad PGO | ❌ `PGO: user-provided`, 4 MB profiles, SHAs verified across every build |
+| The low-latency profile is inaccurate | ✅ **the largest single factor** — the bench built `AUDITED`, worth 5.4 ns JIT and ~12 ns native |
+| Earlier optimisation work is on another branch | ❌ the merge base *is* `w2-w3-w8`'s tip, so `w4-baseline-config` already contains it |
+| Inlining cache breached | ➗ the directive really was absent from every build, and is worth ~0 on this path (§10.6) |
+| An untracked indirection | ➗ real — `ServiceRegistryNode` (§9.8) — but ≤3 ns, inside noise |
+
+Four of the five were worth checking and two were right. The one that mattered most was the profile —
+which is to say the number was wrong because the thing being measured was not the thing being specified.
+
+### 10.8 What this changes in the spec
+
+- `LOW_LATENCY_AUDIT` is **implemented** (M52.2), not just specified, and is now a measured 5.4 ns on
+  JIT and ~12 ns on native over `AUDITED` on this graph.
+- The spec's §7 claim that native AOT is 1.4× slower at record building is **withdrawn**. Corrected:
+  **parity on throughput, ~10× tighter spread**, which is a materially better story for the
+  latency-sensitive deployment the profile is aimed at.
+- Every future native measurement in this work MUST interleave arms and report minimum. §8, §9 and the
+  first half of §10 all failed this and all three produced a wrong headline.
