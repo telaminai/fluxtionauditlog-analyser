@@ -2342,3 +2342,87 @@ multi-release jar. Measured separately, `VarHandle` was worth **−34.5 ns nativ
 **P2 is the one most likely to be wrong in an interesting direction.** This round has repeatedly found
 terms that did not compose the way arithmetic predicted — the escaping processor, the guards, the
 inlining directive.
+
+## 29. What the round established
+
+### 29.1 One mechanism explains most of the JIT/native difference
+
+Native AOT is **5.5× faster than JIT at dispatch** (2.13 ns against 11.84 on the same 30-node graph) and
+slower at everything that keeps state alive across a call. Three separately-measured results turn out to
+be the same mechanism — **anything that stops the processor being scalar-replaced costs native far more
+than JIT**:
+
+| | native | JIT |
+|---|---:|---:|
+| processor escapes its loop method | **4.3×** | 1.0× |
+| dirty filtering on | **11.9×** | 2.5× |
+| audit record built per event | +94 ns | +53 ns |
+
+A fourth belongs with them: **native cannot speculate on a runtime constant.** A `switch` on a mutable
+`static String` that never changed cost native **8.2 ns** and JIT **0.17 ns** — a 48× asymmetry, because
+HotSpot profiles the read and folds it while native-image pays forever with no deoptimisation guard.
+
+**This is the practical rule the round produced:** on AOT, keep values that are constant for a run in
+`final` fields, and keep the processor from escaping. Both are free on JIT, and both are large on native.
+
+### 29.2 Audit cost is the record, not the machinery
+
+| term | JIT | native |
+|---|---:|---:|
+| audit dispatch + call chain | 10.93 | 27.58 |
+| **record building** | **57.93** | **98.92** |
+
+84% of the audit cost on JIT and 78% on native is *building the record*. Which means the format decides
+almost everything:
+
+- **binary vs text is 3.2× when one node logs and 5.1× when every node does** — the value grows with
+  audit density;
+- **node weight dilutes it** — heavy nodes drop the ratio to 1.56×, because node work is the same either
+  way;
+- per logged value: **26 ns text against 3.4 ns binary**.
+
+### 29.3 The two fixes that landed, and why they were findable
+
+| fix | JIT | native | why it was there |
+|---|---:|---:|---|
+| resolve names once per node, not per event | −24% | **−57%** | the cache was on the *shared record*, so 12 nodes fought over one slot |
+| hold the record as a concrete type | −1% | **−40%** | HotSpot devirtualises by profiling; native cannot |
+
+Both are **runtime changes with no generation and no node-code change**, and both were found by
+decomposing rather than guessing — the no-op-record arm separated dispatch from encoding, and the
+`intern=none` arm gave a ceiling to aim at.
+
+### 29.4 The methodological result, which may be the most durable
+
+**Five silent harness faults in one round**, each producing a plausible number and a wrong published
+conclusion: a `-D` after the main class that never reached the JVM; two different arms compared as one;
+un-interleaved runs on a machine with P and E cores; a build classpath missing the generated inlining
+directive; and a processor allowed to escape its loop method. Plus a profile that **silently disabled
+the audit log** and was reported as a speed-up, and a baseline that differed from the audited build by
+dirty filtering as well as by the auditor.
+
+**The failure mode of this work is not a wrong measurement. It is a right measurement of the wrong
+thing.** Every one of those produced a correct number.
+
+And a second pattern, seen four times: **a finding is scoped to the regime it was measured in.**
+Round 62's receiver-provability result, round 60's flag sweep, the inlining directive, and my own
+"interning is not on the critical path" all held where they were taken and failed when carried across.
+
+The tooling that came out of it is the answer to both: a versioned harness that refuses to report what
+it cannot prove, a binary index keyed by configuration, control bands, and a comparison script that
+**refuses a comparison where more than one declared input differs**.
+
+### 29.5 Targets
+
+**10M events/sec, fully audited, on a realistic graph — met on both toolchains.** 30 nodes, 5 event
+types, every node on the path logging, zero allocation, 181 bytes per record.
+
+### 29.6 What is not established
+
+- **Native is still 2.12× JIT on audit cost** after both fixes. What remains is straight-line stores,
+  and no explanation beyond "AOT is slower at those" has been demonstrated.
+- **The `VarHandle` combination is unmeasured** — predicted in §28.4, not run.
+- **Most rows in `RECORDED-BASELINES.md` are still pre-h3**, measured with the processor escaping. They
+  are marked, and they need re-measuring before anything calibrates against them.
+- **Nothing has been run on a second machine.** Every coefficient is Apple-M4-specific until shown
+  otherwise, which is the assumption most likely to be wrong.
