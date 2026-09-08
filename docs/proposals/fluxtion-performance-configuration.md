@@ -241,6 +241,74 @@ changes, and the harness rolls it for you until it lands.
 **What that buys, measured:** ~1.67 ns/event, 600M events/sec on one core, **8.6% off hand-written
 flat Java** — from a processor generated out of a jar the compiler only saw as bytecode.
 
+### What each profile includes — the capability matrix
+
+A profile is a named bundle of settings. This is the whole bundle, so the trade is visible before you
+pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile's.
+
+| Capability | `DEFAULT` | `AUDITED` | `LOW_LATENCY_AUDIT` | `LOWEST_LATENCY` |
+|---|:---:|:---:|:---:|:---:|
+| **Audit log** (records at all) | ✅ | ✅ | ✅ | ❌ |
+| **Per-node method tracing** | ✅ | ✅ | ❌ | ❌ |
+| Event `toString()` in each record | ✅ | ❌ | ❌ | — |
+| Thread name in each record | ✅ | ❌ | ❌ | — |
+| **`Clock`** (timestamps in records) | ✅ | ✅ | ✅ | ❌ |
+| **Node registration** *(supplies every node's `EventLogger`)* | ✅ | ✅ | ✅ | ❌ |
+| Runtime node-name map | ✅ | ✅ | ✅ | ❌ |
+| **Dirty filtering** (conditional propagation) | ✅ | ✅ | ❌ | ❌ |
+| Buffer-and-trigger | ✅ | ✅ | ❌ | ❌ |
+| Subscriptions | ✅ | ✅ | ❌ | ❌ |
+| **Re-entrancy** | ✅ | ✅ | ✋ | ✋ |
+| Void triggers (`failBuildIfMissingBooleanReturn=false`) | ✋ | ✋ | ✋ | ✋ |
+
+**How to read the ✋ rows.** `setSupportReentrancy(false)` is the one setting that can turn a working
+graph into an `IllegalStateException`, so no profile sets it for you. Void triggers live on your node
+classes, not in the config, so no profile can.
+
+**Two rows carry a semantic consequence, not just a cost:**
+
+- **Dirty filtering off** means an `@OnTrigger` method runs whenever the wave reaches it, not only when
+  a parent is dirty. Invisible for pure recomputation; **not** invisible for a node that accumulates or
+  has side effects. `LOW_LATENCY_AUDIT` gives it up because on a light graph the guards cost more than
+  they save — measured below — but if your graph has heavy nodes behind a sometimes-cold join, call
+  `setSupportDirtyFiltering(true)` after the profile.
+- **Node registration off** (`LOWEST_LATENCY` only) is why that profile has no audit log: registration
+  is how `EventLogManager` hands each node its `EventLogger`. Combining it with an audit log gives you a
+  processor that runs, installs a sink, and **silently publishes nothing** — see the checklist.
+
+#### What the settings cost, measured
+
+30-node, 5-event-type converging graph; light nodes; every node on the path logging; harness h3;
+min of 8 interleaved reps.
+
+| Setting | JIT | native | notes |
+|---|---:|---:|---|
+| dirty filtering, **no audit** | **7.7 ns** | **7.6 ns** | native 25.66 → 18.02 |
+| dirty filtering, **with audit** | ~0 | **~0** | 144.11 vs 142.83 — inside the ±8 ns lottery |
+| per-node method tracing | ~184 ns | — | the expensive half of auditing |
+| the audit record itself (binary) | ~59 ns | ~94 ns | 11.75 entries/event; 4.5 / 8.0 ns per entry |
+| the audit record itself (text) | ~318 ns | — | **5.1× the binary record** at this density |
+
+!!! warning "How the dirty-filtering row was got wrong twice"
+    A first attempt compared `LOW_LATENCY_AUDIT` against a `LOWEST_LATENCY` baseline and reported the
+    whole gap as **audit cost**. The baseline had **172 fewer `isDirty_` references**, so the delta was
+    audit *plus* guards, overstating audit by 32%.
+
+    A second attempt then measured guards-off as **23% slower** on the audited native path — from a
+    guards-on binary built under one harness version and a guards-off binary built under another. Two
+    variables, not one. Rebuilt with the harness held equal and two builds per configuration, the
+    difference vanished.
+
+    What caught it was the **audit output**, not the timing: `recPerEvent`, bytes/record and the graph
+    checksum were identical across both arms, so the processors had done the same work and the timing
+    difference had to be an artifact. Use the auditor to establish *what happened* before reasoning
+    about *how long it took*.
+
+**The guards line is not one number, and that is the point.** On this graph tracing shows guards-on and
+guards-off invoking *identical* nodes — each event reaches its chain by topology, so the guards decide
+nothing and their cost is pure. A guard breaks even at `P(skip) × cost(node) > ~1.4 ns`: never for a
+one-FMA node, at about a **4% skip rate** for a node doing real work.
+
 ### Checklist for maximal performance
 
 Work down it. **Each item is silent when omitted** — the program stays correct and simply runs slower —
@@ -337,6 +405,11 @@ so the only way to know you have them all is to check.
       accept a trailing `-D`, so the same command line configures the native arm and not the JIT one —
       which is exactly how one round produced a JIT-vs-native comparison where the two arms ran
       different configurations
+- [ ] **check the harness version on BOTH arms before any comparison.** `tools/bench/latency-kit/compare-arms.sh`
+      refuses a comparison where more than one declared input differs, and refuses outright if either
+      arm carries no harness version — the harness is worth **4.3×** on native and nothing else records it
+- [ ] **compare `recPerEvent`, bytes/record and the graph checksum first.** If the arms did the same
+      work, a large timing difference is an artifact until proven otherwise
 - [ ] **if a number surprises you, check this list before concluding anything about the compiler** —
       four times in round 59, and five more times in round 63, a missing setting or a harness defect
       looked exactly like a compiler result
