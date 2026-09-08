@@ -245,6 +245,57 @@ the id table ships with the processor, and [`spec-binary-audit-reader.md`](spec-
 §3's wire dictionary becomes a convenience for self-describing files rather than a correctness
 requirement. Retained as a **reader** requirement, dropped from the performance path.
 
+## 7B. Generate the audit writer — measured 4.6× on native audit cost
+
+**Status: PROPOSED, with a measured ceiling.**
+
+`fluxtion-runtime` targets Java 8 (animal-sniffer enforced), so the `VarHandle` value stores worth
+34.5 ns on native cannot ship in core. Two ways past that:
+
+1. a multi-release jar or separate module — recovers the value-encoding term only;
+2. **emit the writer into the generated processor** — the generated source is compiled by the *user's*
+   toolchain, so the Java version constraint does not apply to it at all.
+
+### 7B.1 Why option 2 is not just a workaround
+
+The generator knows the node name, the property key and the record layout at build time. So
+`auditLog.info("v", v)` can become a few stores at a constant offset: **no call, no name lookup, no
+virtual dispatch to a record**. That addresses all three terms the decomposition found, not one.
+
+| term (native) | ns | multi-release jar | generated writer |
+|---|---:|:---:|:---:|
+| dispatch — virtual call to the record | 27.58 | ✗ | **✓** |
+| name resolution | ~0 (already fixed) | — | **✓** ids become literals |
+| value encoding | ~37 | **✓** | **✓** |
+
+### 7B.2 Measured ceiling
+
+A hand-written stand-in for generated output, 30-node converging graph, every node logging:
+
+| | JIT | native |
+|---|---:|---:|
+| audit cost, through the API today | 33.62 | 65.70 |
+| **audit cost, inline** | **9.29** | **14.24** |
+| total | 30.04 | **32.02 — 31.2M msg/sec** |
+
+**It is a ceiling, not a promise.** The stand-in has no level check, no record swap, no sink contract
+and no header or terminator; real generated code adds some back.
+
+### 7B.3 Normative
+
+1. The generator MUST be able to emit a direct writer for `EventLogSource` nodes whose keys it can see
+   at build time, assigning node and key ids as literals.
+2. It MUST fall back to the `EventLogger` path for anything it cannot resolve — dynamic keys,
+   hand-written nodes, `Object` values. **The API is not replaced.**
+3. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
+   contract, so a generated processor and an interpreted one produce the same records.
+4. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
+
+### 7B.4 It supersedes the multi-release jar
+
+If §7B lands, core does not need a `VarHandle` path, because the hot writer is no longer in core.
+Recorded so the multi-release-jar option is not pursued in parallel.
+
 ## 8. Out of scope for core — the Mongoose side
 
 Two changes belong to Mongoose, not here, and are recorded so they are not lost:
@@ -285,6 +336,7 @@ This cuts both ways and both are worth saying:
 | 8 | **name resolution in `EventLogger`** (§7A) — **DONE**, −24% JIT / −57% native audit cost | core | — |
 | 9 | **`VarHandle` value stores in the encoder** — **measured 25.9% off native**, done in the prototype | core | 4 |
 | 10 | build-time ids as a **reader** convenience (§7A.4) | compiler | 8 |
+| 11 | **generate the audit writer** (§7B) — measured ceiling **4.6× on native audit cost**, and it retires the multi-release-jar option | compiler | 8 |
 
 1, 2, 3 and 7 are independently shippable. 6 is the one that must wait for a reader.
 

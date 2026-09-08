@@ -1832,3 +1832,96 @@ was not yet in place to shrink everything else.
 | **`BINARY`** | **54.6 ns · 18.3M/s** | **115.8 ns · 8.6M/s** | **181** |
 
 **Node code is identical either way.**
+
+## 22. The two ways past the Java 8 wall — and why generating the writer wins
+
+`VarHandle` is used in exactly three places: `u16`, `i32`, `i64`, the value-store primitives. A double
+entry calls four of them (`headById` is two `u16`, then `u8`, then `i64`) to write 13 bytes.
+
+The owner's two options:
+
+**Option 1 — a multi-release jar or a separate module.** Lets core keep Java 8 and still offer the
+`VarHandle` path. It recovers the 34.5 ns on native, and nothing else.
+
+**Option 2 — generate the writer into the event processor.** The generated processor is compiled by the
+*user's* toolchain, not by `fluxtion-runtime`'s Java 8 build. So it can use `VarHandle` freely — and
+that is the smallest of three things it fixes.
+
+### 22.1 What each option can reach, against the measured decomposition
+
+Native audit cost is 64.56 ns (id path, `VarHandle`), made of three terms this round measured
+separately:
+
+| term | native ns | option 1 fixes it? | option 2 fixes it? |
+|---|---:|:---:|:---:|
+| dispatch — `EventLogger` → `LogRecord` virtual call (§19.3) | 27.58 | ✗ | **✓** inlined at the call site |
+| name resolution (§20) | ~0 | already done | **✓** ids become literals |
+| value encoding — 13 bytes through 4 primitive calls | ~37 | **✓** | **✓** and the offsets fold |
+
+**Option 1 addresses one of three terms. Option 2 addresses all three**, because a generator knows the
+node name, the key and the record layout at build time. `auditLog.info("v", v)` can become a handful of
+stores at a constant offset with no call, no lookup and no virtual dispatch.
+
+### 22.2 Predictions, before measuring the ceiling
+
+A hand-written stand-in for what the generator would emit — nodes writing bits directly, ids as
+constants — bounds what option 2 could reach. **It is a ceiling, not an implementation**: it has no
+level check, no record swap, no sink contract.
+
+| # | Prediction | Basis |
+|---|---|---|
+| G1 | the inline ceiling is **below 30 ns/event of audit cost on native** | 64.56 minus most of dispatch and most of encoding |
+| G2 | it beats option 1's best (native 81.3 total) by **more than 20 ns** | option 1 leaves the 27.58 ns dispatch term untouched |
+| G3 | the JIT gap narrows much less | JIT's dispatch term is 10.93, not 27.58, so there is less to remove |
+| G4 | **native's remaining 1.55× penalty over JIT largely closes** | if what is left is straight-line stores, it is the arithmetic AOT is already good at (§14) |
+
+G4 is the one that matters for the toolchain recommendation.
+
+### 22.3 Results — generating the writer is worth 4.6× on native audit cost
+
+`DagNodesInline` stands in for what a generator could emit: each node writes its entry as bits at a
+constant offset with its node id and key id as **literals** — no `EventLogger` call, no name lookup, no
+virtual dispatch. Invariant asserted: the arm refuses to report unless bytes were actually written.
+
+| arm | JIT ns | native ns |
+|---|---:|---:|
+| baseline, no audit | 20.76 | 17.77 |
+| binary record through the API (today) | 54.37 | 83.47 |
+| **inline ceiling — generated writer** | **30.04** | **32.02** |
+| | | |
+| **audit cost today** | 33.62 | **65.70** (native 1.95×) |
+| **audit cost, inline** | **9.29** | **14.24** (native 1.53×) |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| G1 | inline ceiling below 30 ns audit cost on native | **14.24** | ✅ |
+| G2 | beats option 1's best by > 20 ns | option 1 tops out at 81.3 total; inline is **32.02** — 49 ns better | ✅ |
+| G3 | JIT narrows less than native | JIT 3.6×, native 4.6× | ✅ |
+| G4 | native's penalty over JIT **largely closes** | 1.95× → **1.53×** — improved, not closed | ❌ |
+
+**G4 is the honest miss.** Removing the audit machinery does not remove native's relative disadvantage;
+it shrinks the term the disadvantage applies to. What is left at 14.24 vs 9.29 ns is 11.75 straight-line
+13-byte stores, and native is still 1.5× slower at those. §14 found AOT good at *arithmetic*; this says
+it is not equally good at *stores*.
+
+### 22.4 The recommendation
+
+| | option 1 — multi-release jar | option 2 — generate the writer |
+|---|---|---|
+| terms addressed | 1 of 3 (value encoding) | **3 of 3** |
+| native audit cost | 65.70 → ~31 (est.) | **65.70 → 14.24 (measured ceiling)** |
+| native total | ~81 | **32.02 — 31.2M msg/sec** |
+| JIT | *costs* 8.6 ns (§21.3) | 33.62 → 9.29 |
+| build complexity | a multi-release jar in core | generator work; no core Java-version change at all |
+| side effects | none | the `VarHandle` problem disappears — generated code is compiled by the **user's** toolchain, not by `fluxtion-runtime`'s Java 8 build |
+
+**Option 2, and the Java 8 wall stops being a constraint rather than being worked around.**
+
+**What the ceiling is not.** `DagNodesInline` has no level check, no record swap, no sink contract, no
+header or terminator. Real generated code adds some of that back, so **14.24 ns is a floor, not a
+promise**. The comparison against option 1 survives that caveat easily — the gap is 49 ns — but the
+absolute number should not be quoted as an achievable result.
+
+**And it does not remove the API.** `EventLogger` stays for hand-written nodes, dynamic keys and any
+node the generator did not compile. The generated path is an optimisation of the common case, not a
+replacement for the seam.
