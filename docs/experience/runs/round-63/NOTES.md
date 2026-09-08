@@ -1352,3 +1352,144 @@ Five silent harness faults in one round — a swallowed system property, a misma
 runs, a missing build-classpath entry, and now an escaping local — all produced plausible numbers and
 wrong conclusions. **The failure mode of this work is not a wrong measurement, it is a right measurement
 of the wrong thing.**
+
+## 17. Validating the baseline actually does work — and finding the real confound
+
+Two owner challenges: *"the 12 ns and 2 ns seem fast but possible — check that"*, and *"inspect the code
+to make sure the auditor is the only difference between the two generated processors, then use the audit
+log"*. Both were right, and the second one invalidated the audit-cost figure.
+
+### 17.1 Does the graph do work? — ask the auditor, do not infer it
+
+The first attempt estimated nodes-per-event by dividing the audit record size by the entry width. That
+is inference. **Turning tracing on makes the processor state it as fact**, which is what the auditor is
+for:
+
+```
+---- event E0 invoked 13 nodes ----
+        - r0:   { method: on,   v: 3.0}
+        - c0_0: { method: calc, v: 3.6500000000000004}
+        - c0_1: { method: calc, v: 4.3325000000000005}
+        - c0_2: { method: calc, v: 5.049125000000001}
+        ... c0_3 c0_4 c0_5 t0 t1 t2 t3 t4 ...
+        - t5:   { method: calc, v: 11.175630148106741, n: 1}
+
+---- event E1 invoked 10 nodes ----
+        - r1: … c1_0 c1_1 c1_2 t0 t1 t2 t3 t4 t5
+```
+
+Every node is named, in dispatch order, with the value it computed — and the values chain correctly:
+`3.0 × 1.05 + 0.5 = 3.65`, `3.65 × 1.05 + 0.5 = 4.3325`. **10–13 nodes fire per event and each performs
+its arithmetic.** Nothing is eliminated.
+
+A depth-scaling control agrees: chains of 3/6/12/24 measure 12.13 / 16.07 / 25.47 / 48.05 ns on JIT —
+linear in depth — and the tail checksum differs at every depth (110.3 / 137.3 / 204.8 / 416.4), which it
+could not if intermediate nodes were dead.
+
+### 17.2 The confound — the auditor was NOT the only difference
+
+The "audit cost" figures compared a `LOW_LATENCY_AUDIT` processor against a `LOWEST_LATENCY` baseline.
+Diffing the generated sources:
+
+| | fair baseline | audited | |
+|---|---:|---:|---|
+| `isDirty_` | 0 → **172** | 172 | `LOWEST_LATENCY` turns dirty filtering **off** |
+| `eventLogger` | 0 | 19 | the intended difference |
+
+**172 against zero.** The delta being called "audit" was audit **plus conditional propagation**. A fair
+baseline uses the *same* profile and simply installs no auditor; validated by regenerating both and
+confirming every other feature count matches exactly.
+
+### 17.3 Results — the decomposition, with the auditor as the only variable
+
+30-node converging graph, every node logs, harness h3, min of 6 interleaved, idle machine.
+
+| arm | JIT ns | native ns |
+|---|---:|---:|
+| `LOWEST_LATENCY`, no auditors | 11.84 | **2.13** |
+| `LOW_LATENCY_AUDIT`, **no auditor installed** | 29.01 | 25.47 |
+| `LOW_LATENCY_AUDIT` + auditor + binary record | 82.02 | 119.34 |
+| **profile cost — dirty filtering et al** | **17.18** | **23.33** |
+| **true audit cost** | **53.00** | **93.88** |
+| per audit entry (11.75/event) | 4.51 | 7.99 |
+
+**Previously reported as audit cost: 70.2 JIT / 117.2 native. It is 53.0 / 93.9.** The rest was dirty
+filtering, and calling it audit overstated the audit by 32% on JIT and 25% on native.
+
+### 17.4 The finding that matters more than the correction
+
+**Dirty filtering takes native from 2.13 ns to 25.47 — an 11.9× regression. JIT goes 11.84 → 29.01, only
+2.5×.**
+
+So conditional propagation destroys AOT's dispatch advantage in exactly the way the audit does, and for
+the same reason: both put state on the processor that has to survive the call, which defeats the escape
+analysis that lets the node objects be scalar-replaced. Native's 5.5× lead over JIT survives neither.
+
+That reframes the toolchain choice. **AOT is not "worse at auditing" — it is worse at anything that
+stops the processor dissolving.** Dirty filtering, an audit record, and a processor that escapes its
+loop method are three instances of one mechanism, and each costs native far more than JIT:
+
+| what stops the processor dissolving | native | JIT |
+|---|---:|---:|
+| processor escapes the loop method (§16) | 4.3× | 1.0× |
+| dirty filtering on | **11.9×** | 2.5× |
+| audit record built per event | +93.9 ns | +53.0 ns |
+
+**For a native deployment `setSupportDirtyFiltering(false)` is worth more than every compiler flag in
+this round combined** — if the graph does not need conditional propagation. `LOW_LATENCY_AUDIT` will not
+set it, deliberately: it changes what the graph computes, and that is the author's call. But the cost is
+now measured and recorded in the profile's own javadoc so the choice can be made knowingly.
+
+## 18. What the guards actually buy on this graph — nothing
+
+The owner's reading of §17: 30 guards cost real time, probably in branch behaviour, and the design
+choice is therefore *guards to skip occasional heavy work* versus *no guards, run the whole graph, gate
+at a terminal operation*. That is the right frame, and the auditor settles which side this graph is on.
+
+**Same trace, guards on and guards off:**
+
+| event | guards ON (`isDirty_` × 172) | guards OFF (`isDirty_` × 0) |
+|---|---:|---:|
+| E0 | 13 nodes | **13 nodes** |
+| E1 | 10 nodes | **10 nodes** |
+| E2 | 11 nodes | **11 nodes** |
+
+**Identical.** Dirty filtering skips nothing here, because each event reaches its chain by *topology* —
+the generated `onEvent(E0)` only calls the `r0` chain in the first place. Guards only decide anything at
+a **join**, where a node has several parents and only some are dirty; this graph's joins (`j1`, `j2`,
+the shared tail) are always reached.
+
+So the 17.2 ns (JIT) / 23.3 ns (native) measured in §17.3 is the **pure cost of guards that never save
+anything** — the worst case for conditional propagation, and a fair measure of what a guard costs:
+
+```
+~1.4 ns per guarded node on JIT      ~1.9 ns per guarded node on native
+```
+
+### 18.1 The trade, stated so an author can decide
+
+A guard pays when **P(skip) × cost(node) > cost(guard)**. With the numbers from this round:
+
+| node kind | node cost | break-even skip rate, JIT | verdict |
+|---|---:|---:|---|
+| light (one FMA) | ~0.2–1.5 ns | **> 100%** | a guard can never pay |
+| heavy (24-iteration Horner) | ~34 ns | **~4%** | a guard pays if it skips even occasionally |
+
+So the owner's two designs are both right, for different graphs:
+
+- **Light nodes → no guards, run the whole wave, gate at a terminal operation.**
+  `setSupportDirtyFiltering(false)` and decide once at the end. On this graph that is worth
+  **2.5× on JIT and 11.9× on native**.
+- **Heavy nodes behind a join → keep the guards.** Skipping 34 ns of work for 1.4 ns of branch is a good
+  trade at any realistic skip rate.
+
+The asymmetry between toolchains is the part worth remembering: **guards cost native 11.9× and JIT
+2.5×**, because the guard state lives on the processor and stops it dissolving (§17.4). An AOT
+deployment should reach for the terminal-gate design much sooner than a JIT one.
+
+### 18.2 What this does not show
+
+Nothing here measures a graph where guards **do** skip work — every arm invoked identical nodes. The
+break-even table above is arithmetic on separately-measured costs, not a measurement of a skipping
+graph. **A graph with a heavy node behind a sometimes-cold join is the experiment that would confirm
+it**, and it has not been run.

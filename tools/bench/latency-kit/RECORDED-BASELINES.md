@@ -33,16 +33,35 @@ with the profile SHA recorded, and every build input verified in the build log r
 † measured under harness h2 (processor escaping). **Re-measure under h3 before calibrating anything
 against these rows.** The two bold rows are h3 and are what `control-bands.tsv` gates on.
 
-## Derived, from the h3 rows
+## Derived, from the h3 rows — with the auditor as the ONLY variable
 
-| | JIT | native |
+The audit cost is only meaningful against a baseline that differs by the auditor alone. A
+`LOWEST_LATENCY` baseline has **172 fewer `isDirty_` references** than an audited processor, so its
+delta is audit *plus* conditional propagation. The fair baseline uses the same profile and installs no
+auditor; both generated sources are diffed feature-by-feature before the numbers are taken.
+
+| arm | JIT ns | native ns |
 |---|---:|---:|
-| dispatch | 12.34 ns | **2.17 ns** — native **5.7× faster** |
-| audit cost (dense, binary, 11.75 entries) | **69.2 ns** | **117.2 ns** — native **1.69× slower** |
-| per audit entry | ~5.9 ns | ~10.0 ns |
+| `LOWEST_LATENCY`, no auditors | 11.84 | **2.13** |
+| `LOW_LATENCY_AUDIT`, **no auditor** (the fair baseline) | 29.01 | 25.47 |
+| `LOW_LATENCY_AUDIT` + auditor + binary record | 82.02 | 119.34 |
+| **profile cost — guards, not audit** | **17.18** | **23.33** |
+| **true audit cost** | **53.00** | **93.88** |
+| per audit entry (11.75 per event) | 4.51 | 7.99 |
 
-**Native wins the graph and loses the record.** Which one dominates decides the toolchain, and that is
-set by audit density and node weight, not by auditing as such.
+**Anything that stops the processor dissolving costs native far more than JIT.** Three instances of one
+mechanism, measured:
+
+| | native | JIT |
+|---|---:|---:|
+| processor escapes its loop method | 4.3× | 1.0× |
+| dirty filtering on | **11.9×** | 2.5× |
+| audit record built per event | +93.9 ns | +53.0 ns |
+
+**The guards skip nothing on this graph** — the auditor shows guards-on and guards-off invoking
+identical nodes (13/10/11), because each event reaches its chain by topology. So the 17/23 ns is the
+pure cost of guards with zero benefit, and a guard breaks even only when
+`P(skip) × cost(node) > ~1.4 ns` (JIT). Light nodes: never. Heavy nodes (~34 ns): at ~4% skip rate.
 
 ## Known inputs that change the answer — isolate one at a time
 
