@@ -2594,3 +2594,204 @@ Two consequences:
 The native figures are stated with their CV because they earned it. **The JIT figures are quoted as
 approximate**, because at 5.49% they are not repeatable to the precision this round has been quoting
 them at.
+
+## 32. The cheap experiment — ordinal-indexed audit calls, no bytecode
+
+The owner ruled out ASM and asked for the source-level version: what a code model (Babylon-style) or an
+annotation processor could generate, measured before anyone commits to a transformation step.
+
+### 32.1 The shape
+
+A processor that can see `auditLog.info("price", price)` in node source knows two things the runtime
+rediscovers: **which node this is**, and **which key**. The node id is already resolved once per logger
+(§20). The key is not — it is passed as a `String` and matched against a small reference cache on every
+call.
+
+So the generated form declares the node's keys once and passes an **ordinal**:
+
+```java
+// what a code model would emit from auditLog.info("price", price)
+static final String[] KEYS = {"price", "qty"};      // declared once
+auditLog.info(0, price);                            // ordinal, not a String
+```
+
+`EventLogger` maps ordinal → record id on first use and indexes an `int[]` thereafter. **No bytecode
+rewriting, no vendor-jar rewriting, and the generated source is still the code that runs** — which is
+the property §32 exists to protect.
+
+### 32.2 What it can and cannot remove
+
+| per-entry cost today | removed by an ordinal call? |
+|---|---|
+| `String` argument passed and compared against the 4-slot key cache | **yes** — an array index replaces it |
+| virtual dispatch on `auditLog` | no — the field is still typed `EventLogger` |
+| level check | no |
+| the two slot stores | no |
+
+### 32.3 Predictions
+
+Current native audit cost is **29.6 ns** for 11.75 entries — **2.52 ns per logged value**.
+
+| # | Prediction | Basis |
+|---|---|---|
+| Z1 | ordinal calls save **0.4–1.0 ns per entry**, so **5–12 ns** of the 29.6 | it removes a reference compare and a reference argument, not a call or a store |
+| Z2 | the saving is **larger on native than JIT** | every id-related change in this round has been, because JIT speculates on the cache hit |
+| Z3 | it does **not** reach §22's 14.24 ns ceiling | that bypassed the logger, the level check and the sink entirely, none of which this touches |
+| Z4 | records are **byte-identical** to the String path | if not, the transformation is not sound and the win is irrelevant |
+
+**Z4 is the gating one.** A source transformation that changes what is recorded is not an optimisation.
+
+---
+
+## §33 The ceiling, measured — and what the ordinal experiment actually proved
+
+§32 predicted; this section reports. All six arms below were built against **one** runtime digest
+(`rt:967d277e33`), on harness `h5`, with `-H:-SpawnIsolates`, PGO collected per image, min of 6 batches,
+measured on an idle machine. Every audited arm was gated on Z4 first: **identical records**
+(`recPerEvent=1.000`, `avgRecBytes=188.0`) and **identical checksum** (`v=125.4553`) — including the
+no-audit denominator, which does the same arithmetic and publishes nothing.
+
+### 33.1 The numbers
+
+**Native is three independent builds per arm**, each with its own instrumented image, its own profile
+collection and its own final image — nine distinct profile SHAs. The recorded build lottery on an audited
+graph is **±8 ns**, which is larger than the effect under test, so one build per arm cannot support a
+conclusion no matter how repeatable each individual binary is.
+
+| arm | what is on the path | JIT | native ×3 | native mean |
+|---|---|---:|---|---:|
+| no audit | audit machinery not generated at all | 12.879 | 2.104 | — |
+| ceiling | record bound to the node; no logger, no key lookup, no level guard | 45.943 | 46.448 · 44.506 · 37.890 | **42.95** |
+| ordinal keys | `EventLogger.log(int, …)`, overridden in `BinaryEventLogger` | 49.688 | 46.803 · 46.911 · 43.939 | **45.88** |
+| String keys | what ships today | 56.264 | 49.995 · 47.045 · 48.775 | **48.61** |
+
+At 188 bytes per record and two 8-byte slots per entry, that is **11.75 entries per event**.
+
+### 33.1a What three builds can and cannot separate
+
+| comparison | pairings won | native effect (mean) | separated? |
+|---|:---:|---:|---|
+| ordinal vs String | **9 / 9** | 2.73 ns | **yes**, p ≈ 0.05 |
+| ceiling vs String | **9 / 9** | 5.66 ns | **yes**, p ≈ 0.05 |
+| ceiling vs ordinal | 6 / 9 | 2.93 ns | **no** — the ranges overlap |
+
+Nine of nine is the strongest result three builds can give: under a null of no effect, the chance that
+all three of one arm fall below all three of the other is 1/C(6,3) = 0.05. Both comparisons against the
+shipped arm clear it; **whether removing the logger entirely beats ordinal keys does not**, and would need
+five or more builds per arm to answer.
+
+**Use the mean, not the minimum, as the effect estimate.** `measure.sh` takes a minimum *within* a build,
+which removes measurement noise and is right. Taking a minimum *across* builds samples the lucky tail of
+the lottery and would report the ordinal gain as 3.11 ns and the ceiling gain as 9.16 — neither of which
+a deployment would get.
+
+**The ceiling arm has the widest spread of the three: 8.56 ns**, against 2.95 and 2.97. Removing the
+logger removed the code that was constraining the compiler's choices, and the lottery got wider. That is
+worth knowing before treating the ceiling as a target: it is not only the fastest arm, it is the least
+predictable one, and this round measured the tightness of the audited native path as one of its selling
+points.
+
+| derived, native, mean of three builds | JIT | native |
+|---|---:|---:|
+| audit cost, as shipped, over the no-audit arm | 43.39 | 46.51 |
+| audit cost at the ceiling | 33.06 | 40.85 |
+| **the entire code-model prize** | **10.32 (24%)** | **5.66 (12%)** |
+| of which ordinal keys capture | 6.58 (64% of the prize) | 2.73 (48% of the prize) |
+
+Per-entry figures are deliberately absent from the last two rows. Dividing by 11.75 implies the cost is
+*per logged value*, and §33.3 explains why that is not established — the denominator is not simply "the
+same graph minus the stores".
+
+### 33.2 Verdicts on §32's predictions
+
+| # | Prediction | Outcome |
+|---|---|---|
+| Z1 | 0.4–1.0 ns/entry saved | **wrong, and optimistic.** Ordinal keys save 6.58 ns on JIT and 2.73 on native across 11.75 entries — 0.56 and 0.23 per entry. Only JIT lands in the predicted band, and the per-entry framing itself is suspect (§33.3). |
+| Z2 | the saving is larger on native | **refuted.** It is 2.5× larger on JIT. The reasoning — that JIT speculates the cache hit away — was right about JIT and wrong about the conclusion: it means JIT has *more* to gain from not needing the cache at all. |
+| Z3 | it does not reach §22's 14.24 ns | **holds, and §22 was never the right target** — that figure was measured under a different record and store implementation. The honest ceiling for today's implementation is the 43.45 ns arm above. |
+| Z4 | records are byte-identical | **holds**, for all four audited arms, and it caught nothing only because it was checked before every measurement rather than after. |
+
+### 33.3 The prize is small, and the rest is not attributable yet
+
+Strip the logger, the key lookup and the level branch — everything a code model could ever remove — and
+native still costs **40.85 ns** over the no-audit denominator, JIT **33.06**. So:
+
+**The entire code-model prize is 5.66 ns on native (12% of audit cost) and 10.32 on JIT (24%).** That
+part is directly measured: four arms, one runtime digest, identical records, monotone on both toolchains.
+
+What the remaining ~40 ns *is* has **not** been established, and the obvious reading is wrong. It is
+tempting to call it "the two slot stores", at 3.52 ns per entry. But look at the denominator: the same
+30-node graph with audit off runs at **2.10 ns** on native. A 30-node graph does not execute in two
+nanoseconds — it executes in two nanoseconds because, with no audit machinery holding references, Graal
+scalar-replaces the entire node set and inlines it into arithmetic. Turning audit on does not merely add
+stores; it **forecloses that optimisation for the whole graph**.
+
+So the ~41 ns is a sum of at least two things — the record work, and the whole-graph escape analysis
+the audit machinery costs — and this round has not separated them.
+
+!!! warning "A probe that was built, measured, and thrown away"
+    The obvious split is to run the ceiling arm against a **zero-capacity** record: `addRecord` is still
+    called, the tag is still computed, but the bounds check fails and neither slot is written, so the
+    difference would be the stores. It was built and it measured slower than the ceiling, which is the
+    tell that it was not measuring what it claimed. Zero capacity swaps two array stores for a boolean
+    `overflow` write, leaves `firstProp` true so `terminateRecord()` returns false, and therefore
+    **changes the publish path** — no record is ever handed to the sink. It is a different program.
+
+    It is recorded here because it was convincing enough to build, and because the number it produced
+    would have been quotable. The reason it is not in the table above is that it does not survive the
+    question "what else changed?" — which is the same question that caught the `-D`-after-main-class
+    fault in §12 and the h4-versus-h3 confound in §24.
+
+**The sound way to separate them** is the local-versus-escaping pair already used elsewhere in this
+round: measure denominator and ceiling with the processor constructed inside the loop and again with it
+escaping. If the ceiling gains nothing from being local, it has already lost escape analysis, and the
+difference between the two denominators sizes what audit's presence costs before a single slot is
+written. That is two native builds and it is the next measurement, not a conclusion of this one.
+
+**What can be said now:** further work on the call sites — source or bytecode — is chasing at most 12%
+of native audit cost. Whatever dominates the other 89% is in the record and in what the record's presence
+does to the graph, and it needs measuring before it needs optimising.
+
+### 33.4 The first ordinal measurement was wrong, and why
+
+The first native run showed ordinal keys *losing* — 49.01 against 48.04. The cause was in the runtime,
+not the experiment: `BinaryEventLogger` overrode only the `String`-key writes, so the new ordinal methods
+sat on the base `EventLogger`, whose record field is typed `LogRecord`. Every ordinal write was therefore
+a **virtual** `addRecord` competing against a **direct** one.
+
+JIT hid the defect: it profiles that call monomorphic and inlines it, so ordinal still won 4.19 ns there.
+Closed-world AOT cannot, and the virtual call cost approximately what the ordinal key saved. **A change
+that is neutral on native and positive on JIT is the signature of an indirection the AOT compiler could
+not devirtualise** — worth remembering as a diagnostic, because nothing about the numbers said "virtual
+call" until the two toolchains were read against each other.
+
+With the override in place, ordinal beats String on **9 of 9** build pairings on native as well as on
+JIT — which is what a real effect looks like, and what one build per arm could not have shown either way.
+
+### 33.5 Two defects the correctness tests found, that no benchmark would have
+
+`OrdinalKeyPathTest` was written after the measurement, and immediately failed twice:
+
+- **`declareKeys` on `NullEventLogger.INSTANCE`.** Nodes receive that shared singleton before the manager
+  installs a real logger. The first version of the bench declared keys from an `@Initialise` method, which
+  runs earlier — so the declaration landed on the singleton every node in the JVM holds, and the next
+  ordinal write through it threw `NullPointerException` on a null record. `NullEventLogger` now swallows
+  the ordinal API as it swallows every other write, and `setLogger` is the documented hook.
+- **A record without an id space silently dropped the entry.** The String path falls back to
+  `addRecord(String, String, value)` when `useIds()` is false; the ordinal path just did nothing. An
+  ordinal is a way of *naming* a key, not a second wire format, so it now falls back to the same call.
+
+Both are invisible to a benchmark — the fast arm was fast precisely because it was recording nothing on
+the paths that mattered. This is the argument for the correctness suite and the performance harness being
+separate gates rather than one.
+
+### 33.6 Where this leaves the code-model question
+
+For nodes whose source we control, the transformation is a **source** one and needs no bytecode work at
+all: `declareKeys` in `setLogger`, ordinals at the call sites. That is the arm measured above, and it is
+worth 6.58 ns on JIT and 2.73 on native.
+
+Bytecode rewriting earns its complexity only where source is unavailable — third-party nodes in vendor
+jars — and there it buys the same 12%-of-audit-cost prize at considerably higher cost. It is not the next
+thing to do. The next thing to do is the local-versus-escaping pair in §33.3, because until the other 89%
+is attributed, nobody can say what optimising it would even mean.

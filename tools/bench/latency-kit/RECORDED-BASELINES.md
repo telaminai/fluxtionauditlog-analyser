@@ -143,3 +143,41 @@ Hold every other column in `binaries.tsv` equal; the difference is then attribut
 
 > **`LOW_LATENCY_AUDIT` once disabled the audit log entirely.** Before trusting any audited number,
 > confirm `recPerEvent > 0` and count `auditor.nodeRegistered` in the generated source.
+
+## The code-model ceiling (round 63 §33) — harness h5
+
+How much of audit cost is reachable by specialising the call sites, measured rather than argued. Four
+arms differing **only** in how a node reaches the record; records byte-identical (188 B, one per event),
+checksum equal, one runtime digest, and — for native — **three independent PGO builds per arm**, because
+the audited build lottery (±8 ns) is larger than the effect.
+
+| arm | JIT ns | native, 3 builds | native mean |
+|---|---:|---|---:|
+| `c-audit-noaudit` audit not generated | 12.879 | 2.104 | — |
+| `c-audit-ceiling` record bound to the node | 45.943 | 46.4 · 44.5 · 37.9 | **42.95** |
+| `c-audit-ordinal` `declareKeys` + `info(0, v)` | 49.688 | 46.8 · 46.9 · 43.9 | **45.88** |
+| `c-audit-string` `info("v", v)` — ships today | 56.264 | 50.0 · 47.0 · 48.8 | **48.61** |
+
+| comparison | pairings won | native effect | separated? |
+|---|:---:|---:|---|
+| ordinal vs String | **9 / 9** | 2.73 ns | yes, p ≈ 0.05 |
+| ceiling vs String | **9 / 9** | 5.66 ns | yes, p ≈ 0.05 |
+| ceiling vs ordinal | 6 / 9 | 2.93 ns | **no** — ranges overlap |
+
+**Effect estimates are means across builds, not minima.** `measure.sh` minimises *within* a build, which
+removes measurement noise; minimising *across* builds samples the lucky tail of the lottery and would
+report 3.11 and 9.16 ns — figures no deployment would see.
+
+**The ceiling arm has the widest build spread: 8.56 ns** against 2.95 and 2.97. Removing the logger
+removed code that was constraining the compiler, and the lottery widened with it.
+
+!!! warning "`c-audit-dense` and `c-audit-string` are the same shape and disagree by ~17 ns"
+    Both are "every node logs, binary record, `LOW_LATENCY_AUDIT`". `c-audit-dense` native reads 64.1 and
+    `c-audit-string` native reads 46.9. Neither is wrong and the difference is not a regression — they
+    are different **binaries**: `c-audit-dense` is the `nimg28` image, built before `-H:-SpawnIsolates`
+    (worth ~24 ns audited) and against an older runtime digest.
+
+    The older control is kept deliberately. Deleting it would erase the evidence that a flag found late
+    in the round was worth more than every source-level change measured after it, and a control whose
+    band still passes is doing its job even when a better configuration exists. **Compare like with
+    like: the current audited arm is `c-audit-string`.**

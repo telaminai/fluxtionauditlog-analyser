@@ -105,6 +105,72 @@ record writing `long` slots. **Audit cost is ~37.8 ns on JIT and 46.8 ns on nati
   JIT. That was measured against a `LOW_LATENCY_AUDIT` profile which had **silently disabled the audit
   log** — see the checklist entry below, and round 63 §12.
 
+### How much is left on the table — the ceiling, measured
+
+A recurring question is whether a code model or bytecode pass over the generated processor could replace
+the generic audit calls with specialised ones and close the remaining gap. The ceiling was measured
+rather than argued.
+
+Four arms, one runtime build, identical graph, identical events, and — checked before every run —
+**identical records** (188 bytes, one per event) and identical checksum. The only thing that varies is
+how a node reaches the record.
+
+Each native arm was built **three times**, with an independent PGO collection each time. The build lottery
+on an audited graph is ±8 ns, which is larger than the effect being measured, so a single build per arm
+proves nothing however repeatable that one binary is.
+
+| arm | what is on the audit path | JIT ns | native, 3 builds | native mean |
+|---|---|---:|---|---:|
+| no audit | audit machinery not generated at all | 12.879 | 2.104 | — |
+| **ceiling** | record bound to the node: no logger, no key lookup, no level guard | **45.943** | 46.4 · 44.5 · 37.9 | **42.95** |
+| ordinal keys | `declareKeys` once, then `auditLog.info(0, v)` | 49.688 | 46.8 · 46.9 · 43.9 | **45.88** |
+| String keys | `auditLog.info("v", v)` — what ships today | 56.264 | 50.0 · 47.0 · 48.8 | **48.61** |
+
+**The entire prize for specialising the call sites is 10.3 ns on JIT and 5.7 ns on native** — 24% and 12%
+of audit cost. Both ordinal and ceiling beat the shipped arm on **9 of 9** build pairings; ceiling versus
+ordinal wins only 6 of 9 and is **not** separated by three builds. Ordinal keys, which are a **source**
+change you can make today, capture about half of the prize:
+
+```java
+@Override public void setLogger(EventLogger log) {   // setLogger, NOT @Initialise — see below
+    super.setLogger(log);
+    log.declareKeys("v");
+}
+
+public void on(MyEvent e) { v = e.v; auditLog.info(0, v); }   // ordinal, not "v"
+```
+
+The record written is byte-for-byte what the `String` call writes, so nothing downstream can tell the
+difference — an ordinal names a key, it is not a second wire format.
+
+!!! note "Why the ceiling is not a target"
+    The gap between the ceiling and the no-audit arm is ~41 ns on native, and it would be wrong to read
+    that as the cost of the two slot stores. The no-audit graph runs at **2.1 ns** because with nothing
+    holding node references Graal scalar-replaces the whole 30-node graph. Enabling audit does not just
+    add stores — it forecloses that optimisation graph-wide. Those two effects have not been separated,
+    so the honest statement is the one above: **12% of native audit cost is reachable by specialising
+    call sites, and what dominates the other 88% is not yet attributed.**
+
+!!! danger "`@Initialise` is the wrong hook for `declareKeys`"
+    Nodes hold the shared `NullEventLogger.INSTANCE` until the manager installs a real logger, and
+    `@Initialise` runs before that. Declaring keys there declares them onto a singleton every node in the
+    JVM shares. `setLogger` is the hook the logger actually arrives through. `NullEventLogger` now
+    swallows the ordinal API so the mistake is inert rather than fatal, but the resulting keys still go
+    nowhere.
+
+!!! warning "The ceiling is also the least predictable arm"
+    Across three builds the spread was **8.56 ns** for the ceiling against 2.95 and 2.97 for the other
+    two. Removing the logger removed code that was constraining the compiler's choices, and the build
+    lottery widened accordingly. The tight spread of the audited native path is one of the reasons to
+    choose it; the fastest arm here does not have it.
+
+**A diagnostic worth keeping.** The first version of the ordinal path measured a clear win on JIT and
+*nothing* on native. The cause was that `BinaryEventLogger` overrode only the `String`-key writes, so
+ordinal writes went through the base class, whose record field is typed `LogRecord` — a **virtual**
+`addRecord` competing against a direct one. JIT profiles such a call monomorphic and inlines it; closed-
+world AOT cannot. **A change that helps JIT and does nothing on native is the signature of an indirection
+the AOT compiler could not devirtualise** — nothing else in the numbers said so.
+
 ### Multiple event types and branching paths — the gap depends on your alternative, not on the processor
 
 The figures above are a single event type down a straight line. A second graph in the kit has **three
@@ -310,6 +376,7 @@ pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile
 |---|:---:|:---:|:---:|:---:|
 | **Audit log** (records at all) | ✅ | ✅ | ✅ | ❌ |
 | **Binary record** (`AuditRecordFormat.BINARY`) | ❌ | ❌ | **✋ opt-in** | — |
+| **Ordinal audit keys** (`declareKeys` + `info(int, …)`) | ✋ | ✋ | ✋ | — |
 | **Per-node method tracing** | ✅ | ✅ | ❌ | ❌ |
 | Event `toString()` in each record | ✅ | ❌ | ❌ | — |
 | Thread name in each record | ✅ | ❌ | ❌ | — |
@@ -324,8 +391,9 @@ pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile
 
 **How to read the ✋ rows.** `setSupportReentrancy(false)` is the one setting that can turn a working
 graph into an `IllegalStateException`, so no profile sets it for you. Void triggers live on your node
-classes, not in the config, so no profile can. And the **binary record is opt-in for a reason that is
-not performance** — see below.
+classes, not in the config, so no profile can. **Ordinal audit keys** are written at your call sites, so
+they are available under every audited profile and chosen by none. And the **binary record is opt-in for
+a reason that is not performance** — see below.
 
 #### The record format is a build input
 
@@ -344,10 +412,15 @@ how you start in the right one.
 | `TEXT` | 403.0 ns · 2.5M/s | 698.6 ns · 1.4M/s | 548 |
 | **`BINARY`** | **54.6 ns · 18.3M/s** | **115.8 ns · 8.6M/s** | **181** |
 
-!!! danger "`TEXT` is the default because nothing can read the binary form yet"
-    The analyser registers only a YAML reader and the Chronicle reader is unfiled. A processor built
-    with `BINARY` produces a log **no existing tool can open**. Choose it when you have a reader, not
-    because it is faster.
+!!! warning "`TEXT` is still the default, but the binary form is no longer unreadable"
+    This note previously said no tool could open a binary log. That stopped being true in this round:
+    `BinaryLogFile` / `BinaryLogReader` define the file format and `AuditLogTool` reads it from the
+    command line, with id-set matching, time ranges and a pluggable renderer that prints text by default.
+
+    What is **not** yet true is analyser-side support — the analyser registers a YAML reader and the
+    Chronicle reader is unfiled — so a binary log opens at the command line and not in the UI. `TEXT`
+    remains the default for that reason, and because a default that changes what your existing tooling
+    can read is not a default. Choose `BINARY` when the command-line reader is the one you need.
 
 **Node code is identical either way.** `auditLog.info("v", v)` is unchanged — the format is chosen at
 build time, and `EventLogger` resolves each node and key name to an id **once per node** rather than

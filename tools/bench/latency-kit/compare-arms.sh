@@ -23,7 +23,17 @@ ns()    { grep -o '[0-9][0-9.]* ns' <<<"$1" | head -1 | sed 's/ ns//'; }
 a1=$(eval "$CA" 2>/dev/null); b1=$(eval "$CB" 2>/dev/null)
 [ -n "$a1" ] && [ -n "$b1" ] || { echo "one arm produced no output"; exit 2; }
 
+# A JIT arm and a native arm are DIFFERENT RUNTIMES by construction: on a JIT the digest covers the
+# runtime jar, on a native image the CodeSource is the executable so it covers the image. Requiring
+# them to match would refuse every jit-vs-native comparison — which is the comparison most often
+# wanted. So when the toolchains differ, that is the declared variable and rt is expected to differ.
+tc_of() { case "$1" in *"/bin/java"*) echo jit;; *) echo native;; esac; }
+TCA=$(tc_of "$CA"); TCB=$(tc_of "$CB")
+CROSS_TOOLCHAIN=0
+[ "$TCA" = "$TCB" ] || CROSS_TOOLCHAIN=1
+
 echo "== declared inputs"
+[ "$CROSS_TOOLCHAIN" = 1 ] && echo "   toolchain $TCA vs $TCB  <- the declared variable; rt differs by construction"
 mismatch=0
 # rt = the runtime digest. It changed six times in round 63 and appears in no build log,
 # so a comparison across two runtimes is exactly as wrong as one across two harnesses.
@@ -32,6 +42,10 @@ for k in harness rt graph record clock; do
     va=$(grep -o 'rt:[0-9a-f]*' <<<"$a1" | head -1); vb=$(grep -o 'rt:[0-9a-f]*' <<<"$b1" | head -1)
   else
     va=$(field "$a1" "$k"); vb=$(field "$b1" "$k")
+  fi
+  if [ "$k" = rt ] && [ "$CROSS_TOOLCHAIN" = 1 ]; then
+    printf "   %-9s %-14s %-14s  (differs by toolchain, expected)\n" "$k" "${va:-<none>}" "${vb:-<none>}"
+    continue
   fi
   if [ "$va" != "$vb" ] && [ "$k" != "$VARY" ]; then
     printf "   %-9s %-14s %-14s  <-- DIFFERS and is not the declared variable\n" "$k" "${va:-<none>}" "${vb:-<none>}"
