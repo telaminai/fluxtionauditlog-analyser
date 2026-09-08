@@ -1682,3 +1682,95 @@ published on the wire.
 
 The projected column is the measured `intern=none` ceiling, not a guess about a fix that has not been
 built. It is what the record would cost if name resolution were free.
+
+## 20. Solved — the fix is in `EventLogger`, and node code does not change
+
+§19.5 concluded name resolution "cannot be fixed in the encoder, because the API hands it a `String`".
+That was right about the encoder and wrong about the difficulty. The owner asked the follow-up that
+matters: *how does the implementation change, and is client code the same?*
+
+**Client code is identical.** `auditLog.info("v", v)` is untouched, in every node, unchanged.
+
+### 20.1 Why my prototype's cache missed — the structural error
+
+`EventLogger` is constructed **per node** and holds `private final String logSourceId`. The node name is
+therefore a constant for that logger's whole life.
+
+My cache lived on the **shared `LogRecord`**, so twelve nodes contended for one slot. That is the
+measured 50% hit rate from §7.3: the key always hit (every node logs `"v"`), the node name always missed
+(twelve names rotating through one slot). Making the cache cleverer could not fix a cache in the wrong
+place — which is why the open-addressed table recovered only 7%.
+
+### 20.2 The change
+
+**`LogRecord`** gains an optional hook and id-carrying overloads:
+
+```java
+public int internName(String name) { return NO_ID; }        // default: "I encode names directly"
+public void addRecord(int sourceRef, int keyRef, double value) { … }
+```
+
+**`EventLogger`** resolves once and reuses:
+
+```java
+private int sourceRef = LogRecord.NO_ID;   // the node name — resolved once, it is final
+private final String[] keyNames = new String[4];   // a node logs a small fixed set of keys
+private final int[] keyRefs = new int[4];          // identity compare, no hashing, no map
+
+public EventLogger log(String key, double value, LogLevel level) {
+    if (this.logLevel.level >= level.level) {
+        if (useIds()) { logrecord.addRecord(sourceRef, keyRef(key), value); }
+        else          { logrecord.addRecord(logSourceId, key, value); }   // unchanged path
+    }
+    return this;
+}
+```
+
+**Backward compatible by construction.** A record that does not override `internName` returns `NO_ID`,
+`useIds()` is false, and it takes exactly the path it takes today. The text `LogRecord` is untouched.
+
+**No generator change was needed.** §19.6 proposed build-time ids emitted by the compiler; that turns
+out to be unnecessary for the bulk of the win, because the information is already sitting in a final
+field on a per-node object. Build-time ids remain interesting for the *reader* (a dictionary known
+before the process starts) but they are no longer on the performance path.
+
+### 20.3 Results
+
+Same binary, path selected by a runtime property, so exactly one variable moves. Node source identical
+throughout; record bytes (180.8) and graph checksum verified equal on every arm.
+
+| | JIT | native |
+|---|---:|---:|
+| fair baseline, no auditor | 19.42 | 17.64 |
+| **String path — as shipped today** | 74.35 | **167.82** |
+| **id path — `EventLogger` resolves once** | **61.06** | **82.21** |
+| no interning at all (the ceiling) | 59.82 | 82.90 |
+| | | |
+| interning cost recovered | **91%** | **101%** (at the ceiling) |
+| audit cost | 54.93 → **41.65** (−24%) | 150.18 → **64.56** (**−57%**) |
+
+### 20.4 The whole arc, native, one graph
+
+| | ns | Mmsg/s |
+|---|---:|---:|
+| where §19 started — bytewise stores, String path | 165.24 | 6.1 |
+| + `VarHandle` value stores (§19.4) | 122.39 | 8.2 |
+| **+ id path (§20)** | **82.21** | **12.2** |
+
+**2.0× on native, and the 10M msg/sec target is now met on both toolchains for the fully-audited
+converging graph** — 16.4M JIT, 12.2M native, zero allocation, 181 bytes per record, every node on the
+path logging.
+
+Native's remaining audit cost is 64.56 ns against JIT's 41.65 — **1.55×**, down from 1.84×. What is
+left is the dispatch shape measured in §19.3 (2.52× on the `EventLogger` → `LogRecord` virtual call),
+which is a generator concern, not an encoder one.
+
+### 20.5 Tests
+
+`EventLoggerIdPathTest` pins four things, and the first is the point of the change:
+
+- a name is resolved **once per logger, not once per event** — 100 events produce 100 entries and
+  exactly 2 `internName` calls;
+- the id path records the same information as the String path;
+- more distinct keys than the logger has cache slots still resolve correctly;
+- a record that declines ids keeps the String path untouched.

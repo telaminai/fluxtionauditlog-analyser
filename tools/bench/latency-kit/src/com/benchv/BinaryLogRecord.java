@@ -193,6 +193,42 @@ public final class BinaryLogRecord extends LogRecord {
         return clock.getWallClockTime();
     }
 
+    // ---- the id path: EventLogger resolved these once per node, so nothing is looked up here ----
+
+    /** {@code -Dintern=string} forces the old String path, so the two can be compared in one binary. */
+    private static final boolean FORCE_STRING = "string".equals(INTERN);
+
+    @Override
+    public int internName(String name) {
+        return FORCE_STRING ? NO_ID : intern(name);
+    }
+
+    private void headById(int sourceRef, int keyRef) {
+        u16(sourceRef);
+        u16(keyRef);
+    }
+
+    @Override
+    public void addRecord(int sourceRef, int keyRef, double value) {
+        headById(sourceRef, keyRef); u8(TAG_DOUBLE); i64(Double.doubleToRawLongBits(value));
+        firstProp = false;
+    }
+
+    @Override
+    public void addRecord(int sourceRef, int keyRef, long value) {
+        headById(sourceRef, keyRef); u8(TAG_LONG); i64(value); firstProp = false;
+    }
+
+    @Override
+    public void addRecord(int sourceRef, int keyRef, int value) {
+        headById(sourceRef, keyRef); u8(TAG_INT); i32(value); firstProp = false;
+    }
+
+    @Override
+    public void addRecord(int sourceRef, int keyRef, boolean value) {
+        headById(sourceRef, keyRef); u8(TAG_BOOL); u8(value ? 1 : 0); firstProp = false;
+    }
+
     private void head(String sourceId, String propertyKey) {
         u16(nodeId(sourceId));
         u16(propertyKey == null ? 0 : keyId(propertyKey));
