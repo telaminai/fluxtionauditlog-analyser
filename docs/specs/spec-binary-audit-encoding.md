@@ -369,6 +369,36 @@ private static final class GeneratedAuditLogger extends EventLogger {
     Fixing `StringCompilation` to create outputs on demand is worth doing regardless: **any** generated
     nested class hits this today.
 
+### 7B.2c How many classes, and default or option
+
+**One generated class per processor, not per node.** The node id is a constructor argument (free since
+§7A); nothing else in the writer varies by node. A 30-node graph generates one extra class instantiated
+30 times.
+
+**But only one of the three wins needs generation:**
+
+| | needs generation? | measured |
+|---|---|---|
+| concrete record type (removes the virtual `addRecord`) | **no** — a core `BinaryEventLogger` with a `BinaryLogRecord` field | part of 27.58 ns, **not isolated** |
+| `VarHandle` value stores | **yes** — core targets Java 8 | native **−34.5 ns**, JIT **+8.6 ns** |
+| node id as a literal | no | free since §7A |
+
+**So the recommendation is a split:**
+
+- **core `BinaryEventLogger`, default** — concrete record field, byte-loop stores, no generation, no
+  extra class, helps **both** toolchains;
+- **generated logger, compiler option, off by default** — adds `VarHandle`; **native only**, and it
+  costs JIT 8.6 ns.
+
+This mirrors how the toolchain already handles native-specific work: the inlining directive is emitted
+always and matters only for native. It also keeps the default path free of generated classes entirely.
+
+!!! warning "One measurement should precede this decision"
+    The virtual `addRecord` call has **not been isolated** from the 27.58 ns dispatch term, which also
+    contains the `auditLog.info` call and the level check. If `addRecord` is most of it, the core-only
+    option captures most of the win. If it is little, generation carries more of the value. **One arm —
+    an `EventLogger` holding a concrete record field — settles it.**
+
 ### 7B.3 Normative
 
 1. The **model** MUST carry a declarative `auditPlan` — record format, record class, entry layout, and

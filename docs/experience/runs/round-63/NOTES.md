@@ -2219,3 +2219,64 @@ the processor**, the batch compile path already handles it — `classNames` and 
 `JavaByteObject` on demand for any class name rather than falling back to one shared object, and serve
 all of them to the classloader. That is a latent defect independent of this work — **any** generated
 nested class hits it today. Recorded as such.
+
+## 27. How many generated classes, and should it be default?
+
+### 27.1 The count is one per processor
+
+§26 settled the shape: **one generated logger class, not one per node.** The per-node part is the node
+id, and that is a constructor argument — free since §20, where `EventLogger` resolves it once. Nothing
+else in the writer varies by node.
+
+```java
+private static final class GeneratedAuditLogger extends EventLogger {
+    private final int nodeId;              // constructor arg — the only per-node thing
+    private final BinaryLogRecord rec;     // concrete type — same for every node
+}
+```
+
+So a 30-node graph with every node logging generates **one** extra class, instantiated 30 times. Code
+cache cost is one class body and, in native, one compiled method per `log` overload actually used.
+
+If it had been one class per node it would be 30 classes with identical bodies differing in a single
+constant — which is the trade the owner is right to check, and it is not the trade being made.
+
+### 27.2 But the count is the wrong question — most of the win needs no generation at all
+
+Splitting what generation actually buys:
+
+| what it buys | needs generation? | measured |
+|---|---|---|
+| **concrete record type** — removes the virtual `LogRecord.addRecord` call | **no** — a core `BinaryEventLogger` with a `BinaryLogRecord`-typed field does it | part of the 27.58 ns dispatch term, **not separately isolated** |
+| **`VarHandle` value stores** | **yes** — core targets Java 8 | native **−34.5 ns**, JIT **+8.6 ns** |
+| node id as a literal | no | already free since §20 |
+
+**Only the `VarHandle` term actually requires generated code**, and it is the one term that *hurts* JIT.
+
+### 27.3 Which makes the recommendation a split, not a yes/no
+
+| | ships as | who benefits |
+|---|---|---|
+| **core `BinaryEventLogger`** — concrete record field, byte-loop stores | **default**, no generation, no extra class | **both** toolchains |
+| **generated logger** — adds `VarHandle` stores | **compiler option**, off by default | **native only**; costs JIT 8.6 ns |
+
+That matches how the toolchain already treats native-specific work: the generated
+`native-image.properties` inlining directive is emitted always and matters only for native, and the same
+logic says a JIT deployment should not pay 8.6 ns for a native optimisation.
+
+It also keeps the default path free of generated classes entirely — the code-cache question disappears
+for everyone who does not opt in.
+
+### 27.4 What is not measured, and it matters to this decision
+
+**The `addRecord` virtual call has not been isolated.** §19.3's 27.58 ns dispatch term bundles three
+things: the `auditLog.info` virtual call from the node, the level check, and the virtual `addRecord`.
+§26 established the first cannot be removed (`auditLog` is typed `EventLogger`, and `NullEventLogger`
+plus `EventLogger` already occupy it) and §9 measured provability at ~2 ns — but **how much of the
+27.58 is `addRecord` specifically is unknown.**
+
+If it is most of it, the core-only option captures most of the win and generation is a small native
+extra. If it is little, generation carries more of the value and the option matters more.
+
+**That measurement is one arm — an `EventLogger` holding a concrete record field — and it should be
+taken before the default is chosen.** Recorded as the open question, not guessed at.
