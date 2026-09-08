@@ -16,10 +16,13 @@ package app;
 public final class HarnessVersion {
 
     /** Bump on ANY change that could move a measurement. */
-    public static final String VERSION = "3";
+    public static final String VERSION = "4";
 
     /** What each version changed, newest first. */
     public static final String[] CHANGES = {
+            "4 - adds record=noop, a LogRecord that writes nothing, so audit DISPATCH can be separated "
+                    + "from record BUILDING. Adds one reachable LogRecord subclass, which is why every "
+                    + "arm must be re-measured under h4 rather than compared to an h3 number",
             "3 - processor constructed inside the loop method and never escaping (the documented "
                     + "runtime shape); worth 4.3x on native, nothing on JIT",
             "2 - refuses to report unless it can prove what it measured: -D placement fatal, resolved "

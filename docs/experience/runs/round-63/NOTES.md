@@ -1493,3 +1493,192 @@ Nothing here measures a graph where guards **do** skip work — every arm invoke
 break-even table above is arithmetic on separately-measured costs, not a measurement of a skipping
 graph. **A graph with a heavy node behind a sometimes-cold join is the experiment that would confirm
 it**, and it has not been run.
+
+## 19. Isolating where the native audit cost actually is
+
+With guards off in both arms and the harness held at h3, the audit cost on the 30-node converging graph
+is **68.8 ns on JIT** (89.10 − 20.33) and **124.8 ns on native** (142.83 − 18.02). Native pays **1.8×**
+for the same audit trail. §17–18 established it is not guards and not the graph. This isolates it.
+
+### 19.1 The decomposition, and the arm that was missing
+
+Per event the audit path does four things:
+
+1. `clock.eventReceived` — one wall-clock read
+2. `eventLogger.eventReceived` → `logRecord.triggerObject` — the record header
+3. **× 11.75**: `auditLog.info(k,v)` → `EventLogger.log` → level check → `logRecord.addRecord(...)`
+4. `processingComplete` → `terminateRecord` → `sink.processLogRecord`
+
+Steps 1, 2 and 4 are **auditor dispatch**. Step 3 splits into a **call chain** (the `EventLogger`
+indirection and level check, 11.75 times) and **record building** (what `addRecord` writes).
+
+Nothing so far separates the call chain from the record. A **no-op `LogRecord`** does exactly that: the
+auditor runs, every node calls `auditLog.info`, every call reaches `addRecord` — and `addRecord` writes
+nothing. Its cost is the audit machinery with the record removed.
+
+```
+A  fair baseline      no auditor at all
+B  record=noop        auditor + full call chain + a record that does nothing   <- the new arm
+C  record=binary      auditor + call chain + bits written
+D  record=text        auditor + call chain + characters written
+```
+
+`B − A` is dispatch and call chain. `C − B` is record building. **If native's penalty is in `C − B` it
+is an implementation problem in the encoder; if it is in `B − A` it is the shape of the generated
+dispatch, and no encoder change will help.**
+
+### 19.2 Predictions
+
+| # | Prediction | Basis |
+|---|---|---|
+| X1 | the no-op record arm costs **< 20 ns over baseline on JIT** | ~12 level checks and virtual calls, a few ns each |
+| X2 | `B − A` is **larger on native than JIT** | the `LogRecord` receiver is not statically provable, and native cannot speculate |
+| X3 | **record building (`C − B`) is the majority** of the audit cost on both toolchains | §12 measured 3.4 ns/entry of pure encoding against a 4.5 ns/entry total |
+| X4 | native's 1.8× penalty is concentrated in **`C − B`, not `B − A`** | the encoder writes to a byte array through a long field-store chain, which is where §11.3 already found AOT weak |
+
+**X4 is the one that decides the next move.** If it holds, the encoder is fixable. If instead the
+penalty is in `B − A`, the cost is in the generated dispatch shape and the fix belongs in the compiler.
+
+**Harness constant:** all four arms are served by **one binary** with the record selected by a runtime
+property, so the image, the profile, the PGO and the flags are identical across B/C/D and only the
+record class varies. A is necessarily a different processor — that is the declared variable, and
+`compare-arms.sh` is told so.
+
+### 19.3 Results — the decomposition, both toolchains
+
+harness h4, one binary per toolchain serving all three record modes, native min over **two builds** ×
+5 reps (the lottery is ±8 ns here).
+
+| arm | JIT ns | native ns | native ÷ JIT |
+|---|---:|---:|---:|
+| **A** fair baseline, no auditor | 20.07 | **18.08** | 0.90 — *native faster* |
+| **B** auditor + no-op record | 30.99 | 45.67 | 1.47 |
+| **C** auditor + binary record | 88.93 | 144.58 | 1.63 |
+| **D** auditor + text record | 406.51 | 794.72 | 1.96 |
+| | | | |
+| **B − A** dispatch + call chain | 10.93 (0.93/entry) | **27.58 (2.35/entry)** | **2.52×** |
+| **C − B** binary record building | 57.93 (4.93/entry) | **98.92 (8.42/entry)** | **1.71×** |
+| **D − B** text record building | 375.52 (31.96/entry) | 749.05 (63.75/entry) | 1.99× |
+| total audit (binary) | 68.86 | 126.50 | 1.84× |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| X1 | no-op record < 20 ns over baseline on JIT | **10.93** | ✅ |
+| X2 | `B − A` larger on native | **27.58 vs 10.93 — 2.52×**, the worst ratio in the table | ✅ |
+| X3 | record building is the majority on both | **84% JIT, 78% native** | ✅ |
+| X4 | native's penalty concentrated in `C − B`, not `B − A` | **half right** | ➗ |
+
+**X4 is the interesting miss.** In absolute nanoseconds it holds — of native's 57.6 ns extra, **41 ns is
+record building and 17 ns is dispatch**. But *proportionally* the dispatch is the worse of the two
+(2.52× against 1.71×). So the answer to "shape or implementation" is **both, and they need different
+fixes**:
+
+- **Shape** — the `EventLogger` → `LogRecord.addRecord` chain costs native 2.35 ns per entry against
+  JIT's 0.93. That is a virtual call to a receiver native cannot prove and cannot speculate on; JIT
+  profiles it and inlines. Fixing it means changing what the generator emits, not the encoder.
+- **Implementation** — the encoder costs 8.42 ns per entry on native against 4.93 on JIT, for writing
+  13 bytes. That is fixable in the encoder, and §19.4 tries.
+
+**And the no-op arm proves the machinery is not free even with nothing to write:** 27.58 ns/event on
+native — 1.5× the entire no-audit graph — before a single byte is recorded.
+
+### 19.4 Trying to remove it — the encoder writes a long as eight bounds-checked stores
+
+`BinaryLogRecord.i64` writes a `long` one byte at a time, each with an implicit array bounds check:
+
+```java
+buf[pos++] = (byte) (v >>> 56);  buf[pos++] = (byte) (v >>> 48);  ... eight of these
+```
+
+A double entry is `u16 u16 u8 i64` = **13 bytes and 13 bounds checks**. JIT unrolls and folds most of
+that; native evidently does not, which is exactly the shape of a 1.71× gap on pure byte-writing.
+
+`VarHandle byteArrayViewVarHandle(long[].class, BIG_ENDIAN)` writes the same eight bytes as **one
+unaligned store with one bounds check**.
+
+| # | Prediction | Basis |
+|---|---|---|
+| Y1 | the VarHandle store cuts native record building by **> 20%** | 13 bounds checks → 4 per entry |
+| Y2 | it helps **native more than JIT in relative terms** | JIT already folds the byte loop; native does not |
+| Y3 | it does **not** close the whole 41 ns — the id lookups and the call chain remain | only the value store changes |
+
+### 19.5 Results — one fix landed, one blocked by the API
+
+**Fix 1 — the value stores. Landed, 25.9% off native.**
+
+`i64` wrote a `long` as eight bounds-checked byte stores. `VarHandle byteArrayViewVarHandle` writes it
+as one. Same binary, store path selected by a runtime property, so exactly one variable moves:
+
+| toolchain | bytewise | varhandle | delta |
+|---|---:|---:|---:|
+| JIT | 77.08 | 78.44 | +1.8% |
+| **native** | 165.24 | **122.39** | **−25.9%** |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| Y1 | > 20% off native record building | **25.9%** | ✅ |
+| Y2 | helps native more than JIT | native −42.9 ns, JIT +1.4 ns | ✅ |
+| Y3 | does not close the whole gap | native/JIT went 2.14× → 1.56× | ✅ |
+
+**JIT was already folding the byte loop; native was not.** That is a pure implementation win and it is
+the single largest improvement found in this round.
+
+**Fix 2 — the name lookups. Attempted, and the attempt failed usefully.**
+
+An `intern=none` ceiling arm — write a constant id, never resolve a name — showed interning costs
+**26.2 ns/event on JIT and 27.5 on native**, about a third of the whole audit record.
+
+*(That contradicts §7.3's Y5, which found interning "never on the critical path". Y5 was measured on the
+tail graph at **2 entries per event**; this is 11.75. The finding was right for its shape and wrong as a
+general claim — the third time in this round a result failed to survive a change of regime.)*
+
+So an open-addressed identity table replaced the one-slot cache. It recovered **1.89 of 26.17 ns — 7%**:
+
+| intern strategy | JIT ns |
+|---|---:|
+| `map` — one-slot cache + `IdentityHashMap` fallback | 76.01 |
+| `table` — open-addressed, identity-probed | 74.12 |
+| `none` — no lookup at all (the ceiling) | **49.84** |
+
+**The cost is not the map. It is resolving a name at all** — ~1.1 ns per lookup × 23.5 lookups per
+event (a node name and a key name for each of 11.75 entries). Any lookup pays it; a better lookup does
+not help.
+
+### 19.6 Where the remaining cost is, and who can remove it
+
+| term | JIT ns | native ns | fixable by |
+|---|---:|---:|---|
+| graph | 20.07 | 18.08 | — |
+| audit dispatch + `EventLogger` call chain | 10.93 | **27.58** | the **generator** — a virtual call native cannot prove |
+| name resolution, 23.5 lookups/event | 26.17 | 27.54 | the **API** — see below |
+| value encoding, after the VarHandle fix | ~31.8 | ~48.9 | the encoder — partly done |
+
+**Name resolution cannot be fixed in the encoder, because the API hands it a `String`.**
+
+```java
+EventLogger.log(String key, double value) → LogRecord.addRecord(String sourceId, String key, double)
+```
+
+Both names are **compile-time constants in generated source**. The generator knows them, and knows every
+one of them, at build time. A binary-first record has to turn each into a small integer, and today it
+must do so at runtime, 23.5 times per event, forever — to recover information the generator already had
+and discarded.
+
+**The fix is to assign ids at generation time and pass the id.** That is a change to the audit API and
+the generated code, not to any encoder, and it is worth the full **26–28 ns/event on both toolchains** —
+more than every compiler flag in this round put together. It also removes the dictionary problem from
+[`spec-binary-audit-encoding.md`](../../../specs/spec-binary-audit-encoding.md) §6.3: the id table
+becomes a build artifact emitted next to the processor rather than something discovered at runtime and
+published on the wire.
+
+**Recorded as the next change to specify, not as a result** — nothing here implements it.
+
+### 19.7 Where the numbers stand
+
+| | before this section | after the VarHandle fix | if ids were passed (projected) |
+|---|---:|---:|---:|
+| JIT | 88.93 | ~78.4 | ~50 |
+| **native** | **165.24** | **122.39** | **~96** |
+
+The projected column is the measured `intern=none` ceiling, not a guess about a fix that has not been
+built. It is what the record would cost if name resolution were free.

@@ -195,6 +195,53 @@ Per-node method tracing, the event's `toString()`, and the thread name. Those ar
 a record readable when you do not know what you are looking for — which is the wrong trade for a
 production hot path and the right one for a development run. `AUDITED` remains the profile for that.
 
+## 7A. Build-time name ids — the largest single remaining win
+
+**Measured (round 63 §19.5): resolving node and key names at runtime costs 26.2 ns/event on JIT and
+27.5 on native** — about a third of the whole binary audit record, on a graph with 11.75 entries per
+event. That is 23.5 lookups per event, at ~1.1 ns each.
+
+It cannot be optimised away in the encoder. An open-addressed identity table replaced a one-slot cache
+and recovered **7%**: the cost is not *which* lookup, it is *doing a lookup*.
+
+### 7A.1 Why the cost exists
+
+```java
+EventLogger.log(String key, double value) → LogRecord.addRecord(String sourceId, String key, double)
+```
+
+Both names are **compile-time constants in generated source**. The generator knows the complete set at
+build time — and discards it, leaving the encoder to rediscover it 23.5 times per event, for the life of
+the process.
+
+### 7A.2 Normative
+
+1. The generator MUST assign a stable numeric id to every node name and every property key it emits, and
+   MUST make those ids available to the record implementation without a runtime lookup.
+2. The audit API MUST gain an id-carrying path — an overload taking the resolved id, or an
+   `EventLogger` that holds its own node id and the ids of the keys it can log. The `String` path MUST
+   remain for hand-written and dynamic callers.
+3. The id table MUST be emitted as a build artifact alongside the processor, in the same place the
+   `native-image.properties` inlining directive already goes.
+
+### 7A.3 It also removes the dictionary problem
+
+§6.3 and [`spec-binary-audit-reader.md`](spec-binary-audit-reader.md) §3 currently require the *wire
+format* to carry its own dictionary, because ids are discovered at runtime and a reader cannot otherwise
+resolve them. With build-time ids the table is **known before the process starts**: it ships with the
+processor, and the wire dictionary becomes a convenience for self-describing files rather than a
+correctness requirement.
+
+### 7A.4 What it is worth
+
+| | today | with build-time ids (measured ceiling) |
+|---|---:|---:|
+| JIT | ~78 ns | **~50 ns** |
+| native | ~122 ns | **~96 ns** |
+
+The right-hand column is the measured `intern=none` arm — an encoder that writes a constant id and never
+looks one up. It is not a projection of a fix; it is the floor that fix would approach.
+
 ## 8. Out of scope for core — the Mongoose side
 
 Two changes belong to Mongoose, not here, and are recorded so they are not lost:
@@ -232,6 +279,8 @@ This cuts both ways and both are worth saying:
 | 5 | binary reader + conformance suite | analyser | 4 · CLI reader spec'd in [spec-binary-audit-reader.md](spec-binary-audit-reader.md) |
 | 6 | `LOW_LATENCY_AUDIT` selects the binary record | core | 4, 5 |
 | 7 | `bytes` not `text`; drop `Instant.now()` | mongoose | — (independent) |
+| 8 | **build-time name ids** (§7A) — worth 26–28 ns/event on both toolchains | compiler + core | 4 |
+| 9 | **`VarHandle` value stores in the encoder** — **measured 25.9% off native**, done in the prototype | core | 4 |
 
 1, 2, 3 and 7 are independently shippable. 6 is the one that must wait for a reader.
 

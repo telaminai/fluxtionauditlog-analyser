@@ -33,13 +33,20 @@ public class BenchConvLocal {
     static double out;
     static long records, recordBytes;
     static CountingSink theSink;
+    static com.benchv.NoOpLogRecord noOpRecord;
 
     static final class CountingSink implements LogRecordListener {
         private final boolean binary;
         CountingSink(boolean binary) { this.binary = binary; }
         @Override public void processLogRecord(LogRecord r) {
             records++;
-            recordBytes += binary ? ((BinaryLogRecord) r).length() : r.asCharSequence().length();
+            if (r instanceof com.benchv.NoOpLogRecord) {
+                recordBytes += ((com.benchv.NoOpLogRecord) r).entries();   // proves the chain ran
+            } else if (binary) {
+                recordBytes += ((BinaryLogRecord) r).length();
+            } else {
+                recordBytes += r.asCharSequence().length();
+            }
         }
     }
 
@@ -54,6 +61,10 @@ public class BenchConvLocal {
                     + "silently ignored. record=" + want + " clock=" + clock);
         }
         boolean binary = "binary".equals(want);
+        boolean noop = "noop".equals(want);
+        if (!binary && !noop && !"text".equals(want)) {
+            throw new IllegalStateException("-Drecord must be binary|text|noop, was " + want);
+        }
         String graphName = System.getProperty("graph", "conv");
         long w = Long.getLong("warm", 500_000L), it = Long.getLong("iters", 3_000_000L);
 
@@ -68,11 +79,11 @@ public class BenchConvLocal {
             throw new IllegalStateException("clock mode did not take: asked " + clock
                     + " resolved " + resolvedClock);
         }
-        run(binary, theSink, graphName, w);
+        run(binary, noop, theSink, graphName, w);
         long r0 = records;
         long b0 = allocated();
         long t0 = System.nanoTime();
-        run(binary, theSink, graphName, it);
+        run(binary, noop, theSink, graphName, it);
         long ns = System.nanoTime() - t0;
         long a1 = allocated();
         long produced = records - r0;
@@ -100,7 +111,7 @@ public class BenchConvLocal {
      * under native AOT (2.26 ns local against 9.79 escaping); this measures what it is worth once the
      * audit machinery is on the path too.
      */
-    static void run(boolean binary, com.telamin.fluxtion.runtime.audit.LogRecordListener sink,
+    static void run(boolean binary, boolean noop, com.telamin.fluxtion.runtime.audit.LogRecordListener sink,
                     String graphName, long n) throws Exception {
         com.bench.conv.ConvProcessor p = new com.bench.conv.ConvProcessor();
         EventLogManager m = p.getAuditorById(EventLogManager.NODE_NAME);
@@ -108,6 +119,9 @@ public class BenchConvLocal {
         p.init();
         if (binary) {
             p.onEvent(new EventLogControlEvent(new BinaryLogRecord(m.clock, 8192)));
+        } else if (noop) {
+            noOpRecord = new com.benchv.NoOpLogRecord(m.clock);
+            p.onEvent(new EventLogControlEvent(noOpRecord));
         }
         E0 e0 = new E0(); E1 e1 = new E1(); E2 e2 = new E2(); E3 e3 = new E3(); E4 e4 = new E4();
         Object[] evs = new Object[]{e0, e1, e2, e3, e4};

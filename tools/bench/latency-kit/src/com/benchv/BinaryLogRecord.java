@@ -4,6 +4,9 @@ import com.telamin.fluxtion.runtime.audit.LogRecord;
 import com.telamin.fluxtion.runtime.event.Event;
 import com.telamin.fluxtion.runtime.time.Clock;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.util.IdentityHashMap;
 
 /**
@@ -43,6 +46,65 @@ public final class BinaryLogRecord extends LogRecord {
     private final boolean useProcessTime = "process".equals(clockMode);
     private final boolean noClock = "none".equals(clockMode);
 
+    /** One unaligned store and one bounds check, instead of eight of each. Round 63 §19.4. */
+    private static final VarHandle LONG_VIEW =
+            MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
+    private static final VarHandle INT_VIEW =
+            MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+    private static final VarHandle SHORT_VIEW =
+            MethodHandles.byteArrayViewVarHandle(short[].class, ByteOrder.BIG_ENDIAN);
+
+    /** {@code -Dstore=bytewise} restores the original loop, so the two can be compared in one binary. */
+    private static final boolean BYTEWISE = "bytewise".equals(System.getProperty("store", "varhandle"));
+
+    /** Echoed on the RESULT line so a comparison records which store path it measured. */
+    public static String storeMode() { return BYTEWISE ? "bytewise" : "varhandle"; }
+
+    /**
+     * {@code -Dintern=map|none}. {@code none} writes a constant id and never looks one up — it is not a
+     * usable encoder, it is the CEILING: what the record would cost if name resolution were free.
+     * Round 63 §19.5.
+     */
+    private static final String INTERN = System.getProperty("intern", "table");
+    private static final boolean NO_INTERN = "none".equals(INTERN);
+    private static final boolean MAP_INTERN = "map".equals(INTERN);
+
+    public static String internMode() { return INTERN; }
+
+    /**
+     * Open-addressed identity table — the fix for interning, Round 63 §19.5.
+     *
+     * <p>The map version cost 30.7 ns/event on JIT and 27.5 on native, because a one-slot-per-role
+     * cache misses whenever two nodes alternate and every miss falls through to
+     * {@code IdentityHashMap.get}. Generated code passes interned String constants, so identity is the
+     * right comparison and a power-of-two table with linear probing resolves a name in one array read
+     * and one reference compare on the hit path — no hashing of characters, no Map call.
+     *
+     * <p>Sized generously and never resized: the name set is fixed after warm-up because it comes from
+     * constants in generated source. A full table falls back to the map rather than looping.
+     */
+    private static final int TBL = 256, MASK = TBL - 1;
+    private final String[] tblKey = new String[TBL];
+    private final short[] tblVal = new short[TBL];
+
+    private short tableId(String name) {
+        int i = System.identityHashCode(name) & MASK;
+        for (int probe = 0; probe < 8; probe++) {
+            String k = tblKey[i];
+            if (k == name) { cacheHits++; return tblVal[i]; }
+            if (k == null) {
+                cacheMisses++;
+                short id = intern(name);
+                tblKey[i] = name;
+                tblVal[i] = id;
+                return id;
+            }
+            i = (i + 1) & MASK;
+        }
+        cacheMisses++;
+        return intern(name);
+    }
+
     private final byte[] buf;
     private int pos;
     private boolean overflow;
@@ -61,6 +123,8 @@ public final class BinaryLogRecord extends LogRecord {
     }
 
     private short nodeId(String name) {
+        if (NO_INTERN) { return 1; }
+        if (!MAP_INTERN) { return tableId(name); }
         if (name == lastNode) {          // reference equality — generated code passes constants
             cacheHits++;
             return lastNodeId;
@@ -71,6 +135,8 @@ public final class BinaryLogRecord extends LogRecord {
     }
 
     private short keyId(String name) {
+        if (NO_INTERN) { return 2; }
+        if (!MAP_INTERN) { return tableId(name); }
         if (name == lastKey) {
             cacheHits++;
             return lastKeyId;
@@ -95,22 +161,29 @@ public final class BinaryLogRecord extends LogRecord {
     }
 
     private void u16(int v) {
-        if (pos + 2 <= buf.length) { buf[pos++] = (byte) (v >>> 8); buf[pos++] = (byte) v; } else { overflow = true; }
+        if (pos + 2 <= buf.length) {
+            if (BYTEWISE) { buf[pos++] = (byte) (v >>> 8); buf[pos++] = (byte) v; }
+            else { SHORT_VIEW.set(buf, pos, (short) v); pos += 2; }
+        } else { overflow = true; }
     }
 
     private void i64(long v) {
         if (pos + 8 <= buf.length) {
-            buf[pos++] = (byte) (v >>> 56); buf[pos++] = (byte) (v >>> 48);
-            buf[pos++] = (byte) (v >>> 40); buf[pos++] = (byte) (v >>> 32);
-            buf[pos++] = (byte) (v >>> 24); buf[pos++] = (byte) (v >>> 16);
-            buf[pos++] = (byte) (v >>> 8);  buf[pos++] = (byte) v;
+            if (BYTEWISE) {
+                buf[pos++] = (byte) (v >>> 56); buf[pos++] = (byte) (v >>> 48);
+                buf[pos++] = (byte) (v >>> 40); buf[pos++] = (byte) (v >>> 32);
+                buf[pos++] = (byte) (v >>> 24); buf[pos++] = (byte) (v >>> 16);
+                buf[pos++] = (byte) (v >>> 8);  buf[pos++] = (byte) v;
+            } else { LONG_VIEW.set(buf, pos, v); pos += 8; }
         } else { overflow = true; }
     }
 
     private void i32(int v) {
         if (pos + 4 <= buf.length) {
-            buf[pos++] = (byte) (v >>> 24); buf[pos++] = (byte) (v >>> 16);
-            buf[pos++] = (byte) (v >>> 8);  buf[pos++] = (byte) v;
+            if (BYTEWISE) {
+                buf[pos++] = (byte) (v >>> 24); buf[pos++] = (byte) (v >>> 16);
+                buf[pos++] = (byte) (v >>> 8);  buf[pos++] = (byte) v;
+            } else { INT_VIEW.set(buf, pos, v); pos += 4; }
         } else { overflow = true; }
     }
 
