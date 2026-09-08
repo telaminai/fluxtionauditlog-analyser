@@ -315,20 +315,55 @@ so the emitted writer calls it directly, with no virtual dispatch to the `LogRec
 the way, without reading a single node method body. **This is arithmetic on measured terms, not a
 measurement.**
 
+### 7B.2b Model-first, so the template is replaceable
+
+**Constraint (owner, round 63 §25): everything goes into the model; the template generates from it; the
+Java template must be replaceable with another target-language template.**
+
+Today the model hands the template **pre-rendered Java statements** — `String.format("%8s%s.eventReceived(typedEvent);%n", …)`
+— and one Java template exists with two Velocity directives in it. So the separation is a direction of
+travel, not the current state, and a design that adds more Java-string-building to
+`JavaSourceGenerator` moves away from it.
+
+The audit writer is small, self-contained and new, so it can be built model-first without first
+migrating the existing dispatch code.
+
+**Model — declarative, no target language:**
+
+```
+auditPlan:
+  recordFormat : TEXT | BINARY
+  entryLayout  : [nodeId:u16, keyId:u16, tag:u8, value:<by type>]
+  writers:
+    - nodeName: "c1_0"   nodeId: 17
+    - nodeName: "t5"     nodeId: 23
+```
+
+**Template — the only place a language appears:**
+
+```velocity
+#foreach($w in ${MODEL.auditPlan.writers})
+private static final class AuditWriter_${w.nodeName} extends EventLogger { … }
+#end
+```
+
 ### 7B.3 Normative
 
-1. The generator MUST be able to emit a specialised `EventLogger` subclass per logging node, with the
-   **node id as a literal** and the **concrete record type**. Property keys MUST still be resolved
+1. The **model** MUST carry a declarative `auditPlan` — record format, entry layout, and one writer
+   entry per logging node with its name and id. It MUST contain **no target-language source**.
+2. The **template** MUST render the writers from that plan. Emitting a specialised `EventLogger`
+   subclass per logging node, with the **node id as a literal** and the **concrete record type**, is a
+   property of the Java template, not of the generator. Property keys MUST still be resolved
    through `LogRecord.internName`, once per logger, because the generator cannot see them.
-2. `EventLogManager` MUST gain a factory hook so a generated processor can supply its own
+3. `EventLogManager` MUST gain a factory hook so a generated processor can supply its own
    `EventLogger` instances; today it constructs them directly.
-3. The Java template MUST gain a slot for generated members, and a section that emits the writers only
+4. The Java template MUST gain a slot for generated members, and a section that emits the writers only
    when the audit auditor is present — a processor with no audit log MUST be byte-identical to today's.
-4. It MUST fall back to the stock `EventLogger` for anything it cannot resolve — dynamic keys,
+5. It MUST fall back to the stock `EventLogger` for anything it cannot resolve — dynamic keys,
    hand-written nodes, `Object` values. **The API is not replaced.**
-5. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
+6. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
    contract, so a generated processor and an interpreted one produce the same records.
-6. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
+7. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
 
 ### 7B.4 It supersedes the multi-release jar
 

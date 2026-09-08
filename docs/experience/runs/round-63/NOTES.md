@@ -2067,3 +2067,72 @@ needs an annotation processor or an API change, and neither is proposed.
 
 **Status: this is a design sketch on measured terms. Nothing in §24 has been built or measured**, and
 the 50–55 ns is arithmetic, not a result.
+
+## 25. The model must be complete — and §24's design pushed the wrong way
+
+The owner's architectural constraint: **everything goes into the model, the template generates from it,
+and the Java template must be replaceable with another target language.** §24's sketch does not respect
+that, and the current codebase does not either.
+
+### 25.1 Where the boundary actually sits today
+
+| | today |
+|---|---|
+| templates that exist | **one Java template** (`template/base/javaTemplate.vsl`) plus test fixtures — no second target |
+| Velocity control flow in it | **two directives**, one of them an `#if` on imports. It is slot-filling, not rendering |
+| what the model hands it | **pre-rendered Java statements** — `eventAuditDispatch += String.format("%8s%s.eventReceived(typedEvent);%n", …)`, `nodeMemberAssignmentList.add("initialiseAuditor(" + name + ");")` |
+
+**A C++ template fed this model would receive Java source.** The separation the constraint asks for is a
+direction of travel, not the current state — and §24 would have added *more* Java-string-building to
+`JavaSourceGenerator`, moving away from it.
+
+### 25.2 The audit writer is a good place to start moving toward it
+
+It is small, self-contained, and **new** — unlike the dispatch code, which is already thousands of lines
+of Java strings that would have to be unpicked. So the audit writer can be built model-first without
+first paying to migrate anything else.
+
+**Model side — declarative, no target language anywhere in it:**
+
+```
+auditPlan:
+  recordFormat : TEXT | BINARY
+  entryLayout  : [nodeId:u16, keyId:u16, tag:u8, value:<by type>]
+  writers:
+    - nodeName: "c1_0"   nodeId: 17   valueTypes: [double]
+    - nodeName: "t5"     nodeId: 23   valueTypes: [double, long]
+```
+
+Everything in that plan is already derivable: node names are emitted as literals today; logging nodes
+are identified by `instanceof EventLogSource` against the live instances the model holds; the record
+format is a build input since §21.
+
+**Template side — the only place a language appears:**
+
+```velocity
+#foreach($w in ${MODEL.auditPlan.writers})
+private static final class AuditWriter_${w.nodeName} extends EventLogger { … }
+#end
+```
+
+A second target renders the same plan its own way and needs no generator change.
+
+### 25.3 What this changes about the estimate
+
+Nothing measured, and nothing about what is reachable — the same terms are addressed. It changes **where
+the work lives**: in the model as data plus a template that renders it, rather than in
+`JavaSourceGenerator` as more `String.format`. The 50–55 ns estimate from §24 stands, and remains
+arithmetic on measured terms.
+
+It does add a requirement §24 lacked: **the plan must carry the value types**, because a template that
+renders `writeDouble` versus `writeLong` needs to know which, and the generator cannot read the node's
+method body to find out. That is derivable from the `EventLogger.log` overloads a node *could* call —
+which is all of them — so a complete plan either lists every type or the writer overrides every
+overload. **The second is simpler and is what the ceiling measured.**
+
+### 25.4 Honest scope
+
+This is a **principle applied to one new feature**, not a migration. The existing dispatch, initialise,
+teardown and event-handler sections still hand the template Java text, and nothing here changes that or
+proposes to. Claiming the template is "replaceable" after this work would be false; claiming the audit
+section is model-first would be true.
