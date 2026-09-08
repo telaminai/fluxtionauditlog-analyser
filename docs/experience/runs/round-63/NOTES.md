@@ -603,3 +603,145 @@ two clock reads to hide inside it entirely, which is consistent with §7.5's fin
 read costs only ~5 ns marginally when surrounded by work — but that is a hypothesis, and this note
 records it as one. It does not change the recommendation: the change is a correctness fix that happens
 to pay on three arms and costs nothing on the fourth.
+
+## 9. §8 was measured wrong — two method errors, one of which contradicts round 62
+
+The owner asked why native is slower than JIT, whether the PGO is valid, and whether indirection
+explains it. Checking the build logs: **the PGO is valid** — `Graal compiler: optimization level: 3,
+target machine: armv8.1-a, PGO: user-provided`, with ~4 MB profiles per arm and SHAs verified unchanged.
+That is not the problem. Two other things are.
+
+### 9.1 Error 1 — one image, three `LogRecord` subclasses
+
+`BenchBinary` references stock `LogRecord`, `ProcessTimeLogRecord` **and** `BinaryLogRecord`, and §8
+built **one image containing all four arms**. So every `logrecord.addRecord(...)` call site in
+`EventLogger` has three reachable receivers, closed-world, with no speculation available.
+
+The JIT has the opposite situation: it profiles the call site, finds one receiver in practice, and
+inlines behind a guard.
+
+**Round 62 §7 established that static provability of the receiver is the dominant AOT variable** — and
+§8 then handed AOT an unprovable call site and reported the result as a property of AOT. It is not; it
+is a property of the harness.
+
+### 9.2 Error 2 — Serial GC, not epsilon
+
+`Garbage collector: Serial GC`. Every previous native measurement in this work used `--gc=epsilon`.
+Serial GC emits card-marking write barriers on reference stores; epsilon emits none. On a zero-allocation
+path that should be small, but it is an uncontrolled difference from every earlier figure.
+
+### 9.3 What §8's numbers therefore mean
+
+`text`, `binary`, and the ratios between them stand as an *internal* comparison — all four arms carried
+both errors equally, so relative ordering within §8 is intact. **The native-vs-JIT comparison does not
+stand** and §8.2's claim that "AOT is slower at building records generally" is withdrawn pending §9.5.
+*(Written before the rebuild. **§9.6 reinstates it** — the two errors were real but worth ~14 ns against a
+~57 ns gap. This withdrawal was premature, and is itself withdrawn.)*
+
+The one thing that survives untouched is the `TextProbe` result from §6: that probe contains **no
+Fluxtion and no `LogRecord` subclass at all**, so it had nothing to be polymorphic about, and its
+1.44× AOT text penalty is independent of both errors.
+
+### 9.4 Predictions, recorded before the rebuild
+
+Two variables, isolated separately. `poly` = all record classes reachable (as §8); `mono` = only the
+one arm's record class reachable; GC as marked.
+
+| # | Prediction | Basis |
+|---|---|---|
+| N1 | epsilon vs serial, holding polymorphism: worth **< 10 ns** | write barriers on a zero-alloc path are real but small |
+| N2 | mono vs poly, holding GC: worth **> 40 ns on text**, the larger effect by far | round 62 §7 — provability is the dominant AOT variable |
+| N3 | native text, mono + epsilon, lands **≤ 175 ns** (from 221.7) | N1 + N2 |
+| N4 | native text still does **not** beat JIT text (153.5) | the `TextProbe` 1.44× penalty is independent of both errors and does not go away |
+| N5 | the same call site cannot be made provable for the **binary** arm at all | `EventLogManager.init()` hardcodes `new LogRecord(clock)`, so stock `LogRecord` is instantiated before the swap — two receivers are inherent to the runtime-swap seam |
+
+**N5 is the one with a design consequence.** If it holds, the `EventLogControlEvent` swap seam is
+structurally AOT-hostile, and the encoder spec's §6 change should let the encoder be chosen at **build**
+time, not swapped at runtime — which is a materially stronger reason for that change than "the
+`StringBuilder` is unused".
+
+### 9.5 Results — the errors were real, and they are not the answer
+
+`--gc=epsilon` and a trimmed classpath, rebuilt with per-arm PGO (`PGO: user-provided`, SHA verified),
+3 reps × 3M events. `poly` = all record subclasses reachable; `mono` = only the arm's own.
+
+| Arm | config | native ns | reachable types |
+|---|---|---:|---:|
+| text | poly + serial (**§8**) | 221.7 | 3,438 |
+| text | poly + epsilon | 207.9 | 3,386 |
+| text | mono + serial | 207.5 | 3,399 |
+| text | **mono + epsilon** | **205.8** | 3,341 |
+| binary | poly + serial (**§8**) | 90.6 | 3,438 |
+| binary | **mono + epsilon** | **90.8** | 3,345 |
+
+| # | Predicted | Measured | |
+|---|---|---|---|
+| N1 | epsilon vs serial worth < 10 ns | 13.8 (text/poly), 1.7 (text/mono), **0** (binary) | ❌ not separable, and confounded by a heap-size change |
+| N2 | mono vs poly worth **> 40 ns** on text | **2.1 ns** (epsilon), 14.2 (serial), **0** on binary | ❌ **badly falsified** |
+| N3 | native text mono+epsilon **≤ 175 ns** | **205.8** | ❌ |
+| N4 | native text still does not beat JIT | 205.8 vs 148.9 | ✅ |
+| N5 | two receivers are inherent to the swap seam | true as a fact — but see below | ➗ |
+
+**The three clean configurations all land at ~206 ns and §8's 221.7 stands alone.** Read honestly, that
+means the two errors together are worth ~14 ns *on one arm*, nothing on the other, and part of even that
+is the build lottery round 60 documented (I also changed max heap from 512m to 1g, which is a confound I
+should not have introduced).
+
+### 9.6 §8.2 is reinstated — AOT really is ~1.4× slower at building records
+
+With both errors removed:
+
+| | JIT | native | native ÷ JIT |
+|---|---:|---:|---:|
+| text record | 148.9 | 205.8 | **1.38×** |
+| binary record | 63.0 | 90.8 | **1.44×** |
+| `TextProbe` (no Fluxtion at all) | 58.8 | 84.7 | **1.44×** |
+
+Three measurements, two of them with completely different code, all at ~1.4×. **It is not indirection,
+it is not the GC, it is not a missing or invalid PGO, and it is not receiver provability.** The AOT
+compiler produces slower code for this arithmetic-and-conversion work, and this round cannot say why.
+What it can say is which explanations are now excluded, which is worth more than a guess.
+
+### 9.7 Why round 62's provability finding did not transfer
+
+N2 deserves more than a ❌, because it was not a careless prediction — it was round 62 §7's headline
+finding applied to a new case, and it failed.
+
+Round 62 measured provability on **dispatch-dominated** graphs running at ~1.6 ns/event, where a single
+unprovable call site is most of the work. This workload is **conversion-dominated** at 150–220 ns/event.
+Two extra virtual calls per event are ~2 ns — real, and irrelevant at this scale.
+
+**A finding is scoped to the regime it was measured in.** Round 62's conclusion is not wrong; carrying
+it into a different cost regime was.
+
+**And it kills a spec change I was about to make.** N5 was going to argue that the runtime-swap seam is
+structurally AOT-hostile, and therefore that the encoder should be selected at build time. The fact
+underlying N5 is true — `EventLogManager.init()` creates a stock `LogRecord` before any swap, so two
+receivers are always reachable — but it is worth **~2 ns**, so it is not an argument for anything. That
+paragraph did not go into the spec, because the measurement came first.
+
+### 9.8 The other auditor — asked, found, fixed, and not worth what it looked like
+
+The question "is there another auditor with indirection?" has a real answer. Four auditors are generated
+into this processor: `clock`, `eventLogger`, `nodeNameLookup`, `serviceRegistry`.
+
+- `nodeNameLookup` is **correctly absent** from the event path — that is W15 working.
+- **`ServiceRegistryNode` was not.** It implements `Auditor`, does all its work in `registerService` /
+  `deRegisterService` / `nodeRegistered`, and overrides **none** of the three per-event callbacks — so it
+  inherited `auditEventReceipt() == true` and every generated processor carried
+  `serviceRegistry.eventReceived(event)` **and** `serviceRegistry.processingComplete()` on every event,
+  both inherited no-ops. Exactly the case W15 fixed for `NodeNameAuditor`; the second auditor in the same
+  position was missed.
+
+Fixed in core, and the processor regenerated — the event path is now `clock` and `eventLogger` only.
+
+**Measured, it is worth nothing this harness can resolve:** text 160.2 → 157.5, binary 66.6 → 65.7, with
+run-to-run spreads of 12 ns and 5 ns respectively. So **≤ ~3 ns and inside noise.**
+
+The change stays, for the reasons `LOWEST_LATENCY`'s own documentation already gives for its two
+zero-measured settings: the generated code is smaller and the declaration is truthful. It is **not** a
+performance claim and must not be quoted as one.
+
+*(Regenerating also caught a stale toolchain: the first attempt used the `~/.m2` builder jar and emitted
+`nodeNameLookup.eventReceived` — pre-W15 output. A measurement against that would have shown a bigger
+"win" from a compiler that was simply older.)*
