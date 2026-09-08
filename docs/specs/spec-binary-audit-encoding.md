@@ -245,183 +245,47 @@ the id table ships with the processor, and [`spec-binary-audit-reader.md`](spec-
 §3's wire dictionary becomes a convenience for self-describing files rather than a correctness
 requirement. Retained as a **reader** requirement, dropped from the performance path.
 
-## 7B. Generate the audit writer — measured 4.6× on native audit cost
+## 7B. `BinaryEventLogger` — IMPLEMENTED in the runtime, no generation needed
 
-**Status: PROPOSED, with a measured ceiling.**
+**Status: IMPLEMENTED.** Earlier drafts of this section proposed generating an audit writer into the
+event processor. **That is not necessary and would not have worked.**
 
-`fluxtion-runtime` targets Java 8 (animal-sniffer enforced), so the `VarHandle` value stores worth
-34.5 ns on native cannot ship in core. Two ways past that:
+### 7B.1 Why not generated
 
-1. a multi-release jar or separate module — recovers the value-encoding term only;
-2. **emit the writer into the generated processor** — the generated source is compiled by the *user's*
-   toolchain, so the Java version constraint does not apply to it at all.
+Nothing about the logger varies per processor: the node id is a constructor argument, the record type is
+`BinaryLogRecord` for every binary processor, and `BinaryLogRecord` is `final` — so a field of that type
+devirtualises in the runtime exactly as it would in generated code.
 
-### 7B.1 Why option 2 is not just a workaround
+And generating it would not have reached `VarHandle`. The value stores live *inside*
+`BinaryLogRecord`, which is core and Java 8, so a generated logger calling `addRecord` still reaches the
+byte loop. Reaching `VarHandle` needs the **stores** to move out of core, not the logger.
 
-The generator knows the node name, the property key and the record layout at build time. So
-`auditLog.info("v", v)` can become a few stores at a constant offset: **no call, no name lookup, no
-virtual dispatch to a record**. That addresses all three terms the decomposition found, not one.
+### 7B.2 What it is worth
 
-| term (native) | ns | multi-release jar | generated writer |
-|---|---:|:---:|:---:|
-| dispatch — virtual call to the record | 27.58 | ✗ | **✓** |
-| name resolution | ~0 (already fixed) | — | **✓** ids become literals |
-| value encoding | ~37 | **✓** | **✓** |
+`EventLogManager` pairs a binary record with `BinaryEventLogger` automatically. One binary per
+toolchain, record chosen by a runtime property, records verified identical:
 
-### 7B.2 Measured ceiling
+| | audit cost, generic logger | with `BinaryEventLogger` | saved |
+|---|---:|---:|---:|
+| JIT | 41.73 | 41.45 | **0.28 ns — 1%** |
+| **native** | **148.19** | **88.43** | **59.76 ns — 40%** |
 
-A hand-written stand-in for generated output, 30-node converging graph, every node logging:
+**The asymmetry is the result.** HotSpot devirtualises `addRecord` by profiling, so it needs nothing;
+native cannot speculate, so it gained 40%. Native/JIT audit cost: **3.55× → 2.12×**.
 
-| | JIT | native |
-|---|---:|---:|
-| audit cost, through the API today | 33.62 | 65.70 |
-| **audit cost, inline** | **9.29** | **14.24** |
-| total | 30.04 | **32.02 — 31.2M msg/sec** |
+### 7B.3 The default-versus-option question disappears
 
-**It is a ceiling, not a promise.** The stand-in has no level check, no record swap, no sink contract
-and no header or terminator; real generated code adds some back.
+There is no option to make. The specialised logger is selected automatically whenever the record is
+binary, costs nothing on JIT, and **generates no classes**, so the code-cache question does not arise.
 
-!!! danger "Correction — the generator cannot see property keys"
-    §7B.2's 14.24 ns ceiling was measured by editing the node source. **A generator cannot do that.**
-    The property key is a literal inside the node's own method body (`auditLog.info("v", v)`), and
-    `fluxtion-generator-core` contains **zero** bytecode analysis — it never reads a node's method
-    bodies. Node *names* are known and emitted as literals; keys are not.
+### 7B.4 What is still out of reach, and what it is worth
 
-    So the ceiling is withdrawn as an achievable target. What remains reachable is §7B.3 below: a
-    **generated `EventLogger` subclass per logging node**, emitted from the Java template.
+`VarHandle` value stores need the stores out of core — a generated writer or a multi-release jar.
+Measured separately: **−34.5 ns native, +8.6 ns JIT**, so it must stay native-only if pursued.
 
-    Reaching the full ceiling needs something that sees node method bodies: an annotation processor on
-    user sources, bytecode transformation, or an API change that moves the key out of the call site.
-    None is proposed.
-
-### 7B.2a Where it is generated, and how far it reaches
-
-`SimpleEventProcessorModel` holds every node name; `javaTemplate.vsl` can carry a section that fires
-when the audit auditor is present; the model has the live node instances, so
-`node instanceof EventLogSource` identifies the logging ones at build time exactly as
-`EventLogManager.nodeRegistered` does at runtime.
-
-**And since §7 made the record format a build input, the generator knows the concrete record class** —
-so the emitted writer calls it directly, with no virtual dispatch to the `LogRecord` base.
-
-| term | native ns | reachable from the template? |
-|---|---:|---|
-| `VarHandle` value stores | ~34.5 | **yes** — generated code is compiled by the user's toolchain, not core's Java 8 build |
-| `LogRecord.addRecord` virtual call | most of 27.58 | **yes** — the record class is a build input |
-| `auditLog.info` virtual call | remainder | no — `EventLogNode.auditLog` is typed `EventLogger`; ~2 ns |
-| name resolution | ~0 | already once-per-node (§7A) |
-
-**Estimated 50–55 ns of the 65.70 ns native audit cost**, against a measured ceiling of 51.5 — most of
-the way, without reading a single node method body. **This is arithmetic on measured terms, not a
-measurement.**
-
-### 7B.2b Model-first, so the template is replaceable
-
-**Constraint (owner, round 63 §25): everything goes into the model; the template generates from it; the
-Java template must be replaceable with another target-language template.**
-
-Today the model hands the template **pre-rendered Java statements** — `String.format("%8s%s.eventReceived(typedEvent);%n", …)`
-— and one Java template exists with two Velocity directives in it. So the separation is a direction of
-travel, not the current state, and a design that adds more Java-string-building to
-`JavaSourceGenerator` moves away from it.
-
-The audit writer is small, self-contained and new, so it can be built model-first without first
-migrating the existing dispatch code.
-
-**Model — declarative, no target language:**
-
-```
-auditPlan:
-  recordFormat : TEXT | BINARY
-  entryLayout  : [nodeId:u16, keyId:u16, tag:u8, value:<by type>]
-  writers:
-    - nodeName: "c1_0"   nodeId: 17
-    - nodeName: "t5"     nodeId: 23
-```
-
-**Template — the only place a language appears.** A Java target emits **one** logger class; a C++ target
-would take the same plan and use metaprogramming (`template<int NodeId> struct AuditWriter`),
-specialising in *its* compiler rather than in the generator. The plan does not change between them,
-which is what makes it replaceable.
-
-```velocity
-private static final class GeneratedAuditLogger extends EventLogger {
-    private final int nodeId;                            // per instance, free since §7A
-    private final ${MODEL.auditPlan.recordClass} rec;    // concrete — format is a build input
-    …
-}
-```
-
-!!! warning "Emit ONE logger class, not one per node — and not a nested class"
-    `StringCompilation` creates a **single** `JavaByteObject` per class name; its batch path
-    pre-populates outputs for top-level names only and sends everything else to **one shared**
-    `fallbackOutput`. So nested classes compiled from a single source overwrite each other and cannot be
-    loaded by name. A per-node nested writer class would break the in-memory
-    `EventProcessorFactory.compile()` path used by tests and interpreted mode.
-
-    The AOT path is unaffected — it writes source to disk and the user's build compiles it — but the
-    in-memory path is how most of the suite runs.
-
-    It is also unnecessary: the per-node part (the node id) is already free after §7A, and the two terms
-    worth generating — `VarHandle` stores and the concrete record type — are **not** per-node. One
-    top-level class captures both, and the batch compile path already accepts multiple sources.
-
-    Fixing `StringCompilation` to create outputs on demand is worth doing regardless: **any** generated
-    nested class hits this today.
-
-### 7B.2c How many classes, and default or option
-
-**One generated class per processor, not per node.** The node id is a constructor argument (free since
-§7A); nothing else in the writer varies by node. A 30-node graph generates one extra class instantiated
-30 times.
-
-**But only one of the three wins needs generation:**
-
-| | needs generation? | measured |
-|---|---|---|
-| concrete record type (removes the virtual `addRecord`) | **no** — a core `BinaryEventLogger` with a `BinaryLogRecord` field | part of 27.58 ns, **not isolated** |
-| `VarHandle` value stores | **yes** — core targets Java 8 | native **−34.5 ns**, JIT **+8.6 ns** |
-| node id as a literal | no | free since §7A |
-
-**So the recommendation is a split:**
-
-- **core `BinaryEventLogger`, default** — concrete record field, byte-loop stores, no generation, no
-  extra class, helps **both** toolchains;
-- **generated logger, compiler option, off by default** — adds `VarHandle`; **native only**, and it
-  costs JIT 8.6 ns.
-
-This mirrors how the toolchain already handles native-specific work: the inlining directive is emitted
-always and matters only for native. It also keeps the default path free of generated classes entirely.
-
-!!! warning "One measurement should precede this decision"
-    The virtual `addRecord` call has **not been isolated** from the 27.58 ns dispatch term, which also
-    contains the `auditLog.info` call and the level check. If `addRecord` is most of it, the core-only
-    option captures most of the win. If it is little, generation carries more of the value. **One arm —
-    an `EventLogger` holding a concrete record field — settles it.**
-
-### 7B.3 Normative
-
-1. The **model** MUST carry a declarative `auditPlan` — record format, record class, entry layout, and
-   one entry per logging node with its name and id. It MUST contain **no target-language source**, and
-   MUST NOT assume how a target chooses to specialise: a Java target emits a class, a C++ target may
-   use metaprogramming, and the plan is identical for both.
-2. The **template** MUST render the writer from that plan. The Java template MUST emit **one top-level
-   logger class**, not one per node and not a nested class — see the warning above. Property keys MUST still be resolved
-   through `LogRecord.internName`, once per logger, because the generator cannot see them.
-3. `EventLogManager` MUST gain a factory hook so a generated processor can supply its own
-   `EventLogger` instances; today it constructs them directly.
-4. The Java template MUST gain a slot for generated members, and a section that emits the writers only
-   when the audit auditor is present — a processor with no audit log MUST be byte-identical to today's.
-5. It MUST fall back to the stock `EventLogger` for anything it cannot resolve — dynamic keys,
-   hand-written nodes, `Object` values. **The API is not replaced.**
-6. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
-   contract, so a generated processor and an interpreted one produce the same records.
-7. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
-
-### 7B.4 It supersedes the multi-release jar
-
-If §7B lands, core does not need a `VarHandle` path, because the hot writer is no longer in core.
-Recorded so the multi-release-jar option is not pursued in parallel.
+**Predicted** (round 63 §28.4, not measured): native audit cost **50–58 ns**, closing native/JIT to
+~1.3×, with the combined saving coming in **under** 34.5 ns because that figure was measured against a
+virtual `addRecord` that is now direct.
 
 ## 8. Out of scope for core — the Mongoose side
 
@@ -463,7 +327,8 @@ This cuts both ways and both are worth saying:
 | 8 | **name resolution in `EventLogger`** (§7A) — **DONE**, −24% JIT / −57% native audit cost | core | — |
 | 9 | **`VarHandle` value stores in the encoder** — **measured 25.9% off native**, done in the prototype | core | 4 |
 | 10 | build-time ids as a **reader** convenience (§7A.4) | compiler | 8 |
-| 11 | **generated `EventLogger` per node from the Java template** (§7B) — est. **50–55 ns of 65.70** native; retires the multi-release-jar option because the writer leaves core either way | compiler + core | 8 |
+| 11 | **`BinaryEventLogger`** (§7B) — **DONE**, 40% off native audit cost, no generation | core | — |
+| 12 | `VarHandle` stores out of core (§7B.4) — native-only, est. under 34.5 ns | compiler | 11 |
 
 1, 2, 3 and 7 are independently shippable. 6 is the one that must wait for a reader.
 

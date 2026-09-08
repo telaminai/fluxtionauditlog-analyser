@@ -314,7 +314,8 @@ min of 8 interleaved reps.
 | dirty filtering, **no audit** | **7.7 ns** | **7.6 ns** | native 25.66 → 18.02 |
 | dirty filtering, **with audit** | ~0 | **~0** | 144.11 vs 142.83 — inside the ±8 ns lottery |
 | per-node method tracing | ~184 ns | — | the expensive half of auditing |
-| the audit record itself (binary) | ~35 ns | ~98 ns | after the id-path fix; 11.75 entries/event |
+| the audit record itself (binary) | ~35 ns | **~70 ns** | after the id-path fix and `BinaryEventLogger` |
+| a concrete record field (`BinaryEventLogger`) | **0.3 ns** | **59.8 ns** | automatic when the record is binary — HotSpot devirtualises anyway, native cannot |
 | the audit record itself (text) | ~384 ns | ~681 ns | **7.0× the binary record** at this density |
 | name resolution before the id-path fix | 26 ns | 27 ns | **now ~0** — resolved once per node |
 | `VarHandle` value stores vs a byte loop | **−8.6 ns** (worse) | **+34.5 ns** (better) | core ships the byte loop; it targets Java 8 |

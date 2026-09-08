@@ -2280,3 +2280,65 @@ extra. If it is little, generation carries more of the value and the option matt
 
 **That measurement is one arm — an `EventLogger` holding a concrete record field — and it should be
 taken before the default is chosen.** Recorded as the open question, not guessed at.
+
+## 28. `BinaryEventLogger` in the runtime — 40% off native audit, and no generation needed
+
+The owner's question: *if it is one per processor, can we have them in the runtime — do we need to
+generate?*
+
+**No generation is needed, and §24–27 were solving a problem that does not exist.**
+
+### 28.1 Why the runtime is the right home
+
+Nothing about the logger varies per processor:
+
+- the **node id** is a constructor argument — per instance, not per class;
+- the **record type** is `BinaryLogRecord` for every binary processor;
+- **`BinaryLogRecord` is `final`**, so a field of that type devirtualises in the runtime exactly as it
+  would in generated code.
+
+And generating it would not have bought what §24 claimed. The value stores live *inside*
+`BinaryLogRecord`, which is core and Java 8 — so a generated logger calling `addRecord` still reaches
+the byte loop. **`VarHandle` is not reachable by generating the logger**; it needs the stores themselves
+to move, which is a different and more invasive design.
+
+### 28.2 Results — the §27.4 measurement, finally taken
+
+`BinaryEventLogger extends EventLogger` holds the record as a concrete `BinaryLogRecord`, so the
+per-entry write is a direct call. One binary per toolchain, record chosen by a runtime property, so
+exactly one variable moves. Records verified identical (180.8 B, matching checksum).
+
+| | audit cost, generic logger | with `BinaryEventLogger` | saved |
+|---|---:|---:|---:|
+| JIT | 41.73 | 41.45 | **0.28 ns — 1%** |
+| **native** | **148.19** | **88.43** | **59.76 ns — 40%** |
+
+**The asymmetry is the result.** HotSpot already devirtualises `addRecord` by profiling, so it gains
+nothing and needs nothing. Native cannot speculate, so it gained 40% — and now does not have to.
+
+That answers §27.4's open question: **the virtual `addRecord` call was most of the dispatch term on
+native**, and it is removable in the runtime for free. It also settles §27.3's default-versus-option
+question in the simplest possible way — **there is no option to make.** The specialised logger is
+selected automatically whenever the record is binary, costs nothing on JIT, and generates nothing.
+
+### 28.3 Where that leaves native
+
+| | JIT | native | ratio |
+|---|---:|---:|---:|
+| audit cost before | 41.73 | 148.19 | 3.55× |
+| **audit cost now** | **41.45** | **88.43** | **2.12×** |
+
+### 28.4 Predictions for the one combination core cannot reach
+
+`BinaryEventLogger` + `VarHandle` stores needs the stores out of core — generated code or a
+multi-release jar. Measured separately, `VarHandle` was worth **−34.5 ns native, +8.6 ns JIT**.
+
+| # | Prediction | Basis |
+|---|---|---|
+| P1 | native audit cost lands **50–58 ns**, closing native/JIT to **~1.3×** | 88.43 − ~34 |
+| P2 | the terms do **not** compose fully — the combined saving comes in **under 34.5 ns** | the 34.5 was measured against a *virtual* `addRecord` that is now direct |
+| P3 | JIT still **loses** 8.6 ns to `VarHandle`, so it stays a native-only option | §21.3 |
+
+**P2 is the one most likely to be wrong in an interesting direction.** This round has repeatedly found
+terms that did not compose the way arithmetic predicted — the escaping processor, the guards, the
+inlining directive.
