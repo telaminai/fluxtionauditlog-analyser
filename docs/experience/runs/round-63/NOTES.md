@@ -2645,6 +2645,12 @@ Current native audit cost is **29.6 ns** for 11.75 entries — **2.52 ns per log
 
 ## §33 The ceiling, measured — and what the ordinal experiment actually proved
 
+!!! warning "Superseded by §34"
+    Every figure in this section was measured against a record whose hot path had two structural faults,
+    found by profiling it in §34. The *method* here stands — the arms, the Z4 gate, three builds per
+    arm — and the conclusions about the ordinal path do not: after §34 the ordinal arm is **slower** than
+    the String arm it was built to beat. Read §34 before quoting anything below.
+
 §32 predicted; this section reports. All six arms below were built against **one** runtime digest
 (`rt:967d277e33`), on harness `h5`, with `-H:-SpawnIsolates`, PGO collected per image, min of 6 batches,
 measured on an idle machine. Every audited arm was gated on Z4 first: **identical records**
@@ -2795,3 +2801,150 @@ Bytecode rewriting earns its complexity only where source is unavailable — thi
 jars — and there it buys the same 12%-of-audit-cost prize at considerably higher cost. It is not the next
 thing to do. The next thing to do is the local-versus-escaping pair in §33.3, because until the other 89%
 is attributed, nobody can say what optimising it would even mean.
+
+
+---
+
+## §34 Profiling the record — the two faults that made the call sites look expensive
+
+§33 concluded that specialising call sites was worth 12% of native audit cost and that "what dominates
+the other 88% is not yet attributed". This section attributes it, by profiling the class rather than
+reasoning about it.
+
+### 34.1 The profile
+
+JFR, `settings=profile`, JIT, 40M events on the 30-node converging graph, every node logging. 139
+samples of the steady state:
+
+| leaf frame | samples | share |
+|---|---:|---:|
+| `EventLogger.keyRef(String)` | 49 | **37%** |
+| `java.util.IdentityHashMap.get(Object)` | 25 | **19%** |
+| `ConvProcessor.handleEvent(E0…E4)` | 43 | 33% |
+
+**56% of the audited hot path was resolving names that never change.** The dispatch the processor exists
+to do was a third of it.
+
+Attributing the map lookups gave the first fault immediately:
+
+```
+java.util.IdentityHashMap.get   <-   BinaryLogRecord.intern(String)
+                                <-   BinaryLogRecord.header(Class)
+                                <-   BinaryLogRecord.triggerObject(Object)
+```
+
+### 34.2 Fault 1 — the event type was interned through the map, once per event
+
+`BinaryLogRecord` has a 256-entry open-addressed identity table (`tableId`) built precisely to avoid the
+`IdentityHashMap`. Node names and key names went through it. The **event type**, resolved on *every
+event*, called `intern()` directly and went to the map.
+
+```java
+eventTypeId = intern(type.getName());     // an IdentityHashMap lookup per event
+eventTypeId = tableId(type.getName());    // one probe of the table that already existed
+```
+
+`Class.getName()` returns the same cached `String` reference each call, so the identity table resolves it
+in one probe. **A one-line change.** The fast path existed; the hottest caller was not using it.
+
+### 34.3 Fault 2 — thirty loggers, ninety objects, one answer
+
+`keyRef` at 37% is not the shape of "one reference compare", which is what it looked like in source:
+
+```java
+for (int i = 0; i < keyCount; i++) {
+    if (keyNames[i] == key) { return keyRefs[i]; }
+}
+```
+
+It is the shape of chasing pointers. **Every node has its own `EventLogger`**, and each held its own
+`keyNames` String[4] and `keyRefs` int[4]. Resolving one key touched three cache lines — the logger, and
+its two arrays. At 11.75 entries per event that is **~35 cache-line touches per event** to answer a
+question whose answer is fixed after warm-up.
+
+The record itself is *not* the problem, and it is worth being precise about that because it was the first
+suspect. `EventLogManager` holds **one** `LogRecord` and hands the same reference to every logger it
+builds, so all 30 loggers write into one `slots` array — 188 sequential bytes, three cache lines, shared.
+That design is right. The scatter was one level out, in the per-logger id caches.
+
+The first two keys are now **fields** on the logger, which had to be loaded anyway; a spill array keeps
+more than two correct rather than fast.
+
+### 34.4 Fault 3 — a decision made once, re-checked 11.75 times per event
+
+With the first two fixed, the profile's remaining audit frame was `useIds()`, at 13%:
+
+```java
+protected boolean useIds() {
+    if (!idsResolved) { idsResolved = true; sourceRef = logrecord.internName(logSourceId); … }
+    return idsUsable;
+}
+```
+
+Two boolean field loads and two branches, per entry, to re-decide something decided on the first call.
+The logger receives both the record and the node name **in its constructor**, so there was never anything
+to wait for. Resolving there makes `useIds()` a single field read.
+
+The risk eager resolution introduces is a logger resolved against one record and writing into another —
+ids are per-record. `EventLogManager.updateLogRecord()` builds fresh loggers whenever the record changes,
+so the contract holds; `BinaryRecordHotPathTest` now pins it.
+
+### 34.5 A redundant store, and a gap found on the way
+
+`writeSlots` wrote `firstProp = false` on every entry. It exists so `terminateRecord()` can answer "did
+anything get logged", and on the id path `slot` already answers it — so the store was pure repetition,
+11.75 times per event. `terminateRecord` now reads `slot > 0 || !firstProp`, which covers both paths.
+
+Writing the test for that surfaced a **pre-existing** defect, confirmed against the previous commit:
+`addTrace` writes into the byte buffer, which `length()` does not describe, and never marks the record as
+having content. **A trace-only binary record neither publishes nor carries visible bytes.** It is not
+fixed here — the fix is a new entry tag, and the record layout is normatively specified with its own
+conformance suite, so it is a format change rather than a hot-path change. `LOW_LATENCY_AUDIT` disables
+tracing, which is why nothing noticed. `BinaryRecordHotPathTest.traceEntriesAreInvisibleInABinaryRecord`
+asserts the gap so it cannot be lost.
+
+### 34.6 The result
+
+Same graph, same events, byte-identical records, three independent native builds per arm.
+
+| arm | JIT before | JIT after | native before | native after |
+|---|---:|---:|---:|---:|
+| no audit | 12.879 | 13.410 | 2.104 | 2.104 |
+| **String keys — what ships** | 56.264 | **42.605** | 48.61 | **42.73** |
+| ordinal keys | 49.688 | 44.063 | 45.88 | 45.99 |
+| ceiling | 45.943 | 43.972 | 42.95 | 39.09 |
+
+| | JIT | native |
+|---|---:|---:|
+| shipped arm | −13.66 ns (**−24%**) | −5.88 ns (−12%) |
+| **audit cost** | 43.39 → **29.20** (**−33%**) | 46.51 → 40.63 (−13%) |
+| throughput | **23.5 M/s** | **24.2 M/s** (best build 24.19) |
+
+### 34.7 The ordinal optimisation became a pessimisation
+
+This is the finding worth carrying forward.
+
+**On native the ordinal arm is now 3.26 ns SLOWER than the String arm, on 9 of 9 build pairings.** On JIT
+it is 1.46 ns slower. The reason is direct: `keyRef` is now two reference compares against fields, while
+`ordinalRef(i)` is an array load with a bounds check and an UNRESOLVED test. Once the field form existed,
+the array indirection the ordinal path depends on cost more than the lookup it replaced.
+
+So §33's headline — "specialising call sites is worth 12% of native audit cost" — was measuring the cost
+of a fixable data-structure fault, not a property of the call sites. **The code model would have
+optimised around a bug.**
+
+The ceiling still leads on native (39.09 against 42.73, 8 of 9 pairings, 3.64 ns) because it removes the
+logger object from the entry path entirely. But that is now a 3.6 ns question, not a 5.7 ns one, against
+a moving floor — and two rounds of profiling have each found more in the data structure than the call
+sites were ever worth.
+
+### 34.8 What this says about the method
+
+Round 63 spent its length on harness discipline: interleaving, build lotteries, runtime digests, refusing
+unrepeatable results. All of that was necessary and none of it would have found any of this. **A
+benchmark tells you a number; a profile tells you which line produced it.** The three faults here were
+each visible in one profile of one class, and each had been sitting under every audited figure in this
+document — including the ones used to argue about a code model.
+
+The order that would have saved the most work: profile the implementation, fix what the profile names,
+*then* measure whether the remaining structure is worth changing.

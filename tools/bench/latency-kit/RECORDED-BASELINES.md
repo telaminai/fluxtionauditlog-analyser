@@ -146,6 +146,11 @@ Hold every other column in `binaries.tsv` equal; the difference is then attribut
 
 ## The code-model ceiling (round 63 §33) — harness h5
 
+!!! danger "Superseded by §34 below — these ran against a record with three hot-path faults"
+    The comparison method here stands. The conclusion does not: after the record was profiled and fixed,
+    the ordinal arm became **slower** than the arm it was built to beat. Kept because a superseded
+    baseline that is labelled is evidence, and a deleted one is a gap.
+
 How much of audit cost is reachable by specialising the call sites, measured rather than argued. Four
 arms differing **only** in how a node reaches the record; records byte-identical (188 B, one per event),
 checksum equal, one runtime digest, and — for native — **three independent PGO builds per arm**, because
@@ -181,3 +186,41 @@ removed code that was constraining the compiler, and the lottery widened with it
     in the round was worth more than every source-level change measured after it, and a control whose
     band still passes is doing its job even when a better configuration exists. **Compare like with
     like: the current audited arm is `c-audit-string`.**
+
+
+## After profiling the record (round 63 §34) — harness h5
+
+A JFR profile of the audited JIT path put `EventLogger.keyRef` at **37%** of samples and
+`IdentityHashMap.get` at **19%** — 56% resolving names that never change. Three fixes followed: the event
+type resolved through the identity table that already existed instead of the fallback map; the first two
+key ids held as fields on the logger instead of two per-logger arrays; the node id resolved in the
+logger's constructor instead of re-checked per entry. A redundant per-entry boolean store went with them.
+
+| arm | JIT before | JIT after | native before | native after |
+|---|---:|---:|---:|---:|
+| no audit | 12.879 | 13.410 | 2.104 | 2.104 |
+| **String keys — ships today** | 56.264 | **42.605** | 48.61 | **42.73** |
+| ordinal keys | 49.688 | 44.063 | 45.88 | 45.99 |
+| ceiling | 45.943 | 43.972 | 42.95 | 39.09 |
+
+Native columns are the mean of three independent PGO builds. Post-fix native detail —
+str: 43.737 · 41.341 · 43.119 · ord: 46.999 · 46.452 · 44.504 · ceil: 38.564 · 36.424 · 42.291.
+
+| | JIT | native |
+|---|---:|---:|
+| shipped arm | −13.66 ns (**−24%**) | −5.88 ns (−12%) |
+| **audit cost over the same-graph no-audit arm** | 43.39 → **29.20** (**−33%**) | 46.51 → 40.63 (−13%) |
+| throughput | **23.5 M/s** | **23.4 M/s** (best build 24.19) |
+
+**AOT and JIT are now level on the audited path** — 42.7 against 42.6. The 1.5–1.9× native deficit
+recorded through this whole round was never a property of the toolchain: it was the JIT speculating its
+way through pointer-chasing that closed-world compilation had to execute.
+
+**The ordinal arm is now a pessimisation**: 3.26 ns slower than the shipped arm on native (9 of 9 build
+pairings) and 1.46 slower on JIT. `keyRef` is two reference compares against fields; `ordinalRef` is an
+array load with a bounds check and a resolved-test. The optimisation was worth something only while the
+thing it replaced was broken.
+
+**The ceiling still leads on native** — 39.09 against 42.73, 8 of 9 pairings, 3.64 ns — by removing the
+logger object from the entry path entirely. That is the honest remaining headroom, and it is smaller than
+what profiling found twice.

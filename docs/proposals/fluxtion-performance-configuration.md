@@ -75,11 +75,18 @@ the disk or network write**. Two audit densities, because it turns out to be the
 | one node logs | text | 147.2 | 6.8 | — | — | 193 |
 | one node logs | binary | 47.6 | 21.0 | 70.9 | 14.1 | 54 |
 | **every node logs** | text | 403.0 | 2.5 | 698.6 | 1.4 | 548 |
-| **every node logs** | **binary** | **~57.5** | **~17.4** | **63.8** | **15.7** | 188 |
+| **every node logs** | **binary** | **42.6** | **23.5** | **42.7** | **23.4** | 188 |
 
 The binary row is the current core implementation: `LOW_LATENCY_AUDIT`, `BinaryEventLogger`, and a
-record writing `long` slots. **Audit cost is ~37.8 ns on JIT and 46.8 ns on native**, on a baseline of
-19.7 / 17.0.
+record writing `long` slots. **Audit cost is 29.2 ns on JIT and 40.6 ns on native**, on a same-graph
+no-audit baseline of 13.4 / 2.1. Native is three independent PGO builds, mean.
+
+!!! success "These figures improved 24% on JIT after the record was profiled rather than benchmarked"
+    The dense binary row previously read 57.5 / 63.8 ns. Three faults in the audit hot path — an
+    `IdentityHashMap` lookup per event, per-logger key caches scattered across three cache lines per
+    entry, and a resolved-once decision re-checked per entry — accounted for **56% of profile samples**
+    between them. None was visible in any benchmark; all three were visible in one profile. See round 63
+    §34. The audited path is now **level between JIT and native**, which it had never been.
 
 !!! note "Why the native figures carry more precision than the JIT ones"
     Measured repeatability of the reported minimum, three batches of six:
@@ -94,78 +101,68 @@ record writing `long` slots. **Audit cost is ~37.8 ns on JIT and 46.8 ns on nati
     the tail rather than the median, that flatness is a result in its own right.
 
 - **The record format is most of the cost, and its importance grows with audit density.** Binary beats
-  text by 3.2× when one node logs and **5.1× when every node does**. Per logged value the marginal cost
-  is **26.2 ns for text against 3.4 ns binary** — the text record formats a node name, a key and a
-  double *inside the event cycle*.
-- **Native AOT is 1.5–1.9× slower here**, and the gap widens with audit density. It has a much tighter
-  spread (~1.5 ns against ~7), so it is the right choice when tail latency matters more than median
-  throughput — but on this workload it is not the faster one. Receiver provability does not explain it:
-  a monomorphic image measures 151.5 ns against 149.5 polymorphic.
-- **These numbers replace an earlier version of this section** that reported 20.1M/s and AOT ahead of
-  JIT. That was measured against a `LOW_LATENCY_AUDIT` profile which had **silently disabled the audit
-  log** — see the checklist entry below, and round 63 §12.
+  text by 3.2× when one node logs and **9.5× when every node does**. The text record formats a node
+  name, a key and a double *inside the event cycle*.
+- **AOT and JIT are now level on the audited path** — 42.7 against 42.6 ns. They were not before §34:
+  native was 1.5–1.9× slower, and that gap was never a property of the toolchain. It was the JIT hiding
+  a data-structure fault that AOT could not: HotSpot speculates its way through pointer-chasing that
+  closed-world compilation has to actually execute. Fixing the structure closed the gap from both ends.
+  Native keeps its much tighter spread, so it remains the choice when tail latency matters.
+- **This section has now been wrong twice, in opposite directions.** It once reported 20.1M/s with AOT
+  ahead of JIT, measured against a `LOW_LATENCY_AUDIT` profile that had **silently disabled the audit
+  log** (round 63 §12). It then reported AOT 1.5–1.9× behind, measured against a record with three
+  faults in its hot path (§34). The first was caught by asserting `recPerEvent > 0`; the second by
+  profiling. Neither was caught by more careful benchmarking, and the harness discipline in between —
+  interleaving, build lotteries, runtime digests — would not have found either.
 
 ### How much is left on the table — the ceiling, measured
 
 A recurring question is whether a code model or bytecode pass over the generated processor could replace
 the generic audit calls with specialised ones and close the remaining gap. The ceiling was measured
-rather than argued.
+rather than argued — and the answer changed once the implementation underneath it was profiled.
 
-Four arms, one runtime build, identical graph, identical events, and — checked before every run —
-**identical records** (188 bytes, one per event) and identical checksum. The only thing that varies is
-how a node reaches the record.
+Four arms, identical graph, identical events, and — checked before every run — **identical records**
+(188 bytes, one per event) and identical checksum. The only thing that varies is how a node reaches the
+record. Each native arm was built **three times** with an independent PGO collection, because the audited
+build lottery (±8 ns) is larger than the effect.
 
-Each native arm was built **three times**, with an independent PGO collection each time. The build lottery
-on an audited graph is ±8 ns, which is larger than the effect being measured, so a single build per arm
-proves nothing however repeatable that one binary is.
+| arm | what is on the audit path | JIT ns | native mean |
+|---|---|---:|---:|
+| no audit | audit machinery not generated at all | 13.410 | 2.104 |
+| ceiling | record bound to the node: no logger, no key lookup, no level guard | 43.972 | **39.09** |
+| ordinal keys | `declareKeys` once, then `auditLog.info(0, v)` | 44.063 | 45.99 |
+| **String keys** | `auditLog.info("v", v)` — what ships today | **42.605** | **42.73** |
 
-| arm | what is on the audit path | JIT ns | native, 3 builds | native mean |
-|---|---|---:|---|---:|
-| no audit | audit machinery not generated at all | 12.879 | 2.104 | — |
-| **ceiling** | record bound to the node: no logger, no key lookup, no level guard | **45.943** | 46.4 · 44.5 · 37.9 | **42.95** |
-| ordinal keys | `declareKeys` once, then `auditLog.info(0, v)` | 49.688 | 46.8 · 46.9 · 43.9 | **45.88** |
-| String keys | `auditLog.info("v", v)` — what ships today | 56.264 | 50.0 · 47.0 · 48.8 | **48.61** |
+!!! danger "Do not specialise these call sites — the shipped path is now the fastest on JIT"
+    On JIT, `String` keys beat both alternatives. On native the ceiling still leads by 3.6 ns (8 of 9
+    build pairings), but **ordinal keys are 3.3 ns SLOWER than the shipped path on 9 of 9**.
 
-**The entire prize for specialising the call sites is 10.3 ns on JIT and 5.7 ns on native** — 24% and 12%
-of audit cost. Both ordinal and ceiling beat the shipped arm on **9 of 9** build pairings; ceiling versus
-ordinal wins only 6 of 9 and is **not** separated by three builds. Ordinal keys, which are a **source**
-change you can make today, capture about half of the prize:
+    An earlier version of this section reported the opposite, with a prize of 10.3 ns on JIT and 5.7 on
+    native. Those numbers were real, and they were measuring **a data-structure fault, not a property of
+    the call sites**. `keyRef` used per-logger arrays, so resolving a key touched three cache lines;
+    ordinals replaced that lookup with an array index and won. With the first two keys held as fields on
+    the logger, the lookup is two reference compares — and the ordinal path's own array load, bounds
+    check and resolved-test now cost more than what it replaced.
 
-```java
-@Override public void setLogger(EventLogger log) {   // setLogger, NOT @Initialise — see below
-    super.setLogger(log);
-    log.declareKeys("v");
-}
+    **The code model would have optimised around a bug.** See round 63 §34.
 
-public void on(MyEvent e) { v = e.v; auditLog.info(0, v); }   // ordinal, not "v"
-```
+The ordinal API remains in the runtime, tested and correct, because a node logging more than two distinct
+keys still spills to the array form. It is not the default and it is not recommended.
 
-The record written is byte-for-byte what the `String` call writes, so nothing downstream can tell the
-difference — an ordinal names a key, it is not a second wire format.
-
-!!! note "Why the ceiling is not a target"
-    The gap between the ceiling and the no-audit arm is ~41 ns on native, and it would be wrong to read
-    that as the cost of the two slot stores. The no-audit graph runs at **2.1 ns** because with nothing
-    holding node references Graal scalar-replaces the whole 30-node graph. Enabling audit does not just
-    add stores — it forecloses that optimisation graph-wide. Those two effects have not been separated,
-    so the honest statement is the one above: **12% of native audit cost is reachable by specialising
-    call sites, and what dominates the other 88% is not yet attributed.**
+!!! note "What still separates the ceiling: the logger object itself"
+    The ceiling arm's remaining 3.6 ns on native comes from removing the `EventLogger` from the entry
+    path entirely — the node holds the record and its ids as plain fields. That is a real effect and it
+    is the honest remaining ceiling. It is also a moving one: two rounds of profiling have each found
+    more in the data structure than the call sites were ever worth.
 
 !!! danger "`@Initialise` is the wrong hook for `declareKeys`"
     Nodes hold the shared `NullEventLogger.INSTANCE` until the manager installs a real logger, and
     `@Initialise` runs before that. Declaring keys there declares them onto a singleton every node in the
-    JVM shares. `setLogger` is the hook the logger actually arrives through. `NullEventLogger` now
-    swallows the ordinal API so the mistake is inert rather than fatal, but the resulting keys still go
-    nowhere.
+    JVM shares. `setLogger` is the hook the logger actually arrives through. `NullEventLogger` swallows
+    the ordinal API so the mistake is inert rather than fatal, but the keys still go nowhere.
 
-!!! warning "The ceiling is also the least predictable arm"
-    Across three builds the spread was **8.56 ns** for the ceiling against 2.95 and 2.97 for the other
-    two. Removing the logger removed code that was constraining the compiler's choices, and the build
-    lottery widened accordingly. The tight spread of the audited native path is one of the reasons to
-    choose it; the fastest arm here does not have it.
-
-**A diagnostic worth keeping.** The first version of the ordinal path measured a clear win on JIT and
-*nothing* on native. The cause was that `BinaryEventLogger` overrode only the `String`-key writes, so
+**A diagnostic worth keeping.** An early version of the ordinal path measured a clear win on JIT and
+nothing on native. The cause was that `BinaryEventLogger` overrode only the `String`-key writes, so
 ordinal writes went through the base class, whose record field is typed `LogRecord` — a **virtual**
 `addRecord` competing against a direct one. JIT profiles such a call monomorphic and inlines it; closed-
 world AOT cannot. **A change that helps JIT and does nothing on native is the signature of an indirection
@@ -376,7 +373,7 @@ pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile
 |---|:---:|:---:|:---:|:---:|
 | **Audit log** (records at all) | ✅ | ✅ | ✅ | ❌ |
 | **Binary record** (`AuditRecordFormat.BINARY`) | ❌ | ❌ | **✋ opt-in** | — |
-| **Ordinal audit keys** (`declareKeys` + `info(int, …)`) | ✋ | ✋ | ✋ | — |
+| **Ordinal audit keys** (`declareKeys` + `info(int, …)`) — *slower since §34, see above* | ✋ | ✋ | ✋ | — |
 | **Per-node method tracing** | ✅ | ✅ | ❌ | ❌ |
 | Event `toString()` in each record | ✅ | ❌ | ❌ | — |
 | Thread name in each record | ✅ | ❌ | ❌ | — |
@@ -423,8 +420,9 @@ how you start in the right one.
     can read is not a default. Choose `BINARY` when the command-line reader is the one you need.
 
 **Node code is identical either way.** `auditLog.info("v", v)` is unchanged — the format is chosen at
-build time, and `EventLogger` resolves each node and key name to an id **once per node** rather than
-once per event, which is worth 24% of the audit cost on JIT and 57% on native.
+build time, and `EventLogger` resolves each node and key name to an id **once per node** rather than once
+per event. The node id is resolved in the logger's constructor and the first two key ids are held as
+fields on the logger, so a write costs two reference compares and two aligned `long` stores.
 
 **Two rows carry a semantic consequence, not just a cost:**
 
@@ -477,6 +475,20 @@ one-FMA node, at about a **4% skip rate** for a node doing real work.
 
 Work down it. **Each item is silent when omitted** — the program stays correct and simply runs slower —
 so the only way to know you have them all is to check.
+
+**Before any of it: profile once.**
+
+- [ ] Take one JFR profile of the audited hot path before optimising anything else on this list.
+      `-XX:StartFlightRecording=filename=x.jfr,settings=profile`, then
+      `jfr print --events ExecutionSample --stack-depth 1 x.jfr` and count leaf frames.
+- [ ] **Expect the hot frames to be your node code.** If the top of the profile is the audit machinery,
+      that is the finding. On this page's own graph it was `EventLogger.keyRef` at 37% and
+      `IdentityHashMap.get` at 19% — **56% of the path resolving names that never change** — and three
+      one-to-ten-line fixes took the JIT figure down 24% (round 63 §34).
+- [ ] Every other item below was measured *before* that profile was taken. **A benchmark tells you a
+      number; a profile tells you which line produced it.** Two rounds of harness discipline here —
+      interleaving, build lotteries, runtime digests, refusing unrepeatable results — were all necessary
+      and none of them would have found any of the three faults.
 
 **Build**
 

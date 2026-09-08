@@ -14,15 +14,19 @@ c-profile-only	native	h5	15.0	18.4	$SP/nimg28/h5base -Diters=3000000 -Dwarm=5000
 c-audit-dense	jit	h5	40.6	58.4	"$JAVA_HOME/bin/java" -cp "$SP/conv2:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchConvLocal
 c-audit-dense	native	h5	56.7	69.3	$SP/nimg28/h5aud -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
 #
-# Round 63 §33 — the code-model ceiling. These three arms differ ONLY in how a node reaches the record;
+# Round 63 §33/§34 — the code-model ceiling, re-taken after the record was profiled.
+#
+# The §33 bands were recorded against a record with three faults in its hot path (an IdentityHashMap
+# lookup per event, per-logger key caches, a resolved-once decision re-checked per entry). Fixing them
+# moved the shipped arm 24% on JIT, so the old bands describe code that no longer exists. Retaken. These three arms differ ONLY in how a node reaches the record;
 # records are byte-identical (188 B, one per event) and the graph checksum matches, which is asserted by
 # the harness before a RESULT line is printed. Bands are the mean of three independent PGO builds +/-12%,
 # wider than the other controls because the audited build lottery (+/-8 ns) is larger than the effect.
-c-audit-noaudit	native	h5	1.8	2.4	$SP/nimg33/r33_none -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
-c-audit-noaudit	jit	h5	11.3	14.5	"$JAVA_HOME/bin/java" -cp "$SP/nonedir:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchNoneLocal
-c-audit-string	native	h5	42.8	54.4	$SP/nimg34/str2 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
-c-audit-string	jit	h5	49.5	63.0	"$JAVA_HOME/bin/java" -cp "$SP/conv2:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchConvLocal
-c-audit-ordinal	native	h5	40.4	51.4	$SP/nimg34/ord3 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
-c-audit-ordinal	jit	h5	43.7	55.7	"$JAVA_HOME/bin/java" -cp "$SP/ordir:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchOrdinalLocal
-c-audit-ceiling	native	h5	37.8	48.1	$SP/nimg34/ceil2 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
-c-audit-ceiling	jit	h5	40.4	51.5	"$JAVA_HOME/bin/java" -cp "$SP/ceildir:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchCeilingLocal
+c-audit-noaudit	native	h5	1.8	2.4	$SP/nimg36/nn1 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
+c-audit-noaudit	jit	h5	11.8	15.0	"$JAVA_HOME/bin/java" -cp "$SP/nonedir:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchNoneLocal
+c-audit-string	native	h5	37.6	47.9	$SP/nimg36/str2 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
+c-audit-string	jit	h5	37.5	47.7	"$JAVA_HOME/bin/java" -cp "$SP/conv2:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchConvLocal
+c-audit-ordinal	native	h5	40.5	51.5	$SP/nimg36/ord3 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
+c-audit-ordinal	jit	h5	38.8	49.4	"$JAVA_HOME/bin/java" -cp "$SP/ordir:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchOrdinalLocal
+c-audit-ceiling	native	h5	34.4	43.8	$SP/nimg36/ceil1 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
+c-audit-ceiling	jit	h5	38.7	49.3	"$JAVA_HOME/bin/java" -cp "$SP/ceildir:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchCeilingLocal
