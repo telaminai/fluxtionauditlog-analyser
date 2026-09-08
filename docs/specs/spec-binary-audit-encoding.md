@@ -288,26 +288,47 @@ and no header or terminator; real generated code adds some back.
     bodies. Node *names* are known and emitted as literals; keys are not.
 
     So the ceiling is withdrawn as an achievable target. What remains reachable is §7B.3 below: a
-    **generated `EventLogger` subclass per node**, which the generator can emit because it controls
-    which logger each node receives. Estimated at **35–45 ns of the 65.70 ns** native audit cost —
-    the `VarHandle` term plus part of the dispatch term — rather than the 51 ns the ceiling implied.
+    **generated `EventLogger` subclass per logging node**, emitted from the Java template.
 
     Reaching the full ceiling needs something that sees node method bodies: an annotation processor on
     user sources, bytecode transformation, or an API change that moves the key out of the call site.
     None is proposed.
 
+### 7B.2a Where it is generated, and how far it reaches
+
+`SimpleEventProcessorModel` holds every node name; `javaTemplate.vsl` can carry a section that fires
+when the audit auditor is present; the model has the live node instances, so
+`node instanceof EventLogSource` identifies the logging ones at build time exactly as
+`EventLogManager.nodeRegistered` does at runtime.
+
+**And since §7 made the record format a build input, the generator knows the concrete record class** —
+so the emitted writer calls it directly, with no virtual dispatch to the `LogRecord` base.
+
+| term | native ns | reachable from the template? |
+|---|---:|---|
+| `VarHandle` value stores | ~34.5 | **yes** — generated code is compiled by the user's toolchain, not core's Java 8 build |
+| `LogRecord.addRecord` virtual call | most of 27.58 | **yes** — the record class is a build input |
+| `auditLog.info` virtual call | remainder | no — `EventLogNode.auditLog` is typed `EventLogger`; ~2 ns |
+| name resolution | ~0 | already once-per-node (§7A) |
+
+**Estimated 50–55 ns of the 65.70 ns native audit cost**, against a measured ceiling of 51.5 — most of
+the way, without reading a single node method body. **This is arithmetic on measured terms, not a
+measurement.**
+
 ### 7B.3 Normative
 
 1. The generator MUST be able to emit a specialised `EventLogger` subclass per logging node, with the
-   **node id as a literal**. Property keys MUST still be resolved through `LogRecord.internName`, once
-   per logger, because the generator cannot see them.
+   **node id as a literal** and the **concrete record type**. Property keys MUST still be resolved
+   through `LogRecord.internName`, once per logger, because the generator cannot see them.
 2. `EventLogManager` MUST gain a factory hook so a generated processor can supply its own
    `EventLogger` instances; today it constructs them directly.
-3. It MUST fall back to the stock `EventLogger` for anything it cannot resolve — dynamic keys,
+3. The Java template MUST gain a slot for generated members, and a section that emits the writers only
+   when the audit auditor is present — a processor with no audit log MUST be byte-identical to today's.
+4. It MUST fall back to the stock `EventLogger` for anything it cannot resolve — dynamic keys,
    hand-written nodes, `Object` values. **The API is not replaced.**
-4. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
+5. The emitted writer MUST honour the configured log level, and MUST publish through the same sink
    contract, so a generated processor and an interpreted one produce the same records.
-5. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
+6. The generated writer MAY use any JDK API the user's toolchain supports; it MUST NOT assume Java 8.
 
 ### 7B.4 It supersedes the multi-release jar
 
@@ -354,7 +375,7 @@ This cuts both ways and both are worth saying:
 | 8 | **name resolution in `EventLogger`** (§7A) — **DONE**, −24% JIT / −57% native audit cost | core | — |
 | 9 | **`VarHandle` value stores in the encoder** — **measured 25.9% off native**, done in the prototype | core | 4 |
 | 10 | build-time ids as a **reader** convenience (§7A.4) | compiler | 8 |
-| 11 | **generated `EventLogger` per node** (§7B) — est. **35–45 ns of 65.70** native; retires the multi-release-jar option because the writer leaves core either way | compiler + core | 8 |
+| 11 | **generated `EventLogger` per node from the Java template** (§7B) — est. **50–55 ns of 65.70** native; retires the multi-release-jar option because the writer leaves core either way | compiler + core | 8 |
 
 1, 2, 3 and 7 are independently shippable. 6 is the one that must wait for a reader.
 

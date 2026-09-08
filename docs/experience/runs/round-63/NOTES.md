@@ -1998,3 +1998,72 @@ None is proposed here. Recorded so the ceiling is not mistaken for a plan.
 in `EventLogManager`, and emission in the generator — and it is worth an estimated 35–45 ns of the
 65.70. **The remaining ~20 ns needs the generator to see inside node method bodies, which it does not
 do and has no machinery for.**
+
+## 24. The template is the right place — and it reaches further than §23 allowed
+
+The owner's point: `SimpleEventProcessorModel` holds the full model — every node, every name — and
+`javaTemplate.vsl` can carry an audit-generation section that fires when the `EventLogManager` auditor
+is present. That is correct, and §23's estimate was too pessimistic for a reason I had missed.
+
+### 24.1 What the model already has
+
+| needed | available today? |
+|---|---|
+| every node name | **yes** — emitted as literals in `auditor.nodeRegistered(c1_0, "c1_0")` |
+| which nodes can log | **derivable** — the model holds live node instances, so the same `node instanceof EventLogSource` test `EventLogManager.nodeRegistered` does at runtime works at build time |
+| whether an auditor is present | **yes** — `model.getNodeRegistrationListenerFields()`, already used to decide `auditEvent` emission |
+| **which record class will be built** | **yes, since §21** — `addLowLatencyEventLog(level, BINARY)` makes the format a *build* input |
+| the property keys | **no** — literals inside node method bodies, and the generator has no bytecode analysis (§23) |
+
+### 24.2 The thing §23 got wrong
+
+§23 listed the `LogRecord.addRecord` virtual call as only partly reachable. **It is fully reachable**,
+because §21 moved the record format from a runtime swap to a build-time choice. The generator therefore
+knows the concrete record class and can emit a writer that calls it directly — no virtual dispatch to
+the `LogRecord` base at all.
+
+Revised, and marked as arithmetic on measured terms rather than a measurement:
+
+| term | native ns | reachable from the template? |
+|---|---:|---|
+| value encoding — `VarHandle` stores | ~34.5 | **yes** — generated code is compiled by the user's toolchain, not core's Java 8 build |
+| `LogRecord.addRecord` virtual call | most of 27.58 | **yes** — the record class is a build input since §21 |
+| `auditLog.info` virtual call on `EventLogger` | remainder | **no** — `EventLogNode.auditLog` is typed `EventLogger`, so N generated subclasses stay polymorphic. §9 measured provability at **~2 ns** |
+| name resolution | ~0 | already once-per-node (§20); the generator cannot improve on it |
+
+**Revised estimate: 50–55 ns of the 65.70 ns**, against §23's 35–45. The measured ceiling was 51.5 ns
+(65.70 → 14.24), so a template-generated writer gets most of the way there **without needing to see a
+single node method body**.
+
+### 24.3 The shape of the change
+
+```java
+// nested in the generated processor — compiled by the user's toolchain
+private static final class AuditWriter_c1_0 extends EventLogger {
+    private static final int NODE_ID = 17;                 // the model knows the name
+    private final BinaryLogRecord rec;                     // CONCRETE — format is a build input
+    @Override public EventLogger log(String key, double v, LogLevel lvl) {
+        if (canLog(lvl)) { rec.writeDouble(NODE_ID, keyRef(key), v); }   // one direct call, VarHandle inside
+        return this;
+    }
+}
+```
+
+Three pieces, each contained:
+
+1. **template** — a slot before the closing brace for generated members, and a section that fires when
+   the audit auditor is present;
+2. **model/generator** — identify `EventLogSource` nodes and emit one writer class per logging node;
+3. **core** — a factory hook on `EventLogManager`, which today calls `new EventLogger(logRecord, nodeName)`
+   directly.
+
+**Node code does not change.** Keys are still resolved through `internName`, once per logger.
+
+### 24.4 What it still cannot do
+
+The `auditLog.info` call site stays polymorphic, and the property key still cannot become a literal.
+Both are small — ~2 ns and ~0 respectively after §20 — but they are the reason the full 14.24 ns ceiling
+needs an annotation processor or an API change, and neither is proposed.
+
+**Status: this is a design sketch on measured terms. Nothing in §24 has been built or measured**, and
+the 50–55 ns is arithmetic, not a result.
