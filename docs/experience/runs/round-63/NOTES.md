@@ -3402,3 +3402,56 @@ worse version had to be built by hand to get the work done.
 23× (a hand-written chain the generator does not emit) → 2.9× (`-O2`) → 3.8× (`-O3`) → 3.1× (trigger
 machinery, four dead stores per node) → **4.0×** (flags emitted only where used). Five figures for one
 comparison; only the ones measured on the shipped artefact were ever true.
+
+## §44 Auditing the oracle, and a golden that had gone stale across repos
+
+M53 and M54 both closed on the strength of one claim: the C++ target computes what Java computes,
+proven by comparing audit logs entry for entry. That claim rests entirely on the oracle, and the
+oracle had never been asked the obvious question — **how much does each chain actually compare?**
+
+A parity test whose two logs are both empty passes. So does one where the graph silently failed to
+build and five events produced three lines. Sixteen chains reporting green tells you nothing about
+whether any of them contain evidence.
+
+`assertParity` now asserts a floor of 20 lines and prints what each chain compared:
+
+| chain | lines | | chain | lines |
+|---|--:|---|---|--:|
+| flatMap | 175 | | count | 55 |
+| triggerOverrides | 95 | | groupBy | 55 |
+| notify | 75 | | defaultValue on a join input | 55 |
+| int / double / long DSL | 78 each | | tumbling window | 42 |
+| max / average aggregate, binary map | 70 each | | sliding sum / sliding max | 42 each |
+| peek | 60 | | | |
+
+Nothing was vacuous — the floor found no bug. That is the expected outcome and still worth having:
+the number that would signal the failure is now asserted rather than assumed, and the range itself is
+informative. flatMap's 175 lines against tumbling's 42 is the re-entrancy cost made visible; a future
+change that quietly stops queuing per element shows up as a chain that shrinks.
+
+**The find came from somewhere else.** Running the full compiler suite left the tree dirty on a
+checked-in generated file — `MYProcessor.java` regenerated *without* three `serviceRegistry` calls on
+the event path. Traced to core commit `f7246ad`, where `ServiceRegistryNode` deliberately started
+returning `auditEventReceipt() == false`: the second auditor W15 missed, doing nothing per event while
+costing two virtual calls. The generated source was right. **The golden was stale, and had been since
+that commit** — because the change was made in the core repo and the golden lives in the compiler repo,
+and no test asserts its contents. `FluxtionBuilderTest` writes the file and compiles the string in
+memory; the checked-in copy is an artifact nothing reads.
+
+So a cross-repo behavioural change sat un-propagated, and the only reason it surfaced is that
+regeneration dirties the working tree. That is a weak signal that depends on someone running `git
+status` and not dismissing it as build noise — which is precisely what "3 deletions in a generated
+file" looks like.
+
+**Two process notes from the same run.** Both background suites were piped through `tail -30`, so the
+captured output held the reactor summary and no `Tests run:` lines at all — the counts had to come from
+the surefire reports on disk. Doing that surfaced the second note: aggregating `surefire-reports/*.txt`
+over-counts, because reports for *deleted* test classes are never cleaned. `OrdinalKeyPathTest.txt`
+contributed 7 tests to the total for a class whose source no longer exists. Filtering by report mtime
+gives the honest figure.
+
+**Verified state, 2026-09-09:** core **218** tests (39 classes, fresh reports only), compiler **3927**
+tests / 6 skipped across 345 classes, the C++ module **55**, all green. Capability matrix **33 emitted,
+3 refused**, the count asserted by `CppDslCapabilityMatrixTest` rather than maintained by hand — the
+spec and `TEST-INDEX.md` both still claimed 31/1 and 14 chains until this pass corrected them, which is
+the same staleness as the golden in a document instead of a file.

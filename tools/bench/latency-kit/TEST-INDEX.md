@@ -14,11 +14,12 @@ read as an observation rather than a property.
 | claim | defended by | repo |
 |---|---|---|
 | A hand-written graph computes identically in Java and C++, step by step | `CppJavaAuditParityTest` | compiler |
-| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` — **14 chains** | compiler |
-| Every emitted DSL construct is proven, and every unemitted one refused by name | `CppDslCapabilityMatrixTest` — 31 emitted, 1 refused | compiler |
+| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` — **16 chains**, each asserted to compare ≥20 log lines so a chain cannot pass by being empty | compiler |
+| Every emitted DSL construct is proven, and every unemitted one refused by name | `CppDslCapabilityMatrixTest` — 33 emitted, 3 refused | compiler |
 | A window rolls, publishes on close only, and slides by the right algebra | 3 chains: tumbling, sliding-sum (O(1) deduct), sliding-max (O(n) recompute) | compiler |
 | flatMap produces one graph cycle AND one audit record per element | `flatMapProducesIdenticalAuditLogs` | compiler |
 | groupBy groups by key rather than by address or not at all | `groupByProducesIdenticalAuditLogs` — 5,5,5,5,9 | compiler |
+| A side-effect-only node still runs, and still does not gate its chain | `peekProducesIdenticalAuditLogs`, `notifyProducesIdenticalAuditLogs` | compiler |
 | The C++ target refuses a DSL graph it cannot model rather than emitting a wrong one | `CppDslRefusalTest` | compiler |
 
 Both parity tests compare a binary audit log entry for entry, decoded by the same Java reader, with a
@@ -83,9 +84,11 @@ adding a narrower assertion that would have caught it more legibly.
 
 ## What is NOT defended
 
-- **Performance of windowed, flatMap and groupBy graphs.** All three are now emitted and PROVEN
-  correct, but the 2.653 ns figure is `map -> map -> filter -> aggregate` only. flatMap allocates per
-  element and groupBy allocates per key; nothing recorded here predicts either.
+- ~~**Performance of windowed, flatMap and groupBy graphs.**~~ **Measured 2026-09-09** (M54.4):
+  tumbling window 2.5×, groupBy 6.4×, flatMap 3.5×, all checksum-matched. The prediction recorded
+  here — that allocation would erode the C++ lead — was WRONG in the same direction three times:
+  where Java allocates is where C++ wins biggest. What is still undefended is groupBy **at
+  cardinality**: 6.4× is a linear scan over FOUR keys, and the shape is O(groups).
 - **Windowed graphs in C++ — superseded.** They are emitted and proven now; what remains unmeasured is
   their cost, above. Aggregates today are a
   single `int32_t` inside the node struct — stack-resident, no allocation, which is part of why the C++
