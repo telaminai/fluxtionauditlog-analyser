@@ -458,6 +458,16 @@ It is to emit them only for nodes that HAVE a trigger override, which the emitte
 worth making and worth measuring, in that order — this entry exists because the order was reversed once
 already.
 
+### Fixed, and it over-recovered
+
+Emitting the flags only for nodes that have an override: **2.653 / 2.663 ns**, against 3.35 with them
+everywhere and 2.757 before the trigger machinery existed. The ratio to Java is now **4.0x**. Predicted
+2.80-3.00 and 3.6x — the direction was right and the size under-called, which is the better way round.
+
+The falsifier mattered and was refuted: `-O3` had NOT eliminated the stores, despite the flags being
+private and every read of them folding to a compile-time constant. "The optimiser will handle it" is a
+prediction, not a fact — the second time that assumption has been wrong in this kit.
+
 ### Still not measured
 
 Windowed, flatMap and groupBy graphs. Their shapes differ enough from `map -> map -> filter ->

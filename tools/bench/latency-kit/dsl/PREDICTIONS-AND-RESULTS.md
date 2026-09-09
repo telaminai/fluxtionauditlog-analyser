@@ -118,3 +118,52 @@ allocation, which is part of why the C++ arm is cheap. **Windowing will not be.*
 window needs buffers whose lifetime spans events, and the stack-versus-heap choice for those is a real
 design decision with a real cost, not a translation detail. The figures above should not be read as
 predicting what a windowed graph will do.
+
+---
+
+# P8 — written BEFORE the fix, 2026-09-09
+
+**The change:** emit the four mutable trigger flags, and the clears of them in
+`fireEventUpdateNotification()`, only for nodes that actually HAVE a trigger override. The emitter
+already knows — the `Triggers` record reaches every struct builder and is all-false for most nodes.
+
+**Baseline to beat:** C++ `-O3` at 3.343 / 3.363 ns. The figure before the trigger machinery was
+**2.757**.
+
+**Predict: it recovers most of the regression, landing 2.80–3.00 ns.**
+
+Reasoning: the measured graph is `map -> map -> filter -> aggregate`, so four nodes carry flags and
+none of them has an override. That is 16 stores per event that cannot affect any result. Removing work
+that provably does nothing should return the arm close to where it was, and the gap between 2.757 and
+3.35 is almost exactly what four-times-four dead stores would cost at this scale.
+
+**The falsifier, and I hold it seriously.** If `-O3` had already eliminated those stores as dead — the
+flags are private, written and read only within the struct, and the reads fold to constants — then the
+0.6 ns is NOT the flags at all, and removing them buys ~0. In that case the regression came from
+somewhere else the same commits introduced: `reset()` and `statefulFunction_` on every struct, wider
+structs changing layout, or the extra `hasDefaultValue()` on every node. I would then have to bisect
+rather than guess again.
+
+**Predict the ratio:** 10.5 / 2.9 ≈ **3.6x**, against 3.1x now and 3.8x before.
+
+**Predict Java is unchanged**, because none of this touches the Java arm — stated only so that if Java
+moves, I know the measurement is not comparable rather than concluding something about the fix.
+
+## P8 scored
+
+| | predicted | measured |
+|---|---|---|
+| C++ `-O3` | 2.80–3.00 ns | **2.653 / 2.663** |
+| ratio to Java | 3.6x | **4.0x** |
+| Java unchanged | yes | 10.511 / 10.690 — yes |
+
+**Direction right, magnitude under-predicted.** It recovered the entire 21% regression AND beat the
+pre-M53 figure of 2.757. The falsifier — that `-O3` had already killed the stores and the cost lay
+elsewhere — is refuted: the stores were real, and the compiler had not removed them despite the flags
+being private and every read folding to a constant.
+
+Worth keeping as the general lesson: **"the optimiser will handle it" is a prediction, not a fact.**
+This is the second time in this kit it has been wrong in the same direction — the first was asserting
+`-O2` already inlined the templated chain, where `-O3` then bought 22%.
+
+The best C++ figure so far, on the artefact that ships, is **2.653 ns against Java's 10.51 — 4.0x**.
