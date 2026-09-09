@@ -135,6 +135,10 @@ Shipped:
 - ☑ **the audit hot path profiled and fixed** (§34) — an `IdentityHashMap` lookup per event that bypassed
   the identity table built for it; per-logger key caches costing three cache lines per entry; a
   resolved-once decision re-checked per entry. **24% off the JIT audited path, audit cost 43.4 → 29.2 ns.**
+- ☑ **M52.7 docs** — `how-to/binary-audit-logging.md`, `how-to/read-a-binary-audit-log.md` and
+  `reference/audit-latency-harness.md` in the core documentation site, plus an audit section in
+  `reference/performance.md`. **`mkdocs build --strict` has NOT been run on the core site** — mkdocs is
+  not installed on the machine that wrote them; links were verified programmatically instead.
 - ☑ **binary method tracing** (§35) — `addTrace` wrote to a buffer `length()` does not describe, so a
   trace-only record never published. Now a normal two-slot entry; the reader no longer counts a trace's
   absent key as an unresolved id.
@@ -157,8 +161,7 @@ Open, in dependency order:
   command line and not in the analyser UI, which is why `TEXT` remains the default record format.
 - ☐ **M52.6** mongoose: `ValueOut.text(cs)` → `bytes(...)` (**2.20×** measured, byte-identical queue
   file) and drop the per-record `Instant.now()` (3% of time, **100% of the allocation**).
-- ☐ **M52.7** docs in the core/compiler documentation site for the binary logger, the reader tool and the
-  latency harness — added 2026-09-09.
+
 
 **M52.6 is independent of everything else** and is the cheapest win on the list.
 
