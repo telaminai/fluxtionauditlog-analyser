@@ -7,6 +7,20 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **The audit path read the wrong clock, twice per event, at a resolution that made the answer
+  meaningless.** `BinaryLogRecord` took *both* `logTime` and `endTime` from one method chosen by a
+  `-Dclock=` **system property** — a benchmark switch that reached production code. Its default
+  re-introduced the very defect the `logTime` fix removed (a fresh wall-clock read instead of the
+  reading `Clock.eventReceived` already took); its other mode made `endTime − logTime` identically zero.
+  Both wrong, differently, and **every binary figure published by this project was measured under a mode
+  a user could not get**. Separately, the default clock strategy was `System::currentTimeMillis` at
+  12.9 ns a call and **1 ms resolution** — so the duration `endTime` exists to provide was always zero
+  for any sub-millisecond event. The default is now a monotonic, epoch-anchored **nanosecond** clock
+  (8.0 ns), and `endTime` is **off by default**, enabled with `setRecordEndTime(true)`. Audited binary
+  record: **JIT 34.6 → 20.4 ns, native 29.3 → 18.2 ns.** *The unit of `getWallClockTime()` changes from
+  milliseconds to nanoseconds.*
+
+### Fixed
 - **Method tracing works in a binary audit log.** `addTrace` wrote into a byte buffer that the record's
   `length()` does not describe, so a trace produced no visible bytes — and because nothing marked the
   record as having content, a **trace-only record was never published at all**. `AUDITED` + `BINARY`

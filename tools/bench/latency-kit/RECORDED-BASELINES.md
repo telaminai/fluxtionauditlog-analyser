@@ -253,3 +253,50 @@ checks, and made the unset-level case safe without a null check — not because 
 an independent control, and after §34 its band described code that no longer exists. The native row is
 kept: it is a genuinely different binary, built before `-H:-SpawnIsolates`, and it is the evidence that
 one build flag was worth more than every source change measured after it.
+
+
+## The published benchmark, re-measured (2026-09-09) — harness h5
+
+The core documentation site reported **50 M/s and ~20 ns/event** from a JMH run against **Fluxtion 9.7.5,
+January 2025**, under the old `com.fluxtion` group id, on an unrecorded machine, JIT only, at a single
+configuration. That benchmark — a four-node market-data price ladder doing real array work — was ported
+to the current runtime and re-measured across every profile, on both toolchains, against a hand-written
+Java control **and a hand-written C++ control**. All three produce byte-identical checksums at every
+iteration count; without that they are different programs.
+
+| configuration | audit | JIT ns | native ns |
+|---|:---:|---:|---:|
+| C++ `-O3 -march=native` | no | — | **1.158** |
+| hand-written Java | no | 6.390 | 4.297 |
+| `LOWEST_LATENCY` | no | 9.407 | **4.474** |
+| no configuration at all | no | 15.070 | 14.708 |
+| `LOW_LATENCY_AUDIT` + `BINARY` | yes | 20.436 | **18.161** |
+| `LOW_LATENCY_AUDIT` + `TEXT` | yes | 42.298 | 50.607 |
+| `AUDITED` + tracing | yes | 112.327 | 200.806 |
+
+Native no-audit is the mean of three independent PGO builds — hand 4.299 / 4.292 / 4.301, generated
+4.511 / 4.507 / 4.404. **Framework cost = 0.18 ns, 4.1%**, and the build lottery that dominates an
+audited path is essentially absent here (0.009 ns spread on the hand-written arm).
+
+**Native wins the lean and binary-audit paths; the JIT wins text-heavy ones by up to 1.8×.** The
+toolchain follows the profile.
+
+### The C++ gap is the platform's, not the framework's
+
+C++ is 3.7× ahead of hand-written Java on this workload — and hand-written Java uses no framework at all,
+so none of that gap is attributable to Fluxtion. **Two explanations were tested and both refuted:**
+
+- *auto-vectorisation of the five-element loops* — `-fno-vectorize -fno-slp-vectorize` made C++ **faster**
+  (1.056 ns), not slower
+- *data layout* — a Java variant using one flat `int[]` for all 10,000 ladders, matching the C++ struct,
+  was **slower** (5.908 ns), because the object form's fixed-length-5 arrays let the compiler remove
+  bounds checks a computed base index defeats
+
+Array bounds checking is the leading remaining candidate. **It has not been measured and is not claimed.**
+
+!!! danger "Every previously published binary-record figure was taken under a clock mode users cannot get"
+    `-Dclock=process` made both `logTime` and `endTime` reuse a cached reading. With the record fixed to
+    take `logTime` from process time and `endTime` live, the dense-audit graph moved **41.0 → 55.4 ns**.
+    The subsequent clock and `endTime` changes then took it back down. The lesson is not the numbers: it
+    is that a benchmark switch in production code let the benchmark measure a configuration that did not
+    ship, for the entire life of this work.
