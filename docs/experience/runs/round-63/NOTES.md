@@ -3125,3 +3125,143 @@ it was caught.
 That is now three separate occasions in this round where a cross-arm comparison was invalid and **the
 checksum was what caught it** — not the timing, not the profile, not review. A benchmark that cannot prove
 two arms computed the same thing is not measuring a difference; it is generating one.
+
+## §39 The DSL relies on guards, and two profiles were discarding them
+
+Owner's correction, and it was right: *"We can't remove guards the dsl relies upon it. Check some of the
+dsl nodes Boolean returns triggering needs it for example. DSL fails if guard support removed."*
+
+Every DSL node's `@OnTrigger` returns a boolean and **that boolean is its propagation decision** —
+`MapFlowFunction.map()`, `FilterFlowFunction.filter()` and every window's `triggered()` all return
+`fireEventUpdateNotification()` directly. Both `LOWEST_LATENCY` and `LOW_LATENCY_AUDIT` call
+`setSupportDirtyFiltering(false)`, which skipped the dirty-flag map wholesale, so those booleans were
+thrown away and a `map -> filter -> aggregate` chain propagated unconditionally. The filter still ran;
+its answer was ignored.
+
+Same graph, same events, data that actually exercises the filter:
+
+| profile | checksum |
+|---|---:|
+| guards kept | `19998075000` |
+| `LOWEST_LATENCY` | `-4250000` |
+
+### 39.1 The measurement that reported this as a speed-up
+
+§7a of the C++ spec recorded "`LOWEST_LATENCY` is worth 1.7× on the DSL — 9.80 ns against 16.69". That
+number is **withdrawn**. It timed a correct processor against one computing the wrong answer, and the
+benchmark could not have caught it: the data was `(i & 15) + 1`, always positive, so the `positive`
+filter never rejected anything and a graph ignoring the filter checksummed identically. Both arms
+agreed and both were wrong.
+
+**A benchmark whose data never exercises the guard passes on a broken graph.** That is a new entry in
+this round's list of ways a cross-arm comparison can be invalid — and unlike the previous three, the
+checksum did *not* catch it, because the checksum was computed over data that could not distinguish the
+two programs.
+
+### 39.2 The reasoning that justified guards-off
+
+`EventProcessorConfig` recorded: *"guards only decide anything where a node has several parents and only
+some are dirty."* Measured honestly on the hand-written imperative graph under test, then generalised —
+and false for everything the DSL builds, where a **single-parent** chain is decided entirely by guards.
+
+Fix: `setSupportDirtyFiltering(false)` now drops the flags that decide **nothing** (a `void`
+`@OnTrigger` always propagates — the measured 7.6 ns win is preserved) and keeps the ones that decide
+**something**: a boolean `@OnTrigger` return, and any parent whose child declares
+`failBuildOnUnguardedTrigger`. That is what the profile documentation always claimed to be doing.
+
+### 39.3 Re-entrancy was mis-framed too
+
+Recorded as "the one lever that does not apply", implying the DSL was denied an optimisation and that
+the 23× C++ figure was therefore conservative. Wrong: `FlatMapFlowFunction` dispatches
+`callback.fireCallback(iterator)` re-entrantly, one graph cycle per element, then publishes an
+end-of-collection signal; its `@Inject Callback` and `DirtyStateMonitor` come from the dispatcher that
+`setSupportReentrancy(false)` removes. It is a capability the DSL is built on, not one it declines.
+There is no faster legal configuration to deny it.
+
+### 39.4 Refusal moved to build time
+
+Owner's call: *"Better to fail at build time with dsl and incompatible flags."* `RequiredCapabilityCheck`
+runs on both targets before a line is emitted. Two rules, each because a real graph broke on it, and
+`setSupportSubscriptions(false)` deliberately **not** a rule — it removes only external subscription
+wiring and a signalling flatMap still works, so claiming otherwise would refuse working graphs.
+
+## §40 Three C++ runtime capabilities were absent and silent
+
+Building the DSL audit-log oracle needed `inputUpdated(parent)`, which is `@OnParentUpdate` — and the
+C++ target emitted none. It rendered a node's `@OnTrigger` and nothing else, so every parent-update
+callback silently never fired. `@AfterEvent` (`getEventEndMethods()` — the one lifecycle list never
+consumed, while all seven siblings were wired) and `@AfterTrigger` (`getPostDispatchMap()`) were the
+same.
+
+`@OnParentUpdate` matters most, and the owner named why: it keys on the **variable**, not the type, so a
+node with two parents of the same type can tell which changed. C++ expresses that better than Java —
+each parent is already a distinct positional template parameter:
+
+```cpp
+template <typename P0, typename P1>
+struct TwoParents {
+    void leftUpdated(P0& leftSrc);    ///< @OnParentUpdate("leftSrc")
+    void rightUpdated(P1& rightSrc);  ///< @OnParentUpdate("rightSrc")
+};
+```
+
+### 40.1 Textual checks nearly shipped a wrong index
+
+A first pass reported `@TriggerEventOverride`, `@NoTriggerReference` and `@PushReference` as supported
+because `.calc()` appeared in the emitted source. That proves nothing — none of those three changes
+*whether* a method is emitted, only *when* it fires and in *what order*. Compiled and run with counters
+and a sequence stamp, all three turned out genuinely correct, but on evidence rather than luck.
+
+Grepping the emitter would have been worse still: `@OnEventHandler` appears nowhere in `CppModel` and is
+fully supported, because emission works from the model's callback lists rather than annotation names.
+
+## §41 The 30 windowing failures were the clock change
+
+Diagnosed earlier in this round to compiler commit `8eaef43` — "the pom repoint to core
+1.0.15-SNAPSHOT". Correct about *when*, wrong about *why*: repointing picked up **this round's own
+clock change**, which moved the default `ClockStrategy` from milliseconds to nanoseconds.
+
+`Clock.getWallClockTime()` returns a bare `long` and deliberately says nothing about its unit — that is
+a runtime concern, and it is what makes data-driven replay possible. What the framework requires is that
+the strategy and the graph's time-based nodes **agree**, and some of those nodes name their unit in
+their own API: `FixedRateTrigger.atMillis(300)` is milliseconds by construction. So every tumbling and
+sliding window compared a millisecond window against a nanosecond clock and stopped rolling. Thirty
+tests, arithmetic off by a factor of a million, and **not one failure mentioned a clock**.
+
+The javadoc at the time said "the unit changed with this" and stopped there. Noticing a breaking change
+is not the same as following it to its callers.
+
+Default is now `fastEpochMillisClock()` — epoch millis anchored once, read through `System.nanoTime()`.
+It keeps what the change was for (8.0 ns a call against 12.9 for `currentTimeMillis`) and gives up only
+the unit change, which bought nothing the framework could use. `nanoEpochClock()` stays opt-in.
+
+### 41.1 The last four failures were three wrong subjects and a stale golden
+
+`RuntimeMetaBoundaryGateTest` guards `fluxtion-runtime` against a `runtime.meta` package and Kryo. It
+found what to inspect by walking up for a sibling directory named `fluxtion` containing a `pom.xml`, and
+that was wrong three distinct ways on a real workspace:
+
+1. it matched the **legacy `com.fluxtion` repository** — different project, different origin — and
+   failed saying it could not find the runtime module, which read as a broken gate rather than a gate
+   aimed at the wrong repository;
+2. taught to identify the project by its source root, it found the right repository on branch
+   `feature/java_8_compatability` — a stale checkout this build does not compile against;
+3. pointed at the class on the classpath instead, `Clock.class.getProtectionDomain()` resolved the
+   **shaded** `fluxtion-generator-http` jar, which bundles a copy of the runtime and legitimately
+   bundles Kryo — so the Kryo gate failed against an artefact that is supposed to contain Kryo, while
+   the real `fluxtion-runtime` jar sat on the same classpath, clean.
+
+Each assertion was true of what it inspected and irrelevant to what it guards. Proximity on disk is not
+a dependency, and class identity is whatever won the classloader's ordering. The gate now resolves the
+jar **by artefact name** from the test classpath and reads its entries and embedded pom — the bytes that
+ship, no sibling checkout, CI-safe.
+
+`PreSplitGoldenParityTest` was a stale golden: `ServiceRegistryNode.auditEventReceipt()` now returns
+false (core `f7246ad`), so the generated dispatch lost two `serviceRegistry.eventReceived(typedEvent)`
+calls and one `serviceRegistry.processingComplete()`. Every difference was enumerated **before** the
+files were overwritten — and that order is the point. A golden refreshed because it failed proves
+nothing; a golden refreshed because every difference in it was identified and attributed still proves
+what it was written to prove. The behaviour goldens did not move, which is the claim: strictly less work
+per event, same answers.
+
+**Compiler suite: 3575 tests, 0 failures — the first fully green run in this round.**

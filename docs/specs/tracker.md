@@ -142,6 +142,26 @@ Shipped:
 - ☑ **binary method tracing** (§35) — `addTrace` wrote to a buffer `length()` does not describe, so a
   trace-only record never published. Now a normal two-slot entry; the reader no longer counts a trace's
   absent key as an unresolved id.
+- ☑ **guards are DSL semantics, not an optimisation** (§39, core `0d54154` + compiler `7a34af6`) —
+  `LOWEST_LATENCY` and `LOW_LATENCY_AUDIT` both called `setSupportDirtyFiltering(false)`, which threw
+  away the boolean `@OnTrigger` return that *is* every DSL node's propagation decision. A
+  `map -> filter -> aggregate` chain silently returned a wrong answer. `setSupportDirtyFiltering(false)`
+  now drops only the flags that decide nothing. **The 1.7× DSL profile figure in C++ spec §7a is
+  withdrawn** — it timed two different programs, and the benchmark data never exercised the filter, so
+  the checksum could not catch it.
+- ☑ **build-time refusal for incompatible capability flags** (compiler `60f4b10`) —
+  `RequiredCapabilityCheck` on both the compiled and interpreted paths, naming the flag and the affected
+  node types instead of an NPE inside `init()`.
+- ☑ **the C++ annotation index** (§40, compiler `6e09b78`) — every runtime annotation, proven by
+  compiling and running rather than by grepping. `@OnParentUpdate`, `@AfterEvent` and `@AfterTrigger`
+  were absent and silent; all three now emitted.
+- ☑ **the 30 windowing failures — fixed** (§41, core `0d54154`) — this round's own clock change moved the
+  default `ClockStrategy` from millis to nanos, so every `FixedRateTrigger.atMillis` window compared a
+  millisecond size against a nanosecond clock. Default is now `fastEpochMillisClock()`; `nanoEpochClock()`
+  stays opt-in. **Compiler suite: 3575 tests, 0 failures — first fully green run.**
+- ☑ **`RuntimeMetaBoundaryGateTest` guards the right artefact** (§41.1, compiler `b921748`) — it had been
+  inspecting, in turn, the legacy `com.fluxtion` repo, a stale sibling branch, and the shaded
+  `fluxtion-generator-http` jar. Now resolved by artefact name from the test classpath.
 
 Open, in dependency order:
 
