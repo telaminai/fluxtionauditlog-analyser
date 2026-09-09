@@ -14,9 +14,10 @@ read as an observation rather than a property.
 | claim | defended by | repo |
 |---|---|---|
 | A hand-written graph computes identically in Java and C++, step by step | `CppJavaAuditParityTest` | compiler |
-| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` — **18 chains**, each asserted to compare ≥20 log lines so a chain cannot pass by being empty | compiler |
-| Every emitted DSL construct is proven, and every unemitted one refused by name | `CppDslCapabilityMatrixTest` — 35 emitted, 2 refused | compiler |
-| A window rolls, publishes on close only, and slides by the right algebra | 3 chains: tumbling, sliding-sum (O(1) deduct), sliding-max (O(n) recompute) | compiler |
+| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` — **20 chains**, each asserted to compare ≥20 log lines so a chain cannot pass by being empty | compiler |
+| Every emitted DSL construct is proven, and every unemitted one refused by name | `CppDslCapabilityMatrixTest` — 36 emitted, 2 refused | compiler |
+| A window rolls, publishes on close only, and slides by the right algebra | 5 chains: tumbling, sliding-sum (O(1) deduct), sliding-max (O(n) recompute), and both roll paths again counted by ELEMENT rather than by clock | compiler |
+| A count-based window publishes nothing until its ring is full | `aFixedSizeSlidingWindow…` — 3 records from 5 events, sums 9/3/10 | compiler |
 | flatMap produces one graph cycle AND one audit record per element | `flatMapProducesIdenticalAuditLogs` | compiler |
 | groupBy groups by key rather than by address or not at all | `groupByProducesIdenticalAuditLogs` — 5,5,5,5,9 | compiler |
 | groupBy's per-key store stays correct once lookups go through a hash index | `groupByProducesIdenticalAuditLogs` (values, both branches of the index); `dsl/build-groupby-controls.sh` (cost curve) | compiler / bench |

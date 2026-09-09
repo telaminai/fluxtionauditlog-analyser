@@ -272,7 +272,21 @@ rather than for want of effort.
     construct iterates groups.
   Measure at thousands before anyone quotes it; a hash store behind the same interface if the scan is
   the problem. Measurement first.
-- ☐ **M55.3 `FixSizedSlidingWindow`** — probably an afternoon.
+- ☑ **M55.3 `FixSizedSlidingWindow`** — COMPLETE 2026-09-09. **36 constructs emitted, 20 oracle
+  chains.** The estimate was right for once: it is the same ring with the clock replaced by the input.
+  Java's `aggregateInputValue` is three statements — aggregate, `roll()` once, and publish only once
+  every bucket is filled — so each element occupies exactly one bucket.
+  - **Built by rewriting the timed form, not by copying it.** The bucket algebra and the
+    invertible/recompute split are where the real complexity lives, and two copies would drift; the
+    fixed-size emitter generates the timed struct and rewrites the two places that differ, refusing
+    outright if the timed form no longer has the shape it expects.
+  - One thing the target was one condition short on: `triggerFlags()` already knew that "a window sets
+    `publishOverrideTriggered_` without having any of the four OVERRIDES", but keyed it on having a roll
+    trigger — which this form does not have, so the flag came out `static constexpr` and the generated
+    C++ would not compile. Same case, one condition short.
+  - Both roll paths have a chain. The max chain uses a **two**-element window deliberately: at three the
+    maximum sits in every window and never expires, so a wrong roll path would pass. At two the values
+    are 5, 7, 7, **4**, and only a recompute produces that 4.
 - ☐ **M55.4 a checked-in golden that nothing asserts is not a test.** `MYProcessor.java` in the
   compiler repo had been stale since core `f7246ad` and nobody noticed, because `FluxtionBuilderTest`
   WRITES it and compiles the string in memory — the file on disk is read by no one. Its only signal is

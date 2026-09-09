@@ -3552,3 +3552,39 @@ the predictions were written before the controls were built, so being wrong is l
 structurally, and nothing tests it, because nothing can observe it — the emitted struct exposes
 `valueFor(key)` and `groupCount()`, not an ordered `values()`. Java's order guarantee is load-bearing.
 The moment a downstream construct iterates groups, that needs a chain.
+
+## §47 M55.3 — the one where the estimate was right, and the test that proved nothing
+
+`FixSizedSlidingWindow` was the item the tracker described as "probably an afternoon, likely mechanical
+given timed sliding works, since it is the same ring with a count instead of a clock". That was
+accurate, which is worth recording precisely because §45 was about an estimate that was not.
+
+Java's `aggregateInputValue` is three statements — aggregate the value, `roll()` once, publish only if
+every bucket is now filled — so each element occupies exactly one bucket and the window is the last N
+elements. The timed form rolls by `getTriggerCount()` when a clock fires. That is the entire difference.
+
+**The emitter builds the fixed-size struct by rewriting the timed one.** The bucket algebra, and
+particularly the invertible-versus-recompute split that `Stateful.deductSupported()` chooses between, is
+where the complexity actually lives; a second copy of it would drift from the first the next time either
+changed. So `fixSizedWindowStruct` generates the timed struct and rewrites the two places that differ,
+and refuses — returns null, which surfaces as a named refusal — if the timed form no longer contains the
+text it expects to replace. A silent hybrid is the one outcome worth ruling out.
+
+**One condition short.** The first generated program did not compile: `publishOverrideTriggered_` came
+out as `static constexpr bool` and the window assigns to it. The emitter already understood this case —
+`triggerFlags()` carries the comment "a window sets publishOverrideTriggered_ from its roll trigger
+without having any of the four OVERRIDES, so any() alone is the wrong question to early-out on" — but
+keys it on `rollTriggerParent != null`, and a count-based window has no roll trigger. The knowledge was
+there; the predicate was one disjunct short of the case that arrived a year later.
+
+**A test that passed while proving nothing, caught by reading its own output.** The non-invertible chain
+was written with a three-element window over 5, −3, 7, −1, 4, and asserted max = 7, 7, 7. It passed. It
+would also have passed against a window that deducted maxima instead of recomputing them, because with
+three elements the 7 sits in every window and never expires — the failure mode the chain exists to catch
+is unreachable at that window size. At **two** the windows are [5,−3], [−3,7], [7,−1], [−1,4] and the
+values are 5, 7, 7, **4**, where the 4 appears only if the 7 leaving the ring forced a recompute.
+
+That is the §44 lesson arriving from the other direction. There the question was whether a chain compared
+enough lines; here the chain compared plenty of lines and still could not fail. **Line count is a floor
+on evidence, not a measure of it** — and the only thing that caught this was dumping the values and
+asking which of them a broken implementation would have got wrong.
