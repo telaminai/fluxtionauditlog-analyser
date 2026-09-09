@@ -3455,3 +3455,47 @@ tests / 6 skipped across 345 classes, the C++ module **55**, all green. Capabili
 3 refused**, the count asserted by `CppDslCapabilityMatrixTest` rather than maintained by hand — the
 spec and `TEST-INDEX.md` both still claimed 31/1 and 14 chains until this pass corrected them, which is
 the same staleness as the golden in a document instead of a file.
+
+## §45 M55.1 — the blocker did not exist, and the real obstacle was in the plumbing
+
+The tracker said merge and mapOnNotify were blocked on `@Inject` resolution: "both reach `hasChanged()`
+through an injected `DirtyStateMonitor`… a MECHANISM the target lacks, not a table entry. This is the
+one item that would extend coverage meaningfully, and it is a day of work rather than an hour."
+
+Every clause of that is wrong except the last four words, and I wrote it.
+
+**Reading the two node types took minutes and dissolved the item.**
+
+| | what the tracker said | what the source says |
+|---|---|---|
+| `merge` | injects `DirtyStateMonitor` for `hasChanged()` | true — and **nothing calls `hasChanged()`**. The generated dispatch guards the node with `guardCheck_r()`, which reads the processor's OWN dirty flags. The monitor serves the user-facing `isDirty(node)` API, a Java-side service with no event-path role. |
+| `mapOnNotify` | same `DirtyStateMonitor` | **not even the same injection.** It injects `NodeNameLookup`, used once in `initialise()` to resolve the target's registered name — a **generation-time constant** on the C++ side, since the emitter is what assigned it. Baked as a literal. |
+
+So the C++ target still has no `@Inject` support, and no longer needs any. The estimate of a day was an
+estimate for work nobody had looked at, and the entry had been sitting there since M54 propagating a
+claim about a mechanism into a spec, a test matrix and a bench index.
+
+**The actual obstacle was somewhere else entirely, and was boring.** Both nodes fail two GENERIC guards
+near the top of `emit()`: `modelledMethodReference(ctor)` — neither has an author function to call — and
+a check that the first constructor argument is a plain node name, which merge's
+`new ArrayList<>(Arrays.asList(a, b))` is not. The fix was to move the branches above those guards,
+where `groupBy` and default-value already sit for exactly the same reason. Finding it cost more than
+fixing it: the branch simply never ran, and a `System.err` line in the branch proved that in one run
+after several minutes of reasoning about a regex that was correct all along.
+
+**A real boundary did turn up, and it is one word of the author's code.** `notify()` calls
+`GeneratorNodeCollection.service().add(target)`; `mapOnNotify()` does not. So `mapOnNotify(new Sink())`
+serialises a nameless object into the constructor — no node to fire, no name to log — and stays refused,
+while `mapOnNotify(c.addNode(new Sink(), "sink"))` emits. The matrix carries both rows now.
+
+**The merge oracle is built so a half-working merge cannot pass.** Two opposite filters over the same
+event type, so exactly one branch passes per event: prices 5, −3, 7, −1, 4 total **12**, while a merge
+listening only to the positive branch totals 16 and only to the negative, −4. The logged running total
+came back 5, 2, 9, 8, 12 in both languages.
+
+**Counting, again.** The C++ module reports 43 tests. I told the user 55 earlier the same day, from
+aggregated surefire reports — 14 of which belonged to deleted throwaway probe classes (`FmProbe`,
+`GbProbe`, `SlideProbe`…) whose `.txt` files surefire never cleans. That is the same defect as §44's
+stale golden in a different costume: **build output that outlives its source and is then read as
+evidence.** 30 such files across the compiler repo are now deleted, which fixes today's count and not
+the cause.

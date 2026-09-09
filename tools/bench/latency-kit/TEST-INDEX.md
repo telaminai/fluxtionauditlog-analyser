@@ -14,11 +14,13 @@ read as an observation rather than a property.
 | claim | defended by | repo |
 |---|---|---|
 | A hand-written graph computes identically in Java and C++, step by step | `CppJavaAuditParityTest` | compiler |
-| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` — **16 chains**, each asserted to compare ≥20 log lines so a chain cannot pass by being empty | compiler |
-| Every emitted DSL construct is proven, and every unemitted one refused by name | `CppDslCapabilityMatrixTest` — 33 emitted, 3 refused | compiler |
+| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` — **18 chains**, each asserted to compare ≥20 log lines so a chain cannot pass by being empty | compiler |
+| Every emitted DSL construct is proven, and every unemitted one refused by name | `CppDslCapabilityMatrixTest` — 35 emitted, 2 refused | compiler |
 | A window rolls, publishes on close only, and slides by the right algebra | 3 chains: tumbling, sliding-sum (O(1) deduct), sliding-max (O(n) recompute) | compiler |
 | flatMap produces one graph cycle AND one audit record per element | `flatMapProducesIdenticalAuditLogs` | compiler |
 | groupBy groups by key rather than by address or not at all | `groupByProducesIdenticalAuditLogs` — 5,5,5,5,9 | compiler |
+| A merge listens to ALL its parents, not just one | `mergeProducesIdenticalAuditLogs` — 5,−3,7,−1,4 totals 12; one-parent merges total 16 or −4 | compiler |
+| A name Java resolves at runtime and C++ bakes at generation time are the same name | `mapOnNotifyProducesIdenticalAuditLogs` | compiler |
 | A side-effect-only node still runs, and still does not gate its chain | `peekProducesIdenticalAuditLogs`, `notifyProducesIdenticalAuditLogs` | compiler |
 | The C++ target refuses a DSL graph it cannot model rather than emitting a wrong one | `CppDslRefusalTest` | compiler |
 
@@ -94,6 +96,9 @@ adding a narrower assertion that would have caught it more legibly.
   single `int32_t` inside the node struct — stack-resident, no allocation, which is part of why the C++
   arm is cheap. Windows need buffers whose lifetime spans events, and the stack-versus-heap choice
   there is a design decision with a real cost. No figure in this kit predicts it.
+- **Performance of merge and mapOnNotify.** Emitted and proven correct 2026-09-09; no control build
+  covers either, and no band constrains them. Predictions P13/P14 are recorded in
+  `dsl/PREDICTIONS-AND-RESULTS.md` and are unscored.
 - **`mkdocs build --strict` on the core site.** Never run; mkdocs is not installed here.
 - **Any C++ figure recorded before 2026-09-09** — those arms were measured while the target emitted no
   dirty flags at all, so conditional propagation was absent rather than cheap.

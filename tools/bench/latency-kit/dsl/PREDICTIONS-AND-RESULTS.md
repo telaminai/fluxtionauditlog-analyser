@@ -248,3 +248,27 @@ Java's, because it is the thing Java lets you not think about.
   `FlatMapFlowFunction` extends `BaseNode` which needs its context injected — refused at build time by
   `RequiredCapabilityCheck`. Both targets use `DEFAULT`, so the comparison is sound, but the absolute
   numbers are not comparable to the other rows.
+
+## P13–P14 · merge and mapOnNotify — emitted 2026-09-09, NOT measured
+
+M55.1 added both constructs to the C++ target. **No control build covers either**, so neither appears
+in `build-dsl-controls.sh` and no band in `control-bands.tsv` constrains them. They are proven correct
+by audit-oracle chains and are unmeasured — recorded here so the gap is stated rather than inferred
+from the absence of a row.
+
+Predictions, to be scored when a control is built:
+
+- **P13 — merge lands near the plain-chain ratio (~4x), well below groupBy's 6.4x.** The reasoning that
+  was wrong twice before is now the reasoning here: C++ wins biggest where Java allocates, and merge is
+  the case where **neither side allocates**. Java stores a reference into a field; C++ stores a
+  `const void*` into a field. Both then test it against null. If the ratio comes back near groupBy's,
+  the allocation story is not doing the work I think it is.
+- **P14 — mapOnNotify is indistinguishable from notify.** Same struct, same two audit entries, one
+  extra pointer returned from `get()`. Predicted difference: none outside noise. This one is worth
+  measuring precisely BECAUSE it should be null — a difference would mean the extra `get()` is not
+  free, and that would say something about the templated-parent design rather than about mapOnNotify.
+
+A caveat that applies to P13 and belongs with it: **the C++ merge stores a pointer INTO the event**.
+That is sound while the value is read within the cycle, which is the only time the generated dispatch
+reads it, but it is not the same lifetime story as Java's reference to a heap object. Any future shape
+that holds a merged value ACROSS cycles needs that revisited before a number is quoted for it.

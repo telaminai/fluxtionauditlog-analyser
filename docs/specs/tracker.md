@@ -234,7 +234,23 @@ rather than for want of effort.
 
 ### M55 · Open, and worth doing in this order
 
-- ☐ **M55.1 `@Inject` resolution** — unblocks merge and mapOnNotify, and is the last structural gap.
+- ☑ **M55.1 merge and mapOnNotify emit — and `@Inject` resolution was never needed.** COMPLETE
+  2026-09-09. **35 constructs emitted, 2 refused, 18 oracle chains.** The item as written was wrong:
+  it recorded both constructs as blocked on a mechanism the target lacks, and estimated a day. Reading
+  the two node types instead of the tracker entry settled it in minutes — `merge`'s injected
+  `DirtyStateMonitor` backs `hasChanged()` alone and no generated dispatch calls it (both languages
+  guard the node with the processor's own dirty flags); `mapOnNotify`'s injected `NodeNameLookup`
+  resolves a name in `initialise()` that is a generation-time constant on the C++ side, so it is baked
+  as a literal. **The C++ target still has no `@Inject` support and no longer needs any.**
+  - The real obstacle was mundane and nowhere in the entry: both nodes fail two GENERIC guards in
+    `emit()` — no method reference, and a first constructor argument that is not a plain node name
+    (merge's parents arrive as `new ArrayList<>(Arrays.asList(a, b))`). They belong above those guards,
+    where groupBy and default-value already sit.
+  - **A real boundary did turn up**: `mapOnNotify` refuses an INLINE target and should. `notify()`
+    registers its target for the author; `mapOnNotify()` does not, so an inline `new Sink()` is a
+    nameless object with no node to fire. The matrix now carries both rows, since one word of the
+    author's code decides which.
+  - Unmeasured: no control build covers either construct. Predictions P13/P14 recorded, unscored.
 - ☐ **M55.2 groupBy at cardinality** — the 6.4× is a linear scan over FOUR keys and is O(groups).
   Measure at thousands before anyone quotes it; a hash store behind the same interface if the scan is
   the problem. Measurement first.
