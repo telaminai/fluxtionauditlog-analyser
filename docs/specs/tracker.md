@@ -239,6 +239,12 @@ rather than for want of effort.
   Measure at thousands before anyone quotes it; a hash store behind the same interface if the scan is
   the problem. Measurement first.
 - ☐ **M55.3 `FixSizedSlidingWindow`** — probably an afternoon.
+- ☐ **M55.4 a checked-in golden that nothing asserts is not a test.** `MYProcessor.java` in the
+  compiler repo had been stale since core `f7246ad` and nobody noticed, because `FluxtionBuilderTest`
+  WRITES it and compiles the string in memory — the file on disk is read by no one. Its only signal is
+  that regeneration dirties the working tree, which reads exactly like build noise. Either assert the
+  golden or stop checking it in; the current arrangement has the cost of a fixture and the value of
+  none. Found 2026-09-09 by the M54 verification pass, not by a test.
 
 Open, in dependency order:
 
