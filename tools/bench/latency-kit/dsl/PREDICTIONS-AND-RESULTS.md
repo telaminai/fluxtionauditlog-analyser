@@ -167,3 +167,84 @@ This is the second time in this kit it has been wrong in the same direction — 
 `-O2` already inlined the templated chain, where `-O3` then bought 22%.
 
 The best C++ figure so far, on the artefact that ships, is **2.653 ns against Java's 10.51 — 4.0x**.
+
+---
+
+# P9–P11 — the shapes that were never measured. Written BEFORE measuring, 2026-09-09
+
+Baseline: `map -> map -> filter -> aggregate`, C++ `-O3` **2.653 ns**, Java JIT **10.51**, ratio 4.0x.
+
+## P9 — a tumbling window
+
+**Predict C++ 2.5–3.5 ns, ratio 3.5–4.5x — i.e. broadly the same as the chain.**
+
+A tumbling window embeds its accumulator in the node struct: no allocation, no buffer, and the roll
+trigger is one clock read plus a comparison per event. The per-event work is a `FixedRateTrigger` read
+on top of an aggregate, which is close to what the chain already does. **This is the prediction I hold
+most strongly** — there is no mechanism here for a large difference.
+
+## P10 — flatMap
+
+**Predict C++ 40–120 ns, ratio WORSE than 1x — i.e. C++ may LOSE to Java.**
+
+Per element it allocates a `std::function` into a `std::deque` and runs a whole graph cycle. Three
+elements per event means three cycles plus three heap allocations, against a JVM whose allocator is a
+pointer bump and whose escape analysis may remove the closure entirely. **This is the first shape where
+I expect Java to be competitive or ahead**, and if it is, the honest read is that `std::function` +
+`deque` is the wrong C++ structure rather than that C++ is slower — a fixed-capacity ring of PODs would
+avoid both.
+
+## P11 — groupBy
+
+**Predict C++ 4–8 ns, ratio 2–4x — better than flatMap, worse than the chain.**
+
+A `std::vector` scan over a handful of keys is cache-friendly and allocation happens only when a NEW key
+appears, which is rare after warm-up. Against Java's `HashMap` with boxed `Integer` keys, C++ should
+still lead. The linear scan is the risk: it is O(groups), and the benchmark has few groups, so this
+figure will NOT generalise to high-cardinality grouping — a caveat worth recording whatever the number.
+
+## P12 — the checksum holds on all three
+
+**Predict yes.** Stated because it is the cheap check that has caught every invalid comparison in this
+kit, and because two of these three shapes allocate, which is where a wrong answer would come from.
+
+## P9–P12 scored — 5M events, min-of-4, two reps, checksums identical per shape
+
+| shape | C++ `-O3` | Java JIT | ratio |
+|---|---:|---:|---:|
+| `map -> map -> filter -> aggregate` (baseline) | 2.653 | 10.51 | 4.0x |
+| tumbling window | 2.618 / 2.818 | 6.907 / 6.950 | **2.5x** |
+| **groupBy** | **2.295 / 2.360** | 14.791 / 15.038 | **6.4x** |
+| flatMap (3 elements/event, `DEFAULT` profile) | 22.686 / 22.968 | 77.21 / 84.39 | **3.5x** |
+
+**Three of four wrong, all in the same direction: I under-estimated C++ and over-estimated Java.**
+
+| # | prediction | outcome |
+|---|---|---|
+| P9 | window C++ 2.5–3.5 ns | **right** |
+| P9 | window ratio 3.5–4.5x | **wrong — 2.5x**, and not because C++ was slow. JAVA got FASTER (6.9 against 10.5 on the chain): a window aggregates on the input path and only publishes on a roll, so most events do less work downstream. I predicted the C++ number and forgot the Java one moves too. |
+| P10 | flatMap C++ 40–120 ns | **wrong — 22.7**, half the bottom of my range |
+| P10 | flatMap: C++ may LOSE to Java | **wrong, and backwards — C++ wins 3.5x.** I argued a JVM pointer-bump allocator plus escape analysis would beat `std::function` in a `std::deque`. It does not: Java is 77–84 ns for three cycles an event. |
+| P11 | groupBy C++ 4–8 ns | **wrong — 2.30, FASTER than the baseline chain** |
+| P11 | groupBy ratio 2–4x | **wrong — 6.4x, the best result in the kit** |
+| P12 | checksums hold | **right**, all three shapes |
+
+### The finding I would keep
+
+**Where Java allocates is where C++ wins biggest, and I predicted the opposite twice.** groupBy is the
+best ratio in the whole kit (6.4x) because Java pays for boxed `Integer` keys in a `HashMap` on every
+event, while the C++ side scans a small insertion-ordered vector of PODs and allocates only when a new
+key appears. flatMap is the same story one level up.
+
+I reasoned that allocation was C++'s weakness because it is the thing C++ makes you think about. It is
+Java's, because it is the thing Java lets you not think about.
+
+### Two caveats that belong with these numbers
+
+- **groupBy's 6.4x will not hold at high cardinality.** The store is a linear scan and the benchmark has
+  four keys. It is O(groups), so a graph grouping by thousands of keys inverts the argument — and that
+  is a real workload, not a corner.
+- **flatMap runs on `DEFAULT`, not `LOWEST_LATENCY`.** That profile drops node-name lookup, and
+  `FlatMapFlowFunction` extends `BaseNode` which needs its context injected — refused at build time by
+  `RequiredCapabilityCheck`. Both targets use `DEFAULT`, so the comparison is sound, but the absolute
+  numbers are not comparable to the other rows.
