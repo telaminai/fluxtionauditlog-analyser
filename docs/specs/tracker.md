@@ -107,43 +107,71 @@ and note the brief's admission that **the bench has never been run against a rea
 
 ---
 
-## M52 · Binary audit encoding + the reader that makes it usable — ☐ SPEC'D 2026-09-08, cross-repo
+## M52 · Binary audit encoding + the reader that makes it usable — ◑ PART SHIPPED 2026-09-09, cross-repo
 
 Specs: **[spec-binary-audit-encoding.md](spec-binary-audit-encoding.md)** (core + mongoose) and
 **[spec-binary-audit-reader.md](spec-binary-audit-reader.md)** (a new `fluxtion-audit-reader` module in
-the compiler repo). Evidence: `docs/experience/runs/round-63/NOTES.md` §6–§8.
+the compiler repo). Evidence: `docs/experience/runs/round-63/NOTES.md` §6–§8, §33–§36.
 
-Measured, on a 30-node 5-event-type graph with a converging tail: an audited processor runs at **6.5M
-events/sec (JIT) / 4.5M (native AOT)**, where the graph itself dispatches in 10.0 / 3.4 ns. **94% of JIT
-cost and 98% of native is building a text audit record.** Swapping the encoder for one that writes bits
-— through `EventLogControlEvent(LogRecord)`, a seam that already ships — reaches **20.3M/s (JIT) and
-12.8M/s (native)**, zero allocation, 54 bytes/record against 193.
+The measurement that motivated this said **94% of JIT cost and 98% of native was building a text audit
+record**. That is fixed, and then some: the audited path now runs at **42.6 ns JIT / 41.1 native,
+23.5 M events/sec** on a 30-node graph where *every* node logs 11.75 values per event, zero allocation.
+The two toolchains are level, which they had never been.
 
-Shipped already: **the `logTime` fix** (core `8e328de`) — `logTime` now comes from
-`Clock.getProcessTime()`, the reading `Clock.eventReceived` already took, instead of a second later one.
-A correctness fix that is also worth 13.7 ns/event to every existing user of the text record.
+Shipped:
+
+- ☑ **the `logTime` fix** (core `8e328de`) — `logTime` comes from `Clock.getProcessTime()`, the reading
+  `Clock.eventReceived` already took. A correctness fix worth 13.7 ns/event to every text-record user.
+- ☑ **M52.2** `LOW_LATENCY_AUDIT` profile — audit on, tracing off, no allocating default, no runtime name
+  map, no buffer-and-trigger, no subscriptions; dirty filtering and reentrancy deliberately untouched.
+  It once *silently disabled the audit log*; `recPerEvent > 0` is now asserted by every harness.
+- ☑ **M52.3 (the record half)** `BinaryLogRecord` — two aligned `long` slots per entry, 16 bytes, pure
+  Java 8. Beats the byte loop by 51 ns/event on native and a `VarHandle` view by 19.7.
+- ☑ **the format specification and its conformance suite** — the normative entry layout, `TAG_TRACE(8)`
+  added 2026-09-09 when binary tracing was fixed.
+- ☑ **a reader** — `BinaryLogFile` / `BinaryLogReader` / `BinaryRecordDecoder` plus the `AuditLogTool`
+  CLI with id-set matching, time ranges and a pluggable renderer. **This is not what M52.4 specified**
+  (see below), and it means the M52.3-before-M52.5 hazard — a binary record no tool can open — is closed.
+- ☑ **the audit hot path profiled and fixed** (§34) — an `IdentityHashMap` lookup per event that bypassed
+  the identity table built for it; per-logger key caches costing three cache lines per entry; a
+  resolved-once decision re-checked per entry. **24% off the JIT audited path, audit cost 43.4 → 29.2 ns.**
+- ☑ **binary method tracing** (§35) — `addTrace` wrote to a buffer `length()` does not describe, so a
+  trace-only record never published. Now a normal two-slot entry; the reader no longer counts a trace's
+  absent key as an unresolved id.
 
 Open, in dependency order:
 
-- ☐ **M52.1** generator emits `clock.eventReceived` first, with a test — the `logTime` fix depends on
-  the order and the generator does not enforce it; the failure is silent
-- ☐ **M52.2** `LOW_LATENCY_AUDIT` profile (core builder-api) — audit on, tracing off, neither allocating
-  default, and explicitly *not* touching dirty filtering or reentrancy
-- ☐ **M52.3** a record may express itself as bytes — `LogRecord` abstract or an encoder interface, plus a
-  byte-facing `LogRecordListener` path so a sink need not downcast to a vendor class
-- ☐ **M52.4** `fluxtion-audit-reader` — a new compiler-repo module; the filter pipeline is itself a
-  generated Fluxtion graph, AOT native, text sink by default and pluggable at build time
-- ☐ **M52.5** the analyser's binary reader (**UP-RDR-01**, still unfiled) + format-spec extension and
-  conformance suite
+- ☐ **M52.1** a **test** that the generator emits `clock.eventReceived` before `eventLogger.eventReceived`.
+  The generator *does* emit them in that order — verified in generated source 2026-09-09 — but nothing
+  enforces it, and the failure is silent: `logTime` quietly becomes the previous event's timestamp.
+  Belongs in the compiler repo.
+- ☐ **M52.3 (the sink half)** a byte-facing `LogRecordListener` path. `processLogRecord(LogRecord)` still
+  forces a sink to downcast — `BinaryLogWriter` casts to `BinaryLogRecord` — which is exactly what the
+  spec said a vendor sink should not have to do.
+- ☐ **M52.4** `fluxtion-audit-reader` **as specified**: a compiler-repo module whose filter pipeline is
+  itself a generated Fluxtion graph, AOT native. **What shipped is a plain reader inside
+  `fluxtion-runtime`.** It works, it is tested, and it is a smaller thing than the spec describes —
+  decide whether the specified module is still wanted or whether the spec should be amended to what
+  exists. *Owner call.*
+- ☐ **M52.5** the analyser's binary reader (**UP-RDR-01**, still unfiled) — a binary log opens at the
+  command line and not in the analyser UI, which is why `TEXT` remains the default record format.
 - ☐ **M52.6** mongoose: `ValueOut.text(cs)` → `bytes(...)` (**2.20×** measured, byte-identical queue
-  file) and drop the per-record `Instant.now()` (3% of time, **100% of the allocation**)
+  file) and drop the per-record `Instant.now()` (3% of time, **100% of the allocation**).
+- ☐ **M52.7** docs in the core/compiler documentation site for the binary logger, the reader tool and the
+  latency harness — added 2026-09-09.
 
-**M52.6 is independent of everything else** and is the cheapest win on the list. M52.3 must not ship
-ahead of M52.5: a binary record with no reader is a log nobody can open.
+**M52.6 is independent of everything else** and is the cheapest win on the list.
 
 **Owner decision needed** (spec-binary-audit-reader §11): does the analyser's binary reader and the CLI
 share a cursor/dictionary library — a fourth artifact nobody has budgeted for — or does each carry its
-own decoder?
+own decoder? Now sharper than when it was written, because the CLI's decoder exists and is in
+`fluxtion-runtime`, so "share it" today means "the analyser depends on the runtime jar".
+
+**Withdrawn:** the ordinal audit-key API and the code-model transformation it was built for. Measured at
+a 10.3 ns JIT prize, which turned out to be the cost of the data-structure fault fixed in §34; with that
+fixed the ordinal path is *slower* than the plain `String` one. Removed from the runtime rather than
+deprecated. See §33–§35 — the episode is the strongest argument in this repo for profiling an
+implementation before concluding its abstraction is the problem.
 
 ## M51 · The native-ready starter template — ☐ SPEC DRAFTED, cross-repo
 

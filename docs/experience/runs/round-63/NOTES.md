@@ -2948,3 +2948,62 @@ document — including the ones used to argue about a code model.
 
 The order that would have saved the most work: profile the implementation, fix what the profile names,
 *then* measure whether the remaining structure is worth changing.
+
+
+---
+
+## §35 Closing the code-model track, and fixing what it turned up
+
+Three decisions, taken on the evidence of §34.
+
+### 35.1 The ordinal key API is removed
+
+Not deprecated — removed from `fluxtion-runtime`, along with its tests and its row in the capability
+matrix. §34 measured it **3.26 ns slower than the shipped `String` path on native** (9 of 9 build
+pairings) and 1.46 slower on JIT, because `keyRef` is now two reference compares against fields while
+`ordinalRef` is an array load with a bounds check and a resolved-test.
+
+Keeping it would have meant carrying a second way to write an audit entry, a `declareKeys` lifecycle with
+a documented footgun (`@Initialise` declares onto a shared singleton), and an override pair in
+`BinaryEventLogger` — permanently, to be slower. The measurements survive in this document and in
+`RECORDED-BASELINES.md`; the code does not.
+
+### 35.2 The ceiling arm is retired as a control
+
+It leads on native by 3.64 ns and it is not a configuration anyone can deploy — it requires the node to
+hold the record and its ids directly, which no generated processor does. It was built to size a
+transformation that is no longer being considered. Kept as a recorded baseline, dropped as a band:
+**a control exists to catch a regression in something someone runs.**
+
+### 35.3 Binary tracing, fixed
+
+The gap §34.5 recorded and declined to fix is fixed here, because dropping the code-model work freed the
+budget and because a silently-lost audit feature is worse than a slow one.
+
+`addTrace` now writes a normal two-slot entry with a new tag:
+
+```
+slot0 :  nodeId | keyId=0 | TAG_TRACE(8)
+slot1 :  0
+```
+
+Every entry stays exactly two slots, which is the property that lets a reader skip an entry without
+decoding it — so a trace is a special case in *meaning* and not in *layout*.
+
+**A second defect, found by the round-trip test.** With traces flowing, the reader rendered their absent
+key as `#0` and counted it in `Result.unresolvedIds`. That counter is how a reader distinguishes a rolled
+file — legitimately starting mid-dictionary — from a corrupt one, so every traced log would have looked
+corrupt. `keyId == 0` now means *no key* explicitly.
+
+Six unit tests plus an end-to-end file round-trip: written by a logger, encoded, framed, read back, named
+through the dictionary. Every layer was correct in isolation, which is why only the end-to-end test found
+it. The normative format specification is updated; tag 8 was previously unallocated and no log in the
+wild contains a trace, so nothing that exists is broken by it.
+
+### 35.4 What is left
+
+The audited path is now **42.6 ns JIT / 42.7 native, 23.5 M/s**, level across toolchains, on a graph where
+every node logs 11.75 values per event. The goal set at the start of this work was 10 M/s fully audited.
+The remaining known headroom is 3.6 ns of logger indirection that cannot be reached without changing what
+a generated processor emits, and two rounds of profiling have each found more in the data structures than
+that.

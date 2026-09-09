@@ -141,10 +141,23 @@ slot1 :  the value's raw bits
            TAG_INT(3)     the int, sign-extended
            TAG_CHAR(4)    the char
            TAG_BOOL(7)    0 or 1
+           TAG_TRACE(8)   0 — a node invocation, no key and no value
 ```
 
 **Every entry is exactly two slots whatever the value type.** That is the property a reader depends on:
 it can skip an entry without decoding it, which is what makes filtering cheap.
+
+**`TAG_TRACE(8)` — a node invocation.** `keyId` is 0 and the value slot is 0; the entry says only that a
+node ran. A reader MUST treat `keyId == 0` as *no key*, not as an id that failed to resolve — the
+unresolved-id counter is how a reader distinguishes a rolled file from a corrupt one, and counting traces
+there would make every traced log look corrupt.
+
+!!! warning "Tag 8 was added after the first release of this format"
+    Traces were previously written into the byte buffer that `length()` does not describe, so they
+    produced no visible bytes and a trace-only record was never published at all. Because
+    `LOW_LATENCY_AUDIT` disables tracing, no log in the wild contains a trace entry — so allocating tag 8
+    breaks nothing that exists. A reader written against the earlier text of this section will report
+    tag 8 as unknown rather than mis-decode it, since `knownTag` bounds the range.
 
 Names are not written. A node name or property key is resolved to a `u16` id **once per logger**
 (§7A), and only the id goes in the slot.

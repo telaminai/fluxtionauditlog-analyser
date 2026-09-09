@@ -224,3 +224,32 @@ thing it replaced was broken.
 **The ceiling still leads on native** — 39.09 against 42.73, 8 of 9 pairings, 3.64 ns — by removing the
 logger object from the entry path entirely. That is the honest remaining headroom, and it is smaller than
 what profiling found twice.
+
+
+## Final state of round 63 (§35–§36) — harness h5
+
+The ordinal and ceiling arms are gone; binary tracing works; the per-entry level gate reads a cached int
+instead of dereferencing the level enum.
+
+| arm | JIT | native, 3 builds | native mean |
+|---|---:|---|---:|
+| audit not generated | 12.4 | 2.078 | — |
+| audit calls present, nothing listening | 12.2 | — | — |
+| audit calls **removed from node source** | 10.8 | — | — |
+| **audited, binary record — what ships** | **~41.0** | 40.285 · 40.915 · 42.073 | **41.09** |
+
+**The no-op audit call costs 1.40 ns across 11.75 call sites** — 0.12 ns each (12.218 against 10.822).
+This was measured because a JFR profile showed `EventLogger.info` as the leaf frame in **71% of samples**
+on the no-audit control, which would have been a large and entirely fictitious hotspot. HotSpot inlines
+the node's arithmetic into `info` and the sampler attributes the inlined frame. **Recorded here as the
+clearest example in this kit of why a profile sizes nothing.**
+
+**The cached level gate is worth 1.64 ns on native** (42.73 → 41.09, mean of three builds, 8 of 9
+pairings) and **0.87 ns on JIT, which is inside the 6% JIT noise floor and is therefore not a
+performance claim.** It is kept because it removes a dependent load, unified eight duplicated level
+checks, and made the unset-level case safe without a null check — not because JIT got faster.
+
+**`c-audit-dense` (jit) has been retired.** It shared a classpath with `c-audit-string`, so it was never
+an independent control, and after §34 its band described code that no longer exists. The native row is
+kept: it is a genuinely different binary, built before `-H:-SpawnIsolates`, and it is the evidence that
+one build flag was worth more than every source change measured after it.

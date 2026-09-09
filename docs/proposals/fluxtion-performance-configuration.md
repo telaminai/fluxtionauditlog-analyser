@@ -115,58 +115,40 @@ no-audit baseline of 13.4 / 2.1. Native is three independent PGO builds, mean.
   profiling. Neither was caught by more careful benchmarking, and the harness discipline in between —
   interleaving, build lotteries, runtime digests — would not have found either.
 
-### How much is left on the table — the ceiling, measured
+### How much is left on the table — measured, then closed
 
-A recurring question is whether a code model or bytecode pass over the generated processor could replace
-the generic audit calls with specialised ones and close the remaining gap. The ceiling was measured
-rather than argued — and the answer changed once the implementation underneath it was profiled.
-
-Four arms, identical graph, identical events, and — checked before every run — **identical records**
-(188 bytes, one per event) and identical checksum. The only thing that varies is how a node reaches the
-record. Each native arm was built **three times** with an independent PGO collection, because the audited
-build lottery (±8 ns) is larger than the effect.
+A recurring question was whether a code model or bytecode pass over the generated processor could replace
+the generic audit calls with specialised ones. It was measured rather than argued, across four arms with
+byte-identical records and three independent PGO builds per native arm. **The answer is no, and the
+reason is worth more than the answer.**
 
 | arm | what is on the audit path | JIT ns | native mean |
 |---|---|---:|---:|
 | no audit | audit machinery not generated at all | 13.410 | 2.104 |
-| ceiling | record bound to the node: no logger, no key lookup, no level guard | 43.972 | **39.09** |
-| ordinal keys | `declareKeys` once, then `auditLog.info(0, v)` | 44.063 | 45.99 |
-| **String keys** | `auditLog.info("v", v)` — what ships today | **42.605** | **42.73** |
+| ceiling — record bound to the node, no logger at all | the theoretical floor | 43.972 | 39.09 |
+| ordinal keys — `declareKeys` + `info(0, v)` | a specialised call site | 44.063 | 45.99 |
+| **String keys** — `auditLog.info("v", v)` | **what ships** | **42.605** | **42.73** |
 
-!!! danger "Do not specialise these call sites — the shipped path is now the fastest on JIT"
-    On JIT, `String` keys beat both alternatives. On native the ceiling still leads by 3.6 ns (8 of 9
-    build pairings), but **ordinal keys are 3.3 ns SLOWER than the shipped path on 9 of 9**.
+The first version of this measurement showed a 10.3 ns prize on JIT and 5.7 on native, and it was real —
+but it was measuring **a data-structure fault, not a property of the call sites**. `keyRef` used
+per-logger arrays, so resolving a key touched three cache lines; ordinals replaced that lookup with an
+array index and won. Once the first two key ids were held as fields on the logger, the lookup became two
+reference compares — and the ordinal path's own array load, bounds check and resolved-test cost *more*
+than what it replaced.
 
-    An earlier version of this section reported the opposite, with a prize of 10.3 ns on JIT and 5.7 on
-    native. Those numbers were real, and they were measuring **a data-structure fault, not a property of
-    the call sites**. `keyRef` used per-logger arrays, so resolving a key touched three cache lines;
-    ordinals replaced that lookup with an array index and won. With the first two keys held as fields on
-    the logger, the lookup is two reference compares — and the ordinal path's own array load, bounds
-    check and resolved-test now cost more than what it replaced.
+**The ordinal API has been removed from the runtime**, and the ceiling arm with it. On JIT the shipped
+`String` path is now the fastest of the three; on native the ceiling leads by 3.6 ns, which is not worth
+a code model, a bytecode pass, or an API. Node code stays `auditLog.info("v", v)`.
 
-    **The code model would have optimised around a bug.** See round 63 §34.
+The lesson is the one on the checklist: **profile the implementation before deciding the abstraction is
+the problem.** A code model built on the first measurement would have shipped a permanent complication to
+optimise around a bug that took ten lines to fix. See round 63 §33 and §34.
 
-The ordinal API remains in the runtime, tested and correct, because a node logging more than two distinct
-keys still spills to the array form. It is not the default and it is not recommended.
-
-!!! note "What still separates the ceiling: the logger object itself"
-    The ceiling arm's remaining 3.6 ns on native comes from removing the `EventLogger` from the entry
-    path entirely — the node holds the record and its ids as plain fields. That is a real effect and it
-    is the honest remaining ceiling. It is also a moving one: two rounds of profiling have each found
-    more in the data structure than the call sites were ever worth.
-
-!!! danger "`@Initialise` is the wrong hook for `declareKeys`"
-    Nodes hold the shared `NullEventLogger.INSTANCE` until the manager installs a real logger, and
-    `@Initialise` runs before that. Declaring keys there declares them onto a singleton every node in the
-    JVM shares. `setLogger` is the hook the logger actually arrives through. `NullEventLogger` swallows
-    the ordinal API so the mistake is inert rather than fatal, but the keys still go nowhere.
-
-**A diagnostic worth keeping.** An early version of the ordinal path measured a clear win on JIT and
-nothing on native. The cause was that `BinaryEventLogger` overrode only the `String`-key writes, so
-ordinal writes went through the base class, whose record field is typed `LogRecord` — a **virtual**
-`addRecord` competing against a direct one. JIT profiles such a call monomorphic and inlines it; closed-
-world AOT cannot. **A change that helps JIT and does nothing on native is the signature of an indirection
-the AOT compiler could not devirtualise** — nothing else in the numbers said so.
+**A diagnostic worth keeping from the discarded work.** An early version of the ordinal path measured a
+clear win on JIT and nothing on native. The cause was a **virtual** `addRecord` competing against a direct
+one: JIT profiles such a call monomorphic and inlines it, closed-world AOT cannot. **A change that helps
+JIT and does nothing on native is the signature of an indirection the AOT compiler could not
+devirtualise** — nothing else in the numbers said so.
 
 ### Multiple event types and branching paths — the gap depends on your alternative, not on the processor
 
@@ -373,7 +355,6 @@ pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile
 |---|:---:|:---:|:---:|:---:|
 | **Audit log** (records at all) | ✅ | ✅ | ✅ | ❌ |
 | **Binary record** (`AuditRecordFormat.BINARY`) | ❌ | ❌ | **✋ opt-in** | — |
-| **Ordinal audit keys** (`declareKeys` + `info(int, …)`) — *slower since §34, see above* | ✋ | ✋ | ✋ | — |
 | **Per-node method tracing** | ✅ | ✅ | ❌ | ❌ |
 | Event `toString()` in each record | ✅ | ❌ | ❌ | — |
 | Thread name in each record | ✅ | ❌ | ❌ | — |
@@ -388,9 +369,8 @@ pick one. ✅ = kept, ❌ = given up, ✋ = the author's call, never the profile
 
 **How to read the ✋ rows.** `setSupportReentrancy(false)` is the one setting that can turn a working
 graph into an `IllegalStateException`, so no profile sets it for you. Void triggers live on your node
-classes, not in the config, so no profile can. **Ordinal audit keys** are written at your call sites, so
-they are available under every audited profile and chosen by none. And the **binary record is opt-in for
-a reason that is not performance** — see below.
+classes, not in the config, so no profile can. And the **binary record is opt-in for a reason that is
+not performance** — see below.
 
 #### The record format is a build input
 
@@ -408,6 +388,16 @@ how you start in the right one.
 |---|---:|---:|---:|
 | `TEXT` | 403.0 ns · 2.5M/s | 698.6 ns · 1.4M/s | 548 |
 | **`BINARY`** | **54.6 ns · 18.3M/s** | **115.8 ns · 8.6M/s** | **181** |
+
+!!! note "Method tracing now works in a binary record"
+    It did not until round 63 §34. `addTrace` wrote into the byte buffer that `length()` does not
+    describe, so a trace produced no visible bytes, and nothing marked the record as having content — so
+    a trace-only record was never published. `AUDITED` + `BINARY` therefore lost every trace, silently.
+    Traces are now normal two-slot entries carrying `TAG_TRACE(8)`, a node id and no key.
+
+    No log in the wild contains one, because `LOW_LATENCY_AUDIT` — the only profile anyone runs binary
+    under — disables tracing. Readers built against the earlier format report tag 8 as unknown rather
+    than mis-decoding it.
 
 !!! warning "`TEXT` is still the default, but the binary form is no longer unreadable"
     This note previously said no tool could open a binary log. That stopped being true in this round:

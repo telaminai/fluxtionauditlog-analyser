@@ -6,6 +6,33 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **Method tracing works in a binary audit log.** `addTrace` wrote into a byte buffer that the record's
+  `length()` does not describe, so a trace produced no visible bytes — and because nothing marked the
+  record as having content, a **trace-only record was never published at all**. `AUDITED` + `BINARY`
+  therefore lost every trace, silently. Traces are now ordinary two-slot entries carrying a new
+  `TAG_TRACE(8)`: a node id, no key, no value. Every entry stays exactly two slots, which is the property
+  that lets a reader skip one without decoding it. A second defect surfaced with the first: the reader
+  counted a trace's absent key as an **unresolved id**, the diagnostic that distinguishes a rolled file
+  from a corrupt one, so every traced log would have looked corrupt. Tag 8 was unallocated and no log in
+  the wild contains a trace — `LOW_LATENCY_AUDIT` disables tracing — so nothing that exists is broken by
+  the change, and readers built against the earlier format report tag 8 as unknown rather than
+  mis-decoding it. The normative format specification is updated.
+
+### Changed
+- **The audited event path is 24% faster on JIT and level with native for the first time** — 42.6 ns JIT
+  against 42.7 native, 23.5 M events/sec on a 30-node graph where every node logs. A JFR profile put 56%
+  of the audited path in code that resolves names which never change: an `IdentityHashMap` lookup per
+  event to id the event type, while the identity table built for exactly that sat unused; per-logger key
+  caches spread across three cache lines per entry; and a resolved-once decision re-checked on every
+  entry. Audit cost fell from 43.4 ns to 29.2 on JIT. The 1.5–1.9× native deficit recorded through this
+  work was never a property of the toolchain — it was the JIT speculating through pointer-chasing that
+  closed-world compilation has to execute.
+- **The ordinal audit-key API is removed.** It existed to let a code model replace `auditLog.info("v", v)`
+  with an indexed call, and measured a real gain — against the data-structure fault above. With that
+  fixed it is **slower** than the plain `String` path on both toolchains, so it is gone rather than
+  deprecated. Node code stays `auditLog.info("v", v)`.
+
 ### Added
 - **Collect a PGO profile until the native build lands, then keep the profile.**
   `tools/bench/land-native.py`. A GraalVM image lands at either ~1.6 ns/event or ~5.5, and **the
