@@ -177,56 +177,46 @@ Shipped:
   inspecting, in turn, the legacy `com.fluxtion` repo, a stale sibling branch, and the shaded
   `fluxtion-generator-http` jar. Now resolved by artefact name from the test classpath.
 
-### M53 · Complete the C++ DSL — ◑ 5 of 7 SHIPPED 2026-09-09
+### M53 · Complete the C++ DSL — ☑ COMPLETE 2026-09-09
 
-The emitter covered **6 node kinds, all `int`-typed**, against 122 files in
-`runtime.flowfunction`. It now covers **25 constructs**, indexed by
-`CppDslCapabilityMatrixTest` — generated from the emitter rather than maintained beside it, so a
-construct that starts or stops being emitted fails the test rather than rotting a document.
-Every stage is proven by the audit oracle: eight chains comparing Java against C++ entry for entry.
+**31 constructs emitted, 1 refused, 14 audit-oracle chains.** Every emitted construct is proven against
+Java entry for entry — full log, timestamps included — and the matrix is generated from
+`CppDslCapabilityMatrixTest` rather than maintained beside it, so it cannot drift in either direction.
 
-- ☑ **M53.1 the other primitives and reference types** — map (16 source/target combinations), filter,
-  push and aggregate across `int`, `double`, `long` and reference flows, from one value-kind table. A
-  reference value crosses as `const void*`; the author's stub owns the cast.
-- ☑ **M53.2 the concrete aggregates** — sum, min, max, identity and average across three primitives.
-  min/max seed from the first value; average divides by an `int` count, so `int` and `long` are integer
-  division and `double` is not. `count` is REFUSED, not approximated — it is not a primitive aggregate.
-- ☑ **M53.3 binary map** — the first two-parent node. The per-input latch does not clear, matching Java:
-  once both inputs have been seen the node fires on any later update to either.
-- ☑ **default values** — `.defaultValue(7)` is a node plus a map, and its `hasDefaultValue()` seeds a
-  join's latch so a defaulted input counts as already arrived. Exposed a latent emitter bug: `audited`
-  was set inside the node loop, so any node sorted before the auditor lost its logger.
-- ☑ **M53.4 trigger overrides** — publish, reset, update and publish-override, with Java's full flag
-  expressions. The emitter learns a node HAS an override from the `@OnParentUpdate` callback the model
-  registers, because the setter that installs it is invisible in the constructor string.
-- ☑ **M53.5 `FixedRateTrigger`** — clock bound at init; `triggerCount` counts elapsed PERIODS and
-  `previousTime` advances by exactly that many, so boundaries stay on the grid. Forced a decision on
-  `java.lang.Object` as an event type: skipped, because C++ has no universal root and inventing one
-  would cost the static dispatch the design rests on.
+- ☑ **M53.1–.3** value kinds, the full aggregate set, binary map — one table, not four copies.
+- ☑ **default values** — a node plus a map, whose `hasDefaultValue()` seeds a join's latch.
+- ☑ **M53.4 trigger overrides** + **M53.5 `FixedRateTrigger`**.
+- ☑ **M53.6 windowing** — tumbling and timed-sliding, both roll paths chosen by
+  `Stateful.deductSupported()`. **No heap for either kind.**
+- ☑ **M53.7 flatMap** — one graph cycle per element through a synthetic callback event, so N elements
+  produce N audit records as in Java.
+- ☑ **M53.7b groupBy + count** — groupBy is where allocation finally arrives, and has to.
 
-Remaining:
+**Refused, and it should stay refused:** generic aggregates that READ their input (`toList` and
+siblings) must hand the author's own type to a stub, and that type has no C++ name.
 
-- ☑ **M53.6 windowing** — tumbling and timed-sliding, int/double/long. **The memory answer was better
-  than expected: no heap for either.** A tumbling window embeds its accumulator (Java's `windowFunction`
-  is an object the window holds, not a graph node); a sliding window's ring is a fixed-size array,
-  because the bucket count is a constructor literal the emitter can read where Java allocates a list of
-  N aggregate objects. `Stateful.deductSupported()` splits the roll into two paths as predicted — O(1)
-  combine-and-deduct for a sum, O(buckets) recompute for a min or max.
-  **Found a real Java bug**: all three primitive `TimedSlidingWindow` specialisations override
-  `timeTriggerFired` and drop the base's `publishOverrideTriggered`, so a primitive sliding window
-  computed the right value and never published it. `inputUpdated` clears `inputStreamTriggered` while
-  aggregating the same event that rolled the window, and `publishOverrideTriggered` is the latch it
-  cannot clear. `TumblingWindow` has no such override, which is why tumbling agreed across languages
-  and sliding did not.
-- ◑ **M53.7 flatMap** — mechanism established, emitter written, GATED. flatMap queues one synthetic
-  `InstanceCallbackEvent` per element and dispatches each through the normal event path, so N elements
-  produce N audit records; the C++ shape mirrors that rather than iterating in place, because an
-  in-place loop produces a log that cannot be compared. The author's function is inverted to a
-  push-style `fluxtion::Emitter`, since C++ cannot name Java's `Iterable<R>`. Gated because a flatMap
-  feeding a `mapToInt` emits while one feeding a `filter` refuses — two shapes behaving differently
-  means the boundary is not understood, and that is the same call made for sliding windows, where it
-  turned out to be a real bug rather than a modelling gap.
-- ☐ **M53.7b groupBy** — not started. Needs maps, and therefore the first genuine allocation.
+**Java defects this found — five, all fixed, all now with core-side regression tests** (added
+2026-09-09; the fixes had only been covered by the C++ oracle, which lives in another repo):
+string-valued binary entries dropped entirely, `aggregateInt` reported by the double and long wrappers,
+`publishOverrideTriggered` missing from all three primitive sliding windows, the millisecond clock
+regression, and `const char*` logging as `true` on the C++ side.
+
+**Measured on the shipped artefact:** C++ **2.653 ns** against Java JIT **10.51** — **4.0×**. Native
+AOT Java is 10.398, level with JIT and the only graph in the kit where AOT does not lead.
+
+### M54 · What the C++ target does not cover yet
+
+- ☐ **M54.1 the remaining node families** — merge/mergeMap, lookup, notify, peek, the multi-argument
+  pushes (`BiPushFunction` … `SextPushFunction`), the dynamic and by-property filters. Mostly
+  mechanical: the same table treatment the value kinds got.
+- ☐ **M54.2 event-time nodes** — `EventTimeBucketEvictor`, `EventTimeLatenessGate`. Out-of-order
+  handling, and the most interesting remaining group for real-time monitoring.
+- ☐ **M54.3 count-based sliding** (`FixSizedSlidingWindow`) and the allocating aggregates
+  (`toList`, `toSet`, `RankedTopN`) — the latter blocked on the same boundary as `toList`.
+- ☐ **M54.4 measure a windowed, flatMap and groupBy graph.** The 2.653 ns figure is
+  `map -> map -> filter -> aggregate` only, and `TEST-INDEX.md` says explicitly that nothing recorded
+  predicts the other shapes. flatMap allocates per element and groupBy allocates per key, so both will
+  read differently.
 
 Open, in dependency order:
 

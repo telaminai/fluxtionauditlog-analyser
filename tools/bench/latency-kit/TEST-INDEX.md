@@ -14,7 +14,11 @@ read as an observation rather than a property.
 | claim | defended by | repo |
 |---|---|---|
 | A hand-written graph computes identically in Java and C++, step by step | `CppJavaAuditParityTest` | compiler |
-| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` | compiler |
+| **A DSL graph** computes identically in Java and C++, step by step | `CppDslAuditParityTest` — **14 chains** | compiler |
+| Every emitted DSL construct is proven, and every unemitted one refused by name | `CppDslCapabilityMatrixTest` — 31 emitted, 1 refused | compiler |
+| A window rolls, publishes on close only, and slides by the right algebra | 3 chains: tumbling, sliding-sum (O(1) deduct), sliding-max (O(n) recompute) | compiler |
+| flatMap produces one graph cycle AND one audit record per element | `flatMapProducesIdenticalAuditLogs` | compiler |
+| groupBy groups by key rather than by address or not at all | `groupByProducesIdenticalAuditLogs` — 5,5,5,5,9 | compiler |
 | The C++ target refuses a DSL graph it cannot model rather than emitting a wrong one | `CppDslRefusalTest` | compiler |
 
 Both parity tests compare a binary audit log entry for entry, decoded by the same Java reader, with a
@@ -79,7 +83,11 @@ adding a narrower assertion that would have caught it more legibly.
 
 ## What is NOT defended
 
-- **Windowed graphs in C++.** Not emitted, so not measured and not compared. Aggregates today are a
+- **Performance of windowed, flatMap and groupBy graphs.** All three are now emitted and PROVEN
+  correct, but the 2.653 ns figure is `map -> map -> filter -> aggregate` only. flatMap allocates per
+  element and groupBy allocates per key; nothing recorded here predicts either.
+- **Windowed graphs in C++ — superseded.** They are emitted and proven now; what remains unmeasured is
+  their cost, above. Aggregates today are a
   single `int32_t` inside the node struct — stack-resident, no allocation, which is part of why the C++
   arm is cheap. Windows need buffers whose lifetime spans events, and the stack-versus-heap choice
   there is a design decision with a real cost. No figure in this kit predicts it.
