@@ -3007,3 +3007,78 @@ every node logs 11.75 values per event. The goal set at the start of this work w
 The remaining known headroom is 3.6 ns of logger indirection that cannot be reached without changing what
 a generated processor emits, and two rounds of profiling have each found more in the data structures than
 that.
+
+
+---
+
+## §37 Three questions about C++, answered by measurement
+
+The owner asked three things that would normally be answered with opinion. All three are cheap to test,
+and two of the answers were the opposite of the intuition.
+
+All arms below compute the identical checksum on the price-ladder benchmark; without that they are
+different programs.
+
+### 37.1 Is the Java-to-C++ gap bounds checking? No.
+
+Bounds checking was named in §36 as the leading remaining candidate and explicitly **not** claimed. It is
+now refuted. Explicit bounds and null checks were added to the C++ — one per array access, one per
+dereference — and cost **nothing**:
+
+| | native ns |
+|---|---:|
+| C++ flat | 1.159 |
+| C++ flat + bounds and null checks on every access | 1.160 |
+
+The compiler proves the indices in range and deletes the checks. That is precisely what a JIT attempts
+and largely fails at here.
+
+**Three hypotheses for this gap have now been tested and all three refuted**: auto-vectorisation
+(disabling it made C++ faster), data layout (a flat `int[]` Java variant was slower), and bounds checking
+(free in C++). The gap is real, it is ~3 ns, it is present in hand-written Java with no framework, and
+its cause is still unattributed. Writing that down is better than a fourth guess.
+
+### 37.2 Would Fluxtion emitting C++ match hand-written C++? Yes.
+
+The generated processor's structure — one object per node holding parent pointers, a dirty flag per
+node, a guard check before each trigger, a service prologue and epilogue — transliterated to C++:
+
+| | native ns |
+|---|---:|
+| C++ hand-written, flat | 1.159 |
+| **C++ in the generated shape** | **1.157** |
+
+Identical. Everything inlines away.
+
+**This is the most useful result of the three.** The same shape costs 4% in Java (4.474 against 4.297)
+and 0% in C++. So the overhead Fluxtion carries is *not* a property of code generation, node objects,
+dirty flags or guard checks — those are free given a compiler that can see through them. It is a property
+of the Java runtime. A C++ backend would land at hand-written C++.
+
+### 37.3 How would C++ handle an audit log? Far better, and the gap widens.
+
+Same record layout — two aligned 64-bit slots per entry, ids not names, one clock read per event, the
+same publish decision:
+
+| | native ns | audit cost |
+|---|---:|---:|
+| C++, no audit | 1.159 | — |
+| C++ + audit machinery, 0 entries | 4.074 | **2.92** |
+| C++ + audit, 4 values/event | 4.327 | 3.17 (**0.06 ns/value**) |
+| Java `LOWEST_LATENCY` | 4.474 | — |
+| Java `LOW_LATENCY_AUDIT` + `BINARY` | 18.161 | **13.69** |
+
+**C++ carries the machinery for 2.9 ns where Java pays 13.7 — 4.7× — and a logged value costs it 0.06 ns.**
+
+Some of that is the clock: `mach_absolute_time()` is 4.8 ns against `System.nanoTime()`'s 8.0. Most is
+not. The audit path is a hotter, tighter loop than dispatch, so the same platform difference shows up
+magnified — which is the general shape of every result in this round: **the leaner the path, the larger
+the relative cost of being on the JVM.**
+
+### 37.4 What this says about where to spend effort
+
+Four rounds of work have gone into the audit path in Java and taken it from 56 ns to 18. The C++ control
+does the same thing in 4. That is not an argument that the Java work was wasted — 18 ns for a full audit
+trail is a good number and it is the number that ships. It is an argument about **ceilings**: the
+remaining Java headroom on this path is bounded by things Fluxtion does not control, while the generation
+strategy itself has been measured at zero cost in a language that can see through it.
