@@ -251,7 +251,25 @@ rather than for want of effort.
     nameless object with no node to fire. The matrix now carries both rows, since one word of the
     author's code decides which.
   - Unmeasured: no control build covers either construct. Predictions P13/P14 recorded, unscored.
-- ☐ **M55.2 groupBy at cardinality** — the 6.4× is a linear scan over FOUR keys and is O(groups).
+- ☑ **M55.2 groupBy at cardinality** — COMPLETE 2026-09-09. The store is now split the way Java's is:
+  an insertion-ordered vector that IS the emit order, plus a `std::unordered_map` index beside it that
+  nothing iterates. That is the Fluxtion DSL's own design, not a C++ invention —
+  `GroupByFlowFunctionWrapper` keeps `mapOfValues` as a `LinkedHashMap` because first-key-seen order
+  makes multi-key emit identical interpreted/AOT, while `mapOfFunctions`/`keyCount` are `HashMap`
+  bookkeeping that is never iterated. Iterating a hash map would break that guarantee; looking a key up
+  in one cannot.
+  - **Measured, and the old claim was half true.** Per event: Java flat at ~30–32ns; the scan 4.15ns at
+    4 keys, 11.1 at 64, 38.2 at 256, **126.6 at 1024** — crossing Java between 64 and 256 keys. The
+    index is flat at 5.86 → 3.67ns across the same range. It costs 1.7ns at 4 keys and saves 123ns at
+    1024. New control: `tools/bench/latency-kit/dsl/build-groupby-controls.sh`, key count an argument.
+  - **The M54.4 headline is superseded.** 6.4× described the benchmark's cardinality, not the target.
+    The honest form is a curve: 5–8.6× across 4–1024 keys.
+  - **Unexplained and recorded as such**: the indexed C++ arm gets FASTER as cardinality rises. A
+    serial-dependency hypothesis (same `Entry` written repeatedly at low cardinality) fits the curve and
+    is unmeasured.
+  - **Still open**: first-key-seen ORDER is preserved structurally but untestable in C++, because the
+    emitted struct exposes `valueFor`/`groupCount` and no ordered `values()`. Closes when a downstream
+    construct iterates groups.
   Measure at thousands before anyone quotes it; a hash store behind the same interface if the scan is
   the problem. Measurement first.
 - ☐ **M55.3 `FixSizedSlidingWindow`** — probably an afternoon.

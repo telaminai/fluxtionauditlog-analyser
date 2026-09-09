@@ -19,6 +19,7 @@ read as an observation rather than a property.
 | A window rolls, publishes on close only, and slides by the right algebra | 3 chains: tumbling, sliding-sum (O(1) deduct), sliding-max (O(n) recompute) | compiler |
 | flatMap produces one graph cycle AND one audit record per element | `flatMapProducesIdenticalAuditLogs` | compiler |
 | groupBy groups by key rather than by address or not at all | `groupByProducesIdenticalAuditLogs` — 5,5,5,5,9 | compiler |
+| groupBy's per-key store stays correct once lookups go through a hash index | `groupByProducesIdenticalAuditLogs` (values, both branches of the index); `dsl/build-groupby-controls.sh` (cost curve) | compiler / bench |
 | A merge listens to ALL its parents, not just one | `mergeProducesIdenticalAuditLogs` — 5,−3,7,−1,4 totals 12; one-parent merges total 16 or −4 | compiler |
 | A name Java resolves at runtime and C++ bakes at generation time are the same name | `mapOnNotifyProducesIdenticalAuditLogs` | compiler |
 | A side-effect-only node still runs, and still does not gate its chain | `peekProducesIdenticalAuditLogs`, `notifyProducesIdenticalAuditLogs` | compiler |
@@ -87,10 +88,16 @@ adding a narrower assertion that would have caught it more legibly.
 ## What is NOT defended
 
 - ~~**Performance of windowed, flatMap and groupBy graphs.**~~ **Measured 2026-09-09** (M54.4):
-  tumbling window 2.5×, groupBy 6.4×, flatMap 3.5×, all checksum-matched. The prediction recorded
+  tumbling window 2.5×, groupBy 6.4×, flatMap 3.5×, all checksum-matched. **The groupBy figure has
+  since been superseded** — it was measured at FOUR keys against a linear-scan store, and M55.2 showed
+  the honest answer is a curve (5–8.6× across 4–1024 keys, with the old store crossing from 7.4× faster
+  to 4.2× slower over the same range). The prediction recorded
   here — that allocation would erode the C++ lead — was WRONG in the same direction three times:
   where Java allocates is where C++ wins biggest. What is still undefended is groupBy **at
-  cardinality**: 6.4× is a linear scan over FOUR keys, and the shape is O(groups).
+  cardinality** — ~~undefended~~ **measured 2026-09-09** by `dsl/build-groupby-controls.sh`, which takes
+  the key count as an argument so the crossover is found rather than assumed. What remains undefended is
+  WHY the indexed C++ arm speeds up as cardinality rises; a serial-dependency hypothesis is recorded and
+  unmeasured.
 - **Windowed graphs in C++ — superseded.** They are emitted and proven now; what remains unmeasured is
   their cost, above. Aggregates today are a
   single `int32_t` inside the node struct — stack-resident, no allocation, which is part of why the C++
@@ -99,6 +106,12 @@ adding a narrower assertion that would have caught it more legibly.
 - **Performance of merge and mapOnNotify.** Emitted and proven correct 2026-09-09; no control build
   covers either, and no band constrains them. Predictions P13/P14 are recorded in
   `dsl/PREDICTIONS-AND-RESULTS.md` and are unscored.
+- **groupBy's first-key-seen ORDER, in C++.** The store keeps it structurally — the emit order is a
+  vector and the hash index is never iterated — but nothing tests it, because nothing can yet OBSERVE
+  it: the emitted struct exposes `valueFor(key)` and `groupCount()`, not an ordered `values()`. Java's
+  order guarantee is load-bearing (`GroupByFlowFunctionWrapper` keeps a `LinkedHashMap` so multi-key
+  emit is identical interpreted/AOT), so this is a real gap and not a theoretical one. It closes when a
+  downstream construct iterates the groups.
 - **`mkdocs build --strict` on the core site.** Never run; mkdocs is not installed here.
 - **Any C++ figure recorded before 2026-09-09** — those arms were measured while the target emitted no
   dirty flags at all, so conditional propagation was absent rather than cheap.

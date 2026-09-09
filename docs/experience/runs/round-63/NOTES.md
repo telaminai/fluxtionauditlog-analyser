@@ -3499,3 +3499,56 @@ aggregated surefire reports — 14 of which belonged to deleted throwaway probe 
 stale golden in a different costume: **build output that outlives its source and is then read as
 evidence.** 30 such files across the compiler repo are now deleted, which fixes today's count and not
 the cause.
+
+## §46 M55.2 — the DSL's own design said what the C++ store should be
+
+The question was whether to apply Fluxtion's DSL design to the C++ groupBy or to solve the cardinality
+problem independently. Reading `GroupByFlowFunctionWrapper` answered it, in a comment that was already
+there:
+
+> `LinkedHashMap`: mapOfValues is the root aggregation store whose `toMap()` feeds every window's output
+> and the join recompute path — first-key-seen order here makes multi-key emit deterministic and
+> identical interpreted/AOT. mapOfFunctions/keyCount are bookkeeping, never iterated for emit.
+
+So Java already solves exactly this problem, and solves it by **splitting the store**: an ordered map
+that emit iterates, plus hash maps that nothing iterates. Order is a guarantee; O(1) lookup is a
+separate concern served by separate structures. The C++ side had only the ordered half — a vector, found
+linearly — which is why it was O(groups).
+
+Applying the same split gives a vector that IS the emit order and a `std::unordered_map` index beside it
+holding slot numbers. The emitter's own doc warned that `std::unordered_map` "would reintroduce exactly
+the non-determinism that comment was written to remove" — true of ITERATING one, and not true of looking
+a key up in one, since the answer is an index and the order still comes from the vector. That
+distinction is now written where the warning was.
+
+**The scan's justification was measurable, and half of it was wrong.** The doc claimed the linear scan
+was "for the group cardinalities a data flow actually carries, also faster":
+
+| keys | Java JIT | scan | index |
+|---:|---:|---:|---:|
+| 4 | 30.55 | **4.15** | 5.86 |
+| 64 | 31.43 | 11.11 | **3.78** |
+| 256 | 32.04 | 38.16 | **3.74** |
+| 1024 | 29.92 | 126.58 | **3.67** |
+
+Right at four keys, catastrophic at a thousand — and a thousand groups is a real workload, not a corner.
+The scan crosses Java between 64 and 256 keys, so the M54.4 headline of "groupBy is the best ratio in
+the kit at 6.4×" was a statement about a four-key benchmark. The honest form is a curve.
+
+**Three predictions, one right, one wrong, one right about shape and wrong about level.** P15a said the
+index would be no better and possibly worse at 4 keys — it is 41% worse, as predicted. P15b said the old
+store would lose to Java between 32 and 128 keys — it loses between 64 and 256, so the crossover exists
+but sits about twice as late as I guessed. P15c said the indexed ratio would flatten near the plain
+chain's ~4× — it flattens, but at 8×.
+
+**And one result I did not predict and cannot yet explain**: with the index, more groups make the C++ arm
+FASTER (5.86 → 3.67ns). The plausible cause is a serial dependency — at four keys consecutive events hit
+the same `Entry` and each accumulate waits on the previous store, while at a thousand keys they touch
+different entries and pipeline. That fits the curve and is untested, so it is recorded as the next thing
+to measure rather than as a finding. The habit that makes this worth writing down is the one from §42:
+the predictions were written before the controls were built, so being wrong is legible.
+
+**A gap this opened, stated rather than buried**: the C++ store preserves first-key-seen order
+structurally, and nothing tests it, because nothing can observe it — the emitted struct exposes
+`valueFor(key)` and `groupCount()`, not an ordered `values()`. Java's order guarantee is load-bearing.
+The moment a downstream construct iterates groups, that needs a chain.

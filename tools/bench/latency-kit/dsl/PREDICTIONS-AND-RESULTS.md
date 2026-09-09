@@ -272,3 +272,59 @@ A caveat that applies to P13 and belongs with it: **the C++ merge stores a point
 That is sound while the value is read within the cycle, which is the only time the generated dispatch
 reads it, but it is not the same lifetime story as Java's reference to a heap object. Any future shape
 that holds a merged value ACROSS cycles needs that revisited before a number is quoted for it.
+
+## P15 · groupBy at cardinality — predicted BEFORE measuring
+
+M55.2. The 6.4x groupBy result was measured over **four** keys against a C++ store that was a linear
+scan, so the shape was O(groups) while Java's `HashMap` was O(1). The C++ store is now split the way
+Java's is — an insertion-ordered vector that IS the emit order, plus a hash index beside it that nothing
+iterates — because `GroupByFlowFunctionWrapper` says first-key-seen order is a guarantee, not an
+accident. Predictions, recorded before the controls were built:
+
+- **P15a — at 4 keys the hash index is no better, and may be slightly WORSE.** A four-element scan of
+  contiguous PODs is cache-resident and branch-predictable; `unordered_map` costs a hash and a pointer
+  chase. If the index shows a win at 4 keys I have mismodelled the scan.
+- **P15b — the OLD C++ store LOSES to Java somewhere below 1024 keys.** This is the sharp one. Java is
+  O(1) per event and the old C++ was O(groups), so there is a crossover, and the 6.4x headline is an
+  artefact of sitting far to the left of it. Predicted crossover: **between 32 and 128 keys.**
+- **P15c — with the index, the ratio stops depending on cardinality** and lands near the plain-chain
+  ratio, because both sides are then O(1) per event and what remains is dispatch and boxing.
+
+If P15b is wrong in the direction of "C++ still wins at 1024", then Java's per-event boxing costs more
+than a linear scan of a thousand entries, which would be worth knowing on its own.
+
+### P15 scored — measured 2026-09-09
+
+Both arms, 2M events per batch, best of 3, `-O3` C++ against JIT Java, DEFAULT profile, **checksums
+identical at every cardinality** (they are in the output, and they differ per key count because key 0
+takes a shrinking share of the events — a constant checksum across key counts would have meant the
+store was not really grouping).
+
+| keys | Java JIT | C++ linear scan | C++ hash index | index vs Java |
+|---:|---:|---:|---:|---:|
+| 4 | 30.55 | **4.15** | 5.86 | 5.2x |
+| 16 | 31.66 | 4.27 | **4.31** | 7.3x |
+| 64 | 31.43 | 11.11 | **3.78** | 8.3x |
+| 256 | 32.04 | 38.16 | **3.74** | 8.6x |
+| 1024 | 29.92 | 126.58 | **3.67** | 8.2x |
+
+- **P15a — RIGHT.** At 4 keys the index is not better, it is **41% worse** (4.15 → 5.86). A four-element
+  scan of contiguous PODs beats a hash and a pointer chase, as predicted.
+- **P15b — WRONG, in the direction that matters least.** There IS a crossover and the old store does
+  lose to Java, as predicted — but between **64 and 256** keys, not the 32–128 I wrote down. At 64 keys
+  the scan was still winning 11.1 vs 31.4. I put the crossover about 2x too early.
+- **P15c — RIGHT about the shape, WRONG about the level.** The indexed ratio does stop depending on
+  cardinality. It does not land near the plain chain's ~4x: it lands at **8x** and, unexpectedly, the
+  C++ arm gets FASTER as cardinality rises (5.86 → 3.67).
+
+**The unexpected result is that one.** More groups should not make the C++ arm quicker. The likely cause
+is a serial dependency: at 4 keys, consecutive events hit the SAME `Entry` and each `acc_ +=` waits on
+the previous store, while at 1024 keys consecutive events touch different entries and the accumulates
+pipeline independently. That is a hypothesis consistent with the shape of the curve and it has **not
+been measured** — it is recorded as the next thing to test, not as a finding.
+
+**What this says about the headline.** The 6.4x groupBy figure from M54.4 was measured at four keys
+against the scan, and it is now clear it described the benchmark's cardinality rather than the target.
+The honest statement is a curve, not a number: with the indexed store the C++ groupBy is 5–8.6x the
+Java DSL across 4–1024 keys, and with the old store it ranged from 7.4x FASTER to 4.2x SLOWER over the
+same range.
