@@ -9,6 +9,7 @@ public class BenchJavaGroupBy {
         int warm = Integer.getInteger("warm", 2_000_000);
         int batches = Integer.getInteger("batches", 6);
         int keys = Integer.getInteger("keys", 4);
+        int pattern = Integer.getInteger("pattern", 0);
         GroupByProcessor p = new GroupByProcessor();
         p.init();
         GenGroupBy.Tick t = new GenGroupBy.Tick();
@@ -17,11 +18,15 @@ public class BenchJavaGroupBy {
         long checksum = 0;
         for (int b = 0; b < batches; b++) {
             long start = System.nanoTime();
-            for (int i = 0; i < iters; i++) { t.price = (i & 15) - 8; t.key = i % keys; p.onEvent(t); }
+            for (int i = 0; i < iters; i++) {
+                t.price = (i & 15) - 8;
+                t.key = pattern == 1 ? 0 : i % keys;
+                p.onEvent(t);
+            }
             long ns = System.nanoTime() - start;
             best = Math.min(best, ns / (double) iters);
             checksum = p.total.getAsInt();
         }
-        System.out.printf("RESULT java-groupby keys=%d ns=%.4f checksum=%d%n", keys, best, checksum);
+        System.out.printf("RESULT java-groupby keys=%d pattern=%d ns=%.4f checksum=%d%n", keys, pattern, best, checksum);
     }
 }

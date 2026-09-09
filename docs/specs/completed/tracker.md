@@ -2779,15 +2779,19 @@ rather than for want of effort.
   makes multi-key emit identical interpreted/AOT, while `mapOfFunctions`/`keyCount` are `HashMap`
   bookkeeping that is never iterated. Iterating a hash map would break that guarantee; looking a key up
   in one cannot.
-  - **Measured, and the old claim was half true.** Per event: Java flat at ~30–32ns; the scan 4.15ns at
-    4 keys, 11.1 at 64, 38.2 at 256, **126.6 at 1024** — crossing Java between 64 and 256 keys. The
-    index is flat at 5.86 → 3.67ns across the same range. It costs 1.7ns at 4 keys and saves 123ns at
-    1024. New control: `tools/bench/latency-kit/dsl/build-groupby-controls.sh`, key count an argument.
+  - **Measured, and the old claim was half true.** Per event, repeatable minima: Java 25–31ns; the scan
+    **2.17ns** at 4 keys, 11.0 at 64, 37.6 at 256, **126.5 at 1024** — crossing Java between 64 and 256
+    keys. The index is flat at 3.55–4.11ns across the same range. It costs 1.65ns at 4 keys and saves
+    123ns at 1024. New control: `tools/bench/latency-kit/dsl/build-groupby-controls.sh`, key count an
+    argument, access pattern a second one.
   - **The M54.4 headline is superseded.** 6.4× described the benchmark's cardinality, not the target.
     The honest form is a curve: 5–8.6× across 4–1024 keys.
-  - **Unexplained and recorded as such**: the indexed C++ arm gets FASTER as cardinality rises. A
-    serial-dependency hypothesis (same `Entry` written repeatedly at low cardinality) fits the curve and
-    is unmeasured.
+  - ~~Unexplained: the indexed C++ arm gets faster as cardinality rises.~~ **WITHDRAWN 2026-09-09 —
+    there was no effect.** The first sweep was single-shot per point, ascending, with the arms
+    interleaved; the apparent speed-up was its cold first measurement. Re-run in reverse with repeats,
+    the curve is flat. The serial-dependency hypothesis was tested anyway, by holding the store at 1024
+    entries and varying only the access pattern: hammering one key is 3.58ns against round-robin's
+    3.67ns, so it is marginally FASTER, and the hypothesis was wrong as well as unnecessary.
   - **Still open**: first-key-seen ORDER is preserved structurally but untestable in C++, because the
     emitted struct exposes `valueFor`/`groupCount` and no ordered `values()`. Closes when a downstream
     construct iterates groups.

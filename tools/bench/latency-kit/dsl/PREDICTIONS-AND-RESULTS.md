@@ -328,3 +328,116 @@ against the scan, and it is now clear it described the benchmark's cardinality r
 The honest statement is a curve, not a number: with the indexed store the C++ groupBy is 5–8.6x the
 Java DSL across 4–1024 keys, and with the old store it ranged from 7.4x FASTER to 4.2x SLOWER over the
 same range.
+
+### P13/P14 scored — measured 2026-09-09, `build-shape-controls.sh`
+
+Repeatable minimum of 4 reps per arm, 3M events per batch, 4 batches, `-O3` C++ against JIT Java,
+DEFAULT profile. **All four shapes checksum −6250000**, which is the cross-check that they compute the
+same total.
+
+| shape | Java JIT | C++ | ratio |
+|---|---:|---:|---:|
+| plain (reference: mapToInt → aggregate) | 10.64 | 0.620 | 17.2x |
+| merge | 15.69 | 2.427 | 6.5x |
+| notify | 13.35 | 0.747 | 17.9x |
+| mapOnNotify | 13.15 | 0.743 | 17.7x |
+
+**P14 — RIGHT, and cleanly so.** notify and mapOnNotify share every node but their last, so a difference
+between them is a difference between the constructs. C++ 0.7465 vs 0.7432 and Java 13.35 vs 13.15 — 0.4%
+and 1.5%, both within run-to-run noise and not consistently signed across reps. The extra `get()` that
+returns the notified node instead of the parent value is free, as predicted.
+
+**P13 — NOT CLEANLY ANSWERABLE FROM THIS CONTROL, and the fault is in the control.** The merge shape is
+two filtered flows joined by a merge; the plain reference is one map. So the 6.5x reflects a graph with
+two filters, two subscription paths AND a merge, and the difference from the reference is not merge's
+cost. Two things can still be said honestly:
+
+- The prediction "well below groupBy's 6.4x" is **wrong as stated** — the merge shape measures 6.5x,
+  level with it, not below.
+- The prediction "near the plain-chain ratio, ~4x" is wrong in both parts: the plain chain in THIS kit
+  measures 17.2x, and merge is far below it rather than near it.
+
+A clean isolation needs a shape with merge's node count that does not merge, and I do not have one. What
+the numbers do show is where the cost lands: merge adds 5.05ns to Java and 1.81ns to C++, so in absolute
+terms C++ pays less — but against a 0.62ns baseline that is a near-quadrupling, which is what drags the
+ratio down. **A ratio against a baseline this small is mostly a statement about the baseline.**
+
+**Two cautions that belong with this table.** The 17.2x plain figure is NOT comparable to the 3.96x
+recorded elsewhere in this kit: that control is `map → map → filter → aggregate` under
+`LOWEST_LATENCY`, this one is `mapToInt → aggregate` under `DEFAULT`. Two nodes fully inlined to ~0.62ns
+is about two cycles, and quoting it as a headline would repeat the mistake the 23x withdrawal was about.
+And the first measurement pass interleaved the Java and C++ arms, which inflated every C++ number by
+roughly 2x (notify read 1.59 interleaved, 0.75 alone). The numbers above are from arms run
+without the other language in the same pass.
+
+## P16 · why the indexed groupBy speeds up with cardinality — predicted before measuring
+
+§46 left an unexplained result: with the hash index, the C++ groupBy gets FASTER as the key count rises
+(5.86 → 3.67 ns from 4 to 1024 keys). The hypothesis was a serial dependency — at four keys consecutive
+events hit the same `Entry` and each `acc_ +=` waits on the previous store to land, while at a thousand
+they touch different entries and the accumulates pipeline.
+
+The confound in the cardinality sweep is that TWO things changed together: the store got bigger, and
+consecutive events stopped colliding. The test separates them by holding the store at **1024 entries in
+both arms** and varying only the access pattern:
+
+- **round-robin** — `key = i % 1024`, consecutive events touch different entries
+- **single key** — `key = 0` always, after warming all 1024 so the store and the hash probe are identical
+
+- **P16a — single-key is SLOWER than round-robin in C++**, by roughly the 2ns the sweep showed. That is
+  the hypothesis: same store, same lookup, only the dependency chain differs.
+- **P16b — Java shows the same effect, and smaller in relative terms.** Java has the same read-modify-
+  write on one accumulator, so the dependency exists there too, but it is a smaller share of a ~30ns
+  event.
+
+If P16a comes back flat, the hypothesis is wrong and the cardinality effect is something else — most
+likely the hash probe's branch behaviour, which is more predictable when the answer keeps changing than
+this reasoning assumes.
+
+### P16 scored — REFUTED, and it refuted the finding it was invented to explain
+
+Store held at 1024 entries in both arms, only the access pattern varying, C++, 4 reps, minimum:
+
+| pattern | ns |
+|---|---:|
+| round-robin (`key = i % 1024`) | 3.6695 |
+| single key (`key = 0`, all 1024 warmed) | 3.5845 |
+
+**P16a — WRONG.** Hammering one key is not slower. It is marginally *faster*, which is the opposite of
+a serial-dependency stall and is consistent with nothing more interesting than one hot cache line.
+P16b was not worth running once P16a failed.
+
+**And then the effect itself failed.** If the dependency chain is not the cause, what is? The dullest
+candidate: `keys=4` was simply the FIRST point in the sweep. Re-running the sweep in reverse order with
+four reps per point and no Java arm interleaved gives a flat curve — 3.55, 3.71, 3.74, 4.11, 3.82 from
+1024 down to 4. **The indexed store does not speed up with cardinality. It is flat, as an O(1)
+structure should be, and the original 5.86 → 3.67 was a cold first measurement.**
+
+### P15 — RE-SCORED on repeatable minima, superseding the table above
+
+The first M55.2 table was single-shot per point, in ascending key order, with the Java and C++ arms
+interleaved. All three of those are wrong, and the third inflates C++ by roughly 2x. Re-measured with
+3–4 reps per point, minimum, arms run separately, keys descending:
+
+| keys | Java JIT | C++ linear scan | C++ hash index | index vs Java |
+|---:|---:|---:|---:|---:|
+| 4 | 25.43 | **2.17** | 3.82 | 6.7x |
+| 16 | 27.85 | **3.38** | 4.11 | 6.8x |
+| 64 | 27.65 | 11.00 | **3.74** | 7.4x |
+| 256 | 31.07 | 37.57 | **3.71** | 8.4x |
+| 1024 | 30.62 | 126.49 | **3.55** | 8.6x |
+
+What survives, and what does not:
+
+- **The scan is O(groups)** — 2.17 to 126.49. Confirmed, and more starkly than before.
+- **The crossover is still between 64 and 256 keys** (scan 11.00 vs Java 27.65; scan 37.57 vs Java
+  31.07), so **P15b remains wrong in exactly the same way** — predicted 32–128.
+- **P15a is right, and by more than recorded**: at four keys the index is 76% slower than the scan
+  (3.82 vs 2.17), not 41%.
+- **P15c is right about the shape and the level is now 6.7–8.6x**, not 5–8.6x.
+- **The anomaly is withdrawn.** There was nothing to explain.
+
+**The lesson is the kit's own rule, ignored by me.** `control-bands.tsv` says bands are "the REPEATABLE
+minimum from measure.sh (3 batches x 6 reps, gated on CV of the batch minima)". I took single shots, in
+one order, with the arms interleaved, then wrote a microarchitectural story to explain the shape that
+produced. The story was plausible, which is precisely why it was worth testing rather than recording.

@@ -3540,10 +3540,13 @@ was "for the group cardinalities a data flow actually carries, also faster":
 
 | keys | Java JIT | scan | index |
 |---:|---:|---:|---:|
-| 4 | 30.55 | **4.15** | 5.86 |
-| 64 | 31.43 | 11.11 | **3.78** |
-| 256 | 32.04 | 38.16 | **3.74** |
-| 1024 | 29.92 | 126.58 | **3.67** |
+| 4 | 25.43 | **2.17** | 3.82 |
+| 64 | 27.65 | 11.00 | **3.74** |
+| 256 | 31.07 | 37.57 | **3.71** |
+| 1024 | 30.62 | 126.49 | **3.55** |
+
+*(Table corrected 2026-09-09 — see §49. The first version was single-shot per point with the arms
+interleaved; every conclusion below survives the re-measurement, but one observation did not.)*
 
 Right at four keys, catastrophic at a thousand — and a thousand groups is a real workload, not a corner.
 The scan crosses Java between 64 and 256 keys, so the M54.4 headline of "groupBy is the best ratio in
@@ -3559,7 +3562,10 @@ chain's ~4× — it flattens, but at 8×.
 FASTER (5.86 → 3.67ns). The plausible cause is a serial dependency — at four keys consecutive events hit
 the same `Entry` and each accumulate waits on the previous store, while at a thousand keys they touch
 different entries and pipeline. That fits the curve and is untested, so it is recorded as the next thing
-to measure rather than as a finding. The habit that makes this worth writing down is the one from §42:
+to measure rather than as a finding.
+
+> **Withdrawn in §49.** There was no effect to explain. The sweep was single-shot per point in ascending
+> order with the Java arm interleaved, and the 5.86 was its cold first measurement. The habit that makes this worth writing down is the one from §42:
 the predictions were written before the controls were built, so being wrong is legible.
 
 **A gap this opened, stated rather than buried**: the C++ store preserves first-key-seen order
@@ -3638,3 +3644,50 @@ configuration rather than stray output, and removing it was not the decision tha
 **The habit worth keeping** is the one that caught this: when an artifact looks unguarded, ask what
 guards the BEHAVIOUR before concluding anything about the system. The file and the behaviour are
 different subjects, and only one of them was actually unprotected.
+
+## §49 P13–P16 — one clean answer, one confounded control, and a finding that evaporated
+
+Three predictions were scored and a fourth was written specifically to explain a result that turned out
+not to exist.
+
+**P14 was the clean one, and it is clean because the control was built to be.** notify and mapOnNotify
+share every node but their last, so any difference between them is a difference between the two
+constructs rather than between two benchmarks. C++ 0.7465 vs 0.7432, Java 13.35 vs 13.15 — under 1.5%,
+not consistently signed across reps. The extra `get()` that returns the notified node instead of the
+parent's value is free, as predicted.
+
+**P13's control was confounded, and I built the confound.** The merge shape is two filtered flows joined
+by a merge; the plain reference is one map. So its 6.5x describes a graph with two filters, two
+subscription paths *and* a merge, and the gap from the reference is not merge's cost. The prediction
+said merge would land "near the plain-chain ratio, ~4x, well below groupBy's 6.4x". The plain chain in
+this kit measures 17.2x, merge measures 6.5x — far below rather than near, and level with groupBy rather
+than below it. The prediction is wrong; the control cannot say by how much.
+
+Something worth keeping fell out of it: merge adds 5.05ns to Java and 1.81ns to C++, so C++ pays less in
+absolute terms while its *ratio* collapses, because 1.81ns against a 0.62ns baseline is a near
+quadrupling. **A ratio against a baseline that small is mostly a statement about the baseline** — which
+is the same trap as the withdrawn 23x, in a smaller size.
+
+**P16 was refuted, and took its own subject with it.** §46 recorded that the indexed groupBy appeared to
+get faster as cardinality rose, and offered a serial dependency as the likely cause: at four keys
+consecutive events hit the same `Entry` and each accumulate waits on the previous store. The test holds
+the store at 1024 entries and varies only the access pattern, so the dependency changes and nothing else
+does. Hammering one key: **3.5845ns**. Round-robin: **3.6695ns**. Not slower — marginally faster.
+
+Which left the original observation without an explanation, and the dullest candidate turned out to be
+the right one: `keys=4` was the FIRST point in that sweep. Run in reverse with four reps a point and no
+Java arm interleaved, the curve is flat — 3.55, 3.71, 3.74, 4.11, 3.82. **The indexed store does not
+speed up with cardinality. It is flat, as an O(1) structure should be.**
+
+**Every number in the M55.2 table moved, and the reason is embarrassing.** That sweep was single-shot per
+point, ascending, with the two languages interleaved — and interleaving alone inflates the C++ arm by
+about 2x (notify read 1.59 interleaved and 0.75 alone). The kit's own `control-bands.tsv` states the
+method: "the REPEATABLE minimum from measure.sh (3 batches x 6 reps, gated on CV of the batch minima)".
+I did not use it, then wrote a microarchitectural story to explain the shape that came out.
+
+Every *conclusion* survived — the scan is O(groups), it crosses Java between 64 and 256 keys, the index
+is flat, and P15a was right by more than recorded (76% slower at four keys, not 41%). But the numbers
+had already propagated into an emitter javadoc, a tracker entry, a bench index and this file before any
+of them were re-measured, and correcting four documents is the cost of publishing a single-shot number.
+The rule that would have prevented all of it is written in this repo already: **measure the shipped
+artefact, with the method the kit specifies.**

@@ -177,6 +177,19 @@ Shipped:
   inspecting, in turn, the legacy `com.fluxtion` repo, a stale sibling branch, and the shaded
   `fluxtion-generator-http` jar. Now resolved by artefact name from the test classpath.
 
+### M56 · Bench hygiene — ☐ opened 2026-09-09
+
+- ☐ **M56.1 make the DSL controls use the kit's own method.** `build-groupby-controls.sh` and
+  `build-shape-controls.sh` build arms; nothing in them enforces how the arms are RUN, so I ran them
+  single-shot, in ascending order, with the two languages interleaved — and published numbers that had
+  to be corrected across four documents. `measure.sh` already implements the repeatable-minimum method
+  `control-bands.tsv` describes. Either the new controls call it or they grow the same gate: N reps,
+  minimum, one language per pass, and a refusal to print a figure whose reps disagree by more than the
+  band. A kit that states a method and does not apply it teaches the wrong habit to the next reader.
+- ☐ **M56.2 a clean merge isolation.** P13 is unanswerable from the current control: the merge shape
+  carries two filters and a second subscription the reference does not, so its ratio is not merge's
+  cost. Needs a shape with the same node count that does not merge.
+
 ### M52 · still open
 
 Open, in dependency order:
