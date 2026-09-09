@@ -62,3 +62,18 @@ c-cpp-ladder-fat	cpp	h5	1.08	1.40	$CPPB/ladder_fat -Diters=3000000 -Dwarm=500000
 # on the log. avgRecBytes is what caught it, which is why the harness prints it.
 c-cpp-audit-dense	cpp	h5	26.8	34.2	$CPPB/conv_audited -Diters=3000000 -Dwarm=500000
 c-cpp-audit-machinery	cpp	h5	10.2	13.1	$CPPB/ladder_audited -Diters=3000000 -Dwarm=500000
+#
+# ---- DSL controls, added 2026-09-09 -------------------------------------------------------------
+# The SAME graph (map -> map -> filter -> aggregate) emitted for BOTH targets by the generator, under
+# LOWEST_LATENCY, no audit. Rebuild with dsl/build-dsl-controls.sh; every arm must checksum 488000000.
+#
+# The C++ arm is built at -O3, not -O2: measured 3.55 -> 2.76 ns, a 22% win against a prediction that
+# -O2 had already inlined the templated chain. It had not. march=native and LTO are worth nothing, and
+# PGO is 6% WORSE, so the control uses the flag that pays rather than every flag available.
+#
+# The Java native arm carries -H:-SpawnIsolates: without it native is SLOWER than JIT on this shape
+# (11.04 against 10.42), which is the only graph in this kit where that holds. A deep chain of small
+# flow-function objects is where the JVM's escape analysis earns its keep.
+c-dsl	cpp	h5	2.5	3.1	$CPPB/../dsl/build/cppbuild/bench 20000000 2000000 6
+c-dsl	jit	h5	9.4	11.9	"$JAVA_HOME/bin/java" -cp "$DSL/javabuild:$RT" -Diters=20000000 -Dwarm=2000000 -Dbatches=6 app.BenchJava
+c-dsl	native	h5	9.4	11.6	$DSL/nimg/dsl_native -Diters=20000000 -Dwarm=2000000 -Dbatches=6

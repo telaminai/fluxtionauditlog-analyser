@@ -3265,3 +3265,82 @@ what it was written to prove. The behaviour goldens did not move, which is the c
 per event, same answers.
 
 **Compiler suite: 3575 tests, 0 failures — the first fully green run in this round.**
+
+## §42 Native AOT, C++ compiler options, and two predictions that were wrong
+
+Predictions written before measuring, in `tools/bench/latency-kit/dsl/PREDICTIONS-AND-RESULTS.md`.
+Generated artefacts both sides, `LOWEST_LATENCY`, no audit, 20M events, min-of-6, 2 reps, every arm
+checksumming `488000000`.
+
+### 42.1 `-O3` is worth 22%, and the prediction said 0–5%
+
+| option | effect |
+|---|---|
+| `-O3` over `-O2` | **-22%**, 3.55 → 2.76 ns |
+| `-march=native` | nothing |
+| `-flto` | nothing |
+| PGO | **+6%, worse** |
+
+I predicted `-O3` would buy 0–5% because "the whole chain is header-only in one translation unit and
+already fully inlined at -O2". It is not. The generated DSL is a chain of templates each holding a
+pointer to the next, and `-O2` leaves enough of that un-inlined to cost a fifth of the runtime.
+
+The error has a familiar shape: **I reasoned about the optimiser instead of measuring it**, which is
+the same mistake as reasoning about the emitter instead of reading the emitted source. Every time in
+this round that I reasoned, I was wrong; every time I generated and read, or built and ran, it took one
+attempt. `-O3` should be the documented default for the C++ target.
+
+### 42.2 PGO made it slower, and the reasoning is the finding
+
+I predicted PGO would be the largest win — the filter rejects half the events, so a profile should help
+the branch. It is 6% **slower**.
+
+The profile is collected on the same periodic input the benchmark replays, so it is not new
+information: the hardware branch predictor already has it at run time. What PGO adds on top is layout
+and inlining decisions taken from an instrumented build, and those cost more here than the hint saves.
+**A profile that tells the compiler what the hardware already knows is not free.**
+
+Worth contrasting with the Java side, where PGO is unambiguously worth having: a JIT-less AOT image has
+no run-time profile at all, so the same information is genuinely new there.
+
+### 42.3 Native AOT loses to JIT on a DSL graph — confirmed on a second harness
+
+| arm | rep1 | rep2 |
+|---|---:|---:|
+| JIT | 10.751 | 10.421 |
+| native AOT, PGO + epsilon | 11.058 | 11.036 |
+| native AOT + `-H:-SpawnIsolates` | 10.536 | 10.398 |
+
+§38 recorded this from a hand-rolled DSL bench and flagged it as thin evidence — one contrary reading
+against every other arm in the round, where native leads by 3–6x. It reproduces on the generated
+artefact, so it is a property of the **shape**: a deep chain of small flow-function objects is where the
+JVM's escape analysis on a non-escaping processor earns its keep, and that is the bargain a closed-world
+compiler does not strike the same way. `-H:-SpawnIsolates` recovers it to level.
+
+Predicted at 0.9–1.3x, measured 1.06x. The one prediction of the three that was right, and the one I
+recorded as holding most weakly.
+
+### 42.4 The gap, on the artefact that ships
+
+**C++ 2.757 ns against Java 10.398 — 3.8x.** Not the 23x published earlier in this round from a
+hand-written chain the generator does not emit, and not the 2.9x that `-O2` alone would have suggested.
+Three different numbers for the same comparison, and only the third was measured on what the generator
+actually produces at the flag it should actually use.
+
+### 42.5 Controls and a test index
+
+`tools/bench/latency-kit/dsl/` builds both arms from the generator, so the control defends the emitted
+artefact rather than a stand-in — which is precisely how the 23x figure went wrong. Bands are in
+`control-bands.tsv`, results in `RECORDED-BASELINES.md`.
+
+`tools/bench/latency-kit/TEST-INDEX.md` is the other half of the gate. A band says a number has not
+moved; it says nothing about whether the number describes a program that computes the right answer, and
+this round produced three cases where it did not. The index maps each claim to the test that makes it
+false — and lists what is **not** defended, which for C++ is windowing.
+
+### 42.6 What windowing will change, and why these numbers do not predict it
+
+An aggregate here is a single `int32_t` inside the node struct: stack-resident, no allocation, part of
+why the C++ arm is cheap. A window is not. Sliding and tumbling windows need buffers whose lifetime
+spans events, and the stack-versus-heap choice for those is a design decision with a real cost rather
+than a translation detail. Nothing measured above should be read as predicting a windowed graph.

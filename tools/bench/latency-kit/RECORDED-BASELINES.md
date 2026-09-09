@@ -379,3 +379,46 @@ stores, and the publish decision. Dispatch is where a compiler that can see the 
     `avgRecBytes` caught it. **A cross-language audit comparison needs the record shape checked as well
     as the result** — otherwise it compares two different amounts of work and reports the difference as
     a speed-up.
+
+
+## DSL controls — the generated artefact, both targets (2026-09-09)
+
+Apple M4, OpenJDK 25.0.2, Oracle GraalVM 25.0.4+7.1, clang (Apple 21.0.0). `map -> map -> filter ->
+aggregate` emitted for both targets by the generator under `LOWEST_LATENCY`, no audit, 20M events,
+min-of-6, 2 reps. **Every arm checksums 488000000** — the filter rejects a little over half the data,
+so that equality is a semantic check and not only an arithmetic one.
+
+| arm | rep1 | rep2 | band |
+|---|---:|---:|---|
+| C++ `-O3` | 2.761 | 2.757 | 2.5 – 3.1 |
+| C++ `-O2` | 3.528 | 3.566 | *not a control — see below* |
+| Java JIT | 10.751 | 10.421 | 9.4 – 11.9 |
+| Java native AOT, `-H:-SpawnIsolates` | 10.536 | 10.398 | 9.4 – 11.6 |
+| Java native AOT, isolates on | 11.058 | 11.036 | *not a control* |
+
+**C++ is 3.8x the Java DSL** (2.757 against 10.398). Not the 23x once published from a hand-written
+chain the generator does not emit, and not the 2.9x that `-O2` would have suggested.
+
+### Compiler options, measured rather than assumed
+
+| option | effect |
+|---|---|
+| `-O3` over `-O2` | **-22%**, 3.55 → 2.76 — the only one that pays |
+| `-march=native` | nothing (2.770 against 2.761) |
+| `-flto` | nothing — the processor is one translation unit already |
+| PGO | **+6%, i.e. WORSE** (2.93 against 2.76) |
+
+The prediction was that `-O2` had already inlined the templated chain and PGO would be the largest win.
+Both were wrong, and the second was wrong backwards. The profile was collected on the same periodic
+input the benchmark replays, so it told the compiler what the branch predictor already knew at run
+time, while costing the layout and inlining decisions of an instrumented build. Recorded in
+`dsl/PREDICTIONS-AND-RESULTS.md`.
+
+### Native AOT loses to JIT on this shape
+
+The only graph in this kit where that holds. A DSL chain is many small flow-function objects, and the
+JVM's advantage is escape analysis on a processor that does not escape its loop — the bargain a
+closed-world compiler does not strike the same way. `-H:-SpawnIsolates` recovers it to level. This was
+predicted, on the strength of one contrary reading from a hand-rolled bench earlier in the round; it
+now reproduces on the generated artefact, which is what makes it a property of the shape rather than of
+that harness.
