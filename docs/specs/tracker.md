@@ -177,32 +177,45 @@ Shipped:
   inspecting, in turn, the legacy `com.fluxtion` repo, a stale sibling branch, and the shaded
   `fluxtion-generator-http` jar. Now resolved by artefact name from the test classpath.
 
-### M53 · Complete the C++ DSL — windowing last, and not first
+### M53 · Complete the C++ DSL — ◑ 5 of 7 SHIPPED 2026-09-09
 
-The emitter covers **6 node kinds, all `int`-typed**, against 122 files in
-`runtime.flowfunction`. What a data flow can express in Java and what the C++ target can emit are a
-long way apart, and the gap is enumerated here rather than discovered one `UnsupportedGraphException`
-at a time. Ordered so each stage is measurable on its own; the audit oracle extends to each.
+The emitter covered **6 node kinds, all `int`-typed**, against 122 files in
+`runtime.flowfunction`. It now covers **25 constructs**, indexed by
+`CppDslCapabilityMatrixTest` — generated from the emitter rather than maintained beside it, so a
+construct that starts or stops being emitted fails the test rather than rotting a document.
+Every stage is proven by the audit oracle: eight chains comparing Java against C++ entry for entry.
 
-- ☐ **M53.1 the other primitives and reference types** — `double`/`long`/ref variants of map, filter,
-  push and aggregate. Mechanical: the same five shapes with a different value type, and the widest
-  coverage gain for the least design. Do this first.
-- ☐ **M53.2 the concrete aggregate functions** — sum/min/max/count/average across three primitives.
-  Today only `IntSumFlowFunction` is modelled; the rest are a table, except `average` which needs a
-  count alongside the accumulator and `min`/`max` which need the seeding fix already found in Java.
-- ☐ **M53.3 binary map and merge** — `BinaryMapFlowFunction` is the first TWO-parent DSL node, so it is
-  where the positional template wiring gets its real test.
-- ☐ **M53.4 trigger overrides** — publish, reset and update triggers. Refused today, and deliberately:
-  they are extra state these structs do not carry. Prerequisite for windowing, which uses all three.
-- ☐ **M53.5 `FixedRateTrigger`** — a real node reading the clock, currently skipped as runtime
-  infrastructure. Prerequisite for every time-based window.
-- ☐ **M53.6 windowing** — tumbling, timed-sliding, fixed-size-sliding, bucketed. **The memory question
-  is the design, not a detail**: an aggregate today is one `int32_t` inside the node struct,
-  stack-resident and allocation-free, which is part of why the C++ arm is cheap. A window holds buffers
-  whose lifetime spans events, and stack-versus-heap for those is a decision with a real cost. No
-  figure in the latency kit predicts a windowed graph, and `TEST-INDEX.md` says so.
-- ☐ **M53.7 flatMap and groupBy** — flatMap needs the re-entrant callback queue driving one graph cycle
-  per element; groupBy needs maps. Last, because both add a runtime rather than more emission.
+- ☑ **M53.1 the other primitives and reference types** — map (16 source/target combinations), filter,
+  push and aggregate across `int`, `double`, `long` and reference flows, from one value-kind table. A
+  reference value crosses as `const void*`; the author's stub owns the cast.
+- ☑ **M53.2 the concrete aggregates** — sum, min, max, identity and average across three primitives.
+  min/max seed from the first value; average divides by an `int` count, so `int` and `long` are integer
+  division and `double` is not. `count` is REFUSED, not approximated — it is not a primitive aggregate.
+- ☑ **M53.3 binary map** — the first two-parent node. The per-input latch does not clear, matching Java:
+  once both inputs have been seen the node fires on any later update to either.
+- ☑ **default values** — `.defaultValue(7)` is a node plus a map, and its `hasDefaultValue()` seeds a
+  join's latch so a defaulted input counts as already arrived. Exposed a latent emitter bug: `audited`
+  was set inside the node loop, so any node sorted before the auditor lost its logger.
+- ☑ **M53.4 trigger overrides** — publish, reset, update and publish-override, with Java's full flag
+  expressions. The emitter learns a node HAS an override from the `@OnParentUpdate` callback the model
+  registers, because the setter that installs it is invisible in the constructor string.
+- ☑ **M53.5 `FixedRateTrigger`** — clock bound at init; `triggerCount` counts elapsed PERIODS and
+  `previousTime` advances by exactly that many, so boundaries stay on the grid. Forced a decision on
+  `java.lang.Object` as an event type: skipped, because C++ has no universal root and inventing one
+  would cost the static dispatch the design rests on.
+
+Remaining:
+
+- ☐ **M53.6 windowing** — tumbling, timed-sliding, fixed-size-sliding, bucketed. Both prerequisites are
+  now in place. **The memory model is the design, not a detail**: an aggregate today is one `int32_t`
+  inside the node struct, stack-resident and allocation-free, which is part of why the C++ arm measures
+  2.757 ns. A window holds buffers whose lifetime spans events. **`Stateful` decides the shape** —
+  `deductSupported()` is true for sum and false for min/max, so a sliding window over a sum can combine
+  and deduct in O(1) while one over a max must recompute across retained buckets. Getting that wrong
+  produces a window that is correct and quietly O(n).
+- ☐ **M53.7 flatMap and groupBy** — last, because both add a RUNTIME rather than more emission. flatMap
+  needs the re-entrant callback queue driving one graph cycle per element; groupBy needs maps, and
+  therefore allocation.
 
 Open, in dependency order:
 
