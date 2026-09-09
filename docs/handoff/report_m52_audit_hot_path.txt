@@ -1,0 +1,95 @@
+REVIEW BRIEF — M52 · the audit hot path, profiled; the code-model track, closed
+Date: 2026-09-09
+Repos touched: fluxtion-core (3 commits), this repo (2 commits). No compiler, no mavenplugin.
+
+Read REVIEWER-ORIENTATION.md first if you have not reviewed this stack before.
+
+WHAT CHANGED, IN ONE PARAGRAPH
+The audited event path went from 56.3 ns to 41.0 on JIT and from 48.6 to 41.1 on native, and the two
+toolchains are level for the first time. Nothing in the graph, the profile or the build flags changed.
+Four faults in the audit data structures were found by profiling the implementation, which nothing in
+this round had done, and three of them were a few lines each. A fifth "fault" was found the same way,
+measured, and turned out not to exist.
+
+COMMITS
+  core 3d41c54  ordinal keys reach the record directly, and two ways they did not
+  core 82e7baa  profile the record, not the benchmark - 24% off the JIT audited path
+  core c75f5ff  binary tracing, drop the ordinal API, and docs for the whole thing
+  this 4988995  §34 - the record profiled, and the ceiling conclusion reversed
+  this 36e643f  close the code-model track, record the profiling lesson, update the tracker
+
+WHAT TO REVIEW HARDEST, IN ORDER
+
+1. EventLogger.java - sourceRef is now resolved in the CONSTRUCTOR, not on first use.
+   The hazard is a logger resolved against one record and writing into another; ids are per-record, so
+   a stale one mis-labels every entry. The contract that saves it is that
+   EventLogManager.updateLogRecord() builds FRESH loggers whenever the record changes. Confirm that is
+   true on every path that can replace a record, not only the one I read.
+   Test: BinaryRecordHotPathTest.aLoggerResolvesItsNodeIdAgainstTheRecordItWillWriteTo
+
+2. BinaryLogRecord.terminateRecord() - now `slot > 0 || !firstProp`, was `!firstProp`.
+   writeSlots no longer writes firstProp (it was a redundant store, 11.75x per event). If this is wrong,
+   records stop publishing and every audited path goes SILENTLY EMPTY - the exact failure a fast
+   benchmark rewards. Four tests pin it; check the trace and String paths specifically.
+
+3. TAG_TRACE(8) - a WIRE FORMAT change, and the format is normatively specified.
+   spec-binary-audit-encoding.md §6.3 is updated. The compatibility argument is: tag 8 was unallocated,
+   LOW_LATENCY_AUDIT disables tracing, so no log in the wild contains one; and knownTag() bounds the
+   range so an older reader reports tag 8 as unknown rather than mis-decoding it. Check that argument
+   rather than accepting it - it is the only backwards-compatibility claim in this work.
+
+4. BinaryLogReader - keyId == 0 now means "no key" and is NOT counted in Result.unresolvedIds.
+   That counter is how a reader tells a rolled file (legitimately starting mid-dictionary) from a
+   corrupt one. Before this, every traced log would have looked corrupt.
+
+5. EventLogger.canLog - reads a cached int instead of dereferencing the LogLevel enum, and eight other
+   sites that inlined the same comparison WITHOUT the null guard are unified on it. Behaviour change:
+   a logger with no level set now logs nothing rather than throwing NPE at those eight sites. Tested
+   across all 36 level-by-level combinations.
+
+WHAT WAS REMOVED, AND WHY YOU MIGHT DISAGREE
+The ordinal key API (declareKeys + info(int, ...)) is gone from the runtime, one commit after being
+added with tests. It measured a 10.3 ns JIT prize in §33 - which was the cost of the keyRef fault fixed
+in §34. With that fixed it is SLOWER than the plain String path on both toolchains. If you think an
+indexed API earns its keep for nodes logging many keys, say so: the spill path past two keys still uses
+an array, so that case is the argument, and it was not measured.
+
+The ceiling arm and its control went too. It leads by 3.6 ns on native and is not deployable - it
+requires a node to hold the record and its ids directly, which no generated processor emits.
+
+THE FINDING WORTH CARRYING TO OTHER REPOS
+A JFR profile showed EventLogger.info as the leaf frame in 71% of samples on the NO-AUDIT control. An
+arm with the audit call sites deleted from node source put the real cost at 1.40 ns across 11.75 call
+sites - 0.12 ns each. HotSpot inlines the node's arithmetic into info and the sampler attributes the
+inlined frame. A large, entirely fictitious hotspot, one build away from being optimised.
+
+Sampling profilers give proportions, never magnitudes; attribution is only as honest as the inlining
+beneath it; and the execution sampler is safepoint-biased against the straight-line code a latency path
+is made of. Profile to generate hypotheses, measure differentially to size them. Four hypotheses came
+from profiles this round: three real, one phantom.
+
+OPEN, AND DELIBERATELY NOT DONE
+  M52.1  no TEST that the generator emits clock.eventReceived before eventLogger.eventReceived. It
+         DOES - verified in generated source - but nothing enforces it and the failure is silent:
+         logTime quietly becomes the previous event's timestamp. Compiler repo. Cheap. Do it.
+  M52.3  the sink half. LogRecordListener.processLogRecord(LogRecord) still forces a downcast;
+         BinaryLogWriter casts to BinaryLogRecord, which is what the spec said a vendor sink should
+         not have to do.
+  M52.4  OWNER CALL. The spec describes a compiler-repo fluxtion-audit-reader module whose filter
+         pipeline is itself a generated Fluxtion graph, AOT native. What shipped is a plain reader
+         inside fluxtion-runtime. It works, it is tested, it is smaller than the spec. Amend the spec
+         to what exists, or build what the spec says.
+  M52.5  the analyser cannot open a binary log. This is why TEXT is still the default record format.
+
+NOT A DEFECT, BUT YOU SHOULD KNOW
+383 files in fluxtion-core carry an employer-domain address in their copyright header. It is
+pre-existing, it is Fluxtion's own provenance, and no line added in these commits contains it. Flagged
+because that repo is public and this repo's sweep rule would not have caught it - the sweep governs
+this repo only.
+
+VERIFICATION
+  core     186 tests green
+  this     8 of 8 latency controls in band, sweep clean
+  docs     3 new pages in the core site (binary logging, the reader tool, the harness) + an audit
+           section in reference/performance.md; nav wired, links verified. mkdocs is not installed on
+           this machine so --strict was NOT run on the core site - run it before publishing.
