@@ -54,3 +54,11 @@ c-cpp-conv	cpp	h5	0.66	0.95	$CPPB/conv_generated -Diters=3000000 -Dwarm=500000
 #
 # Its measurement lives in RECORDED-BASELINES; it is simply not gated.
 c-cpp-ladder-fat	cpp	h5	1.08	1.40	$CPPB/ladder_fat -Diters=3000000 -Dwarm=500000
+#
+# AUDIT CONTROLS for the C++ target. c-cpp-audit-dense is the direct counterpart of c-audit-string:
+# the same 30-node graph, every node logging, and — verified before the timing was believed — the same
+# record SHAPE, 188 bytes per record. It was 172 until the C++ Tail was corrected to log both entries
+# the Java one does; the checksum could not see that because it is computed on the graph's value, not
+# on the log. avgRecBytes is what caught it, which is why the harness prints it.
+c-cpp-audit-dense	cpp	h5	26.8	34.2	$CPPB/conv_audited -Diters=3000000 -Dwarm=500000
+c-cpp-audit-machinery	cpp	h5	10.2	13.1	$CPPB/ladder_audited -Diters=3000000 -Dwarm=500000

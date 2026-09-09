@@ -348,3 +348,34 @@ comfortably inside it. Its measurement is recorded above; it is simply not gated
 They exist because **every C++ figure quoted before they did was from hand-written code modelling what a
 generator would emit**, and the real generator was 3.7× off it. A control that measures generated output
 is the only thing that keeps that from happening again.
+
+### C++ audit controls (round 63 §40)
+
+The counterparts of the Java audit arms, and — verified before any timing was believed — producing the
+**same record shape**, 188 bytes per record on the dense graph.
+
+| arm | C++ ns | Java native ns | C++ advantage |
+|---|---:|---:|---:|
+| **dense audit** — 30 nodes, every node logs (`c-cpp-audit-dense` / `c-audit-string`) | **30.50** | 39.16 | 1.28× |
+| **audit machinery** — 4-node ladder, no node logs (`c-cpp-audit-machinery`) | **11.64** | 16.48 | 1.42× |
+
+Audit cost over the same graph with auditing off:
+
+| | C++ | Java native |
+|---|---:|---:|
+| dense, 30 nodes | 30.50 − 0.74 = **29.76** | 39.16 − 2.06 = 37.10 |
+| machinery, 4 nodes | 11.64 − 4.47 = **7.17** | 16.48 − 4.20 = 12.28 |
+
+**The C++ advantage is smaller on audit than on dispatch** — 1.3–1.4× against 2.8× on the 30-node
+dispatch arm. The audit path is dominated by work neither compiler can remove: a clock read, the slot
+stores, and the publish decision. Dispatch is where a compiler that can see the whole graph wins.
+
+!!! warning "The record shape was wrong first, and the checksum could not tell"
+    The C++ dense arm produced **172** bytes per record against Java's **188** — same graph, same
+    checksum, one fewer entry. The Java `Tail` node logs *two* entries,
+    `auditLog.info("v", v).info("n", 1L)`, a double and a long; the C++ body logged one.
+
+    The checksum is computed on the graph's value and is blind to what was logged, so it passed. Only
+    `avgRecBytes` caught it. **A cross-language audit comparison needs the record shape checked as well
+    as the result** — otherwise it compares two different amounts of work and reports the difference as
+    a speed-up.
