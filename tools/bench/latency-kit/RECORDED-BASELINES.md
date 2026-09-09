@@ -422,3 +422,43 @@ closed-world compiler does not strike the same way. `-H:-SpawnIsolates` recovers
 predicted, on the strength of one contrary reading from a hand-rolled bench earlier in the round; it
 now reproduces on the generated artefact, which is what makes it a property of the shape rather than of
 that harness.
+
+
+## Re-measured after M53 (2026-09-09) — the C++ arm regressed 21%
+
+Same graph, same harness, same flags; the only change is the emitter, which gained trigger overrides,
+windowing, flatMap, groupBy and count in between. Checksum `488000000` on every arm, as before.
+
+| arm | before M53.4 | after M53 |
+|---|---:|---:|
+| C++ `-O3` | 2.757 / 2.757 | **3.343 / 3.363** |
+| Java JIT | 10.421 / 10.751 | 10.639 / 10.509 |
+
+**C++ is 21% slower; Java is unchanged.** The ratio moves from 3.8x to **3.1x**.
+
+### A claim withdrawn
+
+The M53.4 commit said of the trigger-override machinery: *"the two constants fold away at compile time —
+the graphs measured earlier emit the same machine code."* That was reasoning, not measurement, and it is
+wrong. `overrideUpdateTrigger_` and `overridePublishTrigger_` do fold, but
+`fireEventUpdateNotification()` now also clears four mutable flags on every event:
+
+```cpp
+overrideTriggered_ = false;
+publishTriggered_ = false;
+publishOverrideTriggered_ = false;
+resetTriggered_ = false;
+```
+
+Four stores per node per event, on a five-node chain, at ~3 ns total. That is the 0.6 ns.
+
+**The fix is not to remove them** — they are Java's semantics and a node that gains a trigger needs them.
+It is to emit them only for nodes that HAVE a trigger override, which the emitter already knows: the
+`Triggers` record is passed to every struct builder and is all-false for most nodes. That is a change
+worth making and worth measuring, in that order — this entry exists because the order was reversed once
+already.
+
+### Still not measured
+
+Windowed, flatMap and groupBy graphs. Their shapes differ enough from `map -> map -> filter ->
+aggregate` that nothing here predicts them, and `TEST-INDEX.md` says so.
