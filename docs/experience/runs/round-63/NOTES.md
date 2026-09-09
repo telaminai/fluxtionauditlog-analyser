@@ -3691,3 +3691,42 @@ had already propagated into an emitter javadoc, a tracker entry, a bench index a
 of them were re-measured, and correcting four documents is the cost of publishing a single-shot number.
 The rule that would have prevented all of it is written in this repo already: **measure the shipped
 artefact, with the method the kit specifies.**
+
+## §50 Two implementations of one format, and why one is better
+
+M52.5 opened a binary audit log in the analyser. It was built twice in an hour, and the second build
+deleted the first.
+
+**The first version carried its own decoder**, written from the format specification, on an argument I
+still think is right in general: a format with one implementation is not a format, it is a description
+of that implementation, and two that agree are evidence the specification says what it means.
+
+**The argument was right and what I built did not implement it.** Nothing forced the two to agree. The
+duplicate's tests hand-encoded the format from the same reading of the same document that produced the
+decoder, so any misreading appeared identically in both halves and passed. Two implementations validate
+a format only when something makes them MEET — a fixture written by one and read by the other, in CI.
+Without that they are duplication wearing the costume of a cross-check.
+
+**A fact I offered as decisive was checked against the wrong question.** Asked whether sharing was even
+possible, I looked at the RELEASED runtime the analyser pins — 1.0.13, which carries no binary reader —
+and treated that as settling it. The owner pointed out that this is a branch, and a branch can depend on
+`1.0.15-SNAPSHOT`, which does carry it. The question was what this branch could depend on; I answered
+what main ships. Checking a fact is not the same as checking the right fact.
+
+**Rewriting the tests to drive the REAL writer found two defects in minutes.**
+
+- A record built through the `String`-keyed `addRecord` overloads reaches a writer **empty**. Those
+  write into a byte buffer that `length()` does not describe, and `length()/16` is the entry count.
+  Production does not hit it, because `BinaryEventLogger` resolves each name to an id once and logs by
+  id — but this is the THIRD sighting of that exact path: the `CharSequence` and `Object` overloads had
+  the same fault earlier the same day, and trace entries had it before that. Now M52.8.
+- The wire format stores `Class.getName()`; the analyser's text format carries the simple name. Left
+  alone, one event would have looked like two different events depending on which format the log
+  arrived in — the kind of defect that surfaces as a coverage gap months later.
+
+Neither was reachable by fixtures I wrote myself, and that is the whole finding. **The value was never
+in having two decoders. It was in having a test whose inputs I did not author.**
+
+The cost is stated where it will be seen: the analyser now pins a SNAPSHOT for a shipping feature, and
+`PomShapeTest` asserts that version literally, so returning to a release is a decision someone makes
+rather than a drift someone notices.

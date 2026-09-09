@@ -235,9 +235,29 @@ already reads.
 
 ## 11. Open questions
 
-- **Does the analyser consume this, or duplicate it?** The cleanest answer is that the analyser's binary
-  reader (UP-RDR-01) and this tool share the cursor and dictionary code as a small library, and this
-  module is the CLI around it. That means a fourth artifact, which nothing here has budgeted for.
+- ~~**Does the analyser consume this, or duplicate it?**~~ **ANSWERED 2026-09-09 — it consumes it.**
+  The analyser's binary reader calls `BinaryLogReader` from `fluxtion-runtime` and renders its
+  callbacks as record text; no fourth artifact, and no second decoder.
+
+    The alternative was tried first and reversed within the hour, which is the useful part. A second
+    decoder was written from this specification on the reasoning that two implementations agreeing is
+    evidence the *format* is right rather than evidence one implementation is self-consistent. That
+    reasoning is sound and the execution was not: nothing forced the two to agree. The duplicate's
+    tests hand-encoded the format from the same reading of the same document that produced the
+    decoder, so a misreading would have appeared in both halves and passed. **Two implementations only
+    validate a format when something makes them meet** — a fixture written by one and read by the
+    other, run in CI. Absent that, one tested implementation is strictly better.
+
+    Rewriting the tests to drive the real writer found two defects in the first hour that the
+    hand-encoded fixtures could not reach: a record built through the `String`-keyed `addRecord`
+    overloads arrives at a writer EMPTY, because those write into a byte buffer `length()` does not
+    describe; and the wire format stores `Class.getName()` where the analyser's text format carries the
+    simple name, so one event looked like two different events depending on the format it arrived in.
+
+    **The cost is a snapshot dependency, and it is real.** `BinaryLogReader` exists in
+    `1.0.15-SNAPSHOT` and in no released runtime, so the analyser cannot ship this feature until a
+    runtime release carries it. `PomShapeTest` asserts the pinned version literally, so the day it
+    changes back is a day someone decided to change it.
 - **`--value` expression syntax.** The analyser already has an expression language (M28: conditionals,
   rolling windows). Reusing it is attractive and is a dependency in the wrong direction. Unresolved.
 - **Multi-file input.** `<file>...` implies rolled sets, which implies the analyser's time-order

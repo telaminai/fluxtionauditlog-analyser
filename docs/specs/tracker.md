@@ -206,8 +206,29 @@ Open, in dependency order:
   `fluxtion-runtime`.** It works, it is tested, and it is a smaller thing than the spec describes —
   decide whether the specified module is still wanted or whether the spec should be amended to what
   exists. *Owner call.*
-- ☐ **M52.5** the analyser's binary reader (**UP-RDR-01**, still unfiled) — a binary log opens at the
-  command line and not in the analyser UI, which is why `TEXT` remains the default record format.
+- ☑ **M52.5 the analyser's binary reader** — COMPLETE 2026-09-09 on `perf/w10-conformance-bench`.
+  A `FLXA` log opens in the UI, recognised by magic bytes rather than extension; the reader renders
+  `BinaryLogReader`'s callbacks as the record text every downstream feature already consumes, so
+  filters, series, coverage and reports work unchanged. Truncated logs open, because a half-written
+  trailing record is the normal end state of the crash that made someone open the log.
+  - **Owner decision, §11's first open question: the analyser CONSUMES the runtime's reader rather
+    than duplicating it.** A second decoder was written first and deleted within the hour. The
+    reasoning for it — two implementations agreeing validates the format — is sound and was not what
+    was built: nothing forced them to agree, since the duplicate's tests hand-encoded the format from
+    the same reading that produced the decoder. Driving the REAL writer instead found two defects
+    immediately, neither reachable by fixtures I encoded myself.
+  - **Debt, stated:** this pins `fluxtion-runtime` **1.0.15-SNAPSHOT**, and `BinaryLogReader` is in no
+    released runtime. The feature cannot ship until a release carries it, and CI must resolve whatever
+    the pom names. `PomShapeTest` asserts the version literally, so going back is a decision rather
+    than a drift.
+- ☐ **M52.8 the `String`-keyed `addRecord` overloads write where nothing reads** (core repo). On a
+  `BinaryLogRecord`, `addRecord(String, String, double|long|int|boolean)` writes into a byte buffer
+  that `length()` does not describe, so the record reaches a writer with zero entries. Production does
+  not hit it — `BinaryEventLogger` resolves names to ids once and logs by id — so this is a sharp edge
+  rather than a live defect, but it is the THIRD time this exact path has been found: the
+  `CharSequence` and `Object` overloads had the same fault and were fixed earlier the same day, and
+  trace entries had it before that. Either route them through `writeSlots` or make them fail loudly on
+  a binary record.
 - ☐ **M52.6** mongoose: `ValueOut.text(cs)` → `bytes(...)` (**2.20×** measured, byte-identical queue
   file) and drop the per-record `Instant.now()` (3% of time, **100% of the allocation**).
 
