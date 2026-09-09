@@ -287,12 +287,19 @@ rather than for want of effort.
   - Both roll paths have a chain. The max chain uses a **two**-element window deliberately: at three the
     maximum sits in every window and never expires, so a wrong roll path would pass. At two the values
     are 5, 7, 7, **4**, and only a recompute produces that 4.
-- ☐ **M55.4 a checked-in golden that nothing asserts is not a test.** `MYProcessor.java` in the
-  compiler repo had been stale since core `f7246ad` and nobody noticed, because `FluxtionBuilderTest`
-  WRITES it and compiles the string in memory — the file on disk is read by no one. Its only signal is
-  that regeneration dirties the working tree, which reads exactly like build noise. Either assert the
-  golden or stop checking it in; the current arrangement has the cost of a fixture and the value of
-  none. Found 2026-09-09 by the M54 verification pass, not by a test.
+- ☑ **M55.4 the stray generated file** — COMPLETE 2026-09-09, and the finding that opened it was half
+  wrong. `resourcesOutputDirectory` defaults to `src/main/resources/`, so a test setting only
+  `outputDirectory` wrote generated source into the source tree every run; it was committed once and
+  regenerated in place thereafter. Now written to `target/generated-test-resources/fluxtion/` and
+  deleted from the repo. `FluxtionBuilderTest` stays 9 green and a run leaves the tree clean.
+  - **The correction matters more than the fix.** §44 concluded a cross-repo behavioural change had
+    propagated to nobody. It had: `PreSplitGoldenParityTest` asserts DTO, generated-source and
+    behaviour goldens across two scenarios and was refreshed for exactly this change on exactly this
+    date, its javadoc naming the three vanished call sites and noting the behaviour goldens did not
+    move. I had asked whether anything asserted that FILE, and generalised the answer to whether
+    anything guarded that BEHAVIOUR. Different questions.
+  - Left alone deliberately: the `META-INF/native-image/...com.whatever.MYProcessor/` properties file
+    is real configuration, not stray output.
 
 Open, in dependency order:
 

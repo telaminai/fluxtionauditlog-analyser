@@ -3443,6 +3443,20 @@ regeneration dirties the working tree. That is a weak signal that depends on som
 status` and not dismissing it as build noise — which is precisely what "3 deletions in a generated
 file" looks like.
 
+> **§47a correction, written 2026-09-09 after finishing M55.3.** The paragraph above is wrong on the
+> point that matters, and the error is worth more than the observation was. The change was **not**
+> un-propagated. `PreSplitGoldenParityTest` asserts three goldens per scenario — the DTO, the generated
+> source, and the behaviour — and it was refreshed for exactly this change on exactly this date, with
+> the delta enumerated in its own javadoc before the files were overwritten: the DTO flag, and "the
+> disappearance of two `serviceRegistry.eventReceived(typedEvent)` calls and one
+> `serviceRegistry.processingComplete()` from the generated dispatch", with the behaviour goldens not
+> moving at all.
+>
+> So the repo's golden discipline worked, caught the drift, and attributed it. What lagged was one file
+> that was never part of that discipline. I found an unasserted artifact and inferred an unguarded
+> system, because I had checked whether anything asserted *that file* and not whether anything asserted
+> *that behaviour*. Those are different questions and I answered the easier one.
+
 **Two process notes from the same run.** Both background suites were piped through `tail -30`, so the
 captured output held the reactor summary and no `Tests run:` lines at all — the counts had to come from
 the surefire reports on disk. Doing that surfaced the second note: aggregating `surefire-reports/*.txt`
@@ -3588,3 +3602,39 @@ That is the §44 lesson arriving from the other direction. There the question wa
 enough lines; here the chain compared plenty of lines and still could not fail. **Line count is a floor
 on evidence, not a measure of it** — and the only thing that caught this was dumping the values and
 asking which of them a broken implementation would have got wrong.
+
+## §48 M55.4 closed — and the finding that prompted it was half a finding
+
+§44 reported a checked-in generated file that had gone stale since a core commit, and concluded that a
+cross-repo behavioural change had propagated to nobody. The first half was true; the second was not, and
+§44 now carries the correction inline.
+
+`PreSplitGoldenParityTest` had already caught the change. It asserts a DTO golden, a generated-source
+golden and a behaviour golden across two scenarios, writes actuals to `target/golden-actual` for
+diffing, and its javadoc records the refresh for `ServiceRegistryNode.auditEventReceipt()` returning
+false, naming the three call sites that disappeared and noting that the behaviour goldens did not move —
+"strictly less work per event, same answers". It even states the discipline that makes a refresh
+meaningful: *"A golden refreshed because it failed proves nothing; a golden refreshed because every
+difference in it was identified and attributed still proves what it was written to prove."*
+
+So the question I asked of `MYProcessor.java` — does anything assert this file? — had the answer "no",
+and I generalised it into "does anything guard this behaviour?", which has the answer "yes, thoroughly".
+
+**What was actually wrong was smaller and duller.** `resourcesOutputDirectory` defaults to
+`src/main/resources/`, so a test that sets `outputDirectory` and nothing else writes generated source
+into the source tree on every run. That output was committed once and thereafter regenerated in place.
+It was never a golden; it was a stray file that looked like one, which is why reading it as evidence
+produced a wrong conclusion about the system around it.
+
+Fixed by setting the resources directory to `target/generated-test-resources/fluxtion/` in the two
+places that write it, and deleting the file. The test's subject is the write-and-backup path and where
+it writes is incidental, so nothing about what it proves changed; `FluxtionBuilderTest` stays at 9 green
+and the source tree now stays clean across a run.
+
+One related artifact is deliberately left alone: `META-INF/native-image/.../com.whatever.MYProcessor/`
+still carries a native-image properties file for the class this test generates. It is a real
+configuration rather than stray output, and removing it was not the decision that was made.
+
+**The habit worth keeping** is the one that caught this: when an artifact looks unguarded, ask what
+guards the BEHAVIOUR before concluding anything about the system. The file and the behaviour are
+different subjects, and only one of them was actually unprotected.
