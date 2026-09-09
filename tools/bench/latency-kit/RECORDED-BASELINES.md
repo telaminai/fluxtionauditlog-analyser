@@ -300,3 +300,51 @@ Array bounds checking is the leading remaining candidate. **It has not been meas
     The subsequent clock and `endTime` changes then took it back down. The lesson is not the numbers: it
     is that a benchmark switch in production code let the benchmark measure a configuration that did not
     ship, for the entire life of this work.
+
+## The C++ target (round 63 §39) — harness h5
+
+Controls for the C++ generation target, held to the same discipline as the Java ones: fixed graph, fixed
+input, and a checksum every arm must agree on before any timing is believed.
+
+**These are rebuildable, not merely re-runnable.** The Java native controls point at binaries in a
+session scratch directory; if the machine is wiped they are gone. The C++ sources and a build script live
+in `cpp/`, so `build-controls.sh` regenerates the processor with the C++ target and recompiles it.
+
+### 30-node converging graph, 5 event types — all arms `v=120.5988`
+
+| arm | ns | M events/sec |
+|---|---:|---:|
+| **`c-cpp-conv` — generated C++, templated on parents** | **0.738** | 1355 |
+| C++ hand-written, direct members | 0.850 | 1176 |
+| Java generated, native AOT (`c-audit-noaudit`) | 2.055 | 487 |
+| C++ hand-written, parent pointers | 5.625 | 178 |
+| Java generated, JIT | 12.336 | 81 |
+
+**The ratio to watch is `c-cpp-conv` against `c-audit-noaudit` native: 2.8×.** That single number is the
+C++ target's whole claim, and a regression in either arm moves it.
+
+### 4-node price ladder — all arms `v=2185441000`
+
+| arm | ns |
+|---|---:|
+| C++ hand-written, flat | 1.166 |
+| **`c-cpp-ladder-fat` — generated, one fat node, no re-entrancy** | **1.214** |
+| generated C++, one fat node, re-entrancy on | 3.580 |
+| generated C++, four nodes *(not gated — see below)* | ~4.50 |
+| Java generated, native AOT | 4.200 |
+
+### One arm is deliberately not a control
+
+`c-cpp-ladder` — the four-node ladder — was refused three times running at **2.23%, 2.57% and 2.83%**
+batch spread against a 2% limit, while the other two C++ arms sit at **0.3% and 0.25%**. So it is that
+arm, not the toolchain.
+
+A control whose reading the harness will not certify cannot detect a regression, because it cannot
+produce a number. Widening the limit to admit it would weaken the gate on the two arms that are
+comfortably inside it. Its measurement is recorded above; it is simply not gated.
+
+### What the C++ controls are for
+
+They exist because **every C++ figure quoted before they did was from hand-written code modelling what a
+generator would emit**, and the real generator was 3.7× off it. A control that measures generated output
+is the only thing that keeps that from happening again.

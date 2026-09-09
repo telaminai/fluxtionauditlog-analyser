@@ -17,6 +17,10 @@ set -uo pipefail
 # export every command evaluated to an empty path and every control was refused for "no identity" —
 # which looked like a harness fault rather than a missing variable.
 export SP=${KIT_OUT:?set KIT_OUT to the directory holding the built control binaries}
+# The C++ controls are REBUILDABLE rather than merely re-runnable: CPPB points at the output of
+# cpp/build-controls.sh. Defaulted so a run without it still resolves rather than reporting a missing
+# binary as a failing band.
+export CPPB=${CPPB:-$(cd "$(dirname "$0")" && pwd)/cpp/build}
 export JAVA_HOME=${JAVA_HOME:?set JAVA_HOME}
 export RT=${RT:?set RT to the fluxtion-runtime jar the controls were built against}
 BANDS=${BANDS:-$(dirname "$0")/control-bands.tsv}

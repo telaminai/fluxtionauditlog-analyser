@@ -31,3 +31,26 @@ c-audit-noaudit	native	h5	1.8	2.4	$SP/nimg37/nn1 -Drecord=core -Dclock=process -
 c-audit-noaudit	jit	h5	11.2	14.3	"$JAVA_HOME/bin/java" -cp "$SP/nonedir:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchNoneLocal
 c-audit-string	native	h5	36.2	46.0	$SP/nimg37/str2 -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000
 c-audit-string	jit	h5	35.2	44.8	"$JAVA_HOME/bin/java" -cp "$SP/conv2:$RT" -Drecord=core -Dclock=process -Dgraph=conv -Diters=3000000 -Dwarm=500000 app.BenchConvLocal
+#
+# C++ TARGET CONTROLS. Same discipline as the Java rows: fixed graph, fixed input, a checksum every arm
+# must agree on. Two differences worth knowing:
+#
+#   1. $CPPB points at the output of cpp/build-controls.sh, which REBUILDS these from source. The Java
+#      native rows point at a scratch directory and can only be re-run — if the machine is wiped they
+#      are gone. These are not.
+#   2. Bands are wider than the native Java ones. At sub-nanosecond the harness is near its limit: the
+#      30-node arm was refused once at 2.23% batch spread before reading cleanly, so a tight band would
+#      fail for measurement reasons rather than regressions.
+#
+# The number to watch is not any single row but c-cpp-conv against c-audit-noaudit-conv: that ratio is
+# the C++ target's whole claim, and it is 2.8x today.
+c-cpp-conv	cpp	h5	0.66	0.95	$CPPB/conv_generated -Diters=3000000 -Dwarm=500000
+#
+# c-cpp-ladder (the four-node ladder, four separate nodes) is DELIBERATELY NOT A CONTROL. The harness
+# refused it three times running at 2.23%, 2.57% and 2.83% batch spread against a 2% limit, while the
+# other two C++ arms sit at 0.3% and 0.25% - so it is that arm, not the toolchain. A control whose
+# reading the harness will not certify cannot detect a regression, because it cannot produce a number.
+# Widening the limit to admit it would weaken the gate on the two arms that are well inside it.
+#
+# Its measurement lives in RECORDED-BASELINES; it is simply not gated.
+c-cpp-ladder-fat	cpp	h5	1.08	1.40	$CPPB/ladder_fat -Diters=3000000 -Dwarm=500000

@@ -31,6 +31,9 @@ if [ -z "$MAXCV" ]; then
   # refused it for being too noisy — a wrong diagnosis from a glob.
   case "$CMD" in
     *"/bin/java"*) MAXCV=8.0 ;;    # JIT: measured 5.49% batch-to-batch on the audited graph
+    *cpp/build/*)  MAXCV=2.0 ;;    # C++ target: measured 0.25-0.3% on the two gated arms, so the
+                                   # native limit fits. NOT widened for the four-node ladder, which
+                                   # sits at 2.2-2.8% and is excluded from the gated set instead.
     *)             MAXCV=2.0 ;;    # native image: measured 0.05-0.31%
   esac
 fi
