@@ -204,19 +204,41 @@ regression, and `const char*` logging as `true` on the C++ side.
 **Measured on the shipped artefact:** C++ **2.653 ns** against Java JIT **10.51** — **4.0×**. Native
 AOT Java is 10.398, level with JIT and the only graph in the kit where AOT does not lead.
 
-### M54 · What the C++ target does not cover yet
+### M54 · The rest of the C++ target — ☑ CLOSED 2026-09-09
 
-- ☐ **M54.1 the remaining node families** — merge/mergeMap, lookup, notify, peek, the multi-argument
-  pushes (`BiPushFunction` … `SextPushFunction`), the dynamic and by-property filters. Mostly
-  mechanical: the same table treatment the value kinds got.
-- ☐ **M54.2 event-time nodes** — `EventTimeBucketEvictor`, `EventTimeLatenessGate`. Out-of-order
-  handling, and the most interesting remaining group for real-time monitoring.
-- ☐ **M54.3 count-based sliding** (`FixSizedSlidingWindow`) and the allocating aggregates
-  (`toList`, `toSet`, `RankedTopN`) — the latter blocked on the same boundary as `toList`.
-- ☐ **M54.4 measure a windowed, flatMap and groupBy graph.** The 2.653 ns figure is
-  `map -> map -> filter -> aggregate` only, and `TEST-INDEX.md` says explicitly that nothing recorded
-  predicts the other shapes. flatMap allocates per element and groupBy allocates per key, so both will
-  read differently.
+**33 constructs emitted, 16 audit-oracle chains.** What remains refused is refused for a stated reason
+rather than for want of effort.
+
+- ☑ **M54.1 node families** — `peek` and `notify` emitted and proven. `peek`'s trigger returns `void`,
+  so it must not change whether anything downstream fires; `notify`'s oracle has the notified node LOG,
+  so the chain proves the notification arrived rather than merely being emitted. That caught a real
+  detail first run: Java logs `notifyClass` as the target's TYPE and `notifyInstance` as its NODE NAME,
+  and they differ.
+- ☒ **M54.2 event-time nodes — WITHDRAWN, not deferred.** `EventTimeLatenessGate` and
+  `EventTimeBucketEvictor` are referenced nowhere outside their own files in either repo, so no DSL
+  graph produces them and there is nothing to emit or prove. The item was mis-scoped when written.
+- ☑ **M54.4 measured the shapes that existed only as correctness claims** — tumbling window
+  **2.6/6.9 = 2.5×**, groupBy **2.3/14.8 = 6.4×**, flatMap **22.7/80 = 3.5×**, all checksum-matched.
+  Three of four predictions wrong in one direction: **where Java allocates is where C++ wins biggest**,
+  and I predicted the opposite twice.
+
+**Still refused, each with its reason:**
+
+- **merge, mapOnNotify** — both reach `hasChanged()` through an injected `DirtyStateMonitor`. `@Inject`
+  resolution is a MECHANISM the target lacks, not a table entry. This is the one item that would extend
+  coverage meaningfully, and it is a day of work rather than an hour.
+- **generic aggregates that read their input** (`toList`, `toSet`, `RankedTopN`) — they must hand the
+  author's own type to a stub, and that type has no C++ name. A property of the language boundary.
+- **count-based sliding** (`FixSizedSlidingWindow`) — untried; likely mechanical given timed sliding
+  works, since it is the same ring with a count instead of a clock.
+
+### M55 · Open, and worth doing in this order
+
+- ☐ **M55.1 `@Inject` resolution** — unblocks merge and mapOnNotify, and is the last structural gap.
+- ☐ **M55.2 groupBy at cardinality** — the 6.4× is a linear scan over FOUR keys and is O(groups).
+  Measure at thousands before anyone quotes it; a hash store behind the same interface if the scan is
+  the problem. Measurement first.
+- ☐ **M55.3 `FixSizedSlidingWindow`** — probably an afternoon.
 
 Open, in dependency order:
 
