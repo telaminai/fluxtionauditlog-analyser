@@ -2698,3 +2698,131 @@ Both are settled decisions rather than open work, so their rationale now lives i
 agent-brokered dev loop; M41 withdrawn 2026-08-27 (owner: JBang is the install). The standing decisions
 they produced are unchanged and remain under **Decisions** below.
 
+### M53 · Complete the C++ DSL — ☑ COMPLETE 2026-09-09
+
+**31 constructs emitted, 1 refused, 14 audit-oracle chains.** Every emitted construct is proven against
+Java entry for entry — full log, timestamps included — and the matrix is generated from
+`CppDslCapabilityMatrixTest` rather than maintained beside it, so it cannot drift in either direction.
+
+- ☑ **M53.1–.3** value kinds, the full aggregate set, binary map — one table, not four copies.
+- ☑ **default values** — a node plus a map, whose `hasDefaultValue()` seeds a join's latch.
+- ☑ **M53.4 trigger overrides** + **M53.5 `FixedRateTrigger`**.
+- ☑ **M53.6 windowing** — tumbling and timed-sliding, both roll paths chosen by
+  `Stateful.deductSupported()`. **No heap for either kind.**
+- ☑ **M53.7 flatMap** — one graph cycle per element through a synthetic callback event, so N elements
+  produce N audit records as in Java.
+- ☑ **M53.7b groupBy + count** — groupBy is where allocation finally arrives, and has to.
+
+**Refused, and it should stay refused:** generic aggregates that READ their input (`toList` and
+siblings) must hand the author's own type to a stub, and that type has no C++ name.
+
+**Java defects this found — five, all fixed, all now with core-side regression tests** (added
+2026-09-09; the fixes had only been covered by the C++ oracle, which lives in another repo):
+string-valued binary entries dropped entirely, `aggregateInt` reported by the double and long wrappers,
+`publishOverrideTriggered` missing from all three primitive sliding windows, the millisecond clock
+regression, and `const char*` logging as `true` on the C++ side.
+
+**Measured on the shipped artefact:** C++ **2.653 ns** against Java JIT **10.51** — **4.0×**. Native
+AOT Java is 10.398, level with JIT and the only graph in the kit where AOT does not lead.
+
+### M54 · The rest of the C++ target — ☑ CLOSED 2026-09-09
+
+**33 constructs emitted, 16 audit-oracle chains.** What remains refused is refused for a stated reason
+rather than for want of effort.
+
+- ☑ **M54.1 node families** — `peek` and `notify` emitted and proven. `peek`'s trigger returns `void`,
+  so it must not change whether anything downstream fires; `notify`'s oracle has the notified node LOG,
+  so the chain proves the notification arrived rather than merely being emitted. That caught a real
+  detail first run: Java logs `notifyClass` as the target's TYPE and `notifyInstance` as its NODE NAME,
+  and they differ.
+- ☒ **M54.2 event-time nodes — WITHDRAWN, not deferred.** `EventTimeLatenessGate` and
+  `EventTimeBucketEvictor` are referenced nowhere outside their own files in either repo, so no DSL
+  graph produces them and there is nothing to emit or prove. The item was mis-scoped when written.
+- ☑ **M54.4 measured the shapes that existed only as correctness claims** — tumbling window
+  **2.6/6.9 = 2.5×**, groupBy **2.3/14.8 = 6.4×**, flatMap **22.7/80 = 3.5×**, all checksum-matched.
+  Three of four predictions wrong in one direction: **where Java allocates is where C++ wins biggest**,
+  and I predicted the opposite twice.
+
+**Still refused, each with its reason:**
+
+- **merge, mapOnNotify** — both reach `hasChanged()` through an injected `DirtyStateMonitor`. `@Inject`
+  resolution is a MECHANISM the target lacks, not a table entry. This is the one item that would extend
+  coverage meaningfully, and it is a day of work rather than an hour.
+- **generic aggregates that read their input** (`toList`, `toSet`, `RankedTopN`) — they must hand the
+  author's own type to a stub, and that type has no C++ name. A property of the language boundary.
+- **count-based sliding** (`FixSizedSlidingWindow`) — untried; likely mechanical given timed sliding
+  works, since it is the same ring with a count instead of a clock.
+
+### M55 · Finishing the C++ DSL — ☑ COMPLETE 2026-09-09
+
+- ☑ **M55.1 merge and mapOnNotify emit — and `@Inject` resolution was never needed.** COMPLETE
+  2026-09-09. **35 constructs emitted, 2 refused, 18 oracle chains.** The item as written was wrong:
+  it recorded both constructs as blocked on a mechanism the target lacks, and estimated a day. Reading
+  the two node types instead of the tracker entry settled it in minutes — `merge`'s injected
+  `DirtyStateMonitor` backs `hasChanged()` alone and no generated dispatch calls it (both languages
+  guard the node with the processor's own dirty flags); `mapOnNotify`'s injected `NodeNameLookup`
+  resolves a name in `initialise()` that is a generation-time constant on the C++ side, so it is baked
+  as a literal. **The C++ target still has no `@Inject` support and no longer needs any.**
+  - The real obstacle was mundane and nowhere in the entry: both nodes fail two GENERIC guards in
+    `emit()` — no method reference, and a first constructor argument that is not a plain node name
+    (merge's parents arrive as `new ArrayList<>(Arrays.asList(a, b))`). They belong above those guards,
+    where groupBy and default-value already sit.
+  - **A real boundary did turn up**: `mapOnNotify` refuses an INLINE target and should. `notify()`
+    registers its target for the author; `mapOnNotify()` does not, so an inline `new Sink()` is a
+    nameless object with no node to fire. The matrix now carries both rows, since one word of the
+    author's code decides which.
+  - Unmeasured: no control build covers either construct. Predictions P13/P14 recorded, unscored.
+- ☑ **M55.2 groupBy at cardinality** — COMPLETE 2026-09-09. The store is now split the way Java's is:
+  an insertion-ordered vector that IS the emit order, plus a `std::unordered_map` index beside it that
+  nothing iterates. That is the Fluxtion DSL's own design, not a C++ invention —
+  `GroupByFlowFunctionWrapper` keeps `mapOfValues` as a `LinkedHashMap` because first-key-seen order
+  makes multi-key emit identical interpreted/AOT, while `mapOfFunctions`/`keyCount` are `HashMap`
+  bookkeeping that is never iterated. Iterating a hash map would break that guarantee; looking a key up
+  in one cannot.
+  - **Measured, and the old claim was half true.** Per event: Java flat at ~30–32ns; the scan 4.15ns at
+    4 keys, 11.1 at 64, 38.2 at 256, **126.6 at 1024** — crossing Java between 64 and 256 keys. The
+    index is flat at 5.86 → 3.67ns across the same range. It costs 1.7ns at 4 keys and saves 123ns at
+    1024. New control: `tools/bench/latency-kit/dsl/build-groupby-controls.sh`, key count an argument.
+  - **The M54.4 headline is superseded.** 6.4× described the benchmark's cardinality, not the target.
+    The honest form is a curve: 5–8.6× across 4–1024 keys.
+  - **Unexplained and recorded as such**: the indexed C++ arm gets FASTER as cardinality rises. A
+    serial-dependency hypothesis (same `Entry` written repeatedly at low cardinality) fits the curve and
+    is unmeasured.
+  - **Still open**: first-key-seen ORDER is preserved structurally but untestable in C++, because the
+    emitted struct exposes `valueFor`/`groupCount` and no ordered `values()`. Closes when a downstream
+    construct iterates groups.
+  Measure at thousands before anyone quotes it; a hash store behind the same interface if the scan is
+  the problem. Measurement first.
+- ☑ **M55.3 `FixSizedSlidingWindow`** — COMPLETE 2026-09-09. **36 constructs emitted, 20 oracle
+  chains.** The estimate was right for once: it is the same ring with the clock replaced by the input.
+  Java's `aggregateInputValue` is three statements — aggregate, `roll()` once, and publish only once
+  every bucket is filled — so each element occupies exactly one bucket.
+  - **Built by rewriting the timed form, not by copying it.** The bucket algebra and the
+    invertible/recompute split are where the real complexity lives, and two copies would drift; the
+    fixed-size emitter generates the timed struct and rewrites the two places that differ, refusing
+    outright if the timed form no longer has the shape it expects.
+  - One thing the target was one condition short on: `triggerFlags()` already knew that "a window sets
+    `publishOverrideTriggered_` without having any of the four OVERRIDES", but keyed it on having a roll
+    trigger — which this form does not have, so the flag came out `static constexpr` and the generated
+    C++ would not compile. Same case, one condition short.
+  - Both roll paths have a chain. The max chain uses a **two**-element window deliberately: at three the
+    maximum sits in every window and never expires, so a wrong roll path would pass. At two the values
+    are 5, 7, 7, **4**, and only a recompute produces that 4.
+- ☑ **M55.4 the stray generated file** — COMPLETE 2026-09-09, and the finding that opened it was half
+  wrong. `resourcesOutputDirectory` defaults to `src/main/resources/`, so a test setting only
+  `outputDirectory` wrote generated source into the source tree every run; it was committed once and
+  regenerated in place thereafter. Now written to `target/generated-test-resources/fluxtion/` and
+  deleted from the repo. `FluxtionBuilderTest` stays 9 green and a run leaves the tree clean.
+  - **The correction matters more than the fix.** §44 concluded a cross-repo behavioural change had
+    propagated to nobody. It had: `PreSplitGoldenParityTest` asserts DTO, generated-source and
+    behaviour goldens across two scenarios and was refreshed for exactly this change on exactly this
+    date, its javadoc naming the three vanished call sites and noting the behaviour goldens did not
+    move. I had asked whether anything asserted that FILE, and generalised the answer to whether
+    anything guarded that BEHAVIOUR. Different questions.
+  - Left alone deliberately: the `META-INF/native-image/...com.whatever.MYProcessor/` properties file
+    is real configuration, not stray output.
+**Withdrawn:** the ordinal audit-key API and the code-model transformation it was built for. Measured at
+a 10.3 ns JIT prize, which turned out to be the cost of the data-structure fault fixed in §34; with that
+fixed the ordinal path is *slower* than the plain `String` one. Removed from the runtime rather than
+deprecated. See §33–§35 — the episode is the strongest argument in this repo for profiling an
+implementation before concluding its abstraction is the problem.
