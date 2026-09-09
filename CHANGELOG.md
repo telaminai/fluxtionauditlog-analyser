@@ -48,6 +48,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   deprecated. Node code stays `auditLog.info("v", v)`.
 
 ### Added
+- **Open a binary audit log in the analyser.** A `FLXA` binary log now opens like any other, recognised
+  by its magic bytes rather than a file extension, so the faster record format is no longer
+  command-line only. Truncated logs open too — a half-written trailing record is the normal end state
+  of a crashed process, and the reader reports the unusable bytes instead of refusing the file. What
+  the binary format does not carry (`groupingId`, `thread`) is left out rather than invented.
 - **Collect a PGO profile until the native build lands, then keep the profile.**
   `tools/bench/land-native.py`. A GraalVM image lands at either ~1.6 ns/event or ~5.5, and **the
   profile decides which**: hold it fixed and four rebuilds reproduce it (1.60/1.66/1.68/1.67), while a

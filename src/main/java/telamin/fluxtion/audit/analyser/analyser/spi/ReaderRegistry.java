@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
+import telamin.fluxtion.audit.analyser.analyser.spi.binary.BinaryAuditReader;
 
 /**
  * Discovers and holds {@link AuditLogReader}s: the built-in YAML reader plus any the user explicitly
@@ -34,6 +35,7 @@ public final class ReaderRegistry {
 
     public ReaderRegistry() {
         readers.add(new YamlAuditReader());
+        readers.add(new BinaryAuditReader());
     }
 
     /** Load every {@code *.jar} in {@code pluginsDir} (explicitly-installed jars only; no network). */
