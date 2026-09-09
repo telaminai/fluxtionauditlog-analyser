@@ -69,7 +69,11 @@ class PomShapeTest {
                 assertEquals("${fluxtion.version}", version, "pinned via a property, not ranged");
             }
         }
-        assertEquals("1.0.13", property(project, "fluxtion.version"));
+        // A tripwire, and it fired as designed when M52.5 moved to the snapshot. SNAPSHOT is a
+        // BRANCH-ONLY state: the analyser's binary reader calls BinaryLogReader, which exists in
+        // 1.0.15-SNAPSHOT and in no released runtime, so this must return to a released version -
+        // and CI must be able to resolve whatever it names - before the feature can ship.
+        assertEquals("1.0.15-SNAPSHOT", property(project, "fluxtion.version"));
     }
 
     @Test

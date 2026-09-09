@@ -50,7 +50,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Added
 - **Open a binary audit log in the analyser.** A `FLXA` binary log now opens like any other, recognised
   by its magic bytes rather than a file extension, so the faster record format is no longer
-  command-line only. Truncated logs open too — a half-written trailing record is the normal end state
+  command-line only. Requires `fluxtion-runtime` 1.0.15 or later. Truncated logs open too — a half-written trailing record is the normal end state
   of a crashed process, and the reader reports the unusable bytes instead of refusing the file. What
   the binary format does not carry (`groupingId`, `thread`) is left out rather than invented.
 - **Collect a PGO profile until the native build lands, then keep the profile.**
