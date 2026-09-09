@@ -3344,3 +3344,61 @@ An aggregate here is a single `int32_t` inside the node struct: stack-resident, 
 why the C++ arm is cheap. A window is not. Sliding and tumbling windows need buffers whose lifetime
 spans events, and the stack-versus-heap choice for those is a design decision with a real cost rather
 than a translation detail. Nothing measured above should be read as predicting a windowed graph.
+
+## §43 M53 closed — the DSL emits to C++, and the port audited the original
+
+31 constructs emitted, 1 refused, 14 audit-oracle chains comparing the full log entry for entry.
+
+### 43.1 Five Java defects, found by re-expressing rather than by reading
+
+| defect | why Java alone could not see it |
+|---|---|
+| string-valued binary entries dropped entirely | the entries existed in intent; no reader ever expected them |
+| `aggregateInt` reported by the double and long wrappers | the string is only ever read out of a log |
+| `publishOverrideTriggered` missing from all three primitive sliding windows | the window's VALUE is correct throughout; only propagation fails |
+| the millisecond clock regression | thirty tests failed and not one mentioned a clock |
+| `const char*` logging as `true` (C++ side) | a log full of plausible `true` values looks fine alone |
+
+All five fixed. **None had a core-side regression test until 2026-09-09** — the only thing catching them
+was an oracle in another repository, so a change to core alone would have reintroduced any of them with
+core's suite green. Three tests added, each verified to FAIL against the unfixed code first. One of
+those first drafts passed with the fix and without it, because it never drove the trigger and the ring
+never filled: a regression test that has not seen the regression is an assumption.
+
+### 43.2 Three ordering bugs in the emitter, all found the same way
+
+`audited` set inside the node loop so any node sorted before the auditor lost its logger; the callback
+wiring running before the dispatch that names the event it needs; the stateful-map call site emitting
+`getOrDefault` for every stateful map. Each looked like a property of the graph and was a property of my
+code. **Three graph shapes failing identically is what settled the second one** — reasoning about which
+shapes "should" work produced two wrong stories first.
+
+### 43.3 The method, stated plainly
+
+Reading the source produced a wrong answer nearly every time. Making the artefact speak produced the
+right one, usually in a single run:
+
+- generate the Java and read the dispatch → the flatMap mechanism, the groupBy shape, the window wiring
+- diff two audit logs → all five Java defects
+- AddressSanitizer on the emitted TU → `init() -> initialiseEventStream() -> aggregate(nullptr)`, after
+  I had read that same source twice and concluded I needed a debugger
+- measure rather than assert → `-O3` worth 22% where I predicted 0–5%, PGO 6% WORSE where I predicted
+  it would be the biggest win, and four dead stores per node costing 21% after I wrote in a commit
+  message that they would fold away
+
+That last one is the sharpest: **"the optimiser will handle it" is a prediction, not a fact**, and it has
+now been wrong twice in this round in the same direction.
+
+### 43.4 Source, audit log, graph — which is the analyser's own triad
+
+Everything above was done by hand with generated source, an audit log and a node/parent map. That is
+exactly what the analyser puts in front of a user, and this round is an accidental argument for it: a
+worse version had to be built by hand to get the work done.
+
+### 43.5 Measured, and the history is the record
+
+**C++ 2.653 ns against Java JIT 10.51 — 4.0×**, on the artefact the generator produces.
+
+23× (a hand-written chain the generator does not emit) → 2.9× (`-O2`) → 3.8× (`-O3`) → 3.1× (trigger
+machinery, four dead stores per node) → **4.0×** (flags emitted only where used). Five figures for one
+comparison; only the ones measured on the shipped artefact were ever true.
