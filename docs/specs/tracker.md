@@ -159,9 +159,50 @@ Shipped:
   default `ClockStrategy` from millis to nanos, so every `FixedRateTrigger.atMillis` window compared a
   millisecond size against a nanosecond clock. Default is now `fastEpochMillisClock()`; `nanoEpochClock()`
   stays opt-in. **Compiler suite: 3575 tests, 0 failures — first fully green run.**
-- ☑ **`RuntimeMetaBoundaryGateTest` guards the right artefact** (§41.1, compiler `b921748`) — it had been
+- ☑ **the C++ DSL emitter + audit oracle** (§40–41, compiler `ffdee5e`) — map/filter/aggregate/push and
+  the `subscribe()` entry emitted as specialised templated structs; `CppDslAuditParityTest` compares 78
+  audit lines entry-for-entry against Java, timestamps included. It found two silent defects on first
+  run: Java dropped every string-valued entry from binary records (core `0d54154`), and C++ logged every
+  string as `true` through the implicit `const char*`→`bool` conversion.
+- ☑ **DSL performance, measured on the generated artefact** (§42, compiler `8f9ba20`, analyser `96e92dc`)
+  — **C++ 2.757 ns against Java 10.398, 3.8×**. The **23× figure is withdrawn**: it measured a
+  hand-written chain the generator does not emit. `-O3` is worth 22% over `-O2` (predicted 0–5%); PGO is
+  6% *worse* (predicted the largest win); `-march=native` and LTO are worth nothing. Native AOT Java is
+  slower than JIT on this shape (11.04 vs 10.42), level at 10.40 with `-H:-SpawnIsolates` — the only
+  graph in the kit where that holds, now reproduced on two independent harnesses.
+- ☑ **control + test indexes** (analyser `96e92dc`) — `tools/bench/latency-kit/dsl/` rebuilds both arms
+  *from the generator*, so a control cannot again defend a stand-in; `TEST-INDEX.md` maps each claim to
+  the test that makes it false, and lists what is not defended.
+- ☑ ****`RuntimeMetaBoundaryGateTest` guards the right artefact** (§41.1, compiler `b921748`) — it had been
   inspecting, in turn, the legacy `com.fluxtion` repo, a stale sibling branch, and the shaded
   `fluxtion-generator-http` jar. Now resolved by artefact name from the test classpath.
+
+### M53 · Complete the C++ DSL — windowing last, and not first
+
+The emitter covers **6 node kinds, all `int`-typed**, against 122 files in
+`runtime.flowfunction`. What a data flow can express in Java and what the C++ target can emit are a
+long way apart, and the gap is enumerated here rather than discovered one `UnsupportedGraphException`
+at a time. Ordered so each stage is measurable on its own; the audit oracle extends to each.
+
+- ☐ **M53.1 the other primitives and reference types** — `double`/`long`/ref variants of map, filter,
+  push and aggregate. Mechanical: the same five shapes with a different value type, and the widest
+  coverage gain for the least design. Do this first.
+- ☐ **M53.2 the concrete aggregate functions** — sum/min/max/count/average across three primitives.
+  Today only `IntSumFlowFunction` is modelled; the rest are a table, except `average` which needs a
+  count alongside the accumulator and `min`/`max` which need the seeding fix already found in Java.
+- ☐ **M53.3 binary map and merge** — `BinaryMapFlowFunction` is the first TWO-parent DSL node, so it is
+  where the positional template wiring gets its real test.
+- ☐ **M53.4 trigger overrides** — publish, reset and update triggers. Refused today, and deliberately:
+  they are extra state these structs do not carry. Prerequisite for windowing, which uses all three.
+- ☐ **M53.5 `FixedRateTrigger`** — a real node reading the clock, currently skipped as runtime
+  infrastructure. Prerequisite for every time-based window.
+- ☐ **M53.6 windowing** — tumbling, timed-sliding, fixed-size-sliding, bucketed. **The memory question
+  is the design, not a detail**: an aggregate today is one `int32_t` inside the node struct,
+  stack-resident and allocation-free, which is part of why the C++ arm is cheap. A window holds buffers
+  whose lifetime spans events, and stack-versus-heap for those is a decision with a real cost. No
+  figure in the latency kit predicts a windowed graph, and `TEST-INDEX.md` says so.
+- ☐ **M53.7 flatMap and groupBy** — flatMap needs the re-entrant callback queue driving one graph cycle
+  per element; groupBy needs maps. Last, because both add a runtime rather than more emission.
 
 Open, in dependency order:
 
