@@ -206,16 +206,27 @@ Every stage is proven by the audit oracle: eight chains comparing Java against C
 
 Remaining:
 
-- ☐ **M53.6 windowing** — tumbling, timed-sliding, fixed-size-sliding, bucketed. Both prerequisites are
-  now in place. **The memory model is the design, not a detail**: an aggregate today is one `int32_t`
-  inside the node struct, stack-resident and allocation-free, which is part of why the C++ arm measures
-  2.757 ns. A window holds buffers whose lifetime spans events. **`Stateful` decides the shape** —
-  `deductSupported()` is true for sum and false for min/max, so a sliding window over a sum can combine
-  and deduct in O(1) while one over a max must recompute across retained buckets. Getting that wrong
-  produces a window that is correct and quietly O(n).
-- ☐ **M53.7 flatMap and groupBy** — last, because both add a RUNTIME rather than more emission. flatMap
-  needs the re-entrant callback queue driving one graph cycle per element; groupBy needs maps, and
-  therefore allocation.
+- ☑ **M53.6 windowing** — tumbling and timed-sliding, int/double/long. **The memory answer was better
+  than expected: no heap for either.** A tumbling window embeds its accumulator (Java's `windowFunction`
+  is an object the window holds, not a graph node); a sliding window's ring is a fixed-size array,
+  because the bucket count is a constructor literal the emitter can read where Java allocates a list of
+  N aggregate objects. `Stateful.deductSupported()` splits the roll into two paths as predicted — O(1)
+  combine-and-deduct for a sum, O(buckets) recompute for a min or max.
+  **Found a real Java bug**: all three primitive `TimedSlidingWindow` specialisations override
+  `timeTriggerFired` and drop the base's `publishOverrideTriggered`, so a primitive sliding window
+  computed the right value and never published it. `inputUpdated` clears `inputStreamTriggered` while
+  aggregating the same event that rolled the window, and `publishOverrideTriggered` is the latch it
+  cannot clear. `TumblingWindow` has no such override, which is why tumbling agreed across languages
+  and sliding did not.
+- ◑ **M53.7 flatMap** — mechanism established, emitter written, GATED. flatMap queues one synthetic
+  `InstanceCallbackEvent` per element and dispatches each through the normal event path, so N elements
+  produce N audit records; the C++ shape mirrors that rather than iterating in place, because an
+  in-place loop produces a log that cannot be compared. The author's function is inverted to a
+  push-style `fluxtion::Emitter`, since C++ cannot name Java's `Iterable<R>`. Gated because a flatMap
+  feeding a `mapToInt` emits while one feeding a `filter` refuses — two shapes behaving differently
+  means the boundary is not understood, and that is the same call made for sliding windows, where it
+  turned out to be a real bug rather than a modelling gap.
+- ☐ **M53.7b groupBy** — not started. Needs maps, and therefore the first genuine allocation.
 
 Open, in dependency order:
 
