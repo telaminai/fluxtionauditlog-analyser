@@ -3038,7 +3038,7 @@ and largely fails at here.
 (free in C++). The gap is real, it is ~3 ns, it is present in hand-written Java with no framework, and
 its cause is still unattributed. Writing that down is better than a fourth guess.
 
-### 37.2 Would Fluxtion emitting C++ match hand-written C++? Yes.
+### 37.2 Would Fluxtion emitting C++ match hand-written C++? Yes — but see §37.5, which qualifies this.
 
 The generated processor's structure — one object per node holding parent pointers, a dirty flag per
 node, a guard check before each trigger, a service prologue and epilogue — transliterated to C++:
@@ -3082,3 +3082,46 @@ does the same thing in 4. That is not an argument that the Java work was wasted 
 trail is a good number and it is the number that ships. It is an argument about **ceilings**: the
 remaining Java headroom on this path is bounded by things Fluxtion does not control, while the generation
 strategy itself has been measured at zero cost in a language that can see through it.
+
+
+---
+
+## §38 The four-node result did not generalise, and the way it failed is the finding
+
+§37.2 concluded from a **four-node** graph that the generated processor's shape costs nothing in C++, and
+therefore that the overhead is the runtime's rather than the generation strategy's. The first half was
+measured on too little; the second half survives, for a better reason.
+
+Repeated on the 30-node, five-event-type converging graph. All arms produce checksum `120.5988`.
+
+| | native ns | M/s |
+|---|---:|---:|
+| C++, transliterated literally — parent pointers, as the Java looks | 5.625 | 178 |
+| **C++, emitted as a generator would — parents named directly** | **0.854** | **1171** |
+| Fluxtion generated Java, native | 2.054 | 487 |
+| Fluxtion generated Java, JIT | 12.444 | 80 |
+
+**The literal transliteration is 6.6× slower than the idiomatic emission of the identical graph.** At four
+nodes clang inlines through the pointer chain and the two forms are indistinguishable; at thirty it
+cannot, and every `p->v` becomes a real dependent load.
+
+### 38.1 What this changes
+
+- **The topology decisions are sound and language-independent** — what to call, in what order, behind
+  which guard. That part of §37.2 stands.
+- **The emission strategy is not portable.** Java's generator emits field references that Graal
+  scalar-replaces *because the processor does not escape*; that is a JVM-specific bargain. A C++ backend
+  that copied the structure literally would throw away most of its advantage.
+- **A C++ backend would beat the JVM by ~2.4× on graph dispatch** — 0.854 against 2.054 — not merely
+  match hand-written C++.
+
+### 38.2 The methodological point, again
+
+The first version of this comparison used different arithmetic in the C++ (`* 1.000001 + 1` where the Java
+had `* 1.05 + 0.5`) and produced C++ at 16.7 ns against Java's 2.1 — an eight-fold *Java win* that would
+have been a striking and entirely false headline. The checksums did not match, which is the only reason
+it was caught.
+
+That is now three separate occasions in this round where a cross-arm comparison was invalid and **the
+checksum was what caught it** — not the timing, not the profile, not review. A benchmark that cannot prove
+two arms computed the same thing is not measuring a difference; it is generating one.
