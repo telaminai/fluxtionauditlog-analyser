@@ -61,18 +61,53 @@ because "CANCEL = 0.0%" and "CANCEL never happens" are different claims.
 
 ## Results — Java, 64 symbols, active profile
 
-| | throughput | causal latency |
+All `measure.sh` REPEATABLE, 3 batches x 5 reps, gated on CV and on machine load.
+
+| | unaudited | audited (sparse, binary) |
 |---|---:|---:|
-| unaudited (`LOWEST_LATENCY`) | 24.58 ns | **24.88 ns** |
-| audited (`LOW_LATENCY_AUDIT`, binary, sparse) | 31.95 ns | **32.43 ns** |
+| throughput | 23.659 ns | 32.410 ns |
+| read-control | 24.326 ns | 33.042 ns |
+| **causal latency (serial)** | **23.783 ns** | **33.103 ns** |
+
+**Throughput, control and latency agree within 3%** — the graph is entirely serial-bound, so the
+throughput figure IS the latency figure. That differs from the control engine, where unaudited
+throughput and latency diverged by 34% (8.83 vs 11.82 ns), and it is what a ten-node dependency chain
+should look like.
 
 **Throughput and latency are the same number here even unaudited** — unlike the control, where they
 diverged by 34%. A ten-node dependency chain leaves almost no cross-event overlap to lose, so the
 richer graph is already serial-bound. That makes the throughput figures directly quotable as latencies.
 
-Auditing costs **7.4 ns/event** on this graph, less than the control's 12.9, because sparse logging
+Auditing costs **9.3 ns/event** on this graph, less than the control's 12.9, because sparse logging
 here produces a record only on cycles that did something — a fill, or a non-NONE decision — rather than
 on every event.
+
+## The audit log on this graph
+
+| | control engine | quoting core |
+|---|---:|---:|
+| records per event | 1.00 | **0.27** |
+| bytes per event | 62.0 | **20.4** |
+| at audited throughput | 2.79 GB/s | **~630 MB/s** |
+
+73% of events produce no record at all, which is what makes this sparse in a way the control was not.
+
+**The record mix is INVERTED relative to the event mix** — across 400 sampled records, OrderUpdate is
+22% of events and 66% of records, while MarketTick is 70% of events and 12% of records. Market data
+dominates the input and barely appears in the log, because most ticks correctly decide NONE. The log
+records DECISIONS, not traffic. Whether that is the right thing to audit is an open question.
+
+A real record, and `act` is the reconciler's decision (1 = NEW, 2 = REPLACE, 3 = CANCEL; NONE never
+reaches the log because nothing is published):
+
+```yaml
+eventLogRecord:
+    eventTime: 1789040605190
+    logTime: 1789040605190
+    event: MarketTick
+    nodeLogs:
+        - intent: { sym: 7, act: 2, px: 10109}
+```
 
 ## Working set — and why the first sweep was worthless
 

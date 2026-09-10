@@ -309,6 +309,41 @@ quote engine — `dsl/GenQuoteEngine.java`, both targets, `dsl/QUOTE-ENGINE-RESU
   `failBuildIfMissingBooleanReturn = false`) move the decision into node state and leave straight-line
   dispatch with no dirty flags in either language.
 
+### M61 · The quoting core — a bounded decision-core benchmark — ◑ Java done 2026-09-10
+
+Built to a reviewer's specification after they judged M60's engine too thin to represent a real
+application. M60's `GenQuoteEngine` is retained as the CONTROL. Spec, graph, workload and results:
+`dsl/QUOTING-CORE-RESULTS.md`.
+
+- ☑ **M61.1 the graph.** 10 nodes, 4 event types (`MarketTick`/`Fill`/`OrderUpdate`/`TimerTick`),
+  per-symbol state throughout, fixed-point prices in 1/16 tick quantised to venue ticks, EWMA vol and
+  momentum, an order state machine on ACK_NEW/ACK_REPLACE/ACK_CANCEL/PARTIAL_FILL/REJECT, independent
+  bid/ask risk suppression, reconciliation to NONE/NEW/REPLACE/CANCEL, intents into a preallocated ring.
+  Zero guards, zero dirty flags. The four dispatch paths are read out of the emitted processor.
+- ☑ **M61.2 Java measured** (gated): throughput 23.659 / 32.410 ns, causal latency 23.783 / **33.103** ns
+  unaudited/audited at 64 symbols. **Throughput, read-control and latency agree within 3%** — a ten-node
+  chain is entirely serial-bound, so the throughput figure IS the latency figure, unlike the control
+  where they diverged 34%. Auditing costs 9.3 ns/event.
+- ☑ **M61.3 workload.** Pre-generated buffer, fixed-seed xorshift64 with independent sub-streams, skewed
+  symbols, acks following real orders via a FIFO cursor. Two profiles with the branch mix REPORTED —
+  active 89.4% NONE / 2.1% NEW / 8.5% REPLACE, selective 92.3% / 1.5% / 6.2% with 35.3% of NONEs being
+  genuine "unchanged". `pending` at 78.7% of active NONEs is the parameter least trusted.
+- ☑ **M61.4 working set**, rebuilt per symbol count: uniform 26.74 → **40.19** ns unaudited and
+  37.72 → **52.84** audited from 64 to 4096 symbols; skewed is nearly flat (24.24 → 25.51) because the
+  hot set stays in L1. **The curve is non-monotonic and 256 reproduces** — cache set conflicts are a
+  hypothesis, left as one.
+- ☑ **M61.5 audit volume.** 0.27 records/event and 20.4 bytes/event against the control's 1.00 and 62.0
+  — ~630 MB/s at audited rate. **The record mix is inverted relative to the event mix**: OrderUpdate is
+  22% of events and 66% of records; MarketTick 70% and 12%. The log records decisions, not traffic.
+- ☐ **M61.6 the C++ arm.** Not built. Per-symbol state that lives in node fields in Java must live at
+  file scope in C++, as it does for the control.
+- **Four bugs, all of which produced a benchmark that RAN**: node state is serialised into the generated
+  constructor including array contents (`code too large` at 64 symbols — fixed with `@FluxtionIgnore` +
+  `@Initialise`); `PARTIAL_FILL` never cleared `pending`; `break` in an arrow-switch case dropped
+  events; ack starvation. Three were visible only because the harness reports the branch mix.
+- **A sweep thrown away**: the first working-set curve was flat because the processor bakes its symbol
+  count in at build time and the skew kept indices under 64, so every run used a 64-symbol graph.
+
 ### M52 · still open
 
 Open, in dependency order:

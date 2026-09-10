@@ -217,6 +217,16 @@ public class BenchQuotingCore {
     /** Independent dispatch — no feedback, the throughput path. */
     private static void dispatch(QuotingCoreProcessor p, int i) { dispatch(p, i, 0); }
 
+    /** Replays a generated stream into an externally-owned processor — used by the sample writers. */
+    public static void replayForSample(QuotingCoreProcessor p, int events, int symbols) throws Exception {
+        SKEW = false;
+        generate(1 << 20, symbols, true, 0xC0FFEEL);
+        intents = p.getNodeById("intent");
+        ackCursor = 0;
+        final int mask = (1 << 20) - 1;
+        for (int i = 0; i < events; i++) { dispatch(p, i & mask); }
+    }
+
     public static void main(String[] a) throws Exception {
         final int iters = Integer.getInteger("iters", 20_000_000);
         final int warm = Integer.getInteger("warm", 2_000_000);
@@ -233,16 +243,36 @@ public class BenchQuotingCore {
         if ((bufferSize & mask) != 0) { throw new IllegalArgumentException("buffer must be a power of two"); }
 
         QuotingCoreProcessor p = new QuotingCoreProcessor();
-        long[] auditRecords = {0};
+        long[] auditRecords = {0, 0};
+        final int sample = Integer.getInteger("sample", 0);
+        // -Dsample=N prints the first N records seen AFTER warm-up, so the order state machine is
+        // already live and the trace shows NEW/REPLACE/CANCEL rather than a cold start.
+        final boolean[] sampling = {false};
         if (audit) {
             com.telamin.fluxtion.runtime.audit.EventLogManager manager =
                     p.getAuditorById(com.telamin.fluxtion.runtime.audit.EventLogManager.NODE_NAME);
-            manager.setLogSink(r -> auditRecords[0]++);
+            if (sample > 0) {
+                manager.setLogSink(r -> {
+                    auditRecords[0]++;
+                    if (sampling[0] && auditRecords[1] < sample) {
+                        auditRecords[1]++;
+                        System.out.println(r.asCharSequence());
+                    }
+                });
+            } else {
+                manager.setLogSink(r -> auditRecords[0]++);
+            }
         }
         p.init();
         intents = p.getNodeById("intent");
 
         for (int i = 0; i < warm; i++) { dispatch(p, i & mask); }
+        if (sample > 0) {
+            sampling[0] = true;
+            for (int i = warm; auditRecords[1] < sample && i < warm + 100_000; i++) { dispatch(p, i & mask); }
+            System.err.printf("records sampled: %d of %d total%n", auditRecords[1], auditRecords[0]);
+            return;
+        }
         if (audit && auditRecords[0] == 0) {
             throw new IllegalStateException("audit=true but the sink saw no records - the audit log is dead");
         }
