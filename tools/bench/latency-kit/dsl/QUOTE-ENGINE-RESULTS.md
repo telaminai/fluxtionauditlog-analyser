@@ -300,3 +300,23 @@ in Java, and those are the same numbers we were already quoting.
 
 The language gap on latency: **1.30x unaudited, 1.55x audited** — against 2.29x and 1.56x on
 throughput. Auditing is the great leveller in both metrics.
+
+
+### The delta in physical units
+
+Worth stating because it sets the scale. The audited Java-to-C++ latency difference is 7.772 ns and
+the unaudited one 2.725 ns:
+
+| | audited (7.772 ns) | unaudited (2.725 ns) |
+|---|---:|---:|
+| free space | 2.33 m | 0.82 m |
+| single-mode fibre (n = 1.468) | 1.59 m | 0.56 m |
+| coax (VF 0.66) | 1.54 m | 0.54 m |
+
+A metre of single-mode fibre costs 4.897 ns; a metre of coax 5.054 ns. The entire audited language
+delta is therefore about **1.6 m of fibre**, and the unaudited about **half a metre**. Against a
+NIC-to-application path that is microseconds even with kernel bypass, and switch hops in the tens to
+hundreds of nanoseconds, the language choice on this graph is a rounding error beside physical layout.
+
+That cuts both ways and should be quoted both ways: it means the Java figure is defensible for this
+workload, AND it means neither figure is where a real latency budget is won or lost.

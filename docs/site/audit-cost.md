@@ -146,6 +146,21 @@ On the unaudited path the two diverge sharply, and the C++ figure is the one tha
 overlapping events heavily. Measured as latency rather than throughput, the gap between the languages
 narrows from 2.3x to 1.3x.
 
+### How big is the language difference, really?
+
+Small enough to be worth putting in physical terms. The audited Java-to-C++ difference is 7.77 ns:
+
+| | audited delta (7.77 ns) | unaudited delta (2.73 ns) |
+|---|---:|---:|
+| free space | 2.33 m | 0.82 m |
+| single-mode fibre | **1.59 m** | 0.56 m |
+| coax (VF 0.66) | 1.54 m | 0.54 m |
+
+A metre of fibre costs about 4.9 ns. So the whole audited difference between the two languages is
+roughly **a metre and a half of cable** — and the unaudited one about half a metre. Set against a
+network path measured in microseconds, the choice of language on this graph is a rounding error next
+to where the machine physically sits.
+
 ## Reading these numbers honestly
 
 - **The headline figures are reciprocal throughput.** `t0 = now; loop N events; (now - t0)/N` measures
