@@ -8,6 +8,7 @@ OUT=${DSL_OUT:?set DSL_OUT to a scratch directory}
 CP=${CP_CPP:?set CP_CPP to a classpath containing fluxtion-generator-cpp and the builder}
 JH=${JAVA_HOME:?set JAVA_HOME}
 HERE=$(cd "$(dirname "$0")" && pwd)
+RT=$HOME/.m2/repository/com/telamin/fluxtion/fluxtion-runtime/1.0.15-SNAPSHOT/fluxtion-runtime-1.0.15-SNAPSHOT.jar
 SHAPES=${SHAPES:-"plain merge notify maponnotify"}
 # AUDIT=true builds the same shapes with LOW_LATENCY_AUDIT + BINARY, so audit cost per event is the
 # DIFFERENCE between two builds of one graph rather than a figure quoted on its own.
@@ -50,4 +51,29 @@ PY
     cp "$HERE/src/main-shapes.cpp" .
     clang++ -std=c++17 -O3 -Wall -Wextra -I. -DSHAPE_NAME="\"$shape\"" $extra -o shbench main-shapes.cpp )
   echo "built $shape_dir (java jit + cpp -O3)"
+
+  # ---- Java native AOT, optional ------------------------------------------------------------
+  # Gated on GRAALVM_HOME, and SKIPPED rather than faked: the audit figures this kit records are all
+  # JIT, and an arm that silently did not build would make a two-arm comparison read as three. The
+  # PGO dance is the same as build-dsl-controls.sh - instrument, collect a profile from a real run,
+  # rebuild against it - because a native image that misses its profile lands in a different
+  # performance class entirely and the profile is what decides which.
+  if [ -n "${GRAALVM_HOME:-}" ]; then
+    D="$OUT/$shape_dir/nimg"; mkdir -p "$D"
+    CPN="$OUT/$shape_dir/javabuild:$OUT/$shape_dir/gen:$RT"
+    "$GRAALVM_HOME/bin/native-image" -cp "$CPN" --no-fallback --gc=epsilon -R:MaxHeapSize=2g \
+        -H:-SpawnIsolates --pgo-instrument -o "$D/inst" app.BenchJavaShapes > "$D/inst.log" 2>&1
+    ( cd "$D" && "$D/inst" -Diters=1000000 -Dwarm=200000 -Dbatches=2 -Dshape="$shape" \
+        -Daudit="$AUDIT" -XX:ProfilesDumpFile="$D/shape.iprof" > "$D/collect" 2>&1 ) || true
+    grep -q '^RESULT' "$D/collect" || { echo "native collect FAILED for $shape_dir"; exit 1; }
+    "$GRAALVM_HOME/bin/native-image" -cp "$CPN" --no-fallback --gc=epsilon -R:MaxHeapSize=2g \
+        -H:-SpawnIsolates --pgo="$D/shape.iprof" -o "$D/native" app.BenchJavaShapes \
+        > "$D/native.log" 2>&1
+    for chk in "PGO: user-provided" "Garbage collector: Epsilon GC"; do
+      grep -q "$chk" "$D/native.log" || { echo "native MISSING: $chk"; exit 1; }
+    done
+    echo "built $shape_dir (java native aot + pgo)"
+  else
+    echo "GRAALVM_HOME unset - skipping the native arm for $shape_dir rather than reporting two arms as three"
+  fi
 done

@@ -441,3 +441,27 @@ What survives, and what does not:
 minimum from measure.sh (3 batches x 6 reps, gated on CV of the batch minima)". I took single shots, in
 one order, with the arms interleaved, then wrote a microarchitectural story to explain the shape that
 produced. The story was plausible, which is precisely why it was worth testing rather than recording.
+
+## P17 · Java native AOT on the audit path — predicted, and NOT YET MEASURED
+
+**Every audit figure in this kit is Java JIT.** `build-shape-controls.sh` now builds a native arm with
+PGO, gated on `GRAALVM_HOME` and skipped loudly when it is unset — which is the state of this machine:
+there is no `native-image` on it, and the Oracle GraalVM 25.0.4 that `control-bands.tsv` records is
+gone. So the arm exists and has never run.
+
+That matters more here than usual. The recorded dispatch figures have Java at **12.44 ns JIT against
+2.05 native** — a different performance class — so a JIT-only audit comparison may be describing the
+JIT rather than the language.
+
+- **P17a — Java native AOT lands NEAR C++ on audit cost, not far below it.** C++ is 13.17 ns/event and
+  Java JIT 18.83. Of Java's, about 8.4 ns is the clock read, which native cannot make cheaper: it is a
+  `System.nanoTime()` and the same instruction either way. So the ~10.4 ns of record work is all that
+  is available, and even halving it lands at ~13.6 — level with C++, because **both are then dominated
+  by a timestamp neither can avoid.**
+- **P17b — the flatMap gap closes far more than the plain one.** The re-entrant sharing is worth ~20 ns
+  to Java JIT and nothing measurable to C++, which is consistent with the read being latency the larger
+  event hides. If native hides it the way C++ does, that 20 ns shrinks — and if it does not, the
+  latency-hiding story is wrong and worth abandoning.
+
+If P17a comes back with native FAR below C++, then the clock is not the floor I think it is and the
+whole "both pay for a timestamp" framing needs re-examining.

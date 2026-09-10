@@ -113,6 +113,12 @@ adding a narrower assertion that would have caught it more legibly.
   order guarantee is load-bearing (`GroupByFlowFunctionWrapper` keeps a `LinkedHashMap` so multi-key
   emit is identical interpreted/AOT), so this is a real gap and not a theoretical one. It closes when a
   downstream construct iterates the groups.
+- **Java native AOT on the audit path.** Every audit figure recorded — C++ 13.17 ns/event against Java
+  18.83, and the flatMap re-entrant A/B — is Java **JIT**. `dsl/build-shape-controls.sh` builds a
+  native arm with PGO, gated on `GRAALVM_HOME` and skipped loudly when unset, which is this machine's
+  state: no `native-image` is installed and the GraalVM `control-bands.tsv` names is gone. The
+  recorded dispatch figures put Java at 12.44 ns JIT against 2.05 native, so this is not a detail.
+  Prediction P17 is recorded and unscored.
 - **`mkdocs build --strict` on the core site.** Never run; mkdocs is not installed here.
 - **Any C++ figure recorded before 2026-09-09** — those arms were measured while the target emitted no
   dirty flags at all, so conditional propagation was absent rather than cheap.
