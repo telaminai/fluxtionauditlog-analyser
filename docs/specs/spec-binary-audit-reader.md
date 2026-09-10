@@ -201,6 +201,30 @@ Both are silent data-loss conditions, and a reader that hides them is worse than
 
 ## 9. Module shape
 
+!!! danger "AMENDED 2026-09-10 — this module is WITHDRAWN; the shipped reader is the answer"
+    This section specified a separate `fluxtion-audit-reader` module whose filter pipeline was **itself
+    a generated Fluxtion graph**, AOT native. What shipped instead is a plain reader inside
+    `fluxtion-runtime`: `BinaryLogReader` plus `tools/AuditLogFilter` and `tools/AuditLogTool`.
+
+    **Owner decision: use it.** The test is whether the shipped thing does the job, and it does —
+    `AuditLogFilter` supports event, node and key **globs**, a `from`/`to` **time range**, a `limit`,
+    and a pluggable `Sink`, and it resolves each glob to a **BitSet of ids once, when the dictionary
+    entry arrives**, matching on integers thereafter. That last part is §5.2's optimisation, arrived at
+    independently.
+
+    So the module below is not built, and the reasoning that argued for it is worth keeping only as
+    history: filtering an audit log is a graph, and Fluxtion generates graphs, so the tool could eat its
+    own cooking. True, and not a reason on its own — a hand-written visitor with a BitSet does the same
+    filtering in a fraction of the code, with no build-time generation step and no fourth artifact to
+    version, publish and keep in sync. **The generated-graph version would have had to be FASTER or more
+    capable to earn its cost, and nobody had shown either.**
+
+    What is genuinely lost is the dogfooding, which was a documentation argument rather than a
+    functional one. Recorded here so the idea is not revived by someone reading §5 and assuming it was
+    never tried.
+
+### 9a. The withdrawn shape, for the record
+
 ```
 fluxtion-audit-reader/
   pom.xml                        parent com.telamin.fluxtion:master

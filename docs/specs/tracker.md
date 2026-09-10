@@ -324,34 +324,15 @@ Open, in dependency order:
   - **§6.1 items 1 and 3 remain**: the mandated `StringBuilder` on `LogRecord`, and `replaceBuffer`
     assuming the incoming record holds characters. Both are refactors of the record hierarchy rather
     than additions, which is why they were not taken with this.
-- ☐ **M52.4** `fluxtion-audit-reader` **as specified**: a compiler-repo module whose filter pipeline is
-  itself a generated Fluxtion graph, AOT native. **What shipped is a plain reader inside
-  `fluxtion-runtime`.** It works, it is tested, and it is a smaller thing than the spec describes —
-  decide whether the specified module is still wanted or whether the spec should be amended to what
-  exists. *Owner call.*
-- ☑ **M52.5 the analyser's binary reader** — COMPLETE 2026-09-09 on `perf/w10-conformance-bench`.
-  A `FLXA` log opens in the UI, recognised by magic bytes rather than extension; the reader renders
-  `BinaryLogReader`'s callbacks as the record text every downstream feature already consumes, so
-  filters, series, coverage and reports work unchanged. Truncated logs open, because a half-written
-  trailing record is the normal end state of the crash that made someone open the log.
-  - **Owner decision, §11's first open question: the analyser CONSUMES the runtime's reader rather
-    than duplicating it.** A second decoder was written first and deleted within the hour. The
-    reasoning for it — two implementations agreeing validates the format — is sound and was not what
-    was built: nothing forced them to agree, since the duplicate's tests hand-encoded the format from
-    the same reading that produced the decoder. Driving the REAL writer instead found two defects
-    immediately, neither reachable by fixtures I encoded myself.
-  - **Debt, stated:** this pins `fluxtion-runtime` **1.0.15-SNAPSHOT**, and `BinaryLogReader` is in no
-    released runtime. The feature cannot ship until a release carries it, and CI must resolve whatever
-    the pom names. `PomShapeTest` asserts the version literally, so going back is a decision rather
-    than a drift.
-- ☐ **M52.8 the `String`-keyed `addRecord` overloads write where nothing reads** (core repo). On a
-  `BinaryLogRecord`, `addRecord(String, String, double|long|int|boolean)` writes into a byte buffer
-  that `length()` does not describe, so the record reaches a writer with zero entries. Production does
-  not hit it — `BinaryEventLogger` resolves names to ids once and logs by id — so this is a sharp edge
-  rather than a live defect, but it is the THIRD time this exact path has been found: the
-  `CharSequence` and `Object` overloads had the same fault and were fixed earlier the same day, and
-  trace entries had it before that. Either route them through `writeSlots` or make them fail loudly on
-  a binary record.
+- ☑ **M52.4 the specified module is WITHDRAWN; the shipped reader is the answer.** Owner call
+  2026-09-10, on the right test: does the plain reader do the job? It does. `AuditLogFilter` supports
+  event/node/key **globs**, a `from`/`to` **time range**, a `limit` and a pluggable `Sink`, and
+  resolves each glob to a **BitSet of ids once** as dictionary entries arrive — which is §5.2's
+  optimisation, reached independently.
+  - The spec's §9 module — a filter pipeline that is itself a generated Fluxtion graph, AOT native —
+    is amended out, with the reasoning kept as history so nobody revives it from §5. The dogfooding
+    argument was real but documentary; the generated version would have had to be faster or more
+    capable to earn a fourth artifact, and neither was shown.
 - ☐ **M52.6** mongoose: `ValueOut.text(cs)` → `bytes(...)` (**2.20×** measured, byte-identical queue
   file) and drop the per-record `Instant.now()` (3% of time, **100% of the allocation**).
 
