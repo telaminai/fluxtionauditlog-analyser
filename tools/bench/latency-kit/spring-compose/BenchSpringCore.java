@@ -1,9 +1,13 @@
 package app;
 
-import app.gen.VenueCoreProcessor;
+import app.spring.SpringQuotingCore;
 
 /**
- * Harness for the venue-lifecycle quoting core.
+ * The SAME harness, retargeted at the Spring-composed processor by mechanical substitution of type
+ * names only. Measurement logic, venue model, workload generator and all twelve invariants are
+ * unchanged, so a difference in the numbers cannot come from the harness.
+ *
+ * <p>Harness for the venue-lifecycle quoting core.
  *
  * <p><b>The venue is a time-driven simulation, not an event quota.</b> Every intent the engine emits
  * is acknowledged after a simulated round-trip drawn from the regime's distribution, scheduled on the
@@ -19,10 +23,10 @@ import app.gen.VenueCoreProcessor;
  * <p><b>Deterministic.</b> Fixed-seed xorshift64, independent sub-streams, and a venue whose only
  * inputs are the engine's own output and those streams. Same seed, same regime, same run.
  */
-public class BenchVenueCore {
+public class BenchSpringCore {
 
     /** The processor type this harness was compiled against. */
-    private static final Class<?> PROCESSOR_TYPE = VenueCoreProcessor.class;
+    private static final Class<?> PROCESSOR_TYPE = SpringQuotingCore.class;
 
     // ---- deterministic PRNG --------------------------------------------------------------------
     private static final class Rng {
@@ -110,14 +114,14 @@ public class BenchVenueCore {
     }
 
     // Reused event objects.
-    private static final GenVenueCore.MarketTick TICK = new GenVenueCore.MarketTick();
-    private static final GenVenueCore.TimerTick TIMER = new GenVenueCore.TimerTick();
-    private static final GenVenueCore.OrderUpdate ACK = new GenVenueCore.OrderUpdate();
-    private static final GenVenueCore.Execution EXEC = new GenVenueCore.Execution();
+    private static final acme.marketdata.MarketTick TICK = new acme.marketdata.MarketTick();
+    private static final cedar.oms.TimerTick TIMER = new cedar.oms.TimerTick();
+    private static final cedar.oms.OrderUpdate ACK = new cedar.oms.OrderUpdate();
+    private static final cedar.oms.Execution EXEC = new cedar.oms.Execution();
 
-    private static VenueCoreProcessor proc;
-    private static GenVenueCore.IntentPublisher intents;
-    private static GenVenueCore.WorkingOrders working;
+    private static SpringQuotingCore proc;
+    private static cedar.oms.IntentPublisher intents;
+    private static cedar.oms.WorkingOrders working;
     private static int consumedIntent;
     private static Rng venueRng;
     private static long acksSent, execsSent, intentsConsumed;
@@ -171,7 +175,7 @@ public class BenchVenueCore {
             harvestIntents(poolDue[n]);
             // An order that just went live may be filled. The fill carries the generation as
             // acknowledged; if the order is gone by the time it fires the engine refuses it.
-            if ((poolType[n] == GenVenueCore.ACK_NEW || poolType[n] == GenVenueCore.ACK_REPLACE)
+            if ((poolType[n] == shared.venue.Venue.ACK_NEW || poolType[n] == shared.venue.Venue.ACK_REPLACE)
                     && venueRng.nextInt(100) < regime.fillPercent) {
                 final int slot = (poolSymbol[n] << 1) + poolSide[n];
                 schedule(poolDue[n] + regime.fillMin + venueRng.nextInt(regime.fillSpan), 1,
@@ -208,7 +212,7 @@ public class BenchVenueCore {
                 final int action = intents.intentAction[i];
                 working.pending[slot] = false;
                 working.generation[slot] = intents.intentGeneration[i];
-                if (action == GenVenueCore.CANCEL) {
+                if (action == shared.venue.Venue.CANCEL) {
                     working.live[slot] = false; working.livePx[slot] = 0;
                     working.liveQty[slot] = 0; working.remainingQty[slot] = 0;
                 } else {
@@ -224,9 +228,9 @@ public class BenchVenueCore {
         while (consumedIntent != intents.cursor) {
             final int i = consumedIntent++ & intents.mask;
             final int action = intents.intentAction[i];
-            final int type = action == GenVenueCore.NEW ? GenVenueCore.ACK_NEW
-                    : action == GenVenueCore.REPLACE ? GenVenueCore.ACK_REPLACE
-                    : GenVenueCore.ACK_CANCEL;
+            final int type = action == shared.venue.Venue.NEW ? shared.venue.Venue.ACK_NEW
+                    : action == shared.venue.Venue.REPLACE ? shared.venue.Venue.ACK_REPLACE
+                    : shared.venue.Venue.ACK_CANCEL;
             schedule(now + regime.ackMin + venueRng.nextInt(regime.ackSpan), 0,
                     intents.intentSymbol[i], intents.intentSide[i], type,
                     intents.intentPx[i], intents.intentQty[i], intents.intentGeneration[i]);
@@ -328,10 +332,10 @@ public class BenchVenueCore {
     private static void check(boolean ok, String what) { if (!ok) { violations.add(what); } }
 
     private static void verifyInvariants(int symbols, long marketEvents) throws Exception {
-        GenVenueCore.OrderDiff diff = proc.getNodeById("diff");
-        GenVenueCore.QuoteBuilder quote = proc.getNodeById("quote");
-        GenVenueCore.RiskLimits risk = proc.getNodeById("risk");
-        GenVenueCore.MarketState market = proc.getNodeById("market");
+        cedar.oms.OrderDiff diff = proc.getNodeById("diff");
+        bolt.pricing.QuoteBuilder quote = proc.getNodeById("quote");
+        cedar.oms.RiskLimits risk = proc.getNodeById("risk");
+        acme.marketdata.MarketState market = proc.getNodeById("market");
 
         // 1/2. Inventory can only move by what WorkingOrders applied, and never past remaining.
         //      Structural: InventoryState reads working.lastFillQty. Verified by construction plus
@@ -355,9 +359,9 @@ public class BenchVenueCore {
         //      is legitimate (cancel in flight), but disallowed and freshly NEW is not.
         for (int s = 0; s < symbols; s++) {
             final int b = s << 1, a = b + 1;
-            check(!(!risk.bidAllowed[s] && diff.action[b] == GenVenueCore.NEW),
+            check(!(!risk.bidAllowed[s] && diff.action[b] == shared.venue.Venue.NEW),
                     "published NEW on a disallowed bid, symbol " + s);
-            check(!(!risk.askAllowed[s] && diff.action[a] == GenVenueCore.NEW),
+            check(!(!risk.askAllowed[s] && diff.action[a] == shared.venue.Venue.NEW),
                     "published NEW on a disallowed ask, symbol " + s);
         }
         // 7. No permanently pending order: everything in flight must be inside the wheel's span.
@@ -392,9 +396,9 @@ public class BenchVenueCore {
         check(actionable >= 0.5, String.format("actionable decisions %.2f%% below the 0.5%% floor "
                 + "- the benchmark measured its no-op path", actionable));
         // 12. Freshness safety, now a property of the deadline rather than of the symbol count.
-        check(freshnessDeadlineNs <= GenVenueCore.STALE_NANOS,
+        check(freshnessDeadlineNs <= shared.venue.Venue.STALE_NANOS,
                 "deadline horizon " + freshnessDeadlineNs + "ns exceeds the stale bound "
-                + GenVenueCore.STALE_NANOS + "ns");
+                + shared.venue.Venue.STALE_NANOS + "ns");
 
         if (!violations.isEmpty()) {
             System.out.println("REFUSED - invariants violated:");
@@ -413,8 +417,8 @@ public class BenchVenueCore {
     // ---- reporting ------------------------------------------------------------------------------
     private static void reportMix(int symbols, long events, long records, long auditBytes)
             throws Exception {
-        GenVenueCore.OrderDiff diff = proc.getNodeById("diff");
-        GenVenueCore.RiskLimits risk = proc.getNodeById("risk");
+        cedar.oms.OrderDiff diff = proc.getNodeById("diff");
+        cedar.oms.RiskLimits risk = proc.getNodeById("risk");
         final long m = evSymbol.length;
         final long decisions = diff.none + diff.neu + diff.replace + diff.cancel;
         final double dp = decisions == 0 ? 0 : 100.0 / decisions;
@@ -469,9 +473,9 @@ public class BenchVenueCore {
      */
     private static void runPath(String path, int iters, int warm, int batches, int symbols, int mask)
             throws Exception {
-        GenVenueCore.OrderDiff diff = proc.getNodeById("diff");
-        GenVenueCore.MarketState market = proc.getNodeById("market");
-        GenVenueCore.InventoryState inv = proc.getNodeById("inventory");
+        cedar.oms.OrderDiff diff = proc.getNodeById("diff");
+        acme.marketdata.MarketState market = proc.getNodeById("market");
+        cedar.oms.InventoryState inv = proc.getNodeById("inventory");
         marketNode = market;
         // Warm through the real venue to a live book, then switch the venue off for the measurement.
         for (int i = 0; i < warm; i++) { dispatchMarket(i & mask, 0); }
@@ -493,7 +497,7 @@ public class BenchVenueCore {
         }
         // Path-specific state: C needs risk to deny, F needs a book old enough to be stale.
         if ("C".equals(path)) {
-            for (int s = 0; s < symbols; s++) { inv.position[s] = GenVenueCore.POSITION_LIMIT * 4; }
+            for (int s = 0; s < symbols; s++) { inv.position[s] = shared.venue.Venue.POSITION_LIMIT * 4; }
         }
         if ("F".equals(path)) {
             for (int s = 0; s < symbols; s++) { market.lastMarketTime[s] = 0; }
@@ -562,7 +566,7 @@ public class BenchVenueCore {
                 path, best, want, share, dn, du, dp, dw, dr, dc, dep);
     }
 
-    private static GenVenueCore.MarketState marketNode;
+    private static acme.marketdata.MarketState marketNode;
 
     /** Keeps a symbol's book inside the stale bound for paths that send no market data. */
     private static void marketFresh(int sym, long now) { marketNode.lastMarketTime[sym] = now; }
@@ -636,7 +640,7 @@ public class BenchVenueCore {
                 // Acknowledgement only: WorkingOrders then reconciliation, no repricing.
                 final int slot = (sym << 1) + (i & 1);
                 marketFresh(sym, now);
-                ACK.symbol = sym; ACK.side = i & 1; ACK.type = GenVenueCore.ACK_REPLACE;
+                ACK.symbol = sym; ACK.side = i & 1; ACK.type = shared.venue.Venue.ACK_REPLACE;
                 ACK.px = 10_000 + (dep & 1); ACK.qty = 10;
                 ACK.generation = working.pendingGeneration[slot];
                 ACK.timestamp = now;
@@ -658,11 +662,11 @@ public class BenchVenueCore {
     }
 
     /** Replays a generated stream into an externally-owned processor — used by the audit sizer. */
-    public static void replayForSample(VenueCoreProcessor external, int events, int symbols)
+    public static void replayForSample(SpringQuotingCore external, int events, int symbols)
             throws Exception {
         SKEW = true;
         regime = NORMAL;
-        freshnessDeadlineNs = GenVenueCore.STALE_NANOS / 2;
+        freshnessDeadlineNs = shared.venue.Venue.STALE_NANOS / 2;
         generate(1 << 20, symbols, 0xC0FFEEL, freshnessDeadlineNs);
         venueRng = new Rng(0xC0FFEEL ^ 0x7777);
         proc = external;
@@ -689,12 +693,12 @@ public class BenchVenueCore {
         regime = "LOW".equals(rName) ? LOW : "SLOW".equals(rName) ? SLOW : NORMAL;
         // Timer interval chosen so the rolling sweep meets the stale bound - see the invariant.
         // The deadline horizon is a SAFETY parameter and does not change with the symbol count.
-        final int deadlineNs = Integer.getInteger("deadlineNs", GenVenueCore.STALE_NANOS / 2);
+        final int deadlineNs = Integer.getInteger("deadlineNs", shared.venue.Venue.STALE_NANOS / 2);
 
         generate(bufferSize, symbols, seed, deadlineNs);
         venueRng = new Rng(seed ^ 0x7777);
 
-        proc = new VenueCoreProcessor();
+        proc = new SpringQuotingCore();
         final long[] auditRecords = {0};
         if (audit) {
             com.telamin.fluxtion.runtime.audit.EventLogManager mgr =

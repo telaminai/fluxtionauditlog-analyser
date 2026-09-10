@@ -47,6 +47,48 @@ supplies the Spring version they already run. The build here uses 6.2.3.
 **Close the context.** `FileSystemXmlApplicationContext` keeps a non-daemon thread alive, so a build
 harness that does not close it will generate correctly and then hang rather than exit.
 
+## Measured
+
+The Spring-composed processor was run through the same harness (`BenchSpringCore.java`, generated from
+`dsl/BenchVenueCore.java` by substituting type names only — measurement logic, venue model, workload
+and all twelve invariants unchanged).
+
+| | Spring-composed | builder-API | delta |
+|---|---:|---:|---:|
+| throughput, unaudited | 23.440 ns | 23.583 ns | 0.6% |
+| throughput, audited | 32.805 ns | 33.651 ns | 2.5% |
+| causal latency, unaudited | 24.882 ns | 24.932 ns | 0.2% |
+| causal latency, audited | 35.108 ns | 35.006 ns | 0.3% |
+
+All `measure.sh` REPEATABLE; every delta is inside the JIT noise band.
+
+## The audit-log oracle
+
+Both builds replayed the same 300,000-event stream under a **data-driven clock**, wrote binary audit
+logs, and were decoded record-for-record:
+
+```
+records=67247  entries=533328
+sha256 builder: 097cbeee8c1633ccd7b528d7fcc79834
+sha256 spring : 097cbeee8c1633ccd7b528d7fcc79834
+```
+
+**Identical, timestamps included.** The `.flxa` files differ by 22 bytes — the dictionary interns the
+fully-qualified event-type names, and `acme.marketdata.MarketTick` is longer than
+`app.GenVenueCore$MarketTick`. Every node id, key, value and timestamp matches.
+
+Run without the data-driven clock the record headers differ, because `eventTime` and `logTime` then
+come from the wall clock and the two runs happened seconds apart. That is worth knowing before
+comparing two logs of anything.
+
+## An invariant that fired, correctly
+
+The first Spring run was REFUSED by invariant 10 — *the processor loaded is the build being tested* —
+which asserted a hardcoded `app.gen.VenueCoreProcessor`. The Spring build is `app.spring.SpringQuotingCore`,
+so the check was right and could not know the substitution was intended. It is now a declared
+expectation (`-DexpectProcessor`, defaulting to the type the harness was compiled against) rather than
+a literal, so it still catches a stale or substituted class arriving from the classpath.
+
 ## Running it
 
 ```bash

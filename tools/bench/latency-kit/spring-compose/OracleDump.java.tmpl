@@ -1,0 +1,58 @@
+package app;
+
+import com.telamin.fluxtion.runtime.audit.BinaryLogReader;
+import com.telamin.fluxtion.runtime.audit.BinaryLogWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * Writes a binary audit log from ONE build, then decodes it to a normalised text form.
+ *
+ * <p>Event-type names necessarily differ between the two builds — acme.marketdata.MarketTick is not
+ * app.GenVenueCore$MarketTick — so the dump records the SIMPLE name. Everything else, including node
+ * ids and every key and value, must match exactly; those are the integrator's names and the engine's
+ * decisions, and neither has any business changing because the classes came from jars.
+ */
+public class OracleDump {
+
+    private static final long[] CLOCK = {1_000_000L};
+    public static void main(String[] a) throws Exception {
+        Path bin = Path.of(a[0] + ".flxa");
+        int events = Integer.parseInt(a[1]);
+        __PROC__ p = new __PROC__();
+        var mgr = p.<com.telamin.fluxtion.runtime.audit.EventLogManager>getAuditorById(
+                com.telamin.fluxtion.runtime.audit.EventLogManager.NODE_NAME);
+        try (BinaryLogWriter w = new BinaryLogWriter(Files.newOutputStream(bin))) {
+            mgr.setLogSink(w);
+            p.init();
+            // A DATA-DRIVEN CLOCK. Without it the record's eventTime and logTime come from the wall
+            // clock, so two runs of the same program differ in every record header simply because they
+            // happened at different moments - which is exactly what the first oracle run showed. The
+            // counter below advances one tick per audited record, so the timestamps become a property
+            // of the event stream rather than of when the benchmark was launched, and the comparison
+            // can include them.
+            p.onEvent(com.telamin.fluxtion.runtime.time.ClockStrategy.registerClockEvent(
+                    () -> CLOCK[0]++));
+            __BENCH__.replayForSample(p, events, 64);
+        }
+        StringBuilder out = new StringBuilder();
+        int[] n = {0};
+        BinaryLogReader.Result r = BinaryLogReader.read(bin, new BinaryLogReader.Visitor() {
+            public boolean onRecord(int id, String type, long e, long l, long end, int count) {
+                String simple = type == null ? "?" : type.substring(Math.max(type.lastIndexOf('.'),
+                        type.lastIndexOf('$')) + 1);
+                out.append("REC ").append(++n[0]).append(' ').append(simple)
+                   .append(" eventTime=").append(e).append(" logTime=").append(l)
+                   .append(" entries=").append(count).append('\n');
+                return true;
+            }
+            public void onEntry(int nid, String node, int kid, String key, int tag, long bits) {
+                out.append("    ").append(node).append('.').append(key)
+                   .append(" tag=").append(tag).append(" val=").append(bits).append('\n');
+            }
+        });
+        Files.writeString(Path.of(a[0] + ".dump"), out.toString());
+        System.out.printf("%s records=%d entries=%d bytes=%d%n",
+                a[0], r.records, r.entries, Files.size(bin));
+    }
+}
