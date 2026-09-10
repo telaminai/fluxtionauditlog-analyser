@@ -25,6 +25,10 @@ read as an observation rather than a property.
 | A name Java resolves at runtime and C++ bakes at generation time are the same name | `mapOnNotifyProducesIdenticalAuditLogs` | compiler |
 | A generated processor can be DRIVEN — sources polled on one thread, added and removed while running | `CppConnectorTest` — the thread test asserts what the graph COMPUTED, not that a thread started | compiler |
 | Named sinks and typed services refuse a type mismatch rather than reinterpreting it | `CppConnectorTest#namedSinksAndServices…` | compiler |
+| A forked trigger is EMITTED, and the dependent sees the joined result | `CppForkedTriggerTest` — five events of 1..5 must leave the dependent holding 15, not the 10 a missing join leaves | compiler |
+| The cost of a merge INPUT, isolated from the shape around it | `dsl/build-shape-controls.sh` shapes `merge` vs `mergeboth` — identical topology, one input firing vs two: C++ 0.319 ns, Java 0.463 ns | bench |
+| A compile chooses its target language without touching a global | `CppPerCallTargetTest` — sets no system property, fails if one is present, and checks none is left set | compiler |
+| The deployed HTTP jar really contains the C++ generator | `TargetDispatchTest` — the refusal for an unknown id must NAME `cpp` | compiler |
 | A forked trigger runs off the processor thread, and reading its result IS the join | `CppConnectorTest#aForkedTask…` — 30 ms task, fork returns in <20 ms, join waits ≥30 ms | compiler |
 | A generated graph builds and runs as a native image | `NativeImageSmokeTest` — skipped loudly without `GRAALVM_HOME`; also asserts the generated SOURCE, so the regression is caught without GraalVM | compiler |
 | A side-effect-only node still runs, and still does not gate its chain | `peekProducesIdenticalAuditLogs`, `notifyProducesIdenticalAuditLogs` | compiler |
