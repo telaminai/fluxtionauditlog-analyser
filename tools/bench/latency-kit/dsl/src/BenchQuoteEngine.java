@@ -45,6 +45,10 @@ public class BenchQuoteEngine {
             throw new IllegalStateException("audit=true but the sink saw no records - the audit log is dead");
         }
 
+        if (Boolean.getBoolean("dependent")) {
+            runDependentChain(p, tick, fill, iters, warm, batches, symbols, fillEvery, audit, auditRecords);
+            return;
+        }
         if (Boolean.getBoolean("alloc")) {
             runAllocation(p, tick, fill, iters, symbols, fillEvery, audit, auditRecords);
             return;
@@ -146,6 +150,85 @@ public class BenchQuoteEngine {
             }
             System.out.println(sb);
         }
+    }
+
+    /**
+     * SINGLE-EVENT LATENCY, by making the events serially dependent.
+     *
+     * <p>Every other figure in this kit — including the burst latencies — is reciprocal throughput.
+     * The machine overlaps work from successive events, so N independent events take far less than N
+     * times one event, and no amount of timing them more precisely turns that into a latency. The
+     * clock cannot help either: it resolves to 41.67 ns and an unaudited event costs single-digit ns.
+     *
+     * <p>So change the EXPERIMENT rather than the instrument. Each event's input is derived from the
+     * PREVIOUS event's output — one bit of the computed bid price is folded into the next tick — which
+     * creates a read-after-write dependency the hardware cannot speculate past. Event i+1 cannot begin
+     * until event i's result exists. The loop is then a serial chain of graph traversals, and elapsed
+     * time divided by N IS the causal latency of one event: entry to result.
+     *
+     * <p>Only ONE bit is fed back, so prices stay inside their intended range and the graph keeps
+     * doing the same work with the same publish rate. The dependency is real to the CPU regardless of
+     * how few bits carry it — it cannot know the value is nearly constant, and must wait for the load.
+     *
+     * <p>What this measures INCLUDES the loop's own address arithmetic and the field read, so it is a
+     * slight over-estimate of the graph's own latency. It is an upper bound, which is the right
+     * direction for a latency claim.
+     */
+    private static void runDependentChain(QuoteEngineProcessor p, GenQuoteEngine.MarketTick tick,
+                                          GenQuoteEngine.Fill fill, int iters, int warm, int batches,
+                                          int symbols, int fillEvery, boolean audit,
+                                          long[] auditRecords) throws NoSuchFieldException {
+        GenQuoteEngine.QuoteCalculator quote = p.getNodeById("quote");
+        // THE CONTROL. Dependent mode adds a field read per event as well as a dependency, and without
+        // separating them the read's cost would be reported as latency. In control mode the output is
+        // read and ACCUMULATED into a sink that never reaches the next input — same reads, same loop,
+        // no read-after-write chain. The difference between the two modes is then the serialisation
+        // alone, which is what a latency claim needs.
+        final boolean control = "control".equals(System.getProperty("dependent"));
+        int dep = 0;
+        for (int i = 0; i < warm; i++) { dep = feedDependent(p, tick, fill, i, symbols, fillEvery, control ? 0 : dep, quote); }
+        double best = Double.MAX_VALUE;
+        for (int b = 0; b < batches; b++) {
+            long start = System.nanoTime();
+            if (control) {
+                int sink = 0;
+                for (int i = 0; i < iters; i++) {
+                    sink += feedDependent(p, tick, fill, i, symbols, fillEvery, 0, quote);
+                }
+                dep = sink;
+            } else {
+                for (int i = 0; i < iters; i++) {
+                    dep = feedDependent(p, tick, fill, i, symbols, fillEvery, dep, quote);
+                }
+            }
+            long ns = System.nanoTime() - start;
+            best = Math.min(best, ns / (double) iters);
+        }
+        System.out.printf("RESULT harness=%s %s java-quoteengine-%s audit=%s %.4f ns "
+                        + "published=%d records=%d sink=%d%n",
+                HarnessVersion.tag(), HarnessVersion.runtimeTag(), control ? "readcontrol" : "serial",
+                audit, best, publishedCount(p), auditRecords[0], dep);
+    }
+
+    /** Returns the graph's output so the caller can feed it back in — that IS the dependency. */
+    private static int feedDependent(QuoteEngineProcessor p, GenQuoteEngine.MarketTick tick,
+                                     GenQuoteEngine.Fill fill, int i, int symbols, int fillEvery,
+                                     int dep, GenQuoteEngine.QuoteCalculator quote) {
+        if ((i % fillEvery) == 0) {
+            int fillNo = i / fillEvery;
+            fill.symbol = fillNo % symbols;
+            fill.qty = ((fillNo % 7) - 3) * 10;
+            p.onEvent(fill);
+            return quote.bidPx;
+        }
+        tick.symbol = i % symbols;
+        // ONE bit of the previous result, so the range is unchanged and the dependency is real.
+        tick.bidPx = 10_000 + ((i + (dep & 1)) & 63);
+        tick.askPx = tick.bidPx + 2 + (i & 3);
+        tick.bidQty = 100 + (i & 31);
+        tick.askQty = 100 + ((i >> 3) & 31);
+        p.onEvent(tick);
+        return quote.bidPx;
     }
 
     /**

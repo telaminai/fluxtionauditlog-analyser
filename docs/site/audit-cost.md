@@ -123,11 +123,36 @@ affordable at these rates, but it is a different claim, and quoting the median a
 What this cannot tell you is the latency of **one** event. Below roughly 83 ns per event, that is not
 measurable this way on this hardware — a property of the instrument, not of the graph.
 
+## For an audited system, throughput *is* the latency
+
+The figures above are reciprocal throughput — a rate measured on a machine that overlaps work from
+successive events — and that is genuinely a different thing from how long one event takes. So we
+measured latency directly, by a different experiment: make each event's input depend on the previous
+event's output, so the hardware cannot begin one event before the last has finished. Elapsed time
+divided by event count is then a causal latency.
+
+| | throughput | latency | difference |
+|---|---:|---:|---:|
+| Java, audited | 21.84 ns | **22.02 ns** | +0.8% |
+| C++, audited | 14.03 ns | **14.25 ns** | +1.6% |
+| Java, no audit | 8.83 ns | 11.82 ns | +34% |
+| C++, no audit | 3.86 ns | 9.10 ns | +136% |
+
+**Once auditing, the two converge**: each event must finish writing its audit record before the next
+begins, which serialises the pipeline by itself, so there is no overlap left to lose. An audited event
+enters and its result emerges about 22 ns later in Java and 14 ns in C++.
+
+On the unaudited path the two diverge sharply, and the C++ figure is the one that moves most — it was
+overlapping events heavily. Measured as latency rather than throughput, the gap between the languages
+narrows from 2.3x to 1.3x.
+
 ## Reading these numbers honestly
 
-- **They are reciprocal throughput, not single-event latency.** `t0 = now; loop N events; (now - t0)/N`
-  measures a steady-state rate on a machine that overlaps work from successive events. A figure of
-  3.73 ns per event does not mean an event enters and its result emerges 3.73 ns later.
+- **The headline figures are reciprocal throughput.** `t0 = now; loop N events; (now - t0)/N` measures
+  a steady-state rate on a machine that overlaps work from successive events. On the *unaudited* path
+  that is not a latency — 3.86 ns per event does not mean an event's result emerges 3.86 ns later; the
+  measured latency is 9.10 ns. On the *audited* path the two agree within a couple of percent, for the
+  reason given above.
 - **Auditing costs roughly the same in both languages** — a clock read and a record append that neither
   avoids — which is why C++'s advantage narrows from 2.3x to 1.6x once both are auditing.
 - **A graph's cost is its own.** Six nodes doing integer arithmetic is representative of a quoting

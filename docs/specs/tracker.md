@@ -283,6 +283,19 @@ quote engine — `dsl/GenQuoteEngine.java`, both targets, `dsl/QUOTE-ENGINE-RESU
   of language or toolchain, so whatever produces the audited tail is not the compiler — *unidentified,
   candidates are the record buffer's cache behaviour and the sink call.* Harnesses now report
   p50/p90/p99/p99.9/p99.99/max and dump a CDF under `-Dcdf` / `CDF=1`.
+- ☑ **M60.9 single-event latency, measured — and for an audited system it equals throughput.** Changed
+  the EXPERIMENT rather than the instrument: one bit of each event's computed bid is folded into the
+  next event's input, a read-after-write dependency the hardware cannot speculate past, so elapsed/N is
+  a causal latency. With a **read-only control** separating the added field read from the serialisation.
+  Unaudited: Java JIT 8.832 → **11.820**, native AOT 12.525 → **12.934**, C++ 3.858 → **9.095**.
+  Audited: Java JIT 21.839 → **22.018** (+0.8%), AOT 22.443 → **23.509**, C++ 14.027 → **14.246** (+1.6%).
+  **Once auditing, throughput and latency converge in every toolchain** — the audit record write
+  serialises the pipeline by itself, so there is no cross-event overlap left to lose. This retires the
+  review objection for the case that matters: for an audited system the throughput figures already
+  published ARE latencies. The language gap on latency is **1.30× unaudited** (against 2.29× on
+  throughput) — C++ was extracting far more cross-event parallelism, and serialising costs it 4.06 ns
+  against Java's 3.02. Native AOT loses only 0.46 ns to serialisation because it was never overlapping
+  events, which is why it looks slow on throughput and nearly level on latency.
 - **A note on process.** The first distribution run was taken at load 12.96 because the binaries were
   invoked directly rather than through `measure.sh`, which is the only thing carrying the load gate.
   Those numbers were discarded and re-run. The gate works when it is used; bypassing it is easy.

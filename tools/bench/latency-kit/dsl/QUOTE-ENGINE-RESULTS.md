@@ -243,3 +243,60 @@ cheap in the tail.** If your budget is a median, it costs ~10 ns. If your budget
 the budget a quoting engine actually has — it costs the better part of 100 ns per event on the
 otherwise-tightest arm. That is still affordable at these rates, but it is not the same claim, and
 quoting the median alone would have been misleading.
+
+## Single-event latency, by changing the experiment
+
+Every figure above is reciprocal throughput, and no amount of better timing turns it into a latency:
+the machine overlaps work from successive independent events, and the clock resolves to 41.67 ns
+against single-digit-nanosecond events. So change the **experiment** rather than the instrument.
+
+**Make the events serially dependent.** One bit of each event's computed bid price is folded into the
+next event's input, creating a read-after-write dependency the hardware cannot speculate past. Event
+i+1 cannot begin until event i's result exists, so the loop becomes a serial chain of graph traversals
+and elapsed/N **is** the causal latency of one event, entry to result. Only one bit is fed back, so
+prices stay in range and the graph does identical work at the same publish rate.
+
+**With a control**, because dependent mode also adds a field read per event and without separating
+them the read's cost would be reported as latency. The control performs the same reads into a sink
+that never reaches the next input — same loop, same loads, no dependency chain.
+
+### Unaudited
+
+| toolchain | throughput | read-control | **serial (latency)** | cost of the read | cost of serialising |
+|---|---:|---:|---:|---:|---:|
+| Java JIT | 8.832 | 8.798 | **11.820** | ~0 | +3.02 |
+| Native AOT | 12.525 | 12.476 | **12.934** | ~0 | +0.46 |
+| C++ | 3.858 | 5.031 | **9.095** | +1.17 | +4.06 |
+
+**The C++ advantage largely evaporates when you measure latency instead of throughput.** On throughput
+C++ is 2.29x Java's JIT; on latency it is **1.30x** (9.10 vs 11.82 ns). The reason is visible in the
+table: C++ was extracting far more cross-event parallelism — serialising costs it 4.06 ns against
+Java's 3.02 — because its per-event work is small enough to overlap heavily. Once each event must wait
+for the last, both are limited by the same six-node dependency chain.
+
+The native image is the interesting control here: serialising costs it **0.46 ns**, essentially
+nothing. It was never overlapping events in the first place, which is exactly why it looked slow on
+throughput — and why its *latency* is only 1.1 ns worse than the JIT's rather than 3.7 ns worse.
+
+C++'s 9.095 is an upper bound including 1.17 ns of measurement apparatus; adjusted, the graph's own
+latency is nearer 7.9 ns. The Java figures need no such adjustment.
+
+### Audited — where throughput and latency are the same number
+
+| toolchain | throughput | **serial (latency)** | difference |
+|---|---:|---:|---:|
+| Java JIT | 21.839 | **22.018** | +0.8% |
+| Native AOT | 22.443 | **23.509** | +4.7% |
+| C++ | 14.027 | **14.246** | +1.6% |
+
+**Once auditing, throughput and latency converge in every toolchain.** The audited path has almost no
+cross-event overlap left to lose: each event must complete its audit record before the next begins,
+and that serialises the pipeline by itself.
+
+This retires the original objection for the case that matters. The criticism — correct — was that our
+published throughput figures were not latencies. **For an audited system they are**, within a few
+percent. An audited event enters and its result emerges about 14 ns later in C++ and about 22 ns later
+in Java, and those are the same numbers we were already quoting.
+
+The language gap on latency: **1.30x unaudited, 1.55x audited** — against 2.29x and 1.56x on
+throughput. Auditing is the great leveller in both metrics.

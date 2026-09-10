@@ -164,6 +164,28 @@ app::gen::Fill fill;
 // the FILL number rather than the event number, and its cycle length is coprime with the symbol
 // count. Either mistake pins every symbol to one quantity, drifts inventory, and hands the benchmark
 // to the risk gate's early return.
+// SERIAL LATENCY: each event's input carries one bit of the previous event's OUTPUT, so the hardware
+// cannot begin event i+1 before event i's result exists. Elapsed/N is then a causal latency rather
+// than a reciprocal throughput. See the Java harness for the full argument. One bit only, so prices
+// stay in range and the graph does identical work at the same publish rate.
+inline int32_t feedDependent(app::gen::QuoteEngineProcessor& p, int64_t i, int symbols,
+                             int fillEvery, int32_t dep) {
+    if ((i % fillEvery) == 0) {
+        const int64_t fillNo = i / fillEvery;
+        fill.symbol = (int32_t) (fillNo % symbols);
+        fill.qty = (int32_t) (((fillNo % 7) - 3) * 10);
+        p.handle_Fill(&fill);
+        return app::gen::quoteData.bidPx;
+    }
+    tick.symbol = (int32_t) (i % symbols);
+    tick.bidPx = (int32_t) (10000 + ((i + (dep & 1)) & 63));
+    tick.askPx = tick.bidPx + 2 + (int32_t) (i & 3);
+    tick.bidQty = (int32_t) (100 + (i & 31));
+    tick.askQty = (int32_t) (100 + ((i >> 3) & 31));
+    p.handle_MarketTick(&tick);
+    return app::gen::quoteData.bidPx;
+}
+
 inline void feed(app::gen::QuoteEngineProcessor& p, int64_t i, int symbols, int fillEvery) {
     if ((i % fillEvery) == 0) {
         const int64_t fillNo = i / fillEvery;
@@ -264,6 +286,37 @@ int main(int argc, char** argv) {
             }
             std::printf("\n");
         }
+        return 0;
+    }
+
+    if (getenv("DEPENDENT") != nullptr) {
+        // THE CONTROL - see the Java harness. Same reads, same loop, no read-after-write chain, so
+        // the difference between the two modes isolates serialisation from the cost of the read.
+        const bool control = std::strcmp(getenv("DEPENDENT"), "control") == 0;
+        int32_t dep = 0;
+        for (int64_t i = 0; i < warm; i++) { dep = feedDependent(p, i, symbols, fillEvery, control ? 0 : dep); }
+        double bestSerial = 1e18;
+        for (int b = 0; b < batches; b++) {
+            const auto start = std::chrono::steady_clock::now();
+            if (control) {
+                int32_t sink = 0;
+                for (int64_t i = 0; i < iters; i++) { sink += feedDependent(p, i, symbols, fillEvery, 0); }
+                dep = sink;
+            } else {
+                for (int64_t i = 0; i < iters; i++) { dep = feedDependent(p, i, symbols, fillEvery, dep); }
+            }
+            const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - start).count();
+            bestSerial = std::min(bestSerial, (double) ns / (double) iters);
+        }
+        std::printf("RESULT harness=%s %s cpp-quoteengine-%s audit=%s %.4f ns published=%lld sink=%d\n",
+                    HARNESS_TAG, RUNTIME_TAG, control ? "readcontrol" : "serial",
+#ifdef HAS_AUDIT
+                    "true",
+#else
+                    "false",
+#endif
+                    bestSerial, (long long) publisherData.published, dep);
         return 0;
     }
 
