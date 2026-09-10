@@ -121,13 +121,31 @@ public class BenchQuoteEngine {
         // Per-event figures are the burst divided by its size, and are labelled as such. They are a
         // per-event AVERAGE WITHIN A BURST, not a per-event latency - the difference matters and the
         // key names keep it visible.
+        // The WHOLE distribution, not four points. p99.99 is where a quoting engine actually lives -
+        // one bad quote in ten thousand is a real event at these rates - and it needs 1M bursts to have
+        // 100 samples behind it rather than 20. The per-event column divides by the burst size and is
+        // an average within a burst, which the name says.
         System.out.printf("RESULT harness=%s %s java-quoteengine-burstlatency audit=%s burst=%d "
-                        + "p50=%d p99=%d p999=%d max=%d perEventP50=%.2f perEventP99=%.2f "
+                        + "p50=%d p90=%d p99=%d p999=%d p9999=%d max=%d "
+                        + "perEventP50=%.2f perEventP99=%.2f perEventP9999=%.2f "
                         + "timerResolution=%d ns bursts=%d published=%d records=%d%n",
                 HarnessVersion.tag(), HarnessVersion.runtimeTag(), audit, burst, p50,
-                percentile(counts, bursts, 0.99), percentile(counts, bursts, 0.999), worst,
+                percentile(counts, bursts, 0.90), percentile(counts, bursts, 0.99),
+                percentile(counts, bursts, 0.999), percentile(counts, bursts, 0.9999), worst,
                 p50 / (double) burst, percentile(counts, bursts, 0.99) / (double) burst,
+                percentile(counts, bursts, 0.9999) / (double) burst,
                 resolution, bursts, publishedCount(p), auditRecords[0]);
+        if (Boolean.getBoolean("cdf")) {
+            // The histogram itself, so the shape can be read rather than inferred from percentiles.
+            StringBuilder sb = new StringBuilder("CDF ");
+            long seen = 0;
+            for (int i = 0; i < counts.length; i++) {
+                if (counts[i] == 0) { continue; }
+                seen += counts[i];
+                sb.append(i).append(':').append(String.format("%.6f", seen / (double) bursts)).append(' ');
+            }
+            System.out.println(sb);
+        }
     }
 
     /**

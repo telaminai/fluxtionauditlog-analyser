@@ -58,6 +58,8 @@ way:
 
 The native image is **slower** than the standard JIT on the unaudited path and level with it once
 auditing — and this was a properly profiled build, verified from its own build log rather than assumed.
+It is not tighter in the tail either: measured over 64 million events it is worse than the JIT at p50,
+p90, p99 and p99.99.
 Once you are auditing, all three Java toolchains land within 5% of each other: the audit path is the
 same code in each and dominates the event. A native image is worth building here for startup time, not
 for steady-state throughput.
@@ -99,9 +101,24 @@ pass of an agent loop is exactly this — and lands well above the counter's flo
 | C++, no audit | 250 ns | 333 ns | 375 ns | 8.2 µs |
 | C++, audited | 834 ns | 1,042 ns | 1,209 ns | 9.1 µs |
 
-The tails separate the two languages more than the medians do: C++ holds its p99.9 at 1.5x its median
-where Java runs 2.6x, and Java's worst burst is three times C++'s. That is the shape you would expect
-from a managed runtime, and it is the reason to look at a distribution rather than an average.
+Measured further out, over 64 million events per arm, the picture sharpens — and the important column
+is the last one:
+
+| arm | p50 | p99 | p99.9 | p99.99 |
+|---|---:|---:|---:|---:|
+| Java, no audit | 583 ns | 708 ns | 917–1,292 ns | 3,875–4,958 ns |
+| Java, audited | 1,416 ns | ~1,730 ns | ~2,350 ns | 6,542–6,833 ns |
+| C++, no audit | **250 ns** | **~310 ns** | **375 ns** | **417–458 ns** |
+| C++, audited | 917 ns | 1,042 ns | 1,209 ns | 5,250–5,667 ns |
+
+**Auditing is cheap on average and not cheap in the tail.** It costs about 10 ns per event at the
+median and roughly eight times that at p99.99 — around +81 ns/event for C++, +34 ns/event for Java.
+The unaudited C++ arm is remarkably flat, spreading only 1.8x from its median out to one-in-ten-
+thousand; auditing costs it that flatness, widening the spread to 6.2x.
+
+If your budget is a median, auditing costs ~10 ns. If your budget is p99.99 — which is the budget a
+quoting engine actually has — it costs the better part of 100 ns on the otherwise-tightest arm. Still
+affordable at these rates, but it is a different claim, and quoting the median alone would mislead.
 
 What this cannot tell you is the latency of **one** event. Below roughly 83 ns per event, that is not
 measurable this way on this hardware — a property of the instrument, not of the graph.

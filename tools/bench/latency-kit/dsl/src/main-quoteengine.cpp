@@ -236,8 +236,10 @@ int main(int argc, char** argv) {
                         (long long) resolution, (long long) p50);
             return 2;
         }
+        // The whole distribution - see the Java harness for why p99.99 is the interesting column.
         std::printf("RESULT harness=%s %s cpp-quoteengine-burstlatency audit=%s burst=%d p50=%lld "
-                    "p99=%lld p999=%lld max=%lld perEventP50=%.2f perEventP99=%.2f "
+                    "p90=%lld p99=%lld p999=%lld p9999=%lld max=%lld "
+                    "perEventP50=%.2f perEventP99=%.2f perEventP9999=%.2f "
                     "timerResolution=%lld ns bursts=%lld published=%lld\n",
                     HARNESS_TAG, RUNTIME_TAG,
 #ifdef HAS_AUDIT
@@ -245,11 +247,23 @@ int main(int argc, char** argv) {
 #else
                     "false",
 #endif
-                    burst, (long long) p50, (long long) hist.percentile(0.99),
-                    (long long) hist.percentile(0.999), (long long) hist.worst,
+                    burst, (long long) p50, (long long) hist.percentile(0.90),
+                    (long long) hist.percentile(0.99), (long long) hist.percentile(0.999),
+                    (long long) hist.percentile(0.9999), (long long) hist.worst,
                     p50 / (double) burst, hist.percentile(0.99) / (double) burst,
+                    hist.percentile(0.9999) / (double) burst,
                     (long long) resolution, (long long) bursts,
                     (long long) publisherData.published);
+        if (getenv("CDF") != nullptr) {
+            std::printf("CDF ");
+            uint64_t seen = 0;
+            for (int i = 0; i < BurstHistogram::kBuckets; i++) {
+                if (hist.counts[(size_t) i] == 0) { continue; }
+                seen += hist.counts[(size_t) i];
+                std::printf("%d:%.6f ", i, (double) seen / (double) hist.n);
+            }
+            std::printf("\n");
+        }
         return 0;
     }
 

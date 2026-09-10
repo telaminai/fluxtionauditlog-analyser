@@ -273,6 +273,19 @@ quote engine — `dsl/GenQuoteEngine.java`, both targets, `dsl/QUOTE-ENGINE-RESU
   excess of ~900–1000 ns per 64-burst against C++'s 125–375 — is **not identified**; the near-identical
   unaudited maxima (8.6 µs vs 8.2 µs) point at the OS as a common floor. Core migration and cache
   pressure are the remaining candidates and neither is demonstrated. *Open, low priority.*
+- ☑ **M60.8 the full distribution, and a claim withdrawn.** Re-measured at **1M bursts (64M events)
+  per arm, twice, settled machine**. **WITHDRAWN: "native AOT has tighter tails"** — that came off a
+  200k-burst run where p99.9 rested on 200 samples and `max` on one; at 1M bursts native is worse than
+  C2 at p50, p90, p99 and p99.99 and only comparable at p99.9. The finding that holds: **auditing costs
+  ~10 ns/event at the median and ~8x that at p99.99** (+81 ns/event C++, +34 ns/event Java JIT).
+  Unaudited C++ is exceptionally flat (p50 250 → p99.99 458, a 1.8x spread); auditing costs it that
+  flatness (917 → 5,667, 6.2x). **All four audited arms converge at p99.99 to 5.3–6.9 µs** regardless
+  of language or toolchain, so whatever produces the audited tail is not the compiler — *unidentified,
+  candidates are the record buffer's cache behaviour and the sink call.* Harnesses now report
+  p50/p90/p99/p99.9/p99.99/max and dump a CDF under `-Dcdf` / `CDF=1`.
+- **A note on process.** The first distribution run was taken at load 12.96 because the binaries were
+  invoked directly rather than through `measure.sh`, which is the only thing carrying the load gate.
+  Those numbers were discarded and re-run. The gate works when it is used; bypassing it is easy.
 - **A PGO profile embeds class names.** The `.iprof` files these builds write carry the fully-qualified
   name of every method profiled — a fourth channel the text sweep cannot see, after images, git
   metadata and transcripts. They land under gitignored `target/` and must stay there; the sweep found

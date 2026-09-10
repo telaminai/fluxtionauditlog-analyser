@@ -199,3 +199,47 @@ as a floor common to both. The residual Java-only excess is most likely core mig
 schedules across performance and efficiency cores) or cache and TLB pressure from a larger working set,
 but neither has been demonstrated here and neither should be quoted as though it had. Pinning would
 settle it; macOS does not offer it cleanly.
+
+
+## The full distribution, and a claim withdrawn
+
+The four-point summary above was measured at 200,000 bursts. At that count p99.9 rests on 200 samples
+and `max` is a single one, and **a conclusion drawn from it did not survive more data**. Re-run at
+**1,000,000 bursts (64M events) per arm, twice, on a settled machine**:
+
+| arm | p50 | p90 | p99 | p99.9 | p99.99 | max |
+|---|---:|---:|---:|---:|---:|---:|
+| Java JIT, no audit | 583 | 584–625 | 708 | 917–1,292 | 3,875–4,958 | 19.5–27.0 µs |
+| Java JIT, audited | 1,416 | 1,541 | 1,708–1,750 | 2,333–2,375 | 6,542–6,833 | 26.7–28.8 µs |
+| Native AOT, no audit | 791 | 792 | 916 | 1,000–1,041 | 5,250–5,416 | 24.9–34.5 µs |
+| Native AOT, audited | 1,417 | 1,542 | 1,791–1,834 | 2,167–3,916 | 6,250–6,875 | 22.1–71.0 µs |
+| C++, no audit | **250** | **292** | **292–333** | **375** | **417–458** | 8.9–11.6 µs |
+| C++, audited | 917 | 959 | 1,042 | 1,209 | 5,250–5,667 | 19.1–19.8 µs |
+
+ns per 64-event burst; ranges are the two reps. `max` is one sample and should be read as indicative
+only — the 71 µs is a single burst.
+
+**WITHDRAWN: "the native image has tighter tails."** That was read off the 200k-burst run, where native
+showed p99.9 1,000 against JIT's 1,375 and a lower max. It does not hold. At 1M bursts native is worse
+than C2 at p50, p90, p99 and p99.99, and only comparable at p99.9. The earlier figures were a thin tail
+and a single-sample maximum. Native AOT's case on this workload is startup, not throughput and not
+tails.
+
+**The finding that does hold is about auditing, and it is the most useful number here.** Auditing costs
+about 10 ns/event at the median and roughly **eight times that at p99.99**, in every toolchain:
+
+| | median cost of auditing | p99.99 cost of auditing |
+|---|---:|---:|
+| C++ | +10.4 ns/event | **+81 ns/event** |
+| Java JIT | +13.0 ns/event | **+34 ns/event** |
+
+C++ unaudited is the tightest distribution by a wide margin — p50 250 to p99.99 458 ns, a spread of
+1.8x across the whole range to one-in-ten-thousand. Auditing costs it that tightness: the same arm
+audited spreads 917 to 5,667, a factor of 6.2. Java's unaudited spread is already 6.6–8.5x, so
+auditing widens it proportionally less.
+
+**So the honest summary for a latency-sensitive reader is: auditing is cheap on average and is not
+cheap in the tail.** If your budget is a median, it costs ~10 ns. If your budget is p99.99 — which is
+the budget a quoting engine actually has — it costs the better part of 100 ns per event on the
+otherwise-tightest arm. That is still affordable at these rates, but it is not the same claim, and
+quoting the median alone would have been misleading.
