@@ -245,48 +245,31 @@ Shipped:
   - **Audit stays shared and that is deliberate**: a forked node logs into the same record from another
     thread, exactly as Java does. Diverging "safely" would break the oracle's premise.
 
-### M59 · The C++ target is finished and unusable — ☐ opened 2026-09-10
+### M59 · Making the C++ target usable — ☑ COMPLETE 2026-09-10
 
-Phase 6 closed the last phase: 36 DSL constructs, 20 oracle chains, forked triggers, a connector. None
-of that is reachable by anyone who did not write it.
+Phase 6 closed the last phase and none of it was reachable by anyone who had not written it. Now it is.
 
-- ☑ **M59.1 the target is chosen PER COMPILE** — DONE 2026-09-10.
-  `FluxtionCompilerConfig.setSourceGeneratorId("cpp")`, precedence per-call → process-wide → nothing.
-  - **The framing in this item was wrong twice, and the second correction found a bug.** There was
-    never "no selector": `FluxtionConfig.sourceGeneratorId()` existed, fed by a system property or a
-    config file. The real defect was that it is process-wide, so two concurrent requests wanting
-    different targets race — which is what blocked M59.3, not the absence of a setting.
-  - **And the id was resolved in TWO places by different rules.** `resolveSourceGeneratorId` chose the
-    local-vs-remote route; `loadSourceGenerator` chose WHICH local generator and read the raw system
-    property directly, ignoring both configs. A per-call request for C++ against a process-wide
-    `local` therefore selected the local route and then loaded the JAVA generator — the wrong target,
-    silently, with the caller's explicit choice discarded. Found by the test, fixed by giving both
-    sites one resolver.
-  - `CppPerCallTargetTest` asserts the ABSENCE of the workaround the rest of the module uses: it sets
-    no property, fails if one is present, and checks the compile did not leave one set — a leaked
-    target is how one request would poison the next.
-
-- ☐ **M59.2 there is no how-to.** The only C++ document is `spec-cpp-target.md`, a design spec: phases,
-  measurements, refusals, rationale. Nothing tells a user how to generate C++, where the header-only
-  runtime comes from (`CppSourceGenerator.writeRuntimeHeaders`), which stubs they must implement, or
-  that it needs `-std=c++17`.
-- ◑ **M59.3 the HTTP service can generate C++ — SERVER half done, CLIENT half blocked by a design
-  conflation.** `fluxtion-generator-http` now depends on `fluxtion-generator-cpp`, and
-  `/generate-source` dispatches on a `sourceGeneratorId` taken from the ENVELOPE's side-band rather
-  than the payload — the handler already documents why the payload cannot carry it: Kryo reads that
-  shape positionally, so a new field moves the wire for every existing client. Absent, the target is
-  Java, so nothing that predates this changes. Nothing writes a system property, which is the whole
-  point of M59.1.
-  - `TargetDispatchTest` asserts the refusal for an unknown id NAMES `cpp`, which is the only way to
-    prove the jar is actually in the deployed artifact rather than just in the pom.
-  - ☐ **M59.3a the client cannot ask.** `RemoteHttpCombinedGenerator` sends only `sourceFingerprint`
-    and `innerFormat`, so only a hand-built envelope can reach the C++ path today.
-  - ☐ **M59.3b and it cannot be added as-is, because `sourceGeneratorId` means TWO things.**
-    `useRemote = "remote-http".equalsIgnoreCase(sourceId)` — so the one field selects the ROUTE
-    (local vs remote) *and* the GENERATOR. Setting it to `cpp` means *local* C++; **"remote AND C++"
-    is not expressible.** The fix is a second, separate `targetId` — route and target are independent
-    choices and one field cannot carry both. Until then the endpoint works and the normal client
-    cannot use it.
+- ☑ **M59.1 the target is chosen PER COMPILE** — `FluxtionCompilerConfig.setSourceGeneratorId(...)`,
+  precedence per-call → process-wide → nothing. The item's premise was wrong twice: a selector always
+  existed, fed by a system property or a config file; the defect was that it is process-wide, which is
+  what blocked a service. **And the id was resolved in two places by different rules** —
+  `loadSourceGenerator` read the raw property, ignoring both configs, so a per-call request for C++
+  against a process-wide `local` silently loaded the JAVA generator. Found by a test, fixed with one
+  shared resolver.
+- ☑ **M59.2 a how-to exists** — `docs/how-to/generate-cpp.md` in the compiler repo, the first
+  user-facing C++ document; the only one before it was a design spec. Every claim checked against the
+  code rather than recalled, which caught the oracle chain count.
+- ☑ **M59.3 the HTTP service generates C++** — the module depends on `fluxtion-generator-cpp`, and
+  `/generate-source` dispatches on a target from the ENVELOPE's side-band, never the payload: Kryo
+  reads that shape positionally, so a new field would move the wire for every pinned client. Absent,
+  the target is Java. `TargetDispatchTest` asserts the refusal for an unknown id NAMES `cpp`, which is
+  the only way to prove the jar is in the deployed artifact rather than only in the pom.
+- ☑ **M59.3b the ROUTE and the LANGUAGE are now separate questions.** They were one field:
+  `useRemote = "remote-http".equals(sourceGeneratorId)`, so `cpp` meant *local* C++ and **"remote AND
+  C++" was inexpressible** — which is exactly why the endpoint could be built and remain unreachable.
+  `targetId` carries the language; `sourceGeneratorId` keeps the route and still answers the language
+  when it is not `remote-http`, so nothing existing changed. `SourceGenConfig` carries it as a
+  TRANSIENT field, following `sourceFingerprint`, and the remote client sends it in the envelope.
 
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
