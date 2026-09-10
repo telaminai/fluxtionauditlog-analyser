@@ -357,6 +357,41 @@ application. M60's `GenQuoteEngine` is retained as the CONTROL. Spec, graph, wor
 - **A sweep thrown away**: the first working-set curve was flat because the processor bakes its symbol
   count in at build time and the skew kept indices under 64, so every run used a 64-symbol graph.
 
+### M62 · The venue-lifecycle quoting core — ☑ Java 2026-09-10
+
+Third graph in the progression, built to a reviewer's specification. M60's six-node engine and M61's
+event-count quoting core are BOTH retained unchanged as controls. `dsl/QUOTING-CORE-RESULTS.md` and the
+report in the session scratchpad.
+
+- ☑ **M62.1 time-driven venue.** Acks scheduled on the data-driven clock in a fixed timing wheel
+  (4096 × 64 ns, no allocation on the measured path), three regimes stated (LOW/NORMAL/SLOW). The
+  `pending` share is now OBSERVED: 59.1% → 69.2% → 92.3% of NONEs as ack latency rises, with actionable
+  decisions falling 11.0% → 9.7% → 5.7%.
+- ☑ **M62.2 executions from working orders.** `Execution` carries the generation; refused against a
+  nonexistent, superseded or filled order (12,231 refusals in a NORMAL run). Inventory moves only by
+  what `WorkingOrders` applied, on the same causal path.
+- ☑ **M62.3 `@NoTriggerReference` keeps the ack path short.** Without it inventory is a child of working
+  orders and every ack drags the pricing chain behind it.
+- ☑ **M62.4 per-symbol freshness deadlines** replace the rolling cursor, which did not survive the
+  sweep: worst-case detection was symbols × interval, so a 20 µs bound at 4096 symbols needed a 5 ns
+  timer — the safety semantics changed silently with symbol count. Detection is now independent of it.
+- ☑ **M62.5 results.** Causal latency **23.961 unaudited / 35.063 audited** (NORMAL, 64 symbols).
+  Conditional paths span **32.9–66.6 ns**: the whole-workload average sits between a 42.7 ns no-op and a
+  63–67 ns actionable path, so an actively quoting engine pays ~1.5× the average. Working set +45%
+  unaudited from 64 to 4096 symbols under uniform access, flat under skew.
+- ☑ **M62.6 the 256-symbol anomaly does NOT reproduce** (26.02 here against M61's 38.50; 512 added as a
+  focused sweep). No cache-set-conflict claim is made — the earlier reading is best treated as specific
+  to that build's layout.
+- ☑ **M62.7 twelve refusing invariants**, which caught: a generator emitting ten timers per quiet gap
+  (99.6% of the stream, first run refused); an ack invariant that was itself wrong (in-flight acks);
+  four path streams measuring the wrong branch; and a THIRD instance of an index aliasing with the
+  symbol count.
+- **Audit commits after the order.** The intent is written to the outbound ring before any
+  `auditLog.info` call and the record is terminated in `afterEvent()`, so nothing in the audit path
+  feeds the order. The +11 ns audit cost is therefore an UPPER BOUND on what auditing adds before an
+  order can leave; the split is not quantified and no number is claimed for it.
+- ☐ **M62.8 the C++ arm** — not built for this graph. C++ exists for M61 (15.863 ns audited).
+
 ### M52 · still open
 
 Open, in dependency order:
