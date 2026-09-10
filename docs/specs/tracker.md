@@ -193,9 +193,18 @@ Shipped:
   drifts 326 ns a day.
 - ☐ **M57.1 the last ~8 ns is a clock read**, in all three arms. `CachedClockStrategy` exists for the
   several-graphs-per-turn case; nothing else is available without changing what a timestamp means.
-- ☐ **M57.2 the flatMap shape has no native arm.** Profile collection fails under `--gc=epsilon`, which
-  never collects, against a shape that allocates per element. Needs a different GC for that arm, or the
-  shape is left JIT-only and said to be.
+- ☐ **M57.2 a flatMap graph cannot run as a native image at all** — and this is a Fluxtion limitation,
+  not a bench one. `FlatMapFlowFunction`'s CONSTRUCTOR calls `captured()` → `serialized()` →
+  `getDeclaredMethod("writeReplace")`, and GraalVM does not emit `writeReplace` for lambdas unless
+  serialization is registered. The processor fails to CONSTRUCT under native-image; the event path
+  never runs. Found while building the native arm for P17b, after a first wrong explanation (epsilon
+  GC) that a collecting GC disproved.
+  - Fix A: a native-image serialization config listing those lambda classes.
+  - **Fix B, and the better one:** the generator knows the captured instance at generation time, so it
+    can pass it directly instead of the runtime reflecting for it. Same move as pre-resolving audit
+    keys — a generator cannot avoid knowing what a runtime cannot know.
+  - Until one lands, **any AOT deployment using flatMap is broken**, which is worth more than the
+    benchmark that found it.
 
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 

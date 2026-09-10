@@ -487,9 +487,27 @@ four reps, minimum:
   6× gain. That was a different graph under `LOWEST_LATENCY`; this is `mapToInt → aggregate` under
   `DEFAULT`. **A 6× native advantage is not a property of the language, it is a property of that
   graph and that profile**, and quoting it as the former would be the withdrawn-23× mistake again.
-- **P17b is unscored.** The flatMap native arm did not build: profile collection failed under
-  `--gc=epsilon`, which never collects, and flatMap allocates per element. That is a real limit of the
-  harness rather than a result, and it is recorded rather than worked around.
+- **P17b is unscored, and the reason is not the harness.** The flatMap native arm does not build, and
+  the first explanation — `--gc=epsilon` never collects, flatMap allocates per element — was WRONG.
+  Rebuilding with a collecting GC failed identically. Reading the log instead of guessing again:
+
+    ```
+    java.lang.NoSuchMethodException: app.gen.ShapeProcessor$$Lambda/…writeReplace()
+      at LambdaReflection$MethodReferenceReflection.serialized(LambdaReflection.java:30)
+      at FlatMapFlowFunction.<init>(FlatMapFlowFunction.java:48)
+      at app.gen.ShapeProcessor.<init>
+    ```
+
+    **`FlatMapFlowFunction`'s CONSTRUCTOR reflects on a serialized lambda.** It calls
+    `iterableFunction.captured()`, which calls `serialized()`, which does
+    `getDeclaredMethod("writeReplace")` and invokes it. GraalVM does not emit `writeReplace` for lambda
+    classes unless serialization is registered for them, so **a generated processor containing a
+    flatMap cannot be CONSTRUCTED in a native image.** It fails at startup, not on the event path, and
+    it is a property of Fluxtion rather than of this benchmark.
+
+    Two ways out, neither taken here: register those lambdas for serialization in a native-image
+    config, or have the generator pass the captured instance directly — it knows it at generation time,
+    which is the same move that removed the audit key lookup.
 
 **What this says about the audit path.** The cost is not code the JIT was failing to optimise — if it
 were, AOT with a good profile would have moved it. Both Java arms sit at ~17 ns and C++ at 14 ns, and

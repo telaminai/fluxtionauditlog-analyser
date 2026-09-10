@@ -13,6 +13,11 @@ SHAPES=${SHAPES:-"plain merge notify maponnotify"}
 # AUDIT=true builds the same shapes with LOW_LATENCY_AUDIT + BINARY, so audit cost per event is the
 # DIFFERENCE between two builds of one graph rather than a figure quoted on its own.
 AUDIT=${AUDIT:-false}
+# Epsilon never collects, which is right for shapes that do not allocate and fatal for those that do:
+# flatMap allocates per element, so its profile collection exhausted the heap and produced no RESULT.
+# The GC is therefore per shape, and an arm built with a collecting GC is NOT directly comparable to an
+# epsilon one - that is stated wherever its number is.
+native_gc() { case "$1" in flatmap) echo serial ;; *) echo epsilon ;; esac; }
 SUFFIX=""; [ "$AUDIT" = "true" ] && SUFFIX="-audit"
 
 mkdir -p "$OUT/shclasses"
@@ -69,10 +74,11 @@ PY
     "$GRAALVM_HOME/bin/native-image" -cp "$CPN" --no-fallback --gc=epsilon -R:MaxHeapSize=2g \
         -H:-SpawnIsolates --pgo="$D/shape.iprof" -o "$D/native" app.BenchJavaShapes \
         > "$D/native.log" 2>&1
-    for chk in "PGO: user-provided" "Garbage collector: Epsilon GC"; do
+    case "$GC" in epsilon) GCNAME="Epsilon GC" ;; serial) GCNAME="Serial GC" ;; esac
+    for chk in "PGO: user-provided" "Garbage collector: $GCNAME"; do
       grep -q "$chk" "$D/native.log" || { echo "native MISSING: $chk"; exit 1; }
     done
-    echo "built $shape_dir (java native aot + pgo)"
+    echo "built $shape_dir (java native aot + pgo, gc=$GC)"
   else
     echo "GRAALVM_HOME unset - skipping the native arm for $shape_dir rather than reporting two arms as three"
   fi
