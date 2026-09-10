@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The integrator's entire authoring act.
+
+  Three suppliers' jars are on the classpath and none of them knows this file exists:
+    acme-marketdata-2.3.jar  book state and signals
+    bolt-pricing-1.7.jar     fair value and quote construction
+    cedar-oms-4.1.jar        orders, inventory, freshness, risk, reconciliation, publishing
+
+  Nobody writes the dispatch order. Fluxtion derives it from these references and the annotations on
+  the supplied classes, and generates a processor in which none of Spring remains.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- the cycle's subject: which symbol, and what time it is -->
+    <bean id="cycle" class="acme.marketdata.Cycle"/>
+
+    <!-- ACME: top of book, and per-instrument volatility and momentum -->
+    <bean id="market" class="acme.marketdata.MarketState">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg value="64"/>
+    </bean>
+    <bean id="signal" class="acme.marketdata.SignalState">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg ref="market"/>
+        <constructor-arg value="64"/>
+    </bean>
+
+    <!-- CEDAR: the order lifecycle and the position it produces -->
+    <bean id="working" class="cedar.oms.WorkingOrders">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg value="64"/>
+    </bean>
+    <bean id="inventory" class="cedar.oms.InventoryState">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg ref="working"/>
+        <constructor-arg value="64"/>
+    </bean>
+    <bean id="freshness" class="cedar.oms.FreshnessState">
+        <constructor-arg ref="cycle"/>
+    </bean>
+
+    <!-- BOLT: pricing, reading ACME's market state and CEDAR's inventory -->
+    <bean id="fair" class="bolt.pricing.FairValue">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg ref="market"/>
+        <constructor-arg ref="signal"/>
+        <constructor-arg ref="inventory"/>
+        <constructor-arg value="64"/>
+    </bean>
+    <bean id="quote" class="bolt.pricing.QuoteBuilder">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg ref="market"/>
+        <constructor-arg ref="signal"/>
+        <constructor-arg ref="inventory"/>
+        <constructor-arg ref="fair"/>
+        <constructor-arg value="64"/>
+    </bean>
+
+    <!-- CEDAR: risk over BOLT's quote, reconciliation, publication -->
+    <bean id="risk" class="cedar.oms.RiskLimits">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg ref="market"/>
+        <constructor-arg ref="inventory"/>
+        <constructor-arg ref="quote"/>
+        <constructor-arg ref="freshness"/>
+        <constructor-arg value="64"/>
+    </bean>
+    <bean id="diff" class="cedar.oms.OrderDiff">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg ref="quote"/>
+        <constructor-arg ref="risk"/>
+        <constructor-arg ref="working"/>
+        <constructor-arg value="64"/>
+    </bean>
+    <bean id="intent" class="cedar.oms.IntentPublisher">
+        <constructor-arg ref="cycle"/>
+        <constructor-arg ref="diff"/>
+        <constructor-arg ref="quote"/>
+        <constructor-arg ref="working"/>
+        <constructor-arg value="65536"/>
+    </bean>
+</beans>
