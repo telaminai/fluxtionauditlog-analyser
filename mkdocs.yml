@@ -118,5 +118,6 @@ nav:
       - Format specification: format-spec.md
       - Producing an audit log: producing-a-log.md
       - What does auditing cost?: audit-cost.md
+      - Composing a system from supplier jars: composing-a-system.md
   - FAQ: faq.md
   - Release notes: release-notes.md
