@@ -250,26 +250,22 @@ Shipped:
 Phase 6 closed the last phase: 36 DSL constructs, 20 oracle chains, forked triggers, a connector. None
 of that is reachable by anyone who did not write it.
 
-- ☐ **M59.1 the target is selected by a GLOBAL SYSTEM PROPERTY, and that is the whole API.**
-  `System.setProperty("fluxtion.sourceGeneratorId", "cpp")` before `EventProcessorFactory.compile`.
-  Every test sets and restores it by hand, which is the smell.
+- ☑ **M59.1 the target is chosen PER COMPILE** — DONE 2026-09-10.
+  `FluxtionCompilerConfig.setSourceGeneratorId("cpp")`, precedence per-call → process-wide → nothing.
+  - **The framing in this item was wrong twice, and the second correction found a bug.** There was
+    never "no selector": `FluxtionConfig.sourceGeneratorId()` existed, fed by a system property or a
+    config file. The real defect was that it is process-wide, so two concurrent requests wanting
+    different targets race — which is what blocked M59.3, not the absence of a setting.
+  - **And the id was resolved in TWO places by different rules.** `resolveSourceGeneratorId` chose the
+    local-vs-remote route; `loadSourceGenerator` chose WHICH local generator and read the raw system
+    property directly, ignoring both configs. A per-call request for C++ against a process-wide
+    `local` therefore selected the local route and then loaded the JAVA generator — the wrong target,
+    silently, with the caller's explicit choice discarded. Found by the test, fixed by giving both
+    sites one resolver.
+  - `CppPerCallTargetTest` asserts the ABSENCE of the workaround the rest of the module uses: it sets
+    no property, fails if one is present, and checks the compile did not leave one set — a leaked
+    target is how one request would poison the next.
 
-  **`FluxtionCompilerConfig` DOES carry target-shaping options — three of them — and none selects the
-  C++ backend:**
-  - `interpreted` — a boolean picking the interpreted target. **This is the precedent**: a per-call
-    field that chooses where generation goes, which is exactly the shape M59.1 needs.
-  - `templateSep` — "the velocity template file to use in the SEP generation process". A trap rather
-    than an answer: pointing it at a C++ template feeds the JAVA generator a C++ template. The C++
-    target is a `SourceGenerator` SPI implementation with its own model (`CppModel`,
-    `CppDslEmitter`); the template is its last step, not the choice.
-  - `generateWasmHost` / `wasmHostClassName` — emits a TeaVM host shell beside the SEP. Still Java
-    source, so a different ARTIFACT rather than a different language.
-
-  `EventProcessorConfig.javaTargetRelease(String)` is a fourth near-miss: the Java language LEVEL.
-
-  - So the fix is to add the selector beside `interpreted`, not to invent a mechanism. A global is
-    wrong for any concurrent caller, which is what makes this the blocking item for M59.3 rather than
-    a tidiness point.
 - ☐ **M59.2 there is no how-to.** The only C++ document is `spec-cpp-target.md`, a design spec: phases,
   measurements, refusals, rationale. Nothing tells a user how to generate C++, where the header-only
   runtime comes from (`CppSourceGenerator.writeRuntimeHeaders`), which stubs they must implement, or
