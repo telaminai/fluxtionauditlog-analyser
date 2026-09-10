@@ -27,6 +27,11 @@ read as an observation rather than a property.
 | Named sinks and typed services refuse a type mismatch rather than reinterpreting it | `CppConnectorTest#namedSinksAndServices…` | compiler |
 | A forked trigger is EMITTED, and the dependent sees the joined result | `CppForkedTriggerTest` — five events of 1..5 must leave the dependent holding 15, not the 10 a missing join leaves | compiler |
 | The cost of a merge INPUT, isolated from the shape around it | `dsl/build-shape-controls.sh` shapes `merge` vs `mergeboth` — identical topology, one input firing vs two: C++ 0.319 ns, Java 0.463 ns | bench |
+| A groupBy stub can read the group the ARRIVING event updated, not only a key fixed at author time | `CppGroupByLastValueTest` — both insertion paths and the before-first-event guard | compiler |
+| A bench figure describes the BRANCH and not whatever snapshot is in `~/.m2` | `branch-classpath.sh --verify` — loads each key class and refuses if any resolved from a jar | bench |
+| A realistic six-node quoting graph costs what the shapes predict | `dsl/GenQuoteEngine` — throughput and burst-p50-per-event agree in all four arms (8.47/8.62, 21.48/21.27, 3.91/3.73, 13.03/13.32) | bench |
+| Per-event latency is REFUSED when the clock cannot resolve the event | `BenchQuoteEngine` / `qebench` — refuse when p50 < 2 ticks or >50% of samples are zero; refused the unaudited C++ arm at burst=16 | bench |
+| An audited build that publishes nothing cannot read as a speed-up | `BenchQuoteEngine` / `qebench` — both assert the sink saw records after warmup | bench |
 | A compile chooses its target language without touching a global | `CppPerCallTargetTest` — sets no system property, fails if one is present, and checks none is left set | compiler |
 | The deployed HTTP jar really contains the C++ generator | `TargetDispatchTest` — the refusal for an unknown id must NAME `cpp` | compiler |
 | A forked trigger runs off the processor thread, and reading its result IS the join | `CppConnectorTest#aForkedTask…` — 30 ms task, fork returns in <20 ms, join waits ≥30 ms | compiler |

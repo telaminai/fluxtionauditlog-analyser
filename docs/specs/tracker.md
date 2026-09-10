@@ -223,6 +223,41 @@ Shipped:
   - **The question left open is whether that jar should shade the runtime at all.** Anything depending
     on both gets whichever the classpath happens to order first, and the failure mode is a compile
     error against a method that exists — or worse, silently running an old implementation. *Owner call.*
+  - **Re-checked 2026-09-10** and the shaded copy is CURRENT: its `Clock`, `EventLogger` and
+    `LogRecord` are byte-identical to the `core-baseline` build. That is not the same as the problem
+    being gone — it is identical only because core was installed before http was built, and the
+    staleness returns silently the moment that order is skipped. The owner call stands; what changed
+    is that "is it stale today" is now a question with a mechanical answer rather than a guess.
+
+### M60 · A representative graph, and what measuring it found — ☑ 2026-09-10
+
+Review asked for an experiment on a realistic market-making graph reporting throughput AND event-level
+latency with auditing on and off, rather than on two-node shapes. Delivered as a hand-written six-node
+quote engine — `dsl/GenQuoteEngine.java`, both targets, `dsl/QUOTE-ENGINE-RESULTS.md`.
+
+- ☑ **M60.1 the engine and its four arms.** `LOWEST_LATENCY` with no other configuration, and
+  `LOW_LATENCY_AUDIT` + `BINARY` with sparse logging, in Java and C++:
+  8.62 / 21.27 ns (Java) and 3.73 / 13.32 ns (C++) per event. Auditing costs 12.9 ns/event in Java and
+  9.3 in C++, one binary record per event. Throughput and burst-p50-per-event agree in all four arms.
+- ☑ **M60.2 latency is reported per BURST, and the harness refuses per-event.** Both clocks resolve to
+  41.67 ns and these events cost 3.7–21 ns, so 74% of unaudited Java events did not move the clock at
+  all. Bursts of 64 clear the floor and keep the tail: C++ holds p99.9 at 1.5× its median where Java
+  runs 2.6×, and Java's worst burst is 26.9 µs against C++'s 9.1 µs. **Nothing under ~83 ns/event can
+  be timed per-event on this hardware** — the instrument, not the graph.
+- ☑ **M60.3 `GroupBy.lastValue()` now has a C++ spelling** (compiler `a31af8c`). A stub is handed the
+  store and not the key, so the only readable key was one fixed at author time; the ordinary keyed-graph
+  read was expressible in Java and not in C++. `CppGroupByLastValueTest` pins both insertion paths and
+  the before-first-event guard.
+- ☑ **M60.4 the bench now measures the branch.** Every figure this kit has published was resolving
+  fluxtion classes from `~/.m2` snapshot jars rather than the worktrees under test — they happened to
+  be current, which is exactly why nothing looked wrong. `branch-classpath.sh` builds a branch-first
+  classpath, drops every fluxtion jar outright, and verifies by loading each key class and asking where
+  it came from. **Re-run any figure quoted before this date that a decision depends on.**
+- **A design point, not a defect.** Written with `boolean` callbacks, the `LOWEST_LATENCY` build carried
+  a `guardCheck_` before every node — correctly: `setSupportDirtyFiltering(false)` drops the flags that
+  decide nothing, and a `boolean` return IS the propagation decision. Void callbacks (which need
+  `failBuildIfMissingBooleanReturn = false`) move the decision into node state and leave straight-line
+  dispatch with no dirty flags in either language.
 
 ### M52 · still open
 
