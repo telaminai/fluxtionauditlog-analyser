@@ -46,6 +46,7 @@ PY
     extra=""
     [ "$(cat has_sink.txt)" = "1" ] && extra="-DHAS_SINK"
     grep -q "setLogSink" ShapeProcessor.h && extra="$extra -DHAS_AUDIT"
+    grep -q "Emitter&" ShapeProcessor.h && extra="$extra -DHAS_FLATMAP"
     cp "$HERE/src/main-shapes.cpp" .
     clang++ -std=c++17 -O3 -Wall -Wextra -I. -DSHAPE_NAME="\"$shape\"" $extra -o shbench main-shapes.cpp )
   echo "built $shape_dir (java jit + cpp -O3)"

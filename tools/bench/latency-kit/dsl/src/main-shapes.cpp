@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <algorithm>
+#include <cstring>
 #include "ShapeProcessor.h"
 
 namespace app::gen {
@@ -10,6 +11,17 @@ int32_t Tick_getPrice(const void* e) { return static_cast<const Tick*>(e)->price
 // merge only; harmless where the shape does not declare them.
 bool GenShapes_pos(const void* e) { return static_cast<const Tick*>(e)->price > 0; }
 bool GenShapes_neg(const void* e) { return static_cast<const Tick*>(e)->price <= 0; }
+#ifdef HAS_FLATMAP
+// The flatMap shape: three elements per event, so four graph cycles for one arrival.
+static const char* const kParts[] = {"aa", "b", "ccc"};
+void GenShapes_parts(const void* event, fluxtion::Emitter& emit) {
+    (void) event;
+    for (int i = 0; i < 3; i++) { emit(kParts[i]); }
+}
+int32_t String_length(const void* value) {
+    return static_cast<int32_t>(std::strlen(static_cast<const char*>(value)));
+}
+#endif
 #ifdef HAS_SINK
 // The generated struct declares the trigger and nothing else - node state is the stub author's.
 // The counter is printed at the end so the notification cannot be optimised away.

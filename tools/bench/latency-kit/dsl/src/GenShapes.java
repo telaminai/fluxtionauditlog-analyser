@@ -27,6 +27,10 @@ public class GenShapes {
         public boolean fired() { fires++; return true; }
     }
 
+    private static final java.util.List<String> PARTS = java.util.Arrays.asList("aa", "b", "ccc");
+
+    public static java.util.List<String> parts(Tick t) { return PARTS; }
+
     public static boolean pos(Tick t) { return t.getPrice() > 0; }
     public static boolean neg(Tick t) { return t.getPrice() <= 0; }
 
@@ -58,6 +62,14 @@ public class GenShapes {
                         .mapOnNotify(sink);
                 break;
             }
+            case "flatmap":
+                // Three elements per event, so four graph cycles and four audit records for one
+                // arrival - the shape the re-entrant clock sharing exists for.
+                subscribe(Tick.class)
+                        .flatMap(GenShapes::parts)
+                        .mapToInt(String::length)
+                        .aggregate(IntSumFlowFunction::new).id("total");
+                break;
             case "plain":
                 subscribe(Tick.class).mapToInt(Tick::getPrice)
                         .aggregate(IntSumFlowFunction::new).id("total");
