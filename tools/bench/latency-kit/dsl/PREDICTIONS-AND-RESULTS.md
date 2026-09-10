@@ -557,3 +557,42 @@ predicts. The 6.5x figure was never about merge.
 and settled to 1.10% and 0.50% at 10 reps of 5M events. Worth stating rather than quietly using the
 second run: this shape is noisier than the others, and a single-shot number for it would have been
 luck.
+
+## Throughput is not latency, and this machine cannot measure the difference below ~83 ns
+
+**Every figure above this line is steady-state reciprocal THROUGHPUT**, not the latency of one causally
+dependent event. Each bench is `t0 = now; loop N events; (now - t0) / N`. A superscalar core retires
+overlapping work from successive events, so 0.62 ns/event is a genuine measurement that does **not**
+mean an event enters and its result emerges 620 ps later. The distinction was raised in review and it
+is correct; the numbers stand, the reading of them changes.
+
+`LATENCY=1` on the shape benches now measures per-event deltas into a fixed histogram and reports
+p50/p99/p99.9/max. It ran straight into the reason the kit never had them:
+
+| | |
+|---|---|
+| `mach_absolute_time` **call cost** | ~4.8 ns (pipelined) |
+| `mach_absolute_time` **resolution** | **41.67 ns — one tick** |
+| consecutive reads returning the SAME value | **82%** |
+| `steady_clock::now` resolution | 41 ns (same counter) |
+
+**Call cost and resolution differ by nearly 10×, and only resolution bounds what can be measured.**
+Timing the 14 ns audited graph reports p50 = p99 = p99.9 = 41 ns — one tick, every event in the same
+bucket, a degenerate distribution that describes the counter rather than the graph. So the harness
+REFUSES it, and prints why. The 76 ns flatMap graph passes and reports p50 83, p99 125, p99.9 166,
+max 7666 — still multiples of 41.67, but with enough spread to carry information.
+
+**What this means for a per-event latency claim on Apple Silicon: anything under ~83 ns per event
+cannot be measured this way at all.** That is not a limitation of the graph; it is the instrument. A
+realistic market-making graph costing hundreds of ns per event is measurable, and a microbenchmark of
+a two-node graph never will be — which is an argument for the realistic experiment rather than against
+the numbers.
+
+**Three bugs found writing this**, all of the kind that produce plausible output:
+1. subtracting the resolution from every sample as if it were an overhead — turned every sub-tick event
+   into 0 and reported p50=0 for everything;
+2. measuring the timer's CALL COST and calling it the timer, which reported `timer=0 ns` and then
+   happily printed p50=4 / p99=41 for a 14 ns event;
+3. `std::vector<uint32_t> counts{kBuckets, 0}` — brace init selects the initializer_list constructor
+   and builds a vector of TWO elements, so every sample wrote out of bounds. One shape survived on
+   luck; the next segfaulted.
