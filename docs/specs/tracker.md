@@ -390,7 +390,14 @@ report in the session scratchpad.
   `auditLog.info` call and the record is terminated in `afterEvent()`, so nothing in the audit path
   feeds the order. The +11 ns audit cost is therefore an UPPER BOUND on what auditing adds before an
   order can leave; the split is not quantified and no number is claimed for it.
-- ☐ **M62.8 the C++ arm** — not built for this graph. C++ exists for M61 (15.863 ns audited).
+- ☑ **M62.8 the C++ arm** — DONE 2026-09-10. **Identical decisions to Java including the whole venue
+  lifecycle**: NONE 1,219,897 / NEW 665 / REPLACE 131,807 / CANCEL 301, 132,771 acks, 12,231 execution
+  refusals, 27,609 deadlines, maxInFlight 10 — the timing wheel, ack scheduling and refusal path all
+  reproduce exactly. Causal latency **12.118 unaudited / 17.276 audited** against Java's 23.961 /
+  35.063 (**1.98x / 2.03x**); auditing costs 5.2 ns/event in C++ against Java's 11.1. Throughput,
+  read-control and latency agree within 3% in C++ too, and the figures are flat across all three venue
+  regimes. The C++ emitter honours `@NoTriggerReference`, so the ack path stops at reconciliation there
+  as well.
 
 ### M52 · still open
 
