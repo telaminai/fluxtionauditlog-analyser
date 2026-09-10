@@ -270,13 +270,23 @@ of that is reachable by anyone who did not write it.
   measurements, refusals, rationale. Nothing tells a user how to generate C++, where the header-only
   runtime comes from (`CppSourceGenerator.writeRuntimeHeaders`), which stubs they must implement, or
   that it needs `-std=c++17`.
-- ☐ **M59.3 the HTTP service cannot generate C++.** `fluxtion-generator-http` exposes
-  `/generate-source` and depends on `fluxtion-generator-core` and `fluxtion-builder` — **not**
-  `fluxtion-generator-cpp`. The C++ generator IS registered under
-  `META-INF/services/…SourceGenerator`, so the SPI would find it once the jar is present. Two changes:
-  add the dependency (it shades into the deployed fat jar), and give `/generate-source` a target
-  parameter — which cannot be done safely until M59.1, since two concurrent requests choosing
-  different targets would race on the system property.
+- ◑ **M59.3 the HTTP service can generate C++ — SERVER half done, CLIENT half blocked by a design
+  conflation.** `fluxtion-generator-http` now depends on `fluxtion-generator-cpp`, and
+  `/generate-source` dispatches on a `sourceGeneratorId` taken from the ENVELOPE's side-band rather
+  than the payload — the handler already documents why the payload cannot carry it: Kryo reads that
+  shape positionally, so a new field moves the wire for every existing client. Absent, the target is
+  Java, so nothing that predates this changes. Nothing writes a system property, which is the whole
+  point of M59.1.
+  - `TargetDispatchTest` asserts the refusal for an unknown id NAMES `cpp`, which is the only way to
+    prove the jar is actually in the deployed artifact rather than just in the pom.
+  - ☐ **M59.3a the client cannot ask.** `RemoteHttpCombinedGenerator` sends only `sourceFingerprint`
+    and `innerFormat`, so only a hand-built envelope can reach the C++ path today.
+  - ☐ **M59.3b and it cannot be added as-is, because `sourceGeneratorId` means TWO things.**
+    `useRemote = "remote-http".equalsIgnoreCase(sourceId)` — so the one field selects the ROUTE
+    (local vs remote) *and* the GENERATOR. Setting it to `cpp` means *local* C++; **"remote AND C++"
+    is not expressible.** The fix is a second, separate `targetId` — route and target are independent
+    choices and one field cannot carry both. Until then the endpoint works and the normal client
+    cannot use it.
 
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
