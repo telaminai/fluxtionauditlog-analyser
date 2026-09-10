@@ -23,6 +23,16 @@ export SP=${KIT_OUT:?set KIT_OUT to the directory holding the built control bina
 export CPPB=${CPPB:-$(cd "$(dirname "$0")" && pwd)/cpp/build}
 export JAVA_HOME=${JAVA_HOME:?set JAVA_HOME}
 export RT=${RT:?set RT to the fluxtion-runtime jar the controls were built against}
+# EXPORTED for the same reason as SP above, and it is the same bug twice if it is not: the M60 quote
+# engine bands reference $BENCH_CP, measure.sh runs each command as a subprocess, and an unexported
+# variable makes every one of them evaluate to an empty classpath - which reports as a failing band
+# rather than as a missing variable. branch-classpath.sh also REFUSES if any fluxtion jar is present,
+# so this doubles as the check that the controls are validated against the branch and not against
+# whatever snapshot happens to be installed.
+if [ -z "${BENCH_CP:-}" ] && [ -x "$(dirname "$0")/branch-classpath.sh" ]; then
+  eval "$("$(dirname "$0")/branch-classpath.sh")"
+fi
+export BENCH_CP=${BENCH_CP:-}
 BANDS=${BANDS:-$(dirname "$0")/control-bands.tsv}
 # The harness a band was recorded under. NOT a default to assume — each run's actual harness is read
 # from the binary's own output and compared to this, because comparing a declared value to another

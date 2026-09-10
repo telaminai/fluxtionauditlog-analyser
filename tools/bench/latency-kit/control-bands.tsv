@@ -77,3 +77,24 @@ c-cpp-audit-machinery	cpp	h5	10.2	13.1	$CPPB/ladder_audited -Diters=3000000 -Dwa
 c-dsl	cpp	h5	2.5	3.1	$CPPB/../dsl/build/cppbuild/bench 20000000 2000000 6
 c-dsl	jit	h5	9.4	11.9	"$JAVA_HOME/bin/java" -cp "$DSL/javabuild:$RT" -Diters=20000000 -Dwarm=2000000 -Dbatches=6 app.BenchJava
 c-dsl	native	h5	9.4	11.6	$DSL/nimg/dsl_native -Diters=20000000 -Dwarm=2000000 -Dbatches=6
+#
+# M60 — the quote engine, the kit's only REPRESENTATIVE control. Six hand-written nodes doing what a
+# quoting engine does, rather than two or three isolating one operator. Recorded 2026-09-10 by
+# measure.sh, 3 batches x 5 reps, all four REPEATABLE at CV 0.37-0.60%, widened ~10% either side.
+#
+# Built by dsl/build-quoteengine-controls.sh, which REFUSES to build an arm that emits any guard: the
+# engine's claim is straight-line dispatch, and a build that quietly reinstated dirty flags would still
+# run and still produce a number.
+#
+# All four arms are ALLOCATION-FREE, each checked a different way: the JVM's per-thread accounting
+# reads 0 bytes/event, both Java arms run 25M events under a NON-COLLECTING GC on a 32MB heap, and the
+# C++ arms report heapCalls=0 from a counting global operator new.
+qe-java-plain	jit	h5	7.8	9.5	"$JAVA_HOME/bin/java" -cp "$SP/java-plain/build:$BENCH_CP" -Diters=3000000 -Dwarm=1000000 -Dbatches=3 -Daudit=false app.BenchQuoteEngine
+qe-java-audit	jit	h5	18.9	23.1	"$JAVA_HOME/bin/java" -cp "$SP/java-audit/build:$BENCH_CP" -Diters=3000000 -Dwarm=1000000 -Dbatches=3 -Daudit=true app.BenchQuoteEngine
+qe-cpp-plain	cpp	h5	3.36	4.11	$SP/cpp-plain/build/qebench 3000000 1000000 3
+qe-cpp-audit	cpp	h5	12.1	14.8	$SP/cpp-audit/build/qebench 3000000 1000000 3
+#
+# The native AOT arm. Recorded 2026-09-10 alongside the JIT arms above; SLOWER than C2 on the
+# unaudited path and level with it audited, which is why it is a band rather than a headline.
+qe-java-native-plain	native	h5	11.4	13.9	$SP/java-native-plain/native -Diters=3000000 -Dwarm=1000000 -Dbatches=3 -Daudit=false
+qe-java-native-audit	native	h5	20.1	24.5	$SP/java-native-audit/native -Diters=3000000 -Dwarm=1000000 -Dbatches=3 -Daudit=true

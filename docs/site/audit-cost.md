@@ -44,6 +44,38 @@ cycle — costs several times more. Both are supported, and choosing between the
 sparse logging answers "what did it decide", full tracing answers "which nodes ran". Most
 post-mortems ask the first question.
 
+## Does a native image help?
+
+Not on this workload, and the measurement is worth having because the assumption usually runs the other
+way:
+
+| toolchain | per event | with auditing |
+|---|---:|---:|
+| OpenJDK 25.0.2 (C2 JIT) | **8.60 ns** | 21.99 ns |
+| GraalVM 25.0.4 (Graal JIT) | 12.03 ns | 21.31 ns |
+| Native image, AOT + PGO | 12.66 ns | 22.30 ns |
+| C++ (`clang -O3`) | 3.80 ns | 13.83 ns |
+
+The native image is **slower** than the standard JIT on the unaudited path and level with it once
+auditing — and this was a properly profiled build, verified from its own build log rather than assumed.
+Once you are auditing, all three Java toolchains land within 5% of each other: the audit path is the
+same code in each and dominates the event. A native image is worth building here for startup time, not
+for steady-state throughput.
+
+## Is the audited path allocation-free?
+
+Yes, and it is checked three ways rather than asserted, because "allocation-free" is easy to claim from
+reading code and wrong the moment one autobox is on the path:
+
+- the JVM's own per-thread accounting reads **0 bytes** over 5 million events, audited or not;
+- both Java arms run **25 million events under a non-collecting garbage collector** on a 32 MB heap —
+  which is impossible if the path allocates anything — while publishing 26 million binary audit
+  records, at the same speed as the collecting run;
+- the C++ arms count global `operator new` on the measured path and report **zero calls**.
+
+This is what makes auditing usable on a latency-sensitive path: it is not merely cheap, it produces no
+garbage, so it cannot hand you a collection pause later.
+
 ## Why latency is reported per burst
 
 The review question behind this page asked for **latency distributions**, not just throughput, and the

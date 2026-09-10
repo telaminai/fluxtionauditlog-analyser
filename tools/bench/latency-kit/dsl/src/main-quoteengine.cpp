@@ -5,7 +5,28 @@
 #include <chrono>
 #include <algorithm>
 #include <vector>
+#include <new>
 #include "QuoteEngineProcessor.h"
+
+// ---------------------------------------------------------------------------------------------
+// HEAP CALLS ON THE MEASURED PATH, counted rather than assumed.
+//
+// The Java arm proves zero allocation two ways - the JVM's own per-thread accounting reads 0 bytes,
+// and both arms run 25M events under a NON-COLLECTING GC on a 32MB heap. C++ has no such accounting,
+// so this counts global operator new directly. The counter is snapshotted after init and warmup, so
+// what it reports is what the STEADY-STATE path did: construction and first-pass key interning are
+// one-off costs and charging them per event would be a lie in the other direction.
+// ---------------------------------------------------------------------------------------------
+namespace { volatile uint64_t g_allocations = 0; volatile uint64_t g_allocBytes = 0; }
+void* operator new(size_t n) {
+    g_allocations++;
+    g_allocBytes += n;
+    void* p = std::malloc(n);
+    if (p == nullptr) { throw std::bad_alloc(); }
+    return p;
+}
+void operator delete(void* p) noexcept { std::free(p); }
+void operator delete(void* p, size_t) noexcept { std::free(p); }
 
 // ---------------------------------------------------------------------------------------------
 // The C++ arm of the hand-written quote engine.
@@ -232,6 +253,8 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    const uint64_t allocsBeforeMeasure = g_allocations;
+    const uint64_t allocBytesBeforeMeasure = g_allocBytes;
     double best = 1e18;
     for (int b = 0; b < batches; b++) {
         const auto start = std::chrono::steady_clock::now();
@@ -240,12 +263,20 @@ int main(int argc, char** argv) {
                 std::chrono::steady_clock::now() - start).count();
         best = std::min(best, (double) ns / (double) iters);
     }
+    const uint64_t heapCalls = g_allocations - allocsBeforeMeasure;
+    const uint64_t heapBytes = g_allocBytes - allocBytesBeforeMeasure;
 #ifdef HAS_AUDIT
-    std::printf("RESULT harness=%s %s cpp-quoteengine audit=true %.4f ns published=%lld records=%lld\n",
-                HARNESS_TAG, RUNTIME_TAG, best, (long long) publisherData.published, sink.records);
+    std::printf("RESULT harness=%s %s cpp-quoteengine audit=true %.4f ns published=%lld records=%lld "
+                "heapCalls=%llu heapBytes=%llu bytesPerEvent=%.4f\n",
+                HARNESS_TAG, RUNTIME_TAG, best, (long long) publisherData.published, sink.records,
+                (unsigned long long) heapCalls, (unsigned long long) heapBytes,
+                (double) heapBytes / (double) (iters * batches));
 #else
-    std::printf("RESULT harness=%s %s cpp-quoteengine audit=false %.4f ns published=%lld\n",
-                HARNESS_TAG, RUNTIME_TAG, best, (long long) publisherData.published);
+    std::printf("RESULT harness=%s %s cpp-quoteengine audit=false %.4f ns published=%lld "
+                "heapCalls=%llu heapBytes=%llu bytesPerEvent=%.4f\n",
+                HARNESS_TAG, RUNTIME_TAG, best, (long long) publisherData.published,
+                (unsigned long long) heapCalls, (unsigned long long) heapBytes,
+                (double) heapBytes / (double) (iters * batches));
 #endif
     return 0;
 }

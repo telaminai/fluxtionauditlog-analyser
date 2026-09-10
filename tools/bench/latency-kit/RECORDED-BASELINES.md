@@ -472,3 +472,33 @@ prediction, not a fact — the second time that assumption has been wrong in thi
 
 Windowed, flatMap and groupBy graphs. Their shapes differ enough from `map -> map -> filter ->
 aggregate` that nothing here predicts them, and `TEST-INDEX.md` says so.
+
+## M60 — the quote engine, four toolchains (2026-09-10)
+
+Six hand-written nodes doing what a quoting engine does. Two arms — `LOWEST_LATENCY` with no other
+configuration, and `LOW_LATENCY_AUDIT` + `BINARY` with sparse logging — built by
+`dsl/build-quoteengine-controls.sh`, which refuses to build an arm emitting any guard. Every figure
+below is `measure.sh` REPEATABLE, 3 batches x 5 reps, CV 0.16–0.90%, on a settled machine (the first
+attempt was REFUSED at load 11.2 and re-run).
+
+| toolchain | unaudited ns | audited ns | cost of auditing |
+|---|---:|---:|---:|
+| OpenJDK 25.0.2, C2 JIT | **8.598** | 21.989 | +13.4 |
+| Oracle GraalVM 25.0.4, Graal JIT | 12.026 | **21.314** | +9.3 |
+| Native AOT + PGO, `--gc=epsilon` | 12.662 | 22.297 | +9.6 |
+| C++, `clang++ -O3` | **3.795** | **13.825** | +10.0 |
+
+**Native AOT with PGO is 47% SLOWER than C2 on the unaudited path** (12.662 vs 8.598) and buys nothing
+on the audited one (22.297 vs 21.989, inside the 8% JIT band). The PGO dance was done properly and
+asserted — instrument, collect from a real run, rebuild — with `PGO: user-provided` and
+`Garbage collector: Epsilon GC` both grepped out of the build log, so this is not a build that quietly
+fell back to sampled defaults. Graal's JIT sits with the native image rather than with C2, which is the
+expected family resemblance.
+
+**Once auditing, all three Java toolchains converge within 5%.** The audit path is the same code in
+each and it dominates; the compilers differ on dispatch, which auditing swamps. That is the same
+result the shape benches reached from the other direction, on a graph six times the size.
+
+Epsilon is safe on this engine because it allocates **zero bytes per event** — checked by the JVM's own
+per-thread accounting, by surviving 25M events under a non-collecting GC on a 32MB heap while
+publishing 26M binary records, and in C++ by a counting global `operator new` reporting zero calls.

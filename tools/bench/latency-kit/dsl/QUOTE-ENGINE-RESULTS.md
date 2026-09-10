@@ -50,6 +50,30 @@ path and 1.6x once both are auditing, because the audit cost is largely a clock 
 append that neither language avoids. The tails differ more than the medians: C++ holds p99.9 at 1.5x
 its median where Java runs 2.6x, and Java's worst burst is 26.9 us against C++'s 9.1 us.
 
+## Four toolchains, and native AOT is not the winner
+
+The table above is C2 JIT against `clang -O3`. Adding Graal's JIT and a native AOT image built with
+PGO changes the story in a way worth stating, because the usual assumption is that AOT wins:
+
+| toolchain | unaudited | audited | cost of auditing |
+|---|---:|---:|---:|
+| OpenJDK 25.0.2, C2 JIT | **8.598 ns** | 21.989 ns | +13.4 |
+| Oracle GraalVM 25.0.4, Graal JIT | 12.026 ns | **21.314 ns** | +9.3 |
+| Native AOT + PGO, `--gc=epsilon` | 12.662 ns | 22.297 ns | +9.6 |
+| C++, `clang++ -O3` | **3.795 ns** | **13.825 ns** | +10.0 |
+
+**Native AOT with PGO is 47% slower than C2 on the unaudited path**, and level with it once auditing.
+The PGO dance was done properly and the build asserted rather than assumed — instrument, collect a
+profile from a real run, rebuild against it, with `PGO: user-provided` and
+`Garbage collector: Epsilon GC` both grepped out of the build log — so this is not an image that
+quietly fell back to sampled defaults. Graal's JIT lands with the native image rather than with C2,
+which is the family resemblance you would expect.
+
+**Once auditing, all three Java toolchains converge within 5%.** The audit path is the same code in
+each and it dominates the event; the compilers differ on dispatch, and auditing swamps that difference.
+The practical reading: if you are auditing, the choice of Java toolchain is not where your nanoseconds
+are, and AOT's real argument here is startup, not steady-state throughput.
+
 ## Why latency is reported per BURST
 
 **Per-event latency is not measurable here, and the harness refuses to pretend otherwise.**
@@ -125,3 +149,53 @@ Then generate and build both arms from `GenQuoteEngine` (`-Daudit=true|false`, `
 run `BenchQuoteEngine` / `qebench`. `-Dlatency=true -Dburst=64` selects burst latency; the audited arms
 assert their sink actually saw records, because an audited build that publishes nothing reads as a
 speed-up.
+
+## Allocation: zero, checked three ways
+
+"Allocation-free" is easy to claim from reading the code and wrong the moment one autobox or one
+varargs array is on the path, so it is measured — and measured differently in each language, because
+one instrument agreeing with itself is not corroboration.
+
+| check | unaudited | audited |
+|---|---|---|
+| JVM per-thread accounting (`getThreadAllocatedBytes`), 5M events | **0 bytes** | **0 bytes** |
+| Java under **Epsilon GC** (non-collecting), `-Xmx32m`, 25M events | survives, 8.79 ns | survives, 21.55 ns, 26M records |
+| C++ counting global `operator new`, measured phase | **0 calls** | **0 calls** |
+
+The Epsilon run is the strongest of the three: a non-collecting GC on a 32 MB heap cannot survive 25
+million events if the path allocates anything at all, and it does so **while publishing 26 million
+binary audit records** at the same speed as the collecting run. Auditing is allocation-free too, which
+is what makes it usable on this path.
+
+The counters are snapshotted **after** warmup in every case. A JIT still compiling allocates profiling
+structures that have nothing to do with steady state, and the first pass through the audit path interns
+its keys; charging either to the per-event figure would be a lie in the convenient direction.
+
+## Where Java's jitter comes from — and where it does not
+
+Java's tail is worse than C++'s: p99.9 sits at 2.6x the median unaudited and 1.7x audited, against
+1.5x for C++. The absolute excess (p99.9 − p50) is roughly **constant across arms** at ~874–1000 ns per
+64-event burst for Java and 125–375 ns for C++, which is the shape of a fixed perturbation rather than
+proportional overhead.
+
+**The obvious explanation is wrong, and so were two of the three fallbacks.** Each was excluded by
+measurement, not by argument:
+
+| suspect | test | verdict |
+|---|---|---|
+| **GC** | the path allocates zero bytes; re-run under Epsilon | **excluded** — p50 1416 vs 1417, p99.9 2416 vs 2459, indistinguishable |
+| **Safepoints** | `-Xlog:safepoint*=debug` over the measured run | **excluded** — exactly ONE safepoint, at 0.422 s during warmup, max sync 0 ns, max VM-op 0 ns |
+| **JIT recompilation** | `-Xlog:jit+compilation=debug` with uptime stamps | **excluded** — all 514 compilation events land before 0.4 s; zero during the measured window |
+| **JVM background threads competing for cores** | `-XX:CICompilerCount=1 -XX:+UseSerialGC -XX:-TieredCompilation` | **not supported** — p99.9 2417 vs 2375, no improvement |
+
+So on this graph, in steady state, **the JVM contributes essentially nothing to the tail** — no
+collection, no safepoint, no compilation. That is a better result than the ratio suggests and it is
+worth stating plainly, because "Java jitter" is normally assumed to mean GC and here it demonstrably
+does not.
+
+**What remains is not identified**, and this says so rather than inventing a cause. The unaudited
+*maximum* is ~8.2 µs in C++ and ~8.6 µs in Java — near-identical, which points at the operating system
+as a floor common to both. The residual Java-only excess is most likely core migration (Apple Silicon
+schedules across performance and efficiency cores) or cache and TLB pressure from a larger working set,
+but neither has been demonstrated here and neither should be quoted as though it had. Pinning would
+settle it; macOS does not offer it cleanly.

@@ -45,6 +45,10 @@ public class BenchQuoteEngine {
             throw new IllegalStateException("audit=true but the sink saw no records - the audit log is dead");
         }
 
+        if (Boolean.getBoolean("alloc")) {
+            runAllocation(p, tick, fill, iters, symbols, fillEvery, audit, auditRecords);
+            return;
+        }
         if (latency) {
             runLatency(p, tick, fill, iters, symbols, fillEvery, audit, auditRecords);
             return;
@@ -124,6 +128,41 @@ public class BenchQuoteEngine {
                 percentile(counts, bursts, 0.99), percentile(counts, bursts, 0.999), worst,
                 p50 / (double) burst, percentile(counts, bursts, 0.99) / (double) burst,
                 resolution, bursts, publishedCount(p), auditRecords[0]);
+    }
+
+    /**
+     * Bytes allocated PER EVENT, measured rather than asserted.
+     *
+     * <p>"Allocation-free" is the kind of claim that is easy to make from reading the code and wrong
+     * the moment one autobox or one varargs array is on the path. {@code getThreadAllocatedBytes} is
+     * the JVM's own accounting for this thread, so it counts what the code actually did — including
+     * anything the framework allocates inside the audit call that a reader of the node would not see.
+     *
+     * <p>Measured AFTER warmup, because a JIT still compiling allocates profiling structures that have
+     * nothing to do with the steady state, and because the first pass through the audit path interns
+     * its keys. Both would be charged to the graph otherwise.
+     */
+    private static void runAllocation(QuoteEngineProcessor p, GenQuoteEngine.MarketTick tick,
+                                      GenQuoteEngine.Fill fill, int iters, int symbols, int fillEvery,
+                                      boolean audit, long[] auditRecords) throws NoSuchFieldException {
+        com.sun.management.ThreadMXBean threads =
+                (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
+        if (!threads.isThreadAllocatedMemorySupported()) {
+            System.out.println("REFUSED: this JVM does not account thread allocation - no figure to give");
+            System.exit(2);
+        }
+        threads.setThreadAllocatedMemoryEnabled(true);
+        final long id = Thread.currentThread().threadId();
+        // A second warm pass: the first touched the audit path's key interning, which is a one-off and
+        // would otherwise be divided across the measured events and reported as a per-event cost.
+        for (int i = 0; i < 200_000; i++) { feed(p, tick, fill, i, symbols, fillEvery); }
+        final long before = threads.getThreadAllocatedBytes(id);
+        for (int i = 0; i < iters; i++) { feed(p, tick, fill, i, symbols, fillEvery); }
+        final long bytes = threads.getThreadAllocatedBytes(id) - before;
+        System.out.printf("RESULT harness=%s %s java-quoteengine-alloc audit=%s bytes=%d events=%d "
+                        + "bytesPerEvent=%.4f published=%d records=%d%n",
+                HarnessVersion.tag(), HarnessVersion.runtimeTag(), audit, bytes, iters,
+                bytes / (double) iters, publishedCount(p), auditRecords[0]);
     }
 
     private static long percentile(int[] counts, long n, double p) {
