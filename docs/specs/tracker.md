@@ -209,10 +209,20 @@ Shipped:
     interpreted and javac-compiled flavours, both of which support lambda serialization at runtime.
     **Nothing in the suite builds a native image**, so no test could have caught it. That gap is the
     real finding — see M57.3.
-- ☐ **M57.3 no test builds a native image.** The AOT break above was invisible to 3595 tests because
-  none of them run `native-image`. A single smoke test — build one DSL graph AOT and run one event —
-  would have caught it, and would catch the next one. It needs `GRAALVM_HOME` and takes ~30 s, so it
-  belongs behind the same gate the bench controls use: skipped loudly, never faked.
+- ☑ **M57.3 a test builds a native image** — DONE 2026-09-10. `NativeImageSmokeTest` generates a
+  flatMap graph, builds it with `native-image`, runs one event and asserts the total. Skipped loudly
+  when `GRAALVM_HOME` is unset, never faked; 24 s with GraalVM. It also asserts on the generated
+  SOURCE — that the flatMap constructor carries a resolved `MethodReferenceInfo` — so the regression is
+  caught even where GraalVM is absent and no image is built.
+- ☐ **M57.4 `fluxtion-generator-http` shades the runtime, and the shaded copy is stale.** Found by the
+  test above: that jar carries its own `com.telamin.fluxtion.runtime.*`, including a `Clock` predating
+  `shareReading`. It is a DIRECT dependency of `fluxtion-integration-tests` while the runtime arrives
+  transitively, so the shaded copy won the classpath and generated source compiled against a stale
+  runtime — failing on a method that exists.
+  - Symptom fixed: `fluxtion-runtime` is now declared first in that module.
+  - **The question left open is whether that jar should shade the runtime at all.** Anything depending
+    on both gets whichever the classpath happens to order first, and the failure mode is a compile
+    error against a method that exists — or worse, silently running an old implementation. *Owner call.*
 
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
