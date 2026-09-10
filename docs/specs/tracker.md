@@ -307,13 +307,23 @@ of that is reachable by anyone who did not write it.
 
 Open, in dependency order:
 
-- ☐ **M52.1** a **test** that the generator emits `clock.eventReceived` before `eventLogger.eventReceived`.
-  The generator *does* emit them in that order — verified in generated source 2026-09-09 — but nothing
-  enforces it, and the failure is silent: `logTime` quietly becomes the previous event's timestamp.
-  Belongs in the compiler repo.
-- ☐ **M52.3 (the sink half)** a byte-facing `LogRecordListener` path. `processLogRecord(LogRecord)` still
-  forces a sink to downcast — `BinaryLogWriter` casts to `BinaryLogRecord` — which is exactly what the
-  spec said a vendor sink should not have to do.
+- ☑ **M52.1** the generator emits `clock.eventReceived` before `eventLogger.eventReceived`, and
+  `AuditorOrderingTest` now enforces it. §6.2 required this test and said why: the order held "by
+  registration accident", and the failure is silent — `logTimeNow()` reads the reading
+  `clock.eventReceived` just took, so reversing them stamps every record with the PREVIOUS event's
+  time. Every record present, every `logTime` one event stale, and no reader can tell.
+- ☑ **M52.3 (the sink half)** — `LogRecord.encodeTo(OutputStream)` plus a default byte-facing overload
+  on `LogRecordListener`, per §6.1(2). A sink takes a record's encoded form without downcasting;
+  `asCharSequence()` was previously the only channel, so a binary record threw from it and every sink
+  wanting bytes downcast to a vendor class. Text records satisfy it with their characters, exactly as
+  the spec says, so nothing existing changed.
+  - Stream framing stays with the writer: the file header and dictionary frames are stream state — two
+    sinks reading the same records need their own answers — not a property of any one record.
+  - Asserted byte-identical to the tail of what `BinaryLogWriter` produces, so the two paths cannot
+    drift into logs a reader treats differently.
+  - **§6.1 items 1 and 3 remain**: the mandated `StringBuilder` on `LogRecord`, and `replaceBuffer`
+    assuming the incoming record holds characters. Both are refactors of the record hierarchy rather
+    than additions, which is why they were not taken with this.
 - ☐ **M52.4** `fluxtion-audit-reader` **as specified**: a compiler-repo module whose filter pipeline is
   itself a generated Fluxtion graph, AOT native. **What shipped is a plain reader inside
   `fluxtion-runtime`.** It works, it is tested, and it is a smaller thing than the spec describes —
