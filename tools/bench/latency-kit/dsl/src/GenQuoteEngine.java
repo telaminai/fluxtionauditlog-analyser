@@ -199,9 +199,15 @@ public class GenQuoteEngine {
         boolean audit = Boolean.getBoolean("audit");
         if (audit) {
             c.performanceProfile(EventProcessorConfig.PerformanceProfile.LOW_LATENCY_AUDIT);
+            // BINARY is what the benchmark measures. TEXT exists here only so the same graph can
+            // produce a human-readable sample of the SAME records - the two formats carry identical
+            // content and differ in encoding, so a text sample is a faithful description of what the
+            // binary one holds.
             c.addLowLatencyEventLog(
                     com.telamin.fluxtion.runtime.audit.EventLogControlEvent.LogLevel.INFO,
-                    EventProcessorConfig.AuditRecordFormat.BINARY);
+                    "text".equals(System.getProperty("format"))
+                            ? EventProcessorConfig.AuditRecordFormat.TEXT
+                            : EventProcessorConfig.AuditRecordFormat.BINARY);
         } else {
             // "No configuration" literally: the profile, and not one setting beside it.
             c.performanceProfile(EventProcessorConfig.PerformanceProfile.LOWEST_LATENCY);

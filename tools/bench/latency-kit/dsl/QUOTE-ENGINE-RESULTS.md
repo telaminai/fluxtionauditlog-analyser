@@ -320,3 +320,54 @@ hundreds of nanoseconds, the language choice on this graph is a rounding error b
 
 That cuts both ways and should be quoted both ways: it means the Java figure is defensible for this
 workload, AND it means neither figure is where a real latency budget is won or lost.
+
+
+## What the audit log contains, and what it costs on disk
+
+One record per event-processing **cycle** — not per node, not per log call. An event enters, the graph
+runs to completion, and everything any node recorded lands in one record whose `nodeLogs` are in
+**dispatch order**. So a record is a trace of the decision path.
+
+A real record from this engine, text form:
+
+```yaml
+eventLogRecord:
+    eventTime: 1789038765846
+    logTime: 1789038765846
+    event: Fill
+    nodeLogs:
+        - inventory: { sym: 1, pos: -20}
+        - publisher: { bid: 10000, ask: 10010}
+```
+
+That is a fill moving symbol 1's position to −20, and the quote of 10000/10010 that followed, in the
+order they happened. A tick produces only the `publisher` line; `inventory` is absent because a tick
+does not run that branch. **Absence is information** — a `Fill` record with no `publisher` line says
+the risk gate suppressed the quote.
+
+The binary form carries identical content with no names on the wire: every node, key and event-type
+name is interned once to a `short` and only ids are written.
+
+```
+file    := "FLXA", version:short, reserved:short          (8 bytes)
+dict    := 0x02, id:short, byteLen:short, utf8            (paid once per name)
+record  := 0x01, entryCount:short, eventTypeId:short,
+           eventTime:long, logTime:long, endTime:long,     (29 bytes fixed)
+           entry*                                          (16 bytes each)
+```
+
+**Measured size: 62.0 bytes/event marginal**, dictionary amortised (1,000 vs 11,000 events). That
+matches the format exactly — 29 fixed + 16 x 2.062 mean entries = 62.0, with fills carrying 4 entries
+and ticks 2.
+
+**At ~45M audited events/sec that is 2.79 GB/s**, and it is the honest limit of what this benchmark
+measured. The harness uses a counting sink deliberately — the claim under test is the cost of the audit
+PATH, and a writer would measure the disk. But a deployment at full rate has to put 2.79 GB/s
+somewhere, which is a harder problem than the 10 ns of CPU. Filtering, sampling or burst capture is a
+design decision this work does not make for you.
+
+**`endTime` is 0 under `LOW_LATENCY_AUDIT`, deliberately.** Stamping it costs a second clock read per
+event — around 8 ns, a large fraction of what auditing costs in total — so the profile spends that
+budget on the record instead. You can order events and measure intervals from `logTime`; you cannot
+read per-cycle duration. `setRecordEndTime(true)` turns it on at that price. A reader seeing zeros
+should know it is a trade, not a broken field.
