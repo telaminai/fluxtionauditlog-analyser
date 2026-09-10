@@ -253,6 +253,30 @@ quote engine — `dsl/GenQuoteEngine.java`, both targets, `dsl/QUOTE-ENGINE-RESU
   be current, which is exactly why nothing looked wrong. `branch-classpath.sh` builds a branch-first
   classpath, drops every fluxtion jar outright, and verifies by loading each key class and asking where
   it came from. **Re-run any figure quoted before this date that a decision depends on.**
+- ☑ **M60.5 controls, bands and the zero-allocation proof.** `dsl/build-quoteengine-controls.sh` builds
+  all six arms and REFUSES any emitting a guard; six bands in `control-bands.tsv`, all REPEATABLE at
+  CV 0.16–0.90% and validating green. Allocation is **zero**, checked three ways: JVM per-thread
+  accounting (0 bytes/5M events), survival of 25M events under a **non-collecting GC** on a 32 MB heap
+  while publishing 26M binary records, and a counting `operator new` in C++ (0 calls). `validate-controls.sh`
+  now exports `BENCH_CP` — without it every new band evaluated to an empty classpath and reported as a
+  failing band rather than a missing variable, the same bug the script already documents for `SP`.
+- ☑ **M60.6 four toolchains — native AOT does not win.** OpenJDK 25.0.2 C2 8.598/21.989, GraalVM Graal
+  JIT 12.026/21.314, **native AOT + PGO 12.662/22.297**, C++ 3.795/13.825. AOT with PGO is **47% slower
+  than C2 unaudited** and level audited; the image was asserted from its own build log (`PGO:
+  user-provided`, `Garbage collector: Epsilon GC`) rather than assumed. Once auditing, all three Java
+  toolchains converge within 5% — the audit path is the same code in each and dominates. AOT's argument
+  here is startup, not steady-state throughput.
+- ☑ **M60.7 Java's jitter is not the JVM.** GC, safepoints, JIT recompilation and background-thread
+  contention were each **excluded by measurement**: Epsilon changes nothing (p99.9 2416 vs 2459), the
+  run takes exactly ONE safepoint (at 0.422 s, max VM-op 0 ns), all 514 compilations finish before
+  0.4 s, and minimising compiler/GC threads does not tighten the tail. The residual — Java's p99.9−p50
+  excess of ~900–1000 ns per 64-burst against C++'s 125–375 — is **not identified**; the near-identical
+  unaudited maxima (8.6 µs vs 8.2 µs) point at the OS as a common floor. Core migration and cache
+  pressure are the remaining candidates and neither is demonstrated. *Open, low priority.*
+- **A PGO profile embeds class names.** The `.iprof` files these builds write carry the fully-qualified
+  name of every method profiled — a fourth channel the text sweep cannot see, after images, git
+  metadata and transcripts. They land under gitignored `target/` and must stay there; the sweep found
+  13 such untracked artefacts carrying sweep terms, none tracked. Noted where they are produced.
 - **A design point, not a defect.** Written with `boolean` callbacks, the `LOWEST_LATENCY` build carried
   a `guardCheck_` before every node — correctly: `setSupportDirtyFiltering(false)` drops the flags that
   decide nothing, and a `boolean` return IS the propagation decision. Void callbacks (which need

@@ -28,6 +28,9 @@ read as an observation rather than a property.
 | A forked trigger is EMITTED, and the dependent sees the joined result | `CppForkedTriggerTest` — five events of 1..5 must leave the dependent holding 15, not the 10 a missing join leaves | compiler |
 | The cost of a merge INPUT, isolated from the shape around it | `dsl/build-shape-controls.sh` shapes `merge` vs `mergeboth` — identical topology, one input firing vs two: C++ 0.319 ns, Java 0.463 ns | bench |
 | A groupBy stub can read the group the ARRIVING event updated, not only a key fixed at author time | `CppGroupByLastValueTest` — both insertion paths and the before-first-event guard | compiler |
+| The audited path allocates NOTHING — so it cannot hand you a collection pause later | three independent checks: `-Dalloc=true` (0 bytes/5M events), 25M events under a non-collecting GC on a 32MB heap, `heapCalls=0` from a counting `operator new` | bench |
+| A control arm cannot silently reinstate dirty-flag guards | `dsl/build-quoteengine-controls.sh` — asserts `guardCheck_` count is 0 and refuses the build otherwise | bench |
+| A native image is what it claims — profiled, not fallen back to sampled defaults | `dsl/build-quoteengine-controls.sh` — greps `PGO: user-provided` and `Garbage collector: Epsilon GC` out of the build log | bench |
 | A bench figure describes the BRANCH and not whatever snapshot is in `~/.m2` | `branch-classpath.sh --verify` — loads each key class and refuses if any resolved from a jar | bench |
 | A realistic six-node quoting graph costs what the shapes predict | `dsl/GenQuoteEngine` — throughput and burst-p50-per-event agree in all four arms (8.47/8.62, 21.48/21.27, 3.91/3.73, 13.03/13.32) | bench |
 | Per-event latency is REFUSED when the clock cannot resolve the event | `BenchQuoteEngine` / `qebench` — refuse when p50 < 2 ticks or >50% of samples are zero; refused the unaudited C++ arm at burst=16 | bench |
