@@ -89,6 +89,22 @@ so the check was right and could not know the substitution was intended. It is n
 expectation (`-DexpectProcessor`, defaulting to the type the harness was compiled against) rather than
 a literal, so it still catches a stale or substituted class arriving from the classpath.
 
+## The same wiring, targeting C++
+
+`BuildFromSpringCpp.java` is the same build with `-DgenId=cpp`. Three supplier jars and the same XML
+emit a **C++** processor:
+
+```
+  MarketTick : market.onTick signal.onMarket fair.onInputs quote.onFairValue risk.onQuote diff.onInputs intent.onDiff
+  Execution  : working.onExecution inventory.onExecution fair.onInputs quote.onFairValue risk.onQuote diff.onInputs intent.onDiff
+  OrderUpdate: working.onOrderUpdate diff.onInputs intent.onDiff
+  TimerTick  : freshness.onTimer risk.onQuote diff.onInputs intent.onDiff
+```
+
+Against the C++ emitted from the builder-API graph: **345 lines each, identical multiset of lines**,
+differing only in order. So a supplier's Java-annotated nodes reach a C++ deployment without the
+supplier writing any C++ — which was asserted in the docs before it was demonstrated, and now is.
+
 ## Running it
 
 ```bash
