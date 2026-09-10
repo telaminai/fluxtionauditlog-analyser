@@ -24,6 +24,14 @@ int main(int argc, char** argv) {
     const int64_t warm    = argc > 2 ? atoll(argv[2]) : 2000000;
     const int     batches = argc > 3 ? atoi(argv[3])  : 6;
     ShapeProcessor p;
+#ifdef HAS_AUDIT
+    // The counterpart of the Java arm's counting sink - the audit PATH, not the disk.
+    struct CountingSink : fluxtion::LogRecordListener {
+        long long records = 0;
+        void processLogRecord(const fluxtion::BinaryLogRecord&) override { ++records; }
+    } sink;
+    p.setLogSink(&sink);
+#endif
     p.init();
     Tick t;
     for (int64_t i = 0; i < warm; i++) { t.price = (int32_t)((i & 15) - 8); p.handle_Tick(&t); }
@@ -37,11 +45,11 @@ int main(int argc, char** argv) {
         best = std::min(best, (double) ns / (double) iters);
         checksum = p.total.getAsInt();
     }
-#ifdef HAS_SINK
-    std::printf("cpp-%s ns=%.4f checksum=%d fires=%lld\n", SHAPE_NAME, best, checksum,
-                (long long) sinkFires);
+#ifdef HAS_AUDIT
+    std::printf("cpp-%s audit=true ns=%.4f checksum=%d records=%lld\n",
+                SHAPE_NAME, best, checksum, sink.records);
 #else
-    std::printf("cpp-%s ns=%.4f checksum=%d\n", SHAPE_NAME, best, checksum);
+    std::printf("cpp-%s audit=false ns=%.4f checksum=%d\n", SHAPE_NAME, best, checksum);
 #endif
     return 0;
 }

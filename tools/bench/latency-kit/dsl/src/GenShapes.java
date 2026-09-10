@@ -32,6 +32,13 @@ public class GenShapes {
 
     static void graph(EventProcessorConfig c) {
         String shape = System.getProperty("shape", "merge");
+        if (Boolean.getBoolean("audit")) {
+            // Exactly the configuration the spec's audit-path claim names.
+            c.performanceProfile(EventProcessorConfig.PerformanceProfile.LOW_LATENCY_AUDIT);
+            c.addLowLatencyEventLog(
+                    com.telamin.fluxtion.runtime.audit.EventLogControlEvent.LogLevel.INFO,
+                    EventProcessorConfig.AuditRecordFormat.BINARY);
+        }
         switch (shape) {
             case "merge":
                 subscribe(Tick.class).filter(GenShapes::pos)
