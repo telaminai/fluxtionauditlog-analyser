@@ -335,8 +335,21 @@ application. M60's `GenQuoteEngine` is retained as the CONTROL. Spec, graph, wor
 - ☑ **M61.5 audit volume.** 0.27 records/event and 20.4 bytes/event against the control's 1.00 and 62.0
   — ~630 MB/s at audited rate. **The record mix is inverted relative to the event mix**: OrderUpdate is
   22% of events and 66% of records; MarketTick 70% and 12%. The log records decisions, not traffic.
-- ☐ **M61.6 the C++ arm.** Not built. Per-symbol state that lives in node fields in Java must live at
-  file scope in C++, as it does for the control.
+- ☑ **M61.6 the C++ arm** — DONE 2026-09-10. **Java and C++ produce byte-identical decisions**: the same
+  deterministic stream agrees at every one of 1,981,480 decision points (NONE 1,771,067 / NEW 41,801 /
+  REPLACE 168,148 / CANCEL 464, same intents and suppressions). Causal latency **9.970 / 15.863 ns**
+  unaudited/audited against Java's 23.783 / 33.103 — **2.39x and 2.09x**. C++ shows the same
+  serial-bound signature (throughput, control and latency within 4%). Auditing costs 5.9 ns/event in
+  C++ against Java's 9.3. Working set, uniform, rebuilt per count: 11.90 / 12.30 / 12.82 / **20.60** ns
+  across 64–4096 symbols — clean and monotonic with a clear cliff at 4096, where Java's curve is noisy
+  and non-monotonic.
+- ☑ **M61.7 `@Initialise` had no C++ spelling** (compiler `7406e93`). `buildLifecycle()` emitted
+  `node.init()` call sites for every lifecycle method but the stub declared only event, trigger and
+  `@OnParentUpdate` callbacks — so the ten-node graph failed with nine "no member named 'init'" errors.
+  Not an exotic corner: the Java builder serialises constructor state into the generated source
+  including array contents, so per-symbol arrays MUST be allocated at init. `CppLifecycleStubTest` pins
+  the call sites and the declarations together. Second parity gap this benchmark found, after
+  `GroupBy.lastValue()`.
 - **Four bugs, all of which produced a benchmark that RAN**: node state is serialised into the generated
   constructor including array contents (`code too large` at 64 symbols — fixed with `@FluxtionIgnore` +
   `@Initialise`); `PARTIAL_FILL` never cleared `pending`; `break` in an arrow-switch case dropped

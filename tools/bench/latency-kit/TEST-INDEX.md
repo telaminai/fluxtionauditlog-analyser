@@ -27,6 +27,8 @@ read as an observation rather than a property.
 | Named sinks and typed services refuse a type mismatch rather than reinterpreting it | `CppConnectorTest#namedSinksAndServices…` | compiler |
 | A forked trigger is EMITTED, and the dependent sees the joined result | `CppForkedTriggerTest` — five events of 1..5 must leave the dependent holding 15, not the 10 a missing join leaves | compiler |
 | The cost of a merge INPUT, isolated from the shape around it | `dsl/build-shape-controls.sh` shapes `merge` vs `mergeboth` — identical topology, one input firing vs two: C++ 0.319 ns, Java 0.463 ns | bench |
+| A lifecycle callback the processor CALLS is declared on the stub it calls it on | `CppLifecycleStubTest` — asserts call site and declaration together for `@Initialise` and `@TearDown` | compiler |
+| Java and C++ make IDENTICAL decisions on a realistic graph | `qcbench MIX=1` vs `BenchQuotingCore -Dmix=true` — 1,981,480 decision points agree exactly | bench |
 | A groupBy stub can read the group the ARRIVING event updated, not only a key fixed at author time | `CppGroupByLastValueTest` — both insertion paths and the before-first-event guard | compiler |
 | The audited path allocates NOTHING — so it cannot hand you a collection pause later | three independent checks: `-Dalloc=true` (0 bytes/5M events), 25M events under a non-collecting GC on a 32MB heap, `heapCalls=0` from a counting `operator new` | bench |
 | A control arm cannot silently reinstate dirty-flag guards | `dsl/build-quoteengine-controls.sh` — asserts `guardCheck_` count is 0 and refuses the build otherwise | bench |

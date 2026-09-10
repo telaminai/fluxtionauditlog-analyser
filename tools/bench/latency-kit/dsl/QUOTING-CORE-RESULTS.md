@@ -160,9 +160,45 @@ Four, and all four produced a benchmark that ran:
 Three of the four were only visible because the harness reports the **branch mix**. A benchmark that
 prints only nanoseconds would have reported every one of them as a fast result.
 
+## C++
+
+Both arms build clean under `-Wall -Wextra`. **Java and C++ produce byte-identical decisions** — the
+same deterministic stream replayed in both languages agrees at every one of 1,981,480 decision points:
+NONE 1,771,067 / NEW 41,801 / REPLACE 168,148 / CANCEL 464, same intents emitted, same risk and stale
+suppressions. That is the correctness gate for the comparison, and it is stronger than a checksum.
+
+| 64 symbols, active | Java | C++ | ratio |
+|---|---:|---:|---:|
+| throughput, unaudited | 23.659 | **9.893** | 2.39x |
+| throughput, audited | 32.410 | **15.575** | 2.08x |
+| read-control, unaudited | 24.326 | 10.072 | |
+| read-control, audited | 33.042 | 16.228 | |
+| **causal latency, unaudited** | 23.783 | **9.970** | 2.39x |
+| **causal latency, audited** | 33.103 | **15.863** | 2.09x |
+
+**C++ shows the same serial-bound signature**: throughput, control and latency agree within 4%, so the
+throughput figure is the latency figure in both languages. Auditing costs **5.9 ns/event in C++**
+against Java's 9.3.
+
+### Working set, C++
+
+Causal latency, uniform symbols, rebuilt per count, min of 3:
+
+| symbols | state | C++ unaudited | C++ audited | Java unaudited |
+|---:|---:|---:|---:|---:|
+| 64 | 8 KB | 11.90 | 17.23 | 26.74 |
+| 256 | 32 KB | 12.30 | 17.25 | 38.50 |
+| 1024 | 128 KB | 12.82 | 18.02 | 31.75 |
+| 4096 | 512 KB | **20.60** | **25.76** | 40.19 |
+
+**The C++ curve is clean and monotonic with a clear cliff at 4096** — flat from 64 to 1024, then +61%
+as the working set leaves cache. Java's curve over the same builds is noisier and non-monotonic. We
+would not read much into the difference in shape beyond noting that the C++ arm makes the cache effect
+easy to see and the Java arm does not.
+
 ## Status
 
-Java is complete and measured. **The C++ arm is not yet built** — the harness needs porting, and the
+Both arms complete. **The `@Initialise` gap was found here** — the harness needs porting, and the
 per-symbol state that lives in node fields in Java has to live at file scope in C++, as it does for the
 control. The reviewer's prediction was C++ 20–40 ns and Java 30–60 ns causal latency for the audited
 64-symbol core; Java measures **32.4 ns**, inside their band.
