@@ -245,6 +245,31 @@ Shipped:
   - **Audit stays shared and that is deliberate**: a forked node logs into the same record from another
     thread, exactly as Java does. Diverging "safely" would break the oracle's premise.
 
+### M59 · The C++ target is finished and unusable — ☐ opened 2026-09-10
+
+Phase 6 closed the last phase: 36 DSL constructs, 20 oracle chains, forked triggers, a connector. None
+of that is reachable by anyone who did not write it.
+
+- ☐ **M59.1 the target is selected by a GLOBAL SYSTEM PROPERTY, and that is the whole API.**
+  `System.setProperty("fluxtion.sourceGeneratorId", "cpp")` before `EventProcessorFactory.compile`.
+  Every test sets and restores it by hand, which is the smell. **Checked, because it is easy to assume
+  otherwise: there is no target-language setting on `EventProcessorConfig` or
+  `FluxtionCompilerConfig`.** `EventProcessorConfig.javaTargetRelease(String)` exists and is a
+  near-miss — it is the Java language LEVEL, not the target language.
+  - It should be a per-call config option. A global is wrong for any concurrent caller, which makes it
+    the blocking item for M59.3 rather than a tidiness point.
+- ☐ **M59.2 there is no how-to.** The only C++ document is `spec-cpp-target.md`, a design spec: phases,
+  measurements, refusals, rationale. Nothing tells a user how to generate C++, where the header-only
+  runtime comes from (`CppSourceGenerator.writeRuntimeHeaders`), which stubs they must implement, or
+  that it needs `-std=c++17`.
+- ☐ **M59.3 the HTTP service cannot generate C++.** `fluxtion-generator-http` exposes
+  `/generate-source` and depends on `fluxtion-generator-core` and `fluxtion-builder` — **not**
+  `fluxtion-generator-cpp`. The C++ generator IS registered under
+  `META-INF/services/…SourceGenerator`, so the SPI would find it once the jar is present. Two changes:
+  add the dependency (it shades into the deployed fat jar), and give `/generate-source` a target
+  parameter — which cannot be done safely until M59.1, since two concurrent requests choosing
+  different targets would race on the system property.
+
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
 - ☐ **M56.1 make the DSL controls use the kit's own method.** `build-groupby-controls.sh` and
