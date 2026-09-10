@@ -193,38 +193,26 @@ Shipped:
   drifts 326 ns a day.
 - ☐ **M57.1 the last ~8 ns is a clock read**, in all three arms. `CachedClockStrategy` exists for the
   several-graphs-per-turn case; nothing else is available without changing what a timestamp means.
-- ☐ **M57.2 flatMap does not get the generator's closed-world treatment, and that breaks AOT.**
-  The generated source shows it in two lines:
-
-  ```java
-  new MapRef2ToIntFlowFunction<>(flatMap_0, String::length,
-          new MethodReferenceInfo("String->length", false, null, false));   // resolved at BUILD time
-  new FlatMapFlowFunction<>(handlerTick, GenShapes::parts);                 // no info - reflects at RUNTIME
-  ```
-
-  `FlatMapFlowFunction`'s constructor calls `captured()` → `serialized()` →
-  `getDeclaredMethod("writeReplace")`, so a generated processor containing a flatMap **cannot be
-  CONSTRUCTED under native-image**, which drops `writeReplace` from lambda classes. It fails at
-  startup; the event path never runs. **Method references do not avoid it** — the failing bench uses a
-  static one, and a method reference is a lambda class too.
-
-  **The mechanism to fix it already exists and flatMap does not participate.**
-  `LiveGraphSourceGenExtractor` emits the closed-world constructor when a node is an
-  `AbstractFlowFunction` **and** its class has a `(..., MethodReferenceInfo)` constructor. flatMap
-  fails BOTH: it `extends BaseNode`, so the gate rejects it before the constructor is even looked for.
-  So the fix is two parts, and the hierarchy is the root one:
-  - give `FlatMapFlowFunction` a `(..., MethodReferenceInfo)` constructor that skips the reflection,
-  - and let the extractor consider it — either by moving it under `AbstractFlowFunction` or by widening
-    the gate past that one type.
-
-  Worth noting what the constructor is actually doing: `GeneratorNodeCollection.service().addOrReuse(...)`
-  is BUILDER work running inside a constructor that also runs in the generated processor. The
-  closed-world path exists precisely so generated code does not re-run the builder.
-
-  **Until then any AOT deployment using flatMap is broken**, and the workaround is a native-image
-  serialization config naming the generated processor as a `lambdaCapturingType` — verified to work.
-  Fluxtion could emit that itself: it already writes
-  `META-INF/native-image/<group>/<class>/native-image.properties` beside the processor.
+- ☑ **M57.2 flatMap gets the generator's closed-world treatment** — FIXED 2026-09-10. A flatMap graph
+  now builds and runs as a native image with no serialization config and no workaround.
+  `FlatMapFlowFunction` gained the `(..., MethodReferenceInfo)` constructor every other flow node
+  already had, and `closedWorldMethodReferenceInfo` now sees it — the gate required
+  `AbstractFlowFunction` and flatMap `extends BaseNode`, so it was rejected before its constructor was
+  ever looked for.
+  - **Not a lambda-vs-method-reference problem.** The compiled path only supports method references
+    anyway — it needs a serialisable reference to emit — so EVERY compiled flatMap graph was affected.
+    A method reference is a lambda class too, and `captured()` reflects unconditionally.
+  - **Gating on the constructor alone was tried and reverted.** `BiPushFunction` declares one whose
+    generated form does not type-check, and was relying on the hierarchy check to stay on the legacy
+    path. 13 test errors said so. Declaring the constructor is not evidence the call site compiles.
+  - **The coverage gap that let this ship:** 11 test files use flatMap and all pass. They exercise the
+    interpreted and javac-compiled flavours, both of which support lambda serialization at runtime.
+    **Nothing in the suite builds a native image**, so no test could have caught it. That gap is the
+    real finding — see M57.3.
+- ☐ **M57.3 no test builds a native image.** The AOT break above was invisible to 3595 tests because
+  none of them run `native-image`. A single smoke test — build one DSL graph AOT and run one event —
+  would have caught it, and would catch the next one. It needs `GRAALVM_HOME` and takes ~30 s, so it
+  belongs behind the same gate the bench controls use: skipped loudly, never faked.
 
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
