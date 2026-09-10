@@ -177,6 +177,26 @@ Shipped:
   inspecting, in turn, the legacy `com.fluxtion` repo, a stale sibling branch, and the shaded
   `fluxtion-generator-http` jar. Now resolved by artefact name from the test classpath.
 
+### M57 · The audited path — ◑ measured and largely fixed 2026-09-10
+
+- ☑ **The audit-cost claim was withdrawn and then earned.** `spec-cpp-target.md` claimed C++ audited at
+  2.92 ns/event against Java's 13.69 — from a HAND-WRITTEN C++ arm, never measured on generated output.
+  Measured, it started at **61.93** against Java's 18.83, and is now **14.09** against Java's 17.16 JIT
+  and 17.23 native. Four fixes, each measured: intern log keys by address, four inline key slots, a
+  literal-value path the generator uses for strings it wrote itself, and — the largest — **the
+  generator pre-resolving every key id at init**, worth 7.70 ns because the identity cache is a memory
+  lookup that graph work evicts. A runtime library cannot do that; a generator cannot avoid knowing it.
+- ☑ **Re-entrant waves share the arrival's instant**, in BOTH languages. A three-element flatMap made
+  four records and took four clock readings for one arrival. Worth ~20 ns to Java JIT and nothing
+  measurable to C++, which is consistent with the read being latency a larger event hides.
+- ☑ **Tick→nanosecond conversion by multiply, not divide** — and with 64 fractional bits, because 32
+  drifts 326 ns a day.
+- ☐ **M57.1 the last ~8 ns is a clock read**, in all three arms. `CachedClockStrategy` exists for the
+  several-graphs-per-turn case; nothing else is available without changing what a timestamp means.
+- ☐ **M57.2 the flatMap shape has no native arm.** Profile collection fails under `--gc=epsilon`, which
+  never collects, against a shape that allocates per element. Needs a different GC for that arm, or the
+  shape is left JIT-only and said to be.
+
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
 - ☐ **M56.1 make the DSL controls use the kit's own method.** `build-groupby-controls.sh` and

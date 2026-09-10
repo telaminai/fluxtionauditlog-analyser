@@ -465,3 +465,32 @@ JIT rather than the language.
 
 If P17a comes back with native FAR below C++, then the clock is not the floor I think it is and the
 whole "both pay for a timestamp" framing needs re-examining.
+
+### P17 scored — measured 2026-09-10, Oracle GraalVM 25.0.4+7.1
+
+Installed to measure this (the machine had none, despite `control-bands.tsv` naming one — it is the
+same version the bands were recorded on, so these are comparable). Same shape, audited and unaudited,
+four reps, minimum:
+
+| arm | unaudited | audited | audit cost/event |
+|---|---:|---:|---:|
+| Java native AOT + PGO | 11.84 | 29.07 | **17.23 ns** |
+| Java JIT | 13.39 | 30.55 | **17.16 ns** |
+| C++ `-O3` | 0.63 | 14.72 | **14.09 ns** |
+
+- **P17a — right about the outcome, wrong about the mechanism.** I predicted native would land near C++
+  rather than far below it, reasoning that it would improve on JIT until the clock floor stopped it.
+  It lands near C++ (17.23 against 14.09) — but **not by improving at all**. Native's audit cost is
+  within noise of JIT's. The prediction was right for a reason that turned out not to be the reason.
+- **Native barely helps this shape even unaudited: 13.39 → 11.84, about 12%.** That is worth stating
+  next to the figure this kit already records — Java dispatch at *12.44 ns JIT against 2.05 native*, a
+  6× gain. That was a different graph under `LOWEST_LATENCY`; this is `mapToInt → aggregate` under
+  `DEFAULT`. **A 6× native advantage is not a property of the language, it is a property of that
+  graph and that profile**, and quoting it as the former would be the withdrawn-23× mistake again.
+- **P17b is unscored.** The flatMap native arm did not build: profile collection failed under
+  `--gc=epsilon`, which never collects, and flatMap allocates per element. That is a real limit of the
+  harness rather than a result, and it is recorded rather than worked around.
+
+**What this says about the audit path.** The cost is not code the JIT was failing to optimise — if it
+were, AOT with a good profile would have moved it. Both Java arms sit at ~17 ns and C++ at 14 ns, and
+about 8 ns of every one of those is a clock read. The remaining gap is small and the floor is shared.

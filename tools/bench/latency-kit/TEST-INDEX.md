@@ -113,12 +113,15 @@ adding a narrower assertion that would have caught it more legibly.
   order guarantee is load-bearing (`GroupByFlowFunctionWrapper` keeps a `LinkedHashMap` so multi-key
   emit is identical interpreted/AOT), so this is a real gap and not a theoretical one. It closes when a
   downstream construct iterates the groups.
-- **Java native AOT on the audit path.** Every audit figure recorded — C++ 13.17 ns/event against Java
-  18.83, and the flatMap re-entrant A/B — is Java **JIT**. `dsl/build-shape-controls.sh` builds a
-  native arm with PGO, gated on `GRAALVM_HOME` and skipped loudly when unset, which is this machine's
-  state: no `native-image` is installed and the GraalVM `control-bands.tsv` names is gone. The
-  recorded dispatch figures put Java at 12.44 ns JIT against 2.05 native, so this is not a detail.
-  Prediction P17 is recorded and unscored.
+- ~~**Java native AOT on the audit path.**~~ **Measured 2026-09-10** on Oracle GraalVM 25.0.4+7.1,
+  installed for it. Audit cost per event: Java native **17.23**, Java JIT **17.16**, C++ **14.09** —
+  native gives nothing on the audit path, and about 8 ns of all three is a clock read. What is still
+  undefended is the flatMap shape natively: its profile collection fails under `--gc=epsilon`, which
+  never collects, and flatMap allocates per element.
+- **The 6× native dispatch advantage this kit records does not generalise.** 12.44 JIT against 2.05
+  native was `map → map → filter → aggregate` under `LOWEST_LATENCY`; on `mapToInt → aggregate` under
+  `DEFAULT` native wins 13.39 → 11.84, about 12%. The multiplier belongs to a graph and a profile, not
+  to the language.
 - **`mkdocs build --strict` on the core site.** Never run; mkdocs is not installed here.
 - **Any C++ figure recorded before 2026-09-09** — those arms were measured while the target emitted no
   dirty flags at all, so conditional propagation was absent rather than cheap.
