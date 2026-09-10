@@ -43,6 +43,6 @@ int main(int argc, char** argv) {
         best = std::min(best, (double) ns / (double) iters);
         checksum = p.total.getAsInt();
     }
-    std::printf("cpp-groupby keys=%d pattern=%d ns=%.4f checksum=%d\n", keys, pattern, best, checksum);
+    std::printf("cpp-groupby keys=%d pattern=%d %.4f ns checksum=%d\n", keys, pattern, best, checksum);
     return 0;
 }

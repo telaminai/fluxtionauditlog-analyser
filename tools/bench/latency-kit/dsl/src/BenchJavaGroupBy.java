@@ -27,6 +27,6 @@ public class BenchJavaGroupBy {
             best = Math.min(best, ns / (double) iters);
             checksum = p.total.getAsInt();
         }
-        System.out.printf("RESULT java-groupby keys=%d pattern=%d ns=%.4f checksum=%d%n", keys, pattern, best, checksum);
+        System.out.printf("RESULT java-groupby keys=%d pattern=%d %.4f ns checksum=%d%n", keys, pattern, best, checksum);
     }
 }

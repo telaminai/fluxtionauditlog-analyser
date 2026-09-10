@@ -30,7 +30,7 @@ for shape in $SHAPES; do
       -DoutDir="$OUT/$shape_dir/gen" app.GenShapes >/dev/null
   "$JH/bin/javac" -nowarn -d "$OUT/$shape_dir/javabuild" -cp "$OUT/shclasses:$CP" \
       "$OUT/$shape_dir/gen/app/gen/ShapeProcessor.java" "$HERE/src/BenchJavaShapes.java" \
-      "$HERE/src/GenShapes.java"
+      "$HERE/src/GenShapes.java" "$HERE/../src/app/HarnessVersion.java"
 
   rm -rf "$OUT/$shape_dir/gencpp"; mkdir -p "$OUT/$shape_dir/gencpp"
   "$JH/bin/java" -cp "$OUT/shclasses:$CP" -Dshape="$shape" -Daudit="$AUDIT" -Dtarget=cpp \
@@ -53,8 +53,13 @@ PY
     [ "$(cat has_sink.txt)" = "1" ] && extra="-DHAS_SINK"
     grep -q "setLogSink" ShapeProcessor.h && extra="$extra -DHAS_AUDIT"
     grep -q "Emitter&" ShapeProcessor.h && extra="$extra -DHAS_FLATMAP"
+    # The runtime identity is a digest of what this binary was actually built from - the emitted
+    # processor plus the header-only runtime beside it. Without it measure.sh refuses the figure, and
+    # rightly: a number that cannot say which runtime produced it is how stale figures survive.
+    RT_ID=$(cat ShapeProcessor.h fluxtion*.h 2>/dev/null | shasum -a 256 | cut -c1-12)
     cp "$HERE/src/main-shapes.cpp" .
-    clang++ -std=c++17 -O3 -Wall -Wextra -I. -DSHAPE_NAME="\"$shape\"" $extra -o shbench main-shapes.cpp )
+    clang++ -std=c++17 -O3 -Wall -Wextra -I. -DSHAPE_NAME="\"$shape\"" -DHARNESS_TAG="\"h5\"" -DRUNTIME_TAG="\"rt:$RT_ID\"" \
+        $extra -o shbench main-shapes.cpp )
   echo "built $shape_dir (java jit + cpp -O3)"
 
   # ---- Java native AOT, optional ------------------------------------------------------------

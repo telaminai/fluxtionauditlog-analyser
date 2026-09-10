@@ -29,7 +29,10 @@ public class BenchJavaShapes {
             best = Math.min(best, ns / (double) iters);
             checksum = p.total.getAsInt();
         }
-        System.out.printf("RESULT java-%s audit=%s ns=%.4f checksum=%d records=%d%n",
+        // harness= and rt: are REQUIRED by measure.sh, which refuses a figure that cannot say what
+        // produced it. Both changed repeatedly in round 63 and neither appeared in any build log.
+        System.out.printf("RESULT harness=%s %s java-%s audit=%s %.4f ns checksum=%d records=%d%n",
+                HarnessVersion.tag(), HarnessVersion.runtimeTag(),
                 shape, System.getProperty("audit", "false"), best, checksum, auditRecords[0]);
     }
 }

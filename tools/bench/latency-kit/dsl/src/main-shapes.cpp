@@ -58,10 +58,11 @@ int main(int argc, char** argv) {
         checksum = p.total.getAsInt();
     }
 #ifdef HAS_AUDIT
-    std::printf("cpp-%s audit=true ns=%.4f checksum=%d records=%lld\n",
-                SHAPE_NAME, best, checksum, sink.records);
+    std::printf("RESULT harness=%s %s cpp-%s audit=true %.4f ns checksum=%d records=%lld\n",
+                HARNESS_TAG, RUNTIME_TAG, SHAPE_NAME, best, checksum, sink.records);
 #else
-    std::printf("cpp-%s audit=false ns=%.4f checksum=%d\n", SHAPE_NAME, best, checksum);
+    std::printf("RESULT harness=%s %s cpp-%s audit=false %.4f ns checksum=%d\n",
+                HARNESS_TAG, RUNTIME_TAG, SHAPE_NAME, best, checksum);
 #endif
     return 0;
 }

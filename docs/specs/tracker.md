@@ -284,13 +284,21 @@ of that is reachable by anyone who did not write it.
 
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
-- ☐ **M56.1 make the DSL controls use the kit's own method.** `build-groupby-controls.sh` and
-  `build-shape-controls.sh` build arms; nothing in them enforces how the arms are RUN, so I ran them
-  single-shot, in ascending order, with the two languages interleaved — and published numbers that had
-  to be corrected across four documents. `measure.sh` already implements the repeatable-minimum method
-  `control-bands.tsv` describes. Either the new controls call it or they grow the same gate: N reps,
-  minimum, one language per pass, and a refusal to print a figure whose reps disagree by more than the
-  band. A kit that states a method and does not apply it teaches the wrong habit to the next reader.
+- ☑ **M56.1 the DSL controls go through the kit's own gate** — DONE 2026-09-10. `measure-dsl.sh` runs
+  ONE arm of one shape through `measure.sh`, which already implemented the method
+  `control-bands.tsv` describes and which the new controls had been bypassing.
+  - What the gate actually enforces, and all of it now applies to the DSL arms: it refuses on a loaded
+    machine; it refuses a result that **cannot say what produced it** — `harness=` and `rt:` must be in
+    the output, and neither arm emitted them; it runs batches of reps and takes the minimum; and it
+    **refuses to print a figure whose batch minima disagree by more than the arm's CV limit**.
+  - The C++ arm now compiles in a runtime identity that is a digest of **what the binary was built
+    from** — the emitted processor plus the header-only runtime beside it. The Java arm reuses the
+    kit's own `HarnessVersion`.
+  - The script takes ONE arm per invocation on purpose. Interleaving Java and C++ inflated every C++
+    number by ~2× and no gate can see that, so the shape of the script has to prevent it.
+  - Proven on both arms: C++ `REPEATABLE: 13.587 ns CV=0.14%`, Java `29.608 ns CV=0.47%`.
+  - **Neither harness bug from 2026-09-09/10 can recur**: the minimum starts empty rather than at a
+    magic 99, and the identity gate refuses a figure whose provenance is unstated.
 - ☐ **M56.2 a clean merge isolation.** P13 is unanswerable from the current control: the merge shape
   carries two filters and a second subscription the reference does not, so its ratio is not merge's
   cost. Needs a shape with the same node count that does not merge.
