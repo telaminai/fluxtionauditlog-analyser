@@ -288,9 +288,14 @@ Phase 6 closed the last phase and none of it was reachable by anyone who had not
   - Proven on both arms: C++ `REPEATABLE: 13.587 ns CV=0.14%`, Java `29.608 ns CV=0.47%`.
   - **Neither harness bug from 2026-09-09/10 can recur**: the minimum starts empty rather than at a
     magic 99, and the identity gate refuses a figure whose provenance is unstated.
-- ☐ **M56.2 a clean merge isolation.** P13 is unanswerable from the current control: the merge shape
-  carries two filters and a second subscription the reference does not, so its ratio is not merge's
-  cost. Needs a shape with the same node count that does not merge.
+- ☑ **M56.2 merge is isolated** — DONE 2026-09-10, and the isolation needed no second topology. The
+  same graph with a different number of merge INPUTS firing: two builds, identical node counts and
+  wiring, differing only in filter predicates. A second merge input costs **C++ 0.319 ns, Java
+  0.463 ns** — 1.45x, against 17x on plain dispatch. P13's reasoning holds: merge is where neither
+  side allocates and where Java is closest to C++. The 6.5x was never about merge.
+  - The gate refused both C++ arms at first (CV 2.25% and 3.24% against a 2% limit) and they settled
+    at 10 reps of 5M events. This shape is noisier than the others; a single-shot figure would have
+    been luck.
 
 ### M52 · still open
 

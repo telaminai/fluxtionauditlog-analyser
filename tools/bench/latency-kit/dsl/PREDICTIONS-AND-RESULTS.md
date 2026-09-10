@@ -530,3 +530,30 @@ dispatch figures suggest. The plausible reason is the one the arm had to be buil
 allocates per element, so it is the shape most exposed to the collector, and the native arm runs serial
 GC against a JIT with a generational collector. That is a hypothesis about the GC, not a measurement of
 it — and it is a fair warning that "native is faster" is a claim about a workload, not a runtime.
+
+### P13 re-scored — merge, isolated at last (M56.2, 2026-09-10)
+
+The earlier attempt compared a merge SHAPE against the plain chain, and the shape carried two filters
+and a second subscription the reference did not — so 6.5x measured a graph, not an operator.
+
+The isolation that works needs no second topology: **the same graph, with a different number of merge
+inputs firing.** Two builds, identical node counts and wiring (12 structs, 6 `inputStreamUpdated` sites
+in both), differing only in the filter predicates — opposite filters so exactly one branch passes,
+against two filters that both pass.
+
+| | C++ | Java JIT |
+|---|---:|---:|
+| merge, one input per event | 2.402 | 15.836 |
+| merge, two inputs per event | 2.721 | 16.299 |
+| **a second merge input** | **0.319 ns** | **0.463 ns** |
+
+**P13's reasoning is supported, and by a wider margin than the prediction guessed at.** The claim was
+that merge is the case where neither side allocates, so C++'s advantage should be at its smallest.
+Isolated, a merge input costs Java **1.45x** what it costs C++ — against **17x** on plain dispatch.
+Merge is one of the operations where Java is closest to C++, which is what "neither side allocates"
+predicts. The 6.5x figure was never about merge.
+
+**Both C++ arms were REFUSED by the gate at first** — CV 2.25% and 3.24% against the 2% C++ limit —
+and settled to 1.10% and 0.50% at 10 reps of 5M events. Worth stating rather than quietly using the
+second run: this shape is noisier than the others, and a single-shot number for it would have been
+luck.

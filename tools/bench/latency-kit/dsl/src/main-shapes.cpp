@@ -11,6 +11,8 @@ int32_t Tick_getPrice(const void* e) { return static_cast<const Tick*>(e)->price
 // merge only; harmless where the shape does not declare them.
 bool GenShapes_pos(const void* e) { return static_cast<const Tick*>(e)->price > 0; }
 bool GenShapes_neg(const void* e) { return static_cast<const Tick*>(e)->price <= 0; }
+bool GenShapes_always(const void* e) { return static_cast<const Tick*>(e)->price != INT32_MIN; }
+bool GenShapes_alsoAlways(const void* e) { return static_cast<const Tick*>(e)->price != INT32_MIN; }
 #ifdef HAS_FLATMAP
 // The flatMap shape: three elements per event, so four graph cycles for one arrival.
 static const char* const kParts[] = {"aa", "b", "ccc"};
