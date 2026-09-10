@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <vector>
 #include <new>
+#include <memory>
+#include <string>
 #include "VenueCoreProcessor.h"
 
 // The C++ arm of the venue-lifecycle quoting core. Same graph, same arithmetic, same deterministic
@@ -515,11 +517,158 @@ void generate(int32_t count, int32_t symbols, uint64_t seed) {
     }
 }
 
+// ---- conditional causal paths, mirroring the Java harness ------------------------------------
+// Each mode drives a stream that forces one path and REFUSES if the intended branch did not dominate.
+// A whole-workload average is 90% NONE, so a cheap no-op path can hide an expensive actionable one.
+// In path mode the venue is NOT simulated: a path measurement isolates the graph, and the harness
+// settles the order book directly between iterations - bookkeeping, not a venue.
+bool pathMode = false;
+
+void settleBook() {
+    using namespace app::gen;
+    while (consumedIntent != intentData.cursor) {
+        const int32_t i = consumedIntent++ & kRingMask;
+        const int32_t slot = (intentData.intentSymbol[i] << 1) + intentData.intentSide[i];
+        workingData.pending[slot] = false;
+        workingData.generation[slot] = intentData.intentGeneration[i];
+        if (intentData.intentAction[i] == CANCEL) {
+            workingData.live[slot] = false; workingData.livePx[slot] = 0;
+            workingData.liveQty[slot] = 0; workingData.remainingQty[slot] = 0;
+        } else {
+            workingData.live[slot] = true;
+            workingData.livePx[slot] = intentData.intentPx[i];
+            workingData.liveQty[slot] = intentData.intentQty[i];
+            workingData.remainingQty[slot] = intentData.intentQty[i];
+        }
+        intentsConsumed++;
+    }
+}
+
+int32_t drivePath(char path, int64_t i, int32_t symbols, int64_t now, int32_t dep) {
+    using namespace app::gen;
+    const int32_t sym = (int32_t) (i % symbols);
+    switch (path) {
+        case 'A':
+            TICK.symbol = sym; TICK.bidPx = 10000 + (dep & 1); TICK.askPx = 10004;
+            TICK.bidQty = 100; TICK.askQty = 100; TICK.timestamp = now;
+            procp->handle_MarketTick(&TICK);
+            marketData.lastMarketTime[sym] = now;
+            break;
+        case 'B': {
+            const int32_t drift = (int32_t) ((i >> 3) & 63);
+            TICK.symbol = sym; TICK.bidPx = 10000 + drift + (dep & 1); TICK.askPx = 10010 + drift;
+            TICK.bidQty = 100; TICK.askQty = 100; TICK.timestamp = now;
+            procp->handle_MarketTick(&TICK);
+            marketData.lastMarketTime[sym] = now;
+            break;
+        }
+        case 'C': {
+            const int32_t b = sym << 1;
+            workingData.live[b] = true; workingData.pending[b] = false;
+            workingData.live[b + 1] = true; workingData.pending[b + 1] = false;
+            TICK.symbol = sym; TICK.bidPx = 10000 + (dep & 1); TICK.askPx = 10010;
+            TICK.bidQty = 100; TICK.askQty = 100; TICK.timestamp = now;
+            procp->handle_MarketTick(&TICK);
+            marketData.lastMarketTime[sym] = now;
+            break;
+        }
+        case 'D': {
+            const int32_t side = (int32_t) ((i / (symbols * 32)) & 1);
+            const int32_t slot = (sym << 1) + side;
+            workingData.live[slot] = true; workingData.remainingQty[slot] = 100;
+            marketData.lastMarketTime[sym] = now;
+            EXEC.symbol = sym; EXEC.side = side; EXEC.px = workingData.livePx[slot];
+            EXEC.qty = 20; EXEC.generation = workingData.generation[slot];
+            EXEC.timestamp = now + (dep & 1);
+            procp->handle_Execution(&EXEC);
+            break;
+        }
+        case 'E': {
+            const int32_t side = (int32_t) (i & 1);
+            const int32_t slot = (sym << 1) + side;
+            marketData.lastMarketTime[sym] = now;
+            ACKEV.symbol = sym; ACKEV.side = side; ACKEV.type = ACK_REPLACE;
+            ACKEV.px = 10000 + (dep & 1); ACKEV.qty = 10;
+            ACKEV.generation = workingData.pendingGeneration[slot];
+            ACKEV.timestamp = now;
+            procp->handle_OrderUpdate(&ACKEV);
+            break;
+        }
+        default: {
+            const int32_t slot = sym << 1;
+            workingData.live[slot] = true; workingData.pending[slot] = false;
+            workingData.live[slot + 1] = true; workingData.pending[slot + 1] = false;
+            TIMER.symbol = sym; TIMER.now = now + (dep & 1);
+            procp->handle_TimerTick(&TIMER);
+            break;
+        }
+    }
+    settleBook();
+    return intentData.cursor;
+}
+
 int violations = 0;
 void check(bool ok, const char* what) {
     if (!ok) { std::printf("   * %s\n", what); violations++; }
 }
 }  // namespace
+
+// ---------------------------------------------------------------------------------------------
+// ORACLE MODE: write a real FLXA binary audit log from the C++ arm, so it can be decoded by the Java
+// reader and compared against the Java arm's log entry for entry.
+//
+// The framing mirrors BinaryLogWriter exactly - the format is normative and specified, so a second
+// writer is a conformance test of the specification rather than a private encoding. Under a
+// DataDrivenClock the timestamps come from the event stream rather than the wall clock, which is what
+// lets the comparison include them.
+// ---------------------------------------------------------------------------------------------
+#ifdef HAS_AUDIT
+namespace {
+class FlxaFileSink : public fluxtion::LogRecordListener {
+public:
+    explicit FlxaFileSink(const char* path) : out_(std::fopen(path, "wb")) {
+        static const unsigned char header[8] = {'F','L','X','A', 0,1, 0,0};   // magic, version, reserved
+        std::fwrite(header, 1, 8, out_);
+    }
+    ~FlxaFileSink() { if (out_ != nullptr) { std::fclose(out_); } }
+    long long records = 0;
+
+    void processLogRecord(const fluxtion::BinaryLogRecord& r) override {
+        emitNewDictionaryEntries(r.dictionary());
+        const int entries = r.length() / 16;
+        putByte(0x01);
+        putShort(entries);
+        putShort(r.eventTypeId());
+        putLong(r.eventTime());
+        putLong(r.logTime());
+        putLong(r.endTime());
+        const int64_t* slots = r.slots();
+        for (int i = 0; i < entries * 2; i++) { putLong(slots[i]); }
+        records++;
+    }
+
+private:
+    // Only ids not yet described are written: the cost is paid once per name, not per record.
+    void emitNewDictionaryEntries(const std::vector<std::string>& dict) {
+        for (size_t id = dictionaryWritten_; id < dict.size(); id++) {
+            const std::string& name = dict[id];
+            if (name.empty()) { continue; }
+            putByte(0x02);
+            putShort((int) id);
+            putShort((int) name.size());
+            std::fwrite(name.data(), 1, name.size(), out_);
+        }
+        if (dict.size() > dictionaryWritten_) { dictionaryWritten_ = dict.size(); }
+    }
+    void putByte(int v) { const unsigned char b = (unsigned char) v; std::fwrite(&b, 1, 1, out_); }
+    void putShort(int v) { putByte((v >> 8) & 0xFF); putByte(v & 0xFF); }
+    void putLong(int64_t v) { for (int sh = 56; sh >= 0; sh -= 8) { putByte((int) ((v >> sh) & 0xFF)); } }
+
+    std::FILE* out_;
+    size_t dictionaryWritten_ = 0;
+};
+}  // namespace
+#endif
 
 int main(int argc, char** argv) {
     using namespace app::gen;
@@ -539,19 +688,116 @@ int main(int argc, char** argv) {
     VenueCoreProcessor p;
     procp = &p;
 #ifdef HAS_AUDIT
-    struct CountingSink : fluxtion::LogRecordListener {
+    // -DORACLE=<path> writes a real audit log instead of counting, and drives the clock from the data
+    // so the Java and C++ logs can be compared including their timestamps.
+    const char* oraclePath = getenv("ORACLE");
+    // Auto-incrementing on READ, which is what the Java oracle's `() -> CLOCK[0]++` supplier does.
+    // Setting the time once per market event instead left the two logs drifting a tick apart, because
+    // the Java counter also advances on reads taken during venue events. The clock discipline has to
+    // match or the comparison measures the harness rather than the engines.
+    struct ReadCountingClock : fluxtion::ClockStrategy {
+        int64_t t = 1000000;
+        int64_t getWallClockTime() override { return t++; }
+    };
+    ReadCountingClock dataClock;
+    std::unique_ptr<FlxaFileSink> fileSink;
+    if (oraclePath != nullptr) {
+        p.setClockStrategy(&dataClock);
+        fileSink = std::make_unique<FlxaFileSink>(oraclePath);
+        p.setLogSink(fileSink.get());
+    }
+#endif
+#ifdef HAS_AUDIT
+    if (oraclePath == nullptr) {
+    }
+    static struct CountingSink : fluxtion::LogRecordListener {
         long long records = 0;
         void processLogRecord(const fluxtion::BinaryLogRecord&) override { ++records; }
     } sink;
-    p.setLogSink(&sink);
+    if (oraclePath == nullptr) { p.setLogSink(&sink); }
 #endif
     p.init();
     wheelInit(evTime[0] - WHEEL_GRAN_NS);
 
+#ifdef HAS_AUDIT
+    if (oraclePath != nullptr) {
+        // The clock advances one tick per audited record, exactly as the Java oracle does.
+        for (int64_t i = 0; i < warm; i++) { dispatchMarket((int32_t) (i & bufferMask), 0); }
+        std::printf("ORACLE cpp records=%lld -> %s\n", fileSink->records, oraclePath);
+        return 0;
+    }
+#endif
     for (int64_t i = 0; i < warm; i++) { dispatchMarket((int32_t) (i & bufferMask), 0); }
 #ifdef HAS_AUDIT
     if (sink.records == 0) { std::printf("REFUSED: audit build, sink saw no records\n"); return 4; }
 #endif
+
+    // ---- PATH mode -------------------------------------------------------------------------
+    const char* pathEnv = getenv("PATH_MODE");
+    if (pathEnv != nullptr) {
+        const char path = pathEnv[0];
+        drainVenue(evTime[(size_t) ((warm - 1) & bufferMask)]
+                   + 5LL * regime.ackMin + 5LL * regime.ackSpan);
+        pathMode = true;
+        settleBook();
+        // A valid, fresh book on every symbol: under the skew most symbols get no update during warm
+        // and risk denies an invalid book on both sides.
+        {
+            const int64_t t = evTime[(size_t) ((warm - 1) & bufferMask)];
+            for (int32_t sy = 0; sy < kSymbols; sy++) {
+                TICK.symbol = sy; TICK.bidPx = 10000; TICK.askPx = 10010;
+                TICK.bidQty = 100; TICK.askQty = 100; TICK.timestamp = t;
+                procp->handle_MarketTick(&TICK);
+                settleBook();
+            }
+        }
+        if (path == 'C') { for (int32_t sy = 0; sy < kSymbols; sy++) { inventoryData.position[sy] = POSITION_LIMIT * 4; } }
+        if (path == 'F') { for (int32_t sy = 0; sy < kSymbols; sy++) { marketData.lastMarketTime[sy] = 0; } }
+        for (int32_t sy = 0; sy < kSymbols; sy++) {
+            for (int32_t sd = 0; sd < 2; sd++) {
+                const int32_t slot = (sy << 1) + sd;
+                workingData.live[slot] = true; workingData.pending[slot] = false;
+                workingData.liveQty[slot] = 10; workingData.remainingQty[slot] = 10;
+                if (workingData.livePx[slot] == 0) { workingData.livePx[slot] = 10000; }
+            }
+        }
+        const int64_t n0 = diffData.none, w0 = diffData.neu, r0 = diffData.replace, c0 = diffData.cancel;
+        const int64_t u0 = diffData.noneUnchanged;
+        const int64_t baseTime = evTime[(size_t) ((warm - 1) & bufferMask)];
+        double bestPath = 1e18;
+        int32_t dp = 0;
+        for (int b = 0; b < batches; b++) {
+            const auto st = std::chrono::steady_clock::now();
+            for (int64_t i = 0; i < iters; i++) { dp = drivePath(path, i, kSymbols, baseTime + i * 64, dp); }
+            const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - st).count();
+            bestPath = std::min(bestPath, (double) ns / (double) iters);
+        }
+        const int64_t dn = diffData.none - n0, dw = diffData.neu - w0,
+                      dr = diffData.replace - r0, dc = diffData.cancel - c0,
+                      du = diffData.noneUnchanged - u0;
+        const int64_t tot = dn + dw + dr + dc;
+        double share = 0; const char* want = "?";
+        switch (path) {
+            case 'A': want = "NONE/unchanged"; share = (double) du * 100.0 / (double) (tot ? tot : 1); break;
+            case 'B': want = "REPLACE"; share = (double) dr * 100.0 / (double) (tot ? tot : 1); break;
+            case 'C': want = "CANCEL (one side; 50% is the ceiling)"; share = (double) dc * 200.0 / (double) (tot ? tot : 1); break;
+            case 'D': want = "REPLACE (tick quantisation caps this near a third)";
+                      share = ((double) dr * 100.0 / (double) (tot ? tot : 1)) >= 25.0 && dr >= dw + dr + dc ? 100.0 : 0.0; break;
+            case 'E': want = "NEW/REPLACE (ack-driven)"; share = (double) (dw + dr) * 100.0 / (double) (tot ? tot : 1); break;
+            default:  want = "CANCEL"; share = (double) dc * 100.0 / (double) (tot ? tot : 1); break;
+        }
+        if (share < 50.0) {
+            std::printf("REFUSED path %c: intended %s only %.1f%% (NONE %lld [unchanged %lld], NEW %lld, "
+                        "REPLACE %lld, CANCEL %lld)\n", path, want, share,
+                        (long long) dn, (long long) du, (long long) dw, (long long) dr, (long long) dc);
+            return 4;
+        }
+        std::printf("PATH %c  %.4f ns  intended=%s %.1f%%  NONE=%lld (unchanged %lld) NEW=%lld "
+                    "REPLACE=%lld CANCEL=%lld  sink=%d\n", path, bestPath, want, share,
+                    (long long) dn, (long long) du, (long long) dw, (long long) dr, (long long) dc, dp);
+        return 0;
+    }
 
     const char* mode = getenv("DEPENDENT");
     const bool dependent = mode != nullptr;

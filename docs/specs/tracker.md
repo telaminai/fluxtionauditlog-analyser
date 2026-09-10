@@ -399,6 +399,34 @@ report in the session scratchpad.
   regimes. The C++ emitter honours `@NoTriggerReference`, so the ack path stops at reconciliation there
   as well.
 
+### M63 · Closing the C++ gaps on the venue core — ☑ 2026-09-10
+
+The two things the M62 report explicitly did NOT claim, plus a claim that had been published before it
+was demonstrated.
+
+- ☑ **M63.1 cross-language BINARY audit oracle.** The C++ harness now writes a real FLXA log (framing
+  mirrors `BinaryLogWriter`; a second writer is a conformance test of the normative format) under a
+  read-incrementing data-driven clock. Decoded by the **Java** reader: 67,247 records, 533,328 entries,
+  0 truncated bytes, 0 unresolved ids — and the decoded dump is **identical to the Java arm's,
+  timestamps included**, sha256 `097cbeee8c1633ccd7b528d7fcc79834`. That is the same hash the
+  Spring-composed Java build produces, so **all three builds — builder-API Java, Spring-composed Java,
+  C++ — emit byte-identical audit logs**. Aligning the clock discipline mattered: setting the time per
+  market event rather than per clock READ left the two logs a tick apart, because Java's counter also
+  advances on reads taken during venue events.
+- ☑ **M63.2 C++ working set**, rebuilt per symbol count (64/256/512/1024/4096), both access patterns.
+  Uniform unaudited **12.28 → 24.22 ns** and audited **16.82 → 27.02**; skewed far flatter
+  (12.23 → 15.43). **The C++ advantage NARROWS at the cliff** — 2.1x over Java at 64 symbols but 1.6x at
+  4096, because both arms become memory-bound.
+- ☑ **M63.3 C++ conditional paths**, same six as Java with the same refusing verifier:
+  A 8.66/14.57, B 14.04/39.06, C 13.87/37.19, D 10.37/25.67, E 6.66/25.17, F 9.40/35.57 ns
+  (unaudited/audited). **Audit cost tracks entries written, not cycles**: path B is 100% REPLACE so
+  every cycle emits two intents and twelve audit entries, and auditing costs it +25 ns against +5.9 ns
+  on the no-op path A.
+- ☑ **M63.4 Spring composition targets C++.** The same three supplier jars and eleven-bean XML with
+  `-DgenId=cpp` emit a C++ processor that is **line-for-line the same multiset** as the builder-API C++
+  (345 lines each). This closes a claim the docs page had asserted on the strength of the earlier
+  Java/C++ equivalence rather than on having built it.
+
 ### M52 · still open
 
 Open, in dependency order:
