@@ -23,6 +23,10 @@ read as an observation rather than a property.
 | groupBy's per-key store stays correct once lookups go through a hash index | `groupByProducesIdenticalAuditLogs` (values, both branches of the index); `dsl/build-groupby-controls.sh` (cost curve) | compiler / bench |
 | A merge listens to ALL its parents, not just one | `mergeProducesIdenticalAuditLogs` — 5,−3,7,−1,4 totals 12; one-parent merges total 16 or −4 | compiler |
 | A name Java resolves at runtime and C++ bakes at generation time are the same name | `mapOnNotifyProducesIdenticalAuditLogs` | compiler |
+| A generated processor can be DRIVEN — sources polled on one thread, added and removed while running | `CppConnectorTest` — the thread test asserts what the graph COMPUTED, not that a thread started | compiler |
+| Named sinks and typed services refuse a type mismatch rather than reinterpreting it | `CppConnectorTest#namedSinksAndServices…` | compiler |
+| A forked trigger runs off the processor thread, and reading its result IS the join | `CppConnectorTest#aForkedTask…` — 30 ms task, fork returns in <20 ms, join waits ≥30 ms | compiler |
+| A generated graph builds and runs as a native image | `NativeImageSmokeTest` — skipped loudly without `GRAALVM_HOME`; also asserts the generated SOURCE, so the regression is caught without GraalVM | compiler |
 | A side-effect-only node still runs, and still does not gate its chain | `peekProducesIdenticalAuditLogs`, `notifyProducesIdenticalAuditLogs` | compiler |
 | The C++ target refuses a DSL graph it cannot model rather than emitting a wrong one | `CppDslRefusalTest` | compiler |
 

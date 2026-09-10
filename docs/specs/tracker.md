@@ -224,6 +224,27 @@ Shipped:
     on both gets whichever the classpath happens to order first, and the failure mode is a compile
     error against a method that exists — or worse, silently running an old implementation. *Owner call.*
 
+### M58 · The C++ connector and phase 6 — ◑ 2026-09-10
+
+- ☑ **The connector** — `DataFlowConnector`: sources polled on one thread, idle strategies, runtime
+  add/remove, an error hook, **named sinks and typed services**. Dispatch stays TYPED and the edges are
+  erased: Java composes generically because `DataFlow.onEvent(Object)` is, and a C++ processor has
+  `handle_Tick(Tick*)` — so the feed-to-processor binding lives in the SOURCE, and `addDataFlow` has no
+  counterpart because it needs none. Measured, because it decided the design: Java's generic entry —
+  virtual call, `instanceof` chain, cast — costs **0.93 ns**, so erasing dispatch would be affordable
+  in absolute terms and a doubling against a 0.63 ns graph.
+- ◑ **Phase 6 forked triggers — RUNTIME half done, EMISSION remains.** `ForkedTask` is built and its
+  semantics proven: a worker per forked node started once (a thread per event costs tens of
+  microseconds against a nanosecond budget), parked on a condition variable. It copies Java's shape —
+  `onTrigger()` starts and returns, and **the join is emitted into the GUARD of the first dependent**,
+  where Java puts `isDirty_x = fork_x.afterEvent();`, so the processor blocks exactly where the result
+  is first needed and the wave stays one wave.
+  - ☐ **M58.1 emit it**, at four points: declare `fork_x`; `fork_x.onTrigger()` at the trigger site;
+    the join at the head of each dependent's guard, **which must stop being `const`**; and
+    `fork_x.reinitialize()` in `afterEvent` so a fork nothing consumed cannot outlive the wave.
+  - **Audit stays shared and that is deliberate**: a forked node logs into the same record from another
+    thread, exactly as Java does. Diverging "safely" would break the oracle's premise.
+
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
 - ☐ **M56.1 make the DSL controls use the kit's own method.** `build-groupby-controls.sh` and
