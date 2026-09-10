@@ -512,3 +512,21 @@ four reps, minimum:
 **What this says about the audit path.** The cost is not code the JIT was failing to optimise — if it
 were, AOT with a good profile would have moved it. Both Java arms sit at ~17 ns and C++ at 14 ns, and
 about 8 ns of every one of those is a clock read. The remaining gap is small and the floor is shared.
+
+### P17b scored — flatMap, once the native arm could be built at all
+
+Built with a serialization config registering the lambda-capturing type, serial GC (epsilon cannot
+serve a shape that allocates per element), PGO collected from a real run. **Not comparable to the plain
+shape's native arm**, which uses epsilon.
+
+| arm | flatMap, audited |
+|---|---:|
+| Java native AOT + PGO | 158.66 |
+| Java JIT | 122.44 |
+| C++ `-O3` | 75.62 |
+
+**Native is 30% SLOWER than JIT on this shape**, which is the opposite of the direction the kit's
+dispatch figures suggest. The plausible reason is the one the arm had to be built around: flatMap
+allocates per element, so it is the shape most exposed to the collector, and the native arm runs serial
+GC against a JIT with a generational collector. That is a hypothesis about the GC, not a measurement of
+it — and it is a fair warning that "native is faster" is a claim about a workload, not a runtime.

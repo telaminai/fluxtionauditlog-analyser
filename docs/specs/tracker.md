@@ -193,18 +193,38 @@ Shipped:
   drifts 326 ns a day.
 - ☐ **M57.1 the last ~8 ns is a clock read**, in all three arms. `CachedClockStrategy` exists for the
   several-graphs-per-turn case; nothing else is available without changing what a timestamp means.
-- ☐ **M57.2 a flatMap graph cannot run as a native image at all** — and this is a Fluxtion limitation,
-  not a bench one. `FlatMapFlowFunction`'s CONSTRUCTOR calls `captured()` → `serialized()` →
-  `getDeclaredMethod("writeReplace")`, and GraalVM does not emit `writeReplace` for lambdas unless
-  serialization is registered. The processor fails to CONSTRUCT under native-image; the event path
-  never runs. Found while building the native arm for P17b, after a first wrong explanation (epsilon
-  GC) that a collecting GC disproved.
-  - Fix A: a native-image serialization config listing those lambda classes.
-  - **Fix B, and the better one:** the generator knows the captured instance at generation time, so it
-    can pass it directly instead of the runtime reflecting for it. Same move as pre-resolving audit
-    keys — a generator cannot avoid knowing what a runtime cannot know.
-  - Until one lands, **any AOT deployment using flatMap is broken**, which is worth more than the
-    benchmark that found it.
+- ☐ **M57.2 flatMap does not get the generator's closed-world treatment, and that breaks AOT.**
+  The generated source shows it in two lines:
+
+  ```java
+  new MapRef2ToIntFlowFunction<>(flatMap_0, String::length,
+          new MethodReferenceInfo("String->length", false, null, false));   // resolved at BUILD time
+  new FlatMapFlowFunction<>(handlerTick, GenShapes::parts);                 // no info - reflects at RUNTIME
+  ```
+
+  `FlatMapFlowFunction`'s constructor calls `captured()` → `serialized()` →
+  `getDeclaredMethod("writeReplace")`, so a generated processor containing a flatMap **cannot be
+  CONSTRUCTED under native-image**, which drops `writeReplace` from lambda classes. It fails at
+  startup; the event path never runs. **Method references do not avoid it** — the failing bench uses a
+  static one, and a method reference is a lambda class too.
+
+  **The mechanism to fix it already exists and flatMap does not participate.**
+  `LiveGraphSourceGenExtractor` emits the closed-world constructor when a node is an
+  `AbstractFlowFunction` **and** its class has a `(..., MethodReferenceInfo)` constructor. flatMap
+  fails BOTH: it `extends BaseNode`, so the gate rejects it before the constructor is even looked for.
+  So the fix is two parts, and the hierarchy is the root one:
+  - give `FlatMapFlowFunction` a `(..., MethodReferenceInfo)` constructor that skips the reflection,
+  - and let the extractor consider it — either by moving it under `AbstractFlowFunction` or by widening
+    the gate past that one type.
+
+  Worth noting what the constructor is actually doing: `GeneratorNodeCollection.service().addOrReuse(...)`
+  is BUILDER work running inside a constructor that also runs in the generated processor. The
+  closed-world path exists precisely so generated code does not re-run the builder.
+
+  **Until then any AOT deployment using flatMap is broken**, and the workaround is a native-image
+  serialization config naming the generated processor as a `lambdaCapturingType` — verified to work.
+  Fluxtion could emit that itself: it already writes
+  `META-INF/native-image/<group>/<class>/native-image.properties` beside the processor.
 
 ### M56 · Bench hygiene — ☐ opened 2026-09-09
 
