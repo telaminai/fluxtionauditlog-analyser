@@ -99,9 +99,17 @@ public final class BinaryAuditReader implements AuditLogReader {
         return TimeBase.wallClockMillisUtc();
     }
 
+    /**
+     * What this reader can actually do, not what the format could support. It cannot follow a file
+     * that is still being written (the SPI store has no append path), and the offsets the store hands
+     * out are synthetic - accumulated lengths of the text it constructs - so a byte anchor would name
+     * a position that exists in no file. Both were claimed true and a review would have found an
+     * agent's {@code read} by {@code byteOffset} addressing nothing. Random access by row is real:
+     * the store keeps every record. Order is the wire's, which is dispatch order: TOTAL.
+     */
     @Override
     public Capabilities capabilities() {
-        return new Capabilities(true, true, true);
+        return new Capabilities(false, false, true);
     }
 
     @Override
@@ -278,7 +286,9 @@ public final class BinaryAuditReader implements AuditLogReader {
             }
             if (keyId == 0) {
                 // A trace entry: the node ran and logged no property. keyId 0 is "no key", not an id
-                // that failed to resolve.
+                // that failed to resolve. `invoked: true` is this reader's trace marker; AuditTrace
+                // accepts it beside the text runtime's `method` key when deciding whether a record
+                // traces every invocation, under the same all-nodes rule.
                 currentNode.append(" invoked: true");
             } else {
                 // The dictionary-resolving overload. The id-free one has no dictionary and rendered

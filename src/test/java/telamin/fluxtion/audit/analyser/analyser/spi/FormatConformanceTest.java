@@ -269,6 +269,12 @@ class FormatConformanceTest {
         assertTrue(AuditTrace.tracesEveryInvocation(traced.nodeLogs()), "every entry carries method: traced");
         assertFalse(AuditTrace.tracesEveryInvocation(untraced.nodeLogs()),
                 "one business key called 'method' must not make a sparse record look complete");
+        // the binary reader's marker, under the same rule
+        assertTrue(AuditTrace.tracesEveryInvocation(new HeapLogStore(
+                "---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - a: { invoked: true, v: 1}\n    - b: { invoked: true}\n").record(0).nodeLogs()));
+        assertFalse(AuditTrace.tracesEveryInvocation(new HeapLogStore(
+                "---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - a: { invoked: true, v: 1}\n    - b: { v: 2}\n").record(0).nodeLogs()),
+                "one node carrying invoked among untraced ones is not a traced record");
 
         ProcessorTopology t = GraphMlParser.parse(graphml(List.of("a", "b", "c"), List.of("a>b", "b>c")));
         assertEquals(3, t.nodeCount());

@@ -222,7 +222,7 @@ author: *emit these records and you get exactly what the native log gets.*
 | C09 garbage | a `PARSE_ERROR` record with its text; neighbours untouched; count preserved |
 | C10 ordering claim | `TOTAL`/`PARTIAL` is the reader's and reaches the index; the old constructor means `TOTAL` |
 | C11 attribution | the core attributes by position and never merges — broadcast makes duplicates; a component-less key is not even expressible |
-| C12 traced regime | absence is *did not run* only when every entry is traced; one `method` key proves nothing |
+| C12 traced regime | absence is *did not run* only when every entry is traced; one `method` key proves nothing; the binary reader's `invoked: true` is accepted under the same all-nodes rule |
 | C13 exported call | dimension is the callback; declaring type captured; `eventTime` absent |
 | C14 synthesised text | text an adapter *constructs* (no trailing newline, a leading `---`, CRLF) reads exactly as sliced file text |
 | C16 quoted scalars | through a reader that declares `QUOTED_SCALARS`, entirely `"…"` is a string whatever it spells; escapes decode; its insides split nothing; the same bytes through the text reader are legacy |

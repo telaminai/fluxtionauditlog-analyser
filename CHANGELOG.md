@@ -61,6 +61,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The record diff compares values by kind, and numbers exactly.** A number `42.0` and the string
   `"42.0"` were SAME; they are now CHANGED, and the kind is shown when it is what differs. Two
   different logged longs above 2^53 are CHANGED, not narrowed to one double.
+- **A binary log no longer claims to follow or to anchor by byte.** Its reader declared both and the
+  store can do neither, so an agent reading by `byteOffset` was addressing nothing. It declares
+  random access by row only, and the index refuses anchoring.
+- **A fully traced binary log is read as traced.** Its trace entries render as `invoked: true`, which
+  the audit-trace inference now accepts beside the text runtime's `method` key under the same
+  every-node rule, so coverage can say *did not run* for a binary log too.
 - **The neighbours of the round-6 fixes, pre-empted.** The score command reads a binary log through
   the binary reader under its grammar instead of hard-coding the text reader; a binary file in a roll
   set is refused by name rather than probed as an untimed text file; a binary record whose producer

@@ -26,12 +26,19 @@ import java.util.List;
 public final class AuditTrace {
     private AuditTrace() { }
 
-    /** The key node-invocation tracing adds to every entry. */
+    /** The key node-invocation tracing adds to every entry in the TEXT record. */
     private static final String METHOD = "method";
+    /**
+     * The binary reader's trace marker. A binary TRACE entry carries no method name - only "this node
+     * ran" - and the reader renders it as {@code invoked: true}. Accepted under the same all-nodes rule
+     * as {@code method}: a business key called {@code invoked} on one node must not make a sparse
+     * record look complete either.
+     */
+    private static final String INVOKED = "invoked";
 
     /**
      * True when this record traces every invocation — i.e. every logged node carries a {@code method}
-     * entry, which only the framework's tracing adds.
+     * entry (text) or an {@code invoked: true} entry (the binary reader), which only tracing adds.
      *
      * <p>Requires <em>all</em> entries to have it, not any: a node is free to log a key called
      * "method" itself, and one such node must not make a sparse record look complete.
@@ -47,6 +54,7 @@ public final class AuditTrace {
     private static boolean hasMethodEntry(NodeLog node) {
         for (KV kv : node.entries()) {
             if (METHOD.equals(kv.key())) return true;
+            if (INVOKED.equals(kv.key()) && Boolean.TRUE.equals(kv.asBoolean())) return true;
         }
         return false;
     }

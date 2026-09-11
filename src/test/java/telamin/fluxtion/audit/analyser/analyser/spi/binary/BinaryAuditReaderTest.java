@@ -548,4 +548,47 @@ class BinaryAuditReaderTest {
                 .of(again.index(), again::rawText, again.sourceDiagnostics()).messages();
         assertEquals(again.sourceDiagnostics(), messages, "what the context echo would carry");
     }
+
+    /** The reader claims only what the store can do: no follow, no byte anchors, random access by row. */
+    @Test
+    void theBinaryReaderClaimsOnlyWhatItCanDo(@TempDir Path dir) throws IOException {
+        var caps = new BinaryAuditReader().capabilities();
+        assertFalse(caps.follow(), "the SPI store has no append path");
+        assertFalse(caps.byteAnchors(), "offsets are synthetic text lengths, not file positions");
+        assertTrue(caps.randomAccess());
+        assertEquals(AuditLogReader.Ordering.TOTAL, caps.ordering(), "wire order is dispatch order");
+        var store = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(new BinaryAuditReader(), writeLog(dir, "caps.flxa"));
+        assertFalse(store.index().byteAnchors(), "and the index refuses anchoring, so an agent's byteOffset read is declined, not misdirected");
+        assertFalse(store.supportsFollow());
+    }
+
+    /**
+     * A binary log whose every node carries a TRACE entry is a traced record: absence then means DID
+     * NOT RUN (C12). The binary trace renders as `invoked: true`, which the inference accepts beside the
+     * text runtime's `method` key. One traced node among untraced ones is not a traced record.
+     */
+    @Test
+    void aFullyTracedBinaryRecordIsReadAsTraced(@TempDir Path dir) throws IOException {
+        Path traced = dir.resolve("traced.flxa");
+        Path partial = dir.resolve("partial.flxa");
+        for (Path p : List.of(traced, partial)) {
+            try (OutputStream out = Files.newOutputStream(p); BinaryLogWriter writer = new BinaryLogWriter(out)) {
+                Clock clock = new Clock();
+                clock.init();
+                BinaryLogRecord record = new BinaryLogRecord(clock);
+                record.triggerObject(new Tick());
+                record.addTrace("a");
+                record.addRecord("a", "v", 1.0d);
+                if (p == traced) record.addTrace("b");
+                record.addRecord("b", "w", 2.0d);
+                writer.processLogRecord(record);
+            }
+        }
+        var t = parseOnly(traced);
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(t.nodeLogs()),
+                "every node carries invoked: true - " + t.nodeLogs());
+        var pt = parseOnly(partial);
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(pt.nodeLogs()),
+                "b logged a value but was not traced - " + pt.nodeLogs());
+    }
 }
