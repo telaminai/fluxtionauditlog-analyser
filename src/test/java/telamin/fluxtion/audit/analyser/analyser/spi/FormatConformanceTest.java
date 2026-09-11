@@ -425,6 +425,27 @@ class FormatConformanceTest {
         assertFalse(multiResult.pass(), "the reviewer's multiline record: 42 -> 77 must not PASS: " + multiResult);
     }
 
+    /**
+     * The declaration is authoritative, not a hint: an adapter that declares QUOTED_SCALARS and then
+     * emits a bare value that happens to be entirely quoted gets it decoded. That is the contract, and it
+     * is pinned so nobody later "fixes" it by looking at the bytes. C17's bytes through a declaring
+     * adapter read differently from the same bytes through the text reader - by design.
+     */
+    @Test
+    void aDeclaringAdapterIsBelieved_evenOverTextThatWasNeverQuotedOnPurpose() throws IOException {
+        String text = "---\neventLogRecord:\n  logTime: 1\n  event: Tick\n  nodeLogs:\n    - n: { greeting: \"hello\", price: 1}\n";
+        Path f = dir.resolve("adapter-declares.yaml");
+        Files.writeString(f, text);
+        LogStore declared = SpiLogStore.open(
+                new PassThroughReader(AuditLogReader.Ordering.TOTAL).declaring(AuditLogReader.TextEncoding.QUOTED_SCALARS), f);
+        LogRecord r = declared.record(0);
+        assertEquals("hello", r.nodeLogs().get(0).last("greeting").rawValue(), "decoded, because the adapter said so");
+        assertTrue(r.nodeLogs().get(0).last("greeting").quoted());
+        LogStore legacy = new HeapLogStore(text);
+        assertEquals("\"hello\"", legacy.record(0).nodeLogs().get(0).last("greeting").rawValue(), "same bytes, no declaration");
+        assertFalse(legacy.record(0).nodeLogs().get(0).last("greeting").quoted());
+    }
+
     @Test
     void everyFixtureInTheSetIsExercised() throws IOException {
         // the set is the published artefact; a fixture nobody asserts on is a promise nobody keeps

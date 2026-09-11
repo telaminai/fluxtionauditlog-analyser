@@ -141,7 +141,7 @@ public final class ExpectationScorer {
 
         public String summary() {
             if (!trustworthy) return "UNTRUSTWORTHY — " + fatal;
-            return pass() ? "PASS %d/%d events, every figure identical".formatted(matched, total)
+            return pass() ? "PASS %d/%d events, every figure within tolerance".formatted(matched, total)
                           : "FAIL %d/%d events identical, %d differences".formatted(matched, total, differences.size());
         }
     }

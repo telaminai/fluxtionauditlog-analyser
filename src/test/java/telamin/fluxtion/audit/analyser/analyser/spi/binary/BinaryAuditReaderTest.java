@@ -491,4 +491,61 @@ class BinaryAuditReaderTest {
         var wholeStore = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(new BinaryAuditReader(), whole);
         assertTrue(wholeStore.sourceDiagnostics().isEmpty(), "a whole file has nothing to report");
     }
+
+    /** The score command reads a binary log through the binary reader, under its grammar. */
+    @Test
+    void theScoreCommandReadsABinaryLogThroughItsOwnReader(@TempDir Path dir) throws Exception {
+        Path file = writeStrings(dir, "score.flxa", new Tick(), new String[][]{{"pricer", "status", "ok, price: 42.0"}});
+        var records = telamin.fluxtion.audit.analyser.analyser.score.ScoreCommand.read(file);
+        assertEquals(1, records.size());
+        var n = records.get(0).nodeLogs().get(0);
+        assertEquals(1, n.entries().size(), "decoded under the binary reader's grammar: " + n.entries());
+        assertEquals("ok, price: 42.0", n.last("status").rawValue());
+        assertEquals(Tick.class.getName(), records.get(0).eventType());
+    }
+
+    /** A roll set is text; a binary member is refused by name rather than probed as an untimed text file. */
+    @Test
+    void aBinaryLogInARollSetIsRefusedByName(@TempDir Path dir) throws IOException {
+        Path binary = writeLog(dir, "audit-2.flxa");
+        Path text = dir.resolve("audit-1.yaml");
+        Files.writeString(text, "---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { k: 1}\n", StandardCharsets.UTF_8);
+        IOException refused = assertThrows(IOException.class, () ->
+                telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(List.of(text, binary)));
+        assertTrue(refused.getMessage().contains("audit-2.flxa"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("binary"), refused.getMessage());
+        assertDoesNotThrow(() -> telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(List.of(text)));
+    }
+
+    /** The MCP read verb's field projection on a binary log sees decoded strings and no manufactured key. */
+    @Test
+    void theReadVerbProjectsABinaryLogUnderTheReadersGrammar(@TempDir Path dir) throws Exception {
+        Path file = writeStrings(dir, "mcp.flxa", new Tick(), new String[][]{{"pricer", "status", "ok, price: 42.0"}});
+        var store = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(new BinaryAuditReader(), file);
+        var d = new telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher(false, null,
+                () -> store.index().snapshot(), store::rawText, store::record, null);
+        var result = d.dispatch("{\"action\":\"read\",\"params\":{\"recordIndex\":0,\"count\":1,\"fields\":[\"pricer.status\",\"pricer.price\"]}}");
+        String json = result.toJson();
+        assertTrue(json.contains("ok, price: 42.0"), json);
+        assertFalse(json.contains("\"pricer.price\":\"42.0\""), "no figure manufactured from the string: " + json);
+    }
+
+    /** The registry's open - the path the UI and an agent share - carries the damage, and a re-open resets it. */
+    @Test
+    void theRegistryOpenCarriesDamage_andAWholeFileAfterItReportsNothing(@TempDir Path dir) throws IOException {
+        Path whole = writeLog(dir, "whole.flxa");
+        byte[] bytes = Files.readAllBytes(whole);
+        Path cut = dir.resolve("cut.flxa");
+        Files.write(cut, java.util.Arrays.copyOf(bytes, bytes.length - 5));
+        var registry = new ReaderRegistry();
+        var cutStore = registry.open(registry.readerFor(cut, null), cut, 64);
+        assertEquals(1, cutStore.sourceDiagnostics().size(), cutStore.sourceDiagnostics().toString());
+        var wholeStore = registry.open(registry.readerFor(whole, null), whole, 64);
+        assertTrue(wholeStore.sourceDiagnostics().isEmpty(), "each store reports its own source");
+        var again = registry.open(registry.readerFor(cut, null), cut, 64);
+        assertEquals(1, again.sourceDiagnostics().size(), "and a re-open reports again");
+        var messages = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                .of(again.index(), again::rawText, again.sourceDiagnostics()).messages();
+        assertEquals(again.sourceDiagnostics(), messages, "what the context echo would carry");
+    }
 }

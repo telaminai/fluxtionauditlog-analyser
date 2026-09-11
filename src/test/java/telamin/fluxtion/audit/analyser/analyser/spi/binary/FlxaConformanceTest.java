@@ -60,7 +60,7 @@ class FlxaConformanceTest {
 
     @Test
     void everyFixtureInTheCorpusIsExercisedHere() {
-        assertEquals(19, FlxaConformanceCorpus.names().size(), "add a test below for a new fixture");
+        assertEquals(26, FlxaConformanceCorpus.names().size(), "add a test below for a new fixture");
     }
 
     @Test
@@ -189,7 +189,9 @@ class FlxaConformanceTest {
     void f18_duplicateDictId_theLatestDefinitionNames(@TempDir Path dir) throws IOException {
         NodeLog n = only(parse(dir, "f18-duplicate-dict-id").get(0));
         assertEquals("renamed", n.instanceId(), "§4: a redefinition names what follows it");
-        assertTrue(diagnostics(dir, "f18-duplicate-dict-id").isEmpty(), "a redefinition is not damage");
+        List<String> d = diagnostics(dir, "f18-duplicate-dict-id");
+        assertEquals(1, d.size(), "§4: a redefinition is reported - a writer never does it: " + d);
+        assertTrue(d.get(0).contains("redefined"), d.get(0));
     }
 
     @Test
@@ -265,5 +267,73 @@ class FlxaConformanceTest {
         IOException reported = assertThrows(IOException.class, () -> new BinaryAuditReader().read(f, texts::add));
         assertTrue(reported.getMessage().contains("unknown frame type"), reported.getMessage());
         assertEquals(1, texts.size(), "§9.4 frames before the unknown one were delivered");
+    }
+
+    @Test
+    void f20_damageBoth_twoFindingsInAStableOrder(@TempDir Path dir) throws IOException {
+        List<LogRecord> rs = parse(dir, "f20-damage-both");
+        assertEquals(1, rs.size(), "the whole record");
+        assertEquals("#65000", only(rs.get(0)).last("aString").rawValue());
+        List<String> d = diagnostics(dir, "f20-damage-both");
+        assertEquals(2, d.size(), d.toString());
+        assertTrue(d.get(0).contains("did not form a whole record"), "the tail first: " + d);
+        assertTrue(d.get(1).startsWith("1 reference"), "then the undefined name: " + d);
+        var findings = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.of(null, null, d);
+        assertEquals(2, findings.findings().size());
+        assertEquals(d, findings.messages(), "the findings keep the reader's order");
+    }
+
+    @Test
+    void f21_reservedBits_areIgnored(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f21-reserved-bits").get(0));
+        assertEquals("pricer", n.instanceId());
+        assertEquals(1.25, n.last("price").numeric().getAsDouble(), 0);
+    }
+
+    @Test
+    void f22_emptyNames_roundTripQuoted(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f22-empty-names").get(0));
+        assertEquals(3, n.entries().size(), n.entries().toString());
+        assertEquals(1.0, n.last("").numeric().getAsDouble(), 0, "an empty KEY is a key");
+        assertEquals("", n.last("empty").rawValue(), "an empty VALUE is a string");
+        assertTrue(n.last("empty").quoted());
+        assertEquals(2.0, n.last("after").numeric().getAsDouble(), 0);
+    }
+
+    @Test
+    void f23_entryOrder_isKept_andLastWins(@TempDir Path dir) throws IOException {
+        LogRecord r = parse(dir, "f23-entry-order").get(0);
+        assertEquals(3, r.nodeLogs().size(), "node, other, node again - the wire's order: " + r.nodeLogs());
+        assertEquals(List.of("1.0"), r.nodeLogs().get(0).all("k").stream().map(KV::rawValue).toList());
+        assertEquals(List.of("2.0", "3.0"), r.nodeLogs().get(2).all("k").stream().map(KV::rawValue).toList());
+        assertEquals("3.0", r.nodeLogs().get(2).last("k").rawValue(), "§5: last wins within a node item");
+        var flat = telamin.fluxtion.audit.analyser.analyser.diff.DiffBuilder.diff(r, r);
+        assertEquals("3.0", flat.stream().filter(x -> x.key().equals("node.k")).findFirst().orElseThrow().a(),
+                "and last wins across the record for one-value consumers");
+    }
+
+    @Test
+    void f24_traceBits_areIgnored_itIsStillInvoked(@TempDir Path dir) throws IOException {
+        LogRecord r = parse(dir, "f24-trace-bits").get(0);
+        assertEquals("tracer", r.nodeLogs().get(0).instanceId());
+        assertEquals(Boolean.TRUE, r.nodeLogs().get(0).last("invoked").asBoolean());
+        assertEquals(2.0, r.nodeLogs().get(1).last("after").numeric().getAsDouble(), 0);
+    }
+
+    @Test
+    void f25_noEndTime_readsAsAbsent_notAsAnInstant(@TempDir Path dir) throws IOException {
+        LogRecord r = parse(dir, "f25-no-end-time").get(0);
+        assertNull(r.endTime(), "§3.2: 0 means not recorded; an unrecorded instant is absent, not 1970");
+        assertEquals(1_700_000_000_000L, r.logTime());
+        assertEquals(1.25, only(r).last("price").numeric().getAsDouble(), 0);
+    }
+
+    @Test
+    void f26_concatenated_theFirstFileIsRead_thenTheSecondHeaderIsReported(@TempDir Path dir) throws IOException {
+        List<String> texts = new ArrayList<>();
+        Path f = fixture(dir, "f26-concatenated");
+        IOException reported = assertThrows(IOException.class, () -> new BinaryAuditReader().read(f, texts::add));
+        assertTrue(reported.getMessage().contains("unknown frame type 0x46"), reported.getMessage());
+        assertEquals(1, texts.size(), "§15: cat is not rolling");
     }
 }

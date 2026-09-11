@@ -55,7 +55,7 @@ eventLogRecord:
 | header `#…` | text | MAY be present. Lenient: `#time [thread] LEVEL logger`, every part optional. Supplies `thread`, `logger` and `level` when the record does not. |
 | `logTime` | integer | SHOULD be present. The primary timeline; the analyser windows, slides and validates on it and nothing else. Units are the reader's declared time base (§6); the built-in reader's is epoch milliseconds UTC. |
 | `eventTime` | integer | MAY be present. The driving event's time. **`-1` is a sentinel** meaning *not event-driven* (a timer, a lifecycle step, an exported service call) and reads as absent. Never consulted for order. |
-| `endTime` | integer | MAY be present. When the cycle finished. |
+| `endTime` | integer | MAY be present. When the cycle finished. Absent means *not recorded*; an emitter constructing text from a source that did not record it MUST omit the field rather than write `0`. |
 | `event` | string | MAY be present. The event class name or trigger type. |
 | `eventToString` | string | MAY be present. The event's `toString()`. When it is a Java method signature the record is an **exported call** and its dimension is the callback name (§5). Kept whole; never re-split on inner `:`. |
 | `groupingId` | string | MAY be present; the literal `null` reads as absent. |

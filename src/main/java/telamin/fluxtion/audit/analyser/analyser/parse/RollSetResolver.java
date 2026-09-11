@@ -37,6 +37,28 @@ public final class RollSetResolver {
     static final int MAX_PROBE = 4 * 1024 * 1024;
 
     /** One member of a candidate set: the probed first/last timed {@code logTime}s (null = none found). */
+    /**
+     * A roll set is a set of TEXT files framed on {@code ---}; a binary log has no frames the text
+     * framer can see, so probing it as text would yield an "untimed" sibling and the set would open
+     * with a member that contributes nothing and says nothing. Refused by name instead. Binary logs
+     * open singly through their own reader; rolling them is the writer's job (FLXA §15).
+     */
+    static void refuseBinary(Path file) throws IOException {
+        byte[] head = new byte[com.telamin.fluxtion.runtime.audit.BinaryLogFile.MAGIC.length];
+        try (var in = Files.newInputStream(file)) {
+            int read = 0;
+            while (read < head.length) {
+                int n = in.read(head, read, head.length - read);
+                if (n < 0) return;
+                read += n;
+            }
+        }
+        if (java.util.Arrays.equals(head, com.telamin.fluxtion.runtime.audit.BinaryLogFile.MAGIC)) {
+            throw new IOException(file.getFileName() + " is a binary (FLXA) audit log; a roll set is a set "
+                    + "of text logs. Open it on its own, or convert it before rolling.");
+        }
+    }
+
     public record Sibling(Path file, Long firstTime, Long lastTime) {
         public boolean untimed() {
             return firstTime == null;
@@ -146,6 +168,7 @@ public final class RollSetResolver {
 
     /** First and last timed {@code logTime}, from bounded head/tail windows (doubling up to the cap). */
     static Sibling probe(Path file, int maxProbe) throws IOException {
+        refuseBinary(file);
         long size = Files.size(file);
         Long first = null, last = null;
         long window = PROBE_BYTES;

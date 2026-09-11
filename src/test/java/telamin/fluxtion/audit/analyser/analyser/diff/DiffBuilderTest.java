@@ -109,4 +109,20 @@ class DiffBuilderTest {
         assertEquals(Change.SAME, special.get("n.a").change(), "no exact decimal: compared as text");
         assertEquals(Change.CHANGED, special.get("n.b").change());
     }
+
+    @Test
+    void exactAcceptsEverySpellingTheDoublePathAccepts_andALargeLongStillPlots() {
+        Map<String, DiffRow> rows = byKey(rec("    - n: { a: +1, b: 1e2, c: -0, d: 1.50, e: 007}\n"),
+                                          rec("    - n: { a: 1, b: 100, c: 0, d: 1.5, e: 7}\n"));
+        for (String k : new String[]{"n.a", "n.b", "n.c", "n.d", "n.e"}) {
+            assertEquals(Change.SAME, rows.get(k).change(), k + " is one figure spelled two ways");
+        }
+        var big = new telamin.fluxtion.audit.analyser.analyser.model.KV("k", "9007199254740993");
+        assertTrue(big.exact().isPresent());
+        assertTrue(big.graphValue().isPresent(), "the plotting approximation still plots it");
+        assertEquals(9007199254740992.0, big.graphValue().getAsDouble(), 0, "and the plot is the approximation, by design");
+        var nan = new telamin.fluxtion.audit.analyser.analyser.model.KV("k", "NaN");
+        assertTrue(nan.exact().isEmpty(), "no exact decimal for NaN");
+        assertTrue(nan.numeric().isPresent(), "but it plots as a gap");
+    }
 }

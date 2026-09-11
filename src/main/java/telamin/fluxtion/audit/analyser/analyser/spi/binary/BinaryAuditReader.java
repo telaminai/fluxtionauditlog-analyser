@@ -130,6 +130,11 @@ public final class BinaryAuditReader implements AuditLogReader {
                     + " did not form a whole record and were not read - a process that stopped mid-write, "
                     + "or a damaged tail. Every record before them is here; the one they belong to is not.");
         }
+        if (result.redefinedIds > 0) {
+            sourceDiagnostic.accept(result.redefinedIds + " dictionary id" + (result.redefinedIds == 1 ? " was" : "s were")
+                    + " redefined in " + source.getFileName() + ". A writer never does this; a repaired or "
+                    + "concatenated file can. Names after each redefinition follow the later definition.");
+        }
         if (result.unresolvedIds > 0) {
             sourceDiagnostic.accept(result.unresolvedIds + " reference" + (result.unresolvedIds == 1 ? "" : "s")
                     + " in " + source.getFileName() + " to names the file never defined, shown as #id - "
@@ -385,7 +390,12 @@ public final class BinaryAuditReader implements AuditLogReader {
             for (String line : nodeLines) {
                 out.append(line).append('\n');
             }
-            out.append("  endTime: ").append(endTime).append('\n');
+            // 0 means the producer did not record it (FLXA §3.2). The text format's endTime MAY be
+            // present, and absent is what "not recorded" reads as; writing 0 would put a real instant
+            // on the timeline that the producer never measured.
+            if (endTime != 0) {
+                out.append("  endTime: ").append(endTime).append('\n');
+            }
             sink.accept(out.toString());
             eventType = null;
             nodeLines.clear();

@@ -30,11 +30,22 @@ public final class ScoreCommand {
 
     private ScoreCommand() {}
 
+    /**
+     * Reads a log through the reader that CLAIMS it - a binary log through the binary reader, under
+     * the grammar that reader declares - not through the text reader regardless. The first version
+     * hard-coded the text reader, so a {@code .flxa} given to the scorer would have been parsed as
+     * legacy text; the registry decides, exactly as the UI does.
+     */
     public static List<LogRecord> read(Path source) throws Exception {
-        AuditLogReader reader = new YamlAuditReader();
+        AuditLogReader reader = new telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry()
+                .readerFor(source, null);
+        if (reader == null) {
+            reader = new YamlAuditReader();
+        }
+        AuditLogReader.TextEncoding encoding = reader.textEncoding();
         List<LogRecord> out = new ArrayList<>();
         long[] offset = {0};
-        reader.read(source, text -> out.add(RecordParser.parse(text, offset[0]++)));
+        reader.read(source, text -> out.add(RecordParser.parse(text, offset[0]++, encoding)));
         return out;
     }
 

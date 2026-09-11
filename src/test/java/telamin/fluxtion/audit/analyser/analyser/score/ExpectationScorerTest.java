@@ -383,4 +383,19 @@ class ExpectationScorerTest {
         assertFalse(r.trustworthy(), "a comparison that compares nothing must not pass");
         assertTrue(r.fatal().contains("NO figures"), r.fatal());
     }
+
+    /**
+     * The scorer compares with a tolerance, and now says so. Two logged longs one apart above 2^53
+     * are within it - that is the documented limit of a tolerance-based score, recorded here so it is
+     * never mistaken for exact equality (the diff is exact: DiffBuilderTest).
+     */
+    @Test
+    void theSummarySaysWithinTolerance_notIdentical() {
+        var a = parse("eventLogRecord:\n  logTime: 1\n  event: Tick\n  nodeLogs:\n    - n: { stage: f, value: 9007199254740992}\n");
+        var b = parse("eventLogRecord:\n  logTime: 1\n  event: Tick\n  nodeLogs:\n    - n: { stage: f, value: 9007199254740993}\n");
+        Result r = scorer.score(scorer.snapshots(a), scorer.snapshots(b));
+        assertTrue(r.pass(), r.summary());
+        assertTrue(r.summary().contains("within tolerance"), r.summary());
+        assertFalse(r.summary().contains("identical"), "a tolerance is not an identity: " + r.summary());
+    }
 }

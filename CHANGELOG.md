@@ -61,6 +61,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The record diff compares values by kind, and numbers exactly.** A number `42.0` and the string
   `"42.0"` were SAME; they are now CHANGED, and the kind is shown when it is what differs. Two
   different logged longs above 2^53 are CHANGED, not narrowed to one double.
+- **The neighbours of the round-6 fixes, pre-empted.** The score command reads a binary log through
+  the binary reader under its grammar instead of hard-coding the text reader; a binary file in a roll
+  set is refused by name rather than probed as an untimed text file; a binary record whose producer
+  did not record `endTime` reads as absent rather than as an instant in 1970; a dictionary id
+  redefined in a file is reported as source damage; the scorer's verdict says *within tolerance*
+  rather than *identical*, which is what it always was. The FLXA conformance corpus grows to
+  twenty-six fixtures, and the analyser passes all of them.
 - **A damaged binary log says so.** A cut tail, or references to names the file never defined
   (including String values), used to open silently as a whole log. The reader now reports them
   through the plugin SPI, the store keeps them, and they appear as a *source damage* finding in the
