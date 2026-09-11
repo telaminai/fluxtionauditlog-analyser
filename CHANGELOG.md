@@ -64,6 +64,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   with the runtime's `AuditLogTool --declare-unit millis|nanos --out <copy>`, then open the copy.
 
 ### Added
+- **The binary format has a specification and a conformance corpus, and the analyser passes it.**
+  The runtime now publishes *FLXA — the binary audit log format* with sixteen fixtures shipped in
+  its jar; the analyser's `FlxaConformanceTest` reads every one through its reader, parser and
+  tokenizer, and the format page links the two. "Reads FLXA" now means passing that suite.
 - **Open a binary audit log in the analyser.** A `FLXA` binary log now opens like any other, recognised
   by its magic bytes rather than a file extension, so the faster record format is no longer
   command-line only. Requires `fluxtion-runtime` 1.0.15 or later. Truncated logs open too — a half-written trailing record is the normal end state

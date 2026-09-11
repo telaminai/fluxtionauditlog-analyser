@@ -110,6 +110,12 @@ bare form would mis-split or mistype; a reviewer showed a logged `"ok, price: 42
 manufacturing a numeric figure the producer never published, and a logged `'` character deleting
 the entry after it.
 
+The binary format itself — header, frames, tags, bounds, what a writer must refuse and a reader
+must deliver — is specified on the runtime's side, in
+[FLXA — the binary audit log format](https://telaminai.github.io/fluxtion/reference/flxa-format/);
+its §11 is the contract this page's §3a serves, and its conformance corpus ships in the runtime jar,
+which this analyser's `FlxaConformanceTest` reads.
+
 **Why the record declares it.** The same bytes cannot say whether a quote mark was the producer's
 data or encoding syntax: read under this grammar, the legacy value `prefix "C:\"` treats its
 backslash as an escape, never closes, and swallows the figure after it — a scorer then carries the

@@ -1,0 +1,225 @@
+package telamin.fluxtion.audit.analyser.analyser.spi.binary;
+
+import com.telamin.fluxtion.runtime.audit.conformance.FlxaConformanceCorpus;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import telamin.fluxtion.audit.analyser.analyser.model.KV;
+import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
+import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.parse.RecordParser;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * The analyser's half of the FLXA conformance suite: the same bytes the runtime's
+ * {@code FlxaConformanceTest} reads, loaded from the runtime jar, driven through this reader, the
+ * record parser and the tokenizer. The normative text is the runtime's {@code reference/flxa-format.md};
+ * its §11 says what text constructed from a file must preserve, and its §13 table says which fixtures
+ * this suite must refuse and which it must read, and as what.
+ *
+ * <p>Passing this and the runtime's suite is what "reads FLXA" means. The fixtures are not copied into
+ * this repository: they come from the runtime dependency, so the two suites cannot drift apart.
+ */
+class FlxaConformanceTest {
+
+    private static Path fixture(Path dir, String name) throws IOException {
+        Path f = dir.resolve(name + ".flxa");
+        Files.write(f, FlxaConformanceCorpus.committed(name));
+        return f;
+    }
+
+    /** Reads a fixture through the real reader and parser. */
+    private static List<LogRecord> parse(Path dir, String name) throws IOException {
+        List<String> texts = new ArrayList<>();
+        new BinaryAuditReader().read(fixture(dir, name), texts::add);
+        List<LogRecord> out = new ArrayList<>();
+        for (String t : texts) {
+            assertTrue(t.contains("\n  nodeLogsEncoding: quoted\n"), "§11.1 every constructed record declares its grammar: " + t);
+            out.add(RecordParser.parse(t, 0));
+        }
+        return out;
+    }
+
+    private static NodeLog only(LogRecord r) {
+        assertEquals(1, r.nodeLogs().size(), r.nodeLogs().toString());
+        return r.nodeLogs().get(0);
+    }
+
+    private static final String TICK = FlxaConformanceCorpus.Tick.class.getName();
+
+    @Test
+    void everyFixtureInTheCorpusIsExercisedHere() {
+        assertEquals(16, FlxaConformanceCorpus.names().size(), "add a test below for a new fixture");
+    }
+
+    @Test
+    void f01_minimal(@TempDir Path dir) throws IOException {
+        LogRecord r = parse(dir, "f01-minimal").get(0);
+        assertEquals("Tick", r.event());
+        assertEquals(TICK, r.eventType());
+        assertEquals(1_700_000_000_000L, r.logTime());
+        assertEquals(1_700_000_000_000L, r.eventTime());
+        assertEquals(1_700_000_000_001L, r.endTime());
+        NodeLog n = only(r);
+        assertEquals("pricer", n.instanceId());
+        assertEquals(1.25, n.last("price").numeric().getAsDouble(), 0);
+        assertEquals(KV.Kind.NUMBER, n.last("price").kind());
+    }
+
+    @Test
+    void f02_emptyRecord_isARecordWithNoNodeLogs(@TempDir Path dir) throws IOException {
+        List<LogRecord> rs = parse(dir, "f02-empty-record");
+        assertEquals(1, rs.size(), "a record that logged nothing still happened");
+        assertEquals(0, rs.get(0).nodeLogs().size());
+        assertEquals("Tick", rs.get(0).event());
+    }
+
+    @Test
+    void f03_everyTag_keepsItsWireType(@TempDir Path dir) throws IOException {
+        LogRecord r = parse(dir, "f03-every-tag").get(0);
+        assertEquals(2, r.nodeLogs().size(), "node, then tracer: " + r.nodeLogs());
+        NodeLog n = r.nodeLogs().get(0);
+        assertEquals(KV.Kind.NUMBER, n.last("aDouble").kind());
+        assertEquals(1.5, n.last("aDouble").numeric().getAsDouble(), 0);
+        assertEquals(-7, n.last("aLong").numeric().getAsDouble(), 0);
+        assertEquals(42, n.last("anInt").numeric().getAsDouble(), 0);
+        assertEquals("x", n.last("aChar").rawValue());
+        assertEquals(KV.Kind.TEXT, n.last("aChar").kind(), "§6: a char is text");
+        assertEquals("text", n.last("aString").rawValue());
+        assertEquals("Obj(1)", n.last("anObject").rawValue());
+        assertEquals(KV.Kind.BOOLEAN, n.last("aBool").kind());
+        assertEquals(Boolean.TRUE, n.last("aBool").asBoolean());
+        NodeLog tracer = r.nodeLogs().get(1);
+        assertEquals("tracer", tracer.instanceId());
+        assertEquals(Boolean.TRUE, tracer.last("invoked").asBoolean(), "§11.7 a trace is invoked: true");
+    }
+
+    @Test
+    void f04_nullValues_areNull_andAPresentStringIsNot(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f04-null-values").get(0));
+        assertTrue(n.last("nullString").isNull());
+        assertTrue(n.last("nullObject").isNull());
+        assertEquals(KV.Kind.NULL, n.last("nullObject").kind());
+        assertEquals("here", n.last("present").rawValue());
+    }
+
+    @Test
+    void f05_dictionaryGrowth_laterNamesResolve(@TempDir Path dir) throws IOException {
+        List<LogRecord> rs = parse(dir, "f05-dictionary-growth");
+        assertEquals(2, rs.size());
+        assertEquals(1.25, only(rs.get(0)).last("price").numeric().getAsDouble(), 0);
+        assertEquals(2, rs.get(1).nodeLogs().size());
+        assertEquals("risk", rs.get(1).nodeLogs().get(1).instanceId());
+        assertEquals("limit", rs.get(1).nodeLogs().get(1).last("reason").rawValue());
+        assertEquals(Boolean.TRUE, rs.get(1).nodeLogs().get(1).last("breach").asBoolean());
+    }
+
+    @Test
+    void f06_twoRecordsTwoDictionaries_bothAttributeToPricer(@TempDir Path dir) throws IOException {
+        List<LogRecord> rs = parse(dir, "f06-two-records-two-dictionaries");
+        assertEquals("pricer", only(rs.get(0)).instanceId());
+        assertEquals("pricer", rs.get(1).nodeLogs().get(0).instanceId(), "§4: file ids are by name, not by the record's allocation");
+        assertEquals(2.5, rs.get(1).nodeLogs().get(0).last("price").numeric().getAsDouble(), 0);
+        assertEquals("risk", rs.get(1).nodeLogs().get(1).instanceId());
+    }
+
+    @Test
+    void f07_truncatedTail_opensWithEverythingBeforeTheCut(@TempDir Path dir) throws IOException {
+        List<LogRecord> rs = parse(dir, "f07-truncated-tail");
+        assertEquals(1, rs.size(), "the whole record is delivered; the cut one is not invented");
+        assertEquals(1.25, only(rs.get(0)).last("price").numeric().getAsDouble(), 0);
+    }
+
+    @Test
+    void f08_f09_f10_unitsThisReaderCannotPresent_areRefusedDeliveringNothing(@TempDir Path dir) throws IOException {
+        for (String[] c : new String[][]{{"f08-unit-nanos", "NANOSECOND"}, {"f09-unit-unspecified", "--declare-unit"}, {"f10-unit-undefined", "code 3"}}) {
+            List<String> texts = new ArrayList<>();
+            Path f = fixture(dir, c[0]);
+            IOException refused = assertThrows(IOException.class, () -> new BinaryAuditReader().read(f, texts::add), c[0]);
+            assertTrue(refused.getMessage().contains(c[1]), c[0] + ": " + refused.getMessage());
+            assertEquals(0, texts.size(), c[0] + " must deliver nothing in the wrong unit");
+        }
+    }
+
+    @Test
+    void f11_unresolvedIds_areVisibleAsHashIds_neverInvented(@TempDir Path dir) throws IOException {
+        LogRecord r = parse(dir, "f11-unresolved-ids").get(0);
+        assertEquals("#1", r.eventType());
+        NodeLog n = only(r);
+        assertEquals("#2", n.instanceId());
+        assertEquals("1.25", n.last("#3").rawValue());
+    }
+
+    @Test
+    void f12_unknownValueTag_isTextNotAFigure(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f12-unknown-value-tag").get(0));
+        KV v = n.last("price");
+        assertTrue(v.rawValue().startsWith("#tag9:"), v.rawValue());
+        assertEquals(KV.Kind.TEXT, v.kind(), "§11.3 an unknown tag's diagnostic is text");
+    }
+
+    @Test
+    void f13_hostileStrings_roundTripExactly_nothingManufacturedOrLost(@TempDir Path dir) throws IOException {
+        LogRecord r = parse(dir, "f13-hostile-strings").get(0);
+        assertEquals(TICK, r.eventType(), "identity is the wire's, not a value's");
+        assertEquals(1_700_000_000_001L, r.endTime(), "endTime is the wire's, not a value's");
+        assertEquals(3, r.nodeLogs().size(), "pricer, the odd node, then pricer again (§5): " + r.nodeLogs());
+        NodeLog p = r.nodeLogs().get(0);
+        assertEquals(9, p.entries().size(), "nine strings, no more: " + p.entries());
+        assertEquals("ok, price: 42.0", p.last("status").rawValue());
+        assertEquals("x}\n  eventType: forged.Tick\n  endTime: 1", p.last("identity").rawValue());
+        assertEquals("null", p.last("nullText").rawValue());
+        assertFalse(p.last("nullText").isNull());
+        assertEquals(KV.Kind.TEXT, p.last("numberText").kind());
+        assertEquals(KV.Kind.TEXT, p.last("flagText").kind());
+        assertEquals("", p.last("empty").rawValue());
+        assertEquals(" x ", p.last("padded").rawValue());
+        assertEquals("say \"hi\" \\ done", p.last("quotes").rawValue());
+        assertEquals("NEW", p.last("plain").rawValue());
+        NodeLog odd = r.nodeLogs().get(1);
+        assertEquals("odd}: {node", odd.instanceId());
+        assertEquals("1", odd.last("a, b: c").rawValue());
+        assertEquals(7.0, r.nodeLogs().get(2).last("price").numeric().getAsDouble(), 0, "the figure after ten hostile strings");
+    }
+
+    @Test
+    void f14_hostileChars_areText_andTheFigureAfterEachSurvives(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f14-hostile-chars").get(0));
+        assertEquals(10, n.entries().size(), n.entries().toString());
+        assertEquals("'", n.last("quote").rawValue());
+        assertEquals(1.0, n.last("afterQuote").numeric().getAsDouble(), 0);
+        assertEquals("{", n.last("brace").rawValue());
+        assertEquals(2.0, n.last("afterBrace").numeric().getAsDouble(), 0);
+        assertEquals("\"", n.last("dquote").rawValue());
+        assertEquals(3.0, n.last("afterDquote").numeric().getAsDouble(), 0);
+        assertEquals("7", n.last("digit").rawValue());
+        assertEquals(KV.Kind.TEXT, n.last("digit").kind(), "'7' is a character, not a figure");
+        assertEquals(4.0, n.last("afterDigit").numeric().getAsDouble(), 0);
+        assertEquals("\n", n.last("newline").rawValue());
+        assertEquals(5.0, n.last("afterNewline").numeric().getAsDouble(), 0);
+    }
+
+    @Test
+    void f15_sameSimpleName_identitiesStayDistinct(@TempDir Path dir) throws IOException {
+        List<LogRecord> rs = parse(dir, "f15-same-simple-name");
+        assertEquals("Tick", rs.get(0).event());
+        assertEquals("Tick", rs.get(1).event());
+        assertEquals(FlxaConformanceCorpus.Tick.class.getName(), rs.get(0).eventType());
+        assertEquals(FlxaConformanceCorpus.Other.Tick.class.getName(), rs.get(1).eventType());
+    }
+
+    @Test
+    void f16_unknownFrame_recordsBeforeItAreDelivered_thenTheFileIsReported(@TempDir Path dir) throws IOException {
+        List<String> texts = new ArrayList<>();
+        Path f = fixture(dir, "f16-unknown-frame");
+        IOException reported = assertThrows(IOException.class, () -> new BinaryAuditReader().read(f, texts::add));
+        assertTrue(reported.getMessage().contains("unknown frame type"), reported.getMessage());
+        assertEquals(1, texts.size(), "§9.4 frames before the unknown one were delivered");
+    }
+}
