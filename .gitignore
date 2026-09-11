@@ -79,4 +79,7 @@ docs/experience/runs/round-54/reach2/
 # round-58's flattened processor is DERIVED from the generated one and inherits its
 # vendor-domain copyright header (rule 1). Regenerate with scripts/flatten.py.
 docs/experience/runs/round-58/flat/
+# PGO profiles embed class names, and the four-term text sweep cannot see inside a binary.
+# This pattern is why a stray 4MB default.iprof found in the repo ROOT on 2026-09-11 was never at
+# risk on this branch - it is matched by name, not by living under target/. Keep it that way.
 *.iprof
