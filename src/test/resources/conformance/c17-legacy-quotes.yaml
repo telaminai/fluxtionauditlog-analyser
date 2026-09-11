@@ -1,0 +1,13 @@
+---
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - n: { price: 42.0}
+---
+eventLogRecord:
+  logTime: 2000
+  event: Tick
+  nodeLogs:
+    - n: { path: prefix "C:\", price: 77, greeting: "hello", count: "42"}
+---

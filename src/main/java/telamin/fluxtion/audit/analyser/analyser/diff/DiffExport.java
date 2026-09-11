@@ -17,8 +17,8 @@ public final class DiffExport {
         StringBuilder sb = new StringBuilder();
         sb.append(csv("key")).append(',').append(csv(labelA)).append(',').append(csv(labelB)).append(",change\r\n");
         for (DiffRow r : rows) {
-            sb.append(csv(r.key())).append(',').append(csv(r.a())).append(',')
-              .append(csv(r.b())).append(',').append(r.change().name()).append("\r\n");
+            sb.append(csv(r.key())).append(',').append(csv(r.displayA())).append(',')
+              .append(csv(r.displayB())).append(',').append(r.change().name()).append("\r\n");
         }
         return sb.toString();
     }
@@ -36,6 +36,8 @@ public final class DiffExport {
             sb.append("    {\"key\": ").append(jstr(r.key()))
               .append(", \"a\": ").append(jstr(r.a()))
               .append(", \"b\": ").append(jstr(r.b()))
+              .append(r.kindA() == null ? "" : ", \"kindA\": " + jstr(r.kindA().name()))
+              .append(r.kindB() == null ? "" : ", \"kindB\": " + jstr(r.kindB().name()))
               .append(", \"change\": ").append(jstr(r.change().name())).append('}')
               .append(i < rows.size() - 1 ? "," : "").append('\n');
         }
@@ -49,8 +51,8 @@ public final class DiffExport {
      */
     public static List<String> toTextLines(List<DiffRow> rows, String labelA, String labelB) {
         int keyW = width(rows.stream().map(DiffRow::key), "key", 34);
-        int aW = width(rows.stream().map(DiffRow::a), labelA, 22);
-        int bW = width(rows.stream().map(DiffRow::b), labelB, 22);
+        int aW = width(rows.stream().map(DiffRow::displayA), labelA, 22);
+        int bW = width(rows.stream().map(DiffRow::displayB), labelB, 22);
         List<String> out = new ArrayList<>();
         out.add(pad(clip("key", keyW), keyW) + "  " + pad(clip(labelA, aW), aW) + "  "
                 + pad(clip(labelB, bW), bW) + "  change");
@@ -62,8 +64,8 @@ public final class DiffExport {
                 case ONLY_B -> "+";
                 case SAME -> " ";
             };
-            out.add(pad(clip(r.key(), keyW), keyW) + "  " + pad(clip(r.a(), aW), aW) + "  "
-                    + pad(clip(r.b(), bW), bW) + "  " + mark + " " + r.change().name());
+            out.add(pad(clip(r.key(), keyW), keyW) + "  " + pad(clip(r.displayA(), aW), aW) + "  "
+                    + pad(clip(r.displayB(), bW), bW) + "  " + mark + " " + r.change().name());
         }
         return out;
     }

@@ -201,9 +201,17 @@ a header byte — the field is a `u16`, and 65,537 had wrapped to 1 and claimed 
 reader delivers the header to the visitor (`Visitor.onHeader`) *before* any dictionary entry or record,
 so a reader that presents a fixed unit decides there; the analyser had been deciding from
 `Result.timeUnit` after `read` returned, by which time every record had already been handed on in the
-wrong unit. The analyser's policy, stated in `BinaryAuditReader.checkUnit`: `1` read; `0` read as
-milliseconds by declared assumption; `2` refused; any other code refused as undefined rather than
-guessed. **Which fields the unit governs:** it is the unit of the processor's `ClockStrategy`, which
+wrong unit. The analyser's policy, stated in `BinaryAuditReader.checkUnit`: `1` read; `2` refused; any
+other code refused as undefined rather than guessed; and **`0` refused** — round 5 withdrew the
+"read as milliseconds" assumption after the reviewer built the pre-release runtime, installed
+`nanoEpochClock()`, and wrote nanoseconds under a zero header from Java. The analyser does not
+assume; the user declares the unit into a copy with `AuditLogTool <file> --declare-unit millis|nanos
+--out <copy>`, which fills in a header that states none and refuses to rewrite one that does, so the
+declaration travels with the evidence. No released runtime writes a zero header: the format shipped
+with the field. The runtime's CLI applies the same rule to its own `--from/--to`, which are
+milliseconds: it reads the header first, scales the bounds to a nanosecond file, and refuses a time
+query over a file whose unit is unstated or undefined rather than compare milliseconds to whatever
+the readings are. **Which fields the unit governs:** it is the unit of the processor's `ClockStrategy`, which
 stamps `logTime` and `endTime` on every record and `eventTime` on a record whose event is a plain
 object. An event implementing `Event` supplies its own `eventTime` — the contract defines it as epoch
 milliseconds at construction, or `-1` — and the runtime records it as given, because it is the
@@ -216,9 +224,17 @@ unsupported, and the answer is a new writer with the new unit.
 **Text the analyser constructs from the wire is quoted where it would be syntax.** A String or Object
 value (tags 5/6) is dictionary text and can spell anything; written bare into `key: value` it could
 split into a second entry carrying a numeric figure, or end the line and rewrite the record's identity.
-The reader now writes such a string in the quoted form of the format specification §3 (fixture C16),
+The reader now writes such a string in the quoted form of the format specification §3a (fixture C16),
 which the tokenizer decodes losslessly and marks as a string, and applies a stricter identifier rule to
 keys and instance ids. A logged null stays the bare `null` literal; the string `"null"` is quoted.
+Round 5 made two corrections: the grammar is **declared** on every record the reader constructs
+(`nodeLogsEncoding: quoted`) and never inferred from the bytes, because the same bytes read under
+the new grammar swallowed a legacy `prefix "C:\"` value's neighbour (fixture C17 pins the legacy
+reading); and **every wire tag** crosses the boundary the same way — numbers and booleans bare,
+everything else as text that is quoted when it has to be — because a `char` had fallen through as
+its raw character and `'` deleted the entry after it. The analyser's record diff compares by the
+model's value KIND (number, boolean, null, text) and value, not by characters, so a figure that
+became a string is a difference.
 
 The bounds every `u16` field imposes are stated once, in `BinaryLogFile` (Java) and `fluxtion_writer.h`
 (C++), and both writers refuse rather than wrap: 65,535 entries per record, 65,535 dictionary ids,

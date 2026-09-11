@@ -43,13 +43,19 @@ import java.util.function.Consumer;
  * anything, so written bare it can BE syntax: a review showed {@code "ok, price: 42.0"} reading as a
  * second entry with a numeric figure the producer never published, and a value carrying a newline
  * rewriting the record's {@code eventType}. Every string the tokenizer would mis-split or mistype is
- * therefore written in the quoted form of format-spec §3, which the tokenizer decodes losslessly and
- * marks as a string. Keys and instance ids get the same treatment, on a stricter identifier rule.
+ * therefore written in the quoted form of format-spec §3a, which the tokenizer decodes losslessly and
+ * marks as a string. Keys and instance ids get the same treatment, on a stricter identifier rule. The
+ * record DECLARES that grammar ({@code nodeLogsEncoding: quoted}); a text log never does, and is read
+ * exactly as it always was. Every wire tag crosses this boundary the same way: numbers and booleans
+ * bare, everything else - a char included - as text that is quoted when it has to be.
  *
  * <p><b>The unit is decided at the header, before any record.</b> This reader presents every file as
  * epoch milliseconds ({@link #timeBase()}). A file whose header says otherwise is refused in
  * {@code onHeader}, so no record is delivered in the wrong unit; an earlier version checked the unit
- * after the runtime's reader returned, by which time every record had already been handed on.
+ * after the runtime's reader returned, by which time every record had already been handed on. A file
+ * whose header says nothing is refused too: the analyser does not assume a unit, the user declares
+ * one into the file with the runtime's {@code AuditLogTool --declare-unit}, and the declaration then
+ * travels with the evidence.
  */
 public final class BinaryAuditReader implements AuditLogReader {
 
@@ -111,10 +117,15 @@ public final class BinaryAuditReader implements AuditLogReader {
      * file wallClockMillisUtc ({@link #timeBase()}), so:
      * <ul>
      *   <li>{@code EPOCH_MILLIS} is read.</li>
-     *   <li>{@code UNSPECIFIED} (0) is read as milliseconds. It is the value every file written before
-     *       the header carried a unit has, and every such Java-written file was milliseconds. The
-     *       assumption is stated here rather than made silently; the C++ runtime of the same era wrote
-     *       nanoseconds into an unspecified header, and such a file will plot a million times off.</li>
+     *   <li>{@code UNSPECIFIED} (0) is refused. An earlier version read it as milliseconds on the claim
+     *       that every Java-written file predating the field was milliseconds; a review produced one
+     *       that was not, from the pre-release runtime with {@code nanoEpochClock()} installed, and the
+     *       C++ runtime of the same era wrote nanoseconds under a zero header as a matter of course.
+     *       The analyser cannot know, so it does not assume: the user states the unit with the
+     *       runtime's {@code AuditLogTool --declare-unit millis|nanos}, which writes it into a copy's
+     *       header, and the declaration then travels with the evidence instead of living in a comment.
+     *       No file written by a released runtime carries a zero header; the format shipped with the
+     *       field.</li>
      *   <li>{@code EPOCH_NANOS} is refused: presenting it as milliseconds places every record a million
      *       times too far in the future.</li>
      *   <li>Any other code is refused: the format does not define it, so nothing is known about the
@@ -126,8 +137,14 @@ public final class BinaryAuditReader implements AuditLogReader {
     static void checkUnit(int timeUnit) {
         switch (timeUnit) {
             case BinaryLogFile.TIME_UNIT_EPOCH_MILLIS:
-            case BinaryLogFile.TIME_UNIT_UNSPECIFIED:
                 return;
+            case BinaryLogFile.TIME_UNIT_UNSPECIFIED:
+                throw new UnreadableUnit("this audit log's header does not state its time unit (code 0: "
+                        + "written before the unit field existed). The analyser presents binary logs as "
+                        + "epoch milliseconds and will not assume a file is in them - a pre-release runtime "
+                        + "could write nanoseconds under this header. Declare the unit into a copy with "
+                        + "the runtime's audit tool: AuditLogTool <file> --declare-unit millis|nanos "
+                        + "--out <copy>, then open the copy.");
             case BinaryLogFile.TIME_UNIT_EPOCH_NANOS:
                 throw new UnreadableUnit("this audit log declares epoch NANOSECOND timestamps, and this "
                         + "reader presents every binary log as epoch milliseconds. Reading it would place "
@@ -249,14 +266,37 @@ public final class BinaryAuditReader implements AuditLogReader {
          * is quoted, so the two never meet.
          */
         private String value(int tag, long rawBits) {
-            if (tag == TAG_CHARSEQ || tag == TAG_OBJECT) {
-                String text = nameById((int) rawBits);
-                if (rawBits == 0 || text == null) {
+            switch (tag) {
+                case BinaryRecordDecoder.TAG_DOUBLE:
+                case BinaryRecordDecoder.TAG_LONG:
+                case BinaryRecordDecoder.TAG_INT:
+                case BinaryRecordDecoder.TAG_BOOL:
+                    // The only tags whose rendering is a number or a boolean literal: they cannot be
+                    // syntax and the tokenizer types them as the wire did.
                     return BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById);
-                }
-                return NodeLogTokenizer.needsQuoting(text) ? NodeLogTokenizer.quote(text) : text;
+                case BinaryRecordDecoder.TAG_CHARSEQ:
+                case BinaryRecordDecoder.TAG_OBJECT:
+                    if (rawBits == 0 || nameById((int) rawBits) == null) {
+                        // A logged null is the bare literal the tokenizer reads as absent; an
+                        // unresolved id renders as the decoder's diagnostic, quoted below.
+                        return quoted(BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById), rawBits == 0);
+                    }
+                    return quoted(nameById((int) rawBits), false);
+                default:
+                    // EVERY OTHER TAG IS TEXT. A char in particular: a review logged '\'' and '{' and
+                    // '"' and each swallowed the entry after it, and '7' became a figure. A character
+                    // is textual content - it never types as a number, a flag or null - so it takes the
+                    // same road as a String. An unknown tag's "#tagN:bits" diagnostic goes the same way.
+                    return quoted(BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById), false);
             }
-            return BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById);
+        }
+
+        /** Quoted when the bare spelling would split, nest, end the line, strip, or type. */
+        private static String quoted(String text, boolean bareNullLiteral) {
+            if (bareNullLiteral) {
+                return text;
+            }
+            return NodeLogTokenizer.needsQuoting(text) ? NodeLogTokenizer.quote(text) : text;
         }
 
         /** An instance id or key: a plain identifier as is, anything else quoted. */
@@ -309,6 +349,10 @@ public final class BinaryAuditReader implements AuditLogReader {
                     .append("  logTime: ").append(logTime).append('\n')
                     .append("  event: ").append(oneLine(eventType)).append('\n')
                     .append("  eventType: ").append(oneLine(eventTypeFqn)).append('\n')
+                    // DECLARED on every record this reader constructs: the nodeLogs below use the
+                    // quoted-scalar grammar. Without the declaration the parser reads the legacy
+                    // grammar, in which a quote is the producer's character and nothing decodes.
+                    .append("  nodeLogsEncoding: quoted\n")
                     .append("  nodeLogs:\n");
             for (String line : nodeLines) {
                 out.append(line).append('\n');

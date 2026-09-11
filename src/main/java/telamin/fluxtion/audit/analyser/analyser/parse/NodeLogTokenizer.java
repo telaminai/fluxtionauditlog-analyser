@@ -16,12 +16,21 @@ import java.util.List;
  * {@code venueStatus: connected=true requiredOrderVenues=[x]} (spaces/=), and duplicate keys/ids.
  * Every fallback is silent and lossless.
  *
- * <p><b>Quoted scalars</b> (format-spec §3). An instance id, key or value that is entirely a
- * double-quoted string — {@code "…"} with the escapes {@code \\ \" \n \r \t} — is decoded and marked
- * {@link KV#quoted() quoted}. This is the one lossless spelling for text that would otherwise BE
- * syntax: a logged String {@code "ok, price: 42.0"} written bare reads as two entries, the second a
- * numeric figure the producer never published. The binary reader emits the quoted form for exactly
- * those strings; the text runtime never has, and every unquoted value reads as it always did.
+ * <p><b>Two grammars, and the RECORD says which.</b> The legacy grammar is what every text log has
+ * ever been read with: quotes protect separators while scanning, nothing is decoded, a backslash is a
+ * character. The quoted-scalar grammar (format-spec §3a) adds one thing: an instance id, key or value
+ * that is entirely {@code "…"} with the escapes {@code \\ \" \n \r \t} is decoded and marked
+ * {@link KV#quoted() quoted}, and a backslash inside double quotes escapes the next character while
+ * scanning. That is the one lossless spelling for text that would otherwise BE syntax: a logged String
+ * {@code "ok, price: 42.0"} written bare reads as two entries, the second a numeric figure the
+ * producer never published.
+ *
+ * <p>The grammar is chosen by the record's {@code nodeLogsEncoding: quoted} scalar and by nothing
+ * else — never by looking at the bytes. The same bytes cannot say whether a quote was the producer's
+ * data or encoding syntax: a review showed a legacy value {@code prefix "C:\"} read under the quoted
+ * grammar swallowing the entry after it, and {@code "hello"} losing its quotes. So a record that does
+ * not declare the encoding is read exactly as before, byte for byte; the binary reader declares it on
+ * every record it constructs; the text runtime never has and need not.
  */
 public final class NodeLogTokenizer {
 
@@ -34,6 +43,14 @@ public final class NodeLogTokenizer {
      * continuations of the current item (wrapped {@code toString()}s).
      */
     public static List<NodeLog> parseBlock(String block) {
+        return parseBlock(block, false);
+    }
+
+    /**
+     * @param quotedScalars true when the record DECLARED {@code nodeLogsEncoding: quoted}; false is the
+     *                      legacy grammar, unchanged for every existing text log
+     */
+    public static List<NodeLog> parseBlock(String block, boolean quotedScalars) {
         List<NodeLog> out = new ArrayList<>();
         if (block == null || block.isBlank()) return out;
         StringBuilder current = null;
@@ -42,7 +59,7 @@ public final class NodeLogTokenizer {
             String t = line.strip();
             if (t.isEmpty()) continue;
             if (t.startsWith("- ") || t.equals("-")) {
-                if (current != null) out.add(parseItem(current.toString()));
+                if (current != null) out.add(parseItem(current.toString(), quotedScalars));
                 current = new StringBuilder(t.length() >= 2 ? t.substring(2) : "");
             } else if (current != null) {
                 current.append(' ').append(t);   // continuation of a wrapped value
@@ -50,7 +67,7 @@ public final class NodeLogTokenizer {
                 current = new StringBuilder(t);   // lenient: item without a leading dash
             }
         }
-        if (current != null) out.add(parseItem(current.toString()));
+        if (current != null) out.add(parseItem(current.toString(), quotedScalars));
         return out;
     }
 
@@ -59,23 +76,28 @@ public final class NodeLogTokenizer {
      * {@code bidMakerOrder: { orderStatus: NEW, price: 19.977}}.
      */
     public static NodeLog parseItem(String item) {
+        return parseItem(item, false);
+    }
+
+    /** @see #parseBlock(String, boolean) */
+    public static NodeLog parseItem(String item, boolean quotedScalars) {
         String s = item.strip();
-        int colon = indexOfSep(s);
+        int colon = indexOfSep(s, quotedScalars);
         String instanceId;
         String body;
         if (colon < 0) {
-            instanceId = unquote(s).text;
+            instanceId = scalar(s, quotedScalars).text;
             body = "";
         } else {
-            instanceId = unquote(s.substring(0, colon).strip()).text;
+            instanceId = scalar(s.substring(0, colon).strip(), quotedScalars).text;
             body = s.substring(colon + 2).strip();
         }
         List<KV> entries = new ArrayList<>();
         if (body.startsWith("{") && body.endsWith("}")) {
             String inner = body.substring(1, body.length() - 1).strip();
             if (!inner.isEmpty()) {
-                for (String seg : splitTopLevel(inner, ',')) {
-                    entries.add(parsePair(seg));
+                for (String seg : splitTopLevel(inner, ',', quotedScalars)) {
+                    entries.add(parsePair(seg, quotedScalars));
                 }
             }
         } else if (!body.isEmpty()) {
@@ -85,15 +107,20 @@ public final class NodeLogTokenizer {
         return new NodeLog(instanceId, entries);
     }
 
-    private static KV parsePair(String segment) {
+    private static KV parsePair(String segment, boolean quotedScalars) {
         String seg = segment.strip();
-        int colon = indexOfSep(seg);
+        int colon = indexOfSep(seg, quotedScalars);
         if (colon < 0) {
-            return new KV(unquote(seg).text, null);   // bare flag/token
+            return new KV(scalar(seg, quotedScalars).text, null);   // bare flag/token
         }
-        String key = unquote(seg.substring(0, colon).strip()).text;
-        Scalar value = unquote(seg.substring(colon + 2).strip());
+        String key = scalar(seg.substring(0, colon).strip(), quotedScalars).text;
+        Scalar value = scalar(seg.substring(colon + 2).strip(), quotedScalars);
         return new KV(key, value.text, value.quoted);
+    }
+
+    /** Under the legacy grammar every scalar is its raw text; under the declared one it may decode. */
+    private static Scalar scalar(String s, boolean quotedScalars) {
+        return quotedScalars ? unquote(s) : new Scalar(s, false);
     }
 
     /** A decoded scalar: its text, and whether it arrived quoted (so it is a string, not a figure). */
@@ -188,14 +215,23 @@ public final class NodeLogTokenizer {
         return false;
     }
 
-    /** Index of the first top-level {@code ": "} (colon+space) separator, or -1. */
+    /** Index of the first top-level {@code ": "} (colon+space) separator, or -1. Legacy grammar. */
     static int indexOfSep(String s) {
+        return indexOfSep(s, false);
+    }
+
+    /**
+     * @param escapes true under the declared quoted-scalar grammar, where a backslash inside double
+     *                quotes escapes the next character; false is the legacy scan, where {@code "C:\"}
+     *                closes its quote at the second quote mark as it always did
+     */
+    static int indexOfSep(String s, boolean escapes) {
         int depth = 0;
         boolean inS = false, inD = false;
         for (int i = 0; i < s.length() - 1; i++) {
             char c = s.charAt(i);
             if (inS) { if (c == '\'') inS = false; continue; }
-            if (inD) { if (c == '\\') i++; else if (c == '"') inD = false; continue; }
+            if (inD) { if (escapes && c == '\\') i++; else if (c == '"') inD = false; continue; }
             switch (c) {
                 case '\'': inS = true; break;
                 case '"': inD = true; break;
@@ -213,13 +249,18 @@ public final class NodeLogTokenizer {
      * inside single/double quotes.
      */
     static List<String> splitTopLevel(String s, char delim) {
+        return splitTopLevel(s, delim, false);
+    }
+
+    /** @param escapes as for {@link #indexOfSep(String, boolean)} */
+    static List<String> splitTopLevel(String s, char delim, boolean escapes) {
         List<String> parts = new ArrayList<>();
         int depth = 0, start = 0;
         boolean inS = false, inD = false;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (inS) { if (c == '\'') inS = false; continue; }
-            if (inD) { if (c == '\\') i++; else if (c == '"') inD = false; continue; }
+            if (inD) { if (escapes && c == '\\') i++; else if (c == '"') inD = false; continue; }
             switch (c) {
                 case '\'': inS = true; break;
                 case '"': inD = true; break;

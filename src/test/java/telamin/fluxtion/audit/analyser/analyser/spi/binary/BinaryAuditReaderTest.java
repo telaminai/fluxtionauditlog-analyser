@@ -360,9 +360,15 @@ class BinaryAuditReaderTest {
         assertEquals(0, records.size(), "nothing delivered in the wrong unit");
     }
 
-    /** The policy on the other codes: 0 is read as milliseconds, stated; anything undefined is refused. */
+    /**
+     * The policy on the other codes. REVIEWER PROBE (round 5): the previous policy read 0 as
+     * milliseconds on the claim that every Java file predating the field was; the reviewer built the
+     * pre-release runtime, installed nanoEpochClock(), and wrote nanoseconds under a zero header. So
+     * nothing is assumed: 0 is refused, and the message names the tool that declares the unit into a
+     * copy - after which the file carries its unit where every reader looks.
+     */
     @Test
-    void anUndefinedUnitCodeIsRefused_andTheLegacyZeroIsReadAsMilliseconds(@TempDir Path dir) throws IOException {
+    void anUndefinedOrUnstatedUnitIsRefused_andTheMessageSaysHowToDeclareIt(@TempDir Path dir) throws IOException {
         Path file = writeLog(dir, "unit.flxa");
         byte[] bytes = Files.readAllBytes(file);
         assertEquals(BinaryLogFile.TIME_UNIT_EPOCH_MILLIS, bytes[7], "the writer declared milliseconds at byte 7");
@@ -379,7 +385,74 @@ class BinaryAuditReaderTest {
         bytes[7] = (byte) BinaryLogFile.TIME_UNIT_UNSPECIFIED;
         Files.write(file, bytes);
         List<String> records = new ArrayList<>();
+        IOException refused = assertThrows(IOException.class, () -> new BinaryAuditReader().read(file, records::add));
+        assertTrue(refused.getMessage().contains("--declare-unit"), refused.getMessage());
+        assertEquals(0, records.size(), "a file that states no unit delivers nothing: the analyser does not guess");
+
+        // the user's declaration, as the tool writes it, is then honoured
+        bytes[7] = (byte) BinaryLogFile.TIME_UNIT_EPOCH_MILLIS;
+        Files.write(file, bytes);
         new BinaryAuditReader().read(file, records::add);
-        assertEquals(1, records.size(), "a file predating the unit field is read as milliseconds, by stated policy");
+        assertEquals(1, records.size());
+    }
+
+    /**
+     * REVIEWER PROBE (round 5). {@code value()} protected String and Object values only; a CHAR fell
+     * through as its raw character, so '\'' swallowed the entry after it (a figure gone, a false PASS),
+     * '{' and '"' likewise, and '7' became a figure. Every wire tag now crosses the boundary the same
+     * way, and a char is TEXT: never a figure, never a flag, never null.
+     */
+    @Test
+    void aCharCannotHideTheFigureAfterIt_andIsNeverAFigureItself(@TempDir Path dir) throws IOException {
+        for (char c : new char[]{'\'', '{', '"', ',', '\n', '}', ':', '\\', '7', 'x'}) {
+            Path file = dir.resolve("char-" + (int) c + ".flxa");
+            try (OutputStream out = Files.newOutputStream(file);
+                 BinaryLogWriter writer = new BinaryLogWriter(out)) {
+                Clock clock = new Clock();
+                clock.init();
+                BinaryLogRecord record = new BinaryLogRecord(clock);
+                record.triggerObject(new Tick());
+                record.addRecord("n", "message", c);
+                record.addRecord("n", "price", 77.0d);
+                writer.processLogRecord(record);
+            }
+            var node = parseOnly(file).nodeLogs().get(0);
+            assertEquals(2, node.entries().size(), "char " + (int) c + ": " + node.entries());
+            assertEquals(String.valueOf(c), node.last("message").rawValue(), "char " + (int) c + " round-trips");
+            assertTrue(node.last("message").numeric().isEmpty(), "a char is text, even '7'");
+            assertNull(node.last("message").asBoolean());
+            assertFalse(node.last("message").isNull());
+            assertEquals(77.0, node.last("price").numeric().getAsDouble(), 0, "the figure after char " + (int) c);
+        }
+    }
+
+    /** The reviewer's scorer shape: prices 42 then 77, the second behind a hostile char. */
+    @Test
+    void theScorerSeesTheFigureBehindAHostileChar(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("two-ticks.flxa");
+        try (OutputStream out = Files.newOutputStream(file);
+             BinaryLogWriter writer = new BinaryLogWriter(out)) {
+            Clock clock = new Clock();
+            clock.init();
+            BinaryLogRecord record = new BinaryLogRecord(clock);
+            record.triggerObject(new Tick());
+            record.addRecord("n", "price", 42.0d);
+            writer.processLogRecord(record);
+            record.triggerObject(new Tick());
+            record.addRecord("n", "message", '\'');
+            record.addRecord("n", "price", 77.0d);
+            writer.processLogRecord(record);
+        }
+        List<String> texts = new ArrayList<>();
+        new BinaryAuditReader().read(file, texts::add);
+        assertTrue(texts.get(0).contains("  nodeLogsEncoding: quoted\n"), "the grammar is declared on every record: " + texts.get(0));
+        List<telamin.fluxtion.audit.analyser.analyser.model.LogRecord> actual = new ArrayList<>();
+        for (String t : texts) actual.add(telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(t, 0));
+        var scorer = new telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer(
+                telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer.Dialect.NATURAL,
+                "stage", "value", java.util.Set.of("Tick", "tick"), 1e-6);
+        var expected = scorer.snapshots(List.of(actual.get(0), actual.get(0)));   // expects 42 both times
+        var result = scorer.score(expected, scorer.snapshots(actual));
+        assertFalse(result.pass(), "77 behind a quote char is still 77: " + result);
     }
 }

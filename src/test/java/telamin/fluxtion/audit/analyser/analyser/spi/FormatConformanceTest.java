@@ -360,6 +360,34 @@ class FormatConformanceTest {
         assertEquals("2", odd.last("plain").rawValue());
     }
 
+    /**
+     * REVIEWER PROBE (round 5). The quoted grammar applied to an undeclared record swallowed the entry
+     * after {@code prefix "C:\"}, so a following {@code price} vanished and a scorer carried the earlier
+     * figure forward: PASS where the previous reader said FAIL. Legacy text is read as legacy text.
+     */
+    @Test
+    void c17_anUndeclaredRecordIsReadWithTheLegacyGrammar_quotesAreData() throws IOException {
+        LogStore s = bothPathsAgree("c17-legacy-quotes.yaml");
+        LogRecord r = s.record(1);
+        assertEquals(EventKind.OK, r.kind());
+        var n = r.nodeLogs().get(0);
+        assertEquals(4, n.entries().size(), "the closing quote closed: " + n.entries());
+        assertEquals("prefix \"C:\\\"", n.last("path").rawValue());
+        assertEquals(77, n.last("price").numeric().getAsDouble(), 0, "the figure after it is still a figure");
+        assertEquals("\"hello\"", n.last("greeting").rawValue(), "the quotes are the producer's characters");
+        assertFalse(n.last("greeting").quoted());
+        assertTrue(n.last("count").numeric().isEmpty(), "and a quoted number was never a figure");
+
+        // the scorer's verdict, which is what the false PASS was about
+        var scorer = new telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer(
+                telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer.Dialect.NATURAL,
+                "stage", "value", java.util.Set.of("Tick", "tick"), 1e-6);
+        List<LogRecord> actual = List.of(s.record(0), s.record(1));
+        var expected = scorer.snapshots(List.of(s.record(0), s.record(0)));   // price stays 42 on the second Tick
+        var result = scorer.score(expected, scorer.snapshots(actual));
+        assertFalse(result.pass(), "price moved 42 -> 77 and the verdict must say so: " + result);
+    }
+
     @Test
     void everyFixtureInTheSetIsExercised() throws IOException {
         // the set is the published artefact; a fixture nobody asserts on is a promise nobody keeps
@@ -369,7 +397,8 @@ class FormatConformanceTest {
             assertEquals(List.of("c01-minimal.yaml", "c02-unknown-fields.yaml", "c03-header.yaml", "c04-times.yaml",
                     "c05-untimed.yaml", "c06-out-of-order.yaml", "c07-duplicate-instance.yaml",
                     "c08-lenient-values.yaml", "c09-garbage.yaml", "c11-attribution.yaml",
-                    "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml"), names,
+                    "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
+                    "c17-legacy-quotes.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);

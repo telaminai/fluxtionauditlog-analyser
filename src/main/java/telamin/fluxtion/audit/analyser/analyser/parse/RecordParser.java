@@ -15,7 +15,7 @@ public final class RecordParser {
 
     private static final Set<String> SCALAR_KEYS = Set.of(
             "eventTime", "logTime", "endTime", "groupingId", "event", "eventType", "eventToString", "thread",
-            "nodeLogs");
+            "nodeLogs", "nodeLogsEncoding");
 
     private RecordParser() {
     }
@@ -32,6 +32,7 @@ public final class RecordParser {
         RecordHeader header = RecordHeader.EMPTY;
         Long eventTime = null, logTime = null, endTime = null;
         String groupingId = null, event = null, eventType = null, eventToString = null, thread = null;
+        boolean quotedScalars = false;
         StringBuilder nodeLogs = new StringBuilder();
         boolean inNodeLogs = false;
         boolean sawFields = false;
@@ -84,6 +85,10 @@ public final class RecordParser {
                 // `event` so nothing that matches the simple name literally changes behaviour.
                 case "eventType":    eventType = emptyToNull(val);      sawFields = true; break;
                 case "eventToString":eventToString = emptyToNull(val);  sawFields = true; break;
+                // The nodeLogs GRAMMAR, declared by the producer of this text (format-spec §3a). Only
+                // the value `quoted` means anything; the text runtime never writes the field, so every
+                // existing log is read with the legacy grammar. The bytes are never sniffed for it.
+                case "nodeLogsEncoding": quotedScalars = "quoted".equals(val); sawFields = true; break;
                 case "thread":       thread = emptyToNull(val);         sawFields = true; break;
                 default: /* unknown top-level scalar: ignore, keep in rawText */
             }
@@ -92,6 +97,7 @@ public final class RecordParser {
         EventDimension dim = EventDimension.derive(event, eventToString);
         String resolvedThread = thread != null ? thread : header.thread();
         final String block = nodeLogs.toString();
+        final boolean quotedScalarsFinal = quotedScalars;
 
         return LogRecord.builder()
                 .fileOffset(offset)
@@ -115,7 +121,7 @@ public final class RecordParser {
                 .hasNaN(hasNaN)
                 .hasBreach(hasBreach)
                 .rawText(text)
-                .nodeLogsSupplier(() -> NodeLogTokenizer.parseBlock(block))
+                .nodeLogsSupplier(() -> NodeLogTokenizer.parseBlock(block, quotedScalarsFinal))
                 .build();
     }
 

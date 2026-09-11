@@ -27,6 +27,20 @@ public record KV(String key, String rawValue, boolean quoted) {
     // strictly numeric literal (no letters/spaces) so we never mis-read "connected=true" as a number
     private static final Pattern DECIMAL = Pattern.compile("[+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?");
 
+    /**
+     * What kind of value this is, by the model's own interpretation - the one the scorer, the chart and
+     * the diff must all share. A quoted value is TEXT whatever it spells; a bare value is typed by
+     * inspection, as every text-log value always has been.
+     */
+    public enum Kind { NULL, BOOLEAN, NUMBER, TEXT }
+
+    public Kind kind() {
+        if (isNull()) return Kind.NULL;
+        if (asBoolean() != null) return Kind.BOOLEAN;
+        if (numeric().isPresent()) return Kind.NUMBER;
+        return Kind.TEXT;
+    }
+
     /** True when the value is the literal {@code null} or absent. */
     public boolean isNull() {
         return rawValue == null || (!quoted && rawValue.equals("null"));

@@ -112,8 +112,8 @@ public final class RecordDiffDialog {
             DiffRow d = rows.get(row);
             return switch (col) {
                 case 0 -> d.key();
-                case 1 -> d.a() == null ? "" : d.a();
-                case 2 -> d.b() == null ? "" : d.b();
+                case 1 -> d.displayA() == null ? "" : d.displayA();
+                case 2 -> d.displayB() == null ? "" : d.displayB();
                 default -> "";
             };
         }

@@ -48,15 +48,20 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   deprecated. Node code stays `auditLog.info("v", v)`.
 
 ### Fixed
-- **A logged String can no longer pose as a figure, a null, or another record's identity.** The binary
-  reader wrote string values bare into the record text it constructs, so `"ok, price: 42.0"` read as
-  a second entry carrying a number the producer never published, and a value with a line break could
-  rewrite `eventType`. Strings that would be syntax are now written in a quoted form the format
-  specification defines (fixture C16) and the tokenizer decodes losslessly: a quoted scalar is a
-  string whatever it spells. Text logs are unaffected — the text runtime never quoted.
-- **A binary log in the wrong time unit is refused before a record is delivered, not after.** The
-  reader also refuses a header unit code the format does not define, and states that a legacy `0`
-  is read as milliseconds.
+- **A logged String or char can no longer pose as a figure, a null, or another record's identity.**
+  The binary reader wrote string values bare into the record text it constructs, so
+  `"ok, price: 42.0"` read as a second entry carrying a number the producer never published, a
+  logged `'` character deleted the entry after it, and a value with a line break could rewrite
+  `eventType`. Values that would be syntax are now written in a quoted form the format specification
+  defines (§3a, fixture C16), which the record **declares** with `nodeLogsEncoding: quoted` and the
+  tokenizer then decodes losslessly: a quoted scalar is a string whatever it spells. A record that
+  does not declare it — every text log — is read exactly as before (fixture C17).
+- **The record diff compares values by kind.** A number `42.0` and the string `"42.0"` were SAME; they
+  are now CHANGED, and the kind is shown when it is what differs.
+- **A binary log whose time unit is wrong, undefined, or unstated is refused before a record is
+  delivered, not after.** The analyser no longer assumes a header that states no unit means
+  milliseconds — a pre-release runtime could write nanoseconds under it. Declare the unit into a copy
+  with the runtime's `AuditLogTool --declare-unit millis|nanos --out <copy>`, then open the copy.
 
 ### Added
 - **Open a binary audit log in the analyser.** A `FLXA` binary log now opens like any other, recognised
