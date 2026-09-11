@@ -14,7 +14,8 @@ import java.util.Set;
 public final class RecordParser {
 
     private static final Set<String> SCALAR_KEYS = Set.of(
-            "eventTime", "logTime", "endTime", "groupingId", "event", "eventToString", "thread", "nodeLogs");
+            "eventTime", "logTime", "endTime", "groupingId", "event", "eventType", "eventToString", "thread",
+            "nodeLogs");
 
     private RecordParser() {
     }
@@ -30,7 +31,7 @@ public final class RecordParser {
     public static LogRecord parse(String text, long offset, int storedLength) {
         RecordHeader header = RecordHeader.EMPTY;
         Long eventTime = null, logTime = null, endTime = null;
-        String groupingId = null, event = null, eventToString = null, thread = null;
+        String groupingId = null, event = null, eventType = null, eventToString = null, thread = null;
         StringBuilder nodeLogs = new StringBuilder();
         boolean inNodeLogs = false;
         boolean sawFields = false;
@@ -77,6 +78,11 @@ public final class RecordParser {
                 case "endTime":      endTime = parseTime(val, false);   sawFields = true; break;
                 case "groupingId":   groupingId = nullLiteral(val);     sawFields = true; break;
                 case "event":        event = emptyToNull(val);          sawFields = true; break;
+                // The fully-qualified identity, when the source carries it. The text record never
+                // did - it has always written the simple name - so this is null for text logs and
+                // set for binary ones, whose wire records Class.getName(). Kept separate from
+                // `event` so nothing that matches the simple name literally changes behaviour.
+                case "eventType":    eventType = emptyToNull(val);      sawFields = true; break;
                 case "eventToString":eventToString = emptyToNull(val);  sawFields = true; break;
                 case "thread":       thread = emptyToNull(val);         sawFields = true; break;
                 default: /* unknown top-level scalar: ignore, keep in rawText */
@@ -95,6 +101,7 @@ public final class RecordParser {
                 .endTime(endTime)
                 .groupingId(groupingId)
                 .event(event)
+                .eventType(eventType)
                 .eventToString(eventToString)
                 .thread(resolvedThread)
                 .logger(header.logger())

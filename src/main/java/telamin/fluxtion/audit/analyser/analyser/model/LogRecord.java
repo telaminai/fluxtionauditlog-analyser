@@ -21,6 +21,13 @@ public final class LogRecord {
     private final Long endTime;
     private final String groupingId;
     private final String event;
+    /**
+     * The fully-qualified event type, or null when the source did not carry one. Binary logs record
+     * {@code Class.getName()}; the text record has always written only the simple name. This is the
+     * IDENTITY the scorer's G9 guard compares - a simple name is not one when packages differ - kept
+     * apart from {@link #event} so nothing that matches the simple name literally changes.
+     */
+    private final String eventType;
     private final String eventToString;
     private final String thread;
     private final String logger;
@@ -47,6 +54,7 @@ public final class LogRecord {
         this.endTime = b.endTime;
         this.groupingId = b.groupingId;
         this.event = b.event;
+        this.eventType = b.eventType;
         this.eventToString = b.eventToString;
         this.thread = b.thread;
         this.logger = b.logger;
@@ -86,6 +94,7 @@ public final class LogRecord {
     public Long endTime()         { return endTime; }
     public String groupingId()    { return groupingId; }
     public String event()         { return event; }
+    public String eventType()     { return eventType; }
     public String eventToString() { return eventToString; }
     public String thread()        { return thread; }
     public String logger()        { return logger; }
@@ -107,7 +116,7 @@ public final class LogRecord {
         private long fileOffset;
         private int byteLength;
         private Long eventTime, logTime, endTime;
-        private String groupingId, event, eventToString, thread, logger, level, headerTime;
+        private String groupingId, event, eventType, eventToString, thread, logger, level, headerTime;
         private EventKind kind = EventKind.OK;
         private String callback, declaringType, eventDimension;
         private int nodeLogsCount;
@@ -122,6 +131,7 @@ public final class LogRecord {
         public Builder endTime(Long v) { this.endTime = v; return this; }
         public Builder groupingId(String v) { this.groupingId = v; return this; }
         public Builder event(String v) { this.event = v; return this; }
+        public Builder eventType(String v) { this.eventType = v; return this; }
         public Builder eventToString(String v) { this.eventToString = v; return this; }
         public Builder thread(String v) { this.thread = v; return this; }
         public Builder logger(String v) { this.logger = v; return this; }

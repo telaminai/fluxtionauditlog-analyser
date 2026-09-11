@@ -140,6 +140,9 @@ slot1 :  the value's raw bits
            TAG_LONG(2)    the long
            TAG_INT(3)     the int, sign-extended
            TAG_CHAR(4)    the char
+           TAG_CHARSEQ(5) a DICTIONARY ID — the string's text is interned once and the id is the value;
+                          0 encodes null
+           TAG_OBJECT(6)  a DICTIONARY ID of the object's toString(); 0 encodes null
            TAG_BOOL(7)    0 or 1
            TAG_TRACE(8)   0 — a node invocation, no key and no value
 ```
@@ -159,8 +162,12 @@ there would make every traced log look corrupt.
     breaks nothing that exists. A reader written against the earlier text of this section will report
     tag 8 as unknown rather than mis-decode it, since `knownTag` bounds the range.
 
-Names are not written. A node name or property key is resolved to a `u16` id **once per logger**
-(§7A), and only the id goes in the slot.
+Names are not written **in the entry**. A node name or property key is resolved to a `u16` id **once
+per logger** (§7A), and only the id goes in the slot. The name itself is written once, **file-scoped**,
+in a `DICT` frame (`0x02, id:u16, len:u16, utf8[len]`) that precedes the first entry using it — so a
+reader resolves ids from the frames it has already seen and never needs a side channel. Ids are
+allocated per RECORD instance and translated onto the file's dictionary by the writer, by name; a
+runtime record swap therefore does not renumber the file.
 
 `BinaryRecordDecoder` reads this back and is tested round-trip against the encoder — including doubles
 bit-exact, ids at the 16-bit boundary, and three failure modes that must be reported rather than
@@ -170,8 +177,28 @@ silently mishandled: a truncated record, a length past the buffer, and an empty 
 and it bought 51 ns/event — a 23% larger record for a 3× faster write. Room for a sequence number or a
 timestamp delta later without changing the entry size.
 
-The `Object` overload is the one case that cannot avoid text; it is encoded as a length-prefixed
-string. A deployment targeting this profile should not be logging `Object`.
+The `Object` overload cannot avoid `toString()`; the resulting text is interned into the dictionary
+and the entry carries its id (`TAG_OBJECT`), exactly as a `CharSequence` does. It is not
+length-prefixed in the entry. A deployment targeting this profile should not be logging `Object`.
+
+### 6.3a The file header, and the time unit
+
+```
+header := magic "FLXA", formatVersion:u16, timeUnit:u16
+```
+
+`timeUnit` was a reserved field written as 0. It now carries the unit of every `eventTime`, `logTime`
+and `endTime` in the file: `0` unspecified (files predating the field), `1` epoch milliseconds, `2`
+epoch nanoseconds. It exists because nothing else said: the Java runtime's default clock writes
+milliseconds, the C++ runtime's wrote nanoseconds into the same fields, and this analyser labelled
+every file milliseconds. A reader **must not** infer a unit from magnitude. The analyser's
+`BinaryAuditReader` declares milliseconds and refuses a file that says nanoseconds; a file that says
+unspecified is accepted as milliseconds, which is the historical truth for every file written before
+the field existed.
+
+The bounds every `u16` field imposes are stated once, in `BinaryLogFile` (Java) and `fluxtion_writer.h`
+(C++), and both writers refuse rather than wrap: 65,535 entries per record, 65,535 dictionary ids,
+65,535 UTF-8 bytes per name.
 
 ### 6.4 What the prototype learned that a re-implementation should not have to
 

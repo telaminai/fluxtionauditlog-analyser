@@ -324,6 +324,44 @@ class ExpectationScorerTest {
         assertTrue(r.fatal().contains("com.a.Tick"), r.fatal());
     }
 
+    /** Two event classes with one simple name - the reviewer's com.a.Tick / com.b.Tick, made real. */
+    public static final class Tick { }
+    public static final class Other { public static final class Tick { } }
+
+    /**
+     * G9 THROUGH THE BINARY READER BOUNDARY. The unit test above starts after that boundary with
+     * synthetic FQNs. Round-3 review found the reader reducing the wire's Class.getName() to a simple
+     * name, so both files arrived here as "Tick" and this guard reported PASS 1/1 - the exact false
+     * pass it was added to prevent, recreated one layer down. This drives the real path.
+     */
+    @Test
+    void g9_survivesTheBinaryReaderBoundary(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws java.io.IOException {
+        java.nio.file.Path a = dir.resolve("a.flxa"), b = dir.resolve("b.flxa");
+        for (Object[] c : new Object[][]{{a, new Tick()}, {b, new Other.Tick()}}) {
+            try (java.io.OutputStream out = java.nio.file.Files.newOutputStream((java.nio.file.Path) c[0]);
+                 com.telamin.fluxtion.runtime.audit.BinaryLogWriter w =
+                         new com.telamin.fluxtion.runtime.audit.BinaryLogWriter(out)) {
+                com.telamin.fluxtion.runtime.time.Clock clock = new com.telamin.fluxtion.runtime.time.Clock();
+                clock.init();
+                com.telamin.fluxtion.runtime.audit.BinaryLogRecord r =
+                        new com.telamin.fluxtion.runtime.audit.BinaryLogRecord(clock);
+                r.triggerObject(c[1]);
+                r.addRecord("m", "stage", (CharSequence) "f");   // TAGGED dialect: stage + value
+                r.addRecord("m", "value", 1.0d);
+                w.processLogRecord(r);
+            }
+        }
+        List<String> ta = new ArrayList<>(), tb = new ArrayList<>();
+        new telamin.fluxtion.audit.analyser.analyser.spi.binary.BinaryAuditReader().read(a, ta::add);
+        new telamin.fluxtion.audit.analyser.analyser.spi.binary.BinaryAuditReader().read(b, tb::add);
+        // both carry the SAME simple name; the parser must have been handed the FQN
+        List<Snapshot> e = scorer.snapshots(parse(ta.get(0)));
+        List<Snapshot> x = scorer.snapshots(parse(tb.get(0)));
+        Result r = scorer.score(e, x);
+        assertFalse(r.trustworthy(), "same simple name, different classes: must NOT pass - " + r.fatal());
+    }
+
     @Test
     void g9_innerClassEventsStillScoreWhenIdentical() {
         var recs = parse(

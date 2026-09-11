@@ -84,7 +84,18 @@ public final class BinaryAuditReader implements AuditLogReader {
     @Override
     public void read(Path source, Consumer<String> recordText) throws IOException {
         RecordTextRenderer renderer = new RecordTextRenderer(recordText);
-        BinaryLogReader.read(source, renderer);
+        BinaryLogReader.Result result = BinaryLogReader.read(source, renderer);
+        // This reader DECLARES every file wallClockMillisUtc (timeBase() below). The header now says
+        // what the producer actually wrote, so a file in another unit is refused rather than labelled
+        // milliseconds and plotted a million times off. A file predating the field is accepted: it
+        // is almost certainly milliseconds, and refusing every existing log would help nobody - but
+        // the assumption is now visible here rather than silent.
+        if (result.timeUnit == com.telamin.fluxtion.runtime.audit.BinaryLogFile.TIME_UNIT_EPOCH_NANOS) {
+            throw new IOException("this audit log declares epoch NANOSECOND timestamps, and this reader "
+                    + "presents every binary log as epoch milliseconds. Reading it would place every "
+                    + "record a million times too far in the future. Write it with a millisecond clock, "
+                    + "or convert it before opening.");
+        }
     }
 
     /** Turns the reader's callbacks into one YAML record document per audit record. */
@@ -98,10 +109,26 @@ public final class BinaryAuditReader implements AuditLogReader {
         private long logTime;
         private long endTime;
         private String eventType;
+        private String eventTypeFqn;
         private int pending;
 
         RecordTextRenderer(Consumer<String> sink) {
             this.sink = sink;
+        }
+
+        /** id -> name, kept so a String/Object VALUE (stored as a dictionary id) can be rendered. */
+        private final java.util.List<String> namesById = new java.util.ArrayList<>();
+
+        @Override
+        public void onDictionaryEntry(int id, String name) {
+            while (namesById.size() <= id) {
+                namesById.add(null);
+            }
+            namesById.set(id, name);
+        }
+
+        private String nameById(int id) {
+            return id >= 0 && id < namesById.size() ? namesById.get(id) : null;
         }
 
         @Override
@@ -111,11 +138,14 @@ public final class BinaryAuditReader implements AuditLogReader {
             eventTime = eventTimeIn;
             logTime = logTimeIn;
             endTime = endTimeIn;
-            // The wire format stores Class.getName(); the analyser's text format carries the SIMPLE
-            // name ("event: LifecycleEvent"), and every downstream feature matches on that. Rendering
-            // the FQN here would make the same event look like a different one depending on which
-            // format the log arrived in.
+            // TWO fields. `event:` carries the SIMPLE name, which is what the text format has always
+            // written and what every feature that matches literally expects. `eventType:` carries the
+            // fully-qualified name the wire deliberately records - the identity. Reducing to the simple
+            // name alone made com.a.Tick and com.b.Tick the same event, and the scorer's G9 guard -
+            // which compares identity and exists to catch exactly that - reported PASS, because the
+            // information was gone before it could look.
             eventType = simpleName(type);
+            eventTypeFqn = type;
             pending = entryCount;
             nodeLines.clear();
             currentNode.setLength(0);
@@ -143,8 +173,11 @@ public final class BinaryAuditReader implements AuditLogReader {
                 // that failed to resolve.
                 currentNode.append(" invoked: true");
             } else {
+                // The dictionary-resolving overload. The id-free one has no dictionary and rendered
+                // every String and Object value as its raw tag/id pair - "#tag5:4" - and a logged null
+                // as "#tag5:0", the spelling that means an UNRESOLVED id everywhere else.
                 currentNode.append(' ').append(key).append(": ")
-                        .append(BinaryRecordDecoder.renderValue(tag, rawBits));
+                        .append(BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById));
             }
             if (--pending == 0) {
                 flush();
@@ -179,6 +212,7 @@ public final class BinaryAuditReader implements AuditLogReader {
                     .append("  eventTime: ").append(eventTime).append('\n')
                     .append("  logTime: ").append(logTime).append('\n')
                     .append("  event: ").append(eventType).append('\n')
+                    .append("  eventType: ").append(eventTypeFqn).append('\n')
                     .append("  nodeLogs:\n");
             for (String line : nodeLines) {
                 out.append(line).append('\n');

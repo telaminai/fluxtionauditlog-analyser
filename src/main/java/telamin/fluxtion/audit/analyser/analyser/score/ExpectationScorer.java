@@ -165,8 +165,7 @@ public final class ExpectationScorer {
                 if (dialect == Dialect.TAGGED) reduceTagged(nl, running, recordIndex);
                 else reduceNatural(nl, running);
             }
-            out.add(new Snapshot(event, r.event() == null ? "" : r.event().trim(),
-                                 new LinkedHashMap<>(running)));
+            out.add(new Snapshot(event, identityOf(r), new LinkedHashMap<>(running)));
         }
         return out;
     }
@@ -203,6 +202,19 @@ public final class ExpectationScorer {
     }
 
     /** Lowercase simple name of an event type; {@code null} when absent. */
+    /**
+     * The event's IDENTITY for G9: the fully-qualified type when the source carries it, else the
+     * simple name. A binary log records {@code Class.getName()}; the text record never did. Two binary
+     * logs compare by FQN, so {@code com.a.Tick} and {@code com.b.Tick} differ. Two text logs compare
+     * by simple name, as they always have - a known limit of that format, not a regression. A text log
+     * against a binary one compares simple against FQN and is reported as different runs, which is
+     * honest: identity cannot be verified across formats of unequal fidelity.
+     */
+    static String identityOf(LogRecord r) {
+        if (r.eventType() != null && !r.eventType().isBlank()) return r.eventType().trim();
+        return r.event() == null ? "" : r.event().trim();
+    }
+
     static String simpleEventName(String event) {
         if (event == null || event.isBlank()) return null;
         String s = event.trim();

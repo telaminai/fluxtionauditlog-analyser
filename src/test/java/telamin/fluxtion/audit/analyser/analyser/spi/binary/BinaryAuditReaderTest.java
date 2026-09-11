@@ -137,4 +137,82 @@ class BinaryAuditReaderTest {
                 String.join("", records), raw -> framed.add(raw.text()));
         assertEquals(1, framed.size(), "the framer must see exactly one record: " + records);
     }
+
+    /**
+     * String and Object values are stored as dictionary ids. The reader used the id-free renderer,
+     * which has no dictionary, so every such value reached the analyser as "#tag5:4" and a logged
+     * null as "#tag5:0" - the spelling that means an UNRESOLVED id everywhere else. No test failed,
+     * because none crossed the dictionary-backed value path.
+     */
+    @Test
+    void stringObjectAndNullValuesResolveThroughTheReader(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("values.flxa");
+        try (OutputStream out = Files.newOutputStream(file);
+             BinaryLogWriter writer = new BinaryLogWriter(out)) {
+            Clock clock = new Clock();
+            clock.init();
+            BinaryLogRecord record = new BinaryLogRecord(clock);
+            record.triggerObject(new TickEvent());
+            record.addRecord("node", "chars", (CharSequence) "promised-text");
+            record.addRecord("node", "object", (Object) new StringBuilder("promised-object"));
+            record.addRecord("node", "nullChars", (CharSequence) null);
+            record.addRecord("node", "nullObject", (Object) null);
+            writer.processLogRecord(record);
+        }
+        List<String> records = new ArrayList<>();
+        new BinaryAuditReader().read(file, records::add);
+        String text = records.get(0);
+        assertTrue(text.contains("chars: promised-text"), text);
+        assertTrue(text.contains("object: promised-object"), text);
+        assertTrue(text.contains("nullChars: null"), "a logged null is the null literal: " + text);
+        assertTrue(text.contains("nullObject: null"), text);
+        assertFalse(text.contains("#tag"), "no diagnostic placeholders for resolvable values: " + text);
+    }
+
+    /** The wire records Class.getName(); the reader must not throw that identity away. */
+    @Test
+    void theFullyQualifiedEventTypeSurvivesBesideTheSimpleName(@TempDir Path dir) throws IOException {
+        List<String> records = new ArrayList<>();
+        new BinaryAuditReader().read(writeLog(dir, "audit.flxa"), records::add);
+        String text = records.get(0);
+        assertTrue(text.contains("  event: TickEvent\n"), "the simple name, as the text format has it: " + text);
+        assertTrue(text.contains("  eventType: " + TickEvent.class.getName() + "\n"),
+                "and the identity the wire actually recorded: " + text);
+    }
+
+    /** Two classes with the same simple name in different packages. */
+    public static final class Tick { }
+
+    /**
+     * THE G9 CASE AT THE READER BOUNDARY. Reducing to the simple name made com.a.Tick and com.b.Tick
+     * one event before the scorer could compare identities, and the scorer reported PASS. Through the
+     * reader and the analyser's own parser, the two must remain distinguishable.
+     */
+    @Test
+    void twoEventTypesWithOneSimpleNameStayDistinct(@TempDir Path dir) throws IOException {
+        // TickEvent (this test's outer class) and Tick (nested) differ; both end in "Tick"-ish simple
+        // names and, more to the point, the framework's own TickEvent below has a different package
+        // from a same-named class a user could write. Prove the FQN is what the parser gets.
+        Path a = dir.resolve("a.flxa");
+        Path b = dir.resolve("b.flxa");
+        for (Object[] c : new Object[][]{{a, new TickEvent()}, {b, new Tick()}}) {
+            try (OutputStream out = Files.newOutputStream((Path) c[0]);
+                 BinaryLogWriter writer = new BinaryLogWriter(out)) {
+                Clock clock = new Clock();
+                clock.init();
+                BinaryLogRecord record = new BinaryLogRecord(clock);
+                record.triggerObject(c[1]);
+                record.addRecord("n", "k", 1);
+                writer.processLogRecord(record);
+            }
+        }
+        List<String> ra = new ArrayList<>(), rb = new ArrayList<>();
+        new BinaryAuditReader().read(a, ra::add);
+        new BinaryAuditReader().read(b, rb::add);
+        var pa = telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(ra.get(0), 0);
+        var pb = telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(rb.get(0), 0);
+        assertEquals(TickEvent.class.getName(), pa.eventType());
+        assertEquals(Tick.class.getName(), pb.eventType());
+        assertNotEquals(pa.eventType(), pb.eventType(), "identities differ though a UI may show similar names");
+    }
 }
