@@ -89,17 +89,25 @@ public final class DiffBuilder {
     }
 
     /**
-     * Same kind AND same value. Numbers compare as numbers (the model's reading), so {@code 1} and
-     * {@code 1.0} are the same figure; everything else compares as the text it is. Quoted {@code "hello"}
-     * and bare {@code hello} are both TEXT and both spell hello, so they are the same - the quoted flag
-     * is how the kind was established, not the kind itself.
+     * Same kind AND same value. Numbers compare EXACTLY, through {@link KV#exact()}: {@code 1} and
+     * {@code 1.0} are the same figure, and {@code 9007199254740992} and {@code 9007199254740993} are
+     * not - a review found the first version narrowing both to a double and calling them SAME, which
+     * lost a distinction the log carries. The plotting approximation is not an equality. A number with
+     * no exact decimal ({@code NaN}, {@code Infinity}) compares as the text it is. Everything else
+     * compares as text; quoted {@code "hello"} and bare {@code hello} are both TEXT and both spell
+     * hello, so they are the same - the quoted flag is how the kind was established, not the kind.
      */
     static boolean same(KV a, KV b) {
         KV.Kind ka = a.kind(), kb = b.kind();
         if (ka != kb) return false;
         switch (ka) {
             case NULL: return true;
-            case NUMBER: return Double.compare(a.numeric().getAsDouble(), b.numeric().getAsDouble()) == 0;
+            case NUMBER: {
+                var ea = a.exact();
+                var eb = b.exact();
+                if (ea.isPresent() && eb.isPresent()) return ea.get().compareTo(eb.get()) == 0;
+                return Objects.equals(a.rawValue().trim(), b.rawValue().trim());
+            }
             case BOOLEAN: return a.asBoolean().equals(b.asBoolean());
             default: return Objects.equals(a.rawValue(), b.rawValue());
         }

@@ -40,6 +40,20 @@ public interface LogStore extends AutoCloseable {
         return null;
     }
 
+    /** The {@code nodeLogs} grammar every record of this store is parsed with — the reader's declaration. */
+    default telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding textEncoding() {
+        return telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY;
+    }
+
+    /**
+     * What the reader could NOT read of the source — a cut tail, names the file never defined — as
+     * plain statements. Empty for a whole source. These are about the SOURCE, shown beside the
+     * evidence, never inside it.
+     */
+    default java.util.List<String> sourceDiagnostics() {
+        return java.util.List.of();
+    }
+
     Long minLogTime();
 
     Long maxLogTime();

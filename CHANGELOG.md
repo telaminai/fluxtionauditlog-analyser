@@ -53,11 +53,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `"ok, price: 42.0"` read as a second entry carrying a number the producer never published, a
   logged `'` character deleted the entry after it, and a value with a line break could rewrite
   `eventType`. Values that would be syntax are now written in a quoted form the format specification
-  defines (§3a, fixture C16), which the record **declares** with `nodeLogsEncoding: quoted` and the
-  tokenizer then decodes losslessly: a quoted scalar is a string whatever it spells. A record that
-  does not declare it — every text log — is read exactly as before (fixture C17).
-- **The record diff compares values by kind.** A number `42.0` and the string `"42.0"` were SAME; they
-  are now CHANGED, and the kind is shown when it is what differs.
+  defines (§3a, fixture C16), which the **reader declares** through the plugin SPI
+  (`AuditLogReader.textEncoding()`) and the tokenizer then decodes losslessly: a quoted scalar is a
+  string whatever it spells. Nothing in the text selects a grammar, so a text log — every log the
+  text runtime writes — is read exactly as before, including a multiline value whose middle line is
+  spelled like a field (fixture C17).
+- **The record diff compares values by kind, and numbers exactly.** A number `42.0` and the string
+  `"42.0"` were SAME; they are now CHANGED, and the kind is shown when it is what differs. Two
+  different logged longs above 2^53 are CHANGED, not narrowed to one double.
+- **A damaged binary log says so.** A cut tail, or references to names the file never defined
+  (including String values), used to open silently as a whole log. The reader now reports them
+  through the plugin SPI, the store keeps them, and they appear as a *source damage* finding in the
+  status bar and the `context` echo — beside the records, never as one.
 - **A binary log whose time unit is wrong, undefined, or unstated is refused before a record is
   delivered, not after.** The analyser no longer assumes a header that states no unit means
   milliseconds — a pre-release runtime could write nanoseconds under it. Declare the unit into a copy

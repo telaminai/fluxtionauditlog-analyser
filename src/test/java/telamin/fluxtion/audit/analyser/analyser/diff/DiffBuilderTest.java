@@ -19,11 +19,11 @@ class DiffBuilderTest {
         return RecordParser.parse(text, 0);
     }
 
-    /** A record under the declared quoted-scalar grammar, as the binary reader constructs one. */
+    /** A record parsed under the quoted-scalar grammar, as a store whose READER declares it does. */
     private static LogRecord quotedRec(String nodeLogItems) {
-        String text = "eventLogRecord:\n  logTime: 1\n  nodeLogsEncoding: quoted\n  nodeLogs:\n"
-                + nodeLogItems + "  endTime: 2\n";
-        return RecordParser.parse(text, 0);
+        String text = "eventLogRecord:\n  logTime: 1\n  nodeLogs:\n" + nodeLogItems + "  endTime: 2\n";
+        return RecordParser.parse(text, 0,
+                telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.QUOTED_SCALARS);
     }
 
     private static Map<String, DiffRow> byKey(LogRecord a, LogRecord b) {
@@ -88,5 +88,25 @@ class DiffBuilderTest {
         List<DiffRow> rows = DiffBuilder.diff(a, b);
         assertTrue(rows.get(0).isDifference(), "a difference sorts before the SAME row");
         assertEquals(Change.SAME, rows.get(rows.size() - 1).change());
+    }
+
+    /**
+     * REVIEWER PROBE (round 6). The kind-aware diff narrowed both sides to a double, so
+     * 9007199254740992 and 9007199254740993 - two different logged longs - were SAME. Numbers now
+     * compare exactly; the plotting approximation is not an equality.
+     */
+    @Test
+    void adjacentLargeIntegersAreDifferent_andEqualDecimalsAreStillSame() {
+        Map<String, DiffRow> rows = byKey(rec("    - n: { p: 9007199254740992, q: 9223372036854775807, r: -9223372036854775808, s: 1, t: 0.1}\n"),
+                                          rec("    - n: { p: 9007199254740993, q: 9223372036854775806, r: -9223372036854775807, s: 1.0, t: 0.10}\n"));
+        assertEquals(Change.CHANGED, rows.get("n.p").change(), "2^53 and 2^53+1 are different longs");
+        assertEquals(Change.CHANGED, rows.get("n.q").change(), "Long.MAX_VALUE and its neighbour");
+        assertEquals(Change.CHANGED, rows.get("n.r").change(), "Long.MIN_VALUE and its neighbour");
+        assertEquals(Change.SAME, rows.get("n.s").change(), "1 and 1.0 are one figure");
+        assertEquals(Change.SAME, rows.get("n.t").change(), "0.1 and 0.10 are one figure");
+        assertFalse(rows.get("n.p").kindDiffers(), "same kind, different value");
+        Map<String, DiffRow> special = byKey(rec("    - n: { a: NaN, b: Infinity}\n"), rec("    - n: { a: NaN, b: -Infinity}\n"));
+        assertEquals(Change.SAME, special.get("n.a").change(), "no exact decimal: compared as text");
+        assertEquals(Change.CHANGED, special.get("n.b").change());
     }
 }

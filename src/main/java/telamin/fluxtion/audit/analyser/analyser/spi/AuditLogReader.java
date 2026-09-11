@@ -50,6 +50,40 @@ public interface AuditLogReader {
      */
     void read(Path source, Consumer<String> recordText) throws IOException;
 
+    /**
+     * Reads, and reports what could NOT be read. The default delivers records only, for readers with
+     * nothing to say; a reader whose source can be damaged (a binary log with a cut tail, names the
+     * file never defined) overrides it and says so here, so the damage travels with the evidence
+     * instead of being discarded at this boundary. A diagnostic is a statement about the SOURCE,
+     * never a record: it MUST NOT be delivered as a synthetic node or a fabricated event.
+     */
+    default void read(Path source, Consumer<String> recordText, Consumer<String> sourceDiagnostic)
+            throws IOException {
+        read(source, recordText);
+    }
+
+    /**
+     * Which grammar the {@code nodeLogs} text this reader constructs is written in. The parser applies
+     * it to EVERY record from this reader and never decides from the text: a review showed a legacy
+     * value that happened to contain a declaration-shaped line being promoted into a control field and
+     * deleting the entry after it. Encoding is the reader's declaration; logged content cannot select
+     * or change it.
+     */
+    default TextEncoding textEncoding() {
+        return TextEncoding.LEGACY;
+    }
+
+    /** The two {@code nodeLogs} grammars — format specification §3 and §3a. */
+    enum TextEncoding {
+        /** Quote marks are the producer's characters; nothing decodes. Every text log ever written. */
+        LEGACY,
+        /**
+         * A scalar that is entirely {@code "…"} decodes with escapes and is a string whatever it spells.
+         * Declared by readers that construct text from TYPED values, such as the binary reader.
+         */
+        QUOTED_SCALARS
+    }
+
     /** {@code epoch}: millis | micros | nanos · {@code zone}: IANA · {@code source}: wallClock | monotonic | injected. */
     record TimeBase(String epoch, String zone, String source) {
         public static TimeBase wallClockMillisUtc() {

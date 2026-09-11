@@ -61,7 +61,6 @@ eventLogRecord:
 | `groupingId` | string | MAY be present; the literal `null` reads as absent. |
 | `thread` | string | MAY be present. Wins over the header's thread when both are given. |
 | `nodeLogs` | list | SHOULD be present. The cycle's contributions, §3–§4. |
-| `nodeLogsEncoding` | string | MAY be present. `quoted` declares that this record's `nodeLogs` use the quoted-scalar grammar (§3a). Absent, or any other value: the legacy grammar. A reader MUST NOT infer the grammar from the bytes. |
 | anything else | — | **Ignored, never rejected.** A newer producer MUST NOT break an older analyser; an emitter MAY add fields, and MUST NOT expect them to mean anything yet. |
 
 **Every record is kept.** A slice that cannot be parsed becomes a `PARSE_ERROR` record carrying its
@@ -93,52 +92,32 @@ every `instanceId.key` series.
   character, `"hello"` keeps its quotes, and `prefix "C:\"` closes at its second quote mark. This is
   how every text log has always been read, and it does not change. *(Fixture C17.)*
 
-### 3a. The quoted-scalar grammar — declared by the record, never inferred
+### 3a. The quoted-scalar grammar — declared by the reader, never by the text
 
-A record that carries `nodeLogsEncoding: quoted` (§2) declares that its `nodeLogs` use a second
-grammar, which adds one rule to §3: **a double-quoted scalar is a string, whatever it spells.** An
-instance id, key or value that is *entirely* `"…"` is decoded — the escapes are `\\`, `\"`, `\n`,
-`\r`, `\t`, and while scanning a backslash inside double quotes escapes the next character — and
-read as text: `"42.0"` is not a figure, `"null"` is not null, `"true"` is not a flag, and the commas,
-colons, braces and line breaks inside it split nothing. Anything not entirely one quoted scalar is
-the raw text it always was. *(Fixture C16.)*
+The **reader** that constructs record text from *typed* values declares a second grammar through the
+SPI: `AuditLogReader.textEncoding()` returns `QUOTED_SCALARS`, and the parser applies it to every
+record that reader delivers. It adds one rule to §3: **a double-quoted scalar is a string, whatever
+it spells.** An instance id, key or value that is *entirely* `"…"` is decoded — the escapes are
+`\\`, `\"`, `\n`, `\r`, `\t`, and while scanning a backslash inside double quotes escapes the next
+character — and read as text: `"42.0"` is not a figure, `"null"` is not null, `"true"` is not a flag,
+and the commas, colons, braces and line breaks inside it split nothing. Anything not entirely one
+quoted scalar is the raw text it always was. *(Fixture C16, through a reader that declares it.)*
 
-This is the one lossless spelling for text that would otherwise *be* syntax. An emitter that
-constructs record text from **typed** values — the built-in binary reader, an adapter for a typed
-engine — MUST declare the encoding on every record and MUST use the quoted form for any string the
-bare form would mis-split or mistype; a reviewer showed a logged `"ok, price: 42.0"` written bare
-manufacturing a numeric figure the producer never published, and a logged `'` character deleting
-the entry after it.
+This is the one lossless spelling for text that would otherwise *be* syntax. The built-in binary
+reader declares it and MUST use the quoted form for any string the bare form would mis-split or
+mistype; a reviewer showed a logged `"ok, price: 42.0"` written bare manufacturing a numeric figure
+the producer never published, and a logged `'` character deleting the entry after it. An adapter for
+another typed engine that constructs text does the same: declare, and quote.
 
-The binary format itself — header, frames, tags, bounds, what a writer must refuse and a reader
-must deliver — is specified on the runtime's side, in
-[FLXA — the binary audit log format](https://telaminai.github.io/fluxtion/reference/flxa-format/);
-its §11 is the contract this page's §3a serves, and its conformance corpus ships in the runtime jar,
-which this analyser's `FlxaConformanceTest` reads.
-
-**Why the record declares it.** The same bytes cannot say whether a quote mark was the producer's
-data or encoding syntax: read under this grammar, the legacy value `prefix "C:\"` treats its
-backslash as an escape, never closes, and swallows the figure after it — a scorer then carries the
-previous figure forward and reports PASS where the legacy reading said FAIL. So the grammar is
-selected by the declaration and by nothing else. The text runtime has never written the field and
-need not; every existing log is read exactly as before.
-- **The same `instanceId` MAY appear more than once** in a record — a component logging at several
-  points in the cycle. Every occurrence is kept, in order. Where one value per record is needed
-  (graphing, comparison) the **last occurrence wins**. *(Fixture C07.)*
-- **Attribution (D-A3): a value appears under a component only if that component produced or
-  changed it.** A Fluxtion entry exists because *that node chose to log that key in that cycle*.
-  Foreign state models differ — a shared state channel touched by five components is not five
-  components' output. An emitter that echoes shared state under every component that saw it turns
-  one series into five identical ones, and last-occurrence and carry-forward keep "working" while
-  meaning something else. The analyser cannot enforce this — it does not know what *produced* means
-  in your engine — so it pins the consequence: **the core attributes strictly by position and never
-  merges.** An emitter that cannot attribute a value MUST decline to emit it rather than broadcast
-  it. *(Fixture C11.)*
-- **No pseudo-nodes.** Markers, scheduler bookkeeping, `__start__`/`__end__` and the like MUST NOT
-  be emitted as `nodeLogs` items: they become components — they step, they graph, they count as
-  uncovered. The M34.0 spike smuggled a concurrency marker through a node item and watched it
-  resolve as a data series with a mangled value. If your engine needs to say something the record
-  has no field for, say it nowhere rather than somewhere wrong (see §8).
+**Encoding is selected from the reader's declared context. Logged content MUST NOT select or change
+it.** There is no field in the text that switches grammar, because the same bytes cannot say whether
+a quote mark — or a line spelled like a field — was the producer's data or encoding syntax. An
+earlier draft put a `nodeLogsEncoding: quoted` scalar in the record; a reviewer then logged a
+multiline legacy value whose middle line *was* that scalar, and the parser promoted value data into a
+control field and deleted the entry after it. The declaration now lives where the text cannot reach
+it. A text file opened by the built-in text reader is therefore always legacy, byte for byte as
+before; that reader has no declaration to make and the text runtime never quotes. *(Fixture C17
+pins the round-5 record, `"hello"` keeping its quotes, and the multiline record.)*
 
 ## 4. Order is a claim, and the reader declares it (D-A1a)
 
@@ -246,8 +225,8 @@ author: *emit these records and you get exactly what the native log gets.*
 | C12 traced regime | absence is *did not run* only when every entry is traced; one `method` key proves nothing |
 | C13 exported call | dimension is the callback; declaring type captured; `eventTime` absent |
 | C14 synthesised text | text an adapter *constructs* (no trailing newline, a leading `---`, CRLF) reads exactly as sliced file text |
-| C16 quoted scalars | under a DECLARED `nodeLogsEncoding: quoted`, entirely `"…"` is a string whatever it spells; escapes decode; its insides split nothing |
-| C17 legacy quotes | an undeclared record is read with the legacy grammar: quotes are data, a backslash is a character, the figure after `prefix "C:\"` is still a figure |
+| C16 quoted scalars | through a reader that declares `QUOTED_SCALARS`, entirely `"…"` is a string whatever it spells; escapes decode; its insides split nothing; the same bytes through the text reader are legacy |
+| C17 legacy quotes | text is legacy, byte for byte: quotes are data, a backslash is a character, the figure after `prefix "C:\"` is still a figure, and a value line spelled like a field is value data |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture

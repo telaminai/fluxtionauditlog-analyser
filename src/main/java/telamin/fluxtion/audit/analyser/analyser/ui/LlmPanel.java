@@ -177,7 +177,7 @@ public final class LlmPanel extends JPanel {
                         boolean capped = false;
                         if (actionsOn && !cancelled && store != null) {
                             ActionDispatcher d = new ActionDispatcher(false, null,
-                                    () -> store.index().snapshot(), store::rawText, renderExecutor);
+                                    () -> store.index().snapshot(), store::rawText, store::record, renderExecutor);
                             int executed = 0;
                             for (String block : ActionParser.extract(reply)) {
                                 if (executed >= perReplyCap) { capped = true; break; }

@@ -21,6 +21,7 @@ public final class SpiLogStore implements LogStore {
     private final List<String> texts = new ArrayList<>();
     private final LogIndex index = new LogIndex();
     private final AuditLogReader reader;
+    private final List<String> sourceDiagnostics = new ArrayList<>();
 
     /** Asked once at open (M34.1) — a reader that scans a registry must not be re-invoked per query. */
     private AuditLogReader.SourceGraph sourceGraph;
@@ -59,13 +60,25 @@ public final class SpiLogStore implements LogStore {
             store.graphNote = reader.formatId() + " could not supply a graph: " + e.getMessage();
         }
         long[] offset = {0};
+        // The grammar is the READER's declaration, applied to every record; the text is never sniffed.
+        AuditLogReader.TextEncoding encoding = reader.textEncoding();
         reader.read(source, text -> {
-            LogRecord rec = RecordParser.parse(text, offset[0]);
+            LogRecord rec = RecordParser.parse(text, offset[0], encoding);
             store.index.add(rec);
             store.texts.add(text);
             offset[0] += text.length();   // synthetic — never handed out as a real file offset
-        });
+        }, store.sourceDiagnostics::add);
         return store;
+    }
+
+    @Override
+    public AuditLogReader.TextEncoding textEncoding() {
+        return reader.textEncoding();
+    }
+
+    @Override
+    public List<String> sourceDiagnostics() {
+        return List.copyOf(sourceDiagnostics);
     }
 
     /** The reader that produced this store — the capability flags live on it (D-P4). */
@@ -85,7 +98,7 @@ public final class SpiLogStore implements LogStore {
 
     @Override
     public LogRecord record(int row) {
-        return RecordParser.parse(texts.get(row), index.offset(row));
+        return RecordParser.parse(texts.get(row), index.offset(row), reader.textEncoding());
     }
 
     @Override

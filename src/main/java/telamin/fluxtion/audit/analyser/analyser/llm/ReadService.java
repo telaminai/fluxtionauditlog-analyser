@@ -30,6 +30,16 @@ public final class ReadService {
 
     public static Map<String, Object> read(LogIndex.Snapshot snap, Map<String, Object> params,
                                            IntFunction<String> rawText) {
+        return read(snap, params, rawText, null);
+    }
+
+    /**
+     * @param record row → the PARSED record, from the store, so the projection is made under the
+     *               grammar the store's reader declared. Null falls back to parsing the raw text as
+     *               legacy, which is only right for a text log.
+     */
+    public static Map<String, Object> read(LogIndex.Snapshot snap, Map<String, Object> params,
+                                           IntFunction<String> rawText, IntFunction<LogRecord> record) {
         int size = snap.size();
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("total", size);
@@ -112,7 +122,8 @@ public final class ReadService {
             if (fields == null) {
                 m.put("text", rawText.apply(row));
             } else {
-                LogRecord rec = RecordParser.parse(rawText.apply(row), snap.offset(row));
+                LogRecord rec = record != null ? record.apply(row)
+                        : RecordParser.parse(rawText.apply(row), snap.offset(row));
                 if (rec.event() != null) m.put("event", rec.event());
                 m.put("values", project(rec.nodeLogs(), fields, seenFields));
             }

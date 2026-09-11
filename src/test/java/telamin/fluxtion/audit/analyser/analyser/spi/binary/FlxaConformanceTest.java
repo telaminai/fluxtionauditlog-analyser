@@ -6,7 +6,8 @@ import org.junit.jupiter.api.io.TempDir;
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
-import telamin.fluxtion.audit.analyser.analyser.parse.RecordParser;
+import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
+import telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,16 +35,20 @@ class FlxaConformanceTest {
         return f;
     }
 
-    /** Reads a fixture through the real reader and parser. */
+    /** Reads a fixture through the real reader and the store, so the reader's declared grammar applies. */
     private static List<LogRecord> parse(Path dir, String name) throws IOException {
-        List<String> texts = new ArrayList<>();
-        new BinaryAuditReader().read(fixture(dir, name), texts::add);
+        SpiLogStore store = SpiLogStore.open(new BinaryAuditReader(), fixture(dir, name));
+        assertEquals(AuditLogReader.TextEncoding.QUOTED_SCALARS, store.textEncoding(), "§11.1 the reader declares the grammar");
         List<LogRecord> out = new ArrayList<>();
-        for (String t : texts) {
-            assertTrue(t.contains("\n  nodeLogsEncoding: quoted\n"), "§11.1 every constructed record declares its grammar: " + t);
-            out.add(RecordParser.parse(t, 0));
+        for (int i = 0; i < store.size(); i++) {
+            assertFalse(store.rawText(i).contains("nodeLogsEncoding"), "§11.1 nothing in the text selects a grammar");
+            out.add(store.record(i));
         }
         return out;
+    }
+
+    private static List<String> diagnostics(Path dir, String name) throws IOException {
+        return SpiLogStore.open(new BinaryAuditReader(), fixture(dir, name)).sourceDiagnostics();
     }
 
     private static NodeLog only(LogRecord r) {
@@ -55,7 +60,7 @@ class FlxaConformanceTest {
 
     @Test
     void everyFixtureInTheCorpusIsExercisedHere() {
-        assertEquals(16, FlxaConformanceCorpus.names().size(), "add a test below for a new fixture");
+        assertEquals(19, FlxaConformanceCorpus.names().size(), "add a test below for a new fixture");
     }
 
     @Test
@@ -134,6 +139,11 @@ class FlxaConformanceTest {
         List<LogRecord> rs = parse(dir, "f07-truncated-tail");
         assertEquals(1, rs.size(), "the whole record is delivered; the cut one is not invented");
         assertEquals(1.25, only(rs.get(0)).last("price").numeric().getAsDouble(), 0);
+        // §9.3's other half: the unusable tail is REPORTED, beside the evidence, not swallowed
+        List<String> d = diagnostics(dir, "f07-truncated-tail");
+        assertEquals(1, d.size(), d.toString());
+        assertTrue(d.get(0).contains("did not form a whole record"), d.get(0));
+        assertTrue(diagnostics(dir, "f01-minimal").isEmpty(), "a whole file reports nothing");
     }
 
     @Test
@@ -154,6 +164,40 @@ class FlxaConformanceTest {
         NodeLog n = only(r);
         assertEquals("#2", n.instanceId());
         assertEquals("1.25", n.last("#3").rawValue());
+    }
+
+    @Test
+    void f11_and_f17_unresolvedIds_areReportedBesideTheEvidence(@TempDir Path dir) throws IOException {
+        List<String> structural = diagnostics(dir, "f11-unresolved-ids");
+        assertEquals(1, structural.size(), structural.toString());
+        assertTrue(structural.get(0).startsWith("3 references"), structural.get(0));
+        List<String> values = diagnostics(dir, "f17-unresolved-value-ids");
+        assertEquals(1, values.size(), values.toString());
+        assertTrue(values.get(0).startsWith("2 references"), "§4: value ids count like every other role: " + values.get(0));
+    }
+
+    @Test
+    void f17_unresolvedValueIds_areVisibleAsText_notInvented(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f17-unresolved-value-ids").get(0));
+        assertEquals("#65000", n.last("aString").rawValue());
+        assertEquals(KV.Kind.TEXT, n.last("aString").kind());
+        assertEquals("#65001", n.last("anObject").rawValue());
+        assertEquals(1.25, n.last("aDouble").numeric().getAsDouble(), 0);
+    }
+
+    @Test
+    void f18_duplicateDictId_theLatestDefinitionNames(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f18-duplicate-dict-id").get(0));
+        assertEquals("renamed", n.instanceId(), "§4: a redefinition names what follows it");
+        assertTrue(diagnostics(dir, "f18-duplicate-dict-id").isEmpty(), "a redefinition is not damage");
+    }
+
+    @Test
+    void f19_malformedUtf8_isReplacedNeverFatal(@TempDir Path dir) throws IOException {
+        NodeLog n = only(parse(dir, "f19-malformed-utf8").get(0));
+        assertTrue(n.instanceId().startsWith("\uFFFD"), n.instanceId());
+        assertTrue(n.instanceId().endsWith("ricer"), n.instanceId());
+        assertEquals(1.25, n.last("price").numeric().getAsDouble(), 0);
     }
 
     @Test

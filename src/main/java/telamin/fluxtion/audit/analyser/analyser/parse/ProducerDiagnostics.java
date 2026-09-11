@@ -43,7 +43,13 @@ public record ProducerDiagnostics(List<Finding> findings) {
         /** Records arrived, but no node logged anything — the audit auditor was never installed. */
         NO_NODE_LOGS,
         /** The only thing in the log is the framework's own control event. */
-        ONLY_CONTROL_EVENTS
+        ONLY_CONTROL_EVENTS,
+        /**
+         * The READER could not read part of the source - a cut tail, names the file never defined.
+         * Stated by the reader ({@code AuditLogReader.read} with a diagnostic consumer), carried by the
+         * store, shown here beside the records it did read. Not a repair, not a record.
+         */
+        SOURCE_DAMAGE
     }
 
     /**
@@ -74,16 +80,29 @@ public record ProducerDiagnostics(List<Finding> findings) {
      * @param rawText row → the record's own text, as {@link LogStore#rawText}. May return null.
      */
     public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText) {
-        if (idx == null || idx.size() == 0) return clean();
-        List<Finding> out = new ArrayList<>();
+        return of(idx, rawText, List.of());
+    }
 
+    /**
+     * @param sourceDiagnostics what the reader said it could not read ({@link LogStore#sourceDiagnostics()});
+     *                          each becomes a {@link Kind#SOURCE_DAMAGE} finding, listed FIRST, because
+     *                          a log that is not all there is the first thing to know about it
+     */
+    public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText, List<String> sourceDiagnostics) {
+        List<Finding> out = new ArrayList<>();
+        for (String d : sourceDiagnostics) {
+            out.add(new Finding(Kind.SOURCE_DAMAGE, d));
+        }
+        if (idx == null || idx.size() == 0) return new ProducerDiagnostics(List.copyOf(out));
+
+        int damage = out.size();
         unseparated(idx, rawText).ifPresent(out::add);
         // Only worth saying when the log is not ALREADY explained by one of the others: a file that ran
         // together also has no node logs on rows 1..n-1, and saying both would be two names for one bug.
-        if (out.isEmpty()) {
+        if (out.size() == damage) {
             onlyControlEvents(idx).ifPresent(out::add);
         }
-        if (out.isEmpty()) {
+        if (out.size() == damage) {
             noNodeLogs(idx).ifPresent(out::add);
         }
         return new ProducerDiagnostics(List.copyOf(out));

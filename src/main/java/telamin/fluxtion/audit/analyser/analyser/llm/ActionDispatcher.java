@@ -25,6 +25,7 @@ public final class ActionDispatcher {
     private final String token;
     private final Supplier<LogIndex.Snapshot> snapshot;
     private final IntFunction<String> rawText;   // row → raw record text, for a text filter; may be null
+    private final IntFunction<telamin.fluxtion.audit.analyser.analyser.model.LogRecord> record; // row → parsed, under the store's grammar; may be null
     private final RenderExecutor render;          // render verbs (filter/graph/goto/flag); null = not enabled
 
     public ActionDispatcher(boolean requireToken, String token,
@@ -34,6 +35,17 @@ public final class ActionDispatcher {
 
     public ActionDispatcher(boolean requireToken, String token, Supplier<LogIndex.Snapshot> snapshot,
                             IntFunction<String> rawText, RenderExecutor render) {
+        this(requireToken, token, snapshot, rawText, null, render);
+    }
+
+    /**
+     * @param record row → the store's parsed record, so {@code read} with {@code fields} projects under
+     *               the grammar the store's reader declared rather than re-parsing text as legacy
+     */
+    public ActionDispatcher(boolean requireToken, String token, Supplier<LogIndex.Snapshot> snapshot,
+                            IntFunction<String> rawText,
+                            IntFunction<telamin.fluxtion.audit.analyser.analyser.model.LogRecord> record,
+                            RenderExecutor render) {
         if (requireToken && token == null) {
             throw new IllegalArgumentException("a token-guarded dispatcher requires a non-null token");
         }
@@ -41,6 +53,7 @@ public final class ActionDispatcher {
         this.token = token;
         this.snapshot = snapshot;
         this.rawText = rawText;
+        this.record = record;
         this.render = render;
     }
 
@@ -78,7 +91,7 @@ public final class ActionDispatcher {
                 case "aggregate" -> ActionResult.ok("aggregate", "result",
                         AggregateService.aggregate(snapshot.get(), params, rawText));
                 case "read" -> ActionResult.ok("read", "result",
-                        ReadService.read(snapshot.get(), params, rawText));
+                        ReadService.read(snapshot.get(), params, rawText, record));
                 case "filter", "graph", "goto", "flag", "topology", "open", "source_root", "screenshot",
                      "report", "coverage", "series", "context" -> render != null
                         ? render.render(action, params)

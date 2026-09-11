@@ -1994,6 +1994,7 @@ public final class MainFrame extends JFrame {
                             return store.index().snapshot();
                         },
                         row -> store == null ? null : store.rawText(row),
+                        row -> store == null ? null : store.record(row),   // parsed under the reader's grammar
                         actionExecutor);
                 // publish the live url+token to the well-known file so an MCP client (M13) can find this
                 // run's ephemeral port/token from a static config; removed again on stop/exit
@@ -2708,7 +2709,7 @@ public final class MainFrame extends JFrame {
         // What the log says about its EMITTER. Computed here, after the index is built, because two of
         // the three checks read the index and the third reads a record's text.
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                .of(loaded.index(), loaded::rawText);
+                .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics());
         String producerWarning = producerDiagnostics.isClean() ? ""
                 : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
                         java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";

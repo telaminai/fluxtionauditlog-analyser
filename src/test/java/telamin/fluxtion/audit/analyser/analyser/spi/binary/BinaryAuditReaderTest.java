@@ -240,7 +240,9 @@ class BinaryAuditReaderTest {
         List<String> records = new ArrayList<>();
         new BinaryAuditReader().read(file, records::add);
         assertEquals(1, records.size(), records.toString());
-        return telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(records.get(0), 0);
+        // parsed under the grammar THIS READER declares - the way SpiLogStore does it
+        return telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(records.get(0), 0,
+                new BinaryAuditReader().textEncoding());
     }
 
     /**
@@ -445,14 +447,48 @@ class BinaryAuditReaderTest {
         }
         List<String> texts = new ArrayList<>();
         new BinaryAuditReader().read(file, texts::add);
-        assertTrue(texts.get(0).contains("  nodeLogsEncoding: quoted\n"), "the grammar is declared on every record: " + texts.get(0));
+        assertFalse(texts.get(0).contains("nodeLogsEncoding"), "nothing in the text selects a grammar: " + texts.get(0));
         List<telamin.fluxtion.audit.analyser.analyser.model.LogRecord> actual = new ArrayList<>();
-        for (String t : texts) actual.add(telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(t, 0));
+        for (String t : texts) actual.add(telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(t, 0,
+                AuditLogReader.TextEncoding.QUOTED_SCALARS));
         var scorer = new telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer(
                 telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer.Dialect.NATURAL,
                 "stage", "value", java.util.Set.of("Tick", "tick"), 1e-6);
         var expected = scorer.snapshots(List.of(actual.get(0), actual.get(0)));   // expects 42 both times
         var result = scorer.score(expected, scorer.snapshots(actual));
         assertFalse(result.pass(), "77 behind a quote char is still 77: " + result);
+    }
+
+    /**
+     * REVIEWER PROBE (round 6). The runtime's reader reported 72 unusable bytes on a cut file and the
+     * analyser discarded the report, opening a damaged log as a whole one. The damage now travels with
+     * the evidence: through the SPI's diagnostic consumer, into the store, and from there to the status
+     * surfaces - never as a record.
+     */
+    @Test
+    void aCutTailIsReportedBesideTheRecordsItDidRead(@TempDir Path dir) throws IOException {
+        Path whole = writeLog(dir, "whole.flxa");
+        byte[] bytes = Files.readAllBytes(whole);
+        Path cut = dir.resolve("cut.flxa");
+        Files.write(cut, java.util.Arrays.copyOf(bytes, bytes.length - 5));
+
+        List<String> records = new ArrayList<>();
+        List<String> diagnostics = new ArrayList<>();
+        new BinaryAuditReader().read(cut, records::add, diagnostics::add);
+        assertEquals(0, records.size(), "the only record was cut, so none is invented");
+        assertEquals(1, diagnostics.size(), diagnostics.toString());
+        assertTrue(diagnostics.get(0).contains("did not form a whole record"), diagnostics.get(0));
+
+        // and through the store, where the status bar and the context echo read it
+        var store = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(new BinaryAuditReader(), cut);
+        assertEquals(1, store.sourceDiagnostics().size());
+        var findings = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                .of(store.index(), store::rawText, store.sourceDiagnostics());
+        assertFalse(findings.isClean());
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.SOURCE_DAMAGE,
+                findings.findings().get(0).kind());
+        assertTrue(store.sourceDiagnostics().isEmpty() == false && whole.toFile().exists());
+        var wholeStore = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(new BinaryAuditReader(), whole);
+        assertTrue(wholeStore.sourceDiagnostics().isEmpty(), "a whole file has nothing to report");
     }
 }

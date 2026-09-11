@@ -47,7 +47,6 @@ eventLogRecord:
 | `eventToString` | The event's `toString()` — often a method signature for exported calls. Kept whole (never re-split on inner `:`). |
 | `thread` | The thread that ran the cycle. |
 | `nodeLogs` | Ordered list; each entry is `instanceId: { key: value, … }` for one node that logged. |
-| `nodeLogsEncoding` | Optional. `quoted` declares the quoted-scalar grammar for this record's values (below). |
 | `endTime` | Epoch millis when the cycle finished. |
 
 **`instanceId`** is the node's field name inside the generated `EventProcessor` (e.g. `bidMakerOrder`,
@@ -70,13 +69,13 @@ leniently and **never fails a whole file** on one odd value. A number nested *in
 (e.g. `bidPrice=` in `QuoteLadder(bidPrice=…)`) is text within one value, not a top-level key — so it
 isn't itself graphable; only top-level numeric/boolean nodeLog keys are.
 
-A record may **declare** a second grammar with `nodeLogsEncoding: quoted`: then a value, key or
-instance id that is entirely double-quoted (`"…"`, with `\"`, `\\`, `\n`, `\r`, `\t` escapes) is a
-*string* whatever it says — `"42.0"` is not a number and `"null"` is not null. The binary reader
-declares it on every record it constructs and writes a logged String or char that way whenever the
-bare text would split, end the line or read as a number, so a string can never pose as a figure. A
-record that does not declare it — every log the text runtime writes — is read exactly as it always
-was: quote marks are the producer's characters and nothing decodes.
+A **reader** that constructs text from typed values (the binary reader) declares a second grammar
+through the plugin SPI: then a value, key or instance id that is entirely double-quoted (`"…"`, with
+`\"`, `\\`, `\n`, `\r`, `\t` escapes) is a *string* whatever it says — `"42.0"` is not a number and
+`"null"` is not null — and the binary reader writes a logged String or char that way whenever the
+bare text would split, end the line or read as a number, so a string can never pose as a figure.
+Nothing in the text itself selects a grammar. A text file — every log the text runtime writes — is
+read exactly as it always was: quote marks are the producer's characters and nothing decodes.
 
 ## Versions
 

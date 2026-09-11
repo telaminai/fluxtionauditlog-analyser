@@ -56,6 +56,16 @@ class FormatConformanceTest {
             this.ordering = ordering;
         }
 
+        private TextEncoding encoding = TextEncoding.LEGACY;
+
+        /** The adapter DECLARES its grammar; nothing in the bytes does. */
+        PassThroughReader declaring(TextEncoding e) {
+            this.encoding = e;
+            return this;
+        }
+
+        @Override public TextEncoding textEncoding() { return encoding; }
+
         @Override public String formatId() { return "conformance-passthrough"; }
         @Override public String displayName() { return "conformance pass-through"; }
         @Override public boolean canOpen(Path source) { return true; }
@@ -80,9 +90,13 @@ class FormatConformanceTest {
     }
 
     private LogStore viaSpi(String name) throws IOException {
+        return viaSpi(name, AuditLogReader.TextEncoding.LEGACY);
+    }
+
+    private LogStore viaSpi(String name, AuditLogReader.TextEncoding encoding) throws IOException {
         Path f = dir.resolve(name);
         Files.writeString(f, fixture(name));
-        return SpiLogStore.open(new PassThroughReader(AuditLogReader.Ordering.TOTAL), f);
+        return SpiLogStore.open(new PassThroughReader(AuditLogReader.Ordering.TOTAL).declaring(encoding), f);
     }
 
     /** The two paths agree on everything the record model exposes. Returns the built-in store. */
@@ -338,7 +352,18 @@ class FormatConformanceTest {
 
     @Test
     void c16_aQuotedScalarIsAStringWhateverItSpells_andItsInsidesSplitNothing() throws IOException {
-        LogStore s = bothPathsAgree("c16-quoted-scalars.yaml");
+        // The grammar is the READER's declaration. The same bytes through the built-in text reader are
+        // legacy: quotes kept, nothing decoded, and "ok, price: 42.0" is one quoted-looking value.
+        LogRecord legacy = builtIn("c16-quoted-scalars.yaml").record(0);
+        assertEquals("\"ok, price: 42.0\"", legacy.nodeLogs().get(0).last("status").rawValue(),
+                "the built-in text reader never decodes: nothing in the text selects a grammar");
+        assertFalse(legacy.nodeLogs().get(0).last("status").quoted());
+        assertEquals(9, legacy.nodeLogs().get(0).entries().size(), "the quotes protect the separators under both grammars");
+        assertEquals(19.5, legacy.nodeLogs().get(0).last("price").numeric().getAsDouble(), 0,
+                "the real figure, not one manufactured from the status string");
+
+        LogStore s = viaSpi("c16-quoted-scalars.yaml", AuditLogReader.TextEncoding.QUOTED_SCALARS);
+        assertEquals(AuditLogReader.TextEncoding.QUOTED_SCALARS, s.textEncoding());
         LogRecord r = s.record(0);
         assertEquals(EventKind.OK, r.kind());
         assertEquals(2, r.nodeLogs().size(), r.nodeLogs().toString());
@@ -378,6 +403,16 @@ class FormatConformanceTest {
         assertFalse(n.last("greeting").quoted());
         assertTrue(n.last("count").numeric().isEmpty(), "and a quoted number was never a figure");
 
+        // REVIEWER PROBE (round 6): a multiline legacy VALUE whose middle line is spelled like a control
+        // field. It is value data, folded by continuation; nothing in the text selects a grammar, so the
+        // price after it is still a figure and the scorer still says 42 -> 77 is a change.
+        LogRecord multi = s.record(2);
+        assertEquals(EventKind.OK, multi.kind());
+        var m = multi.nodeLogs().get(0);
+        assertEquals(2, m.entries().size(), "message and price: " + m.entries());
+        assertEquals("start nodeLogsEncoding: quoted end", m.last("message").rawValue());
+        assertEquals(77, m.last("price").numeric().getAsDouble(), 0);
+
         // the scorer's verdict, which is what the false PASS was about
         var scorer = new telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer(
                 telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer.Dialect.NATURAL,
@@ -386,6 +421,8 @@ class FormatConformanceTest {
         var expected = scorer.snapshots(List.of(s.record(0), s.record(0)));   // price stays 42 on the second Tick
         var result = scorer.score(expected, scorer.snapshots(actual));
         assertFalse(result.pass(), "price moved 42 -> 77 and the verdict must say so: " + result);
+        var multiResult = scorer.score(expected, scorer.snapshots(List.of(s.record(0), s.record(2))));
+        assertFalse(multiResult.pass(), "the reviewer's multiline record: 42 -> 77 must not PASS: " + multiResult);
     }
 
     @Test

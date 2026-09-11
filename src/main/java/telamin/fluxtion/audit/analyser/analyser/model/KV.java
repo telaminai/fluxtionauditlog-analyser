@@ -84,6 +84,30 @@ public record KV(String key, String rawValue, boolean quoted) {
         return OptionalDouble.empty();
     }
 
+    /**
+     * The EXACT numeric value, when the value is a decimal literal: no narrowing, so
+     * {@code 9007199254740993} is not {@code 9007199254740992}. Empty for a quoted value, for
+     * {@code NaN}/{@code Infinity} (which have no exact decimal), and for anything not numeric. This is
+     * the equality the diff uses; {@link #numeric()} is the PLOTTING approximation and is not one.
+     */
+    public java.util.Optional<java.math.BigDecimal> exact() {
+        if (rawValue == null || quoted) return java.util.Optional.empty();
+        String v = rawValue.trim();
+        try {
+            return java.util.Optional.of(java.math.BigDecimal.valueOf(Long.parseLong(v)));
+        } catch (NumberFormatException ignore) {
+            // not a long; try a strict decimal
+        }
+        if (DECIMAL.matcher(v).matches()) {
+            try {
+                return java.util.Optional.of(new java.math.BigDecimal(v));
+            } catch (NumberFormatException ignore) {
+                // fall through
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
     /** True if {@link #numeric()} yields a finite (non-NaN, non-Inf) value. */
     public boolean isFiniteNumber() {
         OptionalDouble d = numeric();

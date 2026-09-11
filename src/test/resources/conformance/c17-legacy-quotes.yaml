@@ -11,3 +11,11 @@ eventLogRecord:
   nodeLogs:
     - n: { path: prefix "C:\", price: 77, greeting: "hello", count: "42"}
 ---
+eventLogRecord:
+  logTime: 3000
+  event: Tick
+  nodeLogs:
+    - n: { message: start
+    nodeLogsEncoding: quoted
+    end, price: 77}
+---

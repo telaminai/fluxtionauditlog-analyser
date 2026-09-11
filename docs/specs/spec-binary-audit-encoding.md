@@ -227,14 +227,21 @@ split into a second entry carrying a numeric figure, or end the line and rewrite
 The reader now writes such a string in the quoted form of the format specification §3a (fixture C16),
 which the tokenizer decodes losslessly and marks as a string, and applies a stricter identifier rule to
 keys and instance ids. A logged null stays the bare `null` literal; the string `"null"` is quoted.
-Round 5 made two corrections: the grammar is **declared** on every record the reader constructs
-(`nodeLogsEncoding: quoted`) and never inferred from the bytes, because the same bytes read under
-the new grammar swallowed a legacy `prefix "C:\"` value's neighbour (fixture C17 pins the legacy
-reading); and **every wire tag** crosses the boundary the same way — numbers and booleans bare,
+Round 5 made two corrections, and round 6 corrected the first of them again: the grammar is
+**declared by the reader** through `AuditLogReader.textEncoding()` and applied by the store to every
+record it delivers — never by a field in the text, because a round-6 review logged a multiline legacy
+value whose middle line was the round-5 declaration and the parser promoted it into a control field
+(fixture C17 pins the legacy reading of the round-5 record, of `"hello"`, and of that multiline
+value); and **every wire tag** crosses the boundary the same way — numbers and booleans bare,
 everything else as text that is quoted when it has to be — because a `char` had fallen through as
 its raw character and `'` deleted the entry after it. The analyser's record diff compares by the
 model's value KIND (number, boolean, null, text) and value, not by characters, so a figure that
-became a string is a difference.
+became a string is a difference; numbers compare EXACTLY through `KV.exact()` (a `BigDecimal`),
+because the first version narrowed to a double and called 2^53 and 2^53+1 the same. The reader's
+damage report — unusable tail bytes, references to names the file never defined, now including
+String and Object VALUE ids — reaches the analyser through a diagnostic consumer on the SPI's
+`read`, is kept by the store as `sourceDiagnostics()`, and is shown as a `SOURCE_DAMAGE` finding
+in the status bar and the `context` echo. Never as a record.
 
 The bounds every `u16` field imposes are stated once, in `BinaryLogFile` (Java) and `fluxtion_writer.h`
 (C++), and both writers refuse rather than wrap: 65,535 entries per record, 65,535 dictionary ids,

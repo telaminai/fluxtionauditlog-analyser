@@ -1,5 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.parse;
 
+import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
+
 import telamin.fluxtion.audit.analyser.analyser.model.EventKind;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 
@@ -15,7 +17,7 @@ public final class RecordParser {
 
     private static final Set<String> SCALAR_KEYS = Set.of(
             "eventTime", "logTime", "endTime", "groupingId", "event", "eventType", "eventToString", "thread",
-            "nodeLogs", "nodeLogsEncoding");
+            "nodeLogs");
 
     private RecordParser() {
     }
@@ -29,10 +31,25 @@ public final class RecordParser {
      * passes the record's <b>byte</b> length so it can re-slice the file (spec §7).
      */
     public static LogRecord parse(String text, long offset, int storedLength) {
+        return parse(text, offset, storedLength, AuditLogReader.TextEncoding.LEGACY);
+    }
+
+    /** @see #parse(String, long, int, AuditLogReader.TextEncoding) */
+    public static LogRecord parse(String text, long offset, AuditLogReader.TextEncoding encoding) {
+        return parse(text, offset, text.length(), encoding);
+    }
+
+    /**
+     * @param encoding the {@code nodeLogs} grammar, as DECLARED by the reader that produced this text
+     *                 ({@link AuditLogReader#textEncoding()}). Never inferred from the text: a
+     *                 declaration-shaped line inside a multiline legacy value is value data, and
+     *                 promoting it to a control field deleted the entry after it (review, round 6).
+     */
+    public static LogRecord parse(String text, long offset, int storedLength,
+                                  AuditLogReader.TextEncoding encoding) {
         RecordHeader header = RecordHeader.EMPTY;
         Long eventTime = null, logTime = null, endTime = null;
         String groupingId = null, event = null, eventType = null, eventToString = null, thread = null;
-        boolean quotedScalars = false;
         StringBuilder nodeLogs = new StringBuilder();
         boolean inNodeLogs = false;
         boolean sawFields = false;
@@ -85,10 +102,6 @@ public final class RecordParser {
                 // `event` so nothing that matches the simple name literally changes behaviour.
                 case "eventType":    eventType = emptyToNull(val);      sawFields = true; break;
                 case "eventToString":eventToString = emptyToNull(val);  sawFields = true; break;
-                // The nodeLogs GRAMMAR, declared by the producer of this text (format-spec §3a). Only
-                // the value `quoted` means anything; the text runtime never writes the field, so every
-                // existing log is read with the legacy grammar. The bytes are never sniffed for it.
-                case "nodeLogsEncoding": quotedScalars = "quoted".equals(val); sawFields = true; break;
                 case "thread":       thread = emptyToNull(val);         sawFields = true; break;
                 default: /* unknown top-level scalar: ignore, keep in rawText */
             }
@@ -97,7 +110,7 @@ public final class RecordParser {
         EventDimension dim = EventDimension.derive(event, eventToString);
         String resolvedThread = thread != null ? thread : header.thread();
         final String block = nodeLogs.toString();
-        final boolean quotedScalarsFinal = quotedScalars;
+        final boolean quotedScalarsFinal = encoding == AuditLogReader.TextEncoding.QUOTED_SCALARS;
 
         return LogRecord.builder()
                 .fileOffset(offset)

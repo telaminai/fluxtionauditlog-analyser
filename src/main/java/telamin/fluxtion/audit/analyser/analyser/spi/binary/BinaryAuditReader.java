@@ -45,9 +45,11 @@ import java.util.function.Consumer;
  * rewriting the record's {@code eventType}. Every string the tokenizer would mis-split or mistype is
  * therefore written in the quoted form of format-spec §3a, which the tokenizer decodes losslessly and
  * marks as a string. Keys and instance ids get the same treatment, on a stricter identifier rule. The
- * record DECLARES that grammar ({@code nodeLogsEncoding: quoted}); a text log never does, and is read
- * exactly as it always was. Every wire tag crosses this boundary the same way: numbers and booleans
- * bare, everything else - a char included - as text that is quoted when it has to be.
+ * grammar is THIS READER's declaration ({@link #textEncoding()}), applied by the parser to every record
+ * it delivers and never read from the text - a round-6 review showed a legacy value containing a
+ * declaration-shaped line being promoted into a control field. A text log is read with the legacy
+ * grammar, exactly as it always was. Every wire tag crosses this boundary the same way: numbers and
+ * booleans bare, everything else - a char included - as text that is quoted when it has to be.
  *
  * <p><b>The unit is decided at the header, before any record.</b> This reader presents every file as
  * epoch milliseconds ({@link #timeBase()}). A file whose header says otherwise is refused in
@@ -104,12 +106,42 @@ public final class BinaryAuditReader implements AuditLogReader {
 
     @Override
     public void read(Path source, Consumer<String> recordText) throws IOException {
+        read(source, recordText, ignored -> { });
+    }
+
+    /**
+     * The runtime's reader returns what it could not use - bytes at the end that formed no whole
+     * frame, and ids the file never defined. An earlier version discarded that result, so a cut log
+     * opened as a whole one and a file whose every String value was undefined looked complete. Both
+     * are now stated beside the evidence, never as a record.
+     */
+    @Override
+    public void read(Path source, Consumer<String> recordText, Consumer<String> sourceDiagnostic)
+            throws IOException {
         RecordTextRenderer renderer = new RecordTextRenderer(recordText);
+        BinaryLogReader.Result result;
         try {
-            BinaryLogReader.read(source, renderer);
+            result = BinaryLogReader.read(source, renderer);
         } catch (UnreadableUnit refused) {
             throw new IOException(refused.getMessage(), refused);
         }
+        if (result.truncatedBytes > 0) {
+            sourceDiagnostic.accept("the last " + result.truncatedBytes + " bytes of " + source.getFileName()
+                    + " did not form a whole record and were not read - a process that stopped mid-write, "
+                    + "or a damaged tail. Every record before them is here; the one they belong to is not.");
+        }
+        if (result.unresolvedIds > 0) {
+            sourceDiagnostic.accept(result.unresolvedIds + " reference" + (result.unresolvedIds == 1 ? "" : "s")
+                    + " in " + source.getFileName() + " to names the file never defined, shown as #id - "
+                    + "an event type, node, key or String value. A rolled file whose dictionary is in an "
+                    + "earlier file, or damage. Those values are unknown, not empty.");
+        }
+    }
+
+    /** The text this reader constructs uses the quoted-scalar grammar (format specification §3a). */
+    @Override
+    public TextEncoding textEncoding() {
+        return TextEncoding.QUOTED_SCALARS;
     }
 
     /**
@@ -349,10 +381,6 @@ public final class BinaryAuditReader implements AuditLogReader {
                     .append("  logTime: ").append(logTime).append('\n')
                     .append("  event: ").append(oneLine(eventType)).append('\n')
                     .append("  eventType: ").append(oneLine(eventTypeFqn)).append('\n')
-                    // DECLARED on every record this reader constructs: the nodeLogs below use the
-                    // quoted-scalar grammar. Without the declaration the parser reads the legacy
-                    // grammar, in which a quote is the producer's character and nothing decodes.
-                    .append("  nodeLogsEncoding: quoted\n")
                     .append("  nodeLogs:\n");
             for (String line : nodeLines) {
                 out.append(line).append('\n');
