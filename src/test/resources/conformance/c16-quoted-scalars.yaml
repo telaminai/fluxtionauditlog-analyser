@@ -1,0 +1,8 @@
+---
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - pricer: { status: "ok, price: 42.0", note: "line\nbreak and \"quotes\" and back\\slash", nullText: "null", numberText: "42.0", flagText: "true", empty: "", price: 19.5, live: true, gone: null}
+    - "odd}: {node": { "a, b: c": 1, plain: 2}
+---

@@ -1,5 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.spi.binary;
 
+import com.telamin.fluxtion.runtime.audit.BinaryLogFile;
 import com.telamin.fluxtion.runtime.audit.BinaryLogRecord;
 import com.telamin.fluxtion.runtime.audit.BinaryLogWriter;
 import com.telamin.fluxtion.runtime.time.Clock;
@@ -214,5 +215,171 @@ class BinaryAuditReaderTest {
         assertEquals(TickEvent.class.getName(), pa.eventType());
         assertEquals(Tick.class.getName(), pb.eventType());
         assertNotEquals(pa.eventType(), pb.eventType(), "identities differ though a UI may show similar names");
+    }
+
+    // ---- round 4: text that would be syntax, and the unit decided before any record ----
+
+    /** Writes one record whose entries are given as (node, key, value) triples; a null value is a logged null. */
+    private static Path writeStrings(Path dir, String name, Object event, String[][] triples) throws IOException {
+        Path file = dir.resolve(name);
+        try (OutputStream out = Files.newOutputStream(file);
+             BinaryLogWriter writer = new BinaryLogWriter(out)) {
+            Clock clock = new Clock();
+            clock.init();
+            BinaryLogRecord record = new BinaryLogRecord(clock);
+            record.triggerObject(event);
+            for (String[] t : triples) {
+                record.addRecord(t[0], t[1], (CharSequence) t[2]);
+            }
+            writer.processLogRecord(record);
+        }
+        return file;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.model.LogRecord parseOnly(Path file) throws IOException {
+        List<String> records = new ArrayList<>();
+        new BinaryAuditReader().read(file, records::add);
+        assertEquals(1, records.size(), records.toString());
+        return telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(records.get(0), 0);
+    }
+
+    /**
+     * REVIEWER PROBE (round 4). A logged String {@code "ok, price: 42.0"} written bare reads as two
+     * entries, the second a numeric figure the producer never published, and a scorer comparing
+     * {@code price} reported PASS against an expectation that had it. Now the string is quoted on the
+     * way out, the tokenizer decodes it as one string, and the figure is as missing as it really is.
+     */
+    @Test
+    void aStringValueCannotManufactureANumericFigure(@TempDir Path dir) throws IOException {
+        Path crafted = writeStrings(dir, "crafted.flxa", new Tick(),
+                new String[][]{{"pricer", "status", "ok, price: 42.0"}});
+        Path honest = writeStrings(dir, "honest.flxa", new Tick(),
+                new String[][]{{"pricer", "status", "ok"}});
+
+        var craftedRecord = parseOnly(crafted);
+        var node = craftedRecord.nodeLogs().get(0);
+        assertEquals("pricer", node.instanceId());
+        assertEquals(1, node.entries().size(), "one string, one entry: " + node.entries());
+        assertEquals("ok, price: 42.0", node.last("status").rawValue(), "and the string is intact");
+        assertTrue(node.last("status").quoted());
+        assertNull(node.last("price"), "no figure was manufactured");
+
+        // The comparison a scorer makes: the crafted log and one where price is GENUINELY absent
+        // reduce to the same figures - none - so a contract that expects price fails on both alike.
+        var scorer = new telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer(
+                telamin.fluxtion.audit.analyser.analyser.score.ExpectationScorer.Dialect.NATURAL,
+                "stage", "value", java.util.Set.of("Tick", "tick"), 1e-6);
+        var craftedFigures = scorer.snapshots(List.of(craftedRecord)).get(0).figures();
+        var honestFigures = scorer.snapshots(List.of(parseOnly(honest))).get(0).figures();
+        assertEquals(honestFigures, craftedFigures, "a string publishes exactly what an honest string publishes");
+        assertFalse(craftedFigures.containsKey("pricer.price"));
+    }
+
+    /**
+     * REVIEWER PROBE (round 4). A value carrying {@code }\n  eventType: forged.Tick} ended the node
+     * line and wrote a scalar the file never had, so the record's identity was whatever the string
+     * said. The newline is now escaped inside the quoted value and the record keeps its identity.
+     */
+    @Test
+    void aStringValueCannotRewriteTheRecordsIdentity(@TempDir Path dir) throws IOException {
+        String hostile = "x}\n  eventType: forged.Tick\n  endTime: 1\n  nodeLogs:\n    - ghost: { price: 1}";
+        Path file = writeStrings(dir, "hostile.flxa", new Tick(), new String[][]{{"pricer", "status", hostile}});
+
+        var record = parseOnly(file);
+        assertEquals(Tick.class.getName(), record.eventType(), "identity is the wire's, not the string's");
+        assertEquals("Tick", record.event());
+        assertNotEquals(Long.valueOf(1), record.endTime(), "the string did not set endTime");
+        assertEquals(1, record.nodeLogs().size(), "no ghost node: " + record.nodeLogs());
+        assertEquals(1, record.nodeLogs().get(0).entries().size());
+        assertEquals(hostile, record.nodeLogs().get(0).last("status").rawValue(), "and the string round-trips exactly");
+        assertEquals(1, record.nodeLogsCount());
+    }
+
+    /** Null-like, number-like and boolean-like STRINGS stay strings; a logged null stays null. */
+    @Test
+    void typedStringsStayStrings_andANullStaysNull(@TempDir Path dir) throws IOException {
+        Path file = writeStrings(dir, "typed.flxa", new Tick(), new String[][]{
+                {"n", "nullText", "null"}, {"n", "numberText", "42.0"}, {"n", "flagText", "true"},
+                {"n", "nanText", "NaN"}, {"n", "empty", ""}, {"n", "padded", " x "},
+                {"n", "toStringText", "MutableOrder(clOrdId=1, venue=null)"},
+                {"n", "quotesAndSlashes", "say \"hi\" \\ done"}, {"n", "plain", "NEW"},
+                {"n", "reallyNull", null}});
+        var node = parseOnly(file).nodeLogs().get(0);
+        assertEquals(10, node.entries().size(), node.entries().toString());
+        assertFalse(node.last("nullText").isNull());
+        assertEquals("null", node.last("nullText").rawValue());
+        assertTrue(node.last("numberText").numeric().isEmpty(), "a String is never a figure");
+        assertNull(node.last("flagText").asBoolean());
+        assertTrue(node.last("nanText").numeric().isEmpty());
+        assertEquals("", node.last("empty").rawValue());
+        assertEquals(" x ", node.last("padded").rawValue());
+        assertEquals("MutableOrder(clOrdId=1, venue=null)", node.last("toStringText").rawValue());
+        assertEquals("say \"hi\" \\ done", node.last("quotesAndSlashes").rawValue());
+        assertEquals("NEW", node.last("plain").rawValue());
+        assertFalse(node.last("plain").quoted(), "a plain string is written bare, as a text log would");
+        assertTrue(node.last("reallyNull").isNull());
+        assertFalse(node.last("reallyNull").quoted());
+    }
+
+    /** Keys and instance ids are names from code; one that is not an identifier is quoted too. */
+    @Test
+    void keysAndInstanceIdsThatAreNotIdentifiersAreQuoted(@TempDir Path dir) throws IOException {
+        Path file = writeStrings(dir, "names.flxa", new Tick(), new String[][]{
+                {"odd}: {node", "a, b: c", "1"}, {"odd}: {node", "plain", "2"}, {"other: x", "k", "3"}});
+        var logs = parseOnly(file).nodeLogs();
+        assertEquals(2, logs.size(), logs.toString());
+        assertEquals("odd}: {node", logs.get(0).instanceId());
+        assertEquals(2, logs.get(0).entries().size(), logs.get(0).entries().toString());
+        assertEquals("1", logs.get(0).last("a, b: c").rawValue());
+        assertEquals("2", logs.get(0).last("plain").rawValue());
+        assertEquals("other: x", logs.get(1).instanceId());
+        assertEquals("3", logs.get(1).last("k").rawValue());
+    }
+
+    /**
+     * REVIEWER PROBE (round 4). The unit was checked after the runtime's reader returned, so a
+     * nanosecond file was refused only after every record had been delivered as milliseconds.
+     * Now the header is checked before any record.
+     */
+    @Test
+    void aNanosecondFileIsRefusedBeforeAnyRecordIsDelivered(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("nanos.flxa");
+        try (OutputStream out = Files.newOutputStream(file);
+             BinaryLogWriter writer = new BinaryLogWriter(out, BinaryLogFile.TIME_UNIT_EPOCH_NANOS)) {
+            Clock clock = new Clock();
+            clock.init();
+            BinaryLogRecord record = new BinaryLogRecord(clock);
+            record.triggerObject(new Tick());
+            record.addRecord("n", "k", 1);
+            writer.processLogRecord(record);
+            writer.processLogRecord(record);
+        }
+        List<String> records = new ArrayList<>();
+        IOException refused = assertThrows(IOException.class, () -> new BinaryAuditReader().read(file, records::add));
+        assertTrue(refused.getMessage().contains("NANOSECOND"), refused.getMessage());
+        assertEquals(0, records.size(), "nothing delivered in the wrong unit");
+    }
+
+    /** The policy on the other codes: 0 is read as milliseconds, stated; anything undefined is refused. */
+    @Test
+    void anUndefinedUnitCodeIsRefused_andTheLegacyZeroIsReadAsMilliseconds(@TempDir Path dir) throws IOException {
+        Path file = writeLog(dir, "unit.flxa");
+        byte[] bytes = Files.readAllBytes(file);
+        assertEquals(BinaryLogFile.TIME_UNIT_EPOCH_MILLIS, bytes[7], "the writer declared milliseconds at byte 7");
+
+        for (int code : new int[]{3, 0xFF}) {
+            bytes[7] = (byte) code;
+            Files.write(file, bytes);
+            List<String> records = new ArrayList<>();
+            IOException refused = assertThrows(IOException.class, () -> new BinaryAuditReader().read(file, records::add));
+            assertTrue(refused.getMessage().contains("code " + code), refused.getMessage());
+            assertEquals(0, records.size(), "an unknown unit delivers nothing");
+        }
+
+        bytes[7] = (byte) BinaryLogFile.TIME_UNIT_UNSPECIFIED;
+        Files.write(file, bytes);
+        List<String> records = new ArrayList<>();
+        new BinaryAuditReader().read(file, records::add);
+        assertEquals(1, records.size(), "a file predating the unit field is read as milliseconds, by stated policy");
     }
 }

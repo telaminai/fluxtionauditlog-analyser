@@ -69,6 +69,11 @@ leniently and **never fails a whole file** on one odd value. A number nested *in
 (e.g. `bidPrice=` in `QuoteLadder(bidPrice=…)`) is text within one value, not a top-level key — so it
 isn't itself graphable; only top-level numeric/boolean nodeLog keys are.
 
+One spelling is reserved: a value, key or instance id that is **entirely double-quoted** (`"…"`, with
+`\"`, `\\`, `\n`, `\r`, `\t` escapes) is a *string* whatever it says — `"42.0"` is not a number and
+`"null"` is not null. The binary reader writes a logged String that way whenever the bare text would
+split, end the line or read as a number, so a string can never pose as a figure.
+
 ## Versions
 
 The analyser reads the audit-log format emitted by current Fluxtion / Mongoose server builds. The format

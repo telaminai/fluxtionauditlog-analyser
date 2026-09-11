@@ -10,20 +10,31 @@ import java.util.regex.Pattern;
  * {@code MutableOrder(a=1, b=2)}, {@code connected=true requiredOrderVenues=[x]}).
  *
  * <p>{@code key} may be {@code null} for a bare/unstructured token (lenient fallback).
+ *
+ * <p><b>{@code quoted}</b> is true when the value arrived as a double-quoted scalar (format-spec §3:
+ * {@code "…"} with backslash escapes) and has been decoded. A quoted value is a STRING whatever it
+ * spells: {@code "42.0"} is not a figure, {@code "null"} is not null, {@code "true"} is not a flag. The
+ * binary reader quotes exactly the strings the tokenizer would otherwise mistype or mis-split, so a
+ * logged String can no longer manufacture a numeric figure — which is what a review found it could.
  */
-public record KV(String key, String rawValue) {
+public record KV(String key, String rawValue, boolean quoted) {
+
+    /** An unquoted value: typed by inspection, as every text-log value always has been. */
+    public KV(String key, String rawValue) {
+        this(key, rawValue, false);
+    }
 
     // strictly numeric literal (no letters/spaces) so we never mis-read "connected=true" as a number
     private static final Pattern DECIMAL = Pattern.compile("[+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?");
 
     /** True when the value is the literal {@code null} or absent. */
     public boolean isNull() {
-        return rawValue == null || rawValue.equals("null");
+        return rawValue == null || (!quoted && rawValue.equals("null"));
     }
 
     /** {@code true}/{@code false} → Boolean, otherwise {@code null}. */
     public Boolean asBoolean() {
-        if (rawValue == null) return null;
+        if (rawValue == null || quoted) return null;
         String v = rawValue.trim();
         if (v.equals("true")) return Boolean.TRUE;
         if (v.equals("false")) return Boolean.FALSE;
@@ -36,7 +47,7 @@ public record KV(String key, String rawValue) {
      * chart can render them as gaps); empty for any non-numeric value.
      */
     public OptionalDouble numeric() {
-        if (rawValue == null) return OptionalDouble.empty();
+        if (rawValue == null || quoted) return OptionalDouble.empty();
         String v = rawValue.trim();
         switch (v) {
             case "NaN": return OptionalDouble.of(Double.NaN);

@@ -196,9 +196,35 @@ every file milliseconds. A reader **must not** infer a unit from magnitude. The 
 unspecified is accepted as milliseconds, which is the historical truth for every file written before
 the field existed.
 
+**Round 4 tightened all four edges of that field.** The Java writer validates the code before it writes
+a header byte — the field is a `u16`, and 65,537 had wrapped to 1 and claimed milliseconds. The runtime's
+reader delivers the header to the visitor (`Visitor.onHeader`) *before* any dictionary entry or record,
+so a reader that presents a fixed unit decides there; the analyser had been deciding from
+`Result.timeUnit` after `read` returned, by which time every record had already been handed on in the
+wrong unit. The analyser's policy, stated in `BinaryAuditReader.checkUnit`: `1` read; `0` read as
+milliseconds by declared assumption; `2` refused; any other code refused as undefined rather than
+guessed. **Which fields the unit governs:** it is the unit of the processor's `ClockStrategy`, which
+stamps `logTime` and `endTime` on every record and `eventTime` on a record whose event is a plain
+object. An event implementing `Event` supplies its own `eventTime` — the contract defines it as epoch
+milliseconds at construction, or `-1` — and the runtime records it as given, because it is the
+producer's statement of when the event happened and not a clock reading the runtime made. So under a
+nanosecond strategy a file carries nanosecond `logTime`/`endTime` and millisecond `eventTime` for
+Event-typed events. That is the documented meaning; normalising would invent precision or lose the
+producer's value. The unit is stated once per writer: changing the strategy while a writer is open is
+unsupported, and the answer is a new writer with the new unit.
+
+**Text the analyser constructs from the wire is quoted where it would be syntax.** A String or Object
+value (tags 5/6) is dictionary text and can spell anything; written bare into `key: value` it could
+split into a second entry carrying a numeric figure, or end the line and rewrite the record's identity.
+The reader now writes such a string in the quoted form of the format specification §3 (fixture C16),
+which the tokenizer decodes losslessly and marks as a string, and applies a stricter identifier rule to
+keys and instance ids. A logged null stays the bare `null` literal; the string `"null"` is quoted.
+
 The bounds every `u16` field imposes are stated once, in `BinaryLogFile` (Java) and `fluxtion_writer.h`
 (C++), and both writers refuse rather than wrap: 65,535 entries per record, 65,535 dictionary ids,
-65,535 UTF-8 bytes per name.
+65,535 UTF-8 bytes per name. In Java the check is one method, `BinaryLogRecord.checkEncodable()`, run by
+both emission paths — the writer and the record's own `encodeTo` — before a RECORD byte; the second
+path had none of it.
 
 ### 6.4 What the prototype learned that a re-implementation should not have to
 

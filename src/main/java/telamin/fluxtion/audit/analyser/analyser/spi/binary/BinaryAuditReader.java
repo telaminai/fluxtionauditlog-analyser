@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.spi.binary;
 import com.telamin.fluxtion.runtime.audit.BinaryLogFile;
 import com.telamin.fluxtion.runtime.audit.BinaryLogReader;
 import com.telamin.fluxtion.runtime.audit.BinaryRecordDecoder;
+import telamin.fluxtion.audit.analyser.analyser.parse.NodeLogTokenizer;
 import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
 
 import java.io.IOException;
@@ -35,6 +36,20 @@ import java.util.function.Consumer;
  * <p><b>What the binary format cannot supply is omitted rather than invented.</b> {@code groupingId}
  * and {@code thread} are not in the wire format, so they do not appear; emitting {@code groupingId:
  * null} would assert the log said something it did not.
+ *
+ * <p><b>Text that would be syntax is quoted.</b> The record text this constructs is parsed by the
+ * analyser's tokenizer, which splits on top-level commas and {@code ": "} and types {@code null},
+ * booleans and numbers. A logged String is typed on the wire (tag CHARSEQ/OBJECT) and can spell
+ * anything, so written bare it can BE syntax: a review showed {@code "ok, price: 42.0"} reading as a
+ * second entry with a numeric figure the producer never published, and a value carrying a newline
+ * rewriting the record's {@code eventType}. Every string the tokenizer would mis-split or mistype is
+ * therefore written in the quoted form of format-spec §3, which the tokenizer decodes losslessly and
+ * marks as a string. Keys and instance ids get the same treatment, on a stricter identifier rule.
+ *
+ * <p><b>The unit is decided at the header, before any record.</b> This reader presents every file as
+ * epoch milliseconds ({@link #timeBase()}). A file whose header says otherwise is refused in
+ * {@code onHeader}, so no record is delivered in the wrong unit; an earlier version checked the unit
+ * after the runtime's reader returned, by which time every record had already been handed on.
  */
 public final class BinaryAuditReader implements AuditLogReader {
 
@@ -84,17 +99,51 @@ public final class BinaryAuditReader implements AuditLogReader {
     @Override
     public void read(Path source, Consumer<String> recordText) throws IOException {
         RecordTextRenderer renderer = new RecordTextRenderer(recordText);
-        BinaryLogReader.Result result = BinaryLogReader.read(source, renderer);
-        // This reader DECLARES every file wallClockMillisUtc (timeBase() below). The header now says
-        // what the producer actually wrote, so a file in another unit is refused rather than labelled
-        // milliseconds and plotted a million times off. A file predating the field is accepted: it
-        // is almost certainly milliseconds, and refusing every existing log would help nobody - but
-        // the assumption is now visible here rather than silent.
-        if (result.timeUnit == com.telamin.fluxtion.runtime.audit.BinaryLogFile.TIME_UNIT_EPOCH_NANOS) {
-            throw new IOException("this audit log declares epoch NANOSECOND timestamps, and this reader "
-                    + "presents every binary log as epoch milliseconds. Reading it would place every "
-                    + "record a million times too far in the future. Write it with a millisecond clock, "
-                    + "or convert it before opening.");
+        try {
+            BinaryLogReader.read(source, renderer);
+        } catch (UnreadableUnit refused) {
+            throw new IOException(refused.getMessage(), refused);
+        }
+    }
+
+    /**
+     * The unit policy, applied to the header before a record is delivered. This reader DECLARES every
+     * file wallClockMillisUtc ({@link #timeBase()}), so:
+     * <ul>
+     *   <li>{@code EPOCH_MILLIS} is read.</li>
+     *   <li>{@code UNSPECIFIED} (0) is read as milliseconds. It is the value every file written before
+     *       the header carried a unit has, and every such Java-written file was milliseconds. The
+     *       assumption is stated here rather than made silently; the C++ runtime of the same era wrote
+     *       nanoseconds into an unspecified header, and such a file will plot a million times off.</li>
+     *   <li>{@code EPOCH_NANOS} is refused: presenting it as milliseconds places every record a million
+     *       times too far in the future.</li>
+     *   <li>Any other code is refused: the format does not define it, so nothing is known about the
+     *       unit, and a reader that guesses is worse than one that stops.</li>
+     * </ul>
+     *
+     * @throws UnreadableUnit for a file this reader cannot present truthfully
+     */
+    static void checkUnit(int timeUnit) {
+        switch (timeUnit) {
+            case BinaryLogFile.TIME_UNIT_EPOCH_MILLIS:
+            case BinaryLogFile.TIME_UNIT_UNSPECIFIED:
+                return;
+            case BinaryLogFile.TIME_UNIT_EPOCH_NANOS:
+                throw new UnreadableUnit("this audit log declares epoch NANOSECOND timestamps, and this "
+                        + "reader presents every binary log as epoch milliseconds. Reading it would place "
+                        + "every record a million times too far in the future. Write it with a millisecond "
+                        + "clock, or convert it before opening.");
+            default:
+                throw new UnreadableUnit("this audit log's header carries time unit code " + timeUnit
+                        + ", which the format does not define (0 unspecified, 1 epoch milliseconds, "
+                        + "2 epoch nanoseconds). Nothing is known about its timestamps, so it is not read.");
+        }
+    }
+
+    /** Thrown from the header callback so the runtime's reader stops before delivering a record. */
+    static final class UnreadableUnit extends RuntimeException {
+        UnreadableUnit(String message) {
+            super(message);
         }
     }
 
@@ -118,6 +167,11 @@ public final class BinaryAuditReader implements AuditLogReader {
 
         /** id -> name, kept so a String/Object VALUE (stored as a dictionary id) can be rendered. */
         private final java.util.List<String> namesById = new java.util.ArrayList<>();
+
+        @Override
+        public void onHeader(int formatVersion, int timeUnit) {
+            checkUnit(timeUnit);
+        }
 
         @Override
         public void onDictionaryEntry(int id, String name) {
@@ -164,7 +218,7 @@ public final class BinaryAuditReader implements AuditLogReader {
             if (openNode == null || !openNode.equals(node)) {
                 closeNode();
                 openNode = node;
-                currentNode.append("    - ").append(node).append(": {");
+                currentNode.append("    - ").append(name(node)).append(": {");
             } else {
                 currentNode.append(',');
             }
@@ -176,12 +230,54 @@ public final class BinaryAuditReader implements AuditLogReader {
                 // The dictionary-resolving overload. The id-free one has no dictionary and rendered
                 // every String and Object value as its raw tag/id pair - "#tag5:4" - and a logged null
                 // as "#tag5:0", the spelling that means an UNRESOLVED id everywhere else.
-                currentNode.append(' ').append(key).append(": ")
-                        .append(BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById));
+                currentNode.append(' ').append(name(key)).append(": ")
+                        .append(value(tag, rawBits));
             }
             if (--pending == 0) {
                 flush();
             }
+        }
+
+        private static final int TAG_CHARSEQ = 5, TAG_OBJECT = 6;
+
+        /**
+         * A value as the tokenizer will read it back. Primitives render as the decoder spells them;
+         * they cannot be syntax. A String or Object value is the dictionary text verbatim, and is quoted
+         * whenever written bare it would split, nest, end the line, or read as null, a boolean or a
+         * number - the wire says it is a string, and the text must say so too. A null stays the bare
+         * {@code null} literal, which is how the tokenizer spells an absent value; the string "null"
+         * is quoted, so the two never meet.
+         */
+        private String value(int tag, long rawBits) {
+            if (tag == TAG_CHARSEQ || tag == TAG_OBJECT) {
+                String text = nameById((int) rawBits);
+                if (rawBits == 0 || text == null) {
+                    return BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById);
+                }
+                return NodeLogTokenizer.needsQuoting(text) ? NodeLogTokenizer.quote(text) : text;
+            }
+            return BinaryRecordDecoder.renderValue(tag, rawBits, this::nameById);
+        }
+
+        /** An instance id or key: a plain identifier as is, anything else quoted. */
+        private static String name(String s) {
+            if (s == null) {
+                return "null";
+            }
+            return NodeLogTokenizer.needsQuotingAsName(s) ? NodeLogTokenizer.quote(s) : s;
+        }
+
+        /**
+         * A top-level scalar such as {@code event:} is parsed by the record parser, which has no
+         * quoted form, on its own line. A class name cannot hold a line break, so one in the dictionary
+         * is a corrupt or hostile file; it is made visible rather than allowed to end the line early
+         * and start a scalar the file never wrote.
+         */
+        private static String oneLine(String s) {
+            if (s == null || (s.indexOf('\n') < 0 && s.indexOf('\r') < 0)) {
+                return s;
+            }
+            return s.replace("\r", "\\r").replace("\n", "\\n");
         }
 
         private static String simpleName(String className) {
@@ -211,8 +307,8 @@ public final class BinaryAuditReader implements AuditLogReader {
                     .append("eventLogRecord:\n")
                     .append("  eventTime: ").append(eventTime).append('\n')
                     .append("  logTime: ").append(logTime).append('\n')
-                    .append("  event: ").append(eventType).append('\n')
-                    .append("  eventType: ").append(eventTypeFqn).append('\n')
+                    .append("  event: ").append(oneLine(eventType)).append('\n')
+                    .append("  eventType: ").append(oneLine(eventTypeFqn)).append('\n')
                     .append("  nodeLogs:\n");
             for (String line : nodeLines) {
                 out.append(line).append('\n');

@@ -87,6 +87,16 @@ every `instanceId.key` series.
   `key=value` runs. The analyser splits only on **top-level** separators, respecting `()`, `[]`,
   `{}` and quotes, and never fails a record on a value. Only top-level numeric and boolean values are
   graphable; a number inside a `toString()` is text. *(Fixture C08.)*
+- **A double-quoted scalar is a string, whatever it spells.** An instance id, key or value that is
+  *entirely* `"…"` is decoded — the escapes are `\\`, `\"`, `\n`, `\r`, `\t` — and read as text:
+  `"42.0"` is not a figure, `"null"` is not null, `"true"` is not a flag, and the commas, colons,
+  braces and line breaks inside it split nothing. This is the one lossless spelling for text that
+  would otherwise *be* syntax, and an emitter that constructs record text from typed values (the
+  built-in binary reader) MUST use it for any string the bare form would mis-split or mistype; a
+  reviewer showed a logged `"ok, price: 42.0"` written bare manufacturing a numeric figure the
+  producer never published. Anything not entirely one quoted scalar — a value that merely starts with
+  a quote, or carries text after the closing one — is the raw text it always was. The text runtime
+  has never quoted, and need not. *(Fixture C16.)*
 - **The same `instanceId` MAY appear more than once** in a record — a component logging at several
   points in the cycle. Every occurrence is kept, in order. Where one value per record is needed
   (graphing, comparison) the **last occurrence wins**. *(Fixture C07.)*
@@ -211,6 +221,7 @@ author: *emit these records and you get exactly what the native log gets.*
 | C12 traced regime | absence is *did not run* only when every entry is traced; one `method` key proves nothing |
 | C13 exported call | dimension is the callback; declaring type captured; `eventTime` absent |
 | C14 synthesised text | text an adapter *constructs* (no trailing newline, a leading `---`, CRLF) reads exactly as sliced file text |
+| C16 quoted scalars | entirely `"…"` is a string whatever it spells; escapes decode; its insides split nothing |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture

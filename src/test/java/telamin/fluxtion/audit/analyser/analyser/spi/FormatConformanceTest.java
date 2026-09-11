@@ -337,6 +337,30 @@ class FormatConformanceTest {
     }
 
     @Test
+    void c16_aQuotedScalarIsAStringWhateverItSpells_andItsInsidesSplitNothing() throws IOException {
+        LogStore s = bothPathsAgree("c16-quoted-scalars.yaml");
+        LogRecord r = s.record(0);
+        assertEquals(EventKind.OK, r.kind());
+        assertEquals(2, r.nodeLogs().size(), r.nodeLogs().toString());
+        var pricer = r.nodeLogs().get(0);
+        assertEquals(9, pricer.entries().size(), "the quoted commas and colons split nothing: " + pricer.entries());
+        assertEquals("ok, price: 42.0", pricer.last("status").rawValue());
+        assertTrue(pricer.last("status").quoted());
+        assertEquals("line\nbreak and \"quotes\" and back\\slash", pricer.last("note").rawValue());
+        assertFalse(pricer.last("nullText").isNull(), "\"null\" is a string");
+        assertTrue(pricer.last("numberText").numeric().isEmpty(), "\"42.0\" is a string, not a figure");
+        assertNull(pricer.last("flagText").asBoolean(), "\"true\" is a string, not a flag");
+        assertEquals("", pricer.last("empty").rawValue());
+        assertEquals(19.5, pricer.last("price").numeric().getAsDouble(), 0, "a bare number is still a figure");
+        assertEquals(Boolean.TRUE, pricer.last("live").asBoolean());
+        assertTrue(pricer.last("gone").isNull(), "a bare null is still null");
+        var odd = r.nodeLogs().get(1);
+        assertEquals("odd}: {node", odd.instanceId(), "a quoted instance id decodes");
+        assertEquals("1", odd.last("a, b: c").rawValue(), "and so does a quoted key");
+        assertEquals("2", odd.last("plain").rawValue());
+    }
+
+    @Test
     void everyFixtureInTheSetIsExercised() throws IOException {
         // the set is the published artefact; a fixture nobody asserts on is a promise nobody keeps
         Path res = Path.of("src/test/resources/conformance");
@@ -345,7 +369,7 @@ class FormatConformanceTest {
             assertEquals(List.of("c01-minimal.yaml", "c02-unknown-fields.yaml", "c03-header.yaml", "c04-times.yaml",
                     "c05-untimed.yaml", "c06-out-of-order.yaml", "c07-duplicate-instance.yaml",
                     "c08-lenient-values.yaml", "c09-garbage.yaml", "c11-attribution.yaml",
-                    "c12-traced-regime.yaml", "c13-exported-call.yaml"), names,
+                    "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);

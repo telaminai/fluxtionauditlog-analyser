@@ -47,6 +47,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   fixed it is **slower** than the plain `String` path on both toolchains, so it is gone rather than
   deprecated. Node code stays `auditLog.info("v", v)`.
 
+### Fixed
+- **A logged String can no longer pose as a figure, a null, or another record's identity.** The binary
+  reader wrote string values bare into the record text it constructs, so `"ok, price: 42.0"` read as
+  a second entry carrying a number the producer never published, and a value with a line break could
+  rewrite `eventType`. Strings that would be syntax are now written in a quoted form the format
+  specification defines (fixture C16) and the tokenizer decodes losslessly: a quoted scalar is a
+  string whatever it spells. Text logs are unaffected — the text runtime never quoted.
+- **A binary log in the wrong time unit is refused before a record is delivered, not after.** The
+  reader also refuses a header unit code the format does not define, and states that a legacy `0`
+  is read as milliseconds.
+
 ### Added
 - **Open a binary audit log in the analyser.** A `FLXA` binary log now opens like any other, recognised
   by its magic bytes rather than a file extension, so the faster record format is no longer
