@@ -56,22 +56,21 @@ for arm in C:VenueCoreProcessor:main-venuecore.cpp V:VenueCoreCfgProcessor:main-
   IFS=: read -r v proc main <<<"$arm"
   d="$OUT/cppbuild$v"
   "$JH/bin/java" -cp "$OUT/hdr:$BENCH_CP" WriteHdr "$d"
-  # THE EVENT TYPES. The emitter declares handlers for the author's event classes and does not invent
-  # their C++ shape - it cannot, they are the author's types. Field order and widths mirror the Java
-  # event classes exactly; a mismatch here is a divergence the audit oracle catches only afterwards.
-  python3 - "$OUT/cpp$v/app/gen/$proc.java" "$d/$proc.h" <<'PY'
-import sys
-src, dst = sys.argv[1], sys.argv[2]
-EVENTS = """
+  # THE EVENT TYPES, through the generator's hook. The emitter declares handlers for the author's
+  # event types and cannot invent their C++ shape - they are the author's types - so it emits a
+  # guarded include of "<Processor>.types.h" inside the namespace, and lists what belongs in it.
+  #
+  # This used to be a text insertion into the generated file, so regenerating discarded it. The
+  # generated header is now copied VERBATIM. Field order and widths mirror the Java event classes
+  # exactly; nothing verifies that, so a mismatch is a divergence the audit oracle catches only
+  # afterwards - which is why the oracle comparison is part of this kit and not an optional extra.
+  cp "$OUT/cpp$v/app/gen/$proc.java" "$d/$proc.h"
+  cat > "$d/$proc.types.h" <<'TYPES'
 struct MarketTick  { int32_t symbol=0, bidPx=0, askPx=0, bidQty=0, askQty=0; int64_t timestamp=0; };
 struct OrderUpdate { int32_t symbol=0, side=0, type=0, qty=0, px=0; int64_t generation=0, timestamp=0; };
 struct Execution   { int32_t symbol=0, side=0, px=0, qty=0; int64_t generation=0, timestamp=0; };
 struct TimerTick   { int64_t now=0; int32_t symbol=0; };
-"""
-s = open(src).read()
-assert "namespace app::gen {" in s, "emitter changed its namespace preamble"
-open(dst, "w").write(s.replace("namespace app::gen {", "namespace app::gen {\n" + EVENTS, 1))
-PY
+TYPES
   cp "$HERE/src/$main" "$d/main.cpp"
   # Runtime identity, the C++ analogue of HarnessVersion.runtimeTag(): a digest of the runtime the arm
   # actually uses. For C++ that is the emitted headers, not a jar. measure.sh REFUSES a result that
