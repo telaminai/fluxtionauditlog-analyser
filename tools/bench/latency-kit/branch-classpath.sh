@@ -25,6 +25,7 @@ CACHE=${CP_CACHE:-/tmp/cp_branch.txt}
 
 BRANCH_DIRS=(
   "$COMP/fluxtion-generator-cpp/target/classes"
+  "$COMP/fluxtion-serialiser-cpp/target/classes"   # the C++ field mappings, split out of the generator
   "$COMP/fluxtion-generator-core/target/classes"
   "$COMP/fluxtion-builder/target/classes"
   "$CORE/fluxtion-runtime/target/classes"
