@@ -158,7 +158,8 @@ Shipped:
 - ☑ **the 30 windowing failures — fixed** (§41, core `0d54154`) — this round's own clock change moved the
   default `ClockStrategy` from millis to nanos, so every `FixedRateTrigger.atMillis` window compared a
   millisecond size against a nanosecond clock. Default is now `fastEpochMillisClock()`; `nanoEpochClock()`
-  stays opt-in. **Compiler suite: 3575 tests, 0 failures — first fully green run.**
+  stays opt-in *(later reverted by review: the release default is `System::currentTimeMillis`, both
+  projected clocks opt-in — RECORDED-BASELINES M61)*. **Compiler suite: 3575 tests, 0 failures — first fully green run.**
 - ☑ **the C++ DSL emitter + audit oracle** (§40–41, compiler `ffdee5e`) — map/filter/aggregate/push and
   the `subscribe()` entry emitted as specialised templated structs; `CppDslAuditParityTest` compares 78
   audit lines entry-for-entry against Java, timestamps included. It found two silent defects on first

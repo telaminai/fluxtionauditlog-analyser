@@ -18,18 +18,22 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   parsed record, the reader's `@` markers are never keys, and the Logical view's right-click resolves
   its node through its own layout rather than the raw text's offsets. The Logical view prints a keyless
   entry as `@unkeyed`, not as the word `null`.
-- **The audit path read the wrong clock, twice per event, at a resolution that made the answer
-  meaningless.** `BinaryLogRecord` took *both* `logTime` and `endTime` from one method chosen by a
-  `-Dclock=` **system property** — a benchmark switch that reached production code. Its default
-  re-introduced the very defect the `logTime` fix removed (a fresh wall-clock read instead of the
-  reading `Clock.eventReceived` already took); its other mode made `endTime − logTime` identically zero.
-  Both wrong, differently, and **every binary figure published by this project was measured under a mode
-  a user could not get**. Separately, the default clock strategy was `System::currentTimeMillis` at
-  12.9 ns a call and **1 ms resolution** — so the duration `endTime` exists to provide was always zero
-  for any sub-millisecond event. The default is now a monotonic, epoch-anchored **nanosecond** clock
-  (8.0 ns), and `endTime` is **off by default**, enabled with `setRecordEndTime(true)`. Audited binary
-  record: **JIT 34.6 → 20.4 ns, native 29.3 → 18.2 ns.** *The unit of `getWallClockTime()` changes from
-  milliseconds to nanoseconds.*
+- **The binary record's clock readings are the framework's, and `endTime` is a choice the profile
+  makes.** `BinaryLogRecord` took *both* `logTime` and `endTime` from a method chosen by a `-Dclock=`
+  **system property** — a benchmark switch that had reached production code — and its default re-read
+  the wall clock instead of using the reading `Clock.eventReceived` had already taken. `logTime` is
+  now that reading, `endTime` a live second reading when it is recorded, and the property selects
+  nothing. **What ships:** the default clock strategy is unchanged, `System::currentTimeMillis`
+  (12.9 ns a call, millisecond resolution); `ClockStrategy.fastEpochMillisClock()` (8.0 ns) and
+  `nanoEpochClock()` are opt-in projections of `nanoTime` that never re-anchor to a wall-clock
+  correction, which is why neither is the default; and `endTime` stays **on by default** — 1.0.14 and
+  every release before it emitted it on every text record — and is **off under `LOW_LATENCY_AUDIT` and
+  `addLowLatencyEventLog`**, restorable with `recordEndTime(true)`. The unit of `getWallClockTime()`
+  does not change; nanosecond timestamps are the next release. Measured on the release candidate
+  (`tools/bench/latency-kit/RECORDED-BASELINES.md` M61, GraalVM 25.3.4): the audited binary record
+  under the profile is **23.8 ns on JIT and 23.1 native**, against 7.5 / 13.2 unaudited; recording
+  `endTime` costs a further 13 ns. The binary figures this project published before M61 were
+  measured under development defaults that review reverted; M61 replaces them.
 
 ### Fixed
 - **Method tracing works in a binary audit log.** `addTrace` wrote into a byte buffer that the record's
@@ -45,18 +49,21 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   mis-decoding it. The normative format specification is updated.
 
 ### Changed
-- **The audited event path is 24% faster on JIT and level with native for the first time** — 42.6 ns JIT
-  against 42.7 native, 23.5 M events/sec on a 30-node graph where every node logs. A JFR profile put 56%
-  of the audited path in code that resolves names which never change: an `IdentityHashMap` lookup per
-  event to id the event type, while the identity table built for exactly that sat unused; per-logger key
-  caches spread across three cache lines per entry; and a resolved-once decision re-checked on every
-  entry. Audit cost fell from 43.4 ns to 29.2 on JIT. The 1.5–1.9× native deficit recorded through this
-  work was never a property of the toolchain — it was the JIT speculating through pointer-chasing that
-  closed-world compilation has to execute.
-- **The ordinal audit-key API is removed.** It existed to let a code model replace `auditLog.info("v", v)`
-  with an indexed call, and measured a real gain — against the data-structure fault above. With that
-  fixed it is **slower** than the plain `String` path on both toolchains, so it is gone rather than
-  deprecated. Node code stays `auditLog.info("v", v)`.
+- **The audited event path is faster, and level with native.** Measured on the release candidate
+  (RECORDED-BASELINES M61, GraalVM 25.3.4, 30-node graph where every node logs): unaudited dispatch
+  **7.5 ns JIT / 13.2 native**; the audited binary record under `LOW_LATENCY_AUDIT` **23.8 JIT /
+  23.1 native**, with Temurin 21 C2 at 23.2. A JFR profile had put 56% of the audited path in code that
+  resolves names which never change: an `IdentityHashMap` lookup per event to id the event type, while
+  the identity table built for exactly that sat unused; per-logger key caches spread across three cache
+  lines per entry; and a resolved-once decision re-checked on every entry. The 1.5–1.9× native deficit
+  recorded through this work was never a property of the toolchain — it was the JIT speculating through
+  pointer-chasing that closed-world compilation has to execute. Interim figures along the way (M40–M60)
+  stay in the baselines file; the release notes carry only what the candidate measured.
+- **An ordinal audit-key API, added during this cycle, was dropped before release.** It let a code
+  model replace `auditLog.info("v", v)` with an indexed call, and measured a real gain — against the
+  data-structure fault above. With that fixed it was **slower** than the plain `String` path on both
+  toolchains. No API that shipped in 1.0.14 is removed or changed in 1.0.15; node code stays
+  `auditLog.info("v", v)`.
 
 ### Fixed
 - **A logged String or char can no longer pose as a figure, a null, or another record's identity.**
@@ -100,9 +107,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A binary log no longer claims to follow or to anchor by byte.** Its reader declared both and the
   store can do neither, so an agent reading by `byteOffset` was addressing nothing. It declares
   random access by row only, and the index refuses anchoring.
-- **A fully traced binary log is read as traced.** Its trace entries render as `invoked: true`, which
-  the audit-trace inference now accepts beside the text runtime's `method` key under the same
-  every-node rule, so coverage can say *did not run* for a binary log too.
 - **The neighbours of the round-6 fixes, pre-empted.** The score command reads a binary log through
   the binary reader under its grammar instead of hard-coding the text reader; a binary file in a roll
   set is refused by name rather than probed as an untimed text file; a binary record whose producer
