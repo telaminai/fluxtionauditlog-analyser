@@ -125,6 +125,15 @@ beside the node and outside every named-figure reduction: the scorer, series, th
 field projections address names, and a keyless value has none. The legacy grammar has no reserved
 keys.
 
+Both markers are the reader's **display vocabulary**, and every consumer that shows or re-reads a
+record works from the parsed model, never from that spelling. The consumers pinned by test are:
+the `read` verb and the report table assembly (the same call, the same parsed record — a table never
+re-parses the record's text under the other grammar, `ReportBinaryEvidenceTest`); the record detail's
+exact-key click (a token is a key only when the parsed node logged that name, so a click on
+`@unkeyed: 42` never offers the property `unkeyed`, `DetailPanelExactClickTest`); the logical view
+(a keyless entry prints as `@unkeyed`, never as the word `null`, `LogicalLogViewTest`); the topology
+graph menu, series, diff and the scorer (rounds 8 and 9).
+
 **Encoding is selected from the reader's declared context. Logged content MUST NOT select or change
 it.** There is no field in the text that switches grammar, because the same bytes cannot say whether
 a quote mark — or a line spelled like a field — was the producer's data or encoding syntax. An

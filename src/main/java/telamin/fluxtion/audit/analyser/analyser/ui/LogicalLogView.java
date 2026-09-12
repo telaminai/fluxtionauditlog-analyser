@@ -104,13 +104,19 @@ public final class LogicalLogView {
                 if (method == null && !node.entries().isEmpty()) method = node.entries().get(0).key();
 
                 for (KV kv : node.entries()) {
-                    sb.append("      ").append(kv.key()).append(": ").append(kv.rawValue()).append('\n');
+                    // keyless evidence has no name to print; the reader's marker keeps it distinct from a
+                    // business key spelled "null" (round 10)
+                    String shownKey = kv.key() == null ? UNKEYED_MARKER : kv.key();
+                    sb.append("      ").append(shownKey).append(": ").append(kv.rawValue()).append('\n');
                 }
                 blocks.add(new Block(start, sb.length(), headerStart, headerEnd, node.instanceId(), method));
             }
         }
         return new Layout(sb.toString(), List.copyOf(blocks), List.copyOf(recordStarts));
     }
+
+    /** How a keyless entry is shown: the binary reader's own marker, so the two views agree. */
+    public static final String UNKEYED_MARKER = "@unkeyed";
 
     /** True when this key is one the audit framework adds rather than one the node chose to log. */
     public static boolean isFrameworkKey(String key) {

@@ -186,4 +186,20 @@ class LogicalLogViewTest {
             }
         }
     }
+
+    /** Round 10: keyless evidence is shown by the reader's marker, never as the literal {@code null}. */
+    @Test
+    void aKeylessEntryIsShownAsTheUnkeyedMarker_notTheWordNull() {
+        var record = new LogRecord.Builder().logTime(1L)
+                .nodeLogsCount(1)
+                .nodeLogsSupplier(() -> List.of(new telamin.fluxtion.audit.analyser.analyser.model.NodeLog("n",
+                        List.of(new telamin.fluxtion.audit.analyser.analyser.model.KV(null, "42", false),
+                                new telamin.fluxtion.audit.analyser.analyser.model.KV("null", "99", false)),
+                        false)))
+                .build();
+        String text = LogicalLogView.layout(List.of(record)).text();
+        assertTrue(text.contains("      @unkeyed: 42\n"), text);
+        assertTrue(text.contains("      null: 99\n"), "the business key spelled null keeps its name:\n" + text);
+        assertEquals(1, text.split("null: ", -1).length - 1, "only the named entry prints 'null':\n" + text);
+    }
 }

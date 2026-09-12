@@ -341,24 +341,65 @@ public final class DetailPanel extends JPanel {
      * record — so it needs no source and works even when the click misses a key token).
      */
     private List<String[]> graphKeysAt(java.awt.Point point) {
-        String[] exact = attributeAt(point);
-        if (exact != null) return List.<String[]>of(exact);
         if (shownText.isEmpty()) return List.of();
         int offset = text.viewToModel2D(point);
-        if (offset < 0 || offset > shownText.length()) return List.of();
-        NodeRef ref = SourceNavigation.parseNodeLogLine(SourceNavigation.lineAt(shownText, offset));
-        if (ref == null) return List.of();
-        LogRecord rec = recordAt(offset);
+        String instanceId;
+        LogRecord rec;
+        if (logical) {
+            // the pane shows the LAYOUT text, whose offsets are the layout's — the block map says which
+            // node and which record the click landed in; there is no exact-key click in this view
+            LogicalLogView.Block block = layout.blockAt(offset);
+            if (block == null) return List.of();
+            instanceId = block.instanceId();
+            rec = recordAtLayoutOffset(offset);
+        } else {
+            if (offset < 0 || offset > shownText.length()) return List.of();
+            String[] exact = exactKeyAt(shownText, offset, recordAt(offset));
+            if (exact != null) return List.<String[]>of(exact);
+            NodeRef ref = SourceNavigation.parseNodeLogLine(SourceNavigation.lineAt(shownText, offset));
+            if (ref == null) return List.of();
+            instanceId = ref.instanceId();
+            rec = recordAt(offset);
+        }
         if (rec == null) return List.of();
         java.util.LinkedHashSet<String> keys = new java.util.LinkedHashSet<>();
         for (NodeLog nl : rec.nodeLogs()) {
-            if (nl.instanceId().equals(ref.instanceId())) {
+            if (nl.instanceId().equals(instanceId)) {
                 for (var kv : nl.entries()) if (kv.key() != null) keys.add(kv.key());
             }
         }
         List<String[]> out = new java.util.ArrayList<>();
-        for (String k : keys) out.add(new String[]{ref.instanceId(), k});
+        for (String k : keys) out.add(new String[]{instanceId, k});
         return out;
+    }
+
+    /** The displayed record whose logical block contains {@code offset} of the layout text. */
+    private LogRecord recordAtLayoutOffset(int offset) {
+        LogRecord found = null;
+        List<Integer> starts = layout.recordStarts();
+        for (int i = 0; i < starts.size() && i < shownRecords.size(); i++) {
+            if (starts.get(i) <= offset) found = shownRecords.get(i);
+            else break;
+        }
+        return found;
+    }
+
+    // ---- test seams: the click path through the pane's view geometry, on the EDT --------------------
+
+    /** Test seam: select the Text (evidence) or Logical view, as the toggle does. */
+    void selectTextView(boolean textView) { setLogical(!textView); }
+
+    /**
+     * Test seam: the graph pairs a right-click at the view position of {@code offset} in the DISPLAYED
+     * document would offer — model → view → model, exactly the geometry the popup uses.
+     */
+    List<String[]> graphKeysAtDocumentOffset(int offset) throws javax.swing.text.BadLocationException {
+        if (text.getWidth() == 0 || text.getHeight() == 0) {
+            text.setSize(text.getPreferredSize());
+        }
+        java.awt.geom.Rectangle2D r = text.modelToView2D(offset);
+        if (r == null) throw new IllegalStateException("the pane has no view geometry for offset " + offset);
+        return graphKeysAt(new java.awt.Point((int) r.getX() + 1, (int) r.getCenterY()));
     }
 
     /** The "Add instanceId.key to graph" submenu with current / named / new-graph targets. */
@@ -388,11 +429,15 @@ public final class DetailPanel extends JPanel {
         return addTo;
     }
 
-    /** The {@code {instanceId, key}} attribute under the point, or null when it isn't on a key token. */
-    private String[] attributeAt(java.awt.Point p) {
-        if (shownText.isEmpty()) return null;
-        int offset = text.viewToModel2D(p);
-        if (offset < 0 || offset > shownText.length()) return null;
+    /**
+     * The {@code {instanceId, key}} whose key token is at {@code offset} of {@code shownText}, resolved
+     * against the PARSED record and never against the spelling alone. A token names a series only when
+     * the record's node logged an entry with exactly that key: the reader's display markers
+     * ({@code @unkeyed: 42}, {@code @invoked: true}) are not keys, so the identifier they contain must
+     * not be offered as one — a business key spelled {@code unkeyed} in the same node is a different
+     * entry, and the click on the marker must not reach it. Keyless evidence has no series (round 10).
+     */
+    static String[] exactKeyAt(String shownText, int offset, LogRecord rec) {
         String line = SourceNavigation.lineAt(shownText, offset);
         NodeRef ref = SourceNavigation.parseNodeLogLine(line);
         if (ref == null) return null;
@@ -404,12 +449,19 @@ public final class DetailPanel extends JPanel {
         int end = col;
         while (end < line.length() && isIdentChar(line.charAt(end))) end++;
         if (s >= end) return null;
+        // a reserved marker: the reader's '@' prefix belongs to the reader, not to a key
+        if (s > 0 && line.charAt(s - 1) == '@') return null;
         String token = line.substring(s, end);
         int after = end;
         while (after < line.length() && line.charAt(after) == ' ') after++;
         // a key token is immediately followed by ':'; the instanceId itself doesn't count
         if (after >= line.length() || line.charAt(after) != ':' || token.equals(ref.instanceId())) return null;
-        return new String[]{ref.instanceId(), token};
+        if (rec == null) return null;
+        for (NodeLog nl : rec.nodeLogs()) {
+            if (!nl.instanceId().equals(ref.instanceId())) continue;
+            for (var kv : nl.entries()) if (token.equals(kv.key())) return new String[]{ref.instanceId(), token};
+        }
+        return null;
     }
 
     private static boolean isIdentChar(char c) {

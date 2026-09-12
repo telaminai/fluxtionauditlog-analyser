@@ -264,7 +264,7 @@ public final class ReportVerb {
                     new boolean[0], s.rowWhen(), s.rowWhenLabel(), null,
                     "the call names no projected fields"), notes);
         }
-        Map<String, Object> result = ReadService.read(store.index().snapshot(), callParams, store::rawText);
+        Map<String, Object> result = ReadService.read(store.index().snapshot(), callParams, store::rawText, store::record);
         Object note = result.get("note");
         if (note != null) notes.add(note.toString());       // the 25-record cap rides into the echo
 

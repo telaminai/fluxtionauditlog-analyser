@@ -7,6 +7,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- **A report table read binary evidence under the wrong grammar.** The table assembly re-parsed each
+  record's text as legacy YAML instead of taking the store's parsed record, so a binary log's quoted
+  business key `"@invoked": 123` became the trace marker's `true`, a keyless value became a named field
+  `@unkeyed`, and a string value kept its quotes. The table now reads the same parsed record the `read`
+  verb does, and a test holds the two to the same answer.
+- **Clicking a keyless value in the record detail offered a different, named series.** The exact-key
+  click extracted an identifier from the displayed line, so `@unkeyed: 42` resolved to the property
+  `unkeyed` — a real, different entry when the node also logged one. A click is now resolved against the
+  parsed record, the reader's `@` markers are never keys, and the Logical view's right-click resolves
+  its node through its own layout rather than the raw text's offsets. The Logical view prints a keyless
+  entry as `@unkeyed`, not as the word `null`.
 - **The audit path read the wrong clock, twice per event, at a resolution that made the answer
   meaningless.** `BinaryLogRecord` took *both* `logTime` and `endTime` from one method chosen by a
   `-Dclock=` **system property** — a benchmark switch that reached production code. Its default
