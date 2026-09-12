@@ -37,6 +37,22 @@ public final class ScoreCommand {
      * legacy text; the registry decides, exactly as the UI does.
      */
     public static List<LogRecord> read(Path source) throws Exception {
+        return readInput(source).records();
+    }
+
+    /** What a reader delivered, and what it could not: both travel to the verdict. */
+    public record Input(List<LogRecord> records, List<String> damage) {
+        public boolean partial() {
+            return !damage.isEmpty();
+        }
+    }
+
+    /**
+     * Reads records AND diagnostics through the reader's three-argument read. The two-argument form
+     * discards damage; a cut binary log scored through it printed a normal PASS on the readable prefix
+     * (review, round 7). The verdict must know whether the input was whole.
+     */
+    public static Input readInput(Path source) throws Exception {
         AuditLogReader reader = new telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry()
                 .readerFor(source, null);
         if (reader == null) {
@@ -44,14 +60,15 @@ public final class ScoreCommand {
         }
         AuditLogReader.TextEncoding encoding = reader.textEncoding();
         List<LogRecord> out = new ArrayList<>();
+        List<String> damage = new ArrayList<>();
         long[] offset = {0};
-        reader.read(source, text -> out.add(RecordParser.parse(text, offset[0]++, encoding)));
-        return out;
+        reader.read(source, text -> out.add(RecordParser.parse(text, offset[0]++, encoding)), damage::add);
+        return new Input(out, damage);
     }
 
     public static void main(String[] args) {
         try {
-            run(args);
+            System.exit(execute(args, System.out, System.err));
         } catch (ExpectationScorer.MalformedRecordException malformed) {
             // A record that cannot be reduced under the declared dialect is an UNTRUSTWORTHY
             // comparison, not a failing one — the same class as the ExpectationScorer guards.
@@ -65,10 +82,11 @@ public final class ScoreCommand {
         }
     }
 
-    static void run(String[] args) throws Exception {
+    /** The command, with its streams and exit code explicit so a test can drive it. */
+    static int execute(String[] args, java.io.PrintStream out, java.io.PrintStream err) throws Exception {
         if (args.length < 2) {
-            System.err.println("usage: score <expected.log> <actual.log> [maxDifferencesShown] [natural|tagged]");
-            System.exit(3);
+            err.println("usage: score <expected.log> <actual.log> [maxDifferencesShown] [natural|tagged]");
+            return 3;
         }
         int show;
         ExpectationScorer.Dialect dialect;
@@ -78,25 +96,37 @@ public final class ScoreCommand {
                     ? ExpectationScorer.Dialect.valueOf(args[3].toUpperCase())
                     : ExpectationScorer.Dialect.NATURAL;
         } catch (IllegalArgumentException bad) {          // usage error, not a comparison failure
-            System.err.println("bad argument: " + bad.getMessage());
-            System.exit(3);
-            return;
+            err.println("bad argument: " + bad.getMessage());
+            return 3;
         }
         ExpectationScorer scorer = new ExpectationScorer(dialect);
-        var expected = scorer.snapshots(read(Path.of(args[0])));
-        var actual = scorer.snapshots(read(Path.of(args[1])));
+        Input expectedIn = readInput(Path.of(args[0]));
+        Input actualIn = readInput(Path.of(args[1]));
+        var expected = scorer.snapshots(expectedIn.records());
+        var actual = scorer.snapshots(actualIn.records());
 
-        System.out.printf("  expected: %d scored events, %d figures%n",
+        out.printf("  expected: %d scored events, %d figures%n",
                 expected.size(), ExpectationScorer.figuresIn(expected).size());
-        System.out.printf("  actual  : %d scored events, %d figures%n",
+        out.printf("  actual  : %d scored events, %d figures%n",
                 actual.size(), ExpectationScorer.figuresIn(actual).size());
 
         var result = scorer.score(expected, actual);
-        System.out.println("  " + result.summary());
-        result.differences().stream().limit(show).forEach(d -> System.out.println("      " + d));
-        if (result.differences().size() > show) {
-            System.out.printf("      … and %d more%n", result.differences().size() - show);
+        // DAMAGE FIRST. A comparison over a partially readable input is a comparison of the readable
+        // prefix, and its verdict must say so: an unqualified PASS from salvage is a different promise
+        // from a PASS over whole evidence. Untrustworthy (exit 2), like a malformed record - the
+        // readable-prefix comparison is still printed, labelled as exactly that.
+        boolean partial = expectedIn.partial() || actualIn.partial();
+        if (partial) {
+            for (String d : expectedIn.damage()) err.println("UNTRUSTWORTHY — expected input only partially readable: " + d);
+            for (String d : actualIn.damage()) err.println("UNTRUSTWORTHY — actual input only partially readable: " + d);
+            out.println("  readable-prefix comparison only (input damaged, see stderr): " + result.summary());
+        } else {
+            out.println("  " + result.summary());
         }
-        System.exit(!result.trustworthy() ? 2 : result.pass() ? 0 : 1);
+        result.differences().stream().limit(show).forEach(d -> out.println("      " + d));
+        if (result.differences().size() > show) {
+            out.printf("      … and %d more%n", result.differences().size() - show);
+        }
+        return partial || !result.trustworthy() ? 2 : result.pass() ? 0 : 1;
     }
 }

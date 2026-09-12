@@ -28,17 +28,17 @@ public final class AuditTrace {
 
     /** The key node-invocation tracing adds to every entry in the TEXT record. */
     private static final String METHOD = "method";
-    /**
-     * The binary reader's trace marker. A binary TRACE entry carries no method name - only "this node
-     * ran" - and the reader renders it as {@code invoked: true}. Accepted under the same all-nodes rule
-     * as {@code method}: a business key called {@code invoked} on one node must not make a sparse
-     * record look complete either.
-     */
-    private static final String INVOKED = "invoked";
 
     /**
      * True when this record traces every invocation — i.e. every logged node carries a {@code method}
-     * entry (text) or an {@code invoked: true} entry (the binary reader), which only tracing adds.
+     * entry, which only the text runtime's tracing adds.
+     *
+     * <p>This is the text format's HEURISTIC and it is not generalised. A wire TRACE entry in a binary
+     * log ({@link KV#trace()}) is evidence that ITS node ran; it is not a declaration that every
+     * invocation was traced, and observing markers on every logged node is not that declaration
+     * either - a review showed an ordinary {@code invoked: true} business property on the one logging
+     * node turning a silent node into DID_NOT_RUN. The binary format carries no completeness
+     * declaration (FLXA §11.7, §16), so for a binary log this returns false and absence stays unknown.
      *
      * <p>Requires <em>all</em> entries to have it, not any: a node is free to log a key called
      * "method" itself, and one such node must not make a sparse record look complete.
@@ -54,7 +54,14 @@ public final class AuditTrace {
     private static boolean hasMethodEntry(NodeLog node) {
         for (KV kv : node.entries()) {
             if (METHOD.equals(kv.key())) return true;
-            if (INVOKED.equals(kv.key()) && Boolean.TRUE.equals(kv.asBoolean())) return true;
+        }
+        return false;
+    }
+
+    /** True when this node carries a wire TRACE entry: evidence that it ran, and only that. */
+    public static boolean ran(NodeLog node) {
+        for (KV kv : node.entries()) {
+            if (kv.trace()) return true;
         }
         return false;
     }

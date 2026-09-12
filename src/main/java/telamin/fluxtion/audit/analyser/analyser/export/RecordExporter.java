@@ -42,7 +42,22 @@ public final class RecordExporter {
         return sb.toString();
     }
 
+    /**
+     * @throws UnsupportedOperationException for a store whose reader declares a grammar the text
+     *         reader cannot re-load. The contract of this export is that the file re-opens in the
+     *         analyser as the same records. Text the binary reader constructs is parsed under a
+     *         grammar the reader declares and the text carries nothing that declares it, so an export
+     *         re-opened as a text log would read every quoted String as its quoted characters (a
+     *         review showed {@code "ok, invented: 99"} reloading with the quotes inside the value).
+     *         The lossless artefact for a binary log is the {@code .flxa} file itself.
+     */
     public static String toYaml(LogStore store, FilterState filter) {
+        if (store.textEncoding() != telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY) {
+            throw new UnsupportedOperationException("this log was opened by a reader that declares the "
+                    + store.textEncoding() + " grammar; a YAML export would re-open as legacy text and change "
+                    + "every quoted String value. Keep the original file - for a binary log the .flxa IS the "
+                    + "lossless artefact. CSV export (index columns) is unaffected.");
+        }
         LogIndex idx = store.index();
         StringBuilder sb = new StringBuilder();
         for (int row = 0; row < idx.size(); row++) {

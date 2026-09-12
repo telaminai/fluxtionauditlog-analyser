@@ -286,10 +286,11 @@ public final class BinaryAuditReader implements AuditLogReader {
             }
             if (keyId == 0) {
                 // A trace entry: the node ran and logged no property. keyId 0 is "no key", not an id
-                // that failed to resolve. `invoked: true` is this reader's trace marker; AuditTrace
-                // accepts it beside the text runtime's `method` key when deciding whether a record
-                // traces every invocation, under the same all-nodes rule.
-                currentNode.append(" invoked: true");
+                // that failed to resolve. `@invoked` is the reader's RESERVED key: bare only from
+                // here (a business key containing @ is quoted by name()), so the tokenizer marks the
+                // KV as trace provenance. It says this node ran; it says nothing about nodes that did
+                // not log, and no consumer may infer completeness from it (FLXA §11.7).
+                currentNode.append(" @invoked: true");
             } else {
                 // The dictionary-resolving overload. The id-free one has no dictionary and rendered
                 // every String and Object value as its raw tag/id pair - "#tag5:4" - and a logged null

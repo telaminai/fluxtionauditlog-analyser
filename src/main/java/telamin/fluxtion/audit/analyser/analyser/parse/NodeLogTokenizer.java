@@ -25,12 +25,19 @@ import java.util.List;
  * {@code "ok, price: 42.0"} written bare reads as two entries, the second a numeric figure the
  * producer never published.
  *
- * <p>The grammar is chosen by the record's {@code nodeLogsEncoding: quoted} scalar and by nothing
- * else — never by looking at the bytes. The same bytes cannot say whether a quote was the producer's
- * data or encoding syntax: a review showed a legacy value {@code prefix "C:\"} read under the quoted
- * grammar swallowing the entry after it, and {@code "hello"} losing its quotes. So a record that does
- * not declare the encoding is read exactly as before, byte for byte; the binary reader declares it on
- * every record it constructs; the text runtime never has and need not.
+ * <p>The grammar is chosen by the CALLER - the reader that produced the text declares it through
+ * {@code AuditLogReader.textEncoding()} and the store hands it to the parser - and by nothing in the
+ * text. The same bytes cannot say whether a quote was the producer's data or encoding syntax: a
+ * review showed a legacy value {@code prefix "C:\"} read under the quoted grammar swallowing the
+ * entry after it, and a later one showed a per-record declaration scalar being forged by a multiline
+ * value. So text is never sniffed: the binary reader declares the quoted grammar, the text reader has
+ * nothing to declare, and every text log is read exactly as before, byte for byte.
+ *
+ * <p><b>Reserved keys under the declared grammar.</b> A BARE key beginning with {@code @} is the
+ * reader's, not the producer's: a business key containing {@code @} is always quoted on the way out
+ * (it is outside the identifier whitelist) and decodes as an ordinary key. Today one is defined:
+ * {@code @invoked: true} marks an entry constructed from a wire TRACE entry, and sets {@link
+ * KV#trace()}. Under the legacy grammar there are no reserved keys.
  */
 public final class NodeLogTokenizer {
 
@@ -47,8 +54,8 @@ public final class NodeLogTokenizer {
     }
 
     /**
-     * @param quotedScalars true when the record DECLARED {@code nodeLogsEncoding: quoted}; false is the
-     *                      legacy grammar, unchanged for every existing text log
+     * @param quotedScalars true when the READER that produced this text declares the quoted-scalar
+     *                      grammar; false is the legacy grammar, unchanged for every existing text log
      */
     public static List<NodeLog> parseBlock(String block, boolean quotedScalars) {
         List<NodeLog> out = new ArrayList<>();
@@ -107,15 +114,21 @@ public final class NodeLogTokenizer {
         return new NodeLog(instanceId, entries);
     }
 
+    /** The reader's trace marker: a bare {@code @invoked} key, only under the declared grammar. */
+    static final String TRACE_KEY = "@invoked";
+
     private static KV parsePair(String segment, boolean quotedScalars) {
         String seg = segment.strip();
         int colon = indexOfSep(seg, quotedScalars);
         if (colon < 0) {
             return new KV(scalar(seg, quotedScalars).text, null);   // bare flag/token
         }
-        String key = scalar(seg.substring(0, colon).strip(), quotedScalars).text;
+        String rawKey = seg.substring(0, colon).strip();
+        Scalar key = scalar(rawKey, quotedScalars);
         Scalar value = scalar(seg.substring(colon + 2).strip(), quotedScalars);
-        return new KV(key, value.text, value.quoted);
+        // Provenance: only the declared grammar has reserved keys, and only a BARE one is the reader's.
+        boolean trace = quotedScalars && !key.quoted && TRACE_KEY.equals(key.text);
+        return new KV(key.text, value.text, value.quoted, trace);
     }
 
     /** Under the legacy grammar every scalar is its raw text; under the declared one it may decode. */

@@ -41,4 +41,33 @@ class RecordExporterTest {
         String yaml = RecordExporter.toYaml(s, new FilterState());
         assertEquals(21, new HeapLogStore(yaml).size(), "exported YAML re-parses to the same records");
     }
+
+    /**
+     * REVIEWER PROBE (round 7). A YAML export of a binary-derived store re-opened as legacy text, so
+     * every quoted String came back with its quotes inside the value. The export contract is "re-loads
+     * as the same records"; for a store whose reader declares a grammar the text has no way to carry,
+     * that contract cannot be met, so the export is refused and the .flxa named as the artefact.
+     */
+    @org.junit.jupiter.api.Test
+    void aYamlExportOfABinaryStoreIsRefused_theFlxaIsTheArtefact(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path file = dir.resolve("export.flxa");
+        try (var out = java.nio.file.Files.newOutputStream(file);
+             var w = new com.telamin.fluxtion.runtime.audit.BinaryLogWriter(out)) {
+            var clock = new com.telamin.fluxtion.runtime.time.Clock();
+            clock.init();
+            var r = new com.telamin.fluxtion.runtime.audit.BinaryLogRecord(clock);
+            r.triggerObject(new Object());
+            r.addRecord("n", "message", (CharSequence) "ok, invented: 99");
+            r.addRecord("n", "price", 77);
+            w.processLogRecord(r);
+        }
+        var store = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(
+                new telamin.fluxtion.audit.analyser.analyser.spi.binary.BinaryAuditReader(), file);
+        var refused = org.junit.jupiter.api.Assertions.assertThrows(UnsupportedOperationException.class,
+                () -> RecordExporter.toYaml(store, new FilterState()));
+        org.junit.jupiter.api.Assertions.assertTrue(refused.getMessage().contains(".flxa"), refused.getMessage());
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> RecordExporter.toCsv(store, new FilterState()),
+                "CSV is index columns and is unaffected");
+    }
 }

@@ -61,6 +61,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The record diff compares values by kind, and numbers exactly.** A number `42.0` and the string
   `"42.0"` were SAME; they are now CHANGED, and the kind is shown when it is what differs. Two
   different logged longs above 2^53 are CHANGED, not narrowed to one double.
+- **Business data can no longer pose as complete tracing.** A round-7 review showed an ordinary
+  `invoked: true` property on the one logging node turning a silent node into *did not run*. The
+  binary reader's trace marker is now a reserved key only it can emit bare (`@invoked`), carried in
+  the model as provenance that *its* node ran; nothing infers completeness from it, because the
+  binary format carries no such declaration. The text format's `method` heuristic is unchanged.
+- **Scoring a damaged binary log is untrustworthy, not a PASS.** The score command read a cut file
+  through a path that discarded the reader's damage report and printed a normal PASS on the readable
+  prefix. It now carries the report: the comparison is printed as readable-prefix only, stderr names
+  the damage on whichever side, and the exit code is 2 — for a cut tail and for names the file
+  never defined alike.
+- **A YAML export of a binary-derived log is refused.** It would re-open as legacy text and change
+  every quoted String value; the `.flxa` file is the lossless artefact. CSV export is unaffected.
 - **A binary log no longer claims to follow or to anchor by byte.** Its reader declared both and the
   store can do neither, so an agent reading by `byteOffset` was addressing nothing. It declares
   random access by row only, and the index refuses anchoring.

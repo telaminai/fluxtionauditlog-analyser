@@ -241,7 +241,12 @@ because the first version narrowed to a double and called 2^53 and 2^53+1 the sa
 damage report — unusable tail bytes, references to names the file never defined, now including
 String and Object VALUE ids — reaches the analyser through a diagnostic consumer on the SPI's
 `read`, is kept by the store as `sourceDiagnostics()`, and is shown as a `SOURCE_DAMAGE` finding
-in the status bar and the `context` echo. Never as a record.
+in the status bar and the `context` echo. Never as a record. Round 7 extended the three boundaries through the consumers that had lost them:
+the score command reads through the diagnostic path and marks a damaged input untrustworthy; a YAML
+export of a binary-derived store is refused rather than mislabelled re-loadable; and trace
+provenance is carried in the model (`KV.trace`, from the reserved bare `@invoked` key only the
+binary reader emits) without any inference of complete tracing from it — the format carries no
+completeness declaration and a business `invoked: true` had been read as one.
 
 The bounds every `u16` field imposes are stated once, in `BinaryLogFile` (Java) and `fluxtion_writer.h`
 (C++), and both writers refuse rather than wrap: 65,535 entries per record, 65,535 dictionary ids,

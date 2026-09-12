@@ -398,4 +398,53 @@ class ExpectationScorerTest {
         assertTrue(r.summary().contains("within tolerance"), r.summary());
         assertFalse(r.summary().contains("identical"), "a tolerance is not an identity: " + r.summary());
     }
+
+    /**
+     * REVIEWER PROBE (round 7). The score command read a cut binary log through the two-argument read,
+     * which discards damage, and printed a normal PASS on the readable prefix with exit 0. Damage now
+     * reaches the verdict: the comparison is printed as readable-prefix only, stderr names the damage,
+     * and the exit is 2 - untrustworthy - whichever side was cut, and for undefined names too.
+     */
+    @Test
+    void scoringADamagedBinaryLogIsUntrustworthy_notAPass(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path whole = dir.resolve("whole.flxa");
+        try (var out = java.nio.file.Files.newOutputStream(whole);
+             var w = new com.telamin.fluxtion.runtime.audit.BinaryLogWriter(out)) {
+            var clock = new com.telamin.fluxtion.runtime.time.Clock();
+            clock.init();
+            var r = new com.telamin.fluxtion.runtime.audit.BinaryLogRecord(clock);
+            r.triggerObject(new Tick());
+            r.addRecord("n", "price", 42.0d);
+            w.processLogRecord(r);
+        }
+        byte[] bytes = java.nio.file.Files.readAllBytes(whole);
+        java.nio.file.Path cut = dir.resolve("cut.flxa");
+        byte[] withPartial = java.util.Arrays.copyOf(bytes, bytes.length + 5);
+        withPartial[bytes.length] = 0x01;   // the start of a second RECORD frame that never completes
+        java.nio.file.Files.write(cut, withPartial);
+        java.nio.file.Path undefined = dir.resolve("undefined.flxa");
+        java.nio.file.Files.write(undefined, com.telamin.fluxtion.runtime.audit.conformance.FlxaConformanceCorpus.committed("f11-unresolved-ids"));
+
+        assertEquals(0, run(whole, whole).code, "whole against whole: PASS");
+        var cutActual = run(whole, cut);
+        assertEquals(2, cutActual.code, "a cut actual is untrustworthy: " + cutActual.err);
+        assertTrue(cutActual.err.contains("actual input only partially readable"), cutActual.err);
+        assertTrue(cutActual.out.contains("readable-prefix comparison only"), cutActual.out);
+        var cutExpected = run(cut, whole);
+        assertEquals(2, cutExpected.code);
+        assertTrue(cutExpected.err.contains("expected input only partially readable"), cutExpected.err);
+        var undefinedActual = run(whole, undefined);
+        assertEquals(2, undefinedActual.code, "names the file never defined are damage too: " + undefinedActual.err);
+        assertTrue(undefinedActual.err.contains("never defined"), undefinedActual.err);
+    }
+
+    private record Run(int code, String out, String err) { }
+
+    private static Run run(java.nio.file.Path expected, java.nio.file.Path actual) throws Exception {
+        var o = new java.io.ByteArrayOutputStream();
+        var e = new java.io.ByteArrayOutputStream();
+        int code = ScoreCommand.execute(new String[]{expected.toString(), actual.toString()},
+                new java.io.PrintStream(o, true), new java.io.PrintStream(e, true));
+        return new Run(code, o.toString(), e.toString());
+    }
 }

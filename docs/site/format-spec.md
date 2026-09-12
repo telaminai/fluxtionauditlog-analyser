@@ -109,6 +109,14 @@ mistype; a reviewer showed a logged `"ok, price: 42.0"` written bare manufacturi
 the producer never published, and a logged `'` character deleting the entry after it. An adapter for
 another typed engine that constructs text does the same: declare, and quote.
 
+**Reserved keys.** Under the declared grammar, a *bare* key beginning with `@` belongs to the
+reader, never to the producer: a business key containing `@` is quoted on the way out and decodes
+as an ordinary key. One is defined: `@invoked: true` marks an entry the binary reader constructed
+from a wire TRACE entry, and the model records it as trace provenance — evidence that *its* node
+ran, and nothing about nodes that did not log. It is not a declaration that every invocation was
+traced; the binary format carries none, so for a binary log absence stays *may have run*. The
+legacy grammar has no reserved keys.
+
 **Encoding is selected from the reader's declared context. Logged content MUST NOT select or change
 it.** There is no field in the text that switches grammar, because the same bytes cannot say whether
 a quote mark — or a line spelled like a field — was the producer's data or encoding syntax. An
@@ -222,7 +230,7 @@ author: *emit these records and you get exactly what the native log gets.*
 | C09 garbage | a `PARSE_ERROR` record with its text; neighbours untouched; count preserved |
 | C10 ordering claim | `TOTAL`/`PARTIAL` is the reader's and reaches the index; the old constructor means `TOTAL` |
 | C11 attribution | the core attributes by position and never merges — broadcast makes duplicates; a component-less key is not even expressible |
-| C12 traced regime | absence is *did not run* only when every entry is traced; one `method` key proves nothing; the binary reader's `invoked: true` is accepted under the same all-nodes rule |
+| C12 traced regime | absence is *did not run* only when every entry is traced; one `method` key proves nothing; a business `invoked: true` proves nothing in either spelling — the binary reader's trace marker (`@invoked`, §3a) is provenance that its node ran, never a completeness declaration |
 | C13 exported call | dimension is the callback; declaring type captured; `eventTime` absent |
 | C14 synthesised text | text an adapter *constructs* (no trailing newline, a leading `---`, CRLF) reads exactly as sliced file text |
 | C16 quoted scalars | through a reader that declares `QUOTED_SCALARS`, entirely `"…"` is a string whatever it spells; escapes decode; its insides split nothing; the same bytes through the text reader are legacy |

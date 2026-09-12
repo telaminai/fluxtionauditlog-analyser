@@ -1376,6 +1376,12 @@ public final class MainFrame extends JFrame {
 
     private void exportRecords(boolean yaml) {
         if (store == null || filter == null) return;
+        if (yaml && store.textEncoding() != telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY) {
+            JOptionPane.showMessageDialog(this, "This log was opened by the binary reader. A YAML export would re-open "
+                    + "as legacy text and change every quoted String value, so it is not offered; the .flxa file "
+                    + "is the lossless artefact. CSV export is unaffected.", "Export", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         JFileChooser fc = new JFileChooser();
         fc.setSelectedFile(new File(yaml ? "records.yaml" : "records.csv"));
         if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
