@@ -74,6 +74,15 @@ each and it dominates the event; the compilers differ on dispatch, and auditing 
 The practical reading: if you are auditing, the choice of Java toolchain is not where your nanoseconds
 are, and AOT's real argument here is startup, not steady-state throughput.
 
+## GraalVM 25.3.4 and the new priority inliner (2026-09-12)
+
+Re-measured on the new toolchain; the full table and the attribution of the audited arm's drift
+are in `../RECORDED-BASELINES.md` (M61). The headline: **7.47 ns unaudited on Graal's JIT** against
+12.03 on 25.0.4 — the inliner is worth 38% and Graal now beats C2 on dispatch — and **23.8 ns
+audited** once `LOW_LATENCY_AUDIT` stopped taking the `endTime` reading, which alone was 13.6 ns of
+the event on the accurate clock. The C++ control was not rebuilt this round (the generator's array
+setters outran the bench's author-side stubs).
+
 ## Why latency is reported per BURST
 
 **Per-event latency is not measurable here, and the harness refuses to pretend otherwise.**

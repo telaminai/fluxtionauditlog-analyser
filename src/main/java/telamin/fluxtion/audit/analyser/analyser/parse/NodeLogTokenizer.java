@@ -35,9 +35,12 @@ import java.util.List;
  *
  * <p><b>Reserved keys under the declared grammar.</b> A BARE key beginning with {@code @} is the
  * reader's, not the producer's: a business key containing {@code @} is always quoted on the way out
- * (it is outside the identifier whitelist) and decodes as an ordinary key. Today one is defined:
- * {@code @invoked: true} marks an entry constructed from a wire TRACE entry, and sets {@link
- * KV#trace()}. Under the legacy grammar there are no reserved keys.
+ * (it is outside the identifier whitelist) and decodes as an ordinary key. Two are defined, and
+ * neither becomes a business entry: {@code @invoked: true} marks a wire TRACE entry and sets
+ * {@link NodeLog#traced()} - metadata beside the entries, never in them, so a quoted business key
+ * that decodes to the same spelling keeps its own slot; {@code @unkeyed: value} carries a wire entry
+ * that had no key and was not a TRACE, kept as an entry with a {@code null} key so the value is not
+ * lost. Under the legacy grammar there are no reserved keys.
  */
 public final class NodeLogTokenizer {
 
@@ -100,35 +103,54 @@ public final class NodeLogTokenizer {
             body = s.substring(colon + 2).strip();
         }
         List<KV> entries = new ArrayList<>();
+        boolean traced = false;
         if (body.startsWith("{") && body.endsWith("}")) {
             String inner = body.substring(1, body.length() - 1).strip();
             if (!inner.isEmpty()) {
                 for (String seg : splitTopLevel(inner, ',', quotedScalars)) {
-                    entries.add(parsePair(seg, quotedScalars));
+                    Pair pair = parsePair(seg, quotedScalars);
+                    if (pair.traceMarker) {
+                        traced = true;          // metadata, not an entry
+                    } else {
+                        entries.add(pair.kv);
+                    }
                 }
             }
         } else if (!body.isEmpty()) {
             // lenient: unstructured value with no braces -> single keyless entry
             entries.add(new KV(null, body));
         }
-        return new NodeLog(instanceId, entries);
+        return new NodeLog(instanceId, entries, traced);
     }
 
     /** The reader's trace marker: a bare {@code @invoked} key, only under the declared grammar. */
     static final String TRACE_KEY = "@invoked";
+    /** The reader's spelling for a wire entry that had no key and was not a TRACE. */
+    static final String UNKEYED_KEY = "@unkeyed";
 
-    private static KV parsePair(String segment, boolean quotedScalars) {
+    /** A parsed pair: either a business entry, or the trace marker (which is not an entry). */
+    private record Pair(KV kv, boolean traceMarker) {
+    }
+
+    private static Pair parsePair(String segment, boolean quotedScalars) {
         String seg = segment.strip();
         int colon = indexOfSep(seg, quotedScalars);
         if (colon < 0) {
-            return new KV(scalar(seg, quotedScalars).text, null);   // bare flag/token
+            return new Pair(new KV(scalar(seg, quotedScalars).text, null), false);   // bare flag/token
         }
         String rawKey = seg.substring(0, colon).strip();
         Scalar key = scalar(rawKey, quotedScalars);
         Scalar value = scalar(seg.substring(colon + 2).strip(), quotedScalars);
-        // Provenance: only the declared grammar has reserved keys, and only a BARE one is the reader's.
-        boolean trace = quotedScalars && !key.quoted && TRACE_KEY.equals(key.text);
-        return new KV(key.text, value.text, value.quoted, trace);
+        // Reserved keys: only the declared grammar has them, and only a BARE one is the reader's.
+        if (quotedScalars && !key.quoted) {
+            if (TRACE_KEY.equals(key.text)) {
+                return new Pair(null, true);
+            }
+            if (UNKEYED_KEY.equals(key.text)) {
+                return new Pair(new KV(null, value.text, value.quoted), false);
+            }
+        }
+        return new Pair(new KV(key.text, value.text, value.quoted), false);
     }
 
     /** Under the legacy grammar every scalar is its raw text; under the declared one it may decode. */

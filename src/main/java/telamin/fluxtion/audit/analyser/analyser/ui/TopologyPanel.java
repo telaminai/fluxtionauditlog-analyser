@@ -1510,7 +1510,7 @@ public final class TopologyPanel extends JPanel {
                         fullTopology, record.event(), record.eventToString()));
         if (!shadingCleared) {
             canvas.setDispatch(order, entries,
-                    record != null && AuditTrace.tracesEveryInvocation(record.nodeLogs()));
+                    AuditTrace.tracesEveryInvocation(record));
         }
         if (record == null) {
             cursor = StepCursor.over(List.of());
@@ -1529,7 +1529,7 @@ public final class TopologyPanel extends JPanel {
         }
         long unknown = order.stream().filter(id -> !fullTopology.contains(id)).distinct().count();
         setStatus(describeEvent(record) + " — " + order.size()
-                       + (AuditTrace.tracesEveryInvocation(record.nodeLogs()) ? " node(s) ran" : " node(s) logged")
+                       + (AuditTrace.tracesEveryInvocation(record) ? " node(s) ran" : " node(s) logged")
                        + (unknown > 0 && hasTopology()
                                ? "  ·  " + unknown + " not in this topology (different build?)" : ""));
     }
@@ -1571,7 +1571,7 @@ public final class TopologyPanel extends JPanel {
         for (NodeLog n : cycle) order.add(n.instanceId());
         canvas.setDispatch(order,
                 List.copyOf(EntryPointResolver.resolve(fullTopology, record.event(), record.eventToString())),
-                AuditTrace.tracesEveryInvocation(record.nodeLogs()));
+                AuditTrace.tracesEveryInvocation(record));
     }
 
     /**
@@ -1709,7 +1709,7 @@ public final class TopologyPanel extends JPanel {
         for (NodeLog n : logs) order.add(n.instanceId());
         List<String> entries = List.copyOf(
                 EntryPointResolver.resolve(fullTopology, record.event(), record.eventToString()));
-        boolean traced = AuditTrace.tracesEveryInvocation(logs);
+        boolean traced = AuditTrace.tracesEveryInvocation(record);
 
         java.util.Set<String> touched = new java.util.LinkedHashSet<>();
         for (String id : order) if (fullTopology.contains(id)) touched.add(id);

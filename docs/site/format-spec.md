@@ -111,11 +111,16 @@ another typed engine that constructs text does the same: declare, and quote.
 
 **Reserved keys.** Under the declared grammar, a *bare* key beginning with `@` belongs to the
 reader, never to the producer: a business key containing `@` is quoted on the way out and decodes
-as an ordinary key. One is defined: `@invoked: true` marks an entry the binary reader constructed
-from a wire TRACE entry, and the model records it as trace provenance — evidence that *its* node
-ran, and nothing about nodes that did not log. It is not a declaration that every invocation was
-traced; the binary format carries none, so for a binary log absence stays *may have run*. The
-legacy grammar has no reserved keys.
+as an ordinary key. Two are defined, and neither becomes a business entry. `@invoked: true` marks a
+wire TRACE entry (tag 8, key 0) and becomes node **metadata** — `traced` on the node-log, beside the
+entries and never in them, so a business key that decodes to the same spelling keeps its own slot in
+every lookup, diff and field projection. It is evidence that *its* node ran, and nothing about nodes
+that did not log; it is not a declaration that every invocation was traced. The binary format carries
+no such declaration, so for a binary log absence stays *may have run*, and the text format's
+`method`-on-every-node heuristic applies only to records the text reader produced — applicability is
+carried on the record, from the reader's declaration, never taken from a property spelling.
+`@unkeyed: value` carries a wire entry that had no key and was not a TRACE, kept as an entry with no
+key. The legacy grammar has no reserved keys.
 
 **Encoding is selected from the reader's declared context. Logged content MUST NOT select or change
 it.** There is no field in the text that switches grammar, because the same bytes cannot say whether

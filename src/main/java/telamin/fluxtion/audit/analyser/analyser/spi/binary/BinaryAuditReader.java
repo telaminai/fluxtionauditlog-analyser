@@ -284,13 +284,18 @@ public final class BinaryAuditReader implements AuditLogReader {
             } else {
                 currentNode.append(',');
             }
-            if (keyId == 0) {
-                // A trace entry: the node ran and logged no property. keyId 0 is "no key", not an id
-                // that failed to resolve. `@invoked` is the reader's RESERVED key: bare only from
-                // here (a business key containing @ is quoted by name()), so the tokenizer marks the
-                // KV as trace provenance. It says this node ran; it says nothing about nodes that did
-                // not log, and no consumer may infer completeness from it (FLXA §11.7).
+            if (tag == BinaryRecordDecoder.TAG_TRACE && keyId == 0) {
+                // A trace entry: the WIRE TAG says so, with the specified key 0. `@invoked` is the
+                // reader's RESERVED key - bare only from here, a business key containing @ is quoted
+                // by name() - and the tokenizer turns it into NodeLog.traced, metadata beside the
+                // entries. It says this node ran; it says nothing about nodes that did not log, and no
+                // consumer may infer completeness from it (FLXA §11.7).
                 currentNode.append(" @invoked: true");
+            } else if (keyId == 0) {
+                // No key, and not a TRACE: a value logged under a null key through the public API.
+                // It used to be rendered as a trace, which discarded the value and asserted a wire
+                // TRACE that did not exist (review, round 8). Kept as a keyless entry instead.
+                currentNode.append(" @unkeyed: ").append(value(tag, rawBits));
             } else {
                 // The dictionary-resolving overload. The id-free one has no dictionary and rendered
                 // every String and Object value as its raw tag/id pair - "#tag5:4" - and a logged null

@@ -66,13 +66,15 @@ for audit in false true; do
     jarm=java-plain; [ "$audit" = true ] && jarm=java-audit
     N="$OUT/$nat"; mkdir -p "$N"
     CPN="$OUT/$jarm/build:$OUT/$jarm/gen:$CP"
+    # GraalVM 25.3 refuses -H:-SpawnIsolates ("Isolate support can no longer be disabled"); the flag
+    # only ever affected image entry from C, not the in-image loop this measures, so it is gone.
     "$GRAALVM_HOME/bin/native-image" -cp "$CPN" --no-fallback --gc=epsilon -R:MaxHeapSize=2g \
-        -H:-SpawnIsolates --pgo-instrument -o "$N/inst" app.BenchQuoteEngine > "$N/inst.log" 2>&1
+        --pgo-instrument -o "$N/inst" app.BenchQuoteEngine > "$N/inst.log" 2>&1
     ( cd "$N" && "$N/inst" -Diters=2000000 -Dwarm=500000 -Dbatches=2 -Daudit="$audit" \
         -XX:ProfilesDumpFile="$N/qe.iprof" > "$N/collect" 2>&1 ) || true
     grep -q '^RESULT' "$N/collect" || { echo "REFUSED $nat: profile collection produced no RESULT" >&2; exit 1; }
     "$GRAALVM_HOME/bin/native-image" -cp "$CPN" --no-fallback --gc=epsilon -R:MaxHeapSize=2g \
-        -H:-SpawnIsolates --pgo="$N/qe.iprof" -o "$N/native" app.BenchQuoteEngine > "$N/native.log" 2>&1
+        --pgo="$N/qe.iprof" -o "$N/native" app.BenchQuoteEngine > "$N/native.log" 2>&1
     # Assert the image is what it claims. A build that silently fell back to sampled defaults reads as
     # a PGO number and is not one.
     for chk in "PGO: user-provided" "Garbage collector: Epsilon GC"; do
@@ -83,6 +85,9 @@ for audit in false true; do
     echo "GRAALVM_HOME unset - skipping the native arm rather than reporting two arms as three"
   fi
 
+  # SKIP_CPP=1 skips the C++ control rather than failing the Java arms with it. Said out loud in the
+  # output so a run without it is never read as a four-arm comparison.
+  if [ "${SKIP_CPP:-0}" = "1" ]; then echo "SKIP_CPP set - C++ arms not built"; continue; fi
   arm=cpp-plain; [ "$audit" = true ] && arm=cpp-audit
   rm -rf "$OUT/$arm"; mkdir -p "$OUT/$arm"/{gen,build}
   "$JH/bin/java" -cp "$OUT/qeclasses:$CP" -Daudit="$audit" -Dtarget=cpp \

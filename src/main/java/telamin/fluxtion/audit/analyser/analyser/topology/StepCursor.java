@@ -120,7 +120,7 @@ public final class StepCursor {
 
     /** True when this record's audit covers every invocation, so stepping is exact. */
     public boolean traced() {
-        return AuditTrace.tracesEveryInvocation(rows());
+        return AuditTrace.tracesEveryInvocation(record());
     }
 
     /** Where this cycle entered the graph, per {@link EntryPointResolver}; empty when unresolved. */

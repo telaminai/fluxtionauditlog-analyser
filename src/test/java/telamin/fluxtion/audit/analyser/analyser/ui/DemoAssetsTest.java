@@ -73,7 +73,7 @@ class DemoAssetsTest {
         var store = new HeapLogStore(resource("demo-quote-audit-traced.yaml"));
         assertTrue(store.size() > 0);
         assertTrue(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace
-                        .tracesEveryInvocation(store.record(0).nodeLogs()),
+                        .tracesEveryInvocation(store.record(0)),
                 "without tracing the page could describe \"did not run\" but never show it");
     }
 

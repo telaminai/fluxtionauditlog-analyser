@@ -121,6 +121,7 @@ public final class RecordParser {
                 .groupingId(groupingId)
                 .event(event)
                 .eventType(eventType)
+                .textEncoding(encoding)
                 .eventToString(eventToString)
                 .thread(resolvedThread)
                 .logger(header.logger())

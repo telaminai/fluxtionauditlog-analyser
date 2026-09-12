@@ -11,11 +11,9 @@ import java.util.regex.Pattern;
  *
  * <p>{@code key} may be {@code null} for a bare/unstructured token (lenient fallback).
  *
- * <p><b>{@code trace}</b> is true only for an entry the binary reader constructed from a wire TRACE
- * entry ("this node ran"), spelled with the reserved bare key {@code @invoked} under the declared
- * grammar. A business key can never produce it: a key containing {@code @} is quoted on the way out
- * and decodes as an ordinary key. Provenance, not a value - a review showed an ordinary
- * {@code invoked: true} business property being read as proof of complete tracing.
+ * <p>Trace provenance is NOT an entry: it is {@link NodeLog#traced()}, metadata beside the entries, so
+ * no business key can share a slot with it (review, round 8). A keyless value - a wire entry with no
+ * key that is not a TRACE - is an entry with a {@code null} key: kept, never promoted to metadata.
  *
  * <p><b>{@code quoted}</b> is true when the value arrived as a double-quoted scalar (format-spec §3:
  * {@code "…"} with backslash escapes) and has been decoded. A quoted value is a STRING whatever it
@@ -23,15 +21,11 @@ import java.util.regex.Pattern;
  * binary reader quotes exactly the strings the tokenizer would otherwise mistype or mis-split, so a
  * logged String can no longer manufacture a numeric figure — which is what a review found it could.
  */
-public record KV(String key, String rawValue, boolean quoted, boolean trace) {
+public record KV(String key, String rawValue, boolean quoted) {
 
     /** An unquoted value: typed by inspection, as every text-log value always has been. */
     public KV(String key, String rawValue) {
-        this(key, rawValue, false, false);
-    }
-
-    public KV(String key, String rawValue, boolean quoted) {
-        this(key, rawValue, quoted, false);
+        this(key, rawValue, false);
     }
 
     // strictly numeric literal (no letters/spaces) so we never mis-read "connected=true" as a number

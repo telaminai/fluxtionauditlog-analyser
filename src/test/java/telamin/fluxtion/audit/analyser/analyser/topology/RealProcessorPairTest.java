@@ -120,7 +120,7 @@ class RealProcessorPairTest {
     @Test
     void theSparseLogDoesNotTraceInvocations() throws IOException {
         for (LogRecord record : records()) {
-            assertFalse(AuditTrace.tracesEveryInvocation(record.nodeLogs()),
+            assertFalse(AuditTrace.tracesEveryInvocation(record),
                     "built with addEventAudit() and no level — no auditInvocation calls are generated");
         }
     }
@@ -131,7 +131,7 @@ class RealProcessorPairTest {
         LogRecord marketData = traced.stream()
                 .filter(r -> "MarketDataEvent".equals(r.event())).findFirst().orElseThrow();
 
-        assertTrue(AuditTrace.tracesEveryInvocation(marketData.nodeLogs()));
+        assertTrue(AuditTrace.tracesEveryInvocation(marketData));
         assertTrue(loggedIn(marketData).contains("spreadCalculator"),
                 "tracing records the silent node too — this is the same graph, a different audit level");
     }
@@ -146,7 +146,7 @@ class RealProcessorPairTest {
         Map<String, ProcessorTopology.Execution> state = t.classifyCycle(
                 logged,
                 List.copyOf(EntryPointResolver.resolve(t, marketData.event(), marketData.eventToString())),
-                AuditTrace.tracesEveryInvocation(marketData.nodeLogs()));
+                AuditTrace.tracesEveryInvocation(marketData));
 
         assertEquals(LOGGED, state.get("spreadCalculator"), "it ran, and tracing recorded it");
         assertEquals(DID_NOT_RUN, state.get("orderTracker"),

@@ -695,6 +695,14 @@ public final class MainFrame extends JFrame {
 
     private void copySelectedAsYaml() {
         if (selectedRecords.isEmpty()) return;
+        // The same eligibility as the file export: this copy claims to be re-loadable YAML, and for a
+        // store whose reader declares a grammar it is not (review, round 8).
+        if (store != null && RecordExporter.yamlRefusal(store) != null) {
+            JOptionPane.showMessageDialog(this, "Not copied: " + RecordExporter.yamlRefusal(store),
+                    "Copy as YAML", JOptionPane.WARNING_MESSAGE);
+            status.setText("Not copied as YAML: this log's reader declares a grammar the text cannot carry.");
+            return;
+        }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < selectedRecords.size(); i++) {
             if (i > 0) sb.append("\n---\n");
@@ -1376,10 +1384,9 @@ public final class MainFrame extends JFrame {
 
     private void exportRecords(boolean yaml) {
         if (store == null || filter == null) return;
-        if (yaml && store.textEncoding() != telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY) {
-            JOptionPane.showMessageDialog(this, "This log was opened by the binary reader. A YAML export would re-open "
-                    + "as legacy text and change every quoted String value, so it is not offered; the .flxa file "
-                    + "is the lossless artefact. CSV export is unaffected.", "Export", JOptionPane.WARNING_MESSAGE);
+        if (yaml && RecordExporter.yamlRefusal(store) != null) {
+            JOptionPane.showMessageDialog(this, "Not exported: " + RecordExporter.yamlRefusal(store),
+                    "Export", JOptionPane.WARNING_MESSAGE);
             return;
         }
         JFileChooser fc = new JFileChooser();

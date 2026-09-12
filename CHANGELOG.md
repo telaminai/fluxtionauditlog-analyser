@@ -61,6 +61,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The record diff compares values by kind, and numbers exactly.** A number `42.0` and the string
   `"42.0"` were SAME; they are now CHANGED, and the kind is shown when it is what differs. Two
   different logged longs above 2^53 are CHANGED, not narrowed to one double.
+- **Trace provenance is node metadata, and completeness is never inferred for a binary log.** A
+  round-8 review showed the trace marker, carried as an entry, sharing a last-value slot with a
+  business key of the same spelling, so the diff and an agent's field read returned `true` where the
+  log said `99`; and the text format's `method` heuristic still running on binary business data. The
+  node-log now carries `traced` beside its entries, set only by a wire TRACE entry with key 0 (a value
+  logged under a null key is kept as a keyless entry, not promoted to a trace), and the heuristic
+  applies only to records the text reader produced.
+- **"Copy selected as YAML" consults the same eligibility as the file export**, and declines for a
+  binary-derived log with the same explanation.
 - **Business data can no longer pose as complete tracing.** A round-7 review showed an ordinary
   `invoked: true` property on the one logging node turning a silent node into *did not run*. The
   binary reader's trace marker is now a reserved key only it can emit bare (`@invoked`), carried in

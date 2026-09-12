@@ -102,8 +102,8 @@ class FlxaConformanceTest {
         assertEquals(Boolean.TRUE, n.last("aBool").asBoolean());
         NodeLog tracer = r.nodeLogs().get(1);
         assertEquals("tracer", tracer.instanceId());
-        assertEquals(Boolean.TRUE, tracer.last("@invoked").asBoolean(), "§11.7 a trace is the reserved @invoked: true");
-        assertTrue(tracer.last("@invoked").trace(), "with provenance: it came from a wire TRACE entry");
+        assertTrue(tracer.traced(), "§11.7 a wire TRACE entry is node metadata: this node ran");
+        assertEquals(0, tracer.entries().size(), "and it is not a business entry");
     }
 
     @Test
@@ -317,7 +317,7 @@ class FlxaConformanceTest {
     void f24_traceBits_areIgnored_itIsStillInvoked(@TempDir Path dir) throws IOException {
         LogRecord r = parse(dir, "f24-trace-bits").get(0);
         assertEquals("tracer", r.nodeLogs().get(0).instanceId());
-        assertTrue(r.nodeLogs().get(0).last("@invoked").trace());
+        assertTrue(r.nodeLogs().get(0).traced());
         assertEquals(2.0, r.nodeLogs().get(1).last("after").numeric().getAsDouble(), 0);
     }
 

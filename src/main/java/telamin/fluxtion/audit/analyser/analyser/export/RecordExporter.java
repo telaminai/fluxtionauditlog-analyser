@@ -51,12 +51,26 @@ public final class RecordExporter {
      *         review showed {@code "ok, invented: 99"} reloading with the quotes inside the value).
      *         The lossless artefact for a binary log is the {@code .flxa} file itself.
      */
-    public static String toYaml(LogStore store, FilterState filter) {
+    /**
+     * Why a YAML export of this store would not re-load as the same records, or null when it would.
+     * ONE decision for every path that hands record text out as re-loadable - the file export and the
+     * clipboard copy - so they cannot diverge again (a review found the copy action bypassing the
+     * file export's refusal).
+     */
+    public static String yamlRefusal(LogStore store) {
         if (store.textEncoding() != telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY) {
-            throw new UnsupportedOperationException("this log was opened by a reader that declares the "
-                    + store.textEncoding() + " grammar; a YAML export would re-open as legacy text and change "
-                    + "every quoted String value. Keep the original file - for a binary log the .flxa IS the "
-                    + "lossless artefact. CSV export (index columns) is unaffected.");
+            return "this log was opened by a reader that declares the " + store.textEncoding()
+                    + " grammar; a YAML export would re-open as legacy text and change every quoted String "
+                    + "value. Keep the original file - for a binary log the .flxa IS the lossless artefact. "
+                    + "CSV export (index columns) is unaffected.";
+        }
+        return null;
+    }
+
+    public static String toYaml(LogStore store, FilterState filter) {
+        String refusal = yamlRefusal(store);
+        if (refusal != null) {
+            throw new UnsupportedOperationException(refusal);
         }
         LogIndex idx = store.index();
         StringBuilder sb = new StringBuilder();

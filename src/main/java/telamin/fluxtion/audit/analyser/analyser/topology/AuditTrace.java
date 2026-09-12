@@ -1,6 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.topology;
 
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
+import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
 
 import java.util.List;
@@ -30,20 +31,23 @@ public final class AuditTrace {
     private static final String METHOD = "method";
 
     /**
-     * True when this record traces every invocation — i.e. every logged node carries a {@code method}
-     * entry, which only the text runtime's tracing adds.
+     * True when this record traces every invocation — every logged node carries a {@code method}
+     * entry, which only the TEXT runtime's tracing adds — AND the record is one that heuristic applies
+     * to. Applicability comes from the record's grammar ({@link LogRecord#textEncoding()}), i.e. from
+     * the reader that produced it, never from any property spelling: a binary log's business
+     * {@code method} property is a business property. The binary format carries no completeness
+     * declaration (FLXA §11.7, §16), so for a binary log this is false and absence stays unknown - the
+     * v1 boundary, enforced here rather than promised.
      *
-     * <p>This is the text format's HEURISTIC and it is not generalised. A wire TRACE entry in a binary
-     * log ({@link KV#trace()}) is evidence that ITS node ran; it is not a declaration that every
-     * invocation was traced, and observing markers on every logged node is not that declaration
-     * either - a review showed an ordinary {@code invoked: true} business property on the one logging
-     * node turning a silent node into DID_NOT_RUN. The binary format carries no completeness
-     * declaration (FLXA §11.7, §16), so for a binary log this returns false and absence stays unknown.
-     *
-     * <p>Requires <em>all</em> entries to have it, not any: a node is free to log a key called
+     * <p>Requires <em>all</em> logged nodes to carry it, not any: a node is free to log a key called
      * "method" itself, and one such node must not make a sparse record look complete.
      */
-    public static boolean tracesEveryInvocation(List<NodeLog> nodeLogs) {
+    public static boolean tracesEveryInvocation(LogRecord record) {
+        if (record == null) return false;
+        if (record.textEncoding() != telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY) {
+            return false;
+        }
+        List<NodeLog> nodeLogs = record.nodeLogs();
         if (nodeLogs == null || nodeLogs.isEmpty()) return false;
         for (NodeLog node : nodeLogs) {
             if (!hasMethodEntry(node)) return false;
@@ -58,11 +62,8 @@ public final class AuditTrace {
         return false;
     }
 
-    /** True when this node carries a wire TRACE entry: evidence that it ran, and only that. */
+    /** True when a wire TRACE entry said this node ran: evidence for this node, and only that. */
     public static boolean ran(NodeLog node) {
-        for (KV kv : node.entries()) {
-            if (kv.trace()) return true;
-        }
-        return false;
+        return node.traced();
     }
 }

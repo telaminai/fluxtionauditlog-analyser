@@ -502,3 +502,41 @@ result the shape benches reached from the other direction, on a graph six times 
 Epsilon is safe on this engine because it allocates **zero bytes per event** — checked by the JVM's own
 per-thread accounting, by surviving 25M events under a non-collecting GC on a 32MB heap while
 publishing 26M binary records, and in C++ by a counting global `operator new` reporting zero calls.
+
+## M61 — GraalVM 25.3.4 (the new priority inliner), and endTime off (2026-09-12)
+
+Same quote engine, same arms, same harness as M60, on the branch classpath (core `16a8bbe`,
+compiler `046652a`). Every figure `measure.sh` REPEATABLE, 3 batches x 5 reps, CV 0.07–1.28%; the
+first attempt was REFUSED at load 11.5 after the native-image builds and re-run at 4.4. Two things
+were skipped rather than faked: the C++ control (the current C++ generator emits `set_positions` /
+`set_ring` array setters the bench's author-side `main` does not implement — a C++-round item, so
+`SKIP_CPP=1` was added to the build script), and `-H:-SpawnIsolates`, which 25.3 refuses and which
+never affected the measured loop.
+
+| toolchain | unaudited ns | audited, as shipped at `781761a` | audited, endTime off (`16a8bbe`) |
+|---|---:|---:|---:|
+| Oracle GraalVM 25.3.4 JIT, priority inliner | **7.465** | 37.085 | **23.840** |
+| Temurin 21.0.5 C2, same day | 8.982 | 36.884 | 23.154 |
+| Native AOT + PGO, GraalVM 25.3.4, `--gc=epsilon` | 13.169 | 32.532 | 23.121 |
+| recorded M60: GraalVM 25.0.4 JIT | 12.026 | 21.314 | — |
+| recorded M60: OpenJDK 25.0.2 C2 | 8.598 | 21.989 | — |
+
+**The new inliner is worth 38% on the unaudited dispatch path**, and Graal's JIT now beats C2 there
+where two days earlier it trailed it. Native did not benefit.
+
+**The audited arm was 16 ns slower than M60 on every toolchain, and that was not the JDK.**
+Attributed by A/B on the new Graal JIT from a scratch copy of the bench with two knobs:
+
+| audited arm, GraalVM 25.3.4 JIT | ns |
+|---|---:|
+| as shipped | 37.490 |
+| + `fastEpochMillisClock()` | 29.684 |
+| + `recordEndTime=false` | 23.914 |
+| + both | 21.423 (= M60's 21.314) |
+
+Both were the development defaults M60 was measured under, and both were reverted by review. The
+accurate clock stays (a projected clock changes what `logTime` means); `endTime` only ever served
+`endTime - logTime`, and at 13.6 ns it was a third of the audited event. `LOW_LATENCY_AUDIT` now
+sets `recordEndTime=false` (core `16a8bbe`), and the last column is the re-measurement: the three
+Java toolchains converge again at ~23 ns.
+

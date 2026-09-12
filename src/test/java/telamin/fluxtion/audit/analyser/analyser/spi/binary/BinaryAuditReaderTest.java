@@ -237,14 +237,6 @@ class BinaryAuditReaderTest {
         return file;
     }
 
-    private static telamin.fluxtion.audit.analyser.analyser.model.LogRecord parseOnly(Path file) throws IOException {
-        List<String> records = new ArrayList<>();
-        new BinaryAuditReader().read(file, records::add);
-        assertEquals(1, records.size(), records.toString());
-        // parsed under the grammar THIS READER declares - the way SpiLogStore does it
-        return telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(records.get(0), 0,
-                new BinaryAuditReader().textEncoding());
-    }
 
     /**
      * REVIEWER PROBE (round 4). A logged String {@code "ok, price: 42.0"} written bare reads as two
@@ -563,71 +555,137 @@ class BinaryAuditReaderTest {
         assertFalse(store.supportsFollow());
     }
 
-    /**
-     * REVIEWER PROBE (round 7). An ordinary business property `invoked: true` on the one logging node
-     * was read as proof that every invocation was traced, and a silent node became DID_NOT_RUN. Now:
-     * a wire TRACE entry is provenance (KV.trace, from the reserved bare key the reader alone emits),
-     * it proves ITS node ran and nothing else, and the binary format carries no completeness
-     * declaration - so absence stays unknown, whatever the entries say.
-     */
-    @Test
-    void businessDataCannotEstablishCompleteTracing_andARealTraceOnlyProvesItsOwnNode(@TempDir Path dir) throws IOException {
-        Path business = dir.resolve("business.flxa");
-        Path traced = dir.resolve("traced.flxa");
-        Path atKey = dir.resolve("at-key.flxa");
-        for (Path p : List.of(business, traced, atKey)) {
-            try (OutputStream out = Files.newOutputStream(p); BinaryLogWriter writer = new BinaryLogWriter(out)) {
-                Clock clock = new Clock();
-                clock.init();
-                BinaryLogRecord record = new BinaryLogRecord(clock);
-                record.triggerObject(new Tick());
-                if (p == business) { record.addRecord("n", "invoked", true); record.addRecord("n", "price", 42); }
-                if (p == traced) { record.addTrace("a"); record.addRecord("a", "v", 1.0d); record.addTrace("b"); }
-                if (p == atKey) { record.addRecord("n", "@invoked", true); }
-                writer.processLogRecord(record);
-            }
-        }
-        var AT = telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.class;
-        var bz = parseOnly(business);
-        assertFalse(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(bz.nodeLogs()),
-                "a business key is not a declaration: " + bz.nodeLogs());
-        assertFalse(bz.nodeLogs().get(0).last("invoked").trace(), "and it is not trace provenance");
+    private static final String GRAPH_N_SILENT =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:jGraph=\"http://www.jgraph.com/\">"
+            + "<key id=\"vertex_label\" for=\"node\" attr.name=\"nodeData\" attr.type=\"string\"/><graph edgedefault=\"directed\">"
+            + "<node id=\"n\"><data key=\"vertex_label\">n</data></node><node id=\"silent\"><data key=\"vertex_label\">silent</data></node>"
+            + "<edge source=\"n\" target=\"silent\"/></graph></graphml>";
 
-        var tr = parseOnly(traced);
-        assertTrue(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.ran(tr.nodeLogs().get(0)), "a real TRACE proves a ran");
-        assertTrue(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.ran(tr.nodeLogs().get(1)), "and b");
-        assertTrue(tr.nodeLogs().get(0).last("@invoked").trace());
-        assertFalse(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(tr.nodeLogs()),
-                "even real traces on every logged node are not a declaration that every INVOKED node was logged");
-
-        var ak = parseOnly(atKey);
-        KV forged = ak.nodeLogs().get(0).last("@invoked");
-        assertNotNull(forged, "a business key spelled like the marker survives as an ordinary key");
-        assertFalse(forged.trace(), "quoted on the way out, so it is not provenance");
-
-        // the legacy text path: the same business property, the old heuristic untouched
-        var legacy = telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(
-                "eventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { invoked: true, price: 42}\n", 0);
-        assertFalse(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(legacy.nodeLogs()));
-        assertFalse(legacy.nodeLogs().get(0).last("invoked").trace(), "no reserved keys under the legacy grammar");
-        var legacyAt = telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(
-                "eventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { @invoked: true}\n", 0);
-        assertFalse(legacyAt.nodeLogs().get(0).last("@invoked").trace());
+    private static telamin.fluxtion.audit.analyser.analyser.model.LogRecord parseOnly(Path file) throws IOException {
+        List<String> records = new ArrayList<>();
+        new BinaryAuditReader().read(file, records::add);
+        assertEquals(1, records.size(), records.toString());
+        // parsed under the grammar THIS READER declares - the way SpiLogStore does it
+        return telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(records.get(0), 0,
+                new BinaryAuditReader().textEncoding());
     }
 
-    /** The silent node stays unknown for a binary log: the topology classifier is told "not traced". */
+    private interface RecordBody { void log(BinaryLogRecord r); }
+
+    private static Path binary(Path dir, String name, RecordBody body) throws IOException {
+        Path p = dir.resolve(name);
+        try (OutputStream out = Files.newOutputStream(p); BinaryLogWriter writer = new BinaryLogWriter(out)) {
+            Clock clock = new Clock();
+            clock.init();
+            BinaryLogRecord record = new BinaryLogRecord(clock);
+            record.triggerObject(new Tick());
+            body.log(record);
+            writer.processLogRecord(record);
+        }
+        return p;
+    }
+
+    /**
+     * REVIEWER PROBES (rounds 7 and 8). A business `invoked: true` established complete tracing; then
+     * the trace marker, carried as an entry, shared its last-value slot with a business key of the
+     * same spelling and the diff said SAME where the log said 42 -> 99. Provenance is now node
+     * METADATA (NodeLog.traced), never an entry, so no business key can collide with it; a real TRACE
+     * proves its own node ran and nothing else; and completeness is never inferred for a binary log.
+     */
     @Test
-    void aSilentNodeStaysMayHaveRunForABinaryLog(@TempDir Path dir) throws IOException {
-        var t = telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser.parse(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:jGraph=\"http://www.jgraph.com/\">"
-                + "<key id=\"vertex_label\" for=\"node\" attr.name=\"nodeData\" attr.type=\"string\"/><graph edgedefault=\"directed\">"
-                + "<node id=\"n\"><data key=\"vertex_label\">n</data></node><node id=\"silent\"><data key=\"vertex_label\">silent</data></node>"
-                + "<edge source=\"n\" target=\"silent\"/></graph></graphml>");
-        Path file = writeStrings(dir, "silent.flxa", new Tick(), new String[][]{{"n", "invoked", "true"}});
-        var r = parseOnly(file);
-        boolean traced = telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(r.nodeLogs());
-        var classified = t.classifyCycle(List.of("n"), List.of("n"), traced);
-        assertNotEquals(telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.Execution.DID_NOT_RUN,
-                classified.get("silent"), "the log does not establish whether silent ran: " + classified);
+    void traceProvenanceIsMetadata_businessKeysKeepTheirOwnSlot(@TempDir Path dir) throws IOException {
+        Path a = binary(dir, "a.flxa", r -> { r.addRecord("n", "@invoked", 42); r.addTrace("n"); });
+        Path b = binary(dir, "b.flxa", r -> { r.addTrace("n"); r.addRecord("n", "@invoked", 99); });   // the other order
+        var ra = parseOnly(a);
+        var rb = parseOnly(b);
+        for (var r : List.of(ra, rb)) {
+            NodeLogAssert(r);
+        }
+        assertEquals("42", ra.nodeLogs().get(0).last("@invoked").rawValue(), "the business value, not the marker");
+        assertEquals("99", rb.nodeLogs().get(0).last("@invoked").rawValue());
+        var rows = telamin.fluxtion.audit.analyser.analyser.diff.DiffBuilder.diff(ra, rb);
+        var row = rows.stream().filter(x -> x.key().equals("n.@invoked")).findFirst().orElseThrow();
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.diff.DiffBuilder.Change.CHANGED, row.change(), "42 -> 99 is a change: " + row);
+        assertEquals("42", row.a());
+        assertEquals("99", row.b());
+
+        // the MCP field read, through the real dispatcher over the store
+        var store = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(new BinaryAuditReader(), b);
+        var d = new telamin.fluxtion.audit.analyser.analyser.llm.ActionDispatcher(false, null,
+                () -> store.index().snapshot(), store::rawText, store::record, null);
+        String json = d.dispatch("{\"action\":\"read\",\"params\":{\"recordIndex\":0,\"count\":1,\"fields\":[\"n.@invoked\"]}}").toJson();
+        assertTrue(json.contains("\"n.@invoked\":\"99\""), "the business value reaches the field read: " + json);
+    }
+
+    private static void NodeLogAssert(telamin.fluxtion.audit.analyser.analyser.model.LogRecord r) {
+        assertEquals(1, r.nodeLogs().size(), r.nodeLogs().toString());
+        var n = r.nodeLogs().get(0);
+        assertTrue(n.traced(), "a wire TRACE said n ran");
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.ran(n));
+        assertEquals(1, n.entries().size(), "the marker is not an entry: " + n.entries());
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(r),
+                "a real TRACE on every logged node is still not a completeness declaration");
+    }
+
+    /** Business properties in either spelling, in a binary log, never establish completeness. */
+    @Test
+    void binaryBusinessPropertiesNeverEstablishCompleteTracing(@TempDir Path dir) throws IOException {
+        Path invoked = binary(dir, "invoked.flxa", r -> { r.addRecord("n", "invoked", true); r.addRecord("n", "price", 42); });
+        Path method = binary(dir, "method.flxa", r -> { r.addRecord("n", "method", (CharSequence) "ordinary business value"); r.addRecord("n", "price", 42); });
+        Path atKey = binary(dir, "at-key.flxa", r -> r.addRecord("n", "@invoked", true));
+        var t = telamin.fluxtion.audit.analyser.analyser.topology.GraphMlParser.parse(GRAPH_N_SILENT);
+        for (Path p : List.of(invoked, method, atKey)) {
+            var r = parseOnly(p);
+            assertFalse(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(r), p.getFileName() + ": " + r.nodeLogs());
+            assertFalse(r.nodeLogs().get(0).traced(), p.getFileName() + ": no wire TRACE, no provenance");
+            var classified = t.classifyCycle(List.of("n"), List.of("n"),
+                    telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(r));
+            assertNotEquals(telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.Execution.DID_NOT_RUN,
+                    classified.get("silent"), p.getFileName() + ": the log does not establish whether silent ran: " + classified);
+        }
+        assertEquals("ordinary business value", parseOnly(method).nodeLogs().get(0).last("method").rawValue());
+        assertNotNull(parseOnly(atKey).nodeLogs().get(0).last("@invoked"), "a business key spelled like the marker survives as an entry");
+
+        // the TEXT heuristic is untouched: a text record with method on every node is traced
+        var legacy = telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(
+                "eventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { method: handle, price: 42}\n", 0);
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(legacy));
+        var legacyInvoked = telamin.fluxtion.audit.analyser.analyser.parse.RecordParser.parse(
+                "eventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { invoked: true, price: 42}\n", 0);
+        assertFalse(telamin.fluxtion.audit.analyser.analyser.topology.AuditTrace.tracesEveryInvocation(legacyInvoked));
+        assertFalse(legacyInvoked.nodeLogs().get(0).traced(), "no reserved keys under the legacy grammar");
+    }
+
+    /**
+     * REVIEWER PROBE (round 8). A value logged under a NULL key has key id 0 on the wire; the reader
+     * rendered every key-0 entry as a trace, discarding the value and asserting a wire TRACE that did
+     * not exist. Provenance now comes from the TAG; a keyless value is kept as a keyless entry.
+     */
+    @Test
+    void aNullKeyValueIsKeptAsAKeylessEntry_notPromotedToATrace(@TempDir Path dir) throws IOException {
+        for (Object[] c : new Object[][]{{"int", (RecordBody) r -> r.addRecord("n", (String) null, 42)},
+                                         {"double", (RecordBody) r -> r.addRecord("n", (String) null, 4.2d)},
+                                         {"string", (RecordBody) r -> r.addRecord("n", (String) null, (CharSequence) "ok, price: 1")},
+                                         {"bool", (RecordBody) r -> r.addRecord("n", (String) null, true)}}) {
+            Path p = binary(dir, c[0] + ".flxa", r -> { ((RecordBody) c[1]).log(r); r.addRecord("n", "price", 77); });
+            var n = parseOnly(p).nodeLogs().get(0);
+            assertFalse(n.traced(), c[0] + ": no wire TRACE, no provenance");
+            assertEquals(2, n.entries().size(), c[0] + ": the keyless value and price: " + n.entries());
+            assertNull(n.entries().get(0).key(), c[0] + ": keyless");
+            assertEquals(77, n.last("price").numeric().getAsDouble(), 0);
+        }
+        assertEquals("42", parseOnly(dir.resolve("int.flxa")).nodeLogs().get(0).entries().get(0).rawValue());
+        assertEquals("ok, price: 1", parseOnly(dir.resolve("string.flxa")).nodeLogs().get(0).entries().get(0).rawValue());
+    }
+
+    /** The clipboard copy consults the same eligibility as the file export. */
+    @Test
+    void theYamlEligibilityIsOneDecisionForFileAndClipboard(@TempDir Path dir) throws IOException {
+        var store = telamin.fluxtion.audit.analyser.analyser.spi.SpiLogStore.open(new BinaryAuditReader(), writeLog(dir, "copy.flxa"));
+        String refusal = telamin.fluxtion.audit.analyser.analyser.export.RecordExporter.yamlRefusal(store);
+        assertNotNull(refusal, "a declaring store is not re-loadable YAML");
+        assertTrue(refusal.contains(".flxa"), refusal);
+        var text = new telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore("---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { k: 1}\n");
+        assertNull(telamin.fluxtion.audit.analyser.analyser.export.RecordExporter.yamlRefusal(text), "a text store re-loads as itself");
     }
 }

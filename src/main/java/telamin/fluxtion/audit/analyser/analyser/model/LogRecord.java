@@ -28,6 +28,8 @@ public final class LogRecord {
      * apart from {@link #event} so nothing that matches the simple name literally changes.
      */
     private final String eventType;
+    /** The grammar this record's text was parsed under - the reader's declaration, carried so consumers can decide applicability. */
+    private final telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding textEncoding;
     private final String eventToString;
     private final String thread;
     private final String logger;
@@ -55,6 +57,8 @@ public final class LogRecord {
         this.groupingId = b.groupingId;
         this.event = b.event;
         this.eventType = b.eventType;
+        this.textEncoding = b.textEncoding == null
+                ? telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY : b.textEncoding;
         this.eventToString = b.eventToString;
         this.thread = b.thread;
         this.logger = b.logger;
@@ -95,6 +99,7 @@ public final class LogRecord {
     public String groupingId()    { return groupingId; }
     public String event()         { return event; }
     public String eventType()     { return eventType; }
+    public telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding textEncoding() { return textEncoding; }
     public String eventToString() { return eventToString; }
     public String thread()        { return thread; }
     public String logger()        { return logger; }
@@ -117,6 +122,7 @@ public final class LogRecord {
         private int byteLength;
         private Long eventTime, logTime, endTime;
         private String groupingId, event, eventType, eventToString, thread, logger, level, headerTime;
+        private telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding textEncoding;
         private EventKind kind = EventKind.OK;
         private String callback, declaringType, eventDimension;
         private int nodeLogsCount;
@@ -132,6 +138,7 @@ public final class LogRecord {
         public Builder groupingId(String v) { this.groupingId = v; return this; }
         public Builder event(String v) { this.event = v; return this; }
         public Builder eventType(String v) { this.eventType = v; return this; }
+        public Builder textEncoding(telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding v) { this.textEncoding = v; return this; }
         public Builder eventToString(String v) { this.eventToString = v; return this; }
         public Builder thread(String v) { this.thread = v; return this; }
         public Builder logger(String v) { this.logger = v; return this; }

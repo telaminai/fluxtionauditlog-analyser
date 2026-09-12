@@ -266,12 +266,12 @@ class FormatConformanceTest {
     void c12_absenceMeansDidNotRunOnlyUnderTracing_otherwiseItMeansNothing() throws IOException {
         LogStore s = bothPathsAgree("c12-traced-regime.yaml");
         LogRecord traced = s.record(0), untraced = s.record(1);
-        assertTrue(AuditTrace.tracesEveryInvocation(traced.nodeLogs()), "every entry carries method: traced");
-        assertFalse(AuditTrace.tracesEveryInvocation(untraced.nodeLogs()),
+        assertTrue(AuditTrace.tracesEveryInvocation(traced), "every entry carries method: traced");
+        assertFalse(AuditTrace.tracesEveryInvocation(untraced),
                 "one business key called 'method' must not make a sparse record look complete");
         // a business property is never a declaration, in either spelling (review, round 7)
         assertFalse(AuditTrace.tracesEveryInvocation(new HeapLogStore(
-                "---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - a: { invoked: true, v: 1}\n    - b: { invoked: true}\n").record(0).nodeLogs()),
+                "---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - a: { invoked: true, v: 1}\n    - b: { invoked: true}\n").record(0)),
                 "an ordinary invoked: true on every logged node is business data, not a tracing declaration");
 
         ProcessorTopology t = GraphMlParser.parse(graphml(List.of("a", "b", "c"), List.of("a>b", "b>c")));
