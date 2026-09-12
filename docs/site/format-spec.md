@@ -120,7 +120,10 @@ no such declaration, so for a binary log absence stays *may have run*, and the t
 `method`-on-every-node heuristic applies only to records the text reader produced — applicability is
 carried on the record, from the reader's declaration, never taken from a property spelling.
 `@unkeyed: value` carries a wire entry that had no key and was not a TRACE, kept as an entry with no
-key. The legacy grammar has no reserved keys.
+key — **unnamed evidence**, distinct from every named property including one named `null`, shown
+beside the node and outside every named-figure reduction: the scorer, series, the graph menu and
+field projections address names, and a keyless value has none. The legacy grammar has no reserved
+keys.
 
 **Encoding is selected from the reader's declared context. Logged content MUST NOT select or change
 it.** There is no field in the text that switches grammar, because the same bytes cannot say whether

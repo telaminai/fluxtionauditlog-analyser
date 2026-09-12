@@ -447,4 +447,50 @@ class ExpectationScorerTest {
                 new java.io.PrintStream(o, true), new java.io.PrintStream(e, true));
         return new Run(code, o.toString(), e.toString());
     }
+
+    /**
+     * REVIEWER PROBE (round 9). A keyless value's null key concatenated to "n.null", the SAME identity
+     * as the business key named null, so a keyless 42 overwrote a real 42 -> 99 change: PASS. Keyless
+     * evidence is outside named-figure scoring: retained in the model, never a figure.
+     */
+    @Test
+    void aKeylessValueIsNotAFigure_andCannotHideANamedChange(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path expected = dir.resolve("expected.flxa");
+        java.nio.file.Path actual = dir.resolve("actual.flxa");
+        java.nio.file.Path actualOtherOrder = dir.resolve("actual2.flxa");
+        java.nio.file.Path actualRepeated = dir.resolve("actual3.flxa");
+        write(expected, r -> { r.addRecord("n", "null", 42); r.addRecord("n", (String) null, 42); });
+        write(actual, r -> { r.addRecord("n", "null", 99); r.addRecord("n", (String) null, 42); });
+        write(actualOtherOrder, r -> { r.addRecord("n", (String) null, 42); r.addRecord("n", "null", 99); });
+        write(actualRepeated, r -> { r.addRecord("n", "null", 99); r.addRecord("m", "x", 1); r.addRecord("n", (String) null, 42); r.addRecord("n", (String) null, 7); });
+        for (java.nio.file.Path a : java.util.List.of(actual, actualOtherOrder, actualRepeated)) {
+            Run r = run(expected, a);
+            assertEquals(1, r.code, a.getFileName() + ": 42 -> 99 under the business key named null is a FAIL: " + r.out + r.err);
+            assertTrue(r.out.contains("n.null"), r.out);
+        }
+        // unchanged keyless evidence beside an unchanged named value: still a pass; keyless never scored
+        java.nio.file.Path same = dir.resolve("same.flxa");
+        write(same, r -> { r.addRecord("n", "null", 42); r.addRecord("n", (String) null, 7); });
+        assertEquals(0, run(expected, same).code, "keyless 42 vs 7 is outside the comparison's coverage");
+        var snaps = natural.snapshots(ScoreCommand.read(same));
+        assertEquals(java.util.Set.of("n.null"), snaps.get(0).figures().keySet(), "one named figure; the keyless value is not one");
+        // and the model still holds the keyless evidence
+        var rec = ScoreCommand.read(same).get(0);
+        assertEquals(2, rec.nodeLogs().get(0).entries().size());
+        assertNull(rec.nodeLogs().get(0).entries().get(1).key());
+    }
+
+    private interface Body { void log(com.telamin.fluxtion.runtime.audit.BinaryLogRecord r); }
+
+    private static void write(java.nio.file.Path p, Body body) throws Exception {
+        try (var out = java.nio.file.Files.newOutputStream(p);
+             var w = new com.telamin.fluxtion.runtime.audit.BinaryLogWriter(out)) {
+            var clock = new com.telamin.fluxtion.runtime.time.Clock();
+            clock.init();
+            var r = new com.telamin.fluxtion.runtime.audit.BinaryLogRecord(clock);
+            r.triggerObject(new Tick());
+            body.log(r);
+            w.processLogRecord(r);
+        }
+    }
 }

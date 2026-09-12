@@ -1461,13 +1461,16 @@ public final class TopologyPanel extends JPanel {
     /**
      * The keys of this node worth plotting, taken from the cycle on screen. Graphable means what it means
      * everywhere else in the app — {@link KV#graphValue()} decides, so a number buried in a
-     * {@code toString()} is text here too.
+     * {@code toString()} is text here too — and NAMED, as the series path requires: a keyless entry
+     * (a value logged under a null key) is unnamed evidence no series can address, so this menu does
+     * not offer it. It did, and threw on the next key's equals (review, round 9).
      */
     List<KV> graphableEntries(String instanceId) {
         List<KV> out = new ArrayList<>();
         for (NodeLog node : cycle) {
             if (!node.instanceId().equals(instanceId)) continue;
             for (KV kv : node.entries()) {
+                if (kv.key() == null) continue;
                 if (kv.graphValue().isPresent() && out.stream().noneMatch(k -> k.key().equals(kv.key()))) {
                     out.add(kv);
                 }

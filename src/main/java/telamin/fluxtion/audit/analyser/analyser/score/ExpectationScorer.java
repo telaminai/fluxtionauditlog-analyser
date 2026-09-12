@@ -170,9 +170,16 @@ public final class ExpectationScorer {
         return out;
     }
 
-    /** The published format: every numeric key is an {@code instanceId.key} series. */
+    /**
+     * The published format: every numeric NAMED key is an {@code instanceId.key} series. A keyless entry
+     * (a value logged under a null key) is unnamed evidence outside this comparison's coverage: it
+     * cannot be a figure because a figure is a name, and concatenating its null key made it the
+     * business name {@code null} and let a keyless value overwrite a real obligation (review, round 9).
+     * It stays in the model and beside the node; it is not scored.
+     */
     private void reduceNatural(NodeLog nl, Map<String, Double> running) {
         for (KV kv : nl.entries()) {
+            if (kv.key() == null) continue;
             var n = kv.numeric();
             if (n.isPresent()) running.put(nl.instanceId() + "." + kv.key(), n.getAsDouble());
         }

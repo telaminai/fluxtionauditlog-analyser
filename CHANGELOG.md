@@ -61,6 +61,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The record diff compares values by kind, and numbers exactly.** A number `42.0` and the string
   `"42.0"` were SAME; they are now CHANGED, and the kind is shown when it is what differs. Two
   different logged longs above 2^53 are CHANGED, not narrowed to one double.
+- **A keyless value is unnamed evidence, never a figure.** A value logged under a null key reached the
+  scorer as the business name `null` and could hide a change under a real key of that name; it
+  reached the topology's graph menu and threw. It is kept beside the node and offered to nothing
+  that addresses a name.
 - **Trace provenance is node metadata, and completeness is never inferred for a binary log.** A
   round-8 review showed the trace marker, carried as an entry, sharing a last-value slot with a
   business key of the same spelling, so the diff and an agent's field read returned `true` where the
