@@ -69,11 +69,13 @@ class PomShapeTest {
                 assertEquals("${fluxtion.version}", version, "pinned via a property, not ranged");
             }
         }
-        // A tripwire, and it fired as designed when M52.5 moved to the snapshot. SNAPSHOT is a
-        // BRANCH-ONLY state: the analyser's binary reader calls BinaryLogReader, which exists in
-        // 1.0.15-SNAPSHOT and in no released runtime, so this must return to a released version -
-        // and CI must be able to resolve whatever it names - before the feature can ship.
-        assertEquals("1.0.15-SNAPSHOT", property(project, "fluxtion.version"));
+        // A tripwire. It fired as designed when M52.5 moved to the snapshot (the binary reader calls
+        // BinaryLogReader, which existed in no released runtime), and again on 2026-09-14 when
+        // fluxtion 1.0.15 was released and the pom moved back to it. A SNAPSHOT is a BRANCH-ONLY
+        // state: the pom must name a released runtime CI can resolve before the feature ships.
+        String fluxtionVersion = property(project, "fluxtion.version");
+        assertFalse(fluxtionVersion.endsWith("-SNAPSHOT"), "a release cannot depend on a snapshot: " + fluxtionVersion);
+        assertEquals("1.0.15", fluxtionVersion);
     }
 
     @Test
