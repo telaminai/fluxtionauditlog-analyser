@@ -83,6 +83,25 @@ audited** once `LOW_LATENCY_AUDIT` stopped taking the `endTime` reading, which a
 the event on the accurate clock. The C++ control was not rebuilt this round (the generator's array
 setters outran the bench's author-side stubs).
 
+## The C++ control, rebuilt (2026-09-14)
+
+The harness now implements the `set_<field>` setters the generator emits for captured array state,
+and all four arms measure again (`../RECORDED-BASELINES.md`, M62, every figure REPEATABLE):
+
+| arm | unaudited | audited | cost of auditing |
+|---|---:|---:|---:|
+| Oracle GraalVM 25.3.4, Graal JIT | 7.294 ns | 22.879 ns | +15.6 |
+| Native AOT + PGO, `--gc=epsilon` | 12.620 ns | 22.337 ns | +9.7 |
+| C++, `clang++ -O3` | **3.890 ns** | **21.535 ns** | +17.6 |
+
+Unaudited, C++ is where it was: 1.9x Graal's JIT on dispatch. **Audited, the three arms sit within
+1.4 ns of each other.** The C++ audited figure is 7.7 ns above the one in the table at the top of this
+page, which was measured before the C++ runtime was brought level with Java's restored defaults (the
+accurate wall clock; `endTime` off under the profile). The reading that fits every number on this page
+is that the accurate clock read costs both languages about the same, and once auditing, the audit path
+is the event. M62 states that as plausible rather than confirmed, because the C++ arm has not had the
+one-knob-at-a-time attribution Java had in M61; that is a C++-round item.
+
 ## Why latency is reported per BURST
 
 **Per-event latency is not measurable here, and the harness refuses to pretend otherwise.**

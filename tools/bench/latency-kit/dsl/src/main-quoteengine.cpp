@@ -66,6 +66,20 @@ struct QuoteData { int32_t bidPx = 0, askPx = 0; } quoteData;
 struct GateData  { bool quotable = false; } gateData;
 struct PublisherData { int64_t published = 0, suppressed = 0; } publisherData;
 
+// ---- captured graph state, handed back by the processor before init() ----------------------------
+// The generator emits the arrays the Java nodes were built with as namespace-scope data and a
+// set_<field> setter per node (CppModel, sequence fields); the processor calls each setter once, per
+// instance, before init(). The author owns the storage (file scope, above), so the setters copy into
+// it. A templated stub's member is defined as a generic template member: the processor header has
+// already instantiated VolatilityWindow<BookState>, so an explicit specialisation here is refused.
+void InventoryBook::set_positions(const int32_t* data, size_t count) {
+    std::copy(data, data + std::min<size_t>(count, kSymbols), inventoryData.positions);
+}
+template <typename P0>
+void VolatilityWindow<P0>::set_ring(const int32_t* data, size_t count) {
+    std::copy(data, data + std::min<size_t>(count, kWindow), volData.ring);
+}
+
 // ---- the callbacks, arithmetic identical to the Java arm -------------------------------------
 void BookState::onTick(MarketTick* e) {
     bookData.valid = e->bidPx > 0 && e->askPx > e->bidPx;

@@ -540,3 +540,43 @@ accurate clock stays (a projected clock changes what `logTime` means); `endTime`
 sets `recordEndTime=false` (core `16a8bbe`), and the last column is the re-measurement: the three
 Java toolchains converge again at ~23 ns.
 
+## M62 — the C++ control is back, and the four audited arms converge (2026-09-14)
+
+Same quote engine, same harness (h5), same GraalVM 25.3.4, on the branch classpath (core `1c65720`,
+runtime code identical to `272e4eb`; compiler `ddcf877`, generator unchanged since `869bf7d`). Every
+figure `measure.sh` REPEATABLE, 3 batches x 5 reps, CV 0.12–1.03%, load 3.0–4.4 on 10 cores.
+
+The C++ control had not linked since the generator began emitting captured array state as
+`set_<field>` setters the author must implement (M61 skipped it with `SKIP_CPP=1`). The fix is in the
+harness, not the generator: `main-quoteengine.cpp` now defines `InventoryBook::set_positions` and
+`VolatilityWindow<P0>::set_ring`, copying into the file-scope state the harness already owns. The
+templated one is a generic template member, because the processor header instantiates
+`VolatilityWindow<BookState>` before the author's translation unit and an explicit specialisation is
+refused. Nine lines; `SKIP_CPP` is no longer needed.
+
+One procedural note, stated rather than hidden: the native images take `-D` system properties, not
+positional arguments. A first pass ran `native-plain` with positional arguments (it fell back to the
+default iteration count and read 12.928) and `native-audit` without `-Daudit=true` (it threw, because
+the audited processor had no binary sink, and `measure.sh` REFUSED it). Both were re-run with the
+documented arguments; only those figures are recorded.
+
+| arm, quote engine, LOW_LATENCY_AUDIT + sparse where audited | unaudited ns | audited ns | cost of auditing |
+|---|---:|---:|---:|
+| Oracle GraalVM 25.3.4 JIT, priority inliner | 7.294 | 22.879 | +15.6 |
+| Native AOT + PGO, GraalVM 25.3.4, `--gc=epsilon` | 12.620 | 22.337 | +9.7 |
+| C++, `clang++ -O3` | **3.890** | **21.535** | +17.6 |
+| recorded M61: GraalVM 25.3.4 JIT | 7.465 | 23.840 | +16.4 |
+| recorded M60: C++, `clang++ -O3` | 3.795 | 13.825 | +10.0 |
+
+**The unaudited C++ arm is unchanged** (3.89 against M60's 3.80, inside the run-to-run spread), so the
+setter change moved nothing on the measured path — the arrays are copied once at init.
+
+**The audited C++ arm is 7.7 ns slower than M60, and it now sits with the Java arms: 21.5 against
+22.3 and 22.9.** M60 measured a C++ runtime that projected its timestamps from a monotonic counter;
+since then the C++ runtime was brought level with Java's restored defaults (compiler `9026db5`: the
+accurate wall clock, `endTime` off under the profile). Java paid the same kind of price for the same
+change in M61's A/B, where the accurate clock alone was 7.8 ns. That is the consistent reading and it
+is PLAUSIBLE, not confirmed: no C++ A/B was run this round, and the C++ round should attribute it
+with one knob at a time, as M61 did for Java. Whatever the split, the conclusion for a user is the
+same one M61 reached for Java: **once auditing, the language and toolchain are not where the
+nanoseconds are; the clock read and the record append are.**
