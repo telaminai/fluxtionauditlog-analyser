@@ -1,0 +1,130 @@
+REVIEW — perf/w10-conformance-bench as it stands (06d7cb2), 474 commits ahead of main, 3 behind
+Date: 2026-09-14 · Assessor: the independent review session (last prior review: 619e048 on main,
+2026-08-30). Owner ask: "review the analyser project and code — there have been a lot of updates."
+
+VERDICT: THE CODE IS SOUND; THE PAPERWORK AND THE BRANCH SHAPE ARE NOT. Every gate passes on the
+branch as it stands — `mvn test` 1378 green · `mkdocs build --strict` · the exemption-free four-term
+sweep · a broader secret-pattern grep (only documented example keys, in tests that refuse them) ·
+dependencies now on RELEASED fluxtion 1.0.15 / builder 1.0.67, no SNAPSHOT. The one large new
+production surface, the binary audit reader, is careful, honest code with a test for every hazard it
+names. What has not kept pace is the protocol: the branch's paired report describes a 3-commit
+change; the live handoff directory has become an archive; and rule 3's "pull.rebase is set" is not
+true. Findings below; F1–F3 are the ones to act on before this branch meets main.
+
+================================================================================
+1. WHAT THE 474 COMMITS ARE — the shape, so the number stops being alarming
+================================================================================
+By area: docs/experience (307 files — the LLM authoring-experiment rounds; "round" is the top commit
+type at 187) · tools/bench (96 — the latency kit, C++ arms, dispatch/template/bundle benches) ·
+docs/handoff (23) · docs/specs (22). PRODUCTION CODE is 88 files / 11,282 lines, and of those the
+genuinely new surfaces are: `spi/binary/BinaryAuditReader` (M52.5 — FLXA binary logs open in the
+UI), `score/ExpectationScorer` + `ScoreCommand`, `session/node/*` (M44 — session transitions as a
+Fluxtion processor, reviewed separately), `topology/GraphVocabulary` + `SourceResolver` (M45,
+reviewed separately), and pervasive M52 plumbing (`KV`/`NodeLog`/`LogRecord` learn typed quoting and
+trace metadata; readers/tokenizer/report/detail read the PARSED record rather than re-parsing text).
+Milestones touched: M44–M62. Tests: 1144 → 1378.
+
+================================================================================
+2. THE BINARY READER (BinaryAuditReader + RecordTextRenderer) — reviewed line by line
+================================================================================
+HOLDS, and the design reasoning in its javadoc is right on every point it argues:
+- Delegating to the runtime's `BinaryLogReader` instead of a second decoder: correct — two decoders
+  written from one reading of one document agree by construction and prove nothing.
+- The unit decided AT THE HEADER (`checkUnit` in `onHeader`), refusing UNSPECIFIED and NANOS before
+  a single record is delivered, with the remedy (`AuditLogTool --declare-unit`) in the message:
+  correct, and pinned (`aNanosecondFileIsRefusedBeforeAnyRecordIsDelivered`,
+  `anUndefinedOrUnstatedUnitIsRefused_andTheMessageSaysHowToDeclareIt`).
+- `groupingId`/`thread` OMITTED rather than emitted as null — the log did not say it, so the text
+  must not. `endTime` 0 → absent, not an instant (`f25`). Both correct under the house rule.
+- Every wire tag crosses the text boundary explicitly: numbers/booleans bare; CHARSEQ/OBJECT via the
+  dictionary and quoted when bare spelling would split/nest/type; a null value the bare literal, the
+  STRING "null" quoted; a char is TEXT (`f14`, `aCharCannotHideTheFigureAfterIt…`). The grammar is the
+  reader's declaration (`textEncoding()`), never read from the text. This closes the injection class
+  a review found ("ok, price: 42.0" fabricating a figure) properly, at the boundary.
+- `event:` (simple) AND `eventType:` (FQN) both emitted, so `com.a.Tick`/`com.b.Tick` stay distinct
+  and the scorer's identity guard can see them. `simpleName` handles `$` nesting.
+- Truncated tail / redefined ids / unresolved ids are REPORTED beside the evidence via
+  `sourceDiagnostic`, never as a record (`f07`, `f11`, `f26`). `capabilities()` claims only what the
+  SPI store can do (no byte anchors — offsets are synthetic; no follow), the TOTAL default retained.
+- `canOpen` reads the 4-byte magic, not an extension; a truncated file still opens ("truncation is
+  the normal end state of the crash that made someone open it") — exactly right.
+
+F5 (nit, stale prose) — the class javadoc still says "the analyser now depends on a SNAPSHOT for a
+  shipping feature. Releasing it needs a runtime release carrying BinaryLogReader." That was true when
+  written; 06d7cb2 moved the pom to released 1.0.15 and there is no SNAPSHOT dependency left. Delete
+  the paragraph or turn it into "resolved by 1.0.15". Also: the private `TAG_CHARSEQ = 5, TAG_OBJECT
+  = 6` constants (line ~311) are unused — the switch uses `BinaryRecordDecoder`'s. Remove.
+
+F6 (low, damaged-input path) — `RecordTextRenderer` trusts a frame's `entryCount`. If a frame
+  delivers MORE entries than it declared, `pending` goes negative, never reaches 0 again, and the
+  surplus entries are appended to the NEXT record's node lines (or dropped at end-of-stream, since
+  `read()` never calls a terminal flush). If it delivers FEWER, the final record is silently dropped.
+  Both need a malformed frame, and the runtime reader delivers whole frames, so this is not reachable
+  from a well-formed file — but the reader's own standard elsewhere is "a damaged source says so beside
+  its records". Make it say so: when `onRecord` finds `pending != 0`, or at end-of-stream, emit a
+  `sourceDiagnostic` naming the record. Two small branches; one test with a hand-built frame.
+
+================================================================================
+3. PROCESS FINDINGS — the ones that gate the merge
+================================================================================
+F1 (blocking for merge) — THE BRANCH HAS NO CURRENT REPORT. Its paired report
+  (`report_m50_analyser_w9w10.txt`, 2026-09-06) says "this branch against local main is 3 commits, 5
+  files, 552 insertions" and warns that local main is 33 unpushed commits ahead of origin. Today the
+  branch is 474 commits ahead and 3 behind; the tracker names it only as M50.10's home. The
+  protocol's auditability rests on the brief/report pair describing what actually landed. Before
+  merge: one report (or an INDEX-style ledger) stating what the branch contains BY MILESTONE
+  (M44/M45/M52/M57/M61/M62 and the experiment rounds), which of those have their own review files
+  (many do — the M44/M45/M52 cycles are in docs/handoff), and which are unreviewed.
+  Also: this is a 15-day, 474-commit branch on a repo whose rule 3 is trunk-based with SHORT-LIVED
+  branches optional. The pragmatic path now is a fast-forward after `git rebase main` (it is only 3
+  behind — the three unpushed "measure:" commits on local main), never a merge commit; and push local
+  main first, since it is ahead of origin.
+
+F2 (rule 3 is stating a falsehood) — `git config pull.rebase` prints nothing and
+  `branch.main.rebase` is unset. CLAUDE.md rule 3 says "`pull.rebase` is set — no merge bubbles". It is
+  not, and the 2026-08-29 merge bubble (6014af9) was this exact gap. Fix is one command
+  (`git config pull.rebase true`) plus the same treatment rule 1 gives `user.email`: tell the reader
+  to VERIFY it rather than take the file's word. A recorded mitigation that stopped being true reads
+  exactly like one that is — rule 1's own sentence.
+
+F3 (protocol hygiene) — `docs/handoff/` holds 96 live files, 77 untouched for more than a week: the
+  M19 P0–P3 cycle, the Mongoose bootstrap cycle, a dozen compiler-diagnostics review/response pairs.
+  The protocol says the live directory holds ONLY in-flight correspondence and resolved cycles move to
+  `completed/` together. The distinction has collapsed, which costs exactly what it was designed to
+  save: a reviewer arriving cold cannot tell open from closed. One tidy pass (the `completed/` move
+  plus a line in the ledger) before this branch merges, since the merge is the natural checkpoint.
+
+F4 (hygiene, before release) — CHANGELOG `[Unreleased]` has NINE section headings: `### Fixed` ×3,
+  `### Added` ×3, `### Changed` ×3, each slice having appended its own. Keep a Changelog wants one of
+  each; the in-app Release notes and the site page will show a fragmented list otherwise. Merge the
+  triplets when stamping. (The entries themselves are good — the M61 clock/endTime one is a model of
+  saying what ships versus what was measured under development defaults.)
+
+F7 (hygiene) — `.mcp.json` at the repo root is untracked AND un-ignored. It is the IDE's own MCP
+  registration (a localhost URL, no token, nothing secret), so it is not a leak — but it is one
+  `git add -A` from being committed as machine-local config. Add it to `.gitignore` beside `*.iprof`.
+
+F8 (note) — local `main` carries 3 "measure:" commits not on origin and not on this branch. Push them
+  (they are the base the branch must rebase onto anyway).
+
+================================================================================
+4. THE OWNER'S SIDE QUESTION — which local branches can be deleted
+================================================================================
+Checked by containment (`git rev-list --count perf/w10-conformance-bench..<branch>`), not by name:
+- SAFE TO DELETE — every commit is already in perf/w10-conformance-bench, and none of them exists on
+  origin: `compiler-1065-handoff`, `compiler-1065-response`, `compiler-1066-handoff`,
+  `handoff/compiler-21a63d4`, `handoff/compiler-64909a1`. Their history is preserved through w10
+  (which IS on origin). With w10 checked out, plain `git branch -d` accepts them.
+- `master` — 26 commits that exist NOWHERE else (pre-public history, last 2026-08-14, old package
+  names). Rule 3 says never resurrect it, and it is not on origin, so deleting it is the rule-aligned
+  move; but it is the only copy of that history. If any of it is worth keeping, `git bundle create`
+  it somewhere private first, then `git branch -D master`.
+- KEEP: `main` (push its 3 commits) and `perf/w10-conformance-bench` (the work).
+
+================================================================================
+5. GATES, AS RUN BY THIS REVIEW ON 06d7cb2
+================================================================================
+`mvn test` 1378 green · `mkdocs build --strict` passes · four-term sweep clean (exemption-free form) ·
+secret-pattern grep: only AWS's documented example key and a `-Dmy.token=zzz` fixture, both inside
+tests that REFUSE them · tracked `tools/` is 1.7 MB (the vendored consumer jars are small; nothing
+over 1 MB tracked outside docs screenshots) · pom: released versions only · `user.email` pinned.
