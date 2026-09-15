@@ -2907,3 +2907,361 @@ Phase 6 closed the last phase and none of it was reachable by anyone who had not
   `targetId` carries the language; `sourceGeneratorId` keeps the route and still answers the language
   when it is not `remote-http`, so nothing existing changed. `SourceGenConfig` carries it as a
   TRANSIENT field, following `sourceFingerprint`, and the remote client sends it in the envelope.
+
+## M52 · Binary audit encoding + the reader — ◧ shipped portion, archived 2026-09-15 (M52 stays live for M52.6, M57 and the owner decision)
+_Moved verbatim from the live tracker per rule 7. The milestone header, M57 and M52.6 remain live._
+
+Shipped:
+
+- ☑ **the `logTime` fix** (core `8e328de`) — `logTime` comes from `Clock.getProcessTime()`, the reading
+  `Clock.eventReceived` already took. A correctness fix worth 13.7 ns/event to every text-record user.
+- ☑ **M52.2** `LOW_LATENCY_AUDIT` profile — audit on, tracing off, no allocating default, no runtime name
+  map, no buffer-and-trigger, no subscriptions; dirty filtering and reentrancy deliberately untouched.
+  It once *silently disabled the audit log*; `recPerEvent > 0` is now asserted by every harness.
+- ☑ **M52.3 (the record half)** `BinaryLogRecord` — two aligned `long` slots per entry, 16 bytes, pure
+  Java 8. Beats the byte loop by 51 ns/event on native and a `VarHandle` view by 19.7.
+- ☑ **the format specification and its conformance suite** — the normative entry layout, `TAG_TRACE(8)`
+  added 2026-09-09 when binary tracing was fixed.
+- ☑ **a reader** — `BinaryLogFile` / `BinaryLogReader` / `BinaryRecordDecoder` plus the `AuditLogTool`
+  CLI with id-set matching, time ranges and a pluggable renderer. **This is not what M52.4 specified**
+  (see below), and it means the M52.3-before-M52.5 hazard — a binary record no tool can open — is closed.
+- ☑ **the audit hot path profiled and fixed** (§34) — an `IdentityHashMap` lookup per event that bypassed
+  the identity table built for it; per-logger key caches costing three cache lines per entry; a
+  resolved-once decision re-checked per entry. **24% off the JIT audited path, audit cost 43.4 → 29.2 ns.**
+- ☑ **M52.7 docs** — `how-to/binary-audit-logging.md`, `how-to/read-a-binary-audit-log.md` and
+  `reference/audit-latency-harness.md` in the core documentation site, plus an audit section in
+  `reference/performance.md`. **`mkdocs build --strict` has NOT been run on the core site** — mkdocs is
+  not installed on the machine that wrote them; links were verified programmatically instead.
+- ☑ **binary method tracing** (§35) — `addTrace` wrote to a buffer `length()` does not describe, so a
+  trace-only record never published. Now a normal two-slot entry; the reader no longer counts a trace's
+  absent key as an unresolved id.
+- ☑ **guards are DSL semantics, not an optimisation** (§39, core `0d54154` + compiler `7a34af6`) —
+  `LOWEST_LATENCY` and `LOW_LATENCY_AUDIT` both called `setSupportDirtyFiltering(false)`, which threw
+  away the boolean `@OnTrigger` return that *is* every DSL node's propagation decision. A
+  `map -> filter -> aggregate` chain silently returned a wrong answer. `setSupportDirtyFiltering(false)`
+  now drops only the flags that decide nothing. **The 1.7× DSL profile figure in C++ spec §7a is
+  withdrawn** — it timed two different programs, and the benchmark data never exercised the filter, so
+  the checksum could not catch it.
+- ☑ **build-time refusal for incompatible capability flags** (compiler `60f4b10`) —
+  `RequiredCapabilityCheck` on both the compiled and interpreted paths, naming the flag and the affected
+  node types instead of an NPE inside `init()`.
+- ☑ **the C++ annotation index** (§40, compiler `6e09b78`) — every runtime annotation, proven by
+  compiling and running rather than by grepping. `@OnParentUpdate`, `@AfterEvent` and `@AfterTrigger`
+  were absent and silent; all three now emitted.
+- ☑ **the 30 windowing failures — fixed** (§41, core `0d54154`) — this round's own clock change moved the
+  default `ClockStrategy` from millis to nanos, so every `FixedRateTrigger.atMillis` window compared a
+  millisecond size against a nanosecond clock. Default is now `fastEpochMillisClock()`; `nanoEpochClock()`
+  stays opt-in *(later reverted by review: the release default is `System::currentTimeMillis`, both
+  projected clocks opt-in — RECORDED-BASELINES M61)*. **Compiler suite: 3575 tests, 0 failures — first fully green run.**
+- ☑ **the C++ DSL emitter + audit oracle** (§40–41, compiler `ffdee5e`) — map/filter/aggregate/push and
+  the `subscribe()` entry emitted as specialised templated structs; `CppDslAuditParityTest` compares 78
+  audit lines entry-for-entry against Java, timestamps included. It found two silent defects on first
+  run: Java dropped every string-valued entry from binary records (core `0d54154`), and C++ logged every
+  string as `true` through the implicit `const char*`→`bool` conversion.
+- ☑ **DSL performance, measured on the generated artefact** (§42, compiler `8f9ba20`, analyser `96e92dc`)
+  — **C++ 2.757 ns against Java 10.398, 3.8×**. The **23× figure is withdrawn**: it measured a
+  hand-written chain the generator does not emit. `-O3` is worth 22% over `-O2` (predicted 0–5%); PGO is
+  6% *worse* (predicted the largest win); `-march=native` and LTO are worth nothing. Native AOT Java is
+  slower than JIT on this shape (11.04 vs 10.42), level at 10.40 with `-H:-SpawnIsolates` — the only
+  graph in the kit where that holds, now reproduced on two independent harnesses.
+- ☑ **control + test indexes** (analyser `96e92dc`) — `tools/bench/latency-kit/dsl/` rebuilds both arms
+  *from the generator*, so a control cannot again defend a stand-in; `TEST-INDEX.md` maps each claim to
+  the test that makes it false, and lists what is not defended.
+- ☑ ****`RuntimeMetaBoundaryGateTest` guards the right artefact** (§41.1, compiler `b921748`) — it had been
+  inspecting, in turn, the legacy `com.fluxtion` repo, a stale sibling branch, and the shaded
+  `fluxtion-generator-http` jar. Now resolved by artefact name from the test classpath.
+
+From "M52 · still open", completed:
+
+- ☑ **M52.1** the generator emits `clock.eventReceived` before `eventLogger.eventReceived`, and
+  `AuditorOrderingTest` now enforces it. §6.2 required this test and said why: the order held "by
+  registration accident", and the failure is silent — `logTimeNow()` reads the reading
+  `clock.eventReceived` just took, so reversing them stamps every record with the PREVIOUS event's
+  time. Every record present, every `logTime` one event stale, and no reader can tell.
+- ☑ **M52.3 (the sink half)** — `LogRecord.encodeTo(OutputStream)` plus a default byte-facing overload
+  on `LogRecordListener`, per §6.1(2). A sink takes a record's encoded form without downcasting;
+  `asCharSequence()` was previously the only channel, so a binary record threw from it and every sink
+  wanting bytes downcast to a vendor class. Text records satisfy it with their characters, exactly as
+  the spec says, so nothing existing changed.
+  - Stream framing stays with the writer: the file header and dictionary frames are stream state — two
+    sinks reading the same records need their own answers — not a property of any one record.
+  - Asserted byte-identical to the tail of what `BinaryLogWriter` produces, so the two paths cannot
+    drift into logs a reader treats differently.
+  - **§6.1 items 1 and 3 remain**: the mandated `StringBuilder` on `LogRecord`, and `replaceBuffer`
+    assuming the incoming record holds characters. Both are refactors of the record hierarchy rather
+    than additions, which is why they were not taken with this.
+- ☑ **M52.4 the specified module is WITHDRAWN; the shipped reader is the answer.** Owner call
+  2026-09-10, on the right test: does the plain reader do the job? It does. `AuditLogFilter` supports
+  event/node/key **globs**, a `from`/`to` **time range**, a `limit` and a pluggable `Sink`, and
+  resolves each glob to a **BitSet of ids once** as dictionary entries arrive — which is §5.2's
+  optimisation, reached independently.
+  - The spec's §9 module — a filter pipeline that is itself a generated Fluxtion graph, AOT native —
+    is amended out, with the reasoning kept as history so nobody revives it from §5. The dogfooding
+    argument was real but documentary; the generated version would have had to be faster or more
+    capable to earn a fourth artifact, and neither was shown.
+
+### M60 · A representative graph, and what measuring it found — ☑ 2026-09-10
+
+Review asked for an experiment on a realistic market-making graph reporting throughput AND event-level
+latency with auditing on and off, rather than on two-node shapes. Delivered as a hand-written six-node
+quote engine — `dsl/GenQuoteEngine.java`, both targets, `dsl/QUOTE-ENGINE-RESULTS.md`.
+
+- ☑ **M60.1 the engine and its four arms.** `LOWEST_LATENCY` with no other configuration, and
+  `LOW_LATENCY_AUDIT` + `BINARY` with sparse logging, in Java and C++:
+  8.62 / 21.27 ns (Java) and 3.73 / 13.32 ns (C++) per event. Auditing costs 12.9 ns/event in Java and
+  9.3 in C++, one binary record per event. Throughput and burst-p50-per-event agree in all four arms.
+- ☑ **M60.2 latency is reported per BURST, and the harness refuses per-event.** Both clocks resolve to
+  41.67 ns and these events cost 3.7–21 ns, so 74% of unaudited Java events did not move the clock at
+  all. Bursts of 64 clear the floor and keep the tail: C++ holds p99.9 at 1.5× its median where Java
+  runs 2.6×, and Java's worst burst is 26.9 µs against C++'s 9.1 µs. **Nothing under ~83 ns/event can
+  be timed per-event on this hardware** — the instrument, not the graph.
+- ☑ **M60.3 `GroupBy.lastValue()` now has a C++ spelling** (compiler `a31af8c`). A stub is handed the
+  store and not the key, so the only readable key was one fixed at author time; the ordinary keyed-graph
+  read was expressible in Java and not in C++. `CppGroupByLastValueTest` pins both insertion paths and
+  the before-first-event guard.
+- ☑ **M60.4 the bench now measures the branch.** Every figure this kit has published was resolving
+  fluxtion classes from `~/.m2` snapshot jars rather than the worktrees under test — they happened to
+  be current, which is exactly why nothing looked wrong. `branch-classpath.sh` builds a branch-first
+  classpath, drops every fluxtion jar outright, and verifies by loading each key class and asking where
+  it came from. **Re-run any figure quoted before this date that a decision depends on.**
+- ☑ **M60.5 controls, bands and the zero-allocation proof.** `dsl/build-quoteengine-controls.sh` builds
+  all six arms and REFUSES any emitting a guard; six bands in `control-bands.tsv`, all REPEATABLE at
+  CV 0.16–0.90% and validating green. Allocation is **zero**, checked three ways: JVM per-thread
+  accounting (0 bytes/5M events), survival of 25M events under a **non-collecting GC** on a 32 MB heap
+  while publishing 26M binary records, and a counting `operator new` in C++ (0 calls). `validate-controls.sh`
+  now exports `BENCH_CP` — without it every new band evaluated to an empty classpath and reported as a
+  failing band rather than a missing variable, the same bug the script already documents for `SP`.
+- ☑ **M60.6 four toolchains — native AOT does not win.** OpenJDK 25.0.2 C2 8.598/21.989, GraalVM Graal
+  JIT 12.026/21.314, **native AOT + PGO 12.662/22.297**, C++ 3.795/13.825. AOT with PGO is **47% slower
+  than C2 unaudited** and level audited; the image was asserted from its own build log (`PGO:
+  user-provided`, `Garbage collector: Epsilon GC`) rather than assumed. Once auditing, all three Java
+  toolchains converge within 5% — the audit path is the same code in each and dominates. AOT's argument
+  here is startup, not steady-state throughput.
+- ☑ **M60.7 Java's jitter is not the JVM.** GC, safepoints, JIT recompilation and background-thread
+  contention were each **excluded by measurement**: Epsilon changes nothing (p99.9 2416 vs 2459), the
+  run takes exactly ONE safepoint (at 0.422 s, max VM-op 0 ns), all 514 compilations finish before
+  0.4 s, and minimising compiler/GC threads does not tighten the tail. The residual — Java's p99.9−p50
+  excess of ~900–1000 ns per 64-burst against C++'s 125–375 — is **not identified**; the near-identical
+  unaudited maxima (8.6 µs vs 8.2 µs) point at the OS as a common floor. Core migration and cache
+  pressure are the remaining candidates and neither is demonstrated. *Open, low priority.*
+- ☑ **M60.8 the full distribution, and a claim withdrawn.** Re-measured at **1M bursts (64M events)
+  per arm, twice, settled machine**. **WITHDRAWN: "native AOT has tighter tails"** — that came off a
+  200k-burst run where p99.9 rested on 200 samples and `max` on one; at 1M bursts native is worse than
+  C2 at p50, p90, p99 and p99.99 and only comparable at p99.9. The finding that holds: **auditing costs
+  ~10 ns/event at the median and ~8x that at p99.99** (+81 ns/event C++, +34 ns/event Java JIT).
+  Unaudited C++ is exceptionally flat (p50 250 → p99.99 458, a 1.8x spread); auditing costs it that
+  flatness (917 → 5,667, 6.2x). **All four audited arms converge at p99.99 to 5.3–6.9 µs** regardless
+  of language or toolchain, so whatever produces the audited tail is not the compiler — *unidentified,
+  candidates are the record buffer's cache behaviour and the sink call.* Harnesses now report
+  p50/p90/p99/p99.9/p99.99/max and dump a CDF under `-Dcdf` / `CDF=1`.
+- ☑ **M60.9 single-event latency, measured — and for an audited system it equals throughput.** Changed
+  the EXPERIMENT rather than the instrument: one bit of each event's computed bid is folded into the
+  next event's input, a read-after-write dependency the hardware cannot speculate past, so elapsed/N is
+  a causal latency. With a **read-only control** separating the added field read from the serialisation.
+  Unaudited: Java JIT 8.832 → **11.820**, native AOT 12.525 → **12.934**, C++ 3.858 → **9.095**.
+  Audited: Java JIT 21.839 → **22.018** (+0.8%), AOT 22.443 → **23.509**, C++ 14.027 → **14.246** (+1.6%).
+  **Once auditing, throughput and latency converge in every toolchain** — the audit record write
+  serialises the pipeline by itself, so there is no cross-event overlap left to lose. This retires the
+  review objection for the case that matters: for an audited system the throughput figures already
+  published ARE latencies. The language gap on latency is **1.30× unaudited** (against 2.29× on
+  throughput) — C++ was extracting far more cross-event parallelism, and serialising costs it 4.06 ns
+  against Java's 3.02. Native AOT loses only 0.46 ns to serialisation because it was never overlapping
+  events, which is why it looks slow on throughput and nearly level on latency.
+- **A note on process.** The first distribution run was taken at load 12.96 because the binaries were
+  invoked directly rather than through `measure.sh`, which is the only thing carrying the load gate.
+  Those numbers were discarded and re-run. The gate works when it is used; bypassing it is easy.
+- **A PGO profile embeds class names.** The `.iprof` files these builds write carry the fully-qualified
+  name of every method profiled — a fourth channel the text sweep cannot see, after images, git
+  metadata and transcripts. They land under gitignored `target/` and must stay there; the sweep found
+  13 such untracked artefacts carrying sweep terms, none tracked. Noted where they are produced.
+- **A design point, not a defect.** Written with `boolean` callbacks, the `LOWEST_LATENCY` build carried
+  a `guardCheck_` before every node — correctly: `setSupportDirtyFiltering(false)` drops the flags that
+  decide nothing, and a `boolean` return IS the propagation decision. Void callbacks (which need
+  `failBuildIfMissingBooleanReturn = false`) move the decision into node state and leave straight-line
+  dispatch with no dirty flags in either language.
+
+### M61 · The quoting core — a bounded decision-core benchmark — ☑ Java 2026-09-10, C++ arm 2026-09-10 (M61.6)
+
+Built to a reviewer's specification after they judged M60's engine too thin to represent a real
+application. M60's `GenQuoteEngine` is retained as the CONTROL. Spec, graph, workload and results:
+`dsl/QUOTING-CORE-RESULTS.md`.
+
+- ☑ **M61.1 the graph.** 10 nodes, 4 event types (`MarketTick`/`Fill`/`OrderUpdate`/`TimerTick`),
+  per-symbol state throughout, fixed-point prices in 1/16 tick quantised to venue ticks, EWMA vol and
+  momentum, an order state machine on ACK_NEW/ACK_REPLACE/ACK_CANCEL/PARTIAL_FILL/REJECT, independent
+  bid/ask risk suppression, reconciliation to NONE/NEW/REPLACE/CANCEL, intents into a preallocated ring.
+  Zero guards, zero dirty flags. The four dispatch paths are read out of the emitted processor.
+- ☑ **M61.2 Java measured** (gated): throughput 23.659 / 32.410 ns, causal latency 23.783 / **33.103** ns
+  unaudited/audited at 64 symbols. **Throughput, read-control and latency agree within 3%** — a ten-node
+  chain is entirely serial-bound, so the throughput figure IS the latency figure, unlike the control
+  where they diverged 34%. Auditing costs 9.3 ns/event.
+- ☑ **M61.3 workload.** Pre-generated buffer, fixed-seed xorshift64 with independent sub-streams, skewed
+  symbols, acks following real orders via a FIFO cursor. Two profiles with the branch mix REPORTED —
+  active 89.4% NONE / 2.1% NEW / 8.5% REPLACE, selective 92.3% / 1.5% / 6.2% with 35.3% of NONEs being
+  genuine "unchanged". `pending` at 78.7% of active NONEs is the parameter least trusted.
+- ☑ **M61.4 working set**, rebuilt per symbol count: uniform 26.74 → **40.19** ns unaudited and
+  37.72 → **52.84** audited from 64 to 4096 symbols; skewed is nearly flat (24.24 → 25.51) because the
+  hot set stays in L1. **The curve is non-monotonic and 256 reproduces** — cache set conflicts are a
+  hypothesis, left as one.
+- ☑ **M61.5 audit volume.** 0.27 records/event and 20.4 bytes/event against the control's 1.00 and 62.0
+  — ~630 MB/s at audited rate. **The record mix is inverted relative to the event mix**: OrderUpdate is
+  22% of events and 66% of records; MarketTick 70% and 12%. The log records decisions, not traffic.
+- ☑ **M61.6 the C++ arm** — DONE 2026-09-10. **Java and C++ produce byte-identical decisions**: the same
+  deterministic stream agrees at every one of 1,981,480 decision points (NONE 1,771,067 / NEW 41,801 /
+  REPLACE 168,148 / CANCEL 464, same intents and suppressions). Causal latency **9.970 / 15.863 ns**
+  unaudited/audited against Java's 23.783 / 33.103 — **2.39x and 2.09x**. C++ shows the same
+  serial-bound signature (throughput, control and latency within 4%). Auditing costs 5.9 ns/event in
+  C++ against Java's 9.3. Working set, uniform, rebuilt per count: 11.90 / 12.30 / 12.82 / **20.60** ns
+  across 64–4096 symbols — clean and monotonic with a clear cliff at 4096, where Java's curve is noisy
+  and non-monotonic.
+- ☑ **M61.7 `@Initialise` had no C++ spelling** (compiler `7406e93`). `buildLifecycle()` emitted
+  `node.init()` call sites for every lifecycle method but the stub declared only event, trigger and
+  `@OnParentUpdate` callbacks — so the ten-node graph failed with nine "no member named 'init'" errors.
+  Not an exotic corner: the Java builder serialises constructor state into the generated source
+  including array contents, so per-symbol arrays MUST be allocated at init. `CppLifecycleStubTest` pins
+  the call sites and the declarations together. Second parity gap this benchmark found, after
+  `GroupBy.lastValue()`.
+- **Four bugs, all of which produced a benchmark that RAN**: node state is serialised into the generated
+  constructor including array contents (`code too large` at 64 symbols — fixed with `@FluxtionIgnore` +
+  `@Initialise`); `PARTIAL_FILL` never cleared `pending`; `break` in an arrow-switch case dropped
+  events; ack starvation. Three were visible only because the harness reports the branch mix.
+- **A sweep thrown away**: the first working-set curve was flat because the processor bakes its symbol
+  count in at build time and the skew kept indices under 64, so every run used a 64-symbol graph.
+
+### M62 · The venue-lifecycle quoting core — ☑ Java 2026-09-10
+
+Third graph in the progression, built to a reviewer's specification. M60's six-node engine and M61's
+event-count quoting core are BOTH retained unchanged as controls. `dsl/QUOTING-CORE-RESULTS.md` and the
+report in the session scratchpad.
+
+- ☑ **M62.1 time-driven venue.** Acks scheduled on the data-driven clock in a fixed timing wheel
+  (4096 × 64 ns, no allocation on the measured path), three regimes stated (LOW/NORMAL/SLOW). The
+  `pending` share is now OBSERVED: 59.1% → 69.2% → 92.3% of NONEs as ack latency rises, with actionable
+  decisions falling 11.0% → 9.7% → 5.7%.
+- ☑ **M62.2 executions from working orders.** `Execution` carries the generation; refused against a
+  nonexistent, superseded or filled order (12,231 refusals in a NORMAL run). Inventory moves only by
+  what `WorkingOrders` applied, on the same causal path.
+- ☑ **M62.3 `@NoTriggerReference` keeps the ack path short.** Without it inventory is a child of working
+  orders and every ack drags the pricing chain behind it.
+- ☑ **M62.4 per-symbol freshness deadlines** replace the rolling cursor, which did not survive the
+  sweep: worst-case detection was symbols × interval, so a 20 µs bound at 4096 symbols needed a 5 ns
+  timer — the safety semantics changed silently with symbol count. Detection is now independent of it.
+- ☑ **M62.5 results.** Causal latency **23.961 unaudited / 35.063 audited** (NORMAL, 64 symbols).
+  Conditional paths span **32.9–66.6 ns**: the whole-workload average sits between a 42.7 ns no-op and a
+  63–67 ns actionable path, so an actively quoting engine pays ~1.5× the average. Working set +45%
+  unaudited from 64 to 4096 symbols under uniform access, flat under skew.
+- ☑ **M62.6 the 256-symbol anomaly does NOT reproduce** (26.02 here against M61's 38.50; 512 added as a
+  focused sweep). No cache-set-conflict claim is made — the earlier reading is best treated as specific
+  to that build's layout.
+- ☑ **M62.7 twelve refusing invariants**, which caught: a generator emitting ten timers per quiet gap
+  (99.6% of the stream, first run refused); an ack invariant that was itself wrong (in-flight acks);
+  four path streams measuring the wrong branch; and a THIRD instance of an index aliasing with the
+  symbol count.
+- **Audit commits after the order.** The intent is written to the outbound ring before any
+  `auditLog.info` call and the record is terminated in `afterEvent()`, so nothing in the audit path
+  feeds the order. The +11 ns audit cost is therefore an UPPER BOUND on what auditing adds before an
+  order can leave; the split is not quantified and no number is claimed for it.
+- ☑ **M62.8 the C++ arm** — DONE 2026-09-10. **Identical decisions to Java including the whole venue
+  lifecycle**: NONE 1,219,897 / NEW 665 / REPLACE 131,807 / CANCEL 301, 132,771 acks, 12,231 execution
+  refusals, 27,609 deadlines, maxInFlight 10 — the timing wheel, ack scheduling and refusal path all
+  reproduce exactly. Causal latency **12.118 unaudited / 17.276 audited** against Java's 23.961 /
+  35.063 (**1.98x / 2.03x**); auditing costs 5.2 ns/event in C++ against Java's 11.1. Throughput,
+  read-control and latency agree within 3% in C++ too, and the figures are flat across all three venue
+  regimes. The C++ emitter honours `@NoTriggerReference`, so the ack path stops at reconciliation there
+  as well.
+
+### M63 · Closing the C++ gaps on the venue core — ☑ 2026-09-10
+
+The two things the M62 report explicitly did NOT claim, plus a claim that had been published before it
+was demonstrated.
+
+- ☑ **M63.1 cross-language BINARY audit oracle.** The C++ harness now writes a real FLXA log (framing
+  mirrors `BinaryLogWriter`; a second writer is a conformance test of the normative format) under a
+  read-incrementing data-driven clock. Decoded by the **Java** reader: 67,247 records, 533,328 entries,
+  0 truncated bytes, 0 unresolved ids — and the decoded dump is **identical to the Java arm's,
+  timestamps included**, sha256 `097cbeee8c1633ccd7b528d7fcc79834`. That is the same hash the
+  Spring-composed Java build produces, so **all three builds — builder-API Java, Spring-composed Java,
+  C++ — emit byte-identical audit logs**. Aligning the clock discipline mattered: setting the time per
+  market event rather than per clock READ left the two logs a tick apart, because Java's counter also
+  advances on reads taken during venue events.
+- ☑ **M63.2 C++ working set**, rebuilt per symbol count (64/256/512/1024/4096), both access patterns.
+  Uniform unaudited **12.28 → 24.22 ns** and audited **16.82 → 27.02**; skewed far flatter
+  (12.23 → 15.43). **The C++ advantage NARROWS at the cliff** — 2.1x over Java at 64 symbols but 1.6x at
+  4096, because both arms become memory-bound.
+- ☑ **M63.3 C++ conditional paths**, same six as Java with the same refusing verifier:
+  A 8.66/14.57, B 14.04/39.06, C 13.87/37.19, D 10.37/25.67, E 6.66/25.17, F 9.40/35.57 ns
+  (unaudited/audited). **Audit cost tracks entries written, not cycles**: path B is 100% REPLACE so
+  every cycle emits two intents and twelve audit entries, and auditing costs it +25 ns against +5.9 ns
+  on the no-op path A.
+- ☑ **M63.4 Spring composition targets C++.** The same three supplier jars and eleven-bean XML with
+  `-DgenId=cpp` emit a C++ processor that is **line-for-line the same multiset** as the builder-API C++
+  (345 lines each). This closes a claim the docs page had asserted on the strength of the earlier
+  Java/C++ equivalence rather than on having built it.
+
+## M34 · Source adapters — ◧ shipped portion: .0–.3 (merged to main 2026-08-25), archived 2026-09-15; .4/.5 remain live
+_Moved verbatim from the live tracker per rule 7._
+- [M34.0] ☑ **The LangGraph spike, against CURRENT code** — **DONE 2026-08-20, the gate OPENS**
+  (`docs/handoff/completed/report_m34_0_spike.txt`, code `tools/spikes/m34-langgraph/`). Every verb worked on a
+  LangGraph run with zero analyser changes: 720 records, series/crossings/aggregate/read/coverage/
+  topology/graph all live. **Two findings change M34.1.** (a) D-A1a is now OBSERVED, not inferred:
+  *all 720* records contain a concurrent super-step, and step-through walks them in stream-arrival
+  order while the topology paints dispatch badges — identical presentation to a Fluxtion log, where
+  the same badges are meaning. Ordering moves from amendment to **precondition**. (b) coverage's
+  figures were right and its reading was false — `__start__`/`__end__` counted as uncovered, so the
+  declared graph needs a **structural/scaffolding flag** or an adapter must not emit pseudo-nodes.
+  D-A3 needs nothing: LangGraph's per-task `result` IS the attribution rule. And the analyser caught
+  the translator's invented node unprompted (`loggedButNotInTopology`), declaring every other figure
+  suspect — the honesty disciplines transfer to a foreign source unmodified.
+- [M34.1] ☑ **`RunAdapter` SPI** *(MERGED to main 2026-08-25)* — _ordering slice DONE 2026-08-22_: `Capabilities` gained
+  `Ordering {TOTAL|PARTIAL}` **additively** (the 3-arg constructor kept — it is a published surface
+  since 1.5.0, and TOTAL is correct for every container that existed then); the claim is carried to
+  `LogIndex.totalOrder()` beside `byteAnchors`, reported by `context` before anything is derived from
+  position, and marked in Settings ▸ Plugins. Native path verified unchanged in the running jar.
+  **Second slice, 2026-08-25:** `graph(Path)` added as a DEFAULT returning empty (published surface
+  since 1.5.0 — every existing reader keeps compiling); `SourceGraph {nodes, edges, provenance}` in
+  the core's own vocabulary, with provenance riding the RETURNED graph because availability is per
+  SOURCE (review F4). Reconciliation settled as **`GraphSource`**, which is M35.3's asymmetry one
+  level out: a graph someone OPENED is intent and wins; one an adapter SUPPLIED is convenience and
+  yields. `coverage` now REFUSES on an INFERRED graph rather than printing the 100% it gets by
+  construction — the M34.0 spike's §4 finding turned into a guard.
+- [M34.2] ☑ **Capability degradation wired** — _ordering half DONE 2026-08-25 on
+  `feat/m34-adapters`_: the ordinal badge is not painted on a PARTIAL source, step-through says
+  "logged N / M" not "step N / M", the Topology status carries a standing warning, and the echo
+  carries `orderMeaningful` + `orderCaveat` because an agent reads the data, not the picture.
+  Verified against a real PARTIAL source — a throwaway reader plugin, which also exercised M31's
+  ServiceLoader path end to end for the first time since it shipped. `coverage` already refuses an
+  INFERRED graph (M34.1). **Remaining:** "did not run" shading and replay-diff, each to degrade
+  loudly with its reason rather than silently.
+  _**Shading half DONE 2026-08-25:** an INFERRED graph's execution categories are hollow by
+  construction — every node in it ran — so the status and the `topology` echo say that an absence of
+  "did not run" nodes proves nothing. **Replay-diff has nothing to degrade: the feature does not
+  exist yet** (the spec names it as something Temporal's native replay would fit better than
+  Fluxtion). M34.2 is therefore complete against what is built; revisit when replay-diff lands._
+- [M34.3] ☑ **Format specification + conformance fixtures** (D-A6); the built-in adapter passes them.
+  _DONE 2026-08-25, merged to main_ — `docs/site/format-spec.md` (Format 1, MUST/SHOULD, in the
+  site nav under *The audit log*) and `src/test/resources/conformance/` (12 files) + `FormatConformanceTest`
+  (14 tests): C01–C13 pin the minimal record, forward tolerance, the header, the `-1` sentinel, untimed
+  records, out-of-order reporting, duplicate ids, lenient values, garbage retention, the ordering claim,
+  attribution-by-position, the traced regime and exported calls. **Every fixture runs through the built-in
+  text path and the SPI pass-through path, and the two must agree** — that agreement is the promise to an
+  adapter author. Report: `docs/handoff/completed/report_feat_m34_conformance.txt`.
+
+## M48 · Authoring modes — ◧ shipped portion: .1–.4 and .11 (2026-09-03), archived 2026-09-15; the rest remains live
+_Moved verbatim from the live tracker per rule 7._
+- [M48.1] ☑ **the resolver** — `tools/bean-resolver.py`; unique selection identical to the optimum,
+      green build, byte-identical alerts (round 57)
+- [M48.2] ☑ **selection is memoisable** — a `Fluxtion-Convention` manifest field plus a one-line site
+      profile resolves round 55's six-way type-identical ambiguity; changing the profile word changes the
+      selected component (round 57 addendum)
+- [M48.3] ☑ **the mode selector** — `tools/fluxtion-harness.py`; derives the mode per FIGURE, emits a
+      machine-readable handoff record, verified on four scenarios
+- [M48.4] ☑ **the shared scorer** — `analyser.score.ExpectationScorer` / `ScoreCommand`, built on the
+      shipped reader. **Ten** guards, 21 tests. Five guards were added by three rounds of independent
+      review, each reproducing a false PASS by execution: event-sequence identity, extra figures,
+      non-finite values, fully-qualified event identity, and a vacuous zero-figure comparison.
+      **Every defect found erred toward agreeing with the author** — the same direction as the five
+      historical ones the class was written to stop. Dialect is now caller-declared. **Analyser code.**
+- [M48.11] ☑ **the full chain, end to end** — `FluxtionSpringConfig.logLevel` → generated processor →
+      real audit log → shipped reader → declared dialect → scorer. **PASS 12/12 events, 27 figures**;
+      5 of 5 mutations of that real log caught. The historical reference is preserved and a
+      provenance-carrying conforming derivative added beside it. See `round-57/M48-11.md`.
