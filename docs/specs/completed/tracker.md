@@ -1917,11 +1917,11 @@ there. Verbatim, including their commits and evidence — nothing was rewritten 
   supported resolved Claude/Codex/generic routes; distinguish the JDK-only and AI-assisted paths; give
   key provenance a value-free observable source rather than guessing a separate build's winner; and make
   the generated load-log skill name the bundle's actual path (review F1–F4). Parallel Mongoose/playground
-  work is coordinated by [`handoff_29_aug_2026_1.txt`](../../handoff/handoff_29_aug_2026_1.txt): phase-zero
+  work is coordinated by [`handoff_29_aug_2026_1.txt`](../../handoff/completed/handoff_29_aug_2026_1.txt): phase-zero
   live-source reconnaissance only until an amended **M19 bundle contract** is signed at an exact SHA;
   after that, repository-owned slices may proceed independently and converge on one generated-bundle bench.
   - **Phase-zero report RECEIVED 2026-08-29** —
-    [`handoff_29_aug_2026_1_report.txt`](../../handoff/handoff_29_aug_2026_1_report.txt) (Mongoose/playground
+    [`handoff_29_aug_2026_1_report.txt`](../../handoff/completed/handoff_29_aug_2026_1_report.txt) (Mongoose/playground
     session). Both live-source tables delivered; seven mismatches recorded (M-1 the "Mongoose starter" is
     actually the playground's `mongoose.ts` — reassigns the brief's M1/M3 slices; M-2 NO current
     mongoose-hosted starter mode runs keyless; M-3 no file audit sink exists — chronicle-only capture,
@@ -2178,15 +2178,15 @@ _Verbatim, per rule 7, while M19 itself remains in progress._
   F5 literal runbook set) — 430 tests, up from 415; follow-up in the report. F1 also surfaced a
   latent build break: the reference set was a static import, so `--reference-set none` broke module
   resolution rather than degrading — the same shape as the earlier `skills.source=none` incident.
-  **ANALYSER CORRECTIVE PASS COMPLETE:** [`response_review_playground_bundle_v4.txt`](../handoff/response_review_playground_bundle_v4.txt)
+  **ANALYSER CORRECTIVE PASS COMPLETE:** [`response_review_playground_bundle_v4.txt`](../handoff/completed/response_review_playground_bundle_v4.txt)
   closes F2 (the stale bench-unit expectation), the bounded restatement scan and F6 (the contradictory
   passing detail). Its freshly generated local bundle is **70 passed, 0 failed**, not a reworded escape
   from the `why` text. The original reviewer made this implementation change, so the full playground and
   analyser correction set now awaits an independent re-review; M19.21 stays ◧. Original review framing
   below —
   `fluxtion-web` @ `ea00075` → `453d084` (committed, **not deployed**: the live site still serves v3 bundles).
-  Report: [`report_playground_bundle_v4.txt`](../handoff/report_playground_bundle_v4.txt). Independent
-  review: [`review_playground_bundle_v4.txt`](../handoff/review_playground_bundle_v4.txt) — the
+  Report: [`report_playground_bundle_v4.txt`](../handoff/completed/report_playground_bundle_v4.txt). Independent
+  review: [`review_playground_bundle_v4.txt`](../handoff/completed/review_playground_bundle_v4.txt) — the
   restatement failure really is an analyser bench defect, but sign-off is blocked by an unpinned,
   unsafe-provenance reference-set fetch (separate from the skills SHA), a red analyser bench unit test,
   and the unproved non-Spring `appliesTo` path. The bundle
@@ -2259,7 +2259,7 @@ _Verbatim, per rule 7, while M19 itself remains in progress._
   start. **The deliverable was never the doc set — it was knowing which tier each fact belongs in.**
 - [M19.5] ☑ **REVIEWED AND ACCEPTED 2026-08-30** _(the superseded "awaiting review" entry is
   removed; it contradicted this one in the same file)_ —
-  [`review_m19_5_template_picker.txt`](../handoff/review_m19_5_template_picker.txt). The archive
+  [`review_m19_5_template_picker.txt`](../handoff/completed/review_m19_5_template_picker.txt). The archive
   boundary held against ten attacks written for the cases the report's own suite leaves open —
   a nested file whose BASENAME is allow-listed, an archive claiming a symlink, backslash-spelled
   traversal, and the state of a caller's empty destination after a refusal — plus D-AX10's origin

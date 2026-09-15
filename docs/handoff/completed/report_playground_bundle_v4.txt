@@ -1,5 +1,5 @@
 REPORT — playground: bundle contract v4 (M19.21)
-Brief: docs/handoff/brief_playground_bundle_v4.txt
+Brief: docs/handoff/completed/brief_playground_bundle_v4.txt
 Date: 2026-08-30 · From: the playground session · Implementation: fluxtion-web @ ea00075
 Skills consumed: m19-skills/2 (DRAFT) @ 619e048fb81a3046dc6c757ee2f1d7af62b3d4ea
 

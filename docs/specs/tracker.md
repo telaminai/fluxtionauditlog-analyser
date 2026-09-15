@@ -840,7 +840,7 @@ analyser (reverse funnel)._
   Nothing about them changed; they are findable there with their commits and evidence.
 
 - [M19] ➜ **REVISED 2026-08-29 · independently reviewed — ACCEPT WITH AMENDMENTS** in
-  [`review_m19_onboarding_and_trust.txt`](../handoff/review_m19_onboarding_and_trust.txt). Owner-directed:
+  [`review_m19_onboarding_and_trust.txt`](../handoff/completed/review_m19_onboarding_and_trust.txt). Owner-directed:
   one download should produce a project where an LLM already knows Fluxtion, is connected to the analyser
   over MCP, and is told by the analyser which skills run/stop/read the local app. The spec pre-dated M38,
   M42 and M43, so five additions: **R1** the bundle ships `.claude/skills/*/SKILL.md`; **R2** the shipped
@@ -864,7 +864,7 @@ analyser (reverse funnel)._
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
 - [M19.23] ◐ **UP-PG-02 `agentBootstrap` — IN PROGRESS, playground session** _(2026-08-30)_ —
-  plan: [`plan_playground_agent_bootstrap.txt`](../handoff/plan_playground_agent_bootstrap.txt). No spec
+  plan: [`plan_playground_agent_bootstrap.txt`](../handoff/completed/plan_playground_agent_bootstrap.txt). No spec
   exists (D-B5 lists it as "still open, and NOT specified here"), and the catalogue is a contract the
   M19.5 picker consumes, so the shape is being agreed before it ships rather than after.
   **Evidence the ask did not have:** all fourteen templates were generated — `analyser-bundle` ships
@@ -954,14 +954,14 @@ analyser (reverse funnel)._
     `73565fc` closes the Builder-inaccurate preflight, validates bundle invariants, forces both identity
     fields, passes the stop registry path as argv, and refuses a reused/mismatched PID. The live Bash
     fixture keeps hostile registry values as data. Details and exact disposition:
-    [`review_m19_p0_fixes_and_p1.txt`](../handoff/review_m19_p0_fixes_and_p1.txt).
+    [`review_m19_p0_fixes_and_p1.txt`](../handoff/completed/review_m19_p0_fixes_and_p1.txt).
   - **Branch-level key-advice follow-up ☑ closed at `3acaf9b`:** ordinary Fluxtion README/run-script
     output now names only the Builder's file/-D sources and a non-bundle fixture pins both files.
   - **P1 ☑ accepted at generator head `8f20016`:** `m19-bundle/3` emits the real zero-based profile ABI;
     one AnalyserBundleModel supplies scripts/README/profile/skills/guides; the acceptance fixture is the
     Spring-XML template with design XML + maintained authoring canon; minimum-version refusal is present.
     Independent gates: 27/27 focused, 376/376 full and production build pass. Review:
-    [`review_m19_p1_response_and_download_zip.txt`](../handoff/review_m19_p1_response_and_download_zip.txt).
+    [`review_m19_p1_response_and_download_zip.txt`](../handoff/completed/review_m19_p1_response_and_download_zip.txt).
   - **Download seam ☑ closed at `266132a`:** the actual `buildMavenZip` preserves root CLAUDE/AGENTS,
     Maven wrappers and lifecycle scripts; `mvnw` plus the scripts retain executable modes. The focused
     packaging test passes and the exact Spring Download zip passes analyser bundle-bench 49/49. Stale v2
@@ -987,7 +987,7 @@ analyser (reverse funnel)._
     Independent gates: 74/74 focused, 401/401 full. **Low follow-up ☑ closed at `2ad5289`:** the fixture
     supplies its generated certificate as the private client's `ca` with verification enabled. Review
     and dispositions:
-    [`review_m19_p2_skills_retrieval.txt`](../handoff/review_m19_p2_skills_retrieval.txt).
+    [`review_m19_p2_skills_retrieval.txt`](../handoff/completed/review_m19_p2_skills_retrieval.txt).
   - **P3 ◧ implementation accepted; refreshed shared evidence artefact remains:** `tools/bench/bundle-bench.py` checks an
     unzipped project or download zip against `m19-bundle/3`, including the real zero-based profile ABI,
     guide mirror/version, committed processor source, declared/discoverable GraphML, exact shipped
@@ -1014,7 +1014,7 @@ analyser (reverse funnel)._
     session's current Download ZIP passes 49/49 and pins 1.0.41. **The shared `m19/p3-artifacts` branch is
     still `893fbdf` / 1.0.39**, so refresh it with the current ZIP, generated source/GraphML/YAML/hashes before
     the final current-version 19/19 rerun and P3 completion. Disposition:
-    [`review_m19_p3_lifecycle_final.txt`](../handoff/review_m19_p3_lifecycle_final.txt).
+    [`review_m19_p3_lifecycle_final.txt`](../handoff/completed/review_m19_p3_lifecycle_final.txt).
 - [M19.1a] ◧ **Mongoose starter conformance bench (validation only; not a bundle shipment)** — the
   downloaded `mongoose-hosted-fluxtion` starter now has a reviewable contract snapshot in
   [`mongoose-bootstrap-artefacts/`](mongoose-bootstrap-artefacts/), with its source project retaining
@@ -1023,7 +1023,7 @@ analyser (reverse funnel)._
   registry/export/GraphML leg is **VAL-12**, exercised by `tools/bench/loop-bench.py` only when Mongoose
   supplies UP-MNG-01 and the export surface. The current starter supplies neither, so it makes no
   brokered-loop or distribution claim. Review resolution:
-  [`report_mongoose_bootstrap_review_resolution.txt`](../handoff/report_mongoose_bootstrap_review_resolution.txt).
+  [`report_mongoose_bootstrap_review_resolution.txt`](../handoff/completed/report_mongoose_bootstrap_review_resolution.txt).
   V0 is documentation-complete except for owner decision D-02; V1 application work has not started.
   The project-local `.claude/skills/mongoose-local/SKILL.md` is discoverable-but-not-auto-added and is
   not the graduated shared skill (V5). Its local tracker carries the four explicit review follow-ups:

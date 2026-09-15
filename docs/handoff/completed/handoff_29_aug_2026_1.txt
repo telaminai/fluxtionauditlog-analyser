@@ -1,7 +1,7 @@
 HANDOFF — M19 cross-repository coordination: Mongoose + playground halves
 Date: 2026-08-29 · From: analyser-side implementation session · Branch: main
 Base reviewed: main @ 6014af9
-Report due: docs/handoff/handoff_29_aug_2026_1_report.txt
+Report due: docs/handoff/completed/handoff_29_aug_2026_1_report.txt
 
 PURPOSE
 
@@ -142,9 +142,9 @@ Read before proposing or changing anything:
 
   · docs/handoff/REVIEWER-ORIENTATION.md
   · docs/specs/spec-onboarding-example.md — M19 design and acceptance.
-  · docs/handoff/review_m19_onboarding_and_trust.txt — independent review: MCP route, observable key
+  · docs/handoff/completed/review_m19_onboarding_and_trust.txt — independent review: MCP route, observable key
     provenance, unopened-log path, JDK/AI prerequisite split, trust boundary.
-  · docs/handoff/review_spec_m19_onboarding_example.txt — independent review against live runtime and
+  · docs/handoff/completed/review_spec_m19_onboarding_example.txt — independent review against live runtime and
     Builder: audit-sink error, keyless preflight conflict, actual key precedence, incomplete skills,
     skills-source contract and version checks.
   · docs/specs/tracker.md, M19 and Trust structure — live status and the M19.16 amendment gate.

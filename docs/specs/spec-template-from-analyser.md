@@ -57,7 +57,7 @@ only in test: a 38,564-byte `audit-analyser-bundle` zip, the `artifact` override
 at `risk-engine/`, and 404 / 400 / 404 on an unknown id, both-inputs and a path-shaped id. All 14
 catalogue entries are fetchable, pinned by a test, so a template cannot be added and be unreachable.
 The catalogue additions of D-1 and D-2 landed with it. Contract as shipped is in
-[handoff_30_aug_2026_1.txt](../handoff/handoff_30_aug_2026_1.txt).
+[handoff_30_aug_2026_1.txt](../handoff/completed/handoff_30_aug_2026_1.txt).
 
 `GET /start/scaffold?template=<file>[&artifact=&group=&basePackage=]`
 

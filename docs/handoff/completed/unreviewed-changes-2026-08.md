@@ -191,7 +191,7 @@ find, which is the failure mode it was written in to avoid.
 **What.** My review of `docs/specs/mongoose-bootstrap-artefacts` (d91e236) did not stop at a review file:
 it added **§10a (A1–A4)** to `specs/spec-mongoose-analyser-validation.md` and annotated the *Discovery
 contract* paragraph of `skill/mongoose-local-skill-contract.md`. Full reasoning in
-`docs/handoff/review_mongoose_bootstrap_artefacts.txt`.
+`docs/handoff/completed/review_mongoose_bootstrap_artefacts.txt`.
 
 **Why written in, not only reported.** The findings are about which spec the work anchors to, and a
 recommendation that lives only in a review file is one the next author has to go and find. But this means
@@ -208,7 +208,7 @@ reads, and the analyser surfaces it for free.
 
 **Files.** `docs/specs/mongoose-bootstrap-artefacts/specs/spec-mongoose-analyser-validation.md` (+82,
 new §10a), `.../skill/mongoose-local-skill-contract.md` (+7, one annotation),
-`docs/handoff/review_mongoose_bootstrap_artefacts.txt` (new).
+`docs/handoff/completed/review_mongoose_bootstrap_artefacts.txt` (new).
 
 **Verified.** 1066 green; `mkdocs build --strict` passes; four-term sweep clean. I also checked the
 snapshot directory against the README's own promise rather than taking it — no real home paths, no

@@ -38,7 +38,7 @@ You are working in the PLAYGROUND repo and may have no analyser clone, so these 
 5. RAW/tools/bench/bundle-bench.py — **the executable definition of done.** See §5.
 6. RAW/docs/specs/spec-authoring-experience.md ▸ D-AX1b/c/d — WHY the bundle points rather than restates.
    Skip if you only need the what.
-7. RAW/docs/handoff/review_handoff_30_aug_2026_2.txt ▸ F3 and C1 — the findings this work closes.
+7. RAW/docs/handoff/completed/review_handoff_30_aug_2026_2.txt ▸ F3 and C1 — the findings this work closes.
 
 ================================================================================
 2. RETRIEVAL — two roots, both vendored at build time, never fetched at runtime (D-R3)

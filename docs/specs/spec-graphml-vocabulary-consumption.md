@@ -30,7 +30,7 @@ the server side and leaves the client side pinned wherever each author left it.
 vocabulary existed for as long as anyone keeps a `.graphml`, and it cannot require an author to
 regenerate to open one. **Dual-path is permanent, not transitional.**
 
-**This corrects a claim I made in review** ([`review_graphml_metadata_dd36bc5`](../handoff/review_graphml_metadata_dd36bc5.txt)
+**This corrects a claim I made in review** ([`review_graphml_metadata_dd36bc5`](../handoff/completed/review_graphml_metadata_dd36bc5.txt)
 and the FLX-1009 review): that `fluxtion.framework` and `auditCapable` would let us *delete*
 `Scaffolding`'s hand-maintained class list and `AuditReadiness`'s `EventLogManager` heuristic. They do
 not. They **demote them to fallbacks**, which still have to be maintained, and the win is that they stop

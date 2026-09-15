@@ -1,7 +1,7 @@
 # Spec — the session transition processor: the analyser's first Fluxtion graph
 
 **Status:** PROPOSED 2026-08-30 · **REVISED 2026-08-31** after review
-([`review_spec_session_processor_m44.txt`](../handoff/review_spec_session_processor_m44.txt) —
+([`review_spec_session_processor_m44.txt`](../handoff/completed/review_spec_session_processor_m44.txt) —
 *architecture accepted, specification requires changes before implementation*).
 **Tracker:** [tracker.md](tracker.md) ▸ M44.
 **Related:** [spec-authoring-experience.md](spec-authoring-experience.md) (the loop this feeds),

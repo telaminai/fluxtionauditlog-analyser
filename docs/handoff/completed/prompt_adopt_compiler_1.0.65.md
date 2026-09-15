@@ -6,7 +6,7 @@ Paste the block below into the analyser session. It is written to be pasted verb
 
 `fluxtion-builder 1.0.65` is **released to Repsy** and the cloud compiler backend running it is
 **deployed**. This unblocks work you deliberately parked. Read
-`docs/handoff/handoff_compiler_1.0.65_released.txt` first — it is the upstream handoff and it states
+`docs/handoff/completed/handoff_compiler_1.0.65_released.txt` first — it is the upstream handoff and it states
 what was measured versus what was inferred.
 
 Work in this order. Each item says what "done" means, because several of these were parked precisely

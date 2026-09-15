@@ -1,6 +1,6 @@
 REVIEW — authoring-experience block
 Reviewed: 5397cd7..7a1811f (15 commits; the report's inclusive range is 7b2e854^..7a1811f)
-Handoff: docs/handoff/handoff_30_aug_2026_2_report.txt @ ffad4a2
+Handoff: docs/handoff/completed/handoff_30_aug_2026_2_report.txt @ ffad4a2
 Date: 2026-08-30
 
 VERDICT: CHANGES REQUIRED

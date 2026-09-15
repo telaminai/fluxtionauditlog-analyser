@@ -1,6 +1,6 @@
 REPORT — M19.5 analyser half: choose and open a playground template
 Date: 2026-08-30
-Brief: docs/handoff/handoff_30_aug_2026_1.txt
+Brief: docs/handoff/completed/handoff_30_aug_2026_1.txt
 Implementation: analyser main @ 9d38cc4
 Playground contract consumed: fluxtion-web @ 994e82a, deployed
 

@@ -1,6 +1,6 @@
 REPORT — M19 cross-repository coordination: Mongoose + playground halves (phase zero)
 Date: 2026-08-29 · From: Mongoose/playground-side session (Claude, fluxtion-visualiser workspace)
-Brief: docs/handoff/handoff_29_aug_2026_1.txt · Analyser repo read at: main @ c4e15ea
+Brief: docs/handoff/completed/handoff_29_aug_2026_1.txt · Analyser repo read at: main @ c4e15ea
 
 STATUS: M19 bundle implementation NOT STARTED — awaiting M19 bundle contract v1 sign-off.
 Two slices OUTSIDE the gated contract were implemented under their own already-ACCEPTED specs

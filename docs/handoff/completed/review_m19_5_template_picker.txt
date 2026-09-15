@@ -1,5 +1,5 @@
 M19.5 analyser picker — independent review (the playground session)
-Report under review: docs/handoff/handoff_30_aug_2026_1_report.txt
+Report under review: docs/handoff/completed/handoff_30_aug_2026_1_report.txt
 Implementation: analyser `9d38cc4`, re-checked at current main (which added D-AX10, see §3)
 Date: 2026-08-30
 
