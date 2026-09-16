@@ -30,7 +30,8 @@
     "contains every selected byte, plus a per-path sha256. CanonicalSkillsTest enforces both, and refuses a",
     "non-DRAFT index that pins nothing.",
     "",
-    "RE-PINNED 2026-09-16: load-audit-log, run-mongoose-server and add-a-node learned from an agent's session report on the 1.13.0 bundle (see CHANGELOG). Same contract, same selection; only the revision and the three hashes moved. Bundles generated from the earlier revision keep their own pinned bytes."
+    "RE-PINNED 2026-09-16: load-audit-log, run-mongoose-server and add-a-node learned from an agent's session report on the 1.13.0 bundle (see CHANGELOG). Same contract, same selection; only the revision and the three hashes moved. Bundles generated from the earlier revision keep their own pinned bytes.",
+    "RE-PINNED 2026-09-16 (second time): add-a-node and run-mongoose-server reworded after the 1.13.1 independent review; same contract, same selection."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -62,13 +63,13 @@
       ]
     }
   },
-  "revision": "a5f94e5790beda291b11054681c50ed3edf2e48d",
+  "revision": "b71164aebc54332d0b8dc396b79e1d9bc2e78e88",
   "sha256": {
     "common/load-audit-log/SKILL.md": "1fa42762aed0cb8f0f004e42cccdfb4e7111388a4d6e55b3d3a43369dab14d59",
     "common/guided-start/SKILL.md": "eccf57d6761e983f48410fae3b8357350e4e69ecbe41f32766e7fe8fe8c13b88",
-    "mongoose/run-mongoose-server/SKILL.md": "a23ba84a680e51e7aaace39855c6a6251d9850b7dbd1eacff99bc1e7c04b1cb8",
+    "mongoose/run-mongoose-server/SKILL.md": "1e7b0e627cc957f31a5f1c15f3dda1b97a7e8526b9f1fb06152bca4c0e014fe4",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
-    "spring/add-a-node/SKILL.md": "29f982a223ea2e9cd4d4591b4002034db492f2a6ebd28323a1f5c0cbe5d802ea",
+    "spring/add-a-node/SKILL.md": "ec76851eeebe9b71bb70239cdcbfbebf73676f19feb7abaa1f05acb2511116a0",
     "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
   }
 }
