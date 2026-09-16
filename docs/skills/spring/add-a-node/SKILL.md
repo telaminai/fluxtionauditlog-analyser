@@ -20,9 +20,10 @@ specific to a Spring-authored project.
    graph edges** — this is how the compiler learns what depends on what.
 3. **Add the bean id to `fluxtionSpringConfig`'s `nodeBeans`.**
 
-**Before you regenerate, check the fields.** Fluxtion constructor-maps every `final` field that is not
-`transient` or `@FluxtionIgnore`, and the build stops with *cannot find matching constructor … failed to
-match for these fields: […]* when no constructor accepts them. Derived local state — a map, a counter, a
+**Before you regenerate, check the fields.** Fluxtion constructor-maps every eligible **instance** field that is
+`final` and neither `transient` nor `@FluxtionIgnore` (static fields are never mapped, and `@ConstructorArg` /
+`@AssignToField` opt a field in explicitly), and the build stops with *cannot find matching constructor … failed
+to match for these fields: […]* when no constructor accepts them. Derived local state — a map, a counter, a
 buffer the node builds for itself — should be `transient` (or `@FluxtionIgnore`); only builder-supplied
 configuration and references to other nodes belong in the constructor. This is the first error every new
 node with a `Map` or `List` field hits; the triage table at the link above carries the full rule.

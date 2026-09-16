@@ -41,10 +41,12 @@ the bottom of this file, and the check belongs immediately before it.
    through the registry/API and calls `/api/audit/file/{id}/export?format=yaml`; claiming the run itself
    writes the YAML skips a required step and leaves `load-audit-log` with a path that does not exist.
 
-   **The export is cumulative.** Chronicle capture is retained across restarts (a day, by default), so the
-   YAML holds every retained run, not only the last one — a "new run" export after two redeploys carried
-   three runs. Declare provenance and filter by time, or clear the capture directory between runs you
-   want to read alone; do not describe the file as one run unless you checked.
+   **The export is cumulative.** Chronicle capture persists across restarts — the capture ROLLS to a new
+   file on a schedule (daily, in the starter) and nothing deletes the old ones — so the YAML holds every run
+   still on disk, not only the last: a "new run" export after two redeploys carried three runs. Declare
+   provenance and filter by time. To read one run alone, prefer a fresh capture location for that run; if you
+   delete old capture files instead, stop the writer first and treat it as a deliberate decision to discard
+   evidence. Do not describe the file as one run unless you checked.
 
 4. Open that concrete YAML export in the analyser with the processor's GraphML (see the
    `load-audit-log` skill), declaring the registry server name as provenance.
@@ -59,8 +61,9 @@ the bottom of this file, and the check belongs immediately before it.
    entry behind. Check that the entry under `~/.mongoose/servers/` is gone and the pid is dead. A later
    start overwrites a stale entry, so this is recoverable — but report what you saw, not "stopped cleanly".
 
-6. **Change the input only between a stop and a start.** A running server tails its input file and
-   delivers an appended line immediately — to the processor that is running NOW. A line appended before a
+6. **Change the input only between a stop and a start.** The starter's configured file source tails its
+   input file and delivers an appended line immediately — to the processor that is running NOW. (Other
+   event sources have their own delivery rules; this advice is about the file feed the starter ships with.) A line appended before a
    redeploy reached the OLD processor in one session, whose mapper turned it into a zero-priced event
    that the risk check then passed. Stop, edit, rebuild, start.
 
