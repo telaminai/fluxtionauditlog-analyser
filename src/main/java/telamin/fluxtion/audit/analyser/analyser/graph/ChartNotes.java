@@ -81,12 +81,28 @@ public record ChartNotes(String explanation, List<Note> notes) {
      * getting it wrong produces an unreadable pile at one x.
      */
     public Map<Integer, List<Note>> byColumn(long from, long to, int width) {
+        return byColumn((double) from, (double) to, width);
+    }
+
+    /**
+     * The chart's view bounds are doubles and, zoomed in far enough, fractional milliseconds. This used to
+     * take them as longs — the caller cast — so the origin moved by up to a millisecond and every note's
+     * rule drifted away from its point by up to a full millisecond's width (≈60 px in a 17 ms window,
+     * reported 2026-09-16 as "the dashed marker lines do not keep their x position during a zoom"). The
+     * column is now the SAME formula as the series' own pixel mapping ({@code ChartPanel.xToPx}), so a
+     * rule lands on the point it annotates at every zoom.
+     */
+    public Map<Integer, List<Note>> byColumn(double from, double to, int width) {
         Map<Integer, List<Note>> out = new LinkedHashMap<>();
-        if (width <= 0 || to <= from) {
+        if (width <= 0 || !(to > from)) {
             return out;
         }
-        for (Note note : between(from, to)) {
-            int column = (int) ((note.atMillis() - from) * (width - 1) / (to - from));
+        for (Note note : between((long) Math.floor(from), (long) Math.ceil(to))) {
+            double f = (note.atMillis() - from) / (to - from);
+            if (f < 0 || f > 1) {
+                continue;
+            }
+            int column = (int) Math.round(f * width);
             out.computeIfAbsent(column, c -> new ArrayList<>()).add(note);
         }
         return out;

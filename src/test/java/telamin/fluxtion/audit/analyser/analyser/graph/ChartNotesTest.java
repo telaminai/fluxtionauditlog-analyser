@@ -82,4 +82,18 @@ class ChartNotesTest {
         assertEquals("the point of this chart", cleared.explanation());
         assertTrue(cleared.notes().isEmpty());
     }
+
+    /**
+     * Zoomed to a 17 ms window with fractional-millisecond bounds, a note's rule must land where the
+     * series puts the same instant. The old long-bounds mapping put it a millisecond's width to the right.
+     */
+    @org.junit.jupiter.api.Test
+    void aRuleLandsOnItsPointWhenTheWindowHasFractionalBounds() {
+        ChartNotes notes = new ChartNotes("", java.util.List.of(new ChartNotes.Note(1008L, "tick", null)));
+        double from = 1000.6, to = 1017.6; int width = 1040;
+        int seriesColumn = (int) Math.round((1008 - from) / (to - from) * width);   // ChartPanel.xToPx
+        var columns = notes.byColumn(from, to, width);
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.Set.of(seriesColumn), columns.keySet(),
+                "the rule's column must equal the series' column for the same instant (453, not the 489 the truncated origin gave)");
+    }
 }

@@ -663,7 +663,7 @@ public final class ChartPanel extends JPanel {
         }
         Color rule = dark ? new Color(0x6E7681) : new Color(0x8C959F);
         Color pin = dark ? new Color(0xE3B341) : new Color(0x9A6700);
-        var columns = notes.byColumn((long) vx0, (long) vx1, plotW);
+        var columns = notes.byColumn(vx0, vx1, plotW);   // the exact view bounds, as the series use
         int index = 0;
         for (var entry : columns.entrySet()) {
             int px = plotX + entry.getKey();

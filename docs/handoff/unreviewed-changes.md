@@ -14,6 +14,22 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Note rules drift when zoomed in (owner report, reproduced on the live 1.13.1 over MCP)
+
+**What & why.** `ChartPanel.paintNotes` passed the view bounds to `ChartNotes.byColumn` cast to `long`; the
+series use the exact doubles (`xToPx`). Zoomed to a 17 ms window with fractional-ms bounds the origin moved by
+up to 1 ms ≈ 60 px, so every dashed note rule sat ~35 px right of its point (screenshot of the owner's "Price
+by symbol" graph, rules 1–5 versus the NVDA steps). `byColumn(double, double, int)` now uses the series'
+own formula; the `long` overload delegates.
+
+**Verified.** `ChartNotesTest.aRuleLandsOnItsPointWhenTheWindowHasFractionalBounds` (453 vs the 489 the
+truncated origin gave); mutant restoring the truncation: red on that test AND on the existing colliding-
+columns test. Not re-captured on the live instance (it runs 1.13.1; the fix is on main).
+
+**Reviewer must still check.** A note exactly at the right bound (`f == 1`, column == width) draws at the frame
+edge rather than one pixel inside — same as the series, but worth an eye. Marker SERIES (`MarkerSeries.aggregate`)
+and the record marker already used doubles and were not changed.
+
 ## ☐ 2026-09-16 · M44.3 the asynchronous session driver + M44.3a, N1 and the clamp fixtures, the skill rewording
 
 **What & why.** Finish-first items after 1.13.1. **M44.3** per `spec-async-session-driver.md` (status block says

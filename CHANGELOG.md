@@ -31,6 +31,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `jbang cache clear`, and the page says plainly that JBang runs its cached jar until you do one of them (a user on
   1.13.0 kept getting 1.13.0 after 1.13.1 shipped).
 
+### Fixed
+- **Note rules stay on their points when zoomed in.** The dashed rule a note pins to a moment was placed from
+  the view bounds truncated to whole milliseconds, while the series use the exact bounds; zoomed to a window of a
+  few milliseconds every rule drifted up to a millisecond's width (tens of pixels) right of its point. Notes now
+  use the series' own pixel mapping.
+
 ## [1.13.1] - 2026-09-16
 
 ### Added
