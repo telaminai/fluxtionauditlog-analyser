@@ -34,15 +34,23 @@ mkdir -p "$FIXTURES"
 # GraphMlExporterCompatibilityTest.offCarriesNoVocabulary, whose whole point is that OFF must mean
 # "the file I had before". Never capture a mode by omitting the flag: a default you do not control is
 # not a mode you selected.
-for mode in PARALLEL AGGREGATED OFF; do
-  mvn -q -Pregen process-classes "-Dfluxtion.graphml.metadata=$mode"
-  if [ "$mode" = OFF ]; then
-    cp "$GRAPHML" "$FIXTURES/session-processor-off-new-builder.graphml"
-  else
-    cp "$GRAPHML" "$FIXTURES/session-processor-$(echo "$mode" | tr 'A-Z' 'a-z').graphml"
-  fi
-  echo "   $mode"
-done
+# The three vocabulary fixtures are a FROZEN PAIR with session-processor-legacy-no-vocabulary.graphml:
+# GraphMlExporterCompatibilityTest and ParallelEdgeRenderingTest compare the old exporter's output with the
+# new exporter's output OF THE SAME GRAPH (the session graph as it was on 2026-08-31, 33 nodes). They are
+# evidence about the EXPORTER, not a copy of the live graph, so a graph change (M44.3 added a node and four
+# events) must NOT refresh them — that broke both tests on 2026-09-16. Refresh only when the exporter
+# changes, with --refresh-vocabulary-fixtures, and then only if the legacy fixture is regenerated too.
+if [ "${1:-}" = "--refresh-vocabulary-fixtures" ]; then
+  for mode in PARALLEL AGGREGATED OFF; do
+    mvn -q -Pregen process-classes "-Dfluxtion.graphml.metadata=$mode"
+    if [ "$mode" = OFF ]; then
+      cp "$GRAPHML" "$FIXTURES/session-processor-off-new-builder.graphml"
+    else
+      cp "$GRAPHML" "$FIXTURES/session-processor-$(echo "$mode" | tr 'A-Z' 'a-z').graphml"
+    fi
+    echo "   $mode"
+  done
+fi
 
 echo "→ regenerating the committed processor with the pinned released builder"
 mvn -q -Pregen process-classes

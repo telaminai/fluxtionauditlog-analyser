@@ -109,6 +109,11 @@ public final class SessionDriver {
     private final SessionProcessor processor = new SessionProcessor();
     private final SessionAuditSink sink;
 
+    /**
+     * M44.3 D-A1: exactly one thread calls {@code onEvent}, and it is the thread that built the driver —
+     * the EDT in the application, the test's own thread in a replay. Asserted, not documented.
+     */
+    private final Thread designated = Thread.currentThread();
     private boolean dispatching;
     private long nextOpId = 1;
 
@@ -149,6 +154,13 @@ public final class SessionDriver {
      *                               could not distinguish the two afterwards.
      */
     public void submit(Object fact) {
+        if (Thread.currentThread() != designated) {
+            throw new ProtocolViolation(
+                    "SessionDriver is confined to the thread that created it (" + designated.getName()
+                            + "); submit(" + fact.getClass().getSimpleName() + ") was called on "
+                            + Thread.currentThread().getName() + ". A background completion must be "
+                            + "marshalled to that thread before it reports (M44.3 D-A1).");
+        }
         if (dispatching) {
             throw new ProtocolViolation(
                     "SessionDriver is single-in-flight: submit(" + fact.getClass().getSimpleName()
@@ -214,6 +226,7 @@ public final class SessionDriver {
             case SessionEffects.CloseGraphEffect ignored -> "closeGraph";
             case SessionEffects.ShowStatusEffect ignored -> "showStatus";
             case SessionEffects.ShowWarningEffect ignored -> "showWarning";
+            case SessionEffects.OpenLogEffect ignored -> "openLog";
         };
     }
 

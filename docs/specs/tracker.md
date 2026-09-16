@@ -478,21 +478,21 @@ retrieval-dated evidence table, because those are live documents that can change
 - [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
   our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
 
-## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31
+## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3 (async driver, the open as a decision) + M44.3a DONE 2026-09-16
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
 
 - [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
   recommends.** ☐ **Blocker before the dependency lands:** the runtime's published POM declares AGPL-3.0
   jar. ☐ **Residue:** the five dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`,
-- [M44.3a] ☐ **A refresh observation can close the graph that replaced the one judged** (1.13.1 review R2-F3,
+- [M44.3a] ☑ **DONE 2026-09-16 with M44.3** — `LogArrival` judges on `LogOpened` only; `CloseGraphEffect` names the graph judged; pinned by `AsyncOpenReplayTest.aRefreshObservationDoesNotJudge` and the real-frame suite. Original entry: **A refresh observation can close the graph that replaced the one judged** (1.13.1 review R2-F3,
   confirmed pre-existing on 1.13.0; recorded here per R3-F3). Reproduction: A/A → start a FAILING load → open
   graph B → reopen graph A, all in one EDT turn; when the failure settles no graph remains, though the last
   deliberate request was A, which fits the still-open log A. `updateLifecycleMenu` observes the unchanged log
   before the new graph, `LogArrival` judges against the previously observed B and its close effect clears the
   current A. Remedy, processor-side: distinguish a real log ARRIVAL from a refresh of observed state, and bind
   a close effect to the identity of the graph actually judged. Review: `docs/handoff/review_analyser_1.13.1_pass2_2026-09-16.md`.
-- [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
+- [M44.3] ☑ **IMPLEMENTED 2026-09-16** (see the spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; the processor regenerated, 38 nodes). Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
   ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
 - [M44.3] ☐ **Owner decision still open:** the runtime's published POM declares AGPL-3.0 and the analyser

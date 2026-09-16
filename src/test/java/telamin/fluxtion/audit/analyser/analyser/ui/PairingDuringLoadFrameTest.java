@@ -193,10 +193,17 @@ class PairingDuringLoadFrameTest {
             assertNull(after.get().get("graph"), "closed: " + after.get());
             assertEquals(0, dialogs.seen(), "the socket close declares its own audience (R4-F1 / R3-B1)");
 
-            // positive control: a person closing it from the File menu still gets the warning as a dialog
-            onEdt(() -> render(ex, "open", Map.of("graphml", graphB.toString())));
-            onEdt(() -> menuItem(frame.get(), "closeGraphItem").doClick());
-            assertEquals(1, dialogs.seen(), "a human close renders the same warning as a dialog");
+            // positive control: the same warning IS a dialog for a person — a HUMAN arrival that finds a
+            // mismatching graph closes it and says so. (Before M44.3a a human File-menu close also warned,
+            // because a refresh observation re-judged the log; that spurious warning is gone, so a person
+            // closing a graph deliberately is no longer told it did not fit.)
+            onEdt(() -> render(ex, "open", Map.of("graphml", graphB.toString())));   // B, mismatching, kept
+            onEdt(() -> frame.get().openFile(logA, OpenRequest.HUMAN));               // A arrives, by a person
+            awaitLoaded(ex);
+            assertEquals(1, dialogs.seen(), "a human arrival renders the graph-closed warning as a dialog");
+            AtomicReference<Map<String, Object>> end = new AtomicReference<>();
+            onEdt(() -> end.set(pairing(ex)));
+            assertNull(end.get().get("graph"), "and the mismatching graph was closed by that arrival");
         } finally {
             dialogs.stop();
             System.setProperty("user.home", home);

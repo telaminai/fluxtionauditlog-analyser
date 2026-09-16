@@ -43,8 +43,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClose
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored;
@@ -56,6 +60,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
@@ -82,8 +87,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored
@@ -100,7 +109,8 @@ public class SessionProcessor
         /*--- @ExportService end ---*/
         DataFlow,
         InternalEventProcessor,
-        BatchHandler {
+        BatchHandler,
+        com.telamin.fluxtion.runtime.node.NodeNameLookup {
 
   //Node declarations
   private final transient CallbackDispatcherImpl callbackDispatcher = new CallbackDispatcherImpl();
@@ -132,6 +142,9 @@ public class SessionProcessor
   public final transient LogArrival logArrival =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
           operationGate, pairing, openGraph, effectQueue);;
+  public final transient LogOpening logOpening =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening(
+          operationGate, effectQueue);;
   public final transient ServiceRegistryNode serviceRegistry = new ServiceRegistryNode();
   public final transient SessionBoundary sessionBoundary =
       new telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary(
@@ -142,6 +155,10 @@ public class SessionProcessor
   private boolean initCalled = false;
   private boolean processing = false;
   private boolean buffering = false;
+  //M50/W1 - written by CallbackDispatcherImpl when it queues, cleared when it drains empty. Read on
+  //the event path instead of walking processor->dispatcher->ArrayDeque to be told the queue is empty.
+  //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
+  private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
       new IdentityHashMap<>(6);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
@@ -185,12 +202,28 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved",
                 false),
             new ProcessorDescriptor.Input(
+                "LogOpenFailed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed",
+                false),
+            new ProcessorDescriptor.Input(
+                "LogOpened",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened",
+                false),
+            new ProcessorDescriptor.Input(
+                "OpenLogRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested",
+                false),
+            new ProcessorDescriptor.Input(
                 "OpenProjectRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested",
                 false),
             new ProcessorDescriptor.Input(
                 "OpenRequestReceived",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived",
+                false),
+            new ProcessorDescriptor.Input(
+                "Pending",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending",
                 false),
             new ProcessorDescriptor.Input(
                 "ProfileApplied",
@@ -214,7 +247,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               null,
-              "7a01dd06a959f56e748b5588f5c6ef13e0b1f912a876d48dfdedf0143cd346ec",
+              "a843ec56994bf04bf3bbc7fb24431f913c5d8de62ff3a76e23f97e3bec909aed",
               null));
 
   @Override
@@ -235,6 +268,8 @@ public class SessionProcessor
     eventLogger.printThreadName = true;
     eventLogger.traceLevel = LogLevel.INFO;
     eventLogger.clock = clock;
+    eventLogger.binaryRecord = false;
+    eventLogger.recordEndTime = true;
     context.setClock(clock);
     serviceRegistry.setDataFlowContext(context);
     effectQueue.setDataFlowContext(context);
@@ -341,9 +376,25 @@ public class SessionProcessor
     } else {
       processing = true;
       onEventInternal(event);
-      callbackDispatcher.dispatchQueuedCallbacks();
+      if (callbacksPending) {
+        final boolean sharedBefore = clock.shareReading(true);
+        callbackDispatcher.dispatchQueuedCallbacks();
+        clock.shareReading(sharedBefore);
+      }
       processing = false;
     }
+  }
+
+  /**
+   * M50/W1 - the dispatcher tells this processor when it has queued work, and when the queue has
+   * drained empty. Keeping the answer in a field this processor owns is what lets the event path
+   * skip walking into the dispatcher and its ArrayDeque on every event to be told there is nothing
+   * to do. The dispatcher owns the WRITE because it sees every queueing path - a node holding the
+   * dispatcher directly can queue without this processor ever seeing the call.
+   */
+  @Override
+  public void callbacksPending(boolean pending) {
+    callbacksPending = pending;
   }
 
   @Override
@@ -369,11 +420,23 @@ public class SessionProcessor
     } else if (event instanceof LogObserved) {
       LogObserved typedEvent = (LogObserved) event;
       handleEvent(typedEvent);
+    } else if (event instanceof LogOpenFailed) {
+      LogOpenFailed typedEvent = (LogOpenFailed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LogOpened) {
+      LogOpened typedEvent = (LogOpened) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof OpenLogRequested) {
+      OpenLogRequested typedEvent = (OpenLogRequested) event;
+      handleEvent(typedEvent);
     } else if (event instanceof OpenProjectRequested) {
       OpenProjectRequested typedEvent = (OpenProjectRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof OpenRequestReceived) {
       OpenRequestReceived typedEvent = (OpenRequestReceived) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof Pending) {
+      Pending typedEvent = (Pending) event;
       handleEvent(typedEvent);
     } else if (event instanceof ProfileApplied) {
       ProfileApplied typedEvent = (ProfileApplied) event;
@@ -428,12 +491,32 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LogOpenFailed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LogOpened event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(OpenLogRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(OpenProjectRequested event) {
     processEvent(event);
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(OpenRequestReceived event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(Pending event) {
     processEvent(event);
   }
 
@@ -584,8 +667,78 @@ public class SessionProcessor
       auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
       coverageClaim.recomputeOnStateChange();
     }
-    auditInvocation(logArrival, "logArrival", "onLogObserved", typedEvent);
-    logArrival.onLogObserved(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LogOpenFailed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onLogOpenFailed", typedEvent);
+    isDirty_operationGate = operationGate.onLogOpenFailed(typedEvent);
+    auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpenFailed", typedEvent);
+    effectOutcomes.onLogOpenFailed(typedEvent);
+    auditInvocation(logOpening, "logOpening", "onLogOpenFailed", typedEvent);
+    logOpening.onLogOpenFailed(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LogOpened typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onLogOpened", typedEvent);
+    isDirty_operationGate = operationGate.onLogOpened(typedEvent);
+    auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpened", typedEvent);
+    effectOutcomes.onLogOpened(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    auditInvocation(openLog, "openLog", "onLogOpened", typedEvent);
+    isDirty_openLog = openLog.onLogOpened(typedEvent);
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    auditInvocation(logArrival, "logArrival", "onLogOpened", typedEvent);
+    logArrival.onLogOpened(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(OpenLogRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onOpenLogRequested", typedEvent);
+    isDirty_operationGate = operationGate.onOpenLogRequested(typedEvent);
+    auditInvocation(logOpening, "logOpening", "onOpenLogRequested", typedEvent);
+    logOpening.onOpenLogRequested(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
     afterEvent();
   }
 
@@ -616,6 +769,28 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(ignoredParameters, "ignoredParameters", "onOpenRequestReceived", typedEvent);
     ignoredParameters.onOpenRequestReceived(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(Pending typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onPending", typedEvent);
+    isDirty_operationGate = operationGate.onPending(typedEvent);
+    auditInvocation(effectOutcomes, "effectOutcomes", "onPending", typedEvent);
+    effectOutcomes.onPending(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
     afterEvent();
   }
 
@@ -788,8 +963,33 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onLogObserved(typedEvent);
       auditInvocation(openLog, "openLog", "onLogObserved", typedEvent);
       isDirty_openLog = openLog.onLogObserved(typedEvent);
-      auditInvocation(logArrival, "logArrival", "onLogObserved", typedEvent);
-      logArrival.onLogObserved(typedEvent);
+    } else if (event instanceof LogOpenFailed) {
+      LogOpenFailed typedEvent = (LogOpenFailed) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onLogOpenFailed", typedEvent);
+      isDirty_operationGate = operationGate.onLogOpenFailed(typedEvent);
+      auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpenFailed", typedEvent);
+      effectOutcomes.onLogOpenFailed(typedEvent);
+      auditInvocation(logOpening, "logOpening", "onLogOpenFailed", typedEvent);
+      logOpening.onLogOpenFailed(typedEvent);
+    } else if (event instanceof LogOpened) {
+      LogOpened typedEvent = (LogOpened) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onLogOpened", typedEvent);
+      isDirty_operationGate = operationGate.onLogOpened(typedEvent);
+      auditInvocation(effectOutcomes, "effectOutcomes", "onLogOpened", typedEvent);
+      effectOutcomes.onLogOpened(typedEvent);
+      auditInvocation(openLog, "openLog", "onLogOpened", typedEvent);
+      isDirty_openLog = openLog.onLogOpened(typedEvent);
+      auditInvocation(logArrival, "logArrival", "onLogOpened", typedEvent);
+      logArrival.onLogOpened(typedEvent);
+    } else if (event instanceof OpenLogRequested) {
+      OpenLogRequested typedEvent = (OpenLogRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onOpenLogRequested", typedEvent);
+      isDirty_operationGate = operationGate.onOpenLogRequested(typedEvent);
+      auditInvocation(logOpening, "logOpening", "onOpenLogRequested", typedEvent);
+      logOpening.onOpenLogRequested(typedEvent);
     } else if (event instanceof OpenProjectRequested) {
       OpenProjectRequested typedEvent = (OpenProjectRequested) event;
       auditEvent(typedEvent);
@@ -802,6 +1002,13 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(ignoredParameters, "ignoredParameters", "onOpenRequestReceived", typedEvent);
       ignoredParameters.onOpenRequestReceived(typedEvent);
+    } else if (event instanceof Pending) {
+      Pending typedEvent = (Pending) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onPending", typedEvent);
+      isDirty_operationGate = operationGate.onPending(typedEvent);
+      auditInvocation(effectOutcomes, "effectOutcomes", "onPending", typedEvent);
+      effectOutcomes.onPending(typedEvent);
     } else if (event instanceof ProfileApplied) {
       ProfileApplied typedEvent = (ProfileApplied) event;
       auditEvent(typedEvent);
@@ -861,15 +1068,11 @@ public class SessionProcessor
   private void auditEvent(Object typedEvent) {
     clock.eventReceived(typedEvent);
     eventLogger.eventReceived(typedEvent);
-    nodeNameLookup.eventReceived(typedEvent);
-    serviceRegistry.eventReceived(typedEvent);
   }
 
   private void auditEvent(Event typedEvent) {
     clock.eventReceived(typedEvent);
     eventLogger.eventReceived(typedEvent);
-    nodeNameLookup.eventReceived(typedEvent);
-    serviceRegistry.eventReceived(typedEvent);
   }
 
   private void auditInvocation(Object node, String nodeName, String methodName, Object typedEvent) {
@@ -888,6 +1091,7 @@ public class SessionProcessor
     auditor.nodeRegistered(effectQueue, "effectQueue");
     auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
     auditor.nodeRegistered(logArrival, "logArrival");
+    auditor.nodeRegistered(logOpening, "logOpening");
     auditor.nodeRegistered(openGraph, "openGraph");
     auditor.nodeRegistered(openLog, "openLog");
     auditor.nodeRegistered(operationGate, "operationGate");
@@ -913,8 +1117,6 @@ public class SessionProcessor
   private void afterEvent() {
     clock.processingComplete();
     eventLogger.processingComplete();
-    nodeNameLookup.processingComplete();
-    serviceRegistry.processingComplete();
     isDirty_activeProject = false;
     isDirty_auditInstallation = false;
     isDirty_openGraph = false;
@@ -994,6 +1196,10 @@ public class SessionProcessor
     return isDirty_openGraph | isDirty_operationGate | isDirty_pairing;
   }
 
+  private boolean guardCheck_logOpening() {
+    return isDirty_operationGate;
+  }
+
   private boolean guardCheck_openGraph() {
     return isDirty_operationGate;
   }
@@ -1010,22 +1216,139 @@ public class SessionProcessor
     return isDirty_activeProject | isDirty_openGraph | isDirty_openLog | isDirty_operationGate;
   }
 
+  /**
+   * M50/W4 — nodes resolved by a generated switch, not by a populated map: registering them would
+   * publish every node into the auditor's HashMaps and stop the graph being dissolved.
+   */
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T getInstanceById(String id) throws NoSuchFieldException {
+    switch (id) {
+      case "eventLogger":
+        return (T) eventLogger;
+      case "nodeNameLookup":
+        return (T) nodeNameLookup;
+      case "callbackDispatcher":
+        return (T) callbackDispatcher;
+      case "subscriptionManager":
+        return (T) subscriptionManager;
+      case "context":
+        return (T) context;
+      case "serviceRegistry":
+        return (T) serviceRegistry;
+      case "clock":
+        return (T) clock;
+      case "activeProject":
+        return (T) activeProject;
+      case "auditInstallation":
+        return (T) auditInstallation;
+      case "coverageClaim":
+        return (T) coverageClaim;
+      case "effectOutcomes":
+        return (T) effectOutcomes;
+      case "effectQueue":
+        return (T) effectQueue;
+      case "ignoredParameters":
+        return (T) ignoredParameters;
+      case "logArrival":
+        return (T) logArrival;
+      case "logOpening":
+        return (T) logOpening;
+      case "openGraph":
+        return (T) openGraph;
+      case "openLog":
+        return (T) openLog;
+      case "operationGate":
+        return (T) operationGate;
+      case "pairing":
+        return (T) pairing;
+      case "sessionBoundary":
+        return (T) sessionBoundary;
+      default:
+        throw new NoSuchFieldException(id);
+    }
+  }
+
+  /** M50/W4 — the reverse direction, also generated. */
+  @Override
+  public String lookupInstanceName(Object node) {
+    if (node == eventLogger) {
+      return "eventLogger";
+    }
+    if (node == nodeNameLookup) {
+      return "nodeNameLookup";
+    }
+    if (node == callbackDispatcher) {
+      return "callbackDispatcher";
+    }
+    if (node == subscriptionManager) {
+      return "subscriptionManager";
+    }
+    if (node == context) {
+      return "context";
+    }
+    if (node == serviceRegistry) {
+      return "serviceRegistry";
+    }
+    if (node == clock) {
+      return "clock";
+    }
+    if (node == activeProject) {
+      return "activeProject";
+    }
+    if (node == auditInstallation) {
+      return "auditInstallation";
+    }
+    if (node == coverageClaim) {
+      return "coverageClaim";
+    }
+    if (node == effectOutcomes) {
+      return "effectOutcomes";
+    }
+    if (node == effectQueue) {
+      return "effectQueue";
+    }
+    if (node == ignoredParameters) {
+      return "ignoredParameters";
+    }
+    if (node == logArrival) {
+      return "logArrival";
+    }
+    if (node == logOpening) {
+      return "logOpening";
+    }
+    if (node == openGraph) {
+      return "openGraph";
+    }
+    if (node == openLog) {
+      return "openLog";
+    }
+    if (node == operationGate) {
+      return "operationGate";
+    }
+    if (node == pairing) {
+      return "pairing";
+    }
+    if (node == sessionBoundary) {
+      return "sessionBoundary";
+    }
+    return null;
+  }
+
   @Override
   public <T> T getNodeById(String id) throws NoSuchFieldException {
     try {
-      return nodeNameLookup.getInstanceById(id);
+      return getInstanceById(id);
     } catch (NoSuchFieldException miss) {
-      // Auditors live on the SEP as public fields rather than in
-      // nodeNameLookup. Fall back to a reflective field probe so
-      // callers (especially DataFlow.getServiceById) have a single
-      // unified lookup path — no need to know whether the id maps to
-      // a regular node or an auditor.
+      // Auditors live on the SEP as fields rather than in nodeNameLookup, so callers
+      // (especially DataFlow.getServiceById) get one unified lookup path. The auditor
+      // half is a generated switch, not a reflective probe: reflection here would
+      // require native-image reflection configuration from every user, and would fail
+      // at runtime rather than at build time.
       try {
         @SuppressWarnings("unchecked")
-        T t = (T) this.getClass().getField(id).get(this);
+        T t = (T) getAuditorById(id);
         return t;
-      } catch (IllegalAccessException unreachable) {
-        throw new NoSuchFieldException(id);
       } catch (NoSuchFieldException stillMissing) {
         throw miss;
       }
@@ -1033,9 +1356,20 @@ public class SessionProcessor
   }
 
   @Override
-  public <A extends Auditor> A getAuditorById(String id)
-      throws NoSuchFieldException, IllegalAccessException {
-    return (A) this.getClass().getField(id).get(this);
+  @SuppressWarnings("unchecked")
+  public <A extends Auditor> A getAuditorById(String id) throws NoSuchFieldException {
+    switch (id) {
+      case "clock":
+        return (A) clock;
+      case "eventLogger":
+        return (A) eventLogger;
+      case "nodeNameLookup":
+        return (A) nodeNameLookup;
+      case "serviceRegistry":
+        return (A) serviceRegistry;
+      default:
+        throw new NoSuchFieldException(id);
+    }
   }
 
   @Override
@@ -1061,8 +1395,7 @@ public class SessionProcessor
   @Override
   public String getLastAuditLogRecord() {
     try {
-      EventLogManager eventLogManager =
-          (EventLogManager) this.getClass().getField(EventLogManager.NODE_NAME).get(this);
+      EventLogManager eventLogManager = getAuditorById(EventLogManager.NODE_NAME);
       return eventLogManager.lastRecordAsString();
     } catch (Throwable e) {
       return "";

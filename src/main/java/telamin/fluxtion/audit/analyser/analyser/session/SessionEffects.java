@@ -44,8 +44,18 @@ public sealed interface SessionEffects {
     record CloseLogEffect(long opId) implements SessionEffects {
     }
 
-    /** Close the open topology graph, for the same reason. */
-    record CloseGraphEffect(long opId) implements SessionEffects {
+    /**
+     * Close the open topology graph. {@code graphPath} names the graph the decision judged (M44.3a): an
+     * adapter holding a DIFFERENT graph by the time the effect runs closes nothing and says so.
+     */
+    record CloseGraphEffect(long opId, String graphPath) implements SessionEffects {
+    }
+    /**
+     * M44.3: start loading a log. The adapter answers {@link SessionEvents.Pending} at once and
+     * {@link SessionEvents.LogOpened} / {@link SessionEvents.LogOpenFailed} when the load lands.
+     */
+    record OpenLogEffect(long opId, String location, String format, String provenance, boolean fromSocket)
+            implements SessionEffects {
     }
 
     /** Say something in the status line. Infallible by construction, but still answered. */

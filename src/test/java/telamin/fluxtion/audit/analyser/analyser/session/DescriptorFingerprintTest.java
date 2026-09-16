@@ -49,6 +49,14 @@ class DescriptorFingerprintTest {
             "src/test/resources/topology/vocabulary/session-processor-parallel.graphml");
     private static final Path AGGREGATED = Path.of(
             "src/test/resources/topology/vocabulary/session-processor-aggregated.graphml");
+    /**
+     * The GraphML regenerated WITH the committed processor — the same model, so the client digest it
+     * declares must equal the server's stamp. The vocabulary fixtures above are a frozen pair kept at the
+     * graph shape of 2026-08-31 for the exporter-compatibility tests; since M44.3 changed the graph they
+     * no longer describe the committed processor and cannot be the other half of this comparison.
+     */
+    private static final Path LIVE_GRAPHML = Path.of(
+            "src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml");
 
     /** The third constructor argument of {@code DescriptorSupport.Meta}, across the generator's wrapping. */
     private static String descriptorFingerprint() throws IOException {
@@ -83,8 +91,8 @@ class DescriptorFingerprintTest {
     @DisplayName("the server's stamp equals the digest the CLIENT computed for the same model")
     void clientAndServerAgreeOnTheModel() throws IOException {
         String stamped = descriptorFingerprint();
-        String declared = graphFingerprint(PARALLEL);
-        assertNotNull(declared, "the PARALLEL fixture declares fluxtion.sourceFingerprint");
+        String declared = graphFingerprint(LIVE_GRAPHML);
+        assertNotNull(declared, "the committed GraphML declares fluxtion.sourceFingerprint");
 
         // The GraphML value is computed client-side; the descriptor value is stamped server-side out of
         // envelope metadata. Equality says the digest that crossed the wire describes the model that was

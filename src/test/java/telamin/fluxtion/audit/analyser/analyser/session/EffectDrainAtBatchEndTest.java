@@ -147,7 +147,11 @@ class EffectDrainAtBatchEndTest {
         // A log that the open graph does not describe: the arrival decides a close, the close produces
         // a result, the result produces a warning. More than one round of batchEnd, all inside one
         // submit(), and the queue must be empty when submit returns.
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED",
+        // M44.3: the arrival is the RESULT of an open the processor asked for (request, then landed).
+        adapter.pendingOpens = true;
+        long opId = driver.nextOpId();
+        driver.submit(new SessionEvents.OpenLogRequested(opId, "/logs/run.yaml", null, "DECLARED", false));
+        driver.submit(new SessionEvents.LogOpened(opId, "/logs/run.yaml", "DECLARED",
                 java.util.Set.of("priceListener", "quotePublisher"), 2, 2, "TRACE"));
 
         assertTrue(adapter.graphClosed, "the cascade completed rather than stalling after one round");

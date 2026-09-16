@@ -32,6 +32,11 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
 
     /** Set to have the very next load throw rather than return a failure result. */
     boolean loadThrows;
+    /** M44.3: when true, an OpenLogEffect answers Pending (the real adapter's shape); else it lands at once. */
+    boolean pendingOpens;
+    /** What a synchronous open reports as logged node ids, keyed by location. */
+    final java.util.Map<String, java.util.Set<String>> openable = new java.util.HashMap<>();
+    String closedGraphPath;
 
     FakeSessionAdapter withProfile(String path) {
         loadable.add(path);
@@ -72,7 +77,15 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             }
             case SessionEffects.CloseGraphEffect e -> {
                 graphClosed = true;
+                closedGraphPath = e.graphPath();
                 yield new SessionEvents.GraphClosed(e.opId());
+            }
+            case SessionEffects.OpenLogEffect e -> {
+                if (pendingOpens) {
+                    yield new SessionEvents.Pending(e.opId(), "opening " + e.location());
+                }
+                java.util.Set<String> ids = openable.getOrDefault(e.location(), java.util.Set.of());
+                yield new SessionEvents.LogOpened(e.opId(), e.location(), e.provenance(), ids, ids.size(), ids.size(), null);
             }
             case SessionEffects.ShowStatusEffect e -> {
                 lastStatus = e.text();

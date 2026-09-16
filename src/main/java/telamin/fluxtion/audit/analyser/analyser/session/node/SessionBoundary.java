@@ -164,7 +164,7 @@ public class SessionBoundary implements EventLogSource {
             effects.request(new SessionEffects.CloseLogEffect(opId));
         }
         if (closingGraph) {
-            effects.request(new SessionEffects.CloseGraphEffect(opId));
+            effects.request(new SessionEffects.CloseGraphEffect(opId, openGraph.graphPath()));
         }
         if (kind == TransitionKind.CLOSE) {
             effects.request(new SessionEffects.RestoreSettingsEffect(opId));

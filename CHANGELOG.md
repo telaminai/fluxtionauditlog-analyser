@@ -7,6 +7,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Changed
+- **Opening a log is now a decision of the session processor, not something it is told about afterwards
+  (M44.3).** Every open — File menu, drop, Recent, socket `open {log}`, S3, a rolled set — is a request with an
+  operation id; the load is the effect the processor asks for, answered `Pending` at once and `LogOpened` when it
+  lands. A load that lands after a later open superseded it is refused and discarded instead of shown over the
+  newer log. `context` reports `inFlight: "opening …"` while a load is outstanding, so a hung load no longer
+  looks idle. The session driver is confined to the Swing thread and says so loudly if crossed.
+- **A graph is judged only when a log really arrives (M44.3a).** The refresh a menu close performs used to re-judge
+  the unchanged log and could close the graph that had REPLACED the one judged (1.13.1 review R2-F3); the
+  judgement now fires on the arrival only, and the close names the graph it judged. A consequence a person will
+  notice: closing a mismatching graph from the File menu no longer pops the "graph closed — does not fit" warning,
+  which was that spurious re-judgement.
 - **Two more formula golden fixtures, and a stricter fixture parser.** `min(max(x, lo), hi)` is pinned as an
   elementwise clamp and `min(4, 2)` as the number 2 — the M28 guarantee that kept a `min(x, N)` window overload
   out of the language (`rollingMin`/`rollingMax` are the windowed forms). A fixture with a doubled metadata line

@@ -73,6 +73,18 @@ public class EffectOutcomes implements EventLogSource {
     }
 
     @OnEventHandler
+    public boolean onPending(SessionEvents.Pending event) {
+        return record(event.what(), true, event.opId(), "pending");
+    }
+    @OnEventHandler
+    public boolean onLogOpened(SessionEvents.LogOpened event) {
+        return record("openLog", true, event.opId(), null);
+    }
+    @OnEventHandler
+    public boolean onLogOpenFailed(SessionEvents.LogOpenFailed event) {
+        return record("openLog", false, event.opId(), event.reason());
+    }
+    @OnEventHandler
     public boolean onEffectFailed(SessionEvents.EffectFailed event) {
         return record(event.effect(), false, event.opId(), event.reason());
     }

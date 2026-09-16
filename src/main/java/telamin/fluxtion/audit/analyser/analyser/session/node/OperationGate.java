@@ -40,6 +40,8 @@ public class OperationGate implements EventLogSource {
 
     /** Whether the event currently being dispatched is one downstream nodes may act on. */
     private boolean accepted;
+    /** M44.3 D-A4: what the operation in flight is for, or null — so a hung load is reportable. */
+    private String inFlightWhat;
 
     @Override
     public void setLogger(EventLogger log) {
@@ -54,6 +56,33 @@ public class OperationGate implements EventLogSource {
         return true;
     }
 
+    @OnEventHandler
+    public boolean onOpenLogRequested(SessionEvents.OpenLogRequested event) {
+        // D-A3: a newer request supersedes — the older one's result now arrives stale and is refused
+        expectedOpId = event.opId();
+        accepted = true;
+        inFlightWhat = "opening " + event.location();
+        auditLog.info("fact", "request").info("opId", event.opId()).info("what", "openLog");
+        return true;
+    }
+    @OnEventHandler
+    public boolean onPending(SessionEvents.Pending event) {
+        boolean ok = check(event.opId(), "Pending");
+        if (accepted) auditLog.info("pending", event.what());
+        return ok;
+    }
+    @OnEventHandler
+    public boolean onLogOpened(SessionEvents.LogOpened event) {
+        boolean ok = check(event.opId(), "LogOpened");
+        if (accepted) inFlightWhat = null;
+        return ok;
+    }
+    @OnEventHandler
+    public boolean onLogOpenFailed(SessionEvents.LogOpenFailed event) {
+        boolean ok = check(event.opId(), "LogOpenFailed");
+        if (accepted) inFlightWhat = null;
+        return ok;
+    }
     @OnEventHandler
     public boolean onProfileLoaded(SessionEvents.ProfileLoaded event) {
         return check(event.opId(), "ProfileLoaded");
@@ -127,5 +156,9 @@ public class OperationGate implements EventLogSource {
     /** The operation results are currently being matched against; {@code -1} before the first request. */
     public long expectedOpId() {
         return expectedOpId;
+    }
+    /** The operation started and not yet completed, e.g. {@code "opening /path"}, or null. */
+    public String inFlightWhat() {
+        return inFlightWhat;
     }
 }

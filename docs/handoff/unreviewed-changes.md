@@ -14,6 +14,30 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · M44.3 the asynchronous session driver + M44.3a, N1 and the clamp fixtures, the skill rewording
+
+**What & why.** Finish-first items after 1.13.1. **M44.3** per `spec-async-session-driver.md` (status block says
+what was built and the two deviations): `OpenLogRequested` → new `LogOpening` node → `OpenLogEffect`; the adapter
+(`MainFrame.startLoad`) answers `Pending` and later `LogOpened`/`LogOpenFailed` with the same opId; `onLoaded`
+submits the result FIRST and discards a store the gate refuses (superseded); `OperationGate` gains
+`inFlightWhat()` (→ `context.inFlight`); `SessionDriver` is confined to its creating thread. **M44.3a**:
+`LogArrival` handles `LogOpened` only; `CloseGraphEffect(opId, graphPath)`; the adapter closes nothing if the
+open graph differs. The processor was REGENERATED (hosted generator, builder 1.0.68; 38 nodes). The three
+vocabulary GraphML fixtures were restored after the regen script overwrote them: they are a frozen pair with the
+legacy export (2026-08-31 graph) for the exporter-compatibility tests, so the script's refresh is now opt-in and
+`DescriptorFingerprintTest` compares the live processor with the live GraphML instead.
+
+**Verified.** `AsyncOpenReplayTest` (6, all on one thread), the rewritten `LogArrivalReplayTest` (request-then-
+result), `EffectDrainAtBatchEndTest` cascade; `mvn -o clean package` 1418 tests green; display suite 5/5 with the
+positive control re-pointed (a human ARRIVAL closing a mismatching graph warns as a dialog; a human File-menu
+close no longer warns, which was the R2-F3 spurious re-judgement); `tools/verify-session-transitions.py` ALL PASS
+on the built jar.
+
+**Reviewer must still check.** The generated processor diff (regenerated, not hand-edited — the copyright line
+stripped by the build); supersede on a real slow load (only replayed here); whether `openLogs`/`discoverGraphs`
+need an audience declaration now that `OpenLogEffect` sets it; the audit record of one operation across
+dispatches (D-A5) read in the analyser itself.
+
 ## ☑ 2026-09-16 · 1.13.1 READY WITH FOLLOW-UPS — fourth independent pass; follow-ups R4-F1/R4-F2 done in this commit
 
 Review: [review_analyser_1.13.1_pass4_2026-09-16.md](review_analyser_1.13.1_pass4_2026-09-16.md) — the remaining

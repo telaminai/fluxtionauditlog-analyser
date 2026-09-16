@@ -1,6 +1,25 @@
 # Spec — an asynchronous session driver, so opening can become a decision
 
-**Status:** PROPOSED 2026-08-31. **Tracker:** [tracker.md](tracker.md) ▸ M44.3.
+**Status:** IMPLEMENTED 2026-09-16 (M44.3, and M44.3a with it). **Tracker:** [tracker.md](tracker.md) ▸ M44.3.
+
+> **As built, and where it differs from the text below.** The open is a request the processor decides
+> (`OpenLogRequested` → `LogOpening` → `OpenLogEffect`); the adapter answers `Pending` at once and
+> `LogOpened` / `LogOpenFailed` when the load lands, same `opId`. `OperationGate` accepts only the expected
+> id, so a superseded load's late result is `staleResult` and the adapter discards that store (D-A3).
+> `SessionDriver` is confined to the thread that built it — the EDT in the app, the test thread in a replay —
+> and throws `ProtocolViolation` otherwise (D-A1). `context` reports `inFlight: "opening …"` while a load is
+> outstanding (D-A4). **Two deliberate deviations:** (1) D-A2 says `EffectQueue` does not re-dispatch a
+> `Pending`; it does — as a result like any other, so `OperationGate` and `EffectOutcomes` RECORD it, which
+> is what D-A5 asks for; it requests no effect, so the round loop still settles in one round. (2) The
+> superseded background work is not cancelled; correctness rests on refusing its result, as D-A3 allows.
+> **What moved with it** (the list under *What moves once this lands*): `LogArrival` judges on `LogOpened`
+> only, never on a `LogObserved` refresh — the M44.3a defect (1.13.1 review R2-F3) — and `CloseGraphEffect`
+> names the graph it judged so an adapter holding another closes nothing. `LogObserved`/`GraphObserved` keep
+> their `open` flag for closes and menu refreshes; dropping it is the next slice. Acceptance, as tested:
+> `AsyncOpenReplayTest` (Pending untouched state + one round + recorded; landed result opens and judges the
+> named graph; supersede refused and recorded; refresh judges nothing; wrong thread is a violation; failed
+> open leaves the previous log), every existing replay test unchanged in shape, `verify-session-transitions.py`
+> ALL PASS on the built jar, and the five real-frame display cases.
 **Extends:** [`spec-session-processor.md`](spec-session-processor.md) — D-S0.3 and D-S0.4, which this
 changes deliberately and in one place.
 

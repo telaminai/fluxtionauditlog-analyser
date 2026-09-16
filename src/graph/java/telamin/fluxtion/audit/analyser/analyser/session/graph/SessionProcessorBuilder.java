@@ -15,6 +15,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
@@ -73,6 +74,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         Pairing pairing = new Pairing(openLog, openGraph);
         AuditInstallation auditInstallation = new AuditInstallation(openGraph);
         LogArrival logArrival = new LogArrival(gate, pairing, openGraph, effects);
+        LogOpening logOpening = new LogOpening(gate, effects);
         CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
         IgnoredParameters ignoredParameters = new IgnoredParameters();
 
@@ -88,6 +90,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(pairing, "pairing");
         cfg.addNode(auditInstallation, "auditInstallation");
         cfg.addNode(logArrival, "logArrival");
+        cfg.addNode(logOpening, "logOpening");
         cfg.addNode(coverageClaim, "coverageClaim");
         cfg.addNode(ignoredParameters, "ignoredParameters");
 

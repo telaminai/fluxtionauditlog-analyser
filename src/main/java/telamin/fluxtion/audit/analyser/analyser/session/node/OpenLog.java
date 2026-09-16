@@ -63,6 +63,21 @@ public class OpenLog implements EventLogSource {
     }
 
     @OnEventHandler
+    public boolean onLogOpened(SessionEvents.LogOpened event) {
+        if (!gate.accepted()) {
+            return false;                       // a superseded load landed late: refused, state untouched
+        }
+        logPath = event.logPath();
+        provenance = event.provenance();
+        loggedNodeIds = event.loggedNodeIds();
+        sampled = event.sampled();
+        total = event.total();
+        mostVerboseLevel = event.mostVerboseLevel();
+        auditLog.info("openLog", event.logPath()).info("via", "LogOpened");
+        return true;
+    }
+    /** M35-era observation: still the route for closes and menu refreshes; never judged (M44.3a). */
+    @OnEventHandler
     public boolean onLogObserved(SessionEvents.LogObserved event) {
         String wasPath = logPath;
         java.util.Set<String> wasIds = loggedNodeIds;

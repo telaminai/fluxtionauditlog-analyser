@@ -59,7 +59,44 @@ public final class SessionEvents {
         }
     }
 
+    /**
+     * M44.3: someone asked for a log to be opened. The processor decides (it always says yes today —
+     * the point is that the open is now an OPERATION with an id, so a load that lands late, or for a
+     * request that was superseded, is refused rather than believed).
+     *
+     * @param location   a local path or an {@code s3://} URI, as a string — the graph never holds a Path
+     * @param format     an explicit reader format, or null for auto-detection
+     * @param provenance which system the log came from, as the opener declared it (§E), or null
+     * @param fromSocket whether an agent asked; carried for the record and for the adapter's audience
+     */
+    public record OpenLogRequested(long opId, String location, String format, String provenance,
+                                   boolean fromSocket) {
+    }
+
     // ---------------------------------------------------------------- results
+    /**
+     * M44.3 D-A2: the adapter has STARTED the work and will submit the real result later, with this
+     * opId. Nothing is closed, nothing applied; the operation is in flight. Recorded like any result so
+     * a reader sees asked → pending → outcome rather than a gap (D-A5).
+     */
+    public record Pending(long opId, String what) implements Result {
+    }
+    /**
+     * The load landed and the log is open in the adapter. THE arrival: {@code LogArrival} judges an
+     * open graph on this fact, never on a refresh observation (M44.3a).
+     *
+     * @param loggedNodeIds distinct instanceIds in the sampled records — raw, so the graph computes the
+     *                      pairing; {@code sampled} of {@code total} records were scanned
+     */
+    public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                            int sampled, int total, String mostVerboseLevel) implements Result {
+        public LogOpened {
+            loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+    }
+    /** The load did not land. The previously open log, if any, is still the open one. */
+    public record LogOpenFailed(long opId, String location, String reason) implements Result {
+    }
 
     /**
      * The adapter read the profile file. <b>This is not "the project is active"</b> — it means the file
@@ -110,12 +147,10 @@ public final class SessionEvents {
     /**
      * A log arrived, or went — and what it says about itself.
      *
-     * <p><b>This is a permanent input, not the scaffold slice 1 left behind.</b> Loading a log is
-     * asynchronous ({@code Background.run}) and the v1 driver is synchronous and single-in-flight by
-     * design (D-S0.3), so making the open an effect the processor requests would mean either an
-     * asynchronous driver or a lie about when the load finished. The load therefore stays in the
-     * adapter and reports what it found. What M44.2 removed is the DUPLICATION: this no longer says
-     * only "a log is open", it carries the evidence a decision needs.
+     * <p><b>Since M44.3 this is the route for CLOSES and menu refreshes only.</b> A log ARRIVING is
+     * {@link LogOpened}, the result of an {@code OpenLogEffect} the processor asked for; {@code LogArrival}
+     * judges on that and never on this, so a refresh cannot re-judge an unchanged log (M44.3a). The
+     * {@code open} flag and the evidence stay until the slice that retires observations altogether.
      *
      * @param loggedNodeIds distinct {@code instanceId}s seen in the sampled records — raw, so the
      *                      graph computes the pairing rather than being handed a verdict

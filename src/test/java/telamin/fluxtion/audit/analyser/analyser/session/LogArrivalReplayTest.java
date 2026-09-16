@@ -31,16 +31,29 @@ class LogArrivalReplayTest {
                 List.of(AUDITOR, "PriceListener", "QuotePublisher"));
     }
 
-    private static SessionEvents.LogObserved log(Set<String> logged) {
-        return new SessionEvents.LogObserved(true, "/l.yaml", "DECLARED", logged, logged.size(), logged.size());
+    /**
+     * M44.3: a log ARRIVES as the result of an open the processor asked for — request, then the landed
+     * result with the same opId. {@code drive} expands this marker into that pair.
+     */
+    private record Arrive(Set<String> logged, int sampled, int total) { }
+
+    private static Arrive log(Set<String> logged) {
+        return new Arrive(logged, logged.size(), logged.size());
     }
 
     private static FakeSessionAdapter drive(SessionDriver[] out, Object... facts) {
         FakeSessionAdapter adapter = new FakeSessionAdapter();
+        adapter.pendingOpens = true;
         SessionDriver driver = new SessionDriver(adapter);
         out[0] = driver;
         for (Object f : facts) {
-            driver.submit(f);
+            if (f instanceof Arrive a) {
+                long opId = driver.nextOpId();
+                driver.submit(new SessionEvents.OpenLogRequested(opId, "/l.yaml", null, "DECLARED", false));
+                driver.submit(new SessionEvents.LogOpened(opId, "/l.yaml", "DECLARED", a.logged(), a.sampled(), a.total(), null));
+            } else {
+                driver.submit(f);
+            }
         }
         return adapter;
     }
@@ -114,8 +127,7 @@ class LogArrivalReplayTest {
         SessionDriver[] d = new SessionDriver[1];
         FakeSessionAdapter adapter = drive(d,
                 graph(Set.of("supermarketTill")),
-                new SessionEvents.LogObserved(true, "/l.yaml", "DECLARED",
-                        Set.of("priceListener", "quotePublisher"), 200, 41_000));
+                new Arrive(Set.of("priceListener", "quotePublisher"), 200, 41_000));
 
         assertTrue(adapter.graphClosed);
         assertTrue(adapter.lastWarning.contains("first 200 of 41000"),

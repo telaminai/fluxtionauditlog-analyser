@@ -2373,6 +2373,10 @@ public final class MainFrame extends JFrame {
 
     public void openS3(String uri, OpenRequest request) {
         pendingRolledSetOffer = null;   // any offer belonged to the previous open
+        requestOpenLog(uri, null, request);
+    }
+
+    private void loadS3(String uri, OpenRequest request, long opId) {
         status.setText("Loading " + uri + " …");
         setBusy(true);
         Background.run(
@@ -2388,13 +2392,8 @@ public final class MainFrame extends JFrame {
                     }
                 },
                 out -> onLoaded((LogStore) out[0], uri,
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request),
-                err -> {
-                    setBusy(false);
-                    status.setText("Failed to load " + uri + ": " + rootMessage(err));
-                    JOptionPane.showMessageDialog(this, rootMessage(err), "S3 load failed",
-                            JOptionPane.ERROR_MESSAGE);
-                });
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId),
+                err -> onLoadFailed(opId, uri, request, err));
     }
 
     /** One display line per installed reader + any plugin load notes (Settings ▸ Plugins). */
@@ -2459,14 +2458,74 @@ public final class MainFrame extends JFrame {
                 int choice = JOptionPane.showConfirmDialog(this, msg.toString(),
                         "Rolled log set found", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
                 if (choice == JOptionPane.YES_OPTION) {
-                    openRolledSet(set, request);
+                    requestOpenRolledSet(set, request);
                     return;
                 }
             }
         } catch (Exception ignored) {
             // discovery is best-effort — a failed probe must never block opening the file itself
         }
-        openFileWithReader(path, null, request);
+        requestOpenLog(path.toString(), null, request);
+    }
+
+    /**
+     * M44.3: every open is a REQUEST the session processor decides on, and the load is the effect it asks
+     * for. The processor stamps the operation with an id; a load that lands for a superseded request is
+     * refused by the gate rather than believed (D-A3), and a load still in flight is reportable (D-A4).
+     */
+    private void requestOpenLog(String location, String format, OpenRequest request) {
+        var driver = session();
+        long opId = driver.nextOpId();
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested(
+                opId, location, format, request.provenance(), request.fromActionSocket()));
+    }
+
+    /** As {@link #requestOpenLog}, for a resolved rolled set (M30); the set rides beside the request. */
+    private void requestOpenRolledSet(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.RollSet set,
+                                      OpenRequest request) {
+        var driver = session();
+        long opId = driver.nextOpId();
+        pendingRolledSets.put(opId, set);
+        var files = set.ordered();
+        String location = files.get(files.size() - 1).file().getFileName() + " (+" + (files.size() - 1) + " rolled)";
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested(
+                opId, location, "rolled-set", request.provenance(), request.fromActionSocket()));
+    }
+
+    /** Rolled sets awaiting their OpenLogEffect, by opId — the effect carries facts, the adapter its object. */
+    private final java.util.Map<Long, telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.RollSet>
+            pendingRolledSets = new java.util.HashMap<>();
+
+    /**
+     * The adapter's half of {@code OpenLogEffect}: start the load the processor asked for. Returns
+     * {@code Pending} when the work is in flight, or {@code LogOpenFailed} at once when it cannot start.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result startLoad(long opId, String location, String format, OpenRequest request) {
+        var set = pendingRolledSets.remove(opId);
+        if (set != null) {
+            loadRolledSet(set, request, opId);
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "opening " + location);
+        }
+        if (S3Source.isS3(location)) {
+            loadS3(location, request, opId);
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "opening " + location);
+        }
+        Path path = Path.of(location);
+        if (format == null && !Files.isReadable(path)) {
+            return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, "cannot read log '" + location + "'");
+        }
+        loadFile(path, format, request, opId);
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending(opId, "opening " + location);
+    }
+
+    /** A load did not land: tell the processor, then whoever asked. */
+    private void onLoadFailed(long opId, String location, OpenRequest request, Throwable err) {
+        session().submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
+        if (session.processor().operationGate.inFlightWhat() == null) setBusy(false);
+        status.setText("Failed to load " + location + ": " + rootMessage(err));
+        if (!request.fromActionSocket()) {
+            JOptionPane.showMessageDialog(this, rootMessage(err), "Load failed", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
@@ -2477,7 +2536,7 @@ public final class MainFrame extends JFrame {
      * through {@code openFile}, so no load was "in flight", the previous verdict survived, and a graph
      * opened during the load was judged against the previous log.
      */
-    void openFileWithReader(Path path, String format, OpenRequest request) {
+    private void loadFile(Path path, String format, OpenRequest request, long opId) {
         status.setText("Loading " + path + " …");
         setBusy(true);
         Background.run(
@@ -2500,18 +2559,13 @@ public final class MainFrame extends JFrame {
                     }
                 },
                 out -> onLoaded((LogStore) out[0], path.toString(),
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request),
-                err -> {
-                    setBusy(false);
-                    status.setText("Failed to load " + path + ": " + rootMessage(err));
-                    JOptionPane.showMessageDialog(this, rootMessage(err), "Load failed",
-                            JOptionPane.ERROR_MESSAGE);
-                });
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId),
+                err -> onLoadFailed(opId, path.toString(), request, err));
     }
 
     /** Open a resolved rolled set as one logical log (M30). */
-    private void openRolledSet(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.RollSet set,
-                               OpenRequest request) {
+    private void loadRolledSet(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.RollSet set,
+                               OpenRequest request, long opId) {
         var files = set.ordered().stream()
                 .map(telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.Sibling::file).toList();
         pendingRolledSetOffer = null;   // the set IS the answer to any offer that was pending
@@ -2532,13 +2586,8 @@ public final class MainFrame extends JFrame {
                 },
                 out -> onLoaded((LogStore) out[0],
                         files.get(files.size() - 1).getFileName() + " (+" + (files.size() - 1) + " rolled)",
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request),
-                err -> {
-                    setBusy(false);
-                    status.setText("Failed to load rolled set: " + rootMessage(err));
-                    JOptionPane.showMessageDialog(this, rootMessage(err), "Load failed",
-                            JOptionPane.ERROR_MESSAGE);
-                });
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId),
+                err -> onLoadFailed(opId, "rolled set", request, err));
     }
 
     // ---- M35.1 · lifecycle -----------------------------------------------------------------------
@@ -2654,7 +2703,29 @@ public final class MainFrame extends JFrame {
      */
     private void onLoaded(LogStore loaded, String location,
                           telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport report,
-                          OpenRequest request) {
+                          OpenRequest request, long opId) {
+        // M44.3: the arrival is a RESULT of an operation the processor asked for. Report it first: the
+        // gate refuses a result for a superseded request (D-A3) and this load is then discarded rather
+        // than shown over the one that replaced it. LogArrival judges an open graph inside this submit
+        // (M44.3a) — its close effect runs before any of this log's state is applied below.
+        var driver = session();
+        int scanned = Math.min(loaded.size(), PAIRING_SAMPLE);
+        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
+        java.util.List<String> levels = new java.util.ArrayList<>();
+        for (int row = 0; row < scanned; row++) {
+            var rec = loaded.record(row);
+            for (var nodeLog : rec.nodeLogs()) logged.add(nodeLog.instanceId());
+            levels.add(rec.level());
+        }
+        String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels).mostVerbose();
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, request.provenance(),
+                logged, scanned, loaded.size(), level == null ? null : level.toString()));
+        if (!driver.processor().operationGate.accepted()) {
+            loaded.close();
+            if (driver.processor().operationGate.inFlightWhat() == null) setBusy(false);
+            status.setText("Discarded " + location + " — a later open superseded it while it was loading");
+            return;
+        }
         this.timeOrderReport = report == null
                 ? telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean() : report;
         if (store != null && store != loaded) store.close();   // release the previous file's channel
@@ -2698,7 +2769,9 @@ public final class MainFrame extends JFrame {
         if (topologyPanel.clearSourceGraph()) {
             status.setText(status.getText() + "  ·  the previous log's source-supplied graph closed with it");
         }
-        repairLoadedGraph(loaded);
+        refreshLoggedNodeSample();     // the observation fields, for the menu funnel's later refreshes
+        lastPairing = session.processor().pairing.verdict();   // judged in the LogOpened submit above
+        publishPairing();
         offerSourceGraph(loaded);      // M34.1 — after the re-pair, so a stale graph is gone first
         maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
         flaggedRows.clear();       // flags are per-file (model row indices)
@@ -2958,33 +3031,6 @@ public final class MainFrame extends JFrame {
                         ? " — kept, you opened it deliberately"
                         : " — kept, the source supplied it with this log")));
         return pairing;
-    }
-
-    /**
-     * M35.2, now DECIDED by the session processor (M44.2).
-     *
-     * <p>What used to be here — judge the open graph against the arriving log, keep it or close it —
-     * is {@code LogArrival} in the graph, replayable and audited. This method does what an adapter
-     * does: refresh the evidence, hand it over, and render whatever came back.
-     *
-     * <p>The load itself deliberately did NOT move. It is asynchronous ({@code Background.run}) and
-     * the driver is synchronous and single-in-flight by design, so making the open an effect the
-     * processor requests would have meant either an asynchronous driver or a lie about when the load
-     * finished. Moving the decision without the load is the honest half.
-     */
-    private void repairLoadedGraph(LogStore loaded) {
-        refreshLoggedNodeSample();
-        if (session == null) {
-            // review F3: in a fresh window nothing had built the driver, so the verdict promised for
-            // "when the log lands" was null and context showed the pair with no verdict at all
-            // (pre-existing on 1.13.0). Building it observes the log and graph now in force.
-            session();
-        } else {
-            noteGraphState();
-            noteLogState();                 // the arrival — LogArrival decides on this
-        }
-        lastPairing = session.processor().pairing.verdict();
-        publishPairing();
     }
 
     /**
@@ -3681,9 +3727,22 @@ public final class MainFrame extends JFrame {
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CloseGraphEffect e -> {
                 Path graphFile = topologyPanel.loadedGraphFile();
+                String current = graphFile == null ? null : graphFile.toString();
+                if (e.graphPath() != null && current != null && !e.graphPath().equals(current)) {
+                    // M44.3a: the decision judged a graph that is no longer the open one — close nothing
+                    yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed(
+                            opId, "closeGraph", "the graph judged (" + e.graphPath()
+                                    + ") is no longer the open one (" + current + "); nothing closed");
+                }
                 if (graphFile != null) sessionClosed.put("graph", graphFile.toString());
                 closeGraph();
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed(opId);
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.OpenLogEffect e -> {
+                // M44.3: the request's audience is this operation's (R3-B1); the load starts here and
+                // answers when it lands — Pending now, LogOpened/LogOpenFailed later, same opId.
+                sessionInteractive = !e.fromSocket();
+                yield startLoad(opId, e.location(), e.format(), new OpenRequest(e.fromSocket(), e.provenance()));
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
@@ -3946,7 +4005,7 @@ public final class MainFrame extends JFrame {
                             "no installed reader has format '" + format + "' — installed: "
                                     + readerRegistry.describeReaders());
                 }
-                openFileWithReader(f, format, request);
+                requestOpenLog(path, format, request);
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "applied",
                         java.util.Map.of("log", path, "format", format, "loading", true));
             }
@@ -4437,7 +4496,7 @@ public final class MainFrame extends JFrame {
             try {
                 var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(files);
                 // M35.9: this path never set the socket flag, so its time-order modal fired on agents
-                openRolledSet(set, OpenRequest.socket(provenance));   // async; the echo reports what was decided NOW
+                requestOpenRolledSet(set, OpenRequest.socket(provenance));   // async; the echo reports what was decided NOW
                 Map<String, Object> echo = new java.util.LinkedHashMap<>();
                 echo.put("files", set.ordered().stream()
                         .map(s -> s.file().getFileName().toString()).toList());
@@ -4544,6 +4603,9 @@ public final class MainFrame extends JFrame {
                 pair.put("auditLogging", audit.verdict().name().toLowerCase(java.util.Locale.ROOT));
                 if (audit.message() != null) pair.put("auditLoggingNote", audit.message());
                 out.put("graphPairing", pair);
+                // M44.3 D-A4: a load that has not landed is reportable — today a hung load looked idle
+                String inFlight = session == null ? null : session.processor().operationGate.inFlightWhat();
+                if (inFlight != null) out.put("inFlight", inFlight);
             }
             // M37: the processors as a LIST — configured, selected, and whether each resolves to source.
             // A dropdown shows one value at a time; the panel and the agent both need the set.

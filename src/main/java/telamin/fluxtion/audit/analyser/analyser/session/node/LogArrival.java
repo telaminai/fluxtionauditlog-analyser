@@ -57,10 +57,17 @@ public class LogArrival implements EventLogSource {
         this.auditLog = log;
     }
 
+    /**
+     * M44.3 / M44.3a: the judgement fires on {@link SessionEvents.LogOpened} — a real arrival this
+     * processor asked for — and never on a refresh observation. The 1.13.1 review (R2-F3) found the old
+     * observation-driven version closing the graph that REPLACED the one judged: a menu refresh observed
+     * an unchanged log before the new graph, and the close effect cleared whatever was current. The
+     * effect now also names the graph it judged, so an adapter holding a different one closes nothing.
+     */
     @OnEventHandler
-    public boolean onLogObserved(SessionEvents.LogObserved event) {
-        if (!event.open()) {
-            return false;                       // a log closing decides nothing about the graph
+    public boolean onLogOpened(SessionEvents.LogOpened event) {
+        if (!gate.accepted()) {
+            return false;                       // a superseded load: nothing to judge
         }
         if (!openGraph.isOpen()) {
             auditLog.info("decision", "noGraph").info("reason", "nothingToJudge");
@@ -89,7 +96,7 @@ public class LogArrival implements EventLogSource {
                     .info("reason", "graphFitsThisLog")
                     .info("matched", pairing.verdict().matched())
                     .info("logged", pairing.verdict().logged());
-            effects.request(new SessionEffects.ShowStatusEffect(0,
+            effects.request(new SessionEffects.ShowStatusEffect(event.opId(),
                     "graph kept — " + note(pairing)));
             return true;
         }
@@ -98,8 +105,8 @@ public class LogArrival implements EventLogSource {
                 .info("reason", "graphDoesNotDescribeThisLog")
                 .info("matched", pairing.verdict().matched())
                 .info("logged", pairing.verdict().logged());
-        effects.request(new SessionEffects.CloseGraphEffect(0));
-        effects.request(new SessionEffects.ShowWarningEffect(0,
+        effects.request(new SessionEffects.CloseGraphEffect(event.opId(), openGraph.graphPath()));
+        effects.request(new SessionEffects.ShowWarningEffect(event.opId(),
                 "graph closed — " + note(pairing)
                         + ". Reopen it deliberately if you meant to compare them."));
         return true;
