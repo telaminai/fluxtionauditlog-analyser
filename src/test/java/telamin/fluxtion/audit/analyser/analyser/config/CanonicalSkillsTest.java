@@ -257,7 +257,7 @@ class CanonicalSkillsTest {
     private static void requireFullHistory() throws Exception {
         Process p = new ProcessBuilder("git", "rev-parse", "--is-shallow-repository").start();
         String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
-        assertNotEquals("true", out, "this is a shallow clone: the pinned revision cannot be read from history."
+        assertTrue(!"true".equals(out), "this is a shallow clone: the pinned revision cannot be read from history."
                 + " Check out with fetch-depth: 0 (the workflows do) before trusting a failure of the revision checks");
     }
 
