@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-09-16
+
 ### Added
 - **The binary format has a specification and a conformance corpus, and the analyser passes it.**
   The runtime now publishes *FLXA — the binary audit log format* with **twenty-six** fixtures shipped in
