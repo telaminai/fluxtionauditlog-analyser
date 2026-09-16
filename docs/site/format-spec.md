@@ -129,9 +129,13 @@ Both markers are the reader's **display vocabulary**, and every consumer that sh
 record works from the parsed model, never from that spelling. The consumers pinned by test are:
 the `read` verb and the report table assembly (the same call, the same parsed record — a table never
 re-parses the record's text under the other grammar, `ReportBinaryEvidenceTest`); the record detail's
-exact-key click (a token is a key only when the parsed node logged that name, so a click on
-`@unkeyed: 42` never offers the property `unkeyed`, `DetailPanelExactClickTest`); the logical view
-(a keyless entry prints as `@unkeyed`, never as the word `null`, `LogicalLogViewTest`); the topology
+exact-key click (the tokenizer records the complete key span with its parsed entry; neither a partial
+key nor text inside a value is an exact target, `DetailPanelExactClickTest`). A click on
+`@unkeyed: 42` does not resolve to `unkeyed` as an exact key; the node fallback may offer that genuine
+named property alongside the node's other named keys. Multiline items have no exact-click spans and
+retain this fallback. The logical view, step status and both PDF evidence assembly paths use the same
+evidence formatter: keyless entries print as bare `@unkeyed`, while named keys needing quoting,
+including the business name `"@unkeyed"`, are quoted and escaped (`EvidenceIdentityTest`). The topology
 graph menu, series, diff and the scorer (rounds 8 and 9).
 
 **Encoding is selected from the reader's declared context. Logged content MUST NOT select or change

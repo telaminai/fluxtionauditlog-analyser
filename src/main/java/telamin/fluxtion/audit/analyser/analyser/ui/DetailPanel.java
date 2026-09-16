@@ -75,7 +75,7 @@ public final class DetailPanel extends JPanel {
         explain.setToolTipText("Send the selected record(s) to the LLM assistant for a plain-English explanation");
         explain.addActionListener(e -> explainAction.run());
         JButton copy = new JButton("Copy");
-        copy.setToolTipText("Copy the shown record(s) to the clipboard");
+        copy.setToolTipText("Copy raw record text for inspection; not a reloadable log export");
         copy.addActionListener(e -> copyToClipboard());
         bar.add(explain);
         bar.add(copy);
@@ -354,7 +354,13 @@ public final class DetailPanel extends JPanel {
             rec = recordAtLayoutOffset(offset);
         } else {
             if (offset < 0 || offset > shownText.length()) return List.of();
-            String[] exact = exactKeyAt(shownText, offset, recordAt(offset));
+            rec = recordAt(offset);
+            int recordStart = 0;
+            for (int start : recordStarts) {
+                if (start > offset) break;
+                recordStart = start;
+            }
+            String[] exact = exactKeyAt(rec == null ? null : rec.rawText(), offset - recordStart, rec);
             if (exact != null) return List.<String[]>of(exact);
             NodeRef ref = SourceNavigation.parseNodeLogLine(SourceNavigation.lineAt(shownText, offset));
             if (ref == null) return List.of();
@@ -399,7 +405,9 @@ public final class DetailPanel extends JPanel {
         }
         java.awt.geom.Rectangle2D r = text.modelToView2D(offset);
         if (r == null) throw new IllegalStateException("the pane has no view geometry for offset " + offset);
-        return graphKeysAt(new java.awt.Point((int) r.getX() + 1, (int) r.getCenterY()));
+        var point = new java.awt.Point((int) r.getX() + 1, (int) r.getCenterY());
+        if (text.viewToModel2D(point) != offset) throw new IllegalStateException("click did not map back to " + offset);
+        return graphKeysAt(point);
     }
 
     /** The "Add instanceId.key to graph" submenu with current / named / new-graph targets. */
@@ -430,41 +438,13 @@ public final class DetailPanel extends JPanel {
     }
 
     /**
-     * The {@code {instanceId, key}} whose key token is at {@code offset} of {@code shownText}, resolved
-     * against the PARSED record and never against the spelling alone. A token names a series only when
-     * the record's node logged an entry with exactly that key: the reader's display markers
-     * ({@code @unkeyed: 42}, {@code @invoked: true}) are not keys, so the identifier they contain must
-     * not be offered as one — a business key spelled {@code unkeyed} in the same node is a different
-     * entry, and the click on the marker must not reach it. Keyless evidence has no series (round 10).
+     * Resolves a record-local offset only through source spans emitted with the parsed entries.
+     * Neither a partial key nor text inside a value can manufacture an exact-key target. Records
+     * without spans (including multiline items) use the existing node-level fallback.
      */
     static String[] exactKeyAt(String shownText, int offset, LogRecord rec) {
-        String line = SourceNavigation.lineAt(shownText, offset);
-        NodeRef ref = SourceNavigation.parseNodeLogLine(line);
-        if (ref == null) return null;
-        int lineStart = shownText.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
-        int col = Math.min(offset - lineStart, line.length());
-        if (col < 0) return null;
-        int s = col;
-        while (s > 0 && isIdentChar(line.charAt(s - 1))) s--;
-        int end = col;
-        while (end < line.length() && isIdentChar(line.charAt(end))) end++;
-        if (s >= end) return null;
-        // a reserved marker: the reader's '@' prefix belongs to the reader, not to a key
-        if (s > 0 && line.charAt(s - 1) == '@') return null;
-        String token = line.substring(s, end);
-        int after = end;
-        while (after < line.length() && line.charAt(after) == ' ') after++;
-        // a key token is immediately followed by ':'; the instanceId itself doesn't count
-        if (after >= line.length() || line.charAt(after) != ':' || token.equals(ref.instanceId())) return null;
-        if (rec == null) return null;
-        for (NodeLog nl : rec.nodeLogs()) {
-            if (!nl.instanceId().equals(ref.instanceId())) continue;
-            for (var kv : nl.entries()) if (token.equals(kv.key())) return new String[]{ref.instanceId(), token};
-        }
-        return null;
-    }
-
-    private static boolean isIdentChar(char c) {
-        return Character.isLetterOrDigit(c) || c == '_';
+        if (rec == null || shownText == null || !shownText.equals(rec.rawText())) return null;
+        var span = rec.keyAt(offset);
+        return span == null ? null : new String[]{span.instanceId(), span.key()};
     }
 }

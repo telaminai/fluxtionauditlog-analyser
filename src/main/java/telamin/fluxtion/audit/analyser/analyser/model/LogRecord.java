@@ -45,8 +45,8 @@ public final class LogRecord {
     private final boolean hasBreach;       // node-logs contain a "...Breach: true" (anomaly cue)
 
     private final String rawText;
-    private final Supplier<List<NodeLog>> nodeLogsSupplier;
-    private volatile List<NodeLog> nodeLogs;   // memoised
+    private final Supplier<NodeLogData> nodeLogDataSupplier;
+    private volatile NodeLogData nodeLogData;   // entries and positions memoised together
 
     private LogRecord(Builder b) {
         this.fileOffset = b.fileOffset;
@@ -72,19 +72,35 @@ public final class LogRecord {
         this.hasNaN = b.hasNaN;
         this.hasBreach = b.hasBreach;
         this.rawText = b.rawText;
-        this.nodeLogsSupplier = b.nodeLogsSupplier;
+        Supplier<List<NodeLog>> suppliedNodes = b.nodeLogsSupplier;
+        this.nodeLogDataSupplier = b.nodeLogDataSupplier != null ? b.nodeLogDataSupplier : () -> {
+            List<NodeLog> nodes = suppliedNodes == null ? List.of() : suppliedNodes.get();
+            return new NodeLogData(nodes == null ? List.of() : nodes, List.of());
+        };
     }
 
     /** Lazily parses (once) and returns the node-logs for this record. Never {@code null}. */
     public List<NodeLog> nodeLogs() {
-        List<NodeLog> local = nodeLogs;
+        return nodeLogData().nodes();
+    }
+
+    /** No source span means no exact-key claim; hand-built records and multiline items may have none. */
+    public NodeLogData.KeySpan keyAt(int rawOffset) {
+        for (var span : nodeLogData().keySpans()) {
+            if (span.start() <= rawOffset && rawOffset < span.end()) return span;
+        }
+        return null;
+    }
+
+    private NodeLogData nodeLogData() {
+        NodeLogData local = nodeLogData;
         if (local == null) {
             synchronized (this) {
-                local = nodeLogs;
+                local = nodeLogData;
                 if (local == null) {
-                    local = nodeLogsSupplier == null ? List.of() : nodeLogsSupplier.get();
-                    if (local == null) local = List.of();
-                    nodeLogs = local;
+                    local = nodeLogDataSupplier.get();
+                    if (local == null) local = new NodeLogData(List.of(), List.of());
+                    nodeLogData = local;
                 }
             }
         }
@@ -129,6 +145,7 @@ public final class LogRecord {
         private boolean hasNaN, hasBreach;
         private String rawText;
         private Supplier<List<NodeLog>> nodeLogsSupplier;
+        private Supplier<NodeLogData> nodeLogDataSupplier;
 
         public Builder fileOffset(long v) { this.fileOffset = v; return this; }
         public Builder byteLength(int v) { this.byteLength = v; return this; }
@@ -153,6 +170,7 @@ public final class LogRecord {
         public Builder hasBreach(boolean v) { this.hasBreach = v; return this; }
         public Builder rawText(String v) { this.rawText = v; return this; }
         public Builder nodeLogsSupplier(Supplier<List<NodeLog>> v) { this.nodeLogsSupplier = v; return this; }
+        public Builder nodeLogDataSupplier(Supplier<NodeLogData> v) { this.nodeLogDataSupplier = v; return this; }
 
         public LogRecord build() { return new LogRecord(this); }
     }

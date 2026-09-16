@@ -1,0 +1,72 @@
+STATUS: IMPLEMENTED AND AUTHOR-VERIFIED; INDEPENDENT REVIEW PENDING.
+
+Base: 06d7cb28. This response is uncommitted. No release or push was performed.
+The owner requested an independent-review handoff for another LLM rather than a separate agent.
+These results therefore do not constitute independent acceptance of the fixes.
+
+R11-1 — exact click identity
+
+The old guard checked whether a word from the displayed line existed somewhere among a node's keys.
+It selected price when the click was inside "price: adjusted", desk.price, or a string value containing
+price: 42. Reproduced before changing production code.
+
+NodeLogTokenizer now produces NodeLogData: entries and complete key spans in one parse. RecordParser
+maps block-relative spans back to raw-record offsets, accounting for CRLF and skipped comments.
+LogRecord memoises that one result. DetailPanel consumes it and adjusts for the displayed record's
+start; it does not tokenize the displayed line to decide an exact key.
+
+Limits are deliberate: multiline node items parse as before but publish no exact-click spans, because
+the tokenizer folds their continuation whitespace. Their node-level menu remains available where the
+clicked line identifies the node. Hand-built records without position data likewise make no exact claim.
+The text evidence itself is unchanged. The wire format and reader's grammar declaration are unchanged.
+
+R11-2 — evidence formatting
+
+EvidenceText is shared by LogicalLogView, StepCursor and both MainFrame report-evidence paths.
+Absence is bare @unkeyed; named keys outside the plain-name vocabulary are quoted and escaped, so a
+business key named @unkeyed cannot look like absence. Quoted values retain their string identity.
+This is an inspection format, not a new reloadable export. The Copy tooltip states that limitation.
+
+R11-3 and specification corrections
+
+M61 is labelled as the six-node quote engine with sparse logging, not a 30-node dense graph.
+The older JFR explanation is explicitly separate from that measurement. format-spec §3a describes
+complete spans and distinguishes an exact click from the node fallback, which may offer a genuine
+named unkeyed property. ReportBinaryEvidenceTest's historical explanation is corrected: the old
+named null field survived, while the string retained encoding quotes.
+
+VERIFICATION
+
+- Three new regression tests failed before production edits: wrong exact key, logical marker alias,
+  and step-status null alias. Six tests ran, three failed, zero errors.
+- Focused parser/click/report suite passed after the edits.
+- mvn -q -o clean verify: 1,385 tests; zero failures, errors or skips; Corretto 21.0.9.
+- The built jar contains fluxtion-runtime 1.0.15. Its generated reduced POM was refreshed by packaging,
+  not hand-edited, to match the released runtime and builder pins in pom.xml.
+- Parser output parity: 18 audit-containing .yml/.yaml/.log/.txt fixtures smaller than 1 MB, under both
+  declared grammars, 1,584 record/grammar pairs. Event identity, time fields and parsed node data have
+  the same SHA-256 before and after: 3a0e64c739a401d5460d6ececb62f2161a7fe4a024c1e1da041f583ec0c1822c.
+  This is semantic parity for that fixture set, not an exhaustive grammar proof or a performance test.
+- Four regression methods passed with the packaged jar's production classes first on the classpath.
+- Built-jar session acceptance: 22 checks passed, including no-op and refused transitions.
+- AI-menu harness: reports 9 passes and 3 manual checks remaining. One pass is not valid evidence of
+  OTHER_INSTANCE: the predicate is true for either distinct process owning the endpoint without reading
+  either process's actual classified status. Do not count it as a verified indicator state.
+- Live template client: 6 checks passed, from public catalogue to downloaded profile opened locally.
+  No downloaded project was built or executed.
+- Packaged probes: rejected key-profile name wipes the caller buffer and writes nothing; unsupported
+  units refuse before store delivery; vocabulary-bearing and legacy GraphML are distinguished; damaged
+  input scores exit 2 even when its readable prefix agrees with itself.
+- Tool smoke 24/24, strict MkDocs build, source-data sweep and diff whitespace check pass.
+
+WHAT NEEDS THE INDEPENDENT REVIEW
+
+Attack span arithmetic, lazy publication, continuation fallback, repeated records and unusual keys.
+Check that the position model does not introduce a parsing change or excessive retained state.
+Read the existing semantic tests as well as the new tests; equality of one fixture family is not a proof.
+Check both report paths and actual click menus on a shown window. PDF formatter execution plus source
+wiring checks do not constitute inspection of a final rendered PDF.
+
+The broader review still does not prove a fresh-model install/connect/tour, every modal dialog or live
+theme change, a new performance benchmark, or a fresh audit of every earlier feature's test sensitivity.
+Core/compiler release acceptance is not reopened by this analyser-only response.

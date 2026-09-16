@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * the displayed line, so a click on the reader's {@code @unkeyed: 42} marker offered the series
  * {@code n.unkeyed} — a DIFFERENT, named property when the node also logged {@code unkeyed: 99}.
  * The click is resolved through the pane's real geometry (model → view → model) on the EDT, against the
- * parsed record: a token is a key only when the node logged an entry with exactly that name, and the
- * reader's {@code @} markers are never keys.
+ * parsed record: the tokenizer records a complete source span with the entry. Membership by spelling
+ * alone is insufficient; a colon can occur inside a quoted key or a string value (round 11).
  */
 class DetailPanelExactClickTest {
 
@@ -48,6 +48,10 @@ class DetailPanelExactClickTest {
 
     /** Runs {@code probe} against a panel showing {@code rec} in the Text view, on the EDT. */
     private static <T> T onEdt(LogRecord rec, boolean textView, Function<DetailPanel, T> probe) throws Exception {
+        return onEdt(rec, textView, false, probe);
+    }
+
+    private static <T> T onEdt(LogRecord rec, boolean textView, boolean wrap, Function<DetailPanel, T> probe) throws Exception {
         AtomicReference<T> out = new AtomicReference<>();
         AtomicReference<Throwable> failure = new AtomicReference<>();
         javax.swing.SwingUtilities.invokeAndWait(() -> {
@@ -62,6 +66,9 @@ class DetailPanelExactClickTest {
                 panel.doLayout();
                 panel.showRecords(List.of(rec));
                 panel.selectTextView(textView);
+                var wrapMethod = DetailPanel.class.getDeclaredMethod("setWrap", boolean.class);
+                wrapMethod.setAccessible(true);
+                wrapMethod.invoke(panel, wrap);
                 out.set(probe.apply(panel));
             } catch (Throwable t) {
                 failure.set(t);
@@ -124,17 +131,21 @@ class DetailPanelExactClickTest {
 
     @Test
     void theExactClickIsResolvedAgainstTheParsedRecord_notTheSpelling() {
-        // the pure resolver behind the click, so the rule reads without a pane: a token that is not an
-        // entry of that node in the PARSED record is not a key, whatever the line spells
+        // Foreign display offsets cannot borrow the source spans of a different parsed record.
         String text = "---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { @unkeyed: 42, unkeyed: 99, other: 1}\n";
         LogRecord rec = new telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore(
                 "---\neventLogRecord:\n  logTime: 1\n  nodeLogs:\n    - n: { unkeyed: 99}\n").record(0);
         int marker = text.indexOf("@unkeyed") + 1;
         int named = text.indexOf(" unkeyed: 99") + 2;
         int other = text.indexOf("other: 1") + 1;
-        assertNull(DetailPanel.exactKeyAt(text, marker, rec), "the marker's identifier is not a key");
-        assertArrayEquals(new String[]{"n", "unkeyed"}, DetailPanel.exactKeyAt(text, named, rec));
-        assertNull(DetailPanel.exactKeyAt(text, other, rec), "spelled like a key, but the record has no such entry");
+        // the three foreign-text calls all fail the rawText guard: text is not this record's raw text, so no
+        // offset in it can borrow the record's spans, whatever the text spells at that offset
+        assertNull(DetailPanel.exactKeyAt(text, marker, rec), "foreign display text: no span, whatever it spells");
+        assertNull(DetailPanel.exactKeyAt(text, named, rec), "foreign display text: no span, whatever it spells");
+        assertNull(DetailPanel.exactKeyAt(text, other, rec), "foreign display text: no span, whatever it spells");
+        // the record's own raw text resolves through its spans
+        assertArrayEquals(new String[]{"n", "unkeyed"}, DetailPanel.exactKeyAt(rec.rawText(),
+                rec.rawText().indexOf("unkeyed") + 1, rec));
         assertNull(DetailPanel.exactKeyAt(text, named, null), "no record, no key");
     }
 
@@ -157,5 +168,40 @@ class DetailPanelExactClickTest {
         assertEquals(2, offered.size(), pairs(offered));
         assertEquals("unkeyed", offered.get(0)[1]);
         assertEquals("price", offered.get(1)[1]);
+    }
+
+    @Test
+    void aClickUsesTheWholeEntryKey_notAPartialKeyOrTextValue(@TempDir Path dir) throws Exception {
+        Path path = dir.resolve("entry-identity.flxa");
+        try (var out = Files.newOutputStream(path); var writer = new BinaryLogWriter(out)) {
+            Clock clock = new Clock();
+            clock.init();
+            var r = new BinaryLogRecord(clock);
+            r.triggerObject(new Tick());
+            r.addRecord("n", "price: adjusted", 42);
+            r.addRecord("n", "desk.price", 43);
+            r.addRecord("n", "text", "a string containing price: 42");
+            r.addRecord("n", "price", 99);
+            writer.processLogRecord(r);
+        }
+        LogRecord rec;
+        try (var store = SpiLogStore.open(new BinaryAuditReader(), path)) { rec = store.record(0); }
+        for (boolean wrap : new boolean[]{false, true}) {
+            for (String key : List.of("price: adjusted", "desk.price")) {
+                int at = rec.rawText().indexOf(key) + key.indexOf("price") + 1;
+                var offered = onEdt(rec, true, wrap, panel -> {
+                    try { return panel.graphKeysAtDocumentOffset(at); }
+                    catch (Exception e) { throw new IllegalStateException(e); }
+                });
+                assertEquals(1, offered.size(), pairs(offered));
+                assertEquals(key, offered.get(0)[1], "the complete clicked key, wrap=" + wrap);
+            }
+            int at = rec.rawText().indexOf("price: 42") + 1;
+            var offered = onEdt(rec, true, wrap, panel -> {
+                try { return panel.graphKeysAtDocumentOffset(at); }
+                catch (Exception e) { throw new IllegalStateException(e); }
+            });
+            assertEquals(4, offered.size(), "a value is not an exact-key click: " + pairs(offered));
+        }
     }
 }

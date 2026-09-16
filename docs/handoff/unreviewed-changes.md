@@ -14,6 +14,34 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☑ 2026-09-15 · round-11 response, based on `06d7cb28` · INDEPENDENTLY REVIEWED 2026-09-15, accepted with one correction
+
+Response: [handoff_analyser_round11_response_2026-09-15.txt](handoff_analyser_round11_response_2026-09-15.txt).
+Independent review: `review_analyser_round11_response_2026-09-15.txt` (core-baseline `design/handoff/`, off-repo):
+R11-1, R11-2 and R11-3 accepted as closed CLASSES (118 key-character clicks per arm across six arms, span
+integrity over every offset, mutation controls for each new test). One correction required and folded into the
+commit: **F1** — the shared formatter quoted legacy text values (`C:\temp\x` rendered `"C:\\temp\\x"` in the
+logical view); values are now quoted only when the parsed entry says the reader quoted them, pinned by a legacy
+red-then-green test. F2 (three vacuous assertions) reworded. The broader review's B1 (guided-start fallback said
+"never ran"; it now says "never logged" and why) and B3 (the CHANGELOG folded to one Added/Changed/Fixed, stale
+fixture count and builder version corrected) are in the same commit. B2 (`verify-m43.py` tautology) is deferred
+to after the release. Not checked by either review: a rendered PDF, a native popup, the fresh-model guided tour.
+
+The tokenizer now emits complete key positions with its entries; the detail panel consumes those
+positions rather than inferring identity from a displayed word. Logical view, step status and both
+report-evidence paths share the same name/value formatter. The six-node sparse M61 workload label
+and format-spec wording are corrected. The package-generated reduced POM now matches released pins.
+
+Author checks: three regressions failed before production edits; clean verify **1,385/1,385**;
+docs strict build; tool smoke **24/24**; packaged session acceptance **22/22**; packaged regression
+probes **4/4**; live template download/open **6/6**. Parser semantic parity held over **18 fixtures,
+1,584 record/grammar pairs**, comparing the pre-fix parser with the packaged candidate.
+
+Reviewer must attack the new source-position mapping (CRLF, skipped comments, continuations,
+repeated nodes/records, escaped keys), the conservative multiline fallback, and the shared formatter
+through actual UI/report consumers. The broad review also leaves the fresh-model guided tour and
+modal-dialog/theme checks unverified; a green script is not their sign-off.
+
 
 ---
 
@@ -68,7 +96,7 @@ fourth level still produces ugly names and has no direct test; `Fluxtion-Consume
 solving; the Java/JavaScript conformance corpus, dependency-tree proof, CheerpJ smoke and Stitch
 byte-parity migration are specified but unbuilt; M49's evidence package remains unbuilt.
 
-_No further entries awaiting review._
+_No further entries awaiting review; the entries below are historical._
 
 ---
 

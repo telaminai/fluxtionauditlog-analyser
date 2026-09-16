@@ -151,8 +151,11 @@ Each beat: drive the view, then let the user read it.
 
 1. **What ran** — `open` the demo log and graph, `topology` to the first record, step a cycle. *"That
    ordering is derived by the compiler, not observed."*
-2. **What never ran** — `coverage`. The proof-of-absence, which needs the graph **and** the log and is
-   available from neither alone. This is the moment the product is unlike a log viewer.
+2. **What has no recorded output** — `coverage`. Declared nodes that never logged, which needs the graph
+   **and** the log and is available from neither alone. This is the moment the product is unlike a log
+   viewer. It is not a proof of absence: without invocation tracing a node that ran and logged nothing is
+   indistinguishable from one that did not run, and the coverage answer says which claim it is making
+   (review B1, 2026-09-15). The traced demo log is the contrast where the stronger claim holds.
 3. **A question answered** — `series` or `aggregate` with a threshold, `goto` the crossing, `flag` it.
    The user ends with a bookmarked record they can re-open.
 

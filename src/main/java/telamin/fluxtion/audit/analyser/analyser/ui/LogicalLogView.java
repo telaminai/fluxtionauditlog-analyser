@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.export.EvidenceText;
 
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
@@ -93,7 +94,7 @@ public final class LogicalLogView {
             for (NodeLog node : record.nodeLogs()) {
                 int start = sb.length();
                 int headerStart = sb.length();
-                sb.append("  ").append(node.instanceId()).append('\n');
+                sb.append("  ").append(EvidenceText.name(node.instanceId())).append('\n');
                 int headerEnd = sb.length() - 1;
 
                 String method = null;
@@ -104,10 +105,8 @@ public final class LogicalLogView {
                 if (method == null && !node.entries().isEmpty()) method = node.entries().get(0).key();
 
                 for (KV kv : node.entries()) {
-                    // keyless evidence has no name to print; the reader's marker keeps it distinct from a
-                    // business key spelled "null" (round 10)
-                    String shownKey = kv.key() == null ? UNKEYED_MARKER : kv.key();
-                    sb.append("      ").append(shownKey).append(": ").append(kv.rawValue()).append('\n');
+                    sb.append("      ").append(EvidenceText.name(kv.key()))
+                            .append(": ").append(EvidenceText.value(kv)).append('\n');
                 }
                 blocks.add(new Block(start, sb.length(), headerStart, headerEnd, node.instanceId(), method));
             }
@@ -116,7 +115,7 @@ public final class LogicalLogView {
     }
 
     /** How a keyless entry is shown: the binary reader's own marker, so the two views agree. */
-    public static final String UNKEYED_MARKER = "@unkeyed";
+    public static final String UNKEYED_MARKER = EvidenceText.UNKEYED_MARKER;
 
     /** True when this key is one the audit framework adds rather than one the node chose to log. */
     public static boolean isFrameworkKey(String key) {

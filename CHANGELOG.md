@@ -6,66 +6,168 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-### Fixed
-- **A report table read binary evidence under the wrong grammar.** The table assembly re-parsed each
-  record's text as legacy YAML instead of taking the store's parsed record, so a binary log's quoted
-  business key `"@invoked": 123` became the trace marker's `true`, a keyless value became a named field
-  `@unkeyed`, and a string value kept its quotes. The table now reads the same parsed record the `read`
-  verb does, and a test holds the two to the same answer.
-- **Clicking a keyless value in the record detail offered a different, named series.** The exact-key
-  click extracted an identifier from the displayed line, so `@unkeyed: 42` resolved to the property
-  `unkeyed` — a real, different entry when the node also logged one. A click is now resolved against the
-  parsed record, the reader's `@` markers are never keys, and the Logical view's right-click resolves
-  its node through its own layout rather than the raw text's offsets. The Logical view prints a keyless
-  entry as `@unkeyed`, not as the word `null`.
-- **The binary record's clock readings are the framework's, and `endTime` is a choice the profile
-  makes.** `BinaryLogRecord` took *both* `logTime` and `endTime` from a method chosen by a `-Dclock=`
-  **system property** — a benchmark switch that had reached production code — and its default re-read
-  the wall clock instead of using the reading `Clock.eventReceived` had already taken. `logTime` is
-  now that reading, `endTime` a live second reading when it is recorded, and the property selects
-  nothing. **What ships:** the default clock strategy is unchanged, `System::currentTimeMillis`
-  (12.9 ns a call, millisecond resolution); `ClockStrategy.fastEpochMillisClock()` (8.0 ns) and
-  `nanoEpochClock()` are opt-in projections of `nanoTime` that never re-anchor to a wall-clock
-  correction, which is why neither is the default; and `endTime` stays **on by default** — 1.0.14 and
-  every release before it emitted it on every text record — and is **off under `LOW_LATENCY_AUDIT` and
-  `addLowLatencyEventLog`**, restorable with `recordEndTime(true)`. The unit of `getWallClockTime()`
-  does not change; nanosecond timestamps are the next release. Measured on the release candidate
-  (`tools/bench/latency-kit/RECORDED-BASELINES.md` M61, GraalVM 25.3.4): the audited binary record
-  under the profile is **23.8 ns on JIT and 23.1 native**, against 7.5 / 13.2 unaudited; recording
-  `endTime` costs a further 13 ns. The binary figures this project published before M61 were
-  measured under development defaults that review reverted; M61 replaces them.
-
-### Fixed
-- **Method tracing works in a binary audit log.** `addTrace` wrote into a byte buffer that the record's
-  `length()` does not describe, so a trace produced no visible bytes — and because nothing marked the
-  record as having content, a **trace-only record was never published at all**. `AUDITED` + `BINARY`
-  therefore lost every trace, silently. Traces are now ordinary two-slot entries carrying a new
-  `TAG_TRACE(8)`: a node id, no key, no value. Every entry stays exactly two slots, which is the property
-  that lets a reader skip one without decoding it. A second defect surfaced with the first: the reader
-  counted a trace's absent key as an **unresolved id**, the diagnostic that distinguishes a rolled file
-  from a corrupt one, so every traced log would have looked corrupt. Tag 8 was unallocated and no log in
-  the wild contains a trace — `LOW_LATENCY_AUDIT` disables tracing — so nothing that exists is broken by
-  the change, and readers built against the earlier format report tag 8 as unknown rather than
-  mis-decoding it. The normative format specification is updated.
+### Added
+- **The binary format has a specification and a conformance corpus, and the analyser passes it.**
+  The runtime now publishes *FLXA — the binary audit log format* with **twenty-six** fixtures shipped in
+  its jar (`f01`–`f26`); the analyser's `FlxaConformanceTest` reads every one through its reader, parser and
+  tokenizer, and the format page links the two. "Reads FLXA" now means passing that suite.
+- **Open a binary audit log in the analyser.** A `FLXA` binary log now opens like any other, recognised
+  by its magic bytes rather than a file extension, so the faster record format is no longer
+  command-line only. Requires `fluxtion-runtime` 1.0.15 or later. Truncated logs open too — a half-written trailing record is the normal end state
+  of a crashed process, and the reader reports the unusable bytes instead of refusing the file. What
+  the binary format does not carry (`groupingId`, `thread`) is left out rather than invented.
+- **Compare two audit logs on business outcomes, headlessly.** `ScoreCommand` reads both logs through
+  the shipped reader and parser and reports whether every published figure agrees after every scored
+  event. It reads Fluxtion's natural form (`book: { mid: 17.1}` → `book.mid`) and a tagged
+  `stage`/`value` convention — **the dialect is declared by the caller, never inferred from key names**,
+  because the record format reserves none. **It refuses to report a score it cannot stand behind**: an
+  event-sequence mismatch, a differing event type, an empty expectation, an expectation carrying no
+  figures at all, a figure never published, a figure outside the contract, and any non-finite value are
+  each a distinct verdict rather than a silently favourable number. Ten guards, one per comparison
+  defect found in this project's history — **five of them found by independent reviewers executing
+  against the first implementation.** Exit codes: `0` pass, `1` differences, `2` untrustworthy,
+  `3` usage or I/O.
+- **The analyser now reads the Fluxtion compiler's graph metadata when a `.graphml` carries it**, and
+  says when it does not. A processor built with a recent compiler can declare which nodes are able to
+  write audit output at all, what order nodes dispatch in, and whether an update crosses each edge —
+  facts the analyser previously had to work out by reading source, and often could not. **Coverage is
+  the visible difference:** a node the graph says cannot log is no longer counted as one that stayed
+  silent, and that now works without the source in hand, which is the normal case for someone else's
+  log. Graphs without the metadata — every graph produced before it existed — are read exactly as
+  before, and every answer says which of the two it came from.
+- **Guided start: install and tour the analyser with an AI assistant.** A new docs page carries a
+  copy-paste prompt that installs the analyser via JBang, opens it, has you connect your assistant, and
+  then walks you through three things by driving the UI. A matching `guided-start` skill runs the tour
+  inside an already-connected session. The assistant is instructed to point at the screen rather than
+  state figures you cannot see, to use your own log if one is open, and never to open anything over your
+  work without asking. No key or account is needed.
+- **Create a playground starter without leaving the analyser.** *File ▸ New project from template…*
+  reads the live versioned catalogue, lets you choose a starter and identity, safely downloads and
+  atomically extracts it, then opens its project profile. The HTTPS origin is pinned; traversal,
+  expansion, overwrite and executable-bit attacks are refused. Downloaded code is never executed—the
+  final dialog only shows and copies fixed lifecycle commands.
+- **New project now offers the setup already present in the directory.** After choosing a directory,
+  one confirmation lists detected Java source roots, skill-shaped runbooks and GraphML. Every choice
+  starts off: discovery never silently adopts project content. Confirmed source roots and skill
+  pointers are saved to the new profile, and at most one confirmed topology opens. An empty directory
+  is an ordinary empty offer and can still become an empty project.
+- **A new project can be given a `CLAUDE.md` that points at the canonical Fluxtion authoring resources.**
+  *New project…* offers it as one unchecked box beside the source roots, skills and GraphML it found —
+  including for an empty directory, where it helps most. Only entries marked agreed are ever written; a
+  Spring-only link is written only for a Spring-authored project; an existing `CLAUDE.md` is never
+  overwritten and you are told rather than left wondering; and the file carries links with a reason each
+  rather than restating any rule, so improving those pages improves the project too.
+- **A downloaded template can be given a `CLAUDE.md` too.** *New project from template…* now offers it as
+  one unchecked box on the destination dialog. Only one of the catalogue's templates ships agent
+  instructions of its own, so the rest arrive with nothing for an AI assistant to read; a template that
+  does ship one keeps it untouched, and the status line says which happened.
+- **A generated project's skills are now selected by the template it came from.** The canonical library
+  gains an `m19-skills/2` index: `common` is always shipped and a template names the specialisations it
+  wants (`mongoose`, `embedded`, `spring`). A new `spring/add-a-node` skill covers adding a node to a
+  Spring-XML graph, including the two ways that fail silently. `m19-skills/1` is unchanged.
+- **A versioned canonical skills index for generated bundles.** Build/release tooling can retrieve the
+  analyser-owned `m19-skills/1` Mongoose snapshot directly from the repository's public raw HTTPS root;
+  tests pin the selected tiers, source revision and exact skill bytes. Generated projects remain offline
+  snapshots and never fetch this index at runtime.
+- **Local Fluxtion build-key management without a first-run gate.** The Start page and
+  *AI ▸ Fluxtion API key…* now open one masked dialog for the established
+  `~/.fluxtion/fluxtion.apiKeyFile`, including named local profiles. The Project panel states only
+  whether that canonical file has a configured key and documents the builder rule: a
+  `-Dfluxtion.apiKey` passed to a future build overrides it; `FLUXTION_API_KEY` is not read. The
+  analyser never validates the key, redisplays it, stores it in app settings, or puts it in a project,
+  share export, action response, status message or console output.
+- **A loopback-only playground origin override for local experiments.** `-Dfluxtion.analyser.playgroundOrigin=http://127.0.0.1:PORT`
+  points *New project from template…* at a playground served locally. Plain `http` is accepted **only** for
+  `127.0.0.1`, `[::1]` and `localhost`; every other origin keeps the HTTPS rule, and the origin must still be
+  bare — no path, query or credentials. The template dialog states which origin is in force whenever the
+  override is set. It is a JVM property by design and is not reachable from Settings or storable in a project
+  profile, because a persisted origin would outlive the experiment and travel with a shared project.
+- **Collect a PGO profile until the native build lands, then keep the profile.**
+  `tools/bench/land-native.py`. A GraalVM image lands at either ~1.6 ns/event or ~5.5, and **the
+  profile decides which**: hold it fixed and four rebuilds reproduce it (1.60/1.66/1.68/1.67), while a
+  profile that misses reproduces that too (5.71/5.63/5.61). The compiler is deterministic in the
+  decision that matters; what varies is profile *collection*, which is a measurement — two collections
+  of one workload minutes apart differ in over a thousand call-count contexts. So the harness collects,
+  builds and measures until one lands, then keeps **both** the binary and the profile pair that produced
+  it, and prints the `--profile` command that rebuilds it with nothing left to chance. **It refuses rather than reports**: arms that disagree on output are
+  discarded unmeasured, a figure at or below the elimination floor is a deleted loop and not a result,
+  a run that produced no `RESULT` line is a failure and never a zero, and every attempt — including
+  every discarded one — is printed, so exhausting the attempts cannot read as coverage.
 
 ### Changed
+- **The analyser builds against the released Fluxtion runtime 1.0.15 and compiler 1.0.67**, and its own
+  committed processor carries a build fingerprint for the first time. Nothing about the application
+  behaves differently; the fingerprint is what lets a future build prove its generated source still
+  matches the graph it was generated from. The analyser's own processor graph therefore ships with the
+  compiler's full metadata vocabulary (the default since builder 1.0.66): which nodes are framework
+  plumbing, which can write audit output, and the dispatch order — the same facts it reads from anyone
+  else's graph.
 - **The audited event path is faster, and level with native.** Measured on the release candidate
-  (RECORDED-BASELINES M61, GraalVM 25.3.4, 30-node graph where every node logs): unaudited dispatch
+  (RECORDED-BASELINES M61, GraalVM 25.3.4, six-node quote engine with sparse logging): unaudited dispatch
   **7.5 ns JIT / 13.2 native**; the audited binary record under `LOW_LATENCY_AUDIT` **23.8 JIT /
-  23.1 native**, with Temurin 21 C2 at 23.2. A JFR profile had put 56% of the audited path in code that
+  23.1 native**, with Temurin 21 C2 at 23.2. Separately, an earlier JFR profile had put 56% of the audited path in code that
   resolves names which never change: an `IdentityHashMap` lookup per event to id the event type, while
   the identity table built for exactly that sat unused; per-logger key caches spread across three cache
   lines per entry; and a resolved-once decision re-checked on every entry. The 1.5–1.9× native deficit
   recorded through this work was never a property of the toolchain — it was the JIT speculating through
   pointer-chasing that closed-world compilation has to execute. Interim figures along the way (M40–M60)
-  stay in the baselines file; the release notes carry only what the candidate measured.
+  stay in the baselines file as history; these notes carry only what the release candidate measured.
 - **An ordinal audit-key API, added during this cycle, was dropped before release.** It let a code
   model replace `auditLog.info("v", v)` with an indexed call, and measured a real gain — against the
   data-structure fault above. With that fixed it was **slower** than the plain `String` path on both
   toolchains. No API that shipped in 1.0.14 is removed or changed in 1.0.15; node code stays
   `auditLog.info("v", v)`.
+- **The analyser's own session audit log now shows where each transaction closed and its effects ran.**
+  Effects the session processor decides on — closing a log, applying a project, showing a warning — used
+  to be carried out entirely outside the audit record; only the decision appeared. They now run at the
+  processor's transaction boundary, so opening the analyser's own log shows the decision, the boundary
+  and each outcome in one sequence. No change to what the application does.
+- **Project transitions are now decided by an auditable Fluxtion processor, and the analyser can open
+  its own audit log to see why.** The rule that a project switch closes the log and graph — and the
+  exceptions that it must not, when the project is being adopted *because* a log was just opened, when
+  the load failed, and when the project is already active — lived in three places in the UI and could
+  only be checked by running the app. It is now one decision graph with a replayable record, which
+  distinguishes what was decided from what actually happened: *asked to close* and *closed* are separate
+  entries. Behaviour is unchanged, with one improvement: `open {close: "project"}` now reports what it
+  really closed rather than what it predicted before closing it.
+- **`coverage` now refuses to print a number in two more cases where it would have been misleading**, and
+  qualifies it in a third. It already declined over a graph inferred from what ran. It now also declines
+  over a graph whose processor was built without audit logging — every declared node would read as never
+  logged, blaming the nodes for the build — and over a graph you deliberately opened against a log it does
+  not describe, where the denominator belongs to a different system. Keeping that graph on screen is still
+  right; scoring against it was not. And where the log was captured below TRACE, the number is still given
+  but now says what it hides: a node may have run, logged, and had its output discarded.
+- **When one `open` call names several things at once, the reply lists what it did not honour in the
+  order they would have been honoured** — largest act first — rather than in an arbitrary order. The same
+  parameters are reported; only the ordering changed, and it now tells you which act won.
+- **The runnable jar is about 1.2 MB larger** (2.43 MB → 3.64 MB), which is the Fluxtion runtime and its
+  one transitive dependency. Building the analyser still needs no Fluxtion API key and no compiler.
+- **The playground-to-analyser tutorial now describes the released bundle honestly.** It uses the real
+  catalogue entry and paths, opens project/GraphML/log as separate session-safe actions, distinguishes
+  the fixed Chronicle export from a followable file, and adds generated anonymous screenshots for
+  records, source navigation, graphing and AI-client setup. It also names the remaining starter gap:
+  the current audit records contain no numeric business value to graph.
+- **The canonical Mongoose skills now describe the real Chronicle export beat.** They discover the
+  running server through its registry entry, run the generated project's own YAML export command, then
+  open that concrete export with GraphML. They no longer imply that starting Mongoose directly writes
+  an analyser-readable YAML file or that a deployment descriptor reveals one.
 
 ### Fixed
+- **A click in the record detail selects the entry you clicked, never a different property's series.**
+  The exact-key click used to extract an identifier from the displayed line, so the reader's `@unkeyed: 42`
+  marker resolved to a property named `unkeyed`, a click inside the quoted key `"price: adjusted"` or the
+  dotted key `desk.price` resolved to `price`, and a click inside a string value containing `price: 42`
+  did the same. The parser now records each key's complete source position with its parsed entry and the
+  panel resolves a click only through those positions; a click on a value, on a marker, or on a multiline
+  item without an exact position falls back to the node's named-key menu. The Logical view's right-click
+  resolves its node through its own layout rather than the raw text's offsets. Logical view, step status
+  and report evidence share one formatter that keeps keyless values (shown as `@unkeyed`) distinct from
+  business keys named `null` or `"@unkeyed"`, while legacy text values are shown exactly as written.
+- **A report table read binary evidence under the wrong grammar.** The table assembly re-parsed each
+  record's text as legacy YAML instead of taking the store's parsed record, so a binary log's quoted
+  business key `"@invoked": 123` became the trace marker's `true`, a keyless value became a named field
+  `@unkeyed`, and a string value kept its quotes. The table now reads the same parsed record the `read`
+  verb does, and a test holds the two to the same answer.
 - **A logged String or char can no longer pose as a figure, a null, or another record's identity.**
   The binary reader wrote string values bare into the record text it constructs, so
   `"ok, price: 42.0"` read as a second entry carrying a number the producer never published, a
@@ -83,20 +185,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   scorer as the business name `null` and could hide a change under a real key of that name; it
   reached the topology's graph menu and threw. It is kept beside the node and offered to nothing
   that addresses a name.
-- **Trace provenance is node metadata, and completeness is never inferred for a binary log.** A
-  round-8 review showed the trace marker, carried as an entry, sharing a last-value slot with a
-  business key of the same spelling, so the diff and an agent's field read returned `true` where the
-  log said `99`; and the text format's `method` heuristic still running on binary business data. The
-  node-log now carries `traced` beside its entries, set only by a wire TRACE entry with key 0 (a value
-  logged under a null key is kept as a keyless entry, not promoted to a trace), and the heuristic
-  applies only to records the text reader produced.
-- **"Copy selected as YAML" consults the same eligibility as the file export**, and declines for a
-  binary-derived log with the same explanation.
-- **Business data can no longer pose as complete tracing.** A round-7 review showed an ordinary
-  `invoked: true` property on the one logging node turning a silent node into *did not run*. The
-  binary reader's trace marker is now a reserved key only it can emit bare (`@invoked`), carried in
-  the model as provenance that *its* node ran; nothing infers completeness from it, because the
-  binary format carries no such declaration. The text format's `method` heuristic is unchanged.
+- **Trace provenance is node metadata, and completeness is never inferred for a binary log.** The
+  binary reader's trace marker is a reserved key only it can emit bare (`@invoked`), carried in the model
+  as `traced` beside the node's entries — set only by a wire TRACE entry with key 0, never by a business
+  property spelled `invoked: true`, and never sharing a value slot with a business key of the same
+  spelling (a review had shown the diff and an agent's field read returning `true` where the log said
+  `99`). Nothing infers completeness from it, because the binary format carries no such declaration; the
+  text format's `method`-on-every-node heuristic applies only to records the text reader produced.
 - **Scoring a damaged binary log is untrustworthy, not a PASS.** The score command read a cut file
   through a path that discarded the reader's damage report and printed a normal PASS on the readable
   prefix. It now carries the report: the comparison is printed as readable-prefix only, stderr names
@@ -104,16 +199,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   never defined alike.
 - **A YAML export of a binary-derived log is refused.** It would re-open as legacy text and change
   every quoted String value; the `.flxa` file is the lossless artefact. CSV export is unaffected.
+- **"Copy selected as YAML" consults the same eligibility as the file export**, and declines for a
+  binary-derived log with the same explanation.
 - **A binary log no longer claims to follow or to anchor by byte.** Its reader declared both and the
   store can do neither, so an agent reading by `byteOffset` was addressing nothing. It declares
   random access by row only, and the index refuses anchoring.
-- **The neighbours of the round-6 fixes, pre-empted.** The score command reads a binary log through
-  the binary reader under its grammar instead of hard-coding the text reader; a binary file in a roll
-  set is refused by name rather than probed as an untimed text file; a binary record whose producer
-  did not record `endTime` reads as absent rather than as an instant in 1970; a dictionary id
-  redefined in a file is reported as source damage; the scorer's verdict says *within tolerance*
-  rather than *identical*, which is what it always was. The FLXA conformance corpus grows to
-  twenty-six fixtures, and the analyser passes all of them.
 - **A damaged binary log says so.** A cut tail, or references to names the file never defined
   (including String values), used to open silently as a whole log. The reader now reports them
   through the plugin SPI, the store keeps them, and they appear as a *source damage* finding in the
@@ -122,88 +212,40 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   delivered, not after.** The analyser no longer assumes a header that states no unit means
   milliseconds — a pre-release runtime could write nanoseconds under it. Declare the unit into a copy
   with the runtime's `AuditLogTool --declare-unit millis|nanos --out <copy>`, then open the copy.
-
-### Added
-- **The binary format has a specification and a conformance corpus, and the analyser passes it.**
-  The runtime now publishes *FLXA — the binary audit log format* with sixteen fixtures shipped in
-  its jar; the analyser's `FlxaConformanceTest` reads every one through its reader, parser and
-  tokenizer, and the format page links the two. "Reads FLXA" now means passing that suite.
-- **Open a binary audit log in the analyser.** A `FLXA` binary log now opens like any other, recognised
-  by its magic bytes rather than a file extension, so the faster record format is no longer
-  command-line only. Requires `fluxtion-runtime` 1.0.15 or later. Truncated logs open too — a half-written trailing record is the normal end state
-  of a crashed process, and the reader reports the unusable bytes instead of refusing the file. What
-  the binary format does not carry (`groupingId`, `thread`) is left out rather than invented.
-- **Collect a PGO profile until the native build lands, then keep the profile.**
-  `tools/bench/land-native.py`. A GraalVM image lands at either ~1.6 ns/event or ~5.5, and **the
-  profile decides which**: hold it fixed and four rebuilds reproduce it (1.60/1.66/1.68/1.67), while a
-  profile that misses reproduces that too (5.71/5.63/5.61). The compiler is deterministic in the
-  decision that matters; what varies is profile *collection*, which is a measurement — two collections
-  of one workload minutes apart differ in over a thousand call-count contexts. So the harness collects,
-  builds and measures until one lands, then keeps **both** the binary and the profile pair that produced
-  it, and prints the `--profile` command that rebuilds it with nothing left to chance. **It refuses rather than reports**: arms that disagree on output are
-  discarded unmeasured, a figure at or below the elimination floor is a deleted loop and not a result,
-  a run that produced no `RESULT` line is a failure and never a zero, and every attempt — including
-  every discarded one — is printed, so exhausting the attempts cannot read as coverage.
-- **Compare two audit logs on business outcomes, headlessly.** `ScoreCommand` reads both logs through
-  the shipped reader and parser and reports whether every published figure agrees after every scored
-  event. It reads Fluxtion's natural form (`book: { mid: 17.1}` → `book.mid`) and a tagged
-  `stage`/`value` convention — **the dialect is declared by the caller, never inferred from key names**,
-  because the record format reserves none. **It refuses to report a score it cannot stand behind**: an
-  event-sequence mismatch, a differing event type, an empty expectation, an expectation carrying no
-  figures at all, a figure never published, a figure outside the contract, and any non-finite value are
-  each a distinct verdict rather than a silently favourable number. Ten guards, one per comparison
-  defect found in this project's history — **five of them found by independent reviewers executing
-  against the first implementation.** Exit codes: `0` pass, `1` differences, `2` untrustworthy,
-  `3` usage or I/O.
-
-### Changed
-- **The analyser's own processor graph now ships with the compiler's full metadata vocabulary.** Builder
-  1.0.66 makes that the default, so the graph the analyser can open for itself carries which nodes are
-  framework plumbing, which can write audit output, and the dispatch order — the same facts it reads from
-  anyone else's graph. No change to what the application does.
-- **The analyser now builds against the released Fluxtion builder 1.0.65** instead of a pinned older
-  one, and its own committed processor carries a build fingerprint for the first time. Nothing about
-  the application behaves differently; the fingerprint is what lets a future build prove its generated
-  source still matches the graph it was generated from.
-- **The analyser's own session audit log now shows where each transaction closed and its effects ran.**
-  Effects the session processor decides on — closing a log, applying a project, showing a warning — used
-  to be carried out entirely outside the audit record; only the decision appeared. They now run at the
-  processor's transaction boundary, so opening the analyser's own log shows the decision, the boundary
-  and each outcome in one sequence. No change to what the application does.
-
-### Added
-- **The analyser now reads the Fluxtion compiler's graph metadata when a `.graphml` carries it**, and
-  says when it does not. A processor built with a recent compiler can declare which nodes are able to
-  write audit output at all, what order nodes dispatch in, and whether an update crosses each edge —
-  facts the analyser previously had to work out by reading source, and often could not. **Coverage is
-  the visible difference:** a node the graph says cannot log is no longer counted as one that stayed
-  silent, and that now works without the source in hand, which is the normal case for someone else's
-  log. Graphs without the metadata — every graph produced before it existed — are read exactly as
-  before, and every answer says which of the two it came from.
-
-### Changed
-- **When one `open` call names several things at once, the reply lists what it did not honour in the
-  order they would have been honoured** — largest act first — rather than in an arbitrary order. The same
-  parameters are reported; only the ordering changed, and it now tells you which act won.
-- **`coverage` now refuses to print a number in two more cases where it would have been misleading**, and
-  qualifies it in a third. It already declined over a graph inferred from what ran. It now also declines
-  over a graph whose processor was built without audit logging — every declared node would read as never
-  logged, blaming the nodes for the build — and over a graph you deliberately opened against a log it does
-  not describe, where the denominator belongs to a different system. Keeping that graph on screen is still
-  right; scoring against it was not. And where the log was captured below TRACE, the number is still given
-  but now says what it hides: a node may have run, logged, and had its output discarded.
-- **Project transitions are now decided by an auditable Fluxtion processor, and the analyser can open
-  its own audit log to see why.** The rule that a project switch closes the log and graph — and the
-  exceptions that it must not, when the project is being adopted *because* a log was just opened, when
-  the load failed, and when the project is already active — lived in three places in the UI and could
-  only be checked by running the app. It is now one decision graph with a replayable record, which
-  distinguishes what was decided from what actually happened: *asked to close* and *closed* are separate
-  entries. Behaviour is unchanged, with one improvement: `open {close: "project"}` now reports what it
-  really closed rather than what it predicted before closing it.
-- **The runnable jar is about 1.2 MB larger** (2.43 MB → 3.64 MB), which is the Fluxtion runtime and its
-  one transitive dependency. Building the analyser still needs no Fluxtion API key and no compiler.
-
-### Fixed
+- **The neighbours of the round-6 fixes, pre-empted.** The score command reads a binary log through
+  the binary reader under its grammar instead of hard-coding the text reader; a binary file in a roll
+  set is refused by name rather than probed as an untimed text file; a binary record whose producer
+  did not record `endTime` reads as absent rather than as an instant in 1970; a dictionary id
+  redefined in a file is reported as source damage; the scorer's verdict says *within tolerance*
+  rather than *identical*, which is what it always was. The FLXA conformance corpus grew to the
+  twenty-six fixtures the runtime ships, and the analyser passes all of them.
+- **The binary record's clock readings are the framework's, and `endTime` is a choice the profile
+  makes.** `BinaryLogRecord` took *both* `logTime` and `endTime` from a method chosen by a `-Dclock=`
+  **system property** — a benchmark switch that had reached production code — and its default re-read
+  the wall clock instead of using the reading `Clock.eventReceived` had already taken. `logTime` is
+  now that reading, `endTime` a live second reading when it is recorded, and the property selects
+  nothing. **What ships:** the default clock strategy is unchanged, `System::currentTimeMillis`
+  (12.9 ns a call, millisecond resolution); `ClockStrategy.fastEpochMillisClock()` (8.0 ns) and
+  `nanoEpochClock()` are opt-in projections of `nanoTime` that never re-anchor to a wall-clock
+  correction, which is why neither is the default; and `endTime` stays **on by default** — 1.0.14 and
+  every release before it emitted it on every text record — and is **off under `LOW_LATENCY_AUDIT` and
+  `addLowLatencyEventLog`**, restorable with `recordEndTime(true)`. The unit of `getWallClockTime()`
+  does not change; nanosecond timestamps are the next release. Measured on the release candidate
+  (`tools/bench/latency-kit/RECORDED-BASELINES.md` M61, GraalVM 25.3.4): the audited binary record
+  under the profile is **23.8 ns on JIT and 23.1 native**, against 7.5 / 13.2 unaudited; recording
+  `endTime` costs a further 13 ns. Figures this project published before M61 were measured under
+  development defaults later reverted by review; M61 supersedes them.
+- **Method tracing works in a binary audit log.** `addTrace` wrote into a byte buffer that the record's
+  `length()` does not describe, so a trace produced no visible bytes — and because nothing marked the
+  record as having content, a **trace-only record was never published at all**. `AUDITED` + `BINARY`
+  therefore lost every trace, silently. Traces are now ordinary two-slot entries carrying a new
+  `TAG_TRACE(8)`: a node id, no key, no value. Every entry stays exactly two slots, which is the property
+  that lets a reader skip one without decoding it. A second defect surfaced with the first: the reader
+  counted a trace's absent key as an **unresolved id**, the diagnostic that distinguishes a rolled file
+  from a corrupt one, so every traced log would have looked corrupt. Tag 8 was unallocated and no log in
+  the wild contains a trace — `LOW_LATENCY_AUDIT` disables tracing — so nothing that exists is broken by
+  the change, and readers built against the earlier format report tag 8 as unknown rather than
+  mis-decoding it. The normative format specification is updated.
 - **A near-miss path on the local assistant socket no longer reaches the handler.** The JDK's HTTP server
   dispatches by longest path *prefix*, so `POST /action/not-a-route` with a valid token executed the
   action, and `/manifest/anything` served the manifest. Both routes now require their exact path, enforce
@@ -225,65 +267,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Rejected Fluxtion key-profile names now wipe the submitted credential buffer.** Validation failures
   receive the same caller-buffer hygiene as successful saves and later write failures.
 
-### Added
-- **Guided start: install and tour the analyser with an AI assistant.** A new docs page carries a
-  copy-paste prompt that installs the analyser via JBang, opens it, has you connect your assistant, and
-  then walks you through three things by driving the UI. A matching `guided-start` skill runs the tour
-  inside an already-connected session. The assistant is instructed to point at the screen rather than
-  state figures you cannot see, to use your own log if one is open, and never to open anything over your
-  work without asking. No key or account is needed.
-- **A generated project's skills are now selected by the template it came from.** The canonical library
-  gains an `m19-skills/2` index: `common` is always shipped and a template names the specialisations it
-  wants (`mongoose`, `embedded`, `spring`). A new `spring/add-a-node` skill covers adding a node to a
-  Spring-XML graph, including the two ways that fail silently. `m19-skills/1` is unchanged.
-- **A downloaded template can be given a `CLAUDE.md` too.** *New project from template…* now offers it as
-  one unchecked box on the destination dialog. Only one of the catalogue's templates ships agent
-  instructions of its own, so the rest arrive with nothing for an AI assistant to read; a template that
-  does ship one keeps it untouched, and the status line says which happened.
-- **A new project can be given a `CLAUDE.md` that points at the canonical Fluxtion authoring resources.**
-  *New project…* offers it as one unchecked box beside the source roots, skills and GraphML it found —
-  including for an empty directory, where it helps most. Only entries marked agreed are ever written; a
-  Spring-only link is written only for a Spring-authored project; an existing `CLAUDE.md` is never
-  overwritten and you are told rather than left wondering; and the file carries links with a reason each
-  rather than restating any rule, so improving those pages improves the project too.
-- **A loopback-only playground origin override for local experiments.** `-Dfluxtion.analyser.playgroundOrigin=http://127.0.0.1:PORT`
-  points *New project from template…* at a playground served locally. Plain `http` is accepted **only** for
-  `127.0.0.1`, `[::1]` and `localhost`; every other origin keeps the HTTPS rule, and the origin must still be
-  bare — no path, query or credentials. The template dialog states which origin is in force whenever the
-  override is set. It is a JVM property by design and is not reachable from Settings or storable in a project
-  profile, because a persisted origin would outlive the experiment and travel with a shared project.
-- **Create a playground starter without leaving the analyser.** *File ▸ New project from template…*
-  reads the live versioned catalogue, lets you choose a starter and identity, safely downloads and
-  atomically extracts it, then opens its project profile. The HTTPS origin is pinned; traversal,
-  expansion, overwrite and executable-bit attacks are refused. Downloaded code is never executed—the
-  final dialog only shows and copies fixed lifecycle commands.
-- **A versioned canonical skills index for generated bundles.** Build/release tooling can retrieve the
-  analyser-owned `m19-skills/1` Mongoose snapshot directly from the repository's public raw HTTPS root;
-  tests pin the selected tiers, source revision and exact skill bytes. Generated projects remain offline
-  snapshots and never fetch this index at runtime.
-- **New project now offers the setup already present in the directory.** After choosing a directory,
-  one confirmation lists detected Java source roots, skill-shaped runbooks and GraphML. Every choice
-  starts off: discovery never silently adopts project content. Confirmed source roots and skill
-  pointers are saved to the new profile, and at most one confirmed topology opens. An empty directory
-  is an ordinary empty offer and can still become an empty project.
-- **Local Fluxtion build-key management without a first-run gate.** The Start page and
-  *AI ▸ Fluxtion API key…* now open one masked dialog for the established
-  `~/.fluxtion/fluxtion.apiKeyFile`, including named local profiles. The Project panel states only
-  whether that canonical file has a configured key and documents the builder rule: a
-  `-Dfluxtion.apiKey` passed to a future build overrides it; `FLUXTION_API_KEY` is not read. The
-  analyser never validates the key, redisplays it, stores it in app settings, or puts it in a project,
-  share export, action response, status message or console output.
-
-### Changed
-- **The playground-to-analyser tutorial now describes the released bundle honestly.** It uses the real
-  catalogue entry and paths, opens project/GraphML/log as separate session-safe actions, distinguishes
-  the fixed Chronicle export from a followable file, and adds generated anonymous screenshots for
-  records, source navigation, graphing and AI-client setup. It also names the remaining starter gap:
-  the current audit records contain no numeric business value to graph.
-- **The canonical Mongoose skills now describe the real Chronicle export beat.** They discover the
-  running server through its registry entry, run the generated project's own YAML export command, then
-  open that concrete export with GraphML. They no longer imply that starting Mongoose directly writes
-  an analyser-readable YAML file or that a deployment descriptor reveals one.
 
 ## [1.12.0] - 2026-08-28
 

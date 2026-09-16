@@ -4,6 +4,7 @@ import telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader;
 
 import telamin.fluxtion.audit.analyser.analyser.model.EventKind;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
+import telamin.fluxtion.audit.analyser.analyser.model.NodeLogData;
 
 import java.util.Set;
 
@@ -51,6 +52,10 @@ public final class RecordParser {
         Long eventTime = null, logTime = null, endTime = null;
         String groupingId = null, event = null, eventType = null, eventToString = null, thread = null;
         StringBuilder nodeLogs = new StringBuilder();
+        // Block extraction strips CRs and skips comments; retain the original line positions so the
+        // tokenizer's spans address rawText, not its normalised intermediate block.
+        java.util.List<int[]> nodeLinePositions = new java.util.ArrayList<>();
+        int rawPosition = 0;
         boolean inNodeLogs = false;
         boolean sawFields = false;
         int nodeLogsCount = 0;
@@ -58,6 +63,8 @@ public final class RecordParser {
         boolean hasBreach = false;
 
         for (String raw : text.split("\n", -1)) {
+            int linePosition = rawPosition;
+            rawPosition += raw.length() + 1;
             String line = stripCr(raw);
             String t = line.strip();
             if (t.isEmpty()) {
@@ -75,6 +82,7 @@ public final class RecordParser {
                 if (!isItem && isTopScalarLine(t)) {
                     inNodeLogs = false;   // fall through to scalar handling
                 } else {
+                    nodeLinePositions.add(new int[]{nodeLogs.length(), linePosition});
                     nodeLogs.append(line).append('\n');
                     if (isItem) nodeLogsCount++;
                     if (!hasNaN && t.contains("NaN")) hasNaN = true;
@@ -135,7 +143,20 @@ public final class RecordParser {
                 .hasNaN(hasNaN)
                 .hasBreach(hasBreach)
                 .rawText(text)
-                .nodeLogsSupplier(() -> NodeLogTokenizer.parseBlock(block, quotedScalarsFinal))
+                .nodeLogDataSupplier(() -> {
+                    NodeLogData data = NodeLogTokenizer.parseBlockData(block, quotedScalarsFinal);
+                    java.util.List<NodeLogData.KeySpan> spans = new java.util.ArrayList<>();
+                    int line = 0;
+                    for (var span : data.keySpans()) {
+                        while (line + 1 < nodeLinePositions.size()
+                                && nodeLinePositions.get(line + 1)[0] <= span.start()) line++;
+                        int[] position = nodeLinePositions.get(line);
+                        int shift = position[1] - position[0];
+                        spans.add(new NodeLogData.KeySpan(span.start() + shift, span.end() + shift,
+                                span.instanceId(), span.key()));
+                    }
+                    return new NodeLogData(data.nodes(), spans);
+                })
                 .build();
     }
 

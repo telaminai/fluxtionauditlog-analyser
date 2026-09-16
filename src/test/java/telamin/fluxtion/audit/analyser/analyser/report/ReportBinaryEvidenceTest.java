@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * REVIEWER PROBE (round 10, R10-1). A report table re-parsed each record's TEXT under the legacy
  * grammar instead of taking the store's parsed record, so binary evidence lost its declared encoding
  * at exactly one consumer: a quoted business key {@code "@invoked": 123} became the trace marker's
- * {@code true}, {@code "null": 99} kept its quotes and vanished from the {@code n.null} column, and a
- * string value split on its own comma. The dispatcher's {@code read} was already right; the report
+ * {@code true}, keyless evidence became a named {@code @unkeyed} field, and a string value retained
+ * its encoding quotes. The named {@code null} field remained intact. The dispatcher's {@code read} was already right; the report
  * assembly must agree with it, because both answer the same call.
  */
 class ReportBinaryEvidenceTest {

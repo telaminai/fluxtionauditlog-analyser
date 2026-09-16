@@ -38,6 +38,12 @@ tidies.)_
 ---
 
 ## Hardening — test-only, ongoing (no user-visible change)
+
+**Related production fix, independently reviewed and accepted 2026-09-15:** the round-11 response records
+parsed key spans and shared evidence formatting. Review accepted R11-1/2/3 as closed classes and required one
+correction (F1, legacy values were being quoted in the evidence views), fixed in the same commit. See
+[response](../handoff/handoff_analyser_round11_response_2026-09-15.txt) and the ledger.
+
 - ☑ **Cross-transport schema contract** — REST `/manifest` and MCP `tools/list` are proven to advertise
   the *same* `VerbSchemas` schema per verb at the **value** level, not just matching name sets:
   `McpToolsTest` pins every tool's `inputSchema` == its verb schema minus the lifted `description`;

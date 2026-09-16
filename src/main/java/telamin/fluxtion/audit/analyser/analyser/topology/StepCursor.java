@@ -205,15 +205,6 @@ public final class StepCursor {
     public String rowSummary() {
         NodeLog row = currentRow();
         if (row == null) return "";
-        StringBuilder sb = new StringBuilder(row.instanceId());
-        if (!row.entries().isEmpty()) {
-            sb.append("  ·  ");
-            for (int i = 0; i < row.entries().size(); i++) {
-                if (i > 0) sb.append(", ");
-                KV kv = row.entries().get(i);
-                sb.append(kv.key()).append('=').append(kv.rawValue());
-            }
-        }
-        return sb.toString();
+        return telamin.fluxtion.audit.analyser.analyser.export.EvidenceText.nodeLine(row, "  ·  ", ", ");
     }
 }

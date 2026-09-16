@@ -1139,12 +1139,8 @@ public final class MainFrame extends JFrame {
         LogRecord record = store.record(row);
         int n = 0;
         for (var nodeLog : record.nodeLogs()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(String.format("%3d. %s", ++n, nodeLog.instanceId()));
-            for (var kv : nodeLog.entries()) {
-                sb.append("  ").append(kv.key()).append('=').append(kv.rawValue());
-            }
-            lines.add(sb.toString());
+            lines.add(String.format("%3d. %s", ++n,
+                    telamin.fluxtion.audit.analyser.analyser.export.EvidenceText.nodeLine(nodeLog, "  ", "  ")));
         }
         if (record.eventToString() != null) lines.add(0, "event: " + record.eventToString());
         return lines;
@@ -1237,12 +1233,8 @@ public final class MainFrame extends JFrame {
         java.util.List<String> nodeLogLines = new java.util.ArrayList<>();
         int n = 0;
         for (var nodeLog : record.nodeLogs()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(String.format("%3d. %s", ++n, nodeLog.instanceId()));
-            for (var kv : nodeLog.entries()) {
-                sb.append("  ").append(kv.key()).append('=').append(kv.rawValue());
-            }
-            nodeLogLines.add(sb.toString());
+            nodeLogLines.add(String.format("%3d. %s", ++n,
+                    telamin.fluxtion.audit.analyser.analyser.export.EvidenceText.nodeLine(nodeLog, "  ", "  ")));
         }
 
         List<telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture> pictures =

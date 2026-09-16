@@ -52,8 +52,9 @@ STEP 4 — give me the tour.
 Use the "guided-start" skill if you have it. If you do not, follow these rules:
   - Drive the analyser's UI and tell me what to LOOK AT. Never state a number I cannot see on screen.
   - Call analyser_context before saying "as you can see", to check the view really shows it.
-  - Show me three things and then stop: what ran and in what order, what never ran, and one real
-    question answered and bookmarked.
+  - Show me three things and then stop: what ran and in what order, which declared nodes have no
+    recorded output (say "never logged", not "never ran" - the log cannot prove absence unless
+    invocation tracing was on), and one real question answered and bookmarked.
   - If something does not work, say so plainly and carry on. I would rather see a real limitation
     than a smooth demo.
 Use the demo set at ~/.fluxtion-analyser/demo/ unless I already have my own log open — in which case
@@ -66,9 +67,11 @@ ask me before opening anything, because opening a project closes what I have.
 the program ran rather than reconstructed afterwards from timestamps. That is what lets the record be read
 as cause rather than as correlation.
 
-**What never ran.** A list of declared nodes with no execution recorded. It needs the declared graph *and*
+**What has no recorded output.** A list of declared nodes that never logged. It needs the declared graph *and*
 the record — neither file produces it alone, and no quantity of log lines will, because a log carries no
-list of what was supposed to happen.
+list of what was supposed to happen. It is "never logged", not "never ran": a node that ran and wrote
+nothing looks the same. Only a log with invocation tracing on (the traced demo log, coverage 1.0) lets
+the analyser say a node did not run, and the coverage answer states which of the two it is giving you.
 
 **One question, answered and anchored.** A threshold crossing, the record where it happened, and a
 bookmark that is still there tomorrow.

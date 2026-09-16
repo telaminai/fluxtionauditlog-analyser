@@ -2,6 +2,8 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
 
 import telamin.fluxtion.audit.analyser.analyser.model.KV;
 import telamin.fluxtion.audit.analyser.analyser.model.NodeLog;
+import telamin.fluxtion.audit.analyser.analyser.model.NodeLogData;
+import telamin.fluxtion.audit.analyser.analyser.model.NodeLogData.KeySpan;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,24 +63,49 @@ public final class NodeLogTokenizer {
      *                      grammar; false is the legacy grammar, unchanged for every existing text log
      */
     public static List<NodeLog> parseBlock(String block, boolean quotedScalars) {
+        return parseBlockData(block, quotedScalars).nodes();
+    }
+
+    /**
+     * Produces entry identity and key positions in the same parse. Positions are relative to the block.
+     * Multiline items still parse as before, but have no exact-click spans: folding continuation
+     * whitespace is lossy, so their UI falls back to the node's named keys.
+     */
+    public static NodeLogData parseBlockData(String block, boolean quotedScalars) {
         List<NodeLog> out = new ArrayList<>();
-        if (block == null || block.isBlank()) return out;
+        List<KeySpan> spans = new ArrayList<>();
+        if (block == null || block.isBlank()) return new NodeLogData(out, spans);
         StringBuilder current = null;
+        int sourceOffset = 0, itemOffset = 0;
+        boolean multiline = false;
         for (String rawLine : block.split("\n", -1)) {
+            int lineOffset = sourceOffset;
+            sourceOffset += rawLine.length() + 1;
             String line = stripCr(rawLine);
             String t = line.strip();
             if (t.isEmpty()) continue;
             if (t.startsWith("- ") || t.equals("-")) {
-                if (current != null) out.add(parseItem(current.toString(), quotedScalars));
+                if (current != null) appendItem(out, spans, current, quotedScalars, itemOffset, multiline);
                 current = new StringBuilder(t.length() >= 2 ? t.substring(2) : "");
+                itemOffset = lineOffset + line.indexOf(t) + (t.length() >= 2 ? 2 : 1);
+                multiline = false;
             } else if (current != null) {
                 current.append(' ').append(t);   // continuation of a wrapped value
+                multiline = true;
             } else {
                 current = new StringBuilder(t);   // lenient: item without a leading dash
+                itemOffset = lineOffset + line.indexOf(t);
             }
         }
-        if (current != null) out.add(parseItem(current.toString(), quotedScalars));
-        return out;
+        if (current != null) appendItem(out, spans, current, quotedScalars, itemOffset, multiline);
+        return new NodeLogData(out, spans);
+    }
+
+    private static void appendItem(List<NodeLog> nodes, List<KeySpan> spans, StringBuilder item,
+                                   boolean quoted, int offset, boolean multiline) {
+        List<KeySpan> itemSpans = new ArrayList<>();
+        nodes.add(parseItem(item.toString(), quoted, itemSpans, offset));
+        if (!multiline) spans.addAll(itemSpans);
     }
 
     /**
@@ -91,21 +118,31 @@ public final class NodeLogTokenizer {
 
     /** @see #parseBlock(String, boolean) */
     public static NodeLog parseItem(String item, boolean quotedScalars) {
+        return parseItem(item, quotedScalars, new ArrayList<>(), 0);
+    }
+
+    private static NodeLog parseItem(String item, boolean quotedScalars, List<KeySpan> spans, int offset) {
         String s = item.strip();
+        offset += item.length() - item.stripLeading().length();
         int colon = indexOfSep(s, quotedScalars);
         String instanceId;
         String body;
+        int bodyOffset = 0;
         if (colon < 0) {
             instanceId = scalar(s, quotedScalars).text;
             body = "";
         } else {
             instanceId = scalar(s.substring(0, colon).strip(), quotedScalars).text;
-            body = s.substring(colon + 2).strip();
+            String rawBody = s.substring(colon + 2);
+            body = rawBody.strip();
+            bodyOffset = colon + 2 + rawBody.length() - rawBody.stripLeading().length();
         }
         List<KV> entries = new ArrayList<>();
         boolean traced = false;
         if (body.startsWith("{") && body.endsWith("}")) {
-            String inner = body.substring(1, body.length() - 1).strip();
+            String rawInner = body.substring(1, body.length() - 1);
+            String inner = rawInner.strip();
+            int segmentOffset = offset + bodyOffset + 1 + rawInner.length() - rawInner.stripLeading().length();
             if (!inner.isEmpty()) {
                 for (String seg : splitTopLevel(inner, ',', quotedScalars)) {
                     Pair pair = parsePair(seg, quotedScalars);
@@ -113,7 +150,14 @@ public final class NodeLogTokenizer {
                         traced = true;          // metadata, not an entry
                     } else {
                         entries.add(pair.kv);
+                        int keyColon = indexOfSep(seg.strip(), quotedScalars);
+                        if (pair.kv.key() != null && keyColon >= 0) {
+                            int start = segmentOffset + seg.length() - seg.stripLeading().length();
+                            int length = seg.strip().substring(0, keyColon).stripTrailing().length();
+                            if (length > 0) spans.add(new KeySpan(start, start + length, instanceId, pair.kv.key()));
+                        }
                     }
+                    segmentOffset += seg.length() + 1;
                 }
             }
         } else if (!body.isEmpty()) {
