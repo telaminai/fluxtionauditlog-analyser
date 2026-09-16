@@ -1,7 +1,9 @@
 # Handoff — the finish-first round after 1.13.1, 2026-09-16
 
+_**Outcome:** READY after three independent passes (2026-09-16/17): items 2–4 accepted on the first pass; M44.3's three lifecycle blockers and the export framing fixed (`323277b5`, `d78a0144`), B2 closed on pass 3 at `d78a0144`. Retired to `completed/` 2026-09-17._
+
 _For the reviewing session. Four pieces of work on `main` since the 1.13.1 tag (`f249113a`), each with its own
-ledger entry in [`unreviewed-changes.md`](unreviewed-changes.md); this page is the map. Every claim names a
+ledger entry in [`unreviewed-changes-2026-09.md`](unreviewed-changes-2026-09.md); this page is the map. Every claim names a
 commit, a test or a file. Author verification only — the independent pass is yours._
 
 | # | Item | Commits | Ledger / spec |

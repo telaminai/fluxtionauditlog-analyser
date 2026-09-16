@@ -1,6 +1,6 @@
 # Spec — an asynchronous session driver, so opening can become a decision
 
-**Status:** IMPLEMENTED 2026-09-16 (M44.3, and M44.3a with it). **Tracker:** [tracker.md](tracker.md) ▸ M44.3.
+**Status:** IMPLEMENTED 2026-09-16 (M44.3, and M44.3a with it); **independently reviewed READY 2026-09-17** after three passes (`completed/review_analyser_finish_first_*.md`), with the lifecycle fixes those passes required folded in (see *Review response* below). **Tracker:** [tracker.md](tracker.md) ▸ M44.3.
 
 > **As built, and where it differs from the text below.** The open is a request the processor decides
 > (`OpenLogRequested` → `LogOpening` → `OpenLogEffect`); the adapter answers `Pending` at once and

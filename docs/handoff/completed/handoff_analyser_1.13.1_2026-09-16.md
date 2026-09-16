@@ -3,8 +3,8 @@
 _A portable account of the work on `main` since the 1.13.0 release, the triage of an agent's session report on
 the template bundle, and that agent's comments on the plotting model. Written to travel between machines: every
 claim names a commit, a file or a test, and says whether it was verified or only reported. Nothing here needs
-the machine it was written on. Reviewers start with [`REVIEWER-ORIENTATION.md`](REVIEWER-ORIENTATION.md);
-implementers with [`../ONBOARDING.md`](../ONBOARDING.md)._
+the machine it was written on. Reviewers start with [`REVIEWER-ORIENTATION.md`](../REVIEWER-ORIENTATION.md);
+implementers with [`../ONBOARDING.md`](../../ONBOARDING.md)._
 
 ## 1. Where things stand
 

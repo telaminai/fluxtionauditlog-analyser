@@ -75,7 +75,7 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-09-16 (v1.13.0 released 2026-09-16 — the FLXA binary format + corpus, the binary reader, guided start, round-11 evidence identity; the 1.13.1 candidate on `main` was reviewed READY after four independent passes the same day and carries the Source-panel, pairing-lifecycle and highlighter fixes; earlier: v1.11.0 2026-08-27, v1.12.0):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-09-17 (v1.13.1 released 2026-09-16 after four independent review passes; v1.13.0 the same day; `main` holds the reviewed 1.13.2 candidate — M44.3 the asynchronous open as a session-processor decision with M44.3a, three lifecycle fixes and the framed audit export, plus the note-rule zoom fix; earlier: v1.11.0 2026-08-27, v1.12.0):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +

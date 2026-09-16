@@ -105,55 +105,26 @@ Things this project expects of a review, learned from ones that went wrong:
 - **Swing is not unit-tested** (rule 4, headless CI). UI claims rest on model tests, source-text checks
   and someone actually clicking. If a UI behaviour matters, say so rather than assuming coverage.
 
-## 6. What is live right now — 2026-09-03
+## 6. What is live right now — 2026-09-17
 
-**Released:** 1.12.0. **On main, unreleased:** the M19 revision, `spec-trust-structure.md`, the Mongoose
-review resolution, `SpecLinksResolveTest`.
+**Released:** 1.13.1 (2026-09-16). **On main, unreleased — the 1.13.2 candidate, every entry independently
+reviewed:** M44.3 (opening a log is a decision of the session processor; the driver is asynchronous at that
+boundary; supersede by opId; `context.inFlight`) with M44.3a (a graph is judged on a real arrival only) and the
+three lifecycle fixes its review required; the framed session-audit export; the note-rule zoom fix; two clamp
+golden fixtures and the N1 parser guard; the reworded canonical skills (index re-pinned); the JBang install note.
 
-Recently landed and **already reviewed** (do not re-review unless you disagree): M43 the AI menu +
-runbook descriptions + skill discovery; M40 audit readiness and coverage scope; M42 connect-an-AI-client;
-M33.7 report table sources.
+**Already reviewed — do not re-review unless you disagree:** the 1.13.1 cycle (four passes, `completed/
+review_analyser_1.13.1_*.md`) and the finish-first round (three passes, `completed/review_analyser_finish_first_*.md`).
+Their ledger entries are in `completed/unreviewed-changes-2026-09.md`. The live ledger
+(`unreviewed-changes.md`) is empty: nothing on `main` awaits review.
 
-**Landed 2026-09-03 — `f645cce^..3c39c6c` and the response commits that followed. FOUR review rounds
-have since run** (`review_authoring_modes_3c39c6c*.txt`, `review_response_180a1e7_4c1c9d8.txt`,
-`review_analyser_response_4c1c9d8_followup.txt`, `review_authoring_architecture_*.txt`), finding
-around twenty defects, all fixed or explicitly documented as not-fixed. **Do not re-review from
-scratch**; read the ledger and the reports first. Two independent bodies of work:
+**Open decisions, not work:** M44.3b — what close/reset means for a PENDING open (tracker); M64 — the spotlight
+callout (`spec-spotlight.md`, PROPOSED). **Cross-repo:** the compiler's `feature/entry-point-rendering` is
+reviewed READY on the analyser side and awaits its merge and the 1.0.69 cut; FLX-1009's classifier follow-up is
+filed with it.
 
-- **M48 · authoring modes** (`spec-authoring-modes.md`, `spec-authoring-mode-selector.md`,
-  `spec-builder-component-resolution.md`,
-  `spec-authoring-session-walkthrough.md`). The claim to test: **the bean-file half of component
-  integration is a constraint solve, not a model task.** `tools/bean-resolver.py` reproduces the
-  measured-optimal selection and wiring from manifests alone, at zero token cost, with byte-identical
-  alerts. If that holds, every "authoring cost" figure this project has published was measuring a model
-  doing a resolver's job. The prototype has since had four independent review rounds and 24 smoke
-  checks; the builder production spec has also had a compiler-side review and response
-  (`review_spec_builder_component_resolution.txt`,
-  `review_response_spec_builder_component_resolution.txt`). Its implementation gates remain open.
-- **M49 · runtime performance** (`docs/experience/runs/round-54/BLOG-NUMBERS.md`). The first runtime
-  measurement here — 8.44 ns/event, zero allocation, 500M events under a no-op collector. **No analyser
-  code changed.** Numbers are reproducible from the directory.
-- **`analyser.score.ExpectationScorer`** — the only `src/` change in the range. Worth scepticism
-  precisely because it exists to correct **five scoring defects in this project, three in one session,
-  every one of which erred toward agreeing with its author**. Its figure-extraction rule is heuristic and
-  asserted rather than derived from the format spec; check it.
-- **`docs/proposals/assessment-playground-ai-prompts.md`** — a reading of
-  <https://fluxtion-playground.dev/build-with-ai> (which §1 above tells you to read) against prior
-  measurements. It is a *reading*, not a measurement, and says so. One finding worth your own judgement:
-  the Spring contract's wiring rule is correct for scaffolded nodes and **harmful** for bought-in
-  components, and nothing tells a reader which they are in.
-
-**Open and worth your attention:**
-
-- `spec-trust-structure.md` — **new, unreviewed.** A framing spec that constrains code: it argues the
-  analyser's refusals are load-bearing (D-T4). If you think that framing is wrong, say so — it is the
-  most consequential document written this week and it has had no independent read.
-- `spec-onboarding-example.md` ▸ *Revision 2026-08-29* — **new, unreviewed.** Five additions, one
-  correction, five recorded concerns, and a cold test whose results are in the document.
-- The Mongoose bootstrap artefacts (`docs/specs/mongoose-bootstrap-artefacts/`) — reviewed twice
-  independently; **F1 remains open** (the snapshot records no source revision, so parity with the real
-  starter is unverifiable by anyone, including its author).
-- `docs/specs/spec-baselines.md` (M39) — spec'd, four open owner questions, not started.
+The historical state of 2026-09-03 (M48 authoring modes, M49 runtime measurements, four review rounds) is in
+the tracker and `completed/`; it is not live.
 
 ## 7. Two habits of the previous sessions to be sceptical of
 
