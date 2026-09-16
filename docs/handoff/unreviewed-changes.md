@@ -14,7 +14,13 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
-## ☐ 2026-09-16 · Source panel `StackOverflowError` on a generated processor (JBang 1.13.0) · based on `96880f2b`
+## ☑ reviewed 2026-09-16 · Source panel `StackOverflowError` on a generated processor (JBang 1.13.0) · `6b0a5258`, based on `96880f2b`
+
+**Verdict: overflow fix accepted, colouring follow-ups remain.** Independent
+[second-pass review](review_analyser_1.13.1_pass2_2026-09-16.md): all three test methods fail with
+`StackOverflowError` against 1.13.0 and pass with the candidate. R2-F4 records escaped-newline,
+CR-only and text-block limitations; ordinary literal/comment spans match. This is not approval
+of the whole release; the lifecycle blockers in the next entry remain.
 
 **What & why.** `JavaHighlighter.STRING` was `"(\\.|[^"\\])*"|'(\\.|[^'\\])*'` — a group with an alternation
 under `*`, which `java.util.regex` matches by recursing per character (the report's stack: `Loop → GroupHead →
@@ -35,7 +41,15 @@ literal. The real generated file renders (23,310 chars). Full verify, strict doc
 sources (a quote inside a line comment is coloured string then overridden by the comment pass, as before). Whether
 the unit test's 3,000-line file is enough to overflow on every JDK's default EDT stack — it did here.
 
-## ☐ 2026-09-16 · Response to the 1.13.1 review: B1, B2, F3, F4 fixed; F5 corrected · based on `26c10d45`
+## ☑ reviewed 2026-09-16 · Response to the 1.13.1 review: B1, B2, F3, F4 fixed; F5 corrected · `96880f2b`, based on `26c10d45`
+
+**Verdict: NOT READY for 1.13.1.** Independent
+[second-pass review](review_analyser_1.13.1_pass2_2026-09-16.md): B2/F4 and §4's F5 attribution
+accepted; the original B1 sequence and fresh final verdict now work. R2-B1 finds explicit-format
+opens bypass pending state; R2-B2 finds a new modal warning on a fresh-window socket load.
+The failed-load restore was correct in both local probes, including a graph changed during the
+load. Full verify: 1,401 tests, 0 failures/errors, 1 skipped; the display override independently
+ran the frame test 1/1. The author account below remains evidence to review, not acceptance.
 
 Response: [handoff_analyser_1.13.1_response_2026-09-16.md](handoff_analyser_1.13.1_response_2026-09-16.md).
 Review: [review_analyser_1.13.1_2026-09-16.md](review_analyser_1.13.1_2026-09-16.md).
