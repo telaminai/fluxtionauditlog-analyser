@@ -58,9 +58,10 @@ correction (F1, legacy values were being quoted in the evidence views), fixed in
   fixture runs through BOTH engine arms — `SeriesExtractor.extractExpr` *and* `SeriesScan` — with
   agreement asserted. Closing G2 immediately caught the `series` verb answering from stale carries
   (the 1.5.0 headline fix): the corpus's first scalp, on the day the cross-path check landed.
-  Still open: **N1** (duplicate metadata key assertion — a doubled `expr:` line silently takes the
-  last), plus one taxonomy add: a `min(4, 2)` / clamp-idiom fixture pinning the M28 compatibility
-  guarantee.
+  ☑ **N1 closed 2026-09-16** (a doubled metadata line is rejected; pinned by `aDoubledMetadataLineIsRejected`)
+  and the clamp fixtures added: `09-clamp-is-elementwise-min-max` and
+  `10-min-of-two-constants-is-a-value-not-a-window` pin the M28 guarantee (min/max elementwise; `rollingMin`/
+  `rollingMax` are the windows). The taxonomy TODO rows in the spec remain the next tranche.
 
 ---
 

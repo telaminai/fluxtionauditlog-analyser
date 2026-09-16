@@ -7,6 +7,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Changed
+- **Two more formula golden fixtures, and a stricter fixture parser.** `min(max(x, lo), hi)` is pinned as an
+  elementwise clamp and `min(4, 2)` as the number 2 — the M28 guarantee that kept a `min(x, N)` window overload
+  out of the language (`rollingMin`/`rollingMax` are the windowed forms). A fixture with a doubled metadata line
+  (`expr:` twice) is now rejected instead of silently taking the last (hardening N1).
+- **Canonical skills reworded after the 1.13.1 review** (`docs/skills`, index `m19-skills/2` re-pinned):
+  `add-a-node` says constructor mapping covers eligible *instance* fields (static fields never; `@ConstructorArg`
+  / `@AssignToField` opt in); `run-mongoose-server` says the capture ROLLS daily and nothing deletes old files,
+  prefers a fresh capture location over deletion, and scopes the input-tailing advice to the starter's file
+  source.
 - **Install page: how to pick up a newer release under JBang.** The examples now include `jbang --fresh …` and
   `jbang cache clear`, and the page says plainly that JBang runs its cached jar until you do one of them (a user on
   1.13.0 kept getting 1.13.0 after 1.13.1 shipped).

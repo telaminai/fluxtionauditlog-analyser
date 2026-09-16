@@ -1,0 +1,31 @@
+name: clamp-is-elementwise-min-max
+why: The clamp idiom min(max(x, lo), hi) is ELEMENTWISE — min/max compare their arguments within one record and never look back at earlier samples (the windowed forms are rollingMin/rollingMax(x, N), M28.3). 1 clamps up to 2, 3 stays, 5 clamps down to 4.
+expr: min(max(nodeA.price, 2), 4)
+keys: nodeA.price
+resolve: STRICT
+--- LOG ---
+---
+#00:00:01.000 [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - nodeA: { price: 1.0}
+---
+#00:00:02.000 [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - nodeA: { price: 3.0}
+---
+#00:00:03.000 [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - nodeA: { price: 5.0}
+--- EXPECT ---
+1 => 2.0
+2 => 3.0
+3 => 4.0

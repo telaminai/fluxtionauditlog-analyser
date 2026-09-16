@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 /**
@@ -186,7 +188,11 @@ class FormulaGoldenTest {
                 if (l.isEmpty() || l.startsWith("#")) continue;
                 int c = l.indexOf(':');
                 assertTrue(c > 0, "metadata line is not 'key: value': " + l);
-                meta.put(l.substring(0, c).trim(), l.substring(c + 1).trim());
+                String key = l.substring(0, c).trim();
+                // N1: a doubled `expr:` line used to take the last silently — the fixture then pinned an
+                // expression its `why` never described. A duplicate is a broken fixture, not a choice.
+                org.junit.jupiter.api.Assertions.assertNull(meta.put(key, l.substring(c + 1).trim()),
+                        "duplicate metadata key '" + key + "' — a fixture states each of name/why/expr/keys once");
             }
             List<Long> xs = new ArrayList<>();
             List<Double> ys = new ArrayList<>();
@@ -212,5 +218,14 @@ class FormulaGoldenTest {
             assertNotNull(v, "fixture missing required metadata '" + k + "'");
             return v;
         }
+    }
+
+    /** N1: the parser rejects a doubled metadata key instead of silently keeping the last one. */
+    @org.junit.jupiter.api.Test
+    void aDoubledMetadataLineIsRejected() {
+        String text = "name: x\nwhy: y\nexpr: nodeA.v\nexpr: nodeA.v + 1\nkeys: nodeA.v\n--- LOG ---\n--- EXPECT ---\n";
+        org.opentest4j.AssertionFailedError e = org.junit.jupiter.api.Assertions.assertThrows(org.opentest4j.AssertionFailedError.class,
+                () -> Fixture.parse(text));
+        assertTrue(e.getMessage().contains("duplicate metadata key 'expr'"), e.getMessage());
     }
 }
