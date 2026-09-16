@@ -1,8 +1,35 @@
 # Spec — generated dispatch performance: every lever, and the one that matters
 
-**Status:** PROPOSED. **Evidence:** [`round-58`](../experience/runs/round-58/NOTES.md) — ~700 measured
-runs across 9 runtimes, every arm output-verified before timing.
+**Status:** PARTLY SHIPPED — read this block before the body, which is unchanged from 2026-09-06 and speaks in
+the future tense about work that has since landed. **Evidence:** [`round-58`](../experience/runs/round-58/NOTES.md)
+— ~700 measured runs across 9 runtimes, every arm output-verified before timing.
 **Owner:** Fluxtion compiler (upstream). This repo holds the evidence, not the implementation.
+
+> **What shipped, verified against the release tags on 2026-09-16** (`fluxtion-runtime` **1.0.15**, `fluxtion-compiler`
+> **1.0.67**; compiler **1.0.68**, cut 2026-09-16, adds no further M50 item). The code cites the items by name
+> (`M50/W…` markers), so this is what the artefacts contain, not what a branch promised:
+>
+> | item | state | where |
+> |---|---|---|
+> | **W1** guarded callback drain (§3.1) | **shipped** | runtime 1.0.15 + compiler 1.0.67 (the generated `processEvent`) |
+> | **W2** `ArrayDeque`, dropped empty-path store | **shipped** | runtime 1.0.15 |
+> | **W3** `BooleanSupplier` callbacks (§3.3) | **shipped** | runtime 1.0.15 |
+> | **W4** `noReentrancy` (§3.2) — `setSupportReentrancy(false)`, build check, runtime guard | **shipped** | compiler 1.0.67 + runtime 1.0.15 |
+> | **W12** auditor-name switch, no reflection (§18) | **shipped** | compiler 1.0.67 |
+> | **W15** `Auditor#auditEventReceipt()` (§17.6) | **shipped** | runtime 1.0.15 + compiler 1.0.67 |
+> | M50.13 `LOWEST_LATENCY` also sets buffer/subscriptions off | **shipped** | runtime 1.0.15 `EventProcessorConfig` (measured worth: nothing; kept for smaller code) |
+> | **W8** concrete `ClockStrategy` | **deferred** with reason (third-order, §3.3) | — |
+> | **W9** document the performance configuration | **open** — filed upstream as UP-FLX-50; the profile is described only in `EventProcessorConfig` javadoc | — |
+> | **W10** conformance bench (§12) | **◧** `tools/bench/latency-kit` shipped with M60–M63; the interleaved dispatch bench is on the analyser side | this repo |
+> | **W5, W6, W7, W11, W13a/b/c, W14** (the determinism spine, §14–§17) | **not started** | — |
+>
+> **What the shipped work changed about the argument.** M50.14 (tracker): on a landed native build with an accurate
+> profile and the inlining directive, the generated arm sits 0.12–0.14 ns above hand-rolled and **no further source
+> change moves it** — not auditor calls, not the registry, not the guards. §19's performance justifications
+> (−18 %, −26 %) were true of the shapes round 58 measured and are now banked; every remaining item stands on
+> correctness, determinism or generated-code clarity. §20's ordering is therefore stale in one respect: the
+> performance spine is done, and only the determinism spine remains. §1's figures are round-58 shapes; the current
+> measured numbers are the bench milestones' (`completed/tracker.md` ▸ M60–M63).
 
 ---
 

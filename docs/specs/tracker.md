@@ -196,25 +196,30 @@ pathway the catalogue exists to serve.
 
 ---
 
-## M50 · Compiler & runtime optimisation — ☐ SPEC COMPLETE, branch not started
+## M50 · Compiler & runtime optimisation — ◧ PERFORMANCE SPINE SHIPPED (runtime 1.0.15, compiler 1.0.67); determinism spine not started
 
 Spec: **[spec-generated-dispatch-performance.md](spec-generated-dispatch-performance.md)** — Part IV §19
 is the single work list. Evidence: **[round-58](../experience/runs/round-58/NOTES.md)**, ~700 measured
 runs across 9 runtimes, disassembly, every wrong answer preserved. Cross-repo: **UP-FLX-49**.
 
-All items **additive**; W4/W5/W7 opt-in, defaulting to current behaviour. Ship W12 first.
+All items **additive**; W4/W5/W7 opt-in, defaulting to current behaviour.
 
-**[M50.1] ☐ W12 — auditor-name switch, stop reflecting** · _`getNodeById`/`getAuditorById`/`newInstance`
+**Reconciled against the release tags 2026-09-16:** W1, W2, W3, W4, W12 and W15 are in `fluxtion-runtime` 1.0.15 and
+`fluxtion-compiler` 1.0.67 (code carries `M50/W…` markers; compiler 1.0.68, cut 2026-09-16, adds no M50 item). The
+spec's header block records the same table. Left: W5–W7, W11, W13, W14 (never started), W8 (deferred), W9 (filed
+upstream, UP-FLX-50), W10 (◧). This section had said "branch not started" since 2026-09-06.
+
+**[M50.1] ☑ SHIPPED compiler 1.0.67 · W12 — auditor-name switch, stop reflecting** · _`getNodeById`/`getAuditorById`/`newInstance`
 reflection-free; the `reflect-config.json` round 58 needed is no longer required; graph introspection
 works under native-image without user config._
 
-**[M50.2] ☐ W1 — guarded callback drain** · _−18% native, −2% JIT; no flag, no semantic change; audit
+**[M50.2] ☑ SHIPPED runtime 1.0.15 + compiler 1.0.67 · W1 — guarded callback drain** · _−18% native, −2% JIT; no flag, no semantic change; audit
 record stream unchanged._
 
-**[M50.3] ☐ W2/W3/W8 — runtime internals** · _`ArrayDeque` + dropped empty-path store; `BooleanSupplier`
+**[M50.3] ◧ W2/W3 SHIPPED runtime 1.0.15; W8 deferred (third-order, per the brief) · W2/W3/W8 — runtime internals** · _`ArrayDeque` + dropped empty-path store; `BooleanSupplier`
 removes per-callback boxing; concrete `ClockStrategy`. No API change._
 
-**[M50.4] ☐ W4 — `noReentrancy` flag** · _−26% native; build fails naming the offending node when a
+**[M50.4] ☑ SHIPPED compiler 1.0.67 + runtime 1.0.15 · W4 — `noReentrancy` flag** · _−26% native; build fails naming the offending node when a
 re-entrant use is detected; runtime guard throws; default off._
 
 **[M50.5] ☐ W5 — ambient-read scan + service boundary check** · _build fails on wall clock, randomness,
@@ -248,7 +253,7 @@ processor is scalar-replaced whole and there is nothing left for a source change
 remaining M50 item should therefore be justified by correctness, determinism or generated-code clarity,
 not by a promised nanosecond.** W11's own entry has already been rewritten on that basis._
 
-**[M50.12] ◧ W15 — an auditor can decline the event path** · IMPLEMENTED 2026-09-07, on branch ·
+**[M50.12] ☑ SHIPPED runtime 1.0.15 + compiler 1.0.67 · W15 — an auditor can decline the event path** · implemented 2026-09-07 ·
 _Owner's design: **"add another default method … default is Boolean return true. NodeNameAuditor
 overrides and only returns false. The generated code then is even more optimal."** `Auditor` gains
 `default boolean auditEventReceipt() { return true; }`; the generator emits `eventReceived` and
