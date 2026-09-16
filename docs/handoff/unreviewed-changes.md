@@ -14,7 +14,12 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
-## ☐ 2026-09-16 · Session-report items: pending pairing echo, `tracedOnly`, three skills · based on `c443c865`
+## ☑ reviewed 2026-09-16 · Session-report items: pending pairing echo, `tracedOnly`, three skills · based on `c443c865`
+
+**Verdict: NOT READY for 1.13.1.** Independent [review](review_analyser_1.13.1_2026-09-16.md): B1 stale
+pairing in context and B2 false `tracedOnly` assertions block; F3 records the pre-existing fresh-session
+gap and F5 corrects the compiler attribution. The author account below is retained as reviewed history,
+not as acceptance of those claims.
 
 **Source.** An agent's session report on the 1.13.0 template bundle (off-repo, the owner's copy). Its analyser
 items were triaged: one defect, two gaps, one policy kept (screenshot never overwrites — `ExportGuard` is
@@ -51,7 +56,11 @@ within the load): the second echo must say pending and the status bar must show 
 it lands. Whether `tracedOnly` should also appear in the raw-text (`fields` omitted) shape — left out because
 the raw text already shows `thread`/`method`.
 
-## ☐ 2026-09-16 · Source panel: stale "No source to show" after a project switch · based on `7960462d` (v1.13.0)
+## ☑ reviewed 2026-09-16 · Source panel: stale "No source to show" after a project switch · based on `7960462d` (v1.13.0)
+
+**Verdict: original processor switch and live project hint accepted; node-pane follow-up F4 remains.**
+Independent [review](review_analyser_1.13.1_2026-09-16.md) reproduced the missing→missing node placeholder
+retaining old roots. Source re-read overhead on large/remote files was not measured.
 
 **What & why.** Reported on the deployed 1.13.0: the processor pane said *No source to show … Source root
 searched: &lt;an older checkout's root&gt;* while the nodes pane resolved and `context` already reported the new
