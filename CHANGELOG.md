@@ -33,7 +33,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   generated javadoc's "the auditor's HashMaps" — made it scan the 4 KB of file after it and overflow the stack
   (reported on 1.13.0 from a JBang install). Literals are now scanned by hand: a literal ends at a line end (LF or
   CR, even after a backslash), an unterminated one colours nothing, and a text block (`"""…"""`) is coloured whole
-  across its lines (second-pass review R2-F4).
+  across its lines, an escaped triple quote inside it being content rather than its end (reviews R2-F4, R3-F2).
 - **A graph opened while a log is loading is not judged against the previous log — anywhere.** The log loads
   in the background, so the graph was judged against whatever was loaded when the call ran: "no log is open" on a
   first open, the old log's node counts on a re-open, while `context` was right a moment later. The log echo now
@@ -48,7 +48,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   showed log and graph with no `applies` at all (pre-existing on 1.13.0; independent review F3). A log arriving now
   builds it — and the warnings that arrival raises (a mismatched graph closed) are rendered for THAT request's
   audience: a socket caller gets the text in the status bar, never a modal it cannot dismiss (second-pass review
-  R2-B2; the flag used to be set only by project transitions).
+  R2-B2; the flag used to be set only by project transitions). The audience belongs to each OPERATION, not to the
+  session: every socket verb declares it on entry and every File-menu action declares it in its listener, so a
+  socket close after a person opened the log no longer inherits the person's audience (third-pass review R3-B1).
 - **A configuration refresh no longer moves the reader.** Re-applying unchanged roots and processor used to scroll
   the processor pane back to its type declaration; an unchanged hit now keeps its viewport and caret (second-pass
   review R2-F5, pre-existing).

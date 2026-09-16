@@ -14,6 +14,33 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Response to the third-pass review: R3-B1 fixed; R3-F2 fixed; R3-F3 recorded · `1c3c817a`, based on `4363f439`
+
+Response: [handoff_analyser_1.13.1_pass3_response_2026-09-16.md](handoff_analyser_1.13.1_pass3_response_2026-09-16.md).
+Review: [review_analyser_1.13.1_pass3_2026-09-16.md](review_analyser_1.13.1_pass3_2026-09-16.md).
+
+**What & why.** R3-B1 — the audience flag belongs to the operation whose effects execute, never to the session:
+the socket verbs `close`, `openGraphml` and `selectProcessor` set `sessionInteractive = false` on entry; the
+File-menu close/reset listeners and the human graph-open entrance set it `true` there (not inside the shared
+`closeLog`/`closeGraph`, which session effects and socket verbs also call); a log arrival keeps taking it from its
+`OpenRequest`; a project transition from its argument. R3-F2 — the text-block delimiter search skips an escaped
+triple quote (an odd run of backslashes before it). R3-F3 — R2-F3 is now recorded as tracker item **M44.3a** with
+its reproduction and processor-side remedy, instead of "filed there".
+
+**Verified.** `PairingDuringLoadFrameTest` gains the review's shape without the project step: a HUMAN
+`openFile(A)` arrival, then socket `open {graphml: B}` (kept, mismatch announced), then socket `close {graph}` under
+the dialog watchdog: 0 dialogs, graph closed. 4/4 on a display. **Mutant, honestly:** removing the `close` verb's
+assignment alone does NOT turn the test red, because the socket graph open just before it already declared the
+socket audience — the human graph-open entrance is a file chooser and cannot be driven from a test, so no sequence
+reachable here has a human operation immediately before the socket close. Removing ALL three socket-entrance
+assignments turns exactly the new test red. `JavaHighlighterLongLiteralTest` 6/6 with the escaped-delimiter colour
+spans. `mvn -o clean verify`: 1408 tests, 0 failures, 4 skipped (the frame suite, headless by design). Strict docs
+and the sweep pass.
+
+**Reviewer must still check.** The reviewer's own project-first sequence, which this test approximates without the
+project step. Whether `openLogs` and `discoverGraphs` should also declare the socket audience (they raise no
+warning today, so they were left alone). The CR-only line-comment limitation is still present, unchanged.
+
 ## ☑ reviewed 2026-09-16 · Response to the second-pass review: R2-B1, R2-B2 fixed; R2-F4, R2-F5, R2-F6 done; R2-F3 open · `b662bc33`, based on `657ab6e4`
 
 **Verdict: NOT READY for 1.13.1.** Independent
