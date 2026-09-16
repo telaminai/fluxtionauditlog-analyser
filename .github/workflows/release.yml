@@ -18,6 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # full history: CanonicalSkillsTest verifies the published skills index against the git revision it
+          # pins (git show <sha>:path); the default one-commit checkout cannot see it and failed main since 2026-09-04
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

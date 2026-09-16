@@ -150,6 +150,7 @@ class CanonicalSkillsTest {
             return;
         }
 
+        requireFullHistory();
         String revision = (String) v2.get("revision");
         assertTrue(revision != null && revision.matches("[0-9a-f]{40}"),
                 "a published index must pin a full source revision");
@@ -169,6 +170,7 @@ class CanonicalSkillsTest {
 
     @Test
     void theRevisionCheckFAILSwhenAPathIsAbsentThere() throws Exception {
+        requireFullHistory();
         // review F2 asked for a negative test. Without one, v2sDeclaredRevisionCONTAINSeverySelectedByte
         // could be passing because gitShow always succeeds, which is how the original defect survived:
         // the old v2 test checked worktree existence only, so a revision naming nothing was still green.
@@ -245,6 +247,18 @@ class CanonicalSkillsTest {
             paths.addAll((List<String>) ((Map<String, Object>) spec).get("skills"));
         }
         return paths;
+    }
+
+    /**
+     * The revision checks read git HISTORY. A shallow clone — actions/checkout's default fetch-depth of 1 — has
+     * none, so every lookup returns null and the checks fail for a reason that is not the index's. Fail on the
+     * real cause instead: CI must check out with {@code fetch-depth: 0} (ci.yml and release.yml do).
+     */
+    private static void requireFullHistory() throws Exception {
+        Process p = new ProcessBuilder("git", "rev-parse", "--is-shallow-repository").start();
+        String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
+        assertNotEquals("true", out, "this is a shallow clone: the pinned revision cannot be read from history."
+                + " Check out with fetch-depth: 0 (the workflows do) before trusting a failure of the revision checks");
     }
 
     /** @return the blob at a git revision, or null when the path does not exist there. */
