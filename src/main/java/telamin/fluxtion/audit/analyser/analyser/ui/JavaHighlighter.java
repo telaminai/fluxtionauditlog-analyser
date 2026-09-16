@@ -95,7 +95,7 @@ public final class JavaHighlighter {
             if (c != '"' && c != '\'') { i++; continue; }
             if (c == '"' && text.startsWith("\"\"\"", i)) {
                 // a text block (Java 15): may span lines; ends at the next """ — review R2-F4
-                int end = text.indexOf("\"\"\"", i + 3);
+                int end = closingTextBlockDelimiter(text, i + 3);
                 if (end < 0) { i += 3; continue; }
                 doc.setCharacterAttributes(i, end + 3 - i, string, true);
                 i = end + 3;
@@ -122,6 +122,18 @@ public final class JavaHighlighter {
             }
         }
     }
+    /** The next {@code """} from {@code from} that is not escaped (review R3-F2: {@code \\"""} is content). */
+    private static int closingTextBlockDelimiter(String text, int from) {
+        int end = text.indexOf("\"\"\"", from);
+        while (end > 0) {
+            int backslashes = 0;
+            for (int k = end - 1; k >= 0 && text.charAt(k) == '\\'; k--) backslashes++;
+            if (backslashes % 2 == 0) return end;
+            end = text.indexOf("\"\"\"", end + 1);
+        }
+        return end;
+    }
+
     private static void apply(StyledDocument doc, String text, Pattern p, SimpleAttributeSet a) {
         Matcher m = p.matcher(text);
         while (m.find()) {

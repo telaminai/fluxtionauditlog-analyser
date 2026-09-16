@@ -484,6 +484,13 @@ retrieval-dated evidence table, because those are live documents that can change
 - [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
   recommends.** ☐ **Blocker before the dependency lands:** the runtime's published POM declares AGPL-3.0
   jar. ☐ **Residue:** the five dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`,
+- [M44.3a] ☐ **A refresh observation can close the graph that replaced the one judged** (1.13.1 review R2-F3,
+  confirmed pre-existing on 1.13.0; recorded here per R3-F3). Reproduction: A/A → start a FAILING load → open
+  graph B → reopen graph A, all in one EDT turn; when the failure settles no graph remains, though the last
+  deliberate request was A, which fits the still-open log A. `updateLifecycleMenu` observes the unchanged log
+  before the new graph, `LogArrival` judges against the previously observed B and its close effect clears the
+  current A. Remedy, processor-side: distinguish a real log ARRIVAL from a refresh of observed state, and bind
+  a close effect to the identity of the graph actually judged. Review: `docs/handoff/review_analyser_1.13.1_pass2_2026-09-16.md`.
 - [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
   ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /

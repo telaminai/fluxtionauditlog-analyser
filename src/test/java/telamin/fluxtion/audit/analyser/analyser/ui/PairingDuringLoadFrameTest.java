@@ -134,6 +134,37 @@ class PairingDuringLoadFrameTest {
         }
     }
 
+    /**
+     * Review R3-B1: a person opened the log, so the arrival's audience was human — and a LATER socket close
+     * inherited it and showed a modal. The audience belongs to the operation, so the socket close must not.
+     */
+    @Test
+    void humanArrivalThenSocketGraphOpenAndClose_noDialogForTheSocketOperations(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "needs a display: a real MainFrame is constructed");
+        Path logA = Files.writeString(tmp.resolve("a.yaml"), log("nodeA"));
+        Path graphB = Files.writeString(tmp.resolve("b.graphml"), graph("nodeB"));
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        DialogWatchdog dialogs = new DialogWatchdog();
+        try {
+            SwingUtilities.invokeAndWait(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> frame.get().openFile(logA, OpenRequest.HUMAN));      // the File-menu entrance
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graphB.toString())));   // kept, mismatch announced
+            onEdt(() -> render(ex, "open", Map.of("close", "graph")));
+            AtomicReference<Map<String, Object>> after = new AtomicReference<>();
+            onEdt(() -> after.set(pairing(ex)));
+            assertNull(after.get().get("graph"), "the graph is closed: " + after.get());
+            assertEquals(0, dialogs.seen(), "a socket close after a human arrival must not inherit the human audience (R3-B1)");
+        } finally {
+            dialogs.stop();
+            System.setProperty("user.home", home);
+            if (frame.get() != null) SwingUtilities.invokeAndWait(() -> frame.get().dispose());
+        }
+    }
+
     /** Counts and disposes any visible dialog, so a modal cannot hang the test — it fails it instead. */
     private static final class DialogWatchdog {
         private final java.util.concurrent.atomic.AtomicInteger seen = new java.util.concurrent.atomic.AtomicInteger();

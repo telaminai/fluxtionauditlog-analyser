@@ -1568,13 +1568,13 @@ public final class MainFrame extends JFrame {
         // app was to restart it, and opening a second log left the first log's graph on screen.
         closeLogItem.setToolTipText("Close the log and everything derived from it. Named graphs, "
                 + "focuses and reports are profile state and stay — they will say why they cannot resolve.");
-        closeLogItem.addActionListener(e -> closeLog());
+        closeLogItem.addActionListener(e -> { sessionInteractive = true; closeLog(); });   // R3-B1: a person asked
         file.add(closeLogItem);
         closeGraphItem.setToolTipText("Close the loaded .graphml topology, leaving the log open");
-        closeGraphItem.addActionListener(e -> closeGraph());
+        closeGraphItem.addActionListener(e -> { sessionInteractive = true; closeGraph(); });
         file.add(closeGraphItem);
         resetItem.setToolTipText("Close both — back to a fresh start (the project profile is kept)");
-        resetItem.addActionListener(e -> resetAll());
+        resetItem.addActionListener(e -> { sessionInteractive = true; resetAll(); });
         file.add(resetItem);
         rebuildRecentMenu();
         file.add(recentMenu);
@@ -3578,8 +3578,14 @@ public final class MainFrame extends JFrame {
     /**
      * Whether the request in flight came from a person. It is <b>rendering</b>, not policy: the
      * processor decides that a warning is warranted and what it says, and this decides whether that
-     * lands in a dialog or is handed back to a socket caller who cannot answer one (M35.7). Set by every
-     * project transition AND by every log arrival (review R2-B2), each from its own request.
+     * lands in a dialog or is handed back to a socket caller who cannot answer one (M35.7).
+     *
+     * <p><b>It belongs to the OPERATION whose effects are executing, never to the session</b> (review
+     * R3-B1: a human log arrival left it true, and the next socket {@code close} showed a modal). So every
+     * entrance declares it: a project transition from its {@code interactive} argument, a log arrival from
+     * its {@link OpenRequest}, each socket verb below as {@code false} on entry, and each File-menu action
+     * as {@code true} — in the listener, not inside the shared {@code closeLog}/{@code closeGraph}, which
+     * session effects and socket verbs also call.
      */
     private boolean sessionInteractive = true;
 
@@ -3878,6 +3884,7 @@ public final class MainFrame extends JFrame {
 
     /** Load a topology and remember it, from wherever it was chosen — menu, recent list or a drop. */
     private void openGraphml(String path) {
+        sessionInteractive = true;      // R3-B1: the File-menu entrance — a person can answer a dialog
         java.nio.file.Path file = java.nio.file.Path.of(path);
         if (!java.nio.file.Files.isReadable(file)) {
             JOptionPane.showMessageDialog(this, "Cannot read " + path,
@@ -3984,6 +3991,7 @@ public final class MainFrame extends JFrame {
 
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult close(String what) {
+            sessionInteractive = false;     // R3-B1: this operation's audience is the socket, whatever came before
             String w = what == null ? "" : what.trim().toLowerCase(java.util.Locale.ROOT);
             boolean hadLog = store != null;
             boolean hadGraph = topologyPanel.hasGraph();
@@ -4155,6 +4163,7 @@ public final class MainFrame extends JFrame {
 
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openGraphml(String path) {
+            sessionInteractive = false;     // R3-B1
             if (path == null || path.isBlank()) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'graphml' is empty");
             }
@@ -4207,6 +4216,7 @@ public final class MainFrame extends JFrame {
 
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult selectProcessor(String fqn) {
+            sessionInteractive = false;     // R3-B1
             if (fqn == null || fqn.isBlank()) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("'processor' is empty");
             }

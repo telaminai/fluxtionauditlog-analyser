@@ -78,4 +78,17 @@ class JavaHighlighterLongLiteralTest {
         assertEquals(open, fg(doc, src.indexOf("beta")));
         org.junit.jupiter.api.Assertions.assertNotEquals(open, fg(doc, src.indexOf(" n = 1") + 1), "and the code after it is not");
     }
+
+    /** Review R3-F2: an escaped delimiter inside a text block is content, not the end. */
+    @Test
+    void anEscapedTripleQuoteInsideATextBlockDoesNotEndIt() {
+        String src = "class P {\n    static String t = \"\"\"\n        alpha \\\"\"\" beta\n        gamma\n        \"\"\";\n    int n = 1;\n}\n";
+        DefaultStyledDocument doc = new DefaultStyledDocument();
+        new JavaHighlighter().render(doc, src);
+        java.awt.Color open = fg(doc, src.indexOf("\"\"\""));
+        assertEquals(open, fg(doc, src.indexOf("alpha")));
+        assertEquals(open, fg(doc, src.indexOf("beta")), "beta is still inside the block");
+        assertEquals(open, fg(doc, src.indexOf("gamma")), "and so is gamma");
+        org.junit.jupiter.api.Assertions.assertNotEquals(open, fg(doc, src.indexOf(" n = 1") + 1));
+    }
 }
