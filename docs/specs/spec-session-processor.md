@@ -339,7 +339,11 @@ Plus two rules that are not a `kind` but a decision-table row each:
 - **same project already active** ⇒ no-op: nothing closes, nothing is re-applied, and the record says
   `noOp=true` rather than being silent;
 - **load failed** ⇒ nothing closes, nothing changes, `ProfileLoaded(ok=false)` is the only state effect,
-  and the reason is logged.
+  and the reason is logged — **with one qualification since M44.3:** a log open still PENDING when the
+  request reached the gate is superseded by the request itself, not by its outcome. The open project and
+  the open log are retained; the pending load's late result is refused as `staleResult` and it opens
+  nothing (finish-first review pass 2, *The failed-switch choice*: accepted — an attempted session
+  transition must not revive a request made before it).
 
 ## 5 · State-owning nodes
 

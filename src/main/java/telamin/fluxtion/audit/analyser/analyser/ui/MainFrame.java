@@ -3687,7 +3687,20 @@ public final class MainFrame extends JFrame {
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
                 .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source));
+        syncBusyWithGate();
         return sessionProblem == null;
+    }
+
+    /**
+     * The adapter's "loading" projection follows the GATE, not the worker (finish-first review pass 2, B2):
+     * a project request that reached the gate — whether its load then succeeded or failed — supersedes a
+     * pending open, so nothing is outstanding and the busy indicator, the pending pairing and a graph opened
+     * next must not wait for the discarded reader to return. A load the gate still expects keeps its state.
+     */
+    private void syncBusyWithGate() {
+        if (loadInFlight && session != null && session.processor().operationGate.inFlightWhat() == null) {
+            setBusy(false);
+        }
     }
 
     /** The interactive form — a person asked, so a failure is a dialog. */

@@ -14,6 +14,31 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Response to the finish-first review, pass 2: B2 completed (busy follows the gate) · based on `c854d28f`
+
+Response: [handoff_analyser_finish_first_response2_2026-09-16.md](handoff_analyser_finish_first_response2_2026-09-16.md).
+Review: [review_analyser_finish_first_pass2_2026-09-16.md](review_analyser_finish_first_pass2_2026-09-16.md).
+
+**What & why.** `MainFrame.requestProject` calls `syncBusyWithGate()` after the request is dispatched: when the
+gate reports nothing outstanding and the adapter still says loading, `setBusy(false)` — which also restores the
+session's still-true pairing verdict. So at the project boundary, whether the switch then succeeds or fails, the
+busy indicator, `context.graphPairing.loading`/`pairing: pending` and a graph opened next no longer wait for the
+discarded reader; a load the gate still expects keeps its state. The discarded worker is not cancelled (spec D-A3:
+correctness rests on refusing its result). `spec-session-processor.md`'s decision-table row *load failed* is
+qualified (a pending open is superseded by the request, not the outcome — the reviewer's accepted choice). The
+docs example no longer shows `applies` beside `inFlight`; a separate pending example was added. Barriers in the
+frame tests wait for the stale audit record / the dialog observation instead of a sleep or a status set.
+
+**Verified.** `AsyncOpenInterleavingFrameTest` now 9 cases, 9/9 on a display: the B2 case asserts at the boundary
+BEFORE releasing the reader (no `inFlight`, no `loading`, no pending pairing) and again after the stale result; a
+new failed-switch case (a profile with a malformed escape reaches the gate and fails to load) asserts the same and
+that a graph opened next is judged AT ONCE against the surviving log; a newer-pending-open control (two readers)
+asserts an older stale result clears nothing. Mutant (the sync call removed): the boundary cases red. Full verify,
+strict docs, links, sweep.
+
+**Reviewer must still check.** The CI ui-frame job runs 14 display cases now (~2.5 min). Whether the busy
+projection should also be synced after a socket `close` (M44.3b, unchanged on purpose).
+
 ## ☑ reviewed 2026-09-16 · Response to the finish-first review · `323277b5` + `b8a93533`, based on `5be00dc4`
 
 **Independent pass 2: NOT READY to close M44.3; B2 PARTIALLY fixed.** B1/B3 and export F4 close; F5's

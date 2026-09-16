@@ -65,12 +65,19 @@ deciding what to read and what to run.
 ← { "project": {"name": "demo-quote-project", "root": "…/demo-quote-project"},
     "log": {"openedFrom": "…/demo-quote-audit.yaml", "records": 10, "openedBy": "you"},
     "graphPairing": {"graph": "demo-quote-processor.graphml", "applies": true, "auditLogging": "enabled"},
-    "inFlight": "opening /path/to/next.yaml",     // only while a load is outstanding; absent otherwise
     "runbooks": [{"name": "restart", "path": "ops/restart-quote-service.md", "exists": true, "from": "project",
                   "note": "a pointer — read the file from the repository; the analyser stores no instructions and executes nothing"}],
     "vocabulary": {"path": "docs/glossary.md", "exists": true, "text": "# Glossary\n- **live**: …\n- **spread**: … 0.01 is normal here\n- **breach**: …"},
     "analyses": [{"name": "spread breach", "rationale": "every breach incident starts the same way: the spread before it",
                   "parameters": [{"name": "log"}], "steps": ["open", "graph"]}] }
+```
+
+While a log is still loading, `context` says so instead of a verdict — `inFlight` is present and the pairing is
+pending; neither appears once the load has landed:
+
+```json
+← { "graphPairing": {"graph": "demo-quote-processor.graphml", "pairing": "pending — a log is loading; …", "loading": true},
+    "inFlight": "opening …/next.yaml", … }
 ```
 
 The agent now knows three things it did not have to guess: what `spread` and `breach` mean *here*,

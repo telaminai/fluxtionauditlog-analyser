@@ -50,10 +50,14 @@ class AsyncOpenInterleavingFrameTest {
         final CountDownLatch release = new CountDownLatch(1);
         final boolean fail;
         final String node;
-        DelayedReader(boolean fail, String node) { this.fail = fail; this.node = node; }
+        final String fileName;
+        DelayedReader(boolean fail, String node) { this(fail, node, null); }
+        DelayedReader(boolean fail, String node, String fileName) { this.fail = fail; this.node = node; this.fileName = fileName; }
         @Override public String formatId() { return "test-slow"; }
         @Override public String displayName() { return "test slow reader"; }
-        @Override public boolean canOpen(Path source) { return source.toString().endsWith(".slow"); }
+        @Override public boolean canOpen(Path source) {
+            return fileName == null ? source.toString().endsWith(".slow") : source.getFileName().toString().equals(fileName);
+        }
         @Override public TimeBase timeBase() { return TimeBase.wallClockMillisUtc(); }
         @Override public Capabilities capabilities() { return new Capabilities(false, false, true); }
         @Override public void read(Path source, Consumer<String> out) throws java.io.IOException {
@@ -90,8 +94,8 @@ class AsyncOpenInterleavingFrameTest {
             System.setProperty("user.home", home);
             SwingUtilities.invokeAndWait(frame::dispose);
         }
-        String status() throws Exception { return ((javax.swing.JLabel) field(frame, "status")).getText(); }
-        String processorLog() throws Exception {
+        String status() { return ((javax.swing.JLabel) field(frame, "status")).getText(); }
+        String processorLog() {
             Object session = field(frame, "session");
             return session == null ? null
                     : ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) session).processor().openLog.logPath();
@@ -153,13 +157,17 @@ class AsyncOpenInterleavingFrameTest {
             onEdt(() -> render(f.ex, "open", Map.of("log", slowA.toString(), "format", "test-slow")));
             reader.awaitEntered();
             onEdt(() -> render(f.ex, "open", Map.of("project", settings.toString())));
-            reader.release.countDown();
-            awaitStatusStartsWith(f, "Discarded ");
+            // pass 2 B2: at the project boundary, BEFORE the discarded reader returns
             onEdt(() -> {
                 Map<String, Object> ctx = render(f.ex, "context", Map.of());
                 assertNull(find(ctx, "inFlight"), "nothing is outstanding after the switch: " + find(ctx, "inFlight"));
-                assertFalse(pairing(f.ex).containsKey("loading"), "and the load is not reported as in flight");
+                assertFalse(pairing(f.ex).containsKey("loading"), "the busy projection follows the gate, not the worker");
+                assertFalse(pairing(f.ex).containsKey("pairing"), "no pending pairing for a load that can never land");
             });
+            reader.release.countDown();
+            awaitStatusStartsWith(f, "Discarded ");
+            awaitStale(f);
+            onEdt(() -> assertNull(find(render(f.ex, "context", Map.of()), "inFlight"), "the stale result did not resurrect pending state"));
             assertNull(f.processorLog(), "the superseded load opened nothing");
         }
     }
@@ -199,6 +207,67 @@ class AsyncOpenInterleavingFrameTest {
         }
     }
 
+    @Test
+    void b2_aFailedSwitchStillRetiresThePendingLoad_andTheSurvivingLogPairsAtOnce(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path old = project(tmp, "Old");
+        Path bad = tmp.resolve("Bad").resolve(".analyser").resolve("project.fluxtion-settings");
+        Files.createDirectories(bad.getParent());
+        Files.writeString(bad, "sourceRoot.0=\\u00zz\n");                 // exists, reaches the gate, fails to load
+        Path logB = Files.writeString(tmp.resolve("b.yaml"), log("nodeB"));
+        Path graphB = Files.writeString(tmp.resolve("b.graphml"), graph("nodeB"));
+        Path slowA = Files.writeString(tmp.resolve("a.slow"), "slow");
+        DelayedReader reader = new DelayedReader(false, "nodeA");
+        try (Frame f = new Frame(tmp, reader)) {
+            onEdt(() -> render(f.ex, "open", Map.of("project", old.toString())));
+            onEdt(() -> render(f.ex, "open", Map.of("log", logB.toString())));
+            awaitLoaded(f.ex);
+            onEdt(() -> render(f.ex, "open", Map.of("log", slowA.toString(), "format", "test-slow")));
+            reader.awaitEntered();
+            onEdt(() -> assertFalse(f.ex.render("open", new java.util.LinkedHashMap<>(Map.of("project", bad.toString()))).ok(),
+                    "a profile that cannot be parsed is a failed switch"));
+            onEdt(() -> {
+                assertNull(find(render(f.ex, "context", Map.of()), "inFlight"), "the request retired the pending open, whatever its outcome");
+                assertFalse(pairing(f.ex).containsKey("loading"));
+                assertEquals(logB.toString(), f.processorLog(), "the surviving log is still the open one");
+            });
+            onEdt(() -> {
+                Map<String, Object> echo = render(f.ex, "open", Map.of("graphml", graphB.toString()));
+                Map<String, Object> g = (Map<String, Object>) ((Map<String, Object>) echo.get("opened")).get("graphml");
+                assertEquals(Boolean.TRUE, g.get("appliesToOpenLog"), "judged AT ONCE against the surviving log: " + g);
+            });
+            reader.release.countDown();
+            awaitStale(f);
+            assertEquals(logB.toString(), f.processorLog(), "the discarded load changed nothing");
+            onEdt(() -> assertEquals(Boolean.TRUE, pairing(f.ex).get("applies")));
+        }
+    }
+
+    @Test
+    void b2_control_aLaterStaleResultDoesNotClearANewerPendingOpen(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path slowA = Files.writeString(tmp.resolve("a.slow"), "slow");
+        Path slowB = Files.writeString(tmp.resolve("b.slow"), "slow");
+        DelayedReader readerA = new DelayedReader(false, "nodeA", "a.slow");
+        DelayedReader readerB = new DelayedReader(false, "nodeB", "b.slow");
+        try (Frame f = new Frame(tmp, readerA, readerB)) {
+            // auto-detected by file name: two readers share the format id, and readerFor(format) picks the first
+            onEdt(() -> render(f.ex, "open", Map.of("log", slowA.toString())));
+            readerA.awaitEntered();
+            onEdt(() -> render(f.ex, "open", Map.of("log", slowB.toString())));                          // newer, pending
+            readerB.awaitEntered();
+            readerA.release.countDown();                                                                // the OLD one lands
+            awaitStale(f);
+            onEdt(() -> {
+                assertEquals("opening " + slowB, find(render(f.ex, "context", Map.of()), "inFlight"), "the newer open is still outstanding");
+                assertTrue(pairing(f.ex).containsKey("loading"), "and still loading — a stale result clears nothing");
+            });
+            readerB.release.countDown();
+            awaitLoaded(f.ex);
+            assertEquals(slowB.toString(), f.processorLog());
+        }
+    }
+
     // ---- review B3 ---------------------------------------------------------------------------------
 
     @Test
@@ -214,8 +283,7 @@ class AsyncOpenInterleavingFrameTest {
             awaitLoaded(f.ex);
             String statusAfterB = f.status();
             failing.release.countDown();                                                                // A's failure lands late
-            Thread.sleep(400);
-            onEdt(() -> { });
+            awaitStale(f);                                                                              // the refusal is on the record
             assertEquals(0, f.dialogs.seen(), "a superseded failure is not the current operation's failure");
             assertEquals(statusAfterB, f.status(), "and it does not overwrite the newer operation's status");
             assertEquals(logB.toString(), f.processorLog());
@@ -232,7 +300,7 @@ class AsyncOpenInterleavingFrameTest {
             onEdt(() -> f.frame.openFile(slowA, OpenRequest.HUMAN));
             failing.awaitEntered();
             failing.release.countDown();
-            awaitStatusStartsWith(f, "Failed to load ");
+            awaitDialogs(f, 1);
             assertEquals(1, f.dialogs.seen(), "the person who asked is told");
         }
     }
@@ -289,6 +357,31 @@ class AsyncOpenInterleavingFrameTest {
             Thread.sleep(50);
         }
         fail("status never started with '" + prefix + "'; last: " + f.status());
+    }
+
+    /** Barrier: the superseded operation's refusal is on the processor's record. */
+    static void awaitStale(Frame f) throws Exception {
+        long deadline = System.currentTimeMillis() + 20_000;
+        while (System.currentTimeMillis() < deadline) {
+            AtomicReference<Boolean> seen = new AtomicReference<>(false);
+            onEdt(() -> {
+                Object session = field(f.frame, "session");
+                seen.set(session != null && !((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) session)
+                        .auditSink().matching("staleResult").isEmpty());
+            });
+            if (seen.get()) return;
+            Thread.sleep(50);
+        }
+        fail("no staleResult recorded within 20s");
+    }
+
+    static void awaitDialogs(Frame f, int n) throws Exception {
+        long deadline = System.currentTimeMillis() + 20_000;
+        while (System.currentTimeMillis() < deadline) {
+            if (f.dialogs.seen() >= n) return;
+            Thread.sleep(50);
+        }
+        fail("expected " + n + " dialog(s); saw " + f.dialogs.seen());
     }
 
     static void clickRecentGraphml(MainFrame f, Path graph) {

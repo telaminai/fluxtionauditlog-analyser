@@ -35,9 +35,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Three lifecycle defects in the asynchronous open (M44.3), found by its independent review.** The completing
   operation's audience is now established before its effects run, so a person re-opening a graph from *Recent* while a
   socket load is in flight no longer makes that load's arrival modal (B1). A project switch during a pending load
-  retires the load's "opening …" description at once, so `context.inFlight` and the busy indicator stop reporting a
-  load that can never complete; a no-op re-open of the active project and a bad project path still leave the load
-  alone (B2). A superseded load's failure is recorded as a stale result but never shown: no status overwrite, no dialog
+  retires the load's "opening …" description at once, and the busy indicator, the pending pairing and a graph opened
+  next follow the gate rather than the discarded reader — immediately, whether the switch then succeeds or fails; a
+  no-op re-open of the active project and a bad project path still leave the load alone (B2, and its second-pass
+  remainder). A superseded load's failure is recorded as a stale result but never shown: no status overwrite, no dialog
   (B3). Each is pinned on a real frame with a latch-controlled reader, with a positive control beside it.
 - **The session processor's exported audit snapshot reopens as one record per dispatch.** The export carried no
   `---` framing, so the analyser read fifteen records as one (pre-existing; review F4). Framed now, and the test opens
