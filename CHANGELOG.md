@@ -6,6 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **The Source panel re-reads the event processor when the source roots change, and its "No source to
+  show" placeholder says where the roots came from.** Switching project (or adding a root) with the same
+  processor selected left the previous placeholder on screen — naming the previous project's root — while
+  the new roots already resolved the file, because an unchanged class name was never re-read. Both panes
+  now re-read a file whose content changed with the roots, and a miss is retried on every navigation. The
+  placeholder names the project the listed roots belong to and, when the open log sits inside a project
+  that is not in force (a socket-driven open never shows the "Load this project?" dialog, so the offer was
+  only a status-line note), names that project with both ways to load it: *File ▸ Open project…* and
+  `open {project: …}`.
+
 ## [1.13.0] - 2026-09-16
 
 ### Added

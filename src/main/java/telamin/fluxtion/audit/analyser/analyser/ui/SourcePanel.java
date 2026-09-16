@@ -77,6 +77,7 @@ public final class SourcePanel extends JPanel {
     private Mode mode = Mode.SPLIT;
 
     private SourceService service;
+    private java.util.function.Supplier<String> lookupHint = () -> "";
     private boolean syncing;
     private boolean wrap;
 
@@ -196,8 +197,64 @@ public final class SourcePanel extends JPanel {
         }
     }
 
+    /**
+     * Show the selected processor after the configuration changed — a project switch, a root added.
+     *
+     * <p>An unchanged class name is not a reason to keep what is on screen: the file behind that name may
+     * now exist where it did not, or belong to a different project. Both panes re-read their file when
+     * its content changed with the roots, so a stale "not found" (or a stale file) never survives a
+     * switch. Found 2026-09-16: a log opened over the socket while an older checkout's project was in
+     * force; the human then loaded the log's own project, the resolver found the processor, and the panel
+     * still said "No source to show … root searched: <the OLD root>" because {@link #navigate} skips an
+     * unchanged name.
+     */
     public void showSelectedProcessor() {
-        if (service != null) openFqn(service.selectedFqn());
+        if (service == null) return;
+        rerenderIfChanged(processorPane);
+        rerenderIfChanged(nodePane);
+        openFqn(service.selectedFqn());
+    }
+
+    /** Re-read a pane's file when the roots now resolve its name to something else (or to nothing). */
+    private void rerenderIfChanged(Pane pane) {
+        if (pane.fqn == null) return;
+        String now = service.sourceForFqn(pane.fqn).orElse("");
+        if (!now.equals(pane.source)) pane.render(pane.fqn);
+    }
+
+    /**
+     * Where the roots on screen came from and how to change that, appended to the "No source to show"
+     * placeholder. Supplied by the frame, which knows the active project and any project the open log
+     * belongs to that is not in force; the panel only knows the roots.
+     */
+    public void setLookupHint(java.util.function.Supplier<String> hint) {
+        this.lookupHint = hint == null ? () -> "" : hint;
+    }
+
+    /**
+     * The "No source to show" placeholder, as text. Pure so a test can read it. {@code hint} is the
+     * frame's account of where the roots came from and what to load instead (see {@link #setLookupHint});
+     * without it a reader saw the right root listed under the wrong project and nothing to say so
+     * (2026-09-16: the offer to load the log's own project had gone by as a status-line note).
+     */
+    static String nothingToShowText(String missingFqn, List<java.nio.file.Path> roots, String hint) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("No source to show\n\n")
+          .append(missingFqn).append('\n')
+          .append("was not found under the source roots below.\n\n");
+        if (roots.isEmpty()) {
+            sb.append("No source roots are configured yet.\n\n");
+        } else {
+            sb.append(roots.size() == 1 ? "Source root searched:\n" : "Source roots searched:\n");
+            for (java.nio.file.Path root : roots) sb.append("    ").append(root).append('\n');
+            sb.append('\n');
+        }
+        if (hint != null && !hint.isBlank()) sb.append(hint.strip()).append("\n\n");
+        sb.append("Add one:  File ▸ Settings… ▸ Source roots ▸ Add…\n")
+          .append("or drag a project folder onto that tab — a project expands to its src/main/java,\n")
+          .append("sub-modules included.\n\n")
+          .append("A source root is the folder that directly contains your top-level package directory.");
+        return sb.toString();
     }
 
     /** True once the processor half has a file in it — used to avoid re-navigating (and re-scrolling) it. */
@@ -292,8 +349,11 @@ public final class SourcePanel extends JPanel {
     private void navigate(String fqn, String method) {
         if (service == null || fqn == null) return;
         Pane pane = paneFor(fqn);
-        if (!Objects.equals(fqn, pane.fqn)) {
-            if (pane.fqn != null) {
+        boolean newName = !Objects.equals(fqn, pane.fqn);
+        // a miss is retried on every navigation — the roots may have changed since it was rendered — but
+        // only a NEW name is history worth going back to
+        if (newName || pane.source.isEmpty()) {
+            if (newName && pane.fqn != null) {
                 backStack.push(pane.fqn);
                 backButton.setEnabled(true);
             }
@@ -438,29 +498,13 @@ public final class SourcePanel extends JPanel {
 
         /**
          * What the viewer shows when there is no file behind the name: an explanation, the roots actually
-         * searched, and the way to add another. An empty editor says "nothing here" when the truth is
-         * "configured to look in the wrong place", and the roots are the one fact that separates them.
+         * searched, where those roots came from, and the way to change them. An empty editor says "nothing
+         * here" when the truth is "configured to look in the wrong place", and the roots are the one fact
+         * that separates them.
          */
         void showNothingToShow(String missingFqn) {
             List<java.nio.file.Path> roots = service == null ? List.of() : service.resolver().roots();
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("No source to show\n\n")
-              .append(missingFqn).append('\n')
-              .append("was not found under the source roots below.\n\n");
-            if (roots.isEmpty()) {
-                sb.append("No source roots are configured yet.\n\n");
-            } else {
-                sb.append(roots.size() == 1 ? "Source root searched:\n" : "Source roots searched:\n");
-                for (java.nio.file.Path root : roots) sb.append("    ").append(root).append('\n');
-                sb.append('\n');
-            }
-            sb.append("Add one:  File ▸ Settings… ▸ Source roots ▸ Add…\n")
-              .append("or drag a project folder onto that tab — a project expands to its src/main/java,\n")
-              .append("sub-modules included.\n\n")
-              .append("A source root is the folder that directly contains your top-level package directory.");
-
-            renderPlain(sb.toString());
+            renderPlain(nothingToShowText(missingFqn, roots, lookupHint.get()));
         }
 
         /** Plain, muted text — messages must not be coloured as if they were code. */

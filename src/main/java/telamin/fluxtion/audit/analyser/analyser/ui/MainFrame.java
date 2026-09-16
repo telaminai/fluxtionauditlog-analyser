@@ -163,6 +163,7 @@ public final class MainFrame extends JFrame {
         restoreBounds();
         wireSelection();
         sourcePanel.bind(sourceService);
+        sourcePanel.setLookupHint(this::sourceLookupHint);
         graphTabs.setTimeClickHandler(this::gotoNearestRecordByTime);
         graphTabs.setMarkerClickHandler(row -> tablePanel.selectModelRow(row));   // the marker IS the record
         graphTabs.setFlagRugSource(this::flagRugMap);                              // M32.6: the rug's seam
@@ -1747,6 +1748,31 @@ public final class MainFrame extends JFrame {
         return project.hasProject()
                 ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile())
                 : null;
+    }
+
+    /**
+     * Where the Source panel's roots came from, and the way to change that — the tail of its "No source
+     * to show" placeholder. The roots alone cannot tell "the wrong project is in force" from "a root is
+     * missing". Found 2026-09-16: a log was opened over the socket while an older checkout's project was
+     * active; the offer to load the log's own project (M35.7 never shows a dialog on that path) went by as
+     * a status-line note, and the placeholder listed the old project's root as if it were the right one.
+     */
+    private String sourceLookupHint() {
+        StringBuilder sb = new StringBuilder();
+        if (project.hasProject()) {
+            sb.append("These roots come from the project \"").append(project.activeName()).append("\" at\n")
+              .append("    ").append(projectRoot()).append('\n');
+        }
+        if (pendingProjectOffer != null) {
+            Path root = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(pendingProjectOffer);
+            if (!sb.isEmpty()) sb.append('\n');
+            sb.append("The open log sits inside a project whose settings are NOT in force:\n")
+              .append("    ").append(root).append('\n')
+              .append("Load it and its own source roots are searched instead:\n")
+              .append("    File ▸ Open project…  and choose  ").append(pendingProjectOffer).append('\n')
+              .append("    or over the socket:  open {project: \"").append(pendingProjectOffer).append("\"}\n");
+        }
+        return sb.toString();
     }
 
     /** A profile edit: persist, then re-render every surface that states what is in force. */

@@ -14,6 +14,32 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Source panel: stale "No source to show" after a project switch · based on `7960462d` (v1.13.0)
+
+**What & why.** Reported on the deployed 1.13.0: the processor pane said *No source to show … Source root
+searched: &lt;an older checkout's root&gt;* while the nodes pane resolved and `context` already reported the new
+project's root and `processors[0].source=found`. Cause: `SourcePanel.navigate` skips an unchanged class name, so
+after a project switch that selects the SAME processor the pane was never re-read; and the placeholder listed
+roots without saying which project they came from, while the offer to load the log's own project had gone by as
+a status-line note (M35.7: socket-driven opens never show the dialog). Fix: `showSelectedProcessor()` re-reads
+either pane whose file content changed with the roots; `navigate` retries a miss on every navigation (history is
+still pushed only for a new name); the placeholder text is a pure static (`nothingToShowText`) that appends a
+frame-supplied hint — the active project and root, and any pending project offer with both remedies.
+
+**Files.** `ui/SourcePanel.java`, `ui/MainFrame.java` (`sourceLookupHint()`), `CHANGELOG.md`,
+`src/test/java/…/ui/SourcePanelRootChangeTest.java`.
+
+**Verified.** Four new tests (headless Swing construction, as `DetailPanelExactClickTest` does): same name +
+new roots → re-read; new roots without the file → stale source dropped; placeholder ordering roots → origin →
+remedy; blank hint adds nothing. Mutation control: with the re-read and the miss-retry removed the two switch
+tests fail (2/4 red), so they pin the behaviour. `mvn -o clean verify`, strict docs build and the rule-1 sweep
+run before commit (see the commit).
+
+**Reviewer must still check.** The live surface: open a log over the socket while another project is active,
+then load the log's project — the processor pane must show the file without a click, and before loading, the
+placeholder must name the pending project with `File ▸ Open project…` and `open {project: …}`. Also whether
+re-reading the node pane on every `onConfigChanged()` (a file read per pane) is noticeable on large files.
+
 ## ☑ 2026-09-15 · round-11 response, based on `06d7cb28` · INDEPENDENTLY REVIEWED 2026-09-15, accepted with one correction
 
 Response: [handoff_analyser_round11_response_2026-09-15.txt](handoff_analyser_round11_response_2026-09-15.txt).
