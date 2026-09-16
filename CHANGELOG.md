@@ -32,6 +32,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   1.13.0 kept getting 1.13.0 after 1.13.1 shipped).
 
 ### Fixed
+- **Three lifecycle defects in the asynchronous open (M44.3), found by its independent review.** The completing
+  operation's audience is now established before its effects run, so a person re-opening a graph from *Recent* while a
+  socket load is in flight no longer makes that load's arrival modal (B1). A project switch during a pending load
+  retires the load's "opening …" description at once, so `context.inFlight` and the busy indicator stop reporting a
+  load that can never complete; a no-op re-open of the active project and a bad project path still leave the load
+  alone (B2). A superseded load's failure is recorded as a stale result but never shown: no status overwrite, no dialog
+  (B3). Each is pinned on a real frame with a latch-controlled reader, with a positive control beside it.
+- **The session processor's exported audit snapshot reopens as one record per dispatch.** The export carried no
+  `---` framing, so the analyser read fifteen records as one (pre-existing; review F4). Framed now, and the test opens
+  the file through the real store and counts.
 - **Note rules stay on their points when zoomed in.** The dashed rule a note pins to a moment was placed from
   the view bounds truncated to whole milliseconds, while the series use the exact bounds; zoomed to a window of a
   few milliseconds every rule drifted up to a millisecond's width (tens of pixels) right of its point. Notes now

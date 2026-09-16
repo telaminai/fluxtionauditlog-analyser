@@ -123,13 +123,19 @@ public final class SessionAuditSink implements LogRecordListener {
      * @return the path written
      */
     public Path export(Path target) throws IOException {
+        // Framed as the analyser's reader frames: a `---` line before every record (finish-first review
+        // F4 — the unframed export reopened as ONE merged record, so per-dispatch identity and opIds were
+        // lost on the round trip). No header line is invented: the runtime record carries its own
+        // logTime, and a level the sink never retained would be a fabrication.
         StringBuilder out = new StringBuilder();
         for (String record : records) {
+            out.append("---\n");
             out.append(record);
             if (record.isEmpty() || record.charAt(record.length() - 1) != '\n') {
                 out.append('\n');
             }
         }
+        out.append("---\n");
         if (target.getParent() != null) {
             Files.createDirectories(target.getParent());
         }

@@ -507,7 +507,12 @@ retrieval-dated evidence table, because those are live documents that can change
   before the new graph, `LogArrival` judges against the previously observed B and its close effect clears the
   current A. Remedy, processor-side: distinguish a real log ARRIVAL from a refresh of observed state, and bind
   a close effect to the identity of the graph actually judged. Review: `docs/handoff/review_analyser_1.13.1_pass2_2026-09-16.md`.
-- [M44.3] ☑ **IMPLEMENTED 2026-09-16** (see the spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; the processor regenerated, 38 nodes). Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
+- [M44.3b] ☐ **Policy: what a close/reset means for a PENDING open** (finish-first review F6, non-blocking). Today
+  `close {log}` during a pending open closes the previous log and the pending one still lands and is accepted; the
+  gate supersedes on a later OPEN or a PROJECT transition only. Decide whether close/reset cancels the pending
+  open (then model its invalidation in the gate and test it) before the next lifecycle slice; do not give every
+  close a new meaning to fix an unrelated finding.
+- [M44.3] ☑ **IMPLEMENTED 2026-09-16; review response 2026-09-16 (B1/B2/B3 fixed, F4 fixed, F5 pinned at the call site)** (see the spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; the processor regenerated, 38 nodes). Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
   ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
 - [M44.3] ☐ **Owner decision still open:** the runtime's published POM declares AGPL-3.0 and the analyser

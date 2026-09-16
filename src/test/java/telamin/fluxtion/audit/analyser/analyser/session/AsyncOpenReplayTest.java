@@ -144,4 +144,34 @@ class AsyncOpenReplayTest {
         assertNull(d.processor().operationGate.inFlightWhat());
         assertFalse(d.auditSink().matching("openFailed").isEmpty());
     }
+
+    @Test
+    @DisplayName("review B2: a project transition supersedes a pending open — its description retires at once, its late result is refused, a later open is unaffected")
+    void aProjectRequestRetiresThePendingOpen() {
+        FakeSessionAdapter adapter = new FakeSessionAdapter().withProfile("/p/.analyser/project.fluxtion-settings");
+        adapter.pendingOpens = true;
+        SessionDriver d = new SessionDriver(adapter);
+        SessionProcessor p = d.processor();
+        SessionEvents.OpenLogRequested slow = open(d, "/a.slow");
+        d.submit(slow);
+        assertEquals("opening /a.slow", p.operationGate.inFlightWhat());
+
+        d.submit(new SessionEvents.OpenProjectRequested(d.nextOpId(), "/p/.analyser/project.fluxtion-settings",
+                TransitionKind.EXPLICIT_SWITCH, "test"));
+        assertNull(p.operationGate.inFlightWhat(), "the switch superseded the open: nothing is outstanding any more");
+
+        d.submit(landed(slow.opId(), "/a.slow", Set.of("nodeA")));            // the old load lands late
+        assertFalse(p.operationGate.accepted(), "refused");
+        assertFalse(p.openLog.isOpen(), "and it opened nothing");
+        assertNull(p.operationGate.inFlightWhat(), "a refused result never touches the description");
+
+        SessionEvents.OpenLogRequested next = open(d, "/b.yaml");             // a genuinely newer open
+        d.submit(next);
+        assertEquals("opening /b.yaml", p.operationGate.inFlightWhat());
+        d.submit(landed(slow.opId(), "/a.slow", Set.of("nodeA")));            // the old one lands AGAIN (a retry)
+        assertEquals("opening /b.yaml", p.operationGate.inFlightWhat(), "an old completion cannot clear a newer pending load");
+        d.submit(landed(next.opId(), "/b.yaml", Set.of("nodeB")));
+        assertNull(p.operationGate.inFlightWhat());
+        assertEquals("/b.yaml", p.openLog.logPath());
+    }
 }

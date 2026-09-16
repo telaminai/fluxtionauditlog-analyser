@@ -14,6 +14,33 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Response to the finish-first review: B1, B2, B3 fixed; F4 fixed; F5 pinned; F6 filed · based on `5be00dc4`
+
+Response: [handoff_analyser_finish_first_response_2026-09-16.md](handoff_analyser_finish_first_response_2026-09-16.md).
+Review: [review_analyser_finish_first_2026-09-16.md](review_analyser_finish_first_2026-09-16.md).
+
+**What & why.** B1 — `onLoaded` and `onLoadFailed` set `sessionInteractive` from the operation's own request
+BEFORE submitting its result (its effects run inside that submit). B2 — `OperationGate.onOpenProjectRequested`
+retires `inFlightWhat`; javadoc rewritten for the asynchronous boundary. B3 — `onLoadFailed` checks the gate after
+submitting: a refused failure keeps its audit record and presents nothing. F4 — `SessionAuditSink.export` writes a
+`---` line before every record and one after the last; no header is invented. F5 — `ChartNotesCallBoundaryTest`
+paints a real `ChartPanel` at fractional bounds and reads the rule's column from the image against the panel's
+`xToPx`; the ledger's earlier "mutant kills the collision test too" claim is withdrawn — the exact mutation run was
+`f = (t - (long) from) / ((long) to - (long) from)` (truncation with the rounded-width formula → 489), and the
+collision test's result under it was not the claim's basis. F6 — filed as tracker M44.3b, a policy decision.
+
+**Verified.** `AsyncOpenInterleavingFrameTest` (7 cases, latch-controlled `test-slow` reader registered through the
+frame's own registry, dialog watchdog): B1 + human-arrival control; B2 + same-project and bad-path controls; B3 +
+accepted-human-failure control — 7/7 on a display. Mutants: B1 (audience assignment removed) → both b1 cases red;
+B2 (retirement removed) → a b2 case red; B3 (refusal check removed) → the b3 case red. `AsyncOpenReplayTest` gains
+the gate-retirement replay (old completion cannot clear a newer pending load). `SessionAuditRecordTest` export round
+trip: records == store size, pending and stale refusal as separate records. Full verify, strict docs, sweep.
+
+**Reviewer must still check.** The B2 behaviour on a FAILED project switch (the pending load is superseded at the
+request, so it is discarded even though the switch failed — consistent with "a project is a session boundary", but
+a choice); the ui-frame CI job now runs 12 display cases (~2 min); `context.inFlight` is documented on the AI page
+but the Project panel does not render it.
+
 ## ☑ reviewed 2026-09-16 · Note rules drift when zoomed in (owner report, reproduced on the live 1.13.1 over MCP)
 
 **Independent verdict: ACCEPTED with test-coverage follow-up F5.** The note and series mappings agree,

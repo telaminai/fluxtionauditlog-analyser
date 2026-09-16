@@ -2520,8 +2520,16 @@ public final class MainFrame extends JFrame {
 
     /** A load did not land: tell the processor, then whoever asked. */
     private void onLoadFailed(long opId, String location, OpenRequest request, Throwable err) {
-        session().submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
-        if (session.processor().operationGate.inFlightWhat() == null) setBusy(false);
+        sessionInteractive = !request.fromActionSocket();          // review B1: this operation's audience
+        var driver = session();
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
+        boolean superseded = !driver.processor().operationGate.accepted();
+        if (driver.processor().operationGate.inFlightWhat() == null) setBusy(false);
+        if (superseded) {
+            // review B3: the refusal applies to a failure too. The record keeps the stale result; the
+            // person is not shown a superseded operation's failure as if it were the current one.
+            return;
+        }
         status.setText("Failed to load " + location + ": " + rootMessage(err));
         if (!request.fromActionSocket()) {
             JOptionPane.showMessageDialog(this, rootMessage(err), "Load failed", JOptionPane.ERROR_MESSAGE);
@@ -2709,6 +2717,10 @@ public final class MainFrame extends JFrame {
         // than shown over the one that replaced it. LogArrival judges an open graph inside this submit
         // (M44.3a) — its close effect runs before any of this log's state is applied below.
         var driver = session();
+        // review B1: the effects this arrival raises run INSIDE the submit below, so its audience must be
+        // in force before it — from this operation's own immutable request, not from whichever entrance
+        // (a person re-opening a graph from Recent, say) ran while the load was in flight.
+        sessionInteractive = !request.fromActionSocket();
         int scanned = Math.min(loaded.size(), PAIRING_SAMPLE);
         java.util.Set<String> logged = new java.util.LinkedHashSet<>();
         java.util.List<String> levels = new java.util.ArrayList<>();

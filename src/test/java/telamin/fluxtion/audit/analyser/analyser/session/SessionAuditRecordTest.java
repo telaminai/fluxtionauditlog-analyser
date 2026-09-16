@@ -131,4 +131,38 @@ class SessionAuditRecordTest {
         // ...and must not leave the record claiming to be complete when it is not.
         assertFalse(sink.isComplete());
     }
+
+    /**
+     * Finish-first review F4: the export reopened as ONE merged record because it carried no `---`
+     * framing. The claim is "a snapshot the analyser can open" — so open it with the analyser's own store
+     * and count, rather than grep the text.
+     */
+    @Test
+    @DisplayName("the exported snapshot reopens as one analyser record per dispatch, opIds intact")
+    void exportRoundTripsThroughTheReader(@TempDir Path dir) throws Exception {
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        adapter.pendingOpens = true;
+        SessionDriver driver = new SessionDriver(adapter);
+        SessionEvents.OpenLogRequested first = new SessionEvents.OpenLogRequested(driver.nextOpId(), "/slow.yaml", null, "DECLARED", false);
+        SessionEvents.OpenLogRequested second = new SessionEvents.OpenLogRequested(driver.nextOpId(), "/fast.yaml", null, "DECLARED", false);
+        driver.submit(first);
+        driver.submit(second);
+        driver.submit(new SessionEvents.LogOpened(second.opId(), "/fast.yaml", "DECLARED", java.util.Set.of("n"), 1, 1, null));
+        driver.submit(new SessionEvents.LogOpened(first.opId(), "/slow.yaml", "DECLARED", java.util.Set.of("m"), 1, 1, null));
+        int recorded = driver.auditSink().records().size();
+
+        Path out = driver.auditSink().export(dir.resolve("session-audit.yaml"));
+        var store = telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore.fromFile(out);
+
+        assertEquals(recorded, store.size(), "one analyser record per runtime record — the framing survived");
+        String all = Files.readString(out);
+        assertTrue(all.contains("staleResult"), "the superseded operation's refusal is in the snapshot");
+        boolean pendingSeen = false, staleSeen = false;
+        for (int row = 0; row < store.size(); row++) {
+            String text = store.rawText(row);
+            pendingSeen |= text.contains("pending");
+            staleSeen |= text.contains("staleResult");
+        }
+        assertTrue(pendingSeen && staleSeen, "asked → pending → (later) stale refusal are separate, readable records");
+    }
 }

@@ -21,9 +21,14 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
  * {@code staleResult}.
  *
  * <p>Consequence worth stating: a request whose decision turns out to be a no-op leaves
- * {@code expectedOpId} pointing at an operation that will never produce a result. That is harmless —
- * nothing arrives to be matched against it, and the next request overwrites it — and it is why this
- * node can stay ignorant of what policy decided.
+ * {@code expectedOpId} pointing at an operation that will never produce a result. Nothing arrives to be
+ * matched against it, and the next request overwrites it — and that is why this node can stay ignorant of
+ * what policy decided. <b>Since M44.3 the driver IS asynchronous at one boundary</b> (opening a log), so one
+ * more fact is kept here: what is outstanding ({@link #inFlightWhat()}). A newer request of any kind —
+ * another open, or a project transition — SUPERSEDES the outstanding open: its id is replaced, so its late
+ * result is refused, and its description is retired at once (1.13.1 finish-first review B2: a project switch
+ * used to leave "opening …" reported forever, because only an ACCEPTED log result cleared it and none could
+ * arrive). An accepted log result still clears it; a refused one never touches it.
  */
 public class OperationGate implements EventLogSource {
 
@@ -52,6 +57,7 @@ public class OperationGate implements EventLogSource {
     public boolean onOpenProjectRequested(SessionEvents.OpenProjectRequested event) {
         expectedOpId = event.opId();
         accepted = true;
+        inFlightWhat = null;                    // review B2: a project transition supersedes a pending open
         auditLog.info("fact", "request").info("opId", event.opId()).info("kind", event.kind().name());
         return true;
     }

@@ -20,6 +20,17 @@
 > named graph; supersede refused and recorded; refresh judges nothing; wrong thread is a violation; failed
 > open leaves the previous log), every existing replay test unchanged in shape, `verify-session-transitions.py`
 > ALL PASS on the built jar, and the five real-frame display cases.
+>
+> **Review response (finish-first review, 2026-09-16).** Three interleavings the display cases had missed, each
+> now a case in `AsyncOpenInterleavingFrameTest` with a latch-controlled reader: (B1) the completing operation's
+> audience is set from its own request BEFORE `LogOpened` is submitted, so a human entrance run mid-load cannot make
+> a socket arrival modal; (B2) `OperationGate.onOpenProjectRequested` retires `inFlightWhat` — a project transition
+> supersedes a pending open, its late result is refused and its description does not outlive it — while a no-op
+> re-open of the active project and a bad path never reach the gate and leave the load alone; (B3) `onLoadFailed`
+> applies the refusal too: a superseded failure is recorded as `staleResult` and presents nothing. Also (F4,
+> pre-existing) the audit sink's export is now `---`-framed so a snapshot reopens as one record per dispatch — the
+> D-A5 acceptance is now checked through the real reader. Open policy: M44.3b (what close/reset means for a
+> pending open).
 **Extends:** [`spec-session-processor.md`](spec-session-processor.md) — D-S0.3 and D-S0.4, which this
 changes deliberately and in one place.
 
