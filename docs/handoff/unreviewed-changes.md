@@ -14,7 +14,17 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
-## ☐ 2026-09-16 · Response to the third-pass review: R3-B1 fixed; R3-F2 fixed; R3-F3 recorded · `1c3c817a`, based on `4363f439`
+## ☑ reviewed 2026-09-16 · Response to the third-pass review: R3-B1 fixed; R3-F2 fixed; R3-F3 recorded · `1c3c817a` + `ee54ad3a`, based on `4363f439`
+
+**Verdict: READY WITH FOLLOW-UPS for 1.13.1.** Independent
+[fourth-pass review](review_analyser_1.13.1_pass4_2026-09-16.md): the exact project-first R3-B1
+sequence passes. A stronger real Recent GraphML menu sequence also passes and fails when ONLY
+the close declaration is removed, with the human-warning control retained. The author's all-entrance
+mutant result is reproduced, but the claim below that no human entrance can be driven without a
+chooser is disproved: commit the stronger test as follow-up R4-F1. R3-F2's colour fix and R3-F3's
+M44.3a tracker entry are accepted. R4-F2 narrows the universal audience wording to the actual
+entrances. Local verify: 1,408 tests, 0 failures/errors, 4 display-only skips; local and exact-tip
+CI display suites both execute all four with no skips. M44.3a remains explicitly deferred.
 
 Response: [handoff_analyser_1.13.1_pass3_response_2026-09-16.md](handoff_analyser_1.13.1_pass3_response_2026-09-16.md).
 Review: [review_analyser_1.13.1_pass3_2026-09-16.md](review_analyser_1.13.1_pass3_2026-09-16.md).
