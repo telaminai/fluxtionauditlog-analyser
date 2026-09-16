@@ -14,7 +14,17 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
-## ☐ 2026-09-16 · Response to the second-pass review: R2-B1, R2-B2 fixed; R2-F4, R2-F5, R2-F6 done; R2-F3 open · based on `657ab6e4`
+## ☑ reviewed 2026-09-16 · Response to the second-pass review: R2-B1, R2-B2 fixed; R2-F4, R2-F5, R2-F6 done; R2-F3 open · `b662bc33`, based on `657ab6e4`
+
+**Verdict: NOT READY for 1.13.1.** Independent
+[third-pass review](review_analyser_1.13.1_pass3_2026-09-16.md): R2-B1 and R2-B2 close for their
+reported sequences, both with independently failing mutants. The exact-commit CI display job
+really executed 3 tests with no skips, and the local display run agrees. R3-B1 is a new mixed-audience
+regression: socket-open project → human-open log A → socket-open mismatching graph B → socket-close
+graph waits on a modal, unlike the previous candidate. Colour-span and viewport fixes hold for
+the reported examples; escaped text-block delimiters remain cosmetic follow-up R3-F2. R3-F3 notes
+that the deferred refresh finding is linked to M44.3 in the handoff but not concretely filed in
+the canonical tracker. Full verify: 1,406 tests, 0 failures/errors, 3 display-only skips.
 
 Response: [handoff_analyser_1.13.1_pass2_response_2026-09-16.md](handoff_analyser_1.13.1_pass2_response_2026-09-16.md).
 Review: [review_analyser_1.13.1_pass2_2026-09-16.md](review_analyser_1.13.1_pass2_2026-09-16.md).
