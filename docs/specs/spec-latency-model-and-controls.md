@@ -1,6 +1,9 @@
 # Spec — control binaries, a latency model, and drift detection
 
-**Status:** PROPOSED · **Owner:** analyser (`tools/bench/latency-kit`) · cross-repo evidence
+**Status:** PROPOSED, no tracker item owns it (noted 2026-09-16) · **Owner:** analyser (`tools/bench/latency-kit`) · cross-repo evidence
+**Delivered so far:** §2 in part — the control and test indexes and the `latency-kit/dsl` control builds shipped with the bench
+milestones (M60–M63, archived in [`completed/tracker.md`](completed/tracker.md)). **Not built:** §3 drift detection and §4 the
+model; neither appears in any milestone, so this spec stays live until the owner either files them or withdraws them.
 **Evidence:** `docs/experience/runs/round-63/NOTES.md` §§8–16
 
 ## 1. Should we build this? — an honest read
