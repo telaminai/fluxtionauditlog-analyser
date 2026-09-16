@@ -332,6 +332,21 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
+## M64 · Spotlight — the tutor points at the thing on screen — ☐ PROPOSED 2026-09-16
+
+Spec: **[spec-spotlight.md](spec-spotlight.md)**. Owner question 2026-09-16: a callout that points at the item the
+guided-start runbook wants to highlight. Decisions: glass-pane overlay first, a separate window only when a beat
+needs to point outside the frame (D-SP1); a fixed, small target vocabulary grown per beat (D-SP2); pure target
+resolution, dumb overlay that clears on any view-changing verb (D-SP3); transient by construction, in `context`
+only while showing (D-SP4); one line per beat in the skill, no other verb changes (D-SP5). About a day plus half
+for the display test and skill edit.
+
+- [M64.1] ☐ **`SpotlightTarget.resolve` + the eight target families**, headless-tested per entry.
+- [M64.2] ☐ **The glass-pane overlay** (dim, cut-out, arrow, caption; clears on click/Escape/`clear`/view change).
+- [M64.3] ☐ **`spotlight` verb + `context.spotlight`**, the persisted-forms-never-contain-one test.
+- [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
+- [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
+
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,
 reviewed and merged — full record in **[completed/tracker.md](completed/tracker.md)**.
