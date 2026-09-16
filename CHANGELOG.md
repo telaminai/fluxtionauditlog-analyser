@@ -16,6 +16,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   not appear"; the difference is now visible where the values are.
 
 ### Changed
+- **Builds against `fluxtion-builder` 1.0.68** (was 1.0.67) for the fixture-regeneration profile; the default build
+  still resolves only `fluxtion-runtime` 1.0.15.
 - **The canonical skills learned from an agent session on the template bundle** (`docs/skills`, index
   `m19-skills/2` re-pinned): `add-a-node` also covers making an existing node log its values (a body-only change,
   no regeneration) and states the constructor-mapping rule — derived state `transient` or `@FluxtionIgnore` —
