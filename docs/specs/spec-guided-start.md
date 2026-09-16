@@ -1,6 +1,6 @@
 # Spec — guided start: an install prompt, and an LLM that tutors by driving the UI
 
-**Status:** PROPOSED 2026-08-30 (owner idea). **Tracker:** [tracker.md](tracker.md).
+**Status:** SHIPPED in analyser 1.13.0 (2026-09-16) — the *Guided start* docs page and the canonical `guided-start` skill (CHANGELOG ▸ 1.13.0). Written 2026-08-30 as PROPOSED (owner idea). **Tracker:** [tracker.md](tracker.md).
 **Related:** [spec-onboarding-example.md](spec-onboarding-example.md) (the M19 pathway this joins),
 [spec-authoring-experience.md](spec-authoring-experience.md) (D-AX1c — the agreed reference set this
 becomes the first entry in), [spec-trust-structure.md](spec-trust-structure.md) (D-T3, which constrains

@@ -3265,3 +3265,73 @@ _Moved verbatim from the live tracker per rule 7._
       real audit log → shipped reader → declared dialect → scorer. **PASS 12/12 events, 27 figures**;
       5 of 5 mutations of that real log caught. The historical reference is preserved and a
       provenance-carrying conforming derivative added beside it. See `round-57/M48-11.md`.
+
+## Tidy 2026-09-16 — ticked items archived per rule 7 (moved verbatim from the live tracker)
+
+### Hardening — test-only
+- ☑ **Cross-transport schema contract** — REST `/manifest` and MCP `tools/list` are proven to advertise
+  the *same* `VerbSchemas` schema per verb at the **value** level, not just matching name sets:
+  `McpToolsTest` pins every tool's `inputSchema` == its verb schema minus the lifted `description`;
+  `ManifestVerbContractTest` pins `/manifest`'s `schemas` field == `VerbSchemas.all()` verbatim. The two
+  transports can no longer fork a verb's parameters.
+
+### M57 · The audited path — the shipped items (M57.1 and M57.4 remain live)
+- ☑ **The audit-cost claim was withdrawn and then earned.** `spec-cpp-target.md` claimed C++ audited at
+  2.92 ns/event against Java's 13.69 — from a HAND-WRITTEN C++ arm, never measured on generated output.
+  Measured, it started at **61.93** against Java's 18.83, and is now **14.09** against Java's 17.16 JIT
+  and 17.23 native. Four fixes, each measured: intern log keys by address, four inline key slots, a
+  literal-value path the generator uses for strings it wrote itself, and — the largest — **the
+  generator pre-resolving every key id at init**, worth 7.70 ns because the identity cache is a memory
+  lookup that graph work evicts. A runtime library cannot do that; a generator cannot avoid knowing it.
+- ☑ **Re-entrant waves share the arrival's instant**, in BOTH languages. A three-element flatMap made
+  four records and took four clock readings for one arrival. Worth ~20 ns to Java JIT and nothing
+  measurable to C++, which is consistent with the read being latency a larger event hides.
+- ☑ **Tick→nanosecond conversion by multiply, not divide** — and with 64 fractional bits, because 32
+  drifts 326 ns a day.
+- ☑ **M57.2 flatMap gets the generator's closed-world treatment** — FIXED 2026-09-10. A flatMap graph
+  now builds and runs as a native image with no serialization config and no workaround.
+  `FlatMapFlowFunction` gained the `(..., MethodReferenceInfo)` constructor every other flow node
+  already had, and `closedWorldMethodReferenceInfo` now sees it — the gate required
+  `AbstractFlowFunction` and flatMap `extends BaseNode`, so it was rejected before its constructor was
+  ever looked for.
+  - **Not a lambda-vs-method-reference problem.** The compiled path only supports method references
+    anyway — it needs a serialisable reference to emit — so EVERY compiled flatMap graph was affected.
+    A method reference is a lambda class too, and `captured()` reflects unconditionally.
+  - **Gating on the constructor alone was tried and reverted.** `BiPushFunction` declares one whose
+    generated form does not type-check, and was relying on the hierarchy check to stay on the legacy
+    path. 13 test errors said so. Declaring the constructor is not evidence the call site compiles.
+  - **The coverage gap that let this ship:** 11 test files use flatMap and all pass. They exercise the
+    interpreted and javac-compiled flavours, both of which support lambda serialization at runtime.
+    **Nothing in the suite builds a native image**, so no test could have caught it. That gap is the
+    real finding — see M57.3.
+- ☑ **M57.3 a test builds a native image** — DONE 2026-09-10. `NativeImageSmokeTest` generates a
+  flatMap graph, builds it with `native-image`, runs one event and asserts the total. Skipped loudly
+  when `GRAALVM_HOME` is unset, never faked; 24 s with GraalVM. It also asserts on the generated
+  SOURCE — that the flatMap constructor carries a resolved `MethodReferenceInfo` — so the regression is
+  caught even where GraalVM is absent and no image is built.
+
+### M50.13 — decided and done 2026-09-07
+**[M50.13] ☑ DECIDED and DONE 2026-09-07 — owner: "add any missing to the profile"** · _`LOWEST_LATENCY`
+now also sets `setSupportBufferAndTrigger(false)` and `setSupportSubscriptions(false)`.
+`setSupportReentrancy(false)` deliberately **not** added: it is the one that can break a working graph
+(re-entrant dispatch throws instead of queueing) and build-time detection cannot be complete._
+
+_**And the measurement withdrew the reason for doing it.** The 5% figure below came from a hand-edited
+emulation that also removed the re-entrancy GUARD; the real configuration keeps that guard, and the
+guard is where the cost sat. Generated for real: 5.124–5.143 JIT against 5.124 shipped, and 1.7176
+native inside the usual band — **nothing**. The two settings stay because the generated code is smaller
+and neither can change a result, not because they are faster. The docs carry the mistake as a warning._
+
+**[M50.13-original] ☑ superseded — the question as first raised** _(raised
+2026-09-07 by measurement)_ · _The profile sets exactly three things and leaves `supportBufferAndTrigger`
+and `supportReentrancy` at `true`, so the generated `processEvent` still carries a buffer guard, a
+re-entrancy guard and a callback drain per event. **Measured on the JIT, 3 interleaved reps, output
+identical: 5.141 ns with them against 4.893 without — ~5%, ranges not overlapping.** It is the only
+measurable win found in a day of measuring. It is **invisible on a landed native build** (1.6706 against
+1.6867/1.6900), because scalar replacement turns those fields into registers and folds the branches._
+
+_Two of the three are plain config today (`setSupportBufferAndTrigger(false)`,
+`setSupportSubscriptions(false)`) and the page's checklist now names them — that omission was the
+defect. The third, re-entrancy, is W4 and needs its build-time detection before a profile should turn
+it off. **The decision is whether a profile named LOWEST_LATENCY should give up two more capabilities
+by default**, given it already gives up the audit log and conditional propagation and says so._
