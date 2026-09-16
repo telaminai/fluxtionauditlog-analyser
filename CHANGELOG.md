@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-09-16
+
 ### Added
 - **`read … fields` names the nodes that ran but logged nothing.** A record's projection carries
   `tracedOnly: [instanceId…]` when a wire trace marker said the node ran and it logged no value in the record, and
