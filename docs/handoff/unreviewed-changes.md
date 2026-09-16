@@ -14,7 +14,15 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
-## ☐ 2026-09-16 · Response to the finish-first review, pass 2: B2 completed (busy follows the gate) · based on `c854d28f`
+## ☑ reviewed 2026-09-17 · Response to the finish-first review, pass 2: B2 completed (busy follows the gate) · `d78a0144`, based on `c854d28f`
+
+**Independent pass 3: READY — B2 CLOSED.** Original successful/failed project sequences now clear loading
+before the discarded reader returns; progress and existing/current-graph pairing verified independently.
+Same-project/missing-path controls preserve the open, and both stale success and failure preserve a newer
+pending request after project retirement. The nine interleaving tests pass on the candidate; exactly the two
+boundary cases fail against the pre-fix jar. Full verify 1,431/0/0/14; local and exact-tip CI display suites
+14/14, no skips. Spec/example/barrier follow-ups closed; M44.3b remains deferred. See
+[pass-3 review](review_analyser_finish_first_pass3_2026-09-17.md).
 
 Response: [handoff_analyser_finish_first_response2_2026-09-16.md](handoff_analyser_finish_first_response2_2026-09-16.md).
 Review: [review_analyser_finish_first_pass2_2026-09-16.md](review_analyser_finish_first_pass2_2026-09-16.md).
@@ -36,8 +44,9 @@ that a graph opened next is judged AT ONCE against the surviving log; a newer-pe
 asserts an older stale result clears nothing. Mutant (the sync call removed): the boundary cases red. Full verify,
 strict docs, links, sweep.
 
-**Reviewer must still check.** The CI ui-frame job runs 14 display cases now (~2.5 min). Whether the busy
-projection should also be synced after a socket `close` (M44.3b, unchanged on purpose).
+**Review disposition.** Exact-tip CI display counts independently verified: five pairing + nine interleaving
+cases, none skipped. Sync after socket `close` is not part of this fix: M44.3b must decide whether close/reset
+invalidates an outstanding open before that projection changes.
 
 ## ☑ reviewed 2026-09-16 · Response to the finish-first review · `323277b5` + `b8a93533`, based on `5be00dc4`
 

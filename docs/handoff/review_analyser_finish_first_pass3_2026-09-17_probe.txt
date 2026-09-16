@@ -1,0 +1,72 @@
+import telamin.fluxtion.audit.analyser.analyser.ui.*;
+import telamin.fluxtion.audit.analyser.analyser.spi.*;
+import javax.swing.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
+
+/** Extra assertions across the B2 boundary; uses the unchanged first/pass-2 review helpers. */
+public class FinishFirstPass3Probe extends FinishFirstPass2Probe {
+  static void require(boolean ok,String why){if(!ok)throw new AssertionError(why);}
+  static void projection(MainFrame f, boolean busy, String expectedInFlight) {
+    try {
+      require(field(f,"loadInFlight").equals(busy),"busy flag");
+      require(((JProgressBar)field(f,"progress")).isVisible()==busy,"progress visibility");
+      var context=act(f,"context",Map.of());
+      require(Objects.equals(find(context,"inFlight"),expectedInFlight),"context inFlight: "+context);
+      Object pairing=find(context,"graphPairing");
+      require(Boolean.TRUE.equals(find(pairing,"loading"))==busy,"pairing loading: "+pairing);
+    } catch(Exception e){throw new RuntimeException(e);}
+  }
+  static Path profile(Path root,String name,boolean broken)throws Exception{
+    Path p=Files.createDirectories(root.resolve(name+"/.analyser")).resolve("project.fluxtion-settings");
+    return Files.writeString(p,broken?"bad="+'\\'+"uZZZZ\n":"sourceRoot.0="+root.resolve(name+"/src")+"\n");
+  }
+  static void check(String mode)throws Exception{
+    String saved=System.getProperty("user.home");Path tmp=Files.createTempDirectory("finish-pass3-"+mode+"-");
+    System.setProperty("user.home",Files.createDirectories(tmp.resolve("home")).toString());
+    Path old=profile(tmp,"Old",false),bad=profile(tmp,"Bad",true),next=profile(tmp,"Next",false);
+    Path a=Files.writeString(tmp.resolve("a.slow"),"slow"),b=Files.writeString(tmp.resolve("b.slow"),"slow");
+    Path logB=Files.writeString(tmp.resolve("b.yaml"),log("nodeB"));
+    Path graphB=Files.writeString(tmp.resolve("b.graphml"),graph("nodeB"));
+    Path graphC=Files.writeString(tmp.resolve("c.graphml"),graph("nodeC"));
+    Slow ra=new Slow("review-a",mode.equals("retireThenNewerFailure")),rb=new Slow("review-b",false);
+    AtomicReference<MainFrame> frame=new AtomicReference<>();
+    try(Watch watch=new Watch()){
+      edt(()->{MainFrame f=new MainFrame();frame.set(f);try{var registry=(ReaderRegistry)field(f,"readerRegistry");registry.register(ra);registry.register(rb);}catch(Exception e){throw new RuntimeException(e);}});
+      MainFrame f=frame.get();
+      edt(()->act(f,"open",Map.of("project",old.toString())));
+      edt(()->act(f,"open",Map.of("log",logB.toString())));until(()->logB.toString().equals(actual(f)));
+      edt(()->{act(f,"open",Map.of("graphml",graphB.toString()));require(Boolean.TRUE.equals(find(act(f,"context",Map.of()),"applies")),"initial B/B");});
+      edt(()->act(f,"open",Map.of("log",a.toString(),"format","review-a")));waitEntered(ra);
+      boolean newer=mode.startsWith("retireThenNewer");
+      edt(()->{
+        if(mode.equals("changedGraph"))act(f,"open",Map.of("graphml",graphC.toString()));
+        projection(f,true,"opening "+a);
+        var reply=raw(f,"open",Map.of("project",(newer?next:bad).toString()));
+        require(reply.ok()==newer,"project outcome: "+reply.toMap());
+        require(ra.release.getCount()==1,"old reader must still be blocked at boundary");
+        projection(f,false,null);
+        if(!newer){
+          require(logB.toString().equals(actual(f)),"surviving log changed");
+          boolean wanted=!mode.equals("changedGraph");
+          require(Boolean.valueOf(wanted).equals(find(act(f,"context",Map.of()),"applies")),"restored verdict belongs to current graph");
+        }
+        dump(f,"AT_BOUNDARY="+mode,watch);
+      });
+      if(newer){
+        edt(()->act(f,"open",Map.of("log",b.toString(),"format","review-b")));waitEntered(rb);
+      }
+      ra.release.countDown();until(()->stale(f)>0);
+      edt(()->{
+        projection(f,newer,newer?"opening "+b:null);
+        if(!newer)require(Boolean.valueOf(!mode.equals("changedGraph")).equals(find(act(f,"context",Map.of()),"applies")),"stale completion changed verdict");
+        dump(f,"AFTER_STALE="+mode,watch);
+      });
+      if(newer){rb.release.countDown();until(()->b.toString().equals(actual(f)));edt(()->projection(f,false,null));}
+      require(watch.seen.isEmpty(),"socket sequence showed dialog");
+      System.out.println("ASSERTIONS_PASS="+mode);
+    }finally{ra.release.countDown();rb.release.countDown();if(frame.get()!=null)edt(()->frame.get().dispose());System.setProperty("user.home",saved);}
+  }
+  public static void main(String[] args){try{for(String mode:args)check(mode);System.exit(0);}catch(Throwable t){t.printStackTrace();System.exit(1);}}
+}
