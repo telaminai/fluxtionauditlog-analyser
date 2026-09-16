@@ -13,9 +13,17 @@ jbang analyser@telaminai/fluxtionauditlog-analyser my-log.yaml
 
 # install an `analyser` command on your PATH
 jbang app install analyser@telaminai/fluxtionauditlog-analyser
+
+# pick up a NEWER release — JBang otherwise keeps running the jar it cached on first use
+jbang --fresh analyser@telaminai/fluxtionauditlog-analyser
+
+# ...or clear the cache; this also refreshes an installed `analyser` command on its next run
+jbang cache clear
 ```
 
-The JBang alias points at the latest release's stable-name asset, so it always fetches the newest build.
+The JBang alias points at the latest release's stable-name asset. JBang downloads that jar **once** and then runs
+its cached copy, so after a new release you still get the old version until you run with `--fresh` or clear the
+cache — *Help ▸ About* shows which version is running.
 After installation, run `analyser [optional-log-file]` from your PATH.
 
 !!! note "The JBang name and MCP name are deliberately different"

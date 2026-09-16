@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **Install page: how to pick up a newer release under JBang.** The examples now include `jbang --fresh …` and
+  `jbang cache clear`, and the page says plainly that JBang runs its cached jar until you do one of them (a user on
+  1.13.0 kept getting 1.13.0 after 1.13.1 shipped).
+
 ## [1.13.1] - 2026-09-16
 
 ### Added
