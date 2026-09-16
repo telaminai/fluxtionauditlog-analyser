@@ -14,6 +14,16 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☑ 2026-09-16 · 1.13.1 READY WITH FOLLOW-UPS — fourth independent pass; follow-ups R4-F1/R4-F2 done in this commit
+
+Review: [review_analyser_1.13.1_pass4_2026-09-16.md](review_analyser_1.13.1_pass4_2026-09-16.md) — the remaining
+blocker (R3-B1) closed on the reviewer's project-first sequence; the close-only mutant independently killed through
+*Open recent GraphML*. **This commit:** R4-F1 — that sequence and its human positive control are in
+`PairingDuringLoadFrameTest` (5 display cases; the close-only mutant is red on it). R4-F2 — the audience wording is
+narrowed to the entrances actually covered, and the two human graph entrances the helper did not cover (*File ▸
+Open GraphML*, a file drop) now declare at their entrance. Deferred, recorded: **M44.3a**. Release: run the manual
+`release` workflow on `main` with version `1.13.1`.
+
 ## ☑ reviewed 2026-09-16 · Response to the third-pass review: R3-B1 fixed; R3-F2 fixed; R3-F3 recorded · `1c3c817a` + `ee54ad3a`, based on `4363f439`
 
 **Verdict: READY WITH FOLLOW-UPS for 1.13.1.** Independent
@@ -39,10 +49,12 @@ its reproduction and processor-side remedy, instead of "filed there".
 
 **Verified.** `PairingDuringLoadFrameTest` gains the review's shape without the project step: a HUMAN
 `openFile(A)` arrival, then socket `open {graphml: B}` (kept, mismatch announced), then socket `close {graph}` under
-the dialog watchdog: 0 dialogs, graph closed. 4/4 on a display. **Mutant, honestly:** removing the `close` verb's
-assignment alone does NOT turn the test red, because the socket graph open just before it already declared the
-socket audience — the human graph-open entrance is a file chooser and cannot be driven from a test, so no sequence
-reachable here has a human operation immediately before the socket close. Removing ALL three socket-entrance
+the dialog watchdog: 0 dialogs, graph closed. 4/4 on a display. **Mutants.** Removing the `close` verb's declaration alone turned nothing red in the first version of this
+entry, and the entry then claimed the human graph-open entrance "cannot be driven from a test" — **wrong** (R4-F1):
+*Open recent GraphML* is a real menu item wired to the human helper. The suite now drives it:
+`recentGraphmlByAPerson_thenSocketClose_noDialog_andAHumanCloseStillWarns` (human log, socket graph, the person
+re-opens it from Recent, socket close → 0 dialogs; then a File-menu close → exactly 1 dialog, the positive control).
+With the `close` declaration alone removed that test is red. Removing ALL three socket-entrance
 assignments turns exactly the new test red. `JavaHighlighterLongLiteralTest` 6/6 with the escaped-delimiter colour
 spans. `mvn -o clean verify`: 1408 tests, 0 failures, 4 skipped (the frame suite, headless by design). Strict docs
 and the sweep pass.

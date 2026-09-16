@@ -1513,6 +1513,7 @@ public final class MainFrame extends JFrame {
                     boolean droppedTopology = false;
                     for (File f : files) {
                         if (isGraphml(f.getName())) {
+                            sessionInteractive = true;      // R4-F2: a drop is a person's act — declared at the entrance
                             topologyPanel.load(f.toPath());
                             droppedTopology = true;
                         } else if (!any) {
@@ -1554,6 +1555,7 @@ public final class MainFrame extends JFrame {
         JMenuItem openGraphml = new JMenuItem("Open GraphML…");
         openGraphml.setToolTipText("Open a processor's .graphml topology");
         openGraphml.addActionListener(e -> {
+            sessionInteractive = true;      // R4-F2: File ▸ Open GraphML goes straight to the chooser, not via the helper
             topologyPanel.chooseFile();
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
         });
@@ -3581,11 +3583,14 @@ public final class MainFrame extends JFrame {
      * lands in a dialog or is handed back to a socket caller who cannot answer one (M35.7).
      *
      * <p><b>It belongs to the OPERATION whose effects are executing, never to the session</b> (review
-     * R3-B1: a human log arrival left it true, and the next socket {@code close} showed a modal). So every
-     * entrance declares it: a project transition from its {@code interactive} argument, a log arrival from
-     * its {@link OpenRequest}, each socket verb below as {@code false} on entry, and each File-menu action
-     * as {@code true} — in the listener, not inside the shared {@code closeLog}/{@code closeGraph}, which
-     * session effects and socket verbs also call.
+     * R3-B1: a human log arrival left it true, and the next socket {@code close} showed a modal). It is a
+     * mutable field with declarations at selected entrances, not a type-enforced operation context (R4-F2),
+     * so the list is stated exactly: a project transition declares from its {@code interactive} argument; a
+     * log arrival from its {@link OpenRequest}; the socket verbs {@code close}, {@code openGraphml} and
+     * {@code selectProcessor} declare {@code false} on entry ({@code openLogs} and {@code discoverGraphs} raise
+     * no warning and declare nothing); the File-menu close/reset listeners, File ▸ Open GraphML, a file drop and
+     * the Recent-GraphML helper declare {@code true} — at the entrance, never inside the shared
+     * {@code closeLog}/{@code closeGraph}, which session effects and socket verbs also call.
      */
     private boolean sessionInteractive = true;
 
@@ -3884,7 +3889,7 @@ public final class MainFrame extends JFrame {
 
     /** Load a topology and remember it, from wherever it was chosen — menu, recent list or a drop. */
     private void openGraphml(String path) {
-        sessionInteractive = true;      // R3-B1: the File-menu entrance — a person can answer a dialog
+        sessionInteractive = true;      // R3-B1/R4-F2: the Recent-GraphML entrance — a person can answer a dialog
         java.nio.file.Path file = java.nio.file.Path.of(path);
         if (!java.nio.file.Files.isReadable(file)) {
             JOptionPane.showMessageDialog(this, "Cannot read " + path,

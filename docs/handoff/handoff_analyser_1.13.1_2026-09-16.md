@@ -10,11 +10,11 @@ implementers with [`../ONBOARDING.md`](../ONBOARDING.md)._
 
 | Item | State |
 |---|---|
-| Analyser release | **1.13.0** tagged and stamped on `main` 2026-09-16 (stamp commit `7960462d`). Runtime pin 1.0.15, compiler pin 1.0.67, both released. |
-| `main` since the stamp | three commits, all CI-green (build + loop-bench + docs deploy): `c443c865`, `a5f94e57`, `04d56bea` |
-| `perf/w10-conformance-bench` | identical to `main` (fast-forwarded with it) |
-| Unreleased | the `[Unreleased]` block in `CHANGELOG.md` — one Added, one Changed, two Fixed — is the 1.13.1 candidate |
-| Ledger | `unreviewed-changes.md` holds a ☐ entry for each of the two fix commits, with what the reviewer must still check |
+| Analyser release | **1.13.0** tagged and stamped on `main` 2026-09-16 (stamp commit `7960462d`). Runtime pin 1.0.15; compiler pin now 1.0.68. |
+| 1.13.1 candidate | **READY WITH FOLLOW-UPS** after four independent review passes on 2026-09-16 (`review_analyser_1.13.1_2026-09-16.md`, `…_pass2…`, `…_pass3…`, `…_pass4…`); the follow-ups R4-F1/R4-F2 are done; M44.3a deferred and recorded |
+| `perf/w10-conformance-bench` | identical to `main` |
+| Unreleased | the `[Unreleased]` block in `CHANGELOG.md` is the 1.13.1 release note — the manual `release` workflow copies it verbatim |
+| Ledger | every 2026-09-16 entry is ☑ reviewed; the four responses are in `handoff_analyser_1.13.1_*response*.md` |
 
 **To release 1.13.1:** run the manual `release` workflow on `main` with version `1.13.1`. It copies `[Unreleased]`
 verbatim as the notes and dispatches the docs deploy itself.

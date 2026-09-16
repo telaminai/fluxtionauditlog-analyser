@@ -8,7 +8,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ## Shipped — archived
 
-**Tidied 2026-09-16 (rule 7).** Eight ☑ items moved verbatim to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-16*: the cross-transport schema contract, five M57 items (M57.1/.4 stay), M50.13 and its superseded original. Three closed handoffs moved to `docs/handoff/completed/` (round-11 response, the `perf/w10` branch review, the M52 hot-path report) and the three reviewed 2026-09-03/-15 ledger entries to `completed/unreviewed-changes-2026-09.md`. The 1.13.1 review cycle (two ☐ entries, pass 2 pending) stays live.
+**Tidied 2026-09-16 (rule 7).** Eight ☑ items moved verbatim to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-16*: the cross-transport schema contract, five M57 items (M57.1/.4 stay), M50.13 and its superseded original. Three closed handoffs moved to `docs/handoff/completed/` (round-11 response, the `perf/w10` branch review, the M52 hot-path report) and the three reviewed 2026-09-03/-15 ledger entries to `completed/unreviewed-changes-2026-09.md`. The 1.13.1 review cycle closed the same day: **READY WITH FOLLOW-UPS after four independent passes** (ledger + `docs/handoff/review_analyser_1.13.1_*`), follow-ups done, **M44.3a** the one deferred item.
 
 **Tidied 2026-08-30 (rule 7).** Fourteen shipped M19 slices, plus the closed M18 and withdrawn M41, moved
 to [`completed/tracker.md`](completed/tracker.md) verbatim. This file went 949 → ~720 lines. Relative links

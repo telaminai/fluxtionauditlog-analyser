@@ -49,8 +49,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   builds it — and the warnings that arrival raises (a mismatched graph closed) are rendered for THAT request's
   audience: a socket caller gets the text in the status bar, never a modal it cannot dismiss (second-pass review
   R2-B2; the flag used to be set only by project transitions). The audience belongs to each OPERATION, not to the
-  session: every socket verb declares it on entry and every File-menu action declares it in its listener, so a
-  socket close after a person opened the log no longer inherits the person's audience (third-pass review R3-B1).
+  session: the socket verbs `close`, `openGraphml` and `selectProcessor` declare it on entry, and the File-menu
+  close/reset actions, *File ▸ Open GraphML*, a file drop and *Open recent GraphML* declare it at their entrance, so
+  a socket close after a person opened the log no longer inherits the person's audience (reviews R3-B1, R4-F1/F2).
 - **A configuration refresh no longer moves the reader.** Re-applying unchanged roots and processor used to scroll
   the processor pane back to its type declaration; an unchanged hit now keeps its viewport and caret (second-pass
   review R2-F5, pre-existing).

@@ -165,15 +165,80 @@ class PairingDuringLoadFrameTest {
         }
     }
 
+    /**
+     * Review R4-F1: the stronger sequence — a HUMAN operation immediately before the socket close, driven through
+     * the real Recent-GraphML menu item (no chooser). Discriminates the close verb's own declaration: with only
+     * that line removed, the socket close inherits the person's audience and shows the modal. Positive control:
+     * the same warning IS a dialog when a person closes the graph from the File menu.
+     */
+    @Test
+    void recentGraphmlByAPerson_thenSocketClose_noDialog_andAHumanCloseStillWarns(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "needs a display: a real MainFrame is constructed");
+        Path logA = Files.writeString(tmp.resolve("a.yaml"), log("nodeA"));
+        Path graphB = Files.writeString(tmp.resolve("b.graphml"), graph("nodeB"));
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        DialogWatchdog dialogs = new DialogWatchdog();
+        try {
+            SwingUtilities.invokeAndWait(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> frame.get().openFile(logA, OpenRequest.HUMAN));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graphB.toString())));   // socket: kept, added to Recent
+            onEdt(() -> clickRecentGraphml(frame.get(), graphB));                       // a PERSON re-opens it
+            onEdt(() -> render(ex, "open", Map.of("close", "graph")));                 // socket close
+            AtomicReference<Map<String, Object>> after = new AtomicReference<>();
+            onEdt(() -> after.set(pairing(ex)));
+            assertNull(after.get().get("graph"), "closed: " + after.get());
+            assertEquals(0, dialogs.seen(), "the socket close declares its own audience (R4-F1 / R3-B1)");
+
+            // positive control: a person closing it from the File menu still gets the warning as a dialog
+            onEdt(() -> render(ex, "open", Map.of("graphml", graphB.toString())));
+            onEdt(() -> menuItem(frame.get(), "closeGraphItem").doClick());
+            assertEquals(1, dialogs.seen(), "a human close renders the same warning as a dialog");
+        } finally {
+            dialogs.stop();
+            System.setProperty("user.home", home);
+            if (frame.get() != null) SwingUtilities.invokeAndWait(() -> frame.get().dispose());
+        }
+    }
+
+    private static void clickRecentGraphml(MainFrame f, Path graph) {
+        try {
+            var field = MainFrame.class.getDeclaredField("recentGraphmlMenu");
+            field.setAccessible(true);
+            javax.swing.JMenu menu = (javax.swing.JMenu) field.get(f);
+            for (int i = 0; i < menu.getItemCount(); i++) {
+                javax.swing.JMenuItem item = menu.getItem(i);
+                if (item != null && graph.toString().equals(item.getText())) { item.doClick(); return; }
+            }
+            fail("no Recent GraphML item for " + graph + " among " + menu.getItemCount() + " items");
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static javax.swing.JMenuItem menuItem(MainFrame f, String fieldName) {
+        try {
+            var field = MainFrame.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return (javax.swing.JMenuItem) field.get(f);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /** Counts and disposes any visible dialog, so a modal cannot hang the test — it fails it instead. */
     private static final class DialogWatchdog {
-        private final java.util.concurrent.atomic.AtomicInteger seen = new java.util.concurrent.atomic.AtomicInteger();
+        // distinct dialog INSTANCES: the poll is faster than the EDT's disposal, so a count per sighting over-counts
+        private final java.util.Set<java.awt.Window> seen =
+                java.util.Collections.synchronizedSet(java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>()));
         private volatile boolean running = true;
         private final Thread thread = new Thread(() -> {
             while (running) {
                 for (java.awt.Window w : java.awt.Window.getWindows()) {
-                    if (w instanceof javax.swing.JDialog d && d.isShowing()) {
-                        seen.incrementAndGet();
+                    if (w instanceof javax.swing.JDialog d && d.isShowing() && seen.add(d)) {
                         SwingUtilities.invokeLater(d::dispose);
                     }
                 }
@@ -181,7 +246,7 @@ class PairingDuringLoadFrameTest {
             }
         }, "dialog-watchdog");
         DialogWatchdog() { thread.setDaemon(true); thread.start(); }
-        int seen() { return seen.get(); }
+        int seen() { return seen.size(); }
         void stop() { running = false; }
     }
 
