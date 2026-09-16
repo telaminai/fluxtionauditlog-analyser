@@ -2099,6 +2099,17 @@ public final class MainFrame extends JFrame {
     private void setBusy(boolean busy) {
         loadInFlight = busy;
         progress.setVisible(busy);
+        if (busy) {
+            // review B1: a verdict is about a PAIR. The log half is being replaced, so the verdict
+            // retires with it; context says pending until the load lands (or fails, below).
+            lastPairing = null;
+            publishPairing();
+        } else if (lastPairing == null && store != null && topologyPanel.hasGraph() && session != null) {
+            // the load did not land (onLoaded sets the verdict before clearing busy): the previous
+            // log is still the open one, and the session's verdict about it is still true
+            lastPairing = session.processor().pairing.verdict();
+            publishPairing();
+        }
     }
 
     private JPanel buildFilterBar() {
@@ -2949,9 +2960,16 @@ public final class MainFrame extends JFrame {
      */
     private void repairLoadedGraph(LogStore loaded) {
         refreshLoggedNodeSample();
-        noteGraphState();
-        noteLogState();                     // the arrival — LogArrival decides on this
-        lastPairing = session == null ? null : session.processor().pairing.verdict();
+        if (session == null) {
+            // review F3: in a fresh window nothing had built the driver, so the verdict promised for
+            // "when the log lands" was null and context showed the pair with no verdict at all
+            // (pre-existing on 1.13.0). Building it observes the log and graph now in force.
+            session();
+        } else {
+            noteGraphState();
+            noteLogState();                 // the arrival — LogArrival decides on this
+        }
+        lastPairing = session.processor().pairing.verdict();
         publishPairing();
     }
 
@@ -3869,6 +3887,10 @@ public final class MainFrame extends JFrame {
         private static final String PAIRING_PENDING =
                 telamin.fluxtion.audit.analyser.analyser.ui.ActionExecutor.PAIRING_PENDING;
 
+        /** context's own wording: it IS the place the echo points at, so it cannot point at itself. */
+        private static final String PAIRING_PENDING_CONTEXT = "pending — a log is loading; the graph is judged "
+                + "against it when the load lands, and the verdict appears here";
+
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path) {
             return openLog(path, null, null);
@@ -4140,6 +4162,10 @@ public final class MainFrame extends JFrame {
                 // compare this graph with the PREVIOUS log, or with none — the 2026-09-16 session
                 // report saw both: "no log is open" on a first open, and the old log's node count on a
                 // re-open. onLoaded re-judges the opened graph against the log that lands.
+                // Review B1: the verdict in force was about the previous pair, so it goes with it —
+                // otherwise context and the topology note attached graph A's verdict to graph B.
+                lastPairing = null;
+                publishPairing();
                 updateLifecycleMenu();
                 echo.put("pairing", PAIRING_PENDING);
                 echo.put("loading", true);
@@ -4467,7 +4493,11 @@ public final class MainFrame extends JFrame {
                 // only describe a graph that is actually there: a verdict beside "graph": null is
                 // the tool asserting something about an artefact it does not have, which is the
                 // defect class this milestone is about
-                if (gf && lastPairing != null) {
+                if (loadInFlight) {
+                    // review B1: while a log loads, ANY verdict here would be about the previous pair
+                    pair.put("pairing", PAIRING_PENDING_CONTEXT);
+                    pair.put("loading", true);
+                } else if (gf && lastPairing != null) {
                     pair.put("applies", lastPairing.applies());
                     pair.put("loggedNodes", lastPairing.logged());
                     pair.put("declaredByGraph", lastPairing.matched());

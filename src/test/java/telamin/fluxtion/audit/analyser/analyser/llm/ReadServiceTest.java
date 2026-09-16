@@ -2,6 +2,8 @@ package telamin.fluxtion.audit.analyser.analyser.llm;
 
 import telamin.fluxtion.audit.analyser.analyser.index.LogIndex;
 import telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore;
+import telamin.fluxtion.audit.analyser.analyser.parse.RecordParser;
+import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -259,26 +261,105 @@ class ReadServiceTest {
                     - rootNode: { price: 2.5}
                     - riskCheck: { notional: 99, method: onPrice}
                 ---
+                #00:00:03.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 3000
+                  event: Tick
+                  nodeLogs:
+                    - risk: { thread: main, method: onEvent}
+                    - risk: { value: 99}
+                ---
+                #00:00:04.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 4000
+                  event: Tick
+                  nodeLogs:
+                    - risk: { thread: worker-queue}
+                ---
                 """);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void tracedOnlyNamesTheNodesThatRanButLoggedNoValue() {
+    void legacyTraceLikeOnly_isInferredPerInstanceOverEveryContribution() {
         HeapLogStore s = tracedStore();
         Map<String, Object> out = ReadService.read(s.index().snapshot(),
-                Map.of("recordIndex", 0, "after", 1, "fields", List.of("riskCheck.notional", "rootNode.price")),
+                Map.of("recordIndex", 0, "after", 3,
+                        "fields", List.of("riskCheck.notional", "rootNode.price", "risk.value", "risk.thread")),
                 s::rawText);
         List<Map<String, Object>> recs = records(out);
 
         Map<String, Object> r0 = recs.get(0);
-        assertEquals(Map.of("rootNode.price", "1.5"), r0.get("values"),
-                "riskCheck's entry holds no value, so the projection is empty for it — which is why the marker exists");
-        assertEquals(List.of("riskCheck"), r0.get("tracedOnly"),
-                "a thread+method-only entry is 'ran, logged nothing'; rootNode logged a value beside its trace keys");
+        assertEquals(Map.of("rootNode.price", "1.5"), r0.get("values"));
+        assertEquals(List.of("riskCheck"), r0.get("traceLikeOnly"),
+                "thread+method and nothing else is the tracing regime's spelling; rootNode logged a value beside its trace keys");
+        assertNull(r0.get("tracedOnly"), "a legacy record carries no wire marker, so nothing is MARKED");
 
         Map<String, Object> r1 = recs.get(1);
         assertEquals("99", ((Map<String, String>) r1.get("values")).get("riskCheck.notional"));
-        assertNull(r1.get("tracedOnly"), "control: once a node logs a value it is not traced-only, and the key is absent");
+        assertNull(r1.get("traceLikeOnly"), "control: a node that logs a value is not trace-like");
+
+        // review B2, first counterexample: a trace-only contribution followed by a value-bearing one
+        Map<String, Object> r2 = recs.get(2);
+        assertEquals("99", ((Map<String, String>) r2.get("values")).get("risk.value"));
+        assertNull(r2.get("traceLikeOnly"), "the node logged a value in its SECOND contribution — decided per instance, not per entry");
+        assertNull(r2.get("tracedOnly"));
+
+        // review B2, second counterexample: a business key spelled `thread`, no `method`
+        Map<String, Object> r3 = recs.get(3);
+        assertEquals("worker-queue", ((Map<String, String>) r3.get("values")).get("risk.thread"));
+        assertNull(r3.get("traceLikeOnly"), "a lone `thread` key is a business key until a `method` entry says otherwise");
+    }
+
+    /** The reader-declared grammar: a bare {@code @invoked} marker is explicit provenance and never an entry. */
+    private static final String QUOTED_TRACE_LOG = """
+            ---
+            #00:00:01.000 [t] INFO L
+            eventLogRecord:
+              logTime: 1000
+              event: Tick
+              nodeLogs:
+                - risk: { @invoked: true}
+            ---
+            #00:00:02.000 [t] INFO L
+            eventLogRecord:
+              logTime: 2000
+              event: Tick
+              nodeLogs:
+                - risk: { @invoked: true}
+                - risk: { value: 7}
+            ---
+            #00:00:03.000 [t] INFO L
+            eventLogRecord:
+              logTime: 3000
+              event: Tick
+              nodeLogs:
+                - risk: { method: onEvent, thread: main}
+            ---
+            """;
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void markedTracedOnly_needsAWireMarkerAndNoValueInAnyContribution() {
+        HeapLogStore s = new HeapLogStore(QUOTED_TRACE_LOG);
+        LogIndex.Snapshot snap = s.index().snapshot();
+        IntFunction<String> raw = s::rawText;
+        IntFunction<LogRecord> quoted = row -> RecordParser.parse(raw.apply(row), snap.offset(row),
+                telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.QUOTED_SCALARS);
+        Map<String, Object> out = ReadService.read(snap,
+                Map.of("recordIndex", 0, "after", 2, "fields", List.of("risk.value", "risk.method")), raw, quoted);
+        List<Map<String, Object>> recs = records(out);
+
+        assertEquals(List.of("risk"), recs.get(0).get("tracedOnly"), "positive control: a bare marker and no entry");
+        assertEquals(Map.of(), recs.get(0).get("values"));
+
+        // review B2 under the declared grammar: marker contribution + value contribution
+        assertEquals("7", ((Map<String, String>) recs.get(1).get("values")).get("risk.value"));
+        assertNull(recs.get(1).get("tracedOnly"), "a value in ANY contribution means the node did not log nothing");
+
+        // a binary/declared-grammar business `method` is a business property: nothing is inferred
+        assertEquals("onEvent", ((Map<String, String>) recs.get(2).get("values")).get("risk.method"));
+        assertNull(recs.get(2).get("traceLikeOnly"), "the legacy inference is legacy-only");
+        assertNull(recs.get(2).get("tracedOnly"));
     }
 }

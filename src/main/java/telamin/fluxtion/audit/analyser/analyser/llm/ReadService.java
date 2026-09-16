@@ -126,8 +126,9 @@ public final class ReadService {
                         : RecordParser.parse(rawText.apply(row), snap.offset(row));
                 if (rec.event() != null) m.put("event", rec.event());
                 m.put("values", project(rec.nodeLogs(), fields, seenFields));
-                List<String> tracedOnly = traceOnlyNodes(rec);
-                if (!tracedOnly.isEmpty()) m.put("tracedOnly", tracedOnly);
+                TraceOnly t = traceOnly(rec);
+                if (!t.marked().isEmpty()) m.put("tracedOnly", t.marked());
+                if (!t.inferred().isEmpty()) m.put("traceLikeOnly", t.inferred());
             }
             records.add(m);
         }
@@ -163,33 +164,47 @@ public final class ReadService {
      * logged. Values stay the raw logged text: projection is a token economy, not a retype.
      */
     /**
-     * The nodes in this record whose entry says only that they RAN and logged no value: a wire TRACE
-     * marker with no entries (binary), or — in the legacy text grammar, whose invocation tracing writes
-     * {@code thread} and {@code method} — an entry carrying nothing but those two keys. A projection
-     * shows such a node as an empty map, which reads exactly like "did not appear"; the 2026-09-16
-     * session report asked for the difference to be visible where the values are, not only in the
-     * skill that explains it. Text regime only where the grammar says so: a binary log's business
-     * {@code method} property is a business property (see {@code AuditTrace}).
+     * Nodes that ran and logged no value, decided per INSTANCE over every contribution it made to the
+     * record (review B2: a node may contribute several node-logs to one record, and a trace-only first
+     * contribution beside a value-bearing second one is not "logged nothing").
+     *
+     * <ul>
+     *   <li>{@code marked}: a wire TRACE marker said the node ran ({@link NodeLog#traced()}) and no
+     *       contribution carries an entry — explicit provenance, any grammar.</li>
+     *   <li>{@code inferred}: legacy text grammar only, where invocation tracing writes {@code thread} and
+     *       {@code method}: every entry across the contributions is one of those two keys AND a
+     *       {@code method} entry is present. A lone {@code thread} key is a business key until a
+     *       {@code method} says otherwise, matching the {@code AuditTrace} inference. This is an inference
+     *       from spelling, so it is reported under its own name.</li>
+     * </ul>
+     * A binary log's business {@code method} property is a business property: nothing is inferred there.
      */
-    static List<String> traceOnlyNodes(LogRecord rec) {
-        List<String> out = new ArrayList<>();
+    record TraceOnly(List<String> marked, List<String> inferred) {}
+
+    static TraceOnly traceOnly(LogRecord rec) {
         boolean legacyText = rec.textEncoding()
                 == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY;
+        // per instance, in first-seen order
+        java.util.LinkedHashMap<String, boolean[]> byId = new java.util.LinkedHashMap<>();
+        // flags: [0] any trace marker, [1] any entry at all, [2] any business entry, [3] method entry seen
         for (NodeLog nl : rec.nodeLogs()) {
-            boolean only;
-            if (nl.entries().isEmpty()) {
-                only = nl.traced();
-            } else if (legacyText) {
-                only = true;
-                for (KV kv : nl.entries()) {
-                    if (!"thread".equals(kv.key()) && !"method".equals(kv.key())) { only = false; break; }
-                }
-            } else {
-                only = false;
+            boolean[] f = byId.computeIfAbsent(nl.instanceId(), k -> new boolean[4]);
+            if (nl.traced()) f[0] = true;
+            for (KV kv : nl.entries()) {
+                f[1] = true;
+                boolean traceKey = legacyText && ("thread".equals(kv.key()) || "method".equals(kv.key()));
+                if (!traceKey) f[2] = true;
+                if (legacyText && "method".equals(kv.key())) f[3] = true;
             }
-            if (only && !out.contains(nl.instanceId())) out.add(nl.instanceId());
         }
-        return out;
+        List<String> marked = new ArrayList<>();
+        List<String> inferred = new ArrayList<>();
+        for (var e : byId.entrySet()) {
+            boolean[] f = e.getValue();
+            if (f[0] && !f[1]) marked.add(e.getKey());
+            else if (legacyText && f[1] && !f[2] && f[3]) inferred.add(e.getKey());
+        }
+        return new TraceOnly(marked, inferred);
     }
 
     private static Map<String, String> project(List<NodeLog> nodeLogs, List<String> fields, Set<String> seen) {

@@ -89,4 +89,27 @@ class SourcePanelRootChangeTest {
         String single = SourcePanel.nothingToShowText(FQN, List.of(Path.of("/r")), null);
         assertTrue(single.contains("Source root searched:\n    /r\n"), single);
     }
+
+    @Test
+    void nodePaneMissingUnderBothRoots_placeholderNamesTheNewRoots(@TempDir Path tmp) throws Exception {
+        Path oldRoot = Files.createDirectories(tmp.resolve("old/src/main/java"));
+        Path newRoot = Files.createDirectories(tmp.resolve("new/src/main/java"));
+        String nodeFqn = "com.acme.node.RiskCheck";
+
+        SourceService service = new SourceService();
+        SourcePanel panel = new SourcePanel();
+        panel.bind(service);
+        service.configure(List.of(oldRoot.toString()), FQN);
+        panel.showSelectedProcessor();
+        panel.openFqn(nodeFqn);                       // the node pane: a miss under the old roots
+        assertTrue(panel.nodePaneText().contains(oldRoot.toString()), panel.nodePaneText());
+
+        service.configure(List.of(newRoot.toString()), FQN);
+        panel.showSelectedProcessor();                 // still a miss — but the roots searched changed
+        String node = panel.nodePaneText();
+        assertTrue(node.contains(newRoot.toString()), "review F4: the placeholder must name the roots NOW searched:\n" + node);
+        assertFalse(node.contains(oldRoot.toString()), "and not the previous project's:\n" + node);
+        String proc = panel.processorPaneText();
+        assertTrue(proc.contains(newRoot.toString()) && !proc.contains(oldRoot.toString()), proc);
+    }
 }

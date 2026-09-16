@@ -60,8 +60,11 @@ public final class VerbSchemas {
                         p("fields", arr(string()), "project just these \"instanceId.key\"s (or "
                                 + "\"instanceId.*\") per record instead of raw text — 10-50x fewer tokens "
                                 + "when you only need specific values; last occurrence per record, same "
-                                + "as graphing. A record also lists `tracedOnly`: nodes whose entry says "
-                                + "only that they RAN (invocation tracing) and logged no value — an empty "
+                                + "as graphing. A record may also list `tracedOnly` (a wire trace marker "
+                                + "said the node ran and it logged no value in this record) and, for legacy "
+                                + "text logs, `traceLikeOnly` (every entry the node wrote is the tracing "
+                                + "regime's thread/method and nothing else — inferred from spelling). Both "
+                                + "are decided per node over ALL its contributions to the record; an empty "
                                 + "projection is not the same as absent. Omit for the full raw record "
                                 + "(quoting evidence)")),
                 List.of() /* one of recordIndex|byteOffset|at — enforced at runtime */));

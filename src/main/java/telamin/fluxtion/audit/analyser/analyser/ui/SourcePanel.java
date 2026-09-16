@@ -215,11 +215,26 @@ public final class SourcePanel extends JPanel {
         openFqn(service.selectedFqn());
     }
 
-    /** Re-read a pane's file when the roots now resolve its name to something else (or to nothing). */
+    /**
+     * Re-read a pane's file when the roots now resolve its name to something else (or to nothing). A pane
+     * showing a MISS is always re-rendered: its placeholder names the roots searched and the project they
+     * came from, and those changed even when the miss did not (review F4 — the node pane kept naming the
+     * previous project's root after a switch that still could not find the file).
+     */
     private void rerenderIfChanged(Pane pane) {
         if (pane.fqn == null) return;
         String now = service.sourceForFqn(pane.fqn).orElse("");
-        if (!now.equals(pane.source)) pane.render(pane.fqn);
+        if (pane.source.isEmpty() || !now.equals(pane.source)) pane.render(pane.fqn);
+    }
+
+    /** The processor pane's visible text (source or placeholder) — for tests. */
+    String processorPaneText() {
+        return processorPane.text.getText();
+    }
+
+    /** The node pane's visible text (source or placeholder) — for tests. */
+    String nodePaneText() {
+        return nodePane.text.getText();
     }
 
     /**

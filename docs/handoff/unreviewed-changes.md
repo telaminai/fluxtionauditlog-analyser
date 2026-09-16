@@ -14,6 +14,35 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Response to the 1.13.1 review: B1, B2, F3, F4 fixed; F5 corrected · based on `26c10d45`
+
+Response: [handoff_analyser_1.13.1_response_2026-09-16.md](handoff_analyser_1.13.1_response_2026-09-16.md).
+Review: [review_analyser_1.13.1_2026-09-16.md](review_analyser_1.13.1_2026-09-16.md).
+
+**What & why.** B1 — the verdict retires when a load starts (`setBusy(true)`) and when a graph is opened during
+one; `context.graphPairing` says `pending` + `loading` while `loadInFlight`; a failed load restores the session's
+still-true verdict (`setBusy(false)`). B2 — `ReadService.traceOnly` decides per instance over every contribution:
+`tracedOnly` needs a wire marker and no entry anywhere; `traceLikeOnly` (legacy only) needs a `method` entry and
+nothing but `thread`/`method`; schema updated. F3 — `repairLoadedGraph` builds the session driver on the first log
+arrival instead of returning a null verdict. F4 — `SourcePanel.rerenderIfChanged` always re-renders a pane showing
+a miss, so the placeholder names the roots now searched; `processorPaneText()`/`nodePaneText()` for tests. F5 —
+handoff §4 rewritten to the client-side boundary; the compiler spec on branch
+`docs/diagnostics-entry-point-rendering` already sits there.
+
+**Verified.** `PairingDuringLoadFrameTest` — the reviewer's real-frame two-call sequence on a fresh window with no
+project: echo pending, context pending with no `applies`, final B/B verdict. **Skipped under Maven** (the pom
+forces headless for every run) and run with `-Djava.awt.headless=false -DargLine=…` on a machine with a display.
+Mutation controls, all red: B1 (context reports the old verdict, no invalidation), F3 (no lazy driver → no verdict
+within 20 s), F4 (content-only re-render → node placeholder names the old root). `ReadServiceTest` carries both B2
+counterexamples in the legacy grammar and the marker+value case under the declared grammar, with a positive bare-marker
+control and a business-`method` control. Full `mvn -o clean verify`, strict docs, rule-1 sweep before commit.
+
+**Reviewer must still check.** The frame test cannot run on CI; it is a developer-machine test and its skip is
+silent there. Whether `traceLikeOnly` should require `thread` as well as `method` (it requires `method` only,
+matching `AuditTrace`). The skill wordings from the review's other dispositions — "every final field" narrowed to
+eligible instance fields; the Mongoose capture roll is a roll, not a one-day retention; fresh capture location over
+deletion — are NOT changed here: each is a canonical-skill edit plus an index re-pin, an owner's call.
+
 ## ☑ reviewed 2026-09-16 · Session-report items: pending pairing echo, `tracedOnly`, three skills · based on `c443c865`
 
 **Verdict: NOT READY for 1.13.1.** Independent [review](review_analyser_1.13.1_2026-09-16.md): B1 stale

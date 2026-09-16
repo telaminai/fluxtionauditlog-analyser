@@ -93,25 +93,29 @@ an event → regenerate → redeploy → admin REST) and wrote a report. Its ite
 | `CsvToPriceEvent` short-line fallback prices bad input at zero | playground starter code | open — it produced the stray record the analyser caught |
 | `/api` index or OpenAPI; intermittent registry entry left on stop; CSRF accepted in auth NONE; fresh-per-boot capture | Mongoose | open, not verifiable from here |
 
-## 4. Compiler finding: the FLX-1009 diagnostic never reaches a remote build
+## 4. Compiler finding: the FLX-1009 diagnostic never reaches a plugin user — CORRECTED per review F5
+
+_The first version of this section blamed the remote path. The independent review (F5) is right that the
+constructor check runs **client-side**, while the DTO is built and before any request is sent, so the hosted
+generator's version and error prose are irrelevant to this failure. The corrected account:_
 
 Verified in the released sources (tag `v1.0.67`):
 
 - `LiveGraphSourceGenExtractor` builds the FLX-1009 diagnostic (whose `suggestedFix` names `transient` /
   `@FluxtionIgnore`) and throws `new DiagnosticException(diagnostic, legacyMessage)` — the exception **message is
-  the legacy text** *"cannot find matching constructor for: … failed to match for these fields: […]"*.
-- `fluxtion-generator-http` `writeError` puts `e.getMessage()` in the error prose and the rendered diagnostics only
-  as JSON in the wire envelope's `diagnostics` meta.
-- The 1.0.67 client (`RemoteHttpCombinedGenerator`) captures that JSON but rethrows
-  `"Remote source generation failed: " + resp.getError()` — the legacy prose. Nothing on the Maven path renders
-  the diagnostic.
+  the legacy text**; the diagnostic rides beside it as a `DiagnosticCarrier`.
+- `EventProcessorGenerator` catches that refusal in the plugin's JVM, writes the sidecar only when
+  `-Dfluxtion.diagnostics.sidecar` is set (opt-in), and rethrows — before the remote generator is involved.
+- `fluxtion-maven-plugin` 1.3.0 logs the exception and wraps the cause in a `MojoExecutionException`; Maven
+  prints the cause chain, which is the legacy prose. The plugin never calls `getDiagnostic()`; `logOnce()`'s
+  slf4j line has no binding in the plugin's classloader.
 
-So the agent saw the legacy wording **whatever compiler the hosted generator runs**. The deployed version could
-not be confirmed from here: the generator's `/health` returns a hard-coded `"1.0.0"`, the RapidAPI gateway does
-not expose `/health` at all (404), and the Cloudflare deployment lives in the website repo. The `fluxtion-rest-compiler`
-pom pins compiler 1.0.67 on `origin/main` (2026-09-14). **Ask for 1.0.68:** render the attached diagnostic in
-the remote client's thrown message (or put it in the server's error prose), and make `/health` report the real
-compiler version.
+So the agent saw the legacy wording whatever the hosted generator runs. **The remedy is at the client-side
+boundary:** the spec `docs/specs/compiler-diagnostics/entry-point-rendering.md` on compiler branch
+`docs/diagnostics-entry-point-rendering` makes the three static methods the plugin invokes reflectively render
+the report, write the sidecar by default and throw a `DiagnosticBuildException` whose message is the rendering,
+with the plugin, the in-process API and the "legacy prose stays" decision unchanged. The hosted generator's
+error prose and a truthful `/health` version are filed beside it as separate asks.
 
 ## 5. The agent's comments on the plotting model
 

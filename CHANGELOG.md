@@ -7,10 +7,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
-- **`read … fields` names the nodes that ran but logged nothing.** A record's projection now carries
-  `tracedOnly: [instanceId…]` for a node whose entry is only invocation tracing (`thread` + `method` in the text
-  grammar, or a bare wire trace marker in the binary one). An empty projection read exactly like "did not
-  appear"; the difference is now visible where the values are, not only in the skill that explains it.
+- **`read … fields` names the nodes that ran but logged nothing.** A record's projection carries
+  `tracedOnly: [instanceId…]` when a wire trace marker said the node ran and it logged no value in the record, and
+  for legacy text logs `traceLikeOnly` when every entry the node wrote is the tracing regime's `thread`/`method`
+  and a `method` entry is present. Both are decided per node over ALL its contributions to the record, so a
+  trace-only first contribution beside a value-bearing second one is not "logged nothing", and a lone business
+  key spelled `thread` is not trace evidence (independent review B2). An empty projection read exactly like "did
+  not appear"; the difference is now visible where the values are.
 
 ### Changed
 - **The canonical skills learned from an agent session on the template bundle** (`docs/skills`, index
@@ -22,20 +25,26 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `context.graphPairing` is the authority. Bundles pick the new bytes up when the playground next vendors them.
 
 ### Fixed
-- **`open {log, graphml}` no longer echoes a pairing verdict about the previous log.** The log loads in the
-  background, so the graph was judged against whatever was loaded when the call ran: "no log is open" on a
-  first open, the old log's node counts on a re-open, while `context` was right a moment later. The log echo
-  now says `loading: true`, a graph opened while a load is in flight (same call or the next one) echoes
-  `pairing: pending` and points at `context.graphPairing`, and the graph is judged once the log lands.
-- **The Source panel re-reads the event processor when the source roots change, and its "No source to
-  show" placeholder says where the roots came from.** Switching project (or adding a root) with the same
-  processor selected left the previous placeholder on screen — naming the previous project's root — while
-  the new roots already resolved the file, because an unchanged class name was never re-read. Both panes
-  now re-read a file whose content changed with the roots, and a miss is retried on every navigation. The
-  placeholder names the project the listed roots belong to and, when the open log sits inside a project
-  that is not in force (a socket-driven open never shows the "Load this project?" dialog, so the offer was
-  only a status-line note), names that project with both ways to load it: *File ▸ Open project…* and
-  `open {project: …}`.
+- **A graph opened while a log is loading is not judged against the previous log — anywhere.** The log loads
+  in the background, so the graph was judged against whatever was loaded when the call ran: "no log is open" on a
+  first open, the old log's node counts on a re-open, while `context` was right a moment later. The log echo now
+  says `loading: true`; a graph opened while a load is in flight (same call or the next one) echoes
+  `pairing: pending`; and — independent review B1 — the verdict in force retires with the log it was about, so
+  `context.graphPairing`, the topology note and the Project panel say *pending* during the load instead of
+  attaching the previous pair's verdict to the new graph. A load that fails restores the still-true verdict.
+- **A fresh window judges the pair when the log lands.** With no project opened first, nothing had built the
+  session driver, so the promised verdict was null and `context` showed log and graph with no `applies` at all
+  (pre-existing on 1.13.0; independent review F3). A log arriving now builds it.
+- **The Source panel re-reads both panes when the source roots change, and its "No source to show" placeholder
+  says where the roots came from.** Switching project (or adding a root) with the same processor selected left
+  the previous placeholder on screen — naming the previous project's root — while the new roots already resolved
+  the file, because an unchanged class name was never re-read. Both panes now re-read a file whose content
+  changed with the roots, a pane showing a miss is always re-rendered so its placeholder names the roots NOW
+  searched (independent review F4: the node pane kept the old root when the file was missing under both), and a
+  miss is retried on every navigation. The placeholder names the project the listed roots belong to and, when
+  the open log sits inside a project that is not in force (a socket-driven open never shows the "Load this
+  project?" dialog, so the offer was only a status-line note), names that project with both ways to load it:
+  *File ▸ Open project…* and `open {project: …}`.
 
 ## [1.13.0] - 2026-09-16
 
