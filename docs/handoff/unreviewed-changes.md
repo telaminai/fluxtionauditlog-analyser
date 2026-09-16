@@ -14,6 +14,43 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Session-report items: pending pairing echo, `tracedOnly`, three skills · based on `c443c865`
+
+**Source.** An agent's session report on the 1.13.0 template bundle (off-repo, the owner's copy). Its analyser
+items were triaged: one defect, two gaps, one policy kept (screenshot never overwrites — `ExportGuard` is
+deliberate), and the compiler item is already in 1.0.67 (FLX-1009) but the remote path throws the LEGACY
+message (`DiagnosticException(diagnostic, legacyMessage)`; the http client rethrows `resp.getError()`), so an
+agent never sees it — a compiler/generator-http item, recorded in the report to the owner, not fixed here.
+
+**What & why.** (1) `open {log, graphml}` echoed a pairing judged against the PREVIOUS log or none, because
+`openLog` hands the load to `Background.run` and returns; `openGraphml` judged synchronously. Now the log echo
+says `loading: true`; `ActionExecutor.doOpen` replaces the verdict keys with `PAIRING_PENDING` when the log
+opened in the same call is loading; `MainFrame.openGraphml` echoes pending itself while `loadInFlight`, so a
+graph opened in the NEXT call is covered too. `onLoaded → repairLoadedGraph` already re-judges. (2) `read …
+fields` adds `tracedOnly` (`ReadService.traceOnlyNodes`: legacy text grammar with only `thread`/`method`
+keys, or a bare binary trace marker); the verb schema says so. (3) Skills: `spring/add-a-node` (description
+broadened to body-only logging; constructor-mapping rule before regenerate; a heading for the logging
+section), `mongoose/run-mongoose-server` (cumulative export; confirm a clean stop; edit input only between
+stop and start), `common/load-audit-log` (the echo cannot judge; context is the authority).
+
+**Index and test.** `m19-skills/2/index.json` is re-pinned IN THE FOLLOWING COMMIT (its `revision` must name
+the commit containing the bytes, so it cannot be the same commit); the commit with the bytes is red on exactly
+`aPUBLISHEDindexMustPinARevisionContainingEverySelectedByte` and green again one commit later — pushed
+together, CI sees the tip. `publishedM19IndexPinsTheAcceptedMongooseSubsetAndItsExactBytes` now hashes the
+bytes AT v1's revision (`git show`) instead of the worktree: it was only ever true because neither v1 file had
+changed since v1, and v1 stays byte-pinned exactly as the README says. Bundles keep `canonical@48b0e0a7` until
+the playground vendors the new revision.
+
+**Verified.** `OpenEchoPendingPairingTest` (rewrite when the adapter says loading; control: a synchronous
+adapter keeps its verdict; a graph opened alone is never rewritten), `ReadServiceTest.tracedOnlyNames…` (with a
+control record where the same node logs a value), `CanonicalSkillsTest` string pins intact. Full
+`mvn -o clean verify`, strict docs, rule-1 sweep before each commit.
+
+**Reviewer must still check.** The live two-call race on a real frame (`open {log}` then `open {graphml}`
+within the load): the second echo must say pending and the status bar must show the new log's pairing after
+it lands. Whether `tracedOnly` should also appear in the raw-text (`fields` omitted) shape — left out because
+the raw text already shows `thread`/`method`.
+
 ## ☐ 2026-09-16 · Source panel: stale "No source to show" after a project switch · based on `7960462d` (v1.13.0)
 
 **What & why.** Reported on the deployed 1.13.0: the processor pane said *No source to show … Source root

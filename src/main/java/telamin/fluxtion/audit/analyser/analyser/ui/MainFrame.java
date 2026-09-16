@@ -3865,6 +3865,10 @@ public final class MainFrame extends JFrame {
      */
     private final class AppControlAdapter implements telamin.fluxtion.audit.analyser.analyser.llm.AppControl {
 
+        /** The graph echo while a log is still loading; the same words the executor uses for a same-call open. */
+        private static final String PAIRING_PENDING =
+                telamin.fluxtion.audit.analyser.analyser.ui.ActionExecutor.PAIRING_PENDING;
+
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path) {
             return openLog(path, null, null);
@@ -3904,6 +3908,10 @@ public final class MainFrame extends JFrame {
             openLocation(path, request);
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("path", path);
+            // the load runs on the background executor and lands in onLoaded; the verb returns before
+            // it does. Saying so lets a caller (and the executor combining this with a graphml open)
+            // know that nothing judged in this call was judged against THIS log.
+            echo.put("loading", true);
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "log", echo);
         }
 
@@ -4124,11 +4132,22 @@ public final class MainFrame extends JFrame {
                         "not a readable Fluxtion .graphml: " + path);
             }
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
-            var pairing = judgeOpenedGraph();      // M35.3 — say at once whether it fits this log
-            updateLifecycleMenu();
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("path", path);
             echo.put("nodes", topologyPanel.authoredNodeIds().size());
+            if (loadInFlight) {
+                // A log is still loading (openLog returns before its load lands). Judging now would
+                // compare this graph with the PREVIOUS log, or with none — the 2026-09-16 session
+                // report saw both: "no log is open" on a first open, and the old log's node count on a
+                // re-open. onLoaded re-judges the opened graph against the log that lands.
+                updateLifecycleMenu();
+                echo.put("pairing", PAIRING_PENDING);
+                echo.put("loading", true);
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
+                        "open", "graphml", echo);
+            }
+            var pairing = judgeOpenedGraph();      // M35.3 — say at once whether it fits this log
+            updateLifecycleMenu();
             if (pairing == null) {
                 echo.put("pairing", store == null
                         ? "no log is open — nothing to check this graph against"

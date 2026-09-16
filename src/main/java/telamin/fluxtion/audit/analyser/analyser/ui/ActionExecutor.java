@@ -783,11 +783,17 @@ public final class ActionExecutor implements RenderExecutor {
                     "'open' needs 'log', 'graphml', 'processor', 'project', 'close' or 'discover'");
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
+        boolean logLoading = false;
         if (log != null) {
             // §E + M35.9: provenance rides the same call as the path
             ActionResult r = app.openLog(log, null, str(params.get("provenance")));
             if (!r.ok()) return r;
             echo.put("log", log);
+            // the frame loads a log in the background and says so; anything judged later in THIS call
+            // was judged before that log existed
+            Object logEcho = r.toMap().get("log");
+            logLoading = logEcho instanceof Map<?, ?> lm && Boolean.TRUE.equals(lm.get("loading"));
+            if (logLoading) echo.put("logLoading", true);
         }
         if (graphml != null) {
             ActionResult r = app.openGraphml(graphml);
@@ -796,7 +802,20 @@ public final class ActionExecutor implements RenderExecutor {
             // openGraphml answers "does this graph fit the open log?" (M35.3) and that verdict is
             // the useful half — an agent switching processors must not have to call context to get it
             Object payload = r.toMap().get("graphml");
-            echo.put("graphml", payload instanceof Map<?, ?> m && !m.isEmpty() ? m : graphml);
+            if (payload instanceof Map<?, ?> m && !m.isEmpty()) {
+                Map<String, Object> g = new java.util.LinkedHashMap<>(asMap(payload));
+                if (logLoading) {
+                    // 2026-09-16 session report: `open {log, graphml}` echoed "no log is open" on a
+                    // first open and the PREVIOUS log's node counts on a re-open, while context said
+                    // otherwise a moment later. The verdict was real, but about the wrong log. Replace
+                    // it rather than pass it on; the frame re-judges when the load lands.
+                    g.keySet().removeAll(PAIRING_KEYS);
+                    g.put("pairing", PAIRING_PENDING);
+                }
+                echo.put("graphml", g);
+            } else {
+                echo.put("graphml", graphml);
+            }
         }
         if (processor != null) {
             ActionResult r = app.selectProcessor(processor);
@@ -805,6 +824,14 @@ public final class ActionExecutor implements RenderExecutor {
         }
         return ActionResult.ok("open", "opened", echo);
     }
+
+    /** The pairing echo when the log it would be judged against has not finished loading. */
+    public static final String PAIRING_PENDING = "pending — the log is still loading; the graph is judged "
+            + "against it when the load lands. Read context.graphPairing for the verdict.";
+
+    /** The keys openGraphml's echo uses for a verdict; removed when that verdict was about another log. */
+    private static final java.util.List<String> PAIRING_KEYS = java.util.List.of(
+            "pairing", "appliesToOpenLog", "loggedNodes", "declaredByGraph", "verdict");
 
     private ActionResult doSourceRoot(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'source_root' is not enabled here");

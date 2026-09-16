@@ -126,6 +126,8 @@ public final class ReadService {
                         : RecordParser.parse(rawText.apply(row), snap.offset(row));
                 if (rec.event() != null) m.put("event", rec.event());
                 m.put("values", project(rec.nodeLogs(), fields, seenFields));
+                List<String> tracedOnly = traceOnlyNodes(rec);
+                if (!tracedOnly.isEmpty()) m.put("tracedOnly", tracedOnly);
             }
             records.add(m);
         }
@@ -160,6 +162,36 @@ public final class ReadService {
      * projected value always matches the plotted one. {@code instanceId.*} takes every key that instance
      * logged. Values stay the raw logged text: projection is a token economy, not a retype.
      */
+    /**
+     * The nodes in this record whose entry says only that they RAN and logged no value: a wire TRACE
+     * marker with no entries (binary), or — in the legacy text grammar, whose invocation tracing writes
+     * {@code thread} and {@code method} — an entry carrying nothing but those two keys. A projection
+     * shows such a node as an empty map, which reads exactly like "did not appear"; the 2026-09-16
+     * session report asked for the difference to be visible where the values are, not only in the
+     * skill that explains it. Text regime only where the grammar says so: a binary log's business
+     * {@code method} property is a business property (see {@code AuditTrace}).
+     */
+    static List<String> traceOnlyNodes(LogRecord rec) {
+        List<String> out = new ArrayList<>();
+        boolean legacyText = rec.textEncoding()
+                == telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader.TextEncoding.LEGACY;
+        for (NodeLog nl : rec.nodeLogs()) {
+            boolean only;
+            if (nl.entries().isEmpty()) {
+                only = nl.traced();
+            } else if (legacyText) {
+                only = true;
+                for (KV kv : nl.entries()) {
+                    if (!"thread".equals(kv.key()) && !"method".equals(kv.key())) { only = false; break; }
+                }
+            } else {
+                only = false;
+            }
+            if (only && !out.contains(nl.instanceId())) out.add(nl.instanceId());
+        }
+        return out;
+    }
+
     private static Map<String, String> project(List<NodeLog> nodeLogs, List<String> fields, Set<String> seen) {
         Map<String, String> values = new LinkedHashMap<>();
         for (String f : fields) {

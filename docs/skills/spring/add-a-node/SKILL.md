@@ -1,6 +1,6 @@
 ---
 name: add-a-node
-description: Add a new node to a Spring-XML authored Fluxtion graph and prove it ran. Use when adding behaviour, not when only changing code inside an existing node.
+description: Add a new node to a Spring-XML authored Fluxtion graph, or make an existing node log its values, and prove it ran. A new node needs regeneration; logging from an existing node is a body-only change and does not.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -20,6 +20,13 @@ specific to a Spring-authored project.
    graph edges** — this is how the compiler learns what depends on what.
 3. **Add the bean id to `fluxtionSpringConfig`'s `nodeBeans`.**
 
+**Before you regenerate, check the fields.** Fluxtion constructor-maps every `final` field that is not
+`transient` or `@FluxtionIgnore`, and the build stops with *cannot find matching constructor … failed to
+match for these fields: […]* when no constructor accepts them. Derived local state — a map, a counter, a
+buffer the node builds for itself — should be `transient` (or `@FluxtionIgnore`); only builder-supplied
+configuration and references to other nodes belong in the constructor. This is the first error every new
+node with a `Map` or `List` field hits; the triage table at the link above carries the full rule.
+
 Then **regenerate** — a graph change needs it, a change inside a method body does not:
 
 ```
@@ -36,6 +43,12 @@ Read the regenerated processor afterwards to confirm your node was wired. Do not
 explicit Fluxtion nodes; referenced children are still discovered by Fluxtion."* So a bean reached by a
 `constructor-arg ref` from a listed node **is** in the graph; a bean that is neither listed nor referenced
 is **not** — and the build stays green. If your node never appears in the audit log, check this first.
+
+## Make an existing node log its values — a body-only change, no regeneration
+
+This section also answers the smaller task, *"make node X show its values in the audit log"*, which touches
+no XML and needs no regeneration: change the class as described below, rebuild, run, export, and read the
+node's entry.
 
 **In an untraced record, a node that logs nothing is indistinguishable from a node that did nothing.** (In
 a traced one it still appears, showing its method — see below.) To record its own values a

@@ -41,6 +41,11 @@ the bottom of this file, and the check belongs immediately before it.
    through the registry/API and calls `/api/audit/file/{id}/export?format=yaml`; claiming the run itself
    writes the YAML skips a required step and leaves `load-audit-log` with a path that does not exist.
 
+   **The export is cumulative.** Chronicle capture is retained across restarts (a day, by default), so the
+   YAML holds every retained run, not only the last one — a "new run" export after two redeploys carried
+   three runs. Declare provenance and filter by time, or clear the capture directory between runs you
+   want to read alone; do not describe the file as one run unless you checked.
+
 4. Open that concrete YAML export in the analyser with the processor's GraphML (see the
    `load-audit-log` skill), declaring the registry server name as provenance.
 
@@ -48,6 +53,16 @@ the bottom of this file, and the check belongs immediately before it.
    registry file is removed.
 
    TODO(bundle): substitute the exact clean-stop command; do not assume a stop script exists.
+
+   **Confirm the stop was clean — do not assume it.** The stop script has been seen to report *stopped
+   server pid …, but its registry entry is STILL at …*: the process ended but the shutdown path left the
+   entry behind. Check that the entry under `~/.mongoose/servers/` is gone and the pid is dead. A later
+   start overwrites a stale entry, so this is recoverable — but report what you saw, not "stopped cleanly".
+
+6. **Change the input only between a stop and a start.** A running server tails its input file and
+   delivers an appended line immediately — to the processor that is running NOW. A line appended before a
+   redeploy reached the OLD processor in one session, whose mapper turned it into a zero-priced event
+   that the risk check then passed. Stop, edit, rebuild, start.
 
 ## Do not start a second instance
 

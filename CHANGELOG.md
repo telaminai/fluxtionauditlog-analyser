@@ -6,7 +6,27 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **`read … fields` names the nodes that ran but logged nothing.** A record's projection now carries
+  `tracedOnly: [instanceId…]` for a node whose entry is only invocation tracing (`thread` + `method` in the text
+  grammar, or a bare wire trace marker in the binary one). An empty projection read exactly like "did not
+  appear"; the difference is now visible where the values are, not only in the skill that explains it.
+
+### Changed
+- **The canonical skills learned from an agent session on the template bundle** (`docs/skills`, index
+  `m19-skills/2` re-pinned): `add-a-node` also covers making an existing node log its values (a body-only change,
+  no regeneration) and states the constructor-mapping rule — derived state `transient` or `@FluxtionIgnore` —
+  before the regenerate step; `run-mongoose-server` says the export is cumulative across restarts, that a stop
+  must be confirmed clean (the registry entry has been seen left behind), and that the input file is edited only
+  between a stop and a start; `load-audit-log` says the `open` echo cannot judge the pairing and
+  `context.graphPairing` is the authority. Bundles pick the new bytes up when the playground next vendors them.
+
 ### Fixed
+- **`open {log, graphml}` no longer echoes a pairing verdict about the previous log.** The log loads in the
+  background, so the graph was judged against whatever was loaded when the call ran: "no log is open" on a
+  first open, the old log's node counts on a re-open, while `context` was right a moment later. The log echo
+  now says `loading: true`, a graph opened while a load is in flight (same call or the next one) echoes
+  `pairing: pending` and points at `context.graphPairing`, and the graph is judged once the log lands.
 - **The Source panel re-reads the event processor when the source roots change, and its "No source to
   show" placeholder says where the roots came from.** Switching project (or adding a root) with the same
   processor selected left the previous placeholder on screen — naming the previous project's root — while

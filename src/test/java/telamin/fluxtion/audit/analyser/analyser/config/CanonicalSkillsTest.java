@@ -93,11 +93,17 @@ class CanonicalSkillsTest {
                 "936950b36a9cd123eaaaf76d9b3730ca2616645d26224397013f629548faefa8",
                 "mongoose/run-mongoose-server/SKILL.md",
                 "f2737e2c92c9b4e2ec1cb2776ad04c945da87346c309f48e3e67eef6bddda928");
+        // v1 pins the bytes AT ITS REVISION, which is what a consumer of v1 fetches. The worktree copy is
+        // v2's concern (it moved on 2026-09-16 when both skills learned from a session report); until then
+        // this compared the worktree, which was only ever true because neither file had changed since v1.
+        requireFullHistory();
         for (Map<String, Object> skill : skills) {
             String relative = (String) skill.get("path");
             Path source = ROOT.resolve(relative).normalize();
             assertTrue(source.startsWith(ROOT) && Files.isRegularFile(source), relative);
-            assertEquals(expectedHashes.get(relative), sha256(Files.readString(source)), relative);
+            String atRevision = gitShow(PUBLISHED_REVISION + ":docs/skills/" + relative);
+            assertNotNull(atRevision, relative + " must exist at v1's revision");
+            assertEquals(expectedHashes.get(relative), sha256(atRevision), relative);
         }
     }
 

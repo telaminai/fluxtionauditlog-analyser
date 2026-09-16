@@ -238,4 +238,47 @@ class ReadServiceTest {
         assertEquals(2, out.get("to"));     // anchor 0, centred count 5 → before=2 clamped, after=2
         assertEquals(0, records(out).get(0).get("recordIndex"));
     }
+
+    /** Invocation tracing writes thread+method and nothing else; the projection must say "ran, logged nothing". */
+    private static HeapLogStore tracedStore() {
+        return new HeapLogStore("""
+                ---
+                #00:00:01.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 1000
+                  event: PriceEvent
+                  nodeLogs:
+                    - rootNode: { price: 1.5, thread: main, method: onPrice}
+                    - riskCheck: { thread: main, method: onPrice}
+                ---
+                #00:00:02.000 [t] INFO L
+                eventLogRecord:
+                  logTime: 2000
+                  event: PriceEvent
+                  nodeLogs:
+                    - rootNode: { price: 2.5}
+                    - riskCheck: { notional: 99, method: onPrice}
+                ---
+                """);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void tracedOnlyNamesTheNodesThatRanButLoggedNoValue() {
+        HeapLogStore s = tracedStore();
+        Map<String, Object> out = ReadService.read(s.index().snapshot(),
+                Map.of("recordIndex", 0, "after", 1, "fields", List.of("riskCheck.notional", "rootNode.price")),
+                s::rawText);
+        List<Map<String, Object>> recs = records(out);
+
+        Map<String, Object> r0 = recs.get(0);
+        assertEquals(Map.of("rootNode.price", "1.5"), r0.get("values"),
+                "riskCheck's entry holds no value, so the projection is empty for it — which is why the marker exists");
+        assertEquals(List.of("riskCheck"), r0.get("tracedOnly"),
+                "a thread+method-only entry is 'ran, logged nothing'; rootNode logged a value beside its trace keys");
+
+        Map<String, Object> r1 = recs.get(1);
+        assertEquals("99", ((Map<String, String>) r1.get("values")).get("riskCheck.notional"));
+        assertNull(r1.get("tracedOnly"), "control: once a node logs a value it is not traced-only, and the key is absent");
+    }
 }

@@ -48,6 +48,11 @@ Use this before answering any question about what the running system did.
    applies to this log. If it does not, a node's absence is not evidence of anything, and neither is
    coverage.
 
+   The log loads in the background, so the `open` echo cannot judge the graph against it: from analyser
+   1.13.1 the echo says `pairing: pending`; earlier versions echoed a verdict about the PREVIOUS log, or
+   "no log is open". Either way, `analyser_context.graphPairing` is the authority — read it after the
+   open, not the echo.
+
 ## What to do when there is no log yet
 
 Open the **graph alone**. The analyser will still tell you whether this processor is even capable of

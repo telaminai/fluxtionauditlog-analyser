@@ -60,7 +60,10 @@ public final class VerbSchemas {
                         p("fields", arr(string()), "project just these \"instanceId.key\"s (or "
                                 + "\"instanceId.*\") per record instead of raw text — 10-50x fewer tokens "
                                 + "when you only need specific values; last occurrence per record, same "
-                                + "as graphing. Omit for the full raw record (quoting evidence)")),
+                                + "as graphing. A record also lists `tracedOnly`: nodes whose entry says "
+                                + "only that they RAN (invocation tracing) and logged no value — an empty "
+                                + "projection is not the same as absent. Omit for the full raw record "
+                                + "(quoting evidence)")),
                 List.of() /* one of recordIndex|byteOffset|at — enforced at runtime */));
 
         s.put("filter", schema("Narrow every view. A missing field is unchanged; null clears it.",
