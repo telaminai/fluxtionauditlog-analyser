@@ -1,0 +1,104 @@
+import telamin.fluxtion.audit.analyser.analyser.ui.*;
+import telamin.fluxtion.audit.analyser.analyser.llm.ActionResult;
+import telamin.fluxtion.audit.analyser.analyser.spi.*;
+import telamin.fluxtion.audit.analyser.analyser.session.*;
+import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
+import javax.swing.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+
+/** Review-only probe; application/test source is unchanged. Extends the first review's helpers. */
+public class FinishFirstPass2Probe extends FinishFirstProbe {
+  static class Slow extends DelayedReader {
+    final String id;
+    Slow(String id, boolean fail){super(fail);this.id=id;}
+    public String formatId(){return id;}
+    public boolean canOpen(Path p){return p.getFileName().toString().equals(id.equals("review-a")?"a.slow":"b.slow");}
+  }
+  static SessionDriver driver(MainFrame f){try{return (SessionDriver)field(f,"session");}catch(Exception e){throw new RuntimeException(e);}}
+  static String actual(MainFrame f){try{return (String)field(f,"logDisplayLocation");}catch(Exception e){throw new RuntimeException(e);}}
+  static int stale(MainFrame f){return driver(f).auditSink().matching("staleResult").size();}
+  static ActionResult raw(MainFrame f,String name,Map<String,Object> params){try{return ((ActionExecutor)field(f,"actionExecutor")).render(name,new LinkedHashMap<>(params));}catch(Exception e){throw new RuntimeException(e);}}
+  static void dump(MainFrame f,String stage,Watch w){
+    try{System.out.println(stage+" loading="+field(f,"loadInFlight")+" inFlight="+driver(f).processor().operationGate.inFlightWhat()+" actual="+actual(f)+" processor="+driver(f).processor().openLog.logPath()+" dialogs="+w.seen.size()+" stale="+stale(f)+" status="+text(f));
+      System.out.println("PAIRING="+find(act(f,"context",Map.of()),"graphPairing"));
+    }catch(Exception e){throw new RuntimeException(e);}
+  }
+  static void waitEntered(Slow r)throws Exception{if(!r.entered.await(5,TimeUnit.SECONDS))throw new AssertionError("reader not entered");}
+  static void recent(MainFrame f,Path p){try{JMenu menu=(JMenu)field(f,"recentGraphmlMenu");for(int i=0;i<menu.getItemCount();i++){var item=menu.getItem(i);if(item!=null&&p.toString().equals(item.getText())){item.doClick();return;}}throw new AssertionError("recent absent");}catch(Exception e){throw new RuntimeException(e);}}
+  static void runCase(String mode)throws Exception{
+    String oldHome=System.getProperty("user.home");Path tmp=Files.createTempDirectory("finish-pass2-"+mode+"-");
+    System.setProperty("user.home",Files.createDirectories(tmp.resolve("home")).toString());
+    Path a=Files.writeString(tmp.resolve("a.slow"),"probe"),b=Files.writeString(tmp.resolve("b.slow"),"probe");
+    Path fast=Files.writeString(tmp.resolve("b.yaml"),log("nodeB"));
+    Path g=Files.writeString(tmp.resolve("b.graphml"),graph("nodeB"));
+    Path profile=Files.createDirectories(tmp.resolve("P/.analyser")).resolve("project.fluxtion-settings");
+    Files.writeString(profile,mode.equals("malformedProject")?"bad="+'\\'+"uZZZZ\n":"sourceRoot.0="+tmp.resolve("P/src")+"\n");
+    boolean fail=mode.contains("Failure")||mode.equals("staleWhilePending");
+    Slow ra=new Slow("review-a",fail),rb=new Slow("review-b",false);
+    AtomicReference<MainFrame> frame=new AtomicReference<>();
+    try(Watch watch=new Watch()){
+      edt(()->{var f=new MainFrame();frame.set(f);try{var registry=(ReaderRegistry)field(f,"readerRegistry");registry.register(ra);registry.register(rb);}catch(Exception e){throw new RuntimeException(e);}});
+      MainFrame f=frame.get();
+      if(mode.equals("malformedProject")){
+        Path oldProfile=Files.createDirectories(tmp.resolve("Old/.analyser")).resolve("project.fluxtion-settings");Files.writeString(oldProfile,"sourceRoot.0="+tmp.resolve("Old/src")+"\n");
+        edt(()->act(f,"open",Map.of("project",oldProfile.toString())));
+        edt(()->act(f,"open",Map.of("log",fast.toString())));until(()->fast.toString().equals(actual(f)));
+      }
+      if(mode.equals("sameProject"))edt(()->act(f,"open",Map.of("project",profile.toString())));
+      if(mode.equals("audience"))edt(()->act(f,"open",Map.of("graphml",g.toString())));
+      boolean human=mode.equals("humanAudience")||mode.equals("humanFailure")||mode.equals("acceptedHumanFailure")||mode.equals("staleWhilePending");
+      if(human)edt(()->f.openFile(a,OpenRequest.HUMAN));
+      else edt(()->act(f,"open",Map.of("log",a.toString(),"format","review-a")));
+      waitEntered(ra);
+      if(mode.equals("project")||mode.equals("malformedProject")||mode.equals("sameProject")||mode.equals("badPath")){
+        Path target=mode.equals("badPath")?tmp.resolve("missing.settings"):profile;
+        edt(()->{var response=raw(f,"open",Map.of("project",target.toString()));System.out.println("PROJECT_REPLY="+response.toMap());
+          if((mode.equals("malformedProject")||mode.equals("badPath"))==response.ok())throw new AssertionError("wrong project outcome");
+          dump(f,"BEFORE_OLD_READER_RELEASE",watch);
+          if(mode.equals("malformedProject")){
+            System.out.println("PROJECT_STILL_ACTIVE="+find(act(f,"context",Map.of()),"project"));
+            System.out.println("GRAPH_OPEN_AFTER_FAILED_SWITCH="+raw(f,"open",Map.of("graphml",g.toString())).toMap());
+          }
+        });
+        ra.release.countDown();
+        if(mode.equals("project")||mode.equals("malformedProject"))until(()->stale(f)>0);
+        else until(()->a.toString().equals(actual(f)));
+      }else if(mode.equals("audience")||mode.equals("humanAudience")){
+        if(mode.equals("audience"))edt(()->recent(f,g));else edt(()->act(f,"open",Map.of("graphml",g.toString())));
+        ra.release.countDown();until(()->a.toString().equals(actual(f)));
+      }else if(mode.equals("acceptedHumanFailure")){
+        ra.release.countDown();until(()->text(f).startsWith("Failed to load"));until(()->watch.seen.size()==1);
+      }else{
+        AtomicReference<String> before=new AtomicReference<>();
+        if(mode.equals("staleWhilePending")){
+          edt(()->act(f,"open",Map.of("log",b.toString(),"format","review-b")));waitEntered(rb);
+        }else{edt(()->act(f,"open",Map.of("log",fast.toString())));until(()->fast.toString().equals(actual(f)));}
+        edt(()->before.set(text(f)));ra.release.countDown();until(()->stale(f)>0);
+        edt(()->{System.out.println("STATUS_UNCHANGED="+before.get().equals(text(f)));dump(f,"AFTER_STALE_BEFORE_NEW_RELEASE",watch);});
+        if(mode.equals("staleWhilePending")){rb.release.countDown();until(()->b.toString().equals(actual(f)));}
+      }
+      edt(()->dump(f,"CASE="+mode,watch));
+      if(mode.equals("export")){
+        Path snapshot=tmp.resolve("session.yaml");AtomicInteger records=new AtomicInteger();
+        AtomicReference<java.util.List<String>> rawRecords=new AtomicReference<>();
+        edt(()->{try{rawRecords.set(driver(f).auditSink().records());records.set(rawRecords.get().size());driver(f).auditSink().export(snapshot);}catch(Exception e){throw new RuntimeException(e);}});
+        edt(()->act(f,"open",Map.of("log",snapshot.toString())));until(()->snapshot.toString().equals(actual(f)));
+        edt(()->{try{LogStore store=(LogStore)field(f,"store");int pending=0,stale=0;java.util.List<Integer> opRows=new ArrayList<>();java.util.Set<String> opIds=new TreeSet<>();
+          for(int row=0;row<store.size();row++){var parsed=store.record(row);
+            for(var node:parsed.nodeLogs())if(node.instanceId().equals("operationGate")){
+              opRows.add(row);if(node.last("pending")!=null)pending++;if(node.last("staleResult")!=null)stale++;
+              for(var kv:node.all("opId"))opIds.add(kv.rawValue());
+              System.out.println("PARSED_AUDIT row="+row+" event="+parsed.event()+" level="+parsed.level()+" entries="+node.entries());
+            }
+          }
+          System.out.println("EXPORT expected="+records.get()+" actual="+store.size()+" pendingRows="+pending+" staleRows="+stale+" operationRows="+opRows+" opIds="+opIds);
+          if(records.get()!=store.size()||pending!=2||stale!=1||!opIds.equals(Set.of("1","2")))throw new AssertionError("export round trip");
+        }catch(Exception e){throw new RuntimeException(e);}});
+      }
+    }finally{ra.release.countDown();rb.release.countDown();if(frame.get()!=null)edt(()->frame.get().dispose());System.setProperty("user.home",oldHome);}
+  }
+  public static void main(String[] args){try{for(String mode:args)runCase(mode);System.exit(0);}catch(Throwable t){t.printStackTrace();System.exit(1);}}
+}

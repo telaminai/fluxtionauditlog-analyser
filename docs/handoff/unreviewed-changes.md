@@ -14,7 +14,15 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
-## ☐ 2026-09-16 · Response to the finish-first review: B1, B2, B3 fixed; F4 fixed; F5 pinned; F6 filed · based on `5be00dc4`
+## ☑ reviewed 2026-09-16 · Response to the finish-first review · `323277b5` + `b8a93533`, based on `5be00dc4`
+
+**Independent pass 2: NOT READY to close M44.3; B2 PARTIALLY fixed.** B1/B3 and export F4 close; F5's
+caller-only mutant is red; F6 is correctly filed. The gate retires a project-superseded open, but the frame still
+reports loading until the discarded reader returns. A genuine failed switch has the same projection defect and
+defers pairing a newly opened graph against the surviving log. Full verify 1,429/0/0/12; local and exact-tip CI
+display suites 12/12, zero skips. Six expected failures against the original jar prove the new response tests
+detect their guarded defects. Findings, failed-switch policy judgement and before-reader-release probe:
+[pass-2 review](review_analyser_finish_first_pass2_2026-09-16.md). This tick means reviewed, not approved.
 
 Response: [handoff_analyser_finish_first_response_2026-09-16.md](handoff_analyser_finish_first_response_2026-09-16.md).
 Review: [review_analyser_finish_first_2026-09-16.md](review_analyser_finish_first_2026-09-16.md).
