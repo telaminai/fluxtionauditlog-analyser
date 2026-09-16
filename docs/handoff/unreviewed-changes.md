@@ -14,7 +14,12 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
-## ☐ 2026-09-16 · Note rules drift when zoomed in (owner report, reproduced on the live 1.13.1 over MCP)
+## ☑ reviewed 2026-09-16 · Note rules drift when zoomed in (owner report, reproduced on the live 1.13.1 over MCP)
+
+**Independent verdict: ACCEPTED with test-coverage follow-up F5.** The note and series mappings agree,
+including the right bound; the old-mapping mutant kills the new fractional-bounds test, but not the
+existing collision test. Add a call-boundary pin for `ChartPanel` too. See the
+[finish-first review](review_analyser_finish_first_2026-09-16.md).
 
 **What & why.** `ChartPanel.paintNotes` passed the view bounds to `ChartNotes.byColumn` cast to `long`; the
 series use the exact doubles (`xToPx`). Zoomed to a 17 ms window with fractional-ms bounds the origin moved by
@@ -30,7 +35,15 @@ columns test. Not re-captured on the live instance (it runs 1.13.1; the fix is o
 edge rather than one pixel inside — same as the series, but worth an eye. Marker SERIES (`MarkerSeries.aggregate`)
 and the record marker already used doubles and were not changed.
 
-## ☐ 2026-09-16 · M44.3 the asynchronous session driver + M44.3a, N1 and the clamp fixtures, the skill rewording
+## ☑ reviewed 2026-09-16 · M44.3 the asynchronous session driver + M44.3a, N1 and the clamp fixtures, the skill rewording
+
+**Independent verdict: NOT READY for M44.3; goldens and skills ACCEPTED.** Delayed-reader probes confirm
+B1 (completion inherits another entrance's audience), B2 (successful project switch leaves a discarded
+load permanently pending), and B3 (refused failures still show status/modal). Ordinary slow-load
+supersession works. The requested session export/read-back also exposes pre-existing F4: 15 dispatches
+merge into one analyser record. Full verify and all five display cases pass, locally and in exact-tip
+CI; they do not cover those interleavings. Findings, controls and portable probe:
+[finish-first review](review_analyser_finish_first_2026-09-16.md). This tick means reviewed, not approved.
 
 **What & why.** Finish-first items after 1.13.1. **M44.3** per `spec-async-session-driver.md` (status block says
 what was built and the two deviations): `OpenLogRequested` → new `LogOpening` node → `OpenLogEffect`; the adapter

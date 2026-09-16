@@ -1,0 +1,114 @@
+import telamin.fluxtion.audit.analyser.analyser.ui.*;
+import telamin.fluxtion.audit.analyser.analyser.llm.ActionResult;
+import telamin.fluxtion.audit.analyser.analyser.spi.*;
+import telamin.fluxtion.audit.analyser.analyser.session.*;
+import javax.swing.*;
+import java.awt.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.function.*;
+
+public class FinishFirstProbe {
+  static Object field(Object o, String name) throws Exception {
+    var f=o.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(o);
+  }
+  static void edt(Runnable r) throws Exception { SwingUtilities.invokeAndWait(r); }
+  static Map<String,Object> act(MainFrame f, String name, Map<String,Object> params) {
+    try {
+      var result=((ActionExecutor)field(f,"actionExecutor")).render(name, new LinkedHashMap<>(params));
+      if(!result.ok()) throw new AssertionError(result.toMap());
+      return result.toMap();
+    } catch(Exception e){throw new RuntimeException(e);}
+  }
+  static Object find(Object o, String key) {
+    if(o instanceof Map<?,?> m) { if(m.containsKey(key)) return m.get(key); for(Object v:m.values()){Object x=find(v,key);if(x!=null)return x;} }
+    return null;
+  }
+  static void until(BooleanSupplier condition) throws Exception {
+    long stop=System.nanoTime()+TimeUnit.SECONDS.toNanos(15);
+    while(System.nanoTime()<stop){AtomicBoolean ok=new AtomicBoolean(); edt(()->ok.set(condition.getAsBoolean()));if(ok.get())return;Thread.sleep(25);}
+    throw new AssertionError("timed out");
+  }
+  static String text(MainFrame f){try{return ((JLabel)field(f,"status")).getText();}catch(Exception e){throw new RuntimeException(e);}}
+  static String log(String node){return "---\n#00:00:01.000 [DEMO] INFO DEMO\neventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n    - "+node+": { v: 1}\n---\n";}
+  static String graph(String node){return "<?xml version=\"1.0\"?><graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:jGraph=\"http://www.jgraph.com/\"><key id=\"vertex_label\" for=\"node\" attr.name=\"nodeData\" attr.type=\"string\"/><graph edgedefault=\"undirected\"><node id=\""+node+"\"><data key=\"vertex_label\"><jGraph:ShapeNode><jGraph:Geometry height=\"70\" width=\"160\" x=\"20\" y=\"20\"/><jGraph:label text=\"id:"+node+"&#10;class:com.acme."+node+"\"/><jGraph:Style properties=\"NODE\"/></jGraph:ShapeNode></data></node></graph></graphml>";}
+  static class DelayedReader implements AuditLogReader {
+    final CountDownLatch entered=new CountDownLatch(1), release=new CountDownLatch(1);
+    final boolean fail;
+    DelayedReader(boolean fail){this.fail=fail;}
+    public String formatId(){return "review-slow";}
+    public String displayName(){return "review slow reader";}
+    public boolean canOpen(Path p){return p.toString().endsWith(".slow");}
+    public TimeBase timeBase(){return TimeBase.wallClockMillisUtc();}
+    public Capabilities capabilities(){return new Capabilities(false,false,true);}
+    public void read(Path p,Consumer<String> out) throws java.io.IOException {
+      entered.countDown();
+      try{if(!release.await(15,TimeUnit.SECONDS))throw new java.io.IOException("probe timeout");}
+      catch(InterruptedException e){throw new java.io.IOException(e);}
+      if(fail)throw new java.io.IOException("review delayed failure");
+      out.accept(log("nodeA"));
+    }
+  }
+  static class Watch implements AutoCloseable {
+    final Set<Window> seen=Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
+    volatile boolean stop;
+    Watch(){Thread t=new Thread(()->{while(!stop){for(Window w:Window.getWindows())if(w instanceof JDialog &&w.isShowing()&&seen.add(w))SwingUtilities.invokeLater(w::dispose);try{Thread.sleep(20);}catch(InterruptedException e){return;}}});t.setDaemon(true);t.start();}
+    public void close(){stop=true;}
+  }
+  static void frameCase(String mode) throws Exception {
+    Path tmp=Files.createTempDirectory("finish-first-"+mode+"-");
+    System.setProperty("user.home",Files.createDirectories(tmp.resolve("home")).toString());
+    Path slow=Files.writeString(tmp.resolve("a.slow"),"probe");
+    Path fast=Files.writeString(tmp.resolve("b.yaml"),log("nodeB"));
+    Path graph=Files.writeString(tmp.resolve("b.graphml"),graph("nodeB"));
+    Path project=Files.createDirectories(tmp.resolve("project/.analyser"));
+    Files.writeString(project.resolve("project.fluxtion-settings"),"sourceRoot.0="+tmp.resolve("project/src")+"\n");
+    DelayedReader reader=new DelayedReader(mode.equals("staleFailure") || mode.equals("humanStaleFailure"));
+    AtomicReference<MainFrame> ref=new AtomicReference<>();
+    try(Watch watch=new Watch()) {
+      edt(()->{MainFrame f=new MainFrame();ref.set(f);try{((ReaderRegistry)field(f,"readerRegistry")).register(reader);}catch(Exception e){throw new RuntimeException(e);}});
+      MainFrame f=ref.get();
+      if(mode.equals("sameProject")) edt(()->act(f,"open",Map.of("project",project.getParent().toString())));
+      if(mode.equals("audience")) edt(()->act(f,"open",Map.of("graphml",graph.toString())));
+      if(mode.equals("close")) {edt(()->act(f,"open",Map.of("log",fast.toString())));until(()->find(act(f,"context",Map.of()),"loading")==null);}
+      if(mode.equals("humanStaleFailure")) edt(()->f.openFile(slow,OpenRequest.HUMAN));
+      else edt(()->act(f,"open",Map.of("log",slow.toString(),"format","review-slow")));
+      if(!reader.entered.await(5,TimeUnit.SECONDS))throw new AssertionError("reader did not start");
+      if(mode.equals("audience")) {
+        edt(()->{try{JMenu menu=(JMenu)field(f,"recentGraphmlMenu");for(int i=0;i<menu.getItemCount();i++){JMenuItem item=menu.getItem(i);if(item!=null&&graph.toString().equals(item.getText())){item.doClick();return;}}throw new AssertionError("recent graph missing");}catch(Exception e){throw new RuntimeException(e);}});
+      } else if(mode.equals("project") || mode.equals("sameProject")) {
+        edt(()->act(f,"open",Map.of("project",project.getParent().toString())));
+      } else if(mode.equals("failedProject")) {
+        edt(()->{try{var r=((ActionExecutor)field(f,"actionExecutor")).render("open",new LinkedHashMap<>(Map.of("project",tmp.resolve("absent").toString())));if(r.ok())throw new AssertionError("missing project succeeded");System.out.println("PROJECT_REFUSAL="+r.toMap());}catch(Exception e){throw new RuntimeException(e);}});
+      } else if(mode.equals("close")) {
+        edt(()->act(f,"open",Map.of("close","log")));
+      } else {
+        edt(()->act(f,"open",Map.of("log",fast.toString())));
+        until(()->find(act(f,"context",Map.of()),"loading")==null);
+      }
+      reader.release.countDown();
+      if(mode.equals("project") || mode.equals("sameProject") || mode.equals("failedProject"))until(()->{try{return text(f).startsWith("Discarded ") || slow.toString().equals(field(f,"logDisplayLocation"));}catch(Exception e){throw new RuntimeException(e);}});
+      else if(mode.equals("staleFailure")||mode.equals("humanStaleFailure"))until(()->text(f).startsWith("Failed to load "));
+      else if(mode.equals("supersede"))until(()->text(f).startsWith("Discarded "));
+      else until(()->find(act(f,"context",Map.of()),"loading")==null);
+      edt(()->{
+        try {
+          SessionDriver d=(SessionDriver)field(f,"session");
+          System.out.println("CASE="+mode+" dialogs="+watch.seen.size()+" loading="+field(f,"loadInFlight")+" inFlight="+d.processor().operationGate.inFlightWhat()+" actualLog="+field(f,"logDisplayLocation")+" processorLog="+d.processor().openLog.logPath()+" status="+text(f));
+          System.out.println("AUDIT_STALE="+d.auditSink().matching("staleResult").size());
+          d.auditSink().export(tmp.resolve("session-snapshot.yaml"));
+        }catch(Exception e){throw new RuntimeException(e);}
+      });
+      if(mode.equals("supersede")) {
+        edt(()->act(f,"open",Map.of("log",tmp.resolve("session-snapshot.yaml").toString())));
+        until(()->find(act(f,"context",Map.of()),"loading")==null);
+        edt(()->{try{var s=(telamin.fluxtion.audit.analyser.analyser.parse.LogStore)field(f,"store");int n=0;for(int row=0;row<s.size();row++)for(var node:s.record(row).nodeLogs())if(node.instanceId().equals("operationGate")){System.out.println("PARSED_AUDIT="+node);n++;}if(n<6)throw new AssertionError("too few operation records: "+n);System.out.println("AUDIT_READBACK_ROWS="+s.size());}catch(Exception e){throw new RuntimeException(e);}});
+      }
+    } finally {reader.release.countDown();if(ref.get()!=null)edt(()->ref.get().dispose());}
+  }
+  public static void main(String[] args) throws Exception {
+    try {for(String mode:args)frameCase(mode);System.exit(0);}catch(Throwable failure){failure.printStackTrace();System.exit(1);}
+  }
+}
