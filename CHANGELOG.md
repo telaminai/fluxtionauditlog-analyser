@@ -25,6 +25,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `context.graphPairing` is the authority. Bundles pick the new bytes up when the playground next vendors them.
 
 ### Fixed
+- **The Source panel no longer crashes the event thread with a `StackOverflowError` on a generated processor.**
+  The Java highlighter matched string and char literals with a regex whose alternation sat inside a repetition,
+  which the regex engine matches by recursing once per character; an UNPAIRED quote — the apostrophe in a
+  generated javadoc's "the auditor's HashMaps" — made it scan the 4 KB of file after it and overflow the stack
+  (reported on 1.13.0 from a JBang install). Literals are now scanned by hand, stop at the end of the line as
+  Java literals must, and an unterminated one colours nothing.
 - **A graph opened while a log is loading is not judged against the previous log — anywhere.** The log loads
   in the background, so the graph was judged against whatever was loaded when the call ran: "no log is open" on a
   first open, the old log's node counts on a re-open, while `context` was right a moment later. The log echo now

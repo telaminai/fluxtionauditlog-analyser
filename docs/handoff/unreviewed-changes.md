@@ -14,6 +14,27 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Source panel `StackOverflowError` on a generated processor (JBang 1.13.0) · based on `96880f2b`
+
+**What & why.** `JavaHighlighter.STRING` was `"(\\.|[^"\\])*"|'(\\.|[^'\\])*'` — a group with an alternation
+under `*`, which `java.util.regex` matches by recursing per character (the report's stack: `Loop → GroupHead →
+Branch → CharProperty → BranchConn → GroupTail`, repeated). The bundle's generated `MarketProcessor.java` holds ONE
+apostrophe, in a javadoc, with 4,115 characters after it and no closing quote: the char-literal alternative scanned
+all of them and overflowed the EDT stack. Reproduced on the real file through the highlighter (a probe, not a
+test). Fix: `applyLiterals` scans string/char literals by hand, stops at a newline (a Java literal cannot cross one),
+and colours nothing for an unterminated literal. The other regexes with a group under a repetition
+(`SourceNavigation` modifier prefixes, dotted identifiers in `GraphPanel`/`TemplateClient`, `PathForm.ANCHOR`)
+iterate per token, not per character, and were left alone.
+
+**Verified.** `JavaHighlighterLongLiteralTest`: a 50,000-character literal, a literal with escaped quotes, and the
+trigger shape (an apostrophe in a comment followed by 3,000 lines) — all three threw `StackOverflowError` against the
+regex and pass against the scanner; the third also asserts the body after the apostrophe is not painted as a
+literal. The real generated file renders (23,310 chars). Full verify, strict docs, sweep before commit.
+
+**Reviewer must still check.** The highlighter's colouring of literals against the previous regex on ordinary
+sources (a quote inside a line comment is coloured string then overridden by the comment pass, as before). Whether
+the unit test's 3,000-line file is enough to overflow on every JDK's default EDT stack — it did here.
+
 ## ☐ 2026-09-16 · Response to the 1.13.1 review: B1, B2, F3, F4 fixed; F5 corrected · based on `26c10d45`
 
 Response: [handoff_analyser_1.13.1_response_2026-09-16.md](handoff_analyser_1.13.1_response_2026-09-16.md).

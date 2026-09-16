@@ -27,7 +27,6 @@ public final class JavaHighlighter {
     private static final Pattern WORD = Pattern.compile("\\b[A-Za-z_$][\\w$]*\\b");
     private static final Pattern NUMBER = Pattern.compile("\\b\\d[\\w.]*\\b");
     private static final Pattern ANNOTATION = Pattern.compile("@[A-Za-z_$][\\w$]*");
-    private static final Pattern STRING = Pattern.compile("\"(\\\\.|[^\"\\\\])*\"|'(\\\\.|[^'\\\\])*'");
     private static final Pattern LINE_COMMENT = Pattern.compile("//[^\n]*");
     private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
     private static final Pattern ALL_CAPS = Pattern.compile("[A-Z][A-Z0-9_]*[A-Z0-9]");
@@ -59,7 +58,7 @@ public final class JavaHighlighter {
         }
         apply(doc, text, NUMBER, number);
         apply(doc, text, ANNOTATION, annotation);
-        apply(doc, text, STRING, string);
+        applyLiterals(doc, text);
         apply(doc, text, LINE_COMMENT, comment);
         apply(doc, text, BLOCK_COMMENT, comment);
         UiTheme.applyReadingRhythm(doc);
@@ -79,6 +78,38 @@ public final class JavaHighlighter {
         return i < text.length() && text.charAt(i) == '(';
     }
 
+    /**
+     * String and char literals, scanned by hand. This was a regex, {@code "(\\.|[^"\\])*"} — an alternation
+     * inside a repetition, which Java's engine matches by recursing once per character. An UNPAIRED quote
+     * (an apostrophe in a comment, say) made it scan to the next quote or the end of the file, and a
+     * generated processor is long enough for that to overflow the event-dispatch thread's stack
+     * (StackOverflowError reported on 1.13.0, 2026-09-16: one apostrophe in a javadoc, 4 KB of file after
+     * it). A Java literal cannot cross a line, so the scan stops at a newline; an unterminated literal
+     * colours nothing.
+     */
+    private void applyLiterals(StyledDocument doc, String text) {
+        int n = text.length();
+        int i = 0;
+        while (i < n) {
+            char c = text.charAt(i);
+            if (c != '"' && c != '\'') { i++; continue; }
+            int j = i + 1;
+            boolean closed = false;
+            while (j < n) {
+                char d = text.charAt(j);
+                if (d == '\\') { j += 2; continue; }
+                if (d == '\n') break;
+                j++;
+                if (d == c) { closed = true; break; }
+            }
+            if (closed) {
+                doc.setCharacterAttributes(i, Math.min(j, n) - i, string, true);
+                i = j;
+            } else {
+                i++;            // not a literal: an apostrophe in prose, or an unterminated one — colour nothing
+            }
+        }
+    }
     private static void apply(StyledDocument doc, String text, Pattern p, SimpleAttributeSet a) {
         Matcher m = p.matcher(text);
         while (m.find()) {
