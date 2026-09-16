@@ -2464,13 +2464,20 @@ public final class MainFrame extends JFrame {
         } catch (Exception ignored) {
             // discovery is best-effort — a failed probe must never block opening the file itself
         }
-        status.setText("Loading " + path + " …");
-        setBusy(true);
         openFileWithReader(path, null, request);
     }
 
-    /** Open via the reader registry (M31): explicit {@code format} wins; otherwise canOpen decides. */
+    /**
+     * Open via the reader registry (M31): explicit {@code format} wins; otherwise canOpen decides.
+     *
+     * <p>This is the one asynchronous entrance for a local file, so the load-start bookkeeping lives HERE:
+     * review R2-B1 found the explicit-{@code format} socket path calling this directly and never passing
+     * through {@code openFile}, so no load was "in flight", the previous verdict survived, and a graph
+     * opened during the load was judged against the previous log.
+     */
     void openFileWithReader(Path path, String format, OpenRequest request) {
+        status.setText("Loading " + path + " …");
+        setBusy(true);
         Background.run(
                 () -> {
                     try {
@@ -2668,6 +2675,11 @@ public final class MainFrame extends JFrame {
         // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
         final boolean loadFromSocket = request.fromActionSocket();
         currentRequest = request;      // review F1: a follow rotation reloads with the SAME audience
+        // review R2-B2: the effects this arrival raises (a mismatched graph closed, a warning) are
+        // rendered for THIS request's audience — a socket caller cannot dismiss a dialog. The flag
+        // used to be set only by project transitions, so a fresh window's first socket load inherited
+        // "interactive" and blocked on a modal nobody could see.
+        sessionInteractive = !loadFromSocket;
 
         // M35.2 FIRST, and deliberately before maybeOfferProject(): that offer is a MODAL dialog, and
         // everything after it waits for a human — which on the agent path is nobody. `store` is
@@ -3566,7 +3578,8 @@ public final class MainFrame extends JFrame {
     /**
      * Whether the request in flight came from a person. It is <b>rendering</b>, not policy: the
      * processor decides that a warning is warranted and what it says, and this decides whether that
-     * lands in a dialog or is handed back to a socket caller who cannot answer one (M35.7).
+     * lands in a dialog or is handed back to a socket caller who cannot answer one (M35.7). Set by every
+     * project transition AND by every log arrival (review R2-B2), each from its own request.
      */
     private boolean sessionInteractive = true;
 
@@ -3670,6 +3683,8 @@ public final class MainFrame extends JFrame {
                 sessionProblem = e.text();
                 if (sessionInteractive) {
                     JOptionPane.showMessageDialog(this, e.text(), "Project", JOptionPane.WARNING_MESSAGE);
+                } else {
+                    status.setText(e.text());      // review R2-B2: the warning still lands, where a socket caller can read it
                 }
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
                         opId, "showWarning");

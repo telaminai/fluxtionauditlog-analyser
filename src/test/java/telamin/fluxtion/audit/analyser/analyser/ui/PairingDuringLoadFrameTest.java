@@ -39,8 +39,18 @@ class PairingDuringLoadFrameTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void aGraphOpenedWhileTheNextLogLoads_contextSaysPending_thenJudgesTheNewPair(@TempDir Path tmp) throws Exception {
+        pendingThenJudged(tmp, false);
+    }
+
+    /** Review R2-B1: the explicit-{@code format} socket path never started the pending lifecycle. */
+    @Test
+    void theSameThroughAnExplicitReaderFormat(@TempDir Path tmp) throws Exception {
+        pendingThenJudged(tmp, true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void pendingThenJudged(Path tmp, boolean explicitFormat) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "needs a display: a real MainFrame is constructed");
         Path logA = Files.writeString(tmp.resolve("a.yaml"), log("nodeA"));
         Path logB = Files.writeString(tmp.resolve("b.yaml"), log("nodeB"));
@@ -65,8 +75,11 @@ class PairingDuringLoadFrameTest {
             // start B, open graph B and read context — all in ONE EDT turn, so B's load cannot have landed
             AtomicReference<Map<String, Object>> during = new AtomicReference<>();
             AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+            Map<String, Object> openB = explicitFormat
+                    ? Map.of("log", logB.toString(), "format", "yaml")
+                    : Map.of("log", logB.toString());
             onEdt(() -> {
-                render(ex, "open", Map.of("log", logB.toString()));
+                render(ex, "open", openB);
                 echo.set(render(ex, "open", Map.of("graphml", graphB.toString())));
                 during.set(pairing(ex));
             });
@@ -88,6 +101,57 @@ class PairingDuringLoadFrameTest {
             System.setProperty("user.home", home);
             if (frame.get() != null) SwingUtilities.invokeAndWait(() -> frame.get().dispose());
         }
+    }
+
+    /**
+     * Review R2-B2: in a fresh window, a socket-opened graph that a socket-opened log then contradicts is
+     * closed by the session processor — and that decision must NOT wait on a modal nobody can dismiss.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void freshWindow_socketGraphThenMismatchingSocketLog_closesTheGraphWithoutADialog(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "needs a display: a real MainFrame is constructed");
+        Path logB = Files.writeString(tmp.resolve("b.yaml"), log("nodeB"));
+        Path graphA = Files.writeString(tmp.resolve("a.graphml"), graph("nodeA"));
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        DialogWatchdog dialogs = new DialogWatchdog();
+        try {
+            SwingUtilities.invokeAndWait(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("graphml", graphA.toString())));
+            onEdt(() -> render(ex, "open", Map.of("log", logB.toString())));
+            awaitLoaded(ex);
+            AtomicReference<Map<String, Object>> after = new AtomicReference<>();
+            onEdt(() -> after.set(pairing(ex)));
+            assertNull(after.get().get("graph"), "the mismatched graph is closed: " + after.get());
+            assertEquals(0, dialogs.seen(), "a socket-driven arrival must not block on a modal (review R2-B2)");
+        } finally {
+            dialogs.stop();
+            System.setProperty("user.home", home);
+            if (frame.get() != null) SwingUtilities.invokeAndWait(() -> frame.get().dispose());
+        }
+    }
+
+    /** Counts and disposes any visible dialog, so a modal cannot hang the test — it fails it instead. */
+    private static final class DialogWatchdog {
+        private final java.util.concurrent.atomic.AtomicInteger seen = new java.util.concurrent.atomic.AtomicInteger();
+        private volatile boolean running = true;
+        private final Thread thread = new Thread(() -> {
+            while (running) {
+                for (java.awt.Window w : java.awt.Window.getWindows()) {
+                    if (w instanceof javax.swing.JDialog d && d.isShowing()) {
+                        seen.incrementAndGet();
+                        SwingUtilities.invokeLater(d::dispose);
+                    }
+                }
+                try { Thread.sleep(25); } catch (InterruptedException e) { return; }
+            }
+        }, "dialog-watchdog");
+        DialogWatchdog() { thread.setDaemon(true); thread.start(); }
+        int seen() { return seen.get(); }
+        void stop() { running = false; }
     }
 
     // ---- helpers ----------------------------------------------------------------------------------

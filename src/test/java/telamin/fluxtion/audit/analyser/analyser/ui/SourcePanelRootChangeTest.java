@@ -112,4 +112,23 @@ class SourcePanelRootChangeTest {
         String proc = panel.processorPaneText();
         assertTrue(proc.contains(newRoot.toString()) && !proc.contains(oldRoot.toString()), proc);
     }
+
+    /** Review R2-F5: a configuration refresh that changes nothing must not move the reader. */
+    @Test
+    void unchangedHit_keepsItsCaretAcrossAConfigRefresh(@TempDir Path tmp) throws Exception {
+        Path root = rootWithProcessor(tmp.resolve("p"));
+        Files.writeString(root.resolve("com/acme/generated/MarketProcessor.java"),
+                "package com.acme.generated;\n" + "// filler\n".repeat(200) + "public class MarketProcessor {\n}\n");
+        SourceService service = new SourceService();
+        SourcePanel panel = new SourcePanel();
+        panel.bind(service);
+        service.configure(List.of(root.toString()), FQN);
+        panel.showSelectedProcessor();
+        assertTrue(panel.hasProcessorOpen());
+        panel.setProcessorCaretPosition(1000);
+
+        service.configure(List.of(root.toString()), FQN);     // same roots, same processor: nothing changed
+        panel.showSelectedProcessor();
+        assertEquals(1000, panel.processorCaretPosition(), "an unchanged hit is not re-navigated");
+    }
 }

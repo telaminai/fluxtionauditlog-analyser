@@ -210,9 +210,13 @@ public final class SourcePanel extends JPanel {
      */
     public void showSelectedProcessor() {
         if (service == null) return;
-        rerenderIfChanged(processorPane);
+        boolean processorChanged = rerenderIfChanged(processorPane);
         rerenderIfChanged(nodePane);
-        openFqn(service.selectedFqn());
+        String fqn = service.selectedFqn();
+        if (fqn == null) return;
+        // review R2-F5: a configuration refresh is not a request to navigate. An unchanged hit keeps
+        // its viewport and caret; only a new name or a re-read pane is scrolled to its declaration.
+        if (processorChanged || !Objects.equals(fqn, processorPane.fqn)) openFqn(fqn);
     }
 
     /**
@@ -221,10 +225,24 @@ public final class SourcePanel extends JPanel {
      * came from, and those changed even when the miss did not (review F4 — the node pane kept naming the
      * previous project's root after a switch that still could not find the file).
      */
-    private void rerenderIfChanged(Pane pane) {
-        if (pane.fqn == null) return;
+    private boolean rerenderIfChanged(Pane pane) {
+        if (pane.fqn == null) return false;
         String now = service.sourceForFqn(pane.fqn).orElse("");
-        if (pane.source.isEmpty() || !now.equals(pane.source)) pane.render(pane.fqn);
+        if (pane.source.isEmpty() || !now.equals(pane.source)) {
+            pane.render(pane.fqn);
+            return true;
+        }
+        return false;
+    }
+
+    /** The processor pane's caret position — for tests of what a refresh must NOT move. */
+    int processorCaretPosition() {
+        return processorPane.text.getCaretPosition();
+    }
+
+    /** Place the processor pane's caret — for tests. */
+    void setProcessorCaretPosition(int offset) {
+        processorPane.text.setCaretPosition(offset);
     }
 
     /** The processor pane's visible text (source or placeholder) — for tests. */

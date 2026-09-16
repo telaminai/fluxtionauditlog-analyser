@@ -93,12 +93,24 @@ public final class JavaHighlighter {
         while (i < n) {
             char c = text.charAt(i);
             if (c != '"' && c != '\'') { i++; continue; }
+            if (c == '"' && text.startsWith("\"\"\"", i)) {
+                // a text block (Java 15): may span lines; ends at the next """ — review R2-F4
+                int end = text.indexOf("\"\"\"", i + 3);
+                if (end < 0) { i += 3; continue; }
+                doc.setCharacterAttributes(i, end + 3 - i, string, true);
+                i = end + 3;
+                continue;
+            }
             int j = i + 1;
             boolean closed = false;
             while (j < n) {
                 char d = text.charAt(j);
-                if (d == '\\') { j += 2; continue; }
-                if (d == '\n') break;
+                if (d == '\n' || d == '\r') break;                       // a literal cannot cross a line
+                if (d == '\\') {
+                    // an escape consumes the next char — unless that char is a line end (review R2-F4)
+                    if (j + 1 < n && text.charAt(j + 1) != '\n' && text.charAt(j + 1) != '\r') { j += 2; continue; }
+                    break;
+                }
                 j++;
                 if (d == c) { closed = true; break; }
             }

@@ -14,6 +14,33 @@ entries move to `completed/` when this file is next tidied.
 Every entry must carry: commit SHA, what & why, files, what was verified, and **what the reviewer must
 still check**.
 
+## ☐ 2026-09-16 · Response to the second-pass review: R2-B1, R2-B2 fixed; R2-F4, R2-F5, R2-F6 done; R2-F3 open · based on `657ab6e4`
+
+Response: [handoff_analyser_1.13.1_pass2_response_2026-09-16.md](handoff_analyser_1.13.1_pass2_response_2026-09-16.md).
+Review: [review_analyser_1.13.1_pass2_2026-09-16.md](review_analyser_1.13.1_pass2_2026-09-16.md).
+
+**What & why.** R2-B1 — the load-start bookkeeping (`status`, `setBusy(true)`) moved from `openFile` into
+`openFileWithReader`, the one asynchronous entrance for a local file, so the explicit-`format` verb path starts the
+pending lifecycle too. R2-B2 — `onLoaded` sets `sessionInteractive = !loadFromSocket`, so the effects an arrival
+raises are rendered for that request's audience; a non-interactive warning lands in the status bar instead of a
+modal. R2-F4 — the scanner ends a literal at LF/CR even after a backslash and colours a text block whole. R2-F5 —
+`showSelectedProcessor` navigates only when the processor pane was re-read or its name changed; caret accessors for
+tests. R2-F6 — `ci.yml` gains a `ui-frame` job that runs `PairingDuringLoadFrameTest` under xvfb and fails if the
+suite skipped. R2-F3 (a refresh observation can close the graph that replaced the one judged; pre-existing) is NOT
+fixed here: it needs the session processor to tell a real arrival from a refresh, which is M44.3's shape.
+
+**Verified.** `PairingDuringLoadFrameTest` now has three cases (auto-detect, explicit `format: "yaml"`, fresh-window
+socket graph + mismatching socket log with a dialog watchdog): 3/3 green on a display. Mutants: R2-B1 (bookkeeping
+back on `openFile` only) → `theSameThroughAnExplicitReaderFormat` red; R2-B2 (audience not taken from the arrival) →
+`freshWindow_…WithoutADialog` red (the watchdog saw the dialog). `JavaHighlighterLongLiteralTest` 5/5 with colour-span
+assertions for backslash-LF, CR and a text block. `SourcePanelRootChangeTest` 6/6 incl. the caret test.
+`mvn -o clean verify`: 1406 tests, 0 failures, 3 skipped (the frame suite, headless by design). Strict docs and the
+sweep pass.
+
+**Reviewer must still check.** The `ui-frame` CI job on its first run (it must NOT skip). Whether a human File-menu
+close after a socket load should re-arm the dialog (the flag is now set by arrivals and project transitions; a
+menu close between them inherits the last one). R2-F3 stays open and is filed against M44.3.
+
 ## ☑ reviewed 2026-09-16 · Source panel `StackOverflowError` on a generated processor (JBang 1.13.0) · `6b0a5258`, based on `96880f2b`
 
 **Verdict: overflow fix accepted, colouring follow-ups remain.** Independent

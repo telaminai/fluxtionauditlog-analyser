@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.swing.text.DefaultStyledDocument;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * A generated processor can embed a description or metadata as ONE string literal of tens of thousands of
@@ -47,5 +47,35 @@ class JavaHighlighterLongLiteralTest {
         org.junit.jupiter.api.Assertions.assertNotEquals(
                 javax.swing.text.StyleConstants.getForeground(comment), javax.swing.text.StyleConstants.getForeground(body),
                 "the body keeps its own colour: it was not swallowed into one literal starting at the apostrophe");
+    }
+
+    private static java.awt.Color fg(DefaultStyledDocument doc, int offset) {
+        return javax.swing.text.StyleConstants.getForeground(doc.getCharacterElement(offset).getAttributes());
+    }
+
+    /** Review R2-F4: where a literal ends, by colour span — an escape cannot carry a literal across a line end. */
+    @Test
+    void anEscapeBeforeALineEndDoesNotJoinTwoLinesIntoOneLiteral() {
+        String src = "String z = \"ok\";\nString a = \"abc\\\nnext\"; int n = 1;\nString b = \"x\ry\";";
+        DefaultStyledDocument doc = new DefaultStyledDocument();
+        new JavaHighlighter().render(doc, src);
+        java.awt.Color literal = fg(doc, src.indexOf("ok"));                 // a terminated literal
+        java.awt.Color body = fg(doc, src.indexOf(" n = 1") + 1);   // a plain identifier: `int` is keyword-coloured
+        org.junit.jupiter.api.Assertions.assertNotEquals(literal, body, "control: a literal and plain code differ");
+        assertEquals(body, fg(doc, src.indexOf("next")), "LF after a backslash ends the (unterminated) literal");
+        assertEquals(body, fg(doc, src.indexOf("abc")), "and the unterminated literal itself colours nothing");
+        assertEquals(body, fg(doc, src.indexOf("y\"") ), "CR is a line end too");
+    }
+
+    /** Review R2-F4: a text block spans lines and is coloured whole. */
+    @Test
+    void aTextBlockIsColouredAsOneLiteral() {
+        String src = "String t = \"\"\"\n    alpha\n    beta\n    \"\"\";\nint n = 1;";
+        DefaultStyledDocument doc = new DefaultStyledDocument();
+        new JavaHighlighter().render(doc, src);
+        java.awt.Color open = fg(doc, src.indexOf("\"\"\""));
+        assertEquals(open, fg(doc, src.indexOf("alpha")), "the body is part of the literal");
+        assertEquals(open, fg(doc, src.indexOf("beta")));
+        org.junit.jupiter.api.Assertions.assertNotEquals(open, fg(doc, src.indexOf(" n = 1") + 1), "and the code after it is not");
     }
 }

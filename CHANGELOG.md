@@ -29,8 +29,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   The Java highlighter matched string and char literals with a regex whose alternation sat inside a repetition,
   which the regex engine matches by recursing once per character; an UNPAIRED quote — the apostrophe in a
   generated javadoc's "the auditor's HashMaps" — made it scan the 4 KB of file after it and overflow the stack
-  (reported on 1.13.0 from a JBang install). Literals are now scanned by hand, stop at the end of the line as
-  Java literals must, and an unterminated one colours nothing.
+  (reported on 1.13.0 from a JBang install). Literals are now scanned by hand: a literal ends at a line end (LF or
+  CR, even after a backslash), an unterminated one colours nothing, and a text block (`"""…"""`) is coloured whole
+  across its lines (second-pass review R2-F4).
 - **A graph opened while a log is loading is not judged against the previous log — anywhere.** The log loads
   in the background, so the graph was judged against whatever was loaded when the call ran: "no log is open" on a
   first open, the old log's node counts on a re-open, while `context` was right a moment later. The log echo now
@@ -38,9 +39,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `pairing: pending`; and — independent review B1 — the verdict in force retires with the log it was about, so
   `context.graphPairing`, the topology note and the Project panel say *pending* during the load instead of
   attaching the previous pair's verdict to the new graph. A load that fails restores the still-true verdict.
-- **A fresh window judges the pair when the log lands.** With no project opened first, nothing had built the
-  session driver, so the promised verdict was null and `context` showed log and graph with no `applies` at all
-  (pre-existing on 1.13.0; independent review F3). A log arriving now builds it.
+  The explicit `format` path (`open {log, format: "yaml"}`) now starts the same lifecycle: it used to bypass the
+  load-start bookkeeping and judge a graph against the previous log (second-pass review R2-B1).
+- **A fresh window judges the pair when the log lands, and a socket-driven arrival never waits on a dialog.** With
+  no project opened first, nothing had built the session driver, so the promised verdict was null and `context`
+  showed log and graph with no `applies` at all (pre-existing on 1.13.0; independent review F3). A log arriving now
+  builds it — and the warnings that arrival raises (a mismatched graph closed) are rendered for THAT request's
+  audience: a socket caller gets the text in the status bar, never a modal it cannot dismiss (second-pass review
+  R2-B2; the flag used to be set only by project transitions).
+- **A configuration refresh no longer moves the reader.** Re-applying unchanged roots and processor used to scroll
+  the processor pane back to its type declaration; an unchanged hit now keeps its viewport and caret (second-pass
+  review R2-F5, pre-existing).
 - **The Source panel re-reads both panes when the source roots change, and its "No source to show" placeholder
   says where the roots came from.** Switching project (or adding a root) with the same processor selected left
   the previous placeholder on screen — naming the previous project's root — while the new roots already resolved
