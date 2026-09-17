@@ -1,0 +1,150 @@
+RE-REVIEW BRIEF — branch fix/m46-agent-api-closure, after the author's answers to both review rounds
+Date: 2026-09-17
+Work under re-review: the five fix commits 638e5a0..226d2bd (on top of b0180a9), and the five response files.
+  git fetch origin && git switch fix/m46-agent-api-closure && git pull --rebase
+  git log --oneline b0180a9..HEAD
+  git diff b0180a9..HEAD --stat
+
+YOUR ROLE
+
+You are the INDEPENDENT RE-REVIEWER. Two rounds found the branch NOT READY (M46: READY WITH FOLLOW-UPS):
+  first round   review_m46_agent_api_closure.txt · review_m44_3b_close_supersedes.txt · review_m48_7_canvas_handoff.txt
+                review_m64_spotlight.txt · review_m64_6_multi_spotlight.txt
+  second round  review_m46_closure_branch_second_reader.txt   (A1–A7)
+The author has answered every numbered finding, one ordinary commit per piece, and written one response beside
+each review: docs/handoff/response_<stem>.txt. Your job is to decide, per finding, whether the ANSWER is right —
+not to re-review what already passed. Do not trust the responses: each says what it claims to have SEEN RED;
+repeat at least one of those per piece yourself.
+
+Read, in this order: each review, then its response, then the commit.
+
+  piece    commit    response                                   findings answered
+  M44.3b   638e5a0   response_m44_3b_close_supersedes.txt        F1 · second reader A2
+  M48.7    7d0ecc6   response_m48_7_canvas_handoff.txt           F1 · F2 · A5 · A6 (owner decision: fold handoff into open)
+  M64      a2a951f   response_m64_spotlight.txt                  F1 · A3 · the `coverage` rename (DECLINED on this branch)
+  M64.6    af827cd   response_m64_6_multi_spotlight.txt          F1 · F2 · the non-blocking dispositions
+  M46      226d2bd   response_m46_agent_api_closure.txt          F1 · A1 (merge note) · A4 (NOT done — owner's)
+
+WHAT TO ATTACK, PER PIECE
+
+M44.3b — F1. Close log / Reset are now enabled by `store != null || loadInFlight`, refreshed from setBusy().
+  · Is setBusy() really the ONLY funnel for start, supersede and completion? Look for a path that changes
+    loadInFlight's truth without it (S3 opens, rolled sets, a failed load, a project switch mid-load).
+  · refreshCloseItems() claims to submit nothing to the session, so it is safe inside an effect's dispatch. Check.
+  · The new test drives JMenuItem.doClick(). Is that the listener a person's click reaches? It is still not a person.
+  · A2: requestClose inside a dispatch now THROWS ProtocolViolation. The author says it is unreachable today.
+    Verify that claim against all six entrances — if any can run inside a dispatch, a throw is now a user-facing
+    failure where there used to be a silent no-op.
+
+M48.7 — the FOLD is the big one; everything else is small.
+  · open {posture} · open {record} · open {close: "handoff"}. "A canvas write goes ALONE": combined with any other
+    open param the call is REFUSED WHOLE, where the rest of `open` names what it ignored (M26.4). The author chose
+    this; decide whether one verb with two failure conventions is acceptable, and whether the schema says it
+    clearly enough for a client to learn it from one refusal.
+  · Behaviour change to check: open {posture, colour} used to be accepted with colour under ignoredParams; it is now
+    refused naming colour. Deliberate, per the response. Agree or not.
+  · LOST: the old verb's clear: "record" | "posture". posture: "derived" clears the posture alone; nothing on the
+    socket clears the record alone. The author did not invent close: "handoff:record" unasked. Is that a gap?
+  · open is a VIEW-CHANGING verb for the spotlight; its canvas form is exempted in ActionExecutor.render. Check the
+    exemption cannot be reached by a call that ALSO changes the view (it should be impossible: a canvas write goes
+    alone — confirm the two checks agree on what "canvas write" means; they share isCanvasWrite()).
+  · open {analysis} is dispatched before doOpen. The canvas check is placed BEFORE the analysis branch — confirm
+    open {analysis, posture} is refused rather than the posture silently dropped.
+  · F1: inProcessActionManifest now hand-describes `open` and DERIVES every verb it does not hand-describe
+    (otherVerbs()). InProcessManifestNamesEveryVerbTest holds every published verb AND parameter to a line. Attack
+    the test: its parameter check is a word match inside the verb's section — can a parameter be "named" by an
+    unrelated word (e.g. `file`, `path`, `name`, `at`, `to`)? If so it can pass while a parameter is still untaught.
+    It found seven drifted parameters on first run; check the seven were added truthfully, against VerbSchemas.
+  · F2: `branch` must be instanceof String (and `posture` likewise). NOT re-run under mutation by the author — do
+    it: put text(m.get("branch")) back and confirm the new test fails.
+  · Reversal recorded: tracker ▸ Decisions (superseded text struck through and kept), spec-authoring-mode-selector
+    "As built", the four guard tests at 15 with reasons, user guide + connect-an-llm tool lists, CHANGELOG. Check
+    they agree with each other and that NOTHING still calls handoff a verb (grep the repo, including docs/site and
+    docs/skills; the historical reports are allowed to, and say so at the top).
+
+M64 — F1. GraphPanel.legendIndexOf: exact label, else exact + EXTERNAL_SUFFIX, else -1.
+  · The author says no label is ambiguous any more, so "refuse ambiguous labels" is met by construction. Test that
+    claim: two EXTERNAL series with the same label; an audit series literally named "x  (external)".
+  · The `coverage` rename is DECLINED here and recorded as tracker M64.9 (after the merge, with M64.8's skill edit —
+    the owner's instruction was that no skill is touched on this branch). Decide whether shipping a release with a
+    target name both reviewers called misleading is acceptable, or whether the merge should wait for M64.9.
+
+M64.6 — F1 and F2.
+  · F1: nextNumber is a high-water mark, reset by light(), clearSpotlight(), and by remove()/remeasure() emptying
+    the set (one private wentDark()). Is there a path where the set is REPLACED without passing through those —
+    MainFrame.applySpotlight clears then adds for a non-add call: confirm numbers restart at 1 there, and that an
+    `add` call after a refusal does not.
+  · F2: SpotlightTarget.precheck (grammar, every name, the union bound) runs in ActionExecutor.doSpotlight BEFORE
+    any goto reveal, and again in MainFrame.applySpotlight. Attack the LINE the author drew: "a call that is WRONG
+    touches nothing; a call that is well-formed but cannot be shown may have moved the view, and says so."
+    Is records:row:99999 (well-formed, out of range) on the right side of it? What does goto's reveal do to the
+    filter for a row that does not exist, before the spotlight is then refused as not visible?
+  · The frame regression compares context's filter, selection and spotlight as STRINGS before and after. Good
+    enough? It would miss a change context does not report (scroll position, the selected tab).
+  · NOT DONE, and said so: the valid add + detail:node end-to-end scenario.
+
+M46 — no code.
+  · F1: the `nodes` key removal is now stated in the CHANGELOG as deliberate, no alias. Consumers were checked in
+    THIS repo only. If you can see the playground's vendored skills or any runbook written against 1.13.x, check them.
+  · A1: report_m46_agent_api_closure.txt ▸ MERGE is rewritten as the one authoritative note. Verify it against
+    reality NOW (see below) rather than against the second reader's rehearsal, which predates these five commits.
+
+HOW TO VERIFY — run these; do not take "green" on trust. Author's numbers, final tree, OLD BASE:
+  git config user.email                                  # the personal address
+  mvn test                                               # 1598 run, 0 failures, 0 errors, 21 skipped (display)
+  mvn test -Dtest='Spotlight*Test,AsyncOpen*Test' -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
+                                                         # 147 run, 0 failures, 0 errors, 0 skipped
+  mvn package && git checkout -- dependency-reduced-pom.xml
+  python3 tools/verify-m46-agent-api.py                  # 17/17
+  python3 tools/verify-m48-handoff.py                    # 18/18  (was 12)
+  python3 tools/verify-m64-spotlight.py                  # 73/73  (was 64)
+  python3 tools/capture-conversations.py                 # all five scenarios; then RESTORE its output (see note)
+  python3 tools/test_tools.py && mkdocs build --strict
+  the anonymisation sweep EXACTLY as CLAUDE.md rule 1 writes it — must print nothing. (Not repeated here: its
+  terms may be spelled only in the two files that state the rule.)
+NOTE: capture-conversations.py currently produces a diff that is only two JSON keys swapping order
+("total"/"visible") plus re-rendered PNGs — a nondeterministic map order in an echo. The author restored the
+output rather than commit noise. Decide whether that nondeterminism deserves its own tracker item.
+HONEST LIMIT the author states: the five commits were each verified by targeted tests when made; the FULL gates
+ran once, on the final tree. If you care about bisectability, check one intermediate commit builds and passes.
+
+THE ONE THING NOBODY HAS RUN: THIS BRANCH TOGETHER WITH CURRENT MAIN
+origin/main is 16acfc1 — fifteen commits past the branch's base, and they are M65 CODE. The branch has NOT been
+merged or rebased onto it (the instruction was not to, and rule 3 forbids a merge commit). The second reader's
+rehearsal (CHANGELOG.md conflicts twice, nothing else; 1587 green) predates these five commits, four of which
+touch CHANGELOG.md again and one of which touches VerbSchemas, ActionExecutor, MainFrame and GraphPanel — files
+M65 also touches. REHEARSE IT on a throwaway local branch (never push it, never touch the real branch or main):
+  git switch -c scratch/rehearse fix/m46-agent-api-closure && git rebase origin/main
+  # resolve CHANGELOG.md keep-both; READ the result: ONE Unreleased block, one Added/Changed/Fixed each,
+  # ONE tool count — 15
+  mvn test        # and the display command
+  git switch fix/m46-agent-api-closure && git branch -D scratch/rehearse
+Report the conflict list and the combined test count. If anything other than CHANGELOG.md conflicts, or the
+combined tree is red, that is a finding against the merge note, not against a piece.
+REMEMBER A1: CanonicalSkillsTest passing on the rebased tree proves NOTHING about CI — the old pinned commit object
+is still in this clone. The re-pin in the merge note is mandatory regardless.
+
+ONLY A PERSON AT THE SCREEN CAN CHECK THESE — list them for the owner, do not claim them:
+File ▸ Close log during a slow first load; Escape with focus in a component that consumes Escape (a combo with its
+popup open, the search history popup) while spotlights are lit; AI ▸ Posture, Place mode-selector record…, Clear
+record; the Project panel row for a restored log; the six "Ask it to show you" sentences and the guided-start tour
+on a context-free client.
+
+WHAT TO PRODUCE
+
+One file: docs/handoff/rereview_m46_closure_branch.txt. For EACH numbered finding of both rounds: CLOSED / NOT
+CLOSED / CLOSED WITH FOLLOW-UP, with what you ran to decide. Any NEW finding numbered R1…, with severity,
+file:line, the reproduction and the fix. A verdict PER PIECE and one for the BRANCH (READY / READY WITH
+FOLLOW-UPS / CONDITIONAL / NOT READY), and a plain statement of what you VERIFIED versus what you only READ.
+Where the spec and the code disagree, say which is wrong.
+
+Do NOT fix findings. Do not rebase, amend, merge or force-push the branch; do not touch main; do not touch any
+skill under docs/skills. Commit your one file to the branch and push.
+
+OWNER-ONLY DECISIONS — surface them with a recommendation, do not make them:
+  · 1.13.3 first, by cherry-picking 74a465b (second reader A4). Note the author's caveat: that commit is not only
+    the one-line open {analysis} fix — it also removes the `nodes` reply key. A one-line cherry-pick of just the
+    onEdt fix and its test is the alternative.
+  · whether a removed reply key may ship in a patch release at all;
+  · whether the merge waits for M64.9 (the `coverage` rename);
+  · tools/capture-conversations.py and tools/verify-*.py on the pre-release checklist; `.mcp.json` in .gitignore.
