@@ -390,5 +390,6 @@ a starting guess, not a constraint.
 - **It is a fifteenth verb.** The surface had been held at fourteen by folding `close`, `project`,
   `discover` and `analysis` into `open`, because those are all lifecycle acts. `handoff` is not one, and
   `context` must stay read-only (the M42 loopback probe's non-mutating guarantee depends on it), so
-  overloading either would have been one name with two meanings. This is the decision in this slice most
-  worth an owner's second look.
+  overloading either would have been one name with two meanings. **Confirmed by the owner, 2026-09-17**
+  (*"keep the 15th verb, handoff is fine"*) and recorded under the tracker's Decisions — with the rider that
+  the next verb still has to clear the same bar.

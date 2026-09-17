@@ -10,6 +10,9 @@ sweep clean · `tools/verify-m48-handoff.py` 12/12 and `tools/verify-m46-agent-a
 jar · both doc harnesses re-run, shots read.
 
 THE ONE DECISION FOR THE OWNER, FIRST, BECAUSE IT IS THE ONE THAT MATTERS
+  >>> DECIDED 2026-09-17, after this report was first written. The owner: "keep the 15th verb, handoff is
+  >>> fine." Recorded in tracker > Decisions. A reviewer need not relitigate it; what remains reviewable is
+  >>> whether the four guard tests now state the rule they guard well enough to stop the NEXT verb.
   This adds a FIFTEENTH VERB, `handoff`. The surface was deliberately pinned at fourteen — close, project,
   discover and analysis were each folded into `open` instead, and four tests held the number. I moved the
   number. My reasoning: the rule those tests guard is that the surface does not grow FOR A CONCEPT AN

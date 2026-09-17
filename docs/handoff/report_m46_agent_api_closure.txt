@@ -5,7 +5,8 @@ The branch carries three independent pieces, one commit and one report each, at 
   1  this report                                  M46 agent-API closure + the open {analysis} regression
   2  report_m44_3b_close_supersedes.txt           a close supersedes a pending open of the same kind
   3  report_m48_7_canvas_handoff.txt              posture + the selector's record as shared canvas state
-They can be reviewed separately; only commit 3 asks the owner for a decision (a fifteenth verb).
+They can be reviewed separately. Commit 3 asked the owner for one decision — a fifteenth verb — and the owner
+confirmed it on 2026-09-17 (tracker > Decisions). M64 Spotlight follows on the same branch.
 Owner-directed: "1, then 3 and 4 — that closes off work", and "move this work to a feature branch so it
 can be reviewed without affecting main". Spec: docs/specs/spec-authoring-toolchain-repair.md (the
 "Analyser — ours" table and its Acceptance).

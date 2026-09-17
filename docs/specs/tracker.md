@@ -1029,7 +1029,7 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
 3. ☑ **M48.7** — DONE 2026-09-17 on the same branch, awaiting review
    (`docs/handoff/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
    canvas state — `context.handoff`, a new `handoff` verb, *AI ▸ Posture*, a Project-panel row. It unblocks the
-   dev-harness loop (M48.10). **Adds a fifteenth verb — owner to confirm.**
+   dev-harness loop (M48.10). Adds a fifteenth verb, `handoff` — **confirmed by the owner 2026-09-17** (Decisions).
 4. **M64 Spotlight** — spec'd 2026-09-16, analyser-only, five slices, about a day and a half. The next self-contained
    FEATURE once 1–3 are closed.
 5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
@@ -1211,8 +1211,9 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       (typed, attributed, bounded, fail-closed whole, reversible, cleared at a project boundary) and **nothing
       is persisted** — R9's profile write stays a separate, reviewable slice. **It is a FIFTEENTH VERB**, the
       first growth of the surface since it was pinned at fourteen: `handoff` is not a lifecycle act so it does
-      not belong on `open`, and `context` must stay read-only. That is the decision here most worth the owner's
-      second look. `tools/verify-m48-handoff.py` holds it on the built jar (12 checks, incl. fresh start).
+      not belong on `open`, and `context` must stay read-only. **The owner confirmed it on 2026-09-17** (*"keep
+      the 15th verb, handoff is fine"* — tracker ▸ Decisions). `tools/verify-m48-handoff.py` holds it on the
+      built jar (12 checks, incl. fresh start).
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
 - [M48.12] ☐ **audit-log header fingerprint carrier** — narrowed twice. The contract is
@@ -1258,6 +1259,18 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 
 ## Decisions (resolved)
 
+- **`handoff` is the fifteenth verb** _(owner, 2026-09-17: "keep the 15th verb, handoff is fine")_. The action
+  surface had been held at fourteen by folding `close`, `project`, `discover` and `analysis` into `open`, and
+  four tests pinned the number. The rule those tests guard stands and is now stated in them: **the surface does
+  not grow for a concept an existing verb already names.** Those four are lifecycle acts, so they belong on
+  `open`. The shared canvas's posture and mode-selector record (M48.7) are not a lifecycle act, and `context`
+  must stay read-only because M42's loopback probe depends on it — so overloading either would have been one
+  name with two meanings. Recorded so a reviewer does not relitigate it; the NEXT verb still has to clear the
+  same bar, and "M48.7 added one" is not an argument for it.
+- **A close supersedes a pending open of the same kind** _(owner, 2026-09-17; M44.3b)_. Close log, close all and
+  Reset take the id of an outstanding log open, so its late result is refused; closing the graph alone does not,
+  and a close with nothing outstanding changes nothing in the gate. It is D-A3 — the last deliberate request
+  wins — applied to one more request, not a new rule.
 - **Component resolution and Spring manipulation live in the single existing `fluxtion-builder` jar**
   _(owner, 2026-09-03)_. The builder owns catalogue generation, the typed resolution result and a small
   parser/canonical writer for the supported Fluxtion Spring authoring subset. It adds no transitive
