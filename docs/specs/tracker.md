@@ -1090,7 +1090,12 @@ difference was `"visible"`/`"total"` changing places — committed ONCE, deliber
 that order is what the product always emits, so the page now matches it and the next run has no diff. **The three `verify-*.py` lines were RUN
 on the release candidate, main `cdef22c`, 2026-09-17** — a CLEAN build of the jar from exactly that commit, tree
 clean: `verify-m46-agent-api.py` 17/17, `verify-m48-handoff.py` 18/18, `verify-m64-spotlight.py` 83/83, each exit 0.
-(The commit that records this changes only this file; if any CODE lands before the release, run them again.) Still open after that, not
+(The commit that records this changes only this file; if any CODE lands before the release, run them again.) **CLAUDE.md rule 1's two checks, same day, main `88d19ba`:**
+`git config user.email` is the personal address; `git log --format='%ae' | sort | uniq -c` shows the two
+employer-domain totals UNCHANGED at 132 and 82 (= the 214 rule 1 records), the newest of either dated 2026-08-20, and
+every one of the 51 commits since the v1.13.2 tag on the personal address. One thing the count surfaces that rule 1
+does not mention: three commits of 2026-09-16 carry a tool vendor's address (an AI coding agent's default identity),
+not an employer's — harmless, but it means a session ran without the repo-local `user.email` applying. Still open after that, not
 gating: the valid `add` + `detail:node` end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE
 (147 words) against a held-out run, M64.10, M46.11.
 
