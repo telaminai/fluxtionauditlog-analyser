@@ -17,6 +17,19 @@ CI's flags · `mkdocs build --strict` · sweep clean · `tools/verify-m64-spotli
     CanonicalSkillsTest goes red there. So: FAST-FORWARD main to this branch without rebasing the branch — local
     main's own unpushed commits (docs/experience only, disjoint from this work) rebase on top of it instead:
         git switch main && git rebase fix/m46-agent-api-closure && git push
+    >>> UPDATE 2026-09-17, later: origin/main HAS MOVED (six docs-only M65 commits, 7b9e09c..102029c, touching
+    docs/specs/tracker.md, which this branch also edits). A plain fast-forward is therefore no longer possible, and
+    rule 3 forbids both a merge commit and force-pushing a rebased branch. The merge is now, locally:
+        git switch main && git pull --rebase
+        git switch -c merge/m46-closure fix/m46-agent-api-closure && git rebase main   # tracker.md may conflict:
+                                                                                        # keep BOTH sides' blocks
+        # re-pin: put the NEW full SHA of the rewritten "skills: guided-start spotlights…" commit into
+        # docs/skills/m19-skills/2/index.json `revision` (the sha256 does not change), run CanonicalSkillsTest,
+        # commit "skills: re-pin after rebase"
+        git switch main && git merge --ff-only merge/m46-closure && mvn test && git push
+    Nothing is force-pushed: the rebased commits reach origin only as main's fast-forward. The original branch can
+    then be deleted. (CanonicalSkillsTest is red on the replayed commits between the skill edit and the new re-pin;
+    that is the same by-necessity window the two-commit practice already has.)
     If origin/main has moved and the branch MUST be rebased, re-pin afterwards (one small commit: the new SHA of
     the "skills: guided-start spotlights…" commit into index.json's `revision`). This fragility is the index's
     design, not this change's — it has bitten before — but it is sharper on a branch.
