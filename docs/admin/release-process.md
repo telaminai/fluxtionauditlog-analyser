@@ -112,6 +112,9 @@ over the action socket with a hard per-call timeout, and exits non-zero on any f
       committing docs (`--require-images` makes that a failure, exit 3, for a machine that should have the grant).
 - [ ] CLAUDE.md rule 1's two checks: `git config user.email` is the personal address, and
       `git log --format='%ae' | sort | uniq -c` shows no new employer-domain commits.
+- [ ] `python3 tools/heldout-client.py` — LOCAL ONLY, spends the owner's LLM key, never CI: a context-free client
+      (instructions + tools, nothing else) asked the six "Ask it to show you" sentences and the guided-start tour; read
+      `heldout-results.md` — it must point at the right things, and light nothing when it found nothing.
 - [ ] The person-at-the-screen items the tracker lists as open for this release. No script substitutes for them.
 
 ### 4.1 The release itself

@@ -373,6 +373,11 @@ for the display test and skill edit.
   sure one Escape does not need pressing twice. A DIALOG (the template picker, Settings) is a separate window and
   stays out of reach: that is D-SP1's deferred separate-window form, not this item. Until then the docs mark menus
   and dialogs with `tools/AnnotateShot.java`, drawn unlike the spotlight on purpose.
+- [M64.12] ☐ **Two things the held-out run showed** (2026-09-17, [record](../handoff/completed/heldout_m64_2026-09-17.md)):
+  (a) a client narrating step by step sends one `spotlight {target}` per step and each REPLACES the last — the schema description
+  should say "to keep what is lit and add to it, send `add: true`" (one sentence in `VerbSchemas`); (b) the user guide's first
+  "Ask it to show you" sentence names a threshold the demo log never crosses (`spread` sits near 0.02) — use one it does
+  (`riskMonitor.liveOrders` above 1 at record 15, the point-at-the-fault example) so a fresh client is not made to say "no crossing".
 - [M64.10] ☐ **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
   several named graphs open, `graph`, `graph:note:<n>` and `graph:series:<label>` mean "on whichever chart tab is
   showing", and re-issuing `graph {name: <existing>}` updates that graph WITHOUT re-selecting its tab — so an agent
@@ -671,8 +676,8 @@ analyser (reverse funnel)._
   "never logged, not never ran" note aloud, which is a stronger demo than the number); and `flag` takes
   `recordIndexes[]`, so the sketch would have made an agent guess wrong in front of the audience. Also:
   no verb lists graphable keys, the demo set cannot be installed by the agent (a second human pause), and
-  a returning analyser restores its previous session. **STILL OPEN:** the held-out run — a fresh
-  context-free client following the docs-site prompt end to end. Nothing so far substitutes for it. — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
+  a returning analyser restores its previous session. **DONE 2026-09-17:** the held-out run — a context-free client (`tools/heldout-client.py`) given the skill text
+  lit every beat before it spoke ([record](../handoff/completed/heldout_m64_2026-09-17.md)); a person watching is still the last word. — [`spec-guided-start.md`](spec-guided-start.md). Zero to a running analyser showing
   capabilities, driven by a prompt an LLM executes. **Verified: the tutor needs NO new verbs** — `open`,
   `filter`, `topology`, `goto`, `graph` and `flag` already drive the UI, and `context` + `screenshot` tell
   the agent what the user can actually see. The load-bearing rule is D-G2, from D-T3: **the tutor points,
@@ -1013,11 +1018,16 @@ empty with both panels toggled off; `context.handoff.posture.note` named the fol
 `screenshot {scope: "menu:…"}` reporting `menuItems`. The three `verify-*.py` scripts were last run on main `2f26eb7`
 (17/17, 18/18, 83/83; the last pre-1.14.1 commit that changed the jar) and rule 1's two checks on `88d19ba` (the two
 employer-domain totals unchanged at 132 and 82; three 2026-09-16 commits carry a tool vendor's address, not an
-employer's). **STILL OPEN — the person-at-the-screen checks, which nobody but the owner can do, now to be done on the
-RELEASED jar:** *File ▸ Close log* during a slow FIRST load · click, and Escape with focus in a component that consumes
-Escape (an open combo, the search-history popup), while SEVERAL spotlights are lit · *AI ▸ Posture*, *Place
-mode-selector record…*, *Clear record* · the Project-panel row for a restored log · the six "Ask it to show you"
-sentences and the guided-start tour on a context-free client. **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`.mjs` in the playground repo; until it runs, a generated starter teaches the
+employer's). **The person-at-the-screen checks, closed 2026-09-17 where a test or a run can close them:** `PersonAtTheScreenFrameTest`
+(in the `ui-frame` CI job; 3 run, 0 skipped under xvfb at `9e3b6b7c`) holds *AI ▸ Posture* and *Clear mode-selector record* through
+the real menu items, the Project-panel row for a log RESTORED at startup, and Escape with a focused combo's popup open while
+two spotlights are lit (a posted key needs the window to own focus, so that case is real in CI and skipped on a Mac whose
+foreground app is the terminal). The six "Ask it to show you" sentences and the guided-start tour ran on a CONTEXT-FREE
+client — `tools/heldout-client.py`, local only, the owner's key — and the claim holds: 5 of 6 sentences lit the right thing
+with and without the guidance paragraph, and the tour lit every beat before it spoke
+([`heldout_m64_2026-09-17.md`](../handoff/completed/heldout_m64_2026-09-17.md); two docs follow-ups → M64.12). **Still a
+person's:** *File ▸ Close log* during a slow FIRST load as a physical click (its listener is held by
+`AsyncOpenInterleavingFrameTest`), and *AI ▸ Place mode-selector record…* (a file chooser). **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`.mjs` in the playground repo; until it runs, a generated starter teaches the
 `coverage` target this analyser refuses). Still open after that, not gating: the valid `add` + `detail:node`
 end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
 M64.10, M46.11.
