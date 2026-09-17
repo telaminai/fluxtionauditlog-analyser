@@ -115,7 +115,10 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
   between systems. Log-derived state clears; your named graphs, focuses, source roots and reports are
   profile state and survive, each saying why it cannot resolve rather than vanishing. Combining it
   with `log`/`graphml` closes and **names what it ignored**, rather than leaving you to guess which
-  half of an incoherent request was honoured.
+  half of an incoherent request was honoured. Closing the log (or `all`) **while a log is still loading
+  cancels that load** — the last deliberate request wins, so a log you no longer want does not arrive a
+  moment after you closed — and the echo says so in `supersededPendingOpen`. Closing only the graph
+  leaves a loading log alone.
 - `open {discover: "graphml"}` — lists every `.graphml` under the source roots, ranked against the
   open log, with each one's node count and how many of the log's nodes it declares. **It opens
   nothing**: pick one and pass it as `graphml`.

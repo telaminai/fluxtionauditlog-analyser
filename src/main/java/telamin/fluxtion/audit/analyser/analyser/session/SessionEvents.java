@@ -73,6 +73,40 @@ public final class SessionEvents {
                                    boolean fromSocket) {
     }
 
+    /**
+     * M44.3b: someone asked for something to be CLOSED — File ▸ Close log, Reset, or {@code open {close}}
+     * over the socket. The close itself is still performed by the adapter, as it always was; what this
+     * event adds is that the processor HEARS the request, because a request is what supersedes.
+     *
+     * <p><b>The policy (owner, 2026-09-17): a close supersedes a pending open OF THE SAME KIND.</b> Before
+     * this, a close during a pending open closed the previous log and the pending one still landed and was
+     * accepted — someone who asked for nothing to be open had a log arrive two seconds later. The rule is
+     * D-A3's, unchanged: the last deliberate request wins. A close that covers the log is a newer deliberate
+     * request about the log, so the outstanding open's late result is refused like any superseded one.
+     *
+     * <p><b>And only of the same kind.</b> Closing the GRAPH says nothing about the log, so it leaves a
+     * pending open alone. The finish-first review's warning is the constraint here: <i>do not give every
+     * close a new meaning to fix an unrelated finding</i>.
+     *
+     * @param target what the close covers
+     */
+    public record CloseRequested(long opId, Target target) {
+
+        /** What a close covers. Leaving a project is NOT here: that is a project transition, which already supersedes. */
+        public enum Target {
+            LOG, GRAPH, ALL;
+
+            /** Whether this close is a request about the LOG — the only thing an open can be pending for. */
+            public boolean coversLog() {
+                return this == LOG || this == ALL;
+            }
+        }
+
+        public CloseRequested {
+            if (target == null) throw new IllegalArgumentException("a close names what it covers");
+        }
+    }
+
     // ---------------------------------------------------------------- results
     /**
      * M44.3 D-A2: the adapter has STARTED the work and will submit the real result later, with this

@@ -31,6 +31,15 @@
 > pre-existing) the audit sink's export is now `---`-framed so a snapshot reopens as one record per dispatch — the
 > D-A5 acceptance is now checked through the real reader. Open policy: M44.3b (what close/reset means for a
 > pending open).
+>
+> **M44.3b decided and built (2026-09-17).** Owner's policy: **a close supersedes a pending open of the same
+> kind.** It is D-A3 applied to one more request, not a new rule — *the last deliberate request wins* — and the
+> kind matters: only a log open can be pending, so only a close that covers the log (`LOG`, `ALL`/Reset) takes the
+> id. Closing the graph is not a request about the log and leaves a pending open to land. A close with nothing
+> outstanding changes nothing in the gate. The request is a new event, `CloseRequested`, submitted at the close
+> REQUEST entrances only; `closeLog()`/`closeGraph()` remain the adapter's half of the processor's own close
+> effects, where a submit would be re-entrant. Leaving a project was already a project transition and already
+> superseded. As with every supersede, correctness comes from refusing the late result, not from stopping the work.
 **Extends:** [`spec-session-processor.md`](spec-session-processor.md) — D-S0.3 and D-S0.4, which this
 changes deliberately and in one place.
 

@@ -29,6 +29,10 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
  * result is refused, and its description is retired at once (1.13.1 finish-first review B2: a project switch
  * used to leave "opening …" reported forever, because only an ACCEPTED log result cleared it and none could
  * arrive). An accepted log result still clears it; a refused one never touches it.
+ *
+ * <p><b>Since M44.3b a CLOSE supersedes too — of the same kind.</b> A close that covers the log is a newer
+ * deliberate request about the log, so it takes the id of an outstanding open; a close of the graph alone,
+ * or any close with nothing outstanding, changes nothing here. See {@link #onCloseRequested}.
  */
 public class OperationGate implements EventLogSource {
 
@@ -71,6 +75,32 @@ public class OperationGate implements EventLogSource {
         auditLog.info("fact", "request").info("opId", event.opId()).info("what", "openLog");
         return true;
     }
+
+    /**
+     * M44.3b: a close supersedes a pending open <b>of the same kind</b>. Only a log open can be pending
+     * (it is the one asynchronous boundary), so only a close that covers the log takes the id: the
+     * outstanding open's late result then arrives stale and is refused by {@link #check}, exactly as
+     * after a newer open or a project transition.
+     *
+     * <p>A close of the graph alone, and any close with nothing outstanding, change NOTHING here — they
+     * are recorded, and that is all. Taking the id regardless would be harmless today and wrong in
+     * principle: it would let an unrelated close invalidate whatever asynchronous operation is added
+     * next, which is the "new meaning for every close" the finish-first review warned against.
+     */
+    @OnEventHandler
+    public boolean onCloseRequested(SessionEvents.CloseRequested event) {
+        accepted = true;
+        String superseded = event.target().coversLog() ? inFlightWhat : null;
+        auditLog.info("fact", "request").info("opId", event.opId()).info("what", "close")
+                .info("target", event.target().name());
+        if (superseded != null) {
+            expectedOpId = event.opId();
+            inFlightWhat = null;
+            auditLog.info("superseded", superseded);
+        }
+        return true;
+    }
+
     @OnEventHandler
     public boolean onPending(SessionEvents.Pending event) {
         boolean ok = check(event.opId(), "Pending");

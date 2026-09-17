@@ -190,6 +190,50 @@ class AsyncOpenInterleavingFrameTest {
         }
     }
 
+    // ---- M44.3b: a close supersedes a pending open OF THE SAME KIND (owner, 2026-09-17) -------------
+
+    @Test
+    void m44_3b_closingTheLogDuringAPendingLoad_retiresIt_andTheEchoSaysSo(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path slowA = Files.writeString(tmp.resolve("a.slow"), "slow");
+        DelayedReader reader = new DelayedReader(false, "nodeA");
+        try (Frame f = new Frame(tmp, reader)) {
+            onEdt(() -> render(f.ex, "open", Map.of("log", slowA.toString(), "format", "test-slow")));
+            reader.awaitEntered();
+            AtomicReference<Map<String, Object>> closed = new AtomicReference<>();
+            onEdt(() -> closed.set(render(f.ex, "open", Map.of("close", "log"))));
+            assertEquals("opening " + slowA, find(closed.get(), "supersededPendingOpen"),
+                    "an agent that closed during a load is TOLD the load it no longer wants will not arrive: " + closed.get());
+            // at the close boundary, BEFORE the discarded reader returns — as for a project switch (B2)
+            onEdt(() -> {
+                assertNull(find(render(f.ex, "context", Map.of()), "inFlight"), "nothing is outstanding after the close");
+                assertFalse(pairing(f.ex) != null && pairing(f.ex).containsKey("loading"),
+                        "the busy projection follows the gate, not the worker");
+            });
+            reader.release.countDown();
+            awaitStale(f);
+            assertNull(f.processorLog(), "the superseded load opened nothing — a log did not arrive after the close");
+            onEdt(() -> assertNull(find(render(f.ex, "context", Map.of()), "inFlight"), "and the stale result resurrected nothing"));
+        }
+    }
+
+    @Test
+    void m44_3b_control_closingTheGraphIsNotAboutTheLog_theLoadSurvives(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path slowA = Files.writeString(tmp.resolve("a.slow"), "slow");
+        DelayedReader reader = new DelayedReader(false, "nodeA");
+        try (Frame f = new Frame(tmp, reader)) {
+            onEdt(() -> render(f.ex, "open", Map.of("log", slowA.toString(), "format", "test-slow")));
+            reader.awaitEntered();
+            AtomicReference<Map<String, Object>> closed = new AtomicReference<>();
+            onEdt(() -> closed.set(render(f.ex, "open", Map.of("close", "graph"))));
+            assertNull(find(closed.get(), "supersededPendingOpen"), "a graph close supersedes nothing: " + closed.get());
+            reader.release.countDown();
+            awaitLoaded(f.ex);
+            assertEquals(slowA.toString(), f.processorLog(), "not of the same kind — the pending open still lands");
+        }
+    }
+
     @Test
     void b2_control_aBadProjectPathIsRefusedBeforeTheGate_theLoadSurvives(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

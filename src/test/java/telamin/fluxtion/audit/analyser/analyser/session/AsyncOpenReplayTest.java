@@ -174,4 +174,100 @@ class AsyncOpenReplayTest {
         assertNull(p.operationGate.inFlightWhat());
         assertEquals("/b.yaml", p.openLog.logPath());
     }
+
+    // ---- M44.3b: a close supersedes a pending open OF THE SAME KIND (owner, 2026-09-17) ---------------
+
+    private static SessionEvents.CloseRequested close(SessionDriver d, SessionEvents.CloseRequested.Target target) {
+        return new SessionEvents.CloseRequested(d.nextOpId(), target);
+    }
+
+    @Test
+    @DisplayName("M44.3b: closing the LOG supersedes a pending open — someone who asked for nothing to be open does not have a log arrive two seconds later")
+    void aCloseOfTheLogSupersedesAPendingOpen() {
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        adapter.pendingOpens = true;
+        SessionDriver d = new SessionDriver(adapter);
+        SessionProcessor p = d.processor();
+        SessionEvents.OpenLogRequested slow = open(d, "/a.slow");
+        d.submit(slow);
+        assertEquals("opening /a.slow", p.operationGate.inFlightWhat());
+
+        d.submit(close(d, SessionEvents.CloseRequested.Target.LOG));
+        assertNull(p.operationGate.inFlightWhat(), "the close superseded the open: nothing is outstanding any more");
+
+        d.submit(landed(slow.opId(), "/a.slow", Set.of("nodeA")));            // the load lands AFTER the close
+        assertFalse(p.operationGate.accepted(), "refused — the last deliberate request about the log was the close");
+        assertFalse(p.openLog.isOpen(), "and it opened nothing");
+
+        SessionEvents.OpenLogRequested next = open(d, "/b.yaml");             // a close is not a lock: a later open is normal
+        d.submit(next);
+        d.submit(landed(next.opId(), "/b.yaml", Set.of("nodeB")));
+        assertTrue(p.operationGate.accepted());
+        assertEquals("/b.yaml", p.openLog.logPath());
+    }
+
+    @Test
+    @DisplayName("M44.3b: Reset (close ALL) covers the log too, so it supersedes in the same way")
+    void aResetSupersedesAPendingOpen() {
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        adapter.pendingOpens = true;
+        SessionDriver d = new SessionDriver(adapter);
+        SessionProcessor p = d.processor();
+        SessionEvents.OpenLogRequested slow = open(d, "/a.slow");
+        d.submit(slow);
+
+        d.submit(close(d, SessionEvents.CloseRequested.Target.ALL));
+        assertNull(p.operationGate.inFlightWhat());
+        d.submit(landed(slow.opId(), "/a.slow", Set.of("nodeA")));
+        assertFalse(p.operationGate.accepted());
+        assertFalse(p.openLog.isOpen());
+    }
+
+    @Test
+    @DisplayName("M44.3b: closing the GRAPH is not a request about the log — a pending open is left alone and still lands")
+    void aCloseOfTheGraphLeavesAPendingOpenAlone() {
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        adapter.pendingOpens = true;
+        SessionDriver d = new SessionDriver(adapter);
+        SessionProcessor p = d.processor();
+        SessionEvents.OpenLogRequested slow = open(d, "/a.slow");
+        d.submit(slow);
+
+        d.submit(close(d, SessionEvents.CloseRequested.Target.GRAPH));
+        assertEquals("opening /a.slow", p.operationGate.inFlightWhat(),
+                "not of the same kind: the open is still outstanding and still described");
+        assertEquals(slow.opId(), p.operationGate.expectedOpId(), "and its id is still the one results are matched against");
+
+        d.submit(landed(slow.opId(), "/a.slow", Set.of("nodeA")));
+        assertTrue(p.operationGate.accepted(), "so it lands, as if the graph close had never happened");
+        assertEquals("/a.slow", p.openLog.logPath());
+    }
+
+    @Test
+    @DisplayName("M44.3b: a close with nothing outstanding changes nothing in the gate — no close gets a new meaning")
+    void aCloseWithNothingPendingTakesNoId() {
+        SessionDriver d = new SessionDriver(new FakeSessionAdapter());
+        SessionProcessor p = d.processor();
+        long before = p.operationGate.expectedOpId();
+
+        d.submit(close(d, SessionEvents.CloseRequested.Target.LOG));
+
+        assertEquals(before, p.operationGate.expectedOpId(), "nothing was pending, so there was nothing to supersede");
+        assertNull(p.operationGate.inFlightWhat());
+    }
+
+    @Test
+    @DisplayName("M44.3b: the record says the close superseded, and what — D-A5: a reader of the audit log can tell a superseded open from a failed one")
+    void theAuditRecordNamesWhatTheCloseSuperseded() {
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        adapter.pendingOpens = true;
+        SessionDriver d = new SessionDriver(adapter);
+        d.submit(open(d, "/a.slow"));
+
+        d.submit(close(d, SessionEvents.CloseRequested.Target.LOG));
+
+        String record = String.join("\n", d.auditSink().records());
+        assertTrue(record.contains("superseded") && record.contains("opening /a.slow"),
+                "the supersede must be in the record, with what it retired:\n" + record);
+    }
 }

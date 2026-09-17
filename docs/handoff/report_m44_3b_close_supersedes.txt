@@ -1,0 +1,88 @@
+REPORT — M44.3b: a close supersedes a pending open of the same kind
+Date: 2026-09-17 · Author: the independent review session · Branch: fix/m46-agent-api-closure (commit 2 of 3)
+Base: origin/main @ 96a11ac (Release 1.13.2). Companion reports on this branch:
+report_m46_agent_api_closure.txt (commit 1) and the M48.7 report (commit 3).
+Spec: docs/specs/spec-async-session-driver.md (D-A3, and the 2026-09-17 note under "Review response")
+
+STATE: NOT YET INDEPENDENTLY REVIEWED — this is the ask. It touches the M44.3 machinery that had four
+review passes, so it wants the same scrutiny. Everything below was run, not read.
+
+================================================================================
+1. THE DECISION, AND WHO MADE IT
+================================================================================
+Finish-first review F6 left a policy open: `close {log}` during a pending open closed the previous log
+and the pending one still landed and was accepted. The OWNER decided on 2026-09-17, in these words:
+"close should supersede of the same kind". So:
+
+  close LOG            supersedes a pending log open
+  close ALL / Reset    supersedes a pending log open (it covers the log)
+  close GRAPH          does NOT — it is not a request about the log; the open still lands
+  any close, nothing pending   changes nothing in the gate
+  close PROJECT        unchanged — it was already a project transition, which already supersedes
+
+This is D-A3 applied to one more request ("the last deliberate request wins"), not a new rule, and the
+"same kind" limit is the review's own constraint: do not give every close a new meaning.
+
+================================================================================
+2. WHAT CHANGED
+================================================================================
+- SessionEvents.CloseRequested(opId, Target{LOG,GRAPH,ALL}) — a new REQUEST event. `coversLog()`.
+- OperationGate.onCloseRequested — records every close request; takes the id and retires
+  `inFlightWhat` ONLY when the target covers the log AND an open is outstanding, and then records
+  `superseded: <what>` so a reader of the audit log can tell a superseded open from a failed one (D-A5).
+- The generated SessionProcessor REGENERATED (`mvn -Pregen process-classes`): one new dispatch branch
+  for CloseRequested, the descriptor's input list and fingerprint. No node added, no edge changed. The
+  attribution strip ran; GeneratedSourceIsPublishableTest and the shape/fingerprint tests are green; the
+  resource copy is byte-identical to the source.
+- MainFrame.requestClose(target) — submits the event, then `syncBusyWithGate()` (the same projection B2
+  added for a project transition), and returns what was superseded. Called from the SIX close REQUEST
+  entrances only: File ▸ Close log / Close graph / Reset, and the socket's `open {close: log|graph|all}`.
+  NOT from closeLog()/closeGraph() themselves: those are also the adapter's half of the processor's own
+  close EFFECTS, mid-dispatch, where a submit would be re-entrant. `driver.isDispatching()` guards it
+  anyway, and a driver never built means nothing can be pending.
+- The socket echo gains `supersededPendingOpen` when — and only when — something was superseded.
+- The late load is refused by the EXISTING stale-result path (MainFrame checks
+  `operationGate.accepted()` on both the success and failure arrivals). Nothing new was needed there,
+  which is the evidence that this is the same mechanism and not a parallel one.
+
+================================================================================
+3. EVIDENCE
+================================================================================
+- AsyncOpenReplayTest, five new cases on the real generated processor with the fake adapter: LOG
+  supersedes; ALL supersedes; GRAPH leaves the open alone AND its id is still the expected one; nothing
+  pending takes no id; the audit record names what was superseded.
+- AsyncOpenInterleavingFrameTest, two new REAL-FRAME cases using the suite's latch-controlled reader:
+  closing the log during a pending load retires it at the close boundary (inFlight null, no `loading`
+  pairing) BEFORE the reader returns, the echo names it, and after release the load opens nothing; the
+  control closes the GRAPH and the load lands.
+- MUTATION CHECK: with the supersede neutered (`superseded = null`), exactly four tests fail — the three
+  supersede replay cases and the real-frame case — and both controls still pass. Reverted.
+- Display suites run LOCALLY with CI's own flags (-Djava.awt.headless=false): PairingDuringLoadFrameTest
+  5/5 and AsyncOpenInterleavingFrameTest 11/11, no skips.
+
+================================================================================
+4. WHAT A REVIEWER SHOULD ATTACK
+================================================================================
+· THE GATE FIRES DOWNSTREAM ON A NEW EVENT TYPE. onCloseRequested returns true, so the three @OnTrigger
+  nodes (auditInstallation, pairing, coverageClaim) may recompute. I judged that safe because they are
+  pure functions of state nodes that have no handler for this event — the same thing already happens on
+  every observation. Check the generated handleEvent(CloseRequested) and disagree if you can.
+· "NOTHING PENDING TAKES NO ID". I deliberately do NOT replace expectedOpId when nothing is outstanding.
+  The alternative (always take it) is simpler and harmless today. I think it is wrong in principle — it
+  lets an unrelated close invalidate whatever asynchronous operation is added next. It is a judgement.
+· A HUMAN CLOSE IS NOT TOLD. The socket echo says `supersededPendingOpen`; the menu path shows nothing
+  beyond the busy indicator clearing and the existing "Discarded …" status when the load returns. I
+  think that is enough for a person who just clicked Close; say if a status line is owed.
+· CANCELLATION. Like every supersede here, the work is refused, not stopped — the reader keeps running
+  until it returns. D-A3 says correctness comes from refusing; cancelling is still an open optimisation.
+· `pendingRequests` (commit 1) keeps the superseded open's request until the next OpenLogEffect prunes
+  it. Bounded, but it is a small interaction between the two commits worth a second pair of eyes.
+
+================================================================================
+5. NOT DONE
+================================================================================
+· Nobody has CLICKED File ▸ Close log during a slow load. The real-frame test drives the same
+  ActionExecutor path the socket uses, and the menu listeners call the same requestClose — but the
+  listeners themselves are three lines of Swing nobody has exercised. Thirty seconds with a large log.
+· Regeneration needs the hosted service and a key, so a reviewer without one cannot regenerate; per
+  spec-session-processor's own note, review the committed source and the shape tests instead.

@@ -565,11 +565,20 @@ retrieval-dated evidence table, because those are live documents that can change
   before the new graph, `LogArrival` judges against the previously observed B and its close effect clears the
   current A. Remedy, processor-side: distinguish a real log ARRIVAL from a refresh of observed state, and bind
   a close effect to the identity of the graph actually judged. Review: `docs/handoff/completed/review_analyser_1.13.1_pass2_2026-09-16.md`.
-- [M44.3b] ☐ **Policy: what a close/reset means for a PENDING open** (finish-first review F6, non-blocking). Today
-  `close {log}` during a pending open closes the previous log and the pending one still lands and is accepted; the
-  gate supersedes on a later OPEN or a PROJECT transition only. Decide whether close/reset cancels the pending
-  open (then model its invalidation in the gate and test it) before the next lifecycle slice; do not give every
-  close a new meaning to fix an unrelated finding.
+- [M44.3b] ☑ **DONE 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review — a close
+  SUPERSEDES a pending open OF THE SAME KIND** (owner's decision, 2026-09-17: *"close should supersede of the same
+  kind"*). A new request event, `CloseRequested(opId, LOG|GRAPH|ALL)`, is submitted by the six close REQUEST
+  entrances (three menu items, the socket's `open {close}`) before the adapter closes; `OperationGate` takes the
+  id and retires `inFlightWhat` **only when the close covers the log and an open is outstanding** — a graph close,
+  and any close with nothing pending, change nothing, which is the review's constraint (*do not give every close a
+  new meaning*). The late load is then refused by the existing stale-result path; the busy projection follows the
+  gate as it does for a project transition; the socket echo carries `supersededPendingOpen`; the audit record says
+  `superseded: opening …` so a reader can tell a superseded open from a failed one (D-A5). Processor regenerated
+  (`-Pregen`): one new dispatch branch, fingerprint changed, attribution strip and publishability guard green.
+  **Mutation-checked:** with the supersede neutered, exactly the three supersede replay tests and the real-frame
+  test fail and both controls still pass. Display suites 16/16 locally with CI's flags, no skips. Original entry:
+  `close {log}` during a pending open closed the previous log and the pending one still landed and was accepted
+  (finish-first review F6).
 - [M44.3] ☑ **IMPLEMENTED 2026-09-16; independent pass 3 at `d78a0144`: READY, 2026-09-17 — B2's immediate busy/pairing projection CLOSED; earlier B1/B3, export F4 and call-boundary F5 acceptance stands.** The adapter now follows the gate at a successful or failed project boundary, before the retired reader returns. Existing/current-graph pairing, progress visibility and newer-pending controls independently verified; exactly two boundary tests fail on the pre-fix jar. Full verify 1,431/0/0/14; local and exact-tip CI display suites 14/14 with no skips. See [pass-3 review](../handoff/completed/review_analyser_finish_first_pass3_2026-09-17.md). M44.3b and the separate owner/dependency decision below remain open. (Spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; processor regenerated, 38 nodes.) Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
   ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
@@ -1013,8 +1022,10 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
    (`docs/handoff/report_m46_agent_api_closure.txt` says how to review it). A1/A2 were already fixed by M44.3 and
    sat ☐ for sixteen days; A3–A5 and a released `open {analysis}` regression were fixed. _These ticks are true of
    the branch; they become true of main when it merges._
-2. **M44.3b** — what a close/reset means for a PENDING open. A policy decision first (owner), then small: model
-   the invalidation in the operation gate and test it. Do it before the next lifecycle slice.
+2. ☑ **M44.3b** — DONE 2026-09-17 on the same branch, awaiting review
+   (`docs/handoff/report_m44_3b_close_supersedes.txt`). Owner's policy: a close supersedes a pending open **of the
+   same kind** — log/all/Reset do, a graph close does not. Modelled in the operation gate as a new request event;
+   processor regenerated; mutation-checked.
 3. **M48.7** — the `analyser_context` handoff section: the analyser-side slice of authoring modes, and what
    unblocks the dev-harness loop (M48.10).
 4. **M64 Spotlight** — spec'd 2026-09-16, analyser-only, five slices, about a day and a half. The next self-contained

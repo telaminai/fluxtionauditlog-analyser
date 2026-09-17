@@ -1570,13 +1570,20 @@ public final class MainFrame extends JFrame {
         // app was to restart it, and opening a second log left the first log's graph on screen.
         closeLogItem.setToolTipText("Close the log and everything derived from it. Named graphs, "
                 + "focuses and reports are profile state and stay — they will say why they cannot resolve.");
-        closeLogItem.addActionListener(e -> { sessionInteractive = true; closeLog(); });   // R3-B1: a person asked
+        // R3-B1: a person asked. M44.3b: and the processor hears that they asked, so a pending open is superseded
+        closeLogItem.addActionListener(e -> { sessionInteractive = true;
+            requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.LOG);
+            closeLog(); });
         file.add(closeLogItem);
         closeGraphItem.setToolTipText("Close the loaded .graphml topology, leaving the log open");
-        closeGraphItem.addActionListener(e -> { sessionInteractive = true; closeGraph(); });
+        closeGraphItem.addActionListener(e -> { sessionInteractive = true;
+            requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.GRAPH);
+            closeGraph(); });
         file.add(closeGraphItem);
         resetItem.setToolTipText("Close both — back to a fresh start (the project profile is kept)");
-        resetItem.addActionListener(e -> { sessionInteractive = true; resetAll(); });
+        resetItem.addActionListener(e -> { sessionInteractive = true;
+            requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.ALL);
+            resetAll(); });
         file.add(resetItem);
         rebuildRecentMenu();
         file.add(recentMenu);
@@ -3722,6 +3729,29 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * M44.3b — tell the session processor that someone ASKED for a close, before performing it. A close
+     * that covers the log supersedes a pending open (owner's policy, 2026-09-17: the last deliberate
+     * request wins), so its load is refused when it lands instead of arriving after the person asked for
+     * nothing to be open. The close itself is still performed by the caller, exactly as before.
+     *
+     * <p>Called from the REQUEST entrances only — the menu items and the socket's {@code open {close}}.
+     * {@code closeLog()}/{@code closeGraph()} are also the adapter's half of the processor's own close
+     * EFFECTS, mid-dispatch, where a second submit would be re-entrant; hence the guard, and hence this is
+     * not inside them.
+     *
+     * @return what the close superseded (e.g. {@code "opening /path"}), or null when nothing was pending
+     */
+    private String requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target target) {
+        var driver = session;
+        if (driver == null || driver.isDispatching()) return null;     // never built: nothing can be pending
+        String pending = driver.processor().operationGate.inFlightWhat();
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested(
+                driver.nextOpId(), target));
+        syncBusyWithGate();          // the busy projection follows the gate, as for a project transition (B2)
+        return driver.processor().operationGate.inFlightWhat() == null ? pending : null;
+    }
+
     /** The interactive form — a person asked, so a failure is a dialog. */
     private boolean requestProject(Path file,
                                    telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
@@ -4106,9 +4136,26 @@ public final class MainFrame extends JFrame {
             boolean hadGraph = topologyPanel.hasGraph();
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             switch (w) {
-                case "log" -> { closeLog(); echo.put("closed", "log"); }
-                case "graph", "graphml" -> { closeGraph(); echo.put("closed", "graph"); }
-                case "all", "both" -> { resetAll(); echo.put("closed", "all"); }
+                // M44.3b: each is a REQUEST the processor hears before the adapter acts. A close covering the
+                // log supersedes a pending open, and the echo SAYS so — an agent that closed during a load
+                // must not be left wondering whether the log it no longer wants is still on its way.
+                case "log" -> {
+                    String superseded = requestClose(telamin.fluxtion.audit.analyser.analyser.session
+                            .SessionEvents.CloseRequested.Target.LOG);
+                    closeLog(); echo.put("closed", "log");
+                    if (superseded != null) echo.put("supersededPendingOpen", superseded);
+                }
+                case "graph", "graphml" -> {
+                    requestClose(telamin.fluxtion.audit.analyser.analyser.session
+                            .SessionEvents.CloseRequested.Target.GRAPH);
+                    closeGraph(); echo.put("closed", "graph");
+                }
+                case "all", "both" -> {
+                    String superseded = requestClose(telamin.fluxtion.audit.analyser.analyser.session
+                            .SessionEvents.CloseRequested.Target.ALL);
+                    resetAll(); echo.put("closed", "all");
+                    if (superseded != null) echo.put("supersededPendingOpen", superseded);
+                }
                 case "project" -> {
                     // M35.8: the way back from open {project} when what was in force before it was
                     // "your own settings" — there is no path to name for that, so it needs a verb.

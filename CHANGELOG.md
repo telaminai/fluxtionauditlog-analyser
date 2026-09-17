@@ -43,6 +43,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   open; goto {recordIndex} to step through one"* and the echo carries `recordsOpen`.
 
 ### Changed
+- **Closing the log while one is still loading now cancels that load.** *File ▸ Close log*, *Reset* and
+  the assistant's `open {close: "log" | "all"}` used to close the previous log and let the pending one
+  land anyway — you asked for nothing to be open and a log arrived two seconds later. A close is now a
+  request the session processor hears, and one that covers the log supersedes a pending open exactly as a
+  newer open or a project switch does: the late result is refused, the busy indicator clears at once, and
+  the assistant's echo names what was cancelled in `supersededPendingOpen`. Closing only the graph leaves a
+  loading log alone.
 - **The `open {graphml}` echo names the graph's size and its authored count separately.** One key,
   `nodes`, held the AUTHORED count — 10 for the demo graph whose status bar says 20 — beside a pairing
   verdict, where it read as the graph's size. It is now `graphNodes` and `authoredNodes`, and

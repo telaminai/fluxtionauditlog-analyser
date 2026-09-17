@@ -38,6 +38,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved;
@@ -82,6 +83,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  * <ul>
  *   <li>com.telamin.fluxtion.runtime.audit.EventLogControlEvent
  *   <li>com.telamin.fluxtion.runtime.time.ClockStrategy.ClockStrategyEvent
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved
@@ -182,6 +184,10 @@ public class SessionProcessor
           SessionProcessor::new,
           new ProcessorDescriptor.Input[] {
             new ProcessorDescriptor.Input(
+                "CloseRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested",
+                false),
+            new ProcessorDescriptor.Input(
                 "EffectFailed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed",
                 false),
@@ -247,7 +253,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               null,
-              "a843ec56994bf04bf3bbc7fb24431f913c5d8de62ff3a76e23f97e3bec909aed",
+              "4b7ca0452d877fc69140c8b479f7c8ac86217ae4dc33c4d6607b670af71547f7",
               null));
 
   @Override
@@ -405,6 +411,9 @@ public class SessionProcessor
     } else if (event instanceof ClockStrategyEvent) {
       ClockStrategyEvent typedEvent = (ClockStrategyEvent) event;
       handleEvent(typedEvent);
+    } else if (event instanceof CloseRequested) {
+      CloseRequested typedEvent = (CloseRequested) event;
+      handleEvent(typedEvent);
     } else if (event instanceof EffectFailed) {
       EffectFailed typedEvent = (EffectFailed) event;
       handleEvent(typedEvent);
@@ -462,6 +471,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ClockStrategyEvent event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(CloseRequested event) {
     processEvent(event);
   }
 
@@ -553,6 +567,26 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(clock, "clock", "setClockStrategy", typedEvent);
     clock.setClockStrategy(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(CloseRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onCloseRequested", typedEvent);
+    isDirty_operationGate = operationGate.onCloseRequested(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
     afterEvent();
   }
 
@@ -924,6 +958,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(clock, "clock", "setClockStrategy", typedEvent);
       clock.setClockStrategy(typedEvent);
+    } else if (event instanceof CloseRequested) {
+      CloseRequested typedEvent = (CloseRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onCloseRequested", typedEvent);
+      isDirty_operationGate = operationGate.onCloseRequested(typedEvent);
     } else if (event instanceof EffectFailed) {
       EffectFailed typedEvent = (EffectFailed) event;
       auditEvent(typedEvent);
