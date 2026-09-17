@@ -1094,7 +1094,16 @@ clean: `verify-m46-agent-api.py` 17/17, `verify-m48-handoff.py` 18/18, `verify-m
 resource, so the run was repeated rather than argued to be unaffected: clean build, clean tree, the jar confirmed
 to carry the new help — 17/17, 18/18, 83/83 again, each exit 0. `a88f7dd` is the last commit that changes anything
 the jar contains; commits after it that touch only `docs/specs/tracker.md` do not reopen this. If CODE or a bundled
-resource lands before the release, run them again. **CLAUDE.md rule 1's two checks, same day, main `88d19ba`:**
+resource lands before the release, run them again.
+
+**1.14.0 WAS RELEASED 2026-09-17 (`37f6812`).** Since it, on main and under CHANGELOG ▸ Unreleased — i.e. the content
+of the NEXT release: two defects the owner found on 1.14.0 itself (`446c9d4`) — the left column started expanded and
+empty when both its panels were toggled off, and `context.handoff.posture.note` told an assistant to call
+`handoff {posture}`, a verb folded into `open` before the release — and a docs change (`51fbdc6`: the tutorial shows
+*New project from template…* and names the bundle's `guided-start` runbook; the guided-start page gets screenshots).
+**The three `verify-*.py` scripts were re-run on main `51fbdc6`** — clean build, clean tree, the jar's class bytes
+checked to carry both fixes: 17/17, 18/18, 83/83, each exit 0. Still the owner's, carried from the list above: the
+person-at-the-screen checks that were not done before 1.14.0 went out, and the playground re-vendor of the skills. **CLAUDE.md rule 1's two checks, same day, main `88d19ba`:**
 `git config user.email` is the personal address; `git log --format='%ae' | sort | uniq -c` shows the two
 employer-domain totals UNCHANGED at 132 and 82 (= the 214 rule 1 records), the newest of either dated 2026-08-20, and
 every one of the 51 commits since the v1.13.2 tag on the personal address. One thing the count surfaces that rule 1
