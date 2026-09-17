@@ -1,0 +1,117 @@
+INDEPENDENT REVIEW BRIEF — branch fix/m46-agent-api-closure (five pieces, none yet reviewed)
+Date: 2026-09-17
+Work under review: every commit in  git log origin/main..origin/fix/m46-agent-api-closure
+Base: 96a11ac (Release 1.13.2). main is untouched by the branch.
+
+YOUR ROLE
+
+You are the INDEPENDENT REVIEWER. Another LLM session implemented this work; you did not. Read CLAUDE.md,
+docs/ONBOARDING.md and docs/handoff/REVIEWER-ORIENTATION.md first. Do not trust the reports — verify them. The
+author's reports each end with a section on what they think is weakest; start there, then look where they did not.
+
+  git fetch origin && git switch fix/m46-agent-api-closure
+  git log --oneline origin/main..HEAD        # origin/main has moved since the base — see MERGE below
+
+THE FIVE PIECES — one report each in docs/handoff/. Review them separately, in this priority order.
+
+1. report_m46_agent_api_closure.txt — commit 74a465b.
+   M46 A3–A5 fixed: the echo key `nodes` REMOVED in favour of graphNodes/authoredNodes; `context.log.openedBy`
+   attribution via OpenRequest.Launch; the topology "no records" label with records open. And a RELEASED
+   regression: every `open {analysis}` failed in 1.13.0–1.13.2 with a SessionDriver thread-confinement error
+   (one-line fix: onEdt around openDecision in ActionExecutor.doOpenAnalysis).
+   Attack: the breaking key rename inside a patch-level window; the claim that pruning MainFrame.pendingRequests by
+   `id < opId` is safe (it rests on a reading of the operation gate, not on a test); whether
+   OpenAnalysisDecidesOnTheEdtTest really fails without the fix.
+
+2. report_m44_3b_close_supersedes.txt — commit 69c0329.
+   A close supersedes a pending open of the same kind (owner decision, tracker ▸ Decisions). It touches the
+   GENERATED Fluxtion SessionProcessor (regenerated with `mvn -Pregen process-classes`). Check the generated
+   source is publishable (GeneratedSourceIsPublishableTest), that the resources copy matches, and that all six
+   close entrances call MainFrame.requestClose. CLAUDE.md rule 6 applies: read the Fluxtion source of truth before
+   judging dispatch semantics — do not infer.
+
+3. report_m48_7_canvas_handoff.txt — commits 4cafad0 + 802f780.
+   Posture and the mode selector's record as shared canvas state; a FIFTEENTH verb `handoff` (owner-confirmed).
+   Attack against the canvas write rules in docs/specs/spec-shared-evidence-canvas.md: visible, typed, attributed,
+   scoped, reversible, fail-closed, bounded. Check CanvasHandoff.State.apply validates everything before it
+   mutates anything, and that `context.handoff` sits ABOVE MainFrame.context()'s fresh-start early return.
+
+4. report_m64_spotlight.txt — commits 5d4040b, a62166d, 74c951e.
+   A SIXTEENTH verb `spotlight`: a glass-pane overlay that dims the window and cuts out one named target. Read
+   docs/specs/spec-spotlight.md "As built": the spec's assumption that `screenshot` paints the glass pane was
+   WRONG; the verb now composites the overlay. a62166d edits the canonical guided-start skill and 74c951e re-pins
+   docs/skills/m19-skills/2/index.json to it — confirm CanonicalSkillsTest is green at HEAD and that
+   `x-analyser-min-version` was rightly left at 1.12.0.
+
+5. report_m64_6_multi_spotlight.txt — commit 96c40b5 (0c99a0c after it is a docs-only merge-note fix).
+   Up to six numbered spotlights/callouts at once, all-or-nothing; SpotlightVocabulary.GUIDANCE printed at every
+   assistant entrance (in-app action manifest, REST manifest, MCP server instructions, system prompt); user docs
+   "Ask it to show you" with light AND dark screenshots. This SUPERSEDES parts of piece 4: "one at a time" is gone,
+   and the echo/context shape is now spotlight: {lit: [...]}.
+   Its section 3 lists the author's own doubts: the `coverage` target name actually lights the PAIRING verdict
+   line; callouts can still cover content that is not lit; arrows may cross; the ~110-word guidance cost on every
+   session; `add` + goto's reveal side effects.
+   Pieces 4 and 5 should be reviewed by the same reader.
+
+HOW TO VERIFY — run these; do not take "green" on trust
+
+  git config user.email                      # must print the personal address (CLAUDE.md rule 1)
+  mvn test                                   # reported: 1575 run, 0 failures, 19 skipped (the display tests)
+  mvn test -Dtest='Spotlight*Test,AsyncOpen*Test' -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
+  mvn package && git checkout -- dependency-reduced-pom.xml
+  python3 tools/verify-m46-agent-api.py      # 17 checks — built jar, isolated home, opens a window
+  python3 tools/verify-m48-handoff.py        # 12 checks
+  python3 tools/verify-m64-spotlight.py      # 64 checks
+  python3 tools/capture-conversations.py     # must complete all five scenarios (it could not before 74a465b)
+  python3 tools/test_tools.py
+  mkdocs build --strict
+  the anonymisation sweep, EXACTLY as CLAUDE.md rule 1 writes it (the `git ls-files … | grep -vE …` form) —
+  it must print nothing. It is not repeated here because its terms may be spelled only in the two files that
+  state the rule.
+
+Re-run at least one claimed mutation check per piece yourself (each report names them): a test nobody has seen
+red proves nothing.
+
+READ the new and changed images — the sweep cannot: docs/site/assets/spotlight.png, spotlight-dark.png,
+spotlight-findings-light.png, spotlight-findings-dark.png, and the regenerated conv-*.png. Every visible string
+must be demo data or a neutral path, and every callout must be TRUE of the thing it points at (the author's
+first draft of one was not, and says so).
+
+Also check: CHANGELOG ▸ Unreleased has a line per user-visible change; the four verb-count guard tests
+(CloseVerbTest, ProjectVerbTest, VerbSchemasTest, McpToolsTest) state a reason for 14 → 15 → 16;
+docs/site/user-guide/assistant.md names all 16 tools; SpotlightFrameTest is in .github/workflows/ci.yml's ui-frame
+job in BOTH the -Dtest list and the fail-if-skipped guard; every tracker tick is true.
+
+ONLY A PERSON AT THE SCREEN CAN CHECK THESE — list them for the owner, do not claim them:
+a click and Escape putting spotlights out; the Project panel row for a restored log; the AI ▸ Posture submenu and
+the Place/Clear record items; the held-out guided-start run by a context-free client.
+
+WHAT TO PRODUCE
+
+One review file per piece, beside its report: docs/handoff/review_<same stem as the report>.txt. Each carries a
+verdict (READY / READY WITH FOLLOW-UPS / CONDITIONAL / NOT READY); findings numbered F1… with severity,
+file:line, how you reproduced it and what would fix it; and a plain statement of what you VERIFIED versus what you
+only READ. Where the spec and the code disagree, say which is wrong — "fix the spec too; never silently diverge".
+
+Do NOT fix findings yourself unless the owner asks. Do not rebase, amend or force-push this branch. Commit your
+reviews to the branch and push.
+
+MERGE — only after the owner accepts. Rule 3: no merge commit, never force-push.
+
+origin/main has moved by six docs-only M65 commits (7b9e09c..102029c) that also edit docs/specs/tracker.md, so a
+fast-forward is impossible. The branch must be rebased LOCALLY — which rewrites a62166d, the commit the skills
+index pins — and reaches origin only as main's fast-forward:
+
+  git switch main && git pull --rebase
+  git switch -c merge/m46-closure fix/m46-agent-api-closure && git rebase main     # tracker.md: keep BOTH sides
+  # re-pin: the NEW full SHA of the rewritten "skills: guided-start spotlights…" commit goes into
+  # docs/skills/m19-skills/2/index.json `revision` (the sha256 does not change); run CanonicalSkillsTest;
+  # commit "skills: re-pin after rebase"
+  git switch main && git merge --ff-only merge/m46-closure && mvn test && git push
+
+Then: move each report + review pair (and this brief) to docs/handoff/completed/, record the block in the ledger
+docs/handoff/unreviewed-changes.md as reviewed, and fix any SHAs the rebase rotted in the reports and the tracker.
+
+OWNER-ONLY DECISIONS — surface them, do not make them:
+whether the `open {analysis}` fix warrants a 1.13.3; adding tools/capture-conversations.py and the tools/verify-*.py
+scripts to the pre-release checklist; `.mcp.json` in .gitignore.
