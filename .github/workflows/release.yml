@@ -31,7 +31,8 @@ jobs:
       - name: Verify version input and that the tag is free
         run: |
           [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "bad version (want MAJOR.MINOR.PATCH)"; exit 1; }
-          git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1 && { echo "tag v${{ inputs.version }} already exists"; exit 1; } || true
+          # ask the REMOTE, not the checkout: a shallow checkout may not carry the tag that a failed run left behind
+          git ls-remote --exit-code --tags origin "refs/tags/v${{ inputs.version }}" >/dev/null 2>&1 && { echo "tag v${{ inputs.version }} already exists on origin — delete it first (a failed run leaves it behind)"; exit 1; } || true
 
       # Tests gate the release: nothing below runs (or is committed) unless this is green.
       - name: Run tests
@@ -57,7 +58,10 @@ jobs:
           git add CHANGELOG.md
           git commit -m "Release ${{ inputs.version }} — stamp changelog"
           git tag "v${{ inputs.version }}"
-          git push origin HEAD --tags
+          # ATOMIC: main and the tag land together or not at all. A plain `push HEAD --tags` pushed the tag and
+          # then had main rejected by a commit that raced the run (1.14.1, 2026-09-17), leaving a tag with no
+          # release, no assets and an unstamped changelog on main.
+          git push --atomic origin HEAD "refs/tags/v${{ inputs.version }}"
 
       - name: Build fatjar with the release version stamped in
         run: |
