@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.13.2] - 2026-09-17
+
 ### Changed
 - **Opening a log is now a decision of the session processor, not something it is told about afterwards
   (M44.3).** Every open — File menu, drop, Recent, socket `open {log}`, S3, a rolled set — is a request with an
