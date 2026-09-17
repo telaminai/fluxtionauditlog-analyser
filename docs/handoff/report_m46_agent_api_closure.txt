@@ -1,0 +1,122 @@
+REPORT — M46 analyser-side closure: A1–A5 verified or fixed, and a released `open {analysis}` regression
+Date: 2026-09-17 · Author: the independent review session (the one behind review_perf_w10_branch_2026-09-14)
+Branch: fix/m46-agent-api-closure · Base: origin/main @ 96a11ac (Release 1.13.2) · ONE commit
+Owner-directed: "1, then 3 and 4 — that closes off work", and "move this work to a feature branch so it
+can be reviewed without affecting main". Spec: docs/specs/spec-authoring-toolchain-repair.md (the
+"Analyser — ours" table and its Acceptance).
+
+HOW TO REVIEW IT
+  git fetch origin && git switch fix/m46-agent-api-closure
+  git diff origin/main...HEAD                      # the whole block; main is untouched by it
+  mvn package && python3 tools/verify-m46-agent-api.py      # 17 checks on the built jar, opens a window
+  python3 tools/capture-conversations.py           # must complete all five scenarios
+  Merge, when accepted: rebase onto main and FAST-FORWARD (rule 3 — no merge commit). Local main may
+  be ahead of origin by the owner's own commits under docs/experience/; they are disjoint from this.
+  Write the review beside this file, then archive report + review to completed/ together.
+
+STATE: on the feature branch, NOT YET INDEPENDENTLY REVIEWED — this is the ask. `mvn test` green, `mkdocs build
+--strict` passes, sweep clean, `tools/verify-m46-agent-api.py` 17/17 on the built jar,
+`tools/capture-conversations.py` runs all five scenarios (it could not before this change).
+
+================================================================================
+1. WHY THIS BLOCK EXISTS
+================================================================================
+The tracker listed M46.5 (A1) and M46.6 (A2) as ☐ and "ours, and the priority". Reading the code
+suggested M44.3 had fixed both. Rather than tick them on a reading, all five analyser-owned defects
+were REPRODUCED against the built jar, over the action socket, under an isolated `user.home`:
+
+  A1  first verdict after open computed against pre-call state   ALREADY FIXED (M44.3)   now held
+  A2  REST hangs: (1) load-path modal (2) mixed coverage/topology (1) ALREADY FIXED (M35.7/.9)
+                                                                  (2) NOT REPRODUCED      both held
+  A3  `nodes` is the authored count, read as graph size            LIVE -> fixed
+  A4  a fresh instance reports a sibling's log as opened by "you"  LIVE -> fixed (attribution)
+  A5  `topology` says "no records" with records open               LIVE -> fixed
+
+A1/A2 had sat ☐ for sixteen days after the fix shipped, because nothing re-ran the reproduction. The
+reproduction is now a committed script, which is the durable part of this block.
+
+================================================================================
+2. WHAT CHANGED
+================================================================================
+A3 — MainFrame (the `open {graphml}` echo; the `open {discover}` list), TopologyPanel.graphNodeCount().
+  `nodes` held `authoredNodeIds().size()`. Now `graphNodes` (every node the graph declares — what the
+  status bar counts) and `authoredNodes`. NO `nodes` KEY REMAINS. This is a rename of an agent-facing
+  echo key, deliberately: a key that misleads is not made safe by adding a better one beside it.
+  CHANGELOG ▸ Changed says what to read instead.
+
+A4 — OpenRequest gains `launch` {NONE, COMMAND_LINE, RESTORED} and `openedBy()`; Main declares the
+  startup open; `context.log.openedBy` calls `openedBy()`. The request now rides beside the operation
+  in `MainFrame.pendingRequests`, keyed by opId, and the OpenLogEffect handler TAKES it instead of
+  rebuilding a request from the effect's two facts — the same pattern as `pendingRolledSets` four
+  lines below it ("the effect carries facts, the adapter its object"). THE SESSION PROCESSOR, ITS
+  EVENTS AND ITS EFFECTS ARE UNTOUCHED — no regeneration, no change to anything the four M44.3 review
+  passes covered. `takeRequest` drops entries older than the one it serves, so a refused or superseded
+  request cannot accumulate.
+  Scope, stated: this fixes the ATTRIBUTION. Two runs sharing a home still share a remembered log; that
+  is the harness's H1 (each run its own `user.home`), which this does not change.
+
+A5 — StepCursor.unboundLabel(recordsOpen); TopologyPanel's echo uses it when the cursor is empty and
+  adds `recordsOpen`. An empty cursor's own `positionLabel()` is unchanged ("no records"), so the status
+  line for a genuinely empty source reads as before.
+
+M46.10 (found on the way) — ActionExecutor.doOpenAnalysis. The method is deliberately NOT under
+  onEdt() (it waits for each asynchronous open to settle). Line 724 then called `openDecision(params)`
+  on the caller's thread; that hook submits `OpenRequestReceived` to the SessionDriver, which is
+  confined to the EDT (M44.3 D-A1). So every `open {analysis}` ran its steps and then failed with
+  "SessionDriver is confined to the thread that created it … called on pool-1-thread-2". RELEASED in
+  1.13.0, 1.13.1 and 1.13.2. The fix is one line: `onEdt(() -> openDecision(params))`.
+  It was found because regenerating docs/site/sample-conversations.md (its transcript carried the old
+  `nodes` key) meant re-running tools/capture-conversations.py, which aborted at scenario 4.
+
+Docs/generated: sample-conversations.md regenerated from a real isolated run (its diff is exactly the
+two intended changes: `openedBy`, and `graphNodes`/`authoredNodes` for `nodes`); five conv-*.png
+regenerated by the same run; user-guide/assistant.md names the four `openedBy` values.
+
+================================================================================
+3. EVIDENCE
+================================================================================
+- tools/verify-m46-agent-api.py — NEW, 17 checks against the BUILT JAR, isolated home, hard per-call
+  timeout so a hang is a FAIL. Covers A1–A5 and the `open {analysis}` regression. It is the spec's two
+  acceptance regressions (virgin-instance `open {log, graphml}`; a log INSIDE a project directory).
+  Before/after: a scratch run of the same probes against the pre-fix jar recorded `nodes: 10`,
+  `position: "no records"` with `records: 10`, and the restored log — i.e. A3/A4/A5 failing.
+- Unit tests, all headless: OpenRequestTest (6), AgentEchoHonestyTest (4),
+  OpenAnalysisDecidesOnTheEdtTest (1 — records WHICH THREAD the decision hook runs on, and that the
+  recall itself stays OFF the EDT), OpenEchoPendingPairingTest's double updated to production's keys.
+- Images READ before committing (rule 1): conv-deploy-uat.png, conv-will-it-log.png — neutral
+  /tmp/analyser-docs paths, demo content only. The second independently corroborates A3: its status bar
+  reads "18 nodes … [8 scaffolding node(s) hidden]" and the regenerated transcript says
+  `graphNodes: 18, authoredNodes: 10`.
+
+================================================================================
+4. WHAT A REVIEWER SHOULD ATTACK
+================================================================================
+· THE KEY RENAME (A3). I removed `nodes` rather than keeping it as an alias. Defensible — the defect
+  IS the key — but it is a breaking change to an agent-facing echo inside a patch-level window. If you
+  think an alias for one release is the better trade, say so; it is a two-line change.
+· `pendingRequests` AND THE GATE. I claim an older opId's effect can never arrive after a newer one's,
+  so pruning `id < opId` is safe. That rests on my reading of the operation gate's supersede rule
+  (spec-async-session-driver D-A3), not on a test. If a deferred older effect is possible, a request
+  would fall back to the rebuilt two-fact form — degraded (attribution reads "you"), never wrong about
+  audience or provenance, which still come from the effect. Verify the reading.
+· `atStartup(restored)` IS A HUMAN AUDIENCE. A restored log still shows its dialogs to the person at
+  the screen (fromActionSocket=false). With `--rest` and nobody there, a restore that hits the
+  rolled-set or time-order dialog would block — PRE-EXISTING, unchanged by this block, and arguably the
+  real remainder of A4. I did not change it because "a --rest launch has no human" is a policy call.
+· A2 ROUTE 2 IS HELD, NOT EXPLAINED. 24 interleaved calls is a smoke test, not a proof.
+· THE EDT TEST uses a java.lang.reflect.Proxy for AppControl. Check it fails without the fix (it does:
+  `decidedOnEdt` is FALSE on the pre-fix line) rather than trusting that it passes with it.
+
+================================================================================
+5. NOT DONE / FOLLOW-UPS
+================================================================================
+· Swing, not unit-tested (rule 4): the Project panel row for a restored log should read "opened by the
+  previous session — restored at startup, not opened in this one". Verified through `context` (the
+  panel renders that payload) but nobody has LOOKED at the row. Thirty seconds: open a log, quit,
+  relaunch, read the Audit log row.
+· THE PROCESS FINDING, which matters more than any line above: 1.13.0–1.13.2 shipped a broken
+  `open {analysis}` through FOUR independent review passes. Every one of them read the code and ran the
+  unit suite; none ran the harness that exercises the path. `tools/capture-conversations.py` and
+  `tools/verify-m46-agent-api.py` should join the pre-release checklist (tracker ▸ delivery order 6).
+  A 1.13.3 carrying M46.10 is worth considering on its own.
+· Next, per the owner's sequence: M44.3b (needs the owner's policy decision first), then M48.7.

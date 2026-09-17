@@ -149,7 +149,9 @@ When the project points at a glossary (*Portable context ▸ Vocabulary*), its t
 prompt and is served as `context.vocabulary.text`, so the assistant reads `live` the way this system means it.
 
 `context` is also what the **Project panel** draws (*User guide ▸ The Project panel*): one payload, two
-readers. It reports the graph whether or not a log is open, `log.openedBy` (you or the action socket),
+readers. It reports the graph whether or not a log is open, `log.openedBy` (you, the action socket, the
+command line that started the app, or — for a log the app reopened by itself — *the previous session,
+restored at startup*: an agent should not treat that one as a log anybody chose),
 `graphPairing.graphPath`, `processors` as a list with `selected` and whether `source` was `found`, and
 `source.rootTiers` — each root with the tier that supplied it (`project`, `own settings`, `demo (transient)`) and
 the `form` it is stored in (`project-relative`, `workspace-relative`, `~`, `absolute`), plus `source.workspaceRoot`

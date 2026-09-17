@@ -26,6 +26,28 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   bounded view (size and spans captured under the index lock, then the text); the store publishes the text before
   the rows that point into it. Before, a walk overlapping an append could throw on its thread, and the graph's
   best-effort error path swallowed it — the chart just failed to update.
+### Fixed
+- **Recalling a saved analysis over the action socket works again.** Since 1.13.0 every agent
+  `open {analysis, bind}` ran its steps and then failed with *"SessionDriver is confined to the thread
+  that created it"*: the recall deliberately runs off the UI thread, but the decision it records
+  afterwards was submitted to the session processor from that same thread. The decision is now made on
+  the processor's thread. Found by re-running the sample-conversations harness, which had not been run
+  since the asynchronous open landed; `tools/verify-m46-agent-api.py` now checks it on the built jar.
+- **A log reopened at startup is no longer attributed to "you".** `context.log.openedBy` had two values,
+  so a fresh `--rest` instance that restored the previous session's log told an agent it had opened a
+  log it had never asked for — a sibling run's, when two runs shared a home. It now says *"the previous
+  session — restored at startup, not opened in this one"*, and a path given on the command line says so
+  too. The Project panel shows the same words.
+- **`topology` no longer says "no records" while records are open.** Until a record is selected the step
+  cursor is empty, and its label claimed the log was. The position now reads *"no record selected — 10
+  open; goto {recordIndex} to step through one"* and the echo carries `recordsOpen`.
+
+### Changed
+- **The `open {graphml}` echo names the graph's size and its authored count separately.** One key,
+  `nodes`, held the AUTHORED count — 10 for the demo graph whose status bar says 20 — beside a pairing
+  verdict, where it read as the graph's size. It is now `graphNodes` and `authoredNodes`, and
+  `open {discover}` lists `authoredNodes`. There is no `nodes` key any more: an agent reading the old
+  one should read `authoredNodes` for the same number.
 
 ## [1.13.2] - 2026-09-17
 

@@ -2476,8 +2476,25 @@ public final class MainFrame extends JFrame {
     private void requestOpenLog(String location, String format, OpenRequest request) {
         var driver = session();
         long opId = driver.nextOpId();
+        pendingRequests.put(opId, request);
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested(
                 opId, location, format, request.provenance(), request.fromActionSocket()));
+    }
+
+    /**
+     * The request awaiting its OpenLogEffect, by opId — as {@link #pendingRolledSets}: the effect carries
+     * the processor's facts, the adapter its object. Rebuilding the request from the effect lost whatever
+     * the processor has no reason to know, which is how a log restored at startup came to be reported as
+     * opened by "you" (M46 A4). A refused or superseded request never reaches its effect, so
+     * {@link #takeRequest} also drops every entry older than the one it serves.
+     */
+    private final java.util.Map<Long, OpenRequest> pendingRequests = new java.util.HashMap<>();
+
+    /** Bounded by construction: at most the operations issued since the last effect, and cleared there. */
+    private OpenRequest takeRequest(long opId, boolean fromSocket, String provenance) {
+        OpenRequest asked = pendingRequests.remove(opId);
+        pendingRequests.keySet().removeIf(id -> id < opId);   // older requests were refused or superseded
+        return asked != null ? asked : new OpenRequest(fromSocket, provenance);
     }
 
     /** As {@link #requestOpenLog}, for a resolved rolled set (M30); the set rides beside the request. */
@@ -2486,6 +2503,7 @@ public final class MainFrame extends JFrame {
         var driver = session();
         long opId = driver.nextOpId();
         pendingRolledSets.put(opId, set);
+        pendingRequests.put(opId, request);
         var files = set.ordered();
         String location = files.get(files.size() - 1).file().getFileName() + " (+" + (files.size() - 1) + " rolled)";
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested(
@@ -3768,7 +3786,7 @@ public final class MainFrame extends JFrame {
                 // M44.3: the request's audience is this operation's (R3-B1); the load starts here and
                 // answers when it lands — Pending now, LogOpened/LogOpenFailed later, same opId.
                 sessionInteractive = !e.fromSocket();
-                yield startLoad(opId, e.location(), e.format(), new OpenRequest(e.fromSocket(), e.provenance()));
+                yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
@@ -4056,7 +4074,8 @@ public final class MainFrame extends JFrame {
             for (var c : result.candidates()) {
                 Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("path", c.file().toString());
-                m.put("nodes", c.nodes());
+                // M46 A3: the count is of AUTHORED nodes, and the key says so — see the open echo
+                m.put("authoredNodes", c.nodes());
                 if (c.pairing() != null) {
                     m.put("appliesToOpenLog", c.pairing().applies());
                     m.put("declaredByGraph", c.pairing().matched());
@@ -4270,7 +4289,11 @@ public final class MainFrame extends JFrame {
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("path", path);
-            echo.put("nodes", topologyPanel.authoredNodeIds().size());
+            // M46 A3: this used to be one key, `nodes`, holding the AUTHORED count — 10 for the demo
+            // graph the status bar calls 20 nodes. Beside a pairing verdict it read as the graph's size
+            // and corroborated a wrong verdict. Two facts, two names; no key left that means either.
+            echo.put("graphNodes", topologyPanel.graphNodeCount());
+            echo.put("authoredNodes", topologyPanel.authoredNodeIds().size());
             if (loadInFlight) {
                 // A log is still loading (openLog returns before its load lands). Judging now would
                 // compare this graph with the PREVIOUS log, or with none — the 2026-09-16 session
@@ -4547,7 +4570,7 @@ public final class MainFrame extends JFrame {
                                     selectedRecords, sourceService));
             Map<String, Object> log = facts.logAsMap();
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
-            if (!log.isEmpty()) log.put("openedBy", currentRequest.fromActionSocket() ? "action socket" : "you");
+            if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance != null) out.put("provenance", logProvenance);

@@ -25,14 +25,52 @@ package telamin.fluxtion.audit.analyser.analyser.ui;
  *                         which means "not declared" and is reported as nothing, never inferred.
  *                         A follow re-open re-declares the value the log already had, because it
  *                         is the same log.
+ * @param launch           whether the open came from STARTING the app rather than from anyone acting
+ *                         in this session (M46 A4). A fresh {@code --rest} instance that restored the
+ *                         previous session's log used to report {@code openedBy: "you"} — so an agent
+ *                         that had opened nothing was told it had opened a sibling run's log.
  */
-public record OpenRequest(boolean fromActionSocket, String provenance) {
+public record OpenRequest(boolean fromActionSocket, String provenance, Launch launch) {
+
+    /** How a startup open differs from one somebody asked for in this session. */
+    public enum Launch {
+        /** Not a startup open: a person or an agent asked, in this session. */
+        NONE,
+        /** A log path given on the command line that started the app. */
+        COMMAND_LINE,
+        /** The previous session's log, reopened because the app remembers it. Nobody asked. */
+        RESTORED
+    }
 
     /** A person opened it — chooser, drag-drop, recent menu, S3 dialog. Dialogs are for them. */
     public static final OpenRequest HUMAN = new OpenRequest(false, null);
 
     public OpenRequest {
         provenance = provenance == null || provenance.isBlank() ? null : provenance.trim();
+        launch = launch == null ? Launch.NONE : launch;
+    }
+
+    public OpenRequest(boolean fromActionSocket, String provenance) {
+        this(fromActionSocket, provenance, Launch.NONE);
+    }
+
+    /** The startup open: a path from the command line, or the remembered log of the last session. */
+    public static OpenRequest atStartup(boolean restored) {
+        return new OpenRequest(false, null, restored ? Launch.RESTORED : Launch.COMMAND_LINE);
+    }
+
+    /**
+     * Who opened the log, as {@code context.log.openedBy} says it and as the Project panel prints it
+     * after the words "opened by". An agent reads this to decide whether the log on screen is one it
+     * chose, so a log nobody chose in this session must not be attributed to anybody in it.
+     */
+    public String openedBy() {
+        if (fromActionSocket) return "action socket";
+        return switch (launch) {
+            case RESTORED -> "the previous session — restored at startup, not opened in this one";
+            case COMMAND_LINE -> "the command line that started this analyser";
+            case NONE -> "you";
+        };
     }
 
     /** An agent asked over the action socket, declaring (or not) where the log came from. */
@@ -51,6 +89,8 @@ public record OpenRequest(boolean fromActionSocket, String provenance) {
      * to route, on the one path where a modal is guaranteed to be unanswered.
      */
     public static OpenRequest reload(OpenRequest original, String provenance) {
-        return new OpenRequest(original != null && original.fromActionSocket(), provenance);
+        // the launch travels too: a rotation of a restored log is still a log nobody opened here
+        return new OpenRequest(original != null && original.fromActionSocket(), provenance,
+                original == null ? Launch.NONE : original.launch());
     }
 }

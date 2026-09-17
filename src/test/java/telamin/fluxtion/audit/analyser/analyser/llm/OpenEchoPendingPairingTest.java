@@ -37,7 +37,8 @@ class OpenEchoPendingPairingTest {
             assertFalse(g.containsKey(stale), stale + " was judged against the previous log and must not be echoed");
         }
         assertEquals("/p.graphml", g.get("path"), "the rest of the graph echo is kept");
-        assertEquals(3, g.get("nodes"));
+        assertEquals(5, g.get("graphNodes"));
+        assertEquals(3, g.get("authoredNodes"));
     }
 
     @Test
@@ -94,7 +95,8 @@ class OpenEchoPendingPairingTest {
         @Override public ActionResult openGraphml(String path) {
             Map<String, Object> echo = new LinkedHashMap<>();
             echo.put("path", path);
-            echo.put("nodes", 3);
+            echo.put("graphNodes", 5);               // the production echo's keys (M46 A3): two facts, two names
+            echo.put("authoredNodes", 3);
             echo.put("appliesToOpenLog", true);      // judged against the log in force when called
             echo.put("loggedNodes", 2);
             echo.put("declaredByGraph", 2);

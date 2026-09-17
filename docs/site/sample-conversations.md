@@ -24,7 +24,7 @@ The client discovers one tool per verb — `analyser_context`, `analyser_aggrega
         "sizeBytes": 4053,
         "from": 1767258000090,
         "to": 1767258000360,
-        "openedBy": "you"
+        "openedBy": "the command line that started this analyser"
       },
       "graphPairing": {
         "graph": "demo-quote-processor.graphml",
@@ -422,7 +422,8 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
     ← {
       "graphml": {
         "path": "…/analyser/src/test/resources/topology/demo-quote-processor-noaudit.graphml",
-        "nodes": 10,
+        "graphNodes": 18,
+        "authoredNodes": 10,
         "pairing": "no log is open — nothing to check this graph against"
       }
     }

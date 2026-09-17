@@ -727,7 +727,11 @@ public final class ActionExecutor implements RenderExecutor {
         Map<String, String> bind = new LinkedHashMap<>();
         if (params.get("bind") instanceof Map<?, ?> m) m.forEach((k, v) -> { if (v != null) bind.put(String.valueOf(k), String.valueOf(v)); });
         ActionResult r = app.runAnalysis(str(params.get("analysis")), bind);
-        var decision = openDecision(params);
+        // This method is deliberately OFF the EDT (see above), and the decision is an event submitted to
+        // the session processor, whose driver is confined to the EDT (M44.3 D-A1). Deciding here on the
+        // caller's thread made every `open {analysis}` run its steps and then FAIL with a protocol
+        // violation — released in 1.13.x, found when the conversation harness was next re-run.
+        var decision = onEdt(() -> openDecision(params));
         if (r.ok() && decision != null && decision.anythingIgnored()) {
             Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("analysis")));
             echo.put("ignored", decision.ignored());

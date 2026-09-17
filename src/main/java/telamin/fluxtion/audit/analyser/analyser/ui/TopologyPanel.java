@@ -1125,6 +1125,11 @@ public final class TopologyPanel extends JPanel {
         return telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding.authoredNodes(fullTopology);
     }
 
+    /** Every node the graph declares — authored and scaffolding — which is what the status bar counts. */
+    public int graphNodeCount() {
+        return fullTopology.nodes().size();
+    }
+
     /** The kind and class of a node, for a report that needs to explain what it is naming. */
     public telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.Node nodeInfo(String id) {
         return fullTopology.node(id);
@@ -1272,7 +1277,10 @@ public final class TopologyPanel extends JPanel {
         }
         out.put("atEntry", cursor.atEntry());
         out.put("rowCount", cursor.rowCount());
-        out.put("position", cursor.positionLabel());
+        // M46 A5: the cursor is empty until a record is SELECTED, which is not the same as no records
+        int recordsOpen = recordSource == null ? 0 : recordSource.size();
+        out.put("recordsOpen", recordsOpen);
+        out.put("position", cursor.isEmpty() ? StepCursor.unboundLabel(recordsOpen) : cursor.positionLabel());
         out.put("currentNode", cursor.currentInstanceId());
         out.put("selected", List.copyOf(selection));
         out.put("scope", scope.name().toLowerCase(java.util.Locale.ROOT));

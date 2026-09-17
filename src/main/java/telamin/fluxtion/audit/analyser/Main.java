@@ -79,7 +79,10 @@ public class Main {
             frame.setVisible(true);
             String toOpen = fileArgs.length > 0 ? fileArgs[0] : frame.config().logFile;
             if (toOpen != null && !toOpen.isBlank()) {
-                frame.openFile(Path.of(toOpen));
+                // M46 A4: say HOW this open came about. A remembered log reopened at startup was opened
+                // by nobody in this session, and `context` used to tell an agent "you" opened it.
+                frame.openFile(Path.of(toOpen), telamin.fluxtion.audit.analyser.analyser.ui.OpenRequest
+                        .atStartup(fileArgs.length == 0));
             }
             // the topology is the other half of the working state; restoring only the log means finding
             // the graph again on every launch

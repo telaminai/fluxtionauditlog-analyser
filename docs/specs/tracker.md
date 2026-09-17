@@ -1002,30 +1002,46 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-08-28. Shipped since the last refresh: **1.11.0** (M42 connect an AI client), then **M33.7** report
-table sources and **M43** the AI menu (+ M38.8), both reviewed SOUND on main, unreleased. **M41** was spec'd and
-withdrawn. Open on main: two ledger entries (`ac6a559` the status-light poll; `7e8e859` the Mongoose spec addendum)
-and the M43 menu-name question for the owner._
+_Refreshed 2026-09-17 — the previous refresh was 2026-08-28 and had gone three weeks and five releases stale (its
+item 1 was "Release 1.12.0"). Shipped since: **1.12.0**, **1.13.0–1.13.2** (M44.3 the asynchronous open as a
+session-processor decision, M52 the binary audit reader, M45 the GraphML vocabulary, M50's performance spine on
+runtime 1.0.15 / compiler 1.0.67). `[Unreleased]` carries the M46 agent-API closure below. Owner's chosen
+sequence, 2026-09-17: **close off open work before opening new** — items 1–3._
 
-1. **Release 1.12.0** — gates passed 2026-08-28: 1069 green, `mkdocs --strict`, sweep, ledger clear (archived to
-   `handoff/completed/unreviewed-changes-2026-08.md`), eyeball CHECK C passed by the owner (ready → elsewhere in amber →
-   ready in green). `[Unreleased]` carries M33.7 + M43 + three fixes.
-2. **M39 baselines** — spec'd; the mixed-version hazard is built (M38.7, D-C10). Next model-level feature.
-3. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
-   written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`
-   before filing UP-MNG-01…04.
-4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-5. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
+1. ☑ **M46 analyser-side closure** (M46.5/.6/.7 + M46.10) — DONE 2026-09-17 on branch
+   **`fix/m46-agent-api-closure`**, awaiting independent review before it meets main
+   (`docs/handoff/report_m46_agent_api_closure.txt` says how to review it). A1/A2 were already fixed by M44.3 and
+   sat ☐ for sixteen days; A3–A5 and a released `open {analysis}` regression were fixed. _These ticks are true of
+   the branch; they become true of main when it merges._
+2. **M44.3b** — what a close/reset means for a PENDING open. A policy decision first (owner), then small: model
+   the invalidation in the operation gate and test it. Do it before the next lifecycle slice.
+3. **M48.7** — the `analyser_context` handoff section: the analyser-side slice of authoring modes, and what
+   unblocks the dev-harness loop (M48.10).
+4. **M64 Spotlight** — spec'd 2026-09-16, analyser-only, five slices, about a day and a half. The next self-contained
+   FEATURE once 1–3 are closed.
+5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
+   next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
+6. **Pre-release gate to add** (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`
+   join the release checklist. 1.13.0–1.13.2 shipped a broken `open {analysis}` through four review passes because
+   neither was run.
+7. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
+   written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`.
+8. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
+9. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
    before its native audit and conditional VAL-12 evidence), **M19.3/.4** (tutorial, publish-gated on
    the playground Download), and **M19.8** (bench in CI).
-6. **The small schedulable remnants**, any time: **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
+10. **The small schedulable remnants**, any time: the golden-fixture follow-ups (N1 + the clamp fixture), **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
    rule-1 upstream ask.
-7. **Cross-repo — the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
+11. **Cross-repo** _(this line predates the 2026-09-17 refresh and was NOT re-verified in it — check
+   [upstream-asks.md](../proposals/upstream-asks.md) for which of these have since been filed)_ **— the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
    UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, **UP-MNG-03** (the server supplying the environment) has its analyser-side
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
-8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
+12. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
+13. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism
+   spine (compiler), **M52.6** (mongoose), **M57.4** (generator-http shading), **M51** (starter template), the
+   **M19** tutorial (publish-gated on the playground Download).
 
 ## M46 · Authoring-toolchain repair — ☐ SPEC'D 2026-09-01
 
@@ -1066,17 +1082,33 @@ correct graph. **Every item below is a communication failure, not a correctness 
   green — which let an agent ship plain Java and report all six requirements met. Upstream.
 - [M46.4] ☐ **U5–U8 · bootstrap deadlock, audit "setters" that dispatch, lifecycle records, `addEventAudit`
   naming.** Four agents hit the bootstrap; four hit the log pollution. Upstream + docs.
-- [M46.5] ☐ **A1 · the first pairing/coverage verdict after `open` is computed against pre-call state.**
-  Reported by **all four Opus agents**; one reproduced it on three instances including an isolated
-  `user.home`. Worse than a wrong number: `read-audit-log` tells the reader to check `graphPairing`
-  before concluding anything, so following our own guidance on a first open discards a correct graph.
-  **Ours, and the priority.**
-- [M46.6] ☐ **A2 · the REST endpoint hangs permanently.** Two routes: a modal on a load path (`jstack`:
-  `showConfirmDialog` ← `maybeOfferProject` ← `onLoaded`), and mixed `coverage`/`topology` calls. Kills the
-  agent API silently. **`verify-session-transitions.py` cannot catch the modal** — it never opens a log
-  inside a project directory over the socket. Ours.
-- [M46.7] ☐ **A3–A5 · `open` publishes the VISIBLE node count as `nodes` (12 for a 22-node graph), state
-  leaks across instances via the shared user home, `topology` reports `rowCount: 0` with records open.**
+- [M46.5] ☑ **A1 — VERIFIED FIXED 2026-09-17, by M44.3** _(awaiting independent review:
+  `docs/handoff/report_m46_agent_api_closure.txt`)_. Reproduced against the built jar on a virgin instance
+  under an isolated home: `open {log, graphml}` echoes `pairing: pending` while the load is in flight, never
+  a verdict about the previous log; `context.graphPairing` and `coverage` each return the same answer twice.
+  This entry sat ☐ for sixteen days after the fix shipped because nothing re-ran the reproduction —
+  `tools/verify-m46-agent-api.py` is that reproduction, committed, so it cannot go stale again. Original:
+  the first pairing/coverage verdict after `open` was computed against pre-call state (all four Opus agents).
+- [M46.6] ☑ **A2 — route 1 VERIFIED FIXED, route 2 NOT REPRODUCED, both now held** _(2026-09-17, same
+  report)_. Route 1 (the project-offer modal on a load path): a socket open of a log INSIDE a project
+  directory returns, the socket keeps answering, and the offer arrives as `context.projectOffer` — the
+  case `verify-session-transitions.py` never covered. Route 2 (mixed `coverage`/`topology`): 24 interleaved
+  calls under a 15 s per-call timeout, none hangs. It was never explained, only not reproduced — most likely
+  closed by M44.3's thread confinement — so the script keeps asking.
+- [M46.7] ☑ **A3–A5 — FIXED 2026-09-17** _(same report)_. **A3:** the echo's `nodes` held the AUTHORED
+  count (10 for a graph the status bar calls 20); it is now `graphNodes` + `authoredNodes`, and no `nodes`
+  key is left to be read as either. **A4:** `openedBy` had two values, so a log RESTORED at startup was
+  attributed to "you" — the request now carries how it was launched (it rides beside the operation by
+  opId, as `pendingRolledSets` does, so the session processor is untouched). Sharing a home between runs is
+  still the harness's to fix (H1). **A5:** an unbound step cursor said "no records" with ten open; it now
+  says no record is SELECTED and how to select one, and the echo carries `recordsOpen`.
+- [M46.10] ☑ **`open {analysis}` failed on every call since 1.13.0 — FIXED 2026-09-17** _(found doing the
+  above; same report)_. The recall runs off the EDT on purpose; the ignored-parameters decision it then
+  submits to the session processor did too, and the driver is confined to the EDT (M44.3 D-A1), so the
+  steps ran and the call then failed with a protocol violation. Released in 1.13.0–1.13.2 through four
+  review passes, because the only thing that recalls an analysis through the real frame is
+  `tools/capture-conversations.py`, and it had not been re-run since M44.3. **The lesson is a gate, not a
+  fix: that harness and `verify-m46-agent-api.py` belong in the pre-release checklist.**
 - [M46.8] ☐ **X1–X4 · doc gaps** — how to write the audit log to a file, the `addEventAudit` three-arg
   overload, and the fact that every skill describes a project that does not exist in a fresh template
   (reported by every agent in every round).

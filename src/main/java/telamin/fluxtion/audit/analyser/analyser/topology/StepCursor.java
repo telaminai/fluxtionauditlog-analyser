@@ -188,6 +188,18 @@ public final class StepCursor {
      * Position wording for the status line. Names the regime, because "row 3 / 8" alone invites reading
      * 8 as "the nodes that ran" — which is only true when the record is traced.
      */
+    /**
+     * What an UNBOUND cursor says about position (M46 A5). The cursor binds to a record when one is
+     * selected; before that it is empty, and its label used to be "no records" — reported by
+     * {@code topology} while {@code context} correctly said ten were open. Empty of a selection is not
+     * empty of records, and an agent told "no records" stops looking.
+     */
+    public static String unboundLabel(int recordsOpen) {
+        return recordsOpen <= 0
+                ? "no records"
+                : "no record selected — " + recordsOpen + " open; goto {recordIndex} to step through one";
+    }
+
     public String positionLabel() {
         if (isEmpty()) return "no records";
         int total = rowCount();

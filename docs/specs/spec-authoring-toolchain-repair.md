@@ -78,10 +78,19 @@ open makes you discard a correct graph. A2 kills the agent API silently.
 - [ ] U1: a failing build prints the code, rule and suggested fix **on the console**, with no flag.
 - [ ] U3: a module with no `FluxtionGraphBuilder` says so; it does not report success.
 - [ ] U2: the plugin warns when `target/classes` predates the generated source.
-- [ ] A1: a pairing verdict is never emitted before the log it describes has loaded; the same call twice
+- [x] A1: a pairing verdict is never emitted before the log it describes has loaded; the same call twice
       returns the same answer. Regression test drives `open {log, graphml}` on a **virgin** instance.
-- [ ] A2: no modal is reachable from any REST-driven path — asserted by a test that opens a log **inside a
+      _Met 2026-09-17: fixed by M44.3 (the open is a session-processor decision; the echo says
+      `pending` while the load is in flight), and now HELD by `tools/verify-m46-agent-api.py`._
+- [x] A2: no modal is reachable from any REST-driven path — asserted by a test that opens a log **inside a
       project directory** over the socket, which is the case `verify-session-transitions.py` never covers.
+      _Met 2026-09-17: the project offer has been data on the socket path since M35.7/M35.9; the same
+      script opens a log inside a project directory and runs 24 interleaved `coverage`/`topology` calls
+      under a per-call timeout, so a hang is a FAIL. The second route was **not reproduced** — it is held,
+      not explained._
+- [x] A3–A5 _(added 2026-09-17; the table above lists them, the acceptance did not)_: `graphNodes` and
+      `authoredNodes` replace `nodes`; a startup-restored log is not attributed to anybody in the session;
+      `topology` does not say "no records" while records are open. Same script, plus unit tests.
 - [ ] X1–X3 land in `docs/experience/current/CLAUDE.md`.
 - [ ] H1: each experiment run gets its own `user.home` and its own analyser port.
 
