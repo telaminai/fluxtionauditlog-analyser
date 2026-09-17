@@ -1090,7 +1090,11 @@ difference was `"visible"`/`"total"` changing places — committed ONCE, deliber
 that order is what the product always emits, so the page now matches it and the next run has no diff. **The three `verify-*.py` lines were RUN
 on the release candidate, main `cdef22c`, 2026-09-17** — a CLEAN build of the jar from exactly that commit, tree
 clean: `verify-m46-agent-api.py` 17/17, `verify-m48-handoff.py` 18/18, `verify-m64-spotlight.py` 83/83, each exit 0.
-(The commit that records this changes only this file; if any CODE lands before the release, run them again.) **CLAUDE.md rule 1's two checks, same day, main `88d19ba`:**
+**RE-RUN 2026-09-17 on main `a88f7dd`** — the in-app help gained two paragraphs after `cdef22c`, a bundled
+resource, so the run was repeated rather than argued to be unaffected: clean build, clean tree, the jar confirmed
+to carry the new help — 17/17, 18/18, 83/83 again, each exit 0. `a88f7dd` is the last commit that changes anything
+the jar contains; commits after it that touch only `docs/specs/tracker.md` do not reopen this. If CODE or a bundled
+resource lands before the release, run them again. **CLAUDE.md rule 1's two checks, same day, main `88d19ba`:**
 `git config user.email` is the personal address; `git log --format='%ae' | sort | uniq -c` shows the two
 employer-domain totals UNCHANGED at 132 and 82 (= the 214 rule 1 records), the newest of either dated 2026-08-20, and
 every one of the 51 commits since the v1.13.2 tag on the personal address. One thing the count surfaces that rule 1
