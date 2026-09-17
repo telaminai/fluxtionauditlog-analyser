@@ -349,7 +349,7 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
-## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17
+## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · reviewed CONDITIONAL 2026-09-17 ([`review_spec_m65_2026-09-17.md`](../handoff/review_spec_m65_2026-09-17.md): C1 the store must publish safely while it grows before the poll drives extraction; C2 coalesce in-flight extractions — the pool is unbounded)
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**. Owner question 2026-09-17: *"what is
 the lowest overhead way of forcing the graph redraw? should we add something to the plot verb?"* Observed with the
