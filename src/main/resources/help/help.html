@@ -199,6 +199,24 @@ tagged <i>assistant</i> because it is the assistant's words, not something the a
 shows <b>where</b> to look, and the thing it points at tells you whether the claim is true. Highlights are
 temporary &mdash; any click, <b>Escape</b>, or change of view puts them out, and none is ever saved. A
 finding you want to keep is a <b>flag</b>, a chart note or a report.</p>
+<p><b>What this session is for &mdash; AI &#9656; Posture.</b> An assistant works differently when you are
+<i>investigating</i> a system than when you are <i>building</i> one, and that intent changes before any file
+does ("let's build something new"). <b>Posture</b> says which: <i>Research / support</i> or
+<i>Authoring / deploy</i>. Left on <i>Derived</i>, the analyser guesses &mdash; a project open reads as
+authoring, otherwise research &mdash; and says it is only a guess. Pick one to set it; a connected assistant
+can set it too. Either way it shows in the <b>Project</b> panel, which names who set it and, when the two
+disagree, what the guess would have been; the assistant reads the same thing in <code>context.handoff</code>.</p>
+<p><b>AI &#9656; Place mode-selector record&hellip;</b> The <i>authoring mode selector</i> is a small tool, run
+<b>outside</b> the analyser before any authoring starts, that decides whether the components you need already
+exist in a catalogue or must be written, and which authoring mode applies to each output &mdash; which in turn
+decides the wiring rules and skills an assistant should load. Its <code>--json</code> output is a
+<b>record</b>: the branch, the modes in force, the figures the catalogue already resolved, and what is left
+to author. This item reads that file and puts the record where you and the assistant both see it: a row in
+the <b>Project</b> panel, and <code>context.handoff</code>. The analyser <b>never runs the selector and does
+not check the record</b> &mdash; it carries it, attributed to whoever placed it. A malformed file is refused
+whole, with the reason. <i>Clear mode-selector record</i> removes it.</p>
+<p>Both belong to the <b>session</b>: a project switch clears them, and nothing is written to the project
+profile. If you are not authoring a processor with an assistant, you can ignore both.</p>
 <p><b>No API key?</b> Use <i>Copy prompt</i> (or Send) to copy the full prompt to the clipboard and
 paste it into any LLM.</p>
 

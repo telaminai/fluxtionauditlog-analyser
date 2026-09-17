@@ -221,6 +221,32 @@ questions about it. That is deliberate: if the served description came from the 
 would silently change what the analyser reports about your project, with nobody having declared it. The
 file suggests; you declare.
 
+## What this session is for — posture, and the mode-selector record
+
+Two more items on the *AI* menu are not pointers. They are **session state that you and the AI client both
+see** — the client reads them in `context.handoff`, you read them as rows in the
+[Project panel](user-guide/project-panel.md) — and either of you can set them.
+
+**AI ▸ Posture.** An assistant works differently when you are *investigating* a system than when you are
+*building* one, and that intent changes before any file does (*"let's build something new"*). Posture says
+which: *Research / support* or *Authoring / deploy*. Left on *Derived*, the analyser guesses — a project open
+reads as authoring, otherwise research — and **says it is only a guess**. Pick one to set it; a client sets it
+with `open {posture: "authoring"}`. The Project panel names who set it and, when the two disagree, what the
+guess would have been.
+
+**AI ▸ Place mode-selector record…** The *authoring mode selector* is a small tool, run **outside** the
+analyser before any authoring starts. It decides whether the components you need already exist in a catalogue
+or must be written, and which authoring mode applies to each output — which in turn decides the wiring rules
+and skills an assistant should load. Its `--json` output is a **record**: the branch, the modes in force, the
+figures the catalogue already resolved, and what is left to author. This item reads that file and places the
+record on the canvas; a client does the same with `open {record: {…}}`. The analyser **never runs the
+selector and does not check the record** — it carries it, attributed to whoever placed it. A malformed file is
+refused whole, with the reason. *AI ▸ Clear mode-selector record* removes it; a client uses
+`open {close: "handoff"}`, which also returns the posture to *Derived*.
+
+Both belong to the **session**: a project switch clears them, and nothing is written to the project profile.
+If you are not authoring a processor with an assistant, you can ignore both.
+
 ## Is an AI client reaching this window?
 
 The status bar carries a light that answers exactly that:

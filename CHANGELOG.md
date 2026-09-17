@@ -61,6 +61,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   takes it off again (the same idiom as `open {close: "project"}`), and nothing is written to the project
   profile. It lives on `open` — the action that already means *put this in force* — so it adds no tool; a
   canvas write goes alone, and combined with anything else `open` does it is refused rather than half applied.
+- **The in-app help explains posture and the mode-selector record.** *AI ▸ Posture* and *AI ▸ Place
+  mode-selector record…* were described only by their tooltips and on the docs site; the Help menu never said
+  what posture is for, what the authoring mode selector is, or that the analyser carries its record without
+  running or checking it. The help's *LLM assistant* section and the docs' *Working with AI* page now do.
 - **The built-in assistant is told about every action and every parameter.** Its list of actions is the one
   written by hand, and it had drifted: it never mentioned `open`, `topology`, `coverage`, `report`,
   `screenshot`, `context` or `source_root`, nor seven parameters of the ones it did (a flag's `fix`, a chart's
