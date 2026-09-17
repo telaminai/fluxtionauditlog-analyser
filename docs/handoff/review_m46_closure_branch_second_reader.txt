@@ -114,6 +114,12 @@ A6 — suggestion (owner asked for it to be recorded): fold the `handoff` verb i
   verb with one close idiom. Unreleased today, so this is the cheapest it will ever be; after 1.13.3 ships with
   the verb it becomes a compatibility decision.
 
+A7 — recorded at the owner's request (not a finding): the runbook-that-points pattern.
+  A runbook written to find one class of fault should end by spotlighting the evidence it matched, with a caption
+  built from the match, and light nothing when it finds nothing. Spec ▸ M64.8 and tracker M64.8 ☐ carry it: one
+  canonical skill under docs/skills/common beside guided-start, pinned, then vendored into the playground starter.
+  Follows the merge (a third skill edit and re-pin); nothing on this branch changes for it.
+
 NOT VERIFIED (and by whom it must be)
   - I did not re-run the three tools/verify-*.py scripts, tools/capture-conversations.py or capture-docs.py; the
     first round ran all of them against the built jar and I have no reason to doubt those results, but they are

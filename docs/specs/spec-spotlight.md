@@ -178,6 +178,31 @@ the first thing to test on Linux.
 Both were taken as proposed because the owner asked for the implementation without answering them; either is a small
 change if the answer is different.
 
+## M64.8 — a runbook that finds a fault class ends in a spotlight (owner direction 2026-09-17; not built)
+
+The strongest use of the verb is not the tutor but the **runbook**: a runbook written to find one class of fault
+walks the log, and when it finds the fault it spotlights the evidence — the row, node or series it matched — with a
+caption that quotes what it matched on. "Here is what I found" becomes "here it is", and a new user learns where that
+class of fault shows up in the tool at the same moment they learn they have one.
+
+Two rules make the pattern safe in front of someone who cannot tell a demo from a diagnosis:
+
+1. **The pointer follows the evidence, not the script.** A runbook step lights the target it actually matched
+   (`records:row:N`, `topology:node:<name>`, `graph:series:<label>`), and its caption is built from the match. A step
+   that lights the same place whatever it found is a demo. D-SP6's all-or-nothing rule already helps: a target that
+   does not exist lights nothing.
+2. **Not finding the fault is a first-class outcome.** The step says what it checked and that it found nothing, and
+   lights nothing. The temptation in a runbook is to point at something anyway; resist it in the skill text.
+
+**Where it lives.** One canonical skill in the corpus that shows the shape — filter to the class of fault, confirm with
+`read`, then `spotlight` the matched target with a caption built from the match — under `docs/skills/common`, beside
+`guided-start`, because it is not Spring- or Mongoose-specific. Pinned by the usual two commits (bytes, then the
+`m19-skills/2/index.json` revision + sha256), then vendored into the playground's starter by `scripts/vendor-skills.mjs`
+so every generated template project carries it. A project's own runbooks (which the profile only points at, M38.1) are
+where authors apply the shape to their own fault class; the skill is what they copy.
+
+**Not this branch.** It is a third skill edit and re-pin; it follows the merge, not precedes it.
+
 ## As built (2026-09-17)
 
 **One assumption above was wrong, and the spec is corrected here rather than quietly diverged from.** D-SP1's table

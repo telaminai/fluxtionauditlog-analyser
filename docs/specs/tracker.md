@@ -374,6 +374,10 @@ for the display test and skill edit.
   guide ▸ *Ask it to show you* (what to say; light AND dark screenshots via `capture-docs.py --spotlight`) and the
   in-app help. The guided-start skill is deliberately NOT touched: its beats point at one thing, and a second edit
   would mean a second re-pin on a branch.
+- [M64.8] ☐ **A runbook that finds a fault class ends in a spotlight** (owner direction 2026-09-17; spec ▸ M64.8) —
+  one canonical skill under `docs/skills/common` showing the shape (filter to the fault class → confirm with `read` →
+  `spotlight` the matched target, caption built from the match; not finding it lights nothing), pinned (two commits)
+  and vendored into the playground starter. After the merge: it is a third skill edit and re-pin.
 
 ## M65 · Follow refreshes open graphs — ☑ SHIPPED 2026-09-17 (merged to `main` from `feat/m65-follow-refreshes-graphs`; five review passes) · .5/.6 open
 
