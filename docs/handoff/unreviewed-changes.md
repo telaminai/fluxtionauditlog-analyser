@@ -41,3 +41,30 @@ _Reviewed entries are retired to [`completed/unreviewed-changes-2026-09.md`](com
   appending? (3) R6 — the declaration regex: can a parameter still be "declared" by prose ending in `:` or `,`?
   (4) M64.10, found on the way — a graph target addresses the SELECTED chart only — is it a defect or a limitation?
   Response file: [`completed/response_rereview_m46_closure_branch.txt`](completed/response_rereview_m46_closure_branch.txt).
+
+## 2026-09-17 — M64.8 + M64.9, done on main after the merge, as the owner directed; not yet reviewed
+
+- ☐ **`01b6a4f`** `skills+spotlight: M64.8 point-at-the-fault …; M64.9 coverage -> topology:verdict` and
+  **`473482d`** `skills: re-pin the m19-skills/2 index …`
+  **What & why:** ONE skill edit and ONE re-pin, before 1.14.0. M64.8 — a new canonical skill,
+  `docs/skills/common/point-at-the-fault/SKILL.md`, the shape of a fault-finding runbook that ends by spotlighting
+  the evidence it matched (spec-spotlight ▸ M64.8's two rules, nearly verbatim). It joins `m19-skills/2` ▸ `common`, so
+  THE SELECTION GREW BY ONE for every template. M64.9 — the spotlight target that lights the Topology tab's pairing
+  line is `topology:verdict`, not `coverage`: rename, NO alias (the verb is unreleased).
+  Files: the skill; `guided-start/SKILL.md` (one line); `docs/skills/README.md`; `m19-skills/2/index.json`;
+  `SpotlightTarget`, `SpotlightVocabulary`, `MainFrame` (three `case` labels); `SpotlightTargetTest`,
+  `CanonicalSkillsTest` (the discoverable set); `tools/verify-m64-spotlight.py`, `tools/capture-docs.py`; user guide,
+  spec, tracker, CHANGELOG, CLAUDE.md.
+  **Verified by the author:** every number in the skill's worked example was read off the built jar BEFORE it was
+  written, and `tools/verify-m64-spotlight.py` now replays the example call for call (83/83); `coverage` as a target
+  is asserted UNKNOWN; full suite 1618 / 0 / 0 (21 display skips), display command 154 / 0 / 0 / 0, `mkdocs --strict`,
+  the rule-1 sweep; the pinned revision is an ancestor of main (`git merge-base --is-ancestor`).
+  **The reviewer must still check:** (1) READ the skill as someone who has never seen the tool — does it make an agent
+  point at what it FOUND, and light nothing when it finds nothing? Nobody has run it on a context-free client.
+  (2) Adding to `common` changes what every generated bundle carries: is "additive, same contract" right, or does the
+  playground's generator pin the `common` list? (3) No alias for `coverage` — confirm nothing outside this repo names
+  the old target (the playground's vendored guided-start WILL until it re-vendors: that re-vendor is the owner's, and
+  until it happens a generated starter teaches a target this analyser refuses). (4) `docs/site/assets/spotlight-findings-*.png`
+  were NOT regenerated: the captions in them are unchanged and no target name is visible, but `capture-docs.py` now
+  sends the new name and has not been re-run since.
+
