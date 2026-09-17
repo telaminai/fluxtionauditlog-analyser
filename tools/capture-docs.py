@@ -16,6 +16,8 @@ Usage
     python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
     python3 tools/capture-docs.py --mcp      # regenerate only the MCP setup/dialog shots
     python3 tools/capture-docs.py --spotlight  # regenerate only the spotlight shots (light AND dark)
+    python3 tools/capture-docs.py --projects-menu     # the File menu shot + the tutorial's ringed copy of it
+    python3 tools/capture-docs.py --template-picker   # the template picker + the tutorial's ringed copy of it
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
 Runs the app under an isolated home (/tmp/analyser-docs/home) so no real setting can reach a shot.
@@ -154,6 +156,7 @@ def menu_capture(ep, menu, name):
         _failed.append(name)                # a verb failure produced no image either — count it
         return False
     b = res["wrote"]["windowBounds"]
+    _menu_items[menu] = (b, res["wrote"].get("menuItems") or [])     # where each item is, for annotate()
     raise_window(ep.get("pid"))
     time.sleep(0.8)                     # let the popup lay out before the shutter
     target = ASSETS / name
@@ -171,6 +174,26 @@ def menu_capture(ep, menu, name):
         print(f"  ✓ {name}  ({target.stat().st_size // 1024} KB)")
         return True
     print(f"  ! {name} skipped — a menu shot needs a native capture (Screen Recording permission)")
+    _failed.append(name)
+    return False
+
+
+def annotate(source, target, scale, marks):
+    """Draw "click here" rings + numbered captions on an image THIS RUN just captured (tools/AnnotateShot.java).
+
+    `marks` is [("x,y,w,h", caption)], in the app's logical pixels; `scale` is image pixels per logical pixel.
+    A docs annotation, deliberately unlike the product's spotlight (no dimming, orange ring, no "assistant" tag):
+    the spotlight overlays the main window only and cannot reach a menu item or a dialog.
+    """
+    name = pathlib.Path(target).name
+    _attempted.append(name)
+    args = ["java", str(REPO / "tools" / "AnnotateShot.java"), str(source), str(target), str(scale)]
+    args += [f"{rect}|{caption}" for rect, caption in marks]
+    result = subprocess.run(args, capture_output=True, text=True)
+    if result.returncode == 0 and pathlib.Path(target).exists():
+        print(f"  ✓ {name}  ({pathlib.Path(target).stat().st_size // 1024} KB, annotated from {pathlib.Path(source).name})")
+        return True
+    print(f"  ! {name} not annotated: {result.stderr.strip()[-300:]}")
     _failed.append(name)
     return False
 
@@ -392,6 +415,7 @@ def capture(ep, name):
 
 
 _captured = []      # scratch names — numbers the painted exports within a run
+_menu_items = {}    # menu name -> (windowBounds, menuItems) from the last menu_capture, for annotate()
 _attempted = []     # every asset this run tried to produce, window and menu shots alike
 _failed = []        # the subset it could not — a failed verb call counts, not only a failed shutter
 
@@ -455,6 +479,22 @@ def capture_template_picker():
     asset = ASSETS / name
     if result.returncode == 0 and asset.exists() and asset.stat().st_size > 0:
         print(f"  ✓ {name}  ({asset.stat().st_size // 1024} KB, dialog capture)")
+        # the tutorial's copy, with the two things a reader clicks marked — a SEPARATE file, so the Projects
+        # reference page keeps the clean dialog. The capture program measured both from the live components.
+        where = {}
+        for line in result.stdout.splitlines():
+            if line.startswith("MARK "):
+                _, key, rect, label = line.split(" ", 3)
+                where[key] = (rect, label)
+        if "row" in where and "use" in where:
+            # the button gets a numbered ring and NO caption box: there is no free space beside it — a box to its
+            # left covered Cancel, one above covered the description's last line (seen by reading the first attempt)
+            annotate(asset, ASSETS / "tutorial-template-picker.png", 1,
+                     [(where["row"][0], "choose " + where["row"][1]), (where["use"][0], "")])
+        else:
+            print(f"  ! tutorial-template-picker.png NOT made — the capture reported {sorted(where)}, need row + use")
+            _attempted.append("tutorial-template-picker.png")
+            _failed.append("tutorial-template-picker.png")
     else:
         print(f"  ! template-picker capture failed: {result.stderr.strip()}")
         _failed.append(name)
@@ -538,11 +578,34 @@ def capture_tutorial():
     finish_capture()
 
 
+def mark_new_project_item():
+    """The tutorial's copy of the File-menu shot, with *New project from template…* ringed.
+
+    The item's position comes from the app (`screenshot {scope: "menu:File"}` reports `menuItems`), and the image
+    scale from the capture itself — a Retina native capture is 2x the window's logical size.
+    """
+    source = ASSETS / "projects-file-menu.png"
+    bounds, items = _menu_items.get("File", (None, []))
+    item = next((i for i in items if i.get("text", "").startswith("New project from template")), None)
+    if not (source.exists() and bounds and item):
+        print("  ! tutorial-new-project-menu.png NOT made — no File-menu capture, or the app reported no such item")
+        _attempted.append("tutorial-new-project-menu.png")
+        _failed.append("tutorial-new-project-menu.png")
+        return
+    probe = subprocess.run(["sips", "-g", "pixelWidth", str(source)], capture_output=True, text=True).stdout
+    width = int(probe.strip().split()[-1])
+    scale = round(width / bounds["width"], 3)
+    r = item["bounds"]
+    annotate(source, ASSETS / "tutorial-new-project-menu.png", scale,
+             [(f"{r['x']},{r['y']},{r['width']},{r['height']}", "start here")])
+
+
 def capture_projects_menu():
     """The project actions after M19.5 — including the live-catalogue template picker entry point."""
     print("project menu (light)")
     ep = launch("Light")
     menu_capture(ep, "File", "projects-file-menu.png")
+    mark_new_project_item()
     finish_capture()
 
 
@@ -748,6 +811,7 @@ def main():
     profile = make_demo_project()
     ep = launch("Light")
     menu_capture(ep, "File", "projects-file-menu.png")
+    mark_new_project_item()
 
     ep = launch("Light", project=profile)      # relaunch WITH the project active
     seed(ep)

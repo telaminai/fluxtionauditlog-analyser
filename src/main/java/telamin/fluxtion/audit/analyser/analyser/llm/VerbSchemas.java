@@ -224,7 +224,9 @@ public final class VerbSchemas {
                         p("scope", string(), "\"window\" (default), \"topology\", \"records\", or "
                                 + "\"menu:File\" to open a top-level menu and leave it open so a native "
                                 + "screen capture includes the popup — \"menu:close\" puts it back. The "
-                                + "painted PNG never contains a popup; a Swing menu is a separate layer.")),
+                                + "painted PNG never contains a popup; a Swing menu is a separate layer. With "
+                                + "a menu open the echo adds menuItems: [{text, enabled, bounds}] — where each "
+                                + "item is, RELATIVE TO windowBounds, top to bottom.")),
                 req("path")));
 
         s.put("open", schema("Open an audit log and/or a processor .graphml — or CLOSE what is open. "

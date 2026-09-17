@@ -69,7 +69,8 @@ drive the same verbs:
   suggested fix can't wipe the explanation it's a fix for.
 - **screenshot** — write a PNG of the app, or of one panel. `scope: "menu:File"` opens a top-level menu
   and leaves it open, so an assistant can *show you where a control is* rather than describe it
-  (`menu:close` puts it back). The window is raised first: a native capture photographs a region of the
+  (`menu:close` puts it back); the reply then lists the menu's items with where each one is in the window.
+  The window is raised first: a native capture photographs a region of the
   screen, so anything sitting on top would otherwise be in the picture.
 - **report** — two forms. The single-record form writes one record's finding out as a PDF: the
   explanation, the suggested fix, the event, the node log, a picture of the topology as currently

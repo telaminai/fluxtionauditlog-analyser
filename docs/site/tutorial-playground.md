@@ -23,9 +23,16 @@ anything is downloaded**, and unpacks the one you choose into a new or empty dir
 profile becomes the active project, so the first action of step 2 (*Open project…*) is already done when it
 finishes; opening the GraphML is still yours to do, for the reason step 2 gives.
 
-![The File menu's project group, with New project from template in its own section below the log and GraphML openers](assets/projects-file-menu.png)
+![The File menu open, with an orange ring and the words "start here" marking New project from template… in the project group](assets/tutorial-new-project-menu.png)
 
-![The template picker: the Audit analyser bundle selected, "Build key: none required", and the catalogue's own description of what the bundle contains](assets/template-picker.png)
+In the picker, **①** choose *Audit analyser bundle* — note *Build key: none required* under it — then **②**
+*Use this template*, and pick a new or empty directory when asked.
+
+![The template picker with two numbered orange rings: 1 on the Audit analyser bundle row, captioned "choose Audit analyser bundle", and 2 on the Use this template button](assets/tutorial-template-picker.png)
+
+<small>The orange marks are added by the documentation build to show where to click — they are not something the
+analyser draws. (Its own *spotlight*, which an AI assistant uses to point during the tour in step 5, dims the
+window and tags its callouts *assistant*; it covers the main window, not menus or dialogs.)</small>
 
 The analyser **does not run downloaded code**: when the project is ready it shows the build, run, export and
 stop commands for you to copy, and you decide whether to paste them into a terminal. Either route gives you the

@@ -1796,6 +1796,22 @@ public final class MainFrame extends JFrame {
         return ai;
     }
 
+    /** The showing items of an open menu, top to bottom: {text, bounds relative to the window}. Separators have no text and are skipped. */
+    static java.util.List<Map<String, Object>> menuItemBounds(javax.swing.JMenu menu, java.awt.Rectangle windowOnScreen) {
+        java.util.List<Map<String, Object>> items = new java.util.ArrayList<>();
+        for (java.awt.Component c : menu.getPopupMenu().getComponents()) {
+            if (!(c instanceof JMenuItem item) || !item.isShowing() || item.getText() == null || item.getText().isBlank()) continue;
+            java.awt.Point at = item.getLocationOnScreen();
+            Map<String, Object> one = new java.util.LinkedHashMap<>();
+            one.put("text", item.getText());
+            one.put("enabled", item.isEnabled());
+            one.put("bounds", Map.of("x", at.x - windowOnScreen.x, "y", at.y - windowOnScreen.y,
+                    "width", item.getWidth(), "height", item.getHeight()));
+            items.add(one);
+        }
+        return items;
+    }
+
     // ---- M64: the spotlight ------------------------------------------------------------------------
 
     /**
@@ -4962,11 +4978,21 @@ public final class MainFrame extends JFrame {
                 // permission can take a native capture (with the title bar) of exactly this window —
                 // `screencapture -R x,y,w,h`. Painting cannot draw the title bar; the window server owns it.
                 java.awt.Rectangle onScreen = new java.awt.Rectangle(getLocationOnScreen(), getSize());
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("screenshot", "wrote",
-                        Map.of("path", out.toAbsolutePath().toString(),
-                                "width", img.getWidth(), "height", img.getHeight(),
-                                "windowBounds", Map.of("x", onScreen.x, "y", onScreen.y,
-                                        "width", onScreen.width, "height", onScreen.height)));
+                Map<String, Object> wrote = new java.util.LinkedHashMap<>();
+                wrote.put("path", out.toAbsolutePath().toString());
+                wrote.put("width", img.getWidth());
+                wrote.put("height", img.getHeight());
+                wrote.put("windowBounds", Map.of("x", onScreen.x, "y", onScreen.y,
+                        "width", onScreen.width, "height", onScreen.height));
+                // menu:<Name> — WHERE each item of the open menu is, relative to windowBounds. A native capture
+                // of those bounds shows the popup; this says where in it "New project from template…" is, so a
+                // caller can point at an item instead of describing it. (It is also what a future
+                // spotlight target for menu items would measure — tracker M64.11.)
+                if (requested.startsWith("menu:") && !requested.equals("menu:close")) {
+                    javax.swing.JMenu open = topLevelMenu(scope.substring("menu:".length()));
+                    if (open != null) wrote.put("menuItems", menuItemBounds(open, onScreen));
+                }
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("screenshot", "wrote", wrote);
             } catch (java.io.IOException e) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
                         "could not write " + path + ": " + e.getMessage());

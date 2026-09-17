@@ -27,7 +27,44 @@ public final class TemplatePickerDocCapture {
         SwingUtilities.invokeLater(() -> TemplateProjectDialog.chooseTemplate(null, selection));
         Window chooser = awaitWindow("New project from template");
         capture(chooser, assets.resolve("template-picker.png"));
+        // WHERE the two things a reader clicks are, in the captured image's own coordinates (the capture is of the
+        // window's bounds, so window-relative IS image-relative). Printed for tools/capture-docs.py, which draws
+        // the tutorial's "click here" marks with tools/AnnotateShot.java. Measured from the live components, so a
+        // changed layout moves the marks with it instead of leaving them pointing at where a row used to be.
+        SwingUtilities.invokeAndWait(() -> {
+            javax.swing.JList<?> list = find(chooser, javax.swing.JList.class, c -> true);
+            javax.swing.JButton use = find(chooser, javax.swing.JButton.class, b -> "Use this template".equals(b.getText()));
+            if (list != null && list.getSelectedIndex() >= 0) {
+                print("MARK row", SwingUtilities.convertRectangle(list, list.getCellBounds(list.getSelectedIndex(),
+                        list.getSelectedIndex()).intersection(list.getVisibleRect()), chooser), renderedText(list));
+            }
+            if (use != null) print("MARK use", SwingUtilities.convertRectangle(use.getParent(), use.getBounds(), chooser), use.getText());
+        });
         SwingUtilities.invokeAndWait(chooser::dispose);
+    }
+
+    /** What the selected row SHOWS — the renderer's text, not the model entry's toString() (a record dump). */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static String renderedText(javax.swing.JList list) {
+        int i = list.getSelectedIndex();
+        java.awt.Component cell = list.getCellRenderer().getListCellRendererComponent(list, list.getModel().getElementAt(i), i, true, false);
+        return cell instanceof javax.swing.JLabel label ? label.getText() : String.valueOf(list.getSelectedValue());
+    }
+
+    private static void print(String what, Rectangle r, String label) {
+        System.out.println(what + " " + r.x + "," + r.y + "," + r.width + "," + r.height + " " + label);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends java.awt.Component> T find(java.awt.Container root, Class<T> type, java.util.function.Predicate<T> wanted) {
+        for (java.awt.Component c : root.getComponents()) {
+            if (type.isInstance(c) && wanted.test((T) c)) return (T) c;
+            if (c instanceof java.awt.Container inner) {
+                T hit = find(inner, type, wanted);
+                if (hit != null) return hit;
+            }
+        }
+        return null;
     }
 
     private static Window awaitWindow(String title) throws InterruptedException {

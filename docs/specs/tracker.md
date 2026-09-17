@@ -376,6 +376,21 @@ for the display test and skill edit.
   guide ▸ *Ask it to show you* (what to say; light AND dark screenshots via `capture-docs.py --spotlight`) and the
   in-app help. The guided-start skill is deliberately NOT touched: its beats point at one thing, and a second edit
   would mean a second re-pin on a branch.
+- [M64.11] ☐ **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
+  step "File ▸ New project from template…" could not be spotlit, because no target reaches a menu). An assistant
+  asked *"where is that setting?"* can today only open the menu (`screenshot {scope: "menu:File"}`) and describe
+  the item; it should be able to LIGHT it. **Groundwork done the same day:** with a menu open the screenshot verb
+  now reports `menuItems: [{text, enabled, bounds}]` relative to the window (`MainFrame.menuItemBounds`, held by
+  `MenuScreenshotFrameTest`) — that is the measurement `Surface.bounds` would return. **What is left, and why it is
+  not a one-liner:** (1) lightweight Swing popups live in the layered pane's POPUP layer, UNDER the glass pane, so
+  the overlay can dim around an item — but a popup that does not fit the frame becomes a HEAVYWEIGHT window, above
+  everything, and would be neither dimmed nor cut out: decide whether to refuse then, or force lightweight;
+  (2) the overlay swallows every press, so lighting an item makes the menu unclickable until dismissed — for a
+  menu the dismissing click should probably pass THROUGH to the item; (3) a menu closes when focus moves, and
+  `reveal` must open it and keep it open; (4) `VIEW_CHANGING_VERBS` and Escape both already close a menu — make
+  sure one Escape does not need pressing twice. A DIALOG (the template picker, Settings) is a separate window and
+  stays out of reach: that is D-SP1's deferred separate-window form, not this item. Until then the docs mark menus
+  and dialogs with `tools/AnnotateShot.java`, drawn unlike the spotlight on purpose.
 - [M64.10] ☐ **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
   several named graphs open, `graph`, `graph:note:<n>` and `graph:series:<label>` mean "on whichever chart tab is
   showing", and re-issuing `graph {name: <existing>}` updates that graph WITHOUT re-selecting its tab — so an agent

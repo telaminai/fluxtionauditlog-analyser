@@ -7,6 +7,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Changed
+- **`screenshot {scope: "menu:File"}` says where each menu item is.** With a menu open, the reply now lists the
+  menu's items — text, whether enabled, and bounds relative to the window it reports — so an assistant, or the
+  docs build, can point at *New project from template…* instead of describing where it is.
+- **The tutorial's first step shows where to click.** The File-menu and template-picker pictures on *From
+  playground to analyser* are now marked: a ring on *New project from template…*, then ① the bundle and ② *Use
+  this template*. The marks are drawn by the documentation build from positions the app reports, and are styled
+  unlike the analyser's own spotlight on purpose — that covers the main window, not menus or dialogs.
 - **The two getting-started pages now show what they describe.** *From playground to analyser* adds the in-app
   route to the same bundle — *File ▸ New project from template…*, with the File menu and the template picker
   pictured — and says what the bundle had all along but the page never mentioned: it declares `guided-start` as
