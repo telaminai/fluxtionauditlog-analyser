@@ -1,0 +1,113 @@
+SECOND-READER REVIEW — branch fix/m46-agent-api-closure, all five pieces
+Date: 2026-09-17 · Reviewer: Claude (the session that reviewed M65) · Reviewed HEAD: f53c42e6
+First round: review_m46_agent_api_closure.txt, review_m44_3b_close_supersedes.txt, review_m48_7_canvas_handoff.txt,
+review_m64_spotlight.txt, review_m64_6_multi_spotlight.txt (Codex, 2026-09-17). Brief: brief_review_m46_closure_branch.txt
+
+This file ADDS to the first round; it does not replace it. Where I re-derived one of Codex's findings from source I
+say so; where I did not re-run a reproduction I say that too. Piece verdicts below are mine and agree with the first
+round in every case: the branch as a whole is NOT READY until the first round's F-items are answered.
+
+VERDICT PER PIECE (unchanged from the first round, with my additions)
+  1. M46 agent-API closure (74a465b2)      READY WITH FOLLOW-UPS   — plus A4 below (release recommendation)
+  2. M44.3b close supersedes (69c03290)     NOT READY (first-round F1) — A2 confirms the busy projection is right
+  3. M48.7 canvas handoff (4cafad01+802f7800) NOT READY (first-round F1/F2) — F2 re-derived from source
+  4. M64 spotlight (5d4040b0..74c951e4)     NOT READY (first-round F1) — A3 narrows the human check
+  5. M64.6/.7 several spotlights (96c40b59) NOT READY (first-round F1/F2) — F2 re-derived from source
+
+WHAT I VERIFIED (ran it; not taken from the reports or the first round)
+  - mvn test at f53c42e6: 1575 run, 0 failures, 0 errors, 19 skipped (the display tests). Matches both.
+  - The brief's display command (Spotlight*Test,AsyncOpen*Test, headless=false both ways) with a real display:
+    134 run, 0 failures, 0 errors, 0 skipped — SpotlightFrameTest 3, AsyncOpenInterleavingFrameTest 11,
+    AsyncOpenReplayTest 12, SpotlightTargetTest 59, SpotlightGeometryTest 16, SpotlightSetTest 11,
+    SpotlightEndsWhenTheViewChangesTest 9, SpotlightOverlayTest 5, SpotlightIsNeverPersistedTest 3,
+    SpotlightGuidanceIsAtEveryEntranceTest 5.
+  - THE MERGE, rehearsed (A1): a throwaway copy of the branch rebased onto origin/main AS IT IS NOW (16acfc1c,
+    fifteen commits past the base — M65 code, not only docs). Result: two conflicts, both CHANGELOG.md
+    (at 74a465b2 and 4cafad01); ZERO in docs/specs/tracker.md and ZERO in source, although eight files are
+    touched by both sides (VerbSchemas, ActionExecutor, ChartPanel, GraphPanel, MainFrame, help.html, tracker,
+    CHANGELOG). Union-resolved the two CHANGELOG hunks (keep both) and ran the full suite on the rebased tree:
+    1587 run, 0 failures, 0 errors, 19 skipped (1575 + M65's 12). The throwaway branch was deleted; the real
+    branch, main and origin were not touched.
+  - Exact CLAUDE.md rule-1 sweep on the branch tree: prints nothing. git config user.email: the personal address.
+  - Read docs/site/assets/spotlight.png: demo names, the neutral ~/.fluxtion-analyser path, and the callout
+    ("declared in the graph, and silent in this run") is true of the node it points at — it is the one node the
+    topology renders as not logging, consistent with the status bar's 5-of-5 pairing line.
+
+WHAT I READ AND RE-DERIVED (source at the branch head; no new reproduction unless stated)
+  - M64.6 first-round F2 (reveal before validation): confirmed in ActionExecutor.doSpotlight — the loop parses
+    each member and calls doGoto(reveal:true) for RECORDS_ROW members BEFORE applySpotlight validates the whole
+    set; a member that fails SpotlightTarget.parse is skipped by `continue`, not refused. The finding stands.
+  - M48.7 first-round F2 (branch stringified): confirmed — CanvasHandoff.parse line 125 `text(m.get("branch"))`
+    and `text(Object)` at 294 accepts any object; the list elements at 318 do `instanceof String`. The finding
+    stands; the fix is the same instanceof guard on the scalar.
+  - M46 pendingRequests pruning (`removeIf(id -> id < opId)` in MainFrame.takeRequest, line 2843): I built the
+    M44.3 driver this rides on and Codex's source argument is the right one — OpenLogEffect is performed inside
+    submit's batch-end drain and startLoad takes its OpenRequest before the reader thread starts, so no younger
+    request's take can precede an older request's. It remains a source argument, not a test. Accepted.
+  - M44.3b busy projection after a supersede (my own concern, from the M44.3 B2 history): MainFrame.requestClose
+    (line ~4083) calls syncBusyWithGate() after the submit, so a supersede that clears inFlightWhat drops the
+    busy state immediately rather than when the discarded reader returns. Correct; the B2 class of defect is
+    covered here. See A2 for a nit in the same method.
+  - M64 overlay dismissal (my own concern): SpotlightOverlay registers a MouseAdapter whose mousePressed calls
+    dismiss(); a glass pane with a mouse listener receives the press and does not forward it, so the dismissing
+    click cannot activate the control beneath. Escape is a WHEN_IN_FOCUSED_WINDOW keyboard action. See A3.
+  - CanonicalSkillsTest resolves the pinned revision with `git show <sha>:path` (test line ~104). See A1.
+
+ADDITIONS
+
+A1 — P2, merge procedure: the merge note is out of date, and the local green after rebasing does not prove the
+     re-pin is unnecessary.
+  docs/handoff/report_m46_agent_api_closure.txt (the ">>> UPDATE" merge note), brief_review_m46_closure_branch.txt
+  The note predicts a tracker.md conflict from "six docs-only M65 commits". origin/main now carries M65's code
+  (fifteen commits). The rehearsal above shows the actual conflict surface: CHANGELOG.md twice, nothing else;
+  tracker.md auto-merges. Keep-both is the right resolution for both CHANGELOG hunks, but check the result reads
+  as ONE Unreleased block with one Changed / Fixed / Added each (my union did, at lines 7–29).
+  On CanonicalSkillsTest: the rebased tree passed it HERE because `git show a62166df…:docs/skills/…` still
+  resolves — the original branch objects are present in this clone. On CI, and on any clone that fetched only
+  main after the branch is deleted, that SHA is unreachable and the test is red. So the re-pin step in the note
+  is still mandatory, and "CanonicalSkillsTest green after rebase" must NOT be read as permission to skip it.
+  Fix: update the note (conflict list; the reason the re-pin is required even when the test passes locally), and
+  do the merge exactly as the note's command block says, re-pin included, before `git push`.
+
+A2 — P4, nit: requestClose conflates "never built" with "dispatching".
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java:~4079
+  `if (driver == null || driver.isDispatching()) return null;  // never built: nothing can be pending` — the
+  comment explains only the first half. A close requested while the driver is dispatching (i.e. from inside an
+  effect) is silently dropped, and the caller cannot tell "nothing was pending" from "your request was not
+  submitted". Today no caller runs inside dispatch (the three File-menu listeners at 1576–1586 and the three
+  socket verbs at 4484–4495 are all EDT-outside-dispatch), so it is unreachable; but the next caller from an
+  effect would get a silent no-op. Either throw ProtocolViolation as the driver does, or split the comment.
+
+A3 — P4, narrowing the human check for the overlay (pieces 4/5):
+  Because the glass pane swallows the press, "the dismissing click does not also activate the underlying control"
+  holds by construction and need not be checked by hand. What a person should still check is Escape when keyboard
+  focus is in a component that consumes Escape itself (a combo box with its popup open, the search field's
+  history popup): WHEN_IN_FOCUSED_WINDOW bindings lose to a focused component's own binding. One try each.
+
+A4 — owner decision, with a recommendation: cut 1.13.3 for the `open {analysis}` regression.
+  Every `open {analysis}` has failed since 1.13.0 (three released versions), and the fix is one line with a
+  test that was seen red under mutation (first round, M46 VERIFIED). That is the definition of a patch release.
+  It does not have to wait for the four NOT READY pieces: 74a465b2 is the first commit on the branch, cherry-picks
+  onto main cleanly by the rehearsal above (its only conflict is CHANGELOG), and its verb-count and echo-key
+  changes are the same "Changed" entries the branch already documents. Recommend: cherry-pick 74a465b2 to main,
+  release 1.13.3, then rebase the rest of the branch on top (the rebase will then skip it as already applied).
+  If the owner prefers one merge, say so in the tracker so the ledger explains why a released regression waited.
+
+A5 — P4, the first round's CHANGELOG note (M48.7 review, "15 tools" at line 45 vs 16 at line 21): still present
+  at f53c42e6; and after the rebase the same block gains M65's lines, so fix the count in the same edit that
+  resolves the CHANGELOG conflict.
+
+NOT VERIFIED (and by whom it must be)
+  - I did not re-run the three tools/verify-*.py scripts, tools/capture-conversations.py or capture-docs.py; the
+    first round ran all of them against the built jar and I have no reason to doubt those results, but they are
+    Codex's, not mine.
+  - I did not repeat any first-round mutation; I re-derived two findings (M64.6 F2, M48.7 F2) from source instead.
+  - I read one of the four spotlight images and none of the conversation images; the first round read all nine.
+  - Everything the brief lists as person-at-the-screen remains open: click and Escape on a lit set (narrowed by
+    A3), the Project row for a restored log, the AI ▸ Posture submenu and Place/Clear record items, the held-out
+    guided-start run by a context-free client.
+
+HANDOFF
+  No fixes made, no rebase kept, no amend, no force-push, no merge. The only commit is this file. The four
+  NOT READY pieces need the author's answers to the first round's F-items and a re-review; A1 changes how the
+  merge is done; A4 is the owner's call and I recommend taking it.
