@@ -259,6 +259,19 @@ public final class ChartPanel extends JPanel {
         return axes.hasRightAxis() ? 56 : R;
     }
 
+    /**
+     * The current X view {@code [lo, hi]} in data coordinates, or null when nothing is plotted — read by the
+     * graph BEFORE an extraction replaces the series, so the view can extend, slide or hold (M65 D-F7).
+     */
+    public double[] viewX() {
+        return Double.isNaN(vx0) ? null : new double[]{vx0, vx1};
+    }
+
+    /** The plotted series, for tests in this package — the cache every view operation reads. */
+    List<Series> plottedSeries() {
+        return List.copyOf(series);
+    }
+
     /** The [minX, maxX] across all series, or null if empty — used to pin an unbounded filter to real data. */
     public long[] dataBounds() {
         long gx0 = Long.MAX_VALUE, gx1 = Long.MIN_VALUE;

@@ -121,6 +121,13 @@ public final class GraphTabs extends JPanel {
         }
     }
 
+    /** The open log grew (follow — M65 D-F1): every chart re-extracts, each through its own debounce. */
+    public void onRecordsAppended() {
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.onRecordsAppended();
+        }
+    }
+
     /** Flags changed: every chart's rug refreshes from its cached extraction. */
     public void refreshFlagRug() {
         for (int i = 0; i < tabs.getTabCount(); i++) {

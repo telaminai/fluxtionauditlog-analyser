@@ -6,6 +6,26 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **Follow now refreshes open graphs (M65).** With Follow on, a chart that was already open kept its old points —
+  through zoom, Fit, a narrower time range and even an identical re-send of its definition — because the follow
+  poll told the table, slider and status bar about new records but never the graphs. Every open chart now
+  re-extracts as records arrive. Where the view lands is a rule, not a reset: a chart showing the whole log grows
+  with it, one pressed to the live edge slides with it, one zoomed into the middle holds exactly; a pinned chart
+  keeps its window; changing the chart's definition still resets the view as before.
+- **`graph` gains `refresh: true`** — re-extract now, for an agent driving an analyser whose Follow is off. The echo
+  reports `refreshed: "scheduled" | false`; a re-send that changes nothing (same `series`, same `markers`, same
+  `bands`) now re-extracts nothing, where `markers`/`bands` used to re-extract on every presence.
+
+### Fixed
+- **The slider's follow echo no longer resets an unpinned zoom on every growing tick.** Extending the slider's range
+  re-sent the same time window, and a chart re-windowed on it each second — invisible until now only because the
+  chart never refreshed at all.
+- **The log store is safe to read while Follow appends to it.** Series extraction and the `series` verb walk a
+  bounded view (size and spans captured under the index lock, then the text); the store publishes the text before
+  the rows that point into it. Before, a walk overlapping an append could throw on its thread, and the graph's
+  best-effort error path swallowed it — the chart just failed to update.
+
 ## [1.13.2] - 2026-09-17
 
 ### Changed

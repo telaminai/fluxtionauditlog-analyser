@@ -73,6 +73,15 @@ public final class GraphPanel extends JPanel {
     private Timer extractDebounce;         // debounces structural (dimension/text) re-extractions
     private int extractGen;                // drops stale off-EDT extraction results
 
+    /** Why an extraction was asked for (M65 D-F7): new DATA extends/slides/holds the view; a DEFINITION change resets it. */
+    enum ExtractReason { DATA, DEFINITION }
+    private ExtractReason pendingReason;   // merged DEFINITION-wins across the debounce and the dirty flag
+    private boolean extracting;            // one extraction in flight (D-F6)
+    private boolean dirty;                 // a request arrived while one was in flight → run once more when it lands
+    private int extractionRequests;        // requests that will (re)extract — the `graph` verb's `refreshed` echo
+    private ExtractionRunner extractionRunner = Background::run;   // the off-EDT seam; a headless test replaces it
+    private Long lastFrom, lastTo;         // the filter window this chart last APPLIED (D-F8: an unchanged echo is inert)
+
     private String graphName = "";         // logical name (the tab title's 📌 prefix is display-only)
     private String caption = "";           // provenance: an agent's one-line rationale for this graph
     /**
@@ -106,7 +115,7 @@ public final class GraphPanel extends JPanel {
         extractDebounce = new Timer(EXTRACT_DEBOUNCE_MS, e -> {
             extractDebounce.stop();
             refreshKeys();
-            reExtract();
+            if (pendingReason != null) startExtraction();   // an immediate request may already have merged it
         });
         extractDebounce.setRepeats(false);
 
@@ -504,6 +513,8 @@ public final class GraphPanel extends JPanel {
         this.lastDims = filter.dimensions() == null ? null : new java.util.HashSet<>(filter.dimensions());
         this.lastText = filter.text();
         this.lastGroupMode = filter.groupMode();
+        this.lastFrom = filter.fromMillis();
+        this.lastTo = filter.toMillis();
         filter.addListener(filterListener);
         refreshKeys();
     }
@@ -552,7 +563,10 @@ public final class GraphPanel extends JPanel {
 
     /** Replace the marker series (M32). The SOURCE persists; points are data, re-extracted per scan. */
     public void setMarkers(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec> specs) {
-        this.markerSpecs = specs == null ? java.util.List.of() : java.util.List.copyOf(specs);
+        var next = specs == null ? java.util.List.<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec>of()
+                                 : java.util.List.copyOf(specs);
+        if (next.equals(this.markerSpecs)) return;   // M65 D-F4: an unchanged set re-extracts nothing; `refresh` means "do it anyway"
+        this.markerSpecs = next;
         externalMarkerCache.keySet().retainAll(this.markerSpecs);   // drop cache for removed definitions
         chart.setExternalStamp(externalStamp());   // marker externals stamp the chart too (D-F2)
         mutated();
@@ -767,8 +781,68 @@ public final class GraphPanel extends JPanel {
     /** Window the chart to the pinned range if pinned, else to the shared filter's range. */
     private void applyWindow() {
         if (isPinned()) chart.setViewWindow(pinnedFrom, pinnedTo);
-        else if (filter != null) chart.setViewWindow(filter.fromMillis(), filter.toMillis());
+        else if (filter != null) applyFilterWindow();
     }
+
+    /** Apply the filter's window and remember it as the one applied (D-F8's baseline). */
+    private void applyFilterWindow() {
+        lastFrom = filter.fromMillis();
+        lastTo = filter.toMillis();
+        chart.setViewWindow(lastFrom, lastTo);
+    }
+
+    /**
+     * The open log grew (follow — M65 D-F1). Re-extract from the store, coalesced with any pending change
+     * through the same debounce a structural change uses. A pinned graph re-extracts too: its WINDOW is
+     * fixed, its DATA is not (D-F2). Call on the EDT.
+     */
+    public void onRecordsAppended() {
+        scheduleExtract(ExtractReason.DATA);
+    }
+
+    /** Requests that will (re)extract so far — the {@code graph} verb reports {@code refreshed} from the delta. */
+    public int extractionRequests() {
+        return extractionRequests;
+    }
+
+    private void requestExtract(ExtractReason reason) {     // immediate: a definition edit
+        extractionRequests++;
+        pendingReason = merge(pendingReason, reason);
+        startExtraction();
+    }
+
+    private void scheduleExtract(ExtractReason reason) {    // debounced: a structural filter change, a follow tick
+        extractionRequests++;
+        pendingReason = merge(pendingReason, reason);
+        extractDebounce.restart();
+    }
+
+    /** DEFINITION wins (D-F7): a definition change landing as DATA would hold a window that no longer means anything. */
+    private static ExtractReason merge(ExtractReason a, ExtractReason b) {
+        if (a == ExtractReason.DEFINITION || b == ExtractReason.DEFINITION) return ExtractReason.DEFINITION;
+        return b == null ? a : b;
+    }
+
+    /** D-F6: one extraction in flight; a request that arrives during one runs once more when it lands. */
+    private void startExtraction() {
+        if (extracting) { dirty = true; return; }
+        ExtractReason reason = pendingReason == null ? ExtractReason.DEFINITION : pendingReason;
+        pendingReason = null;
+        extract(reason);
+    }
+
+    private void finishExtraction() {
+        extracting = false;
+        if (dirty) { dirty = false; startExtraction(); }
+    }
+
+    // ---- test seams (package-private) ----
+    ChartPanel chart() { return chart; }
+    void setExtractionRunner(ExtractionRunner runner) { this.extractionRunner = java.util.Objects.requireNonNull(runner); }
+    /** Fire the debounce now rather than after {@code EXTRACT_DEBOUNCE_MS}; skips key discovery. Tests only. */
+    void runPendingExtractionNow() { extractDebounce.stop(); if (pendingReason != null) startExtraction(); }
+    boolean isExtracting() { return extracting; }
+    int markerPointCount() { int n = 0; for (var ms : extractedMarkers) n += ms.points().size(); return n; }
 
     /** Add resolved series (assistant {@code graph} action); dedup + redraw. Call on the EDT. */
     public void addKeys(List<GraphKey> keys) {
@@ -801,11 +875,18 @@ public final class GraphPanel extends JPanel {
             lastDims = dims == null ? null : new java.util.HashSet<>(dims);
             lastText = filter.text();
             lastGroupMode = filter.groupMode();
-            extractDebounce.restart();      // re-parse (off-EDT), coalesced
+            scheduleExtract(ExtractReason.DEFINITION);   // re-parse (off-EDT), coalesced
         } else if (!isPinned()) {
             // time-only change → just window the cached series (cheap); a PINNED graph ignores it and
-            // holds its fixed window (evidence that survives the investigation moving on)
-            chart.setViewWindow(filter.fromMillis(), filter.toMillis());
+            // holds its fixed window (evidence that survives the investigation moving on).
+            // M65 D-F8: only when the window actually CHANGED since this chart last applied it. The follow
+            // poll's extendAbsMax echoes the same (from, to) on every growing tick, and re-windowing on it
+            // threw a zoomed person back to the full window each second; a verb re-sending the current range
+            // is the same non-event. A real slider move still re-windows.
+            if (!java.util.Objects.equals(lastFrom, filter.fromMillis())
+                    || !java.util.Objects.equals(lastTo, filter.toMillis())) {
+                applyFilterWindow();
+            }
         }
     }
 
@@ -826,12 +907,18 @@ public final class GraphPanel extends JPanel {
                 err -> { /* best-effort */ });
     }
 
-    /**
-     * Re-extract the active series <b>across all time</b> (off-EDT), then window to the current time range.
-     * Only called on a structural change (dimensions/text/keys) — a time-only change re-windows instead.
-     * A generation counter drops results from a superseded extraction.
-     */
+    /** A definition changed (keys, formulas, markers, bands, externals): re-extract now and reset the view. */
     private void reExtract() {
+        requestExtract(ExtractReason.DEFINITION);
+    }
+
+    /**
+     * Re-extract the active series <b>across all time</b> (off-EDT), then land the view: a DEFINITION change
+     * windows to the pinned range or the filter's (as before); new DATA (a follow tick) extends, slides or
+     * holds the view the person had (D-F7). A time-only filter change never comes here — it re-windows the
+     * cache instead. A generation counter drops results from a superseded extraction; D-F6 keeps one in flight.
+     */
+    private void extract(ExtractReason reason) {
         seriesChanged();   // keep the Series list in step with any add/remove of keys or formulas
         if (store == null || filter == null || (activeKeys.isEmpty() && activeExprs.isEmpty())) {
             chart.clear();
@@ -847,7 +934,8 @@ public final class GraphPanel extends JPanel {
         record Extracted(List<Series> series, List<ChartPanel.Band> bands,
                          List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markers,
                          List<String> markerNotes) { }
-        Background.run(
+        extracting = true;
+        extractionRunner.run(
                 () -> {
                     List<Series> out = new ArrayList<>();
                     for (GraphKey k : keys) out.add(SeriesExtractor.extract(s, f, k, true));   // acrossAllTime
@@ -891,18 +979,45 @@ public final class GraphPanel extends JPanel {
                     return new Extracted(out, bands, markerData, mNotes);
                 },
                 out -> {
-                    if (gen != extractGen) return;   // a newer extraction superseded this one
-                    List<Series> merged = new ArrayList<>(out.series());
-                    merged.addAll(externalLoaded.values());   // external points ride the same chart
-                    chart.setSeries(merged);
-                    chart.setBands(out.bands());
-                    extractedMarkers = out.markers();
-                    markerNotes.clear();
-                    markerNotes.addAll(out.markerNotes());
-                    pushMarkers();   // extracted markers + the built-in Flags rug, one seam (M32.6)
-                    applyWindow();                   // pinned range if pinned, else the filter's window
+                    try {
+                        if (gen != extractGen) return;   // a newer extraction superseded this one
+                        double[] viewBefore = chart.viewX();      // D-F7: where the person was looking …
+                        long[] dataBefore = chart.dataBounds();   // … and what the data spanned, before the swap
+                        List<Series> merged = new ArrayList<>(out.series());
+                        merged.addAll(externalLoaded.values());   // external points ride the same chart
+                        chart.setSeries(merged);
+                        chart.setBands(out.bands());
+                        extractedMarkers = out.markers();
+                        markerNotes.clear();
+                        markerNotes.addAll(out.markerNotes());
+                        pushMarkers();   // extracted markers + the built-in Flags rug, one seam (M32.6)
+                        landWindow(reason, viewBefore, dataBefore);
+                    } finally {
+                        finishExtraction();
+                    }
                 },
-                err -> { /* best-effort */ });
+                err -> finishExtraction());   // best-effort as before — but the in-flight flag must clear
+    }
+
+    /**
+     * D-F7 — where the view lands after an extraction. A DEFINITION change, a pinned graph, or no previous
+     * points (rule 0: the first data is an extend from nothing) → as before: the pinned range, else the
+     * filter's window. New DATA on an unpinned chart, tested in order: the view covered the whole old range →
+     * <b>extend</b> (left edge stays, right edge to the new maximum); its right edge was at the old maximum →
+     * <b>slide</b> (same width, right edge to the new maximum); otherwise <b>hold</b> exactly.
+     */
+    private void landWindow(ExtractReason reason, double[] viewBefore, long[] dataBefore) {
+        if (isPinned() || reason == ExtractReason.DEFINITION || viewBefore == null || dataBefore == null) {
+            applyWindow();
+            return;
+        }
+        long[] dataNow = chart.dataBounds();
+        if (dataNow == null) { applyWindow(); return; }
+        long oldMin = dataBefore[0], oldMax = dataBefore[1], newMax = dataNow[1];
+        double v0 = viewBefore[0], v1 = viewBefore[1];
+        if (v0 <= oldMin && v1 >= oldMax) chart.setViewWindow((long) v0, newMax);              // extend
+        else if (v1 >= oldMax) chart.setViewWindow((long) (newMax - (v1 - v0)), newMax);        // slide
+        else chart.setViewWindow((long) v0, (long) v1);                                          // hold
     }
 
     /** Validate the f(x) field's syntax then add it — a ref that doesn't exist just plots empty. */
@@ -1318,7 +1433,10 @@ public final class GraphPanel extends JPanel {
      * with the same extraction pass (same filter, same LOCF carry) as the series themselves.
      */
     public void setBands(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec> bands) {
-        this.bandSpecs = bands == null ? java.util.List.of() : java.util.List.copyOf(bands);
+        var next = bands == null ? java.util.List.<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.BandSpec>of()
+                                 : java.util.List.copyOf(bands);
+        if (next.equals(this.bandSpecs)) return;   // M65 D-F4: unchanged → nothing to re-extract
+        this.bandSpecs = next;
         mutated();
         reExtract();   // intervals come from the extraction pass
     }

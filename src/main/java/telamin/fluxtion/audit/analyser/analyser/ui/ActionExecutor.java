@@ -399,6 +399,7 @@ public final class ActionExecutor implements RenderExecutor {
         String style = asText(p.get("style"));
         String rationale = asText(p.get("rationale"));   // provenance: why the agent built this graph
         boolean newTab = Boolean.TRUE.equals(p.get("newTab"));
+        boolean refresh = Boolean.TRUE.equals(p.get("refresh"));   // M65 D-F4: the one word for "re-extract anyway"
         boolean pinRequested = p.containsKey("from") || p.containsKey("to");
         Long from = asLong(p.get("from"));
         Long to = asLong(p.get("to"));
@@ -410,6 +411,7 @@ public final class ActionExecutor implements RenderExecutor {
         return onEdt(() -> {
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
             if (panel == null) return ActionResult.error("could not open a graph (no log loaded)");
+            int requestsBefore = panel.extractionRequests();
             if (extSpecs != null) panel.setExternalPreloaded(extSpecs, extLoaded, extNotes);   // REPLACE
             panel.addKeys(toAdd);
             for (Object[] pe : parsedExprs) panel.addExpr((String) pe[0], (String) pe[1], (SeriesExtractor.Resolve) pe[2]);
@@ -418,7 +420,11 @@ public final class ActionExecutor implements RenderExecutor {
             applyNotesAndAxes(panel, p, s);
             List<String> annotationIssues = applyGuidesAndBands(panel, p);
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
+            if (refresh) panel.onRecordsAppended();
             Map<String, Object> applied = new LinkedHashMap<>();
+            // "scheduled", not true: the walk lands after this call returns (debounce + off-EDT); `series` is
+            // the way to READ a fresh value, the chart is what lags. false = nothing in this call re-extracts.
+            applied.put("refreshed", panel.extractionRequests() > requestsBefore ? "scheduled" : Boolean.FALSE);
             if (p.containsKey("guides")) applied.put("guides", panel.guides().size());
             if (p.containsKey("markers")) {
                 applied.put("markers", panel.markerSpecs().size());

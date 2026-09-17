@@ -378,17 +378,17 @@ READY WITH FOLLOW-UPS — F1 (required, implementer applies) the read view reads
 `file` *after* it, and serves `record(row)` itself; F2 empty-before lands as reset; F3 D-F8 also silences identical
 programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argument shape. **Known stale under follow, out of scope here: reports and coverage.** About two days.
 
-- [M65.0] ◧ **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
+- [M65.0] ☑ 2026-09-17 **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
   default overridden by `HeapLogStore` (size + file + offset/length under the index lock); `SeriesExtractor` walks
   to the captured size; concurrent-append test.
-- [M65.1] ◧ **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
+- [M65.1] ☑ 2026-09-17 **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
   D-F6 in-flight coalescing, D-F7 extend/slide/hold + DEFINITION-wins reason merge, and D-F8 `lastFrom`/`lastTo`
   echo guard; `ui/FollowRefreshesGraphTest` drives the tick as `pollFollow` does (append, `extendAbsMax`, hook)
   in four variants, each waiting for the generation to land; coalescing + reason-merge test through the
   package-private extraction-runner seam; help clause, CHANGELOG.
-- [M65.2] ☐ **`graph {refresh: true}` + `refreshed: "scheduled"|false` in the echo**; `setMarkers`/`setBands`
+- [M65.2] ☑ 2026-09-17 **`graph {refresh: true}` + `refreshed: "scheduled"|false` in the echo**; `setMarkers`/`setBands`
   gain the only-if-changed guard; idempotence test. Schema parity is automatic via `VerbSchemas` tests.
-- [M65.3] ☐ **Manual proof on the bundle**: append a CSV row, `./export-audit.sh`, the open graph shows the
+- [M65.3] ☐ **Manual proof on the bundle** (needs the analyser restarted on the branch jar): append a CSV row, `./export-audit.sh`, the open graph shows the
   point within ~1.2 s untouched and a zoomed graph keeps its zoom; before/after via `screenshot`.
 - [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement (and the re-frame in
   `appendFrom` is the larger target if it does).

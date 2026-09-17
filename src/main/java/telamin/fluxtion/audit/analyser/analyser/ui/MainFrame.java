@@ -3109,6 +3109,7 @@ public final class MainFrame extends JFrame {
         if (mx != null) timeSlider.extendAbsMax(mx);
         timeSlider.setHistogram(buildHistogram(store, 160));
         onFilterChanged();
+        graphTabs.onRecordsAppended();   // M65 D-F1: open charts re-extract; the echo above no longer moves them (D-F8)
         tablePanel.scrollToLast();
         String range = store.minLogTime() == null ? "no timestamps"
                 : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";

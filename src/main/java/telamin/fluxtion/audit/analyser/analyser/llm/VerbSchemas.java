@@ -106,6 +106,11 @@ public final class VerbSchemas {
                                 + "(e.g. {expr: \"ask.price - bid.price > 0.004\", label: \"in breach\"}) "
                                 + "— REPLACES the set; intervals recompute with the data like any series"),
                         p("rationale", string(), "why you built this graph — captions the plot (provenance)"),
+                        p("refresh", bool(), "re-extract this graph from the log now. Rarely needed: with Follow "
+                                + "on, open graphs re-extract as records arrive. A re-send that changes nothing "
+                                + "re-extracts nothing; this is the one word for 'do it anyway'. The echo says "
+                                + "refreshed: \"scheduled\" — the walk lands after the call returns, so read fresh "
+                                + "values with `series`; the chart is what lags"),
                         p("rename", string(), "with {name}, rename that graph to this")),
                 List.of()));
 

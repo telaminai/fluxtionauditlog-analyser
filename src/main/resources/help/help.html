@@ -218,7 +218,8 @@ paste it into any LLM.</p>
 <li>All date/times are shown in <b>UTC</b>.</li>
 <li><b>Follow (tail)</b>: File → "Follow (tail)" or the toolbar <b>Follow</b> toggle polls the open
     <b>local</b> file (~1&nbsp;s) and appends newly-<i>completed</i> records live, auto-scrolling to the
-    newest; flags, filters and selection are preserved. A record still being written isn't shown until its
+    newest; flags, filters and selection are preserved, and open graphs re-extract (a chart showing the whole
+    log grows with it, one at the live edge slides, one zoomed into the middle holds). A record still being written isn't shown until its
     closing <code>---</code> arrives; a shrunk/rotated file triggers a reload. Available for heap-loaded
     files (at/below the <b>memory threshold</b>); not for S3.</li>
 <li><b>Memory threshold</b> (Settings → <i>Performance &amp; S3</i>): files at/below it load into heap,
