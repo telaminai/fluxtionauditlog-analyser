@@ -1076,12 +1076,19 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
 rounds and a re-review by two readers; the whole record, and the map from every as-reviewed SHA to its commit on main,
 is [`docs/handoff/completed/sha-map_m46_closure_branch.txt`](../handoff/completed/sha-map_m46_closure_branch.txt)).
 They ship together as **1.14.0 — no 1.13.3** (Decisions). **BETWEEN MAIN AND 1.14.0:** (a) ~~M64.8 + M64.9~~ DONE on
-main the same day — one skill edit, one re-pin; the playground re-vendor of the new skill is the owner's; (b) one ☐ in the ledger — the answers to the re-review's R4/R5/R6 (`442582f`) reached main
-unreviewed; (c) the person-at-the-screen checks, which nobody but the owner can do: *File ▸ Close log* during a slow
+main the same day — one skill edit, one re-pin; the playground re-vendor of the new skill is the owner's; (b) ~~the two ledger entries~~ REVIEWED 2026-09-17, both READY WITH FOLLOW-UPS (`docs/handoff/review_ledger_2026-09-17.txt`; F1–F3 are
+follow-ups, none gating; its F4 — the spotlight screenshots not re-run since the `topology:verdict` rename — is CLOSED:
+`capture-docs.py --spotlight` ran whole on main `b8b1aaf`, four native captures, both dark images byte-identical and
+both light ones read and found to be re-renders, so nothing was committed); (c) the person-at-the-screen checks, which nobody but the owner can do: *File ▸ Close log* during a slow
 FIRST load · click, and Escape with focus in a component that consumes Escape (an open combo, the search-history
 popup), while SEVERAL spotlights are lit · *AI ▸ Posture*, *Place mode-selector record…*, *Clear record* · the
 Project-panel row for a restored log · the six "Ask it to show you" sentences and the guided-start tour on a
-context-free client; (d) the pre-release checklist, `docs/admin/release-process.md` §4.0. Still open after that, not
+context-free client; (d) the pre-release checklist, `docs/admin/release-process.md` §4.0 — **its `capture-conversations.py` line was RUN
+on the 1.14.0 candidate, main `b8b1aaf`, 2026-09-17:** exit 0, all five scenarios, five native captures, no
+`NOT REGENERATED`. All five images READ (demo data, neutral paths) and restored as re-renders. The transcript's only
+difference was `"visible"`/`"total"` changing places — committed ONCE, deliberately: since the `context.showing` fix
+that order is what the product always emits, so the page now matches it and the next run has no diff. The three
+`verify-*.py` lines were last run on the merged tree (17/17, 18/18, 83/83); re-run them on the release commit. Still open after that, not
 gating: the valid `add` + `detail:node` end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE
 (147 words) against a held-out run, M64.10, M46.11.
 

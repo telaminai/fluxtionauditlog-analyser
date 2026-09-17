@@ -31,8 +31,8 @@ The client discovers one tool per verb — `analyser_context`, `analyser_aggrega
         "applies": true
       },
       "showing": {
-        "total": 10,
-        "visible": 10
+        "visible": 10,
+        "total": 10
       }
     }
     ```
