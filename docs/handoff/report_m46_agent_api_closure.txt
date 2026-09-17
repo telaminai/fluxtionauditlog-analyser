@@ -20,8 +20,35 @@ HOW TO REVIEW IT
   git diff origin/main...HEAD                      # the whole block; main is untouched by it
   mvn package && python3 tools/verify-m46-agent-api.py      # 17 checks on the built jar, opens a window
   python3 tools/capture-conversations.py           # must complete all five scenarios
-  Merge, when accepted: rebase onto main and FAST-FORWARD (rule 3 — no merge commit). Local main may
-  be ahead of origin by the owner's own commits under docs/experience/; they are disjoint from this.
+  MERGE — THE AUTHORITATIVE NOTE FOR THE WHOLE BRANCH (rewritten 2026-09-17 after the second reader's rehearsal,
+  A1; it supersedes the merge notes in report_m64_spotlight.txt and brief_review_m46_closure_branch.txt, which
+  predicted a tracker.md conflict from "six docs-only commits" and were wrong on both counts).
+  origin/main is 16acfc1 — FIFTEEN commits past this branch's base, and they are M65 CODE, not only docs. The
+  second reader rebased a throwaway copy onto it and found:
+    · conflicts: CHANGELOG.md, TWICE (at 74a465b and at 4cafad0). NOTHING ELSE — docs/specs/tracker.md and all
+      eight source files touched by both sides auto-merge. The rebased tree ran 1587 tests green (1575 + M65's 12)
+      at the time; this branch has since added tests.
+    · resolve both CHANGELOG hunks KEEP-BOTH, then READ the result: it must be ONE Unreleased block with one
+      Added / Changed / Fixed each, and ONE tool count — 15 (the fourteen plus `spotlight`; `handoff` is not a
+      verb). This review round fixed the count on the branch; the rebase can reintroduce a stale one.
+    · THE RE-PIN IS MANDATORY EVEN THOUGH CanonicalSkillsTest WILL PASS LOCALLY AFTER THE REBASE. The test
+      resolves the pinned revision with `git show <sha>:path`. After a rebase the OLD commit a62166d is still an
+      object in this clone, so the test stays green here — and goes red on CI and on any clone that fetched only
+      main once this branch is deleted, because that SHA is then unreachable. "Green after rebase" is NOT
+      permission to skip it.
+  Rule 3 forbids a merge commit and a force-push, so the rebase is LOCAL and reaches origin only as main's
+  fast-forward:
+      git switch main && git pull --rebase
+      git switch -c merge/m46-closure fix/m46-agent-api-closure && git rebase main   # CHANGELOG.md x2: keep both
+      # re-pin: the NEW full SHA of the rewritten "skills: guided-start spotlights before each beat speaks"
+      # commit -> docs/skills/m19-skills/2/index.json `revision` (the sha256 does not change); commit
+      # "skills: re-pin after rebase"; then prove it the way CI will see it:
+      #     git cat-file -e <new-sha> && git merge-base --is-ancestor <new-sha> HEAD
+      mvn test && git switch main && git merge --ff-only merge/m46-closure && git push
+  then delete fix/m46-agent-api-closure, locally and on origin.
+  IF THE OWNER TAKES A4 (1.13.3 first): cherry-pick 74a465b onto main (its only conflict is CHANGELOG), release,
+  then do the above — the rebase skips 74a465b as already applied, leaving one CHANGELOG conflict, not two.
+  Local main may also be ahead of origin by the owner's own commits under docs/experience/; disjoint from this.
   Write the review beside this file, then archive report + review to completed/ together.
 
 STATE: on the feature branch, NOT YET INDEPENDENTLY REVIEWED — this is the ask. `mvn test` green, `mkdocs build

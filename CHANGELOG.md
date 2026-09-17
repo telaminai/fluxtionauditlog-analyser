@@ -108,8 +108,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **The `open {graphml}` echo names the graph's size and its authored count separately.** One key,
   `nodes`, held the AUTHORED count — 10 for the demo graph whose status bar says 20 — beside a pairing
   verdict, where it read as the graph's size. It is now `graphNodes` and `authoredNodes`, and
-  `open {discover}` lists `authoredNodes`. There is no `nodes` key any more: an agent reading the old
-  one should read `authoredNodes` for the same number.
+  `open {discover}` lists `authoredNodes`. **This removes a reply key, deliberately and with no alias:** there
+  is no `nodes` key any more, because a key that misleads is not made safe by putting a better one beside it.
+  A client that read `nodes` gets nothing where it used to get a number — read `authoredNodes` for the same
+  value, or `graphNodes` for what it was usually taken to mean.
 
 ## [1.13.2] - 2026-09-17
 

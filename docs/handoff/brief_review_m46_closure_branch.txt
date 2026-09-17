@@ -97,6 +97,9 @@ Do NOT fix findings yourself unless the owner asks. Do not rebase, amend or forc
 reviews to the branch and push.
 
 MERGE — only after the owner accepts. Rule 3: no merge commit, never force-push.
+>>> SUPERSEDED 2026-09-17: the conflict prediction in this section is wrong (second reader A1). Use
+    report_m46_agent_api_closure.txt ▸ MERGE — CHANGELOG.md conflicts twice, nothing else, and the re-pin is
+    mandatory even when CanonicalSkillsTest passes locally.
 
 origin/main has moved by six docs-only M65 commits (7b9e09c..102029c) that also edit docs/specs/tracker.md, so a
 fast-forward is impossible. The branch must be rebased LOCALLY — which rewrites a62166d, the commit the skills

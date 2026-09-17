@@ -17,6 +17,9 @@ CI's flags · `mkdocs build --strict` · sweep clean · `tools/verify-m64-spotli
     CanonicalSkillsTest goes red there. So: FAST-FORWARD main to this branch without rebasing the branch — local
     main's own unpushed commits (docs/experience only, disjoint from this work) rebase on top of it instead:
         git switch main && git rebase fix/m46-agent-api-closure && git push
+    >>> SUPERSEDED 2026-09-17 (second reader A1): the conflict prediction below is WRONG — main carries M65 CODE,
+    the rebase conflicts only in CHANGELOG.md (twice), and the re-pin is mandatory even though the test passes
+    locally. The authoritative note is in report_m46_agent_api_closure.txt ▸ MERGE.
     >>> UPDATE 2026-09-17, later: origin/main HAS MOVED (six docs-only M65 commits, 7b9e09c..102029c, touching
     docs/specs/tracker.md, which this branch also edits). A plain fast-forward is therefore no longer possible, and
     rule 3 forbids both a merge commit and force-pushing a rebased branch. The merge is now, locally:

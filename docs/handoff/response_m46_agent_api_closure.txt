@@ -1,0 +1,56 @@
+AUTHOR'S RESPONSE — M46 agent-API closure, and the branch-wide items
+Date: 2026-09-17 · Answers: review_m46_agent_api_closure.txt (Codex) and
+review_m46_closure_branch_second_reader.txt A1, A4 (Claude). Branch: fix/m46-agent-api-closure.
+The other four responses sit beside their reviews: response_m44_3b…, response_m48_7…, response_m64_spotlight…,
+response_m64_6_multi_spotlight….
+
+F1 (P3, follow-up) — the removed `nodes` echo key: make the compatibility decision explicit; check consumers.
+  DECISION, as the author, for the owner to overrule: REMOVE, NO ALIAS — unchanged, and now said out loud. The
+  CHANGELOG entry (Unreleased ▸ Changed) now states that a reply key is removed deliberately and without an alias,
+  why, and what a client that read it gets instead. An alias would keep the defect: the old name IS the defect.
+  CONSUMERS CHECKED — in THIS repo only: tools/, tools/bench/, docs/skills/, docs/site/ — nothing reads a `nodes`
+  key off an `open` echo (the three grep hits are LangGraph's own `.nodes` and a series expression). The
+  regenerated sample transcript already shows the new keys.
+  NOT CHECKED, and it is the part that matters: consumers OUTSIDE this repo — the playground's vendored skills and
+  any agent transcript or runbook written against 1.13.x. I have no access to verify them. That, and whether a
+  removed key is acceptable in a patch-level release, is the owner's call; it bears directly on A4.
+  No code changed for this finding.
+
+A1 (P2, second reader) — the merge note was out of date, and local green does not prove the re-pin unnecessary.
+  ACCEPTED IN FULL; my note was wrong twice (I called main's new commits "docs-only" from a --stat of the first six,
+  and predicted a tracker.md conflict I never rehearsed). report_m46_agent_api_closure.txt ▸ MERGE is rewritten as
+  the ONE authoritative note for the branch: main is fifteen commits on and carries M65 code; the rehearsed
+  conflicts are CHANGELOG.md twice and nothing else; resolve keep-both and then READ the block (one Unreleased,
+  one tool count — 15); the re-pin is mandatory even though CanonicalSkillsTest passes locally, with the reason
+  (`git show <sha>` still resolves the old object in this clone; CI's clone will not have it), and a two-command
+  check that sees it as CI will. The two older notes (report_m64_spotlight.txt, the brief) are marked SUPERSEDED
+  and point there. I did not rehearse the rebase myself — the conflict list is the second reader's, credited.
+  NOTE FOR THE RE-REVIEW: this round added commits touching CHANGELOG.md in four of five pieces, so the rebase
+  will now conflict in more than two places in that one file. Still one file; still keep-both.
+
+A4 (owner decision) — 1.13.3 by cherry-picking 74a465b first.                          NOT DONE, as instructed.
+  For the owner: I agree with the recommendation. One caveat the recommendation does not mention — 74a465b is not
+  ONLY the one-line `open {analysis}` fix: it also carries the `nodes` key removal (F1 above), the openedBy
+  attribution and the topology label. A 1.13.3 cut from it ships a removed reply key in a patch release. If that
+  is unwelcome, the alternative is a one-line cherry-pick of just the onEdt fix with its test.
+
+WHAT I RAN BEFORE HANDING BACK (on the final tree, all five fix commits applied)
+  See the hand-back commit message for the numbers: mvn test; the brief's display command; mvn package + the three
+  tools/verify-*.py; tools/capture-conversations.py; mkdocs build --strict; the exact CLAUDE.md rule-1 sweep;
+  git config user.email.
+  RESULTS, final tree: mvn test 1598 run, 0 failures, 0 errors, 21 skipped (the display tests; was 1575/19).
+  The brief's display command: 147 run, 0 failures, 0 errors, 0 skipped (was 134). mvn package, then on that jar:
+  verify-m46-agent-api.py 17/17, verify-m48-handoff.py 18/18 (was 12), verify-m64-spotlight.py 73/73 (was 64).
+  tools/capture-conversations.py: all five scenarios completed, five shots. Its output was RESTORED, not
+  committed: the only transcript difference was two JSON keys swapping order ("total"/"visible") — a
+  nondeterministic map order in an echo, worth fixing separately because it makes a generated page's diff noisy,
+  but not a content change; the PNGs differ only as re-renders. tools/test_tools.py: all passed.
+  mkdocs build --strict: passes. The exact CLAUDE.md rule-1 sweep: prints nothing. git config user.email: the
+  personal address.
+  HONEST LIMIT: the five fix commits were each verified with their own targeted tests when made, and the FULL gates
+  were run once, on the final tree — not at each intermediate commit. Commits 638e5a0..af827cd are therefore
+  individually "targeted-green", collectively "fully green".
+DECLINED / DEFERRED ACROSS THE BRANCH, in one place: the `coverage` → `topology:verdict` rename (M64.9, after the
+merge, with M64.8 — no skill is touched on this branch); a socket form to clear the record alone (not asked for);
+arrow routing; shortening GUIDANCE without a held-out run; the add + detail:node end-to-end scenario.
+Everything a person must see remains open and is listed per piece.
