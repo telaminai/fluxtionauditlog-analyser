@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-09-17
+
 ### Added
 - **An AI client can now point.** It could already open, filter, select, draw and screenshot; what it could
   not do was say *"this, here"*. The new `spotlight {target, caption}` action dims the window, cuts one named
